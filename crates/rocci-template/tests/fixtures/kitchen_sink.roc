@@ -5,7 +5,7 @@ import Design
 
 Tone : [Neutral, Positive]
 
-badge = |{ tone }, content| {
+badge = |{ tone ?? Neutral }, content| {
     Html.element(
         "span",
         [
@@ -18,7 +18,7 @@ badge = |{ tone }, content| {
 }
 
 
-hello = |{ name }| {
+hello = |{ name ?? "World" }| {
     Html.element(
         "p",
         [],
@@ -61,6 +61,9 @@ counterPage = |{ person, count }| {
             Html.attribute("id", "counter-page"),
         ],
         [
+            hello(
+                {},
+            ),
             hello(
                 { name: person.name },
             ),

@@ -1,4 +1,6 @@
-use rocci_template::{LowerOptions, OriginKind, SourceFile, compile, format_ast};
+use rocci_template::{
+    LowerOptions, OriginKind, SourceFile, Span, compile, format_ast, parse_component_params,
+};
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
     let out = compile(SourceFile::new("test.rocci", src), &LowerOptions::default());
@@ -28,12 +30,11 @@ fn kitchen_sink_compiles_without_errors() {
     let src = include_str!("fixtures/kitchen_sink.rocci");
     let out = compile_ok(src);
     assert!(out.components.len() >= 5);
-    assert!(
-        out.components
-            .iter()
-            .any(|c| c.name == "badge" && c.body_params == ["content"])
-    );
-    assert!(out.roc.contains("hello = |{ name }|"));
+    assert!(out.components.iter().any(|c| c.name == "badge"
+        && c.body_params == ["content"]
+        && c.param_names == ["tone", "content"]
+        && c.first_param_is_record));
+    assert!(out.roc.contains("hello = |{ name ?? \"World\" }|"));
     assert!(!out.roc.contains("= component"));
     assert_eq!(out.roc, include_str!("fixtures/kitchen_sink.roc"));
 }
@@ -44,13 +45,17 @@ fn lowers_component_call_to_props_record() {
     let out = compile_ok(src);
     assert!(out.roc.contains("hello(\n"));
     assert!(out.roc.contains("{ name: person.name }"));
+    assert!(
+        out.roc
+            .contains("hello(\n                {},\n            )")
+    );
 }
 
 #[test]
 fn lowers_body_argument_and_html_child() {
     let src = include_str!("fixtures/kitchen_sink.rocci");
     let out = compile_ok(src);
-    assert!(out.roc.contains("badge = |{ tone }, content|"));
+    assert!(out.roc.contains("badge = |{ tone ?? Neutral }, content|"));
     assert!(
         out.roc.contains("content,")
             || out.roc.contains("content\n")
@@ -184,6 +189,86 @@ page = component |{}| {
     assert!(!out.roc.contains("Html.text(\"\\n"));
     assert!(out.roc.contains("Html.text(\"a\")"));
     assert!(out.roc.contains("Html.text(\"b\")"));
+}
+
+#[test]
+fn extracts_component_param_names() {
+    let cases: &[(&str, bool, &[&str], &[&str])] = &[
+        ("|{ name }|", true, &["name"], &[]),
+        ("|{ person, count }|", true, &["person", "count"], &[]),
+        (
+            "|{ tone }, content|",
+            true,
+            &["tone", "content"],
+            &["content"],
+        ),
+        ("|{ count: I64 }|", true, &["count"], &[]),
+        ("|{ name ?? \"World\" }|", true, &["name"], &[]),
+        (
+            "|{ tone ?? Neutral }, content|",
+            true,
+            &["tone", "content"],
+            &["content"],
+        ),
+        ("|model|", false, &["model"], &[]),
+        ("|{}|", true, &[], &[]),
+        ("|{ }|", true, &[], &[]),
+    ];
+    for (src, is_record, names, body) in cases {
+        let parsed = parse_component_params(src, Span::new(0, src.len()));
+        assert_eq!(parsed.first_param_is_record, *is_record, "{src}");
+        assert_eq!(parsed.param_names, *names, "{src}");
+        assert_eq!(parsed.body_params, *body, "{src}");
+    }
+}
+
+#[test]
+fn compile_records_param_names_on_components() {
+    let src = r#"
+hello = component |{ name }| {
+    <p>{name}</p>
+}
+badge = component |{ tone }, content| {
+    <span>{content}</span>
+}
+typed = component |{ count: I64 }| {
+    <p>{count.to_str()}</p>
+}
+modelView = component |model| {
+    <p>ok</p>
+}
+empty = component |{}| {
+    <p>empty</p>
+}
+"#;
+    let out = compile_ok(src);
+    let find = |name: &str| {
+        out.components
+            .iter()
+            .find(|c| c.name == name)
+            .unwrap_or_else(|| panic!("missing {name}"))
+    };
+
+    let hello = find("hello");
+    assert_eq!(hello.param_names, ["name"]);
+    assert!(hello.first_param_is_record);
+
+    let badge = find("badge");
+    assert_eq!(badge.param_names, ["tone", "content"]);
+    assert_eq!(badge.body_params, ["content"]);
+    assert!(badge.first_param_is_record);
+
+    let typed = find("typed");
+    assert_eq!(typed.param_names, ["count"]);
+    assert!(typed.first_param_is_record);
+
+    let model = find("modelView");
+    assert_eq!(model.param_names, ["model"]);
+    assert!(!model.first_param_is_record);
+
+    let empty = find("empty");
+    assert!(empty.param_names.is_empty());
+    assert!(empty.first_param_is_record);
 }
 
 #[test]
