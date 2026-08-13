@@ -6,7 +6,9 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
-use rocci_template::{CompileOutput, LowerOptions, SourceFile, compile, format_diagnostic};
+use rocci_template::{
+    CompileOutput, LowerOptions, SourceFile, compile, format_ast, format_diagnostic,
+};
 
 #[derive(Parser)]
 #[command(
@@ -26,8 +28,15 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Show generated Roc, components, and source-map segments.
-    Inspect { input: PathBuf },
+    /// Show generated Roc, components, source-map segments, and optional AST.
+    Inspect {
+        input: PathBuf,
+        /// Also print the parse tree as an S-expression.
+        #[arg(long)]
+        ast: bool,
+    },
+    /// Print the parse tree as a LISPy S-expression.
+    Ast { input: PathBuf },
 }
 
 fn main() -> ExitCode {
@@ -62,40 +71,58 @@ fn run() -> Result<ExitCode, String> {
             }
             Ok(ExitCode::SUCCESS)
         }
-        Commands::Inspect { input } => {
+        Commands::Inspect { input, ast } => {
             let (name, src) = read_input(&input)?;
             let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
             print_diagnostics(&compiled, &name, &src);
-            println!("# components ({})", compiled.components.len());
-            for component in &compiled.components {
-                let body = if component.body_params.is_empty() {
-                    "props".to_string()
-                } else {
-                    format!("props, {}", component.body_params.join(", "))
-                };
-                println!("- {} ({body})", component.name);
-            }
-            println!("\n# generated roc\n{}", compiled.roc);
-            println!("# segments ({})", compiled.segments.len());
-            for segment in &compiled.segments {
-                let (sline, scol) = SourceFile::new(&name, &src).line_col(segment.source.start);
-                println!(
-                    "- generated {}..{} <- {}:{}:{} {} ({})",
-                    segment.generated.start,
-                    segment.generated.end,
-                    name,
-                    sline,
-                    scol,
-                    segment.origin,
-                    snippet(&src, segment.source.start, segment.source.end),
-                );
-            }
+            print_inspect(&compiled, &name, &src, ast);
             Ok(if compiled.has_errors() {
                 ExitCode::from(1)
             } else {
                 ExitCode::SUCCESS
             })
         }
+        Commands::Ast { input } => {
+            let (name, src) = read_input(&input)?;
+            let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
+            print_diagnostics(&compiled, &name, &src);
+            print!("{}", format_ast(&src, &compiled.document));
+            Ok(if compiled.has_errors() {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            })
+        }
+    }
+}
+
+fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
+    println!("# components ({})", compiled.components.len());
+    for component in &compiled.components {
+        let body = if component.body_params.is_empty() {
+            "props".to_string()
+        } else {
+            format!("props, {}", component.body_params.join(", "))
+        };
+        println!("- {} ({body})", component.name);
+    }
+    if ast {
+        println!("\n# ast\n{}", format_ast(src, &compiled.document));
+    }
+    println!("\n# generated roc\n{}", compiled.roc);
+    println!("# segments ({})", compiled.segments.len());
+    for segment in &compiled.segments {
+        let (sline, scol) = SourceFile::new(name, src).line_col(segment.source.start);
+        println!(
+            "- generated {}..{} <- {}:{}:{} {} ({})",
+            segment.generated.start,
+            segment.generated.end,
+            name,
+            sline,
+            scol,
+            segment.origin,
+            snippet(src, segment.source.start, segment.source.end),
+        );
     }
 }
 
