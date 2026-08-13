@@ -10,13 +10,14 @@ members = [
     "crates/rocci",
     "examples/counter",
 ]
+exclude = ["editors/zed"]
 default-members = ["examples/counter"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "A Datastar-first, multi-backend desktop web application runtime built directly on tao and wry"
+description = "A Datastar-first, mu lti-backend desktop web application runtime built directly on tao and wry"
 
 [workspace.dependencies]
 rocci-core = { path = "crates/rocci-core" }

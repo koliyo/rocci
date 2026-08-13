@@ -6,6 +6,7 @@ editors/vscode/node_modules
 editors/vscode/out
 editors/vscode/dist
 editors/vscode/*.vsix
+editors/zed/target
 examples/roc-counter/generated/*.roc
 examples/roc-counter/Counter.roc
 examples/roc-counter/counter.db
