@@ -1,0 +1,48 @@
+[app]
+name = "Roc Datastar"
+identifier = "dev.roc.datastar"
+version = "0.1.0"
+
+[[windows]]
+label = "main"
+title = "Roc Datastar"
+url = "/"
+width = 1040
+height = 760
+min_width = 720
+min_height = 560
+
+[[windows]]
+label = "htmx"
+title = "Roc + htmx"
+url = "/htmx"
+width = 900
+height = 700
+
+[http]
+host = "127.0.0.1"
+port = 0
+
+[security]
+allowed_origins = []
+
+[assets]
+directory = "assets"
+embed = true
+
+[development]
+reload = true
+devtools = true
+
+[bundle]
+package = "roc-datastar"
+binary = "roc-datastar"
+macos_plist = "macos/Info.plist"
+
+[[bundle.resources]]
+from = "assets"
+to = "assets"
+
+[[bundle.resources]]
+from = "backends/python"
+to = "python"

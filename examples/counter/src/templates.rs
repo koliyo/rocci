@@ -29,8 +29,6 @@ pub(crate) fn htmx_counter(count: u64) -> String {
 }
 
 fn render(template: impl Template) -> String {
-    // These templates only write to a String and contain no fallible filters.
-    // Their structure and field access are checked by Askama at compile time.
     template
         .render()
         .expect("rendering a compile-time checked template into String failed")

@@ -6,8 +6,9 @@ Keep the runtime small and separable:
 
 1. **Shell** — tao owns the main-thread event loop and native windows; wry owns
    webviews. Window lifecycle events enter an internal Rust event bus.
-2. **HTTP runtime** — an async Rust server binds an ephemeral loopback port,
-   serves embedded or development assets, and mounts the application's router.
+2. **Backend runtime** — a pluggable backend binds an ephemeral loopback port,
+   serves assets and HTML, and exposes a capability bootstrap URL. Rust/Axum
+   runs in-process; Python demonstrates the managed sidecar contract.
 3. **Hypermedia transport** — handlers return HTML or SSE. The core knows only
    HTTP; optional Rust adapters make Datastar event generation ergonomic.
 4. **Native capabilities** — dialogs, filesystem access, menus, notifications,
@@ -22,20 +23,23 @@ libraries first-class rather than compatibility modes.
 
 ## Phase 1 — turn the POC into a reusable Rust runtime
 
-- Split the crate into `roc-core`, `roc-wry`, `roc-http`, and a CLI, while
+- [x] Split the crate into `roc-core`, `roc-wry`, `roc-http`, and a CLI, while
   keeping a facade crate with a small builder API.
-- Accept an arbitrary Tower `Service`/Axum `Router` and provide lifecycle hooks,
+- [x] Accept an arbitrary Tower `Service`/Axum `Router` and provide lifecycle hooks,
   managed Rust state, graceful shutdown, and structured errors.
-- Add multi-window support with window-scoped sessions and a typed Rust event
+- [x] Add multi-window support with window-scoped sessions and a typed Rust event
   model for tao callbacks.
-- Add development mode with a configurable external frontend/backend URL,
+- [x] Add development mode with a configurable external frontend/backend URL,
   reload, inspector controls, and production asset embedding.
-- Define stable configuration with window, security, asset, and development
+- [x] Define stable configuration with window, security, asset, and development
   profiles. Validate it during builds.
-- Test on macOS, Windows, Linux X11, and Linux Wayland in CI.
+- [ ] Test on macOS, Windows, Linux X11, and Linux Wayland in CI.
 
 Exit criteria: a small Rust application can configure multiple windows, mount
 its own routes, embed assets, and package an unsigned development build.
+Local testing covers the runtime crates and the example; multi-platform CI is
+still outstanding.
+
 
 ## Phase 2 — Datastar-first application ergonomics
 
@@ -90,25 +94,28 @@ and inaccessible to arbitrary local or remote pages.
 Exit criteria: signed sample applications install, update, and uninstall cleanly
 on all supported platforms.
 
-## Phase 5 — ecosystem and additional backends
+## Phase 5 — backend ecosystem
 
-- Stabilize the HTTP contract before adding non-Rust backend sidecars.
-- Specify process startup, readiness, authentication handoff, port negotiation,
-  logging, crash recovery, and shutdown as a language-neutral sidecar protocol.
-- Build one reference non-Rust adapter only after the Rust runtime and security
-  model settle; any HTTP framework should otherwise work unchanged.
+- Stabilize the initial `Backend`/`RunningBackend` API and Python readiness
+  protocol without coupling the shell to either implementation.
+- Extend the implemented startup/readiness/shutdown protocol with structured
+  metadata, crash recovery, health monitoring, and graceful sidecar shutdown.
+- Extract reusable security helpers/specification tests so every language
+  adapter enforces equivalent bootstrap, Host, Origin, and session semantics.
 - Publish templates for Datastar, htmx, and framework-neutral SSR applications,
   plus migration guidance for applications that currently use Tauri commands.
 
-## Deliberate POC limitations
+## Deliberate remaining limitations
 
-- One window and one in-memory counter.
-- Rust/Axum is the only managed backend.
-- No native capabilities beyond the window and webview.
+- The example still ships one shared in-memory counter; Python remains a single
+  process-wide session rather than per-window tokens.
+- Rust/Axum and a standard-library Python sidecar are implemented; sidecar crash
+  recovery and a versioned wire contract are not yet implemented.
+- No native capabilities beyond the window, webview, and application menu.
 - Packaging is currently limited to a local, ad-hoc-signed macOS `.app`; there
   is no production signing, notarization, installer, updating, tray, deep links,
   or persistence.
-- The bootstrap token is long-lived for the process and cookie transport is HTTP
+- The bootstrap token is long-lived for the window and cookie transport is HTTP
   loopback only; production needs the Phase 3 hardening.
 - No SSE replay buffer and only a small bounded broadcast channel.
 - The frontend libraries are vendored snapshots and need a documented update

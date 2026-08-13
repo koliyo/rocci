@@ -1,0 +1,18 @@
+[package]
+name = "roc-http"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Loopback HTTP runtime that wraps a Tower/Axum service with sessions and assets"
+
+[dependencies]
+axum = { workspace = true }
+http = { workspace = true }
+roc-core = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+tower = { workspace = true }

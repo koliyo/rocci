@@ -1,0 +1,17 @@
+[package]
+name = "roc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Builder API for Roc desktop applications"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:roc-wry"]
+
+[dependencies]
+roc-core = { workspace = true }
+roc-http = { workspace = true }
+roc-wry = { workspace = true, optional = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
