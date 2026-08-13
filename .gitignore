@@ -12,3 +12,8 @@ examples/roc-counter/counter.db
 examples/roc-counter/counter.db-*
 examples/roc-counter/assets/datastar.js
 examples/roc-counter/assets/app.css
+examples/roc-snake/generated/*.roc
+examples/roc-snake/Snake.roc
+examples/roc-snake/snake.db
+examples/roc-snake/snake.db-*
+examples/roc-snake/assets/datastar.js

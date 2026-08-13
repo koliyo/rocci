@@ -1,0 +1,113 @@
+import Html
+
+keydown_handler = "(evt.key.startsWith('Arrow')&&evt.preventDefault());(evt.key==='ArrowUp'||evt.key==='w'||evt.key==='W')&&@post('/api/dir?d=up');(evt.key==='ArrowDown'||evt.key==='s'||evt.key==='S')&&@post('/api/dir?d=down');(evt.key==='ArrowLeft'||evt.key==='a'||evt.key==='A')&&@post('/api/dir?d=left');(evt.key==='ArrowRight'||evt.key==='d'||evt.key==='D')&&@post('/api/dir?d=right')"
+
+lobbyPage = component |{ player_count_str, full }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Rocci Snake</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+        </head>
+        <body>
+            <main class="lobby">
+                <nav>
+                    <strong>ROC</strong>
+                    <span>Roc · basic-webserver · Datastar</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">Shared multiplayer on a 100×100 grid</p>
+                    <h1>Snake.</h1>
+                    <p class="lede">Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD or arrows to steer. Minimap shows everyone.</p>
+                </header>
+                <p class="count">{player_count_str} in the game, 8 max.</p>
+                <div class="actions">
+                    <a class="button secondary" href="/play">Spectate</a>
+                    @if full {
+                        <p class="count">Game full — spectate instead.</p>
+                    } @else {
+                        <form method="post" action="/api/join">
+                            <button type="submit">Join game</button>
+                        </form>
+                    }
+                </div>
+            </main>
+        </body>
+    </html>
+}
+
+board = component |{ cells }| {
+    <div id="board" class="board">
+        @for cell in cells {
+            <i class={cell.class}></i>
+        }
+    </div>
+}
+
+miniMap = component |{ marks }| {
+    <div id="minimap" class="minimap">
+        @for mark in marks {
+            <i class={mark.class} style={mark.style}></i>
+        }
+    </div>
+}
+
+statusHud = component |{ info }| {
+    <aside id="hud" class="hud">
+        <p class="eyebrow">{info.role}</p>
+        <p class="cam">{info.cam}</p>
+        @if info.respawning {
+            <p class="overlay">Respawning in {info.respawn_str}</p>
+        }
+        <ul>
+            @for player in info.players {
+                <li class={player.row_class}>
+                    <span class={player.swatch_class}></span>
+                    <span>{player.label}</span>
+                    <span class="score">{player.score_str}</span>
+                </li>
+            }
+        </ul>
+        @if info.can_leave {
+            <form method="post" action="/api/leave">
+                <button class="secondary" type="submit">Leave</button>
+            </form>
+        } @else {
+            <a class="button secondary" href="/">Back</a>
+        }
+    </aside>
+}
+
+playPage = component |{ cells, info, marks }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Rocci Snake</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body data-init="@get('/sse')" data-on:keydown__window={keydown_handler}>
+            <main class="play">
+                <nav>
+                    <strong>ROC</strong>
+                    <span>100×100 · 8 ticks/s</span>
+                </nav>
+                <Board cells={cells} />
+                <div class="side">
+                    <MiniMap marks={marks} />
+                    <StatusHud info={info} />
+                </div>
+            </main>
+        </body>
+    </html>
+}
+
+gamePatch = component |{ cells, info, marks }| {
+    <>
+        <Board cells={cells} />
+        <MiniMap marks={marks} />
+        <StatusHud info={info} />
+    </>
+}
