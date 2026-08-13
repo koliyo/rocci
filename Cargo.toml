@@ -1,0 +1,35 @@
+[package]
+name = "roc-datastar"
+version = "0.1.0"
+edition = "2024"
+description = "A Datastar-first Rust desktop web application proof of concept built directly on tao and wry"
+license = "MIT OR Apache-2.0"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:muda", "dep:tao", "dep:wry"]
+
+[dependencies]
+anyhow = "1.0"
+async-stream = "0.3"
+askama = "0.16"
+axum = "0.8"
+datastar = { version = "0.3", features = ["axum"] }
+futures-util = "0.3"
+http = "1.3"
+muda = { version = "0.19.2", optional = true }
+tao = { version = "0.35", optional = true }
+tokio = { version = "1.47", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.18", features = ["v4"] }
+wry = { version = "0.55", optional = true }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+
+[profile.release]
+lto = "thin"
+strip = true
