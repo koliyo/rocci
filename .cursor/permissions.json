@@ -1,0 +1,8 @@
+{
+  "autoRun": {
+    "allow_instructions": [
+      "Allow Fetch and WebFetch of documentation, source, releases, and raw files from github.com, api.github.com, raw.githubusercontent.com, gist.github.com, and *.github.io.",
+      "Allow Fetch of Roc, Datastar, Rust, Tauri, htmx, templ, MDN, Python, VS Code, Vue, Astro, Svelte, React, and TypeScript docs from roc-lang.org, data-star.dev, docs.rs, crates.io, rust-lang.org, tokio.rs, tauri.app, htmx.org, templ.guide, developer.mozilla.org, docs.python.org, code.visualstudio.com, vuejs.org, docs.astro.build, svelte.dev, react.dev, and typescriptlang.org."
+    ]
+  }
+}
