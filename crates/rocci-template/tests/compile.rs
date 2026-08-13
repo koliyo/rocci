@@ -1,4 +1,4 @@
-use rocci_template::{LowerOptions, OriginKind, SourceFile, compile};
+use rocci_template::{LowerOptions, OriginKind, SourceFile, compile, format_ast};
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
     let out = compile(SourceFile::new("test.rocci", src), &LowerOptions::default());
@@ -195,4 +195,26 @@ fn package_has_no_runtime_dependencies() {
             "rocci-template must not depend on {forbidden}"
         );
     }
+}
+
+#[test]
+fn formats_lisp_ast() {
+    let src = r#"
+hello = component |{ name }| {
+    <p class="greeting">Hello, {name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert_eq!(
+        ast,
+        r#"(module
+  (component hello
+    (params "|{ name }|")
+    (element p
+      (attr class "greeting")
+      (text "Hello, ")
+      (interp name))))
+"#
+    );
 }

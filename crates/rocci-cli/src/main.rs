@@ -7,7 +7,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use rocci_core::Config;
-use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
+use rocci_template::{LowerOptions, SourceFile, compile, format_ast, format_diagnostic};
 
 #[derive(Parser)]
 #[command(name = "rocci", about = "Rocci desktop runtime and template tooling")]
@@ -34,8 +34,15 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Show generated Roc, components, and source-map segments for a .rocci file.
-    Inspect { input: PathBuf },
+    /// Show generated Roc, components, source-map segments, and optional AST.
+    Inspect {
+        input: PathBuf,
+        /// Also print the parse tree as an S-expression.
+        #[arg(long)]
+        ast: bool,
+    },
+    /// Print a .rocci parse tree as a LISPy S-expression.
+    Ast { input: PathBuf },
 }
 
 fn main() -> Result<()> {
@@ -43,7 +50,8 @@ fn main() -> Result<()> {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle(&config),
         Commands::Compile { input, output } => compile_rocci(&input, output.as_deref()),
-        Commands::Inspect { input } => inspect_rocci(&input),
+        Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
+        Commands::Ast { input } => ast_rocci(&input),
     }
 }
 
@@ -69,7 +77,23 @@ fn compile_rocci(input: &Path, output: Option<&Path>) -> Result<()> {
     Ok(())
 }
 
-fn inspect_rocci(input: &Path) -> Result<()> {
+fn ast_rocci(input: &Path) -> Result<()> {
+    let src =
+        fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
+    let name = input.display().to_string();
+    let source = SourceFile::new(&name, &src);
+    let compiled = compile(source, &LowerOptions::default());
+    for diagnostic in &compiled.diagnostics {
+        eprintln!("{}", format_diagnostic(source, diagnostic));
+    }
+    print!("{}", format_ast(&src, &compiled.document));
+    if compiled.has_errors() {
+        bail!("template compilation failed");
+    }
+    Ok(())
+}
+
+fn inspect_rocci(input: &Path, ast: bool) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -86,6 +110,9 @@ fn inspect_rocci(input: &Path) -> Result<()> {
             format!("props, {}", component.body_params.join(", "))
         };
         println!("- {} ({body})", component.name);
+    }
+    if ast {
+        println!("\n# ast\n{}", format_ast(&src, &compiled.document));
     }
     println!("\n# generated roc\n{}", compiled.roc);
     println!("# segments ({})", compiled.segments.len());

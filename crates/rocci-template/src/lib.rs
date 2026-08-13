@@ -8,6 +8,7 @@ mod diagnostic;
 mod lexer;
 mod lower;
 mod parser;
+mod pprint;
 mod resolve;
 mod source_map;
 mod span;
@@ -21,6 +22,7 @@ pub use ast::{
 pub use diagnostic::{Diagnostic, Severity};
 pub use lower::{ComponentInfo, LowerOptions, LoweredModule};
 pub use parser::ParseOutput;
+pub use pprint::format_ast;
 pub use source_map::{OriginKind, Segment};
 pub use span::{SourceFile, Span};
 
