@@ -266,17 +266,9 @@ impl<'a> Emitter<'a> {
                 }
                 AttrValue::Expr { expr } => {
                     let expr_text = expr.of(self.src).trim();
-                    if expr_text == attr.name.name {
-                        self.emit_mapped(
-                            &attr.name.name,
-                            attr.name.span,
-                            OriginKind::AttributeExpression,
-                        );
-                    } else {
-                        self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
-                        self.emit(": ");
-                        self.emit_mapped(expr_text, *expr, OriginKind::AttributeExpression);
-                    }
+                    self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
+                    self.emit(": ");
+                    self.emit_mapped(expr_text, *expr, OriginKind::AttributeExpression);
                 }
                 AttrValue::Boolean => {
                     self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);

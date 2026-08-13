@@ -65,7 +65,7 @@ counterPage = |{ person, count }| {
                 { name: person.name },
             ),
             counterCard(
-                { count },
+                { count: count },
             ),
         ],
     )
@@ -78,7 +78,7 @@ todoList = |{ items, state }| {
             {},
         )
         Failed(message) => errorNotice(
-            { message },
+            { message: message },
         )
         Ready => if List.isEmpty(items) {
             emptyState(
@@ -90,7 +90,7 @@ todoList = |{ items, state }| {
                 [],
                 List.map(items, |item| {
                     todoRow(
-                        { item },
+                        { item: item },
                     )
                 }),
             )
@@ -121,7 +121,7 @@ filteredList = |{ items, query }| {
 
     if List.isEmpty(visible) {
         emptyState(
-            { query },
+            { query: query },
         )
     } else {
         itemList(
@@ -137,10 +137,10 @@ requestState = |{ state, active }| {
             {},
         )
         Failed({ message }) => errorNotice(
-            { message },
+            { message: message },
         )
         Ready(items) if !List.isEmpty(items) => itemList(
-            { items },
+            { items: items },
         )
         Ready(_) => Html.fragment(
             [
@@ -192,7 +192,7 @@ statusMatch = |{ pair }| {
             {},
         )
         { status: Ready } => itemList(
-            { items },
+            { items: items },
         )
     }
 }
