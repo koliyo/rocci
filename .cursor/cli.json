@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(github.com)",
+      "WebFetch(*.github.com)",
+      "WebFetch(*.githubusercontent.com)",
+      "WebFetch(*.github.io)",
+      "WebFetch(roc-lang.org)",
+      "WebFetch(*.roc-lang.org)",
+      "WebFetch(data-star.dev)",
+      "WebFetch(*.data-star.dev)",
+      "WebFetch(docs.rs)",
+      "WebFetch(crates.io)",
+      "WebFetch(rust-lang.org)",
+      "WebFetch(*.rust-lang.org)",
+      "WebFetch(tokio.rs)",
+      "WebFetch(*.tokio.rs)",
+      "WebFetch(tauri.app)",
+      "WebFetch(*.tauri.app)",
+      "WebFetch(htmx.org)",
+      "WebFetch(*.htmx.org)",
+      "WebFetch(templ.guide)",
+      "WebFetch(*.templ.guide)",
+      "WebFetch(developer.mozilla.org)",
+      "WebFetch(docs.python.org)",
+      "WebFetch(code.visualstudio.com)",
+      "WebFetch(vuejs.org)",
+      "WebFetch(*.vuejs.org)",
+      "WebFetch(docs.astro.build)",
+      "WebFetch(svelte.dev)",
+      "WebFetch(*.svelte.dev)",
+      "WebFetch(react.dev)",
+      "WebFetch(www.typescriptlang.org)"
+    ],
+    "deny": []
+  }
+}
