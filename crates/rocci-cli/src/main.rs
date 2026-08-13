@@ -7,9 +7,10 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use rocci_core::Config;
+use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
 
 #[derive(Parser)]
-#[command(name = "rocci", about = "Rocci desktop runtime tooling")]
+#[command(name = "rocci", about = "Rocci desktop runtime and template tooling")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -27,13 +28,78 @@ enum Commands {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
     },
+    /// Lower a .rocci module to ordinary Roc.
+    Compile {
+        input: PathBuf,
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Show generated Roc, components, and source-map segments for a .rocci file.
+    Inspect { input: PathBuf },
 }
 
 fn main() -> Result<()> {
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle(&config),
+        Commands::Compile { input, output } => compile_rocci(&input, output.as_deref()),
+        Commands::Inspect { input } => inspect_rocci(&input),
     }
+}
+
+fn compile_rocci(input: &Path, output: Option<&Path>) -> Result<()> {
+    let src =
+        fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
+    let name = input.display().to_string();
+    let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
+    for diagnostic in &compiled.diagnostics {
+        eprintln!(
+            "{}",
+            format_diagnostic(SourceFile::new(&name, &src), diagnostic)
+        );
+    }
+    if compiled.has_errors() {
+        bail!("template compilation failed");
+    }
+    match output {
+        Some(path) => fs::write(path, compiled.roc)
+            .with_context(|| format!("failed to write {}", path.display()))?,
+        None => print!("{}", compiled.roc),
+    }
+    Ok(())
+}
+
+fn inspect_rocci(input: &Path) -> Result<()> {
+    let src =
+        fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
+    let name = input.display().to_string();
+    let source = SourceFile::new(&name, &src);
+    let compiled = compile(source, &LowerOptions::default());
+    for diagnostic in &compiled.diagnostics {
+        eprintln!("{}", format_diagnostic(source, diagnostic));
+    }
+    println!("# components ({})", compiled.components.len());
+    for component in &compiled.components {
+        let body = if component.body_params.is_empty() {
+            "props".to_string()
+        } else {
+            format!("props, {}", component.body_params.join(", "))
+        };
+        println!("- {} ({body})", component.name);
+    }
+    println!("\n# generated roc\n{}", compiled.roc);
+    println!("# segments ({})", compiled.segments.len());
+    for segment in &compiled.segments {
+        let (line, col) = source.line_col(segment.source.start);
+        println!(
+            "- generated {}..{} <- {name}:{line}:{col} {}",
+            segment.generated.start, segment.generated.end, segment.origin
+        );
+    }
+    if compiled.has_errors() {
+        bail!("template compilation failed");
+    }
+    Ok(())
 }
 
 fn validate(path: &Path) -> Result<()> {

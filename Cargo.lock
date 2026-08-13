@@ -2267,6 +2267,7 @@ dependencies = [
  "anyhow",
  "clap",
  "rocci-core",
+ "rocci-template",
 ]
 
 [[package]]
@@ -2292,6 +2293,13 @@ dependencies = [
  "tokio-util",
  "tower",
  "tracing",
+]
+
+[[package]]
+name = "rocci-template"
+version = "0.1.0"
+dependencies = [
+ "clap",
 ]
 
 [[package]]

@@ -5,6 +5,7 @@ members = [
     "crates/rocci-http",
     "crates/rocci-wry",
     "crates/rocci-cli",
+    "crates/rocci-template",
     "crates/rocci",
     "examples/counter",
 ]
@@ -20,6 +21,7 @@ description = "A Datastar-first, multi-backend desktop web application runtime b
 rocci-core = { path = "crates/rocci-core" }
 rocci-http = { path = "crates/rocci-http" }
 rocci-wry = { path = "crates/rocci-wry" }
+rocci-template = { path = "crates/rocci-template" }
 rocci = { path = "crates/rocci" }
 anyhow = "1.0"
 async-stream = "0.3"

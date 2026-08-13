@@ -3,7 +3,7 @@ name = "rocci-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Command-line interface for validating Rocci configuration and packaging development builds"
+description = "Command-line interface for Rocci configuration, packaging, and .rocci template compilation"
 
 [[bin]]
 name = "rocci"
@@ -13,3 +13,4 @@ path = "src/main.rs"
 anyhow = { workspace = true }
 clap = { workspace = true }
 rocci-core = { workspace = true }
+rocci-template = { workspace = true }
