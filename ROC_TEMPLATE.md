@@ -625,8 +625,11 @@ An illustrative grammar is:
 
 ```text
 ComponentDecl  ::= RocName "=" "component" RocParams TemplateBlock
+StyleDecl      ::= RocName "=" "styles" "module" CssBlock
+                 | "styles" "global" CssBlock
 
 TemplateBlock  ::= "{" TemplateItem* "}"
+CssBlock       ::= "{" CssTokens "}"
 
 TemplateItem   ::= Element
                  | ComponentCall
@@ -1722,12 +1725,272 @@ The recommended bounded control-flow grammar is specified in [Recommended: expli
 
 ## Styles
 
-Template compilation and CSS extraction are related authoring concerns but should not make the package own asset serving. Two viable v1 choices are:
+CSS colocation is useful, but it must not turn render components into runtime instances. Styles should compile to static artifacts and ordinary HTML attributes. `rocci-template` may parse, validate, rewrite, and return CSS; a caller remains responsible for writing, bundling, serving, and linking it.
 
-1. keep CSS in ordinary external files and let the application/bundler own them; or
-2. let the template parser recognize an optional module-level style block and return it as an extracted artifact.
+### Design goals
 
-If style blocks are supported, `rocci-template` returns their content and source maps. A caller decides where to write, hash, bundle, and serve the CSS. Scoped-CSS rewriting is deferred because it changes selectors and interacts with composed patch boundaries.
+Embedded CSS should:
+
+- support several independently styled components in one `.rocci` module;
+- produce no per-render `<style>` elements and no runtime style registry;
+- preserve the normal CSS cascade, media queries, custom properties, pseudo-classes, and animations;
+- make local versus global effects visible in source;
+- generate stable output from source identity and content, not build order;
+- source-map CSS diagnostics to the `.rocci` file;
+- avoid silently styling a child component's private markup;
+- allow external stylesheets and design-system classes alongside embedded CSS.
+
+### Alternative 1: one module-level global block
+
+The smallest syntax is an extracted CSS block applying to the entire document:
+
+```rocci
+styles global {
+    :root {
+        --space-unit: 0.25rem;
+    }
+
+    .counter-panel {
+        display: grid;
+        gap: calc(var(--space-unit) * 2);
+    }
+}
+
+counterPanel = component |{ count }| {
+    <section class="counter-panel">
+        <output>{count.to_str()}</output>
+    </section>
+}
+```
+
+This is easy to parse and exactly preserves CSS semantics. It works well for resets, tokens, typography, layouts, and small applications using BEM-like names. Its downside is equally clear: every selector is global and collisions are detected only by convention. The word `global` should therefore be mandatory rather than making an unmarked block global accidentally.
+
+Only one `styles global` block should be allowed per module in v1. Multiple files may contribute global artifacts; the bundler defines their deterministic cascade order from the application import graph and reports cycles or ambiguous ordering.
+
+### Alternative 2: CSS Modules as typed Roc records
+
+The most Roc-like local-style model is an explicitly named CSS module:
+
+```rocci
+counterStyles = styles module {
+    .root {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    .count {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .danger {
+        color: var(--danger-color);
+    }
+}
+
+counterPanel = component |{ count, isDangerous }| {
+    <section class={counterStyles.root}>
+        <output class={if isDangerous {
+            Css.classes([counterStyles.count, counterStyles.danger])
+        } else {
+            counterStyles.count
+        }}>
+            {count.to_str()}
+        </output>
+    </section>
+}
+```
+
+The conditional above is illustrative; ordinary Roc should ideally construct the class list outside markup, or the template grammar can support a small class-list attribute form. The important semantic model is that the style declaration generates an ordinary Roc value resembling:
+
+```roc
+counterStyles = {
+    root: "root_r7s3m",
+    count: "count_r7s3m",
+    danger: "danger_r7s3m",
+}
+```
+
+and extracted CSS resembling:
+
+```css
+.root_r7s3m { display: grid; gap: 0.5rem; }
+.count_r7s3m { font-variant-numeric: tabular-nums; }
+.danger_r7s3m { color: var(--danger-color); }
+```
+
+The Roc compiler then catches `counterStyles.cout` as a missing record field. No component-style association is inferred: one style record can be shared by several local components, and a component can consume several style records. This matches the general Rocci rule that explicit values compose better than component-instance metadata.
+
+Recommended v1 restrictions keep the generated record predictable:
+
+- exported local class selectors must be one Roc-compatible lower-camel identifier such as `.resetButton`;
+- hashes derive from the stable package/module identity, style declaration name, and compiler format version—not an absolute filesystem path or build order;
+- every local class is rewritten consistently inside compound selectors and media/container rules;
+- local IDs are rejected initially because IDs represent document identity, not reusable presentation;
+- `composes`, Sass/Less, arbitrary CSS-module export values, and tree-shaking unused selectors are deferred;
+- `:global(selector)` is the explicit escape for a selector portion which must not be renamed;
+- classes referenced only through dynamic strings are unsupported; use the generated record.
+
+This approach changes class selectors but does not need to inject a scope attribute into every DOM element. It preserves component boundaries naturally: a parent's class affects a child only when the parent explicitly passes that class as a prop and the child places it on an element.
+
+### Alternative 3: automatically scoped component styles
+
+Vue, Svelte, and Astro commonly scope selectors by adding generated attributes or classes to the template and rewriting selectors. A Rocci spelling could explicitly associate a block with a component:
+
+```rocci
+styles scoped counterPanel {
+    .root > output {
+        font-weight: 700;
+    }
+}
+
+counterPanel = component |{ count }| {
+    <section class="root">
+        <output>{count.to_str()}</output>
+    </section>
+}
+```
+
+Conceptually this could become:
+
+```html
+<section class="root" data-rocci-s="r7s3m">
+    <output data-rocci-s="r7s3m">...</output>
+</section>
+```
+
+```css
+.root:where([data-rocci-s~="r7s3m"]) >
+output:where([data-rocci-s~="r7s3m"]) {
+    font-weight: 700;
+}
+```
+
+This is convenient but has more semantic machinery than CSS Modules:
+
+- the compiler must define lexical ownership for intrinsic nodes, fragments, passed bodies, and raw HTML;
+- a component call has no guaranteed DOM root on which to place the parent's scope;
+- parent layout styling of a child root needs attribute forwarding or an explicit class prop;
+- selector rewriting must handle `:is`, `:where`, `:not`, pseudo-elements, nesting, at-rules, and keyframes with a real CSS parser;
+- recursive components and deep descendant selectors can cross boundaries surprisingly;
+- generated scope selectors can alter specificity unless `:where(...)` or an equivalent strategy is specified carefully.
+
+If introduced later, scope should apply only to intrinsic markup lexically authored in that component. Child component internals should not receive the parent's scope. Content authored by a caller retains the caller's scope even when passed as a body value. `:global(...)` and perhaps `:deep(...)` would need explicit definitions. These rules are feasible, but they are too large for the first POC.
+
+### Alternative 4: CSS nested inside a component declaration
+
+A Vue-like spelling could put a non-rendering directive in the body:
+
+```rocci
+counterPanel = component |{ count }| {
+    @styles module counterStyles {
+        .root { display: grid; }
+    }
+
+    <section class={counterStyles.root}>{count.to_str()}</section>
+}
+```
+
+This provides tight visual colocation but creates a new declaration scope inside the template grammar, complicates the “template block produces `Html`” rule, and makes sharing styles across sibling components awkward. Because `.rocci` already permits multiple nearby top-level declarations, a named top-level `styles module` value gives nearly the same locality with simpler semantics. Nested style declarations should be rejected.
+
+Literal HTML `<style>` remains available only when the author intentionally wants a rendered style element, for example a generated standalone document. It is not the mechanism for component styling and should be rejected inside patchable fragments by default to prevent repeated insertion and Content Security Policy complications.
+
+### Alternative 5: inline style attributes and dynamic values
+
+Static inline declarations need no new syntax:
+
+```rocci
+<div style="display: grid; gap: 0.5rem">...</div>
+```
+
+Dynamic styles should not be assembled by concatenating arbitrary strings. A typed helper can serialize an allowlisted property record:
+
+```rocci
+<progress
+    style={Css.inline({
+        inlineSize: Css.percent(progress),
+        accentColor: theme.accent,
+    })}
+/>
+```
+
+For values shared across several declarations or pseudo-state rules, CSS custom properties are the better bridge:
+
+```rocci
+meterStyles = styles module {
+    .root {
+        color: var(--meter-color);
+    }
+
+    .root:hover {
+        outline-color: var(--meter-color);
+    }
+}
+
+meter = component |{ color, value }| {
+    <div
+        class={meterStyles.root}
+        style={Css.vars({ meterColor: color })}
+    >
+        {value.to_str()}
+    </div>
+}
+```
+
+`Css.vars` should generate escaped custom-property declarations and map `meterColor` deterministically to `--meter-color`. Values should use CSS value types or an explicitly trusted escape rather than accept arbitrary raw CSS. Unlike Vue's reactive CSS binding, Roc simply emits the current variable value during each server render; Datastar's DOM morph updates the attribute.
+
+### Alternative 6: external CSS and utility classes
+
+External stylesheets remain first-class:
+
+```rocci
+import styles "./counter.css"
+
+counterPanel = component |{ count }| {
+    <section class="counter-panel">{count.to_str()}</section>
+}
+```
+
+The exact import syntax should follow Rocci's eventual asset/module grammar rather than pretend to be an ordinary Roc import. It can either register a global stylesheet artifact or import a CSS-module record. Utility-class systems require no template feature beyond static and constructed class attributes, although build tooling may scan the template AST to discover literal classes.
+
+External files are preferable for global design systems, generated framework CSS, large shared stylesheets, and editor workflows where CSS has independent ownership. Embedded modules are preferable for small styles tightly coupled to a few colocated render functions.
+
+### Extraction and delivery contract
+
+`rocci-template` should return style artifacts as data, for example:
+
+```text
+StyleArtifact {
+    source_range
+    kind: Global | Module
+    logical_name
+    css
+    class_exports
+    source_map
+    dependencies
+}
+```
+
+It must not write assets, decide public URLs, inject styles into running pages, or retain which components have mounted. The caller/bundler should:
+
+1. collect artifacts reachable from the application module graph;
+2. order global CSS deterministically and deduplicate module artifacts by identity;
+3. validate CSS and rewrite module selectors with a standards-aware CSS parser;
+4. produce content-hashed production assets and a CSS manifest;
+5. insert one stylesheet link into complete documents;
+6. use a stable development URL or full reload when CSS changes.
+
+An HTML fragment patch should never carry the component CSS again. This keeps CSP straightforward, avoids duplicate rules, and allows browser caching.
+
+### Recommendation and POC scope
+
+Use two explicit style categories:
+
+1. `styles global { ... }` for deliberate document-wide CSS.
+2. `name = styles module { ... }` for local classes exposed as a typed Roc record.
+
+CSS Modules should be the default recommendation for component-local styling. They fit Roc's explicit value model, do not depend on a component lifecycle or single-root element, and work naturally when several components share one `.rocci` file.
+
+For the first POC, implement only a single named `styles module` block, basic local class selectors, deterministic hashing, extraction, a generated class record, source-mapped CSS parse errors, and one production/development stylesheet link. Keep global blocks as a small follow-up if needed for the demo reset. Defer automatic scoped attributes, `:deep`, CSS preprocessors, composition, CSS tree shaking, critical-CSS inlining, and CSS-only hot replacement.
 
 ## Dedicated implementation package
 
@@ -1910,7 +2173,7 @@ Before freezing the grammar:
 9. Should self-closing calls to two-argument components fail through ordinary Roc arity checking, or should the compiler synthesize an empty body after consulting component metadata?
 10. Are named `Html` and function props sufficient, or is a slot-record plus `<Fill>` syntax important enough for v1?
 11. Which URL attributes require dedicated value types or validation?
-12. Should v1 support an extracted style block or require external CSS?
+12. Should the first stable release include both recommended style categories, or graduate typed CSS Modules before explicit global blocks?
 13. How should the formatter handle multiline Roc regions and directive indentation?
 14. What stable debug representation should `rocci inspect` expose for generated modules and segment maps?
 15. Should tagged HTML literals replace explicit component declarations if the parser spike confirms that mixed-expression recovery remains bounded?
@@ -1925,6 +2188,8 @@ Run the tagged-literal spike before permanently freezing the declaration syntax.
 
 Keep generated render functions pure, use HTML tags for direct typed function calls, and let records provide named props. Represent one nested body as an explicit second function argument with an arbitrary local name; represent named and scoped content as ordinary `Html` and function-valued props. Keep runtime state, routes, HTTP, Datastar, process management, filesystem writes, and Roc toolchain execution outside the package.
 
+For colocated styling, use named `styles module` declarations which generate typed records of hashed class names. Support explicitly marked `styles global` blocks for document-wide rules. Extract both as build artifacts; do not inject styles per render or make style presence depend on component instances. Keep automatic attribute-scoped CSS out of the first POC.
+
 This boundary allows the language to evolve and be tested independently while preventing a convenient template syntax from turning into a second application runtime.
 
 ## Primary sources
@@ -1936,7 +2201,11 @@ This boundary allows the language to evolve and be tested independently while pr
 - templ, [Switch](https://templ.guide/syntax-and-usage/switch/)
 - templ, [For loops](https://templ.guide/syntax-and-usage/loops/)
 - Vue, [Slots](https://vuejs.org/guide/components/slots.html)
+- Vue, [SFC CSS features](https://vuejs.org/api/sfc-css-features)
 - Astro, [Components and slots](https://docs.astro.build/en/basics/astro-components/#slots)
+- Astro, [Styles and CSS](https://docs.astro.build/en/guides/styling/)
+- CSS Modules, [project documentation](https://github.com/css-modules/css-modules)
+- W3C, [CSS Syntax Module Level 3](https://www.w3.org/TR/css-syntax-3/)
 - MDN, [`<slot>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot)
 - Svelte, [Svelte 5 migration guide: snippets instead of slots](https://svelte.dev/docs/svelte/v5-migration-guide#Snippets-instead-of-slots)
 - React, [`Children` and alternatives](https://react.dev/reference/react/Children)

@@ -99,12 +99,11 @@ fn run() -> Result<ExitCode, String> {
 fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
     println!("# components ({})", compiled.components.len());
     for component in &compiled.components {
-        let body = if component.body_params.is_empty() {
-            "props".to_string()
-        } else {
-            format!("props, {}", component.body_params.join(", "))
-        };
-        println!("- {} ({body})", component.name);
+        println!(
+            "- {} ({})",
+            component.name,
+            component.param_names.join(", ")
+        );
     }
     if ast {
         println!("\n# ast\n{}", format_ast(src, &compiled.document));

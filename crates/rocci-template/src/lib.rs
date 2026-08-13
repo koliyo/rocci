@@ -17,7 +17,8 @@ mod validate;
 pub use ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, ForDirective,
     Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm, MatchDirective,
-    ModuleItem, TemplateBlock, TemplateItem, TextNode,
+    ModuleItem, ParsedParams, TemplateBlock, TemplateItem, TextNode, parse_component_params,
+    strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, Severity};
 pub use lower::{ComponentInfo, LowerOptions, LoweredModule};

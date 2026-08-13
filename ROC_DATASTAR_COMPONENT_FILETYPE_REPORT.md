@@ -20,7 +20,7 @@ The most important findings are:
 4. **The template compiler is moderate work; excellent editor tooling is the expensive part.** Parsing and generating Roc are tractable. Correct source maps, mixed-language type diagnostics, completions, navigation, rename, and formatting require a composite language server and virtual documents.
 5. **Do not fork Roc for the first implementation.** Keep parsing and lowering in a dedicated `rocci-template` package, consume the normal `roc` command/LSP through separate orchestration, and only propose upstream compiler hooks after the format has proven itself.
 
-The recommended path is a narrow vertical slice first: one page and one patch boundary composed from a few stateless render components, escaped interpolation, explicit routes, full-page and fragment rendering, one-shot Datastar patches, compiler diagnostic remapping, and backend restart on save. Defer dynamic components, rich slot APIs, scoped CSS, template-only hot replacement, and sophisticated template expressions.
+The recommended path is a narrow vertical slice first: one page and one patch boundary composed from a few stateless render components, escaped interpolation, explicit routes, full-page and fragment rendering, one-shot Datastar patches, compiler diagnostic remapping, one extracted CSS Module, and backend restart on save. Defer dynamic components, rich slot APIs, automatic attribute-scoped CSS, CSS preprocessors, template-only hot replacement, and sophisticated template expressions.
 
 One refinement is important before fixing the file format: **do not equate one file with one component**. A `.rocci` file should be a Roc module which may contain several small render components, ordinary Roc declarations, and—when useful—one page or application definition. This preserves the colocation benefit of Vue SFCs without inheriting their one-component-per-file pressure. A templ-inspired embedded HTML form is a better fit for that goal than a single top-level `<template>` block.
 
@@ -635,12 +635,13 @@ Estimates below are order-of-magnitude for engineers already comfortable with co
 - Create `rocci-template` with no runtime, HTTP, process, or filesystem-policy dependencies.
 - Parse a narrow `.rocci` module containing ordinary Roc, multiple pure component declarations, and explicit route values as described in [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
 - Return generated Roc, segment maps, optional styles, and structured diagnostics as data.
+- Extract one named CSS Module, generate a typed record of hashed class names, and source-map CSS parse errors.
 - Generate the application entry point outside `rocci-template`.
 - Render a complete initial document and an `outer` fat morph for one stable-ID component boundary.
 - Consume the package's segment maps to remap `roc check` diagnostics.
 - Add `rocci check`, `build`, and `inspect`.
 
-**Exit criterion:** a single-file `Counter.rocci` using explicit request handlers builds and runs, preserves unchanged DOM state across a fat morph, and reports a wrong model field at the template location.
+**Exit criterion:** a single-file `Counter.rocci` using explicit request handlers and a local CSS Module builds and runs, preserves unchanged DOM state across a fat morph, and reports wrong template fields and malformed CSS at their source locations.
 
 ### Phase 2 — usable backend framework (6–10 engineer-weeks)
 
@@ -695,10 +696,11 @@ The first implementation should answer the riskiest questions with the smallest 
 6. In the explicit POST handler, require the full server sequence: decode, authorize, mutate durable state, reload canonical state, render, and return one `outer` patch. Open two windows in the integration test so a hidden per-component model cannot accidentally pass.
 7. Add a minimal `Server.mvu` adapter using `Msg := [Increment, Reset]`, `load!`, `handle!`, `view`, and `patch`. Run the same counter behavior through it, but implement it on the explicit handler pipeline rather than adding another scheduler or state store.
 8. Keep the same `counterPanel` template callable from both flows. This is the acceptance test that template compilation is independent of application architecture.
-9. Generate page/program entry points outside `rocci-template`; it must neither recognize handlers nor depend on the chosen flow package.
-10. Make a deliberate Roc type error in a generated template expression and require the CLI to map it through the package-provided segment map.
-11. Unit-test the view without HTTP, test any pure decision function without HTML, and integration-test each selected flow through HTTP and Datastar patch output.
-12. Add a minimal editor grammar and diagnostic-only composite LSP which consumes the same package output.
+9. Add `counterStyles = styles module { ... }`, rewrite its local classes deterministically, expose them as a generated Roc record, and link the extracted stylesheet once in the complete page—not in fragment patches.
+10. Generate page/program entry points and CSS delivery manifests outside `rocci-template`; it must neither recognize handlers nor serve assets.
+11. Make deliberate Roc and CSS errors and require the CLI to map both through package-provided segment maps.
+12. Unit-test the view without HTTP, test any pure decision function without HTML, and integration-test each selected flow through HTTP and Datastar patch output.
+13. Add a minimal editor grammar and diagnostic-only composite LSP which consumes the same package output.
 
 Do not start with named-slot syntax, recursive mixed Roc/markup control flow, a pure retained Elm runtime, a general effect interpreter, long-lived page processes, or full IDE rename. If the runtime spike fails, no file format can repair it; if diagnostic remapping fails, the format will be frustrating even if it runs.
 
@@ -731,4 +733,7 @@ At runtime, Rocci should generate truthful HTML snapshots of coherent patch boun
 - Datastar, [backend SDK list](https://data-star.dev/reference/sdks)
 - Vue, [Single-File Components](https://vuejs.org/guide/scaling-up/sfc.html)
 - Vue, [SFC Syntax Specification](https://vuejs.org/api/sfc-spec.html)
+- Vue, [SFC CSS Features](https://vuejs.org/api/sfc-css-features)
+- Astro, [Styles and CSS](https://docs.astro.build/en/guides/styling/)
+- CSS Modules, [project documentation](https://github.com/css-modules/css-modules)
 - Vue, [official language tools](https://github.com/vuejs/language-tools)
