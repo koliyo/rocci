@@ -2,3 +2,7 @@
 __pycache__/
 *.py[cod]
 .DS_Store
+editors/vscode/node_modules
+editors/vscode/out
+editors/vscode/dist
+editors/vscode/*.vsix

@@ -19,6 +19,17 @@ pub fn pascal_to_camel(name: &str) -> String {
     out
 }
 
+pub fn camel_to_pascal(name: &str) -> String {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return String::new();
+    };
+    let mut out = String::new();
+    out.extend(first.to_uppercase());
+    out.extend(chars);
+    out
+}
+
 pub fn component_roc_name(parts: &[Ident]) -> String {
     if parts.is_empty() {
         return String::new();

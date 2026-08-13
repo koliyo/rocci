@@ -15,16 +15,17 @@ mod span;
 mod validate;
 
 pub use ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, Fragment,
-    Ident, IfDirective, Interpolation, LetDirective, MatchArm, MatchDirective, ModuleItem,
-    TemplateBlock, TemplateItem, TextNode,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, ForDirective,
+    Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm, MatchDirective,
+    ModuleItem, TemplateBlock, TemplateItem, TextNode,
 };
 pub use diagnostic::{Diagnostic, Severity};
 pub use lower::{ComponentInfo, LowerOptions, LoweredModule};
 pub use parser::ParseOutput;
 pub use pprint::format_ast;
+pub use resolve::{camel_to_pascal, component_roc_name, pascal_to_camel};
 pub use source_map::{OriginKind, Segment};
-pub use span::{SourceFile, Span};
+pub use span::{PositionEncoding, SourceFile, Span};
 
 use crate::parser::parse as parse_impl;
 use crate::validate::validate;

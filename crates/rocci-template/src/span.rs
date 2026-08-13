@@ -49,6 +49,10 @@ impl Span {
             end: self.end.max(other.end),
         }
     }
+
+    pub fn contains(self, offset: u32) -> bool {
+        self.start <= offset && offset <= self.end
+    }
 }
 
 impl fmt::Display for Span {
@@ -102,10 +106,7 @@ impl<'a> SourceFile<'a> {
                 line_start = i + 1;
             }
         }
-        (
-            line,
-            count_units(&self.src[line_start..offset], encoding),
-        )
+        (line, count_units(&self.src[line_start..offset], encoding))
     }
 
     pub fn offset_at(self, line: u32, character: u32, encoding: PositionEncoding) -> u32 {
@@ -162,9 +163,7 @@ fn count_units(text: &str, encoding: PositionEncoding) -> u32 {
 
 fn units_to_bytes(text: &str, character: u32, encoding: PositionEncoding) -> usize {
     match encoding {
-        PositionEncoding::Utf8 => {
-            floor_char_boundary(text, (character as usize).min(text.len()))
-        }
+        PositionEncoding::Utf8 => floor_char_boundary(text, (character as usize).min(text.len())),
         PositionEncoding::Utf16 => {
             let mut units = 0u32;
             for (i, ch) in text.char_indices() {
