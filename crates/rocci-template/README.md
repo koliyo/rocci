@@ -125,7 +125,7 @@ missing values later.
 
 On HTML elements these become `Html.attribute` / `Html.boolean_attribute`.
 On component tags they become a props record. `count={count}` is emitted as
-the Roc shorthand `{ count }`.
+`{ count: count }`.
 
 Attribute names may include hyphens (`aria-current`, `data-on-click`).
 Dynamic attribute names are not supported.

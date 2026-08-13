@@ -6,3 +6,9 @@ editors/vscode/node_modules
 editors/vscode/out
 editors/vscode/dist
 editors/vscode/*.vsix
+examples/roc-counter/generated/*.roc
+examples/roc-counter/Counter.roc
+examples/roc-counter/counter.db
+examples/roc-counter/counter.db-*
+examples/roc-counter/assets/datastar.js
+examples/roc-counter/assets/app.css

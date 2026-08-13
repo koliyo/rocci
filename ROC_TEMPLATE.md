@@ -1315,6 +1315,17 @@ flow-owned state/actions -> props record -> render function -> Html
 
 This narrow bridge allows many flow architectures while keeping each feature colocated and independently testable in one `.rocci` module.
 
+### Architecture focus for the first POC
+
+The first POC should not attempt to prove every architecture above. It should prove one runtime pipeline at two authoring levels:
+
+1. **Primary: explicit request handlers.** A single `Counter.rocci` contains pure views, a loader, authorized mutation handlers, route values, and an explicit `#counter` patch response. This is the reference semantics.
+2. **Secondary: request-driven MVU adapter.** The same view is connected through a typed `Msg`, `load!`, `handle!`, and `Server.mvu`. The adapter must reuse the reference handler pipeline and durable store rather than retain its own model.
+
+The acceptance criterion is architectural substitution: changing between the two flows must not change the template AST, component lowering, generated render function, or `rocci-template` dependencies. Only ordinary Roc flow declarations and application wiring change.
+
+Pure Elm `init/update/view` remains a valuable example and may be implemented entirely as a third-party runtime, but it should not be part of the first backend POC. Its retained local model does not exercise the difficult server requirements—authorization, canonical persistence, concurrent windows, and reload after effects. Similarly, reducer/effect, actor, LiveView, hooks, and reactive-graph models should remain library experiments until the explicit pipeline is stable.
+
 ## Names and resolution
 
 Recommended rules:

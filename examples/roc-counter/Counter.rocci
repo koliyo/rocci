@@ -1,0 +1,44 @@
+import Html
+
+hello = component |{ name }| {
+    <p>Hello, {name}</p>
+}
+
+counterCard = component |{ count }| {
+    <section id="counter" class="counter-card">
+        <p class="eyebrow">Shared SQLite state</p>
+        <output>{count.to_str()}</output>
+        <p>Each increment or reset returns one Datastar patch.</p>
+    </section>
+}
+
+counterPage = component |{ count }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Rocci + Datastar</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>
+                <nav>
+                    <strong>ROC</strong>
+                    <span>Roc · basic-webserver · Datastar</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">.rocci views on a Roc web server</p>
+                    <h1>The browser talks HTTP.</h1>
+                    <p class="lede">This page is authored as Counter.rocci, compiled to Roc, and served by basic-webserver. Increment and reset return one datastar-patch-elements event.</p>
+                </header>
+                <Hello name="Roc" />
+                <CounterCard count={count} />
+                <div class="actions">
+                    <button data-on:click="@post('/api/counter/increment')">Increment</button>
+                    <button class="secondary" data-on:click="@post('/api/counter/reset')">Reset</button>
+                </div>
+            </main>
+        </body>
+    </html>
+}
