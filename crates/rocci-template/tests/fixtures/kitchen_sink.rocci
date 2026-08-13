@@ -5,13 +5,13 @@ import Design
 
 Tone : [Neutral, Positive]
 
-badge = component |{ tone }, content| {
+badge = component |{ tone ?? Neutral }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
 }
 
-hello = component |{ name }| {
+hello = component |{ name ?? "World" }| {
     <p>Hello, {name}</p>
 }
 
@@ -24,6 +24,7 @@ counterCard = component |{ count }| {
 
 counterPage = component |{ person, count }| {
     <main id="counter-page">
+        <Hello />
         <Hello name={person.name} />
         <CounterCard count={count} />
     </main>

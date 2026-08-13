@@ -275,7 +275,7 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
     assert!(regions.iter().any(
         |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, interp)
     ));
-    let params = KITCHEN_SINK.find("|{ name }|").expect("params") + 3;
+    let params = KITCHEN_SINK.find("|{ name ?? \"World\" }|").expect("params") + 3;
     assert!(regions.iter().any(
         |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, params)
     ));

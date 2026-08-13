@@ -1,6 +1,6 @@
 import Html
 
-hello = component |{ name }| {
+hello = component |{ name ?? "Roc" }| {
     <p>Hello, {name}</p>
 }
 
@@ -32,7 +32,8 @@ counterPage = component |{ count }| {
                     <h1>The browser talks HTTP.</h1>
                     <p class="lede">This page is authored as Counter.rocci, compiled to Roc, and served by basic-webserver. Increment and reset return one datastar-patch-elements event.</p>
                 </header>
-                <Hello name="Roc" />
+                <Hello />
+                <Hello name="Foo"/>
                 <CounterCard count={count} />
                 <div class="actions">
                     <button data-on:click="@post('/api/counter/increment')">Increment</button>
