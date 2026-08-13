@@ -1,0 +1,11 @@
+id = "rocci"
+name = "Rocci"
+version = "0.1.0"
+schema_version = 1
+authors = ["Nils Hjelte <nils.hjelte@gmail.com>"]
+description = "Language support for Rocci web applications"
+repository = "https://github.com/koliyo/rocci"
+
+[language_servers.rocci-language-server]
+name = "Rocci Language Server"
+languages = ["Rocci"]
