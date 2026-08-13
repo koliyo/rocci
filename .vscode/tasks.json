@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-rocci-lsp",
+      "type": "shell",
+      "command": "cargo build -p rocci-lsp",
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "esbuild-extension",
+      "type": "npm",
+      "script": "esbuild",
+      "path": "editors/vscode/",
+      "problemMatcher": []
+    },
+    {
+      "label": "build-rocci-lsp-and-extension",
+      "dependsOn": [
+        "build-rocci-lsp",
+        "esbuild-extension"
+      ],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
