@@ -56,8 +56,8 @@ top-level definition.
 name = component |params| { template }
 ```
 
-`params` is a Roc parameter list, copied verbatim. The first parameter is
-normally a props record. Extra parameters are the default body:
+`params` is a Roc parameter list. The first parameter is normally a props
+record. Extra parameters are the default body:
 
 ```rocci
 badge = component |{ tone }, content| {
@@ -66,6 +66,11 @@ badge = component |{ tone }, content| {
     </span>
 }
 ```
+
+`??` field defaults are allowed in `.rocci` (`|{ name ?? "Roc" }|`). Roc
+nightly-2026-08-08 rejects that syntax in patterns, so lowering strips `??`
+from the generated function and inserts omitted values at call sites. Remove
+this rewrite once `|{ name ?? "Roc" }|` typechecks.
 
 This lowers to an ordinary function. The `component` keyword is removed:
 

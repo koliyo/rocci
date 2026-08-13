@@ -11,7 +11,7 @@ members = [
     "examples/counter",
 ]
 exclude = ["editors/zed"]
-default-members = ["examples/counter"]
+default-members = ["crates/rocci-cli"]
 
 [workspace.package]
 version = "0.1.0"

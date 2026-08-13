@@ -1,5 +1,6 @@
 use rocci_template::{
     LowerOptions, OriginKind, SourceFile, Span, compile, format_ast, parse_component_params,
+    strip_param_defaults,
 };
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
@@ -33,9 +34,16 @@ fn kitchen_sink_compiles_without_errors() {
     assert!(out.components.iter().any(|c| c.name == "badge"
         && c.body_params == ["content"]
         && c.param_names == ["tone", "content"]
+        && c.optional_params == ["tone"]
         && c.first_param_is_record));
-    assert!(out.roc.contains("hello = |{ name ?? \"World\" }|"));
+    assert!(
+        out.components.iter().any(|c| c.name == "hello"
+            && c.param_names == ["name"]
+            && c.optional_params == ["name"])
+    );
+    assert!(out.roc.contains("hello = |{ name }|"));
     assert!(!out.roc.contains("= component"));
+    assert!(!out.roc.contains("name ??"));
     assert_eq!(out.roc, include_str!("fixtures/kitchen_sink.roc"));
 }
 
@@ -45,17 +53,14 @@ fn lowers_component_call_to_props_record() {
     let out = compile_ok(src);
     assert!(out.roc.contains("hello(\n"));
     assert!(out.roc.contains("{ name: person.name }"));
-    assert!(
-        out.roc
-            .contains("hello(\n                {},\n            )")
-    );
+    assert!(out.roc.contains("{ name: \"World\" }"));
 }
 
 #[test]
 fn lowers_body_argument_and_html_child() {
     let src = include_str!("fixtures/kitchen_sink.rocci");
     let out = compile_ok(src);
-    assert!(out.roc.contains("badge = |{ tone ?? Neutral }, content|"));
+    assert!(out.roc.contains("badge = |{ tone }, content|"));
     assert!(
         out.roc.contains("content,")
             || out.roc.contains("content\n")
@@ -193,33 +198,57 @@ page = component |{}| {
 
 #[test]
 fn extracts_component_param_names() {
-    let cases: &[(&str, bool, &[&str], &[&str])] = &[
-        ("|{ name }|", true, &["name"], &[]),
-        ("|{ person, count }|", true, &["person", "count"], &[]),
+    let cases: &[(&str, bool, &[&str], &[&str], &[&str])] = &[
+        ("|{ name }|", true, &["name"], &[], &[]),
+        ("|{ person, count }|", true, &["person", "count"], &[], &[]),
         (
             "|{ tone }, content|",
             true,
             &["tone", "content"],
             &["content"],
+            &[],
         ),
-        ("|{ count: I64 }|", true, &["count"], &[]),
-        ("|{ name ?? \"World\" }|", true, &["name"], &[]),
+        ("|{ count: I64 }|", true, &["count"], &[], &[]),
+        ("|{ name ?? \"World\" }|", true, &["name"], &[], &["name"]),
         (
             "|{ tone ?? Neutral }, content|",
             true,
             &["tone", "content"],
             &["content"],
+            &["tone"],
         ),
-        ("|model|", false, &["model"], &[]),
-        ("|{}|", true, &[], &[]),
-        ("|{ }|", true, &[], &[]),
+        ("|model|", false, &["model"], &[], &[]),
+        ("|{}|", true, &[], &[], &[]),
+        ("|{ }|", true, &[], &[], &[]),
     ];
-    for (src, is_record, names, body) in cases {
+    for (src, is_record, names, body, optional) in cases {
         let parsed = parse_component_params(src, Span::new(0, src.len()));
         assert_eq!(parsed.first_param_is_record, *is_record, "{src}");
         assert_eq!(parsed.param_names, *names, "{src}");
         assert_eq!(parsed.body_params, *body, "{src}");
+        assert_eq!(parsed.optional_params, *optional, "{src}");
     }
+    let parsed = parse_component_params(
+        "|{ name ?? \"World\" }|",
+        Span::new(0, "|{ name ?? \"World\" }|".len()),
+    );
+    assert_eq!(parsed.param_defaults, [("name".into(), "\"World\"".into())]);
+}
+
+#[test]
+fn strips_param_defaults_for_generated_roc() {
+    assert_eq!(
+        strip_param_defaults("|{ name ?? \"World\" }|"),
+        "|{ name }|"
+    );
+    assert_eq!(
+        strip_param_defaults("|{ tone ?? Neutral }, content|"),
+        "|{ tone }, content|"
+    );
+    assert_eq!(
+        strip_param_defaults("|{ person, count }|"),
+        "|{ person, count }|"
+    );
 }
 
 #[test]
@@ -251,6 +280,7 @@ empty = component |{}| {
 
     let hello = find("hello");
     assert_eq!(hello.param_names, ["name"]);
+    assert!(hello.optional_params.is_empty());
     assert!(hello.first_param_is_record);
 
     let badge = find("badge");

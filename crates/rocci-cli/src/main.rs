@@ -1,3 +1,5 @@
+mod view;
+
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -43,6 +45,15 @@ enum Commands {
     },
     /// Print a .rocci parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
+    /// Render a component and open it in the browser.
+    View {
+        input: PathBuf,
+        #[arg(long, default_value = "main")]
+        component: String,
+        /// Component parameter as name=value (repeatable).
+        #[arg(long = "arg", value_name = "NAME=VALUE", action = clap::ArgAction::Append)]
+        args: Vec<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -52,6 +63,11 @@ fn main() -> Result<()> {
         Commands::Compile { input, output } => compile_rocci(&input, output.as_deref()),
         Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
         Commands::Ast { input } => ast_rocci(&input),
+        Commands::View {
+            input,
+            component,
+            args,
+        } => view::view(&input, &component, &args),
     }
 }
 
@@ -104,12 +120,11 @@ fn inspect_rocci(input: &Path, ast: bool) -> Result<()> {
     }
     println!("# components ({})", compiled.components.len());
     for component in &compiled.components {
-        let body = if component.body_params.is_empty() {
-            "props".to_string()
-        } else {
-            format!("props, {}", component.body_params.join(", "))
-        };
-        println!("- {} ({body})", component.name);
+        println!(
+            "- {} ({})",
+            component.name,
+            component.param_names.join(", ")
+        );
     }
     if ast {
         println!("\n# ast\n{}", format_ast(&src, &compiled.document));

@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, ForDirective, Fragment,
     IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
-    extra_param_names,
+    parse_component_params, strip_param_defaults,
 };
 use crate::source_map::{OriginKind, Segment};
 use crate::span::{SourceFile, Span};
@@ -30,10 +32,35 @@ pub struct LoweredModule {
 pub struct ComponentInfo {
     pub name: String,
     pub body_params: Vec<String>,
+    pub param_names: Vec<String>,
+    pub optional_params: Vec<String>,
+    pub param_defaults: Vec<(String, String)>,
+    pub first_param_is_record: bool,
     pub span: Span,
 }
 
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
+    // Workaround: fill `??` defaults at call sites until Roc accepts them in patterns.
+    // See `strip_param_defaults`.
+    let mut field_defaults = HashMap::new();
+    for item in &document.items {
+        if let ModuleItem::Component(component) = item {
+            let parsed = parse_component_params(source.src, component.params);
+            let prop_count = parsed.param_names.len() - parsed.body_params.len();
+            let defaults = parsed
+                .param_defaults
+                .into_iter()
+                .filter(|(name, _)| {
+                    parsed
+                        .param_names
+                        .iter()
+                        .take(prop_count)
+                        .any(|n| n == name)
+                })
+                .collect();
+            field_defaults.insert(component.name.name.clone(), defaults);
+        }
+    }
     let mut emitter = Emitter {
         src: source.src,
         html: &options.html_module,
@@ -42,6 +69,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         indent: 0,
         at_line_start: true,
         components: Vec::new(),
+        field_defaults,
     };
     for item in &document.items {
         match item {
@@ -67,14 +95,20 @@ struct Emitter<'a> {
     indent: usize,
     at_line_start: bool,
     components: Vec<ComponentInfo>,
+    field_defaults: HashMap<String, Vec<(String, String)>>,
 }
 
 impl<'a> Emitter<'a> {
     fn lower_component(&mut self, component: &ComponentDecl) {
-        let body_params = extra_param_names(self.src, component.params);
+        let parsed = parse_component_params(self.src, component.params);
+        let body_params = parsed.body_params.clone();
         self.components.push(ComponentInfo {
             name: component.name.name.clone(),
             body_params: body_params.clone(),
+            param_names: parsed.param_names,
+            optional_params: parsed.optional_params,
+            param_defaults: parsed.param_defaults,
+            first_param_is_record: parsed.first_param_is_record,
             span: component.span,
         });
 
@@ -84,8 +118,10 @@ impl<'a> Emitter<'a> {
             OriginKind::ComponentSignature,
         );
         self.emit(" = ");
+        // Workaround: emit params without `??` until Roc accepts that pattern syntax.
+        // See `strip_param_defaults`.
         self.emit_mapped(
-            component.params.of(self.src).trim(),
+            &strip_param_defaults(component.params.of(self.src).trim()),
             component.params,
             OriginKind::ComponentSignature,
         );
@@ -236,7 +272,7 @@ impl<'a> Emitter<'a> {
         self.emit("(\n");
         self.indent += 1;
         self.push_indent();
-        self.lower_props(&call.attrs);
+        self.lower_props(&call.attrs, &call.path.roc_name);
         if let Some(children) = &call.children {
             self.emit(",\n");
             self.push_indent();
@@ -248,8 +284,18 @@ impl<'a> Emitter<'a> {
         self.emit(")");
     }
 
-    fn lower_props(&mut self, attrs: &[Attr]) {
-        if attrs.is_empty() {
+    fn lower_props(&mut self, attrs: &[Attr], roc_name: &str) {
+        // Workaround: insert omitted `??` defaults here until Roc accepts them in patterns.
+        // See `strip_param_defaults`.
+        let missing_defaults: Vec<(String, String)> = self
+            .field_defaults
+            .get(roc_name)
+            .into_iter()
+            .flatten()
+            .filter(|(name, _)| !attrs.iter().any(|attr| attr.name.name == *name))
+            .cloned()
+            .collect();
+        if attrs.is_empty() && missing_defaults.is_empty() {
             self.emit("{}");
             return;
         }
@@ -275,6 +321,14 @@ impl<'a> Emitter<'a> {
                     self.emit(": Bool.true");
                 }
             }
+        }
+        for (i, (name, default)) in missing_defaults.iter().enumerate() {
+            if !attrs.is_empty() || i > 0 {
+                self.emit(", ");
+            }
+            self.emit(name);
+            self.emit(": ");
+            self.emit(default);
         }
         self.emit(" }");
     }
