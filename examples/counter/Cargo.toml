@@ -1,0 +1,30 @@
+[package]
+name = "roc-datastar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description.workspace = true
+
+[features]
+default = ["desktop"]
+desktop = ["roc/desktop"]
+
+[dependencies]
+anyhow = { workspace = true }
+async-stream = { workspace = true }
+askama = { workspace = true }
+axum = { workspace = true }
+datastar = { workspace = true }
+futures-util = { workspace = true }
+http = { workspace = true }
+roc = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+tower = { workspace = true }
+
+[build-dependencies]
+roc-core = { workspace = true }

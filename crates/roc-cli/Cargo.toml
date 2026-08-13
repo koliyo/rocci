@@ -1,0 +1,15 @@
+[package]
+name = "roc-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command-line interface for validating Roc configuration and packaging development builds"
+
+[[bin]]
+name = "roc"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+roc-core = { workspace = true }

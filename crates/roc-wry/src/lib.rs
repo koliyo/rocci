@@ -1,0 +1,277 @@
+//! Native window and webview shell built on tao and wry.
+
+mod events;
+mod menu;
+mod window;
+
+use std::{collections::HashMap, env, fs, path::PathBuf};
+
+use roc_core::{
+    AppEvent, Config, Hooks, ManagedState, Result, RunningBackend, WindowConfig, WindowEvent,
+    WindowId,
+};
+use tao::{
+    event::{Event, StartCause},
+    event_loop::{ControlFlow, EventLoopBuilder, EventLoopWindowTarget},
+};
+use wry::WebContext;
+
+use crate::window::LiveWindow;
+
+pub use events::ShellEvent;
+
+pub struct RunOptions {
+    pub config: Config,
+    pub backend: Box<dyn RunningBackend>,
+    pub runtime: tokio::runtime::Runtime,
+    pub state: ManagedState,
+    pub hooks: Hooks,
+    pub devtools: bool,
+    pub reload: bool,
+}
+
+struct Shell {
+    config: Config,
+    backend: Box<dyn RunningBackend>,
+    windows: HashMap<WindowId, LiveWindow>,
+    tao_ids: HashMap<tao::window::WindowId, WindowId>,
+    focused: Option<WindowId>,
+    hooks: Hooks,
+    devtools: bool,
+    reload: bool,
+}
+
+pub fn run(mut options: RunOptions) -> Result<()> {
+    if let Some(setup) = options.hooks.setup.take() {
+        setup(&options.state)?;
+    }
+
+    let event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
+
+    #[cfg(target_os = "macos")]
+    let _native_menu = menu::NativeMenu::install(
+        event_loop.create_proxy(),
+        &options.config.app.name,
+        options.config.app.version.as_deref(),
+        options.reload,
+        options.devtools,
+    )?;
+
+    let mut shell = Shell {
+        config: options.config,
+        backend: options.backend,
+        windows: HashMap::new(),
+        tao_ids: HashMap::new(),
+        focused: None,
+        hooks: options.hooks,
+        devtools: options.devtools,
+        reload: options.reload,
+    };
+
+    let templates: Vec<WindowConfig> = shell
+        .config
+        .windows
+        .iter()
+        .filter(|window| window.visible)
+        .cloned()
+        .collect();
+    for template in templates {
+        shell.open_window(&event_loop, &template, None)?;
+    }
+    shell.hooks.emit(&AppEvent::Ready);
+
+    let runtime = options.runtime;
+    event_loop.run(move |event, event_loop, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        let _runtime = &runtime;
+
+        match event {
+            Event::NewEvents(StartCause::Init) => {}
+            Event::WindowEvent {
+                window_id: tao_id,
+                event,
+                ..
+            } => {
+                if let Some(id) = shell.tao_ids.get(&tao_id).cloned() {
+                    shell.handle_window_event(event_loop, control_flow, id, event);
+                }
+            }
+            #[cfg(target_os = "macos")]
+            Event::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                shell.hooks.emit(&AppEvent::Reopen {
+                    has_visible_windows,
+                });
+                if !has_visible_windows
+                    && let Some(template) = shell.config.windows.first().cloned()
+                    && let Err(error) = shell.open_window(event_loop, &template, None)
+                {
+                    tracing::error!(%error, "failed to reopen window");
+                }
+            }
+            Event::UserEvent(user_event) => shell.handle_user_event(event_loop, user_event),
+            Event::LoopDestroyed => {
+                shell.hooks.emit(&AppEvent::Exited);
+                if let Some(on_exit) = shell.hooks.on_exit.take() {
+                    on_exit();
+                }
+                shell.backend.shutdown();
+            }
+            _ => {}
+        }
+    });
+}
+
+impl Shell {
+    fn open_window(
+        &mut self,
+        event_loop: &EventLoopWindowTarget<ShellEvent>,
+        template: &WindowConfig,
+        id: Option<WindowId>,
+    ) -> Result<()> {
+        let id = id.unwrap_or_else(|| self.allocate_id(&template.label));
+        let url = self.backend.attach_window(&id, &template.url)?;
+        let context = WebContext::new(Some(web_context_dir(&self.config.app.identifier, &id)));
+        let live = LiveWindow::create(
+            event_loop,
+            template,
+            id.clone(),
+            url,
+            context,
+            self.devtools,
+        )?;
+        let tao_id = live.window.id();
+        self.tao_ids.insert(tao_id, id.clone());
+        self.windows.insert(id.clone(), live);
+        self.focused = Some(id.clone());
+        self.hooks.emit(&AppEvent::Window {
+            id,
+            event: WindowEvent::Created,
+        });
+        Ok(())
+    }
+
+    fn allocate_id(&self, label: &str) -> WindowId {
+        let base = WindowId::new(label);
+        if !self.windows.contains_key(&base) {
+            return base;
+        }
+        for index in 2.. {
+            let candidate = WindowId::new(format!("{label}-{index}"));
+            if !self.windows.contains_key(&candidate) {
+                return candidate;
+            }
+        }
+        base
+    }
+
+    fn handle_window_event(
+        &mut self,
+        event_loop: &EventLoopWindowTarget<ShellEvent>,
+        control_flow: &mut ControlFlow,
+        id: WindowId,
+        event: tao::event::WindowEvent,
+    ) {
+        if let Some(mapped) = events::map_window_event(&event) {
+            self.hooks.emit(&AppEvent::Window {
+                id: id.clone(),
+                event: mapped,
+            });
+        }
+
+        match event {
+            tao::event::WindowEvent::CloseRequested => self.close_window(id, control_flow),
+            tao::event::WindowEvent::Focused(true) => self.focused = Some(id),
+            tao::event::WindowEvent::Destroyed => {
+                let _ = event_loop;
+            }
+            _ => {}
+        }
+    }
+
+    fn close_window(&mut self, id: WindowId, control_flow: &mut ControlFlow) {
+        if let Some(live) = self.windows.remove(&id) {
+            self.tao_ids.remove(&live.window.id());
+            self.backend.detach_window(&id);
+            if self.focused.as_ref() == Some(&id) {
+                self.focused = self.windows.keys().next().cloned();
+            }
+            self.hooks.emit(&AppEvent::Window {
+                id,
+                event: WindowEvent::Destroyed,
+            });
+        }
+
+        if self.windows.is_empty() {
+            #[cfg(target_os = "macos")]
+            {
+                let _ = control_flow;
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                self.hooks.emit(&AppEvent::ExitRequested);
+                self.backend.shutdown();
+                *control_flow = ControlFlow::Exit;
+            }
+        }
+    }
+
+    fn handle_user_event(
+        &mut self,
+        event_loop: &EventLoopWindowTarget<ShellEvent>,
+        event: ShellEvent,
+    ) {
+        match event {
+            ShellEvent::NewWindow => {
+                if let Some(template) = self.config.windows.first().cloned()
+                    && let Err(error) = self.open_window(event_loop, &template, None)
+                {
+                    tracing::error!(%error, "failed to open window");
+                }
+            }
+            #[cfg(target_os = "macos")]
+            ShellEvent::Menu(menu_event) => {
+                let id = menu_event.id().as_ref().to_owned();
+                self.hooks.emit(&AppEvent::Menu { id: id.clone() });
+                if menu::is(&menu_event, menu::NEW_WINDOW_ID) {
+                    self.handle_user_event(event_loop, ShellEvent::NewWindow);
+                } else if self.reload && menu::is(&menu_event, menu::RELOAD_ID) {
+                    self.reload_focused();
+                } else if self.devtools && menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {
+                    self.toggle_inspector();
+                }
+            }
+        }
+    }
+
+    fn reload_focused(&self) {
+        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
+            && let Err(error) = window.webview.reload()
+        {
+            tracing::error!(%error, "failed to reload webview");
+        }
+    }
+
+    fn toggle_inspector(&self) {
+        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id)) {
+            if window.webview.is_devtools_open() {
+                window.webview.close_devtools();
+            } else {
+                window.webview.open_devtools();
+            }
+        }
+    }
+}
+
+fn web_context_dir(identifier: &str, window: &WindowId) -> PathBuf {
+    let dir = env::temp_dir()
+        .join("roc")
+        .join(identifier)
+        .join(window.as_str());
+    if let Err(error) = fs::create_dir_all(&dir) {
+        tracing::warn!(%error, path = %dir.display(), "failed to create webview data directory");
+    }
+    dir
+}

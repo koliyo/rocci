@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Roc + htmx</title>
+  <title>Roc + htmx + Python</title>
   <link rel="stylesheet" href="/assets/app.css">
   <script src="/assets/htmx.min.js" defer></script>
 </head>
 <body>
   <main>
-    <nav><strong>ROC</strong><span>SSR compatibility proof</span></nav>
+    <nav><strong>ROC</strong><span>Python SSR compatibility proof</span></nav>
     <header>
       <p class="eyebrow">The transport is the architecture</p>
-      <h1>htmx works too.</h1>
-      <p class="lede">This route returns a plain HTML fragment. Any server-rendered architecture that speaks HTTP can use the same shell.</p>
+      <h1>Python and htmx work too.</h1>
+      <p class="lede">The Python sidecar returns a normal HTML fragment through the same backend contract.</p>
     </header>
     <section class="counter-card">
-      <p class="eyebrow">Shared Rust state</p>
-      {% block counter %}<output id="htmx-counter">{{ count }}</output>{% endblock %}
-      <p>This response is HTML, not a framework-specific command.</p>
+      <p class="eyebrow">Shared Python state</p>
+      {{counter}}
+      <p>This response is HTML, not a shell-specific command.</p>
     </section>
     <div class="actions">
       <button hx-post="/htmx/counter/increment" hx-target="#htmx-counter" hx-swap="outerHTML">Increment with htmx</button>
