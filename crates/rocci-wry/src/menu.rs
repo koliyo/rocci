@@ -4,7 +4,7 @@ use muda::{
     AboutMetadata, Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, Code, Modifiers},
 };
-use roc_core::{Error, Result};
+use rocci_core::{Error, Result};
 use tao::event_loop::EventLoopProxy;
 
 use crate::ShellEvent;
@@ -128,6 +128,6 @@ pub fn is(event: &MenuEvent, expected: &str) -> bool {
     event.id() == &MenuId::new(expected)
 }
 
-fn menu_error(error: impl std::fmt::Display) -> roc_core::Error {
+fn menu_error(error: impl std::fmt::Display) -> rocci_core::Error {
     Error::message(format!("failed to install the native menu: {error}"))
 }

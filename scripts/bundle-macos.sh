@@ -8,4 +8,4 @@ fi
 
 project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$project_dir"
-cargo run -p roc-cli -- bundle --config roc.toml
+cargo run -p rocci-cli -- bundle --config rocci.toml

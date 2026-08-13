@@ -8,9 +8,9 @@ use std::{
     time::Duration,
 };
 
-use roc::{Backend, Error, Result, RunningBackend, WindowId};
+use rocci::{Backend, Error, Result, RunningBackend, WindowId};
 
-const READY_PREFIX: &str = "ROC_BACKEND_READY ";
+const READY_PREFIX: &str = "ROCCI_BACKEND_READY ";
 
 #[derive(Debug)]
 pub struct PythonBackend {
@@ -21,7 +21,7 @@ pub struct PythonBackend {
 
 impl Default for PythonBackend {
     fn default() -> Self {
-        let interpreter = env::var("ROC_PYTHON").unwrap_or_else(|_| "python3".into());
+        let interpreter = env::var("ROCCI_PYTHON").unwrap_or_else(|_| "python3".into());
         let (script, assets) = locate_python_resources();
         Self {
             interpreter,
@@ -47,7 +47,7 @@ impl Backend for PythonBackend {
             .spawn()
             .map_err(|error| {
                 Error::backend(format!(
-                    "failed to start Python backend with {} (override with ROC_PYTHON): {error}",
+                    "failed to start Python backend with {} (override with ROCCI_PYTHON): {error}",
                     self.interpreter
                 ))
             })?;
@@ -91,7 +91,7 @@ impl Backend for PythonBackend {
             ));
         }
         let origin = bootstrap_url
-            .split("/_roc/")
+            .split("/_rocci/")
             .next()
             .unwrap_or(&bootstrap_url)
             .to_owned();

@@ -5,15 +5,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Roc Datastar</string>
+  <string>Rocci</string>
   <key>CFBundleExecutable</key>
-  <string>roc-datastar</string>
+  <string>counter</string>
   <key>CFBundleIdentifier</key>
-  <string>dev.roc.datastar</string>
+  <string>dev.rocci.app</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Roc Datastar</string>
+  <string>Rocci</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

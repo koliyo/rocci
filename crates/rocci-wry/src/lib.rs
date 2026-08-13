@@ -6,7 +6,7 @@ mod window;
 
 use std::{collections::HashMap, env, fs, path::PathBuf};
 
-use roc_core::{
+use rocci_core::{
     AppEvent, Config, Hooks, ManagedState, Result, RunningBackend, WindowConfig, WindowEvent,
     WindowId,
 };
@@ -267,7 +267,7 @@ impl Shell {
 
 fn web_context_dir(identifier: &str, window: &WindowId) -> PathBuf {
     let dir = env::temp_dir()
-        .join("roc")
+        .join("rocci")
         .join(identifier)
         .join(window.as_str());
     if let Err(error) = fs::create_dir_all(&dir) {

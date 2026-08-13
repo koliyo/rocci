@@ -6,10 +6,10 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use roc_core::Config;
+use rocci_core::Config;
 
 #[derive(Parser)]
-#[command(name = "roc", about = "Roc desktop runtime tooling")]
+#[command(name = "rocci", about = "Rocci desktop runtime tooling")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -17,14 +17,14 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Validate a roc.toml configuration file.
+    /// Validate a rocci.toml configuration file.
     Validate {
-        #[arg(default_value = "roc.toml")]
+        #[arg(default_value = "rocci.toml")]
         config: PathBuf,
     },
     /// Build and package an unsigned (ad-hoc signed) development app bundle.
     Bundle {
-        #[arg(long, default_value = "roc.toml")]
+        #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
     },
 }
@@ -50,7 +50,7 @@ fn validate(path: &Path) -> Result<()> {
 fn bundle(config_path: &Path) -> Result<()> {
     let config = Config::from_file(config_path)?;
     let root = workspace_root(config_path)?;
-    let package = config.bundle.package.as_deref().unwrap_or("roc-datastar");
+    let package = config.bundle.package.as_deref().unwrap_or("counter");
     let binary = config.bundle.binary.as_deref().unwrap_or(package);
     let identifier = config
         .bundle
@@ -104,13 +104,13 @@ fn bundle_macos(
         .with_context(|| format!("failed to read {}", plist_src.display()))?;
     fs::write(contents.join("Info.plist"), plist)?;
 
-    let dest_config = contents.join("Resources/roc.toml");
+    let dest_config = contents.join("Resources/rocci.toml");
     fs::copy(
         root.join(config_path_relative(root, config_path)?),
         &dest_config,
     )
     .or_else(|_| fs::copy(config_path, &dest_config))
-    .with_context(|| "failed to copy roc.toml into the app bundle")?;
+    .with_context(|| "failed to copy rocci.toml into the app bundle")?;
 
     for resource in &config.bundle.resources {
         let from = root.join(&resource.from);
@@ -173,7 +173,7 @@ fn workspace_root(config_path: &Path) -> Result<PathBuf> {
         dir = dir
             .parent()
             .map(Path::to_path_buf)
-            .context("roc.toml is not inside a Cargo workspace")?;
+            .context("rocci.toml is not inside a Cargo workspace")?;
     }
 }
 

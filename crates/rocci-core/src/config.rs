@@ -205,14 +205,14 @@ impl Config {
     }
 
     pub fn load() -> Result<Self> {
-        if let Ok(path) = env::var("ROC_CONFIG") {
+        if let Ok(path) = env::var("ROCCI_CONFIG") {
             return Self::from_file(path);
         }
         if let Some(path) = find_config() {
             return Self::from_file(path);
         }
         Err(Error::config(
-            "no roc.toml found; set ROC_CONFIG or run from a project directory",
+            "no rocci.toml found; set ROCCI_CONFIG or run from a project directory",
         ))
     }
 
@@ -340,7 +340,7 @@ fn validate_identifier(identifier: &str) -> Result<()> {
             .all(|ch| ch.is_ascii_alphanumeric() || ch == '.' || ch == '-')
     {
         return Err(Error::config(
-            "app.identifier must be a reverse-DNS string such as dev.roc.app",
+            "app.identifier must be a reverse-DNS string such as dev.rocci.app",
         ));
     }
     Ok(())
@@ -384,7 +384,7 @@ fn is_label(value: &str) -> bool {
 fn find_config() -> Option<PathBuf> {
     let mut dir = env::current_dir().ok()?;
     loop {
-        let candidate = dir.join("roc.toml");
+        let candidate = dir.join("rocci.toml");
         if candidate.is_file() {
             return Some(candidate);
         }
@@ -397,11 +397,11 @@ fn default_windows() -> Vec<WindowConfig> {
 }
 
 fn default_app_name() -> String {
-    "Roc".into()
+    "Rocci".into()
 }
 
 fn default_identifier() -> String {
-    "dev.roc.app".into()
+    "dev.rocci.app".into()
 }
 
 fn default_url() -> String {
@@ -439,7 +439,7 @@ mod tests {
             r#"
             [app]
             name = "Demo"
-            identifier = "dev.roc.demo"
+            identifier = "dev.rocci.demo"
 
             [[windows]]
             label = "main"
@@ -473,7 +473,7 @@ mod tests {
         let error = Config::from_toml(
             r#"
             [app]
-            identifier = "dev.roc.demo"
+            identifier = "dev.rocci.demo"
             [[windows]]
             label = "main"
             [[windows]]
@@ -489,7 +489,7 @@ mod tests {
         let error = Config::from_toml(
             r#"
             [app]
-            identifier = "dev.roc.demo"
+            identifier = "dev.rocci.demo"
             [http]
             host = "0.0.0.0"
             "#,

@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use roc_core::{Error, Result};
+use rocci_core::{Error, Result};
 
 #[derive(Clone, Debug)]
 pub struct Asset {

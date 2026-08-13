@@ -1,10 +1,10 @@
 use std::future::pending;
 
-use roc_core::{
+use rocci_core::{
     AppEvent, Backend, Config, Error, ExternalBackend, Hooks, ManagedState, Result, RunningBackend,
     WindowId, join_origin,
 };
-use roc_http::{AssetMap, AssetSource, HttpServer, Router};
+use rocci_http::{AssetMap, AssetSource, HttpServer, Router};
 
 pub struct App {
     config: Config,
@@ -112,7 +112,7 @@ impl App {
         self.config.validate()?;
         let dev_mode = self
             .dev_mode
-            .unwrap_or(cfg!(debug_assertions) || std::env::var_os("ROC_DEV").is_some());
+            .unwrap_or(cfg!(debug_assertions) || std::env::var_os("ROCCI_DEV").is_some());
         let assets = self.resolve_assets(dev_mode)?;
         let runtime = tokio::runtime::Runtime::new().map_err(|error| {
             Error::backend(format!("failed to start the async runtime: {error}"))
@@ -142,7 +142,7 @@ impl App {
         {
             let devtools = dev_mode && self.config.development.devtools;
             let reload = self.config.development.reload;
-            roc_wry::run(roc_wry::RunOptions {
+            rocci_wry::run(rocci_wry::RunOptions {
                 config: self.config,
                 backend,
                 runtime,

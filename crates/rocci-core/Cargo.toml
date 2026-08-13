@@ -1,9 +1,9 @@
 [package]
-name = "roc-core"
+name = "rocci-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Configuration, events, sessions, and backend contracts for the Roc desktop runtime"
+description = "Configuration, events, sessions, and backend contracts for the Rocci desktop runtime"
 
 [dependencies]
 serde = { workspace = true }

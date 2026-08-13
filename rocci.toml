@@ -1,11 +1,11 @@
 [app]
-name = "Roc Datastar"
-identifier = "dev.roc.datastar"
+name = "Rocci"
+identifier = "dev.rocci.app"
 version = "0.1.0"
 
 [[windows]]
 label = "main"
-title = "Roc Datastar"
+title = "Rocci"
 url = "/"
 width = 1040
 height = 760
@@ -14,7 +14,7 @@ min_height = 560
 
 [[windows]]
 label = "htmx"
-title = "Roc + htmx"
+title = "Rocci + htmx"
 url = "/htmx"
 width = 900
 height = 700
@@ -35,8 +35,8 @@ reload = true
 devtools = true
 
 [bundle]
-package = "roc-datastar"
-binary = "roc-datastar"
+package = "counter"
+binary = "counter"
 macos_plist = "macos/Info.plist"
 
 [[bundle.resources]]

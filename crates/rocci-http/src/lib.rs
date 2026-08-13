@@ -1,4 +1,4 @@
-//! Loopback HTTP server for Roc applications.
+//! Loopback HTTP server for Rocci applications.
 //!
 //! The application supplies an Axum [`Router`] (or any Tower service converted
 //! into one). This crate binds an ephemeral loopback port, wraps the router

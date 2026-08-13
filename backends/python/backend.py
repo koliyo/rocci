@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standard-library reference implementation of the Roc backend contract."""
+"""Standard-library reference implementation of the Rocci backend contract."""
 
 from __future__ import annotations
 
@@ -83,7 +83,7 @@ class ThreadingServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 class Handler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "RocPythonBackend/0.1"
+    server_version = "RocciPythonBackend/0.1"
 
     @property
     def state(self) -> State:
@@ -99,7 +99,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urllib.parse.urlsplit(self.path).path
-        if path.startswith("/_roc/bootstrap/"):
+        if path.startswith("/_rocci/bootstrap/"):
             self.bootstrap(path)
         elif not self.authorized(mutation=False):
             self.text(401, "desktop session required")
@@ -136,7 +136,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.text(404, "not found")
 
     def bootstrap(self, path: str) -> None:
-        supplied = path.removeprefix("/_roc/bootstrap/")
+        supplied = path.removeprefix("/_rocci/bootstrap/")
         if self.headers.get("Host") != self.state.host or not secrets.compare_digest(
             supplied, self.state.token
         ):
@@ -146,7 +146,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Location", "/")
         self.send_header(
             "Set-Cookie",
-            f"roc_session={self.state.token}; HttpOnly; SameSite=Strict; Path=/",
+            f"rocci_session={self.state.token}; HttpOnly; SameSite=Strict; Path=/",
         )
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -155,7 +155,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.headers.get("Host") != self.state.host:
             return False
         cookie = http.cookies.SimpleCookie(self.headers.get("Cookie", ""))
-        session = cookie.get("roc_session")
+        session = cookie.get("rocci_session")
         if session is None or not secrets.compare_digest(session.value, self.state.token):
             return False
         return not mutation or self.headers.get("Origin") == f"http://{self.state.host}"
@@ -230,7 +230,7 @@ def main() -> None:
     server.state = state  # type: ignore[attr-defined]
     state.host = f"127.0.0.1:{server.server_port}"
     print(
-        f"ROC_BACKEND_READY http://{state.host}/_roc/bootstrap/{state.token}",
+        f"ROCCI_BACKEND_READY http://{state.host}/_rocci/bootstrap/{state.token}",
         flush=True,
     )
     try:
