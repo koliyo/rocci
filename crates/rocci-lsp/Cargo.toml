@@ -1,0 +1,21 @@
+[package]
+name = "rocci-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Language server for .rocci templates"
+
+[lib]
+name = "rocci_lsp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rocci-language-server"
+path = "src/main.rs"
+
+[dependencies]
+lsp-server = { workspace = true }
+lsp-types = { workspace = true }
+rocci-template = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
