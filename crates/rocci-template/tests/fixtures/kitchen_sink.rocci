@@ -1,0 +1,115 @@
+module CounterPage exposing [counterPage]
+
+import pf.Html
+import Design
+
+Tone : [Neutral, Positive]
+
+badge = component |{ tone }, content| {
+    <span class={badgeClass(tone)}>
+        {content}
+    </span>
+}
+
+hello = component |{ name }| {
+    <p>Hello, {name}</p>
+}
+
+counterCard = component |{ count }| {
+    <section id="counter" class="counter-card">
+        <output>{Num.toStr(count)}</output>
+        <Badge tone={Positive}>Current count</Badge>
+    </section>
+}
+
+counterPage = component |{ person, count }| {
+    <main id="counter-page">
+        <Hello name={person.name} />
+        <CounterCard count={count} />
+    </main>
+}
+
+todoList = component |{ items, state }| {
+    @match state {
+        Loading => <Spinner />
+
+        Failed(message) => <ErrorNotice message={message} />
+
+        Ready =>
+            @if List.isEmpty(items) {
+                <EmptyState />
+            } @else {
+                <ul>
+                    @for item in items {
+                        <TodoRow item={item} />
+                    }
+                </ul>
+            }
+    }
+}
+
+accountActions = component |{ user }| {
+    @if user.isSignedIn {
+        <LogoutButton />
+    } @else if user.canRegister {
+        <RegisterButton />
+    } @else {
+        <LoginButton />
+    }
+}
+
+filteredList = component |{ items, query }| {
+    @let visible = List.keepIf(items, |item| matches(item, query))
+
+    @if List.isEmpty(visible) {
+        <EmptyState query={query} />
+    } @else {
+        <ItemList items={visible} />
+    }
+}
+
+requestState = component |{ state, active }| {
+    @match state {
+        Loading => <Spinner />
+
+        Failed({ message }) => <ErrorNotice message={message} />
+
+        Ready(items) if !List.isEmpty(items) => <ItemList items={items} />
+        Ready(_) => <>
+            <Heading text="Ready" />
+            <Design.Button tone={if active { Positive } else { Neutral }} />
+        </>
+    }
+}
+
+profileLink = component |{ person, selected }| {
+    <a
+        href={person.url}
+        class={if selected { "selected" } else { "" }}
+        aria-current={if selected { "page" } else { "false" }}
+    >
+        {person.name}
+    </a>
+}
+
+visibleCheck = component |{ user, permissions }| {
+    @if isVisible({ user, permissions }) {
+        <Profile />
+    } @else {
+        <p></p>
+    }
+}
+
+statusMatch = component |{ pair }| {
+    @match ({ status, items }) {
+        { status: Loading } => <Spinner />
+        { status: Ready } => <ItemList items={items} />
+    }
+}
+
+badgeClass = |tone| {
+    match tone {
+        Neutral => "badge"
+        Positive => "badge badge--positive"
+    }
+}
