@@ -1,8 +1,8 @@
-//! Shared types for the Roc desktop runtime.
+//! Shared types for the Rocci desktop runtime.
 //!
 //! This crate has no HTTP or webview dependency. Configuration, window
 //! sessions, lifecycle events, and the backend factory contract live here so
-//! `roc-http` and `roc-wry` can evolve independently.
+//! `rocci-http` and `rocci-wry` can evolve independently.
 
 mod backend;
 mod config;

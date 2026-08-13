@@ -1,12 +1,12 @@
 [package]
-name = "roc-wry"
+name = "rocci-wry"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "tao/wry desktop shell for Roc: windows, webviews, and native events"
+description = "tao/wry desktop shell for Rocci: windows, webviews, and native events"
 
 [dependencies]
-roc-core = { workspace = true }
+rocci-core = { workspace = true }
 tao = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

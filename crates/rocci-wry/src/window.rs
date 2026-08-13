@@ -1,4 +1,4 @@
-use roc_core::{Error, Result, WindowConfig, WindowId};
+use rocci_core::{Error, Result, WindowConfig, WindowId};
 use tao::{
     dpi::LogicalSize,
     event_loop::EventLoopWindowTarget,

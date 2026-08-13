@@ -1,4 +1,4 @@
-# Roc Datastar
+# Rocci
 
 A desktop web application runtime built directly on
 [tao](https://github.com/tauri-apps/tao) and
@@ -6,8 +6,8 @@ A desktop web application runtime built directly on
 the embedded webview talks to a managed loopback HTTP backend using the same
 HTTP, HTML, and Server-Sent Events model as a web application.
 
-The runtime is split into `roc-core`, `roc-http`, `roc-wry`, a `roc` facade with
-a builder API, and a `roc` CLI. The bundled example uses Datastar on one window
+The runtime is split into `rocci-core`, `rocci-http`, `rocci-wry`, a `rocci` facade with
+a builder API, and a `rocci` CLI. The bundled example uses Datastar on one window
 and htmx on another against shared Rust (or Python) state.
 
 ## Run it
@@ -23,11 +23,11 @@ variable:
 
 ```sh
 cargo run -- --backend python
-ROC_BACKEND=python cargo run
+ROCCI_BACKEND=python cargo run
 ```
 
 The Python reference backend has no package dependencies; it uses `python3`
-from `PATH`. Set `ROC_PYTHON` to use another interpreter.
+from `PATH`. Set `ROCCI_PYTHON` to use another interpreter.
 
 For browser development and end-to-end testing without creating a native
 window, print bootstrap URLs and keep the private server running with:
@@ -41,21 +41,21 @@ Validate configuration and package an unsigned (ad-hoc signed) macOS
 development build:
 
 ```sh
-cargo run -p roc-cli -- validate
+cargo run -p rocci-cli -- validate
 ./scripts/bundle-macos.sh
-open "target/release/bundle/macos/Roc Datastar.app"
+open "target/release/bundle/macos/Rocci.app"
 ```
 
 The application bundle contains both backends. Launch the Python backend with:
 
 ```sh
-open "target/release/bundle/macos/Roc Datastar.app" --args --backend python
+open "target/release/bundle/macos/Rocci.app" --args --backend python
 ```
 
-`roc.toml` describes windows, HTTP, security, assets, development, and bundle
-profiles. Debug builds and `ROC_DEV=1` enable the development profile
+`rocci.toml` describes windows, HTTP, security, assets, development, and bundle
+profiles. Debug builds and `ROCCI_DEV=1` enable the development profile
 (devtools, reload, optional `frontend_url` / `backend_url`). Release builds
-embed assets and disable the inspector unless `ROC_DEV` is set.
+embed assets and disable the inspector unless `ROCCI_DEV` is set.
 
 On macOS, File → New Window opens another session of the first window
 template. Closing the last window keeps the app alive, and clicking the Dock
@@ -83,9 +83,9 @@ is a useful baseline, not a completed security review.
 ## Application builder
 
 ```rust
-use roc::{App, Config, Router};
+use rocci::{App, Config, Router};
 
-fn main() -> roc::Result<()> {
+fn main() -> rocci::Result<()> {
     App::builder()
         .config(Config::load()?)
         .router(Router::new().route("/", axum::routing::get(|| async { "ok" })))
@@ -121,10 +121,10 @@ The public `Backend` trait starts an implementation and returns a
 window-scoped sessions, and owns shutdown. The tao/wry shell only depends on
 that interface.
 
-- An Axum `Router` is wrapped by `roc-http`: bootstrap, per-window sessions,
+- An Axum `Router` is wrapped by `rocci-http`: bootstrap, per-window sessions,
   Host/Origin checks, security headers, and optional asset serving.
 - `PythonBackend` in the example starts `backends/python/backend.py`, waits for
-  a `ROC_BACKEND_READY <bootstrap-url>` readiness line, and terminates the
+  a `ROCCI_BACKEND_READY <bootstrap-url>` readiness line, and terminates the
   child with the desktop app.
 - A new language implements the same factory/lifecycle traits. Sidecars should
   bind only to an ephemeral `127.0.0.1` port and implement the bootstrap,

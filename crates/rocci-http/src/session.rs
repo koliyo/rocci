@@ -1,8 +1,8 @@
 use http::HeaderMap;
 
-use roc_core::Session;
+use rocci_core::Session;
 
-pub const SESSION_COOKIE: &str = "roc_session";
+pub const SESSION_COOKIE: &str = "rocci_session";
 
 pub fn parse_session_cookie(headers: &HeaderMap) -> Option<&str> {
     let cookies = headers
@@ -24,14 +24,14 @@ pub fn session_cookie_header(session: &Session) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use roc_core::{Session, WindowId};
+    use rocci_core::{Session, WindowId};
 
     #[test]
     fn reads_the_named_session_cookie() {
         let mut headers = HeaderMap::new();
         headers.insert(
             http::header::COOKIE,
-            "other=1; roc_session=abc; extra=2".parse().unwrap(),
+            "other=1; rocci_session=abc; extra=2".parse().unwrap(),
         );
         assert_eq!(parse_session_cookie(&headers), Some("abc"));
         let header = session_cookie_header(&Session {

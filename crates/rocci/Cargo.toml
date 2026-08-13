@@ -1,0 +1,17 @@
+[package]
+name = "rocci"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Builder API for Rocci desktop applications"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:rocci-wry"]
+
+[dependencies]
+rocci-core = { workspace = true }
+rocci-http = { workspace = true }
+rocci-wry = { workspace = true, optional = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

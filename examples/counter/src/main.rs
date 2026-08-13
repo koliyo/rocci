@@ -5,7 +5,7 @@ mod templates;
 use std::env;
 
 use anyhow::Result;
-use roc::{App, Config};
+use rocci::{App, Config};
 use tracing_subscriber::EnvFilter;
 
 use python::PythonBackend;
@@ -48,7 +48,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn load_config() -> roc::Result<Config> {
+fn load_config() -> rocci::Result<Config> {
     if let Ok(config) = Config::load() {
         return Ok(config);
     }
@@ -56,12 +56,12 @@ fn load_config() -> roc::Result<Config> {
         && let Some(resources) = executable
             .parent()
             .and_then(|path| path.parent())
-            .map(|contents| contents.join("Resources/roc.toml"))
+            .map(|contents| contents.join("Resources/rocci.toml"))
         && resources.is_file()
     {
         return Config::from_file(resources);
     }
-    Config::from_toml(include_str!("../../../roc.toml"))
+    Config::from_toml(include_str!("../../../rocci.toml"))
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -73,7 +73,7 @@ enum BackendKind {
 
 impl BackendKind {
     fn from_env_and_args() -> anyhow::Result<Self> {
-        let mut selected = env::var("ROC_BACKEND").unwrap_or_else(|_| "rust".into());
+        let mut selected = env::var("ROCCI_BACKEND").unwrap_or_else(|_| "rust".into());
         let mut args = env::args().skip(1);
         while let Some(argument) = args.next() {
             if argument == "--backend" {

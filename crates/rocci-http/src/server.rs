@@ -13,7 +13,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
     routing::get,
 };
-use roc_core::{
+use rocci_core::{
     Config, Error, Result, RunningBackend, Session, SessionStore, WindowId, join_origin,
 };
 use tokio::{net::TcpListener, task::JoinHandle};
@@ -130,7 +130,7 @@ impl RunningBackend for HttpServer {
     fn attach_window(&self, window: &WindowId, start_url: &str) -> Result<String> {
         let session = self.context.sessions.create(window.clone(), start_url);
         Ok(format!(
-            "{}/_roc/bootstrap/{}/{}",
+            "{}/_rocci/bootstrap/{}/{}",
             self.origin,
             window.as_str(),
             session.token
@@ -158,8 +158,8 @@ pub fn wrap_router(router: Router, context: HttpContext) -> Router {
         require_session,
     ));
 
-    let mut roc_routes = Router::new()
-        .route("/_roc/bootstrap/{window}/{token}", get(bootstrap))
+    let mut rocci_routes = Router::new()
+        .route("/_rocci/bootstrap/{window}/{token}", get(bootstrap))
         .with_state(context.clone());
 
     if context.assets.is_some() {
@@ -170,10 +170,10 @@ pub fn wrap_router(router: Router, context: HttpContext) -> Router {
                 require_session,
             ))
             .with_state(context.clone());
-        roc_routes = roc_routes.merge(assets);
+        rocci_routes = rocci_routes.merge(assets);
     }
 
-    roc_routes
+    rocci_routes
         .merge(protected)
         .layer(middleware::from_fn_with_state(context, security_headers))
 }
@@ -342,7 +342,7 @@ mod tests {
             .header(header::HOST, ADDRESS.to_string());
         if authenticated {
             builder = builder
-                .header(header::COOKIE, format!("roc_session={TOKEN}"))
+                .header(header::COOKIE, format!("rocci_session={TOKEN}"))
                 .header(header::ORIGIN, format!("http://{ADDRESS}"));
         }
         builder.body(Body::empty()).unwrap()
@@ -353,7 +353,7 @@ mod tests {
         let response = app(None)
             .oneshot(request(
                 http::Method::GET,
-                &format!("/_roc/bootstrap/main/{TOKEN}"),
+                &format!("/_rocci/bootstrap/main/{TOKEN}"),
                 false,
             ))
             .await
@@ -374,7 +374,7 @@ mod tests {
         let response = app(None)
             .oneshot(request(
                 http::Method::GET,
-                &format!("/_roc/bootstrap/other/{TOKEN}"),
+                &format!("/_rocci/bootstrap/other/{TOKEN}"),
                 false,
             ))
             .await
@@ -430,7 +430,7 @@ mod tests {
         let stolen = Request::builder()
             .uri("/")
             .header(header::HOST, ADDRESS.to_string())
-            .header(header::COOKIE, "roc_session=token-main")
+            .header(header::COOKIE, "rocci_session=token-main")
             .body(Body::empty())
             .unwrap();
         assert_eq!(
@@ -442,7 +442,7 @@ mod tests {
         let revoked = Request::builder()
             .uri("/")
             .header(header::HOST, ADDRESS.to_string())
-            .header(header::COOKIE, "roc_session=token-main")
+            .header(header::COOKIE, "rocci_session=token-main")
             .body(Body::empty())
             .unwrap();
         assert_eq!(
@@ -457,7 +457,7 @@ mod tests {
         let request = Request::builder()
             .uri("/")
             .header(header::HOST, "attacker.example")
-            .header(header::COOKIE, format!("roc_session={TOKEN}"))
+            .header(header::COOKIE, format!("rocci_session={TOKEN}"))
             .body(Body::empty())
             .unwrap();
         let response = app(None).oneshot(request).await.unwrap();
@@ -471,7 +471,7 @@ mod tests {
             .uri("/action")
             .header(header::HOST, ADDRESS.to_string())
             .header(header::ORIGIN, "http://127.0.0.1:9999")
-            .header(header::COOKIE, format!("roc_session={TOKEN}"))
+            .header(header::COOKIE, format!("rocci_session={TOKEN}"))
             .body(Body::empty())
             .unwrap();
         let response = app(None).oneshot(request).await.unwrap();

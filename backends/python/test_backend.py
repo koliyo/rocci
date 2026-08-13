@@ -49,7 +49,7 @@ class HttpContractTests(unittest.TestCase):
         self.thread.join(timeout=2)
 
     def test_post_body_is_drained_before_connection_reuse(self) -> None:
-        cookie = f"roc_session={self.state.token}"
+        cookie = f"rocci_session={self.state.token}"
         headers = {
             "Cookie": cookie,
             "Origin": f"http://{self.state.host}",

@@ -23,7 +23,7 @@ libraries first-class rather than compatibility modes.
 
 ## Phase 1 — turn the POC into a reusable Rust runtime
 
-- [x] Split the crate into `roc-core`, `roc-wry`, `roc-http`, and a CLI, while
+- [x] Split the crate into `rocci-core`, `rocci-wry`, `rocci-http`, and a CLI, while
   keeping a facade crate with a small builder API.
 - [x] Accept an arbitrary Tower `Service`/Axum `Router` and provide lifecycle hooks,
   managed Rust state, graceful shutdown, and structured errors.
@@ -53,7 +53,7 @@ still outstanding.
 - Provide CSRF/origin middleware suited to loopback webviews and document how
   it composes with application authentication.
 - Keep plain HTML responses first-class and add tested htmx examples. Avoid a
-  frontend-specific requirement in `roc-core` or `roc-http`.
+  frontend-specific requirement in `rocci-core` or `rocci-http`.
 
 Exit criteria: the example gallery covers the common workflows normally solved
 by desktop IPC while using only HTTP, HTML, and SSE.

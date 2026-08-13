@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/roc-core",
-    "crates/roc-http",
-    "crates/roc-wry",
-    "crates/roc-cli",
-    "crates/roc",
+    "crates/rocci-core",
+    "crates/rocci-http",
+    "crates/rocci-wry",
+    "crates/rocci-cli",
+    "crates/rocci",
     "examples/counter",
 ]
 default-members = ["examples/counter"]
@@ -17,10 +17,10 @@ license = "MIT OR Apache-2.0"
 description = "A Datastar-first, multi-backend desktop web application runtime built directly on tao and wry"
 
 [workspace.dependencies]
-roc-core = { path = "crates/roc-core" }
-roc-http = { path = "crates/roc-http" }
-roc-wry = { path = "crates/roc-wry" }
-roc = { path = "crates/roc" }
+rocci-core = { path = "crates/rocci-core" }
+rocci-http = { path = "crates/rocci-http" }
+rocci-wry = { path = "crates/rocci-wry" }
+rocci = { path = "crates/rocci" }
 anyhow = "1.0"
 async-stream = "0.3"
 askama = "0.16"

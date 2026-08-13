@@ -1,5 +1,5 @@
 [package]
-name = "roc-datastar"
+name = "counter"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,7 +7,7 @@ description.workspace = true
 
 [features]
 default = ["desktop"]
-desktop = ["roc/desktop"]
+desktop = ["rocci/desktop"]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -17,7 +17,7 @@ axum = { workspace = true }
 datastar = { workspace = true }
 futures-util = { workspace = true }
 http = { workspace = true }
-roc = { workspace = true }
+rocci = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -27,4 +27,4 @@ http-body-util = { workspace = true }
 tower = { workspace = true }
 
 [build-dependencies]
-roc-core = { workspace = true }
+rocci-core = { workspace = true }

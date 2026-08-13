@@ -117,7 +117,7 @@ mod tests {
     use super::*;
     use axum::body::Body;
     use http_body_util::BodyExt;
-    use roc::{Config, HttpContext, Session, WindowId, wrap_router};
+    use rocci::{Config, HttpContext, Session, WindowId, wrap_router};
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use tower::ServiceExt;
 
@@ -139,7 +139,7 @@ mod tests {
             .method(method)
             .uri(uri)
             .header(http::header::HOST, ADDRESS.to_string())
-            .header(http::header::COOKIE, format!("roc_session={TOKEN}"))
+            .header(http::header::COOKIE, format!("rocci_session={TOKEN}"))
             .header(http::header::ORIGIN, format!("http://{ADDRESS}"))
             .body(Body::empty())
             .unwrap()
