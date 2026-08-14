@@ -1,6 +1,6 @@
 import Html
 
-demo = @component |{ contacts, query }| {
+@component demo = |{ contacts, query }| {
     <>
         <label class="search-label">
             Search
@@ -15,7 +15,7 @@ demo = @component |{ contacts, query }| {
     </>
 }
 
-results = @component |{ contacts, query }| {
+@component results = |{ contacts, query }| {
     @let visible = List.keep_if(contacts, |contact| matches(contact, query))
 
     <div id="results" class="panel">
@@ -39,7 +39,7 @@ results = @component |{ contacts, query }| {
     </div>
 }
 
-contactRow = @component |{ contact }| {
+@component contactRow = |{ contact }| {
     <tr>
         <td>{contact.first}</td>
         <td>{contact.last}</td>

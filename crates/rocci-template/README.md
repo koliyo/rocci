@@ -3,7 +3,7 @@
 Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
-`name = @component |params| { ... }` bodies use a bounded HTML template
+`@component name = |params| { ... }` bodies use a bounded HTML template
 grammar. This crate does not invoke the Roc compiler, type-check
 expressions, or own HTTP/runtime behavior.
 
@@ -34,7 +34,7 @@ import Design
 
 Tone : [Neutral, Positive]
 
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 
@@ -47,20 +47,20 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component` is recognized only as the right-hand side of a
+module unchanged. `@component` is recognized only at the start of a
 top-level definition.
 
 ## Components
 
 ```text
-name = @component |params| { template }
+@component name = |params| { template }
 ```
 
 `params` is a Roc parameter list. The first parameter is normally a props
 record. Extra parameters are the default body:
 
 ```rocci
-badge = @component |{ tone }, content| {
+@component badge = |{ tone }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
@@ -294,7 +294,7 @@ is a double-quoted string. Roc snippets that are not a simple path are
 quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 ```rocci
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 ```
