@@ -1,5 +1,5 @@
 use std::{
-    net::TcpStream,
+    net::{TcpListener, TcpStream},
     process::Child,
     thread,
     time::{Duration, Instant},
@@ -22,6 +22,31 @@ pub fn parse_basic_webserver_port(value: Option<&str>) -> Result<u16> {
 
 pub fn basic_webserver_port() -> Result<u16> {
     parse_basic_webserver_port(std::env::var("ROC_BASIC_WEBSERVER_PORT").ok().as_deref())
+}
+
+pub fn allocate_port() -> Result<u16> {
+    if std::env::var("ROC_BASIC_WEBSERVER_PORT").is_ok() {
+        let port = basic_webserver_port()?;
+        if port_open(port) {
+            bail!(
+                "port {port} is already in use; stop the other server or set ROC_BASIC_WEBSERVER_PORT"
+            );
+        }
+        return Ok(port);
+    }
+    if !port_open(DEFAULT_PORT) {
+        return Ok(DEFAULT_PORT);
+    }
+    free_port()
+}
+
+pub fn free_port() -> Result<u16> {
+    let listener = TcpListener::bind("127.0.0.1:0").context("failed to allocate a local port")?;
+    Ok(listener.local_addr()?.port())
+}
+
+fn port_open(port: u16) -> bool {
+    TcpStream::connect(("127.0.0.1", port)).is_ok()
 }
 
 pub fn wait_for_server(child: &mut Child, port: u16) -> Result<()> {
@@ -86,5 +111,11 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("invalid ROC_BASIC_WEBSERVER_PORT"));
+    }
+
+    #[test]
+    fn free_port_is_bindable() {
+        let port = free_port().unwrap();
+        assert!(TcpListener::bind(("127.0.0.1", port)).is_ok());
     }
 }

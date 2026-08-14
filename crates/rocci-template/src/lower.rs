@@ -35,6 +35,7 @@ pub struct ComponentInfo {
     pub param_names: Vec<String>,
     pub optional_params: Vec<String>,
     pub param_defaults: Vec<(String, String)>,
+    pub param_types: Vec<(String, String)>,
     pub first_param_is_record: bool,
     pub span: Span,
 }
@@ -108,6 +109,7 @@ impl<'a> Emitter<'a> {
             param_names: parsed.param_names,
             optional_params: parsed.optional_params,
             param_defaults: parsed.param_defaults,
+            param_types: parsed.param_types,
             first_param_is_record: parsed.first_param_is_record,
             span: component.span,
         });

@@ -91,7 +91,7 @@ pub fn browse(roots: &[PathBuf], no_window: bool) -> Result<()> {
     fs::write(workspace.path.join("main.roc"), generate_main_roc())
         .context("failed to write main.roc")?;
 
-    let port = serve::basic_webserver_port()?;
+    let port = serve::allocate_port()?;
     let url = format!("http://127.0.0.1:{port}/");
     let mut child = Command::new("roc")
         .arg("main.roc")
@@ -305,14 +305,6 @@ fn compile_browser(workspace: &Path) -> Result<()> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct RecordField {
-    pub name: String,
-    pub kind: ParamKind,
-    pub default_roc: Option<String>,
-    pub default_display: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ParamKind {
     Str,
     I64,
@@ -321,7 +313,6 @@ pub(crate) enum ParamKind {
     Dec,
     Bool,
     BodyHtml,
-    Record(Vec<RecordField>),
 }
 
 impl ParamKind {
@@ -334,49 +325,36 @@ impl ParamKind {
             Self::Dec => "dec",
             Self::Bool => "bool",
             Self::BodyHtml => "body",
-            Self::Record(_) => "record",
         }
     }
 
     fn from_annotation(ty: &str) -> Option<Self> {
-        let ty = ty.trim();
-        match ty {
+        match ty.trim() {
             "Str" => Some(Self::Str),
             "I64" => Some(Self::I64),
             "U64" => Some(Self::U64),
             "F64" => Some(Self::F64),
             "Dec" => Some(Self::Dec),
             "Bool" => Some(Self::Bool),
-            _ => parse_record_annotation(ty),
+            _ => None,
         }
     }
 
-    fn zero_roc(&self) -> String {
+    fn zero_roc(&self) -> &'static str {
         match self {
-            Self::Str | Self::BodyHtml => "\"\"".to_string(),
-            Self::I64 => "0.I64".to_string(),
-            Self::U64 => "0.U64".to_string(),
-            Self::F64 | Self::Dec => "0.0".to_string(),
-            Self::Bool => "False".to_string(),
-            Self::Record(fields) => {
-                if fields.is_empty() {
-                    return "{}".to_string();
-                }
-                let inner = fields
-                    .iter()
-                    .map(|field| format!("{}: {}", field.name, field.kind.zero_roc()))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                format!("{{ {inner} }}")
-            }
+            Self::Str | Self::BodyHtml => "\"\"",
+            Self::I64 => "0.I64",
+            Self::U64 => "0.U64",
+            Self::F64 | Self::Dec => "0.0",
+            Self::Bool => "False",
         }
     }
 
-    fn zero_display(&self) -> String {
+    fn zero_display(&self) -> &'static str {
         match self {
-            Self::Str | Self::BodyHtml | Self::Record(_) => String::new(),
-            Self::I64 | Self::U64 | Self::F64 | Self::Dec => "0".to_string(),
-            Self::Bool => "false".to_string(),
+            Self::Str | Self::BodyHtml => "",
+            Self::I64 | Self::U64 | Self::F64 | Self::Dec => "0",
+            Self::Bool => "false",
         }
     }
 }
@@ -557,7 +535,7 @@ fn propagate_passthrough(src: &str, document: &Document, entries: &mut [CatalogE
                     param.kind = Some(kind.clone());
                     param.reason.clear();
                     if param.default_display.is_empty() {
-                        param.default_display = kind.zero_display();
+                        param.default_display = kind.zero_display().to_string();
                     }
                     changed = true;
                 }
@@ -754,10 +732,7 @@ fn infer_from_default(expr: &str) -> Inferred {
         return Inferred::Unsupported("list".into());
     }
     if trimmed.starts_with('{') {
-        return match parse_record_literal(trimmed) {
-            Some(fields) => Inferred::Scalar(ParamKind::Record(fields)),
-            None => Inferred::Unsupported("record".into()),
-        };
+        return Inferred::Unsupported("record".into());
     }
     if trimmed
         .chars()
@@ -799,7 +774,7 @@ fn is_float(value: &str) -> bool {
 fn display_default(kind: &ParamKind, default_roc: Option<&str>) -> String {
     match default_roc {
         Some(value) => display_roc_literal(value),
-        None => kind.zero_display(),
+        None => kind.zero_display().to_string(),
     }
 }
 
@@ -862,18 +837,9 @@ enum UsageHint {
     Str,
     Bool,
     I64,
-    Field { path: Vec<String>, leaf: FieldLeaf },
+    Record,
     List,
     Tag,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum FieldLeaf {
-    Str,
-    Bool,
-    I64,
-    Tag,
-    List,
 }
 
 fn infer_from_usage(src: &str, body: &TemplateBlock, param: &str) -> Option<Inferred> {
@@ -888,23 +854,8 @@ fn infer_from_usage(src: &str, body: &TemplateBlock, param: &str) -> Option<Infe
     if hints.contains(&UsageHint::Tag) {
         return Some(Inferred::Unsupported("tag".into()));
     }
-    let field_hints: Vec<(Vec<String>, FieldLeaf)> = hints
-        .iter()
-        .filter_map(|hint| match hint {
-            UsageHint::Field { path, leaf } => Some((path.clone(), *leaf)),
-            _ => None,
-        })
-        .collect();
-    if !field_hints.is_empty() {
-        if field_hints
-            .iter()
-            .any(|(_, leaf)| matches!(leaf, FieldLeaf::Tag | FieldLeaf::List))
-        {
-            return Some(Inferred::Unsupported("record".into()));
-        }
-        return Some(Inferred::Scalar(ParamKind::Record(
-            record_fields_from_hints(&field_hints),
-        )));
+    if hints.contains(&UsageHint::Record) {
+        return Some(Inferred::Unsupported("record".into()));
     }
     if hints.contains(&UsageHint::I64) {
         return Some(Inferred::Scalar(ParamKind::I64));
@@ -921,98 +872,6 @@ fn infer_from_usage(src: &str, body: &TemplateBlock, param: &str) -> Option<Infe
     None
 }
 
-fn record_fields_from_hints(hints: &[(Vec<String>, FieldLeaf)]) -> Vec<RecordField> {
-    let mut fields = Vec::new();
-    for (path, leaf) in hints {
-        insert_record_field(&mut fields, path, leaf_kind(*leaf), None);
-    }
-    fields
-}
-
-fn leaf_kind(leaf: FieldLeaf) -> ParamKind {
-    match leaf {
-        FieldLeaf::Str => ParamKind::Str,
-        FieldLeaf::Bool => ParamKind::Bool,
-        FieldLeaf::I64 => ParamKind::I64,
-        FieldLeaf::Tag | FieldLeaf::List => ParamKind::Str,
-    }
-}
-
-fn insert_record_field(
-    fields: &mut Vec<RecordField>,
-    path: &[String],
-    kind: ParamKind,
-    default_roc: Option<String>,
-) {
-    let Some((name, rest)) = path.split_first() else {
-        return;
-    };
-    let default_display = default_roc
-        .as_deref()
-        .map(display_roc_literal)
-        .unwrap_or_else(|| kind.zero_display());
-    if rest.is_empty() {
-        if let Some(existing) = fields.iter_mut().find(|field| field.name == *name) {
-            existing.kind = merge_param_kind(&existing.kind, kind);
-            if existing.default_roc.is_none() {
-                existing.default_roc = default_roc;
-                existing.default_display = default_display;
-            }
-        } else {
-            fields.push(RecordField {
-                name: name.clone(),
-                kind,
-                default_roc,
-                default_display,
-            });
-        }
-        return;
-    }
-    match fields.iter_mut().find(|field| field.name == *name) {
-        Some(existing) => {
-            if let ParamKind::Record(nested) = &mut existing.kind {
-                insert_record_field(nested, rest, kind, default_roc);
-            } else {
-                let mut nested = Vec::new();
-                insert_record_field(&mut nested, rest, kind, default_roc);
-                existing.kind = ParamKind::Record(nested);
-            }
-        }
-        None => {
-            let mut nested = Vec::new();
-            insert_record_field(&mut nested, rest, kind, default_roc);
-            fields.push(RecordField {
-                name: name.clone(),
-                kind: ParamKind::Record(nested),
-                default_roc: None,
-                default_display: String::new(),
-            });
-        }
-    }
-}
-
-fn merge_param_kind(left: &ParamKind, right: ParamKind) -> ParamKind {
-    match (left, right) {
-        (ParamKind::Record(existing), ParamKind::Record(incoming)) => {
-            let mut fields = existing.clone();
-            for field in incoming {
-                insert_record_field(
-                    &mut fields,
-                    &[field.name.clone()],
-                    field.kind,
-                    field.default_roc,
-                );
-            }
-            ParamKind::Record(fields)
-        }
-        (ParamKind::Record(existing), _) => ParamKind::Record(existing.clone()),
-        (_, ParamKind::Record(incoming)) => ParamKind::Record(incoming),
-        (ParamKind::I64, _) | (_, ParamKind::I64) => ParamKind::I64,
-        (ParamKind::Bool, _) | (_, ParamKind::Bool) => ParamKind::Bool,
-        _ => left.clone(),
-    }
-}
-
 fn walk_block(src: &str, body: &TemplateBlock, param: &str, hints: &mut Vec<UsageHint>) {
     for item in &body.items {
         walk_item(src, item, param, hints);
@@ -1024,7 +883,7 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
         TemplateItem::Element(el) => {
             for attr in &el.attrs {
                 if let rocci_template::AttrValue::Expr { expr } = attr.value {
-                    classify_expr(param, expr.of(src), hints, ExprCtx::Value);
+                    classify_expr(param, expr.of(src), hints);
                 }
             }
             for child in &el.children {
@@ -1034,7 +893,7 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
         TemplateItem::ComponentCall(call) => {
             for attr in &call.attrs {
                 if let rocci_template::AttrValue::Expr { expr } = attr.value {
-                    classify_expr(param, expr.of(src), hints, ExprCtx::Value);
+                    classify_expr(param, expr.of(src), hints);
                 }
             }
             if let Some(children) = &call.children {
@@ -1053,7 +912,7 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
             if expr == param {
                 hints.push(UsageHint::Str);
             } else {
-                classify_expr(param, expr, hints, ExprCtx::Interpolate);
+                classify_expr(param, expr, hints);
             }
         }
         TemplateItem::If(dir) => {
@@ -1061,11 +920,11 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
             if cond == param || cond == format!("!{param}") {
                 hints.push(UsageHint::Bool);
             } else {
-                classify_expr(param, cond, hints, ExprCtx::If);
+                classify_expr(param, cond, hints);
             }
             walk_block(src, &dir.then_body, param, hints);
             for (cond, body) in &dir.else_ifs {
-                classify_expr(param, cond.of(src), hints, ExprCtx::If);
+                classify_expr(param, cond.of(src), hints);
                 walk_block(src, body, param, hints);
             }
             if let Some(body) = &dir.else_body {
@@ -1077,7 +936,7 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
             if collection == param {
                 hints.push(UsageHint::List);
             } else {
-                classify_expr(param, collection, hints, ExprCtx::For);
+                classify_expr(param, collection, hints);
             }
             walk_block(src, &dir.body, param, hints);
         }
@@ -1086,29 +945,20 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
             if scrutinee == param {
                 hints.push(UsageHint::Tag);
             } else {
-                classify_expr(param, scrutinee, hints, ExprCtx::Match);
+                classify_expr(param, scrutinee, hints);
             }
             for arm in &dir.arms {
                 walk_item(src, &arm.value, param, hints);
             }
         }
         TemplateItem::Let(dir) => {
-            classify_expr(param, dir.expr.of(src), hints, ExprCtx::Value);
+            classify_expr(param, dir.expr.of(src), hints);
         }
         TemplateItem::Text(_) => {}
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-enum ExprCtx {
-    Value,
-    Interpolate,
-    If,
-    Match,
-    For,
-}
-
-fn classify_expr(param: &str, expr: &str, hints: &mut Vec<UsageHint>, ctx: ExprCtx) {
+fn classify_expr(param: &str, expr: &str, hints: &mut Vec<UsageHint>) {
     let expr = expr.trim();
     if expr.is_empty() || expr == param {
         return;
@@ -1124,191 +974,17 @@ fn classify_expr(param: &str, expr: &str, hints: &mut Vec<UsageHint>, ctx: ExprC
         hints.push(UsageHint::List);
         return;
     }
-    if let Some((path, leaf)) = exact_field_access(param, expr, ctx) {
-        hints.push(UsageHint::Field { path, leaf });
+    if is_record_expr(param, expr) {
+        hints.push(UsageHint::Record);
     }
 }
 
-fn exact_field_access(param: &str, expr: &str, ctx: ExprCtx) -> Option<(Vec<String>, FieldLeaf)> {
+fn is_record_expr(param: &str, expr: &str) -> bool {
     let expr = expr.strip_prefix('!').unwrap_or(expr);
-    let rest = expr.strip_prefix(param)?.strip_prefix('.')?;
-    let (path, method) = parse_field_path(rest)?;
-    if path.is_empty() {
-        return None;
-    }
-    let leaf = match method {
-        FieldMethod::ToStr => FieldLeaf::I64,
-        FieldMethod::None => match ctx {
-            ExprCtx::If => FieldLeaf::Bool,
-            ExprCtx::Match => FieldLeaf::Tag,
-            ExprCtx::For => FieldLeaf::List,
-            ExprCtx::Interpolate | ExprCtx::Value => FieldLeaf::Str,
-        },
-    };
-    Some((path, leaf))
-}
-
-#[derive(Clone, Copy, Debug)]
-enum FieldMethod {
-    None,
-    ToStr,
-}
-
-fn parse_field_path(after: &str) -> Option<(Vec<String>, FieldMethod)> {
-    let mut path = Vec::new();
-    let mut rest = after;
-    loop {
-        let ident = take_ident(rest)?;
-        rest = &rest[ident.len()..];
-        if rest.starts_with('(') {
-            let method = if ident == "to_str" || ident == "toStr" {
-                FieldMethod::ToStr
-            } else {
-                return None;
-            };
-            return if path.is_empty() {
-                None
-            } else {
-                Some((path, method))
-            };
-        }
-        path.push(ident.to_string());
-        if let Some(stripped) = rest.strip_prefix('.') {
-            rest = stripped;
-            continue;
-        }
-        break;
-    }
-    if rest.is_empty() {
-        Some((path, FieldMethod::None))
-    } else {
-        None
-    }
-}
-
-fn take_ident(input: &str) -> Option<&str> {
-    let mut chars = input.char_indices();
-    let (_, first) = chars.next()?;
-    if !first.is_ascii_alphabetic() && first != '_' {
-        return None;
-    }
-    let end = chars
-        .find(|(_, ch)| !ch.is_ascii_alphanumeric() && *ch != '_')
-        .map(|(index, _)| index)
-        .unwrap_or(input.len());
-    Some(&input[..end])
-}
-
-fn parse_record_annotation(ty: &str) -> Option<ParamKind> {
-    let inner = record_inner(ty)?;
-    if inner.is_empty() {
-        return Some(ParamKind::Record(Vec::new()));
-    }
-    let mut fields = Vec::new();
-    for part in split_top_level(inner, ',') {
-        let part = part.trim();
-        if part.is_empty() {
-            continue;
-        }
-        let (name, rest) = split_once_top_level(part, ':')?;
-        let name = take_ident(name.trim())?.to_string();
-        let kind = ParamKind::from_annotation(rest.trim())?;
-        fields.push(RecordField {
-            default_display: kind.zero_display(),
-            default_roc: None,
-            name,
-            kind,
-        });
-    }
-    Some(ParamKind::Record(fields))
-}
-
-fn parse_record_literal(expr: &str) -> Option<Vec<RecordField>> {
-    let inner = record_inner(expr)?;
-    if inner.is_empty() {
-        return Some(Vec::new());
-    }
-    let mut fields = Vec::new();
-    for part in split_top_level(inner, ',') {
-        let part = part.trim();
-        if part.is_empty() {
-            continue;
-        }
-        let (name, rest) = split_once_top_level(part, ':')?;
-        let name = take_ident(name.trim())?.to_string();
-        match infer_from_default(rest.trim()) {
-            Inferred::Scalar(kind) => {
-                let default_display = display_default(&kind, Some(rest.trim()));
-                fields.push(RecordField {
-                    name,
-                    default_roc: Some(rest.trim().to_string()),
-                    default_display,
-                    kind,
-                });
-            }
-            Inferred::Unsupported(_) => return None,
-        }
-    }
-    Some(fields)
-}
-
-fn record_inner(value: &str) -> Option<&str> {
-    let trimmed = value.trim();
-    trimmed.strip_prefix('{')?.strip_suffix('}').map(str::trim)
-}
-
-fn split_once_top_level(input: &str, sep: char) -> Option<(&str, &str)> {
-    let mut depth: usize = 0;
-    let mut chars = input.char_indices().peekable();
-    while let Some((i, ch)) = chars.next() {
-        match ch {
-            '(' | '[' | '{' => depth += 1,
-            ')' | ']' | '}' => depth = depth.saturating_sub(1),
-            '"' => {
-                while let Some((_, next)) = chars.next() {
-                    if next == '\\' {
-                        chars.next();
-                    } else if next == '"' {
-                        break;
-                    }
-                }
-            }
-            c if c == sep && depth == 0 => {
-                return Some((&input[..i], &input[i + c.len_utf8()..]));
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn split_top_level(inner: &str, sep: char) -> Vec<&str> {
-    let mut parts = Vec::new();
-    let mut depth: usize = 0;
-    let mut part_start = 0;
-    let mut chars = inner.char_indices().peekable();
-    while let Some((i, ch)) = chars.next() {
-        match ch {
-            '(' | '[' | '{' => depth += 1,
-            ')' | ']' | '}' => depth = depth.saturating_sub(1),
-            '"' => {
-                while let Some((_, next)) = chars.next() {
-                    if next == '\\' {
-                        chars.next();
-                    } else if next == '"' {
-                        break;
-                    }
-                }
-            }
-            c if c == sep && depth == 0 => {
-                parts.push(&inner[part_start..i]);
-                part_start = i + c.len_utf8();
-            }
-            _ => {}
-        }
-    }
-    parts.push(&inner[part_start..]);
-    parts
+    expr.starts_with(param)
+        && expr[param.len()..].starts_with('.')
+        && expr != format!("{param}.to_str()")
+        && expr != format!("{param}.toStr()")
 }
 
 fn is_list_expr(param: &str, expr: &str) -> bool {
@@ -1346,45 +1022,11 @@ fn missing_imports(src: &str, available: &HashSet<String>) -> Vec<String> {
         .collect()
 }
 
-struct FlatField {
-    name: String,
-    required: bool,
-    kind: &'static str,
-    value: String,
-}
-
-fn form_params(entry: &CatalogEntry) -> Vec<FlatField> {
-    entry.params.iter().flat_map(flatten_param).collect()
-}
-
-fn flatten_param(param: &BrowseParam) -> Vec<FlatField> {
-    match &param.kind {
-        Some(ParamKind::Record(fields)) => flatten_record(&param.name, param.required, fields),
-        Some(kind) => vec![FlatField {
-            name: param.name.clone(),
-            required: param.required,
-            kind: kind.as_str(),
-            value: param.default_display.clone(),
-        }],
-        None => Vec::new(),
-    }
-}
-
-fn flatten_record(prefix: &str, required: bool, fields: &[RecordField]) -> Vec<FlatField> {
-    fields
+fn form_params(entry: &CatalogEntry) -> Vec<&BrowseParam> {
+    entry
+        .params
         .iter()
-        .flat_map(|field| {
-            let name = format!("{prefix}.{}", field.name);
-            match &field.kind {
-                ParamKind::Record(nested) => flatten_record(&name, required, nested),
-                kind => vec![FlatField {
-                    name,
-                    required,
-                    kind: kind.as_str(),
-                    value: field.default_display.clone(),
-                }],
-            }
-        })
+        .filter(|param| param.kind.is_some())
         .collect()
 }
 
@@ -1443,8 +1085,8 @@ fn catalog_entry_roc(entry: &CatalogEntry, indent: &str) -> String {
                 "{indent}        {{ name: {}, required: {}, kind: {}, value: {} }}",
                 roc_string(&param.name),
                 roc_bool(param.required),
-                roc_string(param.kind),
-                roc_string(&param.value),
+                roc_string(param.kind.as_ref().map(ParamKind::as_str).unwrap_or("")),
+                roc_string(&param.default_display),
             ));
             if index + 1 != params.len() {
                 out.push(',');
@@ -1553,35 +1195,11 @@ fn value_expr(param: &BrowseParam) -> String {
             .clone()
             .unwrap_or_else(|| "Html.empty".to_string());
     };
-    value_expr_kind(kind, &param.name, param.default_roc.as_deref())
-}
-
-fn value_expr_kind(kind: &ParamKind, key: &str, default_roc: Option<&str>) -> String {
-    if let ParamKind::Record(fields) = kind {
-        if fields.is_empty() {
-            return "{}".to_string();
-        }
-        let inner = fields
-            .iter()
-            .map(|field| {
-                format!(
-                    "{}: {}",
-                    field.name,
-                    value_expr_kind(
-                        &field.kind,
-                        &format!("{key}.{}", field.name),
-                        field.default_roc.as_deref()
-                    )
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
-        return format!("{{ {inner} }}");
-    }
-    let fallback = default_roc
-        .map(str::to_string)
-        .unwrap_or_else(|| kind.zero_roc());
-    let quoted = roc_string(key);
+    let fallback = param
+        .default_roc
+        .clone()
+        .unwrap_or_else(|| kind.zero_roc().to_string());
+    let quoted = roc_string(&param.name);
     match kind {
         ParamKind::Str => format!("Query.arg_str(args, {quoted}) ?? {fallback}"),
         ParamKind::I64 => format!("Query.arg_i64(args, {quoted}) ?? {fallback}"),
@@ -1592,7 +1210,6 @@ fn value_expr_kind(kind: &ParamKind, key: &str, default_roc: Option<&str>) -> St
         ParamKind::BodyHtml => {
             format!("Html.text(Query.arg_str(args, {quoted}) ?? {fallback})")
         }
-        ParamKind::Record(_) => unreachable!(),
     }
 }
 
@@ -1847,32 +1464,32 @@ mod tests {
     #[test]
     fn infers_annotation_default_body_and_usage() {
         let src = r#"
-hello = @component |{ name ?? "Roc" }| {
+@component hello = |{ name ?? "Roc" }| {
     <p>{name}</p>
 }
-typed = @component |{ count: I64 }| {
+@component typed = |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-badge = @component |{ tone ?? Neutral }, content| {
+@component badge = |{ tone ?? Neutral }, content| {
     <span>{content}</span>
 }
-card = @component |{ count }| {
+@component card = |{ count }| {
     <output>{count.to_str()}</output>
 }
-flag = @component |{ full }| {
+@component flag = |{ full }| {
     @if full {
         <p>full</p>
     }
 }
-items = @component |{ items }| {
+@component items = |{ items }| {
     @for item in items {
         <li>{item}</li>
     }
 }
-contact = @component |{ contact }| {
+@component contact = |{ contact }| {
     <p>{contact.first}</p>
 }
-title = @component |{ title }| {
+@component title = |{ title }| {
     <h1>{title}</h1>
 }
 "#;
@@ -1905,15 +1522,8 @@ title = @component |{ title }| {
         assert!(items.reason.contains("list"));
 
         let contact = entry_for(src, "contact");
-        assert!(contact.previewable, "{}", contact.reason);
-        match &contact.params[0].kind {
-            Some(ParamKind::Record(fields)) => {
-                let names: Vec<_> = fields.iter().map(|field| field.name.as_str()).collect();
-                assert_eq!(names, ["first"]);
-                assert_eq!(fields[0].kind, ParamKind::Str);
-            }
-            other => panic!("expected record, got {other:?}"),
-        }
+        assert!(!contact.previewable);
+        assert!(contact.reason.contains("record"));
 
         let title = entry_for(src, "title");
         assert!(title.previewable);
@@ -1924,10 +1534,10 @@ title = @component |{ title }| {
     #[test]
     fn passthrough_inherits_sibling_param_kind() {
         let src = r#"
-card = @component |{ count }| {
+@component card = |{ count }| {
     <output>{count.to_str()}</output>
 }
-page = @component |{ count }| {
+@component page = |{ count }| {
     <html><body><Card count={count} /></body></html>
 }
 "#;
@@ -1946,45 +1556,12 @@ page = @component |{ count }| {
     }
 
     #[test]
-    fn record_fields_flatten_into_forms_and_preview_calls() {
-        let src = r#"
-card = @component |{ contact }| {
-    <p>{contact.first} {contact.last}</p>
-}
-nested = @component |{ person ?? { name: "Ada", age: 1 } }| {
-    <p>{person.name}</p>
-}
-"#;
-        let card = entry_for(src, "card");
-        assert!(card.previewable, "{}", card.reason);
-        let groups = vec![ModuleGroup {
-            module: "Demo".into(),
-            file: "Demo.rocci".into(),
-            import_ok: true,
-            entries: vec![card, entry_for(src, "nested")],
-        }];
-        let catalog = generate_catalog_roc(&groups);
-        assert!(catalog.contains("name: \"contact.first\""));
-        assert!(catalog.contains("name: \"contact.last\""));
-        assert!(catalog.contains("name: \"person.name\""));
-        assert!(catalog.contains("name: \"person.age\""));
-
-        let preview = generate_preview_roc(&groups);
-        assert!(preview.contains(
-            "Demo.card({ contact: { first: Query.arg_str(args, \"contact.first\") ?? \"\", last: Query.arg_str(args, \"contact.last\") ?? \"\" } })"
-        ));
-        assert!(preview.contains("person.name"));
-        assert!(preview.contains("?? \"Ada\""));
-        assert!(preview.contains("?? 1"));
-    }
-
-    #[test]
     fn catalog_and_preview_generation() {
         let src = r#"
-hello = @component |{ name ?? "Roc" }| {
+@component hello = |{ name ?? "Roc" }| {
     <p>{name}</p>
 }
-items = @component |{ items }| {
+@component items = |{ items }| {
     @for item in items {
         <li>{item}</li>
     }
@@ -2015,7 +1592,7 @@ items = @component |{ items }| {
     #[test]
     fn preview_omits_modules_with_missing_imports() {
         let src = r#"
-hello = @component |{}| {
+@component hello = |{}| {
     <p>ok</p>
 }
 "#;
@@ -2038,6 +1615,7 @@ hello = @component |{}| {
         assert_eq!(display_roc_literal("0"), "0");
         assert_eq!(ParamKind::from_annotation("I64"), Some(ParamKind::I64));
         assert_eq!(ParamKind::from_annotation("List(Item)"), None);
+        assert_eq!(ParamKind::from_annotation("{ first: Str }"), None);
         assert_eq!(
             infer_from_default("\"Ada\""),
             Inferred::Scalar(ParamKind::Str)

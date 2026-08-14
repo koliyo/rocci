@@ -234,6 +234,17 @@ fn extracts_component_param_names() {
         Span::new(0, "|{ name ?? \"World\" }|".len()),
     );
     assert_eq!(parsed.param_defaults, [("name".into(), "\"World\"".into())]);
+    let typed = parse_component_params("|{ count: I64 }|", Span::new(0, "|{ count: I64 }|".len()));
+    assert_eq!(typed.param_types, [("count".into(), "I64".into())]);
+    let typed_default = parse_component_params(
+        "|{ name: Str ?? \"World\" }|",
+        Span::new(0, "|{ name: Str ?? \"World\" }|".len()),
+    );
+    assert_eq!(typed_default.param_types, [("name".into(), "Str".into())]);
+    assert_eq!(
+        typed_default.param_defaults,
+        [("name".into(), "\"World\"".into())]
+    );
 }
 
 #[test]
@@ -291,6 +302,7 @@ fn compile_records_param_names_on_components() {
 
     let typed = find("typed");
     assert_eq!(typed.param_names, ["count"]);
+    assert_eq!(typed.param_types, [("count".into(), "I64".into())]);
     assert!(typed.first_param_is_record);
 
     let model = find("modelView");

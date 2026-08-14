@@ -165,6 +165,7 @@ pub struct ParsedParams {
     pub param_names: Vec<String>,
     pub optional_params: Vec<String>,
     pub param_defaults: Vec<(String, String)>,
+    pub param_types: Vec<(String, String)>,
     pub body_params: Vec<String>,
 }
 
@@ -188,11 +189,15 @@ pub fn parse_component_params(src: &str, params: Span) -> ParsedParams {
     named.extend(body);
     let mut optional_params = Vec::new();
     let mut param_defaults = Vec::new();
+    let mut param_types = Vec::new();
     let mut param_names = Vec::new();
     for param in named {
         if let Some(default) = param.default {
             optional_params.push(param.name.clone());
             param_defaults.push((param.name.clone(), default));
+        }
+        if let Some(ty) = param.ty {
+            param_types.push((param.name.clone(), ty));
         }
         param_names.push(param.name);
     }
@@ -201,6 +206,7 @@ pub fn parse_component_params(src: &str, params: Span) -> ParsedParams {
         param_names,
         optional_params,
         param_defaults,
+        param_types,
         body_params,
     }
 }
@@ -226,6 +232,7 @@ pub fn strip_param_defaults(raw: &str) -> String {
 #[derive(Clone, Debug)]
 struct NamedParam {
     name: String,
+    ty: Option<String>,
     default: Option<String>,
 }
 
@@ -244,9 +251,26 @@ fn first_param_names(first: &str) -> (bool, Vec<NamedParam>) {
 
 fn named_param(part: &str) -> Option<NamedParam> {
     ident_from_param(part).map(|name| NamedParam {
+        ty: type_annot(part, &name),
         name,
         default: default_expr(part),
     })
+}
+
+fn type_annot(part: &str, name: &str) -> Option<String> {
+    let trimmed = part.trim();
+    let after_junk = trimmed.trim_start_matches(|ch: char| !ch.is_ascii_alphabetic() && ch != '_');
+    let after_name = after_junk.strip_prefix(name)?;
+    let before_default = match find_top_level_qq(after_name) {
+        Some(idx) => after_name[..idx].trim(),
+        None => after_name.trim(),
+    };
+    let ty = before_default.strip_prefix(':')?.trim();
+    if ty.is_empty() {
+        None
+    } else {
+        Some(ty.to_string())
+    }
 }
 
 fn default_expr(part: &str) -> Option<String> {
