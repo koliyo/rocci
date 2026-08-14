@@ -265,7 +265,7 @@ mod tests {
         let dir = temp_app("compile");
         fs::write(
             dir.join("Hello.rocci"),
-            "import Html\n\nhello = @component |{ name }| {\n    <p>{name}</p>\n}\n",
+            "import Html\n\n@component hello = |{ name }| {\n    <p>{name}</p>\n}\n",
         )
         .unwrap();
         compile_rocci_modules(&dir).unwrap();
