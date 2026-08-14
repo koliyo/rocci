@@ -18,7 +18,13 @@ From the repository root, with `roc` and `cargo` on `PATH`:
 
 Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
-The script compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and runs `main.roc`. `main.roc` only owns HTTP, SQLite, and SSE; it does not build the page HTML.
+The script copies shared assets into `examples/roc-counter/assets/` and runs `rocci run`, which compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and executes `main.roc`. If assets are already in place:
+
+```sh
+cargo run -q -p rocci-cli -- run examples/roc-counter/main.roc
+```
+
+`main.roc` only owns HTTP, SQLite, and SSE; it does not build the page HTML.
 
 ## Smoke checks
 

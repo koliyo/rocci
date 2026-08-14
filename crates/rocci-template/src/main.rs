@@ -22,8 +22,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Lower a .rocci module to Roc and print or write the result.
-    Compile {
+    /// Build a .rocci module to Roc and print or write the result.
+    Build {
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -51,7 +51,7 @@ fn main() -> ExitCode {
 
 fn run() -> Result<ExitCode, String> {
     match Cli::parse().command {
-        Commands::Compile { input, output } => {
+        Commands::Build { input, output } => {
             let (name, src) = read_input(&input)?;
             let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
             print_diagnostics(&compiled, &name, &src);
