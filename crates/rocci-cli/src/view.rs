@@ -462,6 +462,7 @@ mod tests {
             param_names: param_names.iter().map(|s| s.to_string()).collect(),
             optional_params: optional_params.iter().map(|s| s.to_string()).collect(),
             param_defaults: Vec::new(),
+            param_types: Vec::new(),
             first_param_is_record,
             span: Span::new(0, 0),
         }

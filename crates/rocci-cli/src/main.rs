@@ -1,3 +1,4 @@
+mod browse;
 mod roc_module;
 mod run;
 mod serve;
@@ -72,6 +73,15 @@ enum Commands {
         #[arg(long)]
         no_window: bool,
     },
+    /// Browse components under one or more roots.
+    Browse {
+        /// Skip the embedded window; print the URL and keep the Roc server.
+        #[arg(long)]
+        no_window: bool,
+        /// Directories (recursive) and/or .rocci files.
+        #[arg(default_value = ".")]
+        roots: Vec<PathBuf>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -92,6 +102,7 @@ fn main() -> Result<()> {
             args,
             no_window,
         } => view::view(&input, &component, &args, no_window),
+        Commands::Browse { roots, no_window } => browse::browse(&roots, no_window),
     }
 }
 

@@ -135,7 +135,6 @@ h1 {
 
 .field textarea { min-height: 88px; resize: vertical; }
 .field input[type="checkbox"] { width: auto; }
-.field span { word-break: break-word; }
 .req { color: #48eda4; }
 
 button {
