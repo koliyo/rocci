@@ -7,8 +7,8 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
-    ComponentDecl, ComponentInfo, Document, LowerOptions, ModuleItem, SourceFile, TemplateBlock,
-    TemplateItem, compile, format_diagnostic,
+    ComponentDecl, ComponentInfo, Document, FixtureInfo, LowerOptions, ModuleItem, SourceFile,
+    TemplateBlock, TemplateItem, compile, format_diagnostic,
 };
 
 use crate::roc_module::{type_name_from_path, wrap_type_module};
@@ -31,7 +31,7 @@ const RESERVED_ROC: &[&str] = &[
     "Browser.roc",
 ];
 
-pub fn browse(roots: &[PathBuf], no_window: bool) -> Result<()> {
+pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Result<()> {
     let files = discover_rocci_files(roots)?;
     if files.is_empty() {
         bail!("no .rocci files found");
@@ -66,7 +66,8 @@ pub fn browse(roots: &[PathBuf], no_window: bool) -> Result<()> {
         .with_context(|| format!("failed to write {}.roc", module.type_name))?;
     }
 
-    let groups = analyze_modules(&compiled_modules, &available);
+    let mut groups = analyze_modules(&compiled_modules, &available);
+    attach_fixtures(&compiled_modules, &mut groups);
     fs::write(
         workspace.path.join("Catalog.roc"),
         generate_catalog_roc(&groups),
@@ -91,7 +92,7 @@ pub fn browse(roots: &[PathBuf], no_window: bool) -> Result<()> {
     fs::write(workspace.path.join("main.roc"), generate_main_roc())
         .context("failed to write main.roc")?;
 
-    let port = serve::allocate_port()?;
+    let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
     let mut child = Command::new("roc")
         .arg("main.roc")
@@ -191,6 +192,7 @@ struct CompiledModule {
     roc: String,
     document: Document,
     components: Vec<ComponentInfo>,
+    fixtures: Vec<FixtureInfo>,
     src: String,
 }
 
@@ -221,6 +223,7 @@ fn compile_modules(files: &[PathBuf]) -> Result<Vec<CompiledModule>> {
             roc: compiled.roc,
             document: compiled.document,
             components: compiled.components,
+            fixtures: compiled.fixtures,
             src,
         });
     }
@@ -371,6 +374,14 @@ pub(crate) struct BrowseParam {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct BrowseFixture {
+    pub name: String,
+    pub module: String,
+    pub value: String,
+    pub scalars: Vec<(String, String)>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CatalogEntry {
     pub id: String,
     pub module: String,
@@ -381,6 +392,7 @@ pub(crate) struct CatalogEntry {
     pub full_document: bool,
     pub first_param_is_record: bool,
     pub params: Vec<BrowseParam>,
+    pub fixtures: Vec<BrowseFixture>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -483,7 +495,62 @@ fn catalog_entry(
         full_document: component_is_html_document(document, &info.name),
         first_param_is_record: info.first_param_is_record,
         params,
+        fixtures: Vec::new(),
     }
+}
+
+fn attach_fixtures(modules: &[CompiledModule], groups: &mut [ModuleGroup]) {
+    let fixtures: Vec<(&str, &FixtureInfo)> = modules
+        .iter()
+        .flat_map(|module| {
+            module
+                .fixtures
+                .iter()
+                .map(|fixture| (module.type_name.as_str(), fixture))
+        })
+        .collect();
+    for (module_name, fixture) in fixtures {
+        for group in groups.iter_mut() {
+            for entry in &mut group.entries {
+                if !fixture_targets(entry, module_name, fixture) {
+                    continue;
+                }
+                entry.fixtures.push(BrowseFixture {
+                    name: fixture.name.clone(),
+                    module: module_name.to_string(),
+                    value: fixture.value.clone(),
+                    scalars: fixture_scalars(&fixture.value),
+                });
+            }
+        }
+    }
+    for group in groups {
+        if !group.import_ok {
+            continue;
+        }
+        for entry in &mut group.entries {
+            if entry.fixtures.is_empty() {
+                continue;
+            }
+            entry.previewable = true;
+            entry.reason.clear();
+        }
+    }
+}
+
+fn fixture_targets(entry: &CatalogEntry, module_name: &str, fixture: &FixtureInfo) -> bool {
+    if fixture.target.contains('.') {
+        fixture.target == entry.id
+    } else {
+        module_name == entry.module && fixture.target == entry.name
+    }
+}
+
+fn can_preview_from_form(entry: &CatalogEntry) -> bool {
+    entry
+        .params
+        .iter()
+        .all(|param| !param.required || param.kind.is_some())
 }
 
 fn refresh_previewable(entry: &mut CatalogEntry) {
@@ -1030,6 +1097,123 @@ fn form_params(entry: &CatalogEntry) -> Vec<&BrowseParam> {
         .collect()
 }
 
+fn fixture_scalars(value: &str) -> Vec<(String, String)> {
+    top_level_fields(value)
+        .into_iter()
+        .filter_map(|(name, expr)| fixture_scalar_display(&expr).map(|display| (name, display)))
+        .collect()
+}
+
+fn fixture_scalar_display(expr: &str) -> Option<String> {
+    let trimmed = strip_num_suffix(expr.trim());
+    if trimmed.starts_with('{')
+        || trimmed.starts_with('[')
+        || trimmed.starts_with('(')
+        || trimmed.contains('(')
+    {
+        return None;
+    }
+    match infer_from_default(trimmed) {
+        Inferred::Scalar(
+            ParamKind::Str
+            | ParamKind::I64
+            | ParamKind::U64
+            | ParamKind::F64
+            | ParamKind::Dec
+            | ParamKind::Bool,
+        ) => Some(display_roc_literal(trimmed)),
+        _ => None,
+    }
+}
+
+fn strip_num_suffix(value: &str) -> &str {
+    for suffix in [".I64", ".U64", ".F64", ".Dec"] {
+        if let Some(rest) = value.strip_suffix(suffix) {
+            return rest;
+        }
+    }
+    value
+}
+
+fn record_has_field(record: &str, name: &str) -> bool {
+    top_level_fields(record)
+        .iter()
+        .any(|(field, _)| field == name)
+}
+
+fn top_level_fields(record: &str) -> Vec<(String, String)> {
+    let trimmed = record.trim();
+    let Some(inner) = trimmed.strip_prefix('{').and_then(|s| s.strip_suffix('}')) else {
+        return Vec::new();
+    };
+    split_top_level(inner, ',')
+        .into_iter()
+        .filter_map(|part| {
+            let (name, value) = split_top_level_once(part, ':')?;
+            let name = name.trim();
+            if name.is_empty() {
+                None
+            } else {
+                Some((name.to_string(), value.trim().to_string()))
+            }
+        })
+        .collect()
+}
+
+fn split_top_level(inner: &str, sep: char) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut depth: usize = 0;
+    let mut part_start = 0;
+    let mut chars = inner.char_indices().peekable();
+    while let Some((i, ch)) = chars.next() {
+        match ch {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            '"' => {
+                while let Some((_, next)) = chars.next() {
+                    if next == '\\' {
+                        chars.next();
+                    } else if next == '"' {
+                        break;
+                    }
+                }
+            }
+            c if c == sep && depth == 0 => {
+                parts.push(&inner[part_start..i]);
+                part_start = i + c.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    parts.push(&inner[part_start..]);
+    parts
+}
+
+fn split_top_level_once(part: &str, sep: char) -> Option<(&str, &str)> {
+    let mut depth: usize = 0;
+    let mut chars = part.char_indices().peekable();
+    while let Some((i, ch)) = chars.next() {
+        match ch {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            '"' => {
+                while let Some((_, next)) = chars.next() {
+                    if next == '\\' {
+                        chars.next();
+                    } else if next == '"' {
+                        break;
+                    }
+                }
+            }
+            c if c == sep && depth == 0 => {
+                return Some((&part[..i], &part[i + c.len_utf8()..]));
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
 pub(crate) fn generate_catalog_roc(groups: &[ModuleGroup]) -> String {
     let mut out = String::from("Catalog := [].{\n    groups = [\n");
     for (index, group) in groups.iter().enumerate() {
@@ -1095,16 +1279,70 @@ fn catalog_entry_roc(entry: &CatalogEntry, indent: &str) -> String {
         }
         out.push_str(&format!("{indent}    ],\n"));
     }
+    if entry.fixtures.is_empty() {
+        out.push_str(&format!("{indent}    fixtures: [],\n"));
+    } else {
+        out.push_str(&format!("{indent}    fixtures: [\n"));
+        for (index, fixture) in entry.fixtures.iter().enumerate() {
+            out.push_str(&fixture_roc(fixture, &format!("{indent}        ")));
+            if index + 1 != entry.fixtures.len() {
+                out.push(',');
+            }
+            out.push('\n');
+        }
+        out.push_str(&format!("{indent}    ],\n"));
+    }
+    out.push_str(&format!("{indent}}}"));
+    out
+}
+
+fn fixture_roc(fixture: &BrowseFixture, indent: &str) -> String {
+    let mut out = format!("{indent}{{\n");
+    out.push_str(&format!(
+        "{indent}    name: {},\n",
+        roc_string(&fixture.name)
+    ));
+    out.push_str(&format!(
+        "{indent}    source: {},\n",
+        roc_string(&fixture.value)
+    ));
+    if fixture.scalars.is_empty() {
+        out.push_str(&format!("{indent}    scalars: [],\n"));
+    } else {
+        out.push_str(&format!("{indent}    scalars: [\n"));
+        for (index, (name, value)) in fixture.scalars.iter().enumerate() {
+            out.push_str(&format!(
+                "{indent}        {{ name: {}, value: {} }}",
+                roc_string(name),
+                roc_string(value)
+            ));
+            if index + 1 != fixture.scalars.len() {
+                out.push(',');
+            }
+            out.push('\n');
+        }
+        out.push_str(&format!("{indent}    ],\n"));
+    }
     out.push_str(&format!("{indent}}}"));
     out
 }
 
 pub(crate) fn generate_preview_roc(groups: &[ModuleGroup]) -> String {
-    let mut imports: Vec<String> = groups
-        .iter()
-        .filter(|group| group.import_ok && group.entries.iter().any(|entry| entry.previewable))
-        .map(|group| group.module.clone())
-        .collect();
+    let mut imports: Vec<String> = Vec::new();
+    for group in groups {
+        if !group.import_ok {
+            continue;
+        }
+        for entry in &group.entries {
+            if !entry.previewable {
+                continue;
+            }
+            imports.push(group.module.clone());
+            for fixture in &entry.fixtures {
+                imports.push(fixture.module.clone());
+            }
+        }
+    }
     imports.sort();
     imports.dedup();
 
@@ -1123,16 +1361,7 @@ pub(crate) fn generate_preview_roc(groups: &[ModuleGroup]) -> String {
             if !entry.previewable {
                 continue;
             }
-            let call = generate_runtime_call(&group.module, entry);
-            let render = if entry.full_document {
-                call
-            } else {
-                format!("shell({call})")
-            };
-            out.push_str(&format!(
-                "            {} => {render}\n",
-                roc_string(&entry.id)
-            ));
+            out.push_str(&preview_id_arm(&group.module, entry));
         }
     }
     out.push_str("            _ => shell(Html.text(\"Unknown component\"))\n        }\n}\n\n");
@@ -1156,6 +1385,122 @@ pub(crate) fn generate_preview_roc(groups: &[ModuleGroup]) -> String {
 "#,
     );
     out
+}
+
+fn preview_id_arm(module: &str, entry: &CatalogEntry) -> String {
+    let wrap = |call: String| {
+        if entry.full_document {
+            call
+        } else {
+            format!("shell({call})")
+        }
+    };
+    if entry.fixtures.is_empty() {
+        return format!(
+            "            {} => {}\n",
+            roc_string(&entry.id),
+            wrap(generate_runtime_call(module, entry))
+        );
+    }
+    let mut out = format!(
+        "            {} =>\n                match Query.arg_str(args, \"fixture\") ?? \"\" {{\n",
+        roc_string(&entry.id)
+    );
+    for fixture in &entry.fixtures {
+        out.push_str(&format!(
+            "                    {} => {}\n",
+            roc_string(&fixture.name),
+            wrap(generate_fixture_call(module, entry, fixture))
+        ));
+    }
+    let fallback = if can_preview_from_form(entry) {
+        generate_runtime_call(module, entry)
+    } else {
+        generate_fixture_call(module, entry, &entry.fixtures[0])
+    };
+    out.push_str(&format!(
+        "                    _ => {}\n                }}\n",
+        wrap(fallback)
+    ));
+    out
+}
+
+fn generate_fixture_call(module: &str, entry: &CatalogEntry, fixture: &BrowseFixture) -> String {
+    let fixture_ref = format!("{}.{}", fixture.module, fixture.name);
+    let fields: Vec<String> = entry
+        .params
+        .iter()
+        .filter(|param| !param.is_body && record_has_field(&fixture.value, &param.name))
+        .map(|param| {
+            let value = match &param.kind {
+                Some(_) => overlay_expr(param, &fixture_ref, fixture),
+                None => format!("{fixture_ref}.{}", param.name),
+            };
+            format!("{}: {}", param.name, value)
+        })
+        .collect();
+    let has_scalar_overlay = entry.params.iter().any(|param| {
+        !param.is_body && param.kind.is_some() && record_has_field(&fixture.value, &param.name)
+    });
+    let bodies: Vec<&BrowseParam> = entry.params.iter().filter(|param| param.is_body).collect();
+    let mut call_args = Vec::new();
+    if entry.first_param_is_record {
+        if !has_scalar_overlay {
+            call_args.push(fixture_ref);
+        } else {
+            call_args.push(format!("{{ {} }}", fields.join(", ")));
+        }
+    } else {
+        call_args.push(fixture_ref);
+    }
+    for param in bodies {
+        call_args.push(value_expr(param));
+    }
+    format!("{module}.{}({})", entry.name, call_args.join(", "))
+}
+
+fn overlay_expr(param: &BrowseParam, fixture_ref: &str, fixture: &BrowseFixture) -> String {
+    let quoted = roc_string(&param.name);
+    let fallback = overlay_fallback(param, fixture_ref, fixture);
+    match param.kind.as_ref().unwrap() {
+        ParamKind::Str => format!("Query.arg_str(args, {quoted}) ?? {fallback}"),
+        ParamKind::I64 => format!("Query.arg_i64(args, {quoted}) ?? {fallback}"),
+        ParamKind::U64 => format!("Query.arg_u64(args, {quoted}) ?? {fallback}"),
+        ParamKind::F64 => format!("Query.arg_f64(args, {quoted}) ?? {fallback}"),
+        ParamKind::Dec => format!("Query.arg_dec(args, {quoted}) ?? {fallback}"),
+        ParamKind::Bool => format!("Query.arg_bool(args, {quoted}) ?? {fallback}"),
+        ParamKind::BodyHtml => {
+            format!("Html.text(Query.arg_str(args, {quoted}) ?? {fallback})")
+        }
+    }
+}
+
+fn overlay_fallback(param: &BrowseParam, fixture_ref: &str, fixture: &BrowseFixture) -> String {
+    let field = top_level_fields(&fixture.value)
+        .into_iter()
+        .find(|(name, _)| name == &param.name)
+        .map(|(_, expr)| expr);
+    match param.kind.as_ref().unwrap() {
+        ParamKind::I64 => numeric_literal_fallback(field.as_deref(), "I64")
+            .unwrap_or_else(|| format!("{fixture_ref}.{}", param.name)),
+        ParamKind::U64 => numeric_literal_fallback(field.as_deref(), "U64")
+            .unwrap_or_else(|| format!("{fixture_ref}.{}", param.name)),
+        ParamKind::F64 => numeric_literal_fallback(field.as_deref(), "F64")
+            .unwrap_or_else(|| format!("{fixture_ref}.{}", param.name)),
+        ParamKind::Dec => numeric_literal_fallback(field.as_deref(), "Dec")
+            .unwrap_or_else(|| format!("{fixture_ref}.{}", param.name)),
+        _ => format!("{fixture_ref}.{}", param.name),
+    }
+}
+
+fn numeric_literal_fallback(field: Option<&str>, suffix: &str) -> Option<String> {
+    let bare = strip_num_suffix(field?.trim());
+    let ok = match suffix {
+        "I64" | "U64" => is_i64(bare),
+        "F64" | "Dec" => is_i64(bare) || is_float(bare),
+        _ => false,
+    };
+    ok.then(|| format!("{bare}.{suffix}"))
 }
 
 fn generate_runtime_call(module: &str, entry: &CatalogEntry) -> String {
@@ -1286,18 +1631,22 @@ shutdown! = |_reason, _context| Ok({{}})
 
 inspector = |args| {{
     id = Query.arg_str(args, "id") ?? ""
+    requested = Query.arg_str(args, "fixture") ?? ""
     match Catalog.find(id) {{
-        Ok(selected) =>
+        Ok(selected) => {{
+            chosen = chosen_fixture(selected, requested)
             html_ok(
                 Html.render(
                     Browser.inspectorPage({{
                         groups: Catalog.groups,
                         selected: selected,
-                        fields: fields(selected, args),
-                        preview_url: preview_url(selected, args),
+                        fields: fields(selected, args, chosen),
+                        preview_url: preview_url(selected, args, chosen),
+                        selected_fixture: chosen.name,
                     }}),
                 ),
             )
+        }}
         Err(_) => html_ok(Html.render(Browser.homePage({{ groups: Catalog.groups }})))
     }}
 }}
@@ -1307,26 +1656,54 @@ preview = |args| {{
     html_ok(Html.render(Preview.render(id, args)))
 }}
 
-fields = |selected, args|
+empty_fixture = {{ name: "", source: "", scalars: [] }}
+
+chosen_fixture = |selected, requested|
+    match List.get(List.keep_if(selected.fixtures, |item| item.name == requested), 0) {{
+        Ok(found) => found
+        Err(_) =>
+            match List.get(selected.fixtures, 0) {{
+                Ok(first) => first
+                Err(_) => empty_fixture
+            }}
+    }}
+
+fields = |selected, args, chosen|
     List.map(
         selected.params,
         |param| {{
+            from_fixture =
+                match List.get(List.keep_if(chosen.scalars, |item| item.name == param.name), 0) {{
+                    Ok(item) => item.value
+                    Err(_) => param.value
+                }}
             {{
                 name: param.name,
                 required: param.required,
                 kind: param.kind,
-                value: Query.arg_str(args, param.name) ?? param.value,
+                value: Query.arg_str(args, param.name) ?? from_fixture,
             }}
         }},
     )
 
-preview_url = |selected, args| {{
+preview_url = |selected, args, chosen| {{
+    fixture_q =
+        if chosen.name == "" {{
+            ""
+        }} else {{
+            "&fixture=${{Query.encode(chosen.name)}}"
+        }}
     suffix =
         List.fold(
             selected.params,
-            "",
+            fixture_q,
             |acc, param| {{
-                value = Query.arg_str(args, param.name) ?? param.value
+                from_fixture =
+                    match List.get(List.keep_if(chosen.scalars, |item| item.name == param.name), 0) {{
+                        Ok(item) => item.value
+                        Err(_) => param.value
+                    }}
+                value = Query.arg_str(args, param.name) ?? from_fixture
                 "${{acc}}&${{Query.encode(param.name)}}=${{Query.encode(value)}}"
             }},
         )
@@ -1590,6 +1967,93 @@ mod tests {
     }
 
     #[test]
+    fn fixtures_make_list_components_previewable_and_fill_scalars() {
+        let src = r#"
+@component hello = |{ name }| {
+    <p>{name}</p>
+}
+@fixture{target: hello}
+helloTest = { name: "Ada" }
+
+@component items = |{ items }| {
+    @for item in items {
+        <li>{item}</li>
+    }
+}
+@fixture{target: items}
+itemsTest = { items: ["milk", "eggs"] }
+"#;
+        let groups = groups_with_fixtures(src);
+        let hello = groups[0]
+            .entries
+            .iter()
+            .find(|entry| entry.name == "hello")
+            .unwrap();
+        assert!(hello.previewable);
+        assert_eq!(hello.fixtures.len(), 1);
+        assert_eq!(hello.fixtures[0].name, "helloTest");
+        assert_eq!(
+            hello.fixtures[0].scalars,
+            vec![("name".into(), "Ada".into())]
+        );
+
+        let items = groups[0]
+            .entries
+            .iter()
+            .find(|entry| entry.name == "items")
+            .unwrap();
+        assert!(items.previewable, "{}", items.reason);
+        assert_eq!(items.fixtures[0].name, "itemsTest");
+        assert!(items.fixtures[0].scalars.is_empty());
+
+        let catalog = generate_catalog_roc(&groups);
+        assert!(catalog.contains("helloTest"));
+        assert!(catalog.contains("value: \"Ada\""));
+        assert!(catalog.contains("itemsTest"));
+
+        let preview = generate_preview_roc(&groups);
+        assert!(preview.contains(
+            "Demo.hello({ name: Query.arg_str(args, \"name\") ?? Demo.helloTest.name })"
+        ));
+        assert!(preview.contains("Demo.items(Demo.itemsTest)"));
+        assert!(preview.contains("\"helloTest\" =>"));
+    }
+
+    #[test]
+    fn fixture_numeric_overlays_use_typed_literals() {
+        let src = r#"
+@component card = |{ count }| {
+    <output>{count.to_str()}</output>
+}
+@fixture{target: card}
+cardTest = { count: 3 }
+"#;
+        let groups = groups_with_fixtures(src);
+        let preview = generate_preview_roc(&groups);
+        assert!(preview.contains(
+            "Demo.card({ count: Query.arg_i64(args, \"count\") ?? 3.I64 })"
+        ));
+    }
+
+    fn groups_with_fixtures(src: &str) -> Vec<ModuleGroup> {
+        let out = compile_src(src);
+        assert!(!out.has_errors(), "{:?}", out.diagnostics);
+        let module = CompiledModule {
+            path: PathBuf::from("Demo.rocci"),
+            type_name: "Demo".into(),
+            roc: out.roc,
+            document: out.document,
+            components: out.components,
+            fixtures: out.fixtures,
+            src: src.to_string(),
+        };
+        let available = HashSet::from(["Html".into(), "Demo".into()]);
+        let mut groups = analyze_modules(std::slice::from_ref(&module), &available);
+        attach_fixtures(std::slice::from_ref(&module), &mut groups);
+        groups
+    }
+
+    #[test]
     fn preview_omits_modules_with_missing_imports() {
         let src = r#"
 @component hello = |{}| {
@@ -1629,5 +2093,13 @@ mod tests {
             infer_from_default("Neutral"),
             Inferred::Unsupported(_)
         ));
+        assert_eq!(
+            fixture_scalars("{ name: \"Ada\", contacts: all_contacts, count: 3, full: True }"),
+            vec![
+                ("name".into(), "Ada".into()),
+                ("count".into(), "3".into()),
+                ("full".into(), "true".into()),
+            ]
+        );
     }
 }

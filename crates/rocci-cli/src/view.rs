@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
     fs,
-    net::TcpListener,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -19,7 +18,13 @@ const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/dow
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 const HTML_STUB: &str = include_str!("../../../examples/roc-counter/Html.roc");
 
-pub fn view(input: &Path, component: &str, raw_args: &[String], no_window: bool) -> Result<()> {
+pub fn view(
+    input: &Path,
+    component: &str,
+    raw_args: &[String],
+    no_window: bool,
+    port: serve::PortArg,
+) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -79,7 +84,7 @@ pub fn view(input: &Path, component: &str, raw_args: &[String], no_window: bool)
     )
     .context("failed to write main.roc")?;
 
-    let port = free_port()?;
+    let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
     let mut child = Command::new("roc")
         .arg("main.roc")
@@ -414,11 +419,6 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
         copy_tree(&entry.path(), &to.join(entry.file_name()))?;
     }
     Ok(())
-}
-
-fn free_port() -> Result<u16> {
-    let listener = TcpListener::bind("127.0.0.1:0").context("failed to allocate a local port")?;
-    Ok(listener.local_addr()?.port())
 }
 
 struct TempDir {

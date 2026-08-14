@@ -482,26 +482,34 @@ impl<'a> Emitter<'a> {
             return;
         }
         let groups = group_children(items);
-        if groups.len() == 1 {
-            match &groups[0] {
-                ChildGroup::Nodes(group_items) => self.emit_node_array(group_items, body_params),
-                ChildGroup::List(item) => self.lower_item(item, body_params, ValueCtx::List),
+        self.emit_concat_groups(&groups, body_params);
+    }
+
+    fn emit_concat_groups(&mut self, groups: &[ChildGroup<'_>], body_params: &[String]) {
+        match groups {
+            [] => self.emit("[]"),
+            [group] => self.emit_child_group(group, body_params),
+            [first, rest @ ..] => {
+                self.emit("List.concat(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_child_group(first, body_params);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit_concat_groups(rest, body_params);
+                self.emit(",\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
             }
-            return;
         }
-        self.emit("List.concat([\n");
-        self.indent += 1;
-        for group in &groups {
-            self.push_indent();
-            match group {
-                ChildGroup::Nodes(group_items) => self.emit_node_array(group_items, body_params),
-                ChildGroup::List(item) => self.lower_item(item, body_params, ValueCtx::List),
-            }
-            self.emit(",\n");
+    }
+
+    fn emit_child_group(&mut self, group: &ChildGroup<'_>, body_params: &[String]) {
+        match group {
+            ChildGroup::Nodes(group_items) => self.emit_node_array(group_items, body_params),
+            ChildGroup::List(item) => self.lower_item(item, body_params, ValueCtx::List),
         }
-        self.indent -= 1;
-        self.push_indent();
-        self.emit("])");
     }
 
     fn emit_node_array(&mut self, items: &[&TemplateItem], body_params: &[String]) {

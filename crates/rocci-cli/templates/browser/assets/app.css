@@ -103,12 +103,20 @@ h1 {
 
 .inspector {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 20px;
   min-height: calc(100vh - 180px);
 }
 
-.params {
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.params,
+.fixtures {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -123,7 +131,8 @@ h1 {
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   width: 100%;
   border: 1px solid #29493b;
   border-radius: 8px;
@@ -136,6 +145,22 @@ h1 {
 .field textarea { min-height: 88px; resize: vertical; }
 .field input[type="checkbox"] { width: auto; }
 .req { color: #48eda4; }
+
+.fixture-source {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid rgba(109, 236, 177, .2);
+  border-radius: 10px;
+  background: rgba(6, 16, 12, .7);
+  color: #d7eee4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 button {
   appearance: none;

@@ -152,7 +152,7 @@ sample_hud = {
 }
 
 @fixture{target: lobbyPage}
-lobbyPageTest = { player_count: 3, full: False }
+lobbyPageTest = { player_count: 3.I64, full: False }
 
 @fixture{target: board}
 boardTest = { cells: sample_cells }
