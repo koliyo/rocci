@@ -1,0 +1,147 @@
+import Html
+
+@component
+homePage = |{ groups }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>rocci browse</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <div class="shell">
+                <Sidebar groups={groups} selected_id="" />
+                <main class="stage">
+                    <p class="eyebrow">Component browser</p>
+                    <h1>Pick a component.</h1>
+                    <p class="lede">Required parameters get a form. The canvas renders the component in an iframe.</p>
+                </main>
+            </div>
+        </body>
+    </html>
+}
+
+@component
+inspectorPage = |{ groups, selected, fields, preview_url }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>{selected.name} · rocci browse</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <div class="shell">
+                <Sidebar groups={groups} selected_id={selected.id} />
+                <main class="stage">
+                    <p class="eyebrow">{selected.mod_name}</p>
+                    <h1>{selected.name}</h1>
+                    <p class="file">{selected.file}</p>
+                    @if selected.previewable {
+                        <div class="inspector">
+                            <ParamForm fields={fields} selected_id={selected.id} />
+                            <iframe class="canvas" title="preview" src={preview_url}></iframe>
+                        </div>
+                    } @else {
+                        <p class="note">{selected.reason}</p>
+                    }
+                </main>
+            </div>
+        </body>
+    </html>
+}
+
+@component
+sidebar = |{ groups, selected_id }| {
+    <aside class="sidebar">
+        <a class="brand" href="/">rocci browse</a>
+        <div class="modules">
+            @for group in groups {
+                <section class="module">
+                    <h2>{group.mod_name}</h2>
+                    <ul>
+                        @for entry in group.entries {
+                            <li>
+                                <a href={"/c?id=${entry.id}"} class={if entry.id == selected_id { "active" } else { "" }}>
+                                    {entry.name}
+                                    @if !entry.previewable {
+                                        <span class="muted">skip</span>
+                                    }
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+    </aside>
+}
+
+@component
+paramForm = |{ fields, selected_id }| {
+    <form method="get" action="/c" class="params" data-on:input__debounce.400ms="el.requestSubmit()">
+        <input type="hidden" name="id" value={selected_id} />
+        @if List.is_empty(fields) {
+            <p class="muted">No parameters</p>
+        } @else {
+            <div class="fields">
+                @for item in fields {
+                    <ParamField item={item} />
+                }
+            </div>
+        }
+        <button type="submit">Preview</button>
+    </form>
+}
+
+@component
+paramField = |{ item }| {
+    @if item.kind == "bool" {
+        <label class="field">
+            @if item.value == "true" {
+                <input type="checkbox" name={item.name} value="true" checked="" />
+            } @else {
+                <input type="checkbox" name={item.name} value="true" />
+            }
+            <span>
+                {item.name}
+                @if item.required {
+                    <span class="req">*</span>
+                }
+            </span>
+        </label>
+    } @else if item.kind == "body" {
+        <label class="field">
+            <span>
+                {item.name}
+                @if item.required {
+                    <span class="req">*</span>
+                }
+            </span>
+            <textarea name={item.name}>{item.value}</textarea>
+        </label>
+    } @else if item.kind == "i64" or item.kind == "u64" or item.kind == "f64" or item.kind == "dec" {
+        <label class="field">
+            <span>
+                {item.name}
+                @if item.required {
+                    <span class="req">*</span>
+                }
+            </span>
+            <input type="number" name={item.name} value={item.value} step="any" />
+        </label>
+    } @else {
+        <label class="field">
+            <span>
+                {item.name}
+                @if item.required {
+                    <span class="req">*</span>
+                }
+            </span>
+            <input type="text" name={item.name} value={item.value} />
+        </label>
+    }
+}
