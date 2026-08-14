@@ -147,7 +147,7 @@ fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
         collector.src,
         component.name.span.end,
         component.params.start,
-        "component",
+        "@component",
     ) {
         collector.token(span, TOKEN_KEYWORD, 0);
     }

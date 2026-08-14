@@ -1,6 +1,6 @@
 import Html
 
-demo = component |{ tabs, panel }| {
+demo = @component |{ tabs, panel }| {
     <div id="tabs" class="panel">
         <div role="tablist" class="tablist">
             @for tab in tabs {

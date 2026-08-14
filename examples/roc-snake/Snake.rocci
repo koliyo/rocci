@@ -1,6 +1,6 @@
 import Html
 
-lobbyPage = component |{ player_count_str, full }| {
+lobbyPage = @component |{ player_count_str, full }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -35,7 +35,7 @@ lobbyPage = component |{ player_count_str, full }| {
     </html>
 }
 
-board = component |{ cells }| {
+board = @component |{ cells }| {
     <div id="board" class="board">
         @for cell in cells {
             <i class={cell.class}></i>
@@ -43,7 +43,7 @@ board = component |{ cells }| {
     </div>
 }
 
-miniMap = component |{ marks }| {
+miniMap = @component |{ marks }| {
     <div id="minimap" class="minimap">
         @for mark in marks {
             <i class={mark.class} style={mark.style}></i>
@@ -51,7 +51,7 @@ miniMap = component |{ marks }| {
     </div>
 }
 
-statusHud = component |{ info }| {
+statusHud = @component |{ info }| {
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
         <p class="cam">{info.cam}</p>
@@ -77,7 +77,7 @@ statusHud = component |{ info }| {
     </aside>
 }
 
-playPage = component |{ cells, info, marks }| {
+playPage = @component |{ cells, info, marks }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -108,7 +108,7 @@ playPage = component |{ cells, info, marks }| {
     </html>
 }
 
-steerPad = component |{}| {
+steerPad = @component |{}| {
     <div class="steer" aria-label="Steer">
         <button type="button" class="secondary" data-steer="up">Up</button>
         <button type="button" class="secondary" data-steer="left">Left</button>
@@ -117,7 +117,7 @@ steerPad = component |{}| {
     </div>
 }
 
-gamePatch = component |{ cells, info, marks }| {
+gamePatch = @component |{ cells, info, marks }| {
     <>
         <Board cells={cells} />
         <MiniMap marks={marks} />

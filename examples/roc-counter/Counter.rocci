@@ -1,10 +1,10 @@
 import Html
 
-hello = component |{ name ?? "Roc" }| {
+hello = @component |{ name ?? "Roc" }| {
     <p>Hello, {name}</p>
 }
 
-counterCard = component |{ count }| {
+counterCard = @component |{ count }| {
     <section id="counter" class="counter-card">
         <p class="eyebrow">Shared SQLite state</p>
         <output>{count.to_str()}</output>
@@ -12,7 +12,7 @@ counterCard = component |{ count }| {
     </section>
 }
 
-counterPage = component |{ count }| {
+counterPage = @component |{ count }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
