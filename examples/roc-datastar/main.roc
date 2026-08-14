@@ -423,7 +423,7 @@ load_todos! = |db| {
         {
             items: List.map(visible, todo_item),
             filter: filter,
-            pending_str: pending.to_str(),
+            pending: pending,
             has_completed: has_completed,
         },
     )

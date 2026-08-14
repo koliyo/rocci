@@ -145,9 +145,10 @@ allowed inside it:
 <span class={badgeClass(if active { Positive } else { Neutral })}>
 ```
 
-Text interpolations lower to `Html.text(expr)`, except a bare identifier
-that matches a body parameter, which is inserted as `Html` as-is (`{content}`
-above).
+Text interpolations lower to `Html.text(expr)` and must be `Str`. Convert
+numbers at the interpolation site (`{count.to_str()}`), not at the caller.
+A bare identifier that matches a body parameter is inserted as `Html` as-is
+(`{content}` above).
 
 Use a directive when the branches themselves are markup:
 
