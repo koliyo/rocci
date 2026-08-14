@@ -75,3 +75,18 @@ import Signals
         </div>
     </>
 }
+
+sample_contact = {
+    first: "John",
+    last: "Doe",
+    email: "john@roc-lang.org",
+}
+
+@fixture{target: panel}
+panelTest = { mode: Viewing, contact: sample_contact }
+
+@fixture{target: contactCard}
+contactCardTest = { contact: sample_contact }
+
+@fixture{target: contactForm}
+contactFormTest = { contact: sample_contact }

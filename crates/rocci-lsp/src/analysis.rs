@@ -4,7 +4,7 @@ use lsp_types::{
     MarkupContent, MarkupKind, Position, Range, SymbolKind,
 };
 use rocci_template::{
-    CompileOutput, ComponentCall, ComponentDecl, Document, LowerOptions, ModuleItem,
+    CompileOutput, ComponentCall, ComponentDecl, Document, FixtureDecl, LowerOptions, ModuleItem,
     PositionEncoding, Severity, SourceFile, Span, TemplateItem, camel_to_pascal, compile,
 };
 
@@ -56,8 +56,15 @@ pub fn document_symbols(
     encoding: PositionEncoding,
 ) -> DocumentSymbolResponse {
     let source = SourceFile::new(name, text);
-    let symbols = components(&compiled.document)
-        .map(|component| document_symbol(source, component, encoding))
+    let symbols = compiled
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::Component(component) => Some(component_symbol(source, component, encoding)),
+            ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
+            ModuleItem::Roc { .. } => None,
+        })
         .collect();
     DocumentSymbolResponse::Nested(symbols)
 }
@@ -133,7 +140,7 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     }
 }
 
-fn document_symbol(
+fn component_symbol(
     source: SourceFile<'_>,
     component: &ComponentDecl,
     encoding: PositionEncoding,
@@ -147,6 +154,24 @@ fn document_symbol(
         deprecated: None,
         range: lsp_range(source, component.span, encoding),
         selection_range: lsp_range(source, component.name.span, encoding),
+        children: None,
+    }
+}
+
+fn fixture_symbol(
+    source: SourceFile<'_>,
+    fixture: &FixtureDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    DocumentSymbol {
+        name: fixture.name.name.clone(),
+        detail: Some(format!("@fixture {{target: {}}}", fixture.target.roc_name)),
+        kind: SymbolKind::CONSTANT,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, fixture.span, encoding),
+        selection_range: lsp_range(source, fixture.name.span, encoding),
         children: None,
     }
 }
@@ -166,7 +191,7 @@ fn local_component<'a>(document: &'a Document, roc_name: &str) -> Option<&'a Com
 fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
     document.items.iter().filter_map(|item| match item {
         ModuleItem::Component(component) => Some(component),
-        ModuleItem::Roc { .. } => None,
+        ModuleItem::Roc { .. } | ModuleItem::Fixture(_) => None,
     })
 }
 

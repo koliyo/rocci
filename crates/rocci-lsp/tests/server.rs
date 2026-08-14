@@ -133,10 +133,8 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
         panic!("expected a single location");
     };
-    let hello_decl = KITCHEN_SINK
-        .find("@component hello")
-        .expect("hello decl")
-        + "@component ".len();
+    let hello_decl =
+        KITCHEN_SINK.find("@component hello").expect("hello decl") + "@component ".len();
     let (decl_line, decl_character) = line_col(KITCHEN_SINK, hello_decl);
     assert_eq!(location.range.start.line, decl_line);
     assert_eq!(location.range.start.character, decl_character);
@@ -278,7 +276,10 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
     assert!(regions.iter().any(
         |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, interp)
     ));
-    let params = KITCHEN_SINK.find("|{ name ?? \"World\" }|").expect("params") + 3;
+    let params = KITCHEN_SINK
+        .find("|{ name ?? \"World\" }|")
+        .expect("params")
+        + 3;
     assert!(regions.iter().any(
         |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, params)
     ));

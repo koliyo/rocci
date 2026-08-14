@@ -1,6 +1,6 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, ForDirective, Fragment,
-    IfDirective, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
+    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ForDirective,
+    Fragment, IfDirective, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
 };
 use crate::span::Span;
 
@@ -12,6 +12,7 @@ pub fn format_ast(src: &str, document: &Document) -> String {
         match item {
             ModuleItem::Roc { span } => write_roc(&mut w, span.of(src)),
             ModuleItem::Component(component) => write_component(&mut w, src, component),
+            ModuleItem::Fixture(fixture) => write_fixture(&mut w, src, fixture),
         }
     }
     w.close();
@@ -98,6 +99,18 @@ fn write_component(w: &mut Writer<'_>, src: &str, component: &ComponentDecl) {
     w.open("component", &[atom(&component.name.name)]);
     w.leaf("params", &[atom(component.params.of(src).trim())]);
     write_block(w, src, &component.body);
+    w.close();
+}
+
+fn write_fixture(w: &mut Writer<'_>, src: &str, fixture: &FixtureDecl) {
+    w.open(
+        "fixture",
+        &[
+            atom(&fixture.name.name),
+            format!("target:{}", fixture.target.roc_name),
+        ],
+    );
+    write_roc(w, fixture.value.of(src));
     w.close();
 }
 

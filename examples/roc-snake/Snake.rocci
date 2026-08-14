@@ -125,3 +125,49 @@ lobbyPage = |{ player_count, full }| {
         <StatusHud info={info} />
     </>
 }
+
+sample_cells = [
+    { class: "cell" },
+    { class: "cell food" },
+    { class: "cell head c1" },
+    { class: "cell body c1" },
+]
+
+sample_marks = [
+    { class: "mark head c1", style: "left:10%;top:10%" },
+    { class: "mark food", style: "left:40%;top:25%" },
+    { class: "view", style: "left:0%;top:0%;width:20%;height:20%" },
+]
+
+sample_hud = {
+    role: "You are Jade",
+    cam: { x: 40, y: 40 },
+    respawning: False,
+    respawn_secs: 0,
+    can_leave: True,
+    players: [
+        { row_class: "you", swatch_class: "swatch c1", label: "Jade (you)", score: 3 },
+        { row_class: "", swatch_class: "swatch c2", label: "Blue", score: 1 },
+    ],
+}
+
+@fixture{target: lobbyPage}
+lobbyPageTest = { player_count: 3, full: False }
+
+@fixture{target: board}
+boardTest = { cells: sample_cells }
+
+@fixture{target: miniMap}
+miniMapTest = { marks: sample_marks }
+
+@fixture{target: statusHud}
+statusHudTest = { info: sample_hud }
+
+@fixture{target: playPage}
+playPageTest = { cells: sample_cells, info: sample_hud, marks: sample_marks }
+
+@fixture{target: steerPad}
+steerPadTest = {}
+
+@fixture{target: gamePatch}
+gamePatchTest = { cells: sample_cells, info: sample_hud, marks: sample_marks }

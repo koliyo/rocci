@@ -68,3 +68,18 @@ ascii_lower = |text|
                 },
         ),
     )
+
+sample_contacts = [
+    { first: "Carli", last: "Stoltenberg" },
+    { first: "Kristina", last: "Yundt" },
+    { first: "Ada", last: "Lovelace" },
+]
+
+@fixture{target: demo}
+demoTest = { contacts: sample_contacts, query: "Car" }
+
+@fixture{target: results}
+resultsTest = { contacts: sample_contacts, query: "Foo" }
+
+@fixture{target: contactRow}
+contactRowTest = { contact: { first: "Carli", last: "Stoltenberg" } }
