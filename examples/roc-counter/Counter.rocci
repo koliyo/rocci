@@ -48,7 +48,7 @@ import Html
 helloTest = { name: "Ada" }
 
 @fixture{target: counterCard}
-counterCardTest = { count: 3 }
+counterCardTest = { count: 3.I64 }
 
 @fixture{target: counterPage}
-counterPageTest = { count: 3 }
+counterPageTest = { count: 3.I64 }

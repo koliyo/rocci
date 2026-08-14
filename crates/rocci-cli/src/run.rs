@@ -10,10 +10,10 @@ use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::serve;
 
-pub fn run(file: &Path, args: &[String], no_window: bool) -> Result<()> {
+pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) -> Result<()> {
     let resolved = resolve_entry(file)?;
     compile_rocci_modules(&resolved.app_dir)?;
-    invoke_roc(&resolved, args, no_window)
+    invoke_roc(&resolved, args, no_window, port)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,23 +125,29 @@ fn roc_invocation(resolved: &ResolvedEntry, args: &[String]) -> RocInvocation {
     }
 }
 
-fn roc_command(invocation: &RocInvocation) -> Command {
+fn roc_command(invocation: &RocInvocation, port: u16) -> Command {
     let mut cmd = Command::new(invocation.program);
     cmd.arg(&invocation.roc_file)
         .args(&invocation.args)
-        .current_dir(&invocation.app_dir);
+        .current_dir(&invocation.app_dir)
+        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
     cmd
 }
 
-fn invoke_roc(resolved: &ResolvedEntry, args: &[String], no_window: bool) -> Result<()> {
+fn invoke_roc(
+    resolved: &ResolvedEntry,
+    args: &[String],
+    no_window: bool,
+    port: serve::PortArg,
+) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
-    let port = serve::basic_webserver_port()?;
+    let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
     if no_window {
         println!("Serving {} at {url}", invocation.app_dir.display());
-        return exec_roc(&invocation);
+        return exec_roc(&invocation, port);
     }
-    let mut cmd = roc_command(&invocation);
+    let mut cmd = roc_command(&invocation, port);
     cmd.stdin(Stdio::null())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
@@ -167,8 +173,8 @@ fn window_title(resolved: &ResolvedEntry) -> String {
         .to_string()
 }
 
-fn exec_roc(invocation: &RocInvocation) -> Result<()> {
-    let mut cmd = roc_command(invocation);
+fn exec_roc(invocation: &RocInvocation, port: u16) -> Result<()> {
+    let mut cmd = roc_command(invocation, port);
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -287,11 +293,17 @@ mod tests {
         assert_eq!(invocation.roc_file, PathBuf::from("main.roc"));
         assert_eq!(invocation.args, vec!["--".to_string(), "arg1".to_string()]);
 
-        let cmd = roc_command(&invocation);
+        let cmd = roc_command(&invocation, 9001);
         assert_eq!(cmd.get_program(), "roc");
         let args: Vec<_> = cmd.get_args().collect();
         assert_eq!(args, ["main.roc", "--", "arg1"]);
         assert_eq!(cmd.get_current_dir(), Some(Path::new("/tmp/app")));
+        let port = cmd
+            .get_envs()
+            .find(|(key, _)| *key == "ROC_BASIC_WEBSERVER_PORT")
+            .and_then(|(_, value)| value)
+            .unwrap();
+        assert_eq!(port, "9001");
     }
 
     #[test]

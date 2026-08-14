@@ -6,38 +6,55 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
+use clap::Args;
 use rocci_wry::{PreviewOptions, preview};
 
 const SERVER_WAIT: Duration = Duration::from_secs(120);
-const DEFAULT_PORT: u16 = 8000;
 
-pub fn parse_basic_webserver_port(value: Option<&str>) -> Result<u16> {
-    match value {
-        Some(value) => value
-            .parse()
-            .with_context(|| format!("invalid ROC_BASIC_WEBSERVER_PORT `{value}`")),
-        None => Ok(DEFAULT_PORT),
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PortArg {
+    Auto,
+    Exact(u16),
 }
 
-pub fn basic_webserver_port() -> Result<u16> {
-    parse_basic_webserver_port(std::env::var("ROC_BASIC_WEBSERVER_PORT").ok().as_deref())
-}
-
-pub fn allocate_port() -> Result<u16> {
-    if std::env::var("ROC_BASIC_WEBSERVER_PORT").is_ok() {
-        let port = basic_webserver_port()?;
-        if port_open(port) {
-            bail!(
-                "port {port} is already in use; stop the other server or set ROC_BASIC_WEBSERVER_PORT"
-            );
+impl PortArg {
+    pub fn resolve(self) -> Result<u16> {
+        match self {
+            Self::Auto => free_port(),
+            Self::Exact(port) => {
+                if port_in_use(port) {
+                    bail!("port {port} is already in use; pass --port auto or choose another port");
+                }
+                Ok(port)
+            }
         }
-        return Ok(port);
     }
-    if !port_open(DEFAULT_PORT) {
-        return Ok(DEFAULT_PORT);
+}
+
+#[derive(Args, Clone, Copy, Debug)]
+pub struct PortOptions {
+    /// TCP port to listen on. Pass `auto` to pick a free port.
+    #[arg(
+        long,
+        default_value = "8000",
+        value_name = "PORT",
+        value_parser = parse_port_arg,
+        env = "ROC_BASIC_WEBSERVER_PORT"
+    )]
+    pub port: PortArg,
+}
+
+pub fn parse_port_arg(value: &str) -> Result<PortArg, String> {
+    if value.eq_ignore_ascii_case("auto") {
+        return Ok(PortArg::Auto);
     }
-    free_port()
+    match value.parse::<u16>() {
+        Ok(0) => Err("port 0 is invalid; pass --port auto to pick a free port".into()),
+        Ok(port) => Ok(PortArg::Exact(port)),
+        Err(_) => Err(format!(
+            "invalid port `{value}`; expected a number 1-65535 or `auto`"
+        )),
+    }
 }
 
 pub fn free_port() -> Result<u16> {
@@ -45,7 +62,7 @@ pub fn free_port() -> Result<u16> {
     Ok(listener.local_addr()?.port())
 }
 
-fn port_open(port: u16) -> bool {
+fn port_in_use(port: u16) -> bool {
     TcpStream::connect(("127.0.0.1", port)).is_ok()
 }
 
@@ -94,28 +111,71 @@ pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Parser;
 
-    #[test]
-    fn default_port_is_8000() {
-        assert_eq!(parse_basic_webserver_port(None).unwrap(), 8000);
+    #[derive(Parser, Debug)]
+    struct PortCli {
+        #[command(flatten)]
+        port: PortOptions,
     }
 
     #[test]
-    fn honors_explicit_port() {
-        assert_eq!(parse_basic_webserver_port(Some("9001")).unwrap(), 9001);
+    fn parses_auto_port() {
+        assert_eq!(parse_port_arg("auto").unwrap(), PortArg::Auto);
+        assert_eq!(parse_port_arg("AUTO").unwrap(), PortArg::Auto);
+    }
+
+    #[test]
+    fn parses_explicit_port() {
+        assert_eq!(parse_port_arg("9001").unwrap(), PortArg::Exact(9001));
     }
 
     #[test]
     fn rejects_invalid_port() {
-        let err = parse_basic_webserver_port(Some("nope"))
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("invalid ROC_BASIC_WEBSERVER_PORT"));
+        let err = parse_port_arg("nope").unwrap_err();
+        assert!(err.contains("invalid port `nope`"));
+        let err = parse_port_arg("0").unwrap_err();
+        assert!(err.contains("port 0 is invalid"));
+    }
+
+    #[test]
+    fn clap_defaults_to_8000() {
+        if std::env::var_os("ROC_BASIC_WEBSERVER_PORT").is_some() {
+            return;
+        }
+        let cli = PortCli::try_parse_from(["rocci"]).unwrap();
+        assert_eq!(cli.port.port, PortArg::Exact(8000));
+    }
+
+    #[test]
+    fn clap_accepts_port_auto() {
+        let cli = PortCli::try_parse_from(["rocci", "--port", "auto"]).unwrap();
+        assert_eq!(cli.port.port, PortArg::Auto);
+    }
+
+    #[test]
+    fn clap_accepts_numeric_port() {
+        let cli = PortCli::try_parse_from(["rocci", "--port", "9001"]).unwrap();
+        assert_eq!(cli.port.port, PortArg::Exact(9001));
     }
 
     #[test]
     fn free_port_is_bindable() {
         let port = free_port().unwrap();
+        assert!(TcpListener::bind(("127.0.0.1", port)).is_ok());
+    }
+
+    #[test]
+    fn exact_port_fails_when_in_use() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let err = PortArg::Exact(port).resolve().unwrap_err().to_string();
+        assert!(err.contains("already in use"));
+    }
+
+    #[test]
+    fn auto_port_resolves_to_a_free_port() {
+        let port = PortArg::Auto.resolve().unwrap();
         assert!(TcpListener::bind(("127.0.0.1", port)).is_ok());
     }
 }

@@ -45,6 +45,8 @@ enum Commands {
         /// Skip the embedded window; print the URL and keep the Roc server.
         #[arg(long)]
         no_window: bool,
+        #[command(flatten)]
+        port: serve::PortOptions,
         /// Roc app file or directory
         #[arg(default_value = "main.roc")]
         file: PathBuf,
@@ -72,12 +74,16 @@ enum Commands {
         /// Skip the embedded window; print the URL and keep the Roc server.
         #[arg(long)]
         no_window: bool,
+        #[command(flatten)]
+        port: serve::PortOptions,
     },
     /// Browse components under one or more roots.
     Browse {
         /// Skip the embedded window; print the URL and keep the Roc server.
         #[arg(long)]
         no_window: bool,
+        #[command(flatten)]
+        port: serve::PortOptions,
         /// Directories (recursive) and/or .rocci files.
         #[arg(default_value = ".")]
         roots: Vec<PathBuf>,
@@ -93,7 +99,8 @@ fn main() -> Result<()> {
             file,
             args,
             no_window,
-        } => run::run(&file, &args, no_window),
+            port,
+        } => run::run(&file, &args, no_window, port.port),
         Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
         Commands::Ast { input } => ast_rocci(&input),
         Commands::View {
@@ -101,8 +108,13 @@ fn main() -> Result<()> {
             component,
             args,
             no_window,
-        } => view::view(&input, &component, &args, no_window),
-        Commands::Browse { roots, no_window } => browse::browse(&roots, no_window),
+            port,
+        } => view::view(&input, &component, &args, no_window, port.port),
+        Commands::Browse {
+            roots,
+            no_window,
+            port,
+        } => browse::browse(&roots, no_window, port.port),
     }
 }
 
@@ -332,4 +344,54 @@ fn config_path_relative(root: &Path, config_path: &Path) -> Result<PathBuf> {
             .to_path_buf());
     }
     Ok(config_path.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    fn port_of(cli: Cli) -> serve::PortArg {
+        match cli.command {
+            Commands::Run { port, .. }
+            | Commands::View { port, .. }
+            | Commands::Browse { port, .. } => port.port,
+            _ => panic!("expected a hosting command"),
+        }
+    }
+
+    #[test]
+    fn hosting_commands_accept_port_auto() {
+        for args in [
+            ["rocci", "run", "--port", "auto"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--port", "auto"].as_slice(),
+            ["rocci", "browse", "--port", "auto"].as_slice(),
+        ] {
+            assert_eq!(
+                port_of(Cli::try_parse_from(args).unwrap()),
+                serve::PortArg::Auto
+            );
+        }
+    }
+
+    #[test]
+    fn hosting_commands_accept_numeric_port() {
+        for args in [
+            ["rocci", "run", "--port", "9001"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--port", "9001"].as_slice(),
+            ["rocci", "browse", "--port", "9001"].as_slice(),
+        ] {
+            assert_eq!(
+                port_of(Cli::try_parse_from(args).unwrap()),
+                serve::PortArg::Exact(9001)
+            );
+        }
+    }
+
+    #[test]
+    fn run_accepts_port_after_app_path() {
+        let cli = Cli::try_parse_from(["rocci", "run", "examples/roc-counter", "--port", "auto"])
+            .unwrap();
+        assert_eq!(port_of(cli), serve::PortArg::Auto);
+    }
 }

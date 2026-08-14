@@ -16,7 +16,7 @@ homePage = |{ groups }| {
                 <main class="stage">
                     <p class="eyebrow">Component browser</p>
                     <h1>Pick a component.</h1>
-                    <p class="lede">Required parameters get a form. The canvas renders the component in an iframe.</p>
+                    <p class="lede">Fixtures load sample input. Scalar fields stay editable as overrides. The canvas renders the component in an iframe.</p>
                 </main>
             </div>
         </body>
@@ -24,7 +24,7 @@ homePage = |{ groups }| {
 }
 
 @component
-inspectorPage = |{ groups, selected, fields, preview_url }| {
+inspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -42,7 +42,10 @@ inspectorPage = |{ groups, selected, fields, preview_url }| {
                     <p class="file">{selected.file}</p>
                     @if selected.previewable {
                         <div class="inspector">
-                            <ParamForm fields={fields} selected_id={selected.id} />
+                            <div class="controls">
+                                <FixturePicker fixtures={selected.fixtures} selected_id={selected.id} selected_fixture={selected_fixture} />
+                                <ParamForm fields={fields} selected_id={selected.id} selected_fixture={selected_fixture} />
+                            </div>
                             <iframe class="canvas" title="preview" src={preview_url}></iframe>
                         </div>
                     } @else {
@@ -81,11 +84,42 @@ sidebar = |{ groups, selected_id }| {
 }
 
 @component
-paramForm = |{ fields, selected_id }| {
+fixturePicker = |{ fixtures, selected_id, selected_fixture }| {
+    @if !List.is_empty(fixtures) {
+        <div class="fixture-panel">
+            <form method="get" action="/c" class="fixtures">
+                <input type="hidden" name="id" value={selected_id} />
+                <label class="field">
+                    <span>Fixture</span>
+                    <select name="fixture" data-on:change="el.form.requestSubmit()">
+                        @for item in fixtures {
+                            @if item.name == selected_fixture {
+                                <option value={item.name} selected="">{item.name}</option>
+                            } @else {
+                                <option value={item.name}>{item.name}</option>
+                            }
+                        }
+                    </select>
+                </label>
+            </form>
+            @for item in fixtures {
+                @if item.name == selected_fixture {
+                    <pre class="fixture-source">{item.name} = {item.source}</pre>
+                }
+            }
+        </div>
+    }
+}
+
+@component
+paramForm = |{ fields, selected_id, selected_fixture }| {
     <form method="get" action="/c" class="params" data-on:input__debounce.400ms="el.requestSubmit()">
         <input type="hidden" name="id" value={selected_id} />
+        @if selected_fixture != "" {
+            <input type="hidden" name="fixture" value={selected_fixture} />
+        }
         @if List.is_empty(fields) {
-            <p class="muted">No parameters</p>
+            <p class="muted">No scalar parameters</p>
         } @else {
             <div class="fields">
                 @for item in fields {

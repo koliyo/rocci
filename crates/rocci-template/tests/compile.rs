@@ -84,6 +84,24 @@ fn lowers_if_for_and_match() {
 }
 
 #[test]
+fn concatenates_sibling_nodes_and_for_loops_with_two_arg_concat() {
+    let src = r#"
+@component picker = |{ items }| {
+    <div>
+        <p>pick</p>
+        @for item in items {
+            <span>{item}</span>
+        }
+    </div>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("List.concat("));
+    assert!(!out.roc.contains("List.concat(["));
+    assert!(out.roc.contains("List.map(items, |item|"));
+}
+
+#[test]
 fn lowers_let_qualified_import_and_fragment() {
     let src = include_str!("fixtures/kitchen_sink.rocci");
     let out = compile_ok(src);

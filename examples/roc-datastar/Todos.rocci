@@ -89,10 +89,10 @@ sample_items = [
 ]
 
 @fixture{target: demo}
-demoTest = { items: sample_items, filter: All, pending: 1, has_completed: True }
+demoTest = { items: sample_items, filter: All, pending: 1.I64, has_completed: True }
 
 @fixture{target: todosPatch}
-todosPatchTest = { items: sample_items, filter: All, pending: 1, has_completed: True }
+todosPatchTest = { items: sample_items, filter: All, pending: 1.I64, has_completed: True }
 
 @fixture{target: todoMain}
 todoMainTest = { items: sample_items, filter: All }
@@ -101,4 +101,4 @@ todoMainTest = { items: sample_items, filter: All }
 todoItemTest = { item: { id: "1", text: "Buy milk", done: False, row_class: "" } }
 
 @fixture{target: todoFooter}
-todoFooterTest = { filter: All, pending: 1, has_completed: True }
+todoFooterTest = { filter: All, pending: 1.I64, has_completed: True }
