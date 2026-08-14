@@ -1,18 +1,19 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
 
 use crate::roc_module::{type_name_from_path, wrap_type_module};
+use crate::serve;
 
-pub fn run(file: &Path, args: &[String]) -> Result<()> {
+pub fn run(file: &Path, args: &[String], no_window: bool) -> Result<()> {
     let resolved = resolve_entry(file)?;
     compile_rocci_modules(&resolved.app_dir)?;
-    invoke_roc(&resolved, args)
+    invoke_roc(&resolved, args, no_window)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,9 +133,42 @@ fn roc_command(invocation: &RocInvocation) -> Command {
     cmd
 }
 
-fn invoke_roc(resolved: &ResolvedEntry, args: &[String]) -> Result<()> {
+fn invoke_roc(resolved: &ResolvedEntry, args: &[String], no_window: bool) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
+    let port = serve::basic_webserver_port()?;
+    let url = format!("http://127.0.0.1:{port}/");
+    if no_window {
+        println!("Serving {} at {url}", invocation.app_dir.display());
+        return exec_roc(&invocation);
+    }
     let mut cmd = roc_command(&invocation);
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    let mut child = cmd
+        .spawn()
+        .context("failed to start `roc`; is it on PATH?")?;
+    if let Err(err) = serve::wait_for_server(&mut child, port) {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(err);
+    }
+
+    println!("Serving {} at {url}", invocation.app_dir.display());
+    serve::with_window(&mut child, &url, &window_title(resolved), false)
+}
+
+fn window_title(resolved: &ResolvedEntry) -> String {
+    resolved
+        .app_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("rocci")
+        .to_string()
+}
+
+fn exec_roc(invocation: &RocInvocation) -> Result<()> {
+    let mut cmd = roc_command(invocation);
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -258,5 +292,14 @@ mod tests {
         let args: Vec<_> = cmd.get_args().collect();
         assert_eq!(args, ["main.roc", "--", "arg1"]);
         assert_eq!(cmd.get_current_dir(), Some(Path::new("/tmp/app")));
+    }
+
+    #[test]
+    fn window_title_uses_app_directory_name() {
+        let resolved = ResolvedEntry {
+            app_dir: PathBuf::from("/tmp/roc-snake"),
+            roc_file: PathBuf::from("main.roc"),
+        };
+        assert_eq!(window_title(&resolved), "roc-snake");
     }
 }

@@ -2,6 +2,7 @@
 
 mod events;
 mod menu;
+mod preview;
 mod window;
 
 use std::{collections::HashMap, env, fs, path::PathBuf};
@@ -19,6 +20,7 @@ use wry::WebContext;
 use crate::window::LiveWindow;
 
 pub use events::ShellEvent;
+pub use preview::{PreviewOptions, preview};
 
 pub struct RunOptions {
     pub config: Config,
@@ -265,7 +267,7 @@ impl Shell {
     }
 }
 
-fn web_context_dir(identifier: &str, window: &WindowId) -> PathBuf {
+pub(crate) fn web_context_dir(identifier: &str, window: &WindowId) -> PathBuf {
     let dir = env::temp_dir()
         .join("rocci")
         .join(identifier)

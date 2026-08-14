@@ -1,11 +1,9 @@
 use std::{
     collections::HashMap,
     fs,
-    net::{TcpListener, TcpStream},
+    net::TcpListener,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
-    thread,
-    time::{Duration, Instant},
+    process::{Command, Stdio},
 };
 
 use anyhow::{Context, Result, bail};
@@ -15,13 +13,13 @@ use rocci_template::{
 };
 
 use crate::roc_module::{type_name_from_path, wrap_type_module};
+use crate::serve;
 
 const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 const HTML_STUB: &str = include_str!("../../../examples/roc-counter/Html.roc");
-const SERVER_WAIT: Duration = Duration::from_secs(120);
 
-pub fn view(input: &Path, component: &str, raw_args: &[String]) -> Result<()> {
+pub fn view(input: &Path, component: &str, raw_args: &[String], no_window: bool) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -93,7 +91,7 @@ pub fn view(input: &Path, component: &str, raw_args: &[String]) -> Result<()> {
         .spawn()
         .context("failed to start `roc`; is it on PATH?")?;
 
-    let wait_result = wait_for_server(&mut child, port);
+    let wait_result = serve::wait_for_server(&mut child, port);
     if let Err(err) = wait_result {
         let _ = child.kill();
         let _ = child.wait();
@@ -101,15 +99,12 @@ pub fn view(input: &Path, component: &str, raw_args: &[String]) -> Result<()> {
     }
 
     println!("Viewing {} from {} at {url}", info.name, input.display());
-    if let Err(err) = open_browser(&url) {
-        eprintln!("warning: failed to open browser: {err}");
-    }
-
-    let status = child.wait().context("roc server exited unexpectedly")?;
-    if !status.success() {
-        bail!("roc exited with {status}");
-    }
-    Ok(())
+    serve::with_window(
+        &mut child,
+        &url,
+        &format!("rocci view · {}", info.name),
+        no_window,
+    )
 }
 
 fn find_component<'a>(components: &'a [ComponentInfo], name: &str) -> Option<&'a ComponentInfo> {
@@ -424,50 +419,6 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
 fn free_port() -> Result<u16> {
     let listener = TcpListener::bind("127.0.0.1:0").context("failed to allocate a local port")?;
     Ok(listener.local_addr()?.port())
-}
-
-fn wait_for_server(child: &mut Child, port: u16) -> Result<()> {
-    let start = Instant::now();
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) => bail!("roc exited before serving ({status})"),
-            Ok(None) => {}
-            Err(err) => bail!("failed to poll roc: {err}"),
-        }
-        if TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            return Ok(());
-        }
-        if start.elapsed() > SERVER_WAIT {
-            bail!("timed out waiting for roc server on port {port}");
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
-}
-
-fn open_browser(url: &str) -> Result<()> {
-    let status = {
-        #[cfg(target_os = "macos")]
-        {
-            Command::new("open").arg(url).status()
-        }
-        #[cfg(target_os = "linux")]
-        {
-            Command::new("xdg-open").arg(url).status()
-        }
-        #[cfg(target_os = "windows")]
-        {
-            Command::new("cmd").args(["/C", "start", url]).status()
-        }
-        #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-        {
-            bail!("opening a browser is not supported on this OS");
-        }
-    }
-    .with_context(|| format!("failed to open {url}"))?;
-    if !status.success() {
-        bail!("browser command exited with {status}");
-    }
-    Ok(())
 }
 
 struct TempDir {

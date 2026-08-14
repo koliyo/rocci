@@ -1,6 +1,6 @@
 # Roc + Datastar multiplayer snake
 
-A **Datastar/Rocci multiplayer stress demo**: author the lobby and board in `Snake.rocci`, compile them to Roc, and serve HTML plus a long-lived Datastar SSE stream from [basic-webserver](https://github.com/roc-lang/basic-webserver) 0.16.0. Game state lives in SQLite. There is no tao/wry shell.
+A **Datastar/Rocci multiplayer stress demo**: author the lobby and board in `Snake.rocci`, compile them to Roc, and serve HTML plus a long-lived Datastar SSE stream from [basic-webserver](https://github.com/roc-lang/basic-webserver) 0.16.0. Game state lives in SQLite. `rocci run` opens the server in an embedded window; use `--no-window` to serve only.
 
 This is not a prescription for browser games. It shows one authoritative world, cookies, join/leave, and SSE patches to stable `#board`, `#hud`, and `#minimap` boundaries. Full viewport morphing at 8 Hz is intentionally demonstrative. Keyboard and touch steering live in a tiny `snake-input.js` island; they are not Datastar attribute programs.
 
@@ -22,7 +22,7 @@ From the repository root, with `roc` and `cargo` on `PATH`:
 ./scripts/run-roc-snake.sh
 ```
 
-Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
 
 The script copies `datastar.js` into `examples/roc-snake/assets/` and runs `rocci run`, which compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored) and executes `main.roc`. `snake-input.js` is already in that assets folder. If assets are already in place:
 
@@ -34,7 +34,7 @@ cargo run -q -p rocci-cli -- run examples/roc-snake/main.roc
 
 ## Smoke checks
 
-With the server running:
+With the server running (`--no-window` if you do not want an embedded window):
 
 ```sh
 curl -s http://127.0.0.1:8000/health
