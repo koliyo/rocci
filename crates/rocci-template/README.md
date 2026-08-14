@@ -3,7 +3,7 @@
 Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
-`name = component |params| { ... }` bodies use a bounded HTML template
+`name = @component |params| { ... }` bodies use a bounded HTML template
 grammar. This crate does not invoke the Roc compiler, type-check
 expressions, or own HTTP/runtime behavior.
 
@@ -34,7 +34,7 @@ import Design
 
 Tone : [Neutral, Positive]
 
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p>Hello, {name}</p>
 }
 
@@ -46,21 +46,21 @@ badgeClass = |tone| {
 }
 ```
 
-Everything outside a `component` body is copied into the generated Roc
-module unchanged. `component` is recognized only as the right-hand side of a
+Everything outside an `@component` body is copied into the generated Roc
+module unchanged. `@component` is recognized only as the right-hand side of a
 top-level definition.
 
 ## Components
 
 ```text
-name = component |params| { template }
+name = @component |params| { template }
 ```
 
 `params` is a Roc parameter list. The first parameter is normally a props
 record. Extra parameters are the default body:
 
 ```rocci
-badge = component |{ tone }, content| {
+badge = @component |{ tone }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
@@ -72,7 +72,7 @@ nightly-2026-08-08 rejects that syntax in patterns, so lowering strips `??`
 from the generated function and inserts omitted values at call sites. Remove
 this rewrite once `|{ name ?? "Roc" }|` typechecks.
 
-This lowers to an ordinary function. The `component` keyword is removed:
+This lowers to an ordinary function. The `@component` marker is removed:
 
 ```roc
 badge = |{ tone }, content| {
@@ -251,7 +251,7 @@ Inside a template body:
 - `<!-- ... -->` is an HTML comment and is dropped.
 - `@@` emits a literal `@` (`@@if` is the text `@if`, not a directive).
 
-Ordinary Roc `#` comments remain valid outside components and inside Roc
+Ordinary Roc `#` comments remain valid outside `@component` bodies and inside Roc
 regions.
 
 ## Whitespace
@@ -293,7 +293,7 @@ is a double-quoted string. Roc snippets that are not a simple path are
 quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 ```rocci
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 ```

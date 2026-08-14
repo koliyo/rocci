@@ -43,6 +43,7 @@ fn kitchen_sink_compiles_without_errors() {
     );
     assert!(out.roc.contains("hello = |{ name }|"));
     assert!(!out.roc.contains("= component"));
+    assert!(!out.roc.contains("@component"));
     assert!(!out.roc.contains("name ??"));
     assert_eq!(out.roc, include_str!("fixtures/kitchen_sink.roc"));
 }
@@ -110,7 +111,7 @@ fn preserves_roc_regions_and_parenthesized_header_records() {
 #[test]
 fn maps_expressions_back_to_source() {
     let src = r#"
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p>Hello, {name}</p>
 }
 "#;
@@ -132,7 +133,7 @@ hello = component |{ name }| {
 #[test]
 fn rejects_unparenthesized_header_record() {
     let src = r#"
-view = component |{ state }| {
+view = @component |{ state }| {
     @match { status, items } {
         _ => <Spinner />
     }
@@ -150,11 +151,11 @@ view = component |{ state }| {
 #[test]
 fn recovers_from_incomplete_tag_before_next_definition() {
     let src = r#"
-broken = component |{}| {
+broken = @component |{}| {
     <Hello name={person.name}
 }
 
-ok = component |{ name }| {
+ok = @component |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -167,7 +168,7 @@ ok = component |{ name }| {
 #[test]
 fn unknown_directive_suggests_if() {
     let src = r#"
-view = component |{ ready }| {
+view = @component |{ ready }| {
     @fi ready {
         <Ready />
     }
@@ -183,7 +184,7 @@ view = component |{ ready }| {
 #[test]
 fn discards_indentation_between_tags() {
     let src = r#"
-page = component |{}| {
+page = @component |{}| {
     <div>
         <span>a</span>
         <span>b</span>
@@ -254,19 +255,19 @@ fn strips_param_defaults_for_generated_roc() {
 #[test]
 fn compile_records_param_names_on_components() {
     let src = r#"
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p>{name}</p>
 }
-badge = component |{ tone }, content| {
+badge = @component |{ tone }, content| {
     <span>{content}</span>
 }
-typed = component |{ count: I64 }| {
+typed = @component |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-modelView = component |model| {
+modelView = @component |model| {
     <p>ok</p>
 }
-empty = component |{}| {
+empty = @component |{}| {
     <p>empty</p>
 }
 "#;
@@ -302,6 +303,20 @@ empty = component |{}| {
 }
 
 #[test]
+fn rejects_component_without_at_sigil() {
+    let src = r#"
+hello = component |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors.iter().any(|msg| msg.contains("expected `@component`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
 fn package_has_no_runtime_dependencies() {
     let manifest = include_str!("../Cargo.toml");
     for forbidden in ["tokio", "axum", "wry", "tao", "hyper", "reqwest"] {
@@ -315,7 +330,7 @@ fn package_has_no_runtime_dependencies() {
 #[test]
 fn formats_lisp_ast() {
     let src = r#"
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 "#;
