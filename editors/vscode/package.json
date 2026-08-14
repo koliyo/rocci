@@ -2,6 +2,10 @@
   "name": "rocci",
   "displayName": "Rocci",
   "description": "Rocci template language support for VS Code",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koliyo/rocci"
+  },
   "license": "MIT",
   "publisher": "koliyo",
   "version": "0.1.0",
