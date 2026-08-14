@@ -1,0 +1,70 @@
+import Html
+
+demo = component |{ contacts, query }| {
+    <>
+        <label class="search-label">
+            Search
+            <input
+                type="text"
+                placeholder="Search..."
+                data-bind:search=""
+                data-on:input__debounce.200ms="@get('/search/results')"
+            />
+        </label>
+        <Results contacts={contacts} query={query} />
+    </>
+}
+
+results = component |{ contacts, query }| {
+    @let visible = List.keep_if(contacts, |contact| matches(contact, query))
+
+    <div id="results" class="panel">
+        @if List.is_empty(visible) {
+            <p class="empty">No matches for {query}.</p>
+        } @else {
+            <table>
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for contact in visible {
+                        <ContactRow contact={contact} />
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+contactRow = component |{ contact }| {
+    <tr>
+        <td>{contact.first}</td>
+        <td>{contact.last}</td>
+    </tr>
+}
+
+matches = |contact, query| {
+    q = ascii_lower(Str.trim(query))
+    if q == "" {
+        True
+    } else {
+        hay = ascii_lower("${contact.first} ${contact.last}")
+        Str.contains(hay, q)
+    }
+}
+
+ascii_lower = |text|
+    Str.from_utf8_lossy(
+        List.map(
+            Str.to_utf8(text),
+            |byte|
+                if byte >= 65 and byte <= 90 {
+                    byte + 32
+                } else {
+                    byte
+                },
+        ),
+    )

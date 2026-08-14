@@ -1,0 +1,71 @@
+import Html
+import Signals
+
+demo = component |{ page }| {
+    <div id="signup" class="panel">
+        @match page {
+            Form({ email, first, last }) => <SignupForm email={email} first={first} last={last} />
+            SignedUp({ name }) => <p class="ok">Welcome, {name}. You are signed up.</p>
+        }
+    </div>
+}
+
+signupForm = component |{ email, first, last }| {
+    <>
+        <label>
+            Email Address
+            <input
+                type="email"
+                required=""
+                aria-invalid={invalid_attr(email.state)}
+                data-bind:email=""
+                data-signals:email={Signals.js_str(email.value)}
+                data-on:input__debounce.400ms="@post('/validate/check')"
+            />
+            <FieldNote field={email} />
+        </label>
+        <div class="name-row">
+            <label>
+                First Name
+                <input
+                    type="text"
+                    required=""
+                    aria-invalid={invalid_attr(first.state)}
+                    data-bind:firstName=""
+                    data-signals:firstName={Signals.js_str(first.value)}
+                    data-on:input__debounce.400ms="@post('/validate/check')"
+                />
+                <FieldNote field={first} />
+            </label>
+            <label>
+                Last Name
+                <input
+                    type="text"
+                    required=""
+                    aria-invalid={invalid_attr(last.state)}
+                    data-bind:lastName=""
+                    data-signals:lastName={Signals.js_str(last.value)}
+                    data-on:input__debounce.400ms="@post('/validate/check')"
+                />
+                <FieldNote field={last} />
+            </label>
+        </div>
+        <div class="actions">
+            <button data-on:click="@post('/validate')">Sign Up</button>
+        </div>
+    </>
+}
+
+fieldNote = component |{ field }| {
+    @match field.state {
+        Empty => <p class="hint">{field.hint}</p>
+        Valid => <p class="ok">Looks good.</p>
+        Invalid({ message }) => <p class="error">{message}</p>
+    }
+}
+
+invalid_attr = |state|
+    match state {
+        Invalid(_) => "true"
+        _ => "false"
+    }
