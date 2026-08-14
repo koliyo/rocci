@@ -153,7 +153,7 @@ fn document_symbol(
 
 fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> String {
     format!(
-        "{} = @component {}",
+        "@component {} = {}",
         component.name.name,
         source.slice(component.params).trim()
     )

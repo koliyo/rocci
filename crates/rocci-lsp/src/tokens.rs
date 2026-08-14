@@ -145,8 +145,8 @@ fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
     collector.token(component.name.span, TOKEN_FUNCTION, MOD_DECLARATION);
     if let Some(span) = ident_between(
         collector.src,
-        component.name.span.end,
-        component.params.start,
+        component.span.start,
+        component.name.span.start,
         "@component",
     ) {
         collector.token(span, TOKEN_KEYWORD, 0);

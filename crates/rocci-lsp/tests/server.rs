@@ -12,11 +12,11 @@ use rocci_template::{PositionEncoding, SourceFile};
 const KITCHEN_SINK: &str = include_str!("../../rocci-template/tests/fixtures/kitchen_sink.rocci");
 
 const INCOMPLETE_TAG: &str = r#"
-broken = @component |{}| {
+@component broken = |{}| {
     <Hello name={person.name}
 }
 
-ok = @component |{ name }| {
+@component ok = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -133,7 +133,10 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
         panic!("expected a single location");
     };
-    let hello_decl = KITCHEN_SINK.find("hello = @component").expect("hello decl");
+    let hello_decl = KITCHEN_SINK
+        .find("@component hello")
+        .expect("hello decl")
+        + "@component ".len();
     let (decl_line, decl_character) = line_col(KITCHEN_SINK, hello_decl);
     assert_eq!(location.range.start.line, decl_line);
     assert_eq!(location.range.start.character, decl_character);
@@ -147,12 +150,12 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
-    assert!(markup.value.contains("hello = @component"));
+    assert!(markup.value.contains("@component hello ="));
 }
 
 #[test]
 fn utf8_and_utf16_map_non_bmp_diagnostics_differently() {
-    let src = "view = @component |{}| {\n    😀@fi ready {\n        <Ready />\n    }\n}\n";
+    let src = "@component view = |{}| {\n    😀@fi ready {\n        <Ready />\n    }\n}\n";
     let mut utf8 = initialize(true);
     let mut utf16 = initialize(false);
     assert_eq!(utf8.encoding(), PositionEncoding::Utf8);
@@ -227,7 +230,7 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
         panic!("expected full semantic tokens");
     };
 
-    let component_kw = KITCHEN_SINK.find("= @component").expect("component") + 2;
+    let component_kw = KITCHEN_SINK.find("@component").expect("component");
     assert_eq!(
         token_type_at(KITCHEN_SINK, &tokens, component_kw),
         Some(TOKEN_KEYWORD)

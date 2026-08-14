@@ -111,7 +111,7 @@ fn preserves_roc_regions_and_parenthesized_header_records() {
 #[test]
 fn maps_expressions_back_to_source() {
     let src = r#"
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 "#;
@@ -133,7 +133,7 @@ hello = @component |{ name }| {
 #[test]
 fn rejects_unparenthesized_header_record() {
     let src = r#"
-view = @component |{ state }| {
+@component view = |{ state }| {
     @match { status, items } {
         _ => <Spinner />
     }
@@ -151,11 +151,11 @@ view = @component |{ state }| {
 #[test]
 fn recovers_from_incomplete_tag_before_next_definition() {
     let src = r#"
-broken = @component |{}| {
+@component broken = |{}| {
     <Hello name={person.name}
 }
 
-ok = @component |{ name }| {
+@component ok = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -168,7 +168,7 @@ ok = @component |{ name }| {
 #[test]
 fn unknown_directive_suggests_if() {
     let src = r#"
-view = @component |{ ready }| {
+@component view = |{ ready }| {
     @fi ready {
         <Ready />
     }
@@ -184,7 +184,7 @@ view = @component |{ ready }| {
 #[test]
 fn discards_indentation_between_tags() {
     let src = r#"
-page = @component |{}| {
+@component page = |{}| {
     <div>
         <span>a</span>
         <span>b</span>
@@ -255,19 +255,19 @@ fn strips_param_defaults_for_generated_roc() {
 #[test]
 fn compile_records_param_names_on_components() {
     let src = r#"
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p>{name}</p>
 }
-badge = @component |{ tone }, content| {
+@component badge = |{ tone }, content| {
     <span>{content}</span>
 }
-typed = @component |{ count: I64 }| {
+@component typed = |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-modelView = @component |model| {
+@component modelView = |model| {
     <p>ok</p>
 }
-empty = @component |{}| {
+@component empty = |{}| {
     <p>empty</p>
 }
 "#;
@@ -303,15 +303,18 @@ empty = @component |{}| {
 }
 
 #[test]
-fn rejects_component_without_at_sigil() {
+fn rejects_component_keyword_after_name() {
     let src = r#"
-hello = component |{ name }| {
+hello = @component |{ name }| {
     <p>{name}</p>
 }
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("expected `@component`")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("start of the declaration")
+                && msg.contains("@component name = |params|")),
         "{errors:?}"
     );
 }
@@ -330,7 +333,7 @@ fn package_has_no_runtime_dependencies() {
 #[test]
 fn formats_lisp_ast() {
     let src = r#"
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 "#;
