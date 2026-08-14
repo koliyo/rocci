@@ -1,6 +1,7 @@
 import Html
 
-@component demo = |{ contacts, query }| {
+@component
+demo = |{ contacts, query }| {
     <>
         <label class="search-label">
             Search
@@ -15,7 +16,8 @@ import Html
     </>
 }
 
-@component results = |{ contacts, query }| {
+@component
+results = |{ contacts, query }| {
     @let visible = List.keep_if(contacts, |contact| matches(contact, query))
 
     <div id="results" class="panel">
@@ -39,7 +41,8 @@ import Html
     </div>
 }
 
-@component contactRow = |{ contact }| {
+@component
+contactRow = |{ contact }| {
     <tr>
         <td>{contact.first}</td>
         <td>{contact.last}</td>
