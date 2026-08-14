@@ -8,12 +8,12 @@ grammar. This crate does not invoke the Roc compiler, type-check
 expressions, or own HTTP/runtime behavior.
 
 ```sh
-cargo run -p rocci-template -- compile path/to/file.rocci
+cargo run -p rocci-template -- build path/to/file.rocci
 cargo run -p rocci-template -- ast path/to/file.rocci
 cargo run -p rocci-template -- inspect --ast path/to/file.rocci
 ```
 
-`compile` writes generated Roc to stdout, or to a file with `-o`. `ast` prints
+`build` writes generated Roc to stdout, or to a file with `-o`. `ast` prints
 the parse tree as an S-expression. `inspect` prints components, generated Roc,
 and source-map segments; `--ast` includes the parse tree. The same commands
 exist on the workspace `rocci` CLI. Input `-` reads stdin.

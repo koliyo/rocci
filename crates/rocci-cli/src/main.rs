@@ -1,3 +1,5 @@
+mod roc_module;
+mod run;
 mod view;
 
 use std::{
@@ -30,11 +32,20 @@ enum Commands {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
     },
-    /// Lower a .rocci module to ordinary Roc.
-    Compile {
+    /// Build a .rocci module to ordinary Roc.
+    Build {
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
+    },
+    /// Compile sibling .rocci modules and run a Roc app.
+    Run {
+        /// Roc app file or directory
+        #[arg(default_value = "main.roc")]
+        file: PathBuf,
+        /// Extra arguments forwarded to `roc` after the file path.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
     },
     /// Show generated Roc, components, source-map segments, and optional AST.
     Inspect {
@@ -60,7 +71,8 @@ fn main() -> Result<()> {
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle(&config),
-        Commands::Compile { input, output } => compile_rocci(&input, output.as_deref()),
+        Commands::Build { input, output } => build_rocci(&input, output.as_deref()),
+        Commands::Run { file, args } => run::run(&file, &args),
         Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
         Commands::Ast { input } => ast_rocci(&input),
         Commands::View {
@@ -71,7 +83,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn compile_rocci(input: &Path, output: Option<&Path>) -> Result<()> {
+fn build_rocci(input: &Path, output: Option<&Path>) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
