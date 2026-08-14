@@ -1,6 +1,6 @@
 import Html
 
-lobbyPage = @component |{ player_count_str, full }| {
+lobbyPage = @component |{ player_count, full }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -19,7 +19,7 @@ lobbyPage = @component |{ player_count_str, full }| {
                     <h1>Snake.</h1>
                     <p class="lede">A Datastar multiplayer stress demo: one authoritative world, long-lived SSE patches, and a tiny JS input island. Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
                 </header>
-                <p class="count">{player_count_str} in the game, 8 max.</p>
+                <p class="count">{player_count.to_str()} in the game, 8 max.</p>
                 <div class="actions">
                     <a class="button secondary" href="/play">Spectate</a>
                     @if full {
@@ -54,16 +54,16 @@ miniMap = @component |{ marks }| {
 statusHud = @component |{ info }| {
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
-        <p class="cam">{info.cam}</p>
+        <p class="cam">{info.cam.x.to_str()}, {info.cam.y.to_str()}</p>
         @if info.respawning {
-            <p class="overlay">Respawning in {info.respawn_str}</p>
+            <p class="overlay">Respawning in {info.respawn_secs.to_str()}s</p>
         }
         <ul>
             @for player in info.players {
                 <li class={player.row_class}>
                     <span class={player.swatch_class}></span>
                     <span>{player.label}</span>
-                    <span class="score">{player.score_str}</span>
+                    <span class="score">{player.score.to_str()}</span>
                 </li>
             }
         </ul>

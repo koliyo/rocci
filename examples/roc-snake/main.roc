@@ -116,7 +116,7 @@ respond! = |request, { db }| {
     match (Method.to_str(request.method()), path) {
         ("GET", "/") => {
             count = player_count!(db) ? |err| ServerErr("Failed to read players: ${Str.inspect(err)}")
-            html_ok(Html.render(Snake.lobbyPage({ player_count_str: count.to_str(), full: count >= Game.max_players })))
+            html_ok(Html.render(Snake.lobbyPage({ player_count: count, full: count >= Game.max_players })))
         }
         ("GET", "/play") => {
             view = load_view!(db, player_id) ? |err| ServerErr("Failed to load game: ${Str.inspect(err)}")
@@ -519,16 +519,16 @@ build_hud = |world, player_id, cam| {
             Some(snake) if !snake.alive => True
             _ => False
         }
-    respawn_str =
+    respawn_secs =
         match local {
-            Some(snake) if !snake.alive => "${(snake.respawn_in + 7.I64).div_trunc_by(8.I64).to_str()}s"
-            _ => ""
+            Some(snake) if !snake.alive => (snake.respawn_in + 7.I64).div_trunc_by(8.I64)
+            _ => 0
         }
     {
         role,
-        cam: "${cam.x.to_str()}, ${cam.y.to_str()}",
+        cam,
         respawning,
-        respawn_str,
+        respawn_secs,
         can_leave: player_id != "",
         players: List.map(
             world.snakes,
@@ -552,7 +552,7 @@ build_hud = |world, player_id, cam| {
                     } else {
                         Game.color_label(snake.color)
                     },
-                    score_str: snake.score.to_str(),
+                    score: snake.score,
                 }
             },
         ),
