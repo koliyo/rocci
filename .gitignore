@@ -18,3 +18,13 @@ examples/roc-snake/Snake.roc
 examples/roc-snake/snake.db
 examples/roc-snake/snake.db-*
 examples/roc-snake/assets/datastar.js
+examples/roc-datastar/Gallery.roc
+examples/roc-datastar/Search.roc
+examples/roc-datastar/Edit.roc
+examples/roc-datastar/Todos.roc
+examples/roc-datastar/Tabs.roc
+examples/roc-datastar/Validate.roc
+examples/roc-datastar/gallery.db
+examples/roc-datastar/gallery.db-*
+examples/roc-datastar/assets/datastar.js
+.zig-cache

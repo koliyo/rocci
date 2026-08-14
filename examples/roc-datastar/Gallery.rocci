@@ -1,0 +1,76 @@
+import Html
+
+page = component |{ title, eyebrow, lede, current }, content| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>{title}</title>
+            <link rel="stylesheet" href="/assets/app.css" />
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>
+                <nav>
+                    <a href="/"><strong>ROC</strong></a>
+                    <span>Rocci · Datastar gallery</span>
+                </nav>
+                <GalleryNav current={current} />
+                <header>
+                    <p class="eyebrow">{eyebrow}</p>
+                    <h1>{title}</h1>
+                    <p class="lede">{lede}</p>
+                </header>
+                {content}
+            </main>
+        </body>
+    </html>
+}
+
+galleryNav = component |{ current }| {
+    <ul class="gallery-nav">
+        <li>
+            <a href="/search" class={if current == "search" { "active" } else { "" }}>Search</a>
+        </li>
+        <li>
+            <a href="/edit" class={if current == "edit" { "active" } else { "" }}>Edit</a>
+        </li>
+        <li>
+            <a href="/todos" class={if current == "todos" { "active" } else { "" }}>Todos</a>
+        </li>
+        <li>
+            <a href="/tabs" class={if current == "tabs" { "active" } else { "" }}>Tabs</a>
+        </li>
+        <li>
+            <a href="/validate" class={if current == "validate" { "active" } else { "" }}>Validate</a>
+        </li>
+    </ul>
+}
+
+home = component |{}| {
+    <Page title="Datastar gallery" eyebrow=".rocci views" lede="Server-rendered control flow with Datastar as the transport. Each page is a port of an official Datastar example." current="home">
+        <ul class="example-list">
+            <li>
+                <a href="/search"><strong>Active Search</strong></a>
+                <p>@@let, @@if, and @@for filter a contacts table as you type.</p>
+            </li>
+            <li>
+                <a href="/edit"><strong>Click to Edit</strong></a>
+                <p>@@match switches a contact between Viewing and Editing. The server owns the HTML.</p>
+            </li>
+            <li>
+                <a href="/todos"><strong>TodoMVC</strong></a>
+                <p>@@match on the filter, @@for items, @@if for empty and completed rows.</p>
+            </li>
+            <li>
+                <a href="/tabs"><strong>Lazy Tabs</strong></a>
+                <p>Selected tab is server state. @@for renders the tablist; @@if marks the active tab.</p>
+            </li>
+            <li>
+                <a href="/validate"><strong>Inline Validation</strong></a>
+                <p>@@match on Empty, Valid, or Invalid per field, then Form vs SignedUp for the page.</p>
+            </li>
+        </ul>
+        <p class="note">Per-row Datastar URLs must be Roc expressions. A static quoted attribute does not substitute the row id; see the README.</p>
+    </Page>
+}

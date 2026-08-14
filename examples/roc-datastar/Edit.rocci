@@ -1,0 +1,77 @@
+import Html
+import Signals
+
+panel = component |{ mode, contact }| {
+    <div id="contact" class="panel">
+        @match mode {
+            Viewing => <ContactCard contact={contact} />
+            Editing => <ContactForm contact={contact} />
+        }
+    </div>
+}
+
+contactCard = component |{ contact }| {
+    <>
+        <p>First Name: {contact.first}</p>
+        <p>Last Name: {contact.last}</p>
+        <p>Email: {contact.email}</p>
+        <div class="actions">
+            <button
+                data-indicator:_fetching=""
+                data-attr:disabled="$_fetching"
+                data-on:click="@get('/edit/contact/edit')"
+            >Edit</button>
+            <button
+                class="secondary"
+                data-indicator:_fetching=""
+                data-attr:disabled="$_fetching"
+                data-on:click="@patch('/edit/contact/reset')"
+            >Reset</button>
+        </div>
+    </>
+}
+
+contactForm = component |{ contact }| {
+    <>
+        <label>
+            First Name
+            <input
+                type="text"
+                data-bind:firstName=""
+                data-signals:firstName={Signals.js_str(contact.first)}
+                data-attr:disabled="$_fetching"
+            />
+        </label>
+        <label>
+            Last Name
+            <input
+                type="text"
+                data-bind:lastName=""
+                data-signals:lastName={Signals.js_str(contact.last)}
+                data-attr:disabled="$_fetching"
+            />
+        </label>
+        <label>
+            Email
+            <input
+                type="email"
+                data-bind:email=""
+                data-signals:email={Signals.js_str(contact.email)}
+                data-attr:disabled="$_fetching"
+            />
+        </label>
+        <div class="actions">
+            <button
+                data-indicator:_fetching=""
+                data-attr:disabled="$_fetching"
+                data-on:click="@put('/edit/contact')"
+            >Save</button>
+            <button
+                class="secondary"
+                data-indicator:_fetching=""
+                data-attr:disabled="$_fetching"
+                data-on:click="@get('/edit/contact/cancel')"
+            >Cancel</button>
+        </div>
+    </>
+}
