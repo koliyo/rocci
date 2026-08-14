@@ -5,24 +5,28 @@ import Design
 
 Tone : [Neutral, Positive]
 
-@component badge = |{ tone ?? Neutral }, content| {
+@component
+badge = |{ tone ?? Neutral }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
 }
 
-@component hello = |{ name ?? "World" }| {
+@component
+hello = |{ name ?? "World" }| {
     <p>Hello, {name}</p>
 }
 
-@component counterCard = |{ count }| {
+@component
+counterCard = |{ count }| {
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
     </section>
 }
 
-@component counterPage = |{ person, count }| {
+@component
+counterPage = |{ person, count }| {
     <main id="counter-page">
         <Hello />
         <Hello name={person.name} />
@@ -30,7 +34,8 @@ Tone : [Neutral, Positive]
     </main>
 }
 
-@component todoList = |{ items, state }| {
+@component
+todoList = |{ items, state }| {
     @match state {
         Loading => <Spinner />
 
@@ -49,7 +54,8 @@ Tone : [Neutral, Positive]
     }
 }
 
-@component accountActions = |{ user }| {
+@component
+accountActions = |{ user }| {
     @if user.isSignedIn {
         <LogoutButton />
     } @else if user.canRegister {
@@ -59,7 +65,8 @@ Tone : [Neutral, Positive]
     }
 }
 
-@component filteredList = |{ items, query }| {
+@component
+filteredList = |{ items, query }| {
     @let visible = List.keepIf(items, |item| matches(item, query))
 
     @if List.isEmpty(visible) {
@@ -69,7 +76,8 @@ Tone : [Neutral, Positive]
     }
 }
 
-@component requestState = |{ state, active }| {
+@component
+requestState = |{ state, active }| {
     @match state {
         Loading => <Spinner />
 
@@ -83,7 +91,8 @@ Tone : [Neutral, Positive]
     }
 }
 
-@component profileLink = |{ person, selected }| {
+@component
+profileLink = |{ person, selected }| {
     <a
         href={person.url}
         class={if selected { "selected" } else { "" }}
@@ -93,7 +102,8 @@ Tone : [Neutral, Positive]
     </a>
 }
 
-@component visibleCheck = |{ user, permissions }| {
+@component
+visibleCheck = |{ user, permissions }| {
     @if isVisible({ user, permissions }) {
         <Profile />
     } @else {
@@ -101,7 +111,8 @@ Tone : [Neutral, Positive]
     }
 }
 
-@component statusMatch = |{ pair }| {
+@component
+statusMatch = |{ pair }| {
     @match ({ status, items }) {
         { status: Loading } => <Spinner />
         { status: Ready } => <ItemList items={items} />

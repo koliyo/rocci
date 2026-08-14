@@ -36,7 +36,8 @@ lobbyPage = |{ player_count, full }| {
     </html>
 }
 
-@component board = |{ cells }| {
+@component
+board = |{ cells }| {
     <div id="board" class="board">
         @for cell in cells {
             <i class={cell.class}></i>
@@ -44,7 +45,8 @@ lobbyPage = |{ player_count, full }| {
     </div>
 }
 
-@component miniMap = |{ marks }| {
+@component
+miniMap = |{ marks }| {
     <div id="minimap" class="minimap">
         @for mark in marks {
             <i class={mark.class} style={mark.style}></i>
@@ -52,7 +54,8 @@ lobbyPage = |{ player_count, full }| {
     </div>
 }
 
-@component statusHud = |{ info }| {
+@component
+statusHud = |{ info }| {
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
         <p class="cam">{info.cam.x.to_str()}, {info.cam.y.to_str()}</p>
@@ -78,7 +81,8 @@ lobbyPage = |{ player_count, full }| {
     </aside>
 }
 
-@component playPage = |{ cells, info, marks }| {
+@component
+playPage = |{ cells, info, marks }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -109,7 +113,8 @@ lobbyPage = |{ player_count, full }| {
     </html>
 }
 
-@component steerPad = |{}| {
+@component
+steerPad = |{}| {
     <div class="steer" aria-label="Steer">
         <button type="button" class="secondary" data-steer="up">Up</button>
         <button type="button" class="secondary" data-steer="left">Left</button>
@@ -118,7 +123,8 @@ lobbyPage = |{ player_count, full }| {
     </div>
 }
 
-@component gamePatch = |{ cells, info, marks }| {
+@component
+gamePatch = |{ cells, info, marks }| {
     <>
         <Board cells={cells} />
         <MiniMap marks={marks} />

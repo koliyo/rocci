@@ -24,7 +24,8 @@ todosPatch = |{ items, filter, pending, has_completed }| {
     </>
 }
 
-@component todoMain = |{ items, filter }| {
+@component
+todoMain = |{ items, filter }| {
     @if List.is_empty(items) {
         <p id="todo-main" class="empty">
             @match filter {
@@ -42,7 +43,8 @@ todosPatch = |{ items, filter, pending, has_completed }| {
     }
 }
 
-@component todoItem = |{ item }| {
+@component
+todoItem = |{ item }| {
     <li class={item.row_class}>
         @if item.done {
             <>

@@ -1,6 +1,7 @@
 import Html
 
-@component page = |{ title, eyebrow, lede, current }, content| {
+@component
+page = |{ title, eyebrow, lede, current }, content| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -27,7 +28,8 @@ import Html
     </html>
 }
 
-@component galleryNav = |{ current }| {
+@component
+galleryNav = |{ current }| {
     <ul class="gallery-nav">
         <li>
             <a href="/search" class={if current == "search" { "active" } else { "" }}>Search</a>
@@ -47,7 +49,8 @@ import Html
     </ul>
 }
 
-@component home = |{}| {
+@component
+home = |{}| {
     <Page title="Datastar gallery" eyebrow=".rocci views" lede="Server-rendered control flow with Datastar as the transport. Each page is a port of an official Datastar example." current="home">
         <ul class="example-list">
             <li>

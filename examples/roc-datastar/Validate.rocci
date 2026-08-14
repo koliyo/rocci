@@ -1,7 +1,8 @@
 import Html
 import Signals
 
-@component demo = |{ page }| {
+@component
+demo = |{ page }| {
     <div id="signup" class="panel">
         @match page {
             Form({ email, first, last }) => <SignupForm email={email} first={first} last={last} />
@@ -10,7 +11,8 @@ import Signals
     </div>
 }
 
-@component signupForm = |{ email, first, last }| {
+@component
+signupForm = |{ email, first, last }| {
     <>
         <label>
             Email Address
@@ -56,7 +58,8 @@ import Signals
     </>
 }
 
-@component fieldNote = |{ field }| {
+@component
+fieldNote = |{ field }| {
     @match field.state {
         Empty => <p class="hint">{field.hint}</p>
         Valid => <p class="ok">Looks good.</p>
