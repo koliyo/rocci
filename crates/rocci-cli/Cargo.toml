@@ -14,3 +14,4 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 rocci-core = { workspace = true }
 rocci-template = { workspace = true }
+rocci-wry = { workspace = true }

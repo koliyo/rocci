@@ -2303,6 +2303,7 @@ dependencies = [
  "clap",
  "rocci-core",
  "rocci-template",
+ "rocci-wry",
 ]
 
 [[package]]

@@ -6,8 +6,6 @@ use tao::{
 };
 use wry::{WebContext, WebView, WebViewBuilder};
 
-use crate::ShellEvent;
-
 pub struct LiveWindow {
     pub window: Window,
     pub webview: WebView,
@@ -16,8 +14,8 @@ pub struct LiveWindow {
 }
 
 impl LiveWindow {
-    pub fn create(
-        event_loop: &EventLoopWindowTarget<ShellEvent>,
+    pub fn create<T: 'static>(
+        event_loop: &EventLoopWindowTarget<T>,
         template: &WindowConfig,
         id: WindowId,
         url: String,

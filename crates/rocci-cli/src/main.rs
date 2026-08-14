@@ -1,5 +1,6 @@
 mod roc_module;
 mod run;
+mod serve;
 mod view;
 
 use std::{
@@ -40,11 +41,14 @@ enum Commands {
     },
     /// Compile sibling .rocci modules and run a Roc app.
     Run {
+        /// Skip the embedded window; print the URL and keep the Roc server.
+        #[arg(long)]
+        no_window: bool,
         /// Roc app file or directory
         #[arg(default_value = "main.roc")]
         file: PathBuf,
-        /// Extra arguments forwarded to `roc` after the file path.
-        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        /// Extra arguments forwarded to `roc` after `--`.
+        #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
     /// Show generated Roc, components, source-map segments, and optional AST.
@@ -56,7 +60,7 @@ enum Commands {
     },
     /// Print a .rocci parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
-    /// Render a component and open it in the browser.
+    /// Render a component in an embedded window.
     View {
         input: PathBuf,
         #[arg(long, default_value = "main")]
@@ -64,6 +68,9 @@ enum Commands {
         /// Component parameter as name=value (repeatable).
         #[arg(long = "arg", value_name = "NAME=VALUE", action = clap::ArgAction::Append)]
         args: Vec<String>,
+        /// Skip the embedded window; print the URL and keep the Roc server.
+        #[arg(long)]
+        no_window: bool,
     },
 }
 
@@ -72,14 +79,19 @@ fn main() -> Result<()> {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle(&config),
         Commands::Build { input, output } => build_rocci(&input, output.as_deref()),
-        Commands::Run { file, args } => run::run(&file, &args),
+        Commands::Run {
+            file,
+            args,
+            no_window,
+        } => run::run(&file, &args, no_window),
         Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
         Commands::Ast { input } => ast_rocci(&input),
         Commands::View {
             input,
             component,
             args,
-        } => view::view(&input, &component, &args),
+            no_window,
+        } => view::view(&input, &component, &args, no_window),
     }
 }
 

@@ -1,6 +1,6 @@
 # Roc + Datastar counter POC
 
-A browser-only spike: author the counter UI in `Counter.rocci`, compile it to Roc, and serve HTML plus one-shot Datastar patches from [basic-webserver](https://github.com/roc-lang/basic-webserver) 0.16.0. There is no tao/wry shell and no live multi-tab SSE stream.
+A spike: author the counter UI in `Counter.rocci`, compile it to Roc, and serve HTML plus one-shot Datastar patches from [basic-webserver](https://github.com/roc-lang/basic-webserver) 0.16.0. `rocci run` opens the server in an embedded window; use `--no-window` to serve only. There is no live multi-tab SSE stream.
 
 Pinned together:
 
@@ -16,7 +16,7 @@ From the repository root, with `roc` and `cargo` on `PATH`:
 ./scripts/run-roc-counter.sh
 ```
 
-Then open [http://127.0.0.1:8000](http://127.0.0.1:8000). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
 The script copies shared assets into `examples/roc-counter/assets/` and runs `rocci run`, which compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and executes `main.roc`. If assets are already in place:
 
@@ -28,7 +28,7 @@ cargo run -q -p rocci-cli -- run examples/roc-counter/main.roc
 
 ## Smoke checks
 
-With the server running:
+With the server running (`--no-window` if you do not want an embedded window):
 
 ```sh
 curl -s http://127.0.0.1:8000/health
