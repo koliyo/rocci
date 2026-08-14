@@ -86,6 +86,31 @@ main.play > nav { grid-column: 1 / -1; }
   gap: 16px;
 }
 
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.steer {
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left . right"
+    ". down .";
+  gap: 8px;
+  width: 168px;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.steer [data-steer="up"] { grid-area: up; }
+.steer [data-steer="left"] { grid-area: left; }
+.steer [data-steer="right"] { grid-area: right; }
+.steer [data-steer="down"] { grid-area: down; }
+.steer button { padding: 12px 0; text-align: center; }
+
 .board {
   display: grid;
   grid-template-columns: repeat(31, var(--cell));
