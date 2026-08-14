@@ -1,7 +1,7 @@
 import Html
 import Signals
 
-panel = @component |{ mode, contact }| {
+@component panel = |{ mode, contact }| {
     <div id="contact" class="panel">
         @match mode {
             Viewing => <ContactCard contact={contact} />
@@ -10,7 +10,7 @@ panel = @component |{ mode, contact }| {
     </div>
 }
 
-contactCard = @component |{ contact }| {
+@component contactCard = |{ contact }| {
     <>
         <p>First Name: {contact.first}</p>
         <p>Last Name: {contact.last}</p>
@@ -31,7 +31,7 @@ contactCard = @component |{ contact }| {
     </>
 }
 
-contactForm = @component |{ contact }| {
+@component contactForm = |{ contact }| {
     <>
         <label>
             First Name

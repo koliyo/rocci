@@ -54,9 +54,9 @@ impl<'a> Parser<'a> {
             if self.cur.is_top_level()
                 && let Some(component) = self.try_parse_component()
             {
-                if opaque_start < component.name.span.start as usize {
+                if opaque_start < component.span.start as usize {
                     items.push(ModuleItem::Roc {
-                        span: Span::new(opaque_start, component.name.span.start as usize),
+                        span: Span::new(opaque_start, component.span.start as usize),
                     });
                 }
                 opaque_start = self.cur.pos;
@@ -84,6 +84,11 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_component(&mut self) -> Option<ComponentDecl> {
+        let start = self.cur.pos;
+        if self.scan_at_component().is_some() {
+            return Some(self.parse_component_after_keyword(start));
+        }
+
         let name_span = self.cur.scan_ident()?;
         let name = self.cur.ident_text(name_span).to_string();
         self.cur.skip_trivia();
@@ -91,15 +96,96 @@ impl<'a> Parser<'a> {
             return None;
         }
         self.cur.skip_trivia();
-        let kw = self.scan_component_keyword()?;
+        if self.scan_at_component().is_none() && !self.scan_bare_component_keyword() {
+            return None;
+        }
+        self.error(
+            name_span,
+            "expected `@component` at the start of the declaration; write `@component name = |params|`",
+        );
+        Some(self.parse_component_rest(start, name_span, name))
+    }
 
+    fn scan_at_component(&mut self) -> Option<Span> {
+        let saved = Snapshot::from(&self.cur);
+        if !self.cur.eat('@') {
+            return None;
+        }
+        let Some(kw) = self.cur.scan_ident() else {
+            saved.restore(&mut self.cur);
+            return None;
+        };
+        if self.cur.ident_text(kw) != "component" {
+            saved.restore(&mut self.cur);
+            return None;
+        }
+        Some(Span::new(saved.pos, self.cur.pos))
+    }
+
+    fn scan_bare_component_keyword(&mut self) -> bool {
+        let saved = Snapshot::from(&self.cur);
+        let Some(kw) = self.cur.scan_ident() else {
+            return false;
+        };
+        if self.cur.ident_text(kw) != "component" {
+            saved.restore(&mut self.cur);
+            return false;
+        }
+        let after_kw = Snapshot::from(&self.cur);
+        self.cur.skip_trivia();
+        if self.cur.peek() != Some('|') {
+            saved.restore(&mut self.cur);
+            return false;
+        }
+        after_kw.restore(&mut self.cur);
+        true
+    }
+
+    fn parse_component_after_keyword(&mut self, start: usize) -> ComponentDecl {
+        self.cur.skip_trivia();
+        let Some(name_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected component name after `@component`",
+            );
+            self.sync_to_next_top_level();
+            return ComponentDecl {
+                name: Ident {
+                    span: Span::point(self.cur.pos),
+                    name: String::new(),
+                },
+                params: Span::point(self.cur.pos),
+                body: TemplateBlock {
+                    items: Vec::new(),
+                    span: Span::point(self.cur.pos),
+                },
+                span: Span::new(start, self.cur.pos),
+            };
+        };
+        let name = self.cur.ident_text(name_span).to_string();
+        self.cur.skip_trivia();
+        if !self.cur.eat('=') {
+            self.error(name_span, "expected `=` after component name");
+        }
+        self.parse_component_rest(start, name_span, name)
+    }
+
+    fn parse_component_rest(
+        &mut self,
+        start: usize,
+        name_span: Span,
+        name: String,
+    ) -> ComponentDecl {
         self.cur.skip_trivia();
         let params = match self.scan_params() {
             Some(span) => span,
             None => {
-                self.error(kw, "expected `|params|` after `@component`");
+                self.error(
+                    Span::new(start, self.cur.pos),
+                    "expected `|params|` after `@component name =`",
+                );
                 self.sync_to_next_top_level();
-                return Some(ComponentDecl {
+                return ComponentDecl {
                     name: Ident {
                         span: name_span,
                         name,
@@ -109,60 +195,22 @@ impl<'a> Parser<'a> {
                         items: Vec::new(),
                         span: Span::point(self.cur.pos),
                     },
-                    span: Span::new(name_span.start as usize, self.cur.pos),
-                });
+                    span: Span::new(start, self.cur.pos),
+                };
             }
         };
 
         self.cur.skip_trivia();
         let body = self.parse_template_block();
-        Some(ComponentDecl {
-            span: Span::new(name_span.start as usize, self.cur.pos),
+        ComponentDecl {
+            span: Span::new(start, self.cur.pos),
             name: Ident {
                 span: name_span,
                 name,
             },
             params,
             body,
-        })
-    }
-
-    fn scan_component_keyword(&mut self) -> Option<Span> {
-        let saved = Snapshot::from(&self.cur);
-        let start = self.cur.pos;
-        if self.cur.eat('@') {
-            let Some(kw) = self.cur.scan_ident() else {
-                saved.restore(&mut self.cur);
-                return None;
-            };
-            if self.cur.ident_text(kw) != "component" {
-                saved.restore(&mut self.cur);
-                return None;
-            }
-            return Some(Span::new(start, self.cur.pos));
         }
-
-        let Some(kw) = self.cur.scan_ident() else {
-            saved.restore(&mut self.cur);
-            return None;
-        };
-        if self.cur.ident_text(kw) != "component" {
-            saved.restore(&mut self.cur);
-            return None;
-        }
-        let after_kw = Snapshot::from(&self.cur);
-        self.cur.skip_trivia();
-        if self.cur.peek() != Some('|') {
-            saved.restore(&mut self.cur);
-            return None;
-        }
-        let end = after_kw.pos;
-        after_kw.restore(&mut self.cur);
-        self.error(
-            Span::new(start, end),
-            "expected `@component`; write `name = @component |params|`",
-        );
-        Some(Span::new(start, end))
     }
 
     fn scan_params(&mut self) -> Option<Span> {

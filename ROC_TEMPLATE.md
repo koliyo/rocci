@@ -28,24 +28,24 @@ import pf.Html
 
 Tone : [Neutral, Positive]
 
-badge = @component |{ tone }, content| {
+@component badge = |{ tone }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
 }
 
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 
-counterCard = @component |{ count }| {
+@component counterCard = |{ count }| {
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
     </section>
 }
 
-counterPage = @component |{ person, count }| {
+@component counterPage = |{ person, count }| {
     <main id="counter-page">
         <Hello name={person.name} />
         <CounterCard count={count} />
@@ -83,11 +83,11 @@ templ Greeting(person Person) {
 Proposed Rocci composition:
 
 ```rocci
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <div>Hello, {name}</div>
 }
 
-greeting = @component |{ person }| {
+@component greeting = |{ person }| {
     <div class="greeting">
         <Hello name={person.name} />
     </div>
@@ -539,7 +539,7 @@ Compile-time evaluation improves the implementation of a library-level static-te
 The feasible middle ground is to retain an unmistakable component declaration boundary and support a small structural template language inside it:
 
 ```rocci
-todoList = @component |{ items, state }| {
+@component todoList = |{ items, state }| {
     @match state {
         Loading => <Spinner />
 
@@ -624,7 +624,7 @@ Alternative markers are possible:
 An illustrative grammar is:
 
 ```text
-ComponentDecl  ::= RocName "=" "@component" RocParams TemplateBlock
+ComponentDecl  ::= "@component" RocName "=" RocParams TemplateBlock
 StyleDecl      ::= RocName "=" "styles" "module" CssBlock
                  | "styles" "global" CssBlock
 
@@ -671,7 +671,7 @@ For v1, `RocBinder` in `@for` should be one lowercase identifier. Tuple, record,
 ### Conditional rendering
 
 ```rocci
-accountActions = @component |{ user }| {
+@component accountActions = |{ user }| {
     @if user.isSignedIn {
         <LogoutButton />
     } @else if user.canRegister {
@@ -708,7 +708,7 @@ The generated Roc compiler verifies that each condition is `Bool` and that all g
 ### Iteration
 
 ```rocci
-todoRows = @component |{ todos }| {
+@component todoRows = |{ todos }| {
     <ul>
         @for todo in todos {
             <TodoRow todo={todo} />
@@ -737,7 +737,7 @@ An optional empty branch can be expressed with `@if List.isEmpty(...) { ... }` r
 Mirror the current Roc compiler's `match expression { Pattern => expression }` form and preserve its pattern vocabulary:
 
 ```rocci
-requestState = @component |{ state }| {
+@component requestState = |{ state }| {
     @match state {
         Loading => <Spinner />
 
@@ -785,7 +785,7 @@ A nested `@if`, `@for`, or `@match` is also one match value. Bare text is not ac
 Local derived values are useful because component props are often transformed before rendering:
 
 ```rocci
-filteredList = @component |{ items, query }| {
+@component filteredList = |{ items, query }| {
     @let visible = List.keepIf(items, |item| matches(item, query))
 
     @if List.isEmpty(visible) {
@@ -928,10 +928,10 @@ This grammar can be parsed soundly by an external package without implementing t
 The outer scanner needs only enough Roc lexical awareness to find this exact top-level form:
 
 ```text
-RocName = @component RocParams {
+@component RocName = RocParams {
 ```
 
-It must be token-aware and indentation/delimiter-aware so the same text inside a string, comment, record, or nested expression is ignored. Restricting `@component` to the right-hand side of a top-level definition provides a strong synchronization point.
+It must be token-aware and indentation/delimiter-aware so the same text inside a string, comment, record, or nested expression is ignored. Restricting `@component` to the start of a top-level definition provides a strong synchronization point.
 
 Inside the component body, a conventional recursive-descent parser owns all structure. The first significant token of an item determines its grammar:
 
@@ -1067,7 +1067,7 @@ Msg := [Increment]
 
 update = |model, msg| # ordinary Roc
 
-view = @component |{ count }| {
+@component view = |{ count }| {
     <output>{count.to_str()}</output>
 }
 
@@ -1095,13 +1095,13 @@ The lowering neither recognizes nor validates `Elm.program`; normal Roc type che
 The following views can be reused by every flow model below:
 
 ```rocci
-counterButton = @component |{ label, action, disabled }| {
+@component counterButton = |{ label, action, disabled }| {
     <button data-on:click={action} disabled={disabled}>
         {label}
     </button>
 }
 
-counterPanel = @component |{ count, incrementAction, resetAction, busy }| {
+@component counterPanel = |{ count, incrementAction, resetAction, busy }| {
     <section id="counter">
         <output>{count.to_str()}</output>
         <CounterButton
@@ -1125,7 +1125,7 @@ The view knows how to render actions but not how the action strings are decoded 
 This is the smallest server-oriented model. State remains in an authoritative store and each handler renders the same pure view:
 
 ```rocci
-counterPanel = @component |{ count, incrementAction, resetAction, busy }| {
+@component counterPanel = |{ count, incrementAction, resetAction, busy }| {
     <section id="counter">
         <output>{count.to_str()}</output>
         <button data-on:click={incrementAction} disabled={busy}>Increment</button>
@@ -1190,7 +1190,7 @@ update = |model, msg| {
     }
 }
 
-counterPanel = @component |{ count, incrementAction, resetAction }| {
+@component counterPanel = |{ count, incrementAction, resetAction }| {
     <section id="counter">
         <output>{count.to_str()}</output>
         <button data-on:click={incrementAction}>Increment</button>
@@ -1284,7 +1284,7 @@ This changes testing and effect interpretation, not template syntax. `decide` ca
 A reusable component does not need to own any flow declarations at all. Its parent supplies values and actions:
 
 ```rocci
-counterPanel = @component |{ count, incrementAction, resetAction }| {
+@component counterPanel = |{ count, incrementAction, resetAction }| {
     <section class="counter">
         <output>{count.to_str()}</output>
         <button data-on:click={incrementAction}>+</button>
@@ -1292,7 +1292,7 @@ counterPanel = @component |{ count, incrementAction, resetAction }| {
     </section>
 }
 
-settingsPage = @component |{ settings, actions }| {
+@component settingsPage = |{ settings, actions }| {
     <main id="settings">
         <h1>Settings</h1>
         <CounterPanel
@@ -1382,14 +1382,14 @@ Prop spreading, dynamic tag names, and string-to-component lookup are excluded f
 The earlier proposal placed nested markup into a record field named `children`:
 
 ```rocci
-card = @component |{ title, children }| {
+@component card = |{ title, children }| {
     <section>
         <h2>{title}</h2>
         {children}
     </section>
 }
 
-page = @component |{}| {
+@component page = |{}| {
     <Card title="Settings">
         <SettingsForm />
     </Card>
@@ -1435,7 +1435,7 @@ It should also lower to ordinary Roc values without a runtime slot registry, con
 ### Alternative 1: reserved `children` record field
 
 ```rocci
-card = @component |{ title, children }| {
+@component card = |{ title, children }| {
     <section>{children}</section>
 }
 ```
@@ -1756,7 +1756,7 @@ styles global {
     }
 }
 
-counterPanel = @component |{ count }| {
+@component counterPanel = |{ count }| {
     <section class="counter-panel">
         <output>{count.to_str()}</output>
     </section>
@@ -1787,7 +1787,7 @@ counterStyles = styles module {
     }
 }
 
-counterPanel = @component |{ count, isDangerous }| {
+@component counterPanel = |{ count, isDangerous }| {
     <section class={counterStyles.root}>
         <output class={if isDangerous {
             Css.classes([counterStyles.count, counterStyles.danger])
@@ -1843,7 +1843,7 @@ styles scoped counterPanel {
     }
 }
 
-counterPanel = @component |{ count }| {
+@component counterPanel = |{ count }| {
     <section class="root">
         <output>{count.to_str()}</output>
     </section>
@@ -1881,7 +1881,7 @@ If introduced later, scope should apply only to intrinsic markup lexically autho
 A Vue-like spelling could put a non-rendering directive in the body:
 
 ```rocci
-counterPanel = @component |{ count }| {
+@component counterPanel = |{ count }| {
     @styles module counterStyles {
         .root { display: grid; }
     }
@@ -1926,7 +1926,7 @@ meterStyles = styles module {
     }
 }
 
-meter = @component |{ color, value }| {
+@component meter = |{ color, value }| {
     <div
         class={meterStyles.root}
         style={Css.vars({ meterColor: color })}
@@ -1945,7 +1945,7 @@ External stylesheets remain first-class:
 ```rocci
 import styles "./counter.css"
 
-counterPanel = @component |{ count }| {
+@component counterPanel = |{ count }| {
     <section class="counter-panel">{count.to_str()}</section>
 }
 ```
@@ -2083,7 +2083,7 @@ The parser and AST must not import runtime concepts. Datastar attributes are pre
 
 ## Parsing strategy
 
-Use the bounded component parser described in [Parser feasibility](#parser-feasibility): a token-aware outer scanner finds top-level `name = @component |...| {` declarations, a recursive-descent template parser owns their bodies, and a Roc-aware lexer captures expressions using context-specific lexical terminators without recursively accepting markup.
+Use the bounded component parser described in [Parser feasibility](#parser-feasibility): a token-aware outer scanner finds top-level `@component name = |...| {` declarations, a recursive-descent template parser owns their bodies, and a Roc-aware lexer captures expressions using context-specific lexical terminators without recursively accepting markup.
 
 The implementation must keep its modes explicit (`OuterRoc`, `ComponentSignature`, `Template`, `Tag`, `Attribute`, `BracedRoc`, `DirectiveHeader`, `LineRoc`, `Pattern`, and `DirectiveBody`) and version-lock Roc lexical assumptions. A raw search for delimiters or keywords is not sufficient. Full JSX remains a documented future alternative, not a second v1 parse mode.
 
@@ -2092,7 +2092,7 @@ The implementation must keep its modes explicit (`OuterRoc`, `ComponentSignature
 Lowering produces a deterministic virtual Roc module. Conceptually:
 
 ```rocci
-hello = @component |{ name }| {
+@component hello = |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 ```
@@ -2180,7 +2180,7 @@ Before freezing the grammar:
 
 ## Recommendation
 
-Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `name = @component |params| { ... }` declarations with a bounded template grammar. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
+Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `@component name = |params| { ... }` declarations with a bounded template grammar. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
 
 Do not permit markup recursively inside Roc expressions and do not ship full JSX as an equivalent v1 syntax.
 
