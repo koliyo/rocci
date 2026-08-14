@@ -69,3 +69,30 @@ invalid_attr = |state|
         Invalid(_) => "true"
         _ => "false"
     }
+
+sample_email = {
+    value: "ada",
+    hint: "The server checks this on every pause in typing.",
+    state: Invalid({ message: "Use a full email like ada@roc-lang.org." }),
+}
+
+sample_first = {
+    value: "Ada",
+    hint: "Any non-empty first name is enough.",
+    state: Valid,
+}
+
+sample_last = {
+    value: "",
+    hint: "Any non-empty last name is enough.",
+    state: Empty,
+}
+
+@fixture{target: demo}
+demoTest = { page: Form({ email: sample_email, first: sample_first, last: sample_last }) }
+
+@fixture{target: signupForm}
+signupFormTest = { email: sample_email, first: sample_first, last: sample_last }
+
+@fixture{target: fieldNote}
+fieldNoteTest = { field: sample_email }

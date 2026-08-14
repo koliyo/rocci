@@ -74,3 +74,17 @@ import Html
         <p class="note">Per-row Datastar URLs must be Roc expressions. A static quoted attribute does not substitute the row id; see the README.</p>
     </Page>
 }
+
+@fixture{target: page}
+pageTest = {
+    title: "Active Search",
+    eyebrow: "@let, @if, @for",
+    lede: "The server filters contacts. Datastar only binds the search box.",
+    current: "search",
+}
+
+@fixture{target: galleryNav}
+galleryNavTest = { current: "search" }
+
+@fixture{target: home}
+homeTest = {}

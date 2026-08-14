@@ -3,8 +3,8 @@ use lsp_types::{
     SemanticTokensLegend,
 };
 use rocci_template::{
-    AttrValue, ComponentCall, ComponentDecl, Document, Element, ModuleItem, PositionEncoding,
-    SourceFile, Span, TemplateItem,
+    AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ModuleItem,
+    PositionEncoding, SourceFile, Span, TemplateItem,
 };
 use serde::Serialize;
 
@@ -137,6 +137,7 @@ fn collect_document(collector: &mut Collector<'_>, document: &Document) {
         match item {
             ModuleItem::Roc { span } => collector.roc(*span),
             ModuleItem::Component(component) => collect_component(collector, component),
+            ModuleItem::Fixture(fixture) => collect_fixture(collector, fixture),
         }
     }
 }
@@ -153,6 +154,28 @@ fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
     }
     collector.roc(component.params);
     collect_items(collector, &component.body.items);
+}
+
+fn collect_fixture(collector: &mut Collector<'_>, fixture: &FixtureDecl) {
+    collector.token(fixture.name.span, TOKEN_FUNCTION, MOD_DECLARATION);
+    if let Some(span) = ident_between(
+        collector.src,
+        fixture.span.start,
+        fixture.name.span.start,
+        "@fixture",
+    ) {
+        collector.token(span, TOKEN_KEYWORD, 0);
+    }
+    if let Some(span) = ident_between(
+        collector.src,
+        fixture.span.start,
+        fixture.name.span.start,
+        "target",
+    ) {
+        collector.token(span, TOKEN_PROPERTY, 0);
+    }
+    collect_path(collector, &fixture.target.parts);
+    collector.roc(fixture.value);
 }
 
 fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {

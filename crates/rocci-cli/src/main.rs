@@ -161,6 +161,10 @@ fn inspect_rocci(input: &Path, ast: bool) -> Result<()> {
             component.param_names.join(", ")
         );
     }
+    println!("# fixtures ({})", compiled.fixtures.len());
+    for fixture in &compiled.fixtures {
+        println!("- {} -> {}", fixture.name, fixture.target);
+    }
     if ast {
         println!("\n# ast\n{}", format_ast(&src, &compiled.document));
     }

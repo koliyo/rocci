@@ -1,7 +1,7 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, ForDirective,
-    Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm, MatchDirective,
-    ModuleItem, TemplateBlock, TemplateItem, TextNode,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, FixtureDecl,
+    ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
+    MatchDirective, ModuleItem, TemplateBlock, TemplateItem, TextNode,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor};
@@ -51,17 +51,27 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            if self.cur.is_top_level()
-                && let Some(component) = self.try_parse_component()
-            {
-                if opaque_start < component.span.start as usize {
-                    items.push(ModuleItem::Roc {
-                        span: Span::new(opaque_start, component.span.start as usize),
-                    });
+            if self.cur.is_top_level() {
+                if let Some(fixture) = self.try_parse_fixture() {
+                    if opaque_start < fixture.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, fixture.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Fixture(fixture));
+                    continue;
                 }
-                opaque_start = self.cur.pos;
-                items.push(ModuleItem::Component(component));
-                continue;
+                if let Some(component) = self.try_parse_component() {
+                    if opaque_start < component.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, component.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Component(component));
+                    continue;
+                }
             }
 
             saved.restore(&mut self.cur);
@@ -80,6 +90,212 @@ impl<'a> Parser<'a> {
         Document {
             items,
             span: Span::new(start, self.src().len()),
+        }
+    }
+
+    fn try_parse_fixture(&mut self) -> Option<FixtureDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("fixture")?;
+        Some(self.parse_fixture_after_keyword(start))
+    }
+
+    fn parse_fixture_after_keyword(&mut self, start: usize) -> FixtureDecl {
+        self.cur.skip_trivia();
+        let target = self.parse_fixture_attrs(start);
+        self.cur.skip_trivia();
+        let Some(name_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected fixture name after `@fixture{target: ...}`",
+            );
+            self.sync_to_next_top_level();
+            return self.empty_fixture(start, target);
+        };
+        let name = Ident {
+            span: name_span,
+            name: self.cur.ident_text(name_span).to_string(),
+        };
+        self.cur.skip_trivia();
+        if !self.cur.eat('=') {
+            self.error(name_span, "expected `=` after fixture name");
+        }
+        let value = self.scan_roc_expr();
+        if value.is_empty() {
+            self.error(
+                Span::point(self.cur.pos),
+                "expected a Roc expression after `@fixture` name `=`",
+            );
+        }
+        FixtureDecl {
+            span: Span::new(start, self.cur.pos),
+            name,
+            target,
+            value,
+        }
+    }
+
+    fn parse_fixture_attrs(&mut self, start: usize) -> ComponentPath {
+        if self.cur.peek() != Some('{') {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected `{target: ...}` after `@fixture`",
+            );
+            return empty_path(self.cur.pos);
+        }
+        let attrs_start = self.cur.pos;
+        self.cur.bump();
+        let mut target: Option<ComponentPath> = None;
+        loop {
+            self.cur.skip_trivia();
+            if self.cur.eat('}') {
+                break;
+            }
+            if self.cur.is_eof() {
+                self.error(
+                    Span::new(attrs_start, self.cur.pos),
+                    "unterminated `@fixture` attributes; expected `}`",
+                );
+                break;
+            }
+            let Some(key_span) = self.cur.scan_ident() else {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected attribute name in `@fixture { ... }`",
+                );
+                self.skip_fixture_attr_rest();
+                continue;
+            };
+            let key = self.cur.ident_text(key_span).to_string();
+            self.cur.skip_trivia();
+            if !self.cur.eat(':') {
+                self.error(key_span, "expected `:` after `@fixture` attribute name");
+            }
+            self.cur.skip_trivia();
+            let Some(path) = self.scan_fixture_path() else {
+                self.error(
+                    Span::point(self.cur.pos),
+                    format!("expected component path after `{key}:`"),
+                );
+                self.skip_fixture_attr_rest();
+                continue;
+            };
+            match key.as_str() {
+                "target" => {
+                    if target.is_some() {
+                        self.error(key_span, "duplicate `target` attribute");
+                    } else {
+                        target = Some(path);
+                    }
+                }
+                other => {
+                    self.error(
+                        key_span,
+                        format!("unknown `@fixture` attribute `{other}`; expected `target`"),
+                    );
+                }
+            }
+            self.cur.skip_trivia();
+            self.cur.eat(',');
+        }
+        target.unwrap_or_else(|| {
+            self.error(
+                Span::new(attrs_start, self.cur.pos),
+                "expected `{target: ...}` after `@fixture`",
+            );
+            empty_path(attrs_start)
+        })
+    }
+
+    fn skip_fixture_attr_rest(&mut self) {
+        while !self.cur.is_eof() {
+            match self.cur.peek() {
+                Some(',' | '}') => return,
+                Some('"') => self.cur.skip_string(),
+                _ => {
+                    self.cur.bump();
+                }
+            }
+        }
+    }
+
+    fn scan_fixture_path(&mut self) -> Option<ComponentPath> {
+        let first = self.cur.scan_ident()?;
+        let mut parts = vec![Ident {
+            name: self.cur.ident_text(first).to_string(),
+            span: first,
+        }];
+        while self.cur.eat('.') {
+            if let Some(next) = self.cur.scan_ident() {
+                parts.push(Ident {
+                    name: self.cur.ident_text(next).to_string(),
+                    span: next,
+                });
+            } else {
+                self.error(Span::point(self.cur.pos), "expected identifier after `.`");
+                break;
+            }
+        }
+        let span = Span::new(
+            parts.first().unwrap().span.start as usize,
+            parts.last().unwrap().span.end as usize,
+        );
+        let roc_name = component_roc_name(&parts);
+        Some(ComponentPath {
+            parts,
+            roc_name,
+            span,
+        })
+    }
+
+    fn scan_roc_expr(&mut self) -> Span {
+        self.cur.skip_trivia();
+        let start = self.cur.pos;
+        if self.cur.is_eof() || (self.cur.is_top_level() && self.cur.peek() == Some('@')) {
+            return Span::point(start);
+        }
+
+        let start_paren = self.cur.paren;
+        let start_bracket = self.cur.bracket;
+        let start_brace = self.cur.brace;
+        let at_start_depth = |cur: &Cursor<'_>| {
+            cur.paren == start_paren && cur.bracket == start_bracket && cur.brace == start_brace
+        };
+
+        loop {
+            if self.cur.is_eof() {
+                break;
+            }
+            self.cur.skip_roc_token();
+            while !self.cur.is_eof() && !at_start_depth(&self.cur) {
+                self.cur.skip_roc_token();
+            }
+            let saved = Snapshot::from(&self.cur);
+            self.cur.skip_spaces_tabs();
+            match self.cur.peek() {
+                Some('.') => {
+                    self.cur.skip_roc_token();
+                    continue;
+                }
+                Some('(') | Some('[') => continue,
+                _ => {
+                    saved.restore(&mut self.cur);
+                    break;
+                }
+            }
+        }
+        lexer::trim_span(self.src(), Span::new(start, self.cur.pos))
+    }
+
+    fn empty_fixture(&mut self, start: usize, target: ComponentPath) -> FixtureDecl {
+        let pos = self.cur.pos;
+        FixtureDecl {
+            name: Ident {
+                span: Span::point(pos),
+                name: String::new(),
+            },
+            target,
+            value: Span::point(pos),
+            span: Span::new(start, pos),
         }
     }
 
@@ -107,6 +323,10 @@ impl<'a> Parser<'a> {
     }
 
     fn scan_at_component(&mut self) -> Option<Span> {
+        self.scan_at_keyword("component")
+    }
+
+    fn scan_at_keyword(&mut self, keyword: &str) -> Option<Span> {
         let saved = Snapshot::from(&self.cur);
         if !self.cur.eat('@') {
             return None;
@@ -115,7 +335,7 @@ impl<'a> Parser<'a> {
             saved.restore(&mut self.cur);
             return None;
         };
-        if self.cur.ident_text(kw) != "component" {
+        if self.cur.ident_text(kw) != keyword {
             saved.restore(&mut self.cur);
             return None;
         }
@@ -710,6 +930,14 @@ impl<'a> Parser<'a> {
             "for" => Some(TemplateItem::For(self.parse_for(start))),
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
+            "fixture" => {
+                self.error(
+                    Span::new(start, name_span.end as usize),
+                    "`@fixture` is only valid at module level",
+                );
+                self.skip_unknown_directive();
+                None
+            }
             "else" => {
                 if stop == ItemStop::BlockEnd {
                     self.cur.pos = start;
@@ -1149,11 +1377,25 @@ impl<'a> Parser<'a> {
         if look.peek().is_some_and(|ch| ch == ' ' || ch == '\t') {
             return false;
         }
+        if look.eat('@') {
+            let Some(kw) = look.scan_ident() else {
+                return false;
+            };
+            return matches!(look.ident_text(kw), "component" | "fixture");
+        }
         let Some(_) = look.scan_ident() else {
             return false;
         };
         look.skip_trivia();
         look.peek() == Some('=')
+    }
+}
+
+fn empty_path(pos: usize) -> ComponentPath {
+    ComponentPath {
+        parts: Vec::new(),
+        roc_name: String::new(),
+        span: Span::point(pos),
     }
 }
 

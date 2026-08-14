@@ -10,6 +10,7 @@ pub struct Document {
 pub enum ModuleItem {
     Roc { span: Span },
     Component(ComponentDecl),
+    Fixture(FixtureDecl),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -17,6 +18,14 @@ pub struct ComponentDecl {
     pub name: Ident,
     pub params: Span,
     pub body: TemplateBlock,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FixtureDecl {
+    pub name: Ident,
+    pub target: ComponentPath,
+    pub value: Span,
     pub span: Span,
 }
 

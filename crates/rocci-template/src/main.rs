@@ -105,6 +105,10 @@ fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
             component.param_names.join(", ")
         );
     }
+    println!("# fixtures ({})", compiled.fixtures.len());
+    for fixture in &compiled.fixtures {
+        println!("- {} -> {}", fixture.name, fixture.target);
+    }
     if ast {
         println!("\n# ast\n{}", format_ast(src, &compiled.document));
     }

@@ -14,9 +14,9 @@ cargo run -p rocci-template -- inspect --ast path/to/file.rocci
 ```
 
 `build` writes generated Roc to stdout, or to a file with `-o`. `ast` prints
-the parse tree as an S-expression. `inspect` prints components, generated Roc,
-and source-map segments; `--ast` includes the parse tree. The same commands
-exist on the workspace `rocci` CLI. Input `-` reads stdin.
+the parse tree as an S-expression. `inspect` prints components, fixtures,
+generated Roc, and source-map segments; `--ast` includes the parse tree. The
+same commands exist on the workspace `rocci` CLI. Input `-` reads stdin.
 
 Library entry points are `parse`, `lower`, `compile`, and `format_ast` in
 `rocci_template`.
@@ -47,8 +47,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component` is recognized only at the start of a
-top-level definition.
+module unchanged. `@component` and `@fixture` are recognized only at the
+start of a top-level definition.
 
 ## Components
 
@@ -99,6 +99,43 @@ badge({ tone: Positive }, Html.text("Current count"))
 
 There is no magic `children` field. Named regions are ordinary `Html` or
 function-valued props.
+
+## Fixtures
+
+`@fixture` tags a Roc binding as sample input for a component. The marker is
+stripped; the binding stays ordinary Roc. Use it for tests, demos, and the
+component browser's fixture picker.
+
+```text
+@fixture{target: componentPath}
+name = rocExpr
+```
+
+`target` is a component path: a local camelCase name (`todoItem`) or a
+module-qualified name (`Search.results`). The value is one delimiter-balanced
+Roc expression, usually a props record:
+
+```rocci
+@fixture{target: todoItem}
+todoItemTest = { item: { id: 123, text: "Buy milk" } }
+
+@fixture{target: Search.results}
+searchResultTest = { contacts: all_contacts, query: "Foo" }
+```
+
+This lowers to:
+
+```roc
+todoItemTest = { item: { id: 123, text: "Buy milk" } }
+
+searchResultTest = { contacts: all_contacts, query: "Foo" }
+```
+
+`compile` reports each fixture as `FixtureInfo` (`name`, `target`, `value`).
+Unqualified targets must name a `@component` in the same file. Dotted targets
+are left for the Roc compiler and later project-level tools.
+
+`@fixture` is not a template directive. Inside a component body it is an error.
 
 ## Tags
 

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, ForDirective, Fragment,
-    IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
+    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ForDirective,
+    Fragment, IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
     parse_component_params, strip_param_defaults,
 };
 use crate::source_map::{OriginKind, Segment};
@@ -26,6 +26,7 @@ pub struct LoweredModule {
     pub roc: String,
     pub segments: Vec<Segment>,
     pub components: Vec<ComponentInfo>,
+    pub fixtures: Vec<FixtureInfo>,
 }
 
 #[derive(Clone, Debug)]
@@ -37,6 +38,14 @@ pub struct ComponentInfo {
     pub param_defaults: Vec<(String, String)>,
     pub param_types: Vec<(String, String)>,
     pub first_param_is_record: bool,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct FixtureInfo {
+    pub name: String,
+    pub target: String,
+    pub value: String,
     pub span: Span,
 }
 
@@ -70,12 +79,14 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         indent: 0,
         at_line_start: true,
         components: Vec::new(),
+        fixtures: Vec::new(),
         field_defaults,
     };
     for item in &document.items {
         match item {
             ModuleItem::Roc { span } => emitter.emit_source(*span, OriginKind::OrdinaryRoc),
             ModuleItem::Component(component) => emitter.lower_component(component),
+            ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
         }
     }
     if !emitter.roc.ends_with('\n') && !emitter.roc.is_empty() {
@@ -85,6 +96,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         roc: emitter.roc,
         segments: emitter.segments,
         components: emitter.components,
+        fixtures: emitter.fixtures,
     }
 }
 
@@ -96,6 +108,7 @@ struct Emitter<'a> {
     indent: usize,
     at_line_start: bool,
     components: Vec<ComponentInfo>,
+    fixtures: Vec<FixtureInfo>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
 }
 
@@ -135,6 +148,29 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit("}\n");
+    }
+
+    fn lower_fixture(&mut self, fixture: &FixtureDecl) {
+        let value = fixture.value.of(self.src).trim();
+        self.fixtures.push(FixtureInfo {
+            name: fixture.name.name.clone(),
+            target: fixture.target.roc_name.clone(),
+            value: value.to_string(),
+            span: fixture.span,
+        });
+        if fixture.name.name.is_empty() {
+            return;
+        }
+        self.emit_mapped(
+            &fixture.name.name,
+            fixture.name.span,
+            OriginKind::OrdinaryRoc,
+        );
+        self.emit(" = ");
+        self.emit_mapped(value, fixture.value, OriginKind::OrdinaryRoc);
+        if !self.roc.ends_with('\n') {
+            self.emit("\n");
+        }
     }
 
     fn lower_block(&mut self, block: &TemplateBlock, body_params: &[String]) {

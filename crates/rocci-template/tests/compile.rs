@@ -363,3 +363,146 @@ fn formats_lisp_ast() {
 "#
     );
 }
+
+#[test]
+fn lowers_fixtures_and_records_metadata() {
+    let src = r#"
+all_contacts = [{ first: "Carli", last: "Stoltenberg" }]
+
+@fixture{target: todoItem}
+todoItemTest = { item: { id: 123, text: "Buy milk" } }
+
+@fixture {target: Search.results}
+searchResultTest = { contacts: all_contacts, query: "Foo" }
+
+@component todoItem = |{ item }| {
+    <li>{item.text}</li>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("@fixture"));
+    assert!(
+        out.roc
+            .contains("todoItemTest = { item: { id: 123, text: \"Buy milk\" } }")
+    );
+    assert!(
+        out.roc
+            .contains("searchResultTest = { contacts: all_contacts, query: \"Foo\" }")
+    );
+    assert!(
+        out.roc
+            .contains("all_contacts = [{ first: \"Carli\", last: \"Stoltenberg\" }]")
+    );
+    assert!(out.roc.contains("todoItem = |{ item }|"));
+
+    assert_eq!(out.fixtures.len(), 2);
+    let todo = out
+        .fixtures
+        .iter()
+        .find(|fixture| fixture.name == "todoItemTest")
+        .expect("todoItemTest");
+    assert_eq!(todo.target, "todoItem");
+    assert_eq!(todo.value, "{ item: { id: 123, text: \"Buy milk\" } }");
+
+    let search = out
+        .fixtures
+        .iter()
+        .find(|fixture| fixture.name == "searchResultTest")
+        .expect("searchResultTest");
+    assert_eq!(search.target, "Search.results");
+    assert_eq!(search.value, "{ contacts: all_contacts, query: \"Foo\" }");
+}
+
+#[test]
+fn formats_fixture_ast() {
+    let src = r#"
+@fixture{target: todoItem}
+todoItemTest = { item: { id: 123, text: "Buy milk" } }
+
+@component todoItem = |{ item }| {
+    <li>{item.text}</li>
+}
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert_eq!(
+        ast,
+        r#"(module
+  (fixture todoItemTest target:todoItem
+    (roc "{ item: { id: 123, text: \"Buy milk\" } }"))
+  (component todoItem
+    (params "|{ item }|")
+    (element li
+      (interp item.text))))
+"#
+    );
+}
+
+#[test]
+fn rejects_unknown_local_fixture_target() {
+    let src = r#"
+@fixture{target: missing}
+sample = { name: "Ada" }
+
+@component hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown fixture target `missing`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_missing_fixture_target() {
+    let src = r#"
+@fixture
+sample = { name: "Ada" }
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors.iter().any(|msg| msg.contains("{target: ...}")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_unknown_fixture_attribute() {
+    let src = r#"
+@fixture{name: hello}
+sample = { name: "Ada" }
+
+@component hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown `@fixture` attribute `name`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_fixture_inside_component_body() {
+    let src = r#"
+@component hello = |{ name }| {
+    @fixture{target: hello}
+    sample = { name: "Ada" }
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`@fixture` is only valid at module level")),
+        "{errors:?}"
+    );
+}

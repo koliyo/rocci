@@ -82,3 +82,23 @@ filter_is = |filter, wanted|
         (Completed, Completed) => True
         _ => False
     }
+
+sample_items = [
+    { id: "1", text: "Buy milk", done: False, row_class: "" },
+    { id: "2", text: "Write Roc", done: True, row_class: "done" },
+]
+
+@fixture{target: demo}
+demoTest = { items: sample_items, filter: All, pending: 1, has_completed: True }
+
+@fixture{target: todosPatch}
+todosPatchTest = { items: sample_items, filter: All, pending: 1, has_completed: True }
+
+@fixture{target: todoMain}
+todoMainTest = { items: sample_items, filter: All }
+
+@fixture{target: todoItem}
+todoItemTest = { item: { id: "1", text: "Buy milk", done: False, row_class: "" } }
+
+@fixture{target: todoFooter}
+todoFooterTest = { filter: All, pending: 1, has_completed: True }
