@@ -1,7 +1,5 @@
 import Html
 
-keydown_handler = "(evt.key.startsWith('Arrow')&&evt.preventDefault());(evt.key==='ArrowUp'||evt.key==='w'||evt.key==='W')&&@post('/api/dir?d=up');(evt.key==='ArrowDown'||evt.key==='s'||evt.key==='S')&&@post('/api/dir?d=down');(evt.key==='ArrowLeft'||evt.key==='a'||evt.key==='A')&&@post('/api/dir?d=left');(evt.key==='ArrowRight'||evt.key==='d'||evt.key==='D')&&@post('/api/dir?d=right')"
-
 lobbyPage = component |{ player_count_str, full }| {
     <html lang="en">
         <head>
@@ -19,7 +17,7 @@ lobbyPage = component |{ player_count_str, full }| {
                 <header>
                     <p class="eyebrow">Shared multiplayer on a 100×100 grid</p>
                     <h1>Snake.</h1>
-                    <p class="lede">Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD or arrows to steer. Minimap shows everyone.</p>
+                    <p class="lede">A Datastar multiplayer stress demo: one authoritative world, long-lived SSE patches, and a tiny JS input island. Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
                 </header>
                 <p class="count">{player_count_str} in the game, 8 max.</p>
                 <div class="actions">
@@ -87,14 +85,20 @@ playPage = component |{ cells, info, marks }| {
             <title>Rocci Snake</title>
             <link rel="stylesheet" href="/assets/app.css" />
             <script type="module" src="/assets/datastar.js"></script>
+            <script type="module" src="/assets/snake-input.js"></script>
         </head>
-        <body data-init="@get('/sse')" data-on:keydown__window={keydown_handler}>
+        <body data-init="@get('/sse')">
             <main class="play">
                 <nav>
                     <strong>ROC</strong>
                     <span>100×100 · 8 ticks/s</span>
                 </nav>
-                <Board cells={cells} />
+                <div class="stage">
+                    <Board cells={cells} />
+                    @if info.can_leave {
+                        <SteerPad />
+                    }
+                </div>
                 <div class="side">
                     <MiniMap marks={marks} />
                     <StatusHud info={info} />
@@ -102,6 +106,15 @@ playPage = component |{ cells, info, marks }| {
             </main>
         </body>
     </html>
+}
+
+steerPad = component |{}| {
+    <div class="steer" aria-label="Steer">
+        <button type="button" class="secondary" data-steer="up">Up</button>
+        <button type="button" class="secondary" data-steer="left">Left</button>
+        <button type="button" class="secondary" data-steer="right">Right</button>
+        <button type="button" class="secondary" data-steer="down">Down</button>
+    </div>
 }
 
 gamePatch = component |{ cells, info, marks }| {

@@ -111,11 +111,6 @@ respond! = |request, { db }| {
             Resource({ raw_path, .. }) => raw_path
             _ => ""
         }
-    query =
-        match request.target() {
-            Resource({ raw_query, .. }) => raw_query
-            _ => Absent
-        }
     player_id = cookie_player(request.headers())
 
     match (Method.to_str(request.method()), path) {
@@ -141,8 +136,10 @@ respond! = |request, { db }| {
             join_player!(db)
         ("POST", "/api/leave") =>
             leave_player!(db, player_id)
-        ("POST", "/api/dir") =>
-            set_dir!(db, player_id, dir_from_query(query))
+        ("POST", "/api/direction") => {
+            json = read_json_body!(request) ? |err| ServerErr("Failed to read direction: ${Str.inspect(err)}")
+            set_dir!(db, player_id, dir_from_json(json))
+        }
         _ =>
             Ok(
                 Server.respond(
@@ -605,21 +602,64 @@ cookie_value = |header_value, key|
         },
     )
 
-dir_from_query = |raw_query|
-    match raw_query {
-        Absent => None
-        Present(q) =>
-            List.fold(
-                Str.split_on(q, "&"),
-                None,
-                |acc, part|
-                    match acc {
-                        Some(_) => acc
-                        None if part == "d=up" => Some("up")
-                        None if part == "d=down" => Some("down")
-                        None if part == "d=left" => Some("left")
-                        None if part == "d=right" => Some("right")
-                        None => acc
+dir_from_json = |json| {
+    value = json_str(json, "direction")
+    if Game.valid_dir(value) {
+        Some(value)
+    } else {
+        None
+    }
+}
+
+read_json_body! = |request|
+    request.body().with_limit(4 * 1024).read_all!().map_ok(Str.from_utf8_lossy)
+
+json_str = |json, key| {
+    needle = "\"${key}\":"
+    parts = Str.split_on(json, needle)
+    match List.get(parts, 1) {
+        Ok(after) => json_string_value(skip_ws(after))
+        Err(_) => ""
+    }
+}
+
+skip_ws = |text| skip_ws_bytes(Str.to_utf8(text))
+
+skip_ws_bytes = |bytes|
+    match List.get(bytes, 0) {
+        Ok(byte) if byte == 32 or byte == 9 or byte == 10 or byte == 13 =>
+            skip_ws_bytes(List.drop_first(bytes, 1))
+        _ => Str.from_utf8_lossy(bytes)
+    }
+
+json_string_value = |text|
+    if Str.starts_with(text, "\"") {
+        read_json_string(Str.to_utf8(Str.drop_prefix(text, "\"")), 0, [], False)
+    } else {
+        ""
+    }
+
+read_json_string = |bytes, index, acc, escape|
+    match List.get(bytes, index) {
+        Err(_) => Str.from_utf8_lossy(acc)
+        Ok(34) if !escape => Str.from_utf8_lossy(acc)
+        Ok(92) if !escape => read_json_string(bytes, index + 1, acc, True)
+        Ok(byte) if escape =>
+            read_json_string(
+                bytes,
+                index + 1,
+                List.append(
+                    acc,
+                    match byte {
+                        34 => 34
+                        92 => 92
+                        110 => 10
+                        116 => 9
+                        114 => 13
+                        _ => byte
                     },
+                ),
+                False,
             )
+        Ok(byte) => read_json_string(bytes, index + 1, List.append(acc, byte), False)
     }
