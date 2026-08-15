@@ -13,8 +13,8 @@ mod state;
 
 pub use backend::{Backend, ExternalBackend, RunningBackend, join_origin};
 pub use config::{
-    AppConfig, AssetConfig, BundleConfig, BundleResource, Config, DevelopmentConfig, HttpConfig,
-    SecurityConfig, WindowConfig,
+    AppConfig, AssetConfig, BundleConfig, BundleResource, Config, DatastarAsset, DevelopmentConfig,
+    HttpConfig, SecurityConfig, WindowConfig, parse_datastar_version,
 };
 pub use error::{Error, Result};
 pub use event::{AppEvent, EventHook, ExitHook, Hooks, SetupHook, WindowEvent};

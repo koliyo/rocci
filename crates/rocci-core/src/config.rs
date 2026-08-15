@@ -1,5 +1,5 @@
 use std::{
-    env, fs,
+    env, fmt, fs,
     path::{Path, PathBuf},
 };
 
@@ -80,6 +80,84 @@ pub struct AssetConfig {
     pub directory: Option<PathBuf>,
     #[serde(default = "default_true")]
     pub embed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub datastar: Option<DatastarAsset>,
+}
+
+/// How Rocci should provide `datastar.js` for an app.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DatastarAsset {
+    /// Fetch and copy this Datastar release (without a leading `v`).
+    Version(String),
+    /// Leave `assets/datastar.js` alone; the app supplies its own file.
+    Disabled,
+}
+
+impl<'de> Deserialize<'de> for DatastarAsset {
+    fn deserialize<D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = DatastarAsset;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("a Datastar version string or false")
+            }
+
+            fn visit_bool<E: serde::de::Error>(
+                self,
+                value: bool,
+            ) -> std::result::Result<Self::Value, E> {
+                if value {
+                    Err(E::custom(
+                        "assets.datastar cannot be true; use a version string or false",
+                    ))
+                } else {
+                    Ok(DatastarAsset::Disabled)
+                }
+            }
+
+            fn visit_str<E: serde::de::Error>(
+                self,
+                value: &str,
+            ) -> std::result::Result<Self::Value, E> {
+                parse_datastar_version(value)
+                    .map(DatastarAsset::Version)
+                    .map_err(E::custom)
+            }
+        }
+        deserializer.deserialize_any(Visitor)
+    }
+}
+
+impl Serialize for DatastarAsset {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        match self {
+            DatastarAsset::Disabled => serializer.serialize_bool(false),
+            DatastarAsset::Version(version) => serializer.serialize_str(version),
+        }
+    }
+}
+
+/// Normalize a Datastar version pin to `1.0.2` (no leading `v`).
+pub fn parse_datastar_version(raw: &str) -> Result<String> {
+    let trimmed = raw.trim();
+    let version = trimmed.strip_prefix('v').unwrap_or(trimmed);
+    if version.is_empty()
+        || version.contains("..")
+        || !version
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '_')
+    {
+        return Err(Error::config(
+            "assets.datastar must be a version such as \"1.0.2\", or false",
+        ));
+    }
+    Ok(version.to_string())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -172,6 +250,7 @@ impl Default for AssetConfig {
         Self {
             directory: None,
             embed: true,
+            datastar: None,
         }
     }
 }
@@ -273,6 +352,10 @@ impl Config {
                     "bundle.resources entries need both `from` and `to`",
                 ));
             }
+        }
+
+        if let Some(DatastarAsset::Version(version)) = &self.assets.datastar {
+            parse_datastar_version(version)?;
         }
 
         Ok(())
@@ -539,5 +622,64 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("bundle.app"));
+    }
+
+    #[test]
+    fn parses_datastar_version_pin() {
+        let config = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [assets]
+            datastar = "v1.0.2"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(
+            config.assets.datastar,
+            Some(DatastarAsset::Version("1.0.2".into()))
+        );
+    }
+
+    #[test]
+    fn parses_datastar_disabled() {
+        let config = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [assets]
+            datastar = false
+            "#,
+        )
+        .unwrap();
+        assert_eq!(config.assets.datastar, Some(DatastarAsset::Disabled));
+    }
+
+    #[test]
+    fn rejects_datastar_true() {
+        let error = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [assets]
+            datastar = true
+            "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("assets.datastar"));
+    }
+
+    #[test]
+    fn rejects_datastar_path_version() {
+        let error = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [assets]
+            datastar = "../secret"
+            "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("assets.datastar"));
     }
 }

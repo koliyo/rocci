@@ -7,6 +7,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use rocci_core::Config;
 
+use crate::datastar_asset;
 use crate::run;
 
 const SERVER_NAME: &str = "server";
@@ -16,6 +17,7 @@ pub fn bundle(config_path: &Path) -> Result<()> {
     let root = workspace_root(config_path)?;
     let app_dir = resolve_app_dir(config_path, &config)?;
 
+    datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
     run::compile_rocci_modules(&app_dir)?;
 
     match env::consts::OS {

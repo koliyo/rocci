@@ -9,11 +9,13 @@ use rocci_core::Config;
 use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
 use rocci_wry::PreviewOptions;
 
+use crate::datastar_asset;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::serve;
 
 pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) -> Result<()> {
     let resolved = resolve_entry(file)?;
+    datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
     compile_rocci_modules(&resolved.app_dir)?;
     invoke_roc(&resolved, args, no_window, port)
 }

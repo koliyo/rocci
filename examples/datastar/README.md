@@ -6,19 +6,19 @@ Pinned together:
 
 - Roc nightly **2026-08-08**
 - `basic-webserver` **0.16.0**
-- Datastar **1.0.2** from `assets/datastar.js`
+- Datastar **1.0.2** (CLI cache; override with `[assets] datastar` in `rocci.toml`)
 
 ## Run
 
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/run-datastar.sh
+cargo run -q -p rocci-cli -- run examples/datastar
 ```
 
 This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/datastar/gallery.db`. Set `DB_PATH` to use another file.
 
-The script copies `datastar.js` into `examples/datastar/assets/` and runs `rocci run`, which compiles each `*.rocci` module to a gitignored Roc type module.
+`rocci run` compiles each `*.rocci` module to a gitignored Roc type module and copies the pinned Datastar runtime into `examples/datastar/assets/`.
 
 ## Pages
 

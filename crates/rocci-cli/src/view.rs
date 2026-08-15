@@ -11,6 +11,7 @@ use rocci_template::{
     compile, format_diagnostic,
 };
 
+use crate::datastar_asset;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::serve;
 
@@ -62,12 +63,20 @@ pub fn view(
     let call = build_component_call(&type_name, info, &encoded);
     let wrap_in_shell = !component_is_html_document(&compiled.document, &info.name);
     let src_dir = input.parent().unwrap_or_else(|| Path::new("."));
-    let has_assets = src_dir.join("assets").is_dir();
+    let sibling_assets = src_dir.join("assets");
+    let stage_version = datastar_asset::stage_version_for_dir(src_dir);
 
     let workspace = TempDir::create()?;
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
-    if has_assets {
-        copy_tree(&src_dir.join("assets"), &workspace.path.join("assets"))?;
+    let workspace_assets = workspace.path.join("assets");
+    if sibling_assets.is_dir() {
+        copy_tree(&sibling_assets, &workspace_assets)?;
+    }
+    if let Some(version) = &stage_version {
+        datastar_asset::stage_into(&workspace_assets, version)?;
+        datastar_asset::print_hint(version);
+    } else {
+        fs::create_dir_all(&workspace_assets)?;
     }
     if !workspace.path.join("Html.roc").is_file() {
         fs::write(workspace.path.join("Html.roc"), HTML_STUB)
@@ -80,7 +89,7 @@ pub fn view(
     .with_context(|| format!("failed to write {type_name}.roc"))?;
     fs::write(
         workspace.path.join("main.roc"),
-        generate_main_roc(&type_name, &call, wrap_in_shell, has_assets),
+        generate_main_roc(&type_name, &call, wrap_in_shell),
     )
     .context("failed to write main.roc")?;
 
@@ -294,38 +303,13 @@ pub(crate) fn build_component_call(
     format!("{type_name}.{}({})", component.name, call_args.join(", "))
 }
 
-pub(crate) fn generate_main_roc(
-    type_name: &str,
-    call: &str,
-    wrap_in_shell: bool,
-    has_assets: bool,
-) -> String {
+pub(crate) fn generate_main_roc(type_name: &str, call: &str, wrap_in_shell: bool) -> String {
     let render = if wrap_in_shell {
         format!(
-            "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci view\")]),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
+            "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci view\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
         )
     } else {
         call.to_string()
-    };
-    let path_import = if has_assets { "import pf.Path\n" } else { "" };
-    let init_body = if has_assets {
-        r#"    assets = Server.file_root({
-        id: "assets",
-        path: Path.utf8("assets"),
-    })
-    config =
-        Server.default_config
-        .with_file_roots([assets])
-        .with_native_routes({
-            files: [
-                Server.static_mount({ at: "/assets", files: assets }),
-            ],
-            liveness: [],
-            readiness: [],
-        })
-    Ok({ config, context: {} })"#
-    } else {
-        "    Ok({ config: Server.default_config, context: {} })"
     };
     format!(
         r#"app [Context, program] {{
@@ -333,8 +317,9 @@ pub(crate) fn generate_main_roc(
     http: "{HTTP_PKG}",
 }}
 
+import pf.Path
 import pf.Server
-{path_import}import http.Method
+import http.Method
 import http.Response
 import {type_name}
 import Html
@@ -345,7 +330,21 @@ program = {{ init!, respond!, shutdown! }}
 
 init! : () => Try({{ config : Server.Config, context : Context }}, [Exit(I64), ..])
 init! = || {{
-{init_body}
+    assets = Server.file_root({{
+        id: "assets",
+        path: Path.utf8("assets"),
+    }})
+    config =
+        Server.default_config
+        .with_file_roots([assets])
+        .with_native_routes({{
+            files: [
+                Server.static_mount({{ at: "/assets", files: assets }}),
+            ],
+            liveness: [],
+            readiness: [],
+        }})
+    Ok({{ config, context: {{}} }})
 }}
 
 respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])
@@ -581,19 +580,21 @@ mod tests {
     }
 
     #[test]
-    fn generate_main_roc_renders_call_and_optional_assets() {
-        let main = generate_main_roc("Foo", "Foo.hello({ name: \"bart\" })", true, false);
+    fn generate_main_roc_renders_call_and_assets() {
+        let main = generate_main_roc("Foo", "Foo.hello({ name: \"bart\" })", true);
         assert!(main.contains("import Foo"));
         assert!(main.contains("Html.render("));
         assert!(main.contains("Foo.hello({ name: \"bart\" })"));
         assert!(main.contains("Html.element(\"body\", [], [Foo.hello({ name: \"bart\" })])"));
-        assert!(!main.contains("import pf.Path"));
-        assert!(main.contains("Server.default_config"));
+        assert!(main.contains("import pf.Path"));
+        assert!(main.contains("Server.static_mount"));
+        assert!(main.contains("/assets/datastar.js"));
 
-        let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false, true);
+        let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false);
         assert!(page.contains("import pf.Path"));
         assert!(page.contains("Server.static_mount"));
         assert!(page.contains("Html.render(Counter.counterPage({ count: 0 }))"));
         assert!(!page.contains("rocci view"));
+        assert!(!page.contains("/assets/datastar.js"));
     }
 }

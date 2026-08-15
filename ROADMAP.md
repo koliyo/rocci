@@ -35,5 +35,5 @@ The contract between UI and backend should stay usable in a normal browser.
 - The preview host is a single window. Multi-window desktop chrome, menus, and
   dock lifecycle are not wired to Roc apps yet.
 - No native capabilities beyond the window and webview.
-- The frontend libraries are vendored snapshots and need a documented update
-  and integrity process.
+- Datastar.js is fetched into `~/.rocci/cache` and pinned per app; `rocci run`
+  never auto-upgrades. Use `rocci datastar update` to bump a pin.
