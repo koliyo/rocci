@@ -3,7 +3,7 @@
 Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
-`@component name = |params| { ... }` bodies use a bounded HTML template
+`@component Name = |params| { ... }` bodies use a bounded HTML template
 grammar. Top-level `@context`, `@init`, and `@on` declare standalone HTTP
 apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
 expressions, or spawn servers.
@@ -28,14 +28,14 @@ A file may mix a module header, imports, types, helpers, and any number of
 components:
 
 ```rocci
-module CounterPage exposing [counterPage]
+module CounterPage exposing [hello]
 
 import pf.Html
 import Design
 
 Tone : [Neutral, Positive]
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 
@@ -54,14 +54,35 @@ module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
 ## Components
 
 ```text
-@component name = |params| { template }
+@component Name = |params| { template }
 ```
+
+Component names are PascalCase, matching the tags that call them. Roc values
+cannot start with an uppercase letter, so lowering emits the corresponding
+camelCase function. Write `@component Hello` and `<Hello />`; the generated
+module binds `hello`. Ordinary Roc in the same file—`exposing` lists, `@on`
+handlers, helpers—uses that camelCase name, because those regions are Roc:
+
+```rocci
+module CounterPage exposing [hello]
+
+@on:get("/") = |{}| {
+    hello({ name: "Roc" })
+}
+
+@component Hello = |{ name }| {
+    <p>Hello, {name}</p>
+}
+```
+
+Write `<HtmlShell>` / `@component HtmlShell` for a value named `htmlShell`.
+Consecutive leading capitals such as `HTMLShell` are rejected as ambiguous.
 
 `params` is a Roc parameter list. The first parameter is normally a props
 record. Extra parameters are the default body:
 
 ```rocci
-@component badge = |{ tone }, content| {
+@component Badge = |{ tone }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
@@ -93,6 +114,9 @@ passes the nested markup as a second argument:
 <Badge tone={Positive}>Current count</Badge>
 ```
 
+`rocci view --component Hello` and `--component hello` both select that
+function.
+
 ```roc
 hello({ name: person.name })
 badge({ tone: Positive }, Html.text("Current count"))
@@ -112,15 +136,16 @@ component browser's fixture picker.
 name = rocExpr
 ```
 
-`target` is a component path: a local camelCase name (`todoItem`) or a
-module-qualified name (`Search.results`). The value is one delimiter-balanced
-Roc expression, usually a props record:
+`target` is a component path: a local PascalCase name (`TodoItem`) or a
+module-qualified name (`Search.Results`). The last segment is the component;
+it lowers to camelCase (`todoItem`, `Search.results`). The value is one
+delimiter-balanced Roc expression, usually a props record:
 
 ```rocci
-@fixture{target: todoItem}
+@fixture{target: TodoItem}
 todoItemTest = { item: { id: 123, text: "Buy milk" } }
 
-@fixture{target: Search.results}
+@fixture{target: Search.Results}
 searchResultTest = { contacts: all_contacts, query: "Foo" }
 ```
 
@@ -190,8 +215,8 @@ Custom long-lived SSE stays in an authored `main.roc`.
 | `<>...</>` | Fragment; lowers to `Html.fragment(...)` |
 | `<br>`, `<img />` | Void HTML elements use `Html.void_element` |
 
-Write `<HtmlShell>` for a value named `htmlShell`. Consecutive leading
-capitals such as `<HTMLShell>` are rejected as ambiguous.
+Write `<HtmlShell>` / `@component HtmlShell` for a value named `htmlShell`.
+Consecutive leading capitals such as `<HTMLShell>` are rejected as ambiguous.
 
 Unknown PascalCase tags still lower to a call. The Roc compiler reports
 missing values later.
@@ -344,7 +369,7 @@ Colocate isolated CSS at file scope or at the start of a component body:
     .card { padding: 1rem; }
 }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     @css {
         .greeting { color: navy; }
         p { margin: 0; }
@@ -450,14 +475,14 @@ is a double-quoted string. Roc snippets that are not a simple path are
 quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 ```rocci
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 ```
 
 ```lisp
 (module
-  (component hello
+  (component Hello
     (params "|{ name }|")
     (element p
       (attr class "greeting")

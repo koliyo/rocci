@@ -28,24 +28,24 @@ import pf.Html
 
 Tone : [Neutral, Positive]
 
-@component badge = |{ tone }, content| {
+@component Badge = |{ tone }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
 }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 
-@component counterCard = |{ count }| {
+@component CounterCard = |{ count }| {
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
     </section>
 }
 
-@component counterPage = |{ person, count }| {
+@component CounterPage = |{ person, count }| {
     <main id="counter-page">
         <Hello name={person.name} />
         <CounterCard count={count} />
@@ -624,7 +624,7 @@ Alternative markers are possible:
 An illustrative grammar is:
 
 ```text
-ComponentDecl  ::= "@component" RocName "=" RocParams TemplateBlock
+ComponentDecl  ::= "@component" PascalName "=" RocParams TemplateBlock
 StyleDecl      ::= RocName "=" "styles" "module" CssBlock
                  | "styles" "global" CssBlock
 
@@ -928,7 +928,7 @@ This grammar can be parsed soundly by an external package without implementing t
 The outer scanner needs only enough Roc lexical awareness to find this exact top-level form:
 
 ```text
-@component RocName = RocParams {
+@component PascalName = RocParams {
 ```
 
 It must be token-aware and indentation/delimiter-aware so the same text inside a string, comment, record, or nested expression is ignored. Restricting `@component` to the start of a top-level definition provides a strong synchronization point.
@@ -1333,13 +1333,15 @@ Pure Elm `init/update/view` remains a valuable example and may be implemented en
 
 Recommended rules:
 
+- Component declarations are PascalCase: `@component CounterCard`.
 - Lowercase tags are HTML elements.
-- PascalCase tags are component references.
-- `<CounterCard>` resolves to the local Roc value `counterCard`.
+- PascalCase tags are component references and must match a declaration.
+- `<CounterCard>` and `@component CounterCard` both resolve to the local Roc value `counterCard`.
 - `<Design.Button>` resolves to the imported Roc value `Design.button`.
+- Ordinary Roc in a `.rocci` file (`exposing` lists, `@on` handlers, helpers) uses the camelCase Roc name, because those regions are copied through as Roc.
 - Unknown PascalCase tags are compile errors.
 - Component declarations use normal Roc visibility: a generated value is private unless exposed by the module.
-- Initialisms use ordinary lower-camel names: `htmlShell` is written `<HtmlShell>`. Ambiguous spellings such as `<HTMLShell>` should be rejected or require an explicit future alias feature.
+- Initialisms use ordinary lower-camel names: `htmlShell` is written `@component HtmlShell` / `<HtmlShell>`. Ambiguous spellings such as `<HTMLShell>` should be rejected or require an explicit future alias feature.
 
 This transformation is compile-time only. Generated code calls the resolved function directly; there is no runtime tag registry or dynamic dispatch.
 
@@ -2083,7 +2085,7 @@ The parser and AST must not import runtime concepts. Datastar attributes are pre
 
 ## Parsing strategy
 
-Use the bounded component parser described in [Parser feasibility](#parser-feasibility): a token-aware outer scanner finds top-level `@component name = |...| {` declarations, a recursive-descent template parser owns their bodies, and a Roc-aware lexer captures expressions using context-specific lexical terminators without recursively accepting markup.
+Use the bounded component parser described in [Parser feasibility](#parser-feasibility): a token-aware outer scanner finds top-level `@component Name = |...| {` declarations, a recursive-descent template parser owns their bodies, and a Roc-aware lexer captures expressions using context-specific lexical terminators without recursively accepting markup.
 
 The implementation must keep its modes explicit (`OuterRoc`, `ComponentSignature`, `Template`, `Tag`, `Attribute`, `BracedRoc`, `DirectiveHeader`, `LineRoc`, `Pattern`, and `DirectiveBody`) and version-lock Roc lexical assumptions. A raw search for delimiters or keywords is not sufficient. Full JSX remains a documented future alternative, not a second v1 parse mode.
 
@@ -2180,7 +2182,7 @@ Before freezing the grammar:
 
 ## Recommendation
 
-Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `@component name = |params| { ... }` declarations with a bounded template grammar. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
+Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `@component Name = |params| { ... }` declarations with a bounded template grammar. Component names are PascalCase and lower to camelCase Roc functions. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
 
 Do not permit markup recursively inside Roc expressions and do not ship full JSX as an equivalent v1 syntax.
 

@@ -86,7 +86,7 @@ fn lowers_if_for_and_match() {
 #[test]
 fn concatenates_sibling_nodes_and_for_loops_with_two_arg_concat() {
     let src = r#"
-@component picker = |{ items }| {
+@component Picker = |{ items }| {
     <div>
         <p>pick</p>
         @for item in items {
@@ -129,7 +129,7 @@ fn preserves_roc_regions_and_parenthesized_header_records() {
 #[test]
 fn maps_expressions_back_to_source() {
     let src = r#"
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>Hello, {name}</p>
 }
 "#;
@@ -151,7 +151,7 @@ fn maps_expressions_back_to_source() {
 #[test]
 fn rejects_unparenthesized_header_record() {
     let src = r#"
-@component view = |{ state }| {
+@component View = |{ state }| {
     @match { status, items } {
         _ => <Spinner />
     }
@@ -169,11 +169,11 @@ fn rejects_unparenthesized_header_record() {
 #[test]
 fn recovers_from_incomplete_tag_before_next_definition() {
     let src = r#"
-@component broken = |{}| {
+@component Broken = |{}| {
     <Hello name={person.name}
 }
 
-@component ok = |{ name }| {
+@component Ok = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -186,7 +186,7 @@ fn recovers_from_incomplete_tag_before_next_definition() {
 #[test]
 fn unknown_directive_suggests_if() {
     let src = r#"
-@component view = |{ ready }| {
+@component View = |{ ready }| {
     @fi ready {
         <Ready />
     }
@@ -202,7 +202,7 @@ fn unknown_directive_suggests_if() {
 #[test]
 fn discards_indentation_between_tags() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <div>
         <span>a</span>
         <span>b</span>
@@ -284,19 +284,19 @@ fn strips_param_defaults_for_generated_roc() {
 #[test]
 fn compile_records_param_names_on_components() {
     let src = r#"
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>{name}</p>
 }
-@component badge = |{ tone }, content| {
+@component Badge = |{ tone }, content| {
     <span>{content}</span>
 }
-@component typed = |{ count: I64 }| {
+@component Typed = |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-@component modelView = |model| {
+@component ModelView = |model| {
     <p>ok</p>
 }
-@component empty = |{}| {
+@component Empty = |{}| {
     <p>empty</p>
 }
 "#;
@@ -344,7 +344,61 @@ hello = @component |{ name }| {
         errors
             .iter()
             .any(|msg| msg.contains("start of the declaration")
-                && msg.contains("@component name = |params|")),
+                && msg.contains("@component Name = |params|")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_camel_case_component_names() {
+    let errors = compile_err(
+        r#"
+@component hello = |{ name }| {
+    <p>{name}</p>
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("PascalCase") && msg.contains("@component Hello")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_ambiguous_component_names() {
+    let errors = compile_err(
+        r#"
+@component HTMLShell = |{}| {
+    <p>ok</p>
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("ambiguous component name") && msg.contains("HtmlShell")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_camel_case_fixture_targets() {
+    let errors = compile_err(
+        r#"
+@fixture{target: hello}
+sample = { name: "Ada" }
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("PascalCase") && msg.contains("Hello")),
         "{errors:?}"
     );
 }
@@ -363,7 +417,7 @@ fn package_has_no_runtime_dependencies() {
 #[test]
 fn formats_lisp_ast() {
     let src = r#"
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p class="greeting">Hello, {name}</p>
 }
 "#;
@@ -372,7 +426,7 @@ fn formats_lisp_ast() {
     assert_eq!(
         ast,
         r#"(module
-  (component hello
+  (component Hello
     (params "|{ name }|")
     (element p
       (attr class "greeting")
@@ -387,13 +441,13 @@ fn lowers_fixtures_and_records_metadata() {
     let src = r#"
 all_contacts = [{ first: "Carli", last: "Stoltenberg" }]
 
-@fixture{target: todoItem}
+@fixture{target: TodoItem}
 todoItemTest = { item: { id: 123, text: "Buy milk" } }
 
-@fixture {target: Search.results}
+@fixture {target: Search.Results}
 searchResultTest = { contacts: all_contacts, query: "Foo" }
 
-@component todoItem = |{ item }| {
+@component TodoItem = |{ item }| {
     <li>{item.text}</li>
 }
 "#;
@@ -434,10 +488,10 @@ searchResultTest = { contacts: all_contacts, query: "Foo" }
 #[test]
 fn formats_fixture_ast() {
     let src = r#"
-@fixture{target: todoItem}
+@fixture{target: TodoItem}
 todoItemTest = { item: { id: 123, text: "Buy milk" } }
 
-@component todoItem = |{ item }| {
+@component TodoItem = |{ item }| {
     <li>{item.text}</li>
 }
 "#;
@@ -446,9 +500,9 @@ todoItemTest = { item: { id: 123, text: "Buy milk" } }
     assert_eq!(
         ast,
         r#"(module
-  (fixture todoItemTest target:todoItem
+  (fixture todoItemTest target:TodoItem
     (roc "{ item: { id: 123, text: \"Buy milk\" } }"))
-  (component todoItem
+  (component TodoItem
     (params "|{ item }|")
     (element li
       (interp item.text))))
@@ -459,10 +513,10 @@ todoItemTest = { item: { id: 123, text: "Buy milk" } }
 #[test]
 fn rejects_unknown_local_fixture_target() {
     let src = r#"
-@fixture{target: missing}
+@fixture{target: Missing}
 sample = { name: "Ada" }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -470,7 +524,7 @@ sample = { name: "Ada" }
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unknown fixture target `missing`")),
+            .any(|msg| msg.contains("unknown fixture target `Missing`")),
         "{errors:?}"
     );
 }
@@ -494,7 +548,7 @@ fn rejects_unknown_fixture_attribute() {
 @fixture{name: hello}
 sample = { name: "Ada" }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -510,8 +564,8 @@ sample = { name: "Ada" }
 #[test]
 fn rejects_fixture_inside_component_body() {
     let src = r#"
-@component hello = |{ name }| {
-    @fixture{target: hello}
+@component Hello = |{ name }| {
+    @fixture{target: Hello}
     sample = { name: "Ada" }
     <p>{name}</p>
 }
@@ -528,7 +582,7 @@ fn rejects_fixture_inside_component_body() {
 #[test]
 fn lowers_datastar_action_to_helper_call() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <button data-on:click=@post("/x")>Go</button>
 }
 "#;
@@ -540,7 +594,7 @@ fn lowers_datastar_action_to_helper_call() {
 #[test]
 fn lowers_datastar_action_interpolated_uri() {
     let src = r#"
-@component row = |{ item }| {
+@component Row = |{ item }| {
     <button data-on:click=@delete("/todos/${item.id}")>Delete</button>
 }
 "#;
@@ -551,7 +605,7 @@ fn lowers_datastar_action_interpolated_uri() {
 #[test]
 fn lowers_datastar_action_options_record() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <body data-init=@get("/sse", [OpenWhenHidden(Bool.true)])></body>
 }
 "#;
@@ -565,7 +619,7 @@ fn lowers_datastar_action_options_record() {
 #[test]
 fn quoted_datastar_action_stays_static() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <button data-on:click="@post('/x')">Go</button>
 }
 "#;
@@ -578,7 +632,7 @@ fn quoted_datastar_action_stays_static() {
 #[test]
 fn rejects_datastar_action_with_js_single_quotes() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <button data-on:click=@post('/x')>Go</button>
 }
 "#;
@@ -594,7 +648,7 @@ fn rejects_datastar_action_with_js_single_quotes() {
 #[test]
 fn rejects_unknown_datastar_action() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <button data-on:click=@steer("/x")>Go</button>
 }
 "#;
@@ -610,7 +664,7 @@ fn rejects_unknown_datastar_action() {
 #[test]
 fn datastar_action_in_text_is_still_unknown_directive() {
     let src = r#"
-@component page = |{}| {
+@component Page = |{}| {
     <p>@post("/x")</p>
 }
 "#;
@@ -637,7 +691,7 @@ fn lowers_file_and_component_css() {
     .card { padding: 1rem; }
 }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     @css {
         .greeting { color: navy; }
         p { margin: 0; }
@@ -645,7 +699,7 @@ fn lowers_file_and_component_css() {
     <p class="greeting">Hello, {name}</p>
 }
 
-@component other = |{}| {
+@component Other = |{}| {
     <div class="card"></div>
 }
 "#;
@@ -683,7 +737,7 @@ fn injects_document_css_into_head() {
     body { margin: 0; }
 }
 
-@component page = |{}| {
+@component Page = |{}| {
     <html lang="en">
         <head>
             <title>Hi</title>
@@ -715,7 +769,7 @@ fn injects_document_css_into_synthetic_head() {
     body { margin: 0; }
 }
 
-@component page = |{}| {
+@component Page = |{}| {
     <html>
         <body>
             <p>ok</p>
@@ -738,7 +792,7 @@ fn injects_document_css_into_synthetic_head() {
 #[test]
 fn isolates_component_css_and_does_not_stamp_child_calls() {
     let src = r#"
-@component parent = |{}| {
+@component Parent = |{}| {
     @css {
         .x { color: red; }
     }
@@ -747,7 +801,7 @@ fn isolates_component_css_and_does_not_stamp_child_calls() {
     </div>
 }
 
-@component child = |{}| {
+@component Child = |{}| {
     @css {
         .x { color: blue; }
     }
@@ -781,7 +835,7 @@ fn isolates_component_css_and_does_not_stamp_child_calls() {
 #[test]
 fn scans_nested_css_strings_and_comments() {
     let src = r#"
-@component box = |{}| {
+@component Box = |{}| {
     @css {
         .card { content: "{"; /* } */ }
         .quote { content: '}'; }
@@ -802,7 +856,7 @@ fn formats_css_in_lisp_ast() {
     .card { padding: 1rem; }
 }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     @css {
         .greeting { color: navy; }
     }
@@ -819,7 +873,7 @@ fn formats_css_in_lisp_ast() {
 fn rejects_css_after_markup_and_inside_if() {
     let after_markup = compile_err(
         r#"
-@component hello = |{}| {
+@component Hello = |{}| {
     <p>Hi</p>
     @css { .x { color: red; } }
 }
@@ -834,7 +888,7 @@ fn rejects_css_after_markup_and_inside_if() {
 
     let nested = compile_err(
         r#"
-@component hello = |{}| {
+@component Hello = |{}| {
     @if True {
         @css { .x { color: red; } }
         <p>Hi</p>
@@ -871,11 +925,11 @@ import Html
     counterCard({ count: 1 })
 }
 
-@component counterPage = |{ count }| {
+@component CounterPage = |{ count }| {
     <p>{count.to_str()}</p>
 }
 
-@component counterCard = |{ count }| {
+@component CounterCard = |{ count }| {
     <p>{count.to_str()}</p>
 }
 "#;
@@ -915,7 +969,7 @@ fn on_without_params_defaults_to_state() {
     Html.text("ok")
 }
 
-@component unused = |{}| {
+@component Unused = |{}| {
     <p>x</p>
 }
 "#;
@@ -966,7 +1020,7 @@ fn rejects_duplicate_on_handlers() {
 fn rejects_on_inside_component() {
     let errors = compile_err(
         r#"
-@component hello = |{}| {
+@component Hello = |{}| {
     @on:get("/") {
         Html.text("no")
     }

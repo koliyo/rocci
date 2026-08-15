@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use rocci_template::{
     ComponentDecl, ComponentInfo, Document, FixtureInfo, LowerOptions, ModuleItem, SourceFile,
-    TemplateBlock, TemplateItem, compile, format_diagnostic,
+    TemplateBlock, TemplateItem, compile, component_matches, format_diagnostic,
 };
 
 use crate::datastar_asset;
@@ -885,14 +885,14 @@ fn unescape_roc_string(value: &str) -> String {
 
 fn find_decl<'a>(document: &'a Document, name: &str) -> Option<&'a ComponentDecl> {
     document.items.iter().find_map(|item| match item {
-        ModuleItem::Component(decl) if decl.name.name == name => Some(decl),
+        ModuleItem::Component(decl) if component_matches(&decl.name.name, name) => Some(decl),
         _ => None,
     })
 }
 
 fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
     document.items.iter().any(|item| match item {
-        ModuleItem::Component(decl) if decl.name.name == roc_name => {
+        ModuleItem::Component(decl) if component_matches(&decl.name.name, roc_name) => {
             matches!(
                 decl.body.items.iter().find(|item| !item.is_preamble()),
                 Some(TemplateItem::Element(el)) if el.name.name == "html"
@@ -1860,32 +1860,32 @@ mod tests {
     #[test]
     fn infers_annotation_default_body_and_usage() {
         let src = r#"
-@component hello = |{ name ?? "Roc" }| {
+@component Hello = |{ name ?? "Roc" }| {
     <p>{name}</p>
 }
-@component typed = |{ count: I64 }| {
+@component Typed = |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-@component badge = |{ tone ?? Neutral }, content| {
+@component Badge = |{ tone ?? Neutral }, content| {
     <span>{content}</span>
 }
-@component card = |{ count }| {
+@component Card = |{ count }| {
     <output>{count.to_str()}</output>
 }
-@component flag = |{ full }| {
+@component Flag = |{ full }| {
     @if full {
         <p>full</p>
     }
 }
-@component items = |{ items }| {
+@component Items = |{ items }| {
     @for item in items {
         <li>{item}</li>
     }
 }
-@component contact = |{ contact }| {
+@component Contact = |{ contact }| {
     <p>{contact.first}</p>
 }
-@component title = |{ title }| {
+@component Title = |{ title }| {
     <h1>{title}</h1>
 }
 "#;
@@ -1930,10 +1930,10 @@ mod tests {
     #[test]
     fn passthrough_inherits_sibling_param_kind() {
         let src = r#"
-@component card = |{ count }| {
+@component Card = |{ count }| {
     <output>{count.to_str()}</output>
 }
-@component page = |{ count }| {
+@component Page = |{ count }| {
     <html><body><Card count={count} /></body></html>
 }
 "#;
@@ -1954,10 +1954,10 @@ mod tests {
     #[test]
     fn catalog_and_preview_generation() {
         let src = r#"
-@component hello = |{ name ?? "Roc" }| {
+@component Hello = |{ name ?? "Roc" }| {
     <p>{name}</p>
 }
-@component items = |{ items }| {
+@component Items = |{ items }| {
     @for item in items {
         <li>{item}</li>
     }
@@ -1988,18 +1988,18 @@ mod tests {
     #[test]
     fn fixtures_make_list_components_previewable_and_fill_scalars() {
         let src = r#"
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     <p>{name}</p>
 }
-@fixture{target: hello}
+@fixture{target: Hello}
 helloTest = { name: "Ada" }
 
-@component items = |{ items }| {
+@component Items = |{ items }| {
     @for item in items {
         <li>{item}</li>
     }
 }
-@fixture{target: items}
+@fixture{target: Items}
 itemsTest = { items: ["milk", "eggs"] }
 "#;
         let groups = groups_with_fixtures(src);
@@ -2041,10 +2041,10 @@ itemsTest = { items: ["milk", "eggs"] }
     #[test]
     fn fixture_numeric_overlays_use_typed_literals() {
         let src = r#"
-@component card = |{ count }| {
+@component Card = |{ count }| {
     <output>{count.to_str()}</output>
 }
-@fixture{target: card}
+@fixture{target: Card}
 cardTest = { count: 3 }
 "#;
         let groups = groups_with_fixtures(src);
@@ -2073,7 +2073,7 @@ cardTest = { count: 3 }
     #[test]
     fn preview_omits_modules_with_missing_imports() {
         let src = r#"
-@component hello = |{}| {
+@component Hello = |{}| {
     <p>ok</p>
 }
 "#;

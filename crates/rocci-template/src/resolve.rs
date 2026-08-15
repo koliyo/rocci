@@ -30,6 +30,54 @@ pub fn camel_to_pascal(name: &str) -> String {
     out
 }
 
+pub fn component_matches(source_name: &str, query: &str) -> bool {
+    source_name == query || pascal_to_camel(source_name) == query
+}
+
+pub fn component_name_error(name: &str) -> Option<String> {
+    if name.is_empty() {
+        return None;
+    }
+    if is_ambiguous_pascal(name) {
+        return Some(format!(
+            "ambiguous component name `{name}`; write `@component HtmlShell` rather than `@component HTMLShell`"
+        ));
+    }
+    if !name
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
+    {
+        return Some(format!(
+            "component names must be PascalCase; write `@component {}`",
+            camel_to_pascal(name)
+        ));
+    }
+    None
+}
+
+pub fn fixture_target_name_error(name: &str) -> Option<String> {
+    if name.is_empty() {
+        return None;
+    }
+    if is_ambiguous_pascal(name) {
+        return Some(format!(
+            "ambiguous fixture target `{name}`; write `HtmlShell` rather than `HTMLShell`"
+        ));
+    }
+    if !name
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
+    {
+        return Some(format!(
+            "fixture targets must be PascalCase; write `{}`",
+            camel_to_pascal(name)
+        ));
+    }
+    None
+}
+
 pub fn component_roc_name(parts: &[Ident]) -> String {
     if parts.is_empty() {
         return String::new();
@@ -57,4 +105,35 @@ pub fn component_roc_name(parts: &[Ident]) -> String {
         }
     }
     roc
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_pascal_and_camel() {
+        assert_eq!(pascal_to_camel("Hello"), "hello");
+        assert_eq!(pascal_to_camel("CounterCard"), "counterCard");
+        assert_eq!(pascal_to_camel("HtmlShell"), "htmlShell");
+        assert_eq!(camel_to_pascal("hello"), "Hello");
+        assert_eq!(camel_to_pascal("counterCard"), "CounterCard");
+        assert!(is_ambiguous_pascal("HTMLShell"));
+        assert!(!is_ambiguous_pascal("HtmlShell"));
+        assert!(!is_ambiguous_pascal("Hello"));
+        assert!(component_matches("Hello", "hello"));
+        assert!(component_matches("Hello", "Hello"));
+        assert!(!component_matches("Hello", "Badge"));
+        assert!(
+            component_name_error("hello")
+                .unwrap()
+                .contains("PascalCase")
+        );
+        assert!(
+            component_name_error("HTMLShell")
+                .unwrap()
+                .contains("ambiguous")
+        );
+        assert!(component_name_error("Hello").is_none());
+    }
 }

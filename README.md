@@ -75,7 +75,7 @@ cargo run -p rocci-cli -- validate
 cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- build path/to/file.rocci
 cargo run -p rocci-cli -- run examples/counter/Counter.rocci
-cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component counterCard --arg count=3
+cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component CounterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar

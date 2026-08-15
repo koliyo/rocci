@@ -1,7 +1,7 @@
 import Html
 
 @component
-homePage = |{ groups }| {
+HomePage = |{ groups }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -24,7 +24,7 @@ homePage = |{ groups }| {
 }
 
 @component
-inspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
+InspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -58,7 +58,7 @@ inspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
 }
 
 @component
-sidebar = |{ groups, selected_id }| {
+Sidebar = |{ groups, selected_id }| {
     <aside class="sidebar">
         <a class="brand" href="/">rocci browse</a>
         <div class="modules">
@@ -84,7 +84,7 @@ sidebar = |{ groups, selected_id }| {
 }
 
 @component
-fixturePicker = |{ fixtures, selected_id, selected_fixture }| {
+FixturePicker = |{ fixtures, selected_id, selected_fixture }| {
     @if !List.is_empty(fixtures) {
         <div class="fixture-panel">
             <form method="get" action="/c" class="fixtures">
@@ -112,7 +112,7 @@ fixturePicker = |{ fixtures, selected_id, selected_fixture }| {
 }
 
 @component
-paramForm = |{ fields, selected_id, selected_fixture }| {
+ParamForm = |{ fields, selected_id, selected_fixture }| {
     <form method="get" action="/c" class="params" data-on:input__debounce.400ms="el.requestSubmit()">
         <input type="hidden" name="id" value={selected_id} />
         @if selected_fixture != "" {
@@ -132,7 +132,7 @@ paramForm = |{ fields, selected_id, selected_fixture }| {
 }
 
 @component
-paramField = |{ item }| {
+ParamField = |{ item }| {
     @if item.kind == "bool" {
         <label class="field">
             @if item.value == "true" {

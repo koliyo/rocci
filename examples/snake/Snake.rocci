@@ -1,7 +1,7 @@
 import Html
 
 @component
-lobbyPage = |{ player_count, full }| {
+LobbyPage = |{ player_count, full }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -37,7 +37,7 @@ lobbyPage = |{ player_count, full }| {
 }
 
 @component
-board = |{ cells }| {
+Board = |{ cells }| {
     <div id="board" class="board">
         @for cell in cells {
             <i class={cell.class}></i>
@@ -46,7 +46,7 @@ board = |{ cells }| {
 }
 
 @component
-miniMap = |{ marks }| {
+MiniMap = |{ marks }| {
     <div id="minimap" class="minimap">
         @for mark in marks {
             <i class={mark.class} style={mark.style}></i>
@@ -55,7 +55,7 @@ miniMap = |{ marks }| {
 }
 
 @component
-statusHud = |{ info }| {
+StatusHud = |{ info }| {
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
         <p class="cam">{info.cam.x.to_str()}, {info.cam.y.to_str()}</p>
@@ -82,7 +82,7 @@ statusHud = |{ info }| {
 }
 
 @component
-playPage = |{ cells, info, marks }| {
+PlayPage = |{ cells, info, marks }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -114,7 +114,7 @@ playPage = |{ cells, info, marks }| {
 }
 
 @component
-steerPad = |{}| {
+SteerPad = |{}| {
     <div class="steer" aria-label="Steer">
         <button type="button" class="secondary" data-steer="up">Up</button>
         <button type="button" class="secondary" data-steer="left">Left</button>
@@ -124,7 +124,7 @@ steerPad = |{}| {
 }
 
 @component
-gamePatch = |{ cells, info, marks }| {
+GamePatch = |{ cells, info, marks }| {
     <>
         <Board cells={cells} />
         <MiniMap marks={marks} />
@@ -157,23 +157,23 @@ sample_hud = {
     ],
 }
 
-@fixture{target: lobbyPage}
+@fixture{target: LobbyPage}
 lobbyPageTest = { player_count: 3.I64, full: False }
 
-@fixture{target: board}
+@fixture{target: Board}
 boardTest = { cells: sample_cells }
 
-@fixture{target: miniMap}
+@fixture{target: MiniMap}
 miniMapTest = { marks: sample_marks }
 
-@fixture{target: statusHud}
+@fixture{target: StatusHud}
 statusHudTest = { info: sample_hud }
 
-@fixture{target: playPage}
+@fixture{target: PlayPage}
 playPageTest = { cells: sample_cells, info: sample_hud, marks: sample_marks }
 
-@fixture{target: steerPad}
+@fixture{target: SteerPad}
 steerPadTest = {}
 
-@fixture{target: gamePatch}
+@fixture{target: GamePatch}
 gamePatchTest = { cells: sample_cells, info: sample_hud, marks: sample_marks }

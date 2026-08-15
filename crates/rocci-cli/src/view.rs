@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use rocci_template::{
     ComponentInfo, Document, LowerOptions, ModuleItem, SourceFile, TemplateItem, camel_to_pascal,
-    compile, format_diagnostic,
+    compile, component_matches, format_diagnostic,
 };
 
 use crate::datastar_asset;
@@ -126,7 +126,7 @@ fn find_component<'a>(components: &'a [ComponentInfo], name: &str) -> Option<&'a
 
 fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
     document.items.iter().any(|item| match item {
-        ModuleItem::Component(decl) if decl.name.name == roc_name => {
+        ModuleItem::Component(decl) if component_matches(&decl.name.name, roc_name) => {
             matches!(
                 decl.body.items.iter().find(|item| !item.is_preamble()),
                 Some(TemplateItem::Element(el)) if el.name.name == "html"

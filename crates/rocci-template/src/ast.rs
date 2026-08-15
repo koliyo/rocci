@@ -136,6 +136,16 @@ pub struct ComponentPath {
     pub span: Span,
 }
 
+impl ComponentPath {
+    pub fn source_name(&self) -> String {
+        self.parts
+            .iter()
+            .map(|part| part.name.as_str())
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Fragment {
     pub children: Vec<TemplateItem>,

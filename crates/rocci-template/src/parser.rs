@@ -6,7 +6,7 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor};
-use crate::resolve::{component_roc_name, is_ambiguous_pascal};
+use crate::resolve::{component_name_error, component_roc_name, is_ambiguous_pascal};
 use crate::span::{SourceFile, Span};
 
 pub struct ParseOutput {
@@ -656,7 +656,7 @@ impl<'a> Parser<'a> {
         }
         self.error(
             name_span,
-            "expected `@component` at the start of the declaration; write `@component name = |params|`",
+            "expected `@component` at the start of the declaration; write `@component Name = |params|`",
         );
         Some(self.parse_component_rest(start, name_span, name))
     }
@@ -722,6 +722,9 @@ impl<'a> Parser<'a> {
             };
         };
         let name = self.cur.ident_text(name_span).to_string();
+        if let Some(message) = component_name_error(&name) {
+            self.error(name_span, message);
+        }
         self.cur.skip_trivia();
         if !self.cur.eat('=') {
             self.error(name_span, "expected `=` after component name");
@@ -741,7 +744,7 @@ impl<'a> Parser<'a> {
             None => {
                 self.error(
                     Span::new(start, self.cur.pos),
-                    "expected `|params|` after `@component name =`",
+                    "expected `|params|` after `@component Name =`",
                 );
                 self.sync_to_next_top_level();
                 return ComponentDecl {

@@ -5,7 +5,7 @@ import Html
 }
 
 @component
-hello = |{ name ?? "Roc" }| {
+Hello = |{ name ?? "Roc" }| {
     @css {
         .greeting {
             margin: 0;
@@ -20,7 +20,7 @@ hello = |{ name ?? "Roc" }| {
 }
 
 @component
-featureCard = |{ count }| {
+FeatureCard = |{ count }| {
     @css {
         .feature-card {
             margin-top: 46px;
@@ -55,7 +55,7 @@ featureCard = |{ count }| {
 }
 
 @component
-stylePage = |{ count }| {
+StylePage = |{ count }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -87,13 +87,13 @@ stylePage = |{ count }| {
     </html>
 }
 
-@fixture{target: hello}
+@fixture{target: Hello}
 helloTest = { name: "Ada" }
 
-@fixture{target: featureCard}
+@fixture{target: FeatureCard}
 featureCardTest = { count: 3.I64 }
 
-@fixture{target: stylePage}
+@fixture{target: StylePage}
 stylePageTest = { count: 3.I64 }
 
 @css {

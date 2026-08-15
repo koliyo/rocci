@@ -1,7 +1,7 @@
 import Html
 
 @component
-demo = |{ contacts, query }| {
+Demo = |{ contacts, query }| {
     <>
         <label class="search-label">
             Search
@@ -17,7 +17,7 @@ demo = |{ contacts, query }| {
 }
 
 @component
-results = |{ contacts, query }| {
+Results = |{ contacts, query }| {
     @let visible = List.keep_if(contacts, |contact| matches(contact, query))
 
     <div id="results" class="panel">
@@ -42,7 +42,7 @@ results = |{ contacts, query }| {
 }
 
 @component
-contactRow = |{ contact }| {
+ContactRow = |{ contact }| {
     <tr>
         <td>{contact.first}</td>
         <td>{contact.last}</td>
@@ -78,11 +78,11 @@ sample_contacts = [
     { first: "Ada", last: "Lovelace" },
 ]
 
-@fixture{target: demo}
+@fixture{target: Demo}
 demoTest = { contacts: sample_contacts, query: "Car" }
 
-@fixture{target: results}
+@fixture{target: Results}
 resultsTest = { contacts: sample_contacts, query: "Foo" }
 
-@fixture{target: contactRow}
+@fixture{target: ContactRow}
 contactRowTest = { contact: { first: "Carli", last: "Stoltenberg" } }

@@ -2,7 +2,7 @@ import Html
 import Signals
 
 @component
-demo = |{ page }| {
+Demo = |{ page }| {
     <div id="signup" class="panel">
         @match page {
             Form({ email, first, last }) => <SignupForm email={email} first={first} last={last} />
@@ -12,7 +12,7 @@ demo = |{ page }| {
 }
 
 @component
-signupForm = |{ email, first, last }| {
+SignupForm = |{ email, first, last }| {
     <>
         <label>
             Email Address
@@ -59,7 +59,7 @@ signupForm = |{ email, first, last }| {
 }
 
 @component
-fieldNote = |{ field }| {
+FieldNote = |{ field }| {
     @match field.state {
         Empty => <p class="hint">{field.hint}</p>
         Valid => <p class="ok">Looks good.</p>
@@ -91,11 +91,11 @@ sample_last = {
     state: Empty,
 }
 
-@fixture{target: demo}
+@fixture{target: Demo}
 demoTest = { page: Form({ email: sample_email, first: sample_first, last: sample_last }) }
 
-@fixture{target: signupForm}
+@fixture{target: SignupForm}
 signupFormTest = { email: sample_email, first: sample_first, last: sample_last }
 
-@fixture{target: fieldNote}
+@fixture{target: FieldNote}
 fieldNoteTest = { field: sample_email }

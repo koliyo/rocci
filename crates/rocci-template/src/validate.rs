@@ -2,13 +2,14 @@ use std::collections::HashSet;
 
 use crate::ast::{Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, parse_component_params};
 use crate::diagnostic::Diagnostic;
+use crate::resolve::{fixture_target_name_error, pascal_to_camel};
 
 pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic>) {
-    let component_names: HashSet<&str> = document
+    let component_names: HashSet<String> = document
         .items
         .iter()
         .filter_map(|item| match item {
-            ModuleItem::Component(component) => Some(component.name.name.as_str()),
+            ModuleItem::Component(component) => Some(pascal_to_camel(&component.name.name)),
             _ => None,
         })
         .collect();
@@ -110,9 +111,16 @@ fn handler_has_record_params(src: &str, on: &OnDecl) -> bool {
 
 fn validate_fixture(
     fixture: &FixtureDecl,
-    component_names: &HashSet<&str>,
+    component_names: &HashSet<String>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let Some(last) = fixture.target.parts.last() else {
+        return;
+    };
+    if let Some(message) = fixture_target_name_error(&last.name) {
+        diagnostics.push(Diagnostic::error(last.span, message));
+        return;
+    }
     if fixture.target.parts.len() != 1 {
         return;
     }
@@ -121,9 +129,10 @@ fn validate_fixture(
         return;
     }
     if !component_names.contains(name) {
+        let source = fixture.target.source_name();
         diagnostics.push(Diagnostic::error(
             fixture.target.span,
-            format!("unknown fixture target `{name}`; no `@component {name}` in this module"),
+            format!("unknown fixture target `{source}`; no `@component {source}` in this module"),
         ));
     }
 }

@@ -1,7 +1,7 @@
 import Html
 
 @component
-demo = |{ items, filter, pending, has_completed }| {
+Demo = |{ items, filter, pending, has_completed }| {
     <section class="todos">
         <form data-on:submit__prevent="$input.trim() && @patch('/todos') && ($input = '')">
             <input
@@ -17,7 +17,7 @@ demo = |{ items, filter, pending, has_completed }| {
 }
 
 @component
-todosPatch = |{ items, filter, pending, has_completed }| {
+TodosPatch = |{ items, filter, pending, has_completed }| {
     <>
         <TodoMain items={items} filter={filter} />
         <TodoFooter filter={filter} pending={pending} has_completed={has_completed} />
@@ -25,7 +25,7 @@ todosPatch = |{ items, filter, pending, has_completed }| {
 }
 
 @component
-todoMain = |{ items, filter }| {
+TodoMain = |{ items, filter }| {
     @if List.is_empty(items) {
         <p id="todo-main" class="empty">
             @match filter {
@@ -44,7 +44,7 @@ todoMain = |{ items, filter }| {
 }
 
 @component
-todoItem = |{ item }| {
+TodoItem = |{ item }| {
     <li class={item.row_class}>
         @if item.done {
             <>
@@ -62,7 +62,7 @@ todoItem = |{ item }| {
 }
 
 @component
-todoFooter = |{ filter, pending, has_completed }| {
+TodoFooter = |{ filter, pending, has_completed }| {
     <div id="todo-actions" class="todo-actions">
         <span><strong>{pending.to_str()}</strong> items pending</span>
         <button class={if filter_is(filter, All) { "small info" } else { "small" }} data-on:click=@put("/todos/mode/all")>All</button>
@@ -90,17 +90,17 @@ sample_items = [
     { id: "2", text: "Write Roc", done: True, row_class: "done" },
 ]
 
-@fixture{target: demo}
+@fixture{target: Demo}
 demoTest = { items: sample_items, filter: All, pending: 1.I64, has_completed: True }
 
-@fixture{target: todosPatch}
+@fixture{target: TodosPatch}
 todosPatchTest = { items: sample_items, filter: All, pending: 1.I64, has_completed: True }
 
-@fixture{target: todoMain}
+@fixture{target: TodoMain}
 todoMainTest = { items: sample_items, filter: All }
 
-@fixture{target: todoItem}
+@fixture{target: TodoItem}
 todoItemTest = { item: { id: "1", text: "Buy milk", done: False, row_class: "" } }
 
-@fixture{target: todoFooter}
+@fixture{target: TodoFooter}
 todoFooterTest = { filter: All, pending: 1.I64, has_completed: True }
