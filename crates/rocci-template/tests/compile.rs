@@ -524,3 +524,101 @@ fn rejects_fixture_inside_component_body() {
         "{errors:?}"
     );
 }
+
+#[test]
+fn lowers_datastar_action_to_helper_call() {
+    let src = r#"
+@component page = |{}| {
+    <button data-on:click=@post("/x")>Go</button>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("import Datastar"));
+    assert!(out.roc.contains("Datastar.post(\"/x\")"));
+}
+
+#[test]
+fn lowers_datastar_action_interpolated_uri() {
+    let src = r#"
+@component row = |{ item }| {
+    <button data-on:click=@delete("/todos/${item.id}")>Delete</button>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("Datastar.delete(\"/todos/${item.id}\")"));
+}
+
+#[test]
+fn lowers_datastar_action_options_record() {
+    let src = r#"
+@component page = |{}| {
+    <body data-init=@get("/sse", [OpenWhenHidden(Bool.true)])></body>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(
+        out.roc
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])")
+    );
+}
+
+#[test]
+fn quoted_datastar_action_stays_static() {
+    let src = r#"
+@component page = |{}| {
+    <button data-on:click="@post('/x')">Go</button>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("import Datastar"));
+    assert!(out.roc.contains("@post('/x')"));
+    assert!(!out.roc.contains("Datastar.post"));
+}
+
+#[test]
+fn rejects_datastar_action_with_js_single_quotes() {
+    let src = r#"
+@component page = |{}| {
+    <button data-on:click=@post('/x')>Go</button>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("Roc strings") && msg.contains("@post(\"/x\")")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_unknown_datastar_action() {
+    let src = r#"
+@component page = |{}| {
+    <button data-on:click=@steer("/x")>Go</button>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown Datastar action `@steer`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn datastar_action_in_text_is_still_unknown_directive() {
+    let src = r#"
+@component page = |{}| {
+    <p>@post("/x")</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown directive `@post`")),
+        "{errors:?}"
+    );
+}

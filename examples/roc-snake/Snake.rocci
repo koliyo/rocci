@@ -92,7 +92,7 @@ playPage = |{ cells, info, marks }| {
             <script type="module" src="/assets/datastar.js"></script>
             <script type="module" src="/assets/snake-input.js"></script>
         </head>
-        <body data-init="@get('/sse')">
+        <body data-init=@get("/sse")>
             <main class="play">
                 <nav>
                     <strong>ROC</strong>

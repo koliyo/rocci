@@ -781,11 +781,13 @@ impl<'a> Parser<'a> {
                 } else if self.cur.peek() == Some('"') {
                     let (span, value) = self.scan_quoted_string();
                     (AttrValue::Static { span, value }, span.end)
+                } else if self.cur.peek() == Some('@') {
+                    self.parse_action_attr()
                 } else {
                     self.error(
                         Span::point(self.cur.pos),
                         format!(
-                            "expected `\"...\"` or `{{...}}` for attribute `{}`",
+                            "expected `\"...\"`, `{{...}}`, or a Datastar action such as `@post(\"...\")` for attribute `{}`",
                             name.name
                         ),
                     );
@@ -801,6 +803,81 @@ impl<'a> Parser<'a> {
             });
         }
         attrs
+    }
+
+    fn parse_action_attr(&mut self) -> (AttrValue, u32) {
+        let start = self.cur.pos;
+        self.cur.bump();
+        let Some(name_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::point(start),
+                "expected Datastar action name after `@`",
+            );
+            return (AttrValue::Boolean, start as u32);
+        };
+        let name = Ident {
+            name: self.cur.ident_text(name_span).to_string(),
+            span: name_span,
+        };
+        if !is_datastar_action(&name.name) {
+            self.error(
+                Span::new(start, name_span.end as usize),
+                format!(
+                    "unknown Datastar action `@{}`; expected `@get`, `@post`, `@put`, `@patch`, or `@delete`",
+                    name.name
+                ),
+            );
+        }
+        self.cur.skip_spaces_tabs();
+        if self.cur.peek() != Some('(') {
+            self.error(
+                Span::point(self.cur.pos),
+                format!("expected `(` after `@{}`", name.name),
+            );
+            return (
+                AttrValue::Action {
+                    name,
+                    args: Span::point(self.cur.pos),
+                },
+                self.cur.pos as u32,
+            );
+        }
+        let args = self.scan_call_args();
+        let end = self.cur.pos as u32;
+        let trimmed = args.of(self.src()).trim();
+        if trimmed.is_empty() {
+            self.error(
+                Span::new(start, self.cur.pos),
+                format!("expected a URI argument in `@{}(...)`", name.name),
+            );
+        } else if first_non_trivia_char(trimmed) == Some('\'') {
+            self.error(
+                args,
+                format!(
+                    "Datastar actions in Rocci use Roc strings: `@{}(\"/x\")`. For a literal Datastar expression, quote the whole attribute: `data-on:click=\"@{}('/x')\"`",
+                    name.name, name.name
+                ),
+            );
+        }
+        (AttrValue::Action { name, args }, end)
+    }
+
+    fn scan_call_args(&mut self) -> Span {
+        let paren_before = self.cur.paren;
+        self.cur.skip_roc_token();
+        let args_start = self.cur.pos;
+        while !self.cur.is_eof() && self.cur.paren > paren_before {
+            self.cur.skip_roc_token();
+        }
+        if self.cur.paren != paren_before {
+            self.error(
+                Span::new(args_start.saturating_sub(1), self.cur.pos),
+                "unterminated Datastar action; expected `)`",
+            );
+            return lexer::trim_span(self.src(), Span::new(args_start, self.cur.pos));
+        }
+        let args_end = self.cur.pos.saturating_sub(')'.len_utf8());
+        lexer::trim_span(self.src(), Span::new(args_start, args_end.max(args_start)))
     }
 
     fn scan_quoted_string(&mut self) -> (Span, String) {
@@ -1481,6 +1558,22 @@ fn is_void_element(name: &str) -> bool {
             | "track"
             | "wbr"
     )
+}
+
+fn is_datastar_action(name: &str) -> bool {
+    matches!(name, "get" | "post" | "put" | "patch" | "delete")
+}
+
+fn first_non_trivia_char(text: &str) -> Option<char> {
+    let mut rest = text.trim_start();
+    loop {
+        if rest.starts_with('#') {
+            rest = rest.split_once('\n').map(|(_, after)| after).unwrap_or("");
+            rest = rest.trim_start();
+            continue;
+        }
+        return rest.chars().next();
+    }
 }
 
 fn suggest_directive(name: &str) -> Option<&'static str> {

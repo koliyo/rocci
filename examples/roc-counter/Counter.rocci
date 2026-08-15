@@ -39,8 +39,8 @@ counterPage = |{ count }| {
                 <Hello name="Foo"/>
                 <CounterCard count={count} />
                 <div class="actions">
-                    <button data-on:click="@post('/api/counter/increment')">Increment</button>
-                    <button class="secondary" data-on:click="@post('/api/counter/reset')">Reset</button>
+                    <button data-on:click=@post("/api/counter/increment")>Increment</button>
+                    <button class="secondary" data-on:click=@post("/api/counter/reset")>Reset</button>
                 </div>
             </main>
         </body>
