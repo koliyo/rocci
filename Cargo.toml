@@ -26,7 +26,7 @@ lsp-types = "0.97"
 serde_json = "1.0"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive", "env"] }
-muda = "0.19.2"
+muda = { version = "0.19.2", default-features = false, features = ["gtk"] }
 serde = { version = "1.0", features = ["derive"] }
 tao = "0.35"
 thiserror = "2.0"
