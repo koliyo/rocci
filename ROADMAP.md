@@ -10,7 +10,7 @@ small desktop host:
    metadata. The compiler does not type-check Roc or spawn HTTP.
 2. **Rocdown** — `.rocdown` files are Markdown with document-root `@`
    declarations. They lower to the same `Html`, CSS, and route artifacts.
-   Full SSG, LSP, and `@island` are still ahead.
+   Full SSG and `@island` are still ahead.
 3. **Roc apps** — Standalone `rocci run App.rocci` generates a basic-webserver
    dispatcher. Authored `main.roc` apps keep full control of `init!` /
    `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc` and starts the
@@ -33,7 +33,7 @@ The contract between UI and backend should stay usable in a normal browser.
       `@render` and delegated Rocci declarations, lowering to Roc; `rocci run`
       for a single file. See [`crates/rocci-rocdown`](crates/rocci-rocdown).
 - [ ] Rocdown SSG (multi-page routes, layouts, drafts, `dist/` output)
-- [ ] `.rocdown` LSP and editor registration
+- [x] `.rocdown` LSP and editor registration
 - [ ] `@island` for `.rocci` and `.rocdown`
 - [x] macOS ad-hoc `.app` packaging that wraps a compiled Roc server
 - [ ] Test on macOS, Windows, Linux X11, and Linux Wayland in CI

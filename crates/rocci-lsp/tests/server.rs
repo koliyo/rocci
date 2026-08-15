@@ -336,6 +336,175 @@ fn css_blocks_are_keywords_with_embedded_css_ranges() {
     );
 }
 
+const GUIDE: &str = include_str!("../../../examples/rocdown/Guide.rocdown");
+
+fn rocdown_uri() -> Uri {
+    "file:///test.rocdown".parse().expect("test uri")
+}
+
+fn open_rocdown(server: &mut LanguageServer, text: &str) -> lsp_types::PublishDiagnosticsParams {
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: rocdown_uri(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: text.to_string(),
+            },
+        })
+        .expect("rocdown documents should publish diagnostics")
+}
+
+fn rocdown_identifier() -> TextDocumentIdentifier {
+    TextDocumentIdentifier { uri: rocdown_uri() }
+}
+
+fn rocdown_position_params(line: u32, character: u32) -> TextDocumentPositionParams {
+    TextDocumentPositionParams {
+        text_document: rocdown_identifier(),
+        position: Position::new(line, character),
+    }
+}
+
+#[test]
+fn guide_has_no_error_diagnostics_and_expected_symbols() {
+    let mut server = initialize(true);
+    let published = open_rocdown(&mut server, GUIDE);
+    assert!(
+        published
+            .diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.severity != Some(DiagnosticSeverity::ERROR)),
+        "{:?}",
+        published.diagnostics
+    );
+
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: rocdown_identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("symbols");
+    let DocumentSymbolResponse::Nested(symbols) = symbols else {
+        panic!("expected nested document symbols");
+    };
+    let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+    assert!(names.contains(&"@page"), "{names:?}");
+    assert!(names.contains(&"FeatureCount"), "{names:?}");
+    assert!(names.contains(&"Rocdown"), "{names:?}");
+}
+
+#[test]
+fn unknown_page_field_publishes_a_located_error() {
+    const SRC: &str = "@page { extra: 1 }\n";
+    let mut server = initialize(true);
+    let published = open_rocdown(&mut server, SRC);
+    let error = published
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.severity == Some(DiagnosticSeverity::ERROR))
+        .expect("error diagnostic");
+    assert!(
+        error.message.contains("unknown `@page` field"),
+        "{}",
+        error.message
+    );
+    assert!(
+        error.range.start != error.range.end
+            || error.range.start.character > 0
+            || error.range.start.line > 0,
+        "expected a located range, got {:?}",
+        error.range
+    );
+}
+
+#[test]
+fn rocdown_tokens_and_embedded_roc_ranges() {
+    let mut server = initialize(true);
+    open_rocdown(&mut server, GUIDE);
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: rocdown_identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("semantic tokens");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full semantic tokens");
+    };
+
+    let component_kw = GUIDE.find("@component").expect("component");
+    assert_eq!(
+        token_type_at(GUIDE, &tokens, component_kw),
+        Some(TOKEN_KEYWORD)
+    );
+    let roc_kw = GUIDE.find("@roc").expect("@roc");
+    assert_eq!(token_type_at(GUIDE, &tokens, roc_kw), Some(TOKEN_KEYWORD));
+    let published = GUIDE.find("published =").expect("published");
+    assert_eq!(
+        token_type_at(GUIDE, &tokens, published),
+        None,
+        "executable @roc body should be left for nested Roc highlighting"
+    );
+    let fence = GUIDE.find("answer = 42").expect("fenced roc");
+    assert_eq!(
+        token_type_at(GUIDE, &tokens, fence),
+        None,
+        "display fences should not be tokenized as executable Roc"
+    );
+
+    let regions = server
+        .embedded_ranges(&rocdown_uri())
+        .expect("embedded ranges");
+    assert!(regions.iter().any(
+        |region| region.language == "roc" && range_covers(&region.range, GUIDE, published)
+    ));
+    assert!(
+        !regions
+            .iter()
+            .any(|region| region.language == "roc" && range_covers(&region.range, GUIDE, fence)),
+        "display fences must not be executable roc ranges"
+    );
+    let css_body = GUIDE.find("box-sizing").expect("css");
+    assert!(
+        regions
+            .iter()
+            .any(|region| region.language == "css" && range_covers(&region.range, GUIDE, css_body))
+    );
+}
+
+#[test]
+fn rocdown_root_at_completes_declarations_not_html() {
+    const SRC: &str = "\
+@page {
+    route: \"/\",
+}
+
+@r
+";
+    let mut server = initialize(true);
+    open_rocdown(&mut server, SRC);
+    let at_r = SRC.find("@r").expect("@r") + 2;
+    let (line, character) = line_col(SRC, at_r);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: rocdown_position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels: Vec<_> = items.iter().map(|item| item.label.as_str()).collect();
+    assert!(labels.contains(&"roc"), "{labels:?}");
+    assert!(labels.contains(&"render"), "{labels:?}");
+    assert!(!labels.contains(&"div"), "{labels:?}");
+    assert!(!labels.contains(&"p"), "{labels:?}");
+}
+
 fn token_type_at(src: &str, tokens: &SemanticTokens, offset: usize) -> Option<u32> {
     let (line, character) =
         SourceFile::new("t.rocci", src).position(offset as u32, PositionEncoding::Utf8);

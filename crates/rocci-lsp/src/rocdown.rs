@@ -1,0 +1,242 @@
+use lsp_types::{
+    CompletionItemKind, CompletionResponse, Diagnostic, DocumentSymbol, DocumentSymbolResponse,
+    GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
+};
+use rocci_rocdown::{CompileOptions, CompileOutput, Item, PageDecl, PageMeta};
+use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span};
+
+use crate::analysis::{
+    completion_in_template, completion_item, component_symbol, context_symbol, css_symbol,
+    fixture_symbol, goto_definition_components, hover_components, init_symbol, lsp_range,
+    map_diagnostics, named_symbol, on_symbol,
+};
+
+const ROOT_DECLARATIONS: &[&str] = &[
+    "page",
+    "roc",
+    "render",
+    "component",
+    "fixture",
+    "css",
+    "context",
+    "init",
+    "on",
+];
+
+pub fn compile_text(name: &str, text: &str) -> CompileOutput {
+    rocci_rocdown::compile(SourceFile::new(name, text), &CompileOptions::default())
+}
+
+pub fn diagnostics(
+    name: &str,
+    text: &str,
+    compiled: &CompileOutput,
+    encoding: PositionEncoding,
+) -> Vec<Diagnostic> {
+    map_diagnostics(name, text, &compiled.diagnostics, encoding)
+}
+
+pub fn document_symbols(
+    name: &str,
+    text: &str,
+    compiled: &CompileOutput,
+    encoding: PositionEncoding,
+) -> DocumentSymbolResponse {
+    let source = SourceFile::new(name, text);
+    let mut symbols: Vec<(u32, DocumentSymbol)> = compiled
+        .headings
+        .iter()
+        .map(|heading| {
+            (
+                heading.span.start,
+                named_symbol(
+                    &heading.text,
+                    Some(format!("{{#{}}}", heading.id)),
+                    SymbolKind::STRING,
+                    source,
+                    heading.span,
+                    heading.span,
+                    encoding,
+                ),
+            )
+        })
+        .collect();
+
+    for item in &compiled.document.items {
+        let symbol = match item {
+            Item::Markdown(_) => continue,
+            Item::Page(page) => page_symbol(source, page, &compiled.page_meta, encoding),
+            Item::Roc(roc) => named_symbol(
+                "@roc",
+                Some("@roc".to_string()),
+                SymbolKind::MODULE,
+                source,
+                roc.span,
+                keyword_selection(text, roc.span, "@roc"),
+                encoding,
+            ),
+            Item::Render(render) => named_symbol(
+                "@render",
+                Some("@render".to_string()),
+                SymbolKind::FUNCTION,
+                source,
+                render.span,
+                keyword_selection(text, render.span, "@render"),
+                encoding,
+            ),
+            Item::Component(component) => component_symbol(source, component, encoding),
+            Item::Fixture(fixture) => fixture_symbol(source, fixture, encoding),
+            Item::Css(css) => css_symbol(source, css, encoding),
+            Item::Context(context) => context_symbol(source, context, encoding),
+            Item::Init(init) => init_symbol(source, init, encoding),
+            Item::On(on) => on_symbol(source, on, encoding),
+        };
+        symbols.push((item.span().start, symbol));
+    }
+
+    symbols.sort_by_key(|(start, _)| *start);
+    DocumentSymbolResponse::Nested(symbols.into_iter().map(|(_, symbol)| symbol).collect())
+}
+
+pub fn hover(
+    name: &str,
+    text: &str,
+    compiled: &CompileOutput,
+    offset: u32,
+    encoding: PositionEncoding,
+) -> Option<Hover> {
+    let components = components(compiled);
+    if let Some(hover) = hover_components(name, text, &components, offset, encoding) {
+        return Some(hover);
+    }
+    let source = SourceFile::new(name, text);
+    compiled.headings.iter().find_map(|heading| {
+        if !heading.span.contains(offset) {
+            return None;
+        }
+        Some(Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: format!(
+                    "{} {}\n\n`{{#{}}}`",
+                    "#".repeat(heading.level as usize),
+                    heading.text,
+                    heading.id
+                ),
+            }),
+            range: Some(lsp_range(source, heading.span, encoding)),
+        })
+    })
+}
+
+pub fn goto_definition(
+    name: &str,
+    text: &str,
+    compiled: &CompileOutput,
+    offset: u32,
+    encoding: PositionEncoding,
+    uri: lsp_types::Uri,
+) -> Option<GotoDefinitionResponse> {
+    let components = components(compiled);
+    goto_definition_components(name, text, &components, offset, encoding, uri)
+}
+
+pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
+    let offset = (offset as usize).min(text.len());
+    if component_at(compiled, offset as u32).is_some() {
+        let components = components(compiled);
+        return completion_in_template(text, &components, offset as u32);
+    }
+    if let Some(prefix) = root_declaration_prefix(text, offset) {
+        return CompletionResponse::Array(
+            ROOT_DECLARATIONS
+                .iter()
+                .filter(|label| label.starts_with(&prefix))
+                .map(|label| {
+                    completion_item(
+                        label,
+                        CompletionItemKind::KEYWORD,
+                        Some(format!("@{label}")),
+                    )
+                })
+                .collect(),
+        );
+    }
+    CompletionResponse::Array(Vec::new())
+}
+
+fn page_symbol(
+    source: SourceFile<'_>,
+    page: &PageDecl,
+    meta: &PageMeta,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    let mut detail = String::from("@page");
+    if let Some(route) = &meta.route {
+        detail.push(' ');
+        detail.push_str(route);
+    }
+    if let Some(title) = &meta.title {
+        if meta.route.is_some() {
+            detail.push_str(" / ");
+        } else {
+            detail.push(' ');
+        }
+        detail.push_str(title);
+    }
+    named_symbol(
+        "@page",
+        Some(detail),
+        SymbolKind::MODULE,
+        source,
+        page.span,
+        keyword_selection(source.src, page.span, "@page"),
+        encoding,
+    )
+}
+
+fn components(compiled: &CompileOutput) -> Vec<&ComponentDecl> {
+    compiled
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Component(component) => Some(component),
+            _ => None,
+        })
+        .collect()
+}
+
+fn component_at(compiled: &CompileOutput, offset: u32) -> Option<&ComponentDecl> {
+    compiled.document.items.iter().find_map(|item| match item {
+        Item::Component(component) if component.span.contains(offset) => Some(component),
+        _ => None,
+    })
+}
+
+fn root_declaration_prefix(text: &str, offset: usize) -> Option<String> {
+    let line_start = text[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let line = &text[line_start..offset];
+    let indent = line.len() - line.trim_start_matches([' ', '\t']).len();
+    let after_indent = &line[indent..];
+    let prefix = after_indent.strip_prefix('@')?;
+    if prefix
+        .chars()
+        .all(|ch| ch.is_ascii_alphabetic() || ch == ' ')
+    {
+        Some(prefix.to_string())
+    } else {
+        None
+    }
+}
+
+fn keyword_selection(src: &str, span: Span, keyword: &str) -> Span {
+    let text = span.of(src);
+    let indent = text.len() - text.trim_start_matches([' ', '\t']).len();
+    let start = span.start as usize + indent;
+    if src.get(start..start + keyword.len()) == Some(keyword) {
+        Span::new(start, start + keyword.len())
+    } else {
+        span
+    }
+}

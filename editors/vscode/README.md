@@ -1,6 +1,6 @@
 # Rocci Visual Studio Code Extension
 
-Language support for `.rocci` template modules. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
+Language support for `.rocci` template modules and `.rocdown` documents. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
 
 ## Development
 
