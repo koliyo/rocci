@@ -676,7 +676,10 @@ fn lowers_datastar_action_interpolated_uri() {
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.roc.contains("Datastar.delete(\"/actions/todos/${item.id}\")"));
+    assert!(
+        out.roc
+            .contains("Datastar.delete(\"/actions/todos/${item.id}\")")
+    );
 }
 
 #[test]

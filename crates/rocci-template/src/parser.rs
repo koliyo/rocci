@@ -26,6 +26,39 @@ pub fn parse(source: SourceFile<'_>) -> ParseOutput {
     }
 }
 
+pub struct ParseDeclOutput {
+    pub item: ModuleItem,
+    pub end: usize,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput> {
+    let mut parser = Parser {
+        cur: Cursor::at(src, start),
+        diagnostics: Vec::new(),
+    };
+    let item = if let Some(decl) = parser.try_parse_fixture() {
+        ModuleItem::Fixture(decl)
+    } else if let Some(decl) = parser.try_parse_context() {
+        ModuleItem::Context(decl)
+    } else if let Some(decl) = parser.try_parse_init() {
+        ModuleItem::Init(decl)
+    } else if let Some(decl) = parser.try_parse_on() {
+        ModuleItem::On(decl)
+    } else if let Some(decl) = parser.try_parse_component() {
+        ModuleItem::Component(decl)
+    } else if let Some(decl) = parser.try_parse_css() {
+        ModuleItem::Css(decl)
+    } else {
+        return None;
+    };
+    Some(ParseDeclOutput {
+        end: parser.cur.pos,
+        item,
+        diagnostics: parser.diagnostics,
+    })
+}
+
 struct Parser<'a> {
     cur: Cursor<'a>,
     diagnostics: Vec<Diagnostic>,

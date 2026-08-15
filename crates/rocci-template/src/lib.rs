@@ -23,18 +23,19 @@ pub use ast::{
     TemplateItem, TextNode, parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, Severity};
+pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
 pub use lower::{
     ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, RouteInfo, StyleArtifact,
-    StyleKind, route_fn_name,
+    StyleKind, file_scope_id, route_fn_name,
 };
-pub use parser::ParseOutput;
+pub use parser::{ParseDeclOutput, ParseOutput, parse_declaration_from};
 pub use pprint::format_ast;
 pub use resolve::{camel_to_pascal, component_matches, component_roc_name, pascal_to_camel};
 pub use source_map::{OriginKind, Segment};
 pub use span::{PositionEncoding, SourceFile, Span};
+pub use validate::validate;
 
 use crate::parser::parse as parse_impl;
-use crate::validate::validate;
 
 pub fn parse(source: SourceFile<'_>) -> ParseOutput {
     parse_impl(source)

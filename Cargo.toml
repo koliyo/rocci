@@ -5,6 +5,7 @@ members = [
     "crates/rocci-wry",
     "crates/rocci-cli",
     "crates/rocci-template",
+    "crates/rocci-rocdown",
     "crates/rocci-lsp",
 ]
 exclude = ["editors/zed"]
@@ -20,6 +21,7 @@ description = "A Datastar-first .rocci template language and desktop runtime bui
 rocci-core = { path = "crates/rocci-core" }
 rocci-wry = { path = "crates/rocci-wry" }
 rocci-template = { path = "crates/rocci-template" }
+rocci-rocdown = { path = "crates/rocci-rocdown" }
 rocci-lsp = { path = "crates/rocci-lsp" }
 lsp-server = "0.7"
 lsp-types = "0.97"

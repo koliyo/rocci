@@ -16,7 +16,10 @@ use crate::runtime_assets;
 use crate::serve;
 
 pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) -> Result<()> {
-    if file.extension().is_some_and(|ext| ext == "rocci") {
+    if file
+        .extension()
+        .is_some_and(|ext| ext == "rocci" || ext == "rocdown")
+    {
         return run_standalone(file, args, no_window, port);
     }
     let resolved = resolve_entry(file)?;
@@ -109,12 +112,8 @@ fn run_standalone(
     let src =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
     let name = path.display().to_string();
-    let source = SourceFile::new(&name, &src);
-    let compiled = compile(source, &LowerOptions::default());
-    for diagnostic in &compiled.diagnostics {
-        eprintln!("{}", format_diagnostic(source, diagnostic));
-    }
-    if compiled.has_errors() {
+    let compiled = compile_source(&path, &name, &src)?;
+    if compiled.failed {
         bail!("template compilation failed");
     }
 
@@ -161,7 +160,15 @@ fn run_standalone(
         .and_then(|name| name.to_str())
         .unwrap_or("rocci")
         .to_string();
-    invoke_standalone(&resolved, args, no_window, port, &db_path, &title)
+    invoke_standalone(
+        &resolved,
+        args,
+        no_window,
+        port,
+        &db_path,
+        &title,
+        preview_path(&compiled.routes),
+    )
 }
 
 fn discover_rocci(app_dir: &Path) -> Result<Vec<PathBuf>> {
@@ -170,7 +177,11 @@ fn discover_rocci(app_dir: &Path) -> Result<Vec<PathBuf>> {
         fs::read_dir(app_dir).with_context(|| format!("failed to read {}", app_dir.display()))?
     {
         let path = entry?.path();
-        if path.is_file() && path.extension().is_some_and(|ext| ext == "rocci") {
+        if path.is_file()
+            && path
+                .extension()
+                .is_some_and(|ext| ext == "rocci" || ext == "rocdown")
+        {
             files.push(path);
         }
     }
@@ -199,12 +210,8 @@ fn compile_one(input: &Path) -> Result<bool> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
-    let source = SourceFile::new(&name, &src);
-    let compiled = compile(source, &LowerOptions::default());
-    for diagnostic in &compiled.diagnostics {
-        eprintln!("{}", format_diagnostic(source, diagnostic));
-    }
-    if compiled.has_errors() {
+    let compiled = compile_source(input, &name, &src)?;
+    if compiled.failed {
         return Ok(false);
     }
 
@@ -213,6 +220,44 @@ fn compile_one(input: &Path) -> Result<bool> {
     fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
         .with_context(|| format!("failed to write {}", output.display()))?;
     Ok(true)
+}
+
+struct CompiledSource {
+    roc: String,
+    state_type: Option<String>,
+    init: Option<rocci_template::InitInfo>,
+    routes: Vec<rocci_template::RouteInfo>,
+    failed: bool,
+}
+
+fn compile_source(input: &Path, name: &str, src: &str) -> Result<CompiledSource> {
+    let source = SourceFile::new(name, src);
+    if input.extension().is_some_and(|ext| ext == "rocdown") {
+        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        for diagnostic in &compiled.diagnostics {
+            eprintln!("{}", format_diagnostic(source, diagnostic));
+        }
+        let failed = compiled.has_errors();
+        return Ok(CompiledSource {
+            roc: compiled.roc,
+            state_type: compiled.state_type,
+            init: compiled.init,
+            routes: compiled.routes,
+            failed,
+        });
+    }
+    let compiled = compile(source, &LowerOptions::default());
+    for diagnostic in &compiled.diagnostics {
+        eprintln!("{}", format_diagnostic(source, diagnostic));
+    }
+    let failed = compiled.has_errors();
+    Ok(CompiledSource {
+        roc: compiled.roc,
+        state_type: compiled.state_type,
+        init: compiled.init,
+        routes: compiled.routes,
+        failed,
+    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -241,6 +286,20 @@ fn roc_command(invocation: &RocInvocation, port: u16) -> Command {
     cmd
 }
 
+fn preview_path(routes: &[rocci_template::RouteInfo]) -> String {
+    routes
+        .iter()
+        .find(|route| route.method == "GET" && route.path != "/health")
+        .map(|route| {
+            if route.path.starts_with('/') {
+                route.path.clone()
+            } else {
+                format!("/{}", route.path)
+            }
+        })
+        .unwrap_or_else(|| "/".to_string())
+}
+
 fn invoke_standalone(
     resolved: &ResolvedEntry,
     args: &[String],
@@ -248,10 +307,11 @@ fn invoke_standalone(
     port: serve::PortArg,
     db_path: &Path,
     title: &str,
+    path: String,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
-    let url = format!("http://127.0.0.1:{port}/");
+    let url = format!("http://127.0.0.1:{port}{path}");
     let mut cmd = roc_command(&invocation, port);
     if env::var_os("DB_PATH").is_none() {
         cmd.env("DB_PATH", db_path);

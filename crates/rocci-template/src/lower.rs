@@ -1133,7 +1133,7 @@ fn scope_css(css: &str, id: &str) -> String {
     format!("@scope ([data-rocci-css~=\"{id}\"]) {{\n{}\n}}", css.trim())
 }
 
-fn file_scope_id(file_name: &str) -> String {
+pub fn file_scope_id(file_name: &str) -> String {
     format!(
         "{}-{:08x}",
         file_stem(file_name),
