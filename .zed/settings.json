@@ -2,6 +2,9 @@
   "languages": {
     "Rocci": {
       "semantic_tokens": "full"
+    },
+    "Rocdown": {
+      "semantic_tokens": "full"
     }
   }
 }

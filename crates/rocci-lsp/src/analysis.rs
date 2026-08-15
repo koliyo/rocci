@@ -31,9 +31,17 @@ pub fn diagnostics(
     compiled: &CompileOutput,
     encoding: PositionEncoding,
 ) -> Vec<Diagnostic> {
+    map_diagnostics(name, text, &compiled.diagnostics, encoding)
+}
+
+pub(crate) fn map_diagnostics(
+    name: &str,
+    text: &str,
+    diagnostics: &[rocci_template::Diagnostic],
+    encoding: PositionEncoding,
+) -> Vec<Diagnostic> {
     let source = SourceFile::new(name, text);
-    compiled
-        .diagnostics
+    diagnostics
         .iter()
         .map(|diagnostic| Diagnostic {
             range: lsp_range(source, diagnostic.span, encoding),
@@ -82,14 +90,25 @@ pub fn hover(
     offset: u32,
     encoding: PositionEncoding,
 ) -> Option<Hover> {
+    let components: Vec<_> = components(&compiled.document).collect();
+    hover_components(name, text, &components, offset, encoding)
+}
+
+pub(crate) fn hover_components(
+    name: &str,
+    text: &str,
+    components: &[&ComponentDecl],
+    offset: u32,
+    encoding: PositionEncoding,
+) -> Option<Hover> {
     let source = SourceFile::new(name, text);
-    match hit_at(&compiled.document, offset)? {
+    match hit_at(components, offset)? {
         Hit::ComponentName(component) => Some(Hover {
             contents: markdown(component_signature(source, component)),
             range: Some(lsp_range(source, component.name.span, encoding)),
         }),
         Hit::ComponentCall(call) => {
-            let contents = match local_component(&compiled.document, &call.path.roc_name) {
+            let contents = match local_component(components, &call.path.roc_name) {
                 Some(component) => component_signature(source, component),
                 None => call.path.roc_name.clone(),
             };
@@ -109,11 +128,23 @@ pub fn goto_definition(
     encoding: PositionEncoding,
     uri: lsp_types::Uri,
 ) -> Option<GotoDefinitionResponse> {
+    let components: Vec<_> = components(&compiled.document).collect();
+    goto_definition_components(name, text, &components, offset, encoding, uri)
+}
+
+pub(crate) fn goto_definition_components(
+    name: &str,
+    text: &str,
+    components: &[&ComponentDecl],
+    offset: u32,
+    encoding: PositionEncoding,
+    uri: lsp_types::Uri,
+) -> Option<GotoDefinitionResponse> {
     let source = SourceFile::new(name, text);
-    let Hit::ComponentCall(call) = hit_at(&compiled.document, offset)? else {
+    let Hit::ComponentCall(call) = hit_at(components, offset)? else {
         return None;
     };
-    let component = local_component(&compiled.document, &call.path.roc_name)?;
+    let component = local_component(components, &call.path.roc_name)?;
     Some(GotoDefinitionResponse::Scalar(Location {
         uri,
         range: lsp_range(source, component.name.span, encoding),
@@ -121,6 +152,15 @@ pub fn goto_definition(
 }
 
 pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
+    let components: Vec<_> = components(&compiled.document).collect();
+    completion_in_template(text, &components, offset)
+}
+
+pub(crate) fn completion_in_template(
+    text: &str,
+    components: &[&ComponentDecl],
+    offset: u32,
+) -> CompletionResponse {
     let offset = (offset as usize).min(text.len());
     match completion_context(text, offset) {
         CompletionContext::Directive { prefix } => CompletionResponse::Array(
@@ -131,7 +171,7 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
                 .collect(),
         ),
         CompletionContext::Tag { prefix } => {
-            let mut items = local_component_tags(compiled, &prefix);
+            let mut items = local_component_tags(components, &prefix);
             if prefix.is_empty()
                 || prefix
                     .chars()
@@ -146,7 +186,7 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     }
 }
 
-fn component_symbol(
+pub(crate) fn component_symbol(
     source: SourceFile<'_>,
     component: &ComponentDecl,
     encoding: PositionEncoding,
@@ -164,7 +204,7 @@ fn component_symbol(
     }
 }
 
-fn fixture_symbol(
+pub(crate) fn fixture_symbol(
     source: SourceFile<'_>,
     fixture: &FixtureDecl,
     encoding: PositionEncoding,
@@ -185,7 +225,7 @@ fn fixture_symbol(
     }
 }
 
-fn context_symbol(
+pub(crate) fn context_symbol(
     source: SourceFile<'_>,
     context: &ContextDecl,
     encoding: PositionEncoding,
@@ -203,7 +243,7 @@ fn context_symbol(
     }
 }
 
-fn init_symbol(
+pub(crate) fn init_symbol(
     source: SourceFile<'_>,
     init: &InitDecl,
     encoding: PositionEncoding,
@@ -221,7 +261,49 @@ fn init_symbol(
     }
 }
 
-fn on_symbol(source: SourceFile<'_>, on: &OnDecl, encoding: PositionEncoding) -> DocumentSymbol {
+pub(crate) fn css_symbol(
+    source: SourceFile<'_>,
+    css: &rocci_template::CssDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    named_symbol(
+        "@css",
+        Some("@css".to_string()),
+        SymbolKind::CONSTANT,
+        source,
+        css.span,
+        css.span,
+        encoding,
+    )
+}
+
+pub(crate) fn named_symbol(
+    name: &str,
+    detail: Option<String>,
+    kind: SymbolKind,
+    source: SourceFile<'_>,
+    range: Span,
+    selection: Span,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    DocumentSymbol {
+        name: name.to_string(),
+        detail,
+        kind,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, range, encoding),
+        selection_range: lsp_range(source, selection, encoding),
+        children: None,
+    }
+}
+
+pub(crate) fn on_symbol(
+    source: SourceFile<'_>,
+    on: &OnDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
     DocumentSymbol {
         name: format!("{} {}", on.method.name.to_ascii_uppercase(), on.path),
         detail: Some(format!("@on:{}(\"{}\")", on.method.name, on.path)),
@@ -243,8 +325,14 @@ fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> Str
     )
 }
 
-fn local_component<'a>(document: &'a Document, roc_name: &str) -> Option<&'a ComponentDecl> {
-    components(document).find(|component| component_matches(&component.name.name, roc_name))
+fn local_component<'a>(
+    components: &[&'a ComponentDecl],
+    roc_name: &str,
+) -> Option<&'a ComponentDecl> {
+    components
+        .iter()
+        .copied()
+        .find(|component| component_matches(&component.name.name, roc_name))
 }
 
 fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
@@ -259,8 +347,9 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
     })
 }
 
-fn local_component_tags(compiled: &CompileOutput, prefix: &str) -> Vec<CompletionItem> {
-    components(&compiled.document)
+fn local_component_tags(components: &[&ComponentDecl], prefix: &str) -> Vec<CompletionItem> {
+    components
+        .iter()
         .map(|component| component.name.name.clone())
         .filter(|label| label.starts_with(prefix))
         .map(|label| {
@@ -281,7 +370,7 @@ fn html_tag_items(prefix: &str) -> Vec<CompletionItem> {
         .collect()
 }
 
-fn completion_item(
+pub(crate) fn completion_item(
     label: &str,
     kind: CompletionItemKind,
     detail: Option<String>,
@@ -306,9 +395,9 @@ enum Hit<'a> {
     ComponentCall(&'a ComponentCall),
 }
 
-fn hit_at(document: &Document, offset: u32) -> Option<Hit<'_>> {
+fn hit_at<'a>(components: &[&'a ComponentDecl], offset: u32) -> Option<Hit<'a>> {
     let mut best: Option<(u32, Hit<'_>)> = None;
-    for component in components(document) {
+    for component in components {
         consider(
             &mut best,
             component.name.span,

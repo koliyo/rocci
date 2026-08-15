@@ -8,4 +8,4 @@ repository = "https://github.com/koliyo/rocci"
 
 [language_servers.rocci-language-server]
 name = "Rocci Language Server"
-languages = ["Rocci"]
+languages = ["Rocci", "Rocdown"]

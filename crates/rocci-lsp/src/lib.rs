@@ -1,4 +1,5 @@
 mod analysis;
+mod rocdown;
 mod tokens;
 
 use std::collections::HashMap;
@@ -20,9 +21,9 @@ use lsp_types::{
     SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensServerCapabilities,
     ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, Uri,
 };
-use rocci_template::{CompileOutput, PositionEncoding, SourceFile};
+use rocci_template::{PositionEncoding, SourceFile};
 
-use crate::analysis::{compile_text, offset_at};
+use crate::analysis::offset_at;
 
 pub use tokens::{
     EmbeddedRange, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_NAMESPACE, TOKEN_OPERATOR, TOKEN_PARAMETER,
@@ -34,9 +35,21 @@ pub struct LanguageServer {
     documents: HashMap<String, OpenDocument>,
 }
 
+#[derive(Clone, Copy)]
+enum DocumentKind {
+    Rocci,
+    Rocdown,
+}
+
+enum Compiled {
+    Rocci(rocci_template::CompileOutput),
+    Rocdown(rocci_rocdown::CompileOutput),
+}
+
 struct OpenDocument {
+    kind: DocumentKind,
     text: String,
-    compiled: CompileOutput,
+    compiled: Compiled,
 }
 
 impl LanguageServer {
@@ -90,13 +103,11 @@ impl LanguageServer {
         &mut self,
         params: DidOpenTextDocumentParams,
     ) -> Option<PublishDiagnosticsParams> {
-        if !is_rocci(
+        let kind = document_kind(
             &params.text_document.uri,
             Some(&params.text_document.language_id),
-        ) {
-            return None;
-        }
-        Some(self.set_document(params.text_document.uri, params.text_document.text))
+        )?;
+        Some(self.set_document(params.text_document.uri, params.text_document.text, kind))
     }
 
     pub fn did_change(
@@ -104,11 +115,9 @@ impl LanguageServer {
         params: DidChangeTextDocumentParams,
     ) -> Option<PublishDiagnosticsParams> {
         let key = uri_key(&params.text_document.uri);
-        if !self.documents.contains_key(&key) {
-            return None;
-        }
+        let kind = self.documents.get(&key)?.kind;
         let text = params.content_changes.into_iter().next()?.text;
-        Some(self.set_document(params.text_document.uri, text))
+        Some(self.set_document(params.text_document.uri, text, kind))
     }
 
     pub fn did_close(&mut self, params: DidCloseTextDocumentParams) -> PublishDiagnosticsParams {
@@ -125,12 +134,14 @@ impl LanguageServer {
         params: DocumentSymbolParams,
     ) -> Option<lsp_types::DocumentSymbolResponse> {
         let (name, doc) = self.document(&params.text_document.uri)?;
-        Some(analysis::document_symbols(
-            name,
-            &doc.text,
-            &doc.compiled,
-            self.encoding,
-        ))
+        Some(match &doc.compiled {
+            Compiled::Rocci(compiled) => {
+                analysis::document_symbols(name, &doc.text, compiled, self.encoding)
+            }
+            Compiled::Rocdown(compiled) => {
+                rocdown::document_symbols(name, &doc.text, compiled, self.encoding)
+            }
+        })
     }
 
     pub fn hover(&self, params: HoverParams) -> Option<lsp_types::Hover> {
@@ -139,7 +150,14 @@ impl LanguageServer {
         let (name, doc) = self.document(uri)?;
         let source = SourceFile::new(name, &doc.text);
         let offset = offset_at(source, position, self.encoding);
-        analysis::hover(name, &doc.text, &doc.compiled, offset, self.encoding)
+        match &doc.compiled {
+            Compiled::Rocci(compiled) => {
+                analysis::hover(name, &doc.text, compiled, offset, self.encoding)
+            }
+            Compiled::Rocdown(compiled) => {
+                rocdown::hover(name, &doc.text, compiled, offset, self.encoding)
+            }
+        }
     }
 
     pub fn goto_definition(
@@ -155,7 +173,14 @@ impl LanguageServer {
         let (name, doc) = self.document(&uri)?;
         let source = SourceFile::new(name, &doc.text);
         let offset = offset_at(source, position, self.encoding);
-        analysis::goto_definition(name, &doc.text, &doc.compiled, offset, self.encoding, uri)
+        match &doc.compiled {
+            Compiled::Rocci(compiled) => {
+                analysis::goto_definition(name, &doc.text, compiled, offset, self.encoding, uri)
+            }
+            Compiled::Rocdown(compiled) => {
+                rocdown::goto_definition(name, &doc.text, compiled, offset, self.encoding, uri)
+            }
+        }
     }
 
     pub fn completion(&self, params: CompletionParams) -> Option<lsp_types::CompletionResponse> {
@@ -164,7 +189,10 @@ impl LanguageServer {
         let (name, doc) = self.document(uri)?;
         let source = SourceFile::new(name, &doc.text);
         let offset = offset_at(source, position, self.encoding);
-        Some(analysis::completion(&doc.text, &doc.compiled, offset))
+        Some(match &doc.compiled {
+            Compiled::Rocci(compiled) => analysis::completion(&doc.text, compiled, offset),
+            Compiled::Rocdown(compiled) => rocdown::completion(&doc.text, compiled, offset),
+        })
     }
 
     pub fn semantic_tokens_full(
@@ -173,7 +201,23 @@ impl LanguageServer {
     ) -> Option<lsp_types::SemanticTokensResult> {
         let (name, doc) = self.document(&params.text_document.uri)?;
         Some(lsp_types::SemanticTokensResult::Tokens(
-            tokens::semantic_tokens(name, &doc.text, &doc.compiled.document, self.encoding, None),
+            match &doc.compiled {
+                Compiled::Rocci(compiled) => tokens::semantic_tokens(
+                    name,
+                    &doc.text,
+                    &compiled.document,
+                    self.encoding,
+                    None,
+                ),
+                Compiled::Rocdown(compiled) => tokens::semantic_tokens_rocdown(
+                    name,
+                    &doc.text,
+                    &compiled.document,
+                    &compiled.headings,
+                    self.encoding,
+                    None,
+                ),
+            },
         ))
     }
 
@@ -183,24 +227,40 @@ impl LanguageServer {
     ) -> Option<lsp_types::SemanticTokensRangeResult> {
         let (name, doc) = self.document(&params.text_document.uri)?;
         Some(lsp_types::SemanticTokensRangeResult::Tokens(
-            tokens::semantic_tokens(
-                name,
-                &doc.text,
-                &doc.compiled.document,
-                self.encoding,
-                Some(params.range),
-            ),
+            match &doc.compiled {
+                Compiled::Rocci(compiled) => tokens::semantic_tokens(
+                    name,
+                    &doc.text,
+                    &compiled.document,
+                    self.encoding,
+                    Some(params.range),
+                ),
+                Compiled::Rocdown(compiled) => tokens::semantic_tokens_rocdown(
+                    name,
+                    &doc.text,
+                    &compiled.document,
+                    &compiled.headings,
+                    self.encoding,
+                    Some(params.range),
+                ),
+            },
         ))
     }
 
     pub fn embedded_ranges(&self, uri: &Uri) -> Option<Vec<tokens::EmbeddedRange>> {
         let (name, doc) = self.document(uri)?;
-        Some(tokens::embedded_ranges(
-            name,
-            &doc.text,
-            &doc.compiled.document,
-            self.encoding,
-        ))
+        Some(match &doc.compiled {
+            Compiled::Rocci(compiled) => {
+                tokens::embedded_ranges(name, &doc.text, &compiled.document, self.encoding)
+            }
+            Compiled::Rocdown(compiled) => tokens::embedded_ranges_rocdown(
+                name,
+                &doc.text,
+                &compiled.document,
+                &compiled.headings,
+                self.encoding,
+            ),
+        })
     }
 
     pub fn handle_request(&self, req: Request) -> Response {
@@ -275,11 +335,33 @@ impl LanguageServer {
         }
     }
 
-    fn set_document(&mut self, uri: Uri, text: String) -> PublishDiagnosticsParams {
+    fn set_document(
+        &mut self,
+        uri: Uri,
+        text: String,
+        kind: DocumentKind,
+    ) -> PublishDiagnosticsParams {
         let name = uri_key(&uri);
-        let compiled = compile_text(&name, &text);
-        let diagnostics = analysis::diagnostics(&name, &text, &compiled, self.encoding);
-        self.documents.insert(name, OpenDocument { text, compiled });
+        let compiled = match kind {
+            DocumentKind::Rocci => Compiled::Rocci(analysis::compile_text(&name, &text)),
+            DocumentKind::Rocdown => Compiled::Rocdown(rocdown::compile_text(&name, &text)),
+        };
+        let diagnostics = match &compiled {
+            Compiled::Rocci(compiled) => {
+                analysis::diagnostics(&name, &text, compiled, self.encoding)
+            }
+            Compiled::Rocdown(compiled) => {
+                rocdown::diagnostics(&name, &text, compiled, self.encoding)
+            }
+        };
+        self.documents.insert(
+            name,
+            OpenDocument {
+                kind,
+                text,
+                compiled,
+            },
+        );
         PublishDiagnosticsParams {
             uri,
             diagnostics,
@@ -323,8 +405,21 @@ fn position_encoding_kind(encoding: PositionEncoding) -> PositionEncodingKind {
     }
 }
 
-fn is_rocci(uri: &Uri, language_id: Option<&str>) -> bool {
-    language_id == Some("rocci") || uri_key(uri).ends_with(".rocci")
+fn document_kind(uri: &Uri, language_id: Option<&str>) -> Option<DocumentKind> {
+    match language_id {
+        Some("rocdown") => Some(DocumentKind::Rocdown),
+        Some("rocci") => Some(DocumentKind::Rocci),
+        _ => {
+            let key = uri_key(uri);
+            if key.ends_with(".rocdown") {
+                Some(DocumentKind::Rocdown)
+            } else if key.ends_with(".rocci") {
+                Some(DocumentKind::Rocci)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 fn uri_key(uri: &Uri) -> String {

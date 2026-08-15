@@ -96,6 +96,54 @@ pub fn semantic_tokens(
     encoding: PositionEncoding,
     range: Option<Range>,
 ) -> SemanticTokens {
+    finish_tokens(name, text, encoding, range, |collector| {
+        collect_document(collector, document);
+    })
+}
+
+pub fn semantic_tokens_rocdown(
+    name: &str,
+    text: &str,
+    document: &rocci_rocdown::Document,
+    headings: &[rocci_rocdown::HeadingInfo],
+    encoding: PositionEncoding,
+    range: Option<Range>,
+) -> SemanticTokens {
+    finish_tokens(name, text, encoding, range, |collector| {
+        collect_rocdown(collector, document, headings);
+    })
+}
+
+pub fn embedded_ranges(
+    name: &str,
+    text: &str,
+    document: &Document,
+    encoding: PositionEncoding,
+) -> Vec<EmbeddedRange> {
+    finish_ranges(name, text, encoding, |collector| {
+        collect_document(collector, document);
+    })
+}
+
+pub fn embedded_ranges_rocdown(
+    name: &str,
+    text: &str,
+    document: &rocci_rocdown::Document,
+    headings: &[rocci_rocdown::HeadingInfo],
+    encoding: PositionEncoding,
+) -> Vec<EmbeddedRange> {
+    finish_ranges(name, text, encoding, |collector| {
+        collect_rocdown(collector, document, headings);
+    })
+}
+
+fn finish_tokens(
+    name: &str,
+    text: &str,
+    encoding: PositionEncoding,
+    range: Option<Range>,
+    collect: impl FnOnce(&mut Collector<'_>),
+) -> SemanticTokens {
     let source = SourceFile::new(name, text);
     let mut collector = Collector {
         src: text,
@@ -103,7 +151,7 @@ pub fn semantic_tokens(
         roc: Vec::new(),
         css: Vec::new(),
     };
-    collect_document(&mut collector, document);
+    collect(&mut collector);
     let range_span = range.map(|range| {
         Span::new(
             source.offset_at(range.start.line, range.start.character, encoding) as usize,
@@ -116,11 +164,11 @@ pub fn semantic_tokens(
     }
 }
 
-pub fn embedded_ranges(
+fn finish_ranges(
     name: &str,
     text: &str,
-    document: &Document,
     encoding: PositionEncoding,
+    collect: impl FnOnce(&mut Collector<'_>),
 ) -> Vec<EmbeddedRange> {
     let source = SourceFile::new(name, text);
     let mut collector = Collector {
@@ -129,7 +177,7 @@ pub fn embedded_ranges(
         roc: Vec::new(),
         css: Vec::new(),
     };
-    collect_document(&mut collector, document);
+    collect(&mut collector);
     let mut ranges = Vec::new();
     for span in collector.roc {
         if !span.is_empty() {
@@ -162,6 +210,59 @@ fn collect_document(collector: &mut Collector<'_>, document: &Document) {
             ModuleItem::On(on) => collect_on(collector, on),
         }
     }
+}
+
+fn collect_rocdown(
+    collector: &mut Collector<'_>,
+    document: &rocci_rocdown::Document,
+    headings: &[rocci_rocdown::HeadingInfo],
+) {
+    for heading in headings {
+        if let Some(span) = heading_marker(collector.src, heading.span, heading.level) {
+            collector.token(span, TOKEN_KEYWORD, 0);
+        }
+    }
+    for item in &document.items {
+        match item {
+            rocci_rocdown::Item::Markdown(_) => {}
+            rocci_rocdown::Item::Page(page) => {
+                collect_keyword(collector, page.span, page.body.start, "@page");
+                collector.roc(page.body);
+            }
+            rocci_rocdown::Item::Roc(roc) => {
+                collect_keyword(collector, roc.span, roc.body.start, "@roc");
+                collector.roc(roc.body);
+            }
+            rocci_rocdown::Item::Render(render) => {
+                collect_keyword(collector, render.span, render.expr.start, "@render");
+                collector.roc(render.expr);
+            }
+            rocci_rocdown::Item::Component(component) => collect_component(collector, component),
+            rocci_rocdown::Item::Fixture(fixture) => collect_fixture(collector, fixture),
+            rocci_rocdown::Item::Css(css) => collect_css(collector, css),
+            rocci_rocdown::Item::Context(context) => collect_context(collector, context),
+            rocci_rocdown::Item::Init(init) => collect_init(collector, init),
+            rocci_rocdown::Item::On(on) => collect_on(collector, on),
+        }
+    }
+}
+
+fn collect_keyword(collector: &mut Collector<'_>, span: Span, before: u32, word: &str) {
+    if let Some(keyword) = ident_between(collector.src, span.start, before, word) {
+        collector.token(keyword, TOKEN_KEYWORD, 0);
+    }
+}
+
+fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
+    let text = span.of(src);
+    let indent = text.len() - text.trim_start_matches([' ', '\t']).len();
+    let trimmed = &text[indent..];
+    let hashes = trimmed.chars().take_while(|ch| *ch == '#').count();
+    if hashes == 0 {
+        return None;
+    }
+    let start = span.start as usize + indent;
+    Some(Span::new(start, start + hashes.min(level as usize)))
 }
 
 fn collect_css(collector: &mut Collector<'_>, css: &CssDecl) {

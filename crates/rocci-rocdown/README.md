@@ -185,8 +185,8 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 `.rocci`. `rocci run` on a directory compiles sibling `.rocdown` next to
 `.rocci`. Preview opens the first GET route that is not `/health`.
 
-`rocci view` / `browse` still target `.rocci` components. LSP and editor
-extensions do not register `.rocdown` yet.
+`rocci view` / `browse` still target `.rocci` components. The language server
+and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 ## Implemented vs deferred
 
@@ -200,6 +200,8 @@ extensions do not register `.rocdown` yet.
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
 - CLI `build` / `inspect` / `ast` / `run` for one file or sibling modules
+- LSP diagnostics, symbols, hover, completion, semantic tokens, and editor
+  registration for `.rocdown`
 
 **Not implemented**
 
@@ -209,6 +211,5 @@ extensions do not register `.rocdown` yet.
 - `@island` and client JS
 - Content collections, feeds, sitemaps
 - Formatter
-- LSP / VS Code / Zed `.rocdown` registration
 - Footnotes and the other deferred Markdown extensions
 - Near-miss warnings for typos such as `@componnent`

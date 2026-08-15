@@ -1,6 +1,6 @@
 # Rocci Zed Extension
 
-Language support for `.rocci` template modules. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
+Language support for `.rocci` template modules and `.rocdown` documents. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
 
 Zed does not bundle the language server. Build or install `rocci-language-server` separately.
 
@@ -33,12 +33,15 @@ Override the binary if needed:
 
 ## Highlighting
 
-Highlighting comes from LSP semantic tokens. Enable them for Rocci (this repository already does via `.zed/settings.json`):
+Highlighting comes from LSP semantic tokens. Enable them for Rocci and Rocdown (this repository already does via `.zed/settings.json`):
 
 ```json
 {
   "languages": {
     "Rocci": {
+      "semantic_tokens": "full"
+    },
+    "Rocdown": {
       "semantic_tokens": "full"
     }
   }
