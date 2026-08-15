@@ -133,8 +133,7 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
         panic!("expected a single location");
     };
-    let hello_decl =
-        KITCHEN_SINK.find("@component hello").expect("hello decl") + "@component ".len();
+    let hello_decl = KITCHEN_SINK.find("hello = |{ name").expect("hello decl");
     let (decl_line, decl_character) = line_col(KITCHEN_SINK, hello_decl);
     assert_eq!(location.range.start.line, decl_line);
     assert_eq!(location.range.start.character, decl_character);

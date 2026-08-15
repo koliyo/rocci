@@ -5,7 +5,9 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
+use rocci_core::Config;
 use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
+use rocci_wry::PreviewOptions;
 
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::serve;
@@ -75,7 +77,7 @@ fn generated_module_path(rocci: &Path) -> PathBuf {
     rocci.with_extension("roc")
 }
 
-fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
+pub fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
     let mut failed = false;
     for input in discover_rocci(app_dir)? {
         if !compile_one(&input)? {
@@ -162,6 +164,57 @@ fn invoke_roc(
 
     println!("Serving {} at {url}", invocation.app_dir.display());
     serve::with_window(&mut child, &url, &window_title(resolved), false)
+}
+
+pub fn run_bundled(resources: &Path) -> Result<()> {
+    let config = Config::from_file(resources.join("rocci.toml"))?;
+    let app_dir = resources.join("app");
+    let server = app_dir.join("server");
+    if !server.is_file() {
+        bail!("bundled app is missing {}", server.display());
+    }
+
+    let port = if config.http.port == 0 {
+        serve::PortArg::Auto.resolve()?
+    } else {
+        serve::PortArg::Exact(config.http.port).resolve()?
+    };
+    let url = format!("http://127.0.0.1:{port}/");
+    let window = config.windows.first();
+    let title = window
+        .map(|window| window.title.as_str())
+        .unwrap_or(&config.app.name)
+        .to_string();
+    let width = window.map(|window| window.width).unwrap_or(1040.0);
+    let height = window.map(|window| window.height).unwrap_or(760.0);
+
+    let mut cmd = Command::new(&server);
+    cmd.current_dir(&app_dir)
+        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+        .stdin(Stdio::null())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    let mut child = cmd
+        .spawn()
+        .with_context(|| format!("failed to start {}", server.display()))?;
+    if let Err(err) = serve::wait_for_server(&mut child, port) {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(err);
+    }
+
+    println!("Serving {} at {url}", app_dir.display());
+    let preview_result = rocci_wry::preview(PreviewOptions {
+        url,
+        title,
+        width,
+        height,
+        devtools: config.development.devtools,
+    })
+    .map_err(|error| anyhow::anyhow!("{error}"));
+    let _ = child.kill();
+    let _ = child.wait();
+    preview_result
 }
 
 fn window_title(resolved: &ResolvedEntry) -> String {
@@ -258,10 +311,10 @@ mod tests {
 
     #[test]
     fn generated_module_uses_stem() {
-        let input = Path::new("examples/roc-snake/Snake.rocci");
+        let input = Path::new("examples/snake/Snake.rocci");
         assert_eq!(
             generated_module_path(input),
-            PathBuf::from("examples/roc-snake/Snake.roc")
+            PathBuf::from("examples/snake/Snake.roc")
         );
         assert_eq!(type_name_from_path(input), "Snake");
     }
@@ -309,9 +362,9 @@ mod tests {
     #[test]
     fn window_title_uses_app_directory_name() {
         let resolved = ResolvedEntry {
-            app_dir: PathBuf::from("/tmp/roc-snake"),
+            app_dir: PathBuf::from("/tmp/snake"),
             roc_file: PathBuf::from("main.roc"),
         };
-        assert_eq!(window_title(&resolved), "roc-snake");
+        assert_eq!(window_title(&resolved), "snake");
     }
 }

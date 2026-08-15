@@ -28,8 +28,7 @@ reload = false
 devtools = false
 
 [bundle]
-app = "examples/counter"
-macos_plist = "macos/Info.plist"
+app = "."
 
 [[bundle.resources]]
 from = "assets"
