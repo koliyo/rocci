@@ -1575,12 +1575,13 @@ fn value_expr(param: &BrowseParam) -> String {
 }
 
 fn generate_main_roc() -> String {
-    format!(
+    let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
     http: "{HTTP_PKG}",
 }}
 
+import pf.Env
 import pf.Path
 import pf.Server
 import http.Method
@@ -1603,6 +1604,7 @@ init! = || {{
     }})
     config =
         Server.default_config
+        .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
         .with_file_roots([assets])
         .with_native_routes({{
             files: [
@@ -1735,7 +1737,9 @@ html_ok = |body|
         ),
     )
 "#
-    )
+    );
+    out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out
 }
 
 fn roc_string(value: &str) -> String {
