@@ -97,8 +97,7 @@ pub struct DevelopmentConfig {
 #[serde(deny_unknown_fields)]
 pub struct BundleConfig {
     pub identifier: Option<String>,
-    pub package: Option<String>,
-    pub binary: Option<String>,
+    pub app: Option<PathBuf>,
     pub macos_plist: Option<PathBuf>,
     #[serde(default)]
     pub resources: Vec<BundleResource>,
@@ -260,6 +259,12 @@ impl Config {
 
         for origin in &self.security.allowed_origins {
             validate_http_url("security.allowed_origins", origin)?;
+        }
+
+        if let Some(app) = &self.bundle.app
+            && app.as_os_str().is_empty()
+        {
+            return Err(Error::config("bundle.app must not be empty when set"));
         }
 
         for resource in &self.bundle.resources {
@@ -427,6 +432,7 @@ fn default_true() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
 
     #[test]
     fn default_config_is_valid() {
@@ -502,5 +508,36 @@ mod tests {
     fn rejects_unknown_fields() {
         let error = Config::from_toml("[app]\nnope = 1\n").unwrap_err();
         assert!(error.to_string().contains("unknown"));
+    }
+
+    #[test]
+    fn parses_bundle_app_path() {
+        let config = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [bundle]
+            app = "examples/counter"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(
+            config.bundle.app.as_deref(),
+            Some(Path::new("examples/counter"))
+        );
+    }
+
+    #[test]
+    fn rejects_empty_bundle_app() {
+        let error = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [bundle]
+            app = ""
+            "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("bundle.app"));
     }
 }

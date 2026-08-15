@@ -581,7 +581,7 @@ packages/
 editors/
   vscode/                 language registration, grammar, LSP client
 examples/
-  roc-counter/            component-based acceptance application
+  counter/                component-based acceptance application
 ```
 
 The Wry/tao layer should remain unchanged apart from consuming any generalized backend readiness metadata. The first end-to-end example should port the existing counter and assert identical observable behavior for Rust and Roc backends:

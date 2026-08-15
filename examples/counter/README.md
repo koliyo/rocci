@@ -15,15 +15,15 @@ Pinned together:
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/run-roc-counter.sh
+./scripts/run-counter.sh
 ```
 
-This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
-The script copies shared assets into `examples/roc-counter/assets/` and runs `rocci run`, which compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and executes `main.roc`. If assets are already in place:
+The script copies shared assets into `examples/counter/assets/` and runs `rocci run`, which compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and executes `main.roc`. If assets are already in place:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/roc-counter/main.roc
+cargo run -q -p rocci-cli -- run examples/counter/main.roc
 ```
 
 `main.roc` only owns HTTP, SQLite, and SSE; it does not build the page HTML.
@@ -44,3 +44,20 @@ curl -s -X POST http://127.0.0.1:8000/api/counter/increment
 ```
 
 Increment and reset should update `<output>` in the browser via a single `datastar-patch-elements` event that morphs `#counter`.
+
+## Package a desktop app
+
+From the repository root, with `roc` and `cargo` on `PATH` (macOS only):
+
+```sh
+./scripts/bundle-macos.sh
+open "target/release/bundle/macos/Counter.app"
+```
+
+`rocci bundle` compiles `.rocci` modules, `roc build`s `main.roc`, builds the
+`rocci` host, and writes an ad-hoc signed `.app`. The bundled app does not need
+`roc` on `PATH` at runtime.
+
+This example’s [`rocci.toml`](rocci.toml) uses `bundle.app = "."`. The repository
+root [`rocci.toml`](../../rocci.toml) points at this directory so the same
+command works from the workspace root.

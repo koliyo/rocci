@@ -13,12 +13,12 @@ Pinned together:
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/run-roc-datastar.sh
+./scripts/run-datastar.sh
 ```
 
-This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/roc-datastar/gallery.db`. Set `DB_PATH` to use another file.
+This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/datastar/gallery.db`. Set `DB_PATH` to use another file.
 
-The script copies `datastar.js` into `examples/roc-datastar/assets/` and runs `rocci run`, which compiles each `*.rocci` module to a gitignored Roc type module.
+The script copies `datastar.js` into `examples/datastar/assets/` and runs `rocci run`, which compiles each `*.rocci` module to a gitignored Roc type module.
 
 ## Pages
 
