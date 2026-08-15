@@ -677,6 +677,65 @@ fn lowers_file_and_component_css() {
 }
 
 #[test]
+fn injects_document_css_into_head() {
+    let src = r#"
+@css {
+    body { margin: 0; }
+}
+
+@component page = |{}| {
+    <html lang="en">
+        <head>
+            <title>Hi</title>
+        </head>
+        <body>
+            <p>ok</p>
+        </body>
+    </html>
+}
+"#;
+    let out = compile_ok(src);
+    let page = out.roc.split("page = ").nth(1).expect("page fn");
+    let html_at = page.find("\"html\"").expect("html");
+    let head_at = page.find("\"head\"").expect("head");
+    let style_at = page.find("\"style\"").expect("style");
+    assert!(
+        html_at < head_at,
+        "document root should be html, not a style sibling"
+    );
+    assert!(head_at < style_at, "style should be injected inside head");
+    assert!(!page[..html_at].contains("Html.fragment("));
+    assert!(page.contains("List.concat("));
+}
+
+#[test]
+fn injects_document_css_into_synthetic_head() {
+    let src = r#"
+@css {
+    body { margin: 0; }
+}
+
+@component page = |{}| {
+    <html>
+        <body>
+            <p>ok</p>
+        </body>
+    </html>
+}
+"#;
+    let out = compile_ok(src);
+    let page = out.roc.split("page = ").nth(1).expect("page fn");
+    let html_at = page.find("\"html\"").expect("html");
+    let head_at = page.find("\"head\"").expect("head");
+    let style_at = page.find("\"style\"").expect("style");
+    let body_at = page.find("\"body\"").expect("body");
+    assert!(html_at < head_at);
+    assert!(head_at < style_at);
+    assert!(style_at < body_at);
+    assert!(!page[..html_at].contains("Html.fragment("));
+}
+
+#[test]
 fn isolates_component_css_and_does_not_stamp_child_calls() {
     let src = r#"
 @component parent = |{}| {
@@ -789,4 +848,194 @@ fn rejects_css_after_markup_and_inside_if() {
             .any(|msg| msg.contains("`@css` is only valid at the start of a component body")),
         "{nested:?}"
     );
+}
+
+#[test]
+fn lowers_context_init_and_on_handlers() {
+    let src = r#"
+import pf.Sqlite
+import Html
+
+@context { db : Sqlite.Db }
+
+@init {
+    db = Sqlite.open!(Sqlite.default_config(Path.utf8("./app.db")))?
+            { db: db }
+}
+
+@on:get("/") = |{ db }| {
+    counterPage({ count: 0 })
+}
+
+@on:post("/api/counter/increment") = |{ db }| {
+    counterCard({ count: 1 })
+}
+
+@component counterPage = |{ count }| {
+    <p>{count.to_str()}</p>
+}
+
+@component counterCard = |{ count }| {
+    <p>{count.to_str()}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.state_type.as_deref(), Some("{ db : Sqlite.Db }"));
+    assert!(out.init.is_some());
+    assert_eq!(out.routes.len(), 2);
+    assert_eq!(out.routes[0].method, "GET");
+    assert_eq!(out.routes[0].path, "/");
+    assert_eq!(out.routes[0].fn_name, "on_get_root!");
+    assert_eq!(out.routes[1].method, "POST");
+    assert_eq!(out.routes[1].path, "/api/counter/increment");
+    assert_eq!(out.routes[1].fn_name, "on_post_api_counter_increment!");
+    assert!(out.roc.contains("State : { db : Sqlite.Db }"));
+    assert!(out.roc.contains("init! = || {"));
+    assert!(out.roc.contains("rocci_state = {"));
+    assert!(out.roc.contains("Ok(rocci_state)"));
+    assert!(out.roc.contains("on_get_root! = |{ db }| {"));
+    assert!(
+        out.roc
+            .contains("on_post_api_counter_increment! = |{ db }| {")
+    );
+    assert!(!out.roc.contains("@context"));
+    assert!(!out.roc.contains("@init"));
+    assert!(!out.roc.contains("@on:"));
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(context"));
+    assert!(ast.contains("(init"));
+    assert!(ast.contains("(on GET"));
+    assert!(ast.contains("(on POST"));
+}
+
+#[test]
+fn on_without_params_defaults_to_state() {
+    let src = r#"
+@on:get("/") {
+    Html.text("ok")
+}
+
+@component unused = |{}| {
+    <p>x</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.routes[0].fn_name, "on_get_root!");
+    assert!(out.roc.contains("on_get_root! = |state| {"));
+}
+
+#[test]
+fn rejects_init_without_context() {
+    let errors = compile_err(
+        r#"
+@init {
+    {}
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`@init` requires `@context`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_duplicate_on_handlers() {
+    let errors = compile_err(
+        r#"
+@on:post("/x") {
+    Html.text("a")
+}
+
+@on:post("/x") {
+    Html.text("b")
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("duplicate") && msg.contains("@on:post")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_on_inside_component() {
+    let errors = compile_err(
+        r#"
+@component hello = |{}| {
+    @on:get("/") {
+        Html.text("no")
+    }
+    <p>Hi</p>
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`@on` is only valid at module level")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn counter_example_compiles_as_standalone_app() {
+    let src = include_str!("../../../examples/counter/Counter.rocci");
+    let out = compile_ok(src);
+    assert_eq!(out.state_type.as_deref(), Some("{ db : Sqlite.Db }"));
+    assert!(out.init.is_some());
+    assert_eq!(out.routes.len(), 3);
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/")
+    );
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| { route.method == "POST" && route.path == "/api/counter/increment" })
+    );
+    assert!(out.roc.contains("State : { db : Sqlite.Db }"));
+    assert!(out.roc.contains("init! = || {"));
+    assert!(out.roc.contains("on_get_root!"));
+    assert!(out.roc.contains("on_post_api_counter_increment!"));
+    assert!(out.roc.contains("on_post_api_counter_reset!"));
+    let page = out.roc.split("counterPage = ").nth(1).expect("counterPage");
+    let html_at = page.find("\"html\"").expect("html");
+    let head_at = page.find("\"head\"").expect("head");
+    let style_at = page.find("\"style\"").expect("style");
+    assert!(html_at < head_at);
+    assert!(head_at < style_at);
+}
+
+#[test]
+fn styling_example_compiles() {
+    let src = include_str!("../../../examples/styling/Styling.rocci");
+    let out = compile_ok(src);
+    assert!(out.state_type.is_none());
+    assert!(out.init.is_none());
+    assert_eq!(out.routes.len(), 1);
+    assert_eq!(out.routes[0].method, "GET");
+    assert_eq!(out.routes[0].path, "/");
+    assert!(out.styles.iter().any(|style| style.kind == StyleKind::File));
+    assert!(
+        out.styles
+            .iter()
+            .any(|style| style.kind == StyleKind::Component && style.name == "hello")
+    );
+    assert!(
+        out.styles
+            .iter()
+            .any(|style| style.kind == StyleKind::Component && style.name == "featureCard")
+    );
+    let page = out.roc.split("stylePage = ").nth(1).expect("stylePage");
+    let html_at = page.find("\"html\"").expect("html");
+    let head_at = page.find("\"head\"").expect("head");
+    let style_at = page.find("\"style\"").expect("style");
+    assert!(html_at < head_at);
+    assert!(head_at < style_at);
 }

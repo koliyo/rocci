@@ -1,8 +1,10 @@
 mod browse;
 mod bundle;
 mod datastar_asset;
+mod dispatch;
 mod roc_module;
 mod run;
+mod runtime_assets;
 mod serve;
 mod view;
 
@@ -41,14 +43,14 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Compile sibling .rocci modules and run a Roc app.
+    /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
         /// Skip the embedded window; print the URL and keep the Roc server.
         #[arg(long)]
         no_window: bool,
         #[command(flatten)]
         port: serve::PortOptions,
-        /// Roc app file or directory
+        /// Roc app file, directory, or standalone .rocci file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
         /// Extra arguments forwarded to `roc` after `--`.
@@ -284,7 +286,8 @@ mod tests {
     #[test]
     fn run_accepts_port_after_app_path() {
         let cli =
-            Cli::try_parse_from(["rocci", "run", "examples/counter", "--port", "auto"]).unwrap();
+            Cli::try_parse_from(["rocci", "run", "examples/counter/Counter.rocci", "--port", "auto"])
+                .unwrap();
         assert_eq!(port_of(cli), serve::PortArg::Auto);
     }
 
@@ -296,7 +299,7 @@ mod tests {
             "pin",
             "1.0.2",
             "--app",
-            "examples/counter",
+            "examples/datastar",
         ])
         .unwrap();
         match cli.command {
@@ -304,7 +307,7 @@ mod tests {
                 command: DatastarCmd::Pin { version, app },
             } => {
                 assert_eq!(version, "1.0.2");
-                assert_eq!(app, PathBuf::from("examples/counter"));
+                assert_eq!(app, PathBuf::from("examples/datastar"));
             }
             _ => panic!("unexpected command"),
         }

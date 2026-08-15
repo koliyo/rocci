@@ -4,8 +4,9 @@ use lsp_types::{
     MarkupContent, MarkupKind, Position, Range, SymbolKind,
 };
 use rocci_template::{
-    CompileOutput, ComponentCall, ComponentDecl, Document, FixtureDecl, LowerOptions, ModuleItem,
-    PositionEncoding, Severity, SourceFile, Span, TemplateItem, camel_to_pascal, compile,
+    CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl, InitDecl,
+    LowerOptions, ModuleItem, OnDecl, PositionEncoding, Severity, SourceFile, Span, TemplateItem,
+    camel_to_pascal, compile,
 };
 
 #[rustfmt::skip]
@@ -16,7 +17,9 @@ const HTML_TAGS: &[&str] = &[
     "table", "tbody", "td", "textarea", "th", "thead", "tr", "ul",
 ];
 
-const DIRECTIVES: &[&str] = &["if", "else", "else if", "for", "match", "let", "css"];
+const DIRECTIVES: &[&str] = &[
+    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "on",
+];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
     compile(SourceFile::new(name, text), &LowerOptions::default())
@@ -63,6 +66,9 @@ pub fn document_symbols(
         .filter_map(|item| match item {
             ModuleItem::Component(component) => Some(component_symbol(source, component, encoding)),
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
+            ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
+            ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
+            ModuleItem::On(on) => Some(on_symbol(source, on, encoding)),
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => None,
         })
         .collect();
@@ -176,6 +182,56 @@ fn fixture_symbol(
     }
 }
 
+fn context_symbol(
+    source: SourceFile<'_>,
+    context: &ContextDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    DocumentSymbol {
+        name: "State".to_string(),
+        detail: Some(format!("@context {}", source.slice(context.ty).trim())),
+        kind: SymbolKind::STRUCT,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, context.span, encoding),
+        selection_range: lsp_range(source, context.ty, encoding),
+        children: None,
+    }
+}
+
+fn init_symbol(
+    source: SourceFile<'_>,
+    init: &InitDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    DocumentSymbol {
+        name: "init!".to_string(),
+        detail: Some("@init".to_string()),
+        kind: SymbolKind::FUNCTION,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, init.span, encoding),
+        selection_range: lsp_range(source, init.span, encoding),
+        children: None,
+    }
+}
+
+fn on_symbol(source: SourceFile<'_>, on: &OnDecl, encoding: PositionEncoding) -> DocumentSymbol {
+    DocumentSymbol {
+        name: format!("{} {}", on.method.name.to_ascii_uppercase(), on.path),
+        detail: Some(format!("@on:{}(\"{}\")", on.method.name, on.path)),
+        kind: SymbolKind::FUNCTION,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, on.span, encoding),
+        selection_range: lsp_range(source, on.method.span, encoding),
+        children: None,
+    }
+}
+
 fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> String {
     format!(
         "@component {} = {}",
@@ -191,7 +247,12 @@ fn local_component<'a>(document: &'a Document, roc_name: &str) -> Option<&'a Com
 fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
     document.items.iter().filter_map(|item| match item {
         ModuleItem::Component(component) => Some(component),
-        ModuleItem::Roc { .. } | ModuleItem::Fixture(_) | ModuleItem::Css(_) => None,
+        ModuleItem::Roc { .. }
+        | ModuleItem::Fixture(_)
+        | ModuleItem::Css(_)
+        | ModuleItem::Context(_)
+        | ModuleItem::Init(_)
+        | ModuleItem::On(_) => None,
     })
 }
 

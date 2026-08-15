@@ -1,6 +1,7 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl,
-    ForDirective, Fragment, IfDirective, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
+    FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, MatchDirective, ModuleItem, OnDecl,
+    TemplateBlock, TemplateItem,
 };
 use crate::span::Span;
 
@@ -14,6 +15,9 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             ModuleItem::Component(component) => write_component(&mut w, src, component),
             ModuleItem::Fixture(fixture) => write_fixture(&mut w, src, fixture),
             ModuleItem::Css(css) => write_css(&mut w, src, css),
+            ModuleItem::Context(context) => write_context(&mut w, src, context),
+            ModuleItem::Init(init) => write_init(&mut w, src, init),
+            ModuleItem::On(on) => write_on(&mut w, src, on),
         }
     }
     w.close();
@@ -138,6 +142,29 @@ fn write_item(w: &mut Writer<'_>, src: &str, item: &TemplateItem) {
 
 fn write_css(w: &mut Writer<'_>, src: &str, css: &CssDecl) {
     w.leaf("css", &[string_atom(css.body.of(src).trim())]);
+}
+
+fn write_context(w: &mut Writer<'_>, src: &str, context: &ContextDecl) {
+    w.leaf("context", &[roc_atom(src, context.ty)]);
+}
+
+fn write_init(w: &mut Writer<'_>, src: &str, init: &InitDecl) {
+    w.open("init", &[]);
+    write_roc(w, init.body.of(src));
+    w.close();
+}
+
+fn write_on(w: &mut Writer<'_>, src: &str, on: &OnDecl) {
+    let mut atoms = vec![
+        atom(&on.method.name.to_ascii_uppercase()),
+        string_atom(&on.path),
+    ];
+    if let Some(params) = on.params {
+        atoms.push(atom(params.of(src).trim()));
+    }
+    w.open("on", &atoms);
+    write_roc(w, on.body.of(src));
+    w.close();
 }
 
 fn write_element(w: &mut Writer<'_>, src: &str, el: &Element) {

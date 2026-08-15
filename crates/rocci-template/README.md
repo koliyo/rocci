@@ -4,8 +4,9 @@ Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
 `@component name = |params| { ... }` bodies use a bounded HTML template
-grammar. This crate does not invoke the Roc compiler, type-check
-expressions, or own HTTP/runtime behavior.
+grammar. Top-level `@context`, `@init`, and `@on` declare standalone HTTP
+apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
+expressions, or spawn servers.
 
 ```sh
 cargo run -p rocci-template -- build path/to/file.rocci
@@ -47,8 +48,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, and `@css` are recognized only at
-the start of a top-level definition.
+module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
+`@on` are recognized only at the start of a top-level definition.
 
 ## Components
 
@@ -136,6 +137,48 @@ Unqualified targets must name a `@component` in the same file. Dotted targets
 are left for the Roc compiler and later project-level tools.
 
 `@fixture` is not a template directive. Inside a component body it is an error.
+
+## Standalone HTTP
+
+Top-level `@context`, `@init`, and `@on` declare app state and HTTP handlers
+for `rocci run File.rocci`. Bodies are Roc, not templates. The generated
+dispatcher (not this crate) maps them onto basic-webserver: authors never
+write `Context`, `ServerErr`, `Exit`, or `respond!`.
+
+```rocci
+@context { db : Sqlite.Db }
+
+@init {
+    db = Sqlite.open!(Sqlite.default_config(Path.utf8("./app.db")))?
+    { db: db }
+}
+
+@on:get("/") = |{ db }| {
+    count = read_count!(db)?
+    page({ count })
+}
+
+@on:post("/api/increment") = |{ db }| {
+    count = increment_count!(db)?
+    card({ count })
+}
+```
+
+- `@context { ... }` lowers to `State : { ... }` on the module. Generated
+  `main.roc` uses `Context : Module.State`.
+- `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
+  generated app maps failures to process exit.
+- `@on:METHOD("literal-path") = |params| { ... }` lowers to a named function
+  (`on_get_root!`, `on_post_api_increment!`). `GET` responses are HTML
+  documents; other methods are one-shot `datastar-patch-elements` SSE events.
+  Generated `respond!` maps `?` failures to HTTP 500.
+- `rocci view` / `rocci browse` ignore these directives and render fixtures.
+
+Handler return alternatives not taken for this POC: returning
+`Server.Outcome` from the body, or branching on `Html` vs `Sse.Event`.
+Custom long-lived SSE stays in an authored `main.roc`.
+
+`@context` / `@init` / `@on` are module-level only.
 
 ## Tags
 
@@ -322,13 +365,15 @@ File-level rules share one file id across every component in the module.
 Component-level rules use a per-component id. Descendant selectors can still
 match child-component internals; there is no `:deep` yet.
 
-v1 injects a `<style>` element into the component's Html so `view` / `browse`
-work immediately, and also returns the same scoped CSS on `CompileOutput.styles`.
-That inject path is a convenience, not the Datastar app pattern. SSE patches
-should not carry `<style>`. The intended delivery is: keep `@css` colocated,
-extract once, and link or inline the stylesheet in the document `<head>`. Until
-that follow-up, prefer file-level `@css` on page modules or shared `app.css`
-for patch components.
+v1 injects a `<style>` element so `view` / `browse` work immediately, and also
+returns the same scoped CSS on `CompileOutput.styles`. When the component root
+is an `<html>` document, that style is placed in `<head>` so the browser applies
+page chrome. Other components wrap a sibling `<style>` around the markup. SSE
+patches should not carry `<style>`. The intended delivery is: keep `@css`
+colocated, extract once, and link or inline the stylesheet in the document
+`<head>`. Until that follow-up, prefer file-level `@css` on page modules or
+shared `app.css` for patch components. `@scope` does not restyle the document
+element from an `html { ... }` rule; put document chrome on `body` or `:scope`.
 
 ## Roc regions
 
@@ -422,8 +467,8 @@ quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 Heads are `module`, `roc`, `component`, `params`, `element`, `call`,
 `fragment`, `text`, `interp`, `attr`, `if`, `else-if`, `else`, `for`,
-`match`, `arm`, `let`, and `css`. Self-closing tags include the `self-closing`
-atom after the tag name.
+`match`, `arm`, `let`, `css`, `context`, `init`, and `on`. Self-closing tags
+include the `self-closing` atom after the tag name.
 
 ## Not in this crate
 
@@ -431,6 +476,9 @@ atom after the tag name.
 - Full JSX (markup as an arbitrary Roc expression)
 - Tagged `` html`...` `` literals
 - Dynamic tags, prop spreading, or a runtime component registry
-- HTTP, Datastar, routes, file watching, or process management
+- Spawning HTTP servers, Datastar JS, file watching, or process management
+
+Route metadata from `@on` is emitted for the CLI. Dispatch lives in generated
+`main.roc`, not this crate.
 
 The language design and open questions live in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md).

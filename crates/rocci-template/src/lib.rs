@@ -1,7 +1,9 @@
 //! Parse `.rocci` modules and lower explicit components to ordinary Roc.
 //!
 //! This crate owns the bounded template grammar only. It does not invoke the
-//! Roc compiler, define routes, watch files, or depend on HTTP/desktop runtimes.
+//! Roc compiler, type-check Roc, spawn HTTP, or depend on desktop runtimes.
+//! `@context` / `@init` / `@on` are lowered to Roc functions plus route
+//! metadata for the CLI dispatcher.
 
 mod ast;
 mod diagnostic;
@@ -15,14 +17,15 @@ mod span;
 mod validate;
 
 pub use ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
-    MatchDirective, ModuleItem, ParsedParams, TemplateBlock, TemplateItem, TextNode,
-    parse_component_params, strip_param_defaults,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
+    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
+    LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams, TemplateBlock,
+    TemplateItem, TextNode, parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, Severity};
 pub use lower::{
-    ComponentInfo, FixtureInfo, LowerOptions, LoweredModule, StyleArtifact, StyleKind,
+    ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, RouteInfo, StyleArtifact,
+    StyleKind, route_fn_name,
 };
 pub use parser::ParseOutput;
 pub use pprint::format_ast;
@@ -48,6 +51,9 @@ pub struct CompileOutput {
     pub components: Vec<ComponentInfo>,
     pub fixtures: Vec<FixtureInfo>,
     pub styles: Vec<StyleArtifact>,
+    pub state_type: Option<String>,
+    pub init: Option<InitInfo>,
+    pub routes: Vec<RouteInfo>,
     pub document: Document,
 }
 
@@ -60,7 +66,7 @@ impl CompileOutput {
 pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput {
     let parsed = parse(source);
     let mut diagnostics = parsed.diagnostics;
-    validate(&parsed.document, &mut diagnostics);
+    validate(source.src, &parsed.document, &mut diagnostics);
     let lowered = lower(source, &parsed.document, options);
     CompileOutput {
         roc: lowered.roc,
@@ -68,6 +74,9 @@ pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput 
         components: lowered.components,
         fixtures: lowered.fixtures,
         styles: lowered.styles,
+        state_type: lowered.state_type,
+        init: lowered.init,
+        routes: lowered.routes,
         document: parsed.document,
         diagnostics,
     }

@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl,
-    ForDirective, Fragment, Ident, IfDirective, Interpolation, MatchDirective, ModuleItem,
-    TemplateBlock, TemplateItem, parse_component_params, strip_param_defaults,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
+    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
+    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, parse_component_params,
+    strip_param_defaults,
 };
 use crate::source_map::{OriginKind, Segment};
 use crate::span::{SourceFile, Span};
@@ -28,6 +29,9 @@ pub struct LoweredModule {
     pub components: Vec<ComponentInfo>,
     pub fixtures: Vec<FixtureInfo>,
     pub styles: Vec<StyleArtifact>,
+    pub state_type: Option<String>,
+    pub init: Option<InitInfo>,
+    pub routes: Vec<RouteInfo>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +66,32 @@ pub struct FixtureInfo {
     pub target: String,
     pub value: String,
     pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct InitInfo {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct RouteInfo {
+    pub method: String,
+    pub path: String,
+    pub fn_name: String,
+    pub span: Span,
+}
+
+pub fn route_fn_name(method: &str, path: &str) -> String {
+    let method = method.to_ascii_lowercase();
+    let path_part = if path.is_empty() || path == "/" {
+        "root".to_string()
+    } else {
+        path.trim_matches('/')
+            .chars()
+            .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
+            .collect::<String>()
+    };
+    format!("on_{method}_{path_part}!")
 }
 
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
@@ -131,6 +161,9 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         components: Vec::new(),
         fixtures: Vec::new(),
         styles,
+        state_type: None,
+        init: None,
+        routes: Vec::new(),
         field_defaults,
         file_css,
         file_scope_id,
@@ -156,6 +189,9 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
             ModuleItem::Css(_) => {}
+            ModuleItem::Context(context) => emitter.lower_context(context),
+            ModuleItem::Init(init) => emitter.lower_init(init),
+            ModuleItem::On(on) => emitter.lower_on(on),
         }
     }
     if !emitter.roc.ends_with('\n') && !emitter.roc.is_empty() {
@@ -167,6 +203,9 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         components: emitter.components,
         fixtures: emitter.fixtures,
         styles: emitter.styles,
+        state_type: emitter.state_type,
+        init: emitter.init,
+        routes: emitter.routes,
     }
 }
 
@@ -181,6 +220,9 @@ struct Emitter<'a> {
     components: Vec<ComponentInfo>,
     fixtures: Vec<FixtureInfo>,
     styles: Vec<StyleArtifact>,
+    state_type: Option<String>,
+    init: Option<InitInfo>,
+    routes: Vec<RouteInfo>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
     file_css: String,
     file_scope_id: Option<String>,
@@ -294,6 +336,78 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    fn lower_context(&mut self, context: &ContextDecl) {
+        let ty = context.ty.of(self.src).trim();
+        if self.state_type.is_none() {
+            self.state_type = Some(ty.to_string());
+        }
+        self.emit("State : ");
+        self.emit_mapped(ty, context.ty, OriginKind::OrdinaryRoc);
+        self.emit("\n");
+    }
+
+    fn lower_init(&mut self, init: &InitDecl) {
+        self.init = Some(InitInfo { span: init.span });
+        self.emit("init! = || {\n");
+        self.indent += 1;
+        self.emit_try_block(init.body, "rocci_state");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("}\n");
+    }
+
+    fn lower_on(&mut self, on: &OnDecl) {
+        let method = on.method.name.to_ascii_uppercase();
+        let fn_name = route_fn_name(&on.method.name, &on.path);
+        self.routes.push(RouteInfo {
+            method,
+            path: on.path.clone(),
+            fn_name: fn_name.clone(),
+            span: on.span,
+        });
+        let params = on
+            .params
+            .map(|span| strip_param_defaults(span.of(self.src).trim()))
+            .unwrap_or_else(|| "|state|".to_string());
+        self.emit_mapped(&fn_name, on.span, OriginKind::OrdinaryRoc);
+        self.emit(" = ");
+        if let Some(span) = on.params {
+            self.emit_mapped(&params, span, OriginKind::OrdinaryRoc);
+        } else {
+            self.emit(&params);
+        }
+        self.emit(" {\n");
+        self.indent += 1;
+        self.emit_try_block(on.body, "rocci_value");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("}\n");
+    }
+
+    fn emit_try_block(&mut self, body: Span, result_name: &str) {
+        let text = body.of(self.src).trim();
+        self.push_indent();
+        if text.is_empty() {
+            self.emit("Ok({})\n");
+            return;
+        }
+        self.emit(result_name);
+        self.emit(" = {\n");
+        self.indent += 1;
+        for line in text.lines() {
+            self.push_indent();
+            self.emit(line.trim_end());
+            self.emit("\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("}\n");
+        self.push_indent();
+        self.emit("Ok(");
+        self.emit(result_name);
+        self.emit(")\n");
+    }
+
     fn lower_block(&mut self, block: &TemplateBlock, body_params: &[String]) {
         let (preamble, rest) = split_preamble(&block.items);
         self.emit_lets(preamble);
@@ -346,6 +460,17 @@ impl<'a> Emitter<'a> {
         body_params: &[String],
         css: &str,
     ) {
+        if let [TemplateItem::Element(el)] = items
+            && el.name.name == "html"
+            && !el.self_closing
+            && !el
+                .children
+                .iter()
+                .any(|item| matches!(item, TemplateItem::For(_)))
+        {
+            self.lower_html_document_with_style(el, body_params, css);
+            return;
+        }
         self.emit_html(".fragment(\n");
         self.indent += 1;
         self.push_indent();
@@ -356,6 +481,108 @@ impl<'a> Emitter<'a> {
         self.emit(",\n");
         self.push_indent();
         self.lower_html_value(items, body_params);
+        self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_html_document_with_style(&mut self, el: &Element, body_params: &[String], css: &str) {
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
+        self.emit(",\n");
+        self.push_indent();
+        self.lower_html_attrs(&el.attrs);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        let head = el
+            .children
+            .iter()
+            .enumerate()
+            .find_map(|(i, item)| match item {
+                TemplateItem::Element(head) if head.name.name == "head" => Some((i, head)),
+                _ => None,
+            });
+        if let Some((head_idx, head)) = head {
+            for (i, item) in el.children.iter().enumerate() {
+                self.push_indent();
+                if i == head_idx {
+                    self.lower_head_with_style(head, body_params, css);
+                } else {
+                    self.lower_item(item, body_params, ValueCtx::Node);
+                }
+                self.emit(",\n");
+            }
+        } else {
+            self.push_indent();
+            self.lower_synthetic_head(css);
+            self.emit(",\n");
+            for item in &el.children {
+                self.push_indent();
+                self.lower_item(item, body_params, ValueCtx::Node);
+                self.emit(",\n");
+            }
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_head_with_style(&mut self, el: &Element, body_params: &[String], css: &str) {
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
+        self.emit(",\n");
+        self.push_indent();
+        self.lower_html_attrs(&el.attrs);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("List.concat(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.lower_style_element(css);
+        self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.push_indent();
+        self.lower_node_list(&el.children, body_params);
+        self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_synthetic_head(&mut self, css: &str) {
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("\"head\",\n");
+        self.push_indent();
+        self.lower_html_attrs(&[]);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.lower_style_element(css);
         self.emit(",\n");
         self.indent -= 1;
         self.push_indent();

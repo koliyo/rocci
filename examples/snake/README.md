@@ -24,7 +24,7 @@ cargo run -q -p rocci-cli -- run examples/snake
 
 This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
 
-`rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), copies the pinned Datastar runtime into `examples/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
+`rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), stages `Html.roc` / `Datastar.roc` from the CLI runtime, copies the pinned Datastar JS into `examples/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
 
 `Game.roc` owns ticks, collisions, food, growth, and the viewport. `main.roc` owns HTTP, cookies, SQLite, and SSE. `snake-input.js` sends `{direction, sequence}` to `POST /api/direction`.
 

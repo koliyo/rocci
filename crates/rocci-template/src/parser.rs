@@ -1,7 +1,8 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
-    MatchDirective, ModuleItem, TemplateBlock, TemplateItem, TextNode,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
+    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
+    LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem,
+    TextNode,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor};
@@ -60,6 +61,36 @@ impl<'a> Parser<'a> {
                     }
                     opaque_start = self.cur.pos;
                     items.push(ModuleItem::Fixture(fixture));
+                    continue;
+                }
+                if let Some(context) = self.try_parse_context() {
+                    if opaque_start < context.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, context.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Context(context));
+                    continue;
+                }
+                if let Some(init) = self.try_parse_init() {
+                    if opaque_start < init.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, init.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Init(init));
+                    continue;
+                }
+                if let Some(on) = self.try_parse_on() {
+                    if opaque_start < on.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, on.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::On(on));
                     continue;
                 }
                 if let Some(component) = self.try_parse_component() {
@@ -180,6 +211,225 @@ impl<'a> Parser<'a> {
             }
             self.cur.bump();
         }
+    }
+
+    fn try_parse_context(&mut self) -> Option<ContextDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("context")?;
+        Some(self.parse_context_after_keyword(start))
+    }
+
+    fn parse_context_after_keyword(&mut self, start: usize) -> ContextDecl {
+        self.cur.skip_trivia();
+        let ty = self.scan_roc_type();
+        if ty.is_empty() {
+            self.error(
+                Span::point(self.cur.pos),
+                "expected a Roc type after `@context`",
+            );
+        }
+        ContextDecl {
+            ty,
+            span: Span::new(start, self.cur.pos),
+        }
+    }
+
+    fn scan_roc_type(&mut self) -> Span {
+        self.cur.skip_trivia();
+        if self.cur.peek() == Some('{') {
+            let start = self.cur.pos;
+            self.cur.skip_balanced_braces();
+            if self.cur.pos <= start {
+                return Span::point(start);
+            }
+            return Span::new(start, self.cur.pos);
+        }
+        self.scan_roc_expr()
+    }
+
+    fn try_parse_init(&mut self) -> Option<InitDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("init")?;
+        Some(self.parse_init_after_keyword(start))
+    }
+
+    fn parse_init_after_keyword(&mut self, start: usize) -> InitDecl {
+        self.cur.skip_trivia();
+        let body = match self.scan_roc_block_inner() {
+            Some(span) => span,
+            None => {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected `{` to open an `@init` block",
+                );
+                Span::point(self.cur.pos)
+            }
+        };
+        InitDecl {
+            body,
+            span: Span::new(start, self.cur.pos),
+        }
+    }
+
+    fn try_parse_on(&mut self) -> Option<OnDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("on")?;
+        Some(self.parse_on_after_keyword(start))
+    }
+
+    fn parse_on_after_keyword(&mut self, start: usize) -> OnDecl {
+        self.cur.skip_trivia();
+        if !self.cur.eat(':') {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected `@on:method(\"path\")`; write `@on:post(\"/api/...\")`",
+            );
+            self.sync_to_next_top_level();
+            return empty_on(start, self.cur.pos);
+        }
+        self.cur.skip_trivia();
+        let Some(method_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected HTTP method after `@on:`; write `@on:get` or `@on:post`",
+            );
+            self.sync_to_next_top_level();
+            return empty_on(start, self.cur.pos);
+        };
+        let method_name = self.cur.ident_text(method_span).to_string();
+        if !is_http_method(&method_name) {
+            self.error(
+                method_span,
+                format!(
+                    "unknown HTTP method `{method_name}`; expected get, post, put, patch, or delete"
+                ),
+            );
+        }
+        let method = Ident {
+            span: method_span,
+            name: method_name,
+        };
+        self.cur.skip_trivia();
+        let Some(args) = self.scan_paren_inner() else {
+            self.error(
+                Span::point(self.cur.pos),
+                "expected `(\"path\")` after `@on:method`",
+            );
+            self.sync_to_next_top_level();
+            return OnDecl {
+                method,
+                path: String::new(),
+                path_span: Span::point(self.cur.pos),
+                params: None,
+                body: Span::point(self.cur.pos),
+                span: Span::new(start, self.cur.pos),
+            };
+        };
+        let (path, path_span) = match string_literal(args.of(self.src()), args) {
+            Some((path, path_span)) => (path, path_span),
+            None => {
+                self.error(
+                    args,
+                    "expected a string literal path, e.g. `@on:post(\"/api/...\")`",
+                );
+                (String::new(), args)
+            }
+        };
+        self.cur.skip_trivia();
+        let mut params = None;
+        if self.cur.eat('=') {
+            self.cur.skip_trivia();
+            params = self.scan_params();
+            if params.is_none() {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected `|params|` after `@on:method(\"path\") =`",
+                );
+            }
+            self.cur.skip_trivia();
+        }
+        let body = match self.scan_roc_block_inner() {
+            Some(span) => span,
+            None => {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected `{` to open an `@on` handler body",
+                );
+                Span::point(self.cur.pos)
+            }
+        };
+        OnDecl {
+            method,
+            path,
+            path_span,
+            params,
+            body,
+            span: Span::new(start, self.cur.pos),
+        }
+    }
+
+    fn scan_paren_inner(&mut self) -> Option<Span> {
+        if self.cur.peek() != Some('(') {
+            return None;
+        }
+        let inner_start = self.cur.pos + 1;
+        self.cur.bump();
+        let mut depth = 1usize;
+        while !self.cur.is_eof() && depth > 0 {
+            match self.cur.peek() {
+                Some('"') => self.cur.skip_string(),
+                Some('#') => self.cur.skip_comment(),
+                Some('(') => {
+                    self.cur.bump();
+                    depth += 1;
+                }
+                Some(')') => {
+                    self.cur.bump();
+                    depth -= 1;
+                }
+                _ => {
+                    self.cur.bump();
+                }
+            }
+        }
+        if depth != 0 {
+            self.error(
+                Span::new(inner_start.saturating_sub(1), self.cur.pos),
+                "unterminated `@on` path; expected `)`",
+            );
+            return Some(Span::new(inner_start, self.cur.pos));
+        }
+        Some(lexer::trim_span(
+            self.src(),
+            Span::new(inner_start, self.cur.pos - 1),
+        ))
+    }
+
+    fn scan_roc_block_inner(&mut self) -> Option<Span> {
+        self.cur.skip_trivia();
+        if self.cur.peek() != Some('{') {
+            return None;
+        }
+        let start = self.cur.pos;
+        self.cur.skip_balanced_braces();
+        if self.cur.pos <= start + 1 {
+            return Some(Span::point(start + 1));
+        }
+        let last = self.src().as_bytes().get(self.cur.pos - 1).copied();
+        if last != Some(b'}') {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "unterminated block; expected `}`",
+            );
+            return Some(lexer::trim_span(
+                self.src(),
+                Span::new(start + 1, self.cur.pos),
+            ));
+        }
+        Some(lexer::trim_span(
+            self.src(),
+            Span::new(start + 1, self.cur.pos - 1),
+        ))
     }
 
     fn try_parse_fixture(&mut self) -> Option<FixtureDecl> {
@@ -1105,6 +1355,30 @@ impl<'a> Parser<'a> {
                 self.skip_unknown_directive();
                 None
             }
+            "context" => {
+                self.error(
+                    Span::new(start, name_span.end as usize),
+                    "`@context` is only valid at module level",
+                );
+                self.skip_unknown_directive();
+                None
+            }
+            "init" => {
+                self.error(
+                    Span::new(start, name_span.end as usize),
+                    "`@init` is only valid at module level",
+                );
+                self.skip_unknown_directive();
+                None
+            }
+            "on" => {
+                self.error(
+                    Span::new(start, name_span.end as usize),
+                    "`@on` is only valid at module level",
+                );
+                self.skip_unknown_directive();
+                None
+            }
             "else" => {
                 if stop == ItemStop::BlockEnd {
                     self.cur.pos = start;
@@ -1548,7 +1822,10 @@ impl<'a> Parser<'a> {
             let Some(kw) = look.scan_ident() else {
                 return false;
             };
-            return matches!(look.ident_text(kw), "component" | "fixture");
+            return matches!(
+                look.ident_text(kw),
+                "component" | "fixture" | "css" | "context" | "init" | "on"
+            );
         }
         let Some(_) = look.scan_ident() else {
             return false;
@@ -1564,6 +1841,55 @@ fn empty_path(pos: usize) -> ComponentPath {
         roc_name: String::new(),
         span: Span::point(pos),
     }
+}
+
+fn empty_on(start: usize, pos: usize) -> OnDecl {
+    OnDecl {
+        method: Ident {
+            span: Span::point(pos),
+            name: String::new(),
+        },
+        path: String::new(),
+        path_span: Span::point(pos),
+        params: None,
+        body: Span::point(pos),
+        span: Span::new(start, pos),
+    }
+}
+
+fn is_http_method(name: &str) -> bool {
+    matches!(name, "get" | "post" | "put" | "patch" | "delete")
+}
+
+fn string_literal(text: &str, span: Span) -> Option<(String, Span)> {
+    let trimmed = text.trim();
+    let start_off = text.find(trimmed).unwrap_or(0);
+    if !trimmed.starts_with('"') || !trimmed.ends_with('"') || trimmed.len() < 2 {
+        return None;
+    }
+    let inner = &trimmed[1..trimmed.len() - 1];
+    let mut out = String::new();
+    let mut chars = inner.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.next() {
+                Some('n') => out.push('\n'),
+                Some('r') => out.push('\r'),
+                Some('t') => out.push('\t'),
+                Some('"') => out.push('"'),
+                Some('\\') => out.push('\\'),
+                Some(other) => {
+                    out.push('\\');
+                    out.push(other);
+                }
+                None => out.push('\\'),
+            }
+        } else {
+            out.push(ch);
+        }
+    }
+    let lit_start = span.start as usize + start_off;
+    Some((out, Span::new(lit_start, lit_start + trimmed.len())))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -1667,7 +1993,9 @@ fn first_non_trivia_char(text: &str) -> Option<char> {
 }
 
 fn suggest_directive(name: &str) -> Option<&'static str> {
-    const KNOWN: [&str; 6] = ["if", "for", "match", "let", "else", "css"];
+    const KNOWN: [&str; 9] = [
+        "if", "for", "match", "let", "else", "css", "context", "init", "on",
+    ];
     KNOWN
         .into_iter()
         .find(|known| levenshtein(name, known) <= 2 && name != *known)

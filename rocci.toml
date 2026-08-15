@@ -1,11 +1,11 @@
 [app]
-name = "Counter"
-identifier = "dev.rocci.counter"
+name = "Datastar"
+identifier = "dev.rocci.datastar"
 version = "0.1.0"
 
 [[windows]]
 label = "main"
-title = "Counter"
+title = "Datastar"
 url = "/"
 width = 1040
 height = 760
@@ -29,6 +29,5 @@ reload = false
 devtools = false
 
 [bundle]
-app = "examples/counter"
+app = "examples/datastar"
 macos_plist = "macos/Info.plist"
-

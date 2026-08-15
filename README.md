@@ -15,19 +15,23 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 `PATH`. Then from the repository root:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/counter
+cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
+cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
 cargo run -q -p rocci-cli -- run examples/snake
 cargo run -q -p rocci-cli -- run examples/datastar
 ```
 
-`rocci run` compiles sibling `.rocci` modules, ensures a pinned Datastar
-runtime in the app `assets/` directory (downloaded into `~/.rocci/cache` on
-first use), and starts `main.roc`. Pass `--no-window` to serve only.
-Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
+[`examples/counter`](examples/counter) is the starting app: SQLite, `@on`, and a
+Datastar patch. [`examples/styling`](examples/styling) is the same template
+language with file-level and component `@css`.
 
-```sh
-cargo run -q -p rocci-cli -- run examples/counter/main.roc
-```
+`rocci run path/to/App.rocci` is a standalone app: compile that file, generate
+an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
+on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
+authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
+runtime and a pinned Datastar JS file in `assets/` (downloaded into
+`~/.rocci/cache` on first use). Pass `--no-window` to serve only. Override the
+port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
 
 On Linux, Wry requires WebKitGTK development packages. macOS and Windows use
 the operating system webview. Datastar evaluates declarative expressions using
@@ -42,7 +46,7 @@ runtime. From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
 ./scripts/bundle-macos.sh
-open "target/release/bundle/macos/Counter.app"
+open "target/release/bundle/macos/Datastar.app"
 ```
 
 Or:
@@ -51,9 +55,9 @@ Or:
 cargo run -p rocci-cli -- bundle --config rocci.toml
 ```
 
-The root [`rocci.toml`](rocci.toml) points at [`examples/counter`](examples/counter),
-the documented bundle walkthrough. That example also has its own
-`examples/counter/rocci.toml` (`bundle.app = "."`) so you can package from the
+The root [`rocci.toml`](rocci.toml) points at [`examples/datastar`](examples/datastar),
+the custom-`main.roc` gallery. That example also has its own
+`examples/datastar/rocci.toml` (`bundle.app = "."`) so you can package from the
 app directory the same way.
 
 Opening the `.app` starts the host with no arguments. It finds
@@ -68,12 +72,12 @@ Packaging is currently macOS-only.
 cargo run -p rocci-cli -- validate
 cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- build path/to/file.rocci
-cargo run -p rocci-cli -- run examples/counter
+cargo run -p rocci-cli -- run examples/counter/Counter.rocci
 cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component counterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
-cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/counter
-cargo run -p rocci-cli -- datastar update --app examples/counter
+cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
+cargo run -p rocci-cli -- datastar update --app examples/datastar
 ```
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
