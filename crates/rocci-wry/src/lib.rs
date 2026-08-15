@@ -14,6 +14,7 @@ use rocci_core::{
 use tao::{
     event::{Event, StartCause},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopWindowTarget},
+    keyboard::ModifiersState,
 };
 use wry::WebContext;
 
@@ -41,6 +42,8 @@ struct Shell {
     hooks: Hooks,
     devtools: bool,
     reload: bool,
+    menu: menu::NativeMenu,
+    modifiers: ModifiersState,
 }
 
 pub fn run(mut options: RunOptions) -> Result<()> {
@@ -50,13 +53,15 @@ pub fn run(mut options: RunOptions) -> Result<()> {
 
     let event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
 
-    #[cfg(target_os = "macos")]
-    let _native_menu = menu::NativeMenu::install(
+    let native_menu = menu::NativeMenu::install(
         event_loop.create_proxy(),
-        &options.config.app.name,
-        options.config.app.version.as_deref(),
-        options.reload,
-        options.devtools,
+        menu::MenuConfig {
+            app_name: &options.config.app.name,
+            version: options.config.app.version.as_deref(),
+            new_window: true,
+            reload: options.reload,
+            devtools: options.devtools,
+        },
     )?;
 
     let mut shell = Shell {
@@ -68,6 +73,8 @@ pub fn run(mut options: RunOptions) -> Result<()> {
         hooks: options.hooks,
         devtools: options.devtools,
         reload: options.reload,
+        menu: native_menu,
+        modifiers: ModifiersState::empty(),
     };
 
     let templates: Vec<WindowConfig> = shell
@@ -113,7 +120,9 @@ pub fn run(mut options: RunOptions) -> Result<()> {
                     tracing::error!(%error, "failed to reopen window");
                 }
             }
-            Event::UserEvent(user_event) => shell.handle_user_event(event_loop, user_event),
+            Event::UserEvent(user_event) => {
+                shell.handle_user_event(event_loop, control_flow, user_event)
+            }
             Event::LoopDestroyed => {
                 shell.hooks.emit(&AppEvent::Exited);
                 if let Some(on_exit) = shell.hooks.on_exit.take() {
@@ -144,6 +153,7 @@ impl Shell {
             context,
             self.devtools,
         )?;
+        self.menu.attach(&live.window)?;
         let tao_id = live.window.id();
         self.tao_ids.insert(tao_id, id.clone());
         self.windows.insert(id.clone(), live);
@@ -185,6 +195,14 @@ impl Shell {
 
         match event {
             tao::event::WindowEvent::CloseRequested => self.close_window(id, control_flow),
+            tao::event::WindowEvent::KeyboardInput { event, .. }
+                if events::is_close_key_event(&event, self.modifiers) =>
+            {
+                self.close_window(id, control_flow);
+            }
+            tao::event::WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = modifiers;
+            }
             tao::event::WindowEvent::Focused(true) => self.focused = Some(id),
             tao::event::WindowEvent::Destroyed => {
                 let _ = event_loop;
@@ -223,6 +241,7 @@ impl Shell {
     fn handle_user_event(
         &mut self,
         event_loop: &EventLoopWindowTarget<ShellEvent>,
+        control_flow: &mut ControlFlow,
         event: ShellEvent,
     ) {
         match event {
@@ -233,12 +252,15 @@ impl Shell {
                     tracing::error!(%error, "failed to open window");
                 }
             }
-            #[cfg(target_os = "macos")]
             ShellEvent::Menu(menu_event) => {
                 let id = menu_event.id().as_ref().to_owned();
                 self.hooks.emit(&AppEvent::Menu { id: id.clone() });
                 if menu::is(&menu_event, menu::NEW_WINDOW_ID) {
-                    self.handle_user_event(event_loop, ShellEvent::NewWindow);
+                    self.handle_user_event(event_loop, control_flow, ShellEvent::NewWindow);
+                } else if menu::is(&menu_event, menu::CLOSE_WINDOW_ID) {
+                    if let Some(id) = self.focused.clone() {
+                        self.close_window(id, control_flow);
+                    }
                 } else if self.reload && menu::is(&menu_event, menu::RELOAD_ID) {
                     self.reload_focused();
                 } else if self.devtools && menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {

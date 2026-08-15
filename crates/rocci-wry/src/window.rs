@@ -32,9 +32,15 @@ impl LiveWindow {
             .build(event_loop)
             .map_err(|error| Error::message(format!("failed to create window {id}: {error}")))?;
 
-        let webview = WebViewBuilder::new_with_web_context(&mut context)
+        let webview_builder = WebViewBuilder::new_with_web_context(&mut context)
             .with_url(&url)
-            .with_devtools(devtools)
+            .with_devtools(devtools);
+        #[cfg(target_os = "windows")]
+        let webview_builder = {
+            use wry::WebViewBuilderExtWindows;
+            webview_builder.with_browser_accelerator_keys(false)
+        };
+        let webview = webview_builder
             .build(&window)
             .map_err(|error| Error::message(format!("failed to create webview {id}: {error}")))?;
 
