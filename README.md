@@ -15,13 +15,14 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 `PATH`. Then from the repository root:
 
 ```sh
-./scripts/run-counter.sh
-./scripts/run-snake.sh
-./scripts/run-datastar.sh
+cargo run -q -p rocci-cli -- run examples/counter
+cargo run -q -p rocci-cli -- run examples/snake
+cargo run -q -p rocci-cli -- run examples/datastar
 ```
 
-Each script copies shared assets and runs `rocci run`, which compiles sibling
-`.rocci` modules and starts `main.roc`. Pass `--no-window` to serve only.
+`rocci run` compiles sibling `.rocci` modules, ensures a pinned Datastar
+runtime in the app `assets/` directory (downloaded into `~/.rocci/cache` on
+first use), and starts `main.roc`. Pass `--no-window` to serve only.
 Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
 
 ```sh
@@ -71,10 +72,14 @@ cargo run -p rocci-cli -- run examples/counter
 cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component counterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
+cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/counter
+cargo run -p rocci-cli -- datastar update --app examples/counter
 ```
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
-profiles.
+profiles. `[assets] datastar` pins the Datastar JS version the CLI copies into
+the app; `rocci datastar update` bumps that pin. The CLI does not auto-upgrade
+on `run`.
 
 ## Tests
 

@@ -8,23 +8,19 @@ Pinned together:
 
 - Roc nightly **2026-08-08** (the platform release was built against 2026-08-10)
 - `basic-webserver` **0.16.0**
-- Datastar **1.0.2** from `assets/datastar.js`
+- Datastar **1.0.2** (CLI cache, pinned in `rocci.toml`)
 
 ## Run
 
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/run-counter.sh
+cargo run -q -p rocci-cli -- run examples/counter
 ```
 
 This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
-The script copies shared assets into `examples/counter/assets/` and runs `rocci run`, which compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored) and executes `main.roc`. If assets are already in place:
-
-```sh
-cargo run -q -p rocci-cli -- run examples/counter/main.roc
-```
+`rocci run` compiles `Counter.rocci` to a Roc type module (`Counter.roc`, gitignored), copies the pinned Datastar runtime into `examples/counter/assets/`, and executes `main.roc`.
 
 `main.roc` only owns HTTP, SQLite, and SSE; it does not build the page HTML.
 

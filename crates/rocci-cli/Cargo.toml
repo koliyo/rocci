@@ -15,3 +15,8 @@ clap = { workspace = true }
 rocci-core = { workspace = true }
 rocci-template = { workspace = true }
 rocci-wry = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+toml = { workspace = true }
+ureq = "2.12"

@@ -8,7 +8,7 @@ Pinned together:
 
 - Roc nightly **2026-08-08** (the platform release was built against 2026-08-10)
 - `basic-webserver` **0.16.0**
-- Datastar **1.0.2** from `assets/datastar.js`
+- Datastar **1.0.2** (CLI cache; override with `[assets] datastar` in `rocci.toml`)
 
 Open the start page, then spectate or join. Up to eight snakes share a **100×100** discrete grid. Walls kill; fruit grows you immediately; living snakes also gain a segment about every two seconds. The server ticks at about 8 Hz; each SSE client parks on `After(125)` and morphs the board, HUD, and minimap. WASD, arrow keys, or the on-screen pad steer. Death respawns after about two seconds.
 
@@ -19,16 +19,12 @@ If you already ran an older build, delete `examples/snake/snake.db` (and `-wal`/
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/run-snake.sh
+cargo run -q -p rocci-cli -- run examples/snake
 ```
 
 This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
 
-The script copies `datastar.js` into `examples/snake/assets/` and runs `rocci run`, which compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored) and executes `main.roc`. `snake-input.js` is already in that assets folder. If assets are already in place:
-
-```sh
-cargo run -q -p rocci-cli -- run examples/snake/main.roc
-```
+`rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), copies the pinned Datastar runtime into `examples/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
 
 `Game.roc` owns ticks, collisions, food, growth, and the viewport. `main.roc` owns HTTP, cookies, SQLite, and SSE. `snake-input.js` sends `{direction, sequence}` to `POST /api/direction`.
 

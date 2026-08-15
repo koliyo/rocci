@@ -10,7 +10,6 @@ examples/counter/Counter.roc
 examples/counter/counter.db
 examples/counter/counter.db-*
 examples/counter/assets/datastar.js
-examples/counter/assets/app.css
 examples/snake/generated/*.roc
 examples/snake/Snake.roc
 examples/snake/snake.db

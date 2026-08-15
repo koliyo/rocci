@@ -1,5 +1,6 @@
 mod browse;
 mod bundle;
+mod datastar_asset;
 mod roc_module;
 mod run;
 mod serve;
@@ -88,6 +89,28 @@ enum Commands {
         #[arg(default_value = ".")]
         roots: Vec<PathBuf>,
     },
+    /// Manage the Datastar JS runtime for an app.
+    Datastar {
+        #[command(subcommand)]
+        command: DatastarCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum DatastarCmd {
+    /// Upgrade this app to the latest Datastar release.
+    Update {
+        /// App directory, rocci.toml, or main.roc
+        #[arg(long, default_value = ".")]
+        app: PathBuf,
+    },
+    /// Pin this app to an exact Datastar version.
+    Pin {
+        version: String,
+        /// App directory, rocci.toml, or main.roc
+        #[arg(long, default_value = ".")]
+        app: PathBuf,
+    },
 }
 
 fn main() -> Result<()> {
@@ -121,6 +144,10 @@ fn main() -> Result<()> {
             no_window,
             port,
         } => browse::browse(&roots, no_window, port.port),
+        Commands::Datastar { command } => match command {
+            DatastarCmd::Update { app } => datastar_asset::update_app(&app),
+            DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),
+        },
     }
 }
 
@@ -259,5 +286,35 @@ mod tests {
         let cli =
             Cli::try_parse_from(["rocci", "run", "examples/counter", "--port", "auto"]).unwrap();
         assert_eq!(port_of(cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn datastar_pin_and_update_parse() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "datastar",
+            "pin",
+            "1.0.2",
+            "--app",
+            "examples/counter",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Datastar {
+                command: DatastarCmd::Pin { version, app },
+            } => {
+                assert_eq!(version, "1.0.2");
+                assert_eq!(app, PathBuf::from("examples/counter"));
+            }
+            _ => panic!("unexpected command"),
+        }
+
+        let cli = Cli::try_parse_from(["rocci", "datastar", "update"]).unwrap();
+        match cli.command {
+            Commands::Datastar {
+                command: DatastarCmd::Update { app },
+            } => assert_eq!(app, PathBuf::from(".")),
+            _ => panic!("unexpected command"),
+        }
     }
 }

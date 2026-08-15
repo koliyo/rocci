@@ -11,6 +11,7 @@ use rocci_template::{
     TemplateBlock, TemplateItem, compile, format_diagnostic,
 };
 
+use crate::datastar_asset;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::serve;
 
@@ -20,7 +21,6 @@ const HTML_STUB: &str = include_str!("../../../examples/counter/Html.roc");
 const BROWSER_ROCCI: &str = include_str!("../templates/browser/Browser.rocci");
 const QUERY_ROC: &str = include_str!("../templates/browser/Query.roc");
 const BROWSER_CSS: &str = include_str!("../templates/browser/assets/app.css");
-const DATASTAR_JS: &[u8] = include_bytes!("../../../assets/datastar.js");
 
 const RESERVED_ROC: &[&str] = &[
     "main.roc",
@@ -87,7 +87,8 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
     let assets = workspace.path.join("assets");
     fs::create_dir_all(&assets)?;
     fs::write(assets.join("app.css"), BROWSER_CSS)?;
-    fs::write(assets.join("datastar.js"), DATASTAR_JS)?;
+    datastar_asset::stage_into(&assets, datastar_asset::DEFAULT_VERSION)?;
+    datastar_asset::print_hint(datastar_asset::DEFAULT_VERSION);
 
     fs::write(workspace.path.join("main.roc"), generate_main_roc())
         .context("failed to write main.roc")?;
