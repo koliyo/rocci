@@ -3,7 +3,7 @@ use lsp_types::{
     GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
 };
 use rocci_rocdown::{CompileOptions, CompileOutput, Item, PageDecl, PageMeta};
-use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span};
+use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
 use crate::analysis::{
     completion_in_template, completion_item, component_symbol, context_symbol, css_symbol,
@@ -21,6 +21,10 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "context",
     "init",
     "on",
+    "if",
+    "for",
+    "match",
+    "let",
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
@@ -90,6 +94,7 @@ pub fn document_symbols(
             Item::Context(context) => context_symbol(source, context, encoding),
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::On(on) => on_symbol(source, on, encoding),
+            Item::Template(item) => template_symbol(source, text, item, encoding),
         };
         symbols.push((item.span().start, symbol));
     }
@@ -106,7 +111,8 @@ pub fn hover(
     encoding: PositionEncoding,
 ) -> Option<Hover> {
     let components = components(compiled);
-    if let Some(hover) = hover_components(name, text, &components, offset, encoding) {
+    let extra = template_items(compiled);
+    if let Some(hover) = hover_components(name, text, &components, &extra, offset, encoding) {
         return Some(hover);
     }
     let source = SourceFile::new(name, text);
@@ -138,12 +144,13 @@ pub fn goto_definition(
     uri: lsp_types::Uri,
 ) -> Option<GotoDefinitionResponse> {
     let components = components(compiled);
-    goto_definition_components(name, text, &components, offset, encoding, uri)
+    let extra = template_items(compiled);
+    goto_definition_components(name, text, &components, &extra, offset, encoding, uri)
 }
 
 pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
     let offset = (offset as usize).min(text.len());
-    if component_at(compiled, offset as u32).is_some() {
+    if component_at(compiled, offset as u32).is_some() || template_at(compiled, offset as u32) {
         let components = components(compiled);
         return completion_in_template(text, &components, offset as u32);
     }
@@ -212,6 +219,59 @@ fn component_at(compiled: &CompileOutput, offset: u32) -> Option<&ComponentDecl>
         Item::Component(component) if component.span.contains(offset) => Some(component),
         _ => None,
     })
+}
+
+fn template_items(compiled: &CompileOutput) -> Vec<&TemplateItem> {
+    compiled
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Template(item) => Some(item),
+            _ => None,
+        })
+        .collect()
+}
+
+fn template_at(compiled: &CompileOutput, offset: u32) -> bool {
+    compiled.document.items.iter().any(|item| match item {
+        Item::Template(template) => template.span().contains(offset),
+        _ => false,
+    })
+}
+
+fn template_symbol(
+    source: SourceFile<'_>,
+    text: &str,
+    item: &TemplateItem,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    let (name, kind) = match item {
+        TemplateItem::If(_) => ("@if", SymbolKind::BOOLEAN),
+        TemplateItem::For(_) => ("@for", SymbolKind::ARRAY),
+        TemplateItem::Match(_) => ("@match", SymbolKind::ENUM),
+        TemplateItem::Let(dir) => {
+            return named_symbol(
+                &dir.binder.name,
+                Some("@let".to_string()),
+                SymbolKind::VARIABLE,
+                source,
+                item.span(),
+                dir.binder.span,
+                encoding,
+            );
+        }
+        _ => ("@template", SymbolKind::KEY),
+    };
+    named_symbol(
+        name,
+        Some(name.to_string()),
+        kind,
+        source,
+        item.span(),
+        keyword_selection(text, item.span(), name),
+        encoding,
+    )
 }
 
 fn root_declaration_prefix(text: &str, offset: usize) -> Option<String> {

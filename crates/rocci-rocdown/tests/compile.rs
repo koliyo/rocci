@@ -368,8 +368,145 @@ fn guide_example_compiles() {
 }
 
 #[test]
+fn all_syntax_example_compiles() {
+    let src = include_str!("../../../test/AllSyntax.rocdown");
+    let out = compile(
+        SourceFile::new("test/AllSyntax.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("visible = List.keepIf"));
+    assert!(out.roc.contains("if show_notice {"));
+    assert!(out.roc.contains("List.map(visible, |item|"));
+    assert!(out.roc.contains("List.concat("));
+    assert!(out.roc.contains("match status {"));
+    assert!(out.roc.contains("hello({ name: \"render\" })"));
+    assert!(out.roc.contains("@if this is escaped"));
+    assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
+}
+
+#[test]
 fn unknown_at_name_is_markdown() {
     let src = "@roclang is a handle\n";
     let out = compile_ok(src);
     assert!(out.roc.contains("@roclang is a handle"));
+}
+
+#[test]
+fn top_level_if_for_match_and_let() {
+    let src = r#"
+@roc {
+items = [{ name: "a" }]
+show = Bool.true
+status = Ready
+}
+
+# Title
+
+@let visible = items
+
+@if show {
+    <p>Shown</p>
+} @else {
+    <p>Hidden</p>
+}
+
+@for item in visible {
+    <li>{item.name}</li>
+}
+
+@match status {
+    Ready => <p>Ready</p>
+    Loading => <p>Wait</p>
+}
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(if)"));
+    assert!(ast.contains("(for item)"));
+    assert!(ast.contains("(match)"));
+    assert!(ast.contains("(let visible)"));
+    assert!(out.roc.contains("visible = items"));
+    assert!(out.roc.contains("if show {"));
+    assert!(out.roc.contains("} else {"));
+    assert!(out.roc.contains("List.map(visible, |item|"));
+    assert!(out.roc.contains("List.concat("));
+    assert!(out.roc.contains("match status {"));
+    assert!(out.roc.contains("\"Title\""));
+}
+
+#[test]
+fn escaped_and_fenced_if_stay_markdown() {
+    let src = "\
+\\@if show { not a directive }
+
+```roc
+@if show {
+    <p>fenced</p>
+}
+```
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("@if show { not a directive }"));
+    assert!(out.roc.contains("language-roc"));
+    assert!(
+        !out.document
+            .items
+            .iter()
+            .any(|item| { matches!(item, rocci_rocdown::Item::Template(_)) })
+    );
+}
+
+#[test]
+fn if_inside_lists_stays_markdown() {
+    let src = "\
+- item
+  @if show { captured }
+
+@if Bool.true {
+    <p>yes</p>
+}
+";
+    let out = compile_ok(src);
+    let templates = out
+        .document
+        .items
+        .iter()
+        .filter(|item| matches!(item, rocci_rocdown::Item::Template(_)))
+        .count();
+    assert_eq!(templates, 1);
+    assert!(out.roc.contains("if Bool.true {"));
+}
+
+#[test]
+fn else_attaches_across_blank_lines() {
+    let src = r#"
+@if Bool.true {
+    <p>yes</p>
+}
+
+@else {
+    <p>no</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("if Bool.true {"));
+    assert!(out.roc.contains("} else {"));
+    assert!(out.roc.contains("\"yes\""));
+    assert!(out.roc.contains("\"no\""));
+    let templates = out
+        .document
+        .items
+        .iter()
+        .filter(|item| matches!(item, rocci_rocdown::Item::Template(_)))
+        .count();
+    assert_eq!(templates, 1);
 }

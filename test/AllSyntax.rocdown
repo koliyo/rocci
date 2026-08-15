@@ -1,0 +1,74 @@
+@page {
+    route: "/all-syntax/",
+    draft: Bool.false,
+    meta: {
+        title: "All syntax",
+        description: "Rocdown kitchen sink",
+    },
+}
+
+@roc {
+Status : [Ready, Loading]
+
+items = [{ name: "alpha" }, { name: "beta" }]
+status = Ready
+show_notice = Bool.true
+}
+
+@css {
+    body { font-family: system-ui, sans-serif; }
+}
+
+@component
+Hello = |{ name ?? "World" }|
+    <p>Hello, {name}</p>
+
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+# All syntax
+
+Email docs@example.com or mention @roclang.
+
+This is **bold** and *italic*.
+
+- list item
+
+```roc
+answer = 42
+```
+
+| col | val |
+| --- | --- |
+| a | b |
+
+@render {
+    hello({ name: "render" })
+}
+
+@let visible = List.keepIf(items, |_| Bool.true)
+
+@if show_notice {
+    <p>Notice</p>
+} @else if List.isEmpty(visible) {
+    <p>Empty</p>
+} @else {
+    <ul>
+        @for item in visible {
+            <li>{item.name}</li>
+        }
+    </ul>
+}
+
+@for item in visible {
+    <li>{item.name}</li>
+}
+
+@match status {
+    Loading => <p>Loading</p>
+    Ready => <Hello name="ready" />
+}
+
+\@if this is escaped
+
+More markdown after.

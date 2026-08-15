@@ -91,18 +91,19 @@ pub fn hover(
     encoding: PositionEncoding,
 ) -> Option<Hover> {
     let components: Vec<_> = components(&compiled.document).collect();
-    hover_components(name, text, &components, offset, encoding)
+    hover_components(name, text, &components, &[], offset, encoding)
 }
 
 pub(crate) fn hover_components(
     name: &str,
     text: &str,
     components: &[&ComponentDecl],
+    extra_items: &[&TemplateItem],
     offset: u32,
     encoding: PositionEncoding,
 ) -> Option<Hover> {
     let source = SourceFile::new(name, text);
-    match hit_at(components, offset)? {
+    match hit_at(components, extra_items, offset)? {
         Hit::ComponentName(component) => Some(Hover {
             contents: markdown(component_signature(source, component)),
             range: Some(lsp_range(source, component.name.span, encoding)),
@@ -129,19 +130,20 @@ pub fn goto_definition(
     uri: lsp_types::Uri,
 ) -> Option<GotoDefinitionResponse> {
     let components: Vec<_> = components(&compiled.document).collect();
-    goto_definition_components(name, text, &components, offset, encoding, uri)
+    goto_definition_components(name, text, &components, &[], offset, encoding, uri)
 }
 
 pub(crate) fn goto_definition_components(
     name: &str,
     text: &str,
     components: &[&ComponentDecl],
+    extra_items: &[&TemplateItem],
     offset: u32,
     encoding: PositionEncoding,
     uri: lsp_types::Uri,
 ) -> Option<GotoDefinitionResponse> {
     let source = SourceFile::new(name, text);
-    let Hit::ComponentCall(call) = hit_at(components, offset)? else {
+    let Hit::ComponentCall(call) = hit_at(components, extra_items, offset)? else {
         return None;
     };
     let component = local_component(components, &call.path.roc_name)?;
@@ -395,7 +397,11 @@ enum Hit<'a> {
     ComponentCall(&'a ComponentCall),
 }
 
-fn hit_at<'a>(components: &[&'a ComponentDecl], offset: u32) -> Option<Hit<'a>> {
+fn hit_at<'a>(
+    components: &[&'a ComponentDecl],
+    extra_items: &[&'a TemplateItem],
+    offset: u32,
+) -> Option<Hit<'a>> {
     let mut best: Option<(u32, Hit<'_>)> = None;
     for component in components {
         consider(
@@ -405,6 +411,9 @@ fn hit_at<'a>(components: &[&'a ComponentDecl], offset: u32) -> Option<Hit<'a>> 
             Hit::ComponentName(component),
         );
         walk_items(&component.body.items, offset, &mut best);
+    }
+    for item in extra_items {
+        walk_items(std::slice::from_ref(*item), offset, &mut best);
     }
     best.map(|(_, hit)| hit)
 }

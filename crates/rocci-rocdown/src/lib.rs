@@ -15,7 +15,7 @@ pub use parse::ParseOutput;
 pub use pprint::format_ast;
 pub use rocci_template::{
     ComponentInfo, Diagnostic, FixtureInfo, InitInfo, LowerOptions, OriginKind, RouteInfo, Segment,
-    Severity, SourceFile, Span, StyleArtifact, StyleKind, format_diagnostic,
+    Severity, SourceFile, Span, StyleArtifact, StyleKind, TemplateItem, format_diagnostic,
 };
 
 use crate::parse::parse as parse_impl;

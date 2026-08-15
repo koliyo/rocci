@@ -1,0 +1,318 @@
+@page {
+    route: "/guides/rocdown-interactive/",
+    draft: Bool.false,
+    meta: {
+        title: "Rocdown interactivity",
+        description: "Toggle sections and server patches in a Markdown-first page",
+    },
+}
+
+@roc {
+published = "2026-08-15"
+}
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #f3f7f5;
+        font-synthesis: none;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),
+            linear-gradient(145deg, #0a1713 0%, #07110e 55%, #071512 100%);
+    }
+    main {
+        width: min(40rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+    }
+    h1 {
+        margin: 0 0 0.75rem;
+        font-size: clamp(2.4rem, 6vw, 3.4rem);
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    h2 {
+        margin: 2rem 0 0.6rem;
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+    }
+    p {
+        margin: 0 0 1rem;
+        color: #c9d8d2;
+        font-size: 1.05rem;
+        line-height: 1.65;
+    }
+    a {
+        color: #48eda4;
+        text-decoration-color: rgba(72, 237, 164, 0.4);
+        text-underline-offset: 0.18em;
+    }
+    a:hover { color: #79f4bd; }
+    pre {
+        margin: 0 0 1.25rem;
+        padding: 1rem 1.1rem;
+        overflow-x: auto;
+        border: 1px solid rgba(109, 236, 177, 0.2);
+        border-radius: 12px;
+        background: rgba(11, 30, 24, 0.72);
+    }
+    code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.92rem;
+        color: #f8fffb;
+    }
+    .eyebrow {
+        margin: 0 0 0.5rem;
+        color: #48eda4;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+}
+
+@component
+PageShell = |{ title }, content|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>{title}</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>{content}</main>
+        </body>
+    </html>
+
+@on:get("/guides/rocdown-interactive/") = |_| {
+    pageShell({ title: rocci_meta.title }, rocci_content({}))
+}
+
+@on:get("/") = |_| {
+    pageShell({ title: rocci_meta.title }, rocci_content({}))
+}
+
+@component
+ToggleSection = |{ title, summary, open }| {
+    @css {
+        .toggle {
+            margin: 0 0 0.75rem;
+            border: 1px solid rgba(109, 236, 177, 0.2);
+            border-radius: 14px;
+            background: rgba(11, 30, 24, 0.72);
+            overflow: hidden;
+        }
+        .toggle-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            width: 100%;
+            margin: 0;
+            padding: 0.95rem 1.1rem;
+            border: 0;
+            background: transparent;
+            color: #f8fffb;
+            font: inherit;
+            font-weight: 650;
+            text-align: left;
+            cursor: pointer;
+        }
+        .toggle-head:hover { background: rgba(72, 237, 164, 0.06); }
+        .toggle-chevron {
+            flex: none;
+            color: #48eda4;
+            font-size: 0.85rem;
+            transition: transform 0.18s ease;
+        }
+        .toggle.open .toggle-chevron { transform: rotate(90deg); }
+        .toggle-body {
+            margin: 0;
+            padding: 0 1.1rem 1.05rem;
+            color: #c9d8d2;
+            font-size: 0.98rem;
+            line-height: 1.6;
+        }
+    }
+    <section
+        class="toggle"
+        data-signals={if open { "{_open: true}" } else { "{_open: false}" }}
+        data-class:open="$_open"
+    >
+        <button
+            type="button"
+            class="toggle-head"
+            data-on:click="$_open = !$_open"
+            data-attr:aria-expanded="$_open"
+        >
+            <span>{title}</span>
+            <span class="toggle-chevron" aria-hidden="true">›</span>
+        </button>
+        <div class="toggle-body" data-show="$_open">
+            <p>{summary}</p>
+        </div>
+    </section>
+}
+
+@component
+RevealTip = |{ open }| {
+    @css {
+        .reveal {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid rgba(109, 236, 177, 0.22);
+            border-radius: 16px;
+            background: rgba(11, 30, 24, 0.72);
+        }
+        .reveal p {
+            margin: 0 0 1rem;
+            color: #c9d8d2;
+        }
+        .reveal .tip {
+            margin: 0 0 1rem;
+            padding: 0.85rem 0.95rem;
+            border-left: 3px solid #48eda4;
+            background: rgba(72, 237, 164, 0.08);
+            color: #e7f7ef;
+        }
+        .reveal button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: #48eda4;
+            color: #06100c;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .reveal button:hover { background: #79f4bd; }
+        .reveal button.secondary {
+            border: 1px solid #29493b;
+            background: transparent;
+            color: #bfd0c8;
+        }
+        .reveal button.secondary:hover {
+            border-color: #48eda4;
+            color: #f3f7f5;
+        }
+    }
+    <div id="reveal-tip" class="reveal">
+        <p class="eyebrow">Server patch</p>
+        @if open {
+            <>
+                <p class="tip">
+                    POST handlers return a Datastar element patch. The browser keeps
+                    scrolling position; only the element with id reveal-tip morphs.
+                </p>
+                <button class="secondary" type="button" data-on:click=@post("/actions/reveal/hide")>
+                    Hide tip
+                </button>
+            </>
+        } @else {
+            <>
+                <p>This block is closed until the server sends the open markup.</p>
+                <button type="button" data-on:click=@post("/actions/reveal/show")>
+                    Show tip
+                </button>
+            </>
+        }
+    </div>
+}
+
+@on:post("/actions/reveal/show") = |_| {
+    revealTip({ open: True })
+}
+
+@on:post("/actions/reveal/hide") = |_| {
+    revealTip({ open: False })
+}
+
+@fixture{target: ToggleSection}
+toggleOpen = {
+    title: "Markdown stays prose",
+    summary: "Executable regions begin with @ at the start of a line.",
+    open: True,
+}
+
+@fixture{target: RevealTip}
+revealClosed = { open: False }
+
+@component
+Lede = |{ text }| {
+    @css {
+        .lede {
+            margin: 0 0 1.75rem;
+            max-width: 34rem;
+            color: #a8bbb3;
+            font-size: 1.08rem;
+            line-height: 1.55;
+        }
+    }
+    <p class="lede">{text}</p>
+}
+
+# Rocdown interactivity
+
+@render {
+    lede({
+        text: "Prose stays Markdown. Buttons and patches live in colocated components, with Datastar only where you ask for it.",
+    })
+}
+
+## Client toggles
+
+These sections flip open and closed in the browser. Underscore signals stay
+local and never round-trip to the server.
+
+@render {
+    toggleSection({
+        title: "What is a Rocdown declaration?",
+        summary: "Line-start @page, @roc, @component, @render, and friends switch language mode. Emails and @handles in paragraphs stay plain text.",
+        open: True,
+    })
+}
+
+@render {
+    toggleSection({
+        title: "When does JavaScript load?",
+        summary: "This page wraps Markdown in PageShell, which includes /assets/datastar.js. A static Guide.rocdown page emits no client script.",
+        open: False,
+    })
+}
+
+@render {
+    toggleSection({
+        title: "How do server patches fit?",
+        summary: "Use @on:post for actions. GET stays the document; other methods stream a Datastar morph of the returned Html.",
+        open: False,
+    })
+}
+
+## Server reveal
+
+Clicking asks Roc for new markup. The stable `id` is the morph boundary.
+
+@render {
+    revealTip({ open: False })
+}
+
+## Displayed code
+
+Fences are documentation only — never evaluated:
+
+```rocci
+<button data-on:click="$_open = !$_open">Toggle</button>
+<div data-show="$_open">Hidden until opened</div>
+```
+
+```rocci
+@on:post("/actions/reveal/show") = |_| {
+    revealTip({ open: True })
+}
+```

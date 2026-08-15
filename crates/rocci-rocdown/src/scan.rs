@@ -1,5 +1,6 @@
 use rocci_template::{
     Cursor, Diagnostic, Span, is_ident_continue, is_ident_start, parse_declaration_from,
+    parse_template_item_from,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -13,6 +14,10 @@ pub enum Reserved {
     Context,
     Init,
     On,
+    If,
+    For,
+    Match,
+    Let,
 }
 
 impl Reserved {
@@ -27,6 +32,10 @@ impl Reserved {
             "context" => Self::Context,
             "init" => Self::Init,
             "on" => Self::On,
+            "if" => Self::If,
+            "for" => Self::For,
+            "match" => Self::Match,
+            "let" => Self::Let,
             _ => return None,
         })
     }
@@ -42,6 +51,10 @@ impl Reserved {
             Self::Context => "context",
             Self::Init => "init",
             Self::On => "on",
+            Self::If => "if",
+            Self::For => "for",
+            Self::Match => "match",
+            Self::Let => "let",
         }
     }
 
@@ -50,6 +63,10 @@ impl Reserved {
             self,
             Self::Component | Self::Fixture | Self::Css | Self::Context | Self::Init | Self::On
         )
+    }
+
+    fn is_template(self) -> bool {
+        matches!(self, Self::If | Self::For | Self::Match | Self::Let)
     }
 }
 
@@ -175,10 +192,17 @@ fn try_scan_decl(
             Some(parsed) => (parsed.end, parsed.diagnostics),
             None => return None,
         }
+    } else if kind.is_template() {
+        match parse_template_item_from(src, at) {
+            Some(parsed) => (parsed.end, parsed.diagnostics),
+            None => return None,
+        }
     } else {
         skip_brace_block(src, at, kind)
     };
-    if let Some(diag) = trailing_text(src, end) {
+    if !matches!(kind, Reserved::Let)
+        && let Some(diag) = trailing_text(src, end)
+    {
         extra.push(diag);
     }
     diagnostics.append(&mut extra);
@@ -209,7 +233,74 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }
+        Reserved::If | Reserved::Match => header_has_body_brace(src, after_name),
+        Reserved::For => header_matches_for(src, after_name),
+        Reserved::Let => header_matches_let(src, after_name),
     }
+}
+
+fn header_has_body_brace(src: &str, after_name: usize) -> bool {
+    let mut cur = Cursor::at(src, after_name);
+    cur.skip_spaces_tabs();
+    let mut paren = 0usize;
+    let mut bracket = 0usize;
+    while !cur.is_eof() {
+        match cur.peek() {
+            Some('"') => cur.skip_string(),
+            Some('#') => return false,
+            Some('(') => {
+                cur.bump();
+                paren += 1;
+            }
+            Some(')') => {
+                cur.bump();
+                paren = paren.saturating_sub(1);
+            }
+            Some('[') => {
+                cur.bump();
+                bracket += 1;
+            }
+            Some(']') => {
+                cur.bump();
+                bracket = bracket.saturating_sub(1);
+            }
+            Some('{') if paren == 0 && bracket == 0 => return true,
+            Some('{') => cur.skip_balanced_braces(),
+            Some('\n' | '\r') if paren == 0 && bracket == 0 => return false,
+            Some(_) => {
+                cur.bump();
+            }
+            None => return false,
+        }
+    }
+    false
+}
+
+fn header_matches_for(src: &str, after_name: usize) -> bool {
+    let mut cur = Cursor::at(src, after_name);
+    cur.skip_spaces_tabs();
+    if cur.scan_ident().is_none() {
+        return false;
+    }
+    cur.skip_spaces_tabs();
+    if !cur.eat_str("in") {
+        return false;
+    }
+    let after_in = cur.pos;
+    if cur.peek().is_some_and(|ch| is_ident_continue(ch)) {
+        return false;
+    }
+    header_has_body_brace(src, after_in)
+}
+
+fn header_matches_let(src: &str, after_name: usize) -> bool {
+    let mut cur = Cursor::at(src, after_name);
+    cur.skip_spaces_tabs();
+    if cur.scan_ident().is_none() {
+        return false;
+    }
+    cur.skip_spaces_tabs();
+    cur.peek() == Some('=')
 }
 
 fn skip_brace_block(src: &str, at: usize, kind: Reserved) -> (usize, Vec<Diagnostic>) {

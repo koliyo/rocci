@@ -82,6 +82,71 @@ pub struct RouteInfo {
     pub span: Span,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemplateValueCtx {
+    Node,
+    List,
+}
+
+#[derive(Clone, Debug)]
+pub struct LoweredTemplate {
+    pub roc: String,
+    pub segments: Vec<Segment>,
+    pub uses_datastar: bool,
+}
+
+pub fn lower_template_items(
+    source: SourceFile<'_>,
+    items: &[TemplateItem],
+    options: &LowerOptions,
+    field_defaults: &HashMap<String, Vec<(String, String)>>,
+    indent: usize,
+    ctx: TemplateValueCtx,
+    css_stamp: Option<String>,
+) -> LoweredTemplate {
+    let uses_datastar = items_have_action(items);
+    let mut emitter = Emitter {
+        src: source.src,
+        file_name: source.name,
+        html: &options.html_module,
+        roc: String::new(),
+        segments: Vec::new(),
+        indent,
+        at_line_start: false,
+        components: Vec::new(),
+        fixtures: Vec::new(),
+        styles: Vec::new(),
+        state_type: None,
+        init: None,
+        routes: Vec::new(),
+        field_defaults: field_defaults.clone(),
+        file_css: String::new(),
+        file_scope_id: None,
+        css_stamp,
+    };
+    match items {
+        [] => emitter.emit_html(".empty"),
+        [item] => emitter.lower_item(
+            item,
+            &[],
+            match ctx {
+                TemplateValueCtx::Node => ValueCtx::Node,
+                TemplateValueCtx::List => ValueCtx::List,
+            },
+        ),
+        _ => emitter.lower_html_value(items, &[]),
+    }
+    LoweredTemplate {
+        roc: emitter.roc,
+        segments: emitter.segments,
+        uses_datastar,
+    }
+}
+
+pub fn template_items_have_action(items: &[TemplateItem]) -> bool {
+    items_have_action(items)
+}
+
 pub fn route_fn_name(method: &str, path: &str) -> String {
     let method = method.to_ascii_lowercase();
     let path_part = if path.is_empty() || path == "/" {

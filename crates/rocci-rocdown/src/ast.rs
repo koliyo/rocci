@@ -1,4 +1,6 @@
-use rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span};
+use rocci_template::{
+    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Document {
@@ -18,6 +20,7 @@ pub enum Item {
     Context(ContextDecl),
     Init(InitDecl),
     On(OnDecl),
+    Template(TemplateItem),
 }
 
 impl Item {
@@ -33,6 +36,7 @@ impl Item {
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
             Self::On(item) => item.span,
+            Self::Template(item) => item.span(),
         }
     }
 }

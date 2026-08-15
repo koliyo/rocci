@@ -28,8 +28,20 @@ fn compile_err(src: &str) -> Vec<String> {
 
 #[test]
 fn kitchen_sink_compiles_without_errors() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
-    let out = compile_ok(src);
+    let src = include_str!("../../../test/AllSyntax.rocci");
+    let out = compile(
+        SourceFile::new("test/AllSyntax.rocci", src),
+        &LowerOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
     assert!(out.components.len() >= 5);
     assert!(out.components.iter().any(|c| c.name == "badge"
         && c.body_params == ["content"]
@@ -45,12 +57,12 @@ fn kitchen_sink_compiles_without_errors() {
     assert!(!out.roc.contains("= component"));
     assert!(!out.roc.contains("@component"));
     assert!(!out.roc.contains("name ??"));
-    assert_eq!(out.roc, include_str!("fixtures/kitchen_sink.roc"));
+    assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 
 #[test]
 fn lowers_component_call_to_props_record() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
+    let src = include_str!("../../../test/AllSyntax.rocci");
     let out = compile_ok(src);
     assert!(out.roc.contains("hello(\n"));
     assert!(out.roc.contains("{ name: person.name }"));
@@ -59,7 +71,7 @@ fn lowers_component_call_to_props_record() {
 
 #[test]
 fn lowers_body_argument_and_html_child() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
+    let src = include_str!("../../../test/AllSyntax.rocci");
     let out = compile_ok(src);
     assert!(out.roc.contains("badge = |{ tone }, content|"));
     assert!(
@@ -74,7 +86,7 @@ fn lowers_body_argument_and_html_child() {
 
 #[test]
 fn lowers_if_for_and_match() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
+    let src = include_str!("../../../test/AllSyntax.rocci");
     let out = compile_ok(src);
     assert!(out.roc.contains("match state {"));
     assert!(out.roc.contains("if List.isEmpty(items) {"));
@@ -103,7 +115,7 @@ fn concatenates_sibling_nodes_and_for_loops_with_two_arg_concat() {
 
 #[test]
 fn lowers_let_qualified_import_and_fragment() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
+    let src = include_str!("../../../test/AllSyntax.rocci");
     let out = compile_ok(src);
     assert!(
         out.roc
@@ -115,7 +127,7 @@ fn lowers_let_qualified_import_and_fragment() {
 
 #[test]
 fn preserves_roc_regions_and_parenthesized_header_records() {
-    let src = include_str!("fixtures/kitchen_sink.rocci");
+    let src = include_str!("../../../test/AllSyntax.rocci");
     let out = compile_ok(src);
     assert!(out.roc.contains("isVisible({ user, permissions })"));
     assert!(out.roc.contains("match ({ status, items }) {"));
