@@ -11,6 +11,7 @@ pub enum OriginKind {
     AttributeExpression,
     StaticMarkup,
     Scaffolding,
+    Css,
 }
 
 impl OriginKind {
@@ -24,6 +25,7 @@ impl OriginKind {
             Self::AttributeExpression => "attribute_expression",
             Self::StaticMarkup => "static_markup",
             Self::Scaffolding => "scaffolding",
+            Self::Css => "css",
         }
     }
 }

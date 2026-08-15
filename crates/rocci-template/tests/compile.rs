@@ -1,6 +1,6 @@
 use rocci_template::{
-    LowerOptions, OriginKind, SourceFile, Span, compile, format_ast, parse_component_params,
-    strip_param_defaults,
+    LowerOptions, OriginKind, SourceFile, Span, StyleKind, compile, format_ast,
+    parse_component_params, strip_param_defaults,
 };
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
@@ -620,5 +620,173 @@ fn datastar_action_in_text_is_still_unknown_directive() {
             .iter()
             .any(|msg| msg.contains("unknown directive `@post`")),
         "{errors:?}"
+    );
+}
+
+fn scope_id(css: &str) -> &str {
+    let marker = r#"data-rocci-css~=""#;
+    let start = css.find(marker).expect("scope attr") + marker.len();
+    let end = css[start..].find('"').expect("scope end") + start;
+    &css[start..end]
+}
+
+#[test]
+fn lowers_file_and_component_css() {
+    let src = r#"
+@css {
+    .card { padding: 1rem; }
+}
+
+@component hello = |{ name }| {
+    @css {
+        .greeting { color: navy; }
+        p { margin: 0; }
+    }
+    <p class="greeting">Hello, {name}</p>
+}
+
+@component other = |{}| {
+    <div class="card"></div>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.styles.len(), 2);
+    let file = out
+        .styles
+        .iter()
+        .find(|style| style.kind == StyleKind::File)
+        .expect("file style");
+    let hello = out
+        .styles
+        .iter()
+        .find(|style| style.kind == StyleKind::Component && style.name == "hello")
+        .expect("hello style");
+    let file_id = scope_id(&file.css);
+    let hello_id = scope_id(&hello.css);
+    assert_ne!(file_id, hello_id);
+    assert!(file.css.contains(".card { padding: 1rem; }"));
+    assert!(hello.css.contains(".greeting { color: navy; }"));
+    assert!(out.roc.contains("\"style\""));
+    assert!(
+        out.roc
+            .contains(&format!(r#"data-rocci-css~=\"{hello_id}\""#))
+    );
+    assert!(out.roc.contains(&format!("\"{file_id} {hello_id}\"")));
+    assert!(out.roc.contains(&format!("\"{file_id}\"")));
+    assert!(!out.roc.contains("@css"));
+}
+
+#[test]
+fn isolates_component_css_and_does_not_stamp_child_calls() {
+    let src = r#"
+@component parent = |{}| {
+    @css {
+        .x { color: red; }
+    }
+    <div class="x">
+        <Child />
+    </div>
+}
+
+@component child = |{}| {
+    @css {
+        .x { color: blue; }
+    }
+    <span class="x">ok</span>
+}
+"#;
+    let out = compile_ok(src);
+    let parent = out
+        .styles
+        .iter()
+        .find(|style| style.name == "parent")
+        .expect("parent");
+    let child = out
+        .styles
+        .iter()
+        .find(|style| style.name == "child")
+        .expect("child");
+    let parent_id = scope_id(&parent.css);
+    let child_id = scope_id(&child.css);
+    assert_ne!(parent_id, child_id);
+    assert!(out.roc.contains(&format!("\"{parent_id}\"")));
+    assert!(out.roc.contains(&format!("\"{child_id}\"")));
+    let child_call = out.roc.find("child(\n").expect("child call");
+    let after = &out.roc[child_call..child_call + 40];
+    assert!(
+        !after.contains("data-rocci-css"),
+        "component calls must not receive a scope attribute: {after}"
+    );
+}
+
+#[test]
+fn scans_nested_css_strings_and_comments() {
+    let src = r#"
+@component box = |{}| {
+    @css {
+        .card { content: "{"; /* } */ }
+        .quote { content: '}'; }
+    }
+    <section class="card"></section>
+}
+"#;
+    let out = compile_ok(src);
+    let css = &out.styles[0].css;
+    assert!(css.contains(r#".card { content: "{"; /* } */ }"#));
+    assert!(css.contains(".quote { content: '}'; }"));
+}
+
+#[test]
+fn formats_css_in_lisp_ast() {
+    let src = r#"
+@css {
+    .card { padding: 1rem; }
+}
+
+@component hello = |{ name }| {
+    @css {
+        .greeting { color: navy; }
+    }
+    <p class="greeting">{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(css \".card { padding: 1rem; }\")"));
+    assert!(ast.contains("(css \".greeting { color: navy; }\")"));
+}
+
+#[test]
+fn rejects_css_after_markup_and_inside_if() {
+    let after_markup = compile_err(
+        r#"
+@component hello = |{}| {
+    <p>Hi</p>
+    @css { .x { color: red; } }
+}
+"#,
+    );
+    assert!(
+        after_markup
+            .iter()
+            .any(|msg| msg.contains("`@css` must appear before render-producing items")),
+        "{after_markup:?}"
+    );
+
+    let nested = compile_err(
+        r#"
+@component hello = |{}| {
+    @if True {
+        @css { .x { color: red; } }
+        <p>Hi</p>
+    }
+}
+"#,
+    );
+    assert!(
+        nested
+            .iter()
+            .any(|msg| msg.contains("`@css` is only valid at the start of a component body")),
+        "{nested:?}"
     );
 }

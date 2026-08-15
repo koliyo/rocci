@@ -11,6 +11,7 @@ pub enum ModuleItem {
     Roc { span: Span },
     Component(ComponentDecl),
     Fixture(FixtureDecl),
+    Css(CssDecl),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,6 +27,12 @@ pub struct FixtureDecl {
     pub name: Ident,
     pub target: ComponentPath,
     pub value: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CssDecl {
+    pub body: Span,
     pub span: Span,
 }
 
@@ -52,6 +59,7 @@ pub enum TemplateItem {
     For(ForDirective),
     Match(MatchDirective),
     Let(LetDirective),
+    Css(CssDecl),
 }
 
 impl TemplateItem {
@@ -66,11 +74,16 @@ impl TemplateItem {
             Self::For(item) => item.span,
             Self::Match(item) => item.span,
             Self::Let(item) => item.span,
+            Self::Css(item) => item.span,
         }
     }
 
     pub fn is_let(&self) -> bool {
         matches!(self, Self::Let(_))
+    }
+
+    pub fn is_preamble(&self) -> bool {
+        matches!(self, Self::Let(_) | Self::Css(_))
     }
 }
 

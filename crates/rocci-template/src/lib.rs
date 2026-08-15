@@ -15,13 +15,15 @@ mod span;
 mod validate;
 
 pub use ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, FixtureDecl,
-    ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, CssDecl, Document, Element,
+    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
     MatchDirective, ModuleItem, ParsedParams, TemplateBlock, TemplateItem, TextNode,
     parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, Severity};
-pub use lower::{ComponentInfo, FixtureInfo, LowerOptions, LoweredModule};
+pub use lower::{
+    ComponentInfo, FixtureInfo, LowerOptions, LoweredModule, StyleArtifact, StyleKind,
+};
 pub use parser::ParseOutput;
 pub use pprint::format_ast;
 pub use resolve::{camel_to_pascal, component_roc_name, pascal_to_camel};
@@ -45,6 +47,7 @@ pub struct CompileOutput {
     pub diagnostics: Vec<Diagnostic>,
     pub components: Vec<ComponentInfo>,
     pub fixtures: Vec<FixtureInfo>,
+    pub styles: Vec<StyleArtifact>,
     pub document: Document,
 }
 
@@ -64,6 +67,7 @@ pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput 
         segments: lowered.segments,
         components: lowered.components,
         fixtures: lowered.fixtures,
+        styles: lowered.styles,
         document: parsed.document,
         diagnostics,
     }

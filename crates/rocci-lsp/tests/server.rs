@@ -285,6 +285,58 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
     ));
 }
 
+#[test]
+fn css_blocks_are_keywords_with_embedded_css_ranges() {
+    const SRC: &str = r#"
+@css {
+    .card { padding: 1rem; }
+}
+
+@component hello = |{ name }| {
+    @css {
+        .greeting { color: navy; }
+    }
+    <p class="greeting">{name}</p>
+}
+"#;
+    let mut server = initialize(true);
+    open(&mut server, SRC);
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("semantic tokens");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full semantic tokens");
+    };
+
+    let file_css = SRC.find("@css").expect("file @css");
+    assert_eq!(token_type_at(SRC, &tokens, file_css), Some(TOKEN_KEYWORD));
+    let component_css = SRC.rfind("@css").expect("component @css");
+    assert_eq!(
+        token_type_at(SRC, &tokens, component_css),
+        Some(TOKEN_KEYWORD)
+    );
+
+    let regions = server
+        .embedded_ranges(&test_uri())
+        .expect("embedded ranges");
+    let card = SRC.find(".card").expect("card");
+    let greeting = SRC.find(".greeting").expect("greeting");
+    assert!(
+        regions
+            .iter()
+            .any(|region| region.language == "css" && range_covers(&region.range, SRC, card))
+    );
+    assert!(
+        regions
+            .iter()
+            .any(|region| region.language == "css" && range_covers(&region.range, SRC, greeting))
+    );
+}
+
 fn token_type_at(src: &str, tokens: &SemanticTokens, offset: usize) -> Option<u32> {
     let (line, character) =
         SourceFile::new("t.rocci", src).position(offset as u32, PositionEncoding::Utf8);

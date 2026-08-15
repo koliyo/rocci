@@ -1,6 +1,6 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, Document, Element, FixtureDecl,
-    ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
+    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, CssDecl, Document, Element,
+    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, Interpolation, LetDirective, MatchArm,
     MatchDirective, ModuleItem, TemplateBlock, TemplateItem, TextNode,
 };
 use crate::diagnostic::Diagnostic;
@@ -72,6 +72,16 @@ impl<'a> Parser<'a> {
                     items.push(ModuleItem::Component(component));
                     continue;
                 }
+                if let Some(css) = self.try_parse_css() {
+                    if opaque_start < css.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, css.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Css(css));
+                    continue;
+                }
             }
 
             saved.restore(&mut self.cur);
@@ -90,6 +100,85 @@ impl<'a> Parser<'a> {
         Document {
             items,
             span: Span::new(start, self.src().len()),
+        }
+    }
+
+    fn try_parse_css(&mut self) -> Option<CssDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("css")?;
+        Some(self.parse_css_after_keyword(start))
+    }
+
+    fn parse_css_after_keyword(&mut self, start: usize) -> CssDecl {
+        self.cur.skip_trivia();
+        let body = self.scan_css_block();
+        CssDecl {
+            body,
+            span: Span::new(start, self.cur.pos),
+        }
+    }
+
+    fn scan_css_block(&mut self) -> Span {
+        if !self.cur.eat('{') {
+            self.error(
+                Span::point(self.cur.pos),
+                "expected `{` to open a `@css` block",
+            );
+            return Span::point(self.cur.pos);
+        }
+        let body_start = self.cur.pos;
+        let mut depth: usize = 1;
+        while !self.cur.is_eof() && depth > 0 {
+            match self.cur.peek() {
+                Some('"') | Some('\'') => self.skip_css_string(),
+                Some('/') if self.cur.peek_at(1) == Some('*') => self.skip_css_comment(),
+                Some('{') => {
+                    self.cur.bump();
+                    depth += 1;
+                }
+                Some('}') => {
+                    self.cur.bump();
+                    depth -= 1;
+                }
+                _ => {
+                    self.cur.bump();
+                }
+            }
+        }
+        if depth != 0 {
+            self.error(
+                Span::new(body_start.saturating_sub(1), self.cur.pos),
+                "unterminated `@css` block; expected `}`",
+            );
+            return Span::new(body_start, self.cur.pos);
+        }
+        Span::new(body_start, self.cur.pos - 1)
+    }
+
+    fn skip_css_string(&mut self) {
+        let Some(quote) = self.cur.bump() else {
+            return;
+        };
+        while let Some(ch) = self.cur.peek() {
+            if ch == '\\' {
+                self.cur.bump();
+                self.cur.bump();
+                continue;
+            }
+            self.cur.bump();
+            if ch == quote {
+                return;
+            }
+        }
+    }
+
+    fn skip_css_comment(&mut self) {
+        self.cur.pos += 2;
+        while !self.cur.is_eof() {
+            if self.cur.eat_str("*/") {
+                return;
+            }
+            self.cur.bump();
         }
     }
 
@@ -1007,6 +1096,7 @@ impl<'a> Parser<'a> {
             "for" => Some(TemplateItem::For(self.parse_for(start))),
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
+            "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
             "fixture" => {
                 self.error(
                     Span::new(start, name_span.end as usize),
@@ -1577,7 +1667,7 @@ fn first_non_trivia_char(text: &str) -> Option<char> {
 }
 
 fn suggest_directive(name: &str) -> Option<&'static str> {
-    const KNOWN: [&str; 5] = ["if", "for", "match", "let", "else"];
+    const KNOWN: [&str; 6] = ["if", "for", "match", "let", "else", "css"];
     KNOWN
         .into_iter()
         .find(|known| levenshtein(name, known) <= 2 && name != *known)

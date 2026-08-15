@@ -2,6 +2,8 @@
 
 A spike: author the counter UI in `Counter.rocci`, compile it to Roc, and serve HTML plus one-shot Datastar patches from [basic-webserver](https://github.com/roc-lang/basic-webserver) 0.16.0. `rocci run` opens the server in an embedded window; use `--no-window` to serve only. There is no live multi-tab SSE stream.
 
+`Counter.rocci` colocates isolated CSS: a file-level `@css` block for the hello list, and component `@css` on `hello` and `counterCard`. Page chrome still comes from `/assets/app.css`. v1 injects a `<style>` tag with the component Html; increment patches `#counter` and may resend that CSS until extract-and-link lands.
+
 Pinned together:
 
 - Roc nightly **2026-08-08** (the platform release was built against 2026-08-10)
@@ -34,7 +36,7 @@ With the server running (`--no-window` if you do not want an embedded window):
 curl -s http://127.0.0.1:8000/health
 # ok
 
-curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"'
+curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|data-rocci-css|hello-list'
 
 curl -s -X POST http://127.0.0.1:8000/api/counter/increment
 # event: datastar-patch-elements

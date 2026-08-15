@@ -1,12 +1,57 @@
 import Html
 
+@css {
+    .hello-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 28px;
+    }
+}
+
 @component
 hello = |{ name ?? "Roc" }| {
-    <p>Hello, {name}</p>
+    @css {
+        .greeting {
+            margin: 0;
+            color: #c9d8d2;
+            font-size: 1.05rem;
+        }
+        .greeting strong {
+            color: #f8fffb;
+        }
+    }
+    <p class="greeting">Hello, <strong>{name}</strong></p>
 }
 
 @component
 counterCard = |{ count }| {
+    @css {
+        .counter-card {
+            margin-top: 46px;
+            padding: 30px 34px;
+            border: 1px solid rgba(109, 236, 177, 0.2);
+            border-radius: 18px;
+            background: rgba(11, 30, 24, 0.72);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+        }
+        .counter-card output {
+            display: block;
+            margin: 4px 0;
+            color: #f8fffb;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 76px;
+            font-weight: 650;
+            letter-spacing: -0.06em;
+        }
+        .counter-card p:last-child {
+            margin: 0;
+            color: #84988f;
+        }
+        @media (max-width: 600px) {
+            .counter-card { padding: 24px; }
+        }
+    }
     <section id="counter" class="counter-card">
         <p class="eyebrow">Shared SQLite state</p>
         <output>{count.to_str()}</output>
@@ -35,8 +80,10 @@ counterPage = |{ count }| {
                     <h1>The browser talks HTTP.</h1>
                     <p class="lede">This page is authored as Counter.rocci, compiled to Roc, and served by basic-webserver. Increment and reset return one datastar-patch-elements event.</p>
                 </header>
-                <Hello />
-                <Hello name="Foo"/>
+                <div class="hello-list">
+                    <Hello />
+                    <Hello name="Foo"/>
+                </div>
                 <CounterCard count={count} />
                 <div class="actions">
                     <button data-on:click=@post("/api/counter/increment")>Increment</button>

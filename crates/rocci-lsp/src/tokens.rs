@@ -3,7 +3,7 @@ use lsp_types::{
     SemanticTokensLegend,
 };
 use rocci_template::{
-    AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ModuleItem,
+    AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl, ModuleItem,
     PositionEncoding, SourceFile, Span, TemplateItem,
 };
 use serde::Serialize;
@@ -62,6 +62,7 @@ struct Collector<'a> {
     src: &'a str,
     tokens: Vec<RawToken>,
     roc: Vec<Span>,
+    css: Vec<Span>,
 }
 
 impl<'a> Collector<'a> {
@@ -80,6 +81,12 @@ impl<'a> Collector<'a> {
             self.roc.push(span);
         }
     }
+
+    fn css(&mut self, span: Span) {
+        if !span.is_empty() {
+            self.css.push(span);
+        }
+    }
 }
 
 pub fn semantic_tokens(
@@ -94,6 +101,7 @@ pub fn semantic_tokens(
         src: text,
         tokens: Vec::new(),
         roc: Vec::new(),
+        css: Vec::new(),
     };
     collect_document(&mut collector, document);
     let range_span = range.map(|range| {
@@ -119,17 +127,27 @@ pub fn embedded_ranges(
         src: text,
         tokens: Vec::new(),
         roc: Vec::new(),
+        css: Vec::new(),
     };
     collect_document(&mut collector, document);
-    collector
-        .roc
-        .into_iter()
-        .filter(|span| !span.is_empty())
-        .map(|span| EmbeddedRange {
-            language: "roc".to_string(),
-            range: lsp_range(source, span, encoding),
-        })
-        .collect()
+    let mut ranges = Vec::new();
+    for span in collector.roc {
+        if !span.is_empty() {
+            ranges.push(EmbeddedRange {
+                language: "roc".to_string(),
+                range: lsp_range(source, span, encoding),
+            });
+        }
+    }
+    for span in collector.css {
+        if !span.is_empty() {
+            ranges.push(EmbeddedRange {
+                language: "css".to_string(),
+                range: lsp_range(source, span, encoding),
+            });
+        }
+    }
+    ranges
 }
 
 fn collect_document(collector: &mut Collector<'_>, document: &Document) {
@@ -138,8 +156,16 @@ fn collect_document(collector: &mut Collector<'_>, document: &Document) {
             ModuleItem::Roc { span } => collector.roc(*span),
             ModuleItem::Component(component) => collect_component(collector, component),
             ModuleItem::Fixture(fixture) => collect_fixture(collector, fixture),
+            ModuleItem::Css(css) => collect_css(collector, css),
         }
     }
+}
+
+fn collect_css(collector: &mut Collector<'_>, css: &CssDecl) {
+    if let Some(span) = ident_between(collector.src, css.span.start, css.body.start, "@css") {
+        collector.token(span, TOKEN_KEYWORD, 0);
+    }
+    collector.css(css.body);
 }
 
 fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
@@ -235,6 +261,7 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
                 collector.token(dir.binder.span, TOKEN_PARAMETER, MOD_DECLARATION);
                 collector.roc(dir.expr);
             }
+            TemplateItem::Css(css) => collect_css(collector, css),
             TemplateItem::Text(_) => {}
         }
     }
