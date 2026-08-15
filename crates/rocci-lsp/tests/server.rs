@@ -9,7 +9,7 @@ use lsp_types::{
 use rocci_lsp::{LanguageServer, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE};
 use rocci_template::{PositionEncoding, SourceFile};
 
-const KITCHEN_SINK: &str = include_str!("../../rocci-template/tests/fixtures/kitchen_sink.rocci");
+const KITCHEN_SINK: &str = include_str!("../../../test/AllSyntax.rocci");
 
 const INCOMPLETE_TAG: &str = r#"
 @component Broken = |{}| {

@@ -1,5 +1,7 @@
 use comrak::{Arena, Options, parse_document};
-use rocci_template::{Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from};
+use rocci_template::{
+    Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from, parse_template_item_from,
+};
 
 use crate::ast::{Document, Item, PageDecl, RenderDecl, RocDecl};
 use crate::markdown::{self, BlockOrHole};
@@ -97,5 +99,17 @@ fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -
                 span: Span::new(decl.at, decl.end),
             }),
         },
+        Reserved::If | Reserved::For | Reserved::Match | Reserved::Let => {
+            match parse_template_item_from(src, decl.at) {
+                Some(parsed) => {
+                    diagnostics.extend(parsed.diagnostics);
+                    Item::Template(parsed.item)
+                }
+                None => Item::Roc(RocDecl {
+                    body: Span::new(decl.at, decl.end),
+                    span: Span::new(decl.at, decl.end),
+                }),
+            }
+        }
     }
 }

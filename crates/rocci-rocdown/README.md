@@ -36,8 +36,8 @@ Indent              := (" " | "\t")*
 ```
 
 Reserved names: `page`, `roc`, `render`, `component`, `fixture`, `css`,
-`context`, `init`, `on`. Unknown `@name` stays Markdown. `\@roc` is escaped
-prose; the backslash is dropped in rendered text.
+`context`, `init`, `on`, `if`, `for`, `match`, `let`. Unknown `@name` stays
+Markdown. `\@roc` is escaped prose; the backslash is dropped in rendered text.
 
 Declarations are recognized only when all of these hold:
 
@@ -101,10 +101,17 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@fixture` | Roc binding | preview/test sample; not rendered into the article |
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
+| `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 
-`@component` bodies are Rocci HTML, not Markdown: interpolation, `@if`, `@for`,
-`@match`, `@let`, and component-local `@css` work unchanged. See
-[`rocci-template`](../rocci-template).
+`@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template
+bodies, not Markdown. `#` in those bodies is a template comment. `@else` /
+`@else if` attach to the preceding `@if` (blank lines in between are fine).
+Document-level `@let` bindings are hoisted to the start of `rocci_content`.
+Bare `<div>`, `<Hello />`, and `{expr}` as siblings of Markdown stay literal /
+disabled raw HTML. See [`rocci-template`](../rocci-template).
+
+`@component` bodies are the same Rocci HTML grammar: interpolation, `@if`,
+`@for`, `@match`, `@let`, and component-local `@css`.
 
 `@island` is reserved in the design and is **not** parsed yet.
 
@@ -165,7 +172,7 @@ Every document exports:
 
 ```text
 rocci_meta    : record from @page.meta, or {}
-rocci_content : {} -> Html     # Markdown + @render, as a fragment
+rocci_content : {} -> Html     # Markdown + @render + @if/@for/@match/@let
 rocci_page    : {} -> Html     # layout call, or the default document shell
 ```
 
@@ -194,7 +201,8 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 - Scan / parse / lower a single `.rocdown` file to Roc
 - Declaration boundary rules (prose `@`, fences, lists, quotes, indent, `\@`)
-- `@page`, `@roc`, `@render`, and delegated Rocci declarations
+- `@page`, `@roc`, `@render`, delegated Rocci declarations, and document-root
+  `@if` / `@for` / `@match` / `@let`
 - CommonMark + GFM tables/strikethrough/task lists/autolink
 - Heading IDs, scoped CSS, default HTML shell, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,

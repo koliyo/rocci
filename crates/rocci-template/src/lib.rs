@@ -25,15 +25,19 @@ pub use ast::{
 pub use diagnostic::{Diagnostic, Severity};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
 pub use lower::{
-    ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, RouteInfo, StyleArtifact,
-    StyleKind, file_scope_id, route_fn_name,
+    ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, LoweredTemplate, RouteInfo,
+    StyleArtifact, StyleKind, TemplateValueCtx, file_scope_id, lower_template_items, route_fn_name,
+    template_items_have_action,
 };
-pub use parser::{ParseDeclOutput, ParseOutput, parse_declaration_from};
+pub use parser::{
+    ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
+    parse_template_item_from,
+};
 pub use pprint::format_ast;
 pub use resolve::{camel_to_pascal, component_matches, component_roc_name, pascal_to_camel};
 pub use source_map::{OriginKind, Segment};
 pub use span::{PositionEncoding, SourceFile, Span};
-pub use validate::validate;
+pub use validate::{validate, validate_template_items};
 
 use crate::parser::parse as parse_impl;
 

@@ -4,6 +4,11 @@ use crate::ast::{Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, parse_
 use crate::diagnostic::Diagnostic;
 use crate::resolve::{fixture_target_name_error, pascal_to_camel};
 
+pub fn validate_template_items(items: &[TemplateItem], diagnostics: &mut Vec<Diagnostic>) {
+    let mut saw_render = false;
+    validate_items(items, diagnostics, &mut saw_render, false);
+}
+
 pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic>) {
     let component_names: HashSet<String> = document
         .items

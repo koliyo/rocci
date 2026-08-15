@@ -243,6 +243,9 @@ fn collect_rocdown(
             rocci_rocdown::Item::Context(context) => collect_context(collector, context),
             rocci_rocdown::Item::Init(init) => collect_init(collector, init),
             rocci_rocdown::Item::On(on) => collect_on(collector, on),
+            rocci_rocdown::Item::Template(item) => {
+                collect_items(collector, std::slice::from_ref(item))
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+use rocci_template::TemplateItem;
+
 use crate::ast::{Document, Item, MdNode};
 
 pub fn format_ast(src: &str, document: &Document) -> String {
@@ -18,6 +20,13 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             Item::Context(_) => w.leaf("context", &[]),
             Item::Init(_) => w.leaf("init", &[]),
             Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
+            Item::Template(item) => match item {
+                TemplateItem::If(_) => w.leaf("if", &[]),
+                TemplateItem::For(dir) => w.leaf("for", &[dir.binder.name.clone()]),
+                TemplateItem::Match(_) => w.leaf("match", &[]),
+                TemplateItem::Let(dir) => w.leaf("let", &[dir.binder.name.clone()]),
+                _ => w.leaf("template", &[]),
+            },
         }
     }
     w.close();

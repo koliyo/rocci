@@ -5,6 +5,13 @@ import Design
 
 Tone : [Neutral, Positive]
 
+@css {
+    body { font-family: system-ui, sans-serif; }
+}
+
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
 @component
 Badge = |{ tone ?? Neutral }, content|
     <span class={badgeClass(tone)}>
@@ -119,4 +126,8 @@ badgeClass = |tone| {
         Neutral => "badge"
         Positive => "badge badge--positive"
     }
+}
+
+@on:get("/") {
+    counterPage({ person: { name: "Roc" }, count: 0 })
 }

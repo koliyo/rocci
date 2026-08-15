@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
 use rocci_template::{
     ComponentInfo, Diagnostic, Document as RocciDocument, FixtureInfo, InitInfo, LowerOptions,
-    ModuleItem, OriginKind, RouteInfo, Segment, SourceFile, Span, StyleArtifact, file_scope_id,
-    route_fn_name, validate,
+    LoweredTemplate, ModuleItem, OriginKind, RouteInfo, Segment, SourceFile, Span, StyleArtifact,
+    TemplateItem, TemplateValueCtx, file_scope_id, lower_template_items, route_fn_name,
+    template_items_have_action, validate, validate_template_items,
 };
 
-use crate::ast::{Document, Item, MdNode, PageMeta};
+use crate::ast::{Document, Item, MdNode, PageMeta, RenderDecl};
 use crate::page::{extract_page, imports_html, roc_binding_names, split_roc_body};
 
 const META_NAME: &str = "rocci_meta";
@@ -72,6 +75,11 @@ pub fn lower(
         span: document.span,
     };
     validate(source.src, &rocci_doc, diagnostics);
+    for item in &document.items {
+        if let Item::Template(template) = item {
+            validate_template_items(std::slice::from_ref(template), diagnostics);
+        }
+    }
     let lowered_rocci = rocci_template::lower(source, &rocci_doc, options);
 
     let css_stamp = if lowered_rocci
@@ -84,13 +92,26 @@ pub fn lower(
         None
     };
 
+    let field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
+        .components
+        .iter()
+        .map(|component| (component.name.clone(), component.param_defaults.clone()))
+        .collect();
+    let page_datastar = document.items.iter().any(|item| match item {
+        Item::Template(template) => template_items_have_action(std::slice::from_ref(template)),
+        _ => false,
+    });
+
     let mut emitter = Emitter {
+        source,
+        options,
         html: &options.html_module,
         roc: String::new(),
         segments: Vec::new(),
         indent: 0,
         at_line_start: true,
         css_stamp,
+        field_defaults,
     };
 
     let mut imports = Vec::new();
@@ -116,7 +137,7 @@ pub fn lower(
             .trim_start_matches('\n')
             .to_string();
     }
-    if has_datastar {
+    if has_datastar || page_datastar {
         emitter.emit("import Datastar\n");
     }
     for span in &imports {
@@ -128,7 +149,7 @@ pub fn lower(
             }
         }
     }
-    if injected_html || !imports.is_empty() || has_datastar {
+    if injected_html || !imports.is_empty() || has_datastar || page_datastar {
         emitter.emit("\n");
     }
     for span in &rest {
@@ -168,28 +189,10 @@ pub fn lower(
     emitter.emit(CONTENT_NAME);
     emitter.emit(" = |{}| {\n");
     emitter.indent += 1;
+    emitter.emit_content_lets(document);
     emitter.push_indent();
-    emitter.emit_html(".fragment([\n");
-    emitter.indent += 1;
-    for item in &document.items {
-        match item {
-            Item::Markdown(node) => {
-                emitter.push_indent();
-                emitter.lower_md(node);
-                emitter.emit(",\n");
-            }
-            Item::Render(render) => {
-                emitter.push_indent();
-                let expr = render.expr.of(source.src).trim();
-                emitter.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
-                emitter.emit(",\n");
-            }
-            _ => {}
-        }
-    }
-    emitter.indent -= 1;
-    emitter.push_indent();
-    emitter.emit("])\n");
+    emitter.lower_content_value(document);
+    emitter.emit("\n");
     emitter.indent -= 1;
     emitter.push_indent();
     emitter.emit("}\n\n");
@@ -272,15 +275,151 @@ pub fn lower(
 }
 
 struct Emitter<'a> {
+    source: SourceFile<'a>,
+    options: &'a LowerOptions,
     html: &'a str,
     roc: String,
     segments: Vec<Segment>,
     indent: usize,
     at_line_start: bool,
     css_stamp: Option<String>,
+    field_defaults: HashMap<String, Vec<(String, String)>>,
 }
 
 impl<'a> Emitter<'a> {
+    fn emit_content_lets(&mut self, document: &Document) {
+        for item in &document.items {
+            let Item::Template(TemplateItem::Let(let_dir)) = item else {
+                continue;
+            };
+            self.push_indent();
+            self.emit_mapped(
+                &let_dir.binder.name,
+                let_dir.binder.span,
+                OriginKind::Directive,
+            );
+            self.emit(" = ");
+            self.emit_mapped(
+                let_dir.expr.of(self.source.src).trim(),
+                let_dir.expr,
+                OriginKind::Directive,
+            );
+            self.emit("\n\n");
+        }
+    }
+
+    fn lower_content_value(&mut self, document: &Document) {
+        let groups = group_content(document);
+        match groups.as_slice() {
+            [] => {
+                self.emit_html(".fragment([\n");
+                self.push_indent();
+                self.emit("])");
+            }
+            [ContentGroup::For(item)] => {
+                self.emit_html(".fragment(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.splice_template(std::slice::from_ref(item), TemplateValueCtx::List);
+                self.emit("\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
+            }
+            [ContentGroup::Nodes(nodes)] => {
+                self.emit_html(".fragment([\n");
+                self.indent += 1;
+                self.emit_nodes(nodes);
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("])");
+            }
+            _ => {
+                self.emit_html(".fragment(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_concat_groups(&groups);
+                self.emit("\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
+            }
+        }
+    }
+
+    fn emit_concat_groups(&mut self, groups: &[ContentGroup<'_>]) {
+        match groups {
+            [] => self.emit("[]"),
+            [group] => self.emit_content_group(group),
+            [first, rest @ ..] => {
+                self.emit("List.concat(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_content_group(first);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit_concat_groups(rest);
+                self.emit(",\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
+            }
+        }
+    }
+
+    fn emit_content_group(&mut self, group: &ContentGroup<'_>) {
+        match group {
+            ContentGroup::Nodes(nodes) => {
+                self.emit("[\n");
+                self.indent += 1;
+                self.emit_nodes(nodes);
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("]");
+            }
+            ContentGroup::For(item) => {
+                self.splice_template(std::slice::from_ref(item), TemplateValueCtx::List);
+            }
+        }
+    }
+
+    fn emit_nodes(&mut self, nodes: &[ContentPiece<'_>]) {
+        for node in nodes {
+            self.push_indent();
+            match node {
+                ContentPiece::Markdown(md) => self.lower_md(md),
+                ContentPiece::Render(render) => {
+                    let expr = render.expr.of(self.source.src).trim();
+                    self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
+                }
+                ContentPiece::Template(item) => {
+                    self.splice_template(std::slice::from_ref(item), TemplateValueCtx::Node);
+                }
+            }
+            self.emit(",\n");
+        }
+    }
+
+    fn splice_template(&mut self, items: &[TemplateItem], ctx: TemplateValueCtx) {
+        let lowered: LoweredTemplate = lower_template_items(
+            self.source,
+            items,
+            self.options,
+            &self.field_defaults,
+            self.indent,
+            ctx,
+            self.css_stamp.clone(),
+        );
+        let start = self.roc.len();
+        self.roc.push_str(&lowered.roc);
+        self.at_line_start = lowered.roc.ends_with('\n');
+        for mut segment in lowered.segments {
+            segment.generated.start += start as u32;
+            segment.generated.end += start as u32;
+            self.segments.push(segment);
+        }
+    }
+
     fn lower_md(&mut self, node: &MdNode) {
         match node {
             MdNode::Heading {
@@ -887,4 +1026,39 @@ impl<'a> Emitter<'a> {
             self.at_line_start = false;
         }
     }
+}
+
+enum ContentPiece<'a> {
+    Markdown(&'a MdNode),
+    Render(&'a RenderDecl),
+    Template(&'a TemplateItem),
+}
+
+enum ContentGroup<'a> {
+    Nodes(Vec<ContentPiece<'a>>),
+    For(&'a TemplateItem),
+}
+
+fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
+    let mut groups = Vec::new();
+    let mut current = Vec::new();
+    for item in &document.items {
+        match item {
+            Item::Markdown(node) => current.push(ContentPiece::Markdown(node)),
+            Item::Render(render) => current.push(ContentPiece::Render(render)),
+            Item::Template(TemplateItem::Let(_)) => {}
+            Item::Template(item) if matches!(item, TemplateItem::For(_)) => {
+                if !current.is_empty() {
+                    groups.push(ContentGroup::Nodes(std::mem::take(&mut current)));
+                }
+                groups.push(ContentGroup::For(item));
+            }
+            Item::Template(item) => current.push(ContentPiece::Template(item)),
+            _ => {}
+        }
+    }
+    if !current.is_empty() {
+        groups.push(ContentGroup::Nodes(current));
+    }
+    groups
 }

@@ -59,6 +59,25 @@ pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput
     })
 }
 
+pub struct ParseTemplateOutput {
+    pub item: TemplateItem,
+    pub end: usize,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub fn parse_template_item_from(src: &str, start: usize) -> Option<ParseTemplateOutput> {
+    let mut parser = Parser {
+        cur: Cursor::at(src, start),
+        diagnostics: Vec::new(),
+    };
+    let item = parser.parse_template_item(ItemStop::BlockEnd)?;
+    Some(ParseTemplateOutput {
+        end: parser.cur.pos,
+        item,
+        diagnostics: parser.diagnostics,
+    })
+}
+
 struct Parser<'a> {
     cur: Cursor<'a>,
     diagnostics: Vec<Diagnostic>,

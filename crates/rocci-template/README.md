@@ -475,8 +475,9 @@ deterministic for a given source. Segment maps record which generated
 ranges came from ordinary Roc, signatures, tags, interpolations, directives,
 or scaffolding.
 
-See `tests/fixtures/kitchen_sink.rocci` and the matching
-`tests/fixtures/kitchen_sink.roc` for a complete example.
+See [`../../test/AllSyntax.rocci`](../../test/AllSyntax.rocci) and the matching
+[`tests/fixtures/all_syntax.roc`](tests/fixtures/all_syntax.roc) for a complete
+example.
 
 ## AST dump
 
