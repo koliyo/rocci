@@ -186,15 +186,15 @@ mod tests {
                 route("GET", "/", "on_get_root!"),
                 route(
                     "POST",
-                    "/api/counter/increment",
-                    "on_post_api_counter_increment!",
+                    "/actions/counter/increment",
+                    "on_post_actions_counter_increment!",
                 ),
             ],
         );
         assert!(main.contains("Context : Counter.State"));
         assert!(main.contains("context = Counter.init!() ? |_| Exit(2)"));
         assert!(main.contains("Counter.on_get_root!(context)"));
-        assert!(main.contains("Counter.on_post_api_counter_increment!(context)"));
+        assert!(main.contains("Counter.on_post_actions_counter_increment!(context)"));
         assert!(main.contains("html_ok(Html.render(html))"));
         assert!(main.contains("Ok(patch_html!(html))"));
         assert!(main.contains("(\"GET\", \"/health\")"));

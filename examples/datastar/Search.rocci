@@ -9,7 +9,7 @@ Demo = |{ contacts, query }|
                 type="text"
                 placeholder="Search..."
                 data-bind:search=""
-                data-on:input__debounce.200ms=@get("/search/results")
+                data-on:input__debounce.200ms=@get("/actions/search/results")
             />
         </label>
         <Results contacts={contacts} query={query} />

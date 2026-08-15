@@ -34,12 +34,12 @@ import Html
     counterPage({ count: count })
 }
 
-@on:post("/api/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     counterCard({ count: count })
 }
 
-@on:post("/api/counter/reset") = |{ db }| {
+@on:post("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     counterCard({ count: count })
 }
@@ -134,8 +134,8 @@ CounterPage = |{ count }|
                 </header>
                 <CounterCard count={count} />
                 <div class="actions">
-                    <button data-on:click=@post("/api/counter/increment")>Increment</button>
-                    <button class="secondary" data-on:click=@post("/api/counter/reset")>Reset</button>
+                    <button data-on:click=@post("/actions/counter/increment")>Increment</button>
+                    <button class="secondary" data-on:click=@post("/actions/counter/reset")>Reset</button>
                 </div>
                 <footer>The count is stored in SQLite and shared by every visitor.</footer>
             </main>

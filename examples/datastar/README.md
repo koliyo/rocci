@@ -37,14 +37,14 @@ Package a desktop app from this directory with [`rocci.toml`](rocci.toml), or fr
 Per-row Datastar URLs use Rocci actions, so the URI is a Roc string:
 
 ```rocci
-<button data-on:click=@delete("/todos/${item.id}")>Delete</button>
+<button data-on:click=@delete("/actions/todos/${item.id}")>Delete</button>
 ```
 
-A static quoted attribute `data-on:click="@delete('/todos/${item.id}')"` would send the literal `${item.id}` to the browser. `@delete("/todos/${item.id}")` interpolates on the server, then `Datastar.delete` quotes the result for Datastar.
+A static quoted attribute `data-on:click="@delete('/actions/todos/${item.id}')"` would send the literal `${item.id}` to the browser. `@delete("/actions/todos/${item.id}")` interpolates on the server, then `Datastar.delete` quotes the result for Datastar.
 
 Quoted Datastar objects also cannot use unquoted `{ ... }` attribute values. In Rocci, `{expr}` is a Roc interpolation, so client objects stay inside `"..."`.
 
-TodoMVC adds items with a short `data-on:submit` expression rather than a large inline keydown program. Mixed Datastar/JS such as `$input.trim() && @patch('/todos')` stays a quoted attribute. Anything bigger belongs in a JavaScript module.
+TodoMVC adds items with a short `data-on:submit` expression rather than a large inline keydown program. Mixed Datastar/JS such as `$input.trim() && @patch('/actions/todos')` stays a quoted attribute. Anything bigger belongs in a JavaScript module.
 
 ## Smoke checks
 

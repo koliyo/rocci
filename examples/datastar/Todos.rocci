@@ -3,7 +3,7 @@ import Html
 @component
 Demo = |{ items, filter, pending, has_completed }|
     <section class="todos">
-        <form data-on:submit__prevent="$input.trim() && @patch('/todos') && ($input = '')">
+        <form data-on:submit__prevent="$input.trim() && @patch('/actions/todos') && ($input = '')">
             <input
                 id="new-todo"
                 type="text"
@@ -46,31 +46,31 @@ TodoItem = |{ item }|
     <li class={item.row_class}>
         @if item.done {
             <>
-                <input type="checkbox" checked="" data-on:click=@post("/todos/${item.id}/toggle") />
+                <input type="checkbox" checked="" data-on:click=@post("/actions/todos/${item.id}/toggle") />
                 <s>{item.text}</s>
             </>
         } @else {
             <>
-                <input type="checkbox" data-on:click=@post("/todos/${item.id}/toggle") />
+                <input type="checkbox" data-on:click=@post("/actions/todos/${item.id}/toggle") />
                 <span>{item.text}</span>
             </>
         }
-        <button class="error small" data-on:click=@delete("/todos/${item.id}")>Delete</button>
+        <button class="error small" data-on:click=@delete("/actions/todos/${item.id}")>Delete</button>
     </li>
 
 @component
 TodoFooter = |{ filter, pending, has_completed }|
     <div id="todo-actions" class="todo-actions">
         <span><strong>{pending.to_str()}</strong> items pending</span>
-        <button class={if filter_is(filter, All) { "small info" } else { "small" }} data-on:click=@put("/todos/mode/all")>All</button>
-        <button class={if filter_is(filter, Pending) { "small info" } else { "small" }} data-on:click=@put("/todos/mode/pending")>Pending</button>
-        <button class={if filter_is(filter, Completed) { "small info" } else { "small" }} data-on:click=@put("/todos/mode/completed")>Completed</button>
+        <button class={if filter_is(filter, All) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/all")>All</button>
+        <button class={if filter_is(filter, Pending) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/pending")>Pending</button>
+        <button class={if filter_is(filter, Completed) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/completed")>Completed</button>
         @if has_completed {
-            <button class="error small" data-on:click=@delete("/todos/completed")>Delete</button>
+            <button class="error small" data-on:click=@delete("/actions/todos/completed")>Delete</button>
         } @else {
             <button class="error small" disabled="">Delete</button>
         }
-        <button class="secondary small" data-on:click=@put("/todos/reset")>Reset</button>
+        <button class="secondary small" data-on:click=@put("/actions/todos/reset")>Reset</button>
     </div>
 
 filter_is = |filter, wanted|
