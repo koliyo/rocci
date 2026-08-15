@@ -1,7 +1,7 @@
 import Html
 
 @component
-HomePage = |{ groups }| {
+HomePage = |{ groups }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -21,10 +21,9 @@ HomePage = |{ groups }| {
             </div>
         </body>
     </html>
-}
 
 @component
-InspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
+InspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -55,10 +54,9 @@ InspectorPage = |{ groups, selected, fields, preview_url, selected_fixture }| {
             </div>
         </body>
     </html>
-}
 
 @component
-Sidebar = |{ groups, selected_id }| {
+Sidebar = |{ groups, selected_id }|
     <aside class="sidebar">
         <a class="brand" href="/">rocci browse</a>
         <div class="modules">
@@ -81,7 +79,6 @@ Sidebar = |{ groups, selected_id }| {
             }
         </div>
     </aside>
-}
 
 @component
 FixturePicker = |{ fixtures, selected_id, selected_fixture }| {
@@ -112,7 +109,7 @@ FixturePicker = |{ fixtures, selected_id, selected_fixture }| {
 }
 
 @component
-ParamForm = |{ fields, selected_id, selected_fixture }| {
+ParamForm = |{ fields, selected_id, selected_fixture }|
     <form method="get" action="/c" class="params" data-on:input__debounce.400ms="el.requestSubmit()">
         <input type="hidden" name="id" value={selected_id} />
         @if selected_fixture != "" {
@@ -129,7 +126,6 @@ ParamForm = |{ fields, selected_id, selected_fixture }| {
         }
         <button type="submit">Preview</button>
     </form>
-}
 
 @component
 ParamField = |{ item }| {

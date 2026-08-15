@@ -6,33 +6,29 @@ import Design
 Tone : [Neutral, Positive]
 
 @component
-Badge = |{ tone ?? Neutral }, content| {
+Badge = |{ tone ?? Neutral }, content|
     <span class={badgeClass(tone)}>
         {content}
     </span>
-}
 
 @component
-Hello = |{ name ?? "World" }| {
+Hello = |{ name ?? "World" }|
     <p>Hello, {name}</p>
-}
 
 @component
-CounterCard = |{ count }| {
+CounterCard = |{ count }|
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
     </section>
-}
 
 @component
-CounterPage = |{ person, count }| {
+CounterPage = |{ person, count }|
     <main id="counter-page">
         <Hello />
         <Hello name={person.name} />
         <CounterCard count={count} />
     </main>
-}
 
 @component
 TodoList = |{ items, state }| {
@@ -92,7 +88,7 @@ RequestState = |{ state, active }| {
 }
 
 @component
-ProfileLink = |{ person, selected }| {
+ProfileLink = |{ person, selected }|
     <a
         href={person.url}
         class={if selected { "selected" } else { "" }}
@@ -100,7 +96,6 @@ ProfileLink = |{ person, selected }| {
     >
         {person.name}
     </a>
-}
 
 @component
 VisibleCheck = |{ user, permissions }| {

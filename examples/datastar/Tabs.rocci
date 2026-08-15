@@ -1,7 +1,7 @@
 import Html
 
 @component
-Demo = |{ tabs, panel }| {
+Demo = |{ tabs, panel }|
     <div id="tabs" class="panel">
         <div role="tablist" class="tablist">
             @for tab in tabs {
@@ -19,7 +19,6 @@ Demo = |{ tabs, panel }| {
             <p>{panel}</p>
         </div>
     </div>
-}
 
 @fixture{target: Demo}
 demoTest = {

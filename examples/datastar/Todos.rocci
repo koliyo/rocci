@@ -1,7 +1,7 @@
 import Html
 
 @component
-Demo = |{ items, filter, pending, has_completed }| {
+Demo = |{ items, filter, pending, has_completed }|
     <section class="todos">
         <form data-on:submit__prevent="$input.trim() && @patch('/todos') && ($input = '')">
             <input
@@ -14,15 +14,13 @@ Demo = |{ items, filter, pending, has_completed }| {
         </form>
         <TodosPatch items={items} filter={filter} pending={pending} has_completed={has_completed} />
     </section>
-}
 
 @component
-TodosPatch = |{ items, filter, pending, has_completed }| {
+TodosPatch = |{ items, filter, pending, has_completed }|
     <>
         <TodoMain items={items} filter={filter} />
         <TodoFooter filter={filter} pending={pending} has_completed={has_completed} />
     </>
-}
 
 @component
 TodoMain = |{ items, filter }| {
@@ -44,7 +42,7 @@ TodoMain = |{ items, filter }| {
 }
 
 @component
-TodoItem = |{ item }| {
+TodoItem = |{ item }|
     <li class={item.row_class}>
         @if item.done {
             <>
@@ -59,10 +57,9 @@ TodoItem = |{ item }| {
         }
         <button class="error small" data-on:click=@delete("/todos/${item.id}")>Delete</button>
     </li>
-}
 
 @component
-TodoFooter = |{ filter, pending, has_completed }| {
+TodoFooter = |{ filter, pending, has_completed }|
     <div id="todo-actions" class="todo-actions">
         <span><strong>{pending.to_str()}</strong> items pending</span>
         <button class={if filter_is(filter, All) { "small info" } else { "small" }} data-on:click=@put("/todos/mode/all")>All</button>
@@ -75,7 +72,6 @@ TodoFooter = |{ filter, pending, has_completed }| {
         }
         <button class="secondary small" data-on:click=@put("/todos/reset")>Reset</button>
     </div>
-}
 
 filter_is = |filter, wanted|
     match (filter, wanted) {

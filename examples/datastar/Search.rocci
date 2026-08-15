@@ -1,7 +1,7 @@
 import Html
 
 @component
-Demo = |{ contacts, query }| {
+Demo = |{ contacts, query }|
     <>
         <label class="search-label">
             Search
@@ -14,7 +14,6 @@ Demo = |{ contacts, query }| {
         </label>
         <Results contacts={contacts} query={query} />
     </>
-}
 
 @component
 Results = |{ contacts, query }| {
@@ -42,12 +41,11 @@ Results = |{ contacts, query }| {
 }
 
 @component
-ContactRow = |{ contact }| {
+ContactRow = |{ contact }|
     <tr>
         <td>{contact.first}</td>
         <td>{contact.last}</td>
     </tr>
-}
 
 matches = |contact, query| {
     q = ascii_lower(Str.trim(query))

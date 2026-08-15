@@ -28,29 +28,25 @@ import pf.Html
 
 Tone : [Neutral, Positive]
 
-@component Badge = |{ tone }, content| {
+@component Badge = |{ tone }, content|
     <span class={badgeClass(tone)}>
         {content}
     </span>
-}
 
-@component Hello = |{ name }| {
+@component Hello = |{ name }|
     <p>Hello, {name}</p>
-}
 
-@component CounterCard = |{ count }| {
+@component CounterCard = |{ count }|
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
     </section>
-}
 
-@component CounterPage = |{ person, count }| {
+@component CounterPage = |{ person, count }|
     <main id="counter-page">
         <Hello name={person.name} />
         <CounterCard count={count} />
     </main>
-}
 
 badgeClass = |tone| {
     match tone {
@@ -624,7 +620,7 @@ Alternative markers are possible:
 An illustrative grammar is:
 
 ```text
-ComponentDecl  ::= "@component" PascalName "=" RocParams TemplateBlock
+ComponentDecl  ::= "@component" PascalName "=" RocParams (HtmlExpr | TemplateBlock)
 StyleDecl      ::= RocName "=" "styles" "module" CssBlock
                  | "styles" "global" CssBlock
 
@@ -929,6 +925,7 @@ The outer scanner needs only enough Roc lexical awareness to find this exact top
 
 ```text
 @component PascalName = RocParams {
+@component PascalName = RocParams <HtmlExpr>
 ```
 
 It must be token-aware and indentation/delimiter-aware so the same text inside a string, comment, record, or nested expression is ignored. Restricting `@component` to the start of a top-level definition provides a strong synchronization point.
@@ -2182,7 +2179,7 @@ Before freezing the grammar:
 
 ## Recommendation
 
-Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `@component Name = |params| { ... }` declarations with a bounded template grammar. Component names are PascalCase and lower to camelCase Roc functions. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
+Adopt `.rocci` as a multi-component Roc module format and make `rocci-template` its only parser and lowering implementation. Use explicit `@component Name = |params| ...` declarations with a bounded template grammar. Component names are PascalCase and lower to camelCase Roc functions. A body that is one HTML tag, component call, or fragment does not need braces; `@let`, `@css`, directives, and multiple root items still use `{ ... }`. Keep `{Roc expression}` for HTML text and attribute interpolation, but use the simpler `@if expression { ... }`, `@for item in expression { ... }`, and `@match expression { Pattern => templateValue }` forms. The first depth-zero `{` opens each directive body; top-level record expressions must be parenthesized. A match arm returns one self-delimiting template value, with fragments for multiple siblings. Keep `@let` line-bounded or omit it until its ergonomics are proven.
 
 Do not permit markup recursively inside Roc expressions and do not ship full JSX as an equivalent v1 syntax.
 

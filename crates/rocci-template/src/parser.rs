@@ -763,7 +763,7 @@ impl<'a> Parser<'a> {
         };
 
         self.cur.skip_trivia();
-        let body = self.parse_template_block();
+        let body = self.parse_component_body();
         ComponentDecl {
             span: Span::new(start, self.cur.pos),
             name: Ident {
@@ -772,6 +772,69 @@ impl<'a> Parser<'a> {
             },
             params,
             body,
+        }
+    }
+
+    fn parse_component_body(&mut self) -> TemplateBlock {
+        self.skip_body_prefix();
+        if self.cur.peek() == Some('{') {
+            return self.parse_template_block();
+        }
+        if self.cur.peek() == Some('<') {
+            return self.parse_html_expr_body();
+        }
+        self.error(
+            Span::point(self.cur.pos),
+            "expected `{` to open a template body, or a single HTML tag",
+        );
+        TemplateBlock {
+            items: Vec::new(),
+            span: Span::point(self.cur.pos),
+        }
+    }
+
+    fn skip_body_prefix(&mut self) {
+        loop {
+            self.cur.skip_trivia();
+            if self.cur.starts_with("<!--") {
+                let start = self.cur.pos;
+                if !self.cur.skip_html_comment()
+                    || !self.src()[start..self.cur.pos].ends_with("-->")
+                {
+                    self.error(Span::new(start, self.cur.pos), "unterminated HTML comment");
+                }
+                continue;
+            }
+            break;
+        }
+    }
+
+    fn parse_html_expr_body(&mut self) -> TemplateBlock {
+        let start = self.cur.pos;
+        let Some(item) = self.parse_tag() else {
+            return TemplateBlock {
+                items: Vec::new(),
+                span: Span::point(start),
+            };
+        };
+        let end = self.cur.pos;
+        let saved = Snapshot::from(&self.cur);
+        self.skip_body_prefix();
+        if !self.cur.is_eof() && !self.at_column_zero_def() {
+            self.error(
+                Span::point(self.cur.pos),
+                "braceless component bodies may contain one HTML tag; wrap multiple items in `{ ... }`",
+            );
+            self.sync_to_next_top_level();
+            return TemplateBlock {
+                items: vec![item],
+                span: Span::new(start, self.cur.pos),
+            };
+        }
+        saved.restore(&mut self.cur);
+        TemplateBlock {
+            items: vec![item],
+            span: Span::new(start, end),
         }
     }
 
@@ -817,7 +880,7 @@ impl<'a> Parser<'a> {
                     let mut look = Cursor::new(self.src());
                     look.pos = after_pipe;
                     look.skip_trivia();
-                    if look.peek() == Some('{') {
+                    if matches!(look.peek(), Some('{') | Some('<')) || look.peek().is_none() {
                         self.cur.bump();
                         return Some(Span::new(start, self.cur.pos));
                     }

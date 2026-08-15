@@ -1,7 +1,7 @@
 import Html
 
 @component
-Page = |{ title, eyebrow, lede, current }, content| {
+Page = |{ title, eyebrow, lede, current }, content|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -26,10 +26,9 @@ Page = |{ title, eyebrow, lede, current }, content| {
             </main>
         </body>
     </html>
-}
 
 @component
-GalleryNav = |{ current }| {
+GalleryNav = |{ current }|
     <ul class="gallery-nav">
         <li>
             <a href="/search" class={if current == "search" { "active" } else { "" }}>Search</a>
@@ -47,10 +46,9 @@ GalleryNav = |{ current }| {
             <a href="/validate" class={if current == "validate" { "active" } else { "" }}>Validate</a>
         </li>
     </ul>
-}
 
 @component
-Home = |{}| {
+Home = |{}|
     <Page title="Datastar gallery" eyebrow=".rocci views" lede="Server-rendered control flow with Datastar as the transport. Each page is a port of an official Datastar example." current="home">
         <ul class="example-list">
             <li>
@@ -76,7 +74,6 @@ Home = |{}| {
         </ul>
         <p class="note">Per-row Datastar URLs must be Roc expressions. A static quoted attribute does not substitute the row id; see the README.</p>
     </Page>
-}
 
 @fixture{target: Page}
 pageTest = {
