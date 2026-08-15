@@ -6,6 +6,7 @@ use crate::ast::{
     MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, parse_component_params,
     strip_param_defaults,
 };
+use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
 use crate::span::{SourceFile, Span};
 
@@ -113,7 +114,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
                         .any(|n| n == name)
                 })
                 .collect();
-            field_defaults.insert(component.name.name.clone(), defaults);
+            field_defaults.insert(pascal_to_camel(&component.name.name), defaults);
         }
     }
     let file_css_parts: Vec<(String, Span)> = document
@@ -233,8 +234,9 @@ impl<'a> Emitter<'a> {
     fn lower_component(&mut self, component: &ComponentDecl) {
         let parsed = parse_component_params(self.src, component.params);
         let body_params = parsed.body_params.clone();
+        let roc_name = pascal_to_camel(&component.name.name);
         self.components.push(ComponentInfo {
-            name: component.name.name.clone(),
+            name: roc_name.clone(),
             body_params: body_params.clone(),
             param_names: parsed.param_names,
             optional_params: parsed.optional_params,
@@ -245,7 +247,7 @@ impl<'a> Emitter<'a> {
         });
 
         self.emit_mapped(
-            &component.name.name,
+            &roc_name,
             component.name.span,
             OriginKind::ComponentSignature,
         );
@@ -272,7 +274,7 @@ impl<'a> Emitter<'a> {
         let component_id = if component_css.is_empty() {
             None
         } else {
-            Some(component_scope_id(self.file_name, &component.name.name))
+            Some(component_scope_id(self.file_name, &roc_name))
         };
         if let Some(id) = &component_id {
             let span = preamble
@@ -284,7 +286,7 @@ impl<'a> Emitter<'a> {
                 .unwrap_or(component.span);
             self.styles.push(StyleArtifact {
                 kind: StyleKind::Component,
-                name: component.name.name.clone(),
+                name: roc_name.clone(),
                 css: scope_css(&component_css, id),
                 span,
             });

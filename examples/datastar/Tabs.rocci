@@ -1,7 +1,7 @@
 import Html
 
 @component
-demo = |{ tabs, panel }| {
+Demo = |{ tabs, panel }| {
     <div id="tabs" class="panel">
         <div role="tablist" class="tablist">
             @for tab in tabs {
@@ -21,7 +21,7 @@ demo = |{ tabs, panel }| {
     </div>
 }
 
-@fixture{target: demo}
+@fixture{target: Demo}
 demoTest = {
     tabs: [
         { id: "0", label: "Tab 0", selected: True },

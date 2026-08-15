@@ -6,19 +6,19 @@ import Design
 Tone : [Neutral, Positive]
 
 @component
-badge = |{ tone ?? Neutral }, content| {
+Badge = |{ tone ?? Neutral }, content| {
     <span class={badgeClass(tone)}>
         {content}
     </span>
 }
 
 @component
-hello = |{ name ?? "World" }| {
+Hello = |{ name ?? "World" }| {
     <p>Hello, {name}</p>
 }
 
 @component
-counterCard = |{ count }| {
+CounterCard = |{ count }| {
     <section id="counter" class="counter-card">
         <output>{Num.toStr(count)}</output>
         <Badge tone={Positive}>Current count</Badge>
@@ -26,7 +26,7 @@ counterCard = |{ count }| {
 }
 
 @component
-counterPage = |{ person, count }| {
+CounterPage = |{ person, count }| {
     <main id="counter-page">
         <Hello />
         <Hello name={person.name} />
@@ -35,7 +35,7 @@ counterPage = |{ person, count }| {
 }
 
 @component
-todoList = |{ items, state }| {
+TodoList = |{ items, state }| {
     @match state {
         Loading => <Spinner />
 
@@ -55,7 +55,7 @@ todoList = |{ items, state }| {
 }
 
 @component
-accountActions = |{ user }| {
+AccountActions = |{ user }| {
     @if user.isSignedIn {
         <LogoutButton />
     } @else if user.canRegister {
@@ -66,7 +66,7 @@ accountActions = |{ user }| {
 }
 
 @component
-filteredList = |{ items, query }| {
+FilteredList = |{ items, query }| {
     @let visible = List.keepIf(items, |item| matches(item, query))
 
     @if List.isEmpty(visible) {
@@ -77,7 +77,7 @@ filteredList = |{ items, query }| {
 }
 
 @component
-requestState = |{ state, active }| {
+RequestState = |{ state, active }| {
     @match state {
         Loading => <Spinner />
 
@@ -92,7 +92,7 @@ requestState = |{ state, active }| {
 }
 
 @component
-profileLink = |{ person, selected }| {
+ProfileLink = |{ person, selected }| {
     <a
         href={person.url}
         class={if selected { "selected" } else { "" }}
@@ -103,7 +103,7 @@ profileLink = |{ person, selected }| {
 }
 
 @component
-visibleCheck = |{ user, permissions }| {
+VisibleCheck = |{ user, permissions }| {
     @if isVisible({ user, permissions }) {
         <Profile />
     } @else {
@@ -112,7 +112,7 @@ visibleCheck = |{ user, permissions }| {
 }
 
 @component
-statusMatch = |{ pair }| {
+StatusMatch = |{ pair }| {
     @match ({ status, items }) {
         { status: Loading } => <Spinner />
         { status: Ready } => <ItemList items={items} />

@@ -80,7 +80,7 @@ reset_count! = |db| {
 }
 
 @component
-counterCard = |{ count }| {
+CounterCard = |{ count }| {
     @css {
         .counter-card {
             margin-top: 2rem;
@@ -114,7 +114,7 @@ counterCard = |{ count }| {
 }
 
 @component
-counterPage = |{ count }| {
+CounterPage = |{ count }| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -143,10 +143,10 @@ counterPage = |{ count }| {
     </html>
 }
 
-@fixture{target: counterCard}
+@fixture{target: CounterCard}
 counterCardTest = { count: 3.I64 }
 
-@fixture{target: counterPage}
+@fixture{target: CounterPage}
 counterPageTest = { count: 3.I64 }
 
 @css {

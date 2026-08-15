@@ -2,7 +2,7 @@ import Html
 import Signals
 
 @component
-panel = |{ mode, contact }| {
+Panel = |{ mode, contact }| {
     <div id="contact" class="panel">
         @match mode {
             Viewing => <ContactCard contact={contact} />
@@ -12,7 +12,7 @@ panel = |{ mode, contact }| {
 }
 
 @component
-contactCard = |{ contact }| {
+ContactCard = |{ contact }| {
     <>
         <p>First Name: {contact.first}</p>
         <p>Last Name: {contact.last}</p>
@@ -34,7 +34,7 @@ contactCard = |{ contact }| {
 }
 
 @component
-contactForm = |{ contact }| {
+ContactForm = |{ contact }| {
     <>
         <label>
             First Name
@@ -85,11 +85,11 @@ sample_contact = {
     email: "john@roc-lang.org",
 }
 
-@fixture{target: panel}
+@fixture{target: Panel}
 panelTest = { mode: Viewing, contact: sample_contact }
 
-@fixture{target: contactCard}
+@fixture{target: ContactCard}
 contactCardTest = { contact: sample_contact }
 
-@fixture{target: contactForm}
+@fixture{target: ContactForm}
 contactFormTest = { contact: sample_contact }

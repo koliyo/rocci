@@ -12,11 +12,11 @@ use rocci_template::{PositionEncoding, SourceFile};
 const KITCHEN_SINK: &str = include_str!("../../rocci-template/tests/fixtures/kitchen_sink.rocci");
 
 const INCOMPLETE_TAG: &str = r#"
-@component broken = |{}| {
+@component Broken = |{}| {
     <Hello name={person.name}
 }
 
-@component ok = |{ name }| {
+@component Ok = |{ name }| {
     <p>{name}</p>
 }
 "#;
@@ -93,9 +93,9 @@ fn kitchen_sink_has_no_error_diagnostics_and_component_symbols() {
         panic!("expected nested document symbols");
     };
     let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
-    assert!(names.contains(&"badge"));
-    assert!(names.contains(&"hello"));
-    assert!(names.contains(&"counterPage"));
+    assert!(names.contains(&"Badge"));
+    assert!(names.contains(&"Hello"));
+    assert!(names.contains(&"CounterPage"));
 }
 
 #[test]
@@ -133,7 +133,7 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
         panic!("expected a single location");
     };
-    let hello_decl = KITCHEN_SINK.find("hello = |{ name").expect("hello decl");
+    let hello_decl = KITCHEN_SINK.find("Hello = |{ name").expect("hello decl");
     let (decl_line, decl_character) = line_col(KITCHEN_SINK, hello_decl);
     assert_eq!(location.range.start.line, decl_line);
     assert_eq!(location.range.start.character, decl_character);
@@ -147,12 +147,12 @@ fn hello_tag_jumps_to_hello_component() {
     let lsp_types::HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
-    assert!(markup.value.contains("@component hello ="));
+    assert!(markup.value.contains("@component Hello ="));
 }
 
 #[test]
 fn utf8_and_utf16_map_non_bmp_diagnostics_differently() {
-    let src = "@component view = |{}| {\n    😀@fi ready {\n        <Ready />\n    }\n}\n";
+    let src = "@component View = |{}| {\n    😀@fi ready {\n        <Ready />\n    }\n}\n";
     let mut utf8 = initialize(true);
     let mut utf16 = initialize(false);
     assert_eq!(utf8.encoding(), PositionEncoding::Utf8);
@@ -291,7 +291,7 @@ fn css_blocks_are_keywords_with_embedded_css_ranges() {
     .card { padding: 1rem; }
 }
 
-@component hello = |{ name }| {
+@component Hello = |{ name }| {
     @css {
         .greeting { color: navy; }
     }

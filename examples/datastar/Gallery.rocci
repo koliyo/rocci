@@ -1,7 +1,7 @@
 import Html
 
 @component
-page = |{ title, eyebrow, lede, current }, content| {
+Page = |{ title, eyebrow, lede, current }, content| {
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -29,7 +29,7 @@ page = |{ title, eyebrow, lede, current }, content| {
 }
 
 @component
-galleryNav = |{ current }| {
+GalleryNav = |{ current }| {
     <ul class="gallery-nav">
         <li>
             <a href="/search" class={if current == "search" { "active" } else { "" }}>Search</a>
@@ -50,7 +50,7 @@ galleryNav = |{ current }| {
 }
 
 @component
-home = |{}| {
+Home = |{}| {
     <Page title="Datastar gallery" eyebrow=".rocci views" lede="Server-rendered control flow with Datastar as the transport. Each page is a port of an official Datastar example." current="home">
         <ul class="example-list">
             <li>
@@ -78,7 +78,7 @@ home = |{}| {
     </Page>
 }
 
-@fixture{target: page}
+@fixture{target: Page}
 pageTest = {
     title: "Active Search",
     eyebrow: "@let, @if, @for",
@@ -86,8 +86,8 @@ pageTest = {
     current: "search",
 }
 
-@fixture{target: galleryNav}
+@fixture{target: GalleryNav}
 galleryNavTest = { current: "search" }
 
-@fixture{target: home}
+@fixture{target: Home}
 homeTest = {}

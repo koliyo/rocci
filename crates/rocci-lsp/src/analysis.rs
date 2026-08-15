@@ -6,7 +6,7 @@ use lsp_types::{
 use rocci_template::{
     CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl, InitDecl,
     LowerOptions, ModuleItem, OnDecl, PositionEncoding, Severity, SourceFile, Span, TemplateItem,
-    camel_to_pascal, compile,
+    compile, component_matches,
 };
 
 #[rustfmt::skip]
@@ -171,7 +171,10 @@ fn fixture_symbol(
 ) -> DocumentSymbol {
     DocumentSymbol {
         name: fixture.name.name.clone(),
-        detail: Some(format!("@fixture {{target: {}}}", fixture.target.roc_name)),
+        detail: Some(format!(
+            "@fixture {{target: {}}}",
+            fixture.target.source_name()
+        )),
         kind: SymbolKind::CONSTANT,
         tags: None,
         #[allow(deprecated)]
@@ -241,7 +244,7 @@ fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> Str
 }
 
 fn local_component<'a>(document: &'a Document, roc_name: &str) -> Option<&'a ComponentDecl> {
-    components(document).find(|component| component.name.name == roc_name)
+    components(document).find(|component| component_matches(&component.name.name, roc_name))
 }
 
 fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
@@ -258,20 +261,16 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
 
 fn local_component_tags(compiled: &CompileOutput, prefix: &str) -> Vec<CompletionItem> {
     components(&compiled.document)
-        .map(|component| camel_to_pascal(&component.name.name))
+        .map(|component| component.name.name.clone())
         .filter(|label| label.starts_with(prefix))
         .map(|label| {
             completion_item(
                 &label,
                 CompletionItemKind::FUNCTION,
-                Some(format!("@component {}", pascal_to_camel_label(&label))),
+                Some(format!("@component {label}")),
             )
         })
         .collect()
-}
-
-fn pascal_to_camel_label(name: &str) -> String {
-    rocci_template::pascal_to_camel(name)
 }
 
 fn html_tag_items(prefix: &str) -> Vec<CompletionItem> {

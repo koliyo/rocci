@@ -112,7 +112,7 @@ fn write_fixture(w: &mut Writer<'_>, src: &str, fixture: &FixtureDecl) {
         "fixture",
         &[
             atom(&fixture.name.name),
-            format!("target:{}", fixture.target.roc_name),
+            format!("target:{}", fixture.target.source_name()),
         ],
     );
     write_roc(w, fixture.value.of(src));
