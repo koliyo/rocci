@@ -21,7 +21,7 @@ From the repository root, with `roc` and `cargo` on `PATH`:
 cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
 ```
 
-This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only. Override the port with `ROC_BASIC_WEBSERVER_PORT`.
+This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window. Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
 
 Preview components from fixtures with `rocci view` or `rocci browse examples`.
 

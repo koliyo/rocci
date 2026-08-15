@@ -45,11 +45,8 @@ enum Commands {
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
-        /// Skip the embedded window; print the URL and keep the Roc server.
-        #[arg(long)]
-        no_window: bool,
         #[command(flatten)]
-        port: serve::PortOptions,
+        serve: serve::ServeOptions,
         /// Roc app file, directory, or standalone .rocci file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
@@ -74,19 +71,13 @@ enum Commands {
         /// Component parameter as name=value (repeatable).
         #[arg(long = "arg", value_name = "NAME=VALUE", action = clap::ArgAction::Append)]
         args: Vec<String>,
-        /// Skip the embedded window; print the URL and keep the Roc server.
-        #[arg(long)]
-        no_window: bool,
         #[command(flatten)]
-        port: serve::PortOptions,
+        serve: serve::ServeOptions,
     },
     /// Browse components under one or more roots.
     Browse {
-        /// Skip the embedded window; print the URL and keep the Roc server.
-        #[arg(long)]
-        no_window: bool,
         #[command(flatten)]
-        port: serve::PortOptions,
+        serve: serve::ServeOptions,
         /// Directories (recursive) and/or .rocci files.
         #[arg(default_value = ".")]
         roots: Vec<PathBuf>,
@@ -126,26 +117,16 @@ fn main() -> Result<()> {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle::bundle(&config),
         Commands::Build { input, output } => build_rocci(&input, output.as_deref()),
-        Commands::Run {
-            file,
-            args,
-            no_window,
-            port,
-        } => run::run(&file, &args, no_window, port.port),
+        Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
         Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
         Commands::Ast { input } => ast_rocci(&input),
         Commands::View {
             input,
             component,
             args,
-            no_window,
-            port,
-        } => view::view(&input, &component, &args, no_window, port.port),
-        Commands::Browse {
-            roots,
-            no_window,
-            port,
-        } => browse::browse(&roots, no_window, port.port),
+            serve,
+        } => view::view(&input, &component, &args, serve.no_window, serve.port),
+        Commands::Browse { roots, serve } => browse::browse(&roots, serve.no_window, serve.port),
         Commands::Datastar { command } => match command {
             DatastarCmd::Update { app } => datastar_asset::update_app(&app),
             DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),
@@ -246,11 +227,20 @@ mod tests {
     use super::*;
     use clap::Parser;
 
-    fn port_of(cli: Cli) -> serve::PortArg {
-        match cli.command {
-            Commands::Run { port, .. }
-            | Commands::View { port, .. }
-            | Commands::Browse { port, .. } => port.port,
+    fn port_of(cli: &Cli) -> serve::PortArg {
+        match &cli.command {
+            Commands::Run { serve, .. }
+            | Commands::View { serve, .. }
+            | Commands::Browse { serve, .. } => serve.port,
+            _ => panic!("expected a hosting command"),
+        }
+    }
+
+    fn no_window_of(cli: &Cli) -> bool {
+        match &cli.command {
+            Commands::Run { serve, .. }
+            | Commands::View { serve, .. }
+            | Commands::Browse { serve, .. } => serve.no_window,
             _ => panic!("expected a hosting command"),
         }
     }
@@ -263,7 +253,7 @@ mod tests {
             ["rocci", "browse", "--port", "auto"].as_slice(),
         ] {
             assert_eq!(
-                port_of(Cli::try_parse_from(args).unwrap()),
+                port_of(&Cli::try_parse_from(args).unwrap()),
                 serve::PortArg::Auto
             );
         }
@@ -277,7 +267,7 @@ mod tests {
             ["rocci", "browse", "--port", "9001"].as_slice(),
         ] {
             assert_eq!(
-                port_of(Cli::try_parse_from(args).unwrap()),
+                port_of(&Cli::try_parse_from(args).unwrap()),
                 serve::PortArg::Exact(9001)
             );
         }
@@ -285,10 +275,53 @@ mod tests {
 
     #[test]
     fn run_accepts_port_after_app_path() {
-        let cli =
-            Cli::try_parse_from(["rocci", "run", "examples/counter/Counter.rocci", "--port", "auto"])
-                .unwrap();
-        assert_eq!(port_of(cli), serve::PortArg::Auto);
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "run",
+            "examples/counter/Counter.rocci",
+            "--port",
+            "auto",
+        ])
+        .unwrap();
+        assert_eq!(port_of(&cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn windowed_hosting_defaults_to_auto_port() {
+        if std::env::var_os("ROC_BASIC_WEBSERVER_PORT").is_some() {
+            return;
+        }
+        for args in [
+            ["rocci", "run"].as_slice(),
+            ["rocci", "view", "Foo.rocci"].as_slice(),
+            ["rocci", "browse"].as_slice(),
+        ] {
+            let cli = Cli::try_parse_from(args).unwrap();
+            assert!(!no_window_of(&cli));
+            assert_eq!(port_of(&cli), serve::PortArg::Auto);
+        }
+    }
+
+    #[test]
+    fn no_window_defaults_to_port_8000() {
+        if std::env::var_os("ROC_BASIC_WEBSERVER_PORT").is_some() {
+            return;
+        }
+        for args in [
+            ["rocci", "run", "--no-window"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--no-window"].as_slice(),
+            ["rocci", "browse", "--no-window"].as_slice(),
+        ] {
+            let cli = Cli::try_parse_from(args).unwrap();
+            assert!(no_window_of(&cli));
+            assert_eq!(port_of(&cli), serve::PortArg::Exact(8000));
+        }
+    }
+
+    #[test]
+    fn no_window_still_accepts_explicit_port() {
+        let cli = Cli::try_parse_from(["rocci", "run", "--no-window", "--port", "auto"]).unwrap();
+        assert_eq!(port_of(&cli), serve::PortArg::Auto);
     }
 
     #[test]
