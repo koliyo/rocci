@@ -22,7 +22,7 @@ signupForm = |{ email, first, last }| {
                 aria-invalid={invalid_attr(email.state)}
                 data-bind:email=""
                 data-signals:email={Signals.js_str(email.value)}
-                data-on:input__debounce.400ms="@post('/validate/check')"
+                data-on:input__debounce.400ms=@post("/validate/check")
             />
             <FieldNote field={email} />
         </label>
@@ -35,7 +35,7 @@ signupForm = |{ email, first, last }| {
                     aria-invalid={invalid_attr(first.state)}
                     data-bind:firstName=""
                     data-signals:firstName={Signals.js_str(first.value)}
-                    data-on:input__debounce.400ms="@post('/validate/check')"
+                    data-on:input__debounce.400ms=@post("/validate/check")
                 />
                 <FieldNote field={first} />
             </label>
@@ -47,13 +47,13 @@ signupForm = |{ email, first, last }| {
                     aria-invalid={invalid_attr(last.state)}
                     data-bind:lastName=""
                     data-signals:lastName={Signals.js_str(last.value)}
-                    data-on:input__debounce.400ms="@post('/validate/check')"
+                    data-on:input__debounce.400ms=@post("/validate/check")
                 />
                 <FieldNote field={last} />
             </label>
         </div>
         <div class="actions">
-            <button data-on:click="@post('/validate')">Sign Up</button>
+            <button data-on:click=@post("/validate")>Sign Up</button>
         </div>
     </>
 }

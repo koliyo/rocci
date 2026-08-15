@@ -163,6 +163,7 @@ missing values later.
 
 - `name="..."` is a static string.
 - `name={expr}` is a Roc expression.
+- `name=@post("/path")` is a Datastar backend action. Arguments are Roc; this lowers to `Datastar.post("/path")`.
 - A valueless name is a boolean attribute (`Html.boolean_attribute`).
 
 On HTML elements these become `Html.attribute` / `Html.boolean_attribute`.
@@ -171,6 +172,41 @@ On component tags they become a props record. `count={count}` is emitted as
 
 Attribute names may include hyphens (`aria-current`, `data-on-click`).
 Dynamic attribute names are not supported.
+
+### Datastar actions
+
+`@get`, `@post`, `@put`, `@patch`, and `@delete` are Rocci keywords in
+attribute position. They generate Datastar backend actions. Arguments are Roc
+(`"/path"`, not `'/path'`):
+
+```rocci
+<button data-on:click=@post("/actions/quiz")>
+    Submit answer
+</button>
+
+<button data-on:click=@delete("/todos/${item.id}")>
+    Delete
+</button>
+
+<body data-init=@get("/sse", [OpenWhenHidden(Bool.true)])>
+```
+
+This is not Datastar JS. `@post('/x')` with single quotes is a parse error;
+write `@post("/x")`, or quote a literal Datastar expression:
+
+```rocci
+<form data-on:submit__prevent="$input.trim() && @patch('/todos') && ($input = '')">
+```
+
+Quoted `"@post('...')"` stays an opaque client string. Custom actions such as
+`@peek` stay quoted. Using an action injects `import Datastar` when the module
+does not already import it. The `Datastar` helpers return the HTML attribute
+string, including JS quoting of the URI.
+
+A second argument is a `List` of option tags (`OpenWhenHidden`, `ContentType`,
+`Header`, `Retry`, `RequestCancellation`) and lowers to `Datastar.get_with`.
+Roc nightly cannot express optional record fields, so this is not a JS-style
+options object.
 
 ## Interpolation
 

@@ -949,8 +949,14 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
     match item {
         TemplateItem::Element(el) => {
             for attr in &el.attrs {
-                if let rocci_template::AttrValue::Expr { expr } = attr.value {
-                    classify_expr(param, expr.of(src), hints);
+                match attr.value {
+                    rocci_template::AttrValue::Expr { expr } => {
+                        classify_expr(param, expr.of(src), hints);
+                    }
+                    rocci_template::AttrValue::Action { args, .. } => {
+                        classify_expr(param, args.of(src), hints);
+                    }
+                    _ => {}
                 }
             }
             for child in &el.children {
@@ -959,8 +965,14 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
         }
         TemplateItem::ComponentCall(call) => {
             for attr in &call.attrs {
-                if let rocci_template::AttrValue::Expr { expr } = attr.value {
-                    classify_expr(param, expr.of(src), hints);
+                match attr.value {
+                    rocci_template::AttrValue::Expr { expr } => {
+                        classify_expr(param, expr.of(src), hints);
+                    }
+                    rocci_template::AttrValue::Action { args, .. } => {
+                        classify_expr(param, args.of(src), hints);
+                    }
+                    _ => {}
                 }
             }
             if let Some(children) = &call.children {
@@ -2030,9 +2042,7 @@ cardTest = { count: 3 }
 "#;
         let groups = groups_with_fixtures(src);
         let preview = generate_preview_roc(&groups);
-        assert!(preview.contains(
-            "Demo.card({ count: Query.arg_i64(args, \"count\") ?? 3.I64 })"
-        ));
+        assert!(preview.contains("Demo.card({ count: Query.arg_i64(args, \"count\") ?? 3.I64 })"));
     }
 
     fn groups_with_fixtures(src: &str) -> Vec<ModuleGroup> {

@@ -127,6 +127,7 @@ pub struct Attr {
 pub enum AttrValue {
     Static { span: Span, value: String },
     Expr { expr: Span },
+    Action { name: Ident, args: Span },
     Boolean,
 }
 

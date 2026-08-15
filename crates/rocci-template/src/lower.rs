@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ForDirective,
-    Fragment, IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
-    parse_component_params, strip_param_defaults,
+    Fragment, Ident, IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock,
+    TemplateItem, parse_component_params, strip_param_defaults,
 };
 use crate::source_map::{OriginKind, Segment};
 use crate::span::{SourceFile, Span};
@@ -82,9 +82,23 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         fixtures: Vec::new(),
         field_defaults,
     };
+    let inject_datastar =
+        document_has_action(document) && !document_imports_datastar(source.src, document);
+    let mut injected = false;
+    if inject_datastar && !matches!(document.items.first(), Some(ModuleItem::Roc { .. })) {
+        emitter.emit("import Datastar\n\n");
+        injected = true;
+    }
     for item in &document.items {
         match item {
-            ModuleItem::Roc { span } => emitter.emit_source(*span, OriginKind::OrdinaryRoc),
+            ModuleItem::Roc { span } => {
+                if inject_datastar && !injected {
+                    emitter.emit_roc_with_datastar_import(*span);
+                    injected = true;
+                } else {
+                    emitter.emit_source(*span, OriginKind::OrdinaryRoc);
+                }
+            }
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
         }
@@ -288,6 +302,13 @@ impl<'a> Emitter<'a> {
                     );
                     self.emit(")");
                 }
+                AttrValue::Action { name, args } => {
+                    self.emit_html(".attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", ");
+                    self.lower_action_call(name, *args);
+                    self.emit(")");
+                }
                 AttrValue::Boolean => {
                     self.emit_html(".boolean_attribute(");
                     self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
@@ -353,6 +374,11 @@ impl<'a> Emitter<'a> {
                     self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
                     self.emit(": ");
                     self.emit_mapped(expr_text, *expr, OriginKind::AttributeExpression);
+                }
+                AttrValue::Action { name, args } => {
+                    self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
+                    self.emit(": ");
+                    self.lower_action_call(name, *args);
                 }
                 AttrValue::Boolean => {
                     self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
@@ -525,6 +551,42 @@ impl<'a> Emitter<'a> {
         self.emit("]");
     }
 
+    fn lower_action_call(&mut self, name: &Ident, args: Span) {
+        let args_text = args.of(self.src).trim();
+        self.emit("Datastar.");
+        self.emit_mapped(&name.name, name.span, OriginKind::AttributeExpression);
+        if has_top_level_comma(args_text) {
+            self.emit("_with");
+        }
+        self.emit("(");
+        self.emit_mapped(args_text, args, OriginKind::AttributeExpression);
+        self.emit(")");
+    }
+
+    fn emit_roc_with_datastar_import(&mut self, span: Span) {
+        let text = span.of(self.src);
+        if text.is_empty() {
+            self.emit("import Datastar\n");
+            return;
+        }
+        let insert_at = import_insert_offset(text);
+        let start = span.start as usize;
+        if insert_at > 0 {
+            self.emit_source(Span::new(start, start + insert_at), OriginKind::OrdinaryRoc);
+        }
+        let needs_nl = insert_at > 0 && !text[..insert_at].ends_with('\n');
+        if needs_nl {
+            self.emit("\n");
+        }
+        self.emit("import Datastar\n");
+        if insert_at < text.len() {
+            self.emit_source(
+                Span::new(start + insert_at, span.end as usize),
+                OriginKind::OrdinaryRoc,
+            );
+        }
+    }
+
     fn emit_html(&mut self, suffix: &str) {
         self.maybe_indent();
         self.roc.push_str(self.html);
@@ -674,4 +736,107 @@ fn is_void(name: &str) -> bool {
             | "track"
             | "wbr"
     )
+}
+
+fn document_has_action(document: &Document) -> bool {
+    document.items.iter().any(|item| match item {
+        ModuleItem::Component(component) => items_have_action(&component.body.items),
+        _ => false,
+    })
+}
+
+fn items_have_action(items: &[TemplateItem]) -> bool {
+    items.iter().any(item_has_action)
+}
+
+fn item_has_action(item: &TemplateItem) -> bool {
+    match item {
+        TemplateItem::Element(el) => {
+            attrs_have_action(&el.attrs) || items_have_action(&el.children)
+        }
+        TemplateItem::ComponentCall(call) => {
+            attrs_have_action(&call.attrs)
+                || call
+                    .children
+                    .as_ref()
+                    .is_some_and(|children| items_have_action(children))
+        }
+        TemplateItem::Fragment(frag) => items_have_action(&frag.children),
+        TemplateItem::If(dir) => {
+            items_have_action(&dir.then_body.items)
+                || dir
+                    .else_ifs
+                    .iter()
+                    .any(|(_, body)| items_have_action(&body.items))
+                || dir
+                    .else_body
+                    .as_ref()
+                    .is_some_and(|body| items_have_action(&body.items))
+        }
+        TemplateItem::For(dir) => items_have_action(&dir.body.items),
+        TemplateItem::Match(dir) => dir.arms.iter().any(|arm| item_has_action(&arm.value)),
+        _ => false,
+    }
+}
+
+fn attrs_have_action(attrs: &[Attr]) -> bool {
+    attrs
+        .iter()
+        .any(|attr| matches!(attr.value, AttrValue::Action { .. }))
+}
+
+fn document_imports_datastar(src: &str, document: &Document) -> bool {
+    document.items.iter().any(|item| match item {
+        ModuleItem::Roc { span } => span.of(src).lines().any(line_imports_datastar),
+        _ => false,
+    })
+}
+
+fn line_imports_datastar(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed == "import Datastar"
+        || trimmed.starts_with("import Datastar ")
+        || trimmed.starts_with("import Datastar.")
+}
+
+fn import_insert_offset(text: &str) -> usize {
+    let mut last = 0usize;
+    let mut pos = 0usize;
+    let mut saw_import = false;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim();
+        if trimmed.starts_with("import ") {
+            saw_import = true;
+            last = pos + line.len();
+        } else if !saw_import && (trimmed.starts_with("module ") || trimmed.starts_with("app ")) {
+            last = pos + line.len();
+        } else if saw_import && !trimmed.is_empty() && !trimmed.starts_with('#') {
+            break;
+        }
+        pos += line.len();
+    }
+    last
+}
+
+fn has_top_level_comma(text: &str) -> bool {
+    let mut depth: usize = 0;
+    let mut chars = text.char_indices().peekable();
+    while let Some((_, ch)) = chars.next() {
+        match ch {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            '"' => {
+                while let Some((_, next)) = chars.next() {
+                    if next == '\\' {
+                        chars.next();
+                    } else if next == '"' {
+                        break;
+                    }
+                }
+            }
+            ',' if depth == 0 => return true,
+            _ => {}
+        }
+    }
+    false
 }

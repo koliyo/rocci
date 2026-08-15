@@ -293,6 +293,15 @@ fn collect_attrs(collector: &mut Collector<'_>, attrs: &[rocci_template::Attr]) 
         match &attr.value {
             AttrValue::Static { span, .. } => collector.token(*span, TOKEN_STRING, 0),
             AttrValue::Expr { expr } => collector.roc(*expr),
+            AttrValue::Action { name, args } => {
+                let at_start = (name.span.start as usize).saturating_sub(1);
+                collector.token(
+                    Span::new(at_start, name.span.end as usize),
+                    TOKEN_KEYWORD,
+                    0,
+                );
+                collector.roc(*args);
+            }
             AttrValue::Boolean => {}
         }
     }

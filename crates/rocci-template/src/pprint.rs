@@ -191,6 +191,16 @@ fn write_attrs(w: &mut Writer<'_>, src: &str, attrs: &[Attr]) {
             AttrValue::Expr { expr } => {
                 w.leaf("attr", &[atom(&attr.name.name), roc_atom(src, *expr)]);
             }
+            AttrValue::Action { name, args } => {
+                w.leaf(
+                    "attr",
+                    &[
+                        atom(&attr.name.name),
+                        atom(&format!("@{}", name.name)),
+                        roc_atom(src, *args),
+                    ],
+                );
+            }
         }
     }
 }
