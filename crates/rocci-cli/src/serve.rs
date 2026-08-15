@@ -108,6 +108,23 @@ pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -
     preview_result
 }
 
+/// Roc helper: basic-webserver 0.16 binds `Server.Config.listen`, not the env var.
+/// `rocci --port` still sets `ROC_BASIC_WEBSERVER_PORT` on the child.
+pub const ROC_LISTEN_PORT_HELPER: &str = r#"
+listen_port! : {} => U16
+listen_port! = |_| {
+    match Env.var_str!("ROC_BASIC_WEBSERVER_PORT") {
+        Ok(value) =>
+            match U16.from_str(value) {
+                Ok(0) => 8000
+                Ok(port) => port
+                Err(_) => 8000
+            }
+        Err(_) => 8000
+    }
+}
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;

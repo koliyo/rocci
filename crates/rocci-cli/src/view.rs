@@ -311,12 +311,13 @@ pub(crate) fn generate_main_roc(type_name: &str, call: &str, wrap_in_shell: bool
     } else {
         call.to_string()
     };
-    format!(
+    let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
     http: "{HTTP_PKG}",
 }}
 
+import pf.Env
 import pf.Path
 import pf.Server
 import http.Method
@@ -336,6 +337,7 @@ init! = || {{
     }})
     config =
         Server.default_config
+        .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
         .with_file_roots([assets])
         .with_native_routes({{
             files: [
@@ -379,7 +381,9 @@ html_ok = |body|
         ),
     )
 "#
-    )
+    );
+    out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out
 }
 
 fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
@@ -589,6 +593,8 @@ mod tests {
         assert!(main.contains("import pf.Path"));
         assert!(main.contains("Server.static_mount"));
         assert!(main.contains("/assets/datastar.js"));
+        assert!(main.contains("with_listen"));
+        assert!(main.contains("ROC_BASIC_WEBSERVER_PORT"));
 
         let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false);
         assert!(page.contains("import pf.Path"));

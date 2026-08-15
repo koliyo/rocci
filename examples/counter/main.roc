@@ -49,6 +49,7 @@ init! = || {
     })
     config =
         Server.default_config
+        .with_listen({ host: "127.0.0.1", port: listen_port!({}) })
         .with_file_roots([assets])
         .with_native_routes({
             files: [
@@ -157,4 +158,17 @@ reset_count! = |db| {
         },
     )?
     read_count!(db)
+}
+
+listen_port! : {} => U16
+listen_port! = |_| {
+    match Env.var_str!("ROC_BASIC_WEBSERVER_PORT") {
+        Ok(value) =>
+            match U16.from_str(value) {
+                Ok(0) => 8000
+                Ok(port) => port
+                Err(_) => 8000
+            }
+        Err(_) => 8000
+    }
 }
