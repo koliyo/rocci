@@ -32,11 +32,17 @@ impl PortArg {
 }
 
 #[derive(Args, Clone, Copy, Debug)]
-pub struct PortOptions {
-    /// TCP port to listen on. Pass `auto` to pick a free port.
+pub struct ServeOptions {
+    /// Skip the embedded window; print the URL and keep the Roc server.
+    #[arg(long)]
+    pub no_window: bool,
+
+    /// TCP port to listen on. Defaults to a free port with the embedded window,
+    /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
     #[arg(
         long,
-        default_value = "8000",
+        default_value = "auto",
+        default_value_if("no_window", "true", "8000"),
         value_name = "PORT",
         value_parser = parse_port_arg,
         env = "ROC_BASIC_WEBSERVER_PORT"
@@ -131,9 +137,9 @@ mod tests {
     use clap::Parser;
 
     #[derive(Parser, Debug)]
-    struct PortCli {
+    struct ServeCli {
         #[command(flatten)]
-        port: PortOptions,
+        serve: ServeOptions,
     }
 
     #[test]
@@ -156,24 +162,35 @@ mod tests {
     }
 
     #[test]
-    fn clap_defaults_to_8000() {
+    fn clap_defaults_to_auto_with_window() {
         if std::env::var_os("ROC_BASIC_WEBSERVER_PORT").is_some() {
             return;
         }
-        let cli = PortCli::try_parse_from(["rocci"]).unwrap();
-        assert_eq!(cli.port.port, PortArg::Exact(8000));
+        let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
+        assert!(!cli.serve.no_window);
+        assert_eq!(cli.serve.port, PortArg::Auto);
+    }
+
+    #[test]
+    fn clap_defaults_to_8000_without_window() {
+        if std::env::var_os("ROC_BASIC_WEBSERVER_PORT").is_some() {
+            return;
+        }
+        let cli = ServeCli::try_parse_from(["rocci", "--no-window"]).unwrap();
+        assert!(cli.serve.no_window);
+        assert_eq!(cli.serve.port, PortArg::Exact(8000));
     }
 
     #[test]
     fn clap_accepts_port_auto() {
-        let cli = PortCli::try_parse_from(["rocci", "--port", "auto"]).unwrap();
-        assert_eq!(cli.port.port, PortArg::Auto);
+        let cli = ServeCli::try_parse_from(["rocci", "--port", "auto"]).unwrap();
+        assert_eq!(cli.serve.port, PortArg::Auto);
     }
 
     #[test]
     fn clap_accepts_numeric_port() {
-        let cli = PortCli::try_parse_from(["rocci", "--port", "9001"]).unwrap();
-        assert_eq!(cli.port.port, PortArg::Exact(9001));
+        let cli = ServeCli::try_parse_from(["rocci", "--port", "9001"]).unwrap();
+        assert_eq!(cli.serve.port, PortArg::Exact(9001));
     }
 
     #[test]

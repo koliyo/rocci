@@ -30,8 +30,10 @@ an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
 on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
 authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
 runtime and a pinned Datastar JS file in `assets/` (downloaded into
-`~/.rocci/cache` on first use). Pass `--no-window` to serve only. Override the
-port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
+`~/.rocci/cache` on first use). The embedded window listens on a free local
+TCP port and prints the URL so you (or an agent) can inspect the same HTTP
+server. Pass `--no-window` to serve on port 8000 without a window. Override
+the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
 
 On Linux, Wry requires WebKitGTK development packages. macOS and Windows use
 the operating system webview. Datastar evaluates declarative expressions using

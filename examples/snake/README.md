@@ -22,7 +22,7 @@ From the repository root, with `roc` and `cargo` on `PATH`:
 cargo run -q -p rocci-cli -- run examples/snake
 ```
 
-This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
 
 `rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), stages `Html.roc` / `Datastar.roc` from the CLI runtime, copies the pinned Datastar JS into `examples/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
 
