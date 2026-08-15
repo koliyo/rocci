@@ -2,17 +2,16 @@ import Html
 import Signals
 
 @component
-Demo = |{ page }| {
+Demo = |{ page }|
     <div id="signup" class="panel">
         @match page {
             Form({ email, first, last }) => <SignupForm email={email} first={first} last={last} />
             SignedUp({ name }) => <p class="ok">Welcome, {name}. You are signed up.</p>
         }
     </div>
-}
 
 @component
-SignupForm = |{ email, first, last }| {
+SignupForm = |{ email, first, last }|
     <>
         <label>
             Email Address
@@ -56,7 +55,6 @@ SignupForm = |{ email, first, last }| {
             <button data-on:click=@post("/validate")>Sign Up</button>
         </div>
     </>
-}
 
 @component
 FieldNote = |{ field }| {

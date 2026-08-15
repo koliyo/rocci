@@ -3,7 +3,7 @@
 Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
-`@component Name = |params| { ... }` bodies use a bounded HTML template
+`@component Name = |params| ...` bodies use a bounded HTML template
 grammar. Top-level `@context`, `@init`, and `@on` declare standalone HTTP
 apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
 expressions, or spawn servers.
@@ -35,9 +35,8 @@ import Design
 
 Tone : [Neutral, Positive]
 
-@component Hello = |{ name }| {
+@component Hello = |{ name }|
     <p>Hello, {name}</p>
-}
 
 badgeClass = |tone| {
     match tone {
@@ -54,8 +53,13 @@ module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
 ## Components
 
 ```text
+@component Name = |params| html
 @component Name = |params| { template }
 ```
+
+A body that is one HTML tag, component call, or fragment does not need braces.
+`@let`, `@css`, `@if` / `@for` / `@match`, and multiple root items still use
+`{ ... }`. Nested markup inside that one tag is fine.
 
 Component names are PascalCase, matching the tags that call them. Roc values
 cannot start with an uppercase letter, so lowering emits the corresponding
@@ -70,9 +74,8 @@ module CounterPage exposing [hello]
     hello({ name: "Roc" })
 }
 
-@component Hello = |{ name }| {
+@component Hello = |{ name }|
     <p>Hello, {name}</p>
-}
 ```
 
 Write `<HtmlShell>` / `@component HtmlShell` for a value named `htmlShell`.
@@ -82,11 +85,10 @@ Consecutive leading capitals such as `HTMLShell` are rejected as ambiguous.
 record. Extra parameters are the default body:
 
 ```rocci
-@component Badge = |{ tone }, content| {
+@component Badge = |{ tone }, content|
     <span class={badgeClass(tone)}>
         {content}
     </span>
-}
 ```
 
 `??` field defaults are allowed in `.rocci` (`|{ name ?? "Roc" }|`). Roc
@@ -475,9 +477,8 @@ is a double-quoted string. Roc snippets that are not a simple path are
 quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 ```rocci
-@component Hello = |{ name }| {
+@component Hello = |{ name }|
     <p class="greeting">Hello, {name}</p>
-}
 ```
 
 ```lisp

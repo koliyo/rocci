@@ -2,17 +2,16 @@ import Html
 import Signals
 
 @component
-Panel = |{ mode, contact }| {
+Panel = |{ mode, contact }|
     <div id="contact" class="panel">
         @match mode {
             Viewing => <ContactCard contact={contact} />
             Editing => <ContactForm contact={contact} />
         }
     </div>
-}
 
 @component
-ContactCard = |{ contact }| {
+ContactCard = |{ contact }|
     <>
         <p>First Name: {contact.first}</p>
         <p>Last Name: {contact.last}</p>
@@ -31,10 +30,9 @@ ContactCard = |{ contact }| {
             >Reset</button>
         </div>
     </>
-}
 
 @component
-ContactForm = |{ contact }| {
+ContactForm = |{ contact }|
     <>
         <label>
             First Name
@@ -77,7 +75,6 @@ ContactForm = |{ contact }| {
             >Cancel</button>
         </div>
     </>
-}
 
 sample_contact = {
     first: "John",

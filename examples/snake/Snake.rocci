@@ -1,7 +1,7 @@
 import Html
 
 @component
-LobbyPage = |{ player_count, full }| {
+LobbyPage = |{ player_count, full }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -34,28 +34,25 @@ LobbyPage = |{ player_count, full }| {
             </main>
         </body>
     </html>
-}
 
 @component
-Board = |{ cells }| {
+Board = |{ cells }|
     <div id="board" class="board">
         @for cell in cells {
             <i class={cell.class}></i>
         }
     </div>
-}
 
 @component
-MiniMap = |{ marks }| {
+MiniMap = |{ marks }|
     <div id="minimap" class="minimap">
         @for mark in marks {
             <i class={mark.class} style={mark.style}></i>
         }
     </div>
-}
 
 @component
-StatusHud = |{ info }| {
+StatusHud = |{ info }|
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
         <p class="cam">{info.cam.x.to_str()}, {info.cam.y.to_str()}</p>
@@ -79,10 +76,9 @@ StatusHud = |{ info }| {
             <a class="button secondary" href="/">Back</a>
         }
     </aside>
-}
 
 @component
-PlayPage = |{ cells, info, marks }| {
+PlayPage = |{ cells, info, marks }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -111,26 +107,23 @@ PlayPage = |{ cells, info, marks }| {
             </main>
         </body>
     </html>
-}
 
 @component
-SteerPad = |{}| {
+SteerPad = |{}|
     <div class="steer" aria-label="Steer">
         <button type="button" class="secondary" data-steer="up">Up</button>
         <button type="button" class="secondary" data-steer="left">Left</button>
         <button type="button" class="secondary" data-steer="right">Right</button>
         <button type="button" class="secondary" data-steer="down">Down</button>
     </div>
-}
 
 @component
-GamePatch = |{ cells, info, marks }| {
+GamePatch = |{ cells, info, marks }|
     <>
         <Board cells={cells} />
         <MiniMap marks={marks} />
         <StatusHud info={info} />
     </>
-}
 
 sample_cells = [
     { class: "cell" },

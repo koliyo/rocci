@@ -404,6 +404,83 @@ sample = { name: "Ada" }
 }
 
 #[test]
+fn braceless_single_html_tag_lowers_like_block() {
+    let braced = r#"
+@component Hello = |{ name }| {
+    <p>Hello, {name}</p>
+}
+"#;
+    let braceless = r#"
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    assert_eq!(compile_ok(braced).roc, compile_ok(braceless).roc);
+}
+
+#[test]
+fn braceless_fragment_and_same_line_tag() {
+    let src = r#"
+@component Patch = |{ a }|
+    <>
+        <p>{a}</p>
+        <span>x</span>
+    </>
+
+@component Hi = |{ name }| <p>{name}</p>
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("Html.fragment("));
+    assert!(out.roc.contains("hi = |{ name }|"));
+    assert!(out.roc.contains("patch = |{ a }|"));
+}
+
+#[test]
+fn braceless_rejects_sibling_tags() {
+    let errors = compile_err(
+        r#"
+@component Hello = |{ name }|
+    <p>Hello</p>
+    <span>World</span>
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("one HTML tag") && msg.contains("{ ... }")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn preamble_and_directives_still_require_braces() {
+    let css = compile_err(
+        r#"
+@component Hello = |{ name }|
+    @css { .x { color: red; } }
+    <p>Hello</p>
+"#,
+    );
+    assert!(
+        css.iter()
+            .any(|msg| msg.contains("expected `{`") || msg.contains("one HTML tag")),
+        "{css:?}"
+    );
+
+    let dir = compile_err(
+        r#"
+@component Flag = |{ full }|
+    @if full {
+        <p>full</p>
+    }
+"#,
+    );
+    assert!(
+        dir.iter().any(|msg| msg.contains("expected `{`")),
+        "{dir:?}"
+    );
+}
+
+#[test]
 fn package_has_no_runtime_dependencies() {
     let manifest = include_str!("../Cargo.toml");
     for forbidden in ["tokio", "axum", "wry", "tao", "hyper", "reqwest"] {

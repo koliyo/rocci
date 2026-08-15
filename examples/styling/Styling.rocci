@@ -55,7 +55,7 @@ FeatureCard = |{ count }| {
 }
 
 @component
-StylePage = |{ count }| {
+StylePage = |{ count }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -85,7 +85,6 @@ StylePage = |{ count }| {
             </main>
         </body>
     </html>
-}
 
 @fixture{target: Hello}
 helloTest = { name: "Ada" }
