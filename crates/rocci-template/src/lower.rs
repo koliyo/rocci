@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ForDirective,
-    Fragment, Ident, IfDirective, Interpolation, MatchDirective, ModuleItem, TemplateBlock,
-    TemplateItem, parse_component_params, strip_param_defaults,
+    Attr, AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl,
+    ForDirective, Fragment, Ident, IfDirective, Interpolation, MatchDirective, ModuleItem,
+    TemplateBlock, TemplateItem, parse_component_params, strip_param_defaults,
 };
 use crate::source_map::{OriginKind, Segment};
 use crate::span::{SourceFile, Span};
@@ -27,6 +27,21 @@ pub struct LoweredModule {
     pub segments: Vec<Segment>,
     pub components: Vec<ComponentInfo>,
     pub fixtures: Vec<FixtureInfo>,
+    pub styles: Vec<StyleArtifact>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StyleKind {
+    File,
+    Component,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StyleArtifact {
+    pub kind: StyleKind,
+    pub name: String,
+    pub css: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug)]
@@ -71,8 +86,43 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             field_defaults.insert(component.name.name.clone(), defaults);
         }
     }
+    let file_css_parts: Vec<(String, Span)> = document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::Css(css) => {
+                let text = css.body.of(source.src);
+                if text.trim().is_empty() {
+                    None
+                } else {
+                    Some((text.to_string(), css.span))
+                }
+            }
+            _ => None,
+        })
+        .collect();
+    let file_css = file_css_parts
+        .iter()
+        .map(|(text, _)| text.trim())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    let file_scope_id = if file_css.is_empty() {
+        None
+    } else {
+        Some(file_scope_id(source.name))
+    };
+    let mut styles = Vec::new();
+    if let Some(id) = &file_scope_id {
+        styles.push(StyleArtifact {
+            kind: StyleKind::File,
+            name: file_stem(source.name),
+            css: scope_css(&file_css, id),
+            span: file_css_parts[0].1,
+        });
+    }
     let mut emitter = Emitter {
         src: source.src,
+        file_name: source.name,
         html: &options.html_module,
         roc: String::new(),
         segments: Vec::new(),
@@ -80,7 +130,11 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         at_line_start: true,
         components: Vec::new(),
         fixtures: Vec::new(),
+        styles,
         field_defaults,
+        file_css,
+        file_scope_id,
+        css_stamp: None,
     };
     let inject_datastar =
         document_has_action(document) && !document_imports_datastar(source.src, document);
@@ -101,6 +155,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             }
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
+            ModuleItem::Css(_) => {}
         }
     }
     if !emitter.roc.ends_with('\n') && !emitter.roc.is_empty() {
@@ -111,11 +166,13 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         segments: emitter.segments,
         components: emitter.components,
         fixtures: emitter.fixtures,
+        styles: emitter.styles,
     }
 }
 
 struct Emitter<'a> {
     src: &'a str,
+    file_name: &'a str,
     html: &'a str,
     roc: String,
     segments: Vec<Segment>,
@@ -123,7 +180,11 @@ struct Emitter<'a> {
     at_line_start: bool,
     components: Vec<ComponentInfo>,
     fixtures: Vec<FixtureInfo>,
+    styles: Vec<StyleArtifact>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
+    file_css: String,
+    file_scope_id: Option<String>,
+    css_stamp: Option<String>,
 }
 
 impl<'a> Emitter<'a> {
@@ -157,7 +218,53 @@ impl<'a> Emitter<'a> {
         self.emit(" {\n");
         self.indent += 1;
         self.push_indent();
-        self.lower_block(&component.body, &body_params);
+        let (preamble, rest) = split_preamble(&component.body.items);
+        self.emit_lets(preamble);
+        let component_css = concat_css(
+            self.src,
+            preamble.iter().filter_map(|item| match item {
+                TemplateItem::Css(css) => Some(css),
+                _ => None,
+            }),
+        );
+        let component_id = if component_css.is_empty() {
+            None
+        } else {
+            Some(component_scope_id(self.file_name, &component.name.name))
+        };
+        if let Some(id) = &component_id {
+            let span = preamble
+                .iter()
+                .find_map(|item| match item {
+                    TemplateItem::Css(css) => Some(css.span),
+                    _ => None,
+                })
+                .unwrap_or(component.span);
+            self.styles.push(StyleArtifact {
+                kind: StyleKind::Component,
+                name: component.name.name.clone(),
+                css: scope_css(&component_css, id),
+                span,
+            });
+        }
+        let mut stamp = Vec::new();
+        if let Some(id) = &self.file_scope_id {
+            stamp.push(id.clone());
+        }
+        if let Some(id) = &component_id {
+            stamp.push(id.clone());
+        }
+        self.css_stamp = if stamp.is_empty() {
+            None
+        } else {
+            Some(stamp.join(" "))
+        };
+        if let Some(css) = self.injected_css(&component_css, component_id.as_deref()) {
+            self.lower_html_value_with_style(rest, &body_params, &css);
+        } else {
+            self.lower_html_value(rest, &body_params);
+        }
+        self.css_stamp = None;
         self.emit("\n");
         self.indent -= 1;
         self.push_indent();
@@ -188,8 +295,16 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_block(&mut self, block: &TemplateBlock, body_params: &[String]) {
-        let (lets, rest) = split_lets(&block.items);
-        for let_dir in &lets {
+        let (preamble, rest) = split_preamble(&block.items);
+        self.emit_lets(preamble);
+        self.lower_html_value(rest, body_params);
+    }
+
+    fn emit_lets(&mut self, preamble: &[TemplateItem]) {
+        for item in preamble {
+            let TemplateItem::Let(let_dir) = item else {
+                continue;
+            };
             self.emit_mapped(
                 &let_dir.binder.name,
                 let_dir.binder.span,
@@ -204,7 +319,72 @@ impl<'a> Emitter<'a> {
             self.emit("\n\n");
             self.push_indent();
         }
-        self.lower_html_value(rest, body_params);
+    }
+
+    fn injected_css(&self, component_css: &str, component_id: Option<&str>) -> Option<String> {
+        let mut parts = Vec::new();
+        if !self.file_css.is_empty()
+            && let Some(id) = &self.file_scope_id
+        {
+            parts.push(scope_css(&self.file_css, id));
+        }
+        if !component_css.is_empty()
+            && let Some(id) = component_id
+        {
+            parts.push(scope_css(component_css, id));
+        }
+        if parts.is_empty() {
+            None
+        } else {
+            Some(parts.join("\n"))
+        }
+    }
+
+    fn lower_html_value_with_style(
+        &mut self,
+        items: &[TemplateItem],
+        body_params: &[String],
+        css: &str,
+    ) {
+        self.emit_html(".fragment(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.lower_style_element(css);
+        self.emit(",\n");
+        self.push_indent();
+        self.lower_html_value(items, body_params);
+        self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_style_element(&mut self, css: &str) {
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("\"style\",\n");
+        self.push_indent();
+        self.emit("[],\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".text(");
+        self.emit_string(css, Span::point(0), OriginKind::Css);
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
     }
 
     fn lower_html_value(&mut self, items: &[TemplateItem], body_params: &[String]) {
@@ -246,7 +426,7 @@ impl<'a> Emitter<'a> {
                 }
             }
             TemplateItem::Match(dir) => self.lower_match(dir, body_params),
-            TemplateItem::Let(_) => {}
+            TemplateItem::Let(_) | TemplateItem::Css(_) => {}
         }
     }
 
@@ -275,7 +455,8 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_html_attrs(&mut self, attrs: &[Attr]) {
-        if attrs.is_empty() {
+        let stamp = self.css_stamp.clone();
+        if attrs.is_empty() && stamp.is_none() {
             self.emit("[]");
             return;
         }
@@ -315,6 +496,13 @@ impl<'a> Emitter<'a> {
                     self.emit(", Bool.true)");
                 }
             }
+            self.emit(",\n");
+        }
+        if let Some(stamp) = stamp {
+            self.push_indent();
+            self.emit_html(".attribute(\"data-rocci-css\", ");
+            self.emit_string(&stamp, Span::point(0), OriginKind::Scaffolding);
+            self.emit(")");
             self.emit(",\n");
         }
         self.indent -= 1;
@@ -699,23 +887,70 @@ fn group_children(items: &[TemplateItem]) -> Vec<ChildGroup<'_>> {
     groups
 }
 
-fn split_lets(items: &[TemplateItem]) -> (Vec<&crate::ast::LetDirective>, &[TemplateItem]) {
-    let mut count = 0;
-    for item in items {
-        if matches!(item, TemplateItem::Let(_)) {
-            count += 1;
-        } else {
-            break;
+fn split_preamble(items: &[TemplateItem]) -> (&[TemplateItem], &[TemplateItem]) {
+    let count = items.iter().take_while(|item| item.is_preamble()).count();
+    (&items[..count], &items[count..])
+}
+
+fn concat_css<'a>(src: &'a str, decls: impl Iterator<Item = &'a CssDecl>) -> String {
+    decls
+        .map(|decl| decl.body.of(src).trim())
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn scope_css(css: &str, id: &str) -> String {
+    format!("@scope ([data-rocci-css~=\"{id}\"]) {{\n{}\n}}", css.trim())
+}
+
+fn file_scope_id(file_name: &str) -> String {
+    format!(
+        "{}-{:08x}",
+        file_stem(file_name),
+        fnv1a32(file_name.as_bytes())
+    )
+}
+
+fn component_scope_id(file_name: &str, component: &str) -> String {
+    let mut bytes = file_name.as_bytes().to_vec();
+    bytes.push(0);
+    bytes.extend_from_slice(component.as_bytes());
+    format!("{}-{:08x}", sanitize_ident(component), fnv1a32(&bytes))
+}
+
+fn file_stem(name: &str) -> String {
+    let base = name.rsplit(['/', '\\']).next().unwrap_or(name);
+    let stem = base
+        .strip_suffix(".rocci")
+        .or_else(|| base.rsplit_once('.').map(|(stem, _)| stem))
+        .unwrap_or(base);
+    sanitize_ident(stem)
+}
+
+fn sanitize_ident(name: &str) -> String {
+    let mut out = String::new();
+    for ch in name.chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+            out.push(ch);
+        } else if !out.is_empty() && !out.ends_with('-') {
+            out.push('-');
         }
     }
-    let lets = items[..count]
-        .iter()
-        .filter_map(|item| match item {
-            TemplateItem::Let(dir) => Some(dir),
-            _ => None,
-        })
-        .collect();
-    (lets, &items[count..])
+    if out.is_empty() {
+        "file".to_string()
+    } else {
+        out
+    }
+}
+
+fn fnv1a32(bytes: &[u8]) -> u32 {
+    let mut hash: u32 = 0x811c9dc5;
+    for &b in bytes {
+        hash ^= u32::from(b);
+        hash = hash.wrapping_mul(0x01000193);
+    }
+    hash
 }
 
 fn is_void(name: &str) -> bool {

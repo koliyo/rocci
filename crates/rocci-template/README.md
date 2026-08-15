@@ -47,8 +47,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component` and `@fixture` are recognized only at the
-start of a top-level definition.
+module unchanged. `@component`, `@fixture`, and `@css` are recognized only at
+the start of a top-level definition.
 
 ## Components
 
@@ -292,6 +292,44 @@ The binder is one identifier. The expression ends at a depth-zero newline
 (continuation is allowed inside `(...)` or `[...]`). `@let` must appear
 before render-producing items in the current block.
 
+### `@css`
+
+Colocate isolated CSS at file scope or at the start of a component body:
+
+```rocci
+@css {
+    .card { padding: 1rem; }
+}
+
+@component hello = |{ name }| {
+    @css {
+        .greeting { color: navy; }
+        p { margin: 0; }
+    }
+    <p class="greeting">Hello, {name}</p>
+}
+```
+
+The block body is raw CSS, not the template grammar. No interpolations. Multiple
+blocks at the same scope concatenate in source order. `@css` is a preamble item
+like `@let`: only before render-producing items, and only at the component
+body's top level.
+
+Isolation is Vue-style. Authors keep writing `class="card"`. Lowering stamps
+`data-rocci-css` on intrinsic HTML elements authored in that component (not on
+`<Child />` calls) and wraps each block in `@scope ([data-rocci-css~="id"])`.
+File-level rules share one file id across every component in the module.
+Component-level rules use a per-component id. Descendant selectors can still
+match child-component internals; there is no `:deep` yet.
+
+v1 injects a `<style>` element into the component's Html so `view` / `browse`
+work immediately, and also returns the same scoped CSS on `CompileOutput.styles`.
+That inject path is a convenience, not the Datastar app pattern. SSE patches
+should not carry `<style>`. The intended delivery is: keep `@css` colocated,
+extract once, and link or inline the stylesheet in the document `<head>`. Until
+that follow-up, prefer file-level `@css` on page modules or shared `app.css`
+for patch components.
+
 ## Roc regions
 
 Directive headers, `{...}` interpolations, `@match` patterns, `@let`
@@ -384,7 +422,7 @@ quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 Heads are `module`, `roc`, `component`, `params`, `element`, `call`,
 `fragment`, `text`, `interp`, `attr`, `if`, `else-if`, `else`, `for`,
-`match`, `arm`, and `let`. Self-closing tags include the `self-closing`
+`match`, `arm`, `let`, and `css`. Self-closing tags include the `self-closing`
 atom after the tag name.
 
 ## Not in this crate

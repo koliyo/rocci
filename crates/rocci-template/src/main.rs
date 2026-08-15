@@ -109,6 +109,14 @@ fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
     for fixture in &compiled.fixtures {
         println!("- {} -> {}", fixture.name, fixture.target);
     }
+    println!("# styles ({})", compiled.styles.len());
+    for style in &compiled.styles {
+        let kind = match style.kind {
+            rocci_template::StyleKind::File => "file",
+            rocci_template::StyleKind::Component => "component",
+        };
+        println!("- {} {} ({} bytes)", kind, style.name, style.css.len());
+    }
     if ast {
         println!("\n# ast\n{}", format_ast(src, &compiled.document));
     }

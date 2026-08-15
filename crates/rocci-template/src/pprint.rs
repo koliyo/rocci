@@ -1,6 +1,6 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, Document, Element, FixtureDecl, ForDirective,
-    Fragment, IfDirective, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
+    Attr, AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl,
+    ForDirective, Fragment, IfDirective, MatchDirective, ModuleItem, TemplateBlock, TemplateItem,
 };
 use crate::span::Span;
 
@@ -13,6 +13,7 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             ModuleItem::Roc { span } => write_roc(&mut w, span.of(src)),
             ModuleItem::Component(component) => write_component(&mut w, src, component),
             ModuleItem::Fixture(fixture) => write_fixture(&mut w, src, fixture),
+            ModuleItem::Css(css) => write_css(&mut w, src, css),
         }
     }
     w.close();
@@ -131,7 +132,12 @@ fn write_item(w: &mut Writer<'_>, src: &str, item: &TemplateItem) {
         TemplateItem::For(dir) => write_for(w, src, dir),
         TemplateItem::Match(dir) => write_match(w, src, dir),
         TemplateItem::Let(dir) => w.leaf("let", &[atom(&dir.binder.name), roc_atom(src, dir.expr)]),
+        TemplateItem::Css(css) => write_css(w, src, css),
     }
+}
+
+fn write_css(w: &mut Writer<'_>, src: &str, css: &CssDecl) {
+    w.leaf("css", &[string_atom(css.body.of(src).trim())]);
 }
 
 fn write_element(w: &mut Writer<'_>, src: &str, el: &Element) {

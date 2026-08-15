@@ -689,7 +689,10 @@ fn find_passthrough_item(
                 find_passthrough_item(src, &arm.value, param, known, found);
             }
         }
-        TemplateItem::Interpolation(_) | TemplateItem::Text(_) | TemplateItem::Let(_) => {}
+        TemplateItem::Interpolation(_)
+        | TemplateItem::Text(_)
+        | TemplateItem::Let(_)
+        | TemplateItem::Css(_) => {}
     }
 }
 
@@ -891,7 +894,7 @@ fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(decl) if decl.name.name == roc_name => {
             matches!(
-                decl.body.items.first(),
+                decl.body.items.iter().find(|item| !item.is_preamble()),
                 Some(TemplateItem::Element(el)) if el.name.name == "html"
             )
         }
@@ -1033,7 +1036,7 @@ fn walk_item(src: &str, item: &TemplateItem, param: &str, hints: &mut Vec<UsageH
         TemplateItem::Let(dir) => {
             classify_expr(param, dir.expr.of(src), hints);
         }
-        TemplateItem::Text(_) => {}
+        TemplateItem::Text(_) | TemplateItem::Css(_) => {}
     }
 }
 

@@ -16,7 +16,7 @@ const HTML_TAGS: &[&str] = &[
     "table", "tbody", "td", "textarea", "th", "thead", "tr", "ul",
 ];
 
-const DIRECTIVES: &[&str] = &["if", "else", "else if", "for", "match", "let"];
+const DIRECTIVES: &[&str] = &["if", "else", "else if", "for", "match", "let", "css"];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
     compile(SourceFile::new(name, text), &LowerOptions::default())
@@ -63,7 +63,7 @@ pub fn document_symbols(
         .filter_map(|item| match item {
             ModuleItem::Component(component) => Some(component_symbol(source, component, encoding)),
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
-            ModuleItem::Roc { .. } => None,
+            ModuleItem::Roc { .. } | ModuleItem::Css(_) => None,
         })
         .collect();
     DocumentSymbolResponse::Nested(symbols)
@@ -191,7 +191,7 @@ fn local_component<'a>(document: &'a Document, roc_name: &str) -> Option<&'a Com
 fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
     document.items.iter().filter_map(|item| match item {
         ModuleItem::Component(component) => Some(component),
-        ModuleItem::Roc { .. } | ModuleItem::Fixture(_) => None,
+        ModuleItem::Roc { .. } | ModuleItem::Fixture(_) | ModuleItem::Css(_) => None,
     })
 }
 
@@ -286,7 +286,10 @@ fn walk_items<'a>(items: &'a [TemplateItem], offset: u32, best: &mut Option<(u32
                     walk_items(std::slice::from_ref(&*arm.value), offset, best);
                 }
             }
-            TemplateItem::Text(_) | TemplateItem::Interpolation(_) | TemplateItem::Let(_) => {}
+            TemplateItem::Text(_)
+            | TemplateItem::Interpolation(_)
+            | TemplateItem::Let(_)
+            | TemplateItem::Css(_) => {}
         }
     }
 }

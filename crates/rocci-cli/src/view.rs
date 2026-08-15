@@ -122,7 +122,7 @@ fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(decl) if decl.name.name == roc_name => {
             matches!(
-                decl.body.items.first(),
+                decl.body.items.iter().find(|item| !item.is_preamble()),
                 Some(TemplateItem::Element(el)) if el.name.name == "html"
             )
         }
