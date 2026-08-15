@@ -1,61 +1,115 @@
+import pf.Env
+import pf.Path
+import pf.Sqlite
 import Html
 
-@css {
-    .hello-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        margin-top: 28px;
-    }
+@context { db : Sqlite.Db }
+
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./counter.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR IGNORE INTO counter (id, value) VALUES (1, 0)",
+            params: {},
+        },
+    )?
+    { db: db }
 }
 
-@component
-hello = |{ name ?? "Roc" }| {
-    @css {
-        .greeting {
-            margin: 0;
-            color: #c9d8d2;
-            font-size: 1.05rem;
-        }
-        .greeting strong {
-            color: #f8fffb;
-        }
-    }
-    <p class="greeting">Hello, <strong>{name}</strong></p>
+@on:get("/") = |{ db }| {
+    count = read_count!(db)?
+    counterPage({ count: count })
+}
+
+@on:post("/api/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    counterCard({ count: count })
+}
+
+@on:post("/api/counter/reset") = |{ db }| {
+    count = reset_count!(db)?
+    counterCard({ count: count })
+}
+
+read_count! = |db| {
+    row : { value : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.value)
+}
+
+increment_count! = |db| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
+            params: {},
+        },
+    )?
+    read_count!(db)
+}
+
+reset_count! = |db| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = 0 WHERE id = 1",
+            params: {},
+        },
+    )?
+    read_count!(db)
 }
 
 @component
 counterCard = |{ count }| {
     @css {
         .counter-card {
-            margin-top: 46px;
-            padding: 30px 34px;
+            margin-top: 2rem;
+            padding: 1.5rem 1.75rem;
             border: 1px solid rgba(109, 236, 177, 0.2);
-            border-radius: 18px;
+            border-radius: 16px;
             background: rgba(11, 30, 24, 0.72);
-            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+        }
+        .counter-card p {
+            margin: 0 0 0.35rem;
+            color: #48eda4;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
         }
         .counter-card output {
             display: block;
-            margin: 4px 0;
             color: #f8fffb;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 76px;
+            font-family: ui-monospace, monospace;
+            font-size: 4rem;
             font-weight: 650;
-            letter-spacing: -0.06em;
-        }
-        .counter-card p:last-child {
-            margin: 0;
-            color: #84988f;
-        }
-        @media (max-width: 600px) {
-            .counter-card { padding: 24px; }
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.04em;
         }
     }
     <section id="counter" class="counter-card">
-        <p class="eyebrow">Shared SQLite state</p>
+        <p>Shared count</p>
         <output>{count.to_str()}</output>
-        <p>Each increment or reset returns one Datastar patch.</p>
     </section>
 }
 
@@ -65,40 +119,106 @@ counterPage = |{ count }| {
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>Rocci + Datastar</title>
-            <link rel="stylesheet" href="/assets/app.css" />
+            <title>Welcome to Rocci</title>
             <script type="module" src="/assets/datastar.js"></script>
         </head>
         <body>
             <main>
                 <nav>
-                    <strong>ROC</strong>
-                    <span>Roc · basic-webserver · Datastar</span>
+                    <strong>Rocci</strong>
+                    <span>Starter app</span>
                 </nav>
                 <header>
-                    <p class="eyebrow">.rocci views on a Roc web server</p>
-                    <h1>The browser talks HTTP.</h1>
-                    <p class="lede">This page is authored as Counter.rocci, compiled to Roc, and served by basic-webserver. Increment and reset return one datastar-patch-elements event.</p>
+                    <h1>Welcome to Rocci</h1>
+                    <p class="lede">One file, a SQLite counter, and two buttons. Increment and reset return a single HTML patch.</p>
                 </header>
-                <div class="hello-list">
-                    <Hello />
-                    <Hello name="Foo"/>
-                </div>
                 <CounterCard count={count} />
                 <div class="actions">
                     <button data-on:click=@post("/api/counter/increment")>Increment</button>
                     <button class="secondary" data-on:click=@post("/api/counter/reset")>Reset</button>
                 </div>
+                <footer>The count is stored in SQLite and shared by every visitor.</footer>
             </main>
         </body>
     </html>
 }
-
-@fixture{target: hello}
-helloTest = { name: "Ada" }
 
 @fixture{target: counterCard}
 counterCardTest = { count: 3.I64 }
 
 @fixture{target: counterPage}
 counterPageTest = { count: 3.I64 }
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+    }
+    main {
+        width: min(40rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+    }
+    nav {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 2.5rem;
+        color: #8da39a;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong {
+        color: #48eda4;
+        font-size: 1.1rem;
+        letter-spacing: 0.16em;
+    }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    .lede {
+        margin: 0;
+        max-width: 32rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    .actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+    button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.75rem 1.1rem;
+        background: #48eda4;
+        color: #06100c;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    button:hover { background: #79f4bd; }
+    button.secondary {
+        border: 1px solid #29493b;
+        background: transparent;
+        color: #bfd0c8;
+    }
+    footer {
+        margin-top: 3rem;
+        color: #6f857c;
+        font-size: 0.85rem;
+    }
+}

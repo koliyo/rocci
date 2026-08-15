@@ -3,8 +3,8 @@ use lsp_types::{
     SemanticTokensLegend,
 };
 use rocci_template::{
-    AttrValue, ComponentCall, ComponentDecl, CssDecl, Document, Element, FixtureDecl, ModuleItem,
-    PositionEncoding, SourceFile, Span, TemplateItem,
+    AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element, FixtureDecl,
+    InitDecl, ModuleItem, OnDecl, PositionEncoding, SourceFile, Span, TemplateItem,
 };
 use serde::Serialize;
 
@@ -157,6 +157,9 @@ fn collect_document(collector: &mut Collector<'_>, document: &Document) {
             ModuleItem::Component(component) => collect_component(collector, component),
             ModuleItem::Fixture(fixture) => collect_fixture(collector, fixture),
             ModuleItem::Css(css) => collect_css(collector, css),
+            ModuleItem::Context(context) => collect_context(collector, context),
+            ModuleItem::Init(init) => collect_init(collector, init),
+            ModuleItem::On(on) => collect_on(collector, on),
         }
     }
 }
@@ -166,6 +169,37 @@ fn collect_css(collector: &mut Collector<'_>, css: &CssDecl) {
         collector.token(span, TOKEN_KEYWORD, 0);
     }
     collector.css(css.body);
+}
+
+fn collect_context(collector: &mut Collector<'_>, context: &ContextDecl) {
+    if let Some(span) = ident_between(
+        collector.src,
+        context.span.start,
+        context.ty.start,
+        "@context",
+    ) {
+        collector.token(span, TOKEN_KEYWORD, 0);
+    }
+    collector.roc(context.ty);
+}
+
+fn collect_init(collector: &mut Collector<'_>, init: &InitDecl) {
+    if let Some(span) = ident_between(collector.src, init.span.start, init.body.start, "@init") {
+        collector.token(span, TOKEN_KEYWORD, 0);
+    }
+    collector.roc(init.body);
+}
+
+fn collect_on(collector: &mut Collector<'_>, on: &OnDecl) {
+    if let Some(span) = ident_between(collector.src, on.span.start, on.method.span.start, "@on") {
+        collector.token(span, TOKEN_KEYWORD, 0);
+    }
+    collector.token(on.method.span, TOKEN_KEYWORD, 0);
+    collector.token(on.path_span, TOKEN_STRING, 0);
+    if let Some(params) = on.params {
+        collector.roc(params);
+    }
+    collector.roc(on.body);
 }
 
 fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {

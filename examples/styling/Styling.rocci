@@ -1,0 +1,158 @@
+import Html
+
+@on:get("/") {
+    stylePage({ count: 3.I64 })
+}
+
+@component
+hello = |{ name ?? "Roc" }| {
+    @css {
+        .greeting {
+            margin: 0;
+            color: #c9d8d2;
+            font-size: 1.05rem;
+        }
+        .greeting strong {
+            color: #f8fffb;
+        }
+    }
+    <p class="greeting">Hello, <strong>{name}</strong></p>
+}
+
+@component
+featureCard = |{ count }| {
+    @css {
+        .feature-card {
+            margin-top: 46px;
+            padding: 30px 34px;
+            border: 1px solid rgba(109, 236, 177, 0.2);
+            border-radius: 18px;
+            background: rgba(11, 30, 24, 0.72);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+        }
+        .feature-card output {
+            display: block;
+            margin: 4px 0;
+            color: #f8fffb;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 76px;
+            font-weight: 650;
+            letter-spacing: -0.06em;
+        }
+        .feature-card p:last-child {
+            margin: 0;
+            color: #84988f;
+        }
+        @media (max-width: 600px) {
+            .feature-card { padding: 24px; }
+        }
+    }
+    <section class="feature-card">
+        <p class="eyebrow">Component styles</p>
+        <output>{count.to_str()}</output>
+        <p>This card keeps its own scoped rules. Page chrome lives in the file-level block.</p>
+    </section>
+}
+
+@component
+stylePage = |{ count }| {
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Rocci styling</title>
+        </head>
+        <body>
+            <main>
+                <nav>
+                    <strong>ROC</strong>
+                    <span>File · Component · scope</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">Colocated CSS in a .rocci module</p>
+                    <h1>The theme lives next to the markup.</h1>
+                    <p class="lede">File-level CSS styles the document. Hello and the feature card each stamp their own data-rocci-css id. Start with the Counter example if you want the app shape without this chrome.</p>
+                </header>
+                <div class="hello-list">
+                    <Hello />
+                    <Hello name="Foo"/>
+                </div>
+                <FeatureCard count={count} />
+                <div class="actions">
+                    <button type="button">Primary</button>
+                    <button type="button" class="secondary">Secondary</button>
+                </div>
+            </main>
+        </body>
+    </html>
+}
+
+@fixture{target: hello}
+helloTest = { name: "Ada" }
+
+@fixture{target: featureCard}
+featureCardTest = { count: 3.I64 }
+
+@fixture{target: stylePage}
+stylePageTest = { count: 3.I64 }
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #f3f7f5;
+        font-synthesis: none;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, .13), transparent 31rem),
+            linear-gradient(145deg, #0a1713 0%, #07110e 55%, #071512 100%);
+    }
+    main {
+        width: min(900px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 38px 0 72px;
+    }
+    nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 52px;
+        color: #8da39a;
+        font-size: 13px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    nav strong { color: #48eda4; font-size: 18px; letter-spacing: .18em; }
+    header { max-width: 780px; }
+    .eyebrow { color: #48eda4; font-size: 12px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 8px 0 18px; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spacing: -.055em; }
+    .lede { max-width: 680px; color: #a8bbb3; font-size: 18px; line-height: 1.65; }
+    .hello-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-top: 28px;
+    }
+    .actions { display: flex; gap: 12px; margin-top: 20px; }
+    button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 13px 18px;
+        background: #48eda4;
+        color: #06100c;
+        font: inherit;
+        font-weight: 750;
+        cursor: pointer;
+    }
+    button:hover { background: #79f4bd; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button.secondary { border: 1px solid #29493b; background: transparent; color: #bfd0c8; }
+    @media (max-width: 600px) {
+        main { width: min(100% - 30px, 900px); padding-top: 24px; }
+        nav { padding-bottom: 36px; }
+        nav span { display: none; }
+    }
+}

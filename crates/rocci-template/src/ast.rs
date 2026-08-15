@@ -12,6 +12,31 @@ pub enum ModuleItem {
     Component(ComponentDecl),
     Fixture(FixtureDecl),
     Css(CssDecl),
+    Context(ContextDecl),
+    Init(InitDecl),
+    On(OnDecl),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ContextDecl {
+    pub ty: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InitDecl {
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OnDecl {
+    pub method: Ident,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

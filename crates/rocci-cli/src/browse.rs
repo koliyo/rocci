@@ -13,11 +13,11 @@ use rocci_template::{
 
 use crate::datastar_asset;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
+use crate::runtime_assets;
 use crate::serve;
 
 const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
-const HTML_STUB: &str = include_str!("../../../examples/counter/Html.roc");
 const BROWSER_ROCCI: &str = include_str!("../templates/browser/Browser.rocci");
 const QUERY_ROC: &str = include_str!("../templates/browser/Query.roc");
 const BROWSER_CSS: &str = include_str!("../templates/browser/assets/app.css");
@@ -25,6 +25,7 @@ const BROWSER_CSS: &str = include_str!("../templates/browser/assets/app.css");
 const RESERVED_ROC: &[&str] = &[
     "main.roc",
     "Html.roc",
+    "Datastar.roc",
     "Query.roc",
     "Catalog.roc",
     "Preview.roc",
@@ -47,13 +48,11 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
         copy_sibling_roc(src_dir, &workspace.path, &skip_names, &mut copied)?;
     }
 
-    if !workspace.path.join("Html.roc").is_file() {
-        fs::write(workspace.path.join("Html.roc"), HTML_STUB)
-            .context("failed to write Html.roc stub")?;
-    }
+    runtime_assets::stage_into(&workspace.path)?;
 
     let mut available = copied_module_names(&copied);
     available.insert("Html".to_string());
+    available.insert("Datastar".to_string());
     for module in &compiled_modules {
         available.insert(module.type_name.clone());
     }

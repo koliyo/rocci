@@ -4,11 +4,13 @@
 
 Rocci is a `.rocci` authoring language plus a small desktop host:
 
-1. **Templates** — `.rocci` modules lower to ordinary Roc HTML. The compiler
-   does not type-check Roc or own HTTP behavior.
-2. **Roc apps** — `main.roc` on [basic-webserver](https://github.com/roc-lang/basic-webserver)
-   serves HTML and Datastar SSE. `rocci run` compiles sibling `.rocci` files
-   and starts that server.
+1. **Templates** — `.rocci` modules lower to ordinary Roc HTML. `@context` /
+   `@init` / `@on` are parsed here and emitted as Roc functions plus route
+   metadata. The compiler does not type-check Roc or spawn HTTP.
+2. **Roc apps** — Standalone `rocci run App.rocci` generates a basic-webserver
+   dispatcher. Authored `main.roc` apps keep full control of `init!` /
+   `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc` and starts the
+   server.
 3. **Shell** — `rocci-wry` opens a tao/wry preview window against the local
    server. `rocci bundle` wraps the same host plus a `roc build` server binary
    in an ad-hoc signed macOS `.app`.
@@ -21,7 +23,8 @@ The contract between UI and backend should stay usable in a normal browser.
 
 - [x] `.rocci` parse, lower, and compile to Roc type modules
 - [x] `rocci run` / `view` / `browse` with an embedded preview window
-- [x] Example apps: counter, snake, and the Datastar gallery
+- [x] Standalone `rocci run App.rocci` from `@context` / `@init` / `@on`
+- [x] Example apps: counter (standalone), styling, snake, and the Datastar gallery
 - [x] macOS ad-hoc `.app` packaging that wraps a compiled Roc server
 - [ ] Test on macOS, Windows, Linux X11, and Linux Wayland in CI
 - [ ] Windows and Linux installers; production signing and notarization

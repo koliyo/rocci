@@ -18,7 +18,9 @@ cargo run -q -p rocci-cli -- run examples/datastar
 
 This opens an embedded window at [http://127.0.0.1:8000](http://127.0.0.1:8000). Pass `--no-window` to serve only (then open that URL yourself, or curl it). Override the port with `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/datastar/gallery.db`. Set `DB_PATH` to use another file.
 
-`rocci run` compiles each `*.rocci` module to a gitignored Roc type module and copies the pinned Datastar runtime into `examples/datastar/assets/`.
+`rocci run` compiles each `*.rocci` module to a gitignored Roc type module, stages `Html.roc` / `Datastar.roc` from the CLI runtime, and copies the pinned Datastar JS into `examples/datastar/assets/`. This example uses an authored `main.roc` for custom HTTP routing.
+
+Package a desktop app from this directory with [`rocci.toml`](rocci.toml), or from the repository root where [`rocci.toml`](../../rocci.toml) points here.
 
 ## Pages
 

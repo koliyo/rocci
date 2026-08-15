@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use crate::ast::{Document, FixtureDecl, ModuleItem, TemplateItem};
+use crate::ast::{Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, parse_component_params};
 use crate::diagnostic::Diagnostic;
 
-pub fn validate(document: &Document, diagnostics: &mut Vec<Diagnostic>) {
+pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic>) {
     let component_names: HashSet<&str> = document
         .items
         .iter()
@@ -12,6 +12,11 @@ pub fn validate(document: &Document, diagnostics: &mut Vec<Diagnostic>) {
             _ => None,
         })
         .collect();
+
+    let mut context_span = None;
+    let mut init_span = None;
+    let mut routes: Vec<(&str, &str, crate::span::Span)> = Vec::new();
+    let mut has_record_handler = false;
 
     for item in &document.items {
         match item {
@@ -22,9 +27,85 @@ pub fn validate(document: &Document, diagnostics: &mut Vec<Diagnostic>) {
             ModuleItem::Fixture(fixture) => {
                 validate_fixture(fixture, &component_names, diagnostics)
             }
+            ModuleItem::Context(context) => {
+                if context_span.is_some() {
+                    diagnostics.push(Diagnostic::error(
+                        context.span,
+                        "duplicate `@context`; a module may declare app state once",
+                    ));
+                } else {
+                    context_span = Some(context.span);
+                }
+            }
+            ModuleItem::Init(init) => {
+                if init_span.is_some() {
+                    diagnostics.push(Diagnostic::error(
+                        init.span,
+                        "duplicate `@init`; a module may initialize app state once",
+                    ));
+                } else {
+                    init_span = Some(init.span);
+                }
+            }
+            ModuleItem::On(on) => {
+                if handler_has_record_params(src, on) {
+                    has_record_handler = true;
+                }
+                if on.path.is_empty() || on.method.name.is_empty() {
+                    continue;
+                }
+                if let Some((_, _, _)) = routes
+                    .iter()
+                    .find(|(method, path, _)| *method == on.method.name && *path == on.path)
+                {
+                    diagnostics.push(Diagnostic::error(
+                        on.span,
+                        format!(
+                            "duplicate `@on:{}(\"{}\")` handler",
+                            on.method.name, on.path
+                        ),
+                    ));
+                } else {
+                    routes.push((on.method.name.as_str(), on.path.as_str(), on.span));
+                }
+            }
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => {}
         }
     }
+
+    if init_span.is_some() && context_span.is_none() {
+        diagnostics.push(Diagnostic::error(
+            init_span.unwrap(),
+            "`@init` requires `@context` to declare the app state type",
+        ));
+    }
+    if context_span.is_some() && init_span.is_none() {
+        diagnostics.push(Diagnostic::error(
+            context_span.unwrap(),
+            "`@context` requires `@init` to produce the app state value",
+        ));
+    }
+    if has_record_handler && context_span.is_none() {
+        let span = document
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::On(on) if handler_has_record_params(src, on) => Some(on.span),
+                _ => None,
+            })
+            .unwrap_or(document.span);
+        diagnostics.push(Diagnostic::error(
+            span,
+            "`@on` handlers that destructure a record require `@context`",
+        ));
+    }
+}
+
+fn handler_has_record_params(src: &str, on: &OnDecl) -> bool {
+    let Some(params) = on.params else {
+        return false;
+    };
+    parse_component_params(src, params).first_param_is_record
 }
 
 fn validate_fixture(
