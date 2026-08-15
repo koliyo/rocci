@@ -185,7 +185,7 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
     page({ count })
 }
 
-@on:post("/api/increment") = |{ db }| {
+@on:post("/actions/increment") = |{ db }| {
     count = increment_count!(db)?
     card({ count })
 }
@@ -196,10 +196,19 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
 - `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
   generated app maps failures to process exit.
 - `@on:METHOD("literal-path") = |params| { ... }` lowers to a named function
-  (`on_get_root!`, `on_post_api_increment!`). `GET` responses are HTML
+  (`on_get_root!`, `on_post_actions_increment!`). `GET` responses are HTML
   documents; other methods are one-shot `datastar-patch-elements` SSE events.
   Generated `respond!` maps `?` failures to HTTP 500.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
+
+Paths are free-form. The convention is:
+
+| Kind | Path | Example |
+| --- | --- | --- |
+| HTML document | resource, no prefix | `GET /`, `GET /todos` |
+| Datastar HTML/SSE patch | `/actions/...` | `POST /actions/increment` |
+| JSON / data API | `/api/...` | `POST /api/direction` |
+| Long-lived SSE | `/sse` | `GET /sse` |
 
 Handler return alternatives not taken for this POC: returning
 `Server.Outcome` from the body, or branching on `Html` vs `Sse.Event`.
@@ -254,7 +263,7 @@ attribute position. They generate Datastar backend actions. Arguments are Roc
     Submit answer
 </button>
 
-<button data-on:click=@delete("/todos/${item.id}")>
+<button data-on:click=@delete("/actions/todos/${item.id}")>
     Delete
 </button>
 
@@ -265,7 +274,7 @@ This is not Datastar JS. `@post('/x')` with single quotes is a parse error;
 write `@post("/x")`, or quote a literal Datastar expression:
 
 ```rocci
-<form data-on:submit__prevent="$input.trim() && @patch('/todos') && ($input = '')">
+<form data-on:submit__prevent="$input.trim() && @patch('/actions/todos') && ($input = '')">
 ```
 
 Quoted `"@post('...')"` stays an opaque client string. Custom actions such as

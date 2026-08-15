@@ -133,9 +133,9 @@ respond! = |request, { db }| {
             )
         ("GET", "/sse") =>
             stream_game!(db, player_id)
-        ("POST", "/api/join") =>
+        ("POST", "/join") =>
             join_player!(db)
-        ("POST", "/api/leave") =>
+        ("POST", "/leave") =>
             leave_player!(db, player_id)
         ("POST", "/api/direction") => {
             json = read_json_body!(request) ? |err| ServerErr("Failed to read direction: ${Str.inspect(err)}")

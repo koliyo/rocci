@@ -38,7 +38,7 @@ curl -s http://127.0.0.1:8000/health
 
 curl -s http://127.0.0.1:8000/ | grep -E 'Join game|Spectate'
 
-curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/api/join
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/join
 # HTTP/1.1 303
 # set-cookie: snake=...
 # location: /play

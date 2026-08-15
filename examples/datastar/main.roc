@@ -71,19 +71,19 @@ respond! = |request, { db }| {
             _ => ""
         }
 
-    if method == "GET" and Str.starts_with(path, "/tabs/") {
-        tabs_patch!(Str.drop_prefix(path, "/tabs/"))
-    } else if method == "POST" and Str.starts_with(path, "/todos/") {
-        todo_post!(db, Str.drop_prefix(path, "/todos/"))
-    } else if method == "DELETE" and Str.starts_with(path, "/todos/") and path != "/todos/completed" {
-        delete_todo!(db, Str.drop_prefix(path, "/todos/"))
+    if method == "GET" and Str.starts_with(path, "/actions/tabs/") {
+        tabs_patch!(Str.drop_prefix(path, "/actions/tabs/"))
+    } else if method == "POST" and Str.starts_with(path, "/actions/todos/") {
+        todo_post!(db, Str.drop_prefix(path, "/actions/todos/"))
+    } else if method == "DELETE" and Str.starts_with(path, "/actions/todos/") and path != "/actions/todos/completed" {
+        delete_todo!(db, Str.drop_prefix(path, "/actions/todos/"))
     } else {
         match (method, path) {
             ("GET", "/") => html_ok(Html.render(Gallery.home({})))
             ("GET", "/health") => text_ok("ok")
             ("GET", "/search") =>
                 html_ok(Html.render(search_page("")))
-            ("GET", "/search/results") => {
+            ("GET", "/actions/search/results") => {
                 json = Signals.from_request!(request) ? |err| ServerErr("Failed to read search: ${Str.inspect(err)}")
                 Ok(patch!(Search.results({ contacts: all_contacts, query: Signals.str(json, "search") })))
             }
@@ -91,25 +91,25 @@ respond! = |request, { db }| {
                 contact = load_contact!(db) ? |err| ServerErr("Failed to read contact: ${Str.inspect(err)}")
                 html_ok(Html.render(edit_page(contact)))
             }
-            ("GET", "/edit/contact") => contact_patch!(db)
-            ("GET", "/edit/contact/edit") => set_editing!(db, 1)
-            ("GET", "/edit/contact/cancel") => set_editing!(db, 0)
-            ("PUT", "/edit/contact") => save_contact!(db, request)
-            ("PATCH", "/edit/contact/reset") => reset_contact!(db)
+            ("GET", "/actions/edit/contact") => contact_patch!(db)
+            ("GET", "/actions/edit/contact/edit") => set_editing!(db, 1)
+            ("GET", "/actions/edit/contact/cancel") => set_editing!(db, 0)
+            ("PUT", "/actions/edit/contact") => save_contact!(db, request)
+            ("PATCH", "/actions/edit/contact/reset") => reset_contact!(db)
             ("GET", "/todos") => {
                 view = load_todos!(db) ? |err| ServerErr("Failed to read todos: ${Str.inspect(err)}")
                 html_ok(Html.render(todos_page(view)))
             }
-            ("PATCH", "/todos") => add_todo!(db, request)
-            ("PUT", "/todos/reset") => reset_todos!(db)
-            ("PUT", "/todos/mode/all") => set_todo_filter!(db, "all")
-            ("PUT", "/todos/mode/pending") => set_todo_filter!(db, "pending")
-            ("PUT", "/todos/mode/completed") => set_todo_filter!(db, "completed")
-            ("DELETE", "/todos/completed") => clear_completed!(db)
+            ("PATCH", "/actions/todos") => add_todo!(db, request)
+            ("PUT", "/actions/todos/reset") => reset_todos!(db)
+            ("PUT", "/actions/todos/mode/all") => set_todo_filter!(db, "all")
+            ("PUT", "/actions/todos/mode/pending") => set_todo_filter!(db, "pending")
+            ("PUT", "/actions/todos/mode/completed") => set_todo_filter!(db, "completed")
+            ("DELETE", "/actions/todos/completed") => clear_completed!(db)
             ("GET", "/tabs") => html_ok(Html.render(tabs_page("0")))
             ("GET", "/validate") => html_ok(Html.render(validate_page(empty_form())))
-            ("POST", "/validate/check") => validate_check!(request)
-            ("POST", "/validate") => validate_submit!(request)
+            ("POST", "/actions/validate/check") => validate_check!(request)
+            ("POST", "/actions/validate") => validate_submit!(request)
             _ =>
                 Ok(
                     Server.respond(

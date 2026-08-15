@@ -282,7 +282,7 @@ impl<'a> Parser<'a> {
         if !self.cur.eat(':') {
             self.error(
                 Span::new(start, self.cur.pos),
-                "expected `@on:method(\"path\")`; write `@on:post(\"/api/...\")`",
+                "expected `@on:method(\"path\")`; write `@on:post(\"/actions/...\")`",
             );
             self.sync_to_next_top_level();
             return empty_on(start, self.cur.pos);
@@ -330,7 +330,7 @@ impl<'a> Parser<'a> {
             None => {
                 self.error(
                     args,
-                    "expected a string literal path, e.g. `@on:post(\"/api/...\")`",
+                    "expected a string literal path, e.g. `@on:post(\"/actions/...\")`",
                 );
                 (String::new(), args)
             }

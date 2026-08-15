@@ -20,13 +20,13 @@ ContactCard = |{ contact }|
             <button
                 data-indicator:_fetching=""
                 data-attr:disabled="$_fetching"
-                data-on:click=@get("/edit/contact/edit")
+                data-on:click=@get("/actions/edit/contact/edit")
             >Edit</button>
             <button
                 class="secondary"
                 data-indicator:_fetching=""
                 data-attr:disabled="$_fetching"
-                data-on:click=@patch("/edit/contact/reset")
+                data-on:click=@patch("/actions/edit/contact/reset")
             >Reset</button>
         </div>
     </>
@@ -65,13 +65,13 @@ ContactForm = |{ contact }|
             <button
                 data-indicator:_fetching=""
                 data-attr:disabled="$_fetching"
-                data-on:click=@put("/edit/contact")
+                data-on:click=@put("/actions/edit/contact")
             >Save</button>
             <button
                 class="secondary"
                 data-indicator:_fetching=""
                 data-attr:disabled="$_fetching"
-                data-on:click=@get("/edit/contact/cancel")
+                data-on:click=@get("/actions/edit/contact/cancel")
             >Cancel</button>
         </div>
     </>

@@ -672,11 +672,11 @@ fn lowers_datastar_action_to_helper_call() {
 fn lowers_datastar_action_interpolated_uri() {
     let src = r#"
 @component Row = |{ item }| {
-    <button data-on:click=@delete("/todos/${item.id}")>Delete</button>
+    <button data-on:click=@delete("/actions/todos/${item.id}")>Delete</button>
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.roc.contains("Datastar.delete(\"/todos/${item.id}\")"));
+    assert!(out.roc.contains("Datastar.delete(\"/actions/todos/${item.id}\")"));
 }
 
 #[test]
@@ -998,7 +998,7 @@ import Html
     counterPage({ count: 0 })
 }
 
-@on:post("/api/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") = |{ db }| {
     counterCard({ count: 1 })
 }
 
@@ -1018,8 +1018,8 @@ import Html
     assert_eq!(out.routes[0].path, "/");
     assert_eq!(out.routes[0].fn_name, "on_get_root!");
     assert_eq!(out.routes[1].method, "POST");
-    assert_eq!(out.routes[1].path, "/api/counter/increment");
-    assert_eq!(out.routes[1].fn_name, "on_post_api_counter_increment!");
+    assert_eq!(out.routes[1].path, "/actions/counter/increment");
+    assert_eq!(out.routes[1].fn_name, "on_post_actions_counter_increment!");
     assert!(out.roc.contains("State : { db : Sqlite.Db }"));
     assert!(out.roc.contains("init! = || {"));
     assert!(out.roc.contains("rocci_state = {"));
@@ -1027,7 +1027,7 @@ import Html
     assert!(out.roc.contains("on_get_root! = |{ db }| {"));
     assert!(
         out.roc
-            .contains("on_post_api_counter_increment! = |{ db }| {")
+            .contains("on_post_actions_counter_increment! = |{ db }| {")
     );
     assert!(!out.roc.contains("@context"));
     assert!(!out.roc.contains("@init"));
@@ -1128,13 +1128,13 @@ fn counter_example_compiles_as_standalone_app() {
     assert!(
         out.routes
             .iter()
-            .any(|route| { route.method == "POST" && route.path == "/api/counter/increment" })
+            .any(|route| { route.method == "POST" && route.path == "/actions/counter/increment" })
     );
     assert!(out.roc.contains("State : { db : Sqlite.Db }"));
     assert!(out.roc.contains("init! = || {"));
     assert!(out.roc.contains("on_get_root!"));
-    assert!(out.roc.contains("on_post_api_counter_increment!"));
-    assert!(out.roc.contains("on_post_api_counter_reset!"));
+    assert!(out.roc.contains("on_post_actions_counter_increment!"));
+    assert!(out.roc.contains("on_post_actions_counter_reset!"));
     let page = out.roc.split("counterPage = ").nth(1).expect("counterPage");
     let html_at = page.find("\"html\"").expect("html");
     let head_at = page.find("\"head\"").expect("head");

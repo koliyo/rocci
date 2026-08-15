@@ -26,7 +26,7 @@ LobbyPage = |{ player_count, full }|
                     @if full {
                         <p class="count">Game full — spectate instead.</p>
                     } @else {
-                        <form method="post" action="/api/join">
+                        <form method="post" action="/join">
                             <button type="submit">Join game</button>
                         </form>
                     }
@@ -69,7 +69,7 @@ StatusHud = |{ info }|
             }
         </ul>
         @if info.can_leave {
-            <form method="post" action="/api/leave">
+            <form method="post" action="/leave">
                 <button class="secondary" type="submit">Leave</button>
             </form>
         } @else {

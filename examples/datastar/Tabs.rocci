@@ -9,7 +9,7 @@ Demo = |{ tabs, panel }|
                     role="tab"
                     class={if tab.selected { "tab selected" } else { "tab" }}
                     aria-selected={if tab.selected { "true" } else { "false" }}
-                    data-on:click=@get("/tabs/${tab.id}")
+                    data-on:click=@get("/actions/tabs/${tab.id}")
                 >
                     {tab.label}
                 </button>

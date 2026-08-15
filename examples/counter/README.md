@@ -35,7 +35,7 @@ curl -s http://127.0.0.1:8000/health
 
 curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|Increment'
 
-curl -s -X POST http://127.0.0.1:8000/api/counter/increment
+curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
 # event: datastar-patch-elements
 # data: elements <section id="counter" ...><output>1</output>...
 ```
