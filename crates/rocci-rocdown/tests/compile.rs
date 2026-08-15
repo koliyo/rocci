@@ -1,0 +1,375 @@
+use rocci_rocdown::{CompileOptions, OriginKind, SourceFile, compile, format_ast};
+use rocci_template::LowerOptions;
+
+fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
+    let out = compile(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    out
+}
+
+fn compile_err(src: &str) -> Vec<String> {
+    let out = compile(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions::default(),
+    );
+    out.diagnostics
+        .into_iter()
+        .filter(|d| d.is_error())
+        .map(|d| d.message)
+        .collect()
+}
+
+#[test]
+fn at_signs_in_prose_are_literal() {
+    let src = "\
+Email help@example.com.
+Follow @roclang.
+Use `@component` in a Rocci file.
+[mail](mailto:docs@example.com)
+
+    indented @roc is just code
+
+\\@roc { is prose here }
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("help@example.com"));
+    assert!(out.roc.contains("@roclang"));
+    assert!(out.roc.contains("@component"));
+    assert!(out.roc.contains("@roc { is prose here }"));
+    assert!(!out.roc.contains("feature_count"));
+    assert!(out.items_have_no_roc_decl());
+}
+
+trait NoRoc {
+    fn items_have_no_roc_decl(&self) -> bool;
+}
+
+impl NoRoc for rocci_rocdown::CompileOutput {
+    fn items_have_no_roc_decl(&self) -> bool {
+        !self
+            .document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Roc(_)))
+    }
+}
+
+#[test]
+fn fenced_code_is_never_executed() {
+    let src = "\
+```roc
+@roc {
+    this_is_displayed = Bool.true
+}
+```
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("language-roc"));
+    assert!(out.items_have_no_roc_decl());
+}
+
+#[test]
+fn declarations_work_with_leading_indent() {
+    let src = "\
+    @roc {
+    answer = 42
+    }
+
+Value: see below.
+
+@render {
+    Html.text(answer.to_str())
+}
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("answer = 42"));
+    assert!(out.roc.contains("Html.text(answer.to_str())"));
+}
+
+#[test]
+fn declarations_inside_lists_and_quotes_stay_markdown() {
+    let src = "\
+- item
+  @roc {
+  captured = 1
+  }
+
+> @render {
+> Html.text(\"nope\")
+> }
+
+@roc {
+real = 2
+}
+";
+    let out = compile_ok(src);
+    let roc_items = out
+        .document
+        .items
+        .iter()
+        .filter(|item| matches!(item, rocci_rocdown::Item::Roc(_)))
+        .count();
+    assert_eq!(roc_items, 1);
+    assert!(out.roc.contains("real = 2"));
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(roc real = 2)"));
+}
+
+#[test]
+fn braces_in_strings_do_not_end_roc_blocks() {
+    let src = r#"
+@roc {
+msg = "close } please"
+nested = { a: 1, b: { c: 2 } }
+# } comment
+}
+
+@render {
+    Html.text(msg)
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains(r#"msg = "close } please""#));
+    assert!(out.roc.contains("nested = { a: 1, b: { c: 2 } }"));
+}
+
+#[test]
+fn css_nested_rules_and_media() {
+    let src = r#"
+@css {
+    .card { color: red; }
+    @media (min-width: 40rem) {
+        .card { color: blue; }
+    }
+}
+
+# Title
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.styles.len(), 1);
+    assert!(out.styles[0].css.contains("@media"));
+    assert!(out.styles[0].css.contains(".card"));
+}
+
+#[test]
+fn link_references_resolve_across_declarations() {
+    let src = "\
+See [docs].
+
+@roc {
+x = 1
+}
+
+[docs]: https://roc-lang.org
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("https://roc-lang.org"));
+    assert!(
+        out.links
+            .iter()
+            .any(|link| link.url == "https://roc-lang.org")
+    );
+}
+
+#[test]
+fn render_keeps_paragraph_boundaries() {
+    let src = "\
+Before the card.
+
+@render {
+    Html.text(\"card\")
+}
+
+After the card.
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("Before the card."));
+    assert!(out.roc.contains("Html.text(\"card\")"));
+    assert!(out.roc.contains("After the card."));
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(p"));
+    assert!(ast.contains("(render"));
+}
+
+#[test]
+fn source_maps_cover_markdown_and_roc() {
+    let src = "\
+@roc {
+answer = 1
+}
+
+# Hello
+
+@render {
+    Html.text(\"x\")
+}
+";
+    let out = compile_ok(src);
+    assert!(
+        out.segments
+            .iter()
+            .any(|seg| seg.origin == OriginKind::MarkdownText
+                || seg.origin == OriginKind::MarkdownStructure)
+    );
+    assert!(
+        out.segments
+            .iter()
+            .any(|seg| seg.origin == OriginKind::RocBlock)
+    );
+    assert!(
+        out.segments
+            .iter()
+            .any(|seg| seg.origin == OriginKind::RenderRoc)
+    );
+}
+
+#[test]
+fn raw_html_is_rejected_by_default() {
+    let errs = compile_err("<div>nope</div>\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("raw HTML is disabled in Rocdown"))
+    );
+}
+
+#[test]
+fn raw_html_can_be_enabled() {
+    let src = "<div>trusted</div>\n";
+    let out = compile(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions {
+            lower: LowerOptions::default(),
+            raw_html: true,
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(out.roc.contains("dangerously_include_unescaped_html"));
+}
+
+#[test]
+fn duplicate_page_and_unknown_fields_are_errors() {
+    let errs = compile_err(
+        "\
+@page { extra: 1 }
+@page { route: \"/x\" }
+",
+    );
+    assert!(errs.iter().any(|msg| msg.contains("unknown `@page` field")));
+    assert!(errs.iter().any(|msg| msg.contains("duplicate `@page`")));
+}
+
+#[test]
+fn text_after_closing_brace_is_an_error() {
+    let errs = compile_err(
+        "\
+@roc { x = 1 } trailing
+
+# Hi
+",
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("text after a declaration's closing `}`"))
+    );
+}
+
+#[test]
+fn page_layout_and_route_are_emitted() {
+    let src = r#"
+@page {
+    route: "/guides/rocdown/",
+    layout: Docs.article,
+    draft: Bool.false,
+    meta: { title: "Rocdown" },
+}
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.page_meta.route.as_deref(), Some("/guides/rocdown/"));
+    assert!(!out.page_meta.draft);
+    assert_eq!(out.page_meta.layout.as_deref(), Some("Docs.article"));
+    assert!(
+        out.roc
+            .contains("Docs.article({ meta: rocci_meta, content: rocci_content({}) })")
+    );
+    assert!(out.roc.contains("rocci_meta = { title: \"Rocdown\" }"));
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/guides/rocdown/")
+    );
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/")
+    );
+}
+
+#[test]
+fn static_page_emits_no_datastar() {
+    let src = "# Hello\n\nA paragraph.\n";
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("import Datastar"));
+    assert!(out.roc.contains("rocci_page"));
+    assert!(out.roc.contains("on_get_root!"));
+    assert!(out.roc.contains("charset"));
+    assert!(out.roc.contains("\"main\""));
+}
+
+#[test]
+fn heading_ids_disambiguate_duplicates() {
+    let src = "# Hello\n\n# Hello\n";
+    let out = compile_ok(src);
+    assert_eq!(out.headings.len(), 2);
+    assert_eq!(out.headings[0].id, "hello");
+    assert_eq!(out.headings[1].id, "hello-1");
+    assert!(out.roc.contains("\"hello\""));
+    assert!(out.roc.contains("\"hello-1\""));
+}
+
+#[test]
+fn guide_example_compiles() {
+    let src = include_str!("../../../examples/rocdown/Guide.rocdown");
+    let out = compile(
+        SourceFile::new("examples/rocdown/Guide.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("feature_count = 3.I64"));
+    assert!(out.roc.contains("charset"));
+    assert!(out.roc.contains("\"main\""));
+    assert!(out.roc.contains("featureCount = |{ count }|"));
+    assert!(out.roc.contains("featureCount({ count: feature_count })"));
+    assert!(out.roc.contains("language-roc"));
+    assert!(out.roc.contains("docs@example.com"));
+    assert!(out.roc.contains("@roclang"));
+    assert!(!out.roc.contains("import Datastar"));
+    assert_eq!(out.roc, include_str!("fixtures/guide.roc"));
+}
+
+#[test]
+fn unknown_at_name_is_markdown() {
+    let src = "@roclang is a handle\n";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("@roclang is a handle"));
+}

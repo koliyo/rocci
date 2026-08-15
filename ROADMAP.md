@@ -2,19 +2,23 @@
 
 ## Architectural direction
 
-Rocci is a `.rocci` authoring language plus a small desktop host:
+Rocci is a `.rocci` authoring language, a `.rocdown` content format, and a
+small desktop host:
 
 1. **Templates** — `.rocci` modules lower to ordinary Roc HTML. `@context` /
    `@init` / `@on` are parsed here and emitted as Roc functions plus route
    metadata. The compiler does not type-check Roc or spawn HTTP.
-2. **Roc apps** — Standalone `rocci run App.rocci` generates a basic-webserver
+2. **Rocdown** — `.rocdown` files are Markdown with document-root `@`
+   declarations. They lower to the same `Html`, CSS, and route artifacts.
+   Full SSG, LSP, and `@island` are still ahead.
+3. **Roc apps** — Standalone `rocci run App.rocci` generates a basic-webserver
    dispatcher. Authored `main.roc` apps keep full control of `init!` /
    `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc` and starts the
    server.
-3. **Shell** — `rocci-wry` opens a tao/wry preview window against the local
+4. **Shell** — `rocci-wry` opens a tao/wry preview window against the local
    server. `rocci bundle` wraps the same host plus a `roc build` server binary
    in an ad-hoc signed macOS `.app`.
-4. **Tooling** — `rocci-cli` and `rocci-lsp` stay the front door for build,
+5. **Tooling** — `rocci-cli` and `rocci-lsp` stay the front door for build,
    run, view, browse, and editor support.
 
 The contract between UI and backend should stay usable in a normal browser.
@@ -25,6 +29,12 @@ The contract between UI and backend should stay usable in a normal browser.
 - [x] `rocci run` / `view` / `browse` with an embedded preview window
 - [x] Standalone `rocci run App.rocci` from `@context` / `@init` / `@on`
 - [x] Example apps: counter (standalone), styling, snake, and the Datastar gallery
+- [x] `.rocdown` compiler core: Markdown-first pages with `@page` / `@roc` /
+      `@render` and delegated Rocci declarations, lowering to Roc; `rocci run`
+      for a single file. See [`crates/rocci-rocdown`](crates/rocci-rocdown).
+- [ ] Rocdown SSG (multi-page routes, layouts, drafts, `dist/` output)
+- [ ] `.rocdown` LSP and editor registration
+- [ ] `@island` for `.rocci` and `.rocdown`
 - [x] macOS ad-hoc `.app` packaging that wraps a compiled Roc server
 - [ ] Test on macOS, Windows, Linux X11, and Linux Wayland in CI
 - [ ] Windows and Linux installers; production signing and notarization

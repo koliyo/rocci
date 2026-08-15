@@ -19,6 +19,16 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    pub fn at(src: &'a str, pos: usize) -> Self {
+        Self {
+            src,
+            pos,
+            paren: 0,
+            bracket: 0,
+            brace: 0,
+        }
+    }
+
     pub fn is_eof(&self) -> bool {
         self.pos >= self.src.len()
     }

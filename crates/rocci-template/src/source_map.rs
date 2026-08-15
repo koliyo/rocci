@@ -12,6 +12,12 @@ pub enum OriginKind {
     StaticMarkup,
     Scaffolding,
     Css,
+    MarkdownStructure,
+    MarkdownText,
+    MarkdownBoilerplate,
+    PageRoc,
+    RocBlock,
+    RenderRoc,
 }
 
 impl OriginKind {
@@ -26,6 +32,12 @@ impl OriginKind {
             Self::StaticMarkup => "static_markup",
             Self::Scaffolding => "scaffolding",
             Self::Css => "css",
+            Self::MarkdownStructure => "markdown_structure",
+            Self::MarkdownText => "markdown_text",
+            Self::MarkdownBoilerplate => "markdown_boilerplate",
+            Self::PageRoc => "page_roc",
+            Self::RocBlock => "roc_block",
+            Self::RenderRoc => "render_roc",
         }
     }
 }

@@ -37,17 +37,17 @@ enum Commands {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
     },
-    /// Build a .rocci module to ordinary Roc.
+    /// Build a .rocci or .rocdown module to ordinary Roc.
     Build {
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
+    /// Compile sibling .rocci/.rocdown modules and run a Roc app, or run a standalone file.
     Run {
         #[command(flatten)]
         serve: serve::ServeOptions,
-        /// Roc app file, directory, or standalone .rocci file
+        /// Roc app file, directory, or standalone .rocci/.rocdown file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
         /// Extra arguments forwarded to `roc` after `--`.
@@ -61,7 +61,7 @@ enum Commands {
         #[arg(long)]
         ast: bool,
     },
-    /// Print a .rocci parse tree as a LISPy S-expression.
+    /// Print a .rocci or .rocdown parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
     /// Render a component in an embedded window.
     View {
@@ -116,10 +116,10 @@ fn main() -> Result<()> {
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle::bundle(&config),
-        Commands::Build { input, output } => build_rocci(&input, output.as_deref()),
+        Commands::Build { input, output } => build_module(&input, output.as_deref()),
         Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
-        Commands::Inspect { input, ast } => inspect_rocci(&input, ast),
-        Commands::Ast { input } => ast_rocci(&input),
+        Commands::Inspect { input, ast } => inspect_module(&input, ast),
+        Commands::Ast { input } => ast_module(&input),
         Commands::View {
             input,
             component,
@@ -134,33 +134,60 @@ fn main() -> Result<()> {
     }
 }
 
-fn build_rocci(input: &Path, output: Option<&Path>) -> Result<()> {
+fn is_rocdown(path: &Path) -> bool {
+    path.extension().is_some_and(|ext| ext == "rocdown")
+}
+
+fn build_module(input: &Path, output: Option<&Path>) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
-    let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
-    for diagnostic in &compiled.diagnostics {
+    let (roc, diagnostics, failed) = if is_rocdown(input) {
+        let compiled = rocci_rocdown::compile(
+            SourceFile::new(&name, &src),
+            &rocci_rocdown::CompileOptions::default(),
+        );
+        let failed = compiled.has_errors();
+        (compiled.roc, compiled.diagnostics, failed)
+    } else {
+        let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
+        let failed = compiled.has_errors();
+        (compiled.roc, compiled.diagnostics, failed)
+    };
+    for diagnostic in &diagnostics {
         eprintln!(
             "{}",
             format_diagnostic(SourceFile::new(&name, &src), diagnostic)
         );
     }
-    if compiled.has_errors() {
+    if failed {
         bail!("template compilation failed");
     }
     match output {
-        Some(path) => fs::write(path, compiled.roc)
-            .with_context(|| format!("failed to write {}", path.display()))?,
-        None => print!("{}", compiled.roc),
+        Some(path) => {
+            fs::write(path, roc).with_context(|| format!("failed to write {}", path.display()))?
+        }
+        None => print!("{roc}"),
     }
     Ok(())
 }
 
-fn ast_rocci(input: &Path) -> Result<()> {
+fn ast_module(input: &Path) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
+    if is_rocdown(input) {
+        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        for diagnostic in &compiled.diagnostics {
+            eprintln!("{}", format_diagnostic(source, diagnostic));
+        }
+        print!("{}", rocci_rocdown::format_ast(&src, &compiled.document));
+        if compiled.has_errors() {
+            bail!("template compilation failed");
+        }
+        return Ok(());
+    }
     let compiled = compile(source, &LowerOptions::default());
     for diagnostic in &compiled.diagnostics {
         eprintln!("{}", format_diagnostic(source, diagnostic));
@@ -172,11 +199,59 @@ fn ast_rocci(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn inspect_rocci(input: &Path, ast: bool) -> Result<()> {
+fn inspect_module(input: &Path, ast: bool) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
+    if is_rocdown(input) {
+        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        for diagnostic in &compiled.diagnostics {
+            eprintln!("{}", format_diagnostic(source, diagnostic));
+        }
+        println!("# components ({})", compiled.components.len());
+        for component in &compiled.components {
+            println!(
+                "- {} ({})",
+                component.name,
+                component.param_names.join(", ")
+            );
+        }
+        println!("# fixtures ({})", compiled.fixtures.len());
+        for fixture in &compiled.fixtures {
+            println!("- {} -> {}", fixture.name, fixture.target);
+        }
+        println!(
+            "# page route={} draft={} layout={}",
+            compiled.page_meta.route.as_deref().unwrap_or("/"),
+            compiled.page_meta.draft,
+            compiled.page_meta.layout.as_deref().unwrap_or("-")
+        );
+        if ast {
+            println!(
+                "\n# ast\n{}",
+                rocci_rocdown::format_ast(&src, &compiled.document)
+            );
+        }
+        println!("\n# generated roc\n{}", compiled.roc);
+        println!("# segments ({})", compiled.segments.len());
+        for segment in &compiled.segments {
+            let (line, col) = source.line_col(segment.source.start);
+            println!(
+                "- generated {}..{} <- {name}:{line}:{col} {}",
+                segment.generated.start, segment.generated.end, segment.origin
+            );
+        }
+        if compiled.has_errors() {
+            bail!("template compilation failed");
+        }
+        return Ok(());
+    }
+    inspect_rocci(input, ast, &src, source)
+}
+
+fn inspect_rocci(input: &Path, ast: bool, src: &str, source: SourceFile<'_>) -> Result<()> {
+    let name = input.display().to_string();
     let compiled = compile(source, &LowerOptions::default());
     for diagnostic in &compiled.diagnostics {
         eprintln!("{}", format_diagnostic(source, diagnostic));
@@ -194,7 +269,7 @@ fn inspect_rocci(input: &Path, ast: bool) -> Result<()> {
         println!("- {} -> {}", fixture.name, fixture.target);
     }
     if ast {
-        println!("\n# ast\n{}", format_ast(&src, &compiled.document));
+        println!("\n# ast\n{}", format_ast(src, &compiled.document));
     }
     println!("\n# generated roc\n{}", compiled.roc);
     println!("# segments ({})", compiled.segments.len());

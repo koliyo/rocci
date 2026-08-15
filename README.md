@@ -1,13 +1,15 @@
 # Rocci
 
-A `.rocci` template language and desktop runtime. Author HTML components in
-`.rocci`, compile them to ordinary [Roc](https://www.roc-lang.org/), and serve
-them over HTTP with Datastar. `rocci run` opens the app in an embedded
+A `.rocci` template language, `.rocdown` content format, and desktop runtime.
+Author HTML components in `.rocci` or Markdown-first pages in `.rocdown`,
+compile them to ordinary [Roc](https://www.roc-lang.org/), and serve them over
+HTTP with Datastar. `rocci run` opens the app in an embedded
 [tao](https://github.com/tauri-apps/tao) / [wry](https://github.com/tauri-apps/wry)
 window.
 
-The workspace is `rocci-template` (parse/lower), `rocci-lsp`, `rocci-cli`,
-`rocci-core` (config), and `rocci-wry` (preview windows).
+The workspace is `rocci-template` (`.rocci` parse/lower), `rocci-rocdown`
+(Markdown documents), `rocci-lsp`, `rocci-cli`, `rocci-core` (config), and
+`rocci-wry` (preview windows).
 
 ## Run an example
 
@@ -17,6 +19,7 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 ```sh
 cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
+cargo run -q -p rocci-cli -- run examples/rocdown/Guide.rocdown
 cargo run -q -p rocci-cli -- run examples/snake
 cargo run -q -p rocci-cli -- run examples/datastar
 ```
@@ -24,6 +27,9 @@ cargo run -q -p rocci-cli -- run examples/datastar
 [`examples/counter`](examples/counter) is the starting app: SQLite, `@on`, and a
 Datastar patch. [`examples/styling`](examples/styling) is the same template
 language with file-level and component `@css`.
+[`examples/rocdown`](examples/rocdown) is a Markdown page with explicit `@roc`,
+`@component`, and `@render` islands; see [`crates/rocci-rocdown`](crates/rocci-rocdown)
+for the format.
 
 `rocci run path/to/App.rocci` is a standalone app: compile that file, generate
 an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
@@ -74,7 +80,9 @@ Packaging is currently macOS-only.
 cargo run -p rocci-cli -- validate
 cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- build path/to/file.rocci
+cargo run -p rocci-cli -- build examples/rocdown/Guide.rocdown
 cargo run -p rocci-cli -- run examples/counter/Counter.rocci
+cargo run -p rocci-cli -- run examples/rocdown/Guide.rocdown
 cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component CounterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci

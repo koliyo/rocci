@@ -1,0 +1,14 @@
+[package]
+name = "rocci-rocdown"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Parse and lower .rocdown Markdown documents to ordinary Roc"
+
+[lib]
+name = "rocci_rocdown"
+path = "src/lib.rs"
+
+[dependencies]
+comrak = "0.54"
+rocci-template = { workspace = true }
