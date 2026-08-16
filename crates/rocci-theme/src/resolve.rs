@@ -304,11 +304,7 @@ mod tests {
         let dir = std::env::temp_dir().join("rocci-theme-path-test");
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("custom.css");
-        std::fs::write(
-            &file,
-            ".rd-document { --rd-color-accent: #ff00aa; }\n",
-        )
-        .unwrap();
+        std::fs::write(&file, ".rd-document { --rd-color-accent: #ff00aa; }\n").unwrap();
         let theme = resolve_id(&file.to_string_lossy(), None).unwrap();
         assert_eq!(theme.origin, ThemeOrigin::Local);
         assert!(theme.css.contains("#ff00aa"));

@@ -27,11 +27,13 @@ what the compiler actually does.
 
 ## File shape
 
-A file is a sequence of Markdown blocks and document-root declarations:
+A file is a sequence of Markdown blocks, `@` declarations, and document-root
+HTML islands:
 
 ```text
-Document            := (MarkdownBlock | RocdownDeclaration)* EOF
+Document            := (MarkdownBlock | RocdownDeclaration | HtmlIsland)* EOF
 RocdownDeclaration  := Indent "@" Reserved ...
+HtmlIsland          := Indent "<" Tag ...
 Indent              := (" " | "\t")*
 ```
 
@@ -44,6 +46,9 @@ Declarations are recognized only when all of these hold:
 1. the line is at the document root (not inside a list, block quote, or fence);
 2. after optional spaces or tabs it starts with `@` plus a reserved name;
 3. the rest of the header matches that declaration's shape.
+
+HTML islands use the same document-root line-start rule, but start with `<`
+plus a tag name (or `<>`). `<http:...>`, `<!--`, and `<!DOCTYPE` stay Markdown.
 
 `@` in a paragraph, email, handle, or inline code is never special. Indented
 `@roc {` at document root is a real declaration; CommonMark indented-code does
@@ -81,9 +86,9 @@ FeatureCount = |{ count }| {
 
 Email docs@example.com or mention @roclang normally.
 
-@render {
-    featureCount({ count: feature_count })
-}
+<FeatureCount count={feature_count} />
+
+See also [[Interactive]] or [Interactive](Interactive.rocdown).
 
 ```roc
 answer = 42
@@ -104,13 +109,25 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
+| `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
 `@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template
 bodies, not Markdown. `#` in those bodies is a template comment. `@else` /
 `@else if` attach to the preceding `@if` (blank lines in between are fine).
 Document-level `@let` bindings are hoisted to the start of `rocci_content`.
-Bare `<div>`, `<Hello />`, and `{expr}` as siblings of Markdown stay literal /
-disabled raw HTML. See [`rocci-template`](../rocci-template).
+Those bodies, and document-root HTML islands, may contain HTML elements,
+`<Component />` calls, `{expr}`, and nested control flow. They must not declare
+`@component`, `@fixture`, `@page`, `@roc`, `@render`, or other module-level
+forms.
+
+A line-start `<Tag>` or `<>...</>` at document root (same list/quote/fence
+rules as `@`) is a Rocci HTML island, not CommonMark raw HTML. Use it to
+instantiate colocated components next to Markdown. Bare `{expr}` at document
+root is still prose; wrap a Roc `Html` value in `@render { ... }`. There is no
+`@html { ... }` wrapper.
+
+Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
+[`rocci-template`](../rocci-template).
 
 `@component` bodies are the same Rocci HTML grammar: interpolation, `@if`,
 `@for`, `@match`, `@let`, and component-local `@css`.
@@ -166,14 +183,25 @@ autolinks.
 **Rocdown additions:** heading `id` attributes with `-1`, `-2`, … on
 duplicates; stable `rd-*` classes on Markdown HTML (`rd-header-1`,
 `rd-paragraph`, …); fenced info strings become
-`class="rd-code language-…"`.
+`class="rd-code language-…"`; wiki links `[[Foo]]` and `[[Foo|label]]`
+(optionally `[[Foo#heading-id]]`).
 
-**Raw HTML** is an error by default (`raw HTML is disabled in Rocdown; use
-Markdown or @render { ... }`). `CompileOptions.raw_html` preserves it through
-`Html.dangerously_include_unescaped_html`. It never turns `<Component />` into
-a Roc call.
+**Page links:** `[[Foo]]`, `[text](Foo.rocdown)`, `[text](./Foo.rocdown)`,
+`[text](Foo)`, and reference links to those destinations resolve to the
+target file’s `@page.route` using sibling `.rocdown` files in the same
+directory. Same-page `#heading-id` is checked against this file’s heading
+ids. Absolute `/path/` destinations are checked against known page routes
+when a page index is present. `http(s):`, `mailto:`, and other schemes pass
+through. Unknown wiki / `.rocdown` targets are errors. Duplicate
+`@page.route` values across siblings are errors.
 
-**Not parsed yet:** footnotes, wiki links, admonitions, definition lists, math,
+**Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
+disabled in Rocdown; use Markdown or @render { ... }`). `CompileOptions.raw_html`
+preserves that inline/comment HTML through `Html.dangerously_include_unescaped_html`.
+It never turns inline tags into Rocci component calls. Document-root `<Hello />`
+is an HTML island, not this escape hatch.
+
+**Not parsed yet:** footnotes, admonitions, definition lists, math,
 automatic TOC tokens.
 
 ## Generated Roc
@@ -182,7 +210,7 @@ Every document exports:
 
 ```text
 rocci_meta    : record from @page.meta, or {}
-rocci_content : {} -> Html     # Markdown + @render + @if/@for/@match/@let
+rocci_content : {} -> Html     # Markdown + HTML islands + @render + @if/@for/@match/@let
 rocci_page    : {} -> Html     # layout call, or the default document shell
 ```
 
@@ -214,9 +242,10 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 - Scan / parse / lower a single `.rocdown` file to Roc
 - Declaration boundary rules (prose `@`, fences, lists, quotes, indent, `\@`)
-- `@page`, `@roc`, `@render`, delegated Rocci declarations, and document-root
-  `@if` / `@for` / `@match` / `@let`
-- CommonMark + GFM tables/strikethrough/task lists/autolink
+- `@page`, `@roc`, `@render`, delegated Rocci declarations, document-root
+  `@if` / `@for` / `@match` / `@let`, and document-root HTML islands
+- CommonMark + GFM tables/strikethrough/task lists/autolink + wiki links
+- Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
 - Heading IDs, scoped CSS, default HTML shell, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
@@ -228,7 +257,6 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 - Multi-page SSG, `dist/` output, path-derived routes, draft exclusion, assets
 - Project default layouts and layout packages
-- Internal-link checking
 - `@island` and client JS
 - Content collections, feeds, sitemaps
 - Formatter

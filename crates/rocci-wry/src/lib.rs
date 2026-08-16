@@ -1,6 +1,8 @@
 //! Native window and webview shell built on tao and wry.
 
+mod chrome;
 mod events;
+mod history;
 mod menu;
 mod preview;
 mod window;
@@ -59,6 +61,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
             app_name: &options.config.app.name,
             version: options.config.app.version.as_deref(),
             new_window: true,
+            navigation: false,
             reload: options.reload,
             devtools: options.devtools,
         },
@@ -152,6 +155,7 @@ impl Shell {
             url,
             context,
             self.devtools,
+            window::WebViewHooks::default(),
         )?;
         self.menu.attach(&live.window)?;
         let tao_id = live.window.id();
@@ -267,6 +271,7 @@ impl Shell {
                     self.toggle_inspector();
                 }
             }
+            ShellEvent::Preview(_) => {}
         }
     }
 

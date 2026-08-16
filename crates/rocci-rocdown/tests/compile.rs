@@ -1,11 +1,31 @@
-use rocci_rocdown::{CompileOptions, OriginKind, SourceFile, compile, format_ast};
+use std::path::Path;
+
+use rocci_rocdown::{
+    CompileOptions, OriginKind, PageRef, SourceFile, compile, format_ast, index_pages_in_dir,
+};
 use rocci_template::LowerOptions;
 use rocci_theme::ThemeOptions;
 
-fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
-    let out = compile(
-        SourceFile::new("test.rocdown", src),
-        &CompileOptions::default(),
+fn compile_with(src: &str, options: CompileOptions) -> rocci_rocdown::CompileOutput {
+    compile(SourceFile::new("test.rocdown", src), &options)
+}
+
+fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
+    PageRef {
+        stem: stem.to_string(),
+        file_name: format!("{stem}.rocdown"),
+        route: route.to_string(),
+        heading_ids: headings.iter().map(|id| id.to_string()).collect(),
+    }
+}
+
+fn compile_ok_pages(src: &str, pages: Vec<PageRef>) -> rocci_rocdown::CompileOutput {
+    let out = compile_with(
+        src,
+        CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
     );
     assert!(
         !out.has_errors(),
@@ -19,10 +39,21 @@ fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
     out
 }
 
+fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
+    compile_ok_pages(src, Vec::new())
+}
+
 fn compile_err(src: &str) -> Vec<String> {
-    let out = compile(
-        SourceFile::new("test.rocdown", src),
-        &CompileOptions::default(),
+    compile_err_pages(src, Vec::new())
+}
+
+fn compile_err_pages(src: &str, pages: Vec<PageRef>) -> Vec<String> {
+    let out = compile_with(
+        src,
+        CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
     );
     out.diagnostics
         .into_iter()
@@ -241,7 +272,7 @@ answer = 1
 
 #[test]
 fn raw_html_is_rejected_by_default() {
-    let errs = compile_err("<div>nope</div>\n");
+    let errs = compile_err("hello <em>nope</em> there\n");
     assert!(
         errs.iter()
             .any(|msg| msg.contains("raw HTML is disabled in Rocdown"))
@@ -250,7 +281,7 @@ fn raw_html_is_rejected_by_default() {
 
 #[test]
 fn raw_html_can_be_enabled() {
-    let src = "<div>trusted</div>\n";
+    let src = "hello <em>trusted</em> there\n";
     let out = compile(
         SourceFile::new("test.rocdown", src),
         &CompileOptions {
@@ -449,9 +480,13 @@ fn heading_ids_disambiguate_duplicates() {
 #[test]
 fn guide_example_compiles() {
     let src = include_str!("../../../examples/rocdown/Guide.rocdown");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
     let out = compile(
         SourceFile::new("examples/rocdown/Guide.rocdown", src),
-        &CompileOptions::default(),
+        &CompileOptions {
+            pages: index_pages_in_dir(&dir),
+            ..CompileOptions::default()
+        },
     );
     assert!(
         !out.has_errors(),
@@ -466,7 +501,8 @@ fn guide_example_compiles() {
     assert!(out.roc.contains("charset"));
     assert!(out.roc.contains("\"main\""));
     assert!(out.roc.contains("featureCount = |{ count }|"));
-    assert!(out.roc.contains("featureCount({ count: feature_count })"));
+    assert!(out.roc.contains("featureCount("));
+    assert!(out.roc.contains("{ count: feature_count }"));
     assert!(out.roc.contains("language-roc"));
     assert!(out.roc.contains("docs@example.com"));
     assert!(out.roc.contains("@roclang"));
@@ -616,4 +652,182 @@ fn else_attaches_across_blank_lines() {
         .filter(|item| matches!(item, rocci_rocdown::Item::Template(_)))
         .count();
     assert_eq!(templates, 1);
+}
+
+#[test]
+fn wiki_and_markdown_page_links_resolve() {
+    let pages = vec![page("Foo", "/guides/foo/", &["hello"])];
+    let src = "\
+See [[Foo]], [[Foo|label]], and [[Foo#hello]].
+
+Also [md](Foo.rocdown) and [rel](./Foo.rocdown).
+
+[ref]: Foo.rocdown
+And [ref text][ref].
+";
+    let out = compile_ok_pages(src, pages);
+    assert!(out.roc.contains("\"/guides/foo/\""));
+    assert!(out.roc.contains("\"/guides/foo/#hello\""));
+    assert!(out.roc.contains("\"label\""));
+    assert!(
+        out.links
+            .iter()
+            .filter(|link| link.url.starts_with("/guides/foo/"))
+            .count()
+            >= 5
+    );
+}
+
+#[test]
+fn unknown_page_and_heading_are_errors() {
+    let pages = vec![page("Foo", "/guides/foo/", &["hello"])];
+    let unknown = compile_err_pages("[[Missing]]\n", pages.clone());
+    assert!(
+        unknown
+            .iter()
+            .any(|msg| msg.contains("unknown Rocdown page `Missing`")),
+        "{unknown:?}"
+    );
+    let heading = compile_err_pages("[[Foo#nope]]\n", pages);
+    assert!(
+        heading
+            .iter()
+            .any(|msg| msg.contains("unknown heading `nope` on page `Foo`")),
+        "{heading:?}"
+    );
+    let same_page = compile_err("# Hello\n\n[x](#missing)\n");
+    assert!(
+        same_page
+            .iter()
+            .any(|msg| msg.contains("unknown heading `missing`")),
+        "{same_page:?}"
+    );
+}
+
+#[test]
+fn unknown_route_and_collision_are_errors() {
+    let pages = vec![page("Foo", "/guides/foo/", &[]), page("Bar", "/dup/", &[])];
+    let route = compile_err_pages("[go](/nope/)\n", pages.clone());
+    assert!(
+        route
+            .iter()
+            .any(|msg| msg.contains("unknown Rocdown route `/nope/`")),
+        "{route:?}"
+    );
+    let collision = compile(
+        SourceFile::new("test.rocdown", "@page { route: \"/dup/\" }\n"),
+        &CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(
+        collision.diagnostics.iter().any(|d| d
+            .message
+            .contains("`@page.route` `/dup/` is also used by Bar.rocdown")),
+        "{:?}",
+        collision.diagnostics
+    );
+}
+
+#[test]
+fn http_and_autolink_are_unchanged() {
+    let out = compile_ok("See [site](https://roc-lang.org) and docs@example.com.\n");
+    assert!(out.roc.contains("https://roc-lang.org"));
+    assert!(out.roc.contains("mailto:docs@example.com"));
+}
+
+#[test]
+fn autolink_angle_brackets_are_not_html_islands() {
+    let out = compile_ok("<https://roc-lang.org>\n");
+    assert!(out.roc.contains("https://roc-lang.org"));
+    assert!(
+        !out.document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Template(_)))
+    );
+}
+
+#[test]
+fn top_level_html_islands_instantiate_components() {
+    let src = r#"
+@component
+Hello = |{ name }| {
+    <p>{name}</p>
+}
+
+<Hello name="Ada" />
+
+<div class="callout">
+    <p>note</p>
+</div>
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(call hello)"));
+    assert!(ast.contains("(element div)"));
+    assert!(out.roc.contains("hello("));
+    assert!(out.roc.contains("{ name: \"Ada\" }"));
+    assert!(out.roc.contains("\"div\""));
+    assert!(out.roc.contains("\"callout\""));
+}
+
+#[test]
+fn html_inside_lists_and_fences_is_not_an_island() {
+    let src = "\
+- item
+  <Hello />
+
+```html
+<div>fenced</div>
+```
+
+<Hello />
+";
+    let out = compile(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions::default(),
+    );
+    let templates = out
+        .document
+        .items
+        .iter()
+        .filter(|item| matches!(item, rocci_rocdown::Item::Template(_)))
+        .count();
+    assert_eq!(templates, 1);
+    assert!(
+        out.diagnostics
+            .iter()
+            .any(|d| d.message.contains("raw HTML is disabled in Rocdown")),
+        "{:?}",
+        out.diagnostics
+    );
+}
+
+#[test]
+fn inline_html_in_a_paragraph_is_still_rejected() {
+    let errs = compile_err("a <em>x</em> b\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("raw HTML is disabled in Rocdown"))
+    );
+}
+
+#[test]
+fn top_level_if_cannot_declare_component() {
+    let errs = compile_err(
+        r#"
+@if Bool.true {
+    @component Foo = |{}| {
+        <p>no</p>
+    }
+}
+"#,
+    );
+    assert!(
+        errs.iter().any(|msg| msg
+            .contains("`@component` is only valid at document root, not inside a template body")),
+        "{errs:?}"
+    );
 }

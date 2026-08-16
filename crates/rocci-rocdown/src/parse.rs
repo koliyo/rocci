@@ -5,7 +5,7 @@ use rocci_template::{
 
 use crate::ast::{Document, Item, PageDecl, RenderDecl, RocDecl};
 use crate::markdown::{self, BlockOrHole};
-use crate::scan::{self, Reserved, ScannedDecl, inner_span};
+use crate::scan::{self, Reserved, ScannedDecl, ScannedKind, inner_span};
 
 pub struct ParseOutput {
     pub document: Document,
@@ -24,6 +24,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     options.extension.strikethrough = true;
     options.extension.tasklist = true;
     options.extension.autolink = true;
+    options.extension.wikilinks_title_after_pipe = true;
     let root = parse_document(&arena, &synthetic, &options);
     let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
 
@@ -52,6 +53,27 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
 
 fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> Item {
     match decl.kind {
+        ScannedKind::Html => match parse_template_item_from(src, decl.at) {
+            Some(parsed) => {
+                diagnostics.extend(parsed.diagnostics);
+                Item::Template(parsed.item)
+            }
+            None => Item::Roc(RocDecl {
+                body: Span::new(decl.at, decl.end),
+                span: Span::new(decl.at, decl.end),
+            }),
+        },
+        ScannedKind::At(kind) => fill_at_decl(src, decl, kind, diagnostics),
+    }
+}
+
+fn fill_at_decl(
+    src: &str,
+    decl: &ScannedDecl,
+    kind: Reserved,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Item {
+    match kind {
         Reserved::Page => {
             let body = inner_span(src, decl.at);
             Item::Page(PageDecl {

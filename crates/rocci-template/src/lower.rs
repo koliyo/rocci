@@ -791,10 +791,7 @@ impl<'a> Emitter<'a> {
             if attr.name.name == "class" {
                 class_emitted = true;
                 if let (Some(_), AttrValue::Static { span, value }) = (&theme_id, &attr.value) {
-                    let merged = if value
-                        .split_whitespace()
-                        .any(|part| part == "rd-document")
-                    {
+                    let merged = if value.split_whitespace().any(|part| part == "rd-document") {
                         value.clone()
                     } else if value.is_empty() {
                         "rd-document".to_string()

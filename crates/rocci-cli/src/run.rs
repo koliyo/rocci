@@ -117,15 +117,8 @@ fn run_standalone(
         .map(Path::to_path_buf)
         .unwrap_or_else(|| env::current_dir().expect("current directory"));
 
-    let src =
-        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
-    let name = path.display().to_string();
-    let compiled = compile_source(&path, &name, &src, theme)?;
-    if compiled.failed {
-        bail!("template compilation failed");
-    }
-
-    let type_name = type_name_from_path(&path);
+    let plan = plan_standalone(&path, theme)?;
+    let type_name = plan.primary_name.clone();
     let workspace = TempDir::create("run")?;
     runtime_assets::stage_into(&workspace.path)?;
     copy_sibling_roc(&src_dir, &workspace.path, &type_name)?;
@@ -142,21 +135,15 @@ fn run_standalone(
         fs::create_dir_all(&workspace_assets)?;
     }
 
-    fs::write(
-        workspace.path.join(format!("{type_name}.roc")),
-        wrap_type_module(&compiled.roc, &type_name),
-    )
-    .with_context(|| format!("failed to write {type_name}.roc"))?;
-    fs::write(
-        workspace.path.join("main.roc"),
-        dispatch::generate_main_roc(
-            &type_name,
-            compiled.state_type.as_deref(),
-            compiled.init.as_ref(),
-            &compiled.routes,
-        ),
-    )
-    .context("failed to write generated main.roc")?;
+    for module in &plan.modules {
+        fs::write(
+            workspace.path.join(format!("{}.roc", module.type_name)),
+            wrap_type_module(&module.roc, &module.type_name),
+        )
+        .with_context(|| format!("failed to write {}.roc", module.type_name))?;
+    }
+    fs::write(workspace.path.join("main.roc"), plan.main_roc())
+        .context("failed to write generated main.roc")?;
 
     let db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
     let resolved = ResolvedEntry {
@@ -175,8 +162,96 @@ fn run_standalone(
         port,
         &db_path,
         &title,
-        preview_path(&compiled.routes),
+        preview_path(&plan.modules[0].routes),
     )
+}
+
+struct StandaloneModule {
+    type_name: String,
+    roc: String,
+    state_type: Option<String>,
+    init: Option<rocci_template::InitInfo>,
+    routes: Vec<rocci_template::RouteInfo>,
+}
+
+struct StandalonePlan {
+    primary_name: String,
+    modules: Vec<StandaloneModule>,
+}
+
+impl StandalonePlan {
+    fn main_roc(&self) -> String {
+        let primary = &self.modules[0];
+        let siblings: Vec<dispatch::DispatchSource<'_>> = self.modules[1..]
+            .iter()
+            .map(|module| dispatch::DispatchSource {
+                type_name: &module.type_name,
+                routes: &module.routes,
+            })
+            .collect();
+        let bound = dispatch::merge_standalone_routes(
+            dispatch::DispatchSource {
+                type_name: &primary.type_name,
+                routes: &primary.routes,
+            },
+            &siblings,
+        );
+        dispatch::generate_bound_main_roc(
+            &primary.type_name,
+            primary.state_type.as_deref(),
+            primary.init.as_ref(),
+            &bound,
+        )
+    }
+}
+
+fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandalonePlan> {
+    let mut modules = Vec::new();
+    for input in linked_standalone_inputs(primary)? {
+        let src = fs::read_to_string(&input)
+            .with_context(|| format!("failed to read {}", input.display()))?;
+        let name = input.display().to_string();
+        let compiled = compile_source(&input, &name, &src, theme)?;
+        if compiled.failed {
+            bail!("template compilation failed");
+        }
+        modules.push(StandaloneModule {
+            type_name: type_name_from_path(&input),
+            roc: compiled.roc,
+            state_type: compiled.state_type,
+            init: compiled.init,
+            routes: compiled.routes,
+        });
+    }
+    Ok(StandalonePlan {
+        primary_name: type_name_from_path(primary),
+        modules,
+    })
+}
+
+fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {
+    let primary = primary
+        .canonicalize()
+        .unwrap_or_else(|_| primary.to_path_buf());
+    if !primary.extension().is_some_and(|ext| ext == "rocdown") {
+        return Ok(vec![primary]);
+    }
+    let Some(dir) = primary.parent() else {
+        return Ok(vec![primary]);
+    };
+    let mut files: Vec<PathBuf> = discover_rocci(dir)?
+        .into_iter()
+        .filter(|path| path.extension().is_some_and(|ext| ext == "rocdown"))
+        .map(|path| path.canonicalize().unwrap_or(path))
+        .collect();
+    files.sort();
+    files.dedup();
+    if let Some(index) = files.iter().position(|path| path == &primary) {
+        files.swap(0, index);
+    } else {
+        files.insert(0, primary);
+    }
+    Ok(files)
 }
 
 fn discover_rocci(app_dir: &Path) -> Result<Vec<PathBuf>> {
@@ -647,5 +722,113 @@ mod tests {
             roc_file: PathBuf::from("main.roc"),
         };
         assert_eq!(window_title(&resolved), "snake");
+    }
+
+    #[test]
+    fn linked_standalone_inputs_puts_primary_first() {
+        let dir = temp_app("linked-inputs");
+        let home = dir.join("Home.rocdown");
+        let about = dir.join("About.rocdown");
+        fs::write(&home, "").unwrap();
+        fs::write(&about, "").unwrap();
+        let inputs = linked_standalone_inputs(&home).unwrap();
+        assert_eq!(inputs[0], home.canonicalize().unwrap());
+        assert!(inputs.contains(&about.canonicalize().unwrap()));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn standalone_rocdown_serves_sibling_page_routes() {
+        let dir = temp_app("linked-pages");
+        fs::write(
+            dir.join("Home.rocdown"),
+            r#"
+@page { route: "/home/" }
+
+# Home
+
+See [[About]]
+"#,
+        )
+        .unwrap();
+        fs::write(
+            dir.join("About.rocdown"),
+            r#"
+@page { route: "/about/" }
+
+@on:get("/") = |_| {
+    rocci_page({})
+}
+
+# About
+"#,
+        )
+        .unwrap();
+        let plan = plan_standalone(
+            &dir.join("Home.rocdown"),
+            &crate::theme::ThemeArgs::default(),
+        )
+        .unwrap();
+        assert_eq!(plan.primary_name, "Home");
+        assert!(
+            plan.modules
+                .iter()
+                .any(|module| module.type_name == "About")
+        );
+        let main = plan.main_roc();
+        assert!(main.contains("import Home"));
+        assert!(main.contains("import About"));
+        assert!(main.contains("(\"GET\", \"/about/\")"));
+        assert!(main.contains("About.on_get_about!"));
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/"),
+            "Home.on_get_home!(context) ? |err| ServerErr(Str.inspect(err))"
+        );
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/about/"),
+            "About.on_get_about!(context) ? |err| ServerErr(Str.inspect(err))"
+        );
+        assert!(!main.contains("About.on_get_root!"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn guide_example_serves_interactive_route() {
+        let guide = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/rocdown/Guide.rocdown")
+            .canonicalize()
+            .unwrap();
+        let plan = plan_standalone(&guide, &crate::theme::ThemeArgs::default()).unwrap();
+        let main = plan.main_roc();
+        assert!(main.contains("import Interactive"));
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/guides/rocdown-interactive/"),
+            "Interactive.on_get_guides_rocdown_interactive!(context) ? |err| ServerErr(Str.inspect(err))"
+        );
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/"),
+            "Guide.on_get_guides_rocdown!(context) ? |err| ServerErr(Str.inspect(err))"
+        );
+        assert_eq!(
+            dispatch_handler(&main, "POST", "/actions/reveal/show"),
+            "Interactive.on_post_actions_reveal_show!(context) ? |err| ServerErr(Str.inspect(err))"
+        );
+        assert!(!main.contains("Interactive.on_get_root!"));
+    }
+
+    fn dispatch_handler<'a>(main: &'a str, method: &str, path: &str) -> &'a str {
+        let needle = format!("(\"{method}\", \"{path}\") => {{");
+        let start = main
+            .find(&needle)
+            .unwrap_or_else(|| panic!("missing route {needle} in {main}"));
+        let after = &main[start + needle.len()..];
+        let html = after
+            .find("html = ")
+            .unwrap_or_else(|| panic!("missing handler for {needle}"));
+        after[html + "html = ".len()..]
+            .lines()
+            .next()
+            .unwrap()
+            .trim()
     }
 }

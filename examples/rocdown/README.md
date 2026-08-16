@@ -4,7 +4,7 @@ Markdown-first pages with colocated Roc and Rocci.
 
 | File | What it shows |
 | --- | --- |
-| [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a component, `rocci` theme, displayed fences |
+| [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a document-root component tag, wiki links, `rocci` theme |
 | [`Interactive.rocdown`](Interactive.rocdown) | Datastar toggles and a server `@on:post` reveal patch |
 
 From the repository root, with `roc` and `cargo` on `PATH`:
@@ -16,7 +16,9 @@ cargo run -q -p rocci-cli -- run examples/rocdown/Interactive.rocdown
 
 Each command opens an embedded window on a free local TCP port and prints the
 URL. Pass `--no-window` to serve on
-[http://127.0.0.1:8000](http://127.0.0.1:8000).
+[http://127.0.0.1:8000](http://127.0.0.1:8000). Running one `.rocdown` file also
+serves sibling pages, so Guide's `[[Interactive]]` link reaches
+`/guides/rocdown-interactive/`. GET `/` still opens the file you passed.
 
 | File | Page route | Notes |
 | --- | --- | --- |

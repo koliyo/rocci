@@ -259,6 +259,18 @@ impl MarkdownConvert {
                     span,
                 })
             }
+            NodeValue::WikiLink(link) => {
+                self.links.push(LinkInfo {
+                    url: link.url.clone(),
+                    span,
+                });
+                Some(MdNode::Link {
+                    url: link.url.clone(),
+                    title: String::new(),
+                    children: self.convert_children(node, synthetic, map, diagnostics),
+                    span,
+                })
+            }
             NodeValue::Image(link) => {
                 let alt = node
                     .children()

@@ -71,7 +71,43 @@ rocci_content = |{}| {
                 Html.text("@roclang normally."),
             ],
         ),
-        featureCount({ count: feature_count }),
+        featureCount(
+            { count: feature_count },
+        ),
+        Html.element(
+            "p",
+            [
+                Html.attribute("class", "rd-paragraph"),
+                Html.attribute("data-rocci-css", "Guide-6f3d6b54"),
+            ],
+            [
+                Html.text("See also "),
+                Html.element(
+                    "a",
+                    [
+                        Html.attribute("class", "rd-link"),
+                        Html.attribute("href", "/guides/rocdown-interactive/"),
+                        Html.attribute("data-rocci-css", "Guide-6f3d6b54"),
+                    ],
+                    [
+                        Html.text("Interactive"),
+                    ],
+                ),
+                Html.text(" and the "),
+                Html.element(
+                    "a",
+                    [
+                        Html.attribute("class", "rd-link"),
+                        Html.attribute("href", "/guides/rocdown-interactive/"),
+                        Html.attribute("data-rocci-css", "Guide-6f3d6b54"),
+                    ],
+                    [
+                        Html.text("interactive guide"),
+                    ],
+                ),
+                Html.text("."),
+            ],
+        ),
         Html.element(
             "h2",
             [

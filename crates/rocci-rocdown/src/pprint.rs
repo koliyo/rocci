@@ -25,6 +25,9 @@ pub fn format_ast(src: &str, document: &Document) -> String {
                 TemplateItem::For(dir) => w.leaf("for", &[dir.binder.name.clone()]),
                 TemplateItem::Match(_) => w.leaf("match", &[]),
                 TemplateItem::Let(dir) => w.leaf("let", &[dir.binder.name.clone()]),
+                TemplateItem::ComponentCall(call) => w.leaf("call", &[call.path.roc_name.clone()]),
+                TemplateItem::Element(el) => w.leaf("element", &[el.name.name.clone()]),
+                TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
                 _ => w.leaf("template", &[]),
             },
         }
