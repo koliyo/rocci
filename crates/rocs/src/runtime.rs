@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result};
 
 pub const HTML: &str = include_str!("../runtime/Html.roc");
-const BUILD: &str = include_str!("../runtime/RocsBuild.roc");
+pub(crate) const BUILD: &str = include_str!("../runtime/RocsBuild.roc");
 pub const THEME: &str = include_str!("../templates/RocsTheme.rocci");
 
 pub const HTML_BINDINGS: &[&str] = &[

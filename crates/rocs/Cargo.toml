@@ -11,6 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = { workspace = true }
+notify = "8"
 rocci-template = { workspace = true }
 rocci-rocdown = { workspace = true }
 serde = { workspace = true }

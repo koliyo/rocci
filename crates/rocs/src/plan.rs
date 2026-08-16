@@ -13,8 +13,7 @@ use crate::catalog::{self, NavLink, NavSection, PageHeading, ResolvedPage, Resol
 use crate::config::SiteConfig;
 use crate::runtime;
 
-pub const DEFAULT_CSP: &str =
-    "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
 const HASH_LEN: usize = 16;
 
@@ -308,7 +307,11 @@ fn planned_page(
     rewrite: &BTreeMap<String, String>,
     not_found: bool,
 ) -> PlannedPage {
-    let current_id = if not_found { None } else { Some(page.id.as_str()) };
+    let current_id = if not_found {
+        None
+    } else {
+        Some(page.id.as_str())
+    };
     let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id);
     let canonical = if not_found || site.base_url.is_empty() {
         String::new()
@@ -482,7 +485,11 @@ fn hash_site_assets(root: &Path, config: &SiteConfig) -> Result<Vec<PlannedAsset
         .collect())
 }
 
-fn collect_asset_files(dir: &Path, prefix: &Path, files: &mut Vec<(String, Vec<u8>)>) -> Result<()> {
+fn collect_asset_files(
+    dir: &Path,
+    prefix: &Path,
+    files: &mut Vec<(String, Vec<u8>)>,
+) -> Result<()> {
     let mut entries: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("failed to read {}", dir.display()))?
         .collect::<std::io::Result<Vec<_>>>()?;
@@ -657,7 +664,9 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.article_path);
         out.push_str(",\n            output_path: ");
         push_roc_string(&mut out, &page.output_path);
-        out.push_str(",\n            view: {\n                site: {\n                    title: ");
+        out.push_str(
+            ",\n            view: {\n                site: {\n                    title: ",
+        );
         push_roc_string(&mut out, &page.view.site.title);
         out.push_str(",\n                    description: ");
         push_roc_string(&mut out, &page.view.site.description);
@@ -823,11 +832,7 @@ items = ["index", "guide"]
         write_site(&root);
         let loaded = load_site(&root).unwrap();
         let resolved = resolve_loaded(&loaded);
-        assert!(
-            !resolved.has_errors(),
-            "{}",
-            resolved.error_summary()
-        );
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
         let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
         let home = planned
             .pages
@@ -863,23 +868,14 @@ items = ["index", "guide"]
         assert!(kinds.contains(&"llms"));
         assert!(kinds.contains(&"sitemap"));
         assert!(kinds.contains(&"robots"));
-        assert!(
-            artifacts
-                .iter()
-                .any(|item| item.output_path == "404.html")
-        );
+        assert!(artifacts.iter().any(|item| item.output_path == "404.html"));
         assert!(
             artifacts
                 .iter()
                 .any(|item| item.output_path == "old-guide/index.html")
         );
-        assert!(
-            planned
-                .assets
-                .iter()
-                .any(|asset| asset.kind == "stylesheet"
-                    && String::from_utf8_lossy(&asset.bytes).contains("forced-colors"))
-        );
+        assert!(planned.assets.iter().any(|asset| asset.kind == "stylesheet"
+            && String::from_utf8_lossy(&asset.bytes).contains("forced-colors")));
         assert_eq!(
             planned
                 .pages
@@ -908,6 +904,46 @@ items = ["index", "guide"]
         assert!(json.contains("404.html"), "{json}");
         assert!(json.contains("old-guide/index.html"), "{json}");
         assert!(json.contains("theme."), "{json}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn pages_roc_is_stable_for_body_only_edits() {
+        let root = temp("hash-body");
+        write_site(&root);
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        let first = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let first_roc = first.pages_roc();
+
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n![og](/assets/og.png)\n\nSee the [guide](/guide/).\n\nExtra paragraph.\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        let second = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        assert_eq!(first_roc, second.pages_roc());
+        let home = |plan: &BuildPlan| {
+            plan.pages
+                .iter()
+                .find(|page| page.view.route == "/")
+                .unwrap()
+                .article_html
+                .clone()
+        };
+        assert_ne!(home(&first), home(&second));
+
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home changed\n\n![og](/assets/og.png)\n\nSee the [guide](/guide/).\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        let third = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        assert_ne!(first_roc, third.pages_roc());
         let _ = fs::remove_dir_all(root);
     }
 }

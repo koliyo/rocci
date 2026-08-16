@@ -8,16 +8,18 @@ mod article;
 mod build;
 mod catalog;
 mod config;
+mod dev;
 mod plan;
 mod runtime;
 mod site;
 
-pub use build::{BuildReport, build, build_configured, discover_rocdown};
+pub use build::{BuildReport, BuildSession, build, build_configured, discover_rocdown};
 pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, ResolveOptions, ResolveResult, ResolvedSite, Severity,
     SourcePage, resolve,
 };
 pub use config::{BuildConfig, NavConfig, SiteConfig, SiteMeta, load_config};
+pub use dev::{DevServer, run};
 pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use site::{CheckFormat, CheckReport, InspectKind, check, inspect, load_site, resolve_loaded};
