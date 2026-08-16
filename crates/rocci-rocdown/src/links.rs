@@ -183,6 +183,7 @@ fn collect_link_urls(node: &MdNode, out: &mut Vec<(Span, String)>) {
         | MdNode::Emph { children, .. }
         | MdNode::Strong { children, .. }
         | MdNode::Strikethrough { children, .. }
+        | MdNode::FootnoteDefinition { children, .. }
         | MdNode::Link { children, .. } => children.as_slice(),
         _ => &[],
     };

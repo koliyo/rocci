@@ -13,7 +13,7 @@ pub use ast::{
     Document, HeadingInfo, Item, LinkInfo, MdNode, PageDecl, PageMeta, RenderDecl, RocDecl,
 };
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
-pub use parse::ParseOutput;
+pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use pprint::format_ast;
 pub use rocci_template::{
     ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, OriginKind,
@@ -73,6 +73,18 @@ impl CompileOutput {
 
 pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     parse_impl(source, raw_html)
+}
+
+/// Parse a Markdown-only region while retaining byte spans in the original source.
+///
+/// Unlike [`parse`], this does not scan Rocdown declarations and does not enable
+/// Rocdown wikilinks. It is intended for inert Markdown collections such as OKF.
+pub fn parse_markdown_body(
+    source: SourceFile<'_>,
+    body: Span,
+    options: MarkdownBodyOptions,
+) -> ParseOutput {
+    parse::parse_markdown_body(source, body, options)
 }
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {

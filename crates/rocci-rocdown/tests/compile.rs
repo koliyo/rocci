@@ -1,13 +1,34 @@
 use std::path::Path;
 
 use rocci_rocdown::{
-    CompileOptions, OriginKind, PageRef, SourceFile, compile, format_ast, index_pages_in_dir,
+    CompileOptions, MarkdownBodyOptions, MdNode, OriginKind, PageRef, SourceFile, Span, compile,
+    format_ast, index_pages_in_dir, parse_markdown_body,
 };
 use rocci_template::LowerOptions;
 use rocci_theme::ThemeOptions;
 
 fn compile_with(src: &str, options: CompileOptions) -> rocci_rocdown::CompileOutput {
     compile(SourceFile::new("test.rocdown", src), &options)
+}
+
+#[test]
+fn body_only_markdown_keeps_original_offsets_and_parses_footnotes() {
+    let src = "---\ntype: Test\n---\n\n# Body\n\nClaim.[^source]\n\n[^source]: Evidence.\n";
+    let body_start = src.find("# Body").unwrap();
+    let parsed = parse_markdown_body(
+        SourceFile::new("test.md", src),
+        Span::new(body_start, src.len()),
+        MarkdownBodyOptions {
+            raw_html: false,
+            footnotes: true,
+        },
+    );
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    assert_eq!(parsed.headings[0].span.of(src), "# Body");
+    assert!(parsed.document.items.iter().any(|item| matches!(
+        item,
+        rocci_rocdown::Item::Markdown(MdNode::FootnoteDefinition { name, .. }) if name == "source"
+    )));
 }
 
 fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {

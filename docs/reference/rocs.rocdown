@@ -109,3 +109,15 @@ cargo run -p rocs-cli -- run docs
 `build.output`. Pass `--output` to keep the preview files. `--no-window` serves
 in the browser only. Static content reloads after a successful rebuild; dynamic
 islands are not part of this preview path.
+
+## OKF knowledge collections
+
+`rocs knowledge` is isolated from ordinary documentation discovery. It reads
+only the explicitly supplied OKF bundle (default `knowledge/`) and treats every
+non-reserved `.md` file as inert Markdown with YAML frontmatter. `index.md` and
+`log.md` retain their OKF meanings; `.rocdown` files and `@page` metadata are
+not accepted as canonical knowledge records.
+
+The body parser shares Rocdown's static Markdown AST and `rd-*` rendering
+classes, with keyed footnotes enabled. Rocdown declarations, raw HTML, and
+wikilinks are disabled for portability and execution safety.

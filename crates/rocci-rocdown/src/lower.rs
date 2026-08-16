@@ -719,6 +719,42 @@ impl<'a> Emitter<'a> {
                     *span,
                 );
             }
+            MdNode::FootnoteDefinition {
+                name,
+                children,
+                span,
+                ..
+            } => {
+                let id = format!("fn-{name}");
+                self.emit_element(
+                    "li",
+                    &[("class", "rd-footnote-definition"), ("id", id.as_str())],
+                    children,
+                    false,
+                    *span,
+                );
+            }
+            MdNode::FootnoteReference {
+                name, index, span, ..
+            } => {
+                let href = format!("#fn-{name}");
+                let link = MdNode::Link {
+                    url: href,
+                    title: String::new(),
+                    children: vec![MdNode::Text {
+                        value: index.to_string(),
+                        span: *span,
+                    }],
+                    span: *span,
+                };
+                self.emit_element(
+                    "sup",
+                    &[("class", "rd-footnote-ref"), ("data-footnote-ref", "")],
+                    &[link],
+                    false,
+                    *span,
+                );
+            }
             MdNode::Link {
                 url,
                 title,

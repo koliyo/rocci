@@ -29,6 +29,15 @@ struct MappedRegion {
 }
 
 impl OffsetMap {
+    pub(crate) fn from_original(original: std::ops::Range<usize>) -> Self {
+        Self {
+            regions: vec![MappedRegion {
+                synthetic: 0..original.len(),
+                original: Some(original),
+            }],
+        }
+    }
+
     fn original(&self, syn: usize) -> usize {
         for region in &self.regions {
             if syn >= region.synthetic.start && syn <= region.synthetic.end {
@@ -245,6 +254,18 @@ impl MarkdownConvert {
             }),
             NodeValue::Strikethrough => Some(MdNode::Strikethrough {
                 children: self.convert_children(node, synthetic, map, diagnostics),
+                span,
+            }),
+            NodeValue::FootnoteDefinition(definition) => Some(MdNode::FootnoteDefinition {
+                name: definition.name.clone(),
+                total_references: definition.total_references,
+                children: self.convert_children(node, synthetic, map, diagnostics),
+                span,
+            }),
+            NodeValue::FootnoteReference(reference) => Some(MdNode::FootnoteReference {
+                name: reference.name.clone(),
+                reference_number: reference.ref_num,
+                index: reference.ix,
                 span,
             }),
             NodeValue::Link(link) => {

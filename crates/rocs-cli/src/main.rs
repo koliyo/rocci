@@ -57,6 +57,11 @@ enum Commands {
         #[command(subcommand)]
         target: InspectTarget,
     },
+    /// Validate, inspect, or build an Open Knowledge Format bundle.
+    Knowledge {
+        #[command(subcommand)]
+        command: KnowledgeCommand,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -101,6 +106,67 @@ fn free_port() -> Result<u16> {
 enum CheckFormatArg {
     Terminal,
     Json,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum KnowledgeProfileArg {
+    Base,
+    Rocci,
+}
+
+impl From<KnowledgeProfileArg> for rocs::okf::Profile {
+    fn from(value: KnowledgeProfileArg) -> Self {
+        match value {
+            KnowledgeProfileArg::Base => Self::Base,
+            KnowledgeProfileArg::Rocci => Self::Rocci,
+        }
+    }
+}
+
+#[derive(Subcommand)]
+enum KnowledgeCommand {
+    /// Validate an OKF bundle without writing output.
+    Check {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+        #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
+        format: CheckFormatArg,
+    },
+    /// Print normalized concepts or the bundle graph as JSON.
+    Inspect {
+        #[command(subcommand)]
+        target: KnowledgeInspectTarget,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+    },
+    /// Render a validated bundle and emit its normalized catalog.
+    Build {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        #[arg(short, long, default_value = "dist/knowledge")]
+        output: PathBuf,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+    },
+}
+
+#[derive(Subcommand)]
+enum KnowledgeInspectTarget {
+    Catalog {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+    },
+    Concept {
+        concept: String,
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+    },
+    Graph {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -177,6 +243,59 @@ fn try_main() -> Result<()> {
                 InspectTarget::Artifacts { root } => (rocs::InspectKind::Artifacts, root, None),
             };
             println!("{}", rocs::inspect(root, kind, page)?);
+            Ok(())
+        }
+        Commands::Knowledge { command } => knowledge(command),
+    }
+}
+
+fn knowledge(command: KnowledgeCommand) -> Result<()> {
+    match command {
+        KnowledgeCommand::Check {
+            root,
+            profile,
+            format,
+        } => {
+            let report = rocs::okf::check(&root, profile.into())?;
+            let rendered = match format {
+                CheckFormatArg::Terminal => report.terminal(),
+                CheckFormatArg::Json => report.json()?,
+            };
+            if !rendered.is_empty() {
+                println!("{rendered}");
+            }
+            if report.has_errors() {
+                bail!("knowledge bundle has errors");
+            }
+            Ok(())
+        }
+        KnowledgeCommand::Inspect { target, profile } => {
+            let (kind, root, concept) = match &target {
+                KnowledgeInspectTarget::Catalog { root } => {
+                    (rocs::okf::InspectKind::Catalog, root, None)
+                }
+                KnowledgeInspectTarget::Concept { concept, root } => (
+                    rocs::okf::InspectKind::Concept,
+                    root,
+                    Some(concept.as_str()),
+                ),
+                KnowledgeInspectTarget::Graph { root } => {
+                    (rocs::okf::InspectKind::Graph, root, None)
+                }
+            };
+            println!(
+                "{}",
+                rocs::okf::inspect(root, kind, concept, profile.into())?
+            );
+            Ok(())
+        }
+        KnowledgeCommand::Build {
+            root,
+            output,
+            profile,
+        } => {
+            let summary = rocs::okf::build(&root, &output, profile.into())?;
+            println!("{}", serde_json::to_string_pretty(&summary)?);
             Ok(())
         }
     }
@@ -281,5 +400,41 @@ mod tests {
             },
             _ => panic!("expected inspect"),
         }
+    }
+
+    #[test]
+    fn knowledge_commands_parse() {
+        let cli = Cli::try_parse_from([
+            "rocs",
+            "knowledge",
+            "check",
+            "knowledge",
+            "--profile",
+            "base",
+            "--format",
+            "json",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::Knowledge {
+                command: KnowledgeCommand::Check { .. }
+            }
+        ));
+        let cli = Cli::try_parse_from([
+            "rocs",
+            "knowledge",
+            "inspect",
+            "concept",
+            "architecture/system-overview",
+            "knowledge",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::Knowledge {
+                command: KnowledgeCommand::Inspect { .. }
+            }
+        ));
     }
 }
