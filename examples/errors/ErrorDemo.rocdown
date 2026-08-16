@@ -1,5 +1,5 @@
 @page {
-    route: "/dx/",
+    route: "/error-demo/",
     draft: Bool.false,
     theme: "rocci",
     color_scheme: "dark",
@@ -19,15 +19,15 @@
 }
 
 @component
-DxLinks = |{}| {
+DemoLinks = |{}| {
     @css {
-        .dx-links {
+        .demo-links {
             display: flex;
             flex-wrap: wrap;
             gap: 0.65rem;
             margin: 1.25rem 0 0;
         }
-        .dx-links a {
+        .demo-links a {
             display: inline-flex;
             padding: 0.45rem 0.75rem;
             border: 1px solid color-mix(in srgb, var(--rd-color-accent) 28%, transparent);
@@ -38,11 +38,11 @@ DxLinks = |{}| {
             font-weight: 650;
             text-decoration: none;
         }
-        .dx-links a:hover { filter: brightness(1.08); }
+        .demo-links a:hover { filter: brightness(1.08); }
     }
-    <p class="dx-links">
+    <p class="demo-links">
         <a href="/missing">Missing route</a>
-        <a href="/dx">Without trailing slash</a>
+        <a href="/error-demo">Slash redirect</a>
     </p>
 }
 
@@ -54,10 +54,16 @@ click into a 404 without stopping the server.
 
 ## 404
 
-The fallback lists every registered route and hints when a trailing slash is
-the only difference.
+`/missing` is not registered, so the fallback lists every route.
 
-<DxLinks />
+`/error-demo` and `/error-demo/` are different URLs (relative links resolve from
+a different base), but they are the same page here. GET `/error-demo` answers
+**308** to the registered `/error-demo/` form and keeps the query string. Both
+forms stay distinct if you register each. Set
+`http.redirect_trailing_slash = false` in `rocci.toml` to 404 with a hint
+instead.
+
+<DemoLinks />
 
 ## Parse error
 

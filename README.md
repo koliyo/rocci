@@ -20,7 +20,7 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
 cargo run -q -p rocci-cli -- run examples/rocdown/Guide.rocdown
-cargo run -q -p rocci-cli -- run examples/errors/Dx.rocdown
+cargo run -q -p rocci-cli -- run examples/errors/ErrorDemo.rocdown
 cargo run -q -p rocci-cli -- run examples/snake
 cargo run -q -p rocci-cli -- run examples/datastar
 ```
@@ -31,7 +31,7 @@ language with file-level and component `@css`.
 [`examples/rocdown`](examples/rocdown) is a Markdown page with explicit `@roc`,
 `@component`, and `@render` islands; see [`crates/rocci-rocdown`](crates/rocci-rocdown)
 for the format. [`examples/errors`](examples/errors) is the 404 and parse-error
-preview: a working `/dx/` page plus a broken file that still opens in the window.
+preview: a working `/error-demo/` page plus a broken file that still opens in the window.
 
 `rocci run path/to/App.rocci` is a standalone app: compile that file, generate
 an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
@@ -93,7 +93,10 @@ cargo run -p rocci-cli -- datastar update --app examples/datastar
 ```
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
-profiles. `[assets] datastar` pins the Datastar JS version the CLI copies into
+profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
+`/page/` or the reverse with **308**, matching the registered `@page` route;
+set it `false` to 404 with a hint instead. Custom `main.roc` apps own their
+routing. `[assets] datastar` pins the Datastar JS version the CLI copies into
 the app; `rocci datastar update` bumps that pin. The CLI does not auto-upgrade
 on `run`.
 

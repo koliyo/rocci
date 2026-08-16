@@ -58,29 +58,42 @@ pub fn html_escape(text: &str) -> String {
 }
 
 pub fn suggest_path(requested: &str, routes: &[ListedRoute]) -> Option<String> {
+    slash_alternates(routes)
+        .into_iter()
+        .find(|(from, _)| from == requested)
+        .map(|(_, to)| to)
+}
+
+/// Alternate GET path that should 308 (or hint) to the registered form.
+///
+/// `/page` and `/page/` are distinct URLs: relative links resolve differently.
+/// When only one form is registered, the other is this alternate. Both stay
+/// distinct when each is registered. `/` has no alternate.
+pub fn slash_alternates(routes: &[ListedRoute]) -> Vec<(String, String)> {
     let gets: Vec<&str> = routes
         .iter()
         .filter(|route| route.method == "GET")
         .map(|route| route.path.as_str())
         .collect();
-    if gets.contains(&requested) {
-        return None;
-    }
-    if requested == "/" {
-        return None;
-    }
-    if let Some(stripped) = requested.strip_suffix('/') {
-        let candidate = if stripped.is_empty() { "/" } else { stripped };
-        if gets.contains(&candidate) {
-            return Some(candidate.to_string());
+    let mut arms = Vec::new();
+    for path in &gets {
+        if *path == "/" {
+            continue;
         }
-    } else {
-        let candidate = format!("{requested}/");
-        if gets.contains(&candidate.as_str()) {
-            return Some(candidate);
+        let from = if let Some(stripped) = path.strip_suffix('/') {
+            if stripped.is_empty() {
+                "/".to_string()
+            } else {
+                stripped.to_string()
+            }
+        } else {
+            format!("{path}/")
+        };
+        if !gets.contains(&from.as_str()) {
+            arms.push((from, (*path).to_string()));
         }
     }
-    None
+    arms
 }
 
 pub fn render_not_found(method: &str, path: &str, routes: &[ListedRoute]) -> String {
@@ -313,7 +326,7 @@ fn roc_not_found_fn(routes: &[ListedRoute]) -> String {
 }
 
 fn roc_suggest_path(routes: &[ListedRoute]) -> String {
-    let arms = roc_suggest_arms(routes);
+    let arms = slash_alternates(routes);
     if arms.is_empty() {
         return "suggest_path = |_| Err({})\n\n".to_string();
     }
@@ -329,34 +342,40 @@ fn roc_suggest_path(routes: &[ListedRoute]) -> String {
     out
 }
 
-fn roc_suggest_arms(routes: &[ListedRoute]) -> Vec<(String, String)> {
-    let gets: Vec<&str> = routes
-        .iter()
-        .filter(|route| route.method == "GET")
-        .map(|route| route.path.as_str())
-        .collect();
-    let mut arms = Vec::new();
-    for path in &gets {
-        if *path == "/" {
-            continue;
-        }
-        if let Some(stripped) = path.strip_suffix('/') {
-            let from = if stripped.is_empty() {
-                "/".to_string()
-            } else {
-                stripped.to_string()
-            };
-            if !gets.contains(&from.as_str()) {
-                arms.push((from, (*path).to_string()));
-            }
-        } else {
-            let from = format!("{path}/");
-            if !gets.contains(&from.as_str()) {
-                arms.push((from, (*path).to_string()));
-            }
-        }
+pub fn roc_slash_redirect_arms(routes: &[ListedRoute]) -> String {
+    let mut out = String::new();
+    for (from, to) in slash_alternates(routes) {
+        out.push_str("        (\"GET\", \"");
+        out.push_str(&roc_escape_contents(&from));
+        out.push_str("\") =>\n            redirect_slash(\"");
+        out.push_str(&roc_escape_contents(&to));
+        out.push_str("\")\n");
     }
-    arms
+    out
+}
+
+pub fn roc_redirect_slash_binding() -> &'static str {
+    r#"
+    redirect_slash = |target| {
+        location =
+            match request.target() {
+                Resource({ raw_query: Present(q), .. }) =>
+                    match q {
+                        "" => target
+                        _ => "${target}?${q}"
+                    }
+                _ => target
+            }
+        Ok(
+            Server.respond(
+                Response.from_status(308)
+                .with_headers([{ name: "Location", value: location }])
+                .with_body([]),
+            ),
+        )
+    }
+
+"#
 }
 
 fn roc_interpolated_fn(
@@ -601,6 +620,35 @@ mod tests {
         let html = render_not_found("GET", "/about", &routes);
         assert!(html.contains("Did you mean"));
         assert!(html.contains("/about/"));
+    }
+
+    #[test]
+    fn slash_alternates_follow_the_registered_form() {
+        let with_slash = [route("GET", "/dx/", "Dx.on_get_dx!")];
+        assert_eq!(
+            slash_alternates(&with_slash),
+            vec![("/dx".into(), "/dx/".into())]
+        );
+        let without = [route("GET", "/dx", "Dx.on_get_dx!")];
+        assert_eq!(
+            slash_alternates(&without),
+            vec![("/dx/".into(), "/dx".into())]
+        );
+        let both = [
+            route("GET", "/dx", "Dx.on_get_dx!"),
+            route("GET", "/dx/", "Other.on_get_dx_slash!"),
+        ];
+        assert!(slash_alternates(&both).is_empty());
+        assert!(slash_alternates(&[route("GET", "/", "Home.on_get_root!")]).is_empty());
+    }
+
+    #[test]
+    fn slash_redirect_arms_are_get_308() {
+        let routes = [route("GET", "/dx/", "Dx.on_get_dx!")];
+        let arms = roc_slash_redirect_arms(&routes);
+        assert!(arms.contains("(\"GET\", \"/dx\") =>"));
+        assert!(arms.contains("redirect_slash(\"/dx/\")"));
+        assert!(!arms.contains("POST"));
     }
 
     #[test]

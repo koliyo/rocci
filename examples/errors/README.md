@@ -6,27 +6,29 @@ renders if CSS or lowering is the thing that broke.
 
 | Path | What it shows |
 | --- | --- |
-| [`Dx.rocdown`](Dx.rocdown) | A working page at `/dx/` with links that hit the 404 page |
+| [`ErrorDemo.rocdown`](ErrorDemo.rocdown) | A working page at `/error-demo/` with links that hit the 404 page |
 | [`parse/Broken.rocdown`](parse/Broken.rocdown) | Unterminated `@page`; compile frames in the browser |
 
 The parse file sits in its own directory so it is not compiled as a sibling of
-`Dx.rocdown`.
+`ErrorDemo.rocdown`.
 
 ## 404
 
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/errors/Dx.rocdown
+cargo run -q -p rocci-cli -- run examples/errors/ErrorDemo.rocdown
 ```
 
-The window opens on `/dx/`. Click **Missing route** (`/missing`) for the 404
-with the registered route table, or **Without trailing slash** (`/dx`) for the
-`/dx/` hint. Pass `--no-window` to serve on
+The window opens on `/error-demo/`. Click **Missing route** (`/missing`) for
+the 404 with the registered route table, or **Slash redirect** (`/error-demo`)
+to follow 308 to `/error-demo/`. Pass `--no-window` to serve on
 [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 The same 404 appears on any standalone `rocci run` app, including
-[`examples/rocdown/Guide.rocdown`](../rocdown/Guide.rocdown).
+[`examples/rocdown/Guide.rocdown`](../rocdown/Guide.rocdown). Generated
+dispatchers 308 the unregistered slash variant of a GET route by default
+(`http.redirect_trailing_slash` in `rocci.toml`).
 
 ## Parse error
 

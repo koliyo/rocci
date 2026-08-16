@@ -511,10 +511,10 @@ fn guide_example_compiles() {
 }
 
 #[test]
-fn errors_dx_example_compiles() {
-    let src = include_str!("../../../examples/errors/Dx.rocdown");
+fn errors_demo_example_compiles() {
+    let src = include_str!("../../../examples/errors/ErrorDemo.rocdown");
     let out = compile(
-        SourceFile::new("examples/errors/Dx.rocdown", src),
+        SourceFile::new("examples/errors/ErrorDemo.rocdown", src),
         &CompileOptions::default(),
     );
     assert!(
@@ -526,7 +526,7 @@ fn errors_dx_example_compiles() {
             .collect::<Vec<_>>()
             .join("\n")
     );
-    assert!(out.roc.contains("dxLinks = |{}|"));
+    assert!(out.roc.contains("demoLinks = |{}|"));
     assert!(out.roc.contains("href"));
     assert!(out.roc.contains("/missing"));
 }
