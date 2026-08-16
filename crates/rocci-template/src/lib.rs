@@ -22,7 +22,7 @@ pub use ast::{
     LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams, TemplateBlock,
     TemplateItem, TextNode, parse_component_params, strip_param_defaults,
 };
-pub use diagnostic::{Diagnostic, Severity};
+pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
 pub use lower::{
     ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, LoweredTemplate, RouteInfo,
@@ -88,16 +88,5 @@ pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput 
 }
 
 pub fn format_diagnostic(source: SourceFile<'_>, diagnostic: &Diagnostic) -> String {
-    let (line, col) = source.line_col(diagnostic.span.start);
-    format!(
-        "{}:{}:{}: {}: {}",
-        source.name,
-        line,
-        col,
-        match diagnostic.severity {
-            Severity::Error => "error",
-            Severity::Warning => "warning",
-        },
-        diagnostic.message
-    )
+    DiagnosticFrame::from_source(source, diagnostic).render_for_stderr()
 }

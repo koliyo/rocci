@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     env, fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
 };
 
 use anyhow::{Context, Result, bail};
@@ -12,9 +12,11 @@ use rocci_template::{
 };
 
 use crate::datastar_asset;
+use crate::error_page::{self, ListedRoute};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
+use crate::style;
 
 const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
@@ -94,26 +96,28 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
 
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
-    let mut child = Command::new("roc")
-        .arg("main.roc")
+    let mut cmd = Command::new("roc");
+    cmd.arg("main.roc")
         .current_dir(&workspace.path)
-        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-        .stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .context("failed to start `roc`; is it on PATH?")?;
+        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
 
-    if let Err(err) = serve::wait_for_server(&mut child, port) {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(err);
+    match serve::wait_for_listen(&mut child, port)? {
+        serve::ListenWait::Ready => {}
+        serve::ListenWait::Exited(_) => {
+            let output = tee.finish();
+            let html = error_page::render_roc_compile_error(&output, &[]);
+            return serve::serve_html(port, 500, &html, "rocci browse", no_window);
+        }
     }
 
     let count: usize = groups.iter().map(|group| group.entries.len()).sum();
     println!(
-        "Browsing {count} components from {} file(s) at {url}",
-        files.len()
+        "{}",
+        style::browsing(
+            &format!("{count} components from {} file(s)", files.len()),
+            &url
+        )
     );
     serve::with_window(&mut child, &url, "rocci browse", no_window)
 }
@@ -209,8 +213,11 @@ fn compile_modules(files: &[PathBuf]) -> Result<Vec<CompiledModule>> {
         }
         if compiled.has_errors() {
             eprintln!(
-                "warning: skipping {} (template compilation failed)",
-                path.display()
+                "{}",
+                style::warning(&format!(
+                    "skipping {} (template compilation failed)",
+                    path.display()
+                ))
             );
             continue;
         }
@@ -266,10 +273,13 @@ fn copy_sibling_roc(
             let next_bytes = fs::read(&path).unwrap_or_default();
             if prev_bytes != next_bytes {
                 eprintln!(
-                    "warning: skipping {} from {} (already copied from {})",
-                    name,
-                    path.display(),
-                    prev.display()
+                    "{}",
+                    style::warning(&format!(
+                        "skipping {} from {} (already copied from {})",
+                        name,
+                        path.display(),
+                        prev.display()
+                    ))
                 );
             }
             continue;
@@ -1633,14 +1643,7 @@ respond! = |request, _context| {{
         ("GET", "/") => html_ok(Html.render(Browser.homePage({{ groups: Catalog.groups }})))
         ("GET", "/c") => inspector(args)
         ("GET", "/preview") => preview(args)
-        _ =>
-            Ok(
-                Server.respond(
-                    Response.from_status(404)
-                    .with_body(Str.to_utf8("Not found")),
-                ),
-            )
-    }}
+{not_found}    }}
 }}
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
@@ -1735,8 +1738,14 @@ html_ok = |body|
             .with_body(Str.to_utf8(body)),
         ),
     )
-"#
+"#,
+        not_found = error_page::roc_not_found_arm(),
     );
+    out.push_str(&error_page::roc_runtime_helpers(&[
+        ListedRoute::new("GET", "/", "Browser.homePage"),
+        ListedRoute::new("GET", "/c", "inspector"),
+        ListedRoute::new("GET", "/preview", "preview"),
+    ]));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out
 }

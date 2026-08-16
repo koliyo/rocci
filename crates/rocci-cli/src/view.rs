@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
 };
 
 use anyhow::{Context, Result, bail};
@@ -12,9 +12,11 @@ use rocci_template::{
 };
 
 use crate::datastar_asset;
+use crate::error_page::{self, FailedFile, ListedRoute, MappedModule};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
+use crate::style;
 
 const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
@@ -35,7 +37,14 @@ pub fn view(
         eprintln!("{}", format_diagnostic(source, diagnostic));
     }
     if compiled.has_errors() {
-        bail!("template compilation failed");
+        let html = error_page::render_template_errors(&[FailedFile {
+            name,
+            src,
+            diagnostics: compiled.diagnostics,
+        }]);
+        let title = format!("rocci view · {component}");
+        let port = port.resolve()?;
+        return serve::serve_html(port, 500, &html, &title, no_window);
     }
 
     let info = find_component(&compiled.components, component).with_context(|| {
@@ -92,30 +101,35 @@ pub fn view(
 
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
-    let mut child = Command::new("roc")
-        .arg("main.roc")
+    let mut cmd = Command::new("roc");
+    cmd.arg("main.roc")
         .current_dir(&workspace.path)
-        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-        .stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .context("failed to start `roc`; is it on PATH?")?;
-
-    let wait_result = serve::wait_for_server(&mut child, port);
-    if let Err(err) = wait_result {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(err);
+        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    let title = format!("rocci view · {}", info.name);
+    match serve::wait_for_listen(&mut child, port)? {
+        serve::ListenWait::Ready => {
+            println!(
+                "{}",
+                style::viewing(&format!("{} from {}", info.name, input.display()), &url)
+            );
+            serve::with_window(&mut child, &url, &title, no_window)
+        }
+        serve::ListenWait::Exited(_) => {
+            let output = tee.finish();
+            let html = error_page::render_roc_compile_error(
+                &output,
+                &[MappedModule {
+                    type_name: type_name.clone(),
+                    generated: compiled.roc,
+                    source_name: name,
+                    source_src: src,
+                    segments: compiled.segments,
+                }],
+            );
+            serve::serve_html(port, 500, &html, &title, no_window)
+        }
     }
-
-    println!("Viewing {} from {} at {url}", info.name, input.display());
-    serve::with_window(
-        &mut child,
-        &url,
-        &format!("rocci view · {}", info.name),
-        no_window,
-    )
 }
 
 fn find_component<'a>(components: &'a [ComponentInfo], name: &str) -> Option<&'a ComponentInfo> {
@@ -356,14 +370,7 @@ respond! = |request, _context| {{
 
     match (Method.to_str(request.method()), path) {{
         ("GET", "/") => html_ok(Html.render({render}))
-        _ =>
-            Ok(
-                Server.respond(
-                    Response.from_status(404)
-                    .with_body(Str.to_utf8("Not found")),
-                ),
-            )
-    }}
+{not_found}    }}
 }}
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
@@ -377,8 +384,12 @@ html_ok = |body|
             .with_body(Str.to_utf8(body)),
         ),
     )
-"#
+"#,
+        not_found = error_page::roc_not_found_arm(),
     );
+    out.push_str(&error_page::roc_runtime_helpers(&[ListedRoute::new(
+        "GET", "/", "view",
+    )]));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out
 }

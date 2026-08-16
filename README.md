@@ -20,6 +20,7 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
 cargo run -q -p rocci-cli -- run examples/rocdown/Guide.rocdown
+cargo run -q -p rocci-cli -- run examples/errors/Dx.rocdown
 cargo run -q -p rocci-cli -- run examples/snake
 cargo run -q -p rocci-cli -- run examples/datastar
 ```
@@ -29,7 +30,8 @@ Datastar patch. [`examples/styling`](examples/styling) is the same template
 language with file-level and component `@css`.
 [`examples/rocdown`](examples/rocdown) is a Markdown page with explicit `@roc`,
 `@component`, and `@render` islands; see [`crates/rocci-rocdown`](crates/rocci-rocdown)
-for the format.
+for the format. [`examples/errors`](examples/errors) is the 404 and parse-error
+preview: a working `/dx/` page plus a broken file that still opens in the window.
 
 `rocci run path/to/App.rocci` is a standalone app: compile that file, generate
 an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`

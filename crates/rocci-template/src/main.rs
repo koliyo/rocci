@@ -1,13 +1,13 @@
 use std::{
     fs,
-    io::{self, Read, Write},
+    io::{self, IsTerminal, Read, Write},
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
 use clap::{Parser, Subcommand};
 use rocci_template::{
-    CompileOutput, LowerOptions, SourceFile, compile, format_ast, format_diagnostic,
+    CompileOutput, LowerOptions, SourceFile, compile, format_ast, format_diagnostic, supports_ansi,
 };
 
 #[derive(Parser)]
@@ -43,7 +43,12 @@ fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
         Err(err) => {
-            eprintln!("{err}");
+            let prefix = if supports_ansi(io::stderr().is_terminal()) {
+                "\x1b[1;31merror:\x1b[0m"
+            } else {
+                "error:"
+            };
+            eprintln!("{prefix} {err}");
             ExitCode::from(1)
         }
     }

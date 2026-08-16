@@ -133,7 +133,10 @@ pub fn pin_app(app: &Path, version: &str) -> Result<()> {
     ensure_cached(&version)?;
     write_pin(&app_dir, &version)?;
     stage_into(&app_assets_dir(&app_dir), &version)?;
-    println!("pinned Datastar {version} for {}", app_dir.display());
+    println!(
+        "{}",
+        crate::style::pinned(&format!("Datastar {version} for {}", app_dir.display()))
+    );
     Ok(())
 }
 
@@ -144,7 +147,17 @@ pub fn update_app(app: &Path) -> Result<()> {
 
 pub fn print_hint(current: &str) {
     if let Some(hint) = maybe_update_hint(current) {
-        eprintln!("{hint}");
+        let mut lines = hint.lines();
+        if let Some(first) = lines.next() {
+            if let Some(rest) = first.strip_prefix("note: ") {
+                eprintln!("{}", crate::style::note(rest));
+            } else {
+                eprintln!("{first}");
+            }
+        }
+        for line in lines {
+            eprintln!("{line}");
+        }
     }
 }
 

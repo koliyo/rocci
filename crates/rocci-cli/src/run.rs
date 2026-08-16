@@ -6,14 +6,16 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_core::Config;
-use rocci_template::{LowerOptions, SourceFile, compile, format_diagnostic};
+use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, format_diagnostic};
 use rocci_wry::PreviewOptions;
 
 use crate::datastar_asset;
 use crate::dispatch;
+use crate::error_page::{self, FailedFile, MappedModule};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
+use crate::style;
 use crate::theme::ThemeArgs;
 
 pub fn run(
@@ -32,8 +34,16 @@ pub fn run(
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
     runtime_assets::stage_into(&resolved.app_dir)?;
-    compile_rocci_modules(&resolved.app_dir, theme)?;
-    invoke_roc(&resolved, args, no_window, port)
+    let compiled = compile_rocci_app(&resolved.app_dir, theme)?;
+    if !compiled.failures.is_empty() {
+        return serve_template_errors(
+            &compiled.failures,
+            port,
+            no_window,
+            &window_title(&resolved),
+        );
+    }
+    invoke_roc(&resolved, args, no_window, port, &compiled.maps)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,7 +127,17 @@ fn run_standalone(
         .map(Path::to_path_buf)
         .unwrap_or_else(|| env::current_dir().expect("current directory"));
 
-    let plan = plan_standalone(&path, theme)?;
+    let title = path
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("rocci")
+        .to_string();
+    let plan = match plan_standalone(&path, theme)? {
+        StandaloneReady::Failed(files) => {
+            return serve_template_errors(&files, port, no_window, &title);
+        }
+        StandaloneReady::Ready(plan) => plan,
+    };
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create("run")?;
     runtime_assets::stage_into(&workspace.path)?;
@@ -150,11 +170,6 @@ fn run_standalone(
         app_dir: workspace.path.clone(),
         roc_file: PathBuf::from("main.roc"),
     };
-    let title = path
-        .file_stem()
-        .and_then(|name| name.to_str())
-        .unwrap_or("rocci")
-        .to_string();
     invoke_standalone(
         &resolved,
         args,
@@ -163,6 +178,7 @@ fn run_standalone(
         &db_path,
         &title,
         preview_path(&plan.modules[0].routes),
+        &plan.maps(),
     )
 }
 
@@ -172,6 +188,12 @@ struct StandaloneModule {
     state_type: Option<String>,
     init: Option<rocci_template::InitInfo>,
     routes: Vec<rocci_template::RouteInfo>,
+    mapped: MappedModule,
+}
+
+enum StandaloneReady {
+    Ready(StandalonePlan),
+    Failed(Vec<FailedFile>),
 }
 
 struct StandalonePlan {
@@ -180,6 +202,13 @@ struct StandalonePlan {
 }
 
 impl StandalonePlan {
+    fn maps(&self) -> Vec<MappedModule> {
+        self.modules
+            .iter()
+            .map(|module| module.mapped.clone())
+            .collect()
+    }
+
     fn main_roc(&self) -> String {
         let primary = &self.modules[0];
         let siblings: Vec<dispatch::DispatchSource<'_>> = self.modules[1..]
@@ -205,28 +234,45 @@ impl StandalonePlan {
     }
 }
 
-fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandalonePlan> {
+fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady> {
     let mut modules = Vec::new();
+    let mut failures = Vec::new();
     for input in linked_standalone_inputs(primary)? {
         let src = fs::read_to_string(&input)
             .with_context(|| format!("failed to read {}", input.display()))?;
         let name = input.display().to_string();
         let compiled = compile_source(&input, &name, &src, theme)?;
         if compiled.failed {
-            bail!("template compilation failed");
+            failures.push(FailedFile {
+                name,
+                src,
+                diagnostics: compiled.diagnostics,
+            });
+            continue;
         }
+        let type_name = type_name_from_path(&input);
         modules.push(StandaloneModule {
-            type_name: type_name_from_path(&input),
-            roc: compiled.roc,
+            type_name: type_name.clone(),
+            roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
             routes: compiled.routes,
+            mapped: MappedModule {
+                type_name,
+                generated: compiled.roc,
+                source_name: name,
+                source_src: src,
+                segments: compiled.segments,
+            },
         });
     }
-    Ok(StandalonePlan {
+    if !failures.is_empty() {
+        return Ok(StandaloneReady::Failed(failures));
+    }
+    Ok(StandaloneReady::Ready(StandalonePlan {
         primary_name: type_name_from_path(primary),
         modules,
-    })
+    }))
 }
 
 fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {
@@ -277,32 +323,47 @@ fn generated_module_path(rocci: &Path) -> PathBuf {
 }
 
 pub fn compile_rocci_modules(app_dir: &Path, theme: &ThemeArgs) -> Result<()> {
-    let mut failed = false;
-    for input in discover_rocci(app_dir)? {
-        if !compile_one(&input, theme)? {
-            failed = true;
-        }
-    }
-    if failed {
+    let compiled = compile_rocci_app(app_dir, theme)?;
+    if !compiled.failures.is_empty() {
         bail!("template compilation failed");
     }
     Ok(())
 }
 
-fn compile_one(input: &Path, theme: &ThemeArgs) -> Result<bool> {
-    let src =
-        fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
-    let name = input.display().to_string();
-    let compiled = compile_source(input, &name, &src, theme)?;
-    if compiled.failed {
-        return Ok(false);
-    }
+struct CompiledApp {
+    failures: Vec<FailedFile>,
+    maps: Vec<MappedModule>,
+}
 
-    let type_name = type_name_from_path(input);
-    let output = generated_module_path(input);
-    fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
-        .with_context(|| format!("failed to write {}", output.display()))?;
-    Ok(true)
+fn compile_rocci_app(app_dir: &Path, theme: &ThemeArgs) -> Result<CompiledApp> {
+    let mut failures = Vec::new();
+    let mut maps = Vec::new();
+    for input in discover_rocci(app_dir)? {
+        let src = fs::read_to_string(&input)
+            .with_context(|| format!("failed to read {}", input.display()))?;
+        let name = input.display().to_string();
+        let compiled = compile_source(&input, &name, &src, theme)?;
+        if compiled.failed {
+            failures.push(FailedFile {
+                name,
+                src,
+                diagnostics: compiled.diagnostics,
+            });
+            continue;
+        }
+        let type_name = type_name_from_path(&input);
+        let output = generated_module_path(&input);
+        fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
+            .with_context(|| format!("failed to write {}", output.display()))?;
+        maps.push(MappedModule {
+            type_name,
+            generated: compiled.roc,
+            source_name: name,
+            source_src: src,
+            segments: compiled.segments,
+        });
+    }
+    Ok(CompiledApp { failures, maps })
 }
 
 struct CompiledSource {
@@ -311,6 +372,8 @@ struct CompiledSource {
     init: Option<rocci_template::InitInfo>,
     routes: Vec<rocci_template::RouteInfo>,
     failed: bool,
+    diagnostics: Vec<Diagnostic>,
+    segments: Vec<Segment>,
 }
 
 fn compile_source(
@@ -332,6 +395,8 @@ fn compile_source(
             init: compiled.init,
             routes: compiled.routes,
             failed,
+            diagnostics: compiled.diagnostics,
+            segments: compiled.segments,
         });
     }
     let compiled = compile(source, &LowerOptions::default());
@@ -345,6 +410,8 @@ fn compile_source(
         init: compiled.init,
         routes: compiled.routes,
         failed,
+        diagnostics: compiled.diagnostics,
+        segments: compiled.segments,
     })
 }
 
@@ -396,6 +463,7 @@ fn invoke_standalone(
     db_path: &Path,
     title: &str,
     path: String,
+    maps: &[MappedModule],
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
@@ -404,20 +472,17 @@ fn invoke_standalone(
     if env::var_os("DB_PATH").is_none() {
         cmd.env("DB_PATH", db_path);
     }
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-    let mut child = cmd
-        .spawn()
-        .context("failed to start `roc`; is it on PATH?")?;
-    if let Err(err) = serve::wait_for_server(&mut child, port) {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(err);
+    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    match serve::wait_for_listen(&mut child, port)? {
+        serve::ListenWait::Ready => {
+            println!("{}", style::serving(title, &url));
+            serve::with_window(&mut child, &url, title, no_window)
+        }
+        serve::ListenWait::Exited(_) => {
+            let output = tee.finish();
+            serve_roc_failure(&output, maps, port, no_window, title)
+        }
     }
-
-    println!("Serving {title} at {url}");
-    serve::with_window(&mut child, &url, title, no_window)
 }
 
 fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
@@ -486,29 +551,27 @@ fn invoke_roc(
     args: &[String],
     no_window: bool,
     port: serve::PortArg,
+    maps: &[MappedModule],
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
-    if no_window {
-        println!("Serving {} at {url}", invocation.app_dir.display());
-        return exec_roc(&invocation, port);
+    let title = window_title(resolved);
+    let cmd = roc_command(&invocation, port);
+    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    match serve::wait_for_listen(&mut child, port)? {
+        serve::ListenWait::Ready => {
+            println!(
+                "{}",
+                style::serving(&invocation.app_dir.display().to_string(), &url)
+            );
+            serve::with_window(&mut child, &url, &title, no_window)
+        }
+        serve::ListenWait::Exited(_) => {
+            let output = tee.finish();
+            serve_roc_failure(&output, maps, port, no_window, &title)
+        }
     }
-    let mut cmd = roc_command(&invocation, port);
-    cmd.stdin(Stdio::null())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-    let mut child = cmd
-        .spawn()
-        .context("failed to start `roc`; is it on PATH?")?;
-    if let Err(err) = serve::wait_for_server(&mut child, port) {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(err);
-    }
-
-    println!("Serving {} at {url}", invocation.app_dir.display());
-    serve::with_window(&mut child, &url, &window_title(resolved), false)
 }
 
 pub fn run_bundled(resources: &Path) -> Result<()> {
@@ -548,7 +611,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         return Err(err);
     }
 
-    println!("Serving {} at {url}", app_dir.display());
+    println!("{}", style::serving(&app_dir.display().to_string(), &url));
     let preview_result = rocci_wry::preview(PreviewOptions {
         url,
         title,
@@ -562,6 +625,28 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     preview_result
 }
 
+fn serve_template_errors(
+    files: &[FailedFile],
+    port: serve::PortArg,
+    no_window: bool,
+    title: &str,
+) -> Result<()> {
+    let html = error_page::render_template_errors(files);
+    let port = port.resolve()?;
+    serve::serve_html(port, 500, &html, title, no_window)
+}
+
+fn serve_roc_failure(
+    output: &str,
+    maps: &[MappedModule],
+    port: u16,
+    no_window: bool,
+    title: &str,
+) -> Result<()> {
+    let html = error_page::render_roc_compile_error(output, maps);
+    serve::serve_html(port, 500, &html, title, no_window)
+}
+
 fn window_title(resolved: &ResolvedEntry) -> String {
     resolved
         .app_dir
@@ -569,26 +654,6 @@ fn window_title(resolved: &ResolvedEntry) -> String {
         .and_then(|name| name.to_str())
         .unwrap_or("rocci")
         .to_string()
-}
-
-fn exec_roc(invocation: &RocInvocation, port: u16) -> Result<()> {
-    let mut cmd = roc_command(invocation, port);
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        let err = cmd.exec();
-        Err(err).context("failed to start `roc`; is it on PATH?")
-    }
-    #[cfg(not(unix))]
-    {
-        let status = cmd
-            .status()
-            .context("failed to start `roc`; is it on PATH?")?;
-        if !status.success() {
-            bail!("roc exited with {status}");
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -604,6 +669,18 @@ mod tests {
 
     fn cleanup(dir: &Path) {
         let _ = fs::remove_dir_all(dir);
+    }
+
+    fn plan_ready(path: &Path) -> StandalonePlan {
+        match plan_standalone(path, &crate::theme::ThemeArgs::default()).unwrap() {
+            StandaloneReady::Ready(plan) => plan,
+            StandaloneReady::Failed(files) => {
+                panic!(
+                    "expected successful compile, got {} failed file(s)",
+                    files.len()
+                )
+            }
+        }
     }
 
     #[test]
@@ -764,11 +841,7 @@ See [[About]]
 "#,
         )
         .unwrap();
-        let plan = plan_standalone(
-            &dir.join("Home.rocdown"),
-            &crate::theme::ThemeArgs::default(),
-        )
-        .unwrap();
+        let plan = plan_ready(&dir.join("Home.rocdown"));
         assert_eq!(plan.primary_name, "Home");
         assert!(
             plan.modules
@@ -782,12 +855,14 @@ See [[About]]
         assert!(main.contains("About.on_get_about!"));
         assert_eq!(
             dispatch_handler(&main, "GET", "/"),
-            "Home.on_get_home!(context) ? |err| ServerErr(Str.inspect(err))"
+            "Home.on_get_home!(context)"
         );
         assert_eq!(
             dispatch_handler(&main, "GET", "/about/"),
-            "About.on_get_about!(context) ? |err| ServerErr(Str.inspect(err))"
+            "About.on_get_about!(context)"
         );
+        assert!(main.contains("html_status(404, not_found_html("));
+        assert!(!main.contains("Not found"));
         assert!(!main.contains("About.on_get_root!"));
         cleanup(&dir);
     }
@@ -798,37 +873,90 @@ See [[About]]
             .join("../../examples/rocdown/Guide.rocdown")
             .canonicalize()
             .unwrap();
-        let plan = plan_standalone(&guide, &crate::theme::ThemeArgs::default()).unwrap();
+        let plan = plan_ready(&guide);
         let main = plan.main_roc();
         assert!(main.contains("import Interactive"));
         assert_eq!(
             dispatch_handler(&main, "GET", "/guides/rocdown-interactive/"),
-            "Interactive.on_get_guides_rocdown_interactive!(context) ? |err| ServerErr(Str.inspect(err))"
+            "Interactive.on_get_guides_rocdown_interactive!(context)"
         );
         assert_eq!(
             dispatch_handler(&main, "GET", "/"),
-            "Guide.on_get_guides_rocdown!(context) ? |err| ServerErr(Str.inspect(err))"
+            "Guide.on_get_guides_rocdown!(context)"
         );
         assert_eq!(
             dispatch_handler(&main, "POST", "/actions/reveal/show"),
-            "Interactive.on_post_actions_reveal_show!(context) ? |err| ServerErr(Str.inspect(err))"
+            "Interactive.on_post_actions_reveal_show!(context)"
         );
         assert!(!main.contains("Interactive.on_get_root!"));
     }
 
+    #[test]
+    fn errors_example_lists_dx_route_on_404() {
+        let dx = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/errors/Dx.rocdown")
+            .canonicalize()
+            .unwrap();
+        let plan = plan_ready(&dx);
+        let main = plan.main_roc();
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/dx/"),
+            "Dx.on_get_dx!(context)"
+        );
+        assert!(main.contains("html_status(404, not_found_html("));
+        assert!(main.contains("/dx/"));
+        assert!(main.contains("\"/dx\" => Ok(\"/dx/\")"));
+    }
+
+    #[test]
+    fn errors_parse_example_builds_error_page() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/errors/parse/Broken.rocdown")
+            .canonicalize()
+            .unwrap();
+        let StandaloneReady::Failed(files) =
+            plan_standalone(&path, &crate::theme::ThemeArgs::default()).unwrap()
+        else {
+            panic!("expected template failure");
+        };
+        let html = error_page::render_template_errors(&files);
+        assert!(html.contains("Broken.rocdown"));
+        assert!(html.contains("@page"));
+        assert!(html.contains("error"));
+    }
+
+    #[test]
+    fn standalone_compile_failure_builds_error_page() {
+        let dir = temp_app("compile-fail");
+        let path = dir.join("Broken.rocdown");
+        fs::write(&path, "@page {\n").unwrap();
+        let StandaloneReady::Failed(files) =
+            plan_standalone(&path, &crate::theme::ThemeArgs::default()).unwrap()
+        else {
+            cleanup(&dir);
+            panic!("expected template failure");
+        };
+        let html = error_page::render_template_errors(&files);
+        assert!(html.contains("Broken.rocdown") || html.contains("@page"));
+        assert!(html.contains("error"));
+        cleanup(&dir);
+    }
+
     fn dispatch_handler<'a>(main: &'a str, method: &str, path: &str) -> &'a str {
-        let needle = format!("(\"{method}\", \"{path}\") => {{");
+        let needle = format!("(\"{method}\", \"{path}\") =>");
         let start = main
             .find(&needle)
             .unwrap_or_else(|| panic!("missing route {needle} in {main}"));
         let after = &main[start + needle.len()..];
-        let html = after
-            .find("html = ")
+        let match_at = after
+            .find("match ")
             .unwrap_or_else(|| panic!("missing handler for {needle}"));
-        after[html + "html = ".len()..]
+        after[match_at + "match ".len()..]
             .lines()
             .next()
             .unwrap()
+            .trim()
+            .trim_end_matches('{')
             .trim()
     }
 }
