@@ -15,3 +15,5 @@
 - Archived seven dated root reports without deleting them, retained the two active implementation/design plans at the root, and recorded that no canonical concept is currently superseded.
 - Added a seven-question lexical retrieval benchmark with lifecycle and authority expectations, CLI measurement, and CI enforcement before any embeddings or database service.
 - Corrected the public project-status page now that Rocs aliases, watch mode, and live reload ship; kept audience-facing status prose because knowledge publication remains local-only.
+- Shipped bounded `@docs` components, catalog includes, Markdown/search projections, and opt-in `rocs test`; knowledge records distinguish that from still-unshipped `api-operation` and tab JS.
+- Clarified that document-root HTML-shaped syntax is a structured Rocci template island, not raw HTML; recorded the separate trusted uses of `dangerously_include_unescaped_html` and the consequence that Rocs rejects root template islands while internally composing escaped Rust-rendered fragments through that bridge.
