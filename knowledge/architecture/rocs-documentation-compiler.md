@@ -3,8 +3,8 @@ type: Architecture
 title: Rocs documentation compiler
 description: Rocs resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocs, domain/rocdown, concern/rendering, concern/validation, concern/performance]
-status: stable
-generated: { by: process:okf-migration, at: 2026-08-16T00:00:00Z }
+status: draft
+generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -36,6 +36,11 @@ sources:
     title: Published Rocs reference
     author: human:nils
     last_modified: 2026-08-16
+  - id: okf
+    resource: ../../crates/rocs/src/okf.rs
+    title: OKF knowledge implementation
+    author: process:git
+    last_modified: 2026-08-16
 ---
 
 # Rocs documentation compiler
@@ -58,9 +63,11 @@ This architecture implements the [Rust-catalog/Rocci-shell decision](/decisions/
 
 Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, inspection, watch/serve, and live reload are implemented.[^rocs-plan][^rocs-reference]
 
+The isolated OKF path additionally validates and renders knowledge collections, previews them through the Rocs shell, emits catalog, search, agent, and validation indexes, and provides filtered catalog inspection and heading-chunk search.[^okf][^rocs-reference]
+
 ## Not yet implemented
 
-Dynamic island splicing is rejected. Search, clean Markdown, and remaining machine-output polish are still Phase 4 work; later semantic documentation components, generated references, richer themes, locales, and advanced interaction remain planned.[^site][^rocs-plan]
+Dynamic island splicing is rejected. Public documentation-site search, clean per-page Markdown, and remaining machine-output polish are still ordinary Rocs backlog; the shipped OKF search is a separate local knowledge-retrieval path. Later semantic documentation components, generated references, richer themes, locales, and advanced interaction remain planned.[^site][^rocs-plan][^okf]
 
 ## Validation
 
@@ -71,3 +78,4 @@ Catalog checks do not require compiling Roc. Full builds additionally verify the
 [^site]: Current source discovery, static-feature gate, check, and inspection behavior.
 [^plan]: Current deterministic artifact and structured page-view planning.
 [^rocs-reference]: User-facing configuration and generated-artifact contract.
+[^okf]: Current isolated knowledge validation, generated-output, inspection, search, and filtering implementation.

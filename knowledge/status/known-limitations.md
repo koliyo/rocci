@@ -1,10 +1,10 @@
 ---
 type: Status
 title: Known Rocci limitations
-description: Rocci deliberately lacks dynamic Rocs islands, complete machine-readable documentation outputs, production packaging, broad native APIs, and full cross-platform validation.
+description: Rocci deliberately lacks dynamic Rocs islands, public documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocs, domain/desktop, concern/validation, concern/packaging]
-status: stable
-generated: { by: process:okf-migration, at: 2026-08-16T00:00:00Z }
+status: draft
+generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -31,6 +31,11 @@ sources:
     title: Rocs implementation plan
     author: human:nils
     last_modified: 2026-08-16
+  - id: okf
+    resource: ../../crates/rocs/src/okf.rs
+    title: OKF knowledge implementation
+    author: process:git
+    last_modified: 2026-08-16
 ---
 
 # Known Rocci limitations
@@ -43,7 +48,7 @@ sources:
 
 Rocs rejects pages containing `@render`, Roc blocks, Rocci templates, handlers, file CSS, or custom layouts; the dynamic-island splice path is not implemented.[^rocs-site]
 
-Search, clean per-page Markdown, and some machine-output polish remain in the active Rocs Phase 4 backlog. Watch/serve and live reload are already implemented, so older prose that lists development watch mode as pending is stale on that point.[^roadmap-plan][^status-doc]
+Public documentation-site search, clean per-page Markdown, and some machine-output polish remain in the ordinary Rocs backlog. The separate OKF knowledge path now emits a heading-chunk search index and supports filtered CLI search; that does not add a search interface to ordinary generated documentation sites. Watch/serve and live reload are already implemented, so older prose that lists development watch mode as pending is stale on that point.[^roadmap-plan][^status-doc][^okf]
 
 ## Runtime and desktop delivery
 
@@ -63,3 +68,4 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^status-doc]: Published limitations, including one superseded statement about watch mode.
 [^rocs-site]: Static-page feature rejection in the current site loader.
 [^roadmap-plan]: Current Rocs Phase 4 status and remaining outputs.
+[^okf]: Current local search and machine-output support for OKF knowledge collections only.

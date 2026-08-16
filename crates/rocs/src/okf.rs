@@ -745,7 +745,10 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
     .context("failed to write knowledge catalog")?;
     fs::write(
         staging.join("search.json"),
-        format!("{}\n", serde_json::to_string_pretty(&search_index(&bundle))?),
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&search_index(&bundle))?
+        ),
     )
     .context("failed to write knowledge search index")?;
     fs::write(staging.join("llms.txt"), llms_text(&bundle))
@@ -822,10 +825,7 @@ impl KnowledgeFilter {
                 return false;
             }
         }
-        if !self.trust_tiers.is_empty()
-            && !self
-                .trust_tiers
-                .contains(&concept_trust_tier(metadata))
+        if !self.trust_tiers.is_empty() && !self.trust_tiers.contains(&concept_trust_tier(metadata))
         {
             return false;
         }
@@ -886,12 +886,7 @@ fn search_index(bundle: &Bundle) -> Vec<SearchChunk> {
             let Item::Markdown(node) = item else {
                 continue;
             };
-            if let MdNode::Heading {
-                id,
-                children,
-                ..
-            } = node
-            {
+            if let MdNode::Heading { id, children, .. } = node {
                 if let Some((id, heading, text)) = current.take() {
                     chunks.push(search_heading_chunk(
                         concept,
@@ -1021,8 +1016,7 @@ fn concept_is_stale(metadata: &BTreeMap<String, Value>) -> bool {
     let Some(today) = current_utc_date() else {
         return false;
     };
-    string_field(metadata, "stale_after")
-        .is_some_and(|date| is_date(date) && date < today.as_str())
+    string_field(metadata, "stale_after").is_some_and(|date| is_date(date) && date < today.as_str())
 }
 
 fn metadata_string_array(metadata: &BTreeMap<String, Value>, key: &str) -> Vec<String> {
@@ -2433,7 +2427,7 @@ mod tests {
     }
 
     #[test]
-    fn build_emits_catalog_validation_and_site() {
+    fn build_emits_catalog_search_llms_validation_and_site() {
         let root = temp("build");
         fs::write(
             root.join("index.md"),
@@ -2445,15 +2439,21 @@ mod tests {
         let summary = build(&root, &output, Profile::Rocci).unwrap();
         assert_eq!(summary.concepts, 1);
         assert!(output.join("catalog.json").is_file());
+        assert!(output.join("search.json").is_file());
+        assert!(output.join("llms.txt").is_file());
         assert!(output.join("validation.json").is_file());
         assert!(output.join("site/test/index.html").is_file());
         let first_catalog = fs::read(output.join("catalog.json")).unwrap();
+        let first_search = fs::read(output.join("search.json")).unwrap();
+        let first_llms = fs::read(output.join("llms.txt")).unwrap();
         let first_page = fs::read(output.join("site/test/index.html")).unwrap();
         build(&root, &output, Profile::Rocci).unwrap();
         assert_eq!(
             first_catalog,
             fs::read(output.join("catalog.json")).unwrap()
         );
+        assert_eq!(first_search, fs::read(output.join("search.json")).unwrap());
+        assert_eq!(first_llms, fs::read(output.join("llms.txt")).unwrap());
         assert_eq!(
             first_page,
             fs::read(output.join("site/test/index.html")).unwrap()
@@ -2468,6 +2468,45 @@ mod tests {
         let summary = build(&root, &output, Profile::Rocci).unwrap();
         assert_eq!(summary.concepts, 0);
         assert!(!output.join("site/test/index.html").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn catalog_and_search_apply_lifecycle_trust_and_stale_filters() {
+        let root = temp("search-filter");
+        fs::write(
+            root.join("reviewed.md"),
+            concept(
+                "verified:\n  - { by: human:nils, at: 2026-08-16T00:00:00Z }\nstale_after: 2999-01-01\n",
+                "# Reviewed theme\n\nCurrent resolver contract.\n",
+            ),
+        )
+        .unwrap();
+        fs::write(
+            root.join("generated.md"),
+            concept("", "# Generated note\n\nCurrent parser contract.\n"),
+        )
+        .unwrap();
+
+        let filter = KnowledgeFilter {
+            types: vec!["architecture".into()],
+            tags: vec!["domain/rocs".into()],
+            statuses: vec!["DRAFT".into()],
+            authorities: vec!["descriptive".into()],
+            trust_tiers: vec![TrustTier::HumanReviewed],
+            stale: Some(false),
+        };
+        let catalog =
+            inspect_filtered(&root, InspectKind::Catalog, None, Profile::Rocci, &filter).unwrap();
+        assert!(catalog.contains("\"id\": \"reviewed\""), "{catalog}");
+        assert!(!catalog.contains("\"id\": \"generated\""), "{catalog}");
+        assert!(catalog.contains("human-reviewed"), "{catalog}");
+
+        let results = search(&root, "resolver contract", Profile::Rocci, &filter).unwrap();
+        assert!(results.contains("reviewed#reviewed-theme"), "{results}");
+        assert!(!results.contains("generated"), "{results}");
+        let missing = search(&root, "parser contract", Profile::Rocci, &filter).unwrap();
+        assert_eq!(missing, "[]");
         fs::remove_dir_all(root).unwrap();
     }
 

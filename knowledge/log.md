@@ -10,3 +10,5 @@
 - Recorded `human:nils` verification for all ten priority-1 records and promoted those revisions to `stable`.
 - Added the draft root design reference plus design-system and design-token knowledge records, inventorying the two current CSS surfaces and keeping DTCG strictly in research scope.
 - Corrected the theming and implementation-status records after the Phase 4 contract amendment; their historical verification remains recorded, but their revised content returned to `draft` pending human review.
+- Added deterministic `search.json` and `llms.txt` outputs, filtered catalog inspection and knowledge search, CI validation/determinism checks, and a draft local-only publication decision.
+- Updated the Rocs compiler and known-limitations records to distinguish shipped OKF retrieval from still-missing public documentation-site search; both revisions returned to `draft` pending review.

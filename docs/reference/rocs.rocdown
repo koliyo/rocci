@@ -134,3 +134,9 @@ the collection containing the current page.
 The body parser shares Rocdown's static Markdown AST and `rd-*` rendering
 classes, with keyed footnotes enabled. Rocdown declarations, raw HTML, and
 wikilinks are disabled for portability and execution safety.
+
+Knowledge builds also emit `catalog.json`, heading-chunked `search.json`,
+`llms.txt`, and `validation.json`. Catalog inspection and search can filter by
+type, tag, lifecycle status, authority, derived trust tier, and staleness. The
+generated site and indexes are local/repository-visible artifacts; no public
+deployment or verbatim archive publication is configured.
