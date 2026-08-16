@@ -6,7 +6,7 @@
 
 **Status:** active — Phase 1 implementation complete; exit validation is pending on one pre-existing Rocs test
 
-**Standards baseline:** Open Knowledge Format (OKF) v0.2 and Design Tokens Community Group (DTCG) 2025.10
+**Standards baseline:** Open Knowledge Format (OKF) v0.2; DTCG 2025.10 is a research/source topic for design knowledge records
 
 **Contract approved:** 2026-08-16 by `human:nils`
 
@@ -20,8 +20,8 @@ Bootstrap one strict OKF v0.2 bundle at `knowledge/`, and make its concept bodie
 - existing `.rocdown` pages keep `@page { ... }` and their current extension. Do not add two competing metadata syntaxes to ordinary Rocdown documents merely to support OKF;
 - the bundle is the source database. Search indexes, graph JSON, HTML, `llms.txt`, and any single-file export are derived artifacts;
 - root reports are evidence and migration sources, not automatically canonical truth. Extract small current records and decisions from them while retaining the reports unchanged during migration;
-- DTCG JSON is the approved source of truth for design values. Generated CSS preserves the existing `--rd-*` contract and supplies a second mapping for the Rocs shell. DTCG does not replace Rocci layouts, DOM classes, assets, or theme manifests;
-- a root `DESIGN.md` will be the short, human-facing design contract. It explains intent and use and links to DTCG token sources rather than duplicating their raw values.
+- DTCG and the design system are subjects to document in the knowledge bundle; this plan does not introduce DTCG token files, CSS generation, validation, or theme integration;
+- `DESIGN.md`, if added, is a human-facing knowledge/design document. It is not a new machine-readable source of truth or an integration project in this plan.
 
 This is a filesystem knowledge bundle, not a new database server. That matches OKF's intentionally minimal model and keeps git history, review, and portability as the storage layer.
 
@@ -31,15 +31,15 @@ This is a filesystem knowledge bundle, not a new database server. That matches O
 | --- | --- | --- |
 | 0 — approve the contract | Complete (2026-08-16) | All decisions in section 13 have accepted answers; diagnostic namespaces and severity policy are fixed in section 11.1 |
 | 1 — parser and three-record vertical slice | Implementation complete; exit pending (2026-08-16) | Parser, profile validation, footnotes, reserved files, JSON inspection, knowledge CLI/build, and three seed records are implemented; one pre-existing Rocs session test hangs in `roc build` |
-| 2 — inventory and provenance migration | Not started | The source inventory is a plan input only; no report content has been migrated |
-| 3 — decisions and human review | Not started | Phase 0 approval does not count as human verification of future migrated records |
-| 4 — DTCG and `DESIGN.md` | Not started | DTCG authority is approved, but token sources, generated CSS, and `DESIGN.md` do not exist yet |
+| 2 — inventory and provenance migration | Complete (2026-08-16) | All priority-1 records and proposed directory indexes are present; `knowledge/migration-matrix.tsv` accounts for every section heading in the nine root reports/plans |
+| 3 — decisions and human review | Complete (2026-08-16) | Atomic decisions, contradiction review, the knowledge log, git source-drift checks, and `human:nils` verification of all ten priority-1 records are complete |
+| 4 — design-system knowledge | Not started | DTCG research and any existing `DESIGN.md` material will be captured as knowledge records; no token or theme implementation is planned |
 | 5 — CI, retrieval, and publication | Not started | Publication remains local/repository-visible pending the Phase 5 review |
 | 6 — consolidation | Not started | Root reports remain in place and unchanged |
 
 The Phase 0 baseline was refreshed against repository `HEAD` `c77fb38` on 2026-08-16. The Rocs Phase 3 work previously described as uncommitted is now committed: `BuildPlan`, fingerprinted assets and theme CSS, asset URL rewriting, CSP, `404.html`, and the structured `PageView` are present. The repository has twelve root Markdown files including this plan, twenty published `.rocdown` pages under `docs/`, and nine workspace crates. Four root files remain untracked at approval time: this plan plus `DATASTAR_ROCKET_IN_ROCCI_REPORT.md`, `ROCCI_SYNTAX_WEAK_POINTS_REPORT.md`, and `ROCDOWN_FORMAT_REPORT.md`.
 
-Phase 0 changes only the project contract and progress record. It does not create the `knowledge/` bundle, implement parsing, migrate content, assign verification to future records, generate tokens, or alter existing `.rocdown` behavior.
+Phase 0 changes only the project contract and progress record. It does not create the `knowledge/` bundle, implement parsing, migrate content, assign verification to future records, introduce token tooling, or alter existing `.rocdown` behavior.
 
 ## 1. Constraints established by the repository and the standards
 
@@ -521,12 +521,12 @@ The first useful bundle should contain these records, in this order:
 | 2 | `research/theme-ecosystems.md` | theming report | Retain external adapter research |
 | 2 | `research/client-islands.md` | Rocket report, Snake report | Consolidate browser-island evidence |
 | 2 | `case-studies/snake-input.md` | Snake source/report | Preserve a concrete boundary case |
-| 3 | `design/design-system.md` | `DESIGN.md`, token files, theme code | Index the human contract |
-| 3 | `design/design-tokens.md` | DTCG files and generator | Explain token layers and outputs |
+| 3 | `design/design-system.md` | existing theme code, theming research, and any `DESIGN.md` | Describe the current design system and its intended direction |
+| 3 | `design/design-tokens.md` | DTCG standards research and existing theme code | Record the token-model research and current gaps, without creating token artifacts |
 
 Indexes should expose these progressively. Do not add per-function or per-config-key records in the bootstrap.
 
-## 8. DTCG integration
+## 8. DTCG as knowledge content
 
 ### 8.1 Standards findings
 
@@ -534,115 +534,41 @@ The DTCG 2025.10 Format Module is a stable Final Community Group Report, althoug
 
 The stable Resolver Module models ordered sets and modifiers for contexts such as light and dark. It can express theme resolution, but order and overlapping modifiers need deliberate design. See the [DTCG Resolver Module 2025.10](https://www.w3.org/community/reports/design-tokens/CG-FINAL-resolver-20251028/). Colors should use the structured representation from the [DTCG Color Module 2025.10](https://www.w3.org/community/reports/design-tokens/CG-FINAL-color-20251028/), rather than treating a CSS hex string as the portable source value.
 
-### 8.2 Role in Rocci
+### 8.2 Scope and boundary
 
-DTCG should own portable **design values and their semantic aliases**. It should not own:
+DTCG is evidence and vocabulary for the design-system and design-token knowledge records. Capture what the DTCG format/resolver/color modules say, compare that with Rocci's existing theme surfaces, and clearly label any proposed adoption as proposed.
 
-- `.rd-*` Markdown DOM classes;
-- Rocs site-shell structure, navigation, breadcrumbs, or outline;
-- CSS selectors, cascade layers, responsive rules, print behavior, or `@scope` strategy;
-- theme package assets, fonts, layouts, scripts, compatibility metadata, or lockfiles;
-- the distinction between article and presentation renderers.
+This plan does **not** create `design/tokens/*.json`, resolvers, generators, generated CSS, compatibility mappings, Rust validation, CI checks, or a migration of theme literals. Those are a separate future design-system implementation project, requiring its own proposal and approval.
 
-Those remain Rocdown/Rocs theme contracts. A DTCG translator turns resolved design values into the CSS variables those contracts consume.
-
-### 8.3 Current model and target mapping
-
-Today there are two separate surfaces:
-
-1. `rocci-theme` defines `paper` and `rocci` CSS files scoped to `.rd-document`, with `--rd-*` variables and `light-dark()` values. `chrome.css` maps those variables onto semantic Markdown classes.
-2. `RocsTheme.rocci` owns a large site shell and a separate source-level palette (`--canvas`, `--surface`, `--ink`, `--accent`, and others), plus layout and component rules. In-progress working-tree code extracts that `@css` to a fingerprinted stylesheet, but it does not yet make the palette a shared token source.
-
-The target should be one token source with two generated adapters:
-
-| DTCG layer | Examples | Output use |
-| --- | --- | --- |
-| Foundation | color ramps, font families, spacing, radii, widths, durations | Never consumed directly by components unless explicitly documented |
-| Semantic | canvas, surface, text primary/muted, accent, border, code background/text | Shared meaning across Rocdown and Rocs |
-| Content | heading levels, paragraph, link, blockquote, code, table | Existing `--rd-*` compatibility variables |
-| Shell | header, sidebar, outline, navigation, journey, mobile menu | Generated variables consumed by `RocsTheme.rocci` |
-
-Semantic and component tokens should alias foundation tokens. Every token gets `$description`; `$type` should be explicit at group level where unambiguous and explicit on exceptions. Use `$deprecated` when replacing a public token. Reserve a reverse-domain `$extensions` key only for optional generation hints; essential meaning must remain in standard token fields.
-
-### 8.4 Proposed token layout
-
-```text
-design/
-  tokens/
-    foundation.tokens.json
-    semantic.tokens.json
-    content.tokens.json
-    shell.tokens.json
-    themes/
-      paper-light.tokens.json
-      paper-dark.tokens.json
-      rocci-light.tokens.json
-      rocci-dark.tokens.json
-    paper.resolver.json
-    rocci.resolver.json
-  generated/
-    paper.css
-    rocci.css
-    rocs-shell.css
-    tokens.manifest.json
-```
-
-Use one resolver per named theme initially, with a `scheme` modifier for `light` and `dark`. That is easier to validate than one multi-brand resolver whose brand and scheme modifiers both overwrite the same semantic paths. Reconsider a combined resolver only when theme packages need cross-brand composition.
-
-### 8.5 Generation and compatibility
-
-Recommended pipeline:
-
-1. Parse and validate all token files against DTCG 2025.10 rules.
-2. Resolve aliases and both scheme contexts; reject missing values, type mismatch, cycles, invalid names, and unresolved references.
-3. Translate DTCG values to CSS with explicit color-space conversion/fallback policy.
-4. Generate the existing `--rd-*` names so third-party/local themes and `chrome.css` do not break.
-5. Generate named shell variables for `RocsTheme.rocci`; replace its literal palette incrementally, not in one unreviewed rewrite.
-6. Preserve `data-rd-color-scheme="light|dark"` and `auto` behavior. The generator may continue emitting `light-dark()` or emit selectors/media queries, but output must be equivalent under tests.
-7. Commit generated CSS and a manifest, and make CI regenerate into a temporary directory and fail on drift. This keeps Rust `include_str!` builds offline and deterministic while the DTCG JSON remains the declared source of truth.
-
-The checked-in-generated-output choice requires approval. An alternative is build-time generation, but that adds a token tool to every Rust build and makes third-party theme diagnostics harder to isolate.
-
-### 8.6 DTCG validation matrix
-
-- format validation for names, groups, `$value`, `$type`, structured colors, dimensions, and composites;
-- alias and `$extends` resolution with cycle and type checks;
-- resolver validation for every declared context and deterministic resolution order;
-- a complete token matrix for `paper × {light,dark}` and `rocci × {light,dark}`;
-- generated CSS snapshot tests;
-- compatibility tests proving every variable currently read by `chrome.css` is emitted;
-- Rocs shell tests proving no literal color/spacing value remains where a governed token is required;
-- contrast tests for normal text, links, code, focus states, and selected navigation;
-- browser screenshots at narrow/wide viewports, forced light/dark, system auto, print, forced colors, and reduced motion;
-- a round-trip test preserving unknown `$extensions` data.
+The design records should distinguish: current shipped CSS/theme behavior; external DTCG research; and possible future implementation choices. They must not imply that DTCG has been adopted as a source of truth merely because it is documented.
 
 ## 9. Recommended role of `DESIGN.md`
 
-Create `DESIGN.md` at the repository root during the DTCG phase, not during the initial OKF parser spike. It should be a concise normative design manual for contributors and agents, while `design/tokens/*.json` is the machine-readable value source and theme code is the implementation.
+If `DESIGN.md` is added during this phase, it is a concise human-facing design reference for contributors and agents. It summarizes current intent and links to supporting evidence; it does not establish token artifacts, a generator, or a new implementation authority.
 
 Recommended contents:
 
 1. design goals and character: what Rocci should feel like, and what it should avoid;
 2. user and content priorities: documentation, app UI, desktop shell, and presentation boundaries;
 3. accessibility baseline: contrast, focus, keyboard use, motion, forced colors, zoom, and print;
-4. token architecture: foundation → semantic → content/shell, alias rules, naming, scheme resolution, and deprecation;
+4. current token/theme terminology and clearly marked DTCG-informed future options;
 5. supported themes and schemes, including the meaning of `paper`, `rocci`, `none`, and `auto`;
 6. Rocdown content DOM contract: `.rd-*` classes and which parts are stable public hooks;
 7. Rocs shell contract: header, navigation, article, outline, responsive transitions, and which details belong to layout rather than tokens;
 8. typography, spacing, color, code, table, and media usage guidance;
 9. component states and interaction guidance, including hover, focus, active, disabled, loading, error, and empty states;
-10. source-of-truth and generation workflow, including how to propose, review, test, deprecate, and release token changes;
-11. links to the DTCG sources, generated token reference, visual tests, and relevant accepted decisions.
+10. evidence, review, and update expectations for the document itself;
+11. links to DTCG sources, current theme code, visual evidence where available, and relevant decisions.
 
 `DESIGN.md` should not contain:
 
 - a hand-maintained dump of every token value;
-- raw CSS that can drift from generated output;
+- a promise that a token system, generated output, or migration exists;
 - speculative theme-adapter research;
 - general product architecture already owned by knowledge records;
 - an implementation roadmap.
 
-Make `DESIGN.md` the `resource`/primary source of `knowledge/design/design-system.md`; keep that OKF record as a short discovery and lifecycle wrapper rather than a duplicate manual.
+Treat `DESIGN.md` and `knowledge/design/design-system.md` as complementary human-readable knowledge. Avoid duplicate prose, but neither replaces code as evidence of current behavior.
 
 ## 10. Migration phases
 
@@ -651,8 +577,7 @@ Make `DESIGN.md` the `resource`/primary source of `knowledge/design/design-syste
 Deliverables:
 
 - decide the compatibility boundary, bundle path, publication scope, actors, taxonomy, and custom metadata;
-- decide whether DTCG JSON and checked-in generated CSS will be authoritative;
-- define diagnostic namespaces (`OKFxxxx`, `RDxxxx`, `DTCGxxxx`) and severity policy;
+- define diagnostic namespaces (`OKFxxxx`, `RDxxxx`) and severity policy;
 - record the accepted choices before implementation.
 
 Exit: all decisions in section 13 have explicit answers.
@@ -694,6 +619,14 @@ Deliverables:
 
 Do not move, delete, or rewrite root reports in this phase.
 
+Result on 2026-08-16: complete.
+
+- All ten priority-1 records from section 7 now exist, alongside the Phase 1 static-OKF-boundary decision. Imported concepts remain `draft`, use `process:okf-migration`, have no synthesized verification, and carry owners, authority, source IDs, source paths, source dates, and type-appropriate freshness.
+- The root and all nine proposed category directories have progressive `index.md` files. Empty priority-2 and Phase 4 categories state their migration status without linking to nonexistent concepts.
+- `knowledge/migration-matrix.tsv` maps all 439 actual Markdown section headings across the nine root research reports and implementation plans to a migrated record, a retained future target/evidence role, or an explicit not-migrated rationale. Fenced example headings are excluded.
+- Root reports were not moved, deleted, or rewritten. The three untracked reports retain their explicit investigation dates and are used only as unverified inputs.
+- The strict Rocci knowledge profile passes with zero diagnostics, catalog inspection exposes eleven draft concepts, and repeated knowledge builds are byte-identical.
+
 ### Phase 3 — decisions and human review
 
 Deliverables:
@@ -706,25 +639,32 @@ Deliverables:
 
 Exit: an agent can answer “what ships, what is decided, and what is proposed?” without reading a whole root report.
 
-### Phase 4 — DTCG and `DESIGN.md`
+Implementation progress on 2026-08-16:
+
+- Atomic records now distinguish implemented render-component, server-state, Rocdown-language, and Rocs-compiler decisions from the newly extracted exploratory client-behavior-island proposal.
+- The implementation status record and priority-1 review checklist explicitly resolve known contradictions: Rocs aliases and watch mode are shipped despite older status prose; the original Rocdown report's SSG/LSP gaps are historical; theme packages/adapters and client-island syntax remain proposals.
+- `knowledge/log.md` records material additions, and `knowledge/reference/priority-1-review.md` defines the evidence gate and lists all ten priority-1 records as pending review.
+- Rocci-profile validation now emits `OKF4004` for stale records, `OKF4005` when human verification predates generation, `OKF4006` when a tracked source has a newer git commit, `OKF4007` when a local source is untracked, and `OKF4008` when tracked evidence has uncommitted changes. Timestamp comparison normalizes RFC 3339 offsets.
+- No `human:nils` verification event was synthesized during extraction. After explicit review approval, all ten priority-1 records received the real verification timestamp `2026-08-16T18:14:13Z` and were promoted to `stable`.
+
+Result: complete. The exploratory client-behavior-island decision, the review checklist, and the Phase 1 static-OKF-boundary seed remain `draft` because they were outside the ten-record approval scope; draft status does not prevent the Phase 3 exit question from being answered with explicit lifecycle and authority context.
+
+### Phase 4 — design-system knowledge
 
 Deliverables:
 
-- inventory current Rocdown and Rocs variables;
-- create foundation, semantic, content, and shell token sources;
-- add per-theme light/dark resolvers;
-- generate compatibility CSS and a manifest;
-- replace duplicated literal theme values incrementally;
-- write and review `DESIGN.md`;
-- add design-system knowledge records and visual/accessibility validation.
+- inventory current Rocdown and Rocs design/theme evidence;
+- create or migrate design-system and design-token knowledge records, with DTCG sources recorded as research;
+- write and review `DESIGN.md` if it improves discovery and reasoning;
+- distinguish shipped behavior, evidence, and proposals; link records to current code and external standards.
 
-Exit: current themes render equivalently, token sources are authoritative, and documented design intent is reviewable separately from raw values.
+Exit: design intent, current implementation evidence, and DTCG-informed proposals are discoverable and clearly distinguished in the knowledge base. No theme or token implementation is required.
 
 ### Phase 5 — CI, retrieval, and publication
 
 Deliverables:
 
-- run schema/profile, graph, provenance, freshness, source-drift, DTCG, and deterministic-build checks in CI;
+- run schema/profile, graph, provenance, freshness, source-drift, and deterministic-build checks in CI;
 - emit `catalog.json`, `search.json`, `llms.txt`, and validation JSON;
 - add type, tag, status, authority, trust-tier, and stale filters to inspection/search;
 - decide whether the rendered knowledge site is public, private, or local-only;
@@ -753,11 +693,6 @@ Diagnostic codes are stable public identifiers with a namespace plus four decima
 | `OKF4000`–`OKF4999` | Sources, keyed attribution, trust, freshness, and repository drift |
 | `OKF5000`–`OKF5999` | Knowledge normalization, deterministic artifacts, and publication safety |
 | `RDxxxx` | Existing Rocdown/Rocs diagnostics; preserve current allocations (`RD1xxx` parse, `RD20xx` identity/routes, `RD21xx` links/assets, `RD22xx` navigation/drafts, `RD23xx` unsupported static-page features) |
-| `DTCG1000`–`DTCG1999` | Token file syntax, names, groups, and standard field shapes |
-| `DTCG2000`–`DTCG2999` | Types, aliases, inheritance, extensions, and cycles |
-| `DTCG3000`–`DTCG3999` | Resolver definitions, modifiers, contexts, and resolution order |
-| `DTCG4000`–`DTCG4999` | CSS translation, compatibility variables, manifests, and generated-output drift |
-| `DTCG5000`–`DTCG5999` | Contrast, theme matrices, visual behavior, and accessibility checks |
 
 Severity is intrinsic to the diagnostic code, not chosen independently by each output format. An error means the requested check/build cannot produce a valid result and must exit nonzero without committing output. A warning identifies consumable but incomplete, stale, unverified, non-portable, or review-worthy knowledge and does not fail the default command. CI may promote selected warning codes, or all warnings in a strict job, without changing their stored severity. Terminal and JSON output must report the same code and severity. Base OKF conformance and the Rocci profile are separate validation modes; profile failures must not make an external base-conformant bundle appear nonconformant. Network links are not followed during default validation.
 
@@ -805,13 +740,13 @@ Strict Rocci-profile checks must be selectable separately from base OKF conforma
 - implementation plans require prerequisites, phases, validation, and exit criteria;
 - research and audits require scope/method, findings, limits, and sources;
 - architecture/specification records must separate current contract from future work;
-- design standards must link machine-readable tokens and validation.
+- design standards must distinguish current implementation evidence from external standards and proposals.
 
 ### 11.4 Regression and determinism
 
 - existing `cargo test --workspace` remains green;
 - existing `rocs check docs` and docs output remain unchanged unless an approved integration intentionally changes them;
-- two knowledge builds from the same tree produce byte-identical normalized metadata, indexes, and generated CSS;
+- two knowledge builds from the same tree produce byte-identical normalized metadata, indexes, and publication artifacts;
 - YAML key order and body formatting are not rewritten by a read-only check;
 - validation never follows network links by default. An explicit scheduled link check may do so with caching and rate limits.
 
@@ -825,8 +760,7 @@ Strict Rocci-profile checks must be selectable separately from base OKF conforma
 | Frontmatter becomes an ungoverned schema | Keep only two initial extensions and validate the profile separately |
 | Footnote offsets or rendering regress diagnostics | Add a body parse API and span/golden tests before migration |
 | Absolute OKF links collide with web routes | Model bundle IDs and published routes separately |
-| DTCG is mistaken for a complete theme package | Document the token/layout boundary in code and `DESIGN.md` |
-| Token migration breaks local themes | Preserve `--rd-*`, publish deprecations, and use compatibility tests |
+| DTCG research is mistaken for an adopted theme system | Mark it as research/proposal in design records and defer implementation decisions |
 | Freshness dates become busywork | Apply dates only to volatile types and add source-triggered review |
 | Knowledge duplicates public docs and drifts | Link to docs/resources; dual-publish only selected records |
 | A larger retrieval stack is added before the corpus is sound | Validate a small git-native bundle and benchmark questions first |
@@ -838,7 +772,7 @@ Non-goals for bootstrap:
 - executing knowledge records or introducing `Attested Computation` without a real computed-value use case;
 - replacing root reports before migrated records are reviewed;
 - making arbitrary Markdown files Rocs pages;
-- redesigning the visual system during token extraction;
+- redesigning the visual system or introducing token tooling;
 - supporting external presentation themes as part of the OKF work.
 
 ## 13. Approved decision register
@@ -857,11 +791,9 @@ All decisions were approved on 2026-08-16 as part of Phase 0. “Approved” est
 | 8 | Root report disposition | Retain unchanged through phases 1–5; archive or delete only in a later reviewed change | Approved |
 | 9 | Rocs implementation home | Start as an isolated `rocs::okf` module with a separable API | Approved |
 | 10 | Publication | Local/repository-visible first; decide public rendering in Phase 5 | Approved |
-| 11 | DTCG authority | DTCG 2025.10 JSON is the source of truth; generated CSS is checked in | Approved |
-| 12 | Token resolver layout | Use one resolver per theme with light/dark contexts | Approved |
-| 13 | CSS compatibility | Preserve all current `--rd-*` names for the first tokenized release | Approved |
-| 14 | `DESIGN.md` role | Use a root normative human guide; keep values in DTCG files and make the OKF record a thin lifecycle/discovery wrapper | Approved |
-| 15 | Freshness defaults | Adopt section 6.3 as warnings for the first release | Approved |
+| 11 | DTCG role | DTCG 2025.10 is research/source material for knowledge records; no token implementation is approved here | Amended 2026-08-16 |
+| 12 | `DESIGN.md` role | Optional human-facing design knowledge reference; it does not establish machine-readable token authority or integration work | Amended 2026-08-16 |
+| 13 | Freshness defaults | Adopt section 6.3 as warnings for the first release | Approved |
 
 Any change to an accepted answer is a contract amendment: update this register with the date and rationale before implementing the divergent behavior.
 
@@ -876,10 +808,10 @@ The bootstrap is complete when:
 - keyed footnotes render correctly and round-trip source IDs;
 - Rocs can inspect, validate, graph, search, and render the bundle without changing existing `.rocdown` semantics;
 - source drift and stale knowledge appear in machine-readable and terminal diagnostics;
-- DTCG sources reproduce the existing Rocdown themes and Rocs palette through checked compatibility outputs;
-- `DESIGN.md` states design intent and governance without duplicating token values;
+- DTCG research and current design/theme evidence are represented as clearly scoped knowledge records;
+- any `DESIGN.md` improves design discovery without claiming a token implementation or replacing code as current-behavior evidence;
 - generated outputs are deterministic and never treated as canonical;
-- repository tests, docs checks, link checks, token checks, and visual/accessibility checks pass at the levels appropriate to their phase.
+- repository tests, docs checks, and link checks pass at the levels appropriate to their phase.
 
 ## Primary standards sources
 
