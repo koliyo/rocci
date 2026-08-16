@@ -1,10 +1,10 @@
 ---
 type: Architecture
 title: Rocci theming surfaces
-description: Standalone Rocdown uses CSS variable themes while Rocs uses a separate Rocci-authored documentation shell; shared DTCG tokens are approved but not implemented.
+description: Standalone Rocdown uses CSS variable themes while Rocs uses a separate Rocci-authored documentation shell; DTCG is research evidence, not an adopted token authority.
 tags: [domain/rocdown, domain/rocs, domain/design-system, concern/theming, concern/accessibility]
-status: stable
-generated: { by: process:okf-migration, at: 2026-08-16T00:00:00Z }
+status: draft
+generated: { by: process:okf-phase-4, at: 2026-08-16T18:32:45Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -36,6 +36,16 @@ sources:
     title: Approved OKF and DTCG plan
     author: human:nils
     last_modified: 2026-08-16
+  - id: design-system
+    resource: ../design/design-system.md
+    title: Rocci design-system knowledge
+    author: process:okf-phase-4
+    last_modified: 2026-08-16
+  - id: design-tokens
+    resource: ../design/design-tokens.md
+    title: Rocci design-token research
+    author: process:okf-phase-4
+    last_modified: 2026-08-16
 ---
 
 # Rocci theming surfaces
@@ -52,13 +62,15 @@ Rocs does not consume that theme resolver for its full site shell. `RocsTheme.ro
 
 Format, layout, visual theme, and code highlighting are separate concerns. The current implementation covers native article themes and a first-party Rocs shell, not presentation renderers or a general external theme-package interface.[^theming-report]
 
-## Approved target
+## DTCG research boundary
 
-Phase 4 will introduce DTCG JSON as the source for portable design values, with generated compatibility adapters for existing `--rd-*` consumers and the Rocs shell. DTCG will not own DOM classes, page structure, cascade rules, assets, or layout behavior.[^okf-plan]
+DTCG is source material and vocabulary for design knowledge. It has not been adopted as Rocci's portable value source, and the current phase does not approve token files, generators, compatibility adapters, validation, or a theme migration.[^okf-plan]
 
-## Not yet implemented
+Any future token proposal would still need to keep DOM classes, page structure, cascade rules, assets, and layout behavior outside the portable value model unless a separately reviewed design changes those boundaries.[^okf-plan][^theming-report]
 
-No DTCG token files, resolver matrix, generated shared CSS, manifest, or root `DESIGN.md` exists yet. Current variables and literal shell values therefore remain two distinct source surfaces.[^okf-plan]
+## Current gap
+
+No DTCG token files, resolver matrix, generated shared CSS, manifest, or token validation exists. Current variables and literal shell values therefore remain two distinct implementation surfaces. The root `DESIGN.md` and design knowledge records describe those surfaces without creating a new machine-readable authority.[^okf-plan][^design-system][^design-tokens]
 
 ## Evidence policy
 
@@ -68,4 +80,6 @@ The resolver and shell establish current behavior. The theming report remains us
 [^theme-resolver]: Built-in, local, path, alias, and color-scheme resolution in code.
 [^rocs-theme]: Current independent Rocs shell layout and palette implementation.
 [^theming-report]: Research-derived separation of format, layout, theme, and code theme.
-[^okf-plan]: Approved Phase 4 DTCG role and explicit unimplemented status.
+[^okf-plan]: Amended Phase 4 DTCG research role and explicit non-adoption boundary.
+[^design-system]: Phase 4 description of current design intent and shipped surface boundaries.
+[^design-tokens]: Phase 4 inventory of current CSS roles and DTCG research.

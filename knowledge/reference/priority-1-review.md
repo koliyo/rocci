@@ -4,7 +4,7 @@ title: Priority-1 knowledge review checklist
 description: This checklist defines the evidence-based human gate for verifying and stabilizing the ten priority-1 Rocci knowledge records.
 tags: [domain/rocci, integration/okf, concern/validation, audience/maintainer]
 status: draft
-generated: { by: process:okf-migration, at: 2026-08-16T18:14:13Z }
+generated: { by: process:okf-phase-4, at: 2026-08-16T18:32:45Z }
 stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
@@ -29,11 +29,11 @@ Substantive corrections update `generated.at` and leave the record `draft`. An a
 | Record | Review focus | State |
 | --- | --- | --- |
 | [System overview](/architecture/system-overview.md) | Workspace and product boundaries | Verified by `human:nils`; stable |
-| [Implementation status](/status/implementation.md) | Snapshot accuracy; shipped, approved, proposed separation | Verified by `human:nils`; stable |
+| [Implementation status](/status/implementation.md) | Snapshot accuracy; shipped, approved, proposed separation | Revised for amended Phase 4 contract; draft; re-verification required |
 | [Known limitations](/status/known-limitations.md) | Current absences and stale published prose | Verified by `human:nils`; stable |
 | [Rocdown format](/architecture/rocdown-format.md) | Parser/README precedence over the original report | Verified by `human:nils`; stable |
 | [Rocs documentation compiler](/architecture/rocs-documentation-compiler.md) | Phases 2–3 and dev mode shipped; islands/search absent | Verified by `human:nils`; stable |
-| [Theming](/architecture/theming.md) | Two current surfaces versus approved DTCG target | Verified by `human:nils`; stable |
+| [Theming](/architecture/theming.md) | Two current surfaces versus DTCG research-only boundary | Revised for amended Phase 4 contract; draft; re-verification required |
 | [Pure render components](/decisions/pure-render-components.md) | Implemented render semantics versus application architecture | Verified by `human:nils`; stable |
 | [Server-owned state](/decisions/server-owned-state.md) | Current direction versus optional browser state | Verified by `human:nils`; stable |
 | [Markdown-first explicit islands](/decisions/markdown-first-explicit-islands.md) | Implemented syntax boundary versus unimplemented `@island` | Verified by `human:nils`; stable |
@@ -52,6 +52,6 @@ Run `rocs knowledge check knowledge --profile rocci`. `OKF4004` reports stale re
 
 ## Current review state
 
-All ten priority-1 records were verified by `human:nils` at `2026-08-16T18:14:13Z` and promoted to `stable`. The exploratory client-behavior-island decision, this checklist, and the static-OKF-boundary seed record remain `draft` because they were not part of this ten-record approval.
+All ten priority-1 records were verified by `human:nils` at `2026-08-16T18:14:13Z` and promoted to `stable`. Phase 4 then substantively corrected the implementation-status and theming records to match the amended DTCG research-only contract. Their historical verification events are retained, but both revisions are now `draft` and must be reviewed again. The other eight priority-1 records remain stable. The two new design records, exploratory client-behavior-island decision, this checklist, and the static-OKF-boundary seed record are also `draft`.
 
 [^okf-plan]: Phase 3 deliverables, authority order, lifecycle rules, and evidence-based trust policy.
