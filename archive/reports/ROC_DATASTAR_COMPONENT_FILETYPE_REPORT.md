@@ -8,7 +8,7 @@
 
 A Vue-like component file for Roc and Datastar is feasible without modifying either Datastar or the Roc language. The practical design uses a dedicated **source-to-source template compiler package** which turns `.rocci` templates into ordinary Roc plus source maps and optional extracted style artifacts. Separate orchestration then generates the application entry point and invokes the Roc toolchain. The generated Roc application runs as a backend process on a Roc web-server platform; it renders HTML and returns Datastar Server-Sent Events (SSE) for updates.
 
-The recommended target extension is `*.rocci`. A file contains ordinary Roc plus explicit `@component Name = |params| { ... }` declarations. Component names are PascalCase; lowering emits camelCase Roc functions. Component bodies use a bounded template grammar with HTML tags, `{...}` interpolation in HTML contexts, and concise `@if expression { ... }`, list-oriented `@for item in expression { ... }`, and Roc-pattern `@match expression { Pattern => templateValue }` directives. The first brace at Roc delimiter depth zero opens the directive body, so top-level record expressions must be parenthesized. Each match arm returns one self-delimiting template value; fragments represent multiple sibling nodes. Component calls such as `<Hello name={person.name} />` lower to ordinary Roc calls with props records. This gives predictable parsing without implementing a second full Roc parser; JSX remains a documented future alternative if Roc eventually exposes a suitable parser extension point. The detailed language design is specified in [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
+The recommended target extension is `*.rocci`. A file contains ordinary Roc plus explicit `@component Name = |params| { ... }` declarations. Component names are PascalCase; lowering emits camelCase Roc functions. Component bodies use a bounded template grammar with HTML tags, `{...}` interpolation in HTML contexts, and concise `@if expression { ... }`, list-oriented `@for item in expression { ... }`, and Roc-pattern `@match expression { Pattern => templateValue }` directives. The first brace at Roc delimiter depth zero opens the directive body, so top-level record expressions must be parenthesized. Each match arm returns one self-delimiting template value; fragments represent multiple sibling nodes. Component calls such as `<Hello name={person.name} />` lower to ordinary Roc calls with props records. This gives predictable parsing without implementing a second full Roc parser; JSX remains a documented future alternative if Roc eventually exposes a suitable parser extension point. The detailed language design is specified in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md).
 
 This is similar to a Vue Single-File Component (SFC) in colocation and build tooling, but not in runtime semantics. A Roc component would be a **server component**: there is no client-side Roc runtime, hydration, virtual DOM, or component instance. Datastar remains the small browser runtime. Roc owns authoritative application state and rendering; ordinary HTTP requests and Datastar SSE events connect the two.
 
@@ -101,7 +101,7 @@ These declarations may all live in one `.rocci` module, but they are not fused i
 
 ### 2.2 Template language
 
-The `.rocci` grammar, examples, escaping rules, component-call lowering, control-flow options, parser design, source maps, and experimental block-format spike are specified separately in [ROC_TEMPLATE.md](ROC_TEMPLATE.md). This report treats the template compiler as an input to the Roc backend architecture rather than owning its language definition.
+The `.rocci` grammar, examples, escaping rules, component-call lowering, control-flow options, parser design, source maps, and experimental block-format spike are specified separately in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md). This report treats the template compiler as an input to the Roc backend architecture rather than owning its language definition.
 
 ### 2.3 Separate the render component from the application architecture
 
@@ -119,7 +119,7 @@ Component props = props -> Html
 
 Composition is then normal function composition. State architecture sits one level above it. This avoids the Vue/React tendency to make every small visual extraction participate in a runtime component-instance model.
 
-Colocation does not weaken this separation. `Counter.rocci` may contain `Msg`, `update`, handlers, two small templates, a page template, and `counterProgram`. `rocci-template` lowers only the templates; the flow declarations remain ordinary Roc and are interpreted only by the explicitly selected Elm, reducer, request-handler, or server-program library. Side-by-side single-file examples and the precise compiler boundary are specified in [Separate template syntax from the component flow model](ROC_TEMPLATE.md#separate-template-syntax-from-the-component-flow-model).
+Colocation does not weaken this separation. `Counter.rocci` may contain `Msg`, `update`, handlers, two small templates, a page template, and `counterProgram`. `rocci-template` lowers only the templates; the flow declarations remain ordinary Roc and are interpreted only by the explicitly selected Elm, reducer, request-handler, or server-program library. Side-by-side single-file examples and the precise compiler boundary are specified in [Separate template syntax from the component flow model](../../ROC_TEMPLATE.md#separate-template-syntax-from-the-component-flow-model).
 
 For example, `iconButton` and `counterCard` can be render components in the same file. Only `counterPage` may be registered as a route and only `#counter` may be patchable. The compiler does not need to allocate or remember instances of the two smaller components.
 
@@ -236,7 +236,7 @@ flowchart LR
 
 ### 3.2 Generated code and source maps
 
-`rocci-template` owns bidirectional segment-map generation as part of lowering; the detailed mapping contract is specified in [ROC_TEMPLATE.md](ROC_TEMPLATE.md). Consumers may use those maps but must not reconstruct them independently.
+`rocci-template` owns bidirectional segment-map generation as part of lowering; the detailed mapping contract is specified in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md). Consumers may use those maps but must not reconstruct them independently.
 
 The CLI stores debug artifacts under a deterministic ignored directory such as `target/rocci/templates/`, keyed by source content, Roc compiler version, platform version, and template-compiler version. The template package returns data and never owns this filesystem policy. A clean build and an editor session must generate byte-identical virtual Roc for the same input.
 
@@ -497,11 +497,11 @@ The wrapper should reuse the upstream Roc LSP rather than duplicating Roc parsin
 
 ### 6.4 Template type checking
 
-`rocci-template` supplies the generated virtual Roc and segment maps; the Roc LSP supplies type inference and diagnostics; the composite server maps results back to `.rocci`. Structural markup diagnostics come directly from the package. The language server must not maintain a second lowering implementation. Detailed expression and source-map semantics are defined in [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
+`rocci-template` supplies the generated virtual Roc and segment maps; the Roc LSP supplies type inference and diagnostics; the composite server maps results back to `.rocci`. Structural markup diagnostics come directly from the package. The language server must not maintain a second lowering implementation. Detailed expression and source-map semantics are defined in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md).
 
 ### 6.5 Formatting rules
 
-Formatting should use syntax regions and recovery information returned by `rocci-template`, then delegate only well-formed, precisely mapped regions to specialist formatters. The detailed formatting constraints belong to [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
+Formatting should use syntax regions and recovery information returned by `rocci-template`, then delegate only well-formed, precisely mapped regions to specialist formatters. The detailed formatting constraints belong to [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md).
 
 An early VS Code extension can provide the best integrated experience, but the language server must remain editor-neutral. Neovim, Zed, Helix, and other clients should only need filetype registration and an LSP command.
 
@@ -633,7 +633,7 @@ Estimates below are order-of-magnitude for engineers already comfortable with co
 ### Phase 1 — template compiler vertical slice (4–8 engineer-weeks)
 
 - Create `rocci-template` with no runtime, HTTP, process, or filesystem-policy dependencies.
-- Parse a narrow `.rocci` module containing ordinary Roc, multiple pure component declarations, and explicit route values as described in [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
+- Parse a narrow `.rocci` module containing ordinary Roc, multiple pure component declarations, and explicit route values as described in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md).
 - Return generated Roc, segment maps, optional styles, and structured diagnostics as data.
 - Extract one named CSS Module, generate a typed record of hashed class names, and source-map CSS parse errors.
 - Generate the application entry point outside `rocci-template`.
@@ -645,7 +645,7 @@ Estimates below are order-of-magnitude for engineers already comfortable with co
 
 ### Phase 2 — usable backend framework (6–10 engineer-weeks)
 
-- Implement the stable `.rocci` parser/lowering contract specified in [ROC_TEMPLATE.md](ROC_TEMPLATE.md) inside `rocci-template`.
+- Implement the stable `.rocci` parser/lowering contract specified in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md) inside `rocci-template`.
 - Keep render components pure and register deterministic routes through separate page/program values.
 - Datastar Roc package with golden protocol tests.
 - Direct-response and long-lived CQRS stream examples with no duplicate boundary updates.
@@ -676,7 +676,7 @@ For one engineer working mostly sequentially, a credible public alpha is roughly
 
 ## 12. Decisions to make before freezing a specification
 
-Template-language decisions are tracked in [ROC_TEMPLATE.md](ROC_TEMPLATE.md). The remaining runtime and application-architecture decisions are:
+Template-language decisions are tracked in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md). The remaining runtime and application-architecture decisions are:
 
 1. Will the prototype depend directly on `basic-webserver`, vendor/fork it temporarily, or implement only a compatibility adapter?
 2. Are routes always explicit Roc page/program values? This report recommends yes; a render component should never become a route because of its filename or tag.
@@ -714,7 +714,7 @@ The sound architecture is therefore:
 
 The project should be framed as a template compiler plus separate orchestration and tooling layers, not a new Roc runtime or client framework. A `.rocci` file should be a module, not a component instance: it may contain many pure `props -> Html` render declarations and separate page/program declarations for state and effects. Explicit request handlers are the v1 semantic foundation. Elm-style typed messages are a useful optional adapter when applied to the same request-driven, durable-state pipeline; React hooks, actors-per-view, retained Elm loops, and retained reactive graphs are poor defaults here.
 
-At runtime, Rocci should generate truthful HTML snapshots of coherent patch boundaries and let Datastar morph them in the browser, without retaining a synchronized server VDOM. `rocci-template` lowers composition to direct typed Roc calls, so it adds no runtime registry or lifecycle. The package boundary keeps parsing and lowering independently testable and reusable by both the CLI and LSP, while toolchain selection, generated application entry points, process management, and packaging remain elsewhere. The detailed language recommendation is in [ROC_TEMPLATE.md](ROC_TEMPLATE.md).
+At runtime, Rocci should generate truthful HTML snapshots of coherent patch boundaries and let Datastar morph them in the browser, without retaining a synchronized server VDOM. `rocci-template` lowers composition to direct typed Roc calls, so it adds no runtime registry or lifecycle. The package boundary keeps parsing and lowering independently testable and reusable by both the CLI and LSP, while toolchain selection, generated application entry points, process management, and packaging remain elsewhere. The detailed language recommendation is in [ROC_TEMPLATE.md](../../ROC_TEMPLATE.md).
 
 ## Primary sources
 

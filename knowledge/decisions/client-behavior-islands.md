@@ -10,17 +10,17 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: rocket-report
-    resource: ../../DATASTAR_ROCKET_IN_ROCCI_REPORT.md
+    resource: ../../archive/reports/DATASTAR_ROCKET_IN_ROCCI_REPORT.md
     title: Rocket-style client components inside Rocci
     author: human:nils
     last_modified: 2026-08-14
   - id: snake-study
-    resource: ../../SNAKE_DATASTAR_ARCHITECTURE_REPORT.md
+    resource: ../../archive/reports/SNAKE_DATASTAR_ARCHITECTURE_REPORT.md
     title: Snake input and Datastar architecture
     author: human:nils
     last_modified: 2026-08-15
   - id: runtime-report
-    resource: ../../ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
+    resource: ../../archive/reports/ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
     title: Roc and Datastar component architecture report
     author: human:nils
     last_modified: 2026-08-15

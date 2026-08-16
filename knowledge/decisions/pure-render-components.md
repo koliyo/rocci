@@ -21,7 +21,7 @@ sources:
     author: human:nils
     last_modified: 2026-08-16
   - id: runtime-report
-    resource: ../../ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
+    resource: ../../archive/reports/ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
     title: Roc and Datastar component architecture report
     author: human:nils
     last_modified: 2026-08-15

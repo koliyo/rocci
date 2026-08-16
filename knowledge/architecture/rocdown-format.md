@@ -22,7 +22,7 @@ sources:
     author: process:git
     last_modified: 2026-08-16
   - id: format-report
-    resource: ../../ROCDOWN_FORMAT_REPORT.md
+    resource: ../../archive/reports/ROCDOWN_FORMAT_REPORT.md
     title: Original Rocdown format investigation
     author: human:nils
     last_modified: 2026-08-15

@@ -286,7 +286,7 @@ Recommended boundaries:
 
 Do not make the existing `compile()` return type carry the whole site. Add a site compiler that consumes per-file parse/compile outputs.
 
-**Implementation (2026-08-16):** that site compiler is the `rocs` crate, not a generated Roc application. Rust owns the catalog, routes, and static `MdNode` → article HTML. Rocci owns the document shell, compiled once per build. Authored `@render` / Rocci islands stay Roc programs and are out of the static catalog until they are spliced into the same shell. See [`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md). A Roc-first catalog was prototyped in Phase 0 and rejected: compile cost scaled with prose, and catalog logic duplicated work Rust already does for `docs check` and the LSP.
+**Implementation (2026-08-16):** that site compiler is the `rocs` crate, not a generated Roc application. Rust owns the catalog, routes, and static `MdNode` → article HTML. Rocci owns the document shell, compiled once per build. Authored `@render` / Rocci islands stay Roc programs and are out of the static catalog until they are spliced into the same shell. See [`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](../../ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md). A Roc-first catalog was prototyped in Phase 0 and rejected: compile cost scaled with prose, and catalog logic duplicated work Rust already does for `docs check` and the LSP.
 
 ### 4.5 Typed site catalog
 

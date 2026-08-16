@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail};
 use rocci_rocdown::{
     Document, Item, MarkdownBodyOptions, MdNode, SourceFile, Span, parse_markdown_body,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use yaml_rust::{Yaml, YamlLoader};
 
@@ -281,6 +281,58 @@ pub struct SearchChunk {
     pub stale: bool,
     pub url: String,
     pub text: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RetrievalBenchmark {
+    version: u32,
+    top_k: usize,
+    minimum_hit_rate: f64,
+    questions: Vec<RetrievalQuestion>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RetrievalQuestion {
+    id: String,
+    question: String,
+    query: String,
+    expected_concepts: Vec<String>,
+    #[serde(default)]
+    expected_status: Option<String>,
+    #[serde(default)]
+    expected_authority: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RetrievalReport {
+    pub benchmark: String,
+    pub top_k: usize,
+    pub total: usize,
+    pub passed: usize,
+    pub hit_rate: f64,
+    pub mean_reciprocal_rank: f64,
+    pub minimum_hit_rate: f64,
+    pub threshold_met: bool,
+    pub questions: Vec<RetrievalQuestionResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RetrievalQuestionResult {
+    pub id: String,
+    pub question: String,
+    pub query: String,
+    pub expected_concepts: Vec<String>,
+    pub returned_concepts: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_relevant_rank: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected_authority: Option<String>,
+    pub lifecycle_matched: bool,
+    pub passed: bool,
 }
 
 pub fn check(root: &Path, profile: Profile) -> Result<CheckReport> {
@@ -674,11 +726,21 @@ pub fn search(
     filter: &KnowledgeFilter,
 ) -> Result<String> {
     let bundle = load(root, profile)?;
+    Ok(serde_json::to_string_pretty(&matching_search_chunks(
+        &bundle, query, filter,
+    ))?)
+}
+
+fn matching_search_chunks(
+    bundle: &Bundle,
+    query: &str,
+    filter: &KnowledgeFilter,
+) -> Vec<SearchChunk> {
     let terms = query
         .split_whitespace()
         .map(|term| term.to_lowercase())
         .collect::<Vec<_>>();
-    let results = search_index(&bundle)
+    search_index(bundle)
         .into_iter()
         .filter(|chunk| {
             let Some(concept) = bundle
@@ -702,8 +764,143 @@ pub fn search(
             .to_lowercase();
             terms.iter().all(|term| haystack.contains(term))
         })
-        .collect::<Vec<_>>();
-    Ok(serde_json::to_string_pretty(&results)?)
+        .collect()
+}
+
+pub fn benchmark_retrieval(
+    root: &Path,
+    benchmark_path: &Path,
+    profile: Profile,
+) -> Result<RetrievalReport> {
+    let bundle = load(root, profile)?;
+    if bundle.has_errors() {
+        bail!("knowledge bundle has validation errors");
+    }
+    let benchmark_source = fs::read_to_string(benchmark_path)
+        .with_context(|| format!("failed to read {}", benchmark_path.display()))?;
+    let benchmark: RetrievalBenchmark = toml::from_str(&benchmark_source)
+        .with_context(|| format!("failed to parse {}", benchmark_path.display()))?;
+    validate_retrieval_benchmark(&benchmark, &bundle)?;
+
+    let mut reciprocal_rank = 0.0;
+    let mut passed = 0;
+    let mut questions = Vec::with_capacity(benchmark.questions.len());
+    for question in benchmark.questions {
+        let mut returned_concepts = Vec::new();
+        for chunk in matching_search_chunks(&bundle, &question.query, &KnowledgeFilter::default()) {
+            if !returned_concepts.contains(&chunk.concept_id) {
+                returned_concepts.push(chunk.concept_id);
+            }
+            if returned_concepts.len() == benchmark.top_k {
+                break;
+            }
+        }
+        let first_relevant = returned_concepts
+            .iter()
+            .enumerate()
+            .find(|(_, id)| question.expected_concepts.contains(id));
+        let first_relevant_rank = first_relevant.map(|(index, _)| index + 1);
+        if let Some(rank) = first_relevant_rank {
+            reciprocal_rank += 1.0 / rank as f64;
+        }
+        let lifecycle_matched = first_relevant.is_some_and(|(_, expected)| {
+            bundle.concepts.iter().any(|concept| {
+                concept.id.as_str() == expected.as_str()
+                    && question.expected_status.as_deref().is_none_or(|status| {
+                        string_field(&concept.metadata, "status") == Some(status)
+                    })
+                    && question
+                        .expected_authority
+                        .as_deref()
+                        .is_none_or(|authority| {
+                            string_field(&concept.metadata, "authority") == Some(authority)
+                        })
+            })
+        });
+        let question_passed = first_relevant_rank.is_some() && lifecycle_matched;
+        if question_passed {
+            passed += 1;
+        }
+        questions.push(RetrievalQuestionResult {
+            id: question.id,
+            question: question.question,
+            query: question.query,
+            expected_concepts: question.expected_concepts,
+            returned_concepts,
+            first_relevant_rank,
+            expected_status: question.expected_status,
+            expected_authority: question.expected_authority,
+            lifecycle_matched,
+            passed: question_passed,
+        });
+    }
+    let total = questions.len();
+    let hit_rate = passed as f64 / total as f64;
+    let mean_reciprocal_rank = reciprocal_rank / total as f64;
+    Ok(RetrievalReport {
+        benchmark: benchmark_path.to_string_lossy().into_owned(),
+        top_k: benchmark.top_k,
+        total,
+        passed,
+        hit_rate,
+        mean_reciprocal_rank,
+        minimum_hit_rate: benchmark.minimum_hit_rate,
+        threshold_met: hit_rate >= benchmark.minimum_hit_rate,
+        questions,
+    })
+}
+
+fn validate_retrieval_benchmark(benchmark: &RetrievalBenchmark, bundle: &Bundle) -> Result<()> {
+    if benchmark.version != 1 {
+        bail!(
+            "unsupported retrieval benchmark version {}; expected 1",
+            benchmark.version
+        );
+    }
+    if benchmark.top_k == 0 {
+        bail!("retrieval benchmark top_k must be greater than zero");
+    }
+    if !(0.0..=1.0).contains(&benchmark.minimum_hit_rate) {
+        bail!("retrieval benchmark minimum_hit_rate must be between 0 and 1");
+    }
+    if benchmark.questions.is_empty() {
+        bail!("retrieval benchmark must contain at least one question");
+    }
+    let concept_ids = bundle
+        .concepts
+        .iter()
+        .map(|concept| concept.id.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut question_ids = BTreeSet::new();
+    for question in &benchmark.questions {
+        if question.id.trim().is_empty()
+            || question.question.trim().is_empty()
+            || question.query.trim().is_empty()
+        {
+            bail!("retrieval benchmark question ids, text, and queries must be non-empty");
+        }
+        if !question_ids.insert(question.id.as_str()) {
+            bail!(
+                "duplicate retrieval benchmark question id `{}`",
+                question.id
+            );
+        }
+        if question.expected_concepts.is_empty() {
+            bail!(
+                "retrieval benchmark question `{}` has no expected concepts",
+                question.id
+            );
+        }
+        for concept in &question.expected_concepts {
+            if !concept_ids.contains(concept.as_str()) {
+                bail!(
+                    "retrieval benchmark question `{}` references unknown concept `{concept}`",
+                    question.id
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummary> {
@@ -2507,6 +2704,46 @@ mod tests {
         assert!(!results.contains("generated"), "{results}");
         let missing = search(&root, "parser contract", Profile::Rocci, &filter).unwrap();
         assert_eq!(missing, "[]");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn retrieval_benchmark_measures_hits_rank_and_lifecycle() {
+        let root = temp("retrieval-benchmark");
+        fs::write(
+            root.join("reviewed.md"),
+            concept(
+                "verified:\n  - { by: human:nils, at: 2026-08-16T00:00:00Z }\nstale_after: 2999-01-01\n",
+                "# Reviewed theme\n\nCurrent resolver contract.\n",
+            ),
+        )
+        .unwrap();
+        let benchmark = root.join("retrieval.toml");
+        fs::write(
+            &benchmark,
+            r#"version = 1
+top_k = 3
+minimum_hit_rate = 1.0
+
+[[questions]]
+id = "theme"
+question = "Where is the current resolver contract documented?"
+query = "resolver contract"
+expected_concepts = ["reviewed"]
+expected_status = "draft"
+expected_authority = "descriptive"
+"#,
+        )
+        .unwrap();
+
+        let report = benchmark_retrieval(&root, &benchmark, Profile::Rocci).unwrap();
+        assert_eq!(report.total, 1);
+        assert_eq!(report.passed, 1);
+        assert_eq!(report.hit_rate, 1.0);
+        assert_eq!(report.mean_reciprocal_rank, 1.0);
+        assert!(report.threshold_met);
+        assert_eq!(report.questions[0].first_relevant_rank, Some(1));
+        assert!(report.questions[0].lifecycle_matched);
         fs::remove_dir_all(root).unwrap();
     }
 

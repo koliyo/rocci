@@ -1,7 +1,7 @@
 # Snake input and Datastar architecture
 
 **Investigation date:** 2026-08-14  
-**Scope:** [`examples/snake/Snake.rocci`](examples/snake/Snake.rocci), especially `keydown_handler`  
+**Scope:** [`examples/snake/Snake.rocci`](../../examples/snake/Snake.rocci), especially `keydown_handler`
 **Status:** Design report. Extended Rocci syntax is illustrative, not a committed specification.
 
 ## Executive summary

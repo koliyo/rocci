@@ -24,6 +24,7 @@ jobs:
           mkdir -p target/knowledge-ci
           cargo run -q -p rocs-cli -- knowledge check knowledge --profile rocci --format json > target/knowledge-ci/validation.json
           cargo run -q -p rocs-cli -- knowledge inspect --profile rocci graph knowledge > target/knowledge-ci/graph.json
+          cargo run -q -p rocs-cli -- knowledge benchmark knowledge > target/knowledge-ci/retrieval.json
       - name: Verify deterministic publication artifacts
         run: |
           cargo run -q -p rocs-cli -- knowledge build knowledge --output target/knowledge-ci/build-a

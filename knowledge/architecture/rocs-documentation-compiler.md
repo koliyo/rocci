@@ -4,7 +4,7 @@ title: Rocs documentation compiler
 description: Rocs resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocs, domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
+generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -63,7 +63,7 @@ This architecture implements the [Rust-catalog/Rocci-shell decision](/decisions/
 
 Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, inspection, watch/serve, and live reload are implemented.[^rocs-plan][^rocs-reference]
 
-The isolated OKF path additionally validates and renders knowledge collections, previews them through the Rocs shell, emits catalog, search, agent, and validation indexes, and provides filtered catalog inspection and heading-chunk search.[^okf][^rocs-reference]
+The isolated OKF path additionally validates and renders knowledge collections, previews them through the Rocs shell, emits catalog, search, agent, and validation indexes, provides filtered catalog inspection and heading-chunk search, and measures fixed lexical retrieval questions with hit-rate and mean-reciprocal-rank output.[^okf][^rocs-reference]
 
 ## Not yet implemented
 
@@ -78,4 +78,4 @@ Catalog checks do not require compiling Roc. Full builds additionally verify the
 [^site]: Current source discovery, static-feature gate, check, and inspection behavior.
 [^plan]: Current deterministic artifact and structured page-view planning.
 [^rocs-reference]: User-facing configuration and generated-artifact contract.
-[^okf]: Current isolated knowledge validation, generated-output, inspection, search, and filtering implementation.
+[^okf]: Current isolated knowledge validation, generated-output, inspection, search, filtering, and retrieval-benchmark implementation.

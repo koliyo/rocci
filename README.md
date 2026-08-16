@@ -95,6 +95,7 @@ cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
 cargo run -p rocs-cli -- build examples/rocs --output dist
+cargo run -p rocs-cli -- knowledge benchmark knowledge
 ```
 
 Rocs discovers `.rocdown` files, resolves routes in Rust, renders article HTML
@@ -102,6 +103,11 @@ from the Markdown AST, and wraps each page in [`RocsTheme.rocci`](crates/rocs/te
 Content edits do not recompile Markdown as Roc. Pages with `@render` or other
 islands are rejected until that splice path exists. See
 [`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md).
+
+The separate OKF knowledge path validates, inspects, searches, and renders
+`knowledge/`. Its fixed lexical retrieval questions are measured by
+`rocs knowledge benchmark`; the command reports hit rate and mean reciprocal
+rank and fails when the checked-in threshold is missed.
 
 The project documentation lives in [`docs`](docs) and is configured by
 [`docs/rocs.toml`](docs/rocs.toml). With `roc` and `cargo` on `PATH`, build the
