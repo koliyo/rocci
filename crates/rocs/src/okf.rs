@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, bail};
 use rocci_rocdown::{
@@ -280,6 +282,9 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
     logs.sort_by(|a, b| a.path.cmp(&b.path));
     validate_unique_ids(&concepts, &mut diagnostics);
     let graph = resolve_graph(&concepts, &indexes, &mut diagnostics);
+    if profile == Profile::Rocci {
+        validate_lifecycle_and_sources(&root, &concepts, &mut diagnostics);
+    }
     diagnostics.sort_by(|a, b| {
         (&a.path, a.location.as_ref().map(|span| span.start), a.code).cmp(&(
             &b.path,
@@ -725,14 +730,37 @@ fn validate_metadata(
     if let Some(generated) = metadata.get("generated")
         && !generated.as_object().is_some_and(|object| {
             object.get("by").is_some_and(Value::is_string)
-                && object.get("at").is_some_and(Value::is_string)
+                && object
+                    .get("at")
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| parse_timestamp(value).is_some())
         })
     {
         diagnostics.push(Diagnostic::error(
             "OKF1008",
             relative,
             at.clone(),
-            "generated must be a mapping with string `by` and `at`",
+            "generated must be a mapping with string `by` and RFC 3339 `at`",
+        ));
+    }
+    if let Some(verified) = metadata.get("verified")
+        && !verified.as_array().is_some_and(|events| {
+            events.iter().all(|event| {
+                event.as_object().is_some_and(|object| {
+                    object.get("by").is_some_and(Value::is_string)
+                        && object
+                            .get("at")
+                            .and_then(Value::as_str)
+                            .is_some_and(|value| parse_timestamp(value).is_some())
+                })
+            })
+        })
+    {
+        diagnostics.push(Diagnostic::error(
+            "OKF1010",
+            relative,
+            at.clone(),
+            "verified must be a list of mappings with string `by` and RFC 3339 `at`",
         ));
     }
     for key in metadata.keys() {
@@ -941,6 +969,220 @@ fn validate_unique_ids(concepts: &[Concept], diagnostics: &mut Vec<Diagnostic>) 
             ));
         }
     }
+}
+
+fn validate_lifecycle_and_sources(
+    root: &Path,
+    concepts: &[Concept],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let today = current_utc_date();
+    let repository = git_repository_root(root);
+
+    for concept in concepts {
+        if let (Some(today), Some(stale_after)) = (
+            today.as_deref(),
+            string_field(&concept.metadata, "stale_after"),
+        ) && is_date(stale_after)
+            && stale_after < today
+        {
+            diagnostics.push(Diagnostic::warning(
+                "OKF4004",
+                &concept.path,
+                None,
+                format!("record is stale: stale_after was {stale_after}"),
+            ));
+        }
+
+        let generated_at = concept
+            .metadata
+            .get("generated")
+            .and_then(Value::as_object)
+            .and_then(|generated| generated.get("at"))
+            .and_then(Value::as_str)
+            .and_then(parse_timestamp);
+        let human_verification = latest_human_verification(&concept.metadata);
+        if let (Some(generated_at), Some((verified_at, _))) =
+            (generated_at, human_verification.as_ref())
+            && *verified_at < generated_at
+        {
+            diagnostics.push(Diagnostic::warning(
+                "OKF4005",
+                &concept.path,
+                None,
+                "latest human verification is older than generated.at",
+            ));
+        }
+
+        let Some(repository) = repository.as_deref() else {
+            continue;
+        };
+        let Some(sources) = concept.metadata.get("sources").and_then(Value::as_array) else {
+            continue;
+        };
+        for source in sources {
+            let Some(source) = source.as_object() else {
+                continue;
+            };
+            let Some(resource) = source.get("resource").and_then(Value::as_str) else {
+                continue;
+            };
+            if external_url(resource) || Path::new(resource).is_absolute() {
+                continue;
+            }
+            let source_id = source.get("id").and_then(Value::as_str).unwrap_or(resource);
+            let Some(path) = repository_source_path(root, repository, &concept.path, resource)
+            else {
+                continue;
+            };
+            let Some(relative) = path.strip_prefix(repository).ok() else {
+                continue;
+            };
+            let relative_display = relative.to_string_lossy().replace('\\', "/");
+            match git_last_modified(repository, relative) {
+                GitModification::Tracked(modified_at) => {
+                    if let Some((verified_at, verified_label)) = human_verification.as_ref()
+                        && modified_at > *verified_at
+                    {
+                        diagnostics.push(Diagnostic::warning(
+                            "OKF4006",
+                            &concept.path,
+                            None,
+                            format!(
+                                "source `{source_id}` ({relative_display}) changed after human verification at {verified_label}"
+                            ),
+                        ));
+                    }
+                    if let Some((verified_at, _)) = human_verification.as_ref()
+                        && git_path_dirty(repository, relative)
+                        && filesystem_modified_at(&path)
+                            .is_none_or(|modified_at| modified_at > *verified_at)
+                    {
+                        diagnostics.push(Diagnostic::warning(
+                            "OKF4008",
+                            &concept.path,
+                            None,
+                            format!(
+                                "source `{source_id}` ({relative_display}) has uncommitted changes and cannot be matched to its human verification"
+                            ),
+                        ));
+                    }
+                }
+                GitModification::Untracked if path.exists() => {
+                    diagnostics.push(Diagnostic::warning(
+                        "OKF4007",
+                        &concept.path,
+                        None,
+                        format!(
+                            "source `{source_id}` ({relative_display}) is untracked and has no git provenance"
+                        ),
+                    ));
+                }
+                GitModification::Unknown | GitModification::Untracked => {}
+            }
+        }
+    }
+}
+
+fn latest_human_verification(metadata: &BTreeMap<String, Value>) -> Option<(i64, &str)> {
+    metadata
+        .get("verified")?
+        .as_array()?
+        .iter()
+        .filter_map(Value::as_object)
+        .filter(|event| {
+            event
+                .get("by")
+                .and_then(Value::as_str)
+                .is_some_and(|actor| actor.starts_with("human:"))
+        })
+        .filter_map(|event| {
+            let at = event.get("at")?.as_str()?;
+            Some((parse_timestamp(at)?, at))
+        })
+        .max_by_key(|(timestamp, _)| *timestamp)
+}
+
+fn repository_source_path(
+    root: &Path,
+    repository: &Path,
+    concept_path: &str,
+    resource: &str,
+) -> Option<PathBuf> {
+    let parent = root.join(concept_path).parent()?.to_path_buf();
+    let joined = parent.join(resource);
+    let mut normalized = PathBuf::new();
+    for component in joined.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(Path::new("/")),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    return None;
+                }
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+    let normalized = normalized.canonicalize().unwrap_or(normalized);
+    normalized.starts_with(repository).then_some(normalized)
+}
+
+fn git_repository_root(root: &Path) -> Option<PathBuf> {
+    let output = Command::new("git")
+        .args(["-C", root.to_str()?, "rev-parse", "--show-toplevel"])
+        .output()
+        .ok()?;
+    output.status.success().then(|| {
+        let path = PathBuf::from(String::from_utf8_lossy(&output.stdout).trim().to_string());
+        path.canonicalize().unwrap_or(path)
+    })
+}
+
+enum GitModification {
+    Tracked(i64),
+    Untracked,
+    Unknown,
+}
+
+fn git_last_modified(repository: &Path, relative: &Path) -> GitModification {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repository)
+        .args(["log", "-1", "--format=%cI", "--"])
+        .arg(relative)
+        .output();
+    let Ok(output) = output else {
+        return GitModification::Unknown;
+    };
+    if !output.status.success() {
+        return GitModification::Unknown;
+    }
+    let timestamp = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if timestamp.is_empty() {
+        GitModification::Untracked
+    } else if let Some(timestamp) = parse_timestamp(&timestamp) {
+        GitModification::Tracked(timestamp)
+    } else {
+        GitModification::Unknown
+    }
+}
+
+fn git_path_dirty(repository: &Path, relative: &Path) -> bool {
+    Command::new("git")
+        .arg("-C")
+        .arg(repository)
+        .args(["status", "--porcelain", "--untracked-files=no", "--"])
+        .arg(relative)
+        .output()
+        .is_ok_and(|output| output.status.success() && !output.stdout.is_empty())
+}
+
+fn filesystem_modified_at(path: &Path) -> Option<i64> {
+    let modified = fs::metadata(path).ok()?.modified().ok()?;
+    let seconds = modified.duration_since(UNIX_EPOCH).ok()?.as_secs();
+    i64::try_from(seconds).ok()
 }
 
 fn resolve_graph(
@@ -1265,6 +1507,89 @@ fn is_date(value: &str) -> bool {
     (1..=12).contains(&month) && (1..=31).contains(&day)
 }
 
+fn parse_timestamp(value: &str) -> Option<i64> {
+    if !value.is_ascii()
+        || value.len() < 20
+        || &value[4..5] != "-"
+        || &value[7..8] != "-"
+        || &value[10..11] != "T"
+        || &value[13..14] != ":"
+        || &value[16..17] != ":"
+    {
+        return None;
+    }
+    let year = value[0..4].parse::<i64>().ok()?;
+    let month = value[5..7].parse::<i64>().ok()?;
+    let day = value[8..10].parse::<i64>().ok()?;
+    let hour = value[11..13].parse::<i64>().ok()?;
+    let minute = value[14..16].parse::<i64>().ok()?;
+    let second = value[17..19].parse::<i64>().ok()?;
+    if !(1..=12).contains(&month)
+        || !(1..=31).contains(&day)
+        || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute)
+        || !(0..=60).contains(&second)
+    {
+        return None;
+    }
+    let mut timezone = &value[19..];
+    if let Some(fraction_and_timezone) = timezone.strip_prefix('.') {
+        let timezone_start = fraction_and_timezone.find(['Z', '+', '-'])?;
+        let fraction = &fraction_and_timezone[..timezone_start];
+        if fraction.is_empty() || !fraction.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        timezone = &fraction_and_timezone[timezone_start..];
+    }
+    let offset = if timezone == "Z" {
+        0
+    } else if timezone.len() == 6
+        && (&timezone[0..1] == "+" || &timezone[0..1] == "-")
+        && &timezone[3..4] == ":"
+    {
+        let hours = timezone[1..3].parse::<i64>().ok()?;
+        let minutes = timezone[4..6].parse::<i64>().ok()?;
+        if hours > 23 || minutes > 59 {
+            return None;
+        }
+        let seconds = hours * 3_600 + minutes * 60;
+        if &timezone[0..1] == "+" {
+            seconds
+        } else {
+            -seconds
+        }
+    } else {
+        return None;
+    };
+    Some(days_from_civil(year, month, day) * 86_400 + hour * 3_600 + minute * 60 + second - offset)
+}
+
+fn days_from_civil(mut year: i64, month: i64, day: i64) -> i64 {
+    year -= i64::from(month <= 2);
+    let era = if year >= 0 { year } else { year - 399 } / 400;
+    let year_of_era = year - era * 400;
+    let month_prime = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * month_prime + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    era * 146_097 + day_of_era - 719_468
+}
+
+fn current_utc_date() -> Option<String> {
+    let seconds = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
+    let days = (seconds / 86_400) as i64 + 719_468;
+    let era = if days >= 0 { days } else { days - 146_096 } / 146_097;
+    let day_of_era = days - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let mut year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
+    year += i64::from(month <= 2);
+    Some(format!("{year:04}-{month:02}-{day:02}"))
+}
+
 fn footnote_labels(text: &str) -> BTreeSet<String> {
     let mut labels = BTreeSet::new();
     let bytes = text.as_bytes();
@@ -1364,6 +1689,21 @@ mod tests {
         format!(
             "---\ntype: Architecture\ntitle: Test\ndescription: A test concept.\ntags: [domain/rocs]\nstatus: draft\ngenerated: {{ by: process:test, at: 2026-08-16T00:00:00Z }}\nauthority: descriptive\nowners: [human:nils]\n{extra}---\n\n{body}"
         )
+    }
+
+    fn git(root: &Path, args: &[&str]) {
+        let status = Command::new("git")
+            .args(args)
+            .current_dir(root)
+            .env("GIT_AUTHOR_NAME", "Rocs Test")
+            .env("GIT_AUTHOR_EMAIL", "rocs@example.invalid")
+            .env("GIT_COMMITTER_NAME", "Rocs Test")
+            .env("GIT_COMMITTER_EMAIL", "rocs@example.invalid")
+            .env("GIT_AUTHOR_DATE", "2026-08-16T12:00:00Z")
+            .env("GIT_COMMITTER_DATE", "2026-08-16T12:00:00Z")
+            .status()
+            .unwrap();
+        assert!(status.success(), "git {args:?} failed");
     }
 
     #[test]
@@ -1503,5 +1843,97 @@ mod tests {
             fs::read(output.join("site/test/index.html")).unwrap()
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lifecycle_and_git_source_drift_are_warnings() {
+        let repository = temp("source-drift");
+        git(&repository, &["init", "-q"]);
+        git(&repository, &["config", "core.hooksPath", ".git/hooks"]);
+        fs::write(repository.join("tracked.txt"), "tracked evidence\n").unwrap();
+        git(&repository, &["add", "tracked.txt"]);
+        git(&repository, &["commit", "-q", "-m", "tracked evidence"]);
+        fs::write(repository.join("untracked.txt"), "untracked evidence\n").unwrap();
+        fs::write(repository.join("tracked.txt"), "changed evidence\n").unwrap();
+
+        let root = repository.join("knowledge");
+        fs::create_dir_all(root.join("architecture")).unwrap();
+        fs::write(
+            root.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("architecture/test.md"),
+            "---\n\
+type: Architecture\n\
+title: Drift test\n\
+description: Exercises lifecycle and repository drift diagnostics.\n\
+tags: [domain/rocs]\n\
+status: stable\n\
+generated: { by: process:test, at: 2026-08-16T13:00:00Z }\n\
+verified:\n\
+  - { by: human:test, at: 2026-08-15T12:00:00Z }\n\
+stale_after: 2000-01-01\n\
+authority: descriptive\n\
+owners: [human:test]\n\
+sources:\n\
+  - { id: tracked, resource: ../../tracked.txt }\n\
+  - { id: untracked, resource: ../../untracked.txt }\n\
+---\n\n\
+# Drift test\n\nClaims.[^tracked][^untracked]\n\n\
+[^tracked]: Tracked evidence.\n\
+[^untracked]: Untracked evidence.\n",
+        )
+        .unwrap();
+
+        let discovered_repository = git_repository_root(&root).unwrap();
+        let canonical_repository = repository.canonicalize().unwrap();
+        assert_eq!(discovered_repository, canonical_repository);
+        let tracked_path = repository_source_path(
+            &root,
+            &discovered_repository,
+            "architecture/test.md",
+            "../../tracked.txt",
+        )
+        .unwrap();
+        assert_eq!(tracked_path, canonical_repository.join("tracked.txt"));
+        assert!(matches!(
+            git_last_modified(&repository, Path::new("tracked.txt")),
+            GitModification::Tracked(_)
+        ));
+        assert!(matches!(
+            git_last_modified(&repository, Path::new("untracked.txt")),
+            GitModification::Untracked
+        ));
+
+        let bundle = load(&root, Profile::Rocci).unwrap();
+        for code in ["OKF4004", "OKF4005", "OKF4006", "OKF4007", "OKF4008"] {
+            assert!(
+                bundle
+                    .diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == code
+                        && diagnostic.severity == Severity::Warning),
+                "missing {code}: {:?}",
+                bundle.diagnostics
+            );
+        }
+        assert!(!bundle.has_errors(), "{:?}", bundle.diagnostics);
+        fs::remove_dir_all(repository).unwrap();
+    }
+
+    #[test]
+    fn timestamps_compare_across_offsets() {
+        assert_eq!(
+            parse_timestamp("2026-08-16T14:00:00Z"),
+            parse_timestamp("2026-08-16T16:00:00+02:00")
+        );
+        assert_eq!(
+            parse_timestamp("2026-08-16T14:00:00.123Z"),
+            parse_timestamp("2026-08-16T14:00:00Z")
+        );
+        assert_eq!(parse_timestamp("é026-08-16T14:00:00Z"), None);
+        assert!(current_utc_date().as_deref().is_some_and(is_date));
     }
 }

@@ -1,0 +1,57 @@
+---
+type: Reference
+title: Priority-1 knowledge review checklist
+description: This checklist defines the evidence-based human gate for verifying and stabilizing the ten priority-1 Rocci knowledge records.
+tags: [domain/rocci, integration/okf, concern/validation, audience/maintainer]
+status: draft
+generated: { by: process:okf-migration, at: 2026-08-16T18:14:13Z }
+stale_after: 2026-09-15
+authority: descriptive
+owners: [human:nils]
+sources:
+  - id: okf-plan
+    resource: ../../OKF_PLAN.md
+    title: Open Knowledge Format plan for Rocci
+    author: human:nils
+    last_modified: 2026-08-16
+---
+
+# Priority-1 knowledge review checklist
+
+## Review gate
+
+A reviewer must compare each current-behavior claim with code, tests, current crate documentation, or published docs; confirm that report-derived rationale is not presented as shipped behavior; check authority and lifecycle; and verify that keyed citations support the claims they follow.[^okf-plan]
+
+Substantive corrections update `generated.at` and leave the record `draft`. An accepted current revision receives a real `verified` event with the reviewer's actor ID and timestamp. Only records ready for consumption at their declared authority become `stable`.[^okf-plan]
+
+## Priority-1 queue
+
+| Record | Review focus | State |
+| --- | --- | --- |
+| [System overview](/architecture/system-overview.md) | Workspace and product boundaries | Verified by `human:nils`; stable |
+| [Implementation status](/status/implementation.md) | Snapshot accuracy; shipped, approved, proposed separation | Verified by `human:nils`; stable |
+| [Known limitations](/status/known-limitations.md) | Current absences and stale published prose | Verified by `human:nils`; stable |
+| [Rocdown format](/architecture/rocdown-format.md) | Parser/README precedence over the original report | Verified by `human:nils`; stable |
+| [Rocs documentation compiler](/architecture/rocs-documentation-compiler.md) | Phases 2–3 and dev mode shipped; islands/search absent | Verified by `human:nils`; stable |
+| [Theming](/architecture/theming.md) | Two current surfaces versus approved DTCG target | Verified by `human:nils`; stable |
+| [Pure render components](/decisions/pure-render-components.md) | Implemented render semantics versus application architecture | Verified by `human:nils`; stable |
+| [Server-owned state](/decisions/server-owned-state.md) | Current direction versus optional browser state | Verified by `human:nils`; stable |
+| [Markdown-first explicit islands](/decisions/markdown-first-explicit-islands.md) | Implemented syntax boundary versus unimplemented `@island` | Verified by `human:nils`; stable |
+| [Rust catalog and Rocci shell](/decisions/rust-catalog-rocci-shell.md) | Implemented ownership boundary and remaining splice path | Verified by `human:nils`; stable |
+
+## Contradictions already surfaced
+
+- The published project-status page says Rocs watch mode and aliases are pending; current code, reference docs, and the active Rocs plan show both are implemented.
+- The original Rocdown format report lists SSG and LSP support as absent; those statements are historical, while the crate README and current Rocs/LSP code describe shipped behavior.
+- The theming report proposes packages, adapters, and presentation renderers beyond the current CSS resolver and first-party Rocs shell.
+- Client-island reports recommend a direction, but `@island` is neither implemented nor approved as stable syntax.
+
+## Mechanical checks
+
+Run `rocs knowledge check knowledge --profile rocci`. `OKF4004` reports stale records, `OKF4005` reports verification older than generation, `OKF4006` reports a tracked source committed after human verification, `OKF4007` reports an untracked local source with no git provenance, and `OKF4008` reports tracked evidence with uncommitted changes that cannot be matched to its verification.
+
+## Current review state
+
+All ten priority-1 records were verified by `human:nils` at `2026-08-16T18:14:13Z` and promoted to `stable`. The exploratory client-behavior-island decision, this checklist, and the static-OKF-boundary seed record remain `draft` because they were not part of this ten-record approval.
+
+[^okf-plan]: Phase 3 deliverables, authority order, lifecycle rules, and evidence-based trust policy.

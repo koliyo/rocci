@@ -3,8 +3,10 @@ type: Architecture
 title: Rocci system overview
 description: Rocci separates template compilation, Markdown-first content, static documentation cataloging, runtime hosting, and desktop presentation.
 tags: [domain/rocci, domain/rocdown, domain/rocs, concern/rendering]
-status: draft
+status: stable
 generated: { by: process:okf-migration, at: 2026-08-16T00:00:00Z }
+verified:
+  - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
 authority: descriptive
 owners: [human:nils]

@@ -1,0 +1,440 @@
+source	section	disposition	target_or_reason
+ROC_TEMPLATE.md	Purpose	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended source shape	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Why the templ-style declaration	migrated	knowledge/decisions/pure-render-components.md
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: tagged HTML template literals	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Component semantics	migrated	knowledge/decisions/pure-render-components.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Names and resolution	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Props and attributes	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Expressions	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Control flow	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Styles	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Dedicated implementation package	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Parsing strategy	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Lowering contract	migrated summary	knowledge/decisions/pure-render-components.md
+ROC_TEMPLATE.md	Tooling contract	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Relationship to the block-format spike	not migrated	Historical comparison remains in the source report.
+ROC_TEMPLATE.md	Proof of concept	not migrated	Historical implementation proposal remains in the source report.
+ROC_TEMPLATE.md	Open decisions	retained for phase 3	Atomic decisions require human contradiction review.
+ROC_TEMPLATE.md	Recommendation	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Primary sources	not migrated	Bibliography remains attached to the retained report.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	Executive summary	migrated summary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	1. What exists today	migrated summary	knowledge/architecture/system-overview.md; knowledge/status/implementation.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	3. Compilation architecture	migrated summary	knowledge/decisions/pure-render-components.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	5. Roc package for Datastar	retained for phase 3	Package API proposals require current-code review.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	7. Development workflow and hot reload	not migrated	Detailed workflow proposal remains in the source report.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	8. Security and correctness requirements	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	9. Repository changes implied by the design	not migrated	Historical proposed file layout is not current architecture.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	10. File-format and compilation alternatives	not migrated	Rejected alternatives remain in the source report.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort	not migrated	Historical estimates are not canonical status.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	12. Decisions to make before freezing a specification	retained for phase 3	Atomic decisions require human review.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	13. Recommended proof of concept	not migrated	Historical proof-of-concept plan remains in the source report.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	Conclusion	migrated summary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	Primary sources	not migrated	Bibliography remains attached to the retained report.
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Executive summary	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	What was audited	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Priority table	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Datastar example impact	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Recommended sequence	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Suggested acceptance tests	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Conclusion	retained for priority 2	knowledge/audits/rocci-syntax.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	Executive summary	migrated current boundary	knowledge/decisions/server-owned-state.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	1. What is wrong with the current handler	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	2. The idiomatic Datastar baseline	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	3. Recommended production setup: a client input island	retained for priority 2	knowledge/research/client-islands.md; knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	4. Proposed Rocci ergonomics	retained for phase 3	Proposed client syntax requires an atomic decision review.
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	5. Is Snake a bad Datastar demo?	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	6. When an SPA or richer client becomes justified	retained for priority 2	knowledge/research/client-islands.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	7. Recommendation	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	Final verdict	retained for priority 2	knowledge/case-studies/snake-input.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	Executive summary	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	1. What Rocket actually provides	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	2. What Rocket Flow demonstrates	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	3. Rocci's current fit and gaps	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	4. Recommended programming model	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	5. Runtime design	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	6. Compiler and tooling changes	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	7. Morphing, lifecycle, and failure cases	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	8. Options considered	not migrated	Alternative analysis remains in the source report.
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	9. Staged implementation plan	not migrated	Illustrative plan is not approved implementation status.
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	10. Decision	retained for phase 3	Proposed island decision requires human approval and licensing review.
+ROCDOWN_FORMAT_REPORT.md	Executive decision	migrated	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	1. What exists in Rocci today	migrated summary	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	2. Goals and non-goals	migrated summary	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	3. Proposed source form	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	4. Document grammar	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	7. Layout and generated page contract	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	8. Static generation and routing	migrated current implementation	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	9. Compiler architecture	migrated summary	knowledge/architecture/rocdown-format.md; knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	10. Source maps, diagnostics, and editor support	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	11. Security and correctness boundaries	migrated summary	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	12. Bravo-to-Rocdown migration	not migrated	Historical migration guidance remains in the source report.
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_FORMAT_REPORT.md	15. Acceptance tests for v1	retained as evidence	The source report retains detailed test scenarios.
+ROCDOWN_FORMAT_REPORT.md	16. Recommendation	migrated	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	References	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Executive recommendation	migrated current boundary	knowledge/architecture/rocs-documentation-compiler.md; knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	2. Generator landscape	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	7. Validation, testing, and governance	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	8. Versioning, localization, and multi-product growth	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	9. Proposed delivery phases	not migrated	Superseded by the active implementation plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	10. Decisions and rejected directions	retained for phase 3	Atomic decisions require comparison with shipped behavior.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	12. Final assessment	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	1. Decision summary	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	2. Why not Roc-first for static content	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	3. Current repository baseline	migrated	knowledge/architecture/rocs-documentation-compiler.md; knowledge/status/implementation.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	4. Architecture	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	5. Repository layout	migrated summary	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	7. Rust / Rocci / Roc budget	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	8. Command behavior	retained for priority 2	knowledge/plans/rocs.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	10. Testing	migrated summary	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	11. Determinism, security, performance	migrated summary	knowledge/architecture/rocs-documentation-compiler.md; knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	12. Compatibility	migrated summary	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	13. Risks	retained for priority 2	knowledge/plans/rocs.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	14. Stable release definition of done	retained for priority 2	knowledge/plans/rocs.md
+ROCDOWN_THEMING_REPORT.md	Executive summary	migrated current boundary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	1. Theme terminology and the central compatibility rule	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	4. Current Rocdown theming behavior	migrated current subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	6. External theme adapters	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	7. Page and SSG artifact architecture	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	10. Test strategy	retained for phase 4	DTCG and visual validation work has not started.
+ROCDOWN_THEMING_REPORT.md	11. Concrete decisions recommended now	retained for phase 3	Unapproved theme decisions require atomic review.
+ROCDOWN_THEMING_REPORT.md	12. Risks and open design questions	retained for phase 3	Open questions must not be presented as current contract.
+ROCDOWN_THEMING_REPORT.md	Conclusion	migrated current boundary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	Primary references	not migrated	Bibliography remains attached to the retained report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Surface syntax	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Normal Roc flow	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Fragments and collections	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Function-call lowering	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Component-name resolution	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Three parser strategies	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Three parser strategies > Strategy A: full Roc+JSX grammar	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Three parser strategies > Strategy B: explicit `html { ... }` expression islands	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Three parser strategies > Strategy C: root-only implicit markup	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Ambiguities and recovery	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Effect on the `rocci-template` package	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Comparison with the explicit `component` form	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: JSX-style HTML expressions in ordinary Roc > Assessment of the JSX direction	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: tagged HTML template literals > Why Roc compile-time evaluation is not sufficient by itself	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: tagged HTML template literals > Feasible implementation paths	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: tagged HTML template literals > Could native Roc tagged templates be parsed soundly?	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Alternative: tagged HTML template literals > Assessment	not migrated	Rejected-alternative detail remains in the source report.
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Is it a subset of Roc?	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Why explicit directive markers	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Proposed grammar	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Conditional rendering	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Iteration	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Pattern matching	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Local bindings	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Roc expressions, but no markup inside them	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > How an unbraced directive expression ends	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Downsides of omitting expression braces	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > What the template subset should include	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Block values and whitespace	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Parser feasibility	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Parser recovery	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Hygiene and semantic soundness	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Recommended: explicit components with a bounded template grammar > Feasibility conclusion	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Self-contained does not mean framework-owned	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Architecture-neutral render layer	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Option A: explicit request handlers in one file	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Option B: Elm-style Model–View–Update in one file	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Option C: pure reducer with explicit effects	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Option D: parent-controlled or state-hoisted component	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > What must remain outside template lowering	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Separate template syntax from the component flow model > Architecture focus for the first POC	migrated	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_TEMPLATE.md	Nested content and slots > The problem with a magic `children` field	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Design requirements	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 1: reserved `children` record field	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 2: explicit body parameter	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 3: named `Html` props	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 4: explicit slot-record parameter	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 5: outlet elements inside the declaration	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 6: render-function props	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Alternative 7: compound subcomponents	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Nested content and slots > Recommended layered model	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Styles > Design goals	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 1: one module-level global block	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 2: CSS Modules as typed Roc records	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 3: automatically scoped component styles	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 4: CSS nested inside a component declaration	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 5: inline style attributes and dynamic values	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Alternative 6: external CSS and utility classes	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Extraction and delivery contract	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Styles > Recommendation and POC scope	migrated summary	knowledge/architecture/theming.md
+ROC_TEMPLATE.md	Dedicated implementation package > Responsibilities of `rocci-template`	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Dedicated implementation package > Explicit non-responsibilities	retained for priority 2	knowledge/architecture/template-language.md
+ROC_TEMPLATE.md	Dedicated implementation package > Proposed public API shape	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	1. What exists today > 1.1 Rocci's current architecture	migrated summary	knowledge/architecture/system-overview.md; knowledge/status/implementation.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	1. What exists today > 1.2 Roc's relevant capabilities and constraints	migrated summary	knowledge/architecture/system-overview.md; knowledge/status/implementation.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	1. What exists today > 1.3 Datastar's relevant capabilities	migrated summary	knowledge/architecture/system-overview.md; knowledge/status/implementation.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	1. What exists today > 1.4 The useful lesson from Vue	migrated summary	knowledge/architecture/system-overview.md; knowledge/status/implementation.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.1 What a self-contained feature means	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.2 Template language	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.3 Separate the render component from the application architecture	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.4 Component/application model alternatives	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.5 Architecture recommendation for v1	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	2. Proposed programming model > 2.6 A request-driven MVU option	migrated current boundary	knowledge/decisions/pure-render-components.md; knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	3. Compilation architecture > 3.1 Compiler stages	migrated summary	knowledge/decisions/pure-render-components.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	3. Compilation architecture > 3.2 Generated code and source maps	migrated summary	knowledge/decisions/pure-render-components.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	3. Compilation architecture > 3.3 Build commands	migrated summary	knowledge/decisions/pure-render-components.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.1 Prototype versus long-term host	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.2 Required Rocci lifecycle contract	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.3 State and concurrency	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.4 How a component is processed on the server	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.5 Recommended update granularity: fat morph by default	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.6 DOM identity and browser-owned state	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.7 Direct action patches versus a CQRS update stream	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.8 Alternatives and tradeoffs	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	4. Backend and platform integration > 4.9 Why not retain a server-side VDOM initially?	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications > 6.1 Two products, not one	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications > 6.2 Recommended LSP architecture	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications > 6.3 Capability plan	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications > 6.4 Template type checking	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	6. Language server and editor implications > 6.5 Formatting rules	retained for priority 2	knowledge/architecture/template-language.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	8. Security and correctness requirements > 8.1 Output encoding	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	8. Security and correctness requirements > 8.2 HTTP and session security	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	8. Security and correctness requirements > 8.3 Resource bounds	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	8. Security and correctness requirements > 8.4 Reproducibility and supply chain	migrated summary	knowledge/decisions/server-owned-state.md
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort > Phase 0 — compatibility spike (2–4 engineer-weeks)	not migrated	Historical estimates are not canonical status.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort > Phase 1 — template compiler vertical slice (4–8 engineer-weeks)	not migrated	Historical estimates are not canonical status.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort > Phase 2 — usable backend framework (6–10 engineer-weeks)	not migrated	Historical estimates are not canonical status.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort > Phase 3 — language tooling alpha (6–12 engineer-weeks)	not migrated	Historical estimates are not canonical status.
+ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md	11. Delivery plan and rough effort > Phase 4 — production hardening and richer composition (8–16+ engineer-weeks)	not migrated	Historical estimates are not canonical status.
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 1. `??` defaults are call-site rewrites, not component defaults	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 2. Attribute values cross three languages without a visible boundary	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 3. The quoted-attribute scanner silently rewrites backslashes	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 4. Child interpolation has a hidden, name-based type rule	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 5. Standard raw-text elements are parsed as Rocci template bodies	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 6. Attribute syntax cannot express conditional presence	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 7. Component declarations accept shapes that tag calls cannot satisfy	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 8. Control flow pushes collection shaping out of the template	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 9. Template sigils and directive boundaries are predictable but costly for literal content	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 10. Datastar-aware validation is absent, but should not become a second client language	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 11. Page/patch reuse is a composition convention, not a syntax feature	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Detailed findings > 12. SSE helper coverage and diagnostics are adjacent gaps	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Recommended sequence > Before calling the syntax stable	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Recommended sequence > Near-term ergonomics	retained for priority 2	knowledge/audits/rocci-syntax.md
+ROCCI_SYNTAX_WEAK_POINTS_REPORT.md	Recommended sequence > Defer until examples justify them	retained for priority 2	knowledge/audits/rocci-syntax.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	4. Proposed Rocci ergonomics > 4.1 Near-term: honest multiline client literals	retained for phase 3	Proposed client syntax requires an atomic decision review.
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	4. Proposed Rocci ergonomics > 4.2 Better for common cases: typed Datastar builders	retained for phase 3	Proposed client syntax requires an atomic decision review.
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	4. Proposed Rocci ergonomics > 4.3 Optional declarative keymap helper	retained for phase 3	Proposed client syntax requires an atomic decision review.
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	4. Proposed Rocci ergonomics > 4.4 What not to build	retained for phase 3	Proposed client syntax requires an atomic decision review.
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	5. Is Snake a bad Datastar demo? > What the demo shows well	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	5. Is Snake a bad Datastar demo? > What the demo shows poorly	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	7. Recommendation > For the current repository	retained for priority 2	knowledge/case-studies/snake-input.md
+SNAKE_DATASTAR_ARCHITECTURE_REPORT.md	7. Recommendation > For Rocci	retained for priority 2	knowledge/case-studies/snake-input.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	3. Rocci's current fit and gaps > 3.1 What already works	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	3. Rocci's current fit and gaps > 3.2 What is missing	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	4. Recommended programming model > 4.1 Illustrative declaration	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	4. Recommended programming model > 4.2 Inline browser behavior	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	4. Recommended programming model > 4.3 Prop and event contract	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	4. Recommended programming model > 4.4 Ownership rule	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	5. Runtime design > 5.1 Minimal built-in runtime	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	5. Runtime design > 5.2 Templates and shadow DOM later	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	5. Runtime design > 5.3 Optional Rocket provider	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	6. Compiler and tooling changes > 6.1 AST and parser	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	6. Compiler and tooling changes > 6.2 Lowering and artifacts	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	6. Compiler and tooling changes > 6.3 CLI and packaging	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	6. Compiler and tooling changes > 6.4 LSP	retained for priority 2	knowledge/research/client-islands.md
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	9. Staged implementation plan > Stage 0: Flow-shaped spike, no language changes	not migrated	Illustrative plan is not approved implementation status.
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	9. Staged implementation plan > Stage 1: First-class external-module islands	not migrated	Illustrative plan is not approved implementation status.
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	9. Staged implementation plan > Stage 2: Colocation and editor support	not migrated	Illustrative plan is not approved implementation status.
+DATASTAR_ROCKET_IN_ROCCI_REPORT.md	9. Staged implementation plan > Stage 3: Private views, shadow DOM, and Datastar integration	not migrated	Illustrative plan is not approved implementation status.
+ROCDOWN_FORMAT_REPORT.md	2. Goals and non-goals > Goals	migrated summary	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	2. Goals and non-goals > Non-goals for the first version	migrated summary	knowledge/decisions/markdown-first-explicit-islands.md
+ROCDOWN_FORMAT_REPORT.md	4. Document grammar > 4.1 Declaration recognition	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	4. Document grammar > 4.2 Closing braces	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	4. Document grammar > 4.3 Unknown and misplaced declarations	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.1 `@page`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.2 `@roc`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.3 `@component`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.4 `@render`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.5 `@css`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.6 `@fixture`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.7 `@context`, `@init`, and `@on`	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	5. Directive semantics > 5.8 `@island` (dependent on Rocci island work)	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Core CommonMark	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Enabled GFM-style extensions	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Recommended Rocdown additions	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Deferred extensions	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Raw HTML	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	6. Markdown profile > Code fences	migrated current subset	knowledge/architecture/rocdown-format.md
+ROCDOWN_FORMAT_REPORT.md	8. Static generation and routing > Route convention	migrated current implementation	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	8. Static generation and routing > Build graph	migrated current implementation	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	8. Static generation and routing > Development server	migrated current implementation	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	8. Static generation and routing > Hybrid output	migrated current implementation	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	9. Compiler architecture > Parsing order	migrated summary	knowledge/architecture/rocdown-format.md; knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	9. Compiler architecture > Output artifact set	migrated summary	knowledge/architecture/rocdown-format.md; knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered > MDX-style inline expressions and component tags	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered > YAML/TOML frontmatter	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered > Executable fenced code	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered > Treat all unknown `@name` lines as errors	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	13. Alternatives considered > Parse the whole file as Rocci with Markdown sugar	not migrated	Rejected alternatives remain in the source report.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan > Stage 0: executable design spike	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan > Stage 1: useful static MVP	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan > Stage 2: server/hybrid integration	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan > Stage 3: Rocci-native islands	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_FORMAT_REPORT.md	14. Implementation plan > Stage 4: content collections, only after the page model is stable	not migrated	Historical plan is superseded by current code and the Rocs plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.1 Authoring	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.2 Information architecture	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.3 Compilation and integrity	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.4 Delivery	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.5 Discovery for humans and agents	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	1. What “state of the art” means in 2026 > 1.6 Operations and governance	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	2. Generator landscape > 2.1 Managed and API-first documentation platforms	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	2. Generator landscape > 2.2 Framework conclusion	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.1 Oxide	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.2 OpenAI	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.3 Anthropic, Google Gemini, and Mistral	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.4 Stripe	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.5 GitHub Docs	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.6 Supabase and Cloudflare	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	3. Prominent documentation sites and what they teach > 3.7 Starlight, VitePress, Material for MkDocs, and Rust’s books	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.1 Goals	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.2 Non-goals for the first release	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.3 Conceptual architecture	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.4 Crate boundaries	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.5 Typed site catalog	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.6 Site configuration	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.7 Discovery and routing	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.8 Navigation model	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.9 Semantic documentation components	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.10 Includes, snippets, and code examples	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.11 API, CLI, and code reference adapters	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.12 Search	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.13 Agent-readable outputs	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.14 Theme contract	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.15 Extension model	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.16 Determinism, caching, and development mode	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	4. Recommended Rocdown product model > 4.17 Security	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.1 Organize around user intent, not repository structure	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Quickstart	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Tutorial	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > How-to guide	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Explanation/concept	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Reference	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Troubleshooting	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.2 Page type contracts > Changelog, migration, and deprecation	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.3 Universal article contract	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.4 Writing for scanning and action	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.5 Examples and variants	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	5. Content architecture for useful documentation > 5.6 Diagrams, screenshots, and media	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.1 Page anatomy	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.2 Responsive transitions	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.3 Typography and density	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.4 Code blocks	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.5 Tables	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.6 Accessibility baseline	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	6. Responsive documentation site design > 6.7 Performance and resilience	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	7. Validation, testing, and governance > 7.1 Build diagnostics	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	7. Validation, testing, and governance > 7.2 Test layers	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	7. Validation, testing, and governance > 7.3 Editorial workflow	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	7. Validation, testing, and governance > 7.4 Feedback and analytics	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	8. Versioning, localization, and multi-product growth > 8.1 Version only when users need it	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	8. Versioning, localization, and multi-product growth > 8.2 Localization	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	8. Versioning, localization, and multi-product growth > 8.3 Multi-product and multi-repository	retained for priority 2	knowledge/research/documentation-generators.md
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	9. Proposed delivery phases > Phase 0: architectural foundation	not migrated	Superseded by the active implementation plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	9. Proposed delivery phases > Phase 1: documentation semantics	not migrated	Superseded by the active implementation plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	9. Proposed delivery phases > Phase 2: scale	not migrated	Superseded by the active implementation plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	9. Proposed delivery phases > Phase 3: advanced interaction	not migrated	Superseded by the active implementation plan.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist > Content and graph	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist > UX and responsive behavior	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist > Accessibility	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist > Performance and build	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	11. Release acceptance checklist > Discovery and operations	retained as evidence	Detailed acceptance criteria remain in the source report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading > Documentation architecture and generators	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading > Content design	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading > Exemplary documentation	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading > API and agent-oriented systems	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md	Sources and further reading > Accessibility, responsiveness, SEO, and performance	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	1. Decision summary > Ownership rule	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	4. Architecture > How `.rocci` participates	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts > 6.1 Source locations	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts > 6.2 Semantic document IR	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts > 6.3 Page records	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts > 6.4 Catalog states	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	6. Core contracts > 6.5 Theme contract	migrated	knowledge/architecture/rocs-documentation-compiler.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	7. Rust / Rocci / Roc budget > Rust	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	7. Rust / Rocci / Roc budget > Rocci	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	7. Rust / Rocci / Roc budget > Roc	migrated	knowledge/decisions/rust-catalog-rocci-shell.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 0 — done	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 1 — done (this slice, replacing “DocNode in Roc”)	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 2 — done	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 3 — done	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 4 — clean Markdown, machine outputs, search, dev mode	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 5 — semantic components, includes, tested examples	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 6 — generated references and richer themes	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md	9. Phased implementation > Phase 7 — scale and advanced interaction	migrated current status	knowledge/status/implementation.md; knowledge/status/known-limitations.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.1 Reveal.js	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.2 Marp and Marpit	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.3 Slidev	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.4 Quarto Reveal	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.5 Remark	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	2. What popular Markdown presentation environments do > 2.6 Presentation comparison	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.1 Hugo: modules, mounts, and ordered overlays	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.2 Jekyll: packaged themes with local shadowing	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.3 MkDocs: Python packages, template inheritance, and extra assets	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.4 Astro and Eleventy-style starters: project templates rather than live themes	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.5 VitePress and Docusaurus: executable theme interfaces	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	3. What static-site generators do > 3.6 SSG comparison	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.1 Keep format, layout, theme, and code theme separate	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.2 Proposed document selection	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.3 Native theme package	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.4 Theme sources and resolution	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.5 Cascade contract	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.6 Scope contract	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	5. Recommended Rocdown theme model > 5.7 Design tokens	migrated approved subset	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	6. External theme adapters > 6.1 Adapter interface	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	6. External theme adapters > 6.2 Reveal adapter	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	6. External theme adapters > 6.3 Marp adapter	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	6. External theme adapters > 6.4 Slidev and SSG theme importers	retained for priority 2	knowledge/research/theme-ecosystems.md
+ROCDOWN_THEMING_REPORT.md	7. Page and SSG artifact architecture > 7.1 Replace the content-only layout boundary	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	7. Page and SSG artifact architecture > 7.2 Asset pipeline	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	7. Page and SSG artifact architecture > 7.3 Project overrides and inheritance	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	7. Page and SSG artifact architecture > 7.4 Development behavior	migrated current subset	knowledge/architecture/rocs-documentation-compiler.md; knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage > 8.1 Predictable CSS	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage > 8.2 Light, dark, and user preferences	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage > 8.3 Accessibility and output modes	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage > 8.4 Security and reproducibility	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	8. Best practices Rocdown should enforce or encourage > 8.5 Performance	migrated summary	knowledge/architecture/theming.md
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 0: freeze the contracts	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 1: native CSS themes	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 2: SSG asset pipeline	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 3: native layout packages and overrides	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 4: Reveal adapter	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 5: Marp adapter	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	9. Proposed implementation plan > Phase 6: migration tooling and gallery	not migrated	Superseded in part by current code and Phase 4 of OKF_PLAN.md.
+ROCDOWN_THEMING_REPORT.md	10. Test strategy > Unit tests	retained for phase 4	DTCG and visual validation work has not started.
+ROCDOWN_THEMING_REPORT.md	10. Test strategy > Golden tests	retained for phase 4	DTCG and visual validation work has not started.
+ROCDOWN_THEMING_REPORT.md	10. Test strategy > Browser tests	retained for phase 4	DTCG and visual validation work has not started.
+ROCDOWN_THEMING_REPORT.md	10. Test strategy > Upstream compatibility tests	retained for phase 4	DTCG and visual validation work has not started.
+ROCDOWN_THEMING_REPORT.md	Primary references > Presentation systems	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_THEMING_REPORT.md	Primary references > Static-site generators	not migrated	Bibliography remains attached to the retained report.
+ROCDOWN_THEMING_REPORT.md	Primary references > Web platform	not migrated	Bibliography remains attached to the retained report.
