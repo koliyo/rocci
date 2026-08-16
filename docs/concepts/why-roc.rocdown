@@ -1,0 +1,297 @@
+@page {
+    meta: {
+        title: "Why Roc fits Rocci",
+        description: "Why pure rendering, platform-controlled effects, one host boundary, and Roc's interpreted and compiled execution paths suit a UI and document toolchain.",
+    },
+}
+
+# Why Roc fits Rocci
+
+Rocci needs two things that are often pulled in opposite directions: a small,
+predictable language for turning data into interfaces, and practical access to
+HTTP, files, databases, windows, and operating-system services. Roc is a good
+fit because it makes that boundary part of the program's architecture.
+
+Most Rocci code can remain a pure transformation from typed values to `Html`.
+The selected Roc platform and its native host provide the effects. That division
+improves reasoning, testing, caching, and portability without pretending that a
+real application has no effects.
+
+> This is an architectural fit, not a maturity claim. Roc and Rocci are both
+> pre-1.0 projects. The current Roc compiler is a Zig rewrite, and some older
+> official documentation describes the previous Rust compiler and language
+> design. The distinctions on this page are called out explicitly.
+
+## The short version
+
+| Rocci need | Roc property | Practical result |
+| --- | --- | --- |
+| Deterministic component rendering | Pure functions are the default | A view can be tested as `model -> Html` without starting a server |
+| Visible I/O boundaries | Effectful functions are identified with `!` and checked separately | File, network, database, and window work stays easy to find |
+| Different native environments | Every app selects one platform | The same Roc-facing application model can sit on a CLI, web server, or desktop host |
+| Restricted application capabilities | All Roc I/O is supplied by the platform | A purpose-built host can expose only the operations that its application needs |
+| Fast feedback and native delivery | Roc defines interactive interpretation and native compiler backends over shared checked representations | A development tool can evaluate code quickly while production artifacts remain compiled |
+| Reliable UI state | Structural types, tag unions, `Result`, and no null value | Missing and failure states must be modeled instead of leaking into templates |
+
+## A pure center with an effectful edge
+
+The natural shape of a Rocci application is a functional core surrounded by a
+small effectful shell:
+
+```text
+request / event
+      │
+      ▼
+platform operation! ──► decode data ──► update model ──► render Html
+      ▲                                                        │
+      └──────────── host sends response or DOM patch ◄─────────┘
+```
+
+The middle of that flow can be ordinary pure Roc. Given the same model and
+props, a component produces the same `Html`. Reading a request, querying a
+database, writing a file, or sending a response belongs at the edge.
+
+Roc makes the distinction visible in names. An effectful function conventionally
+ends in `!`; a pure function does not. More importantly, the compiler's effect
+checking follows calls through the program: a pure function cannot invoke an
+effectful one. The current compiler design also makes a useful finer distinction:
+holding an effectful function value is not itself an effect; calling it is.
+
+The established tutorial writes a pure function type with `->` and an effectful
+one with `=>`. Because Roc's compiler and effect syntax are still evolving,
+Rocci should treat the compiler revision and selected platform API as the source
+of truth instead of copying an unpinned example from older documentation.
+
+That maps directly onto Rocci code:
+
+```roc
+# Pure: typed page data and article Html become a complete document.
+siteShell = |page, article|
+    Html.fragment([header(page), navigation(page), article])
+
+# Effectful: the outer build step reads and writes through its platform.
+write_page! = |staging, item| {
+    article = Path.utf8(item.article_path).read_utf8!()?
+    html = siteShell(item.page, article)
+    Path.utf8("${staging}/${item.output_path}").write_utf8!(html)?
+}
+```
+
+The example is simplified, but the split is real in Rocs today:
+`RocsTheme.siteShell` is a pure Rocci-generated function, while
+`RocsBuild.run!` performs environment, file-read, and file-write operations.
+
+### Why this matters for UI code
+
+- **Tests stay small.** Pure components can be given records and compared with
+  expected HTML without arranging a filesystem, port, clock, or window.
+- **Failures have a location.** Effects are concentrated in handlers and build
+  entrypoints instead of being reachable from any helper.
+- **Rendering is replayable.** A fixture, server request, and static build can
+  feed the same view function and compare the same result.
+- **Caching becomes defensible.** Pure work can be cached by its inputs. An
+  effectful function cannot silently invalidate that assumption.
+- **Concurrency has fewer surprises.** Pure render work shares no hidden mutable
+  state. Scheduling and cancellation remain host concerns at the edge.
+
+Purity does not guarantee that generated HTML is accessible, secure, or fast.
+It does make the renderer's inputs explicit, which gives Rocci a much better
+place to validate and test those properties.
+
+## Platforms are the capability boundary
+
+A Roc application does not choose arbitrary I/O libraries from a global runtime.
+It is combined with exactly one **platform**. The platform has two parts: a
+public Roc API and a native host, commonly written in a lower-level language.
+The host owns the process entrypoint, decides when to call Roc functions, handles
+memory integration, and implements every I/O primitive available to the app.
+
+Roc's standard library deliberately contains no I/O. Roc application code can
+only ask for an operation that its selected platform exposes. If a minimal
+documentation platform offers file reads, file writes, environment variables,
+and logging—but no sockets or process spawning—ordinary Roc packages used by
+that app cannot acquire those omitted operations through another I/O library.
+
+That is unusually well matched to Rocci's possible hosts:
+
+| Host | Useful platform surface |
+| --- | --- |
+| Static Rocs build | Read staged articles, render the Rocci theme, write output |
+| Local web application | Receive HTTP input, query application storage, return documents or SSE patches |
+| Desktop application | Web server operations plus explicitly selected dialogs, notifications, and filesystem access |
+| Component preview | Load fixtures and render `Html`, ideally with no production capabilities |
+
+This creates a concrete answer to “what can this application do?”: inspect its
+platform API and the host that implements it. It also prevents a transitive Roc
+package from casually importing an unrelated filesystem or network API.
+
+The boundary should not be oversold as an operating-system sandbox. The native
+host owns the process and may itself have ambient authority. A safe Rocci host
+still needs careful API design, input validation, path policy, secrets handling,
+and, where required, OS-level sandboxing. Roc's contribution is to make the
+application-facing capability surface narrow, typed, and auditable.
+
+## The host stays in control
+
+In many language runtimes the framework owns `main` and user code is called by
+convention. Roc platforms make that inversion explicit. The host starts the
+process and calls the Roc app's exposed entrypoints when appropriate.
+
+The platform also chooses whether an exposed operation is synchronous or
+asynchronous. Rocci can therefore keep scheduling policy in the HTTP or desktop
+host rather than baking one universal event-loop abstraction into every
+component.
+
+For Rocci this means a host can own the parts that are inherently environmental:
+
+- a Rust server can convert an HTTP request into a Roc record and send the
+  returned document or fragment;
+- Tao and Wry can own native windows while Roc owns application data and views;
+- a static generator can own discovery, routing, and atomic output commits while
+  a Rocci theme owns the visible shell;
+- a constrained preview host can expose fixture rendering without exposing
+  production storage or native capabilities.
+
+Roc requires one platform per application. That is a tradeoff as well as a
+benefit. Platform authors must compose capabilities into one coherent contract
+instead of asking an app to bolt together several independent runtimes. Normal
+Roc packages can still share pure code—and effectful abstractions whose required
+operations the chosen platform supports—across those hosts.
+
+## Interpreted feedback and compiled delivery
+
+“Interpreted and compiled” can be misleading if it suggests two different
+languages. Roc's current compiler design describes one checked pipeline whose
+lower-level representation can be consumed by native code generators, an
+interpreter, or a serialized `LirImage`. It also describes a fast development
+object backend and an LLVM backend for optimized native output. The documented
+REPL evaluates expressions and definitions interactively.
+
+```text
+Rocci source
+    │ lower templates
+    ▼
+Roc source ──► parse + canonicalize + type/effect check ──► shared IR
+                                                            │
+                         ┌──────────────────────────────────┼──────────────┐
+                         ▼                                  ▼              ▼
+                    interpreter                      dev backend     LLVM backend
+                  preview / tests                  fast native run   optimized build
+```
+
+The important property for Rocci is not merely that an interpreter exists. It
+is that interpretation is designed after Roc's semantic checks and shares the
+compiler's lowered representations with code generation. A future Rocci preview
+loop could therefore lower a component, check it with Roc, and evaluate its pure
+fixture through the interpreter; deployment could compile the same code for the
+native host.
+
+Purity also gives the compiler a principled compile-time boundary. The current
+design permits checked roots to be evaluated at compile time only when they have
+no runtime data or control dependency and make no effectful call. For Rocci,
+that could eventually precompute static view data or validate pure fixtures
+without accidentally performing a network request or reading the developer's
+machine during compilation.
+
+That would give Rocci several useful modes:
+
+1. **Editor evaluation:** render a pure component or theme function from a
+   fixture without starting the complete application host.
+2. **Development runtime:** compile quickly with the development backend and run
+   against the real platform for handlers and I/O.
+3. **Production build:** compile and optimize the application and host contract
+   for distribution.
+4. **Static generation:** let Rust resolve content and routes, then invoke the
+   compiled Rocci theme at the narrow build boundary.
+
+Only the last mode is how Rocs works today. Current `rocci run`, component view,
+and bundle paths invoke the Roc toolchain; Rocci does not yet embed Roc's
+interpreter. Interpreter-backed preview is a design opportunity, not a shipped
+feature. It would require a stable embedding API, compatible value and `Html`
+representations, source-map-aware diagnostics, cache invalidation, and tests
+that compare interpreted and compiled results.
+
+## Errors are values before they become pages
+
+Roc has no `null`, `nil`, or `undefined` value. Optional and failure states use
+tag unions such as `[Some a, None]` and result values such as
+`[Ok value, Err problem]`. Pattern matching and `?` make those states explicit
+at the point where an application decides what to do.
+
+That matters in a document or UI system because absence is common: a route may
+not exist, front matter may be incomplete, a form field may be invalid, or a
+database operation may fail. Modeling each case gives the renderer enough
+information to deliberately produce a not-found page, field error, retry state,
+or build diagnostic. It avoids letting an implicit null travel until template
+rendering fails far from its source.
+
+Roc also aims for sound, decidable, principal whole-program type inference.
+Rocci can generate ordinary Roc without making authors repeat every intermediate
+type, while still leaving the Roc compiler—not the template lowerer—as the
+authority on records, tags, functions, and effects.
+
+## Why Rocs does not put everything in Roc
+
+Choosing Roc does not mean every byte must pass through the Roc compiler. The
+Rocs architecture deliberately keeps content discovery, link validation,
+navigation compilation, Markdown rendering, and atomic filesystem commits in
+Rust. Those jobs already operate on Rocdown's span-preserving syntax tree and
+would make Roc compilation scale with prose rather than executable behavior.
+
+Roc is used where its properties are valuable: typed theme data, pure UI
+composition, authored dynamic regions, and controlled application effects. Rust
+is used where the current toolchain has the stronger catalog, filesystem, and
+incremental-build machinery. HTML is the explicit artifact between them.
+
+This is not a retreat from Roc; it is the same functional-core/effectful-shell
+principle applied at toolchain scale.
+
+## Costs and open questions
+
+Roc's fit should be evaluated with its current constraints in view:
+
+- **Compiler transition.** Roc is a work in progress and not yet ready for a
+  0.1 release. The new Zig compiler is intentionally described as bleeding edge.
+- **Documentation transition.** The main tutorial targets the previous compiler,
+  while the new compiler has a separate mini-tutorial and design document.
+- **Platform investment.** A narrowly capable Rocci platform is powerful, but
+  its ABI, memory ownership, async behavior, error mapping, and distribution all
+  need to be maintained.
+- **One-platform composition.** Capabilities must be designed together. That can
+  improve coherence but makes ad hoc host-library composition less convenient.
+- **Interpreter integration.** The compiler architecture supports it, but Rocci
+  should not promise a live interpreter workflow until the embedding surface and
+  semantic parity are tested against the pinned compiler revision.
+
+For an experimental project that wants to help shape Roc-native UI conventions,
+those costs are acceptable. For a production team that requires a stable
+language, long-term ABI, mature package ecosystem, or supported cross-platform
+installers today, they may be decisive.
+
+## Primary sources
+
+This page was reviewed against current first-party material in August 2026:
+
+- [Roc platforms and applications](https://www.roc-lang.org/platforms) explains
+  the one-platform model, host ownership, I/O surface, memory integration, and
+  capability implications.
+- [Roc FAQ](https://www.roc-lang.org/faq) covers host control, platform
+  exclusivity, cross-platform packages, null-free data modeling, and type
+  inference.
+- [New compiler mini-tutorial](https://github.com/roc-lang/roc/blob/main/docs/mini-tutorial-new-compiler.md)
+  documents the current REPL, `!` effect convention, `Result`, `expect`, and the
+  status of the Zig compiler rewrite.
+- [Compiler design](https://github.com/roc-lang/roc/blob/main/design.md) specifies
+  effect checking, compile-time eligibility, the shared IR pipeline, interpreter,
+  development object backend, LLVM backend, and explicit reference counting.
+- [Roc tutorial](https://www.roc-lang.org/tutorial) gives the fuller conceptual
+  account of pure and effectful functions, but currently targets the previous
+  alpha compiler and should be read with that warning.
+- [Roc is friendly](https://www.roc-lang.org/friendly) describes whole-program
+  type inference, diagnostics, and inline `expect` tests.
+- [Roc repository](https://github.com/roc-lang/roc) is the authoritative status
+  reference and explicitly identifies the language as a work in progress.
+
+Continue with [Architecture](/concepts/architecture/) to see where these
+boundaries live in the repository, or [Rendering model](/concepts/rendering-model/)
+to follow `Html` from a component to the browser.
