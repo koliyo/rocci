@@ -663,7 +663,7 @@ fn rejects_fixture_inside_component_body() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@fixture` is only valid at module level")),
+            .any(|msg| msg.contains("`@fixture` is only valid at document root")),
         "{errors:?}"
     );
 }
@@ -1123,7 +1123,7 @@ fn rejects_on_inside_component() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@on` is only valid at module level")),
+            .any(|msg| msg.contains("`@on` is only valid at document root")),
         "{errors:?}"
     );
 }

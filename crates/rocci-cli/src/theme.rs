@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use clap::Args;
+use rocci_rocdown::index_pages_in_dir;
 use rocci_theme::{ColorSchemePolicy, ThemeOptions};
 
 #[derive(Args, Clone, Debug, Default)]
@@ -49,12 +50,17 @@ pub fn compile_options(input: Option<&Path>, args: &ThemeArgs) -> rocci_rocdown:
         .or(env_scheme.as_deref())
         .filter(|value| !value.is_empty())
         .and_then(|value| value.parse::<ColorSchemePolicy>().ok());
+    let pages = input
+        .and_then(Path::parent)
+        .map(index_pages_in_dir)
+        .unwrap_or_default();
     rocci_rocdown::CompileOptions {
         theme: ThemeOptions {
             default_id: theme,
             color_scheme,
             source_dir: input.and_then(Path::parent).map(Path::to_path_buf),
         },
+        pages,
         ..rocci_rocdown::CompileOptions::default()
     }
 }

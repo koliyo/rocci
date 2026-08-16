@@ -1,6 +1,7 @@
 //! Parse `.rocdown` documents and lower Markdown plus `@` declarations to Roc.
 
 mod ast;
+mod links;
 mod lower;
 mod markdown;
 mod page;
@@ -11,6 +12,7 @@ mod scan;
 pub use ast::{
     Document, HeadingInfo, Item, LinkInfo, MdNode, PageDecl, PageMeta, RenderDecl, RocDecl,
 };
+pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::ParseOutput;
 pub use pprint::format_ast;
 pub use rocci_template::{
@@ -29,6 +31,7 @@ pub struct CompileOptions {
     pub lower: LowerOptions,
     pub raw_html: bool,
     pub theme: ThemeOptions,
+    pub pages: Vec<PageRef>,
 }
 
 impl Default for CompileOptions {
@@ -37,6 +40,7 @@ impl Default for CompileOptions {
             lower: LowerOptions::default(),
             raw_html: false,
             theme: ThemeOptions::default(),
+            pages: Vec::new(),
         }
     }
 }
@@ -69,7 +73,8 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
 }
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
-    let parsed = parse(source, options.raw_html);
+    let mut parsed = parse(source, options.raw_html);
+    links::resolve_document(source, &mut parsed, options);
     let mut diagnostics = parsed.diagnostics;
     let lowered = lower::lower(source, &parsed.document, options, &mut diagnostics);
     CompileOutput {

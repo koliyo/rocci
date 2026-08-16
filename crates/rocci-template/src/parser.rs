@@ -1465,34 +1465,10 @@ impl<'a> Parser<'a> {
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
             "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
-            "fixture" => {
+            "component" | "fixture" | "context" | "init" | "on" | "page" | "roc" | "render" => {
                 self.error(
                     Span::new(start, name_span.end as usize),
-                    "`@fixture` is only valid at module level",
-                );
-                self.skip_unknown_directive();
-                None
-            }
-            "context" => {
-                self.error(
-                    Span::new(start, name_span.end as usize),
-                    "`@context` is only valid at module level",
-                );
-                self.skip_unknown_directive();
-                None
-            }
-            "init" => {
-                self.error(
-                    Span::new(start, name_span.end as usize),
-                    "`@init` is only valid at module level",
-                );
-                self.skip_unknown_directive();
-                None
-            }
-            "on" => {
-                self.error(
-                    Span::new(start, name_span.end as usize),
-                    "`@on` is only valid at module level",
+                    format!("`@{name}` is only valid at document root, not inside a template body"),
                 );
                 self.skip_unknown_directive();
                 None

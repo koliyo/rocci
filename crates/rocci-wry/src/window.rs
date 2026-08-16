@@ -4,7 +4,25 @@ use tao::{
     event_loop::EventLoopWindowTarget,
     window::{Window, WindowBuilder},
 };
-use wry::{WebContext, WebView, WebViewBuilder};
+use wry::{PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
+
+pub struct WebViewHooks {
+    pub initialization_script: Option<String>,
+    pub ipc_handler: Option<Box<dyn Fn(Request<String>) + 'static>>,
+    pub on_page_load: Option<Box<dyn Fn(PageLoadEvent, String) + 'static>>,
+    pub on_title_changed: Option<Box<dyn Fn(String) + 'static>>,
+}
+
+impl Default for WebViewHooks {
+    fn default() -> Self {
+        Self {
+            initialization_script: None,
+            ipc_handler: None,
+            on_page_load: None,
+            on_title_changed: None,
+        }
+    }
+}
 
 pub struct LiveWindow {
     pub window: Window,
@@ -21,6 +39,7 @@ impl LiveWindow {
         url: String,
         mut context: WebContext,
         devtools: bool,
+        hooks: WebViewHooks,
     ) -> Result<Self> {
         let mut builder = WindowBuilder::new()
             .with_title(&template.title)
@@ -32,9 +51,21 @@ impl LiveWindow {
             .build(event_loop)
             .map_err(|error| Error::message(format!("failed to create window {id}: {error}")))?;
 
-        let webview_builder = WebViewBuilder::new_with_web_context(&mut context)
+        let mut webview_builder = WebViewBuilder::new_with_web_context(&mut context)
             .with_url(&url)
             .with_devtools(devtools);
+        if let Some(script) = hooks.initialization_script {
+            webview_builder = webview_builder.with_initialization_script(script);
+        }
+        if let Some(handler) = hooks.ipc_handler {
+            webview_builder = webview_builder.with_ipc_handler(handler);
+        }
+        if let Some(handler) = hooks.on_page_load {
+            webview_builder = webview_builder.with_on_page_load_handler(handler);
+        }
+        if let Some(handler) = hooks.on_title_changed {
+            webview_builder = webview_builder.with_document_title_changed_handler(handler);
+        }
         #[cfg(target_os = "windows")]
         let webview_builder = {
             use wry::WebViewBuilderExtWindows;

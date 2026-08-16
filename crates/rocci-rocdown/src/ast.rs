@@ -205,6 +205,32 @@ impl MdNode {
             }
         }
     }
+
+    pub fn children_mut(&mut self) -> &mut [MdNode] {
+        match self {
+            Self::Heading { children, .. }
+            | Self::Paragraph { children, .. }
+            | Self::BlockQuote { children, .. }
+            | Self::List { children, .. }
+            | Self::Item { children, .. }
+            | Self::TaskItem { children, .. }
+            | Self::Table { children, .. }
+            | Self::TableRow { children, .. }
+            | Self::TableCell { children, .. }
+            | Self::Emph { children, .. }
+            | Self::Strong { children, .. }
+            | Self::Strikethrough { children, .. }
+            | Self::Link { children, .. } => children,
+            Self::CodeBlock { .. }
+            | Self::ThematicBreak { .. }
+            | Self::Text { .. }
+            | Self::SoftBreak { .. }
+            | Self::LineBreak { .. }
+            | Self::Code { .. }
+            | Self::Image { .. }
+            | Self::RawHtml { .. } => &mut [],
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

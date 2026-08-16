@@ -48,9 +48,9 @@ FeatureCount = |{ count }| {
 Rocdown is a content-first format. Email us at docs@example.com or mention
 @roclang normally.
 
-@render {
-    featureCount({ count: feature_count })
-}
+<FeatureCount count={feature_count} />
+
+See also [[Interactive]] and the [interactive guide](Interactive.rocdown).
 
 ## Displayed code
 

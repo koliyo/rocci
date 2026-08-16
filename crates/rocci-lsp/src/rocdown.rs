@@ -1,8 +1,13 @@
+use std::path::{Path, PathBuf};
+
 use lsp_types::{
     CompletionItemKind, CompletionResponse, Diagnostic, DocumentSymbol, DocumentSymbolResponse,
     GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
 };
-use rocci_rocdown::{CompileOptions, CompileOutput, Item, PageDecl, PageMeta, discovered_ids};
+use rocci_rocdown::{
+    CompileOptions, CompileOutput, Item, PageDecl, PageMeta, discovered_ids, index_pages_in_dir,
+    page_ref_from_source,
+};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
 use crate::analysis::{
@@ -28,7 +33,32 @@ const ROOT_DECLARATIONS: &[&str] = &[
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
-    rocci_rocdown::compile(SourceFile::new(name, text), &CompileOptions::default())
+    let mut options = CompileOptions::default();
+    if let Some(path) = filesystem_path(name)
+        && let Some(dir) = path
+            .parent()
+            .filter(|dir| dir.is_dir() && *dir != Path::new("/"))
+    {
+        let mut pages = index_pages_in_dir(dir);
+        let current = page_ref_from_source(&path, text);
+        pages.retain(|page| page.file_name != current.file_name);
+        pages.push(current);
+        options.pages = pages;
+    }
+    rocci_rocdown::compile(SourceFile::new(name, text), &options)
+}
+
+fn filesystem_path(name: &str) -> Option<PathBuf> {
+    let path = if let Some(rest) = name.strip_prefix("file://") {
+        PathBuf::from(rest)
+    } else {
+        PathBuf::from(name)
+    };
+    if path.extension().is_some_and(|ext| ext == "rocdown") {
+        Some(path)
+    } else {
+        None
+    }
 }
 
 pub fn diagnostics(

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use lsp_types::{
     ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
     DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
@@ -342,17 +344,35 @@ fn rocdown_uri() -> Uri {
     "file:///test.rocdown".parse().expect("test uri")
 }
 
-fn open_rocdown(server: &mut LanguageServer, text: &str) -> lsp_types::PublishDiagnosticsParams {
+fn guide_uri() -> Uri {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/rocdown/Guide.rocdown")
+        .canonicalize()
+        .expect("guide path");
+    format!("file://{}", path.display())
+        .parse()
+        .expect("guide uri")
+}
+
+fn open_rocdown_at(
+    server: &mut LanguageServer,
+    uri: Uri,
+    text: &str,
+) -> lsp_types::PublishDiagnosticsParams {
     server
         .did_open(DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
-                uri: rocdown_uri(),
+                uri,
                 language_id: "rocdown".to_string(),
                 version: 1,
                 text: text.to_string(),
             },
         })
         .expect("rocdown documents should publish diagnostics")
+}
+
+fn open_rocdown(server: &mut LanguageServer, text: &str) -> lsp_types::PublishDiagnosticsParams {
+    open_rocdown_at(server, rocdown_uri(), text)
 }
 
 fn rocdown_identifier() -> TextDocumentIdentifier {
@@ -369,7 +389,7 @@ fn rocdown_position_params(line: u32, character: u32) -> TextDocumentPositionPar
 #[test]
 fn guide_has_no_error_diagnostics_and_expected_symbols() {
     let mut server = initialize(true);
-    let published = open_rocdown(&mut server, GUIDE);
+    let published = open_rocdown_at(&mut server, guide_uri(), GUIDE);
     assert!(
         published
             .diagnostics
@@ -381,7 +401,7 @@ fn guide_has_no_error_diagnostics_and_expected_symbols() {
 
     let symbols = server
         .document_symbol(DocumentSymbolParams {
-            text_document: rocdown_identifier(),
+            text_document: TextDocumentIdentifier { uri: guide_uri() },
             work_done_progress_params: WorkDoneProgressParams::default(),
             partial_result_params: PartialResultParams::default(),
         })
@@ -422,10 +442,10 @@ fn unknown_page_field_publishes_a_located_error() {
 #[test]
 fn rocdown_tokens_and_embedded_roc_ranges() {
     let mut server = initialize(true);
-    open_rocdown(&mut server, GUIDE);
+    open_rocdown_at(&mut server, guide_uri(), GUIDE);
     let result = server
         .semantic_tokens_full(SemanticTokensParams {
-            text_document: rocdown_identifier(),
+            text_document: TextDocumentIdentifier { uri: guide_uri() },
             work_done_progress_params: WorkDoneProgressParams::default(),
             partial_result_params: PartialResultParams::default(),
         })
@@ -455,7 +475,7 @@ fn rocdown_tokens_and_embedded_roc_ranges() {
     );
 
     let regions = server
-        .embedded_ranges(&rocdown_uri())
+        .embedded_ranges(&guide_uri())
         .expect("embedded ranges");
     assert!(regions.iter().any(
         |region| region.language == "roc" && range_covers(&region.range, GUIDE, published)

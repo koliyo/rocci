@@ -476,13 +476,7 @@ impl<'a> Emitter<'a> {
                 );
             }
             MdNode::Paragraph { children, span } => {
-                self.emit_element(
-                    "p",
-                    &[("class", "rd-paragraph")],
-                    children,
-                    false,
-                    *span,
-                );
+                self.emit_element("p", &[("class", "rd-paragraph")], children, false, *span);
             }
             MdNode::BlockQuote { children, span } => {
                 self.emit_element(
@@ -513,13 +507,7 @@ impl<'a> Emitter<'a> {
                 self.emit_element(name, &attrs, children, false, *span);
             }
             MdNode::Item { children, span } => {
-                self.emit_element(
-                    "li",
-                    &[("class", "rd-list-item")],
-                    children,
-                    false,
-                    *span,
-                );
+                self.emit_element("li", &[("class", "rd-list-item")], children, false, *span);
             }
             MdNode::TaskItem {
                 checked,
@@ -632,24 +620,12 @@ impl<'a> Emitter<'a> {
                 self.indent += 1;
                 if !head.is_empty() {
                     self.push_indent();
-                    self.emit_element(
-                        "thead",
-                        &[("class", "rd-table-head")],
-                        &head,
-                        false,
-                        *span,
-                    );
+                    self.emit_element("thead", &[("class", "rd-table-head")], &head, false, *span);
                     self.emit(",\n");
                 }
                 if !body.is_empty() {
                     self.push_indent();
-                    self.emit_element(
-                        "tbody",
-                        &[("class", "rd-table-body")],
-                        &body,
-                        false,
-                        *span,
-                    );
+                    self.emit_element("tbody", &[("class", "rd-table-body")], &body, false, *span);
                     self.emit(",\n");
                 }
                 self.indent -= 1;
@@ -702,13 +678,7 @@ impl<'a> Emitter<'a> {
                 self.emit(")");
             }
             MdNode::TableCell { children, span } => {
-                self.emit_element(
-                    "td",
-                    &[("class", "rd-table-cell")],
-                    children,
-                    false,
-                    *span,
-                );
+                self.emit_element("td", &[("class", "rd-table-cell")], children, false, *span);
             }
             MdNode::Text { value, span } => {
                 self.emit_html(".text(");
@@ -734,22 +704,10 @@ impl<'a> Emitter<'a> {
                 );
             }
             MdNode::Emph { children, span } => {
-                self.emit_element(
-                    "em",
-                    &[("class", "rd-emphasis")],
-                    children,
-                    false,
-                    *span,
-                );
+                self.emit_element("em", &[("class", "rd-emphasis")], children, false, *span);
             }
             MdNode::Strong { children, span } => {
-                self.emit_element(
-                    "strong",
-                    &[("class", "rd-strong")],
-                    children,
-                    false,
-                    *span,
-                );
+                self.emit_element("strong", &[("class", "rd-strong")], children, false, *span);
             }
             MdNode::Strikethrough { children, span } => {
                 self.emit_element(

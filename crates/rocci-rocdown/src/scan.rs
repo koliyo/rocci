@@ -1,6 +1,6 @@
 use rocci_template::{
-    Cursor, Diagnostic, Span, is_ident_continue, is_ident_start, parse_declaration_from,
-    parse_template_item_from,
+    Cursor, Diagnostic, Span, TemplateItem, is_ident_continue, is_ident_start,
+    parse_declaration_from, parse_template_item_from,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,9 +70,15 @@ impl Reserved {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScannedKind {
+    At(Reserved),
+    Html,
+}
+
 #[derive(Clone, Debug)]
 pub struct ScannedDecl {
-    pub kind: Reserved,
+    pub kind: ScannedKind,
     pub line_start: usize,
     pub at: usize,
     pub end: usize,
@@ -147,6 +153,13 @@ pub fn scan(src: &str, diagnostics: &mut Vec<Diagnostic>) -> Vec<ScannedDecl> {
             quote_tight = false;
             continue;
         }
+        if let Some(decl) = try_scan_html(src, line_start, diagnostics) {
+            pos = decl.end.max(next);
+            decls.push(decl);
+            list_tight = false;
+            quote_tight = false;
+            continue;
+        }
 
         if let Some(open) = fence_open(stripped) {
             fence = Some(open);
@@ -207,10 +220,61 @@ fn try_scan_decl(
     }
     diagnostics.append(&mut extra);
     Some(ScannedDecl {
-        kind,
+        kind: ScannedKind::At(kind),
         line_start,
         at,
         end,
+    })
+}
+
+fn try_scan_html(
+    src: &str,
+    line_start: usize,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<ScannedDecl> {
+    let mut at = line_start;
+    while at < src.len() && matches!(src.as_bytes().get(at), Some(b' ' | b'\t')) {
+        at += 1;
+    }
+    if src.as_bytes().get(at) != Some(&b'<') {
+        return None;
+    }
+    let after = at + 1;
+    let next = src[after..].chars().next()?;
+    if next == '/' || next == '!' || next == '?' {
+        return None;
+    }
+    if next != '>' {
+        if !is_ident_start(next) {
+            return None;
+        }
+        let mut name_end = after + next.len_utf8();
+        while name_end < src.len() {
+            let Some(ch) = src[name_end..].chars().next() else {
+                break;
+            };
+            if !is_ident_continue(ch) {
+                break;
+            }
+            name_end += ch.len_utf8();
+        }
+        if matches!(src[name_end..].chars().next(), Some(':' | '@')) {
+            return None;
+        }
+    }
+    let parsed = parse_template_item_from(src, at)?;
+    if !matches!(
+        parsed.item,
+        TemplateItem::Element(_) | TemplateItem::ComponentCall(_) | TemplateItem::Fragment(_)
+    ) {
+        return None;
+    }
+    diagnostics.extend(parsed.diagnostics);
+    Some(ScannedDecl {
+        kind: ScannedKind::Html,
+        line_start,
+        at,
+        end: parsed.end,
     })
 }
 

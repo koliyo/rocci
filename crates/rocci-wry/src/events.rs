@@ -5,10 +5,20 @@ use tao::{
     keyboard::{KeyCode, ModifiersState},
 };
 
+use crate::history::NavCommand;
+
 #[derive(Debug)]
 pub enum ShellEvent {
     NewWindow,
     Menu(muda::MenuEvent),
+    Preview(PreviewEvent),
+}
+
+#[derive(Debug)]
+pub enum PreviewEvent {
+    Command(NavCommand),
+    Loaded(String),
+    Title(String),
 }
 
 pub fn map_window_event(event: &tao::event::WindowEvent) -> Option<WindowEvent> {

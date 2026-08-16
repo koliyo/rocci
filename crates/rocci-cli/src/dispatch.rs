@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rocci_template::{InitInfo, RouteInfo};
 
 use crate::serve;
@@ -5,11 +7,41 @@ use crate::serve;
 pub const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 pub const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 
-pub fn generate_main_roc(
+#[derive(Clone, Copy, Debug)]
+pub struct DispatchSource<'a> {
+    pub type_name: &'a str,
+    pub routes: &'a [RouteInfo],
+}
+
+pub fn merge_standalone_routes<'a>(
+    primary: DispatchSource<'a>,
+    siblings: &[DispatchSource<'a>],
+) -> Vec<(&'a str, &'a RouteInfo)> {
+    let mut bound = Vec::new();
+    let mut seen = HashSet::new();
+    for route in primary.routes {
+        if seen.insert((route.method.as_str(), route.path.as_str())) {
+            bound.push((primary.type_name, route));
+        }
+    }
+    for sibling in siblings {
+        for route in sibling.routes {
+            if route.method == "GET" && route.path == "/" {
+                continue;
+            }
+            if seen.insert((route.method.as_str(), route.path.as_str())) {
+                bound.push((sibling.type_name, route));
+            }
+        }
+    }
+    bound
+}
+
+pub fn generate_bound_main_roc(
     type_name: &str,
     state_type: Option<&str>,
     init: Option<&InitInfo>,
-    routes: &[RouteInfo],
+    bound: &[(&str, &RouteInfo)],
 ) -> String {
     let context_ty = if state_type.is_some() {
         format!("{type_name}.State")
@@ -22,13 +54,28 @@ pub fn generate_main_roc(
         "{}".to_string()
     };
 
+    let mut imports = String::new();
+    let mut imported = HashSet::new();
+    for (module, _) in bound {
+        if imported.insert(*module) {
+            imports.push_str("import ");
+            imports.push_str(module);
+            imports.push('\n');
+        }
+    }
+    if imported.insert(type_name) {
+        imports.push_str("import ");
+        imports.push_str(type_name);
+        imports.push('\n');
+    }
+
     let mut arms = String::new();
     let mut has_health = false;
-    for route in routes {
+    for (module, route) in bound {
         if route.method == "GET" && route.path == "/health" {
             has_health = true;
         }
-        arms.push_str(&route_arm(type_name, route));
+        arms.push_str(&route_arm(module, route));
     }
     if !has_health {
         arms.push_str(
@@ -56,8 +103,7 @@ import pf.Server
 import pf.Sse
 import http.Method
 import http.Response
-import {type_name}
-import Datastar
+{imports}import Datastar
 import Html
 
 Context : {context_ty}
@@ -173,6 +219,20 @@ mod tests {
         }
     }
 
+    fn generate_main_roc(
+        type_name: &str,
+        state_type: Option<&str>,
+        init: Option<&InitInfo>,
+        routes: &[RouteInfo],
+    ) -> String {
+        generate_bound_main_roc(
+            type_name,
+            state_type,
+            init,
+            &merge_standalone_routes(DispatchSource { type_name, routes }, &[]),
+        )
+    }
+
     #[test]
     fn generates_state_init_get_and_patch_routes() {
         let init = InitInfo {
@@ -210,5 +270,55 @@ mod tests {
         assert!(main.contains("context = {}"));
         assert!(!main.contains("Page.init!"));
         assert!(main.contains("(\"GET\", \"/health\")"));
+    }
+
+    #[test]
+    fn sibling_pages_keep_their_routes_but_not_root() {
+        let primary = [
+            route("GET", "/home/", "on_get_home!"),
+            route("GET", "/", "on_get_root!"),
+        ];
+        let sibling = [
+            route("GET", "/about/", "on_get_about!"),
+            route("GET", "/", "on_get_root!"),
+            route(
+                "POST",
+                "/actions/reveal/show",
+                "on_post_actions_reveal_show!",
+            ),
+        ];
+        let bound = merge_standalone_routes(
+            DispatchSource {
+                type_name: "Home",
+                routes: &primary,
+            },
+            &[DispatchSource {
+                type_name: "About",
+                routes: &sibling,
+            }],
+        );
+        let paths: Vec<_> = bound
+            .iter()
+            .map(|(module, route)| (*module, route.method.as_str(), route.path.as_str()))
+            .collect();
+        assert_eq!(
+            paths,
+            vec![
+                ("Home", "GET", "/home/"),
+                ("Home", "GET", "/"),
+                ("About", "GET", "/about/"),
+                ("About", "POST", "/actions/reveal/show"),
+            ]
+        );
+
+        let main = generate_bound_main_roc("Home", None, None, &bound);
+        assert!(main.contains("import Home"));
+        assert!(main.contains("import About"));
+        assert!(main.contains("Home.on_get_root!(context)"));
+        assert!(main.contains("About.on_get_about!(context)"));
+        assert!(main.contains("About.on_post_actions_reveal_show!(context)"));
+        assert!(main.contains("(\"GET\", \"/about/\")"));
+        assert!(main.contains("(\"GET\", \"/\") => {\n            html = Home.on_get_root!"));
+        assert!(!main.contains("About.on_get_root!"));
     }
 }

@@ -12,6 +12,9 @@ use crate::ShellEvent;
 
 pub const NEW_WINDOW_ID: &str = "file.new-window";
 pub const CLOSE_WINDOW_ID: &str = "file.close-window";
+pub const BACK_ID: &str = "view.back";
+pub const FORWARD_ID: &str = "view.forward";
+pub const HOME_ID: &str = "view.home";
 pub const RELOAD_ID: &str = "view.reload";
 pub const WEB_INSPECTOR_ID: &str = "view.web-inspector";
 
@@ -19,6 +22,7 @@ pub struct MenuConfig<'a> {
     pub app_name: &'a str,
     pub version: Option<&'a str>,
     pub new_window: bool,
+    pub navigation: bool,
     pub reload: bool,
     pub devtools: bool,
 }
@@ -95,6 +99,25 @@ impl NativeMenu {
         menu.append(&edit).map_err(menu_error)?;
 
         let view = Submenu::new("View", true);
+        if config.navigation {
+            view.append_items(&[
+                &MenuItem::with_id(
+                    BACK_ID,
+                    "Back",
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::BracketLeft)),
+                ),
+                &MenuItem::with_id(
+                    FORWARD_ID,
+                    "Forward",
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::BracketRight)),
+                ),
+                &MenuItem::with_id(HOME_ID, "Home", true, None),
+                &PredefinedMenuItem::separator(),
+            ])
+            .map_err(menu_error)?;
+        }
         if config.reload {
             view.append(&MenuItem::with_id(
                 RELOAD_ID,
@@ -181,6 +204,53 @@ fn inspector_accelerator() -> Accelerator {
     }
 }
 
+#[cfg(test)]
+pub fn view_action_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
+    let mut ids = Vec::new();
+    if config.navigation {
+        ids.extend([BACK_ID, FORWARD_ID, HOME_ID]);
+    }
+    if config.reload {
+        ids.push(RELOAD_ID);
+    }
+    if config.devtools {
+        ids.push(WEB_INSPECTOR_ID);
+    }
+    ids
+}
+
 fn menu_error(error: impl std::fmt::Display) -> rocci_core::Error {
     Error::message(format!("failed to install the native menu: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(navigation: bool, reload: bool, devtools: bool) -> MenuConfig<'static> {
+        MenuConfig {
+            app_name: "rocci",
+            version: None,
+            new_window: false,
+            navigation,
+            reload,
+            devtools,
+        }
+    }
+
+    #[test]
+    fn preview_view_menu_includes_navigation() {
+        assert_eq!(
+            view_action_ids(&config(true, true, true)),
+            vec![BACK_ID, FORWARD_ID, HOME_ID, RELOAD_ID, WEB_INSPECTOR_ID]
+        );
+    }
+
+    #[test]
+    fn bundled_shell_view_menu_omits_navigation() {
+        assert_eq!(
+            view_action_ids(&config(false, true, true)),
+            vec![RELOAD_ID, WEB_INSPECTOR_ID]
+        );
+    }
 }
