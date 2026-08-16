@@ -28,6 +28,7 @@ mod tests {
         let html = fs::read_to_string(dir.join("Html.roc")).unwrap();
         let datastar = fs::read_to_string(dir.join("Datastar.roc")).unwrap();
         assert!(html.contains("Html := [].{"));
+        assert!(html.contains("import pf.Html as PlatformHtml"));
         assert!(datastar.contains("Datastar := [].{"));
         assert!(datastar.contains("patch_elements"));
         let _ = fs::remove_dir_all(&dir);

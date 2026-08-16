@@ -852,3 +852,53 @@ fn top_level_if_cannot_declare_component() {
         "{errs:?}"
     );
 }
+
+#[test]
+fn default_compile_omits_framework_source() {
+    let out = compile_ok("# Hello\n\nA paragraph.\n");
+    assert!(!out.roc.contains("rocci_docs_source"));
+    assert!(!out.roc.contains("rocs_source"));
+    assert!(!out.roc.contains("import DocsModel"));
+    assert!(!out.roc.contains("import RocsModel"));
+}
+
+#[test]
+fn resolve_links_false_leaves_relative_hrefs() {
+    let src = "[x](guide.rocdown)\n";
+    let pages = vec![page("guide", "/guide/", &[])];
+    let resolved = compile_ok_pages(src, pages.clone());
+    assert!(resolved.roc.contains("\"/guide/\""));
+    assert!(!resolved.roc.contains("\"guide.rocdown\""));
+
+    let unresolved = compile(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions {
+            pages,
+            resolve_links: false,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!unresolved.has_errors(), "{:?}", unresolved.diagnostics);
+    assert!(unresolved.roc.contains("\"guide.rocdown\""));
+    assert!(!unresolved.roc.contains("\"/guide/\""));
+}
+
+#[test]
+fn resolve_links_false_skips_route_collisions() {
+    let pages = vec![page("Foo", "/dup/", &[]), page("Bar", "/dup/", &[])];
+    let out = compile(
+        SourceFile::new("test.rocdown", "@page { route: \"/dup/\" }\n"),
+        &CompileOptions {
+            pages,
+            resolve_links: false,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(
+        !out.diagnostics
+            .iter()
+            .any(|d| d.message.contains("also used by")),
+        "{:?}",
+        out.diagnostics
+    );
+}

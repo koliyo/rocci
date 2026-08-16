@@ -33,6 +33,7 @@ pub struct CompileOptions {
     pub raw_html: bool,
     pub theme: ThemeOptions,
     pub pages: Vec<PageRef>,
+    pub resolve_links: bool,
 }
 
 impl Default for CompileOptions {
@@ -42,6 +43,7 @@ impl Default for CompileOptions {
             raw_html: false,
             theme: ThemeOptions::default(),
             pages: Vec::new(),
+            resolve_links: true,
         }
     }
 }
@@ -75,7 +77,9 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
     let mut parsed = parse(source, options.raw_html);
-    links::resolve_document(source, &mut parsed, options);
+    if options.resolve_links {
+        links::resolve_document(source, &mut parsed, options);
+    }
     let mut diagnostics = parsed.diagnostics;
     let lowered = lower::lower(source, &parsed.document, options, &mut diagnostics);
     CompileOutput {

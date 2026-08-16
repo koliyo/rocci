@@ -1,0 +1,8 @@
+@page {
+    route: "/",
+    meta: { title: "Ampersand & Company" },
+}
+
+# Welcome
+
+See the [Guide](/guide/).

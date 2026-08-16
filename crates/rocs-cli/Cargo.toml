@@ -1,0 +1,15 @@
+[package]
+name = "rocs-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command-line interface for the Rocs documentation generator"
+
+[[bin]]
+name = "rocs"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+rocs = { workspace = true }
