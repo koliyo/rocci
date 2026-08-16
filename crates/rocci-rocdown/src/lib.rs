@@ -16,8 +16,9 @@ pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::ParseOutput;
 pub use pprint::format_ast;
 pub use rocci_template::{
-    ComponentInfo, Diagnostic, FixtureInfo, InitInfo, LowerOptions, OriginKind, RouteInfo, Segment,
-    Severity, SourceFile, Span, StyleArtifact, StyleKind, TemplateItem, format_diagnostic,
+    ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, OriginKind,
+    RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact, StyleKind, TemplateItem,
+    format_diagnostic, supports_ansi,
 };
 pub use rocci_theme::{
     ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,

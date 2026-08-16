@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use rocci_template::{InitInfo, RouteInfo};
 
+use crate::error_page::{self, ListedRoute};
 use crate::serve;
 
 pub const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
@@ -70,14 +71,17 @@ pub fn generate_bound_main_roc(
     }
 
     let mut arms = String::new();
+    let mut listed = Vec::new();
     let mut has_health = false;
     for (module, route) in bound {
         if route.method == "GET" && route.path == "/health" {
             has_health = true;
         }
+        listed.push(listed_route(module, route));
         arms.push_str(&route_arm(module, route));
     }
     if !has_health {
+        listed.push(ListedRoute::new("GET", "/health", "health"));
         arms.push_str(
             r#"        ("GET", "/health") =>
             Ok(
@@ -140,14 +144,7 @@ respond! = |request, context| {{
         }}
 
     match (Method.to_str(request.method()), path) {{
-{arms}        _ =>
-            Ok(
-                Server.respond(
-                    Response.from_status(404)
-                    .with_body(Str.to_utf8("Not found")),
-                ),
-            )
-    }}
+{arms}{not_found}    }}
 }}
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
@@ -173,34 +170,50 @@ patch_html! = |node| {{
         ),
     )
 }}
-"#
+"#,
+        not_found = error_page::roc_not_found_arm(),
     );
+    out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out
 }
 
+fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
+    ListedRoute::new(
+        route.method.clone(),
+        route.path.clone(),
+        format!("{type_name}.{}!", route.fn_name.trim_end_matches('!')),
+    )
+}
+
 fn route_arm(type_name: &str, route: &RouteInfo) -> String {
-    let call = format!(
-        "{type_name}.{}!(context) ? |err| ServerErr(Str.inspect(err))",
-        route.fn_name.trim_end_matches('!')
-    );
+    let handler = format!("{type_name}.{}!", route.fn_name.trim_end_matches('!'));
+    let call = format!("{handler}(context)");
     if route.method == "GET" {
         format!(
-            r#"        ("{}", "{}") => {{
-            html = {call}
-            html_ok(Html.render(html))
-        }}
+            r#"        ("{method}", "{path}") =>
+            match {call} {{
+                Ok(html) => html_ok(Html.render(html))
+                Err(err) => html_status(500, handler_error_html("{method}", "{path}", "{handler}", Str.inspect(err)))
+            }}
 "#,
-            route.method, route.path
+            method = route.method,
+            path = route.path,
+            call = call,
+            handler = handler,
         )
     } else {
         format!(
-            r#"        ("{}", "{}") => {{
-            html = {call}
-            Ok(patch_html!(html))
-        }}
+            r#"        ("{method}", "{path}") =>
+            match {call} {{
+                Ok(html) => Ok(patch_html!(html))
+                Err(err) => Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+            }}
 "#,
-            route.method, route.path
+            method = route.method,
+            path = route.path,
+            call = call,
+            handler = handler,
         )
     }
 }
@@ -257,6 +270,12 @@ mod tests {
         assert!(main.contains("Counter.on_post_actions_counter_increment!(context)"));
         assert!(main.contains("html_ok(Html.render(html))"));
         assert!(main.contains("Ok(patch_html!(html))"));
+        assert!(main.contains("html_status(404, not_found_html("));
+        assert!(main.contains("handler_error_html(\"GET\", \"/\", \"Counter.on_get_root!\""));
+        assert!(main.contains(
+            "error_overlay_html(\"POST\", \"/actions/counter/increment\", \"Counter.on_post_actions_counter_increment!\""
+        ));
+        assert!(!main.contains("Not found"));
         assert!(main.contains("(\"GET\", \"/health\")"));
         assert!(main.contains("Datastar.patch_elements"));
         assert!(main.contains("ROC_BASIC_WEBSERVER_PORT"));
@@ -318,7 +337,7 @@ mod tests {
         assert!(main.contains("About.on_get_about!(context)"));
         assert!(main.contains("About.on_post_actions_reveal_show!(context)"));
         assert!(main.contains("(\"GET\", \"/about/\")"));
-        assert!(main.contains("(\"GET\", \"/\") => {\n            html = Home.on_get_root!"));
+        assert!(main.contains("match Home.on_get_root!(context)"));
         assert!(!main.contains("About.on_get_root!"));
     }
 }

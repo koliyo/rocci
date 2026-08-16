@@ -1,0 +1,8 @@
+@page {
+    route: "/broken/",
+    meta: {
+        title: "Broken on purpose"
+    }
+
+# Missing the closing `}` on `@page`.
+# `rocci run` serves a compile-error page instead of exiting.

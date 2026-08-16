@@ -82,7 +82,10 @@ fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path
         bail!("ad-hoc codesign failed");
     }
 
-    println!("{}", bundle_dir.display());
+    println!(
+        "{}",
+        crate::style::success_text(&bundle_dir.display().to_string())
+    );
     Ok(())
 }
 

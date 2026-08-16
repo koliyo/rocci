@@ -27,4 +27,8 @@ serves sibling pages, so Guide's `[[Interactive]]` link reaches
 
 GET `/` serves the same document as the page route.
 
+While the server is up, a missing path such as `/missing` is an HTML 404 that
+lists these routes. Dedicated error-page examples live in
+[`examples/errors`](../errors).
+
 Language and compiler status: [`crates/rocci-rocdown`](../../crates/rocci-rocdown).

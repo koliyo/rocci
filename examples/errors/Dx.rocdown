@@ -1,0 +1,72 @@
+@page {
+    route: "/dx/",
+    draft: Bool.false,
+    theme: "rocci",
+    color_scheme: "dark",
+    meta: {
+        title: "rocci error pages",
+        description: "404, parse, and compile diagnostics while rocci run is serving",
+    },
+}
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        background:
+            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),
+            linear-gradient(145deg, var(--rd-color-bg) 0%, var(--rd-color-bg) 55%, var(--rd-color-surface) 100%);
+    }
+}
+
+@component
+DxLinks = |{}| {
+    @css {
+        .dx-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            margin: 1.25rem 0 0;
+        }
+        .dx-links a {
+            display: inline-flex;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid color-mix(in srgb, var(--rd-color-accent) 28%, transparent);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--rd-color-accent) 10%, transparent);
+            color: var(--rd-color-accent);
+            font-size: 0.85rem;
+            font-weight: 650;
+            text-decoration: none;
+        }
+        .dx-links a:hover { filter: brightness(1.08); }
+    }
+    <p class="dx-links">
+        <a href="/missing">Missing route</a>
+        <a href="/dx">Without trailing slash</a>
+    </p>
+}
+
+# Error pages
+
+`rocci run` keeps the preview open when a request misses, a template fails to
+parse, or Roc rejects generated code. This page is the happy path so you can
+click into a 404 without stopping the server.
+
+## 404
+
+The fallback lists every registered route and hints when a trailing slash is
+the only difference.
+
+<DxLinks />
+
+## Parse error
+
+Parse examples live in their own directory so they cannot take this page down.
+From the repo root:
+
+```sh
+cargo run -q -p rocci-cli -- run examples/errors/parse/Broken.rocdown
+```
+
+That still opens the window. The page is the diagnostic, with a source frame
+instead of `template compilation failed`.

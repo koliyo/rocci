@@ -511,6 +511,27 @@ fn guide_example_compiles() {
 }
 
 #[test]
+fn errors_dx_example_compiles() {
+    let src = include_str!("../../../examples/errors/Dx.rocdown");
+    let out = compile(
+        SourceFile::new("examples/errors/Dx.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("dxLinks = |{}|"));
+    assert!(out.roc.contains("href"));
+    assert!(out.roc.contains("/missing"));
+}
+
+#[test]
 fn all_syntax_example_compiles() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let out = compile(

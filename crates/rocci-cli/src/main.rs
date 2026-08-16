@@ -2,10 +2,12 @@ mod browse;
 mod bundle;
 mod datastar_asset;
 mod dispatch;
+mod error_page;
 mod roc_module;
 mod run;
 mod runtime_assets;
 mod serve;
+mod style;
 mod theme;
 mod view;
 
@@ -113,7 +115,14 @@ enum DatastarCmd {
     },
 }
 
-fn main() -> Result<()> {
+fn main() {
+    if let Err(err) = try_main() {
+        style::print_anyhow(&err);
+        std::process::exit(1);
+    }
+}
+
+fn try_main() -> Result<()> {
     if env::args().len() <= 1
         && let Some(resources) = bundle::bundled_resources()
     {
@@ -321,10 +330,13 @@ fn inspect_rocci(input: &Path, ast: bool, src: &str, source: SourceFile<'_>) -> 
 fn validate(path: &Path) -> Result<()> {
     let config = Config::from_file(path)?;
     println!(
-        "ok: {} ({} window{})",
-        config.app.identifier,
-        config.windows.len(),
-        if config.windows.len() == 1 { "" } else { "s" }
+        "{}",
+        style::ok(&format!(
+            "{} ({} window{})",
+            config.app.identifier,
+            config.windows.len(),
+            if config.windows.len() == 1 { "" } else { "s" }
+        ))
     );
     Ok(())
 }
