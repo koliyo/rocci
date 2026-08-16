@@ -17,6 +17,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::build::{BuildSession, absolute, unique_temp};
 use crate::config::{CONFIG_FILE, load_config};
+use crate::okf::{Profile, load_site as load_knowledge_site};
 
 const DEBOUNCE: Duration = Duration::from_millis(200);
 const RELOAD_JS: &str = r#"(function () {
@@ -65,6 +66,8 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
     }
+    let root = fs::canonicalize(&root)
+        .with_context(|| format!("failed to resolve root {}", root.display()))?;
     let (output, owns_output) = match output {
         Some(path) => (absolute(path)?, false),
         None => (unique_temp("run-out")?, true),
@@ -149,6 +152,104 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
     Ok(DevServer {
         url,
         title,
+        stop,
+        output,
+        owns_output,
+        _watcher: Some(watcher),
+        _threads: vec![server, watch],
+    })
+}
+
+/// Watch, build, and serve an OKF knowledge bundle with live reload.
+pub fn run_knowledge(
+    root: &Path,
+    output: Option<&Path>,
+    port: u16,
+    profile: Profile,
+) -> Result<DevServer> {
+    let root = absolute(root)?;
+    if !root.is_dir() {
+        bail!("{} is not a directory", root.display());
+    }
+    let root = fs::canonicalize(&root)
+        .with_context(|| format!("failed to resolve knowledge root {}", root.display()))?;
+    let (output, owns_output) = match output {
+        Some(path) => (absolute(path)?, false),
+        None => (unique_temp("knowledge-run-out")?, true),
+    };
+
+    let hub = Arc::new(ReloadHub::new());
+    let last_error = Arc::new(Mutex::new(None));
+    let has_build = Arc::new(AtomicBool::new(false));
+    let stop = Arc::new(AtomicBool::new(false));
+
+    let mut session = BuildSession::create()?;
+    match rebuild_knowledge(&mut session, &root, &output, profile) {
+        Ok(_) => {
+            has_build.store(true, Ordering::Relaxed);
+        }
+        Err(err) => {
+            eprintln!("rocs: {err:#}");
+            *last_error.lock().unwrap_or_else(|err| err.into_inner()) = Some(format!("{err:#}"));
+        }
+    }
+
+    let listener = TcpListener::bind(("127.0.0.1", port))
+        .with_context(|| format!("failed to bind 127.0.0.1:{port}"))?;
+    listener
+        .set_nonblocking(true)
+        .context("failed to set listener non-blocking")?;
+    let bound = listener.local_addr()?.port();
+    let url = format!("http://127.0.0.1:{bound}/");
+
+    let server_stop = stop.clone();
+    let server_hub = hub.clone();
+    let server_output = output.clone();
+    let server_error = last_error.clone();
+    let server_has_build = has_build.clone();
+    let server = thread::spawn(move || {
+        serve_loop(
+            listener,
+            server_output,
+            server_hub,
+            server_error,
+            server_has_build,
+            server_stop,
+        );
+    });
+
+    let (tx, rx) = mpsc::channel();
+    let mut watcher = notify::recommended_watcher(move |result| {
+        let _ = tx.send(result);
+    })
+    .context("failed to start file watcher")?;
+    watcher
+        .watch(&root, RecursiveMode::Recursive)
+        .with_context(|| format!("failed to watch {}", root.display()))?;
+
+    let watch_stop = stop.clone();
+    let watch_root = root.clone();
+    let watch_output = output.clone();
+    let watch_hub = hub;
+    let watch_error = last_error;
+    let watch_has_build = has_build;
+    let watch = thread::spawn(move || {
+        knowledge_watch_loop(
+            rx,
+            session,
+            watch_root,
+            watch_output,
+            profile,
+            watch_hub,
+            watch_error,
+            watch_has_build,
+            watch_stop,
+        );
+    });
+
+    Ok(DevServer {
+        url,
+        title: "Knowledge".into(),
         stop,
         output,
         owns_output,
@@ -242,6 +343,69 @@ fn watch_loop(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn knowledge_watch_loop(
+    rx: mpsc::Receiver<notify::Result<notify::Event>>,
+    mut session: BuildSession,
+    root: PathBuf,
+    output: PathBuf,
+    profile: Profile,
+    hub: Arc<ReloadHub>,
+    last_error: Arc<Mutex<Option<String>>>,
+    has_build: Arc<AtomicBool>,
+    stop: Arc<AtomicBool>,
+) {
+    loop {
+        if stop.load(Ordering::Relaxed) {
+            break;
+        }
+        let event = match rx.recv_timeout(DEBOUNCE) {
+            Ok(event) => event,
+            Err(mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        };
+        let mut rebuild = knowledge_event_is_relevant(&event, &root, &output);
+        loop {
+            match rx.recv_timeout(DEBOUNCE) {
+                Ok(next) => {
+                    rebuild = rebuild || knowledge_event_is_relevant(&next, &root, &output);
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => break,
+                Err(mpsc::RecvTimeoutError::Disconnected) => return,
+            }
+        }
+        if !rebuild {
+            continue;
+        }
+        match rebuild_knowledge(&mut session, &root, &output, profile) {
+            Ok(_) => {
+                has_build.store(true, Ordering::Relaxed);
+                *last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
+                hub.broadcast();
+            }
+            Err(err) => {
+                eprintln!("rocs: rebuild failed: {err:#}");
+                if !has_build.load(Ordering::Relaxed) {
+                    *last_error.lock().unwrap_or_else(|err| err.into_inner()) =
+                        Some(format!("{err:#}"));
+                    hub.broadcast();
+                }
+            }
+        }
+    }
+}
+
+fn rebuild_knowledge(
+    session: &mut BuildSession,
+    root: &Path,
+    output: &Path,
+    profile: Profile,
+) -> Result<()> {
+    let loaded = load_knowledge_site(root, profile)?;
+    session.rebuild_loaded(&loaded, output)?;
+    Ok(())
+}
+
 fn event_is_relevant(
     event: &notify::Result<notify::Event>,
     root: &Path,
@@ -261,6 +425,44 @@ fn event_is_relevant(
         .paths
         .iter()
         .any(|path| path_is_relevant(path, root, output, assets))
+}
+
+fn knowledge_event_is_relevant(
+    event: &notify::Result<notify::Event>,
+    root: &Path,
+    output: &Path,
+) -> bool {
+    let Ok(event) = event else {
+        return false;
+    };
+    if matches!(
+        event.kind,
+        EventKind::Access(_) | EventKind::Modify(notify::event::ModifyKind::Metadata(_))
+    ) {
+        return false;
+    }
+    event
+        .paths
+        .iter()
+        .any(|path| knowledge_path_is_relevant(path, root, output))
+}
+
+pub(crate) fn knowledge_path_is_relevant(path: &Path, root: &Path, output: &Path) -> bool {
+    if path.starts_with(output)
+        || path
+            .components()
+            .any(|component| component.as_os_str() == ".git")
+        || is_temp_name(path)
+    {
+        return false;
+    }
+    let Ok(relative) = path.strip_prefix(root) else {
+        return false;
+    };
+    if relative.as_os_str().is_empty() {
+        return false;
+    }
+    true
 }
 
 pub(crate) fn path_is_relevant(path: &Path, root: &Path, output: &Path, assets: &str) -> bool {
@@ -495,6 +697,7 @@ fn mime_type(path: &Path) -> &'static str {
         Some("json") => "application/json",
         Some("xml") => "application/xml",
         Some("txt") => "text/plain; charset=utf-8",
+        Some("tsv") => "text/tab-separated-values; charset=utf-8",
         Some("svg") => "image/svg+xml",
         Some("png") => "image/png",
         Some("jpg" | "jpeg") => "image/jpeg",
@@ -696,6 +899,115 @@ mod tests {
             &output,
             "assets"
         ));
+    }
+
+    #[test]
+    fn knowledge_path_filter_keeps_markdown_and_directory_changes() {
+        let root = PathBuf::from("/repo/knowledge");
+        let output = PathBuf::from("/repo/knowledge/.preview");
+        assert!(knowledge_path_is_relevant(
+            Path::new("/repo/knowledge/index.md"),
+            &root,
+            &output,
+        ));
+        assert!(knowledge_path_is_relevant(
+            Path::new("/repo/knowledge/architecture"),
+            &root,
+            &output,
+        ));
+        assert!(knowledge_path_is_relevant(
+            Path::new("/repo/knowledge/notes.txt"),
+            &root,
+            &output,
+        ));
+        assert!(!knowledge_path_is_relevant(
+            Path::new("/repo/knowledge/.preview/site/index.html"),
+            &root,
+            &output,
+        ));
+        assert!(!knowledge_path_is_relevant(
+            Path::new("/repo/knowledge/.git/HEAD"),
+            &root,
+            &output,
+        ));
+    }
+
+    #[test]
+    fn knowledge_server_rebuilds_changed_markdown() {
+        let root = temp("knowledge-live-reload");
+        fs::write(
+            root.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("test.md"),
+            "---\ntype: Note\ntitle: First\n---\n\n# First\n",
+        )
+        .unwrap();
+        let server = run_knowledge(&root, None, 0, Profile::Base).unwrap();
+        let port = server
+            .url
+            .trim_end_matches('/')
+            .rsplit(':')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let initial = http_get(port, "/test/");
+        assert!(initial.contains("First"));
+        assert!(initial.contains("rel=\"stylesheet\""));
+        assert!(initial.contains("/assets/theme."));
+        let missing = http_get(port, "/missing/");
+        assert!(missing.contains("404 Not Found"));
+        assert!(missing.contains("Page not found"));
+        assert!(missing.contains("rel=\"stylesheet\""));
+
+        fs::write(
+            root.join("test.md"),
+            "---\ntype: Note\ntitle: Second\n---\n\n# Second\n",
+        )
+        .unwrap();
+        let mut rebuilt = false;
+        for _ in 0..200 {
+            if http_get(port, "/test/").contains("Second") {
+                rebuilt = true;
+                break;
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+        assert!(
+            rebuilt,
+            "knowledge preview did not rebuild changed Markdown"
+        );
+        drop(server);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn knowledge_server_reports_initial_validation_error() {
+        let root = temp("knowledge-initial-error");
+        fs::write(
+            root.join("index.md"),
+            "---\nokf_version: \"9.9\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        let server = run_knowledge(&root, None, 0, Profile::Base).unwrap();
+        let port = server
+            .url
+            .trim_end_matches('/')
+            .rsplit(':')
+            .next()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let response = http_get(port, "/");
+        assert!(response.contains("500 Internal Server Error"));
+        assert!(response.contains("OKF1012"));
+        assert!(response.contains("unsupported okf_version"));
+        assert!(!response.contains("no built site yet"));
+        drop(server);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

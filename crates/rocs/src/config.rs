@@ -12,6 +12,8 @@ pub struct SiteConfig {
     pub build: BuildConfig,
     #[serde(rename = "nav")]
     pub navigation: Vec<NavConfig>,
+    #[serde(skip)]
+    pub sidebar_tree: bool,
 }
 
 impl Default for SiteConfig {
@@ -20,6 +22,7 @@ impl Default for SiteConfig {
             site: SiteMeta::default(),
             build: BuildConfig::default(),
             navigation: Vec::new(),
+            sidebar_tree: false,
         }
     }
 }

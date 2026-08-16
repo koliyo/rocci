@@ -125,6 +125,30 @@ impl From<KnowledgeProfileArg> for rocs::okf::Profile {
 
 #[derive(Subcommand)]
 enum KnowledgeCommand {
+    /// Watch an OKF bundle, rebuild, and serve with live reload.
+    Run {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        /// Write preview output here instead of a temp directory.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+        /// Skip the embedded window; print the URL and keep serving.
+        #[arg(long)]
+        no_window: bool,
+        /// TCP port to listen on. Defaults to a free port with the embedded window,
+        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+        #[arg(
+            long,
+            default_value = "auto",
+            default_value_if("no_window", "true", "8000"),
+            value_name = "PORT",
+            value_parser = parse_port_arg,
+            env = "ROC_BASIC_WEBSERVER_PORT"
+        )]
+        port: PortArg,
+    },
     /// Validate an OKF bundle without writing output.
     Check {
         #[arg(default_value = "knowledge")]
@@ -251,6 +275,17 @@ fn try_main() -> Result<()> {
 
 fn knowledge(command: KnowledgeCommand) -> Result<()> {
     match command {
+        KnowledgeCommand::Run {
+            root,
+            output,
+            profile,
+            no_window,
+            port,
+        } => {
+            let port = port.resolve()?;
+            let server = rocs::run_knowledge(&root, output.as_deref(), port, profile.into())?;
+            preview(server, no_window)
+        }
         KnowledgeCommand::Check {
             root,
             profile,
@@ -309,6 +344,10 @@ fn run(
 ) -> Result<()> {
     let port = port.resolve()?;
     let server = rocs::run(root, output, port)?;
+    preview(server, no_window)
+}
+
+fn preview(server: rocs::DevServer, no_window: bool) -> Result<()> {
     eprintln!("rocs: serving {} at {}", server.title, server.url);
     if no_window {
         server.wait();
@@ -404,6 +443,37 @@ mod tests {
 
     #[test]
     fn knowledge_commands_parse() {
+        let cli = Cli::try_parse_from([
+            "rocs",
+            "knowledge",
+            "run",
+            "knowledge",
+            "--profile",
+            "base",
+            "--no-window",
+            "--port",
+            "8123",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Knowledge {
+                command:
+                    KnowledgeCommand::Run {
+                        root,
+                        output,
+                        profile,
+                        no_window,
+                        port,
+                    },
+            } => {
+                assert_eq!(root, PathBuf::from("knowledge"));
+                assert!(output.is_none());
+                assert!(matches!(profile, KnowledgeProfileArg::Base));
+                assert!(no_window);
+                assert_eq!(port, PortArg::Exact(8123));
+            }
+            _ => panic!("expected knowledge run"),
+        }
         let cli = Cli::try_parse_from([
             "rocs",
             "knowledge",

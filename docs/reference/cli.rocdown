@@ -139,6 +139,7 @@ cargo run -p rocs-cli -- knowledge inspect catalog [ROOT]
 cargo run -p rocs-cli -- knowledge inspect concept ID [ROOT]
 cargo run -p rocs-cli -- knowledge inspect graph [ROOT]
 cargo run -p rocs-cli -- knowledge build [ROOT] [--output DIRECTORY]
+cargo run -p rocs-cli -- knowledge run [ROOT] [--profile base|rocci] [--port PORT] [--no-window] [--output DIRECTORY]
 ```
 
 The default root is `knowledge`. Base mode checks OKF v0.2 without imposing
@@ -146,3 +147,8 @@ Rocci's repository vocabulary. Rocci mode additionally requires the approved
 types, tags, lifecycle, provenance, authority, and owner fields. The build
 validates before writing minimal static HTML, `catalog.json`, and
 `validation.json`; knowledge Markdown is never executed as Roc or Rocci.
+`knowledge run` watches Markdown records, rebuilds the bundle, serves its
+generated site with the standard Rocs theme, and live-reloads after successful
+changes. Bundle links are mapped to clean routes and linked non-Markdown files
+are served alongside the pages. Preview output uses a temporary directory
+unless `--output` is set.
