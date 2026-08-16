@@ -106,3 +106,27 @@ cargo run -p rocs-cli -- build [ROOT] [--output DIRECTORY]
 
 The default root is the current directory. Rocs reads `rocs.toml` from that
 root. `--output` overrides `build.output`.
+
+## Preview documentation
+
+```sh
+cargo run -p rocs-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
+```
+
+Watch `.rocdown` sources, `rocs.toml`, and assets, rebuild, and serve the site
+with live reload. The default root is the current directory. Preview output
+goes to a temp directory unless `--output` is set, so a production `dist/` is
+not overwritten.
+
+| Option | Effect |
+| --- | --- |
+| `--no-window` | Serve without opening the embedded window |
+| `--port PORT` | Override the listening port |
+| `--output DIRECTORY` | Write preview files here instead of a temp directory |
+
+Port defaults to a free port with the embedded window, or `8000` with
+`--no-window`. `ROC_BASIC_WEBSERVER_PORT` can also override the server port.
+
+Content edits rebuild the static HTML. The Rocci theme is recompiled only when
+generated Roc changes (titles, headings, navigation, theme CSS). Dynamic
+islands are not live-reloaded; pages that use them still fail the catalog.

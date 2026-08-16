@@ -1,6 +1,6 @@
 # Implementation plan for the Rocdown documentation generator
 
-**Status:** active — Phase 3 complete; Rust `BuildPlan` owns hashed assets, CSP, 404, and a structured `PageView` for the first-party Rocci theme
+**Status:** active — Phase 4 dev-mode (`rocs run`) complete; remaining Phase 4 is search / clean Markdown / machine-output polish
 
 **Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
 
@@ -47,8 +47,8 @@ Dynamic islands are the exception. They are real Roc functions. They stay on the
 | --- | --- | --- |
 | `crates/rocci-rocdown` | Span-preserving Markdown/Rocdown AST; `rocci_content` / `rocci_page` for preview | Unchanged for `rocci run`; Rocs consumes `Document` + metadata without compiling page modules |
 | `crates/rocci-template` | `.rocci` → Roc `Html` | Compile first-party docs themes once per build |
-| `crates/rocs` | Discovers `.rocdown`, resolves a Rust catalog, plans hashed assets/404/CSP, compiles `RocsTheme.rocci` once, writes `dist/` | Island splice |
-| `crates/rocs-cli` | `rocs build` / `check` / `inspect` | `dev` |
+| `crates/rocs` | Discovers `.rocdown`, resolves a Rust catalog, plans hashed assets/404/CSP, compiles `RocsTheme.rocci` once, writes `dist/`, watches and serves in `rocs run` | Island splice |
+| `crates/rocs-cli` | `rocs build` / `run` / `check` / `inspect` | optional `rocci docs` alias |
 | `crates/rocci-lsp` | Local syntax diagnostics | Consume catalog snapshots from Rust, not a Roc checker subprocess |
 
 Phase 0 leftover: `examples/rocs/{index,guide}.rocdown` still build through `rocs build`. Per-page Roc modules, `RocsRegistry`, `RocsModel`, and `RocsRoute` are gone.
@@ -167,7 +167,7 @@ Same phased types as the product report (`Catalog` → `ResolvedSite` → `Build
 - generate the tiny `RocsPages.roc` index (paths only; titles and bodies are files)
 - package/stage Html + RocsBuild + compiled theme
 - invoke `roc`, map theme diagnostics, atomic output commit
-- later: watch, serve, Pagefind staging, LSP catalog snapshots
+- later: Pagefind staging, LSP catalog snapshots
 
 ### Rocci
 
@@ -184,6 +184,7 @@ Same phased types as the product report (`Catalog` → `ResolvedSite` → `Build
 
 ```text
 rocs build [ROOT] [--output dist]
+rocs run [ROOT] [--port 8000] [--no-window] [--output DIR]
 rocs check [ROOT] [--format terminal|json]
 rocs inspect config|catalog|page|graph|nav|artifacts [TARGET] [ROOT]
 ```
@@ -199,7 +200,7 @@ rocci docs inspect config|catalog|page|graph|nav|artifacts [TARGET]
 
 `docs check` must call the same Rust catalog as `docs build`. There is no cheaper second implementation.
 
-`docs dev` watches in Rust and rebuilds; the Rocci theme is recompiled only when theme/island inputs change.
+`rocs run` watches in Rust and rebuilds; the Rocci theme is recompiled only when generated Roc (titles, headings, navigation, theme) changes. Island pages still error until the splice path exists.
 
 ## 9. Phased implementation
 
@@ -238,7 +239,7 @@ Exit gate: a 100-page fixture checks as one site; every internal reference is re
 
 ### Phase 4 — clean Markdown, machine outputs, search, dev mode
 
-Derive Markdown, JSON, sitemap, `llms.txt`, and search records from the Rust catalog. Pagefind remains an external post-build adapter. Search UI is Rocci. Watch/serve stay in the host.
+`rocs run` is done: Rust watches sources, rebuilds, serves last-good HTML, and live-reloads the browser. Remaining: derive Markdown, JSON, sitemap polish, and search records from the Rust catalog. Pagefind remains an external post-build adapter. Search UI is Rocci.
 
 ### Phase 5 — semantic components, includes, tested examples
 
