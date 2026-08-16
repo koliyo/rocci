@@ -9,8 +9,10 @@ small desktop host:
    `@init` / `@on` are parsed here and emitted as Roc functions plus route
    metadata. The compiler does not type-check Roc or spawn HTTP.
 2. **Rocdown** — `.rocdown` files are Markdown with document-root `@`
-   declarations. They lower to the same `Html`, CSS, and route artifacts.
-   Full SSG and `@island` are still ahead.
+   declarations. They lower to the same `Html`, CSS, and route artifacts for
+   `rocci run`. Multi-page static output is `rocs`: Rust catalog + article
+   HTML, Rocci theme compiled once. Dynamic islands and `@island` are still
+   ahead.
 3. **Roc apps** — Standalone `rocci run App.rocci` generates a basic-webserver
    dispatcher. Authored `main.roc` apps keep full control of `init!` /
    `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc` and starts the
@@ -32,7 +34,9 @@ The contract between UI and backend should stay usable in a normal browser.
 - [x] `.rocdown` compiler core: Markdown-first pages with `@page` / `@roc` /
       `@render` and delegated Rocci declarations, lowering to Roc; `rocci run`
       for a single file. See [`crates/rocci-rocdown`](crates/rocci-rocdown).
-- [ ] Rocdown SSG (multi-page routes, layouts, drafts, `dist/` output)
+- [x] Rocdown SSG spike: `rocs build` writes a multi-page `dist/` from
+      `.rocdown` via a Rust catalog and a once-compiled Rocci shell
+- [ ] Rocdown SSG: nested routes, graph/nav/validation, drafts, island splice
 - [x] `.rocdown` LSP and editor registration
 - [ ] `@island` for `.rocci` and `.rocdown`
 - [x] macOS ad-hoc `.app` packaging that wraps a compiled Roc server

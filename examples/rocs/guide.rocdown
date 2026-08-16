@@ -1,0 +1,8 @@
+@page {
+    route: "/guide/",
+    meta: { title: "Guide" },
+}
+
+# Guide
+
+Build pages with Roc and Rocci.

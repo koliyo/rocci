@@ -52,7 +52,8 @@ pub fn lower(
         }
         if let Item::Roc(roc) = item {
             for (name, span) in roc_binding_names(source.src, roc.body) {
-                if matches!(name.as_str(), META_NAME | CONTENT_NAME | PAGE_NAME) {
+                let reserved = matches!(name.as_str(), META_NAME | CONTENT_NAME | PAGE_NAME);
+                if reserved {
                     diagnostics.push(Diagnostic::error(
                         span,
                         format!("`{name}` is reserved for generated Rocdown exports"),

@@ -11,7 +11,9 @@ mod lexer;
 mod lower;
 mod parser;
 mod pprint;
+mod remap;
 mod resolve;
+mod roc;
 mod source_map;
 mod span;
 mod validate;
@@ -34,7 +36,9 @@ pub use parser::{
     parse_template_item_from,
 };
 pub use pprint::format_ast;
+pub use remap::{MappedModule, remap_roc_output};
 pub use resolve::{camel_to_pascal, component_matches, component_roc_name, pascal_to_camel};
+pub use roc::{type_name_from_path, wrap_type_module};
 pub use source_map::{OriginKind, Segment};
 pub use span::{PositionEncoding, SourceFile, Span};
 pub use validate::{validate, validate_template_items};

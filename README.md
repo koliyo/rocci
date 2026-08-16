@@ -8,8 +8,12 @@ HTTP with Datastar. `rocci run` opens the app in an embedded
 window.
 
 The workspace is `rocci-template` (`.rocci` parse/lower), `rocci-rocdown`
-(Markdown documents), `rocci-lsp`, `rocci-cli`, `rocci-core` (config), and
-`rocci-wry` (preview windows).
+(Markdown documents), `rocci-lsp`, `rocci-cli`, `rocci-core` (config),
+`rocci-wry` (preview windows), and `rocs` / `rocs-cli` (a documentation
+generator). Rocs keeps a Rust catalog and article renderer, compiles a Rocci
+theme once, and only uses Roc for that shell (and later for dynamic islands).
+Other doc frameworks can depend on the same base crates without taking a Rocs
+dependency.
 
 ## Run an example
 
@@ -90,7 +94,14 @@ cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
+cargo run -p rocs-cli -- build examples/rocs --output dist
 ```
+
+Rocs discovers `.rocdown` files, resolves routes in Rust, renders article HTML
+from the Markdown AST, and wraps each page in [`RocsTheme.rocci`](crates/rocs/templates/RocsTheme.rocci).
+Content edits do not recompile Markdown as Roc. Pages with `@render` or other
+islands are rejected until that splice path exists. See
+[`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md).
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
