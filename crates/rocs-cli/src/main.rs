@@ -16,8 +16,9 @@ enum Commands {
     Build {
         #[arg(default_value = ".")]
         root: PathBuf,
-        #[arg(short, long, default_value = "dist")]
-        output: PathBuf,
+        /// Override `build.output` from rocs.toml.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
 }
 
@@ -31,7 +32,7 @@ fn main() {
 fn try_main() -> Result<()> {
     match Cli::parse().command {
         Commands::Build { root, output } => {
-            rocs::build(&root, &output)?;
+            rocs::build_configured(&root, output.as_deref())?;
             Ok(())
         }
     }
@@ -49,7 +50,7 @@ mod tests {
         match cli.command {
             Commands::Build { root, output } => {
                 assert_eq!(root, PathBuf::from("examples/rocs"));
-                assert_eq!(output, PathBuf::from("tmp-dist"));
+                assert_eq!(output, Some(PathBuf::from("tmp-dist")));
             }
         }
     }

@@ -2250,6 +2250,8 @@ dependencies = [
  "anyhow",
  "rocci-rocdown",
  "rocci-template",
+ "serde",
+ "toml",
 ]
 
 [[package]]

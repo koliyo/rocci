@@ -7,9 +7,11 @@
 mod article;
 mod build;
 mod catalog;
+mod config;
 mod runtime;
 
-pub use build::{BuildReport, build, discover_rocdown, pages_source};
+pub use build::{BuildReport, build, build_configured, discover_rocdown, pages_source};
+pub use config::{BuildConfig, NavConfig, SiteConfig, SiteMeta, load_config};
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 
 pub const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst";

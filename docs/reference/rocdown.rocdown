@@ -1,0 +1,93 @@
+@page {
+    meta: {
+        title: "Rocdown language reference",
+        description: "Look up Rocdown page metadata, declarations, Markdown behavior, links, themes, routes, and generated values.",
+    },
+}
+
+# Rocdown language reference
+
+Rocdown is Markdown with explicit document-root declarations. Ordinary prose,
+email addresses, handles, and fenced code retain their Markdown meaning.
+
+## Declaration recognition
+
+A reserved declaration is recognized only when it starts at the document root,
+after optional indentation, and its header matches the expected shape. Reserved
+names inside lists, block quotes, or fences stay Markdown.
+
+Use `\@roc` for a literal line-start declaration example outside a fence.
+
+## Declarations
+
+| Form | Meaning |
+| --- | --- |
+| `@page { ... }` | Route, draft, layout, theme, color scheme, and metadata |
+| `@roc { ... }` | Roc imports, types, and values |
+| `@render { expr }` | Insert one Roc `Html` expression |
+| `@component` | Declare a Rocci component |
+| `@fixture` | Tag preview or test data |
+| `@css { ... }` | Add file-scoped CSS |
+| `@context`, `@init`, `@on` | Declare a standalone server app |
+| `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
+| `<Tag />` | Instantiate a document-root Rocci component or element |
+
+`@island` is reserved in the design but not parsed yet.
+
+## Page metadata
+
+````rocdown
+@page {
+    route: "/guides/rocdown/",
+    draft: Bool.false,
+    theme: "paper",
+    color_scheme: "auto",
+    meta: {
+        title: "Rocdown",
+        description: "Markdown with explicit Roc and Rocci regions",
+    },
+}
+````
+
+| Field | Constraint |
+| --- | --- |
+| `route` | Absolute string path; no `..`, query, fragment, encoded separator, or NUL |
+| `layout` | Statically resolvable Roc value path |
+| `draft` | `Bool.true` or `Bool.false` |
+| `theme` | Built-in ID, local theme ID, `none`, or CSS file path |
+| `color_scheme` | `auto`, `light`, or `dark` |
+| `meta` | Roc record; title and description are statically extracted |
+
+## Markdown profile
+
+Rocdown uses CommonMark with GFM tables, strikethrough, task lists, and extended
+URL autolinks. It adds deterministic heading IDs, stable `rd-*` classes,
+language classes on fenced code, wiki links, and page-link resolution.
+
+Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
+Rocci tag, or `@render` instead.
+
+## Links
+
+Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown file paths, and
+same-page heading validation. Absolute routes are checked when a page index is
+available. External schemes such as `https:` and `mailto:` pass through.
+
+## Generated values
+
+Every document exports:
+
+```text
+rocci_meta    : page metadata record
+rocci_content : {} -> Html
+rocci_page    : {} -> Html
+```
+
+If no GET handler exists for the page route, lowering synthesizes one. A
+non-root page also gets a root preview route so `rocci run` can open it.
+
+## Static Rocs support
+
+Rocs currently accepts the static Markdown tree plus `@page`. It rejects Roc,
+Rocci, CSS, handlers, and custom layouts until the island splice path is
+implemented. Draft pages are excluded from production builds.

@@ -254,6 +254,7 @@ pub struct PageMeta {
     pub layout: Option<String>,
     pub meta: Option<Span>,
     pub title: Option<String>,
+    pub description: Option<String>,
     pub theme: Option<String>,
     pub color_scheme: Option<String>,
 }

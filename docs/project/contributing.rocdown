@@ -1,0 +1,71 @@
+@page {
+    meta: {
+        title: "Contributing",
+        description: "Build the workspace, run focused tests, inspect generated artifacts, and make changes that preserve Rocci's boundaries.",
+    },
+}
+
+# Contributing
+
+Rocci is small enough that a focused change should remain easy to trace from
+source syntax to generated Roc or HTML. Preserve that property when extending
+the project.
+
+## Set up the workspace
+
+Follow [Installation](/getting-started/installation/), then run:
+
+```sh
+cargo test --workspace
+```
+
+Some end-to-end tests use Roc when it is available. Set
+`ROCCI_REQUIRE_ROC=1` in CI lanes where skipping those tests would hide a
+toolchain problem.
+
+## Work in the owning layer
+
+| Change | Primary owner |
+| --- | --- |
+| Template grammar or source maps | `rocci-template` |
+| Markdown or Rocdown declarations | `rocci-rocdown` |
+| Runtime configuration | `rocci-core` |
+| Build, run, preview, or bundle behavior | `rocci-cli` and `rocci-wry` |
+| Static docs catalog and outputs | `rocs` |
+| Documentation site chrome | `RocsTheme.rocci` |
+
+Do not interpret Rocci templates in Rust just to avoid compiling a theme. Do
+not encode static documentation prose as Roc constructors just to keep catalog
+logic in Roc.
+
+## Inspect generated artifacts
+
+For syntax work:
+
+```sh
+cargo run -p rocci-cli -- inspect --ast test/AllSyntax.rocci
+cargo run -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
+```
+
+For documentation work:
+
+```sh
+cargo run -p rocs-cli -- build docs
+```
+
+Check generated HTML at narrow and wide widths, with keyboard navigation, in
+light and dark color schemes, and with JavaScript disabled.
+
+## Add tests at the right boundary
+
+- Parser and lowering tests should run without spawning a server.
+- Catalog and route tests should not require Roc.
+- Theme application tests may require the pinned Roc toolchain.
+- Runtime tests should exercise the same HTTP origin used by the webview.
+- Failed static builds must preserve the previous output tree.
+
+## Keep documentation current
+
+When behavior changes, update the relevant Rocdown reference and the README in
+the owning crate. Mark planned behavior as planned; do not present design-report
+ideas as implemented features.

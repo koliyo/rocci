@@ -1,0 +1,124 @@
+@page {
+    meta: {
+        title: "Rocci language reference",
+        description: "Look up .rocci file structure, component tags, attributes, directives, fixtures, CSS, and server declarations.",
+    },
+}
+
+# Rocci language reference
+
+A `.rocci` file is a Roc module with explicit template and server declarations.
+Everything outside recognized declarations stays Roc.
+
+## File structure
+
+```rocci
+module Example exposing [card]
+
+import Html
+
+Tone : [Neutral, Positive]
+
+label = |tone| ...
+
+@component Card = |{ title }|
+    <article><h2>{title}</h2></article>
+```
+
+Recognized top-level forms are `@component`, `@fixture`, `@css`, `@context`,
+`@init`, and `@on`.
+
+## Components
+
+```text
+@component Name = |params| html
+@component Name = |params| { template }
+```
+
+Component names are PascalCase. Lowered Roc values use lower camel case:
+`StatusCard` becomes `statusCard`. One root tag needs no braces; multiple roots,
+directives, or preamble items use a braced body.
+
+An additional parameter receives the paired tag body:
+
+```rocci
+@component Badge = |{ tone }, content|
+    <span class={toneClass(tone)}>{content}</span>
+```
+
+## Tags
+
+| Form | Meaning |
+| --- | --- |
+| `<div>` | Intrinsic HTML element |
+| `<Hello />` | Local component call |
+| `<Design.Button />` | Qualified component call |
+| `<>...</>` | Fragment |
+| `<br>` or `<img />` | Void HTML element |
+
+Unknown PascalCase tags lower to calls and are reported later by the Roc compiler.
+
+## Attributes
+
+| Form | Meaning |
+| --- | --- |
+| `class="card"` | Static string |
+| `class={cardClass(state)}` | Roc expression |
+| `disabled` | Boolean attribute |
+| `data-on:click=@post("/actions/x")` | Datastar backend action |
+
+Attribute names may contain hyphens. Prop spreading and dynamic attribute names
+are not supported.
+
+## Text and interpolation
+
+`{expr}` in text position must produce a `Str`, unless it is a bare component
+body parameter already typed as `Html`. Convert numbers at the interpolation
+site, for example `{count.to_str()}`.
+
+## Directives
+
+| Directive | Purpose |
+| --- | --- |
+| `@let name = expr` | Bind a Roc value before render-producing items |
+| `@if condition { ... }` | Render structural branches |
+| `@for item in items { ... }` | Map a list to template items |
+| `@match value { Pattern => ... }` | Pattern-match structural branches |
+| `@css { ... }` | Add raw scoped CSS |
+
+The body-opening `{` must be on the logical directive header line. Markup is
+not allowed inside an arbitrary Roc expression.
+
+## Fixtures
+
+```rocci
+@fixture{target: TodoItem}
+todoItemExample = { item: { id: 1, text: "Buy milk" } }
+```
+
+The fixture remains a normal Roc binding and is indexed for preview tools.
+Unqualified targets must name a local component.
+
+## Server declarations
+
+```rocci
+@context { db : Sqlite.Db }
+@init { ... }
+@on:get("/") = |{ db }| { ... }
+@on:post("/actions/save") = |{ db }| { ... }
+```
+
+These forms apply to standalone apps. Bodies are Roc. `@context` declares
+state, `@init` creates it, and `@on` defines route handlers.
+
+## Comments and escaping
+
+- `#` begins a template line comment at the start of an item.
+- `<!-- ... -->` is dropped as an HTML comment.
+- `@@` emits a literal `@` inside a template body.
+- Ordinary Roc comments remain valid in Roc regions.
+
+## Deliberate limits
+
+Rocci does not provide arbitrary JSX, dynamic tags, prop spreading, a runtime
+component registry, or markup embedded in arbitrary Roc expressions.

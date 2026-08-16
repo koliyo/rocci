@@ -30,3 +30,4 @@ examples/datastar/gallery.db
 examples/datastar/gallery.db-*
 examples/datastar/assets/datastar.js
 .zig-cache
+dist

@@ -1,0 +1,62 @@
+@page {
+    meta: {
+        title: "What is Rocci?",
+        description: "Understand how Rocci connects Roc, HTML templates, Markdown documents, Datastar, and a desktop webview host.",
+    },
+}
+
+# What is Rocci?
+
+Rocci is a set of deliberately small layers for building interfaces with Roc.
+It adds author-friendly syntax where Roc is intentionally general, then lowers
+that syntax back to ordinary Roc and web-platform primitives.
+
+## The four pieces
+
+### Rocci templates
+
+A `.rocci` module is mostly Roc. `@component` marks the regions that use a
+bounded HTML template grammar. The compiler lowers those regions to calls such
+as `Html.element`, `Html.attribute`, and `Html.text`.
+
+Use Rocci templates for components, complete pages, server-rendered fragments,
+and views in a Roc application.
+
+### Rocdown documents
+
+A `.rocdown` file is mostly Markdown. Document-root declarations such as
+`@page`, `@roc`, `@component`, and `@render` make executable or structural
+regions explicit. Code fences are always documentation.
+
+Use Rocdown for guides, articles, documentation, and content-heavy pages that
+may need a small amount of Roc-native behavior.
+
+### The runtime
+
+`rocci run` compiles a standalone `.rocci` or `.rocdown` file, or a directory
+with an authored `main.roc`. It serves the app over local HTTP and can open it
+inside a native Tao/Wry window. The same URL works in an ordinary browser.
+
+### Rocs
+
+Rocs is the static documentation generator built on Rocdown and Rocci. Rust
+owns discovery, routes, the content catalog, and Markdown rendering. A Rocci
+theme owns the visible site shell. This split keeps content builds deterministic
+without asking the Roc compiler to type-check prose.
+
+## What Rocci is not
+
+- It is not JSX embedded throughout Roc.
+- It is not a client-side application framework.
+- It does not execute fenced code blocks.
+- It does not hide HTTP or HTML behind a proprietary UI runtime.
+- It does not type-check Roc; generated programs still go through the Roc compiler.
+
+## Where it fits
+
+Choose Rocci when you want the guarantees and data modeling of Roc, but you
+also want to author semantic HTML directly. It is especially suited to small
+tools, server-driven interfaces, desktop utilities, and technical documents.
+
+Continue with [installation](/getting-started/installation/) or jump straight
+to the [quickstart](/getting-started/quickstart/).

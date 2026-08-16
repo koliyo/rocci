@@ -1,0 +1,108 @@
+@page {
+    meta: {
+        title: "Build a component",
+        description: "Compose Roc values, Rocci markup, fixtures, control flow, and scoped CSS in a reusable component.",
+    },
+}
+
+# Build a reusable component
+
+Rocci components are ordinary Roc functions with a bounded template body. This
+guide builds a status card that accepts typed data, branches on state, and ships
+its styles beside the markup.
+
+## Define the data model
+
+Ordinary declarations outside components stay ordinary Roc:
+
+```rocci
+import Html
+
+Status : [Ready, Working, Failed]
+
+statusLabel = |status|
+    match status {
+        Ready => "Ready"
+        Working => "Working"
+        Failed => "Failed"
+    }
+```
+
+## Add the component
+
+```rocci
+@component StatusCard = |{ title, status }, content| {
+    @css {
+        .status-card {
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.75rem;
+        }
+        .status-card strong { display: block; }
+    }
+    <section class="status-card">
+        <strong>{title}</strong>
+        <span>{statusLabel(status)}</span>
+        @if status == Failed {
+            <p role="alert">This task needs attention.</p>
+        }
+        {content}
+    </section>
+}
+```
+
+The first parameter is a Roc record. The second is the component body passed by
+a paired component tag. There is no implicit `children` property.
+
+## Compose it
+
+```rocci
+@component Dashboard = |{}|
+    <main>
+        <StatusCard title="Nightly build" status={Working}>
+            <a href="/builds/latest">View details</a>
+        </StatusCard>
+    </main>
+```
+
+Intrinsic lowercase tags become `Html.element` calls. PascalCase tags call the
+corresponding lowered Roc function. Qualified tags such as `<Design.Button />`
+call a component imported from another module.
+
+## Add fixture data
+
+```rocci
+@fixture{target: StatusCard}
+failedCard = {
+    title: "Documentation",
+    status: Failed,
+}
+```
+
+Fixtures are normal Roc bindings tagged for previews and tools. `rocci view`
+and `rocci browse` use them; the generated value remains available to tests.
+
+## Keep control flow structural
+
+Use `@if`, `@for`, and `@match` when branches produce markup. Use normal Roc
+expressions inside text and attributes.
+
+```rocci
+@for item in items {
+    <StatusCard title={item.title} status={item.status} />
+}
+```
+
+Markup is not valid inside an arbitrary Roc expression. If a branch returns
+markup, make the branch a Rocci directive or call a named rendering function.
+
+## Verify the component
+
+```sh
+cargo run -p rocci-cli -- inspect --ast Status.rocci
+cargo run -p rocci-cli -- view Status.rocci --component StatusCard
+```
+
+For every available component and fixture under a directory, use
+`rocci browse`. Continue with [server actions](/guides/server-actions/) when the
+component needs to update state.

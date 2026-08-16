@@ -1,0 +1,84 @@
+@page {
+    meta: {
+        title: "Architecture",
+        description: "See how Rocci separates parsing, lowering, static content, site chrome, runtime hosting, and editor tooling.",
+    },
+}
+
+# Architecture
+
+Rocci is a workspace of narrow crates rather than one opaque framework. Each
+layer owns one kind of transformation and hands explicit artifacts to the next.
+
+## From source to application
+
+```text
+.rocci / .rocdown
+        │
+        ▼
+span-preserving parser
+        │
+        ▼
+Roc source + route/style metadata
+        │
+        ▼
+Roc compiler
+        │
+        ▼
+local HTTP server ──► browser or Tao/Wry window
+```
+
+The template crates do not invoke Roc, start a server, or open a window. Those
+effects belong to the CLI and host layers.
+
+## Workspace responsibilities
+
+| Crate | Responsibility |
+| --- | --- |
+| `rocci-template` | Parse `.rocci`, lower template regions, preserve source maps |
+| `rocci-rocdown` | Parse Markdown plus explicit declarations, headings, links, and page metadata |
+| `rocci-theme` | Resolve built-in and local document CSS themes |
+| `rocci-core` | Configuration and shared runtime contracts |
+| `rocci-cli` | Build, inspect, run, bundle, and manage Datastar assets |
+| `rocci-wry` | Native preview windows backed by Tao and Wry |
+| `rocci-lsp` | Diagnostics, symbols, hover, completion, and semantic tokens |
+| `rocs` | Documentation catalog, routes, article rendering, theme application, and static artifacts |
+
+## Why templates lower to Roc
+
+Rocci is syntax, not a parallel component runtime. Lowering to a small `Html`
+constructor interface has useful consequences:
+
+- ordinary Roc types and functions remain the source of truth;
+- generated code can be inspected;
+- Roc compiler errors can be mapped back to source spans;
+- hosts can supply different compatible `Html` implementations;
+- a component remains a Roc function rather than an object in a runtime registry.
+
+## Why Rocs keeps prose in Rust
+
+The first Rocs prototype emitted every Markdown node as Roc source. That made
+Roc compile time grow with prose, duplicated graph logic needed by the LSP, and
+turned routing into missing-standard-library work.
+
+The current split is intentional:
+
+| Concern | Owner |
+| --- | --- |
+| Parse and catalog documentation | Rust |
+| Render static Markdown body | Rust |
+| Render navigation and site chrome | Rocci, evaluated by Roc |
+| Compile authored dynamic islands | Roc/Rocci, only where used |
+| Commit the output tree | Rust |
+
+Content edits therefore do not become large generated Roc modules. The visible
+theme remains a real Rocci program.
+
+## The web-platform boundary
+
+The runtime communicates over local HTTP. GET handlers produce documents;
+mutation handlers can produce Datastar SSE patches. This keeps the interface
+inspectable and gives the embedded webview and a normal browser the same backend.
+
+Read [the rendering model](/concepts/rendering-model/) for the request and
+response semantics.

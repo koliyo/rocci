@@ -1,0 +1,83 @@
+@page {
+    meta: {
+        title: "Rocs site configuration",
+        description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocs.toml.",
+    },
+}
+
+# Rocs site configuration
+
+Place `rocs.toml` at the documentation content root. Rocs uses the same file for
+site metadata, build paths, copied assets, and curated navigation.
+
+## Example
+
+```toml
+[site]
+title = "Rocci"
+description = "Roc-native interface tools"
+base_url = "https://rocci.dev"
+language = "en"
+repository = "https://github.com/koliyo/rocci"
+social_image = "/assets/og.png"
+
+[build]
+output = "../dist/rocci.dev"
+assets = "assets"
+
+[[nav]]
+label = "Start here"
+items = ["index", "getting-started/quickstart"]
+
+[[nav]]
+label = "Reference"
+items = ["reference/rocci", "reference/rocdown"]
+```
+
+Unknown keys are errors.
+
+## Site fields
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `title` | `Documentation` | Header, metadata, and generated index title |
+| `description` | Empty | Default page and agent-index description |
+| `base_url` | Empty | Canonical, sitemap, and absolute discovery URLs |
+| `language` | `en` | Document language |
+| `repository` | Empty | Source link in the header |
+| `social_image` | Empty | Site-relative Open Graph image path |
+
+`base_url` must use HTTP or HTTPS. A trailing slash is normalized away.
+
+## Build fields
+
+`output` is resolved relative to the content root unless `--output` overrides
+it. `assets` names a directory copied to `/assets/` in the published tree.
+
+Rocs writes into a staging directory and atomically replaces the output only
+after a successful build.
+
+## Navigation
+
+Each navigation item is a stable page ID derived from the content-root-relative
+path without `.rocdown`:
+
+| Source | Page ID | Route |
+| --- | --- | --- |
+| `index.rocdown` | `index` | `/` |
+| `guides/index.rocdown` | `guides/index` | `/guides/` |
+| `guides/build.rocdown` | `guides/build` | `/guides/build/` |
+
+Navigation order is explicit. Unknown IDs and duplicate items fail the build.
+Published pages may remain unlisted when that is intentional.
+
+## Generated artifacts
+
+In addition to page HTML and copied assets, a configured build emits
+`llms.txt`. When `base_url` is set, it also emits `sitemap.xml` and `robots.txt`.
+
+Build this site's content from the repository root with:
+
+```sh
+cargo run -p rocs-cli -- build docs
+```
