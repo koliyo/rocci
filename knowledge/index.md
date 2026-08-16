@@ -12,6 +12,6 @@ okf_version: "0.2"
 * [Audits](audits/) - Reserved for findings against current behavior.
 * [Case studies](case-studies/) - Reserved for concrete boundary examples.
 * [Reference](reference/) - Migration and lookup material.
-* [Design](design/) - Reserved for the Phase 4 design contract.
+* [Design](design/) - Current design-system evidence and DTCG-informed research, explicitly separated from implementation authority.
 
 The [Phase 2 migration matrix](migration-matrix.tsv) accounts for every section heading in the nine root research and implementation reports.

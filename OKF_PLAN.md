@@ -4,7 +4,7 @@
 
 **Repository state inspected:** current working tree, including the root reports that are not yet tracked
 
-**Status:** active — Phase 1 implementation complete; exit validation is pending on one pre-existing Rocs test
+**Status:** active — Phase 4 complete; Phase 1 exit validation remains pending on one pre-existing Rocs test
 
 **Standards baseline:** Open Knowledge Format (OKF) v0.2; DTCG 2025.10 is a research/source topic for design knowledge records
 
@@ -33,7 +33,7 @@ This is a filesystem knowledge bundle, not a new database server. That matches O
 | 1 — parser and three-record vertical slice | Implementation complete; exit pending (2026-08-16) | Parser, profile validation, footnotes, reserved files, JSON inspection, knowledge CLI/build, and three seed records are implemented; one pre-existing Rocs session test hangs in `roc build` |
 | 2 — inventory and provenance migration | Complete (2026-08-16) | All priority-1 records and proposed directory indexes are present; `knowledge/migration-matrix.tsv` accounts for every section heading in the nine root reports/plans |
 | 3 — decisions and human review | Complete (2026-08-16) | Atomic decisions, contradiction review, the knowledge log, git source-drift checks, and `human:nils` verification of all ten priority-1 records are complete |
-| 4 — design-system knowledge | Not started | DTCG research and any existing `DESIGN.md` material will be captured as knowledge records; no token or theme implementation is planned |
+| 4 — design-system knowledge | Complete (2026-08-16) | Current Rocdown and Rocs theme evidence, a draft `DESIGN.md`, and two draft design records make shipped behavior and DTCG research discoverable without adopting token tooling |
 | 5 — CI, retrieval, and publication | Not started | Publication remains local/repository-visible pending the Phase 5 review |
 | 6 — consolidation | Not started | Root reports remain in place and unchanged |
 
@@ -659,6 +659,16 @@ Deliverables:
 - distinguish shipped behavior, evidence, and proposals; link records to current code and external standards.
 
 Exit: design intent, current implementation evidence, and DTCG-informed proposals are discoverable and clearly distinguished in the knowledge base. No theme or token implementation is required.
+
+Implementation progress on 2026-08-16:
+
+- `DESIGN.md` now provides a concise contributor reference for character, surface boundaries, theme and scheme meanings, content/layout guidance, accessibility expectations, and evidence updates.
+- `knowledge/design/design-system.md` records the shipped Rocdown theme contract and separate Rocs shell, while `knowledge/design/design-tokens.md` inventories their current CSS roles and captures the DTCG format, resolver, and color findings as external research.
+- The design indexes expose both records and explicitly state their draft, non-adopted status.
+- The theming and implementation-status records were corrected after the plan amendment removed the earlier DTCG implementation target. Their historical `human:nils` verification events are retained, but their changed revisions are `draft` pending a new human review.
+- No theme code, DTCG artifact, generator, resolver, validation path, compatibility CSS, or migration was introduced.
+
+Result: complete. Current behavior, design intent, and possible DTCG-informed directions are separately discoverable. The new design records, `DESIGN.md`, and the two corrected priority-1 revisions remain drafts until human review; this lifecycle state is explicit and does not imply token adoption.
 
 ### Phase 5 — CI, retrieval, and publication
 
