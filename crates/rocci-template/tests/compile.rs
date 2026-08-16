@@ -882,6 +882,59 @@ fn injects_document_css_into_synthetic_head() {
 }
 
 #[test]
+fn embed_css_false_keeps_artifacts_without_style_element() {
+    let src = r#"
+@css {
+    body { margin: 0; }
+}
+
+@component Page = |{}| {
+    @css {
+        .hero { color: red; }
+    }
+    <html lang="en">
+        <head>
+            <title>Hi</title>
+        </head>
+        <body>
+            <p class="hero">ok</p>
+        </body>
+    </html>
+}
+"#;
+    let out = compile(
+        SourceFile::new("test.rocci", src),
+        &LowerOptions {
+            embed_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(
+        out.styles.len() >= 2,
+        "expected file and component style artifacts, got {}",
+        out.styles.len()
+    );
+    assert!(
+        !out.roc.contains("\"style\""),
+        "embed_css: false should not inject a style element\n{}",
+        out.roc
+    );
+    assert!(
+        out.roc.contains("data-rocci-css"),
+        "scope stamps should still be applied"
+    );
+}
+
+#[test]
 fn isolates_component_css_and_does_not_stamp_child_calls() {
     let src = r#"
 @component Parent = |{}| {

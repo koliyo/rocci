@@ -33,6 +33,9 @@ pub struct SiteMeta {
     pub language: String,
     pub repository: String,
     pub social_image: String,
+    pub subtitle: String,
+    pub footer: String,
+    pub csp: String,
 }
 
 impl Default for SiteMeta {
@@ -44,6 +47,9 @@ impl Default for SiteMeta {
             language: "en".into(),
             repository: String::new(),
             social_image: String::new(),
+            subtitle: String::new(),
+            footer: String::new(),
+            csp: String::new(),
         }
     }
 }
@@ -182,6 +188,27 @@ items = ["index", "quickstart"]
         assert_eq!(config.site.base_url, "https://rocci.dev");
         assert_eq!(config.build.output, "../dist/docs");
         assert_eq!(config.navigation[0].items[1], "quickstart");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_subtitle_footer_and_csp() {
+        let root = temp("chrome");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+subtitle = "Interface tools"
+footer = "Experimental."
+csp = "default-src 'self'"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.site.subtitle, "Interface tools");
+        assert_eq!(config.site.footer, "Experimental.");
+        assert_eq!(config.site.csp, "default-src 'self'");
         let _ = fs::remove_dir_all(root);
     }
 

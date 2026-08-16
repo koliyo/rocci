@@ -1,6 +1,6 @@
 # Implementation plan for the Rocdown documentation generator
 
-**Status:** active — Phase 2 complete; Rust catalog resolves identity, graph, navigation, and `rocs check` / `inspect`
+**Status:** active — Phase 3 complete; Rust `BuildPlan` owns hashed assets, CSP, 404, and a structured `PageView` for the first-party Rocci theme
 
 **Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
 
@@ -47,7 +47,7 @@ Dynamic islands are the exception. They are real Roc functions. They stay on the
 | --- | --- | --- |
 | `crates/rocci-rocdown` | Span-preserving Markdown/Rocdown AST; `rocci_content` / `rocci_page` for preview | Unchanged for `rocci run`; Rocs consumes `Document` + metadata without compiling page modules |
 | `crates/rocci-template` | `.rocci` → Roc `Html` | Compile first-party docs themes once per build |
-| `crates/rocs` | Discovers `.rocdown`, resolves a Rust catalog (ids, aliases, graph, nav), renders article HTML, compiles `RocsTheme.rocci` once, writes `dist/` | Island splice |
+| `crates/rocs` | Discovers `.rocdown`, resolves a Rust catalog, plans hashed assets/404/CSP, compiles `RocsTheme.rocci` once, writes `dist/` | Island splice |
 | `crates/rocs-cli` | `rocs build` / `check` / `inspect` | `dev` |
 | `crates/rocci-lsp` | Local syntax diagnostics | Consume catalog snapshots from Rust, not a Roc checker subprocess |
 
@@ -99,7 +99,7 @@ Vec<SourcePage>
     -> Rust parser
     -> MdNode + SourcePage
     -> Rust resolves PageView and article HTML
-    -> RocsTheme.rocci receives title/slots (later full PageView)
+    -> RocsTheme.rocci receives a PageView
     -> generated Rocci functions return Html
     -> RocsBuild.roc writes static HTML
 ```
@@ -120,6 +120,7 @@ crates/rocs/
 └── src/
     ├── article.rs            # MdNode → article HTML
     ├── catalog.rs            # routes, output paths, duplicates
+    ├── plan.rs               # BuildPlan, hashed assets, PageView
     ├── build.rs              # discover, stage, invoke roc, commit
     └── runtime.rs
 
@@ -152,11 +153,11 @@ Site-critical metadata stays a statically extractable subset of `@page`. `Source
 
 ### 6.4 Catalog states
 
-Same phased types as the product report (`Catalog` → `ResolvedSite` → `BuildPlan`), implemented in Rust. Current slice: stable ids, aliases, trailing slash, output paths, duplicate/case-insensitive collisions, reference graph, navigation, breadcrumbs/previous/next, all-at-once diagnostics.
+Same phased types as the product report (`Catalog` → `ResolvedSite` → `BuildPlan`), implemented in Rust. Current slice: stable ids, aliases, trailing slash, output paths, duplicate/case-insensitive collisions, reference graph, navigation, breadcrumbs/previous/next, hashed assets, 404, CSP, `PageView`, all-at-once diagnostics.
 
 ### 6.5 Theme contract
 
-`RocsTheme.rocci` currently takes `{ title }` plus article HTML. Expand to `PageView` (site, lanes, sidebar, breadcrumbs, outline, previous/next, resources) without changing catalog ownership. The Roc applicator, not an arbitrary layout, owns final `<head>` resource injection.
+`RocsTheme.rocci` receives a `PageView` (`site`, lanes, sidebar, breadcrumbs, outline, previous/next, resources). The Roc applicator, not an arbitrary layout, owns final `<head>` resource injection.
 
 ## 7. Rust / Rocci / Roc budget
 
@@ -228,7 +229,7 @@ Exit gate: HTML and plain text can be derived from `MdNode`; the Roc compiler se
 
 Exit gate: a 100-page fixture checks as one site; every internal reference is resolved before rendering.
 
-### Phase 3 — production HTML and first-party Rocci theme
+### Phase 3 — done
 
 - full `PageView` passed to Rocci
 - 404, alias redirects, asset hashing, CSP, canonical metadata

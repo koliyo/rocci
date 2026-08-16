@@ -27,7 +27,7 @@ import Html
     }
 
     * { box-sizing: border-box; }
-    body { margin: 0; min-width: 20rem; background: var(--canvas); }
+    body { margin: 0; background: var(--canvas); }
     a { color: inherit; }
     img { max-width: 100%; height: auto; }
 
@@ -87,6 +87,29 @@ import Html
     }
     .header-rule { width: 1px; height: 1.4rem; background: var(--line-strong); }
     .header-subtitle { color: var(--muted); font-size: .88rem; }
+    .lanes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .15rem .2rem;
+        margin-left: .35rem;
+    }
+    .lanes:not(:has(.lane-link)) { display: none; }
+    .lane-link {
+        display: inline-flex;
+        min-height: 2.25rem;
+        align-items: center;
+        padding: .35rem .7rem;
+        border-radius: .45rem;
+        color: var(--muted);
+        font-size: .82rem;
+        font-weight: 650;
+        text-decoration: none;
+    }
+    .lane-link:hover { color: var(--ink); background: var(--surface); }
+    .lane-link.is-current {
+        color: var(--accent-strong);
+        background: var(--accent-soft);
+    }
     .header-actions { margin-left: auto; display: flex; align-items: center; gap: .55rem; }
     .header-link {
         display: inline-flex;
@@ -145,7 +168,7 @@ import Html
     }
 
     .content-column { min-width: 0; padding: 3.4rem clamp(1.5rem, 5vw, 5rem) 5rem; }
-    .article { width: min(100%, 46rem); margin: 0 auto; }
+    .article { width: min(100%, 46rem); margin: 0 auto; overflow-x: auto; }
     .article > :first-child { margin-top: 0; }
     .article .rd-header-1 {
         margin: 0 0 1.15rem;
@@ -277,9 +300,6 @@ import Html
     .outline:not(:has(.outline-link)) .outline-label,
     .outline:not(:has(.outline-link)) .outline-items { display: none; }
 
-    .outline:not(:has(.outline-link)) .outline-label,
-    .outline:not(:has(.outline-link)) .outline-items { display: none; }
-
     .breadcrumbs {
         width: min(100%, 46rem);
         margin: 0 auto 1.4rem;
@@ -343,7 +363,7 @@ import Html
     }
     @media (max-width: 48rem) {
         .header-inner { padding: 0 1rem; }
-        .header-rule, .header-subtitle, .header-link { display: none; }
+        .header-rule, .header-subtitle, .header-link, .lanes { display: none; }
         .site-grid { display: block; }
         .sidebar { display: none; }
         .content-column { padding: 2.3rem 1.25rem 4rem; }
@@ -403,23 +423,49 @@ import Html
         .article { max-width: none; }
         .article .rd-link { color: inherit; }
     }
+
+    @media (forced-colors: active) {
+        .skip-link:focus,
+        :focus-visible {
+            outline: .18rem solid currentColor;
+            outline-offset: .18rem;
+        }
+        .nav-link.is-current,
+        .lane-link.is-current,
+        .brand-mark {
+            outline: .12rem solid currentColor;
+        }
+        .site-header,
+        .sidebar,
+        .article .rd-blockquote,
+        .article .rd-code,
+        .article .rd-code-block,
+        .article .rd-table,
+        .header-link,
+        .mobile-menu summary {
+            border: 1px solid currentColor;
+        }
+        .article .rd-link { text-decoration: underline; }
+    }
 }
 
-@component SiteShell = |{ site, nav, route, title, description, outline, breadcrumbs, previous, next }, content| {
+@component SiteShell = |{ site, lanes, sidebar, route, title, description, outline, breadcrumbs, previous, next, resources }, content| {
     <html lang={site.language}>
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <meta name="color-scheme" content="light dark" />
+            <meta http-equiv="Content-Security-Policy" content={resources.csp} />
             <title>{title} · {site.title}</title>
+            <link rel="stylesheet" href={resources.stylesheet} />
             @if description != "" {
                 <meta name="description" content={description} />
             } @else if site.description != "" {
                 <meta name="description" content={site.description} />
             }
-            @if site.base_url != "" {
-                <link rel="canonical" href={"${site.base_url}${route}"} />
-                <meta property="og:url" content={"${site.base_url}${route}"} />
+            @if resources.canonical != "" {
+                <link rel="canonical" href={resources.canonical} />
+                <meta property="og:url" content={resources.canonical} />
             }
             <meta property="og:type" content="website" />
             <meta property="og:title" content={title} />
@@ -440,8 +486,19 @@ import Html
                         <span class="brand-mark" aria-hidden="true">r</span>
                         <span>{site.title}</span>
                     </a>
-                    <span class="header-rule" aria-hidden="true"></span>
-                    <span class="header-subtitle">Roc-native interface tools</span>
+                    @if site.subtitle != "" {
+                        <span class="header-rule" aria-hidden="true"></span>
+                        <span class="header-subtitle">{site.subtitle}</span>
+                    }
+                    <nav class="lanes" aria-label="Sections">
+                        @for lane in lanes {
+                            <a
+                                class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                href={lane.href}
+                                aria-current={if lane.current { "true" } else { "false" }}
+                            >{lane.label}</a>
+                        }
+                    </nav>
                     <div class="header-actions">
                         @if site.repository != "" {
                             <a class="header-link" href={site.repository}>Source ↗</a>
@@ -450,21 +507,25 @@ import Html
                     <details class="mobile-menu">
                         <summary>Menu</summary>
                         <div class="mobile-panel">
-                            <nav aria-label="Documentation">
-                                @for section in nav {
-                                    <section class="nav-section">
-                                        <p class="nav-label">{section.label}</p>
-                                        <div class="nav-items">
-                                            @for item in section.items {
-                                                <a
-                                                    class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
-                                                    href={item.href}
-                                                    aria-current={if item.href == route { "page" } else { "false" }}
-                                                >{item.title}</a>
-                                            }
-                                        </div>
-                                    </section>
+                            <nav aria-label="Sections">
+                                @for lane in lanes {
+                                    <a
+                                        class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                        href={lane.href}
+                                        aria-current={if lane.current { "true" } else { "false" }}
+                                    >{lane.label}</a>
                                 }
+                            </nav>
+                            <nav aria-label="Documentation">
+                                <div class="nav-items">
+                                    @for item in sidebar {
+                                        <a
+                                            class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
+                                            href={item.href}
+                                            aria-current={if item.href == route { "page" } else { "false" }}
+                                        >{item.title}</a>
+                                    }
+                                </div>
                             </nav>
                         </div>
                     </details>
@@ -473,20 +534,15 @@ import Html
             <div class="site-grid">
                 <aside class="sidebar">
                     <nav aria-label="Documentation">
-                        @for section in nav {
-                            <section class="nav-section">
-                                <p class="nav-label">{section.label}</p>
-                                <div class="nav-items">
-                                    @for item in section.items {
-                                        <a
-                                            class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
-                                            href={item.href}
-                                            aria-current={if item.href == route { "page" } else { "false" }}
-                                        >{item.title}</a>
-                                    }
-                                </div>
-                            </section>
-                        }
+                        <div class="nav-items">
+                            @for item in sidebar {
+                                <a
+                                    class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
+                                    href={item.href}
+                                    aria-current={if item.href == route { "page" } else { "false" }}
+                                >{item.title}</a>
+                            }
+                        </div>
                     </nav>
                 </aside>
                 <main class="content-column" id="main-content">
@@ -512,9 +568,9 @@ import Html
                             <a class="journey-next" href={next.href}>{next.title} →</a>
                         }
                     </nav>
-                    <footer class="article-footer">
-                        Rocci is experimental software. Verify APIs against the current source before production use.
-                    </footer>
+                    @if site.footer != "" {
+                        <footer class="article-footer">{site.footer}</footer>
+                    }
                 </main>
                 <aside class="outline" aria-label="On this page">
                     <p class="outline-label">On this page</p>
@@ -531,3 +587,4 @@ import Html
         </body>
     </html>
 }
+

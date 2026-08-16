@@ -219,6 +219,11 @@ pub fn inspect(root: &Path, kind: InspectKind, target: Option<&str>) -> Result<S
     let loaded = load_site(root)?;
     match kind {
         InspectKind::Config => Ok(serde_json::to_string_pretty(&loaded.config)?),
+        InspectKind::Artifacts => {
+            let result = resolve_loaded(&loaded);
+            let planned = crate::plan::plan(&loaded.root, &loaded.config, &result.site)?;
+            Ok(serde_json::to_string_pretty(&planned.artifacts())?)
+        }
         _ => {
             let result = resolve_loaded(&loaded);
             inspect_resolved(&result.site, kind, target)
@@ -275,27 +280,7 @@ fn inspect_resolved(
                 })
                 .collect(),
         })?),
-        InspectKind::Artifacts => {
-            let artifacts: Vec<_> = site
-                .pages
-                .iter()
-                .filter(|page| !page.draft)
-                .flat_map(|page| {
-                    let mut items = vec![ArtifactInspect {
-                        kind: "page",
-                        route: page.route.as_str(),
-                        output_path: page.output_path.clone(),
-                    }];
-                    items.extend(page.aliases.iter().map(|alias| ArtifactInspect {
-                        kind: "redirect",
-                        route: alias.as_str(),
-                        output_path: catalog::route_output_path(alias),
-                    }));
-                    items
-                })
-                .collect();
-            Ok(serde_json::to_string_pretty(&artifacts)?)
-        }
+        InspectKind::Artifacts => unreachable!("artifacts are planned before inspect_resolved"),
     }
 }
 
@@ -341,13 +326,6 @@ struct JourneyInspect<'a> {
     breadcrumbs: &'a [catalog::NavLink],
     previous: Option<&'a catalog::NavLink>,
     next: Option<&'a catalog::NavLink>,
-}
-
-#[derive(Serialize)]
-struct ArtifactInspect<'a> {
-    kind: &'static str,
-    route: &'a str,
-    output_path: String,
 }
 
 fn collect_files(root: &Path) -> Result<BTreeSet<String>> {
@@ -452,6 +430,7 @@ mod tests {
         assert!(catalog.contains("\"id\": \"guide\""));
         let artifacts = inspect(&root, InspectKind::Artifacts, None).unwrap();
         assert!(artifacts.contains("old-guide/index.html"));
+        assert!(artifacts.contains("404.html"));
         let _ = fs::remove_dir_all(root);
     }
 
