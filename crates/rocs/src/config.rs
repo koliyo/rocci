@@ -12,6 +12,10 @@ pub struct SiteConfig {
     pub build: BuildConfig,
     #[serde(rename = "nav")]
     pub navigation: Vec<NavConfig>,
+    #[serde(default)]
+    pub snippets: SnippetsConfig,
+    #[serde(default)]
+    pub examples: ExamplesConfig,
     #[serde(skip)]
     pub sidebar_tree: bool,
 }
@@ -22,6 +26,8 @@ impl Default for SiteConfig {
             site: SiteMeta::default(),
             build: BuildConfig::default(),
             navigation: Vec::new(),
+            snippets: SnippetsConfig::default(),
+            examples: ExamplesConfig::default(),
             sidebar_tree: false,
         }
     }
@@ -79,6 +85,28 @@ pub struct NavConfig {
     pub label: String,
     pub items: Vec<String>,
     pub directory: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct SnippetsConfig {
+    pub roots: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ExamplesConfig {
+    pub timeout_ms: u64,
+    pub allow_network: bool,
+}
+
+impl Default for ExamplesConfig {
+    fn default() -> Self {
+        Self {
+            timeout_ms: 30_000,
+            allow_network: false,
+        }
+    }
 }
 
 pub fn load_config(root: &Path) -> Result<SiteConfig> {
@@ -140,6 +168,15 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
             bail!(
                 "nav section `{}` has an invalid directory `{directory}` in {}",
                 section.label,
+                path.display()
+            );
+        }
+    }
+    for (index, root) in config.snippets.roots.iter().enumerate() {
+        if root.trim().is_empty() || root.contains('\0') || Path::new(root).is_absolute() {
+            bail!(
+                "snippets.roots[{}] `{root}` must be a relative path in {}",
+                index + 1,
                 path.display()
             );
         }

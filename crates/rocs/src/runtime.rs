@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 pub const HTML: &str = include_str!("../runtime/Html.roc");
 pub(crate) const BUILD: &str = include_str!("../runtime/RocsBuild.roc");
 pub const THEME: &str = include_str!("../templates/RocsTheme.rocci");
+pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
 
 pub const HTML_BINDINGS: &[&str] = &[
     "element",

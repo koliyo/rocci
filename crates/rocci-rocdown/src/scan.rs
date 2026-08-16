@@ -18,6 +18,7 @@ pub enum Reserved {
     For,
     Match,
     Let,
+    Docs,
 }
 
 impl Reserved {
@@ -36,6 +37,7 @@ impl Reserved {
             "for" => Self::For,
             "match" => Self::Match,
             "let" => Self::Let,
+            "docs" => Self::Docs,
             _ => return None,
         })
     }
@@ -55,6 +57,7 @@ impl Reserved {
             Self::For => "for",
             Self::Match => "match",
             Self::Let => "let",
+            Self::Docs => "docs",
         }
     }
 
@@ -297,6 +300,14 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }
+        Reserved::Docs => {
+            cur.skip_trivia();
+            if cur.scan_tag_name().is_none() {
+                return false;
+            }
+            cur.skip_trivia();
+            cur.peek() == Some('{')
+        }
         Reserved::If | Reserved::Match => header_has_body_brace(src, after_name),
         Reserved::For => header_matches_for(src, after_name),
         Reserved::Let => header_matches_let(src, after_name),
@@ -373,6 +384,10 @@ fn skip_brace_block(src: &str, at: usize, kind: Reserved) -> (usize, Vec<Diagnos
     cur.eat('@');
     cur.scan_ident();
     cur.skip_trivia();
+    if kind == Reserved::Docs {
+        cur.scan_tag_name();
+        cur.skip_trivia();
+    }
     if cur.peek() != Some('{') {
         diagnostics.push(Diagnostic::error(
             Span::point(cur.pos),
@@ -464,10 +479,30 @@ fn looks_like_list_marker(stripped: &str) -> bool {
 }
 
 pub fn inner_span(src: &str, at: usize) -> Span {
+    brace_inner_span(src, at, false)
+}
+
+pub fn docs_kind_span(src: &str, at: usize) -> Span {
     let mut cur = Cursor::at(src, at);
     cur.eat('@');
     cur.scan_ident();
     cur.skip_trivia();
+    cur.scan_tag_name().unwrap_or_else(|| Span::point(cur.pos))
+}
+
+pub fn docs_inner_span(src: &str, at: usize) -> Span {
+    brace_inner_span(src, at, true)
+}
+
+fn brace_inner_span(src: &str, at: usize, skip_kind: bool) -> Span {
+    let mut cur = Cursor::at(src, at);
+    cur.eat('@');
+    cur.scan_ident();
+    cur.skip_trivia();
+    if skip_kind {
+        cur.scan_tag_name();
+        cur.skip_trivia();
+    }
     if cur.peek() != Some('{') {
         return Span::point(cur.pos);
     }
@@ -477,4 +512,83 @@ pub fn inner_span(src: &str, at: usize) -> Span {
         return Span::point(start.saturating_add(1));
     }
     rocci_template::trim_span(src, Span::new(start + 1, cur.pos.saturating_sub(1)))
+}
+
+pub fn scan_range(
+    src: &str,
+    start: usize,
+    end: usize,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Vec<ScannedDecl> {
+    let mut decls = Vec::new();
+    let mut pos = start.min(end);
+    let end = end.min(src.len());
+    let mut fence: Option<(u8, usize)> = None;
+    let mut list_tight = false;
+    let mut quote_tight = false;
+
+    while pos < end {
+        let line_start = pos;
+        let nl = src[pos..end].find('\n').map(|i| pos + i);
+        let line_end = nl.unwrap_or(end);
+        let line = &src[line_start..line_end];
+        let next = nl.map(|i| i + 1).unwrap_or(end);
+
+        if let Some((ch, n)) = fence {
+            if is_fence_close(line, ch, n) {
+                fence = None;
+            }
+            pos = next;
+            continue;
+        }
+
+        if line.trim().is_empty() {
+            list_tight = false;
+            quote_tight = false;
+            pos = next;
+            continue;
+        }
+
+        let stripped = skip_0_3_spaces(line);
+        if stripped.starts_with('>') {
+            quote_tight = true;
+            pos = next;
+            continue;
+        }
+        if looks_like_list_marker(stripped) {
+            list_tight = true;
+            pos = next;
+            continue;
+        }
+        if quote_tight || list_tight {
+            pos = next;
+            continue;
+        }
+
+        if let Some(decl) = try_scan_decl(src, line_start, diagnostics) {
+            pos = decl.end.max(next).min(end);
+            if decl.at < end {
+                decls.push(decl);
+            }
+            list_tight = false;
+            quote_tight = false;
+            continue;
+        }
+        if let Some(decl) = try_scan_html(src, line_start, diagnostics) {
+            pos = decl.end.max(next).min(end);
+            if decl.at < end {
+                decls.push(decl);
+            }
+            list_tight = false;
+            quote_tight = false;
+            continue;
+        }
+
+        if let Some(open) = fence_open(stripped) {
+            fence = Some(open);
+        }
+        pos = next;
+    }
+
+    decls
 }

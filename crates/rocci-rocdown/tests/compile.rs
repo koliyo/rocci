@@ -977,3 +977,118 @@ fn resolve_links_false_skips_route_collisions() {
         out.diagnostics
     );
 }
+
+#[test]
+fn docs_note_is_parsed_and_lowered() {
+    let src = "\
+# Guide
+
+@docs note {
+    title: \"Deprecation\"
+
+    Do not use `foo` in production.
+}
+";
+    let out = compile_ok(src);
+    assert!(
+        out.document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Docs(docs) if docs.kind == "note")),
+        "{:?}",
+        out.document.items
+    );
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(docs note)"), "{ast}");
+    assert!(out.roc.contains("data-rocci-docs"));
+    assert!(out.roc.contains("rd-docs-note"));
+    assert!(out.roc.contains("Deprecation"));
+}
+
+#[test]
+fn kebab_docs_kinds_are_parsed() {
+    let src = "\
+@docs link-card {
+    href: \"/guide/\"
+    title: \"Guide\"
+}
+
+@docs api-operation {
+    id: \"get\"
+}
+";
+    let out = compile_ok(src);
+    let kinds: Vec<_> = out
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            rocci_rocdown::Item::Docs(docs) => Some(docs.kind.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(kinds, ["link-card", "api-operation"]);
+}
+
+#[test]
+fn nested_docs_and_escaped_docs_are_distinct() {
+    let src = "\
+@docs steps {
+    @docs step {
+        title: \"Install\"
+
+        Run the installer.
+    }
+}
+
+\\@docs note { not a directive }
+";
+    let out = compile_ok(src);
+    let docs: Vec<_> = out
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            rocci_rocdown::Item::Docs(docs) => Some(docs.kind.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(docs, ["steps"]);
+    let nested = rocci_rocdown::parse_fragment(
+        SourceFile::new("test.rocdown", src),
+        out.document
+            .items
+            .iter()
+            .find_map(|item| match item {
+                rocci_rocdown::Item::Docs(docs) => Some(docs.body),
+                _ => None,
+            })
+            .unwrap(),
+        false,
+    );
+    assert!(
+        nested
+            .document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Docs(docs) if docs.kind == "step"))
+    );
+    assert!(out.roc.contains("@docs note { not a directive }"));
+}
+
+#[test]
+fn render_inside_docs_is_an_error() {
+    let src = "\
+@docs note {
+    @render {
+        Html.text(\"nope\")
+    }
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`@render` is not allowed inside `@docs`")),
+        "{errs:?}"
+    );
+}

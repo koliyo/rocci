@@ -128,8 +128,27 @@ Port defaults to a free port with the embedded window, or `8000` with
 `--no-window`. `ROC_BASIC_WEBSERVER_PORT` can also override the server port.
 
 Content edits rebuild the static HTML. The Rocci theme is recompiled only when
-generated Roc changes (titles, headings, navigation, theme CSS). Dynamic
-islands are not live-reloaded; pages that use them still fail the catalog.
+generated Roc changes (titles, headings, navigation, theme CSS, docs component
+titles). Included snippet files also trigger a rebuild. Dynamic islands are
+not live-reloaded; pages that use them still fail the catalog.
+
+## Check documentation
+
+```sh
+cargo run -p rocs-cli -- check [ROOT] [--format terminal|json]
+```
+
+Validate the catalog, including `@docs` content models and includes, without
+compiling Roc or writing output.
+
+## Test documented examples
+
+```sh
+cargo run -p rocs-cli -- test [ROOT] [--update] [--format terminal|json]
+```
+
+Run `@docs example` commands that declare `test`. This is not part of
+`rocs build`. `--update` rewrites golden files named by `expect`.
 
 ## Validate and build knowledge
 

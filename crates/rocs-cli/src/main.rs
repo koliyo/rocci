@@ -52,6 +52,16 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
         format: CheckFormatArg,
     },
+    /// Run declared `@docs example` commands. Never part of `rocs build`.
+    Test {
+        #[arg(default_value = ".")]
+        root: PathBuf,
+        /// Rewrite golden files from captured stdout.
+        #[arg(long)]
+        update: bool,
+        #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
+        format: CheckFormatArg,
+    },
     /// Print resolved catalog data.
     Inspect {
         #[command(subcommand)]
@@ -329,6 +339,24 @@ fn try_main() -> Result<()> {
             }
             Ok(())
         }
+        Commands::Test {
+            root,
+            update,
+            format,
+        } => {
+            let report = rocs::test_examples(&root, update)?;
+            let rendered = report.render(match format {
+                CheckFormatArg::Terminal => rocs::CheckFormat::Terminal,
+                CheckFormatArg::Json => rocs::CheckFormat::Json,
+            })?;
+            if !rendered.is_empty() {
+                println!("{rendered}");
+            }
+            if report.has_errors() {
+                bail!("documentation examples failed");
+            }
+            Ok(())
+        }
         Commands::Inspect { target } => {
             let (kind, root, page) = match &target {
                 InspectTarget::Config { root } => (rocs::InspectKind::Config, root, None),
@@ -548,6 +576,14 @@ mod tests {
                 _ => panic!("expected page"),
             },
             _ => panic!("expected inspect"),
+        }
+        let cli = Cli::try_parse_from(["rocs", "test", "docs", "--update"]).unwrap();
+        match cli.command {
+            Commands::Test { root, update, .. } => {
+                assert_eq!(root, PathBuf::from("docs"));
+                assert!(update);
+            }
+            _ => panic!("expected test"),
         }
     }
 

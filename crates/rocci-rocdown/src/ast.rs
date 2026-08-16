@@ -21,6 +21,7 @@ pub enum Item {
     Init(InitDecl),
     On(OnDecl),
     Template(TemplateItem),
+    Docs(DocsDecl),
 }
 
 impl Item {
@@ -37,6 +38,7 @@ impl Item {
             Self::Init(item) => item.span,
             Self::On(item) => item.span,
             Self::Template(item) => item.span(),
+            Self::Docs(item) => item.span,
         }
     }
 }
@@ -56,6 +58,14 @@ pub struct RocDecl {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderDecl {
     pub expr: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DocsDecl {
+    pub kind: String,
+    pub kind_span: Span,
+    pub body: Span,
     pub span: Span,
 }
 

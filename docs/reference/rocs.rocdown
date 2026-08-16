@@ -38,6 +38,41 @@ items = ["reference/rocci", "reference/rocdown"]
 
 Unknown keys are errors.
 
+## Snippets and examples
+
+Optional snippet roots are resolved relative to the content root. They still
+cannot escape the repository parent, and include paths cannot contain `..`,
+NUL, or absolute locations.
+
+```toml
+[snippets]
+roots = ["snippets", "../examples"]
+
+[examples]
+timeout_ms = 30000
+allow_network = false
+```
+
+`@docs include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
+code literal. Named regions use `docs-region: NAME` / `docs-region-end: NAME`
+markers. Line ranges emit warning `RD2504`. Cycles are `RD2505`. Included files
+are watch inputs for `rocs run`.
+
+`rocs check` validates components and includes without Roc. Untested
+`@docs example` records warn (`RD2601`). Example commands never run during
+`rocs build` or `rocs check`.
+
+```sh
+cargo run -p rocs-cli -- test docs
+cargo run -p rocs-cli -- test docs --update
+```
+
+`rocs test` runs declared `test` argument lists with cwd at the content root, a
+timeout, no extra environment, and no shell expansion. `--update` rewrites
+golden files. Failures are diagnostics (`RD2603`); `dist/` is not written.
+Fenced code is never executed. Default CSP stays `script-src 'none'`; tab
+panels are stacked sections, not a JavaScript tablist.
+
 ## Site fields
 
 | Field | Default | Meaning |

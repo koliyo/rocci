@@ -78,6 +78,7 @@ pub struct SourcePage {
     pub outgoing_links: Vec<String>,
     pub image_urls: Vec<String>,
     pub article_html: String,
+    pub docs: crate::docs::PageDocs,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -111,6 +112,11 @@ pub struct ResolvedPage {
     pub breadcrumbs: Vec<NavLink>,
     pub previous: Option<NavLink>,
     pub next: Option<NavLink>,
+    #[serde(skip)]
+    pub article: Vec<crate::docs::ArticleNode>,
+    pub examples: Vec<crate::docs::ExampleRecord>,
+    pub includes: Vec<crate::docs::IncludeOrigin>,
+    pub docs_kinds: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -149,6 +155,7 @@ pub struct ResolvedSite {
     pub navigation: Vec<NavSection>,
     pub graph: Vec<Edge>,
     pub unlisted: Vec<String>,
+    pub snippet_paths: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -260,10 +267,16 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
             breadcrumbs: Vec::new(),
             previous: None,
             next: None,
+            article: page.docs.article.clone(),
+            examples: page.docs.examples.clone(),
+            includes: page.docs.includes.clone(),
+            docs_kinds: crate::docs::collect_kinds(&page.docs.article),
         });
     }
 
     report_route_collisions(&resolved, &mut diagnostics);
+
+    crate::docs::fill_link_cards(&mut resolved);
 
     let graph = resolve_graph(pages, &resolved, &options.files, &mut diagnostics);
     let navigation = resolve_navigation(&resolved, &options.navigation, &mut diagnostics);
@@ -275,6 +288,11 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
         .map(|page| page.id.clone())
         .collect();
 
+    let snippet_paths = pages
+        .iter()
+        .flat_map(|page| page.docs.snippet_paths.iter().cloned())
+        .collect();
+
     resolved.sort_by(|a, b| a.output_path.cmp(&b.output_path).then(a.id.cmp(&b.id)));
 
     ResolveResult {
@@ -283,6 +301,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
             navigation,
             graph,
             unlisted,
+            snippet_paths,
         },
         diagnostics,
     }
@@ -903,6 +922,7 @@ mod tests {
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
             article_html: String::new(),
+            docs: crate::docs::PageDocs::default(),
         }
     }
 

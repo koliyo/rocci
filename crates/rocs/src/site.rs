@@ -12,6 +12,7 @@ use crate::catalog::{
     ResolvedSite, RouteHint, Severity, SourcePage,
 };
 use crate::config::{SiteConfig, load_config};
+use crate::docs::{self, IncludeOptions};
 
 #[derive(Debug, Clone)]
 pub struct LoadedSite {
@@ -38,6 +39,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
     let config = load_config(&root)?;
     let discovered = crate::build::discover_rocdown(&root)?;
     let files = collect_files(&root)?;
+    let snippet_roots = snippet_roots(&root, &config)?;
     let mut sources = Vec::new();
     let mut diagnostics = Vec::new();
 
@@ -54,6 +56,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             SourceFile::new(&name, &src),
             &rocci_rocdown::CompileOptions {
                 resolve_links: false,
+                resolve_includes: false,
                 ..rocci_rocdown::CompileOptions::default()
             },
         );
@@ -134,6 +137,61 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             Some(route) => RouteHint::Explicit(route),
             None => RouteHint::Derived,
         };
+        let page_docs = docs::load_page_docs(
+            SourceFile::new(&name, &src),
+            &compiled.document,
+            &relative_name,
+            IncludeOptions {
+                root: &root,
+                snippet_roots: &snippet_roots,
+            },
+            &mut diagnostics,
+        );
+        let headings = if page_docs.article.is_empty() {
+            compiled
+                .headings
+                .iter()
+                .map(|heading| PageHeading {
+                    level: heading.level,
+                    id: heading.id.clone(),
+                    text: heading.text.clone(),
+                })
+                .collect()
+        } else {
+            let mut headings = compiled
+                .headings
+                .iter()
+                .map(|heading| PageHeading {
+                    level: heading.level,
+                    id: heading.id.clone(),
+                    text: heading.text.clone(),
+                })
+                .collect::<Vec<_>>();
+            let nested = docs::collect_headings(&page_docs.article);
+            for heading in nested {
+                if !headings
+                    .iter()
+                    .any(|existing| existing.id == heading.id && existing.level == heading.level)
+                {
+                    headings.push(heading);
+                }
+            }
+            headings
+        };
+        let mut outgoing_links: Vec<String> =
+            compiled.links.iter().map(|link| link.url.clone()).collect();
+        outgoing_links.extend(docs::collect_links(&page_docs.article));
+        outgoing_links.sort();
+        outgoing_links.dedup();
+        let mut image_urls = collect_image_urls(&compiled.document);
+        image_urls.extend(docs::collect_images(&page_docs.article));
+        image_urls.sort();
+        image_urls.dedup();
+        let article_html = if page_docs.article.is_empty() {
+            render_document(&compiled.document)
+        } else {
+            docs::render_article(&page_docs.article)
+        };
         sources.push(SourcePage {
             id: page_id,
             id_explicit,
@@ -143,18 +201,11 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             draft: compiled.page_meta.draft,
             title,
             description,
-            headings: compiled
-                .headings
-                .iter()
-                .map(|heading| PageHeading {
-                    level: heading.level,
-                    id: heading.id.clone(),
-                    text: heading.text.clone(),
-                })
-                .collect(),
-            outgoing_links: compiled.links.iter().map(|link| link.url.clone()).collect(),
-            image_urls: collect_image_urls(&compiled.document),
-            article_html: render_document(&compiled.document),
+            headings,
+            outgoing_links,
+            image_urls,
+            article_html,
+            docs: page_docs,
         });
     }
 
@@ -178,6 +229,7 @@ pub fn resolve_loaded(loaded: &LoadedSite) -> catalog::ResolveResult {
     );
     let mut diagnostics = loaded.diagnostics.clone();
     diagnostics.append(&mut result.diagnostics);
+    docs::validate_resolved(&result.site.pages, &mut diagnostics);
     result.diagnostics = diagnostics;
     result
 }
@@ -211,6 +263,31 @@ pub fn check(root: &Path) -> Result<CheckReport> {
     Ok(CheckReport {
         diagnostics: result.diagnostics,
     })
+}
+
+pub fn test_examples(root: &Path, update: bool) -> Result<CheckReport> {
+    let loaded = load_site(root)?;
+    let result = resolve_loaded(&loaded);
+    let mut diagnostics = result.diagnostics;
+    if diagnostics.iter().any(CatalogDiagnostic::is_error) {
+        return Ok(CheckReport { diagnostics });
+    }
+    let examples: Vec<_> = result
+        .site
+        .pages
+        .iter()
+        .flat_map(|page| page.examples.iter().cloned())
+        .collect();
+    diagnostics.extend(docs::run_examples(
+        &examples,
+        &docs::ExampleTestOptions {
+            root: loaded.root.clone(),
+            timeout: std::time::Duration::from_millis(loaded.config.examples.timeout_ms),
+            allow_network: loaded.config.examples.allow_network,
+            update,
+        },
+    ));
+    Ok(CheckReport { diagnostics })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -272,6 +349,13 @@ fn inspect_resolved(
             Ok(serde_json::to_string_pretty(&PageInspect {
                 page,
                 outgoing,
+                docs_kinds: &page.docs_kinds,
+                includes: &page.includes,
+                examples: page
+                    .examples
+                    .iter()
+                    .map(|example| example.id.as_str())
+                    .collect(),
             })?)
         }
         InspectKind::Graph => Ok(serde_json::to_string_pretty(&site.graph)?),
@@ -320,6 +404,9 @@ struct PageInspect<'a> {
     #[serde(flatten)]
     page: &'a ResolvedPage,
     outgoing: Vec<Edge>,
+    docs_kinds: &'a [String],
+    includes: &'a [docs::IncludeOrigin],
+    examples: Vec<&'a str>,
 }
 
 #[derive(Serialize)]
@@ -365,6 +452,28 @@ fn collect_files_in(root: &Path, dir: &Path, files: &mut BTreeSet<String>) -> Re
         }
     }
     Ok(())
+}
+
+fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
+    let mut roots = Vec::new();
+    for entry in &config.snippets.roots {
+        let path = root.join(entry);
+        if path
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+        {
+            let canonical = std::fs::canonicalize(&path).unwrap_or(path);
+            let ceiling_buf = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+            let ceiling = ceiling_buf.parent().unwrap_or(&ceiling_buf);
+            if !canonical.starts_with(ceiling) {
+                bail!("snippet root `{entry}` escapes the repository");
+            }
+            roots.push(canonical);
+        } else {
+            roots.push(path);
+        }
+    }
+    Ok(roots)
 }
 
 fn collect_image_urls(document: &Document) -> Vec<String> {
@@ -465,6 +574,21 @@ mod tests {
         assert!(report.has_errors());
         let rendered = report.render(CheckFormat::Terminal).unwrap();
         assert!(rendered.contains("p050.rocdown"), "{rendered}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_reports_unknown_docs_kind() {
+        let root = temp("docs-kind");
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n@docs widget {\n    Hi\n}\n",
+        )
+        .unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors());
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(rendered.contains("RD2401"), "{rendered}");
         let _ = fs::remove_dir_all(root);
     }
 }

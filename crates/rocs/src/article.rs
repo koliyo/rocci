@@ -3,7 +3,7 @@ use rocci_rocdown::{Document, Item, MdNode};
 pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
     for item in &document.items {
         match item {
-            Item::Markdown(_) | Item::Page(_) => {}
+            Item::Markdown(_) | Item::Page(_) | Item::Docs(_) => {}
             Item::Render(_) => return Err("@render"),
             Item::Roc(_) => return Err("@roc"),
             Item::Component(_) => return Err("@component"),
@@ -45,7 +45,7 @@ pub fn render_document(document: &Document) -> String {
     fragment(&parts)
 }
 
-fn render_md(node: &MdNode) -> String {
+pub(crate) fn render_md(node: &MdNode) -> String {
     match node {
         MdNode::Heading {
             level,
