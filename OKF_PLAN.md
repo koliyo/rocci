@@ -4,7 +4,7 @@
 
 **Repository state inspected:** current working tree, including the root reports that are not yet tracked
 
-**Status:** active — Phases 0–5 complete
+**Status:** complete — Phases 0–6 complete
 
 **Standards baseline:** Open Knowledge Format (OKF) v0.2; DTCG 2025.10 is a research/source topic for design knowledge records
 
@@ -35,7 +35,7 @@ This is a filesystem knowledge bundle, not a new database server. That matches O
 | 3 — decisions and human review | Complete (2026-08-16) | Atomic decisions, contradiction review, the knowledge log, git source-drift checks, and `human:nils` verification of all ten priority-1 records are complete |
 | 4 — design-system knowledge | Complete (2026-08-16) | Current Rocdown and Rocs theme evidence, a draft `DESIGN.md`, and two draft design records make shipped behavior and DTCG research discoverable without adopting token tooling |
 | 5 — CI, retrieval, and publication | Complete (2026-08-16) | CI validates and compares builds; catalog, search, agent, and validation outputs plus filtered retrieval ship; publication remains local/repository-visible |
-| 6 — consolidation | Not started | Root reports remain in place and unchanged |
+| 6 — consolidation | Complete (2026-08-16) | Seven dated reports are preserved under `archive/reports/`, two active plans remain at the root, no concept is currently superseded, stale public status prose is corrected, and a fixed retrieval benchmark is enforced in CI |
 
 The Phase 0 baseline was refreshed against repository `HEAD` `c77fb38` on 2026-08-16. The Rocs Phase 3 work previously described as uncommitted is now committed: `BuildPlan`, fingerprinted assets and theme CSS, asset URL rewriting, CSP, `404.html`, and the structured `PageView` are present. The repository has twelve root Markdown files including this plan, twenty published `.rocdown` pages under `docs/`, and nine workspace crates. Four root files remain untracked at approval time: this plan plus `DATASTAR_ROCKET_IN_ROCCI_REPORT.md`, `ROCCI_SYNTAX_WEAK_POINTS_REPORT.md`, and `ROCDOWN_FORMAT_REPORT.md`.
 
@@ -327,7 +327,7 @@ sources:
     author: process:git
     last_modified: 2026-08-16
   - id: format-report
-    resource: ../../ROCDOWN_FORMAT_REPORT.md
+    resource: ../../archive/reports/ROCDOWN_FORMAT_REPORT.md
     title: Original Rocdown format report
     last_modified: 2026-08-15
 ---
@@ -698,6 +698,15 @@ Deliverables, only after stable records exist:
 - decide whether each root report remains, moves to an archive, or is deleted in a separate reviewed change;
 - remove duplicate status/decision prose from public docs only when a generated or linked canonical source is better;
 - measure retrieval quality with a fixed question set before adding embeddings or a database service.
+
+Implementation progress on 2026-08-16:
+
+- A lifecycle audit found no canonical concept that has actually been superseded, so no record was given a misleading `deprecated` status. `knowledge/reference/consolidation.md` records the audit and the replacement rule for future deprecations.
+- Seven dated research, audit, and design reports moved to `archive/reports/` with their prose unchanged and only relative links repaired; `ROC_TEMPLATE.md` and `ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md` remain at the root as active detailed plans. No report was deleted, source links were updated, and the migration matrix retains original basenames as stable provenance identifiers.
+- The public project-status page was corrected to stop listing shipped aliases, watch mode, and live reload as pending. Its concise audience-facing status and decision prose remains because the canonical knowledge publication is still local-only and therefore is not a better public link target.
+- `knowledge/retrieval-benchmark.toml` fixes seven questions across architecture, current status, known gaps, language behavior, theming, implemented decisions, and exploratory decisions. `rocs knowledge benchmark` reports top-five hit rate and mean reciprocal rank, verifies expected lifecycle and authority metadata, fails below the configured threshold, and runs in CI.
+
+Result: complete. The knowledge bundle now has an explicit evidence archive and report disposition, an honest lifecycle audit, corrected public status, and a measured lexical retrieval baseline. Embeddings and database services remain unnecessary until this fixed baseline demonstrates a concrete shortfall.
 
 ## 11. Validation specification
 

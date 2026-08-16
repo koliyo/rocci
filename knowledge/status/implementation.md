@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Rocci ships its core template, Rocdown, preview, desktop, packaging, editor, and static Rocs foundations while dynamic islands and broader packaging remain incomplete.
 tags: [domain/rocci, domain/rocs, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
+generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -46,6 +46,11 @@ sources:
     title: Local knowledge publication decision
     author: process:okf-phase-5
     last_modified: 2026-08-16
+  - id: consolidation
+    resource: ../reference/consolidation.md
+    title: OKF consolidation disposition
+    author: process:okf-phase-6
+    last_modified: 2026-08-16
 ---
 
 # Rocci implementation status
@@ -61,6 +66,8 @@ Template and Rocdown compilation, standalone preview/run workflows, the desktop 
 Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input.[^rocs-plan]
 
 The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
+
+Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate and mean-reciprocal-rank reporting, and CI threshold enforcement. Seven dated research and audit reports are preserved under `archive/reports/`; two active detailed plans remain at the repository root.[^consolidation]
 
 ## Missing
 
@@ -95,3 +102,4 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
 [^okf]: Current Phase 5 knowledge outputs, retrieval filters, and search implementation.
 [^publication]: Draft record of the approved local-first publication disposition.
+[^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.

@@ -11,7 +11,7 @@ authority: normative
 owners: [human:nils]
 sources:
   - id: format-report
-    resource: ../../ROCDOWN_FORMAT_REPORT.md
+    resource: ../../archive/reports/ROCDOWN_FORMAT_REPORT.md
     title: Rocdown format investigation
     author: human:nils
     last_modified: 2026-08-15

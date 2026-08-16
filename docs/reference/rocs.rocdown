@@ -140,3 +140,15 @@ Knowledge builds also emit `catalog.json`, heading-chunked `search.json`,
 type, tag, lifecycle status, authority, derived trust tier, and staleness. The
 generated site and indexes are local/repository-visible artifacts; no public
 deployment or verbatim archive publication is configured.
+
+Measure the checked-in lexical retrieval baseline with:
+
+```sh
+cargo run -p rocs-cli -- knowledge benchmark knowledge
+```
+
+The versioned question set records expected concepts plus lifecycle and
+authority metadata. The command reports top-five hit rate and mean reciprocal
+rank as JSON and exits unsuccessfully when the configured hit-rate threshold is
+not met. This baseline is intentionally lexical; it should be measured before
+adding embeddings or a database service.

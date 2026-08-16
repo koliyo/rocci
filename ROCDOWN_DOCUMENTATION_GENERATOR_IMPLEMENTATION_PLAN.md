@@ -2,7 +2,7 @@
 
 **Status:** active — Phase 4 dev-mode (`rocs run`) complete; remaining Phase 4 is search / clean Markdown / machine-output polish
 
-**Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
+**Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](archive/reports/ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
 
 ## 1. Decision summary
 

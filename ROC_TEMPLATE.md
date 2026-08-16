@@ -5,7 +5,7 @@
 
 ## Purpose
 
-This document defines the proposed template surface for `.rocci` files and the package boundary which implements it. Runtime hosting, HTTP/session security, Datastar transport, state ownership, and Roc platform integration belong in the broader [Roc + Datastar component report](ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md).
+This document defines the proposed template surface for `.rocci` files and the package boundary which implements it. Runtime hosting, HTTP/session security, Datastar transport, state ownership, and Roc platform integration belong in the broader [Roc + Datastar component report](archive/reports/ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md).
 
 The central design goals are:
 

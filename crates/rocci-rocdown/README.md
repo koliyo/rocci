@@ -22,7 +22,7 @@ Library entry points are `parse`, `compile`, and `format_ast` in
 `rocci_rocdown`.
 
 The original language design lives in
-[`ROCDOWN_FORMAT_REPORT.md`](../../ROCDOWN_FORMAT_REPORT.md). This README is
+[`ROCDOWN_FORMAT_REPORT.md`](../../archive/reports/ROCDOWN_FORMAT_REPORT.md). This README is
 what the compiler actually does.
 
 ## File shape

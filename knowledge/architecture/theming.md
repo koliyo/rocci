@@ -27,7 +27,7 @@ sources:
     author: process:git
     last_modified: 2026-08-16
   - id: theming-report
-    resource: ../../ROCDOWN_THEMING_REPORT.md
+    resource: ../../archive/reports/ROCDOWN_THEMING_REPORT.md
     title: Rocdown theming investigation
     author: human:nils
     last_modified: 2026-08-16

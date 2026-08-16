@@ -227,6 +227,16 @@ enum KnowledgeCommand {
         #[command(flatten)]
         filters: KnowledgeFiltersArg,
     },
+    /// Measure lexical retrieval against a fixed question set.
+    Benchmark {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        /// Question set. Defaults to retrieval-benchmark.toml inside the bundle.
+        #[arg(long, value_name = "PATH")]
+        questions: Option<PathBuf>,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+    },
     /// Render a validated bundle and emit its normalized catalog.
     Build {
         #[arg(default_value = "knowledge")]
@@ -405,6 +415,23 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
                 "{}",
                 rocs::okf::search(&root, &query, profile.into(), &(&filters).into())?
             );
+            Ok(())
+        }
+        KnowledgeCommand::Benchmark {
+            root,
+            questions,
+            profile,
+        } => {
+            let questions = questions.unwrap_or_else(|| root.join("retrieval-benchmark.toml"));
+            let report = rocs::okf::benchmark_retrieval(&root, &questions, profile.into())?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            if !report.threshold_met {
+                bail!(
+                    "knowledge retrieval hit rate {:.3} is below the required {:.3}",
+                    report.hit_rate,
+                    report.minimum_hit_rate
+                );
+            }
             Ok(())
         }
         KnowledgeCommand::Build {
@@ -633,5 +660,20 @@ mod tests {
             }
             _ => panic!("expected filtered knowledge search"),
         }
+        let cli = Cli::try_parse_from([
+            "rocs",
+            "knowledge",
+            "benchmark",
+            "knowledge",
+            "--questions",
+            "knowledge/retrieval-benchmark.toml",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::Knowledge {
+                command: KnowledgeCommand::Benchmark { .. }
+            }
+        ));
     }
 }

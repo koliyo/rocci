@@ -1,0 +1,59 @@
+version = 1
+top_k = 5
+minimum_hit_rate = 1.0
+
+[[questions]]
+id = "architecture-ownership"
+question = "Which crates own Rocci's language, runtime, desktop, and documentation boundaries?"
+query = "compiler theme runtime desktop"
+expected_concepts = ["architecture/system-overview"]
+expected_status = "stable"
+expected_authority = "descriptive"
+
+[[questions]]
+id = "current-status"
+question = "What ships today across Rocci and the OKF knowledge path?"
+query = "shipped OKF knowledge"
+expected_concepts = ["status/implementation"]
+expected_status = "draft"
+expected_authority = "descriptive"
+
+[[questions]]
+id = "known-gaps"
+question = "Which documentation, packaging, and native capability gaps remain?"
+query = "public documentation-site search packaging"
+expected_concepts = ["status/known-limitations"]
+expected_status = "draft"
+expected_authority = "descriptive"
+
+[[questions]]
+id = "language-behavior"
+question = "How does Rocdown separate Markdown from executable declarations?"
+query = "Markdown executable declarations"
+expected_concepts = ["architecture/rocdown-format"]
+expected_status = "stable"
+expected_authority = "descriptive"
+
+[[questions]]
+id = "theming-boundary"
+question = "What theming surfaces ship, and is DTCG an adopted token authority?"
+query = "DTCG token resolver"
+expected_concepts = ["architecture/theming"]
+expected_status = "draft"
+expected_authority = "descriptive"
+
+[[questions]]
+id = "catalog-decision"
+question = "Why does Rust own the Rocs catalog while Rocci owns the visible shell?"
+query = "Rust catalog Rocci shell"
+expected_concepts = ["decisions/rust-catalog-rocci-shell"]
+expected_status = "stable"
+expected_authority = "normative"
+
+[[questions]]
+id = "exploratory-islands"
+question = "Is browser-owned client-island behavior shipped or approved?"
+query = "browser behavior unimplemented"
+expected_concepts = ["decisions/client-behavior-islands"]
+expected_status = "draft"
+expected_authority = "exploratory"

@@ -14,4 +14,4 @@ okf_version: "0.2"
 * [Reference](reference/) - Migration and lookup material.
 * [Design](design/) - Current design-system evidence and DTCG-informed research, explicitly separated from implementation authority.
 
-The [Phase 2 migration matrix](migration-matrix.tsv) accounts for every section heading in the nine root research and implementation reports.
+The [Phase 2 migration matrix](migration-matrix.tsv) accounts for every section heading in the nine reports and plans that were at the repository root during migration. Phase 6 dispositions are recorded in the [consolidation reference](reference/consolidation.md).

@@ -26,7 +26,7 @@ generator. It is not a stable production framework yet.
 ## Deliberate current limitations
 
 - Rocs dynamic island splicing is not implemented.
-- Rocs search, clean per-page Markdown, aliases, and development watch mode are pending.
+- Rocs public-site search and clean per-page Markdown are pending.
 - The desktop host manages one main window.
 - Windows and Linux installers are not implemented.
 - Production signing, notarization, updates, tray behavior, and deep links are absent.

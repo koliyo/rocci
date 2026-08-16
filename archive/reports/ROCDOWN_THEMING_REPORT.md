@@ -253,7 +253,7 @@ The current implementation has several useful primitives:
 - A custom `@page.layout` can own an entire document shell.
 - The asset server already exposes an application asset directory.
 
-The relevant implementation is in [`crates/rocci-rocdown/src/lower.rs`](crates/rocci-rocdown/src/lower.rs), [`crates/rocci-template/src/lower.rs`](crates/rocci-template/src/lower.rs), and [`crates/rocci-core/src/config.rs`](crates/rocci-core/src/config.rs).
+The relevant implementation is in [`crates/rocci-rocdown/src/lower.rs`](../../crates/rocci-rocdown/src/lower.rs), [`crates/rocci-template/src/lower.rs`](../../crates/rocci-template/src/lower.rs), and [`crates/rocci-core/src/config.rs`](../../crates/rocci-core/src/config.rs).
 
 There are also constraints that should be resolved before building a public theme API:
 
