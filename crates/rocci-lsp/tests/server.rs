@@ -505,6 +505,31 @@ fn rocdown_root_at_completes_declarations_not_html() {
     assert!(!labels.contains(&"p"), "{labels:?}");
 }
 
+#[test]
+fn rocdown_page_completes_theme_ids() {
+    const SRC: &str = "@page {\n    theme: \"roc\"\n}\n";
+    let mut server = initialize(true);
+    open_rocdown(&mut server, SRC);
+    let at = SRC.find("roc").expect("roc") + 3;
+    let (line, character) = line_col(SRC, at);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: rocdown_position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels: Vec<_> = items.iter().map(|item| item.label.as_str()).collect();
+    assert!(
+        labels.iter().any(|label| label.contains("rocci")),
+        "{labels:?}"
+    );
+}
+
 fn token_type_at(src: &str, tokens: &SemanticTokens, offset: usize) -> Option<u32> {
     let (line, character) =
         SourceFile::new("t.rocci", src).position(offset as u32, PositionEncoding::Utf8);

@@ -1,0 +1,45 @@
+.rd-document {
+  color-scheme: light dark;
+  --rd-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+  --rd-font-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --rd-font-code: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --rd-color-bg: light-dark(#f3f7f5, #07110e);
+  --rd-color-surface: light-dark(#ffffff, #0b1e18);
+  --rd-color-text: light-dark(#07110e, #f3f7f5);
+  --rd-color-muted: light-dark(#4a635a, #c9d8d2);
+  --rd-color-accent: light-dark(#0d9a5c, #48eda4);
+  --rd-color-border: light-dark(#b7d4c8, #29493b);
+  --rd-color-code-bg: light-dark(#e7f2ec, #0b1e18);
+  --rd-color-code-text: light-dark(#07110e, #f8fffb);
+
+  --rd-header-1-color: var(--rd-color-text);
+  --rd-header-2-color: var(--rd-color-text);
+  --rd-header-3-color: var(--rd-color-text);
+  --rd-header-4-color: var(--rd-color-text);
+  --rd-header-5-color: var(--rd-color-text);
+  --rd-header-6-color: var(--rd-color-text);
+  --rd-header-1-font: var(--rd-font-heading);
+  --rd-header-2-font: var(--rd-font-heading);
+  --rd-header-3-font: var(--rd-font-heading);
+  --rd-header-4-font: var(--rd-font-heading);
+  --rd-header-5-font: var(--rd-font-heading);
+  --rd-header-6-font: var(--rd-font-heading);
+  --rd-paragraph-color: var(--rd-color-muted);
+  --rd-blockquote-color: var(--rd-color-muted);
+  --rd-blockquote-border: var(--rd-color-border);
+  --rd-list-color: var(--rd-color-muted);
+  --rd-link-color: var(--rd-color-accent);
+  --rd-link-hover-color: var(--rd-color-text);
+  --rd-code-color: var(--rd-color-code-text);
+  --rd-code-background: var(--rd-color-code-bg);
+  --rd-code-block-background: var(--rd-color-code-bg);
+  --rd-code-block-border: var(--rd-color-border);
+  --rd-table-border: var(--rd-color-border);
+  --rd-table-header-background: var(--rd-color-surface);
+  --rd-table-header-color: var(--rd-color-text);
+  --rd-thematic-break-color: var(--rd-color-border);
+  --rd-strong-color: var(--rd-color-text);
+  --rd-emphasis-color: var(--rd-color-muted);
+  --rd-strikethrough-color: var(--rd-color-muted);
+}

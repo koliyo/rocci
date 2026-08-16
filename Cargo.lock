@@ -2176,6 +2176,7 @@ dependencies = [
  "rocci-core",
  "rocci-rocdown",
  "rocci-template",
+ "rocci-theme",
  "rocci-wry",
  "serde",
  "serde_json",
@@ -2213,6 +2214,7 @@ version = "0.1.0"
 dependencies = [
  "comrak",
  "rocci-template",
+ "rocci-theme",
 ]
 
 [[package]]
@@ -2220,6 +2222,13 @@ name = "rocci-template"
 version = "0.1.0"
 dependencies = [
  "clap",
+]
+
+[[package]]
+name = "rocci-theme"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
 ]
 
 [[package]]

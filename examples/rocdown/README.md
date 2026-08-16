@@ -4,7 +4,7 @@ Markdown-first pages with colocated Roc and Rocci.
 
 | File | What it shows |
 | --- | --- |
-| [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a component, CSS, displayed fences |
+| [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a component, `rocci` theme, displayed fences |
 | [`Interactive.rocdown`](Interactive.rocdown) | Datastar toggles and a server `@on:post` reveal patch |
 
 From the repository root, with `roc` and `cargo` on `PATH`:

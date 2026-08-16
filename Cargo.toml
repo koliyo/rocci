@@ -6,6 +6,7 @@ members = [
     "crates/rocci-cli",
     "crates/rocci-template",
     "crates/rocci-rocdown",
+    "crates/rocci-theme",
     "crates/rocci-lsp",
 ]
 exclude = ["editors/zed"]
@@ -22,6 +23,7 @@ rocci-core = { path = "crates/rocci-core" }
 rocci-wry = { path = "crates/rocci-wry" }
 rocci-template = { path = "crates/rocci-template" }
 rocci-rocdown = { path = "crates/rocci-rocdown" }
+rocci-theme = { path = "crates/rocci-theme" }
 rocci-lsp = { path = "crates/rocci-lsp" }
 lsp-server = "0.7"
 lsp-types = "0.97"

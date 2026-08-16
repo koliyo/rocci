@@ -6,6 +6,7 @@ mod roc_module;
 mod run;
 mod runtime_assets;
 mod serve;
+mod theme;
 mod view;
 
 use std::{
@@ -42,11 +43,15 @@ enum Commands {
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
+        #[command(flatten)]
+        theme: theme::ThemeArgs,
     },
     /// Compile sibling .rocci/.rocdown modules and run a Roc app, or run a standalone file.
     Run {
         #[command(flatten)]
         serve: serve::ServeOptions,
+        #[command(flatten)]
+        theme: theme::ThemeArgs,
         /// Roc app file, directory, or standalone .rocci/.rocdown file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
@@ -60,6 +65,8 @@ enum Commands {
         /// Also print the parse tree as an S-expression.
         #[arg(long)]
         ast: bool,
+        #[command(flatten)]
+        theme: theme::ThemeArgs,
     },
     /// Print a .rocci or .rocdown parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
@@ -116,9 +123,18 @@ fn main() -> Result<()> {
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle::bundle(&config),
-        Commands::Build { input, output } => build_module(&input, output.as_deref()),
-        Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
-        Commands::Inspect { input, ast } => inspect_module(&input, ast),
+        Commands::Build {
+            input,
+            output,
+            theme,
+        } => build_module(&input, output.as_deref(), &theme),
+        Commands::Run {
+            file,
+            args,
+            serve,
+            theme,
+        } => run::run(&file, &args, serve.no_window, serve.port, &theme),
+        Commands::Inspect { input, ast, theme } => inspect_module(&input, ast, &theme),
         Commands::Ast { input } => ast_module(&input),
         Commands::View {
             input,
@@ -138,14 +154,14 @@ fn is_rocdown(path: &Path) -> bool {
     path.extension().is_some_and(|ext| ext == "rocdown")
 }
 
-fn build_module(input: &Path, output: Option<&Path>) -> Result<()> {
+fn build_module(input: &Path, output: Option<&Path>, theme: &theme::ThemeArgs) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let (roc, diagnostics, failed) = if is_rocdown(input) {
         let compiled = rocci_rocdown::compile(
             SourceFile::new(&name, &src),
-            &rocci_rocdown::CompileOptions::default(),
+            &theme.compile_options(Some(input)),
         );
         let failed = compiled.has_errors();
         (compiled.roc, compiled.diagnostics, failed)
@@ -178,7 +194,10 @@ fn ast_module(input: &Path) -> Result<()> {
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
     if is_rocdown(input) {
-        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        let compiled = rocci_rocdown::compile(
+            source,
+            &theme::ThemeArgs::from_env().compile_options(Some(input)),
+        );
         for diagnostic in &compiled.diagnostics {
             eprintln!("{}", format_diagnostic(source, diagnostic));
         }
@@ -199,13 +218,13 @@ fn ast_module(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn inspect_module(input: &Path, ast: bool) -> Result<()> {
+fn inspect_module(input: &Path, ast: bool, theme: &theme::ThemeArgs) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
     if is_rocdown(input) {
-        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        let compiled = rocci_rocdown::compile(source, &theme.compile_options(Some(input)));
         for diagnostic in &compiled.diagnostics {
             eprintln!("{}", format_diagnostic(source, diagnostic));
         }
@@ -226,6 +245,19 @@ fn inspect_module(input: &Path, ast: bool) -> Result<()> {
             compiled.page_meta.route.as_deref().unwrap_or("/"),
             compiled.page_meta.draft,
             compiled.page_meta.layout.as_deref().unwrap_or("-")
+        );
+        println!(
+            "# theme id={} color_scheme={}",
+            compiled
+                .theme
+                .as_ref()
+                .map(|theme| theme.id.as_str())
+                .unwrap_or("none"),
+            compiled
+                .theme
+                .as_ref()
+                .map(|theme| theme.policy.as_str())
+                .unwrap_or("-")
         );
         if ast {
             println!(
@@ -425,6 +457,28 @@ mod tests {
             Commands::Datastar {
                 command: DatastarCmd::Update { app },
             } => assert_eq!(app, PathBuf::from(".")),
+            _ => panic!("unexpected command"),
+        }
+    }
+
+    #[test]
+    fn run_theme_flag_parses() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "run",
+            "--theme",
+            "paper",
+            "--color-scheme",
+            "dark",
+            "foo.rocdown",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Run { theme, file, .. } => {
+                assert_eq!(theme.theme.as_deref(), Some("paper"));
+                assert_eq!(theme.color_scheme.as_deref(), Some("dark"));
+                assert_eq!(file, PathBuf::from("foo.rocdown"));
+            }
             _ => panic!("unexpected command"),
         }
     }

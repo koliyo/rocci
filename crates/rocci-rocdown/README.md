@@ -55,6 +55,8 @@ Text after a declaration's closing `}` on the same line is an error.
 @page {
     route: "/guides/rocdown/",
     draft: Bool.false,
+    theme: "paper",
+    color_scheme: "auto",
     meta: {
         title: "Rocdown",
         description: "Markdown content with explicit Roc and Rocci islands",
@@ -94,7 +96,7 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 
 | Form | Body | Meaning |
 | --- | --- | --- |
-| `@page { ... }` | one Roc record | route, layout, draft, meta |
+| `@page { ... }` | one Roc record | route, layout, draft, meta, theme, color_scheme |
 | `@roc { ... }` | Roc module items | imports, types, values; outer braces stripped |
 | `@render { ... }` | one Roc expression | spliced as `Html` into the Markdown stream |
 | `@component` | Rocci template | same grammar as `.rocci` |
@@ -124,11 +126,17 @@ At most one per file. Unknown top-level fields are errors. Extracted controls:
 | `route` | compile-time string literal; no `..`, query, fragment, `%2f`, or NUL |
 | `layout` | statically resolvable Roc path, called as `Layout({ meta, content })` |
 | `draft` | `Bool.true` or `Bool.false` |
+| `theme` | compile-time string; `paper` (default), `rocci`, `none`, a name in `~/.rocci/themes`, or a CSS file path |
+| `color_scheme` | `"auto"` (OS light/dark), `"light"`, or `"dark"` |
 | `meta` | arbitrary Roc record; `title` is copied onto the default document `<title>` |
 
 Without `layout`, the compiler emits a minimal `<html>` document: charset,
-viewport, title, file CSS in `<head>`, `data-rocci-css` on `html` / `body` /
-`main`, and `rocci_content({})` inside `<main>`.
+viewport, `color-scheme` meta, title, selected theme CSS, file CSS in `<head>`,
+`.rd-document` and `data-rd-theme` on `html`, `data-rd-color-scheme` when
+light or dark is forced, `data-rocci-css` on `html` / `body` / `main` when the
+file has `@css`, and `rocci_content({})` inside `<main>`. Document `@css`
+overrides the theme. Default theme comes from `rocci run --theme`,
+`ROCCI_THEME`, then builtin `paper`. `@page.theme` wins for that file.
 
 Without `@page.route`, the synthesized GET path is `/`.
 
@@ -156,7 +164,9 @@ reference links, images, autolinks, backslash escapes.
 autolinks.
 
 **Rocdown additions:** heading `id` attributes with `-1`, `-2`, … on
-duplicates; fenced info strings become `class="language-…"`.
+duplicates; stable `rd-*` classes on Markdown HTML (`rd-header-1`,
+`rd-paragraph`, …); fenced info strings become
+`class="rd-code language-…"`.
 
 **Raw HTML** is an error by default (`raw HTML is disabled in Rocdown; use
 Markdown or @render { ... }`). `CompileOptions.raw_html` preserves it through
@@ -189,8 +199,11 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 ## CLI
 
 `build`, `inspect`, `ast`, and `run` accept `.rocdown` the same way they accept
-`.rocci`. `rocci run` on a directory compiles sibling `.rocdown` next to
-`.rocci`. Preview opens the first GET route that is not `/health`.
+`.rocci`. `rocci run --theme paper foo.rocdown` (or `--theme path/to/theme.css`,
+or `ROCCI_THEME`) selects the default theme; `@page.theme` overrides it.
+`--color-scheme` / `ROCCI_COLOR_SCHEME` force `light`, `dark`, or `auto`.
+`rocci run` on a directory compiles sibling `.rocdown` next to `.rocci`.
+Preview opens the first GET route that is not `/health`.
 
 `rocci view` / `browse` still target `.rocci` components. The language server
 and VS Code / Zed extensions register `.rocdown` next to `.rocci`.

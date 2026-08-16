@@ -2,7 +2,7 @@ use rocci_template::{Cursor, Diagnostic, Span, is_ident_continue, is_ident_start
 
 use crate::ast::PageMeta;
 
-const CONTROL_FIELDS: &[&str] = &["route", "layout", "draft", "meta"];
+const CONTROL_FIELDS: &[&str] = &["route", "layout", "draft", "meta", "theme", "color_scheme"];
 
 pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) -> PageMeta {
     let mut meta = PageMeta::default();
@@ -63,6 +63,29 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                 None => diagnostics.push(Diagnostic::error(
                     value,
                     "`draft` must be `Bool.true` or `Bool.false`",
+                )),
+            },
+            "theme" => match string_literal(src, value) {
+                Some(theme) => {
+                    if theme.trim().is_empty() {
+                        diagnostics.push(Diagnostic::error(value, "`theme` must not be empty"));
+                    } else {
+                        meta.theme = Some(theme);
+                    }
+                }
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`theme` must be a compile-time string literal",
+                )),
+            },
+            "color_scheme" => match string_literal(src, value) {
+                Some(scheme) => match scheme.parse::<rocci_theme::ColorSchemePolicy>() {
+                    Ok(_) => meta.color_scheme = Some(scheme),
+                    Err(err) => diagnostics.push(Diagnostic::error(value, err)),
+                },
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`color_scheme` must be a compile-time string literal",
                 )),
             },
             "meta" => {

@@ -1,0 +1,13 @@
+[package]
+name = "rocci-theme"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Rocdown CSS themes: builtins, ~/.rocci/themes, and path resolution"
+
+[lib]
+name = "rocci_theme"
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = { workspace = true }

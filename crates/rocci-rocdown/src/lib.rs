@@ -17,6 +17,10 @@ pub use rocci_template::{
     ComponentInfo, Diagnostic, FixtureInfo, InitInfo, LowerOptions, OriginKind, RouteInfo, Segment,
     Severity, SourceFile, Span, StyleArtifact, StyleKind, TemplateItem, format_diagnostic,
 };
+pub use rocci_theme::{
+    ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,
+    resolve as resolve_theme,
+};
 
 use crate::parse::parse as parse_impl;
 
@@ -24,6 +28,7 @@ use crate::parse::parse as parse_impl;
 pub struct CompileOptions {
     pub lower: LowerOptions,
     pub raw_html: bool,
+    pub theme: ThemeOptions,
 }
 
 impl Default for CompileOptions {
@@ -31,6 +36,7 @@ impl Default for CompileOptions {
         Self {
             lower: LowerOptions::default(),
             raw_html: false,
+            theme: ThemeOptions::default(),
         }
     }
 }
@@ -49,6 +55,7 @@ pub struct CompileOutput {
     pub page_meta: PageMeta,
     pub headings: Vec<HeadingInfo>,
     pub links: Vec<LinkInfo>,
+    pub theme: Option<ResolvedTheme>,
 }
 
 impl CompileOutput {
@@ -64,7 +71,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
     let parsed = parse(source, options.raw_html);
     let mut diagnostics = parsed.diagnostics;
-    let lowered = lower::lower(source, &parsed.document, &options.lower, &mut diagnostics);
+    let lowered = lower::lower(source, &parsed.document, options, &mut diagnostics);
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,
@@ -78,6 +85,7 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         page_meta: lowered.page_meta,
         headings: parsed.headings,
         links: parsed.links,
+        theme: lowered.theme,
         diagnostics,
     }
 }

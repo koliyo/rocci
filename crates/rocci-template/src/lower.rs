@@ -13,12 +13,18 @@ use crate::span::{SourceFile, Span};
 #[derive(Clone, Debug)]
 pub struct LowerOptions {
     pub html_module: String,
+    pub theme_css: Option<String>,
+    pub theme_id: Option<String>,
+    pub color_scheme_attr: Option<String>,
 }
 
 impl Default for LowerOptions {
     fn default() -> Self {
         Self {
             html_module: "Html".to_string(),
+            theme_css: None,
+            theme_id: None,
+            color_scheme_attr: None,
         }
     }
 }
@@ -37,6 +43,7 @@ pub struct LoweredModule {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StyleKind {
+    Theme,
     File,
     Component,
 }
@@ -123,6 +130,9 @@ pub fn lower_template_items(
         file_css: String::new(),
         file_scope_id: None,
         css_stamp,
+        theme_css: options.theme_css.clone(),
+        theme_id: options.theme_id.clone(),
+        color_scheme_attr: options.color_scheme_attr.clone(),
     };
     match items {
         [] => emitter.emit_html(".empty"),
@@ -234,6 +244,9 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         file_css,
         file_scope_id,
         css_stamp: None,
+        theme_css: options.theme_css.clone(),
+        theme_id: options.theme_id.clone(),
+        color_scheme_attr: options.color_scheme_attr.clone(),
     };
     let inject_datastar =
         document_has_action(document) && !document_imports_datastar(source.src, document);
@@ -293,6 +306,9 @@ struct Emitter<'a> {
     file_css: String,
     file_scope_id: Option<String>,
     css_stamp: Option<String>,
+    theme_css: Option<String>,
+    theme_id: Option<String>,
+    color_scheme_attr: Option<String>,
 }
 
 impl<'a> Emitter<'a> {
@@ -370,6 +386,8 @@ impl<'a> Emitter<'a> {
         };
         if let Some(css) = self.injected_css(&component_css, component_id.as_deref()) {
             self.lower_html_value_with_style(rest, &body_params, &css);
+        } else if self.theme_css.is_some() && is_html_document(rest) {
+            self.lower_html_value_with_style(rest, &body_params, "");
         } else {
             self.lower_html_value(rest, &body_params);
         }
@@ -535,7 +553,8 @@ impl<'a> Emitter<'a> {
                 .iter()
                 .any(|item| matches!(item, TemplateItem::For(_)))
         {
-            self.lower_html_document_with_style(el, body_params, css);
+            let css = self.prepend_theme_css(css);
+            self.lower_html_document_with_style(el, body_params, &css);
             return;
         }
         self.emit_html(".fragment(\n");
@@ -564,7 +583,7 @@ impl<'a> Emitter<'a> {
         self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
         self.emit(",\n");
         self.push_indent();
-        self.lower_html_attrs(&el.attrs);
+        self.lower_html_attrs_with_theme(&el.attrs);
         self.emit(",\n");
         self.push_indent();
         self.emit("[\n");
@@ -746,6 +765,123 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit(")");
+    }
+
+    fn prepend_theme_css(&self, css: &str) -> String {
+        match &self.theme_css {
+            Some(theme) if css.is_empty() => theme.clone(),
+            Some(theme) => format!("{theme}\n{css}"),
+            None => css.to_string(),
+        }
+    }
+
+    fn lower_html_attrs_with_theme(&mut self, attrs: &[Attr]) {
+        let mut class_emitted = false;
+        let stamp = self.css_stamp.clone();
+        let theme_id = self.theme_id.clone();
+        let scheme = self.color_scheme_attr.clone();
+        if attrs.is_empty() && stamp.is_none() && theme_id.is_none() {
+            self.emit("[]");
+            return;
+        }
+        self.emit("[\n");
+        self.indent += 1;
+        for attr in attrs {
+            self.push_indent();
+            if attr.name.name == "class" {
+                class_emitted = true;
+                if let (Some(_), AttrValue::Static { span, value }) = (&theme_id, &attr.value) {
+                    let merged = if value
+                        .split_whitespace()
+                        .any(|part| part == "rd-document")
+                    {
+                        value.clone()
+                    } else if value.is_empty() {
+                        "rd-document".to_string()
+                    } else {
+                        format!("{value} rd-document")
+                    };
+                    self.emit_html(".attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", ");
+                    self.emit_string(&merged, *span, OriginKind::StaticMarkup);
+                    self.emit(")");
+                    self.emit(",\n");
+                    continue;
+                }
+            }
+            match &attr.value {
+                AttrValue::Static { span, value } => {
+                    self.emit_html(".attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", ");
+                    self.emit_string(value, *span, OriginKind::StaticMarkup);
+                    self.emit(")");
+                }
+                AttrValue::Expr { expr } => {
+                    self.emit_html(".attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", ");
+                    self.emit_mapped(
+                        expr.of(self.src).trim(),
+                        *expr,
+                        OriginKind::AttributeExpression,
+                    );
+                    self.emit(")");
+                }
+                AttrValue::Action { name, args } => {
+                    self.emit_html(".attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", ");
+                    self.lower_action_call(name, *args);
+                    self.emit(")");
+                }
+                AttrValue::Boolean => {
+                    self.emit_html(".boolean_attribute(");
+                    self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
+                    self.emit(", Bool.true)");
+                }
+            }
+            self.emit(",\n");
+        }
+        if let Some(id) = &theme_id {
+            if !class_emitted {
+                self.push_indent();
+                self.emit_html(".attribute(");
+                self.emit_string("class", Span::point(0), OriginKind::Scaffolding);
+                self.emit(", ");
+                self.emit_string("rd-document", Span::point(0), OriginKind::Scaffolding);
+                self.emit("),\n");
+            }
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string("data-rd-theme", Span::point(0), OriginKind::Scaffolding);
+            self.emit(", ");
+            self.emit_string(id, Span::point(0), OriginKind::Scaffolding);
+            self.emit("),\n");
+            if let Some(scheme) = &scheme {
+                self.push_indent();
+                self.emit_html(".attribute(");
+                self.emit_string(
+                    "data-rd-color-scheme",
+                    Span::point(0),
+                    OriginKind::Scaffolding,
+                );
+                self.emit(", ");
+                self.emit_string(scheme, Span::point(0), OriginKind::Scaffolding);
+                self.emit("),\n");
+            }
+        }
+        if let Some(stamp) = stamp {
+            self.push_indent();
+            self.emit_html(".attribute(\"data-rocci-css\", ");
+            self.emit_string(&stamp, Span::point(0), OriginKind::Scaffolding);
+            self.emit(")");
+            self.emit(",\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("]");
     }
 
     fn lower_html_attrs(&mut self, attrs: &[Attr]) {
@@ -1192,6 +1328,16 @@ fn concat_css<'a>(src: &'a str, decls: impl Iterator<Item = &'a CssDecl>) -> Str
         .filter(|text| !text.is_empty())
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+fn is_html_document(items: &[TemplateItem]) -> bool {
+    matches!(
+        items,
+        [TemplateItem::Element(el)]
+            if el.name.name == "html"
+                && !el.self_closing
+                && !el.children.iter().any(|item| matches!(item, TemplateItem::For(_)))
+    )
 }
 
 fn scope_css(css: &str, id: &str) -> String {
