@@ -149,7 +149,7 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
     meta
 }
 
-fn skip_value(cur: &mut Cursor<'_>, end: usize) {
+pub(crate) fn skip_value(cur: &mut Cursor<'_>, end: usize) {
     if cur.pos >= end {
         return;
     }
@@ -188,7 +188,7 @@ fn skip_value(cur: &mut Cursor<'_>, end: usize) {
     }
 }
 
-fn string_literal(src: &str, span: Span) -> Option<String> {
+pub(crate) fn string_literal(src: &str, span: Span) -> Option<String> {
     let text = span.of(src).trim();
     if text.len() >= 2
         && text.starts_with('"')
@@ -224,7 +224,7 @@ fn unescape_roc_string(text: &str) -> String {
     out
 }
 
-fn bool_literal(src: &str, span: Span) -> Option<bool> {
+pub(crate) fn bool_literal(src: &str, span: Span) -> Option<bool> {
     match span.of(src).trim() {
         "Bool.true" => Some(true),
         "Bool.false" => Some(false),
@@ -331,7 +331,7 @@ pub fn validate_id(id: &str) -> Option<String> {
     None
 }
 
-fn string_list(src: &str, span: Span) -> Option<Vec<String>> {
+pub(crate) fn string_list(src: &str, span: Span) -> Option<Vec<String>> {
     let text = span.of(src).trim();
     if !text.starts_with('[') || !text.ends_with(']') {
         return None;

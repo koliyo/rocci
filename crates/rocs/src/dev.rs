@@ -128,6 +128,16 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
     watcher
         .watch(&root, RecursiveMode::Recursive)
         .with_context(|| format!("failed to watch {}", root.display()))?;
+    if let Ok(config) = load_config(&root) {
+        for entry in &config.snippets.roots {
+            let path = root.join(entry);
+            if path.is_dir() && !path.starts_with(&root) {
+                watcher
+                    .watch(&path, RecursiveMode::Recursive)
+                    .with_context(|| format!("failed to watch snippet root {}", path.display()))?;
+            }
+        }
+    }
 
     let watch_stop = stop.clone();
     let watch_root = root.clone();
@@ -309,11 +319,19 @@ fn watch_loop(
             Err(mpsc::RecvTimeoutError::Timeout) => continue,
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         };
-        let mut rebuild = event_is_relevant(&event, &root, &output, &assets);
+        let mut rebuild =
+            event_is_relevant(&event, &root, &output, &assets, &session.snippet_paths);
         loop {
             match rx.recv_timeout(DEBOUNCE) {
                 Ok(next) => {
-                    rebuild = rebuild || event_is_relevant(&next, &root, &output, &assets);
+                    rebuild = rebuild
+                        || event_is_relevant(
+                            &next,
+                            &root,
+                            &output,
+                            &assets,
+                            &session.snippet_paths,
+                        );
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => break,
                 Err(mpsc::RecvTimeoutError::Disconnected) => return,
@@ -411,6 +429,7 @@ fn event_is_relevant(
     root: &Path,
     output: &Path,
     assets: &str,
+    snippets: &std::collections::BTreeSet<String>,
 ) -> bool {
     let Ok(event) = event else {
         return false;
@@ -424,7 +443,7 @@ fn event_is_relevant(
     event
         .paths
         .iter()
-        .any(|path| path_is_relevant(path, root, output, assets))
+        .any(|path| path_is_relevant(path, root, output, assets, snippets))
 }
 
 fn knowledge_event_is_relevant(
@@ -465,7 +484,13 @@ pub(crate) fn knowledge_path_is_relevant(path: &Path, root: &Path, output: &Path
     true
 }
 
-pub(crate) fn path_is_relevant(path: &Path, root: &Path, output: &Path, assets: &str) -> bool {
+pub(crate) fn path_is_relevant(
+    path: &Path,
+    root: &Path,
+    output: &Path,
+    assets: &str,
+    snippets: &std::collections::BTreeSet<String>,
+) -> bool {
     if path.starts_with(output) {
         return false;
     }
@@ -477,6 +502,9 @@ pub(crate) fn path_is_relevant(path: &Path, root: &Path, output: &Path, assets: 
     }
     if is_temp_name(path) {
         return false;
+    }
+    if snippet_matches(path, root, snippets) {
+        return true;
     }
     let Ok(relative) = path.strip_prefix(root) else {
         return false;
@@ -491,6 +519,22 @@ pub(crate) fn path_is_relevant(path: &Path, root: &Path, output: &Path, assets: 
         return true;
     }
     relative.starts_with(assets)
+}
+
+fn snippet_matches(
+    path: &Path,
+    root: &Path,
+    snippets: &std::collections::BTreeSet<String>,
+) -> bool {
+    snippets.iter().any(|snippet| {
+        let candidate = root.join(snippet);
+        path == candidate.as_path()
+            || path.ends_with(Path::new(snippet))
+            || path
+                .strip_prefix(root)
+                .ok()
+                .is_some_and(|relative| relative.to_string_lossy().replace('\\', "/") == *snippet)
+    })
 }
 
 fn is_temp_name(path: &Path) -> bool {
@@ -857,47 +901,79 @@ mod tests {
     fn path_filter_keeps_content_and_ignores_noise() {
         let root = PathBuf::from("/docs");
         let output = PathBuf::from("/docs/dist");
+        let none = std::collections::BTreeSet::new();
         assert!(path_is_relevant(
             Path::new("/docs/index.rocdown"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(path_is_relevant(
             Path::new("/docs/rocs.toml"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(path_is_relevant(
             Path::new("/docs/assets/og.png"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(!path_is_relevant(
             Path::new("/docs/dist/index.html"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(!path_is_relevant(
             Path::new("/docs/.git/HEAD"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(!path_is_relevant(
             Path::new("/docs/index.rocdown~"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
         ));
         assert!(!path_is_relevant(
             Path::new("/docs/notes.txt"),
             &root,
             &output,
-            "assets"
+            "assets",
+            &none
+        ));
+        let mut snippets = std::collections::BTreeSet::new();
+        snippets.insert("examples/hello.rs".to_string());
+        assert!(path_is_relevant(
+            Path::new("/docs/examples/hello.rs"),
+            &root,
+            &output,
+            "assets",
+            &snippets
+        ));
+        assert!(!path_is_relevant(
+            Path::new("/docs/examples/hello.rs"),
+            &root,
+            &output,
+            "assets",
+            &none
+        ));
+        snippets.insert("../examples/hello.rs".to_string());
+        assert!(path_is_relevant(
+            Path::new("/examples/hello.rs"),
+            &root,
+            &output,
+            "assets",
+            &snippets
         ));
     }
 

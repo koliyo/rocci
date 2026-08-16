@@ -31,8 +31,46 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@context`, `@init`, `@on` | Declare a standalone server app |
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
+| `@docs <kind> { ... }` | Bounded documentation component; see below |
 
 `@island` is reserved in the design but not parsed yet.
+
+## `@docs` components
+
+`@docs` is one reserved family. Kinds such as `note` or `tabs` are not
+top-level `@` names. The parser stores the kind identifier and brace body.
+Rocs types the body; standalone `rocci run` paints a conservative preview.
+
+````rocdown
+@docs note {
+    title: "Deprecation"
+
+    This API will be removed in 0.4. See [Routing](/reference/rocs/).
+}
+````
+
+Nested `@docs` are legal in the body. `@page`, `@roc`, `@render`, `@component`,
+handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
+
+| Kind | Role |
+| --- | --- |
+| `note`, `tip`, `caution`, `danger`, `deprecated` | Labeled asides |
+| `details` | Disclosure with required `summary` |
+| `steps` / `step` | Ordered procedure; `step` only inside `steps` |
+| `figure` | One image with required `alt` |
+| `definition` | Local term and definition |
+| `badge` | Block status label |
+| `compatibility` | Table of supported combinations |
+| `card-grid` / `link-card` | Related-page cards; `page` is a stable page id |
+| `file-tree` | Nested unordered list |
+| `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool` |
+| `include` | File or region include |
+| `example` | Display sample with optional `test` metadata |
+| `api-operation` | Reserved; Rocs reports `RD2406` (not shipped) |
+
+See [Write documentation components](/guides/docs-components/) for a working
+page. Includes, snippet roots, and `rocs test` are documented in
+[Rocs](/reference/rocs/).
 
 ## Page metadata
 

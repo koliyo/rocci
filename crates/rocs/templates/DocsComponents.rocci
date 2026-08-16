@@ -1,0 +1,189 @@
+import Html
+
+@css {
+    .rd-docs-block { margin: 1.25rem 0; }
+    .rd-docs-aside {
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--line);
+        border-left-width: 0.35rem;
+        border-radius: 0.55rem;
+        background: var(--surface);
+    }
+    .rd-docs-note { border-left-color: var(--accent); }
+    .rd-docs-tip { border-left-color: #2f7d4a; }
+    .rd-docs-caution { border-left-color: #b7791f; }
+    .rd-docs-danger, .rd-docs-deprecated { border-left-color: var(--accent-strong); }
+    .rd-docs-label {
+        margin: 0 0 0.35rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .rd-docs-title { margin: 0 0 0.4rem; font-weight: 700; }
+    .rd-docs-body > :first-child { margin-top: 0; }
+    .rd-docs-body > :last-child { margin-bottom: 0; }
+    .rd-docs-summary { font-weight: 700; cursor: pointer; }
+    .rd-docs-card {
+        display: block;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.6rem;
+        text-decoration: none;
+        background: var(--surface);
+    }
+    .rd-docs-card-title { display: block; font-weight: 700; }
+    .rd-docs-card-summary { display: block; color: var(--muted); margin-top: 0.25rem; }
+    .rd-docs-card-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: 1fr;
+    }
+    .rd-docs-tree { overflow-x: auto; }
+    .rd-docs-tab { margin: 1rem 0; }
+    .rd-docs-tab-label { margin: 0 0 0.4rem; font-size: 1rem; }
+    .rd-docs-badge-label {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .rd-docs-steps { padding-left: 0; margin: 1.25rem 0; counter-reset: rd-step; list-style: none; }
+    .rd-docs-step { margin: 0.75rem 0; padding-left: 1.6rem; counter-increment: rd-step; }
+    .rd-docs-step::before {
+        content: counter(rd-step) ". ";
+        margin-left: -1.6rem;
+        font-weight: 700;
+    }
+    .rd-docs-verify {
+        display: inline-block;
+        margin: 0 0 0.35rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .rd-docs-figure { margin: 1.25rem 0; }
+    .rd-docs-caption, .rd-docs-credit { color: var(--muted); }
+    .rd-docs-compatibility { overflow-x: auto; }
+    @media (min-width: 48rem) {
+        .rd-docs-card-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (forced-colors: active) {
+        .rd-docs-aside, .rd-docs-card, .rd-docs-badge-label {
+            border: 1px solid currentColor;
+        }
+    }
+    @media print {
+        .rd-docs-tab { break-inside: avoid; }
+        .rd-docs-aside { border: 1px solid currentColor; background: transparent; }
+    }
+}
+
+@component DocsAside = |{ kind, label, title, aria }, body| {
+    @match aria {
+        "" =>
+            <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind}>
+                <p class="rd-docs-label">{label}</p>
+                @if title != "" {
+                    <p class="rd-docs-title">{title}</p>
+                }
+                <div class="rd-docs-body">{body}</div>
+            </aside>
+        _ =>
+            <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind} aria-label={aria}>
+                <p class="rd-docs-label">{label}</p>
+                @if title != "" {
+                    <p class="rd-docs-title">{title}</p>
+                }
+                <div class="rd-docs-body">{body}</div>
+            </aside>
+    }
+}
+
+@component Render = |segment, body| {
+    @match segment.kind {
+        "note" =>
+            <DocsAside kind="note" label="Note" title={segment.title} aria="">{body}</DocsAside>
+        "tip" =>
+            <DocsAside kind="tip" label="Tip" title={segment.title} aria="">{body}</DocsAside>
+        "caution" =>
+            <DocsAside kind="caution" label="Caution" title={segment.title} aria="">{body}</DocsAside>
+        "danger" =>
+            <DocsAside kind="danger" label="Danger" title={segment.title} aria="">{body}</DocsAside>
+        "deprecated" =>
+            <DocsAside kind="deprecated" label="Deprecated" title={segment.title} aria="Deprecated">{body}</DocsAside>
+        "details" =>
+            @match segment.open {
+                True =>
+                    <details class="rd-docs-details rd-docs-block" data-rocci-docs="details" open="open">
+                        <summary class="rd-docs-summary">{segment.summary}</summary>
+                        <div class="rd-docs-body">{body}</div>
+                    </details>
+                False =>
+                    <details class="rd-docs-details rd-docs-block" data-rocci-docs="details">
+                        <summary class="rd-docs-summary">{segment.summary}</summary>
+                        <div class="rd-docs-body">{body}</div>
+                    </details>
+            }
+        "steps" => <div class="rd-docs-steps rd-docs-block" data-rocci-docs="steps">{body}</div>
+        "step" =>
+            <div class="rd-docs-step" data-rocci-docs="step">
+                @if segment.verify {
+                    <p class="rd-docs-verify">Verify</p>
+                }
+                @if segment.title != "" {
+                    <p class="rd-docs-title">{segment.title}</p>
+                }
+                <div class="rd-docs-body">{body}</div>
+            </div>
+        "figure" =>
+            <figure class="rd-docs-figure rd-docs-block" data-rocci-docs="figure">
+                {body}
+                @if segment.caption != "" {
+                    <figcaption class="rd-docs-caption">{segment.caption}</figcaption>
+                }
+                @if segment.credit != "" {
+                    <p class="rd-docs-credit">{segment.credit}</p>
+                }
+            </figure>
+        "definition" =>
+            <dl class="rd-docs-definition rd-docs-block" data-rocci-docs="definition">
+                <dt>{segment.title}</dt>
+                <dd>{body}</dd>
+            </dl>
+        "tabs" => <div class="rd-docs-tabs rd-docs-block" data-rocci-docs="tabs">{body}</div>
+        "tab" =>
+            <section class="rd-docs-tab" data-rocci-docs="tab" aria-label={segment.label}>
+                <h3 class="rd-docs-tab-label">{segment.label}</h3>
+                {body}
+            </section>
+        "link-card" =>
+            <a class="rd-docs-card rd-docs-block" data-rocci-docs="link-card" href={segment.href}>
+                <span class="rd-docs-card-title">{segment.title}</span>
+                @if segment.summary != "" {
+                    <span class="rd-docs-card-summary">{segment.summary}</span>
+                }
+            </a>
+        "card-grid" => <div class="rd-docs-card-grid rd-docs-block" data-rocci-docs="card-grid">{body}</div>
+        "file-tree" => <div class="rd-docs-tree rd-docs-block" data-rocci-docs="file-tree" aria-label="File tree">{body}</div>
+        "badge" =>
+            <p class="rd-docs-badge rd-docs-block" data-rocci-docs="badge">
+                <span class="rd-docs-badge-label">{segment.label}</span>
+            </p>
+        "compatibility" =>
+            <div class="rd-docs-compatibility rd-docs-block" data-rocci-docs="compatibility">
+                @if segment.caption != "" {
+                    <p class="rd-docs-caption">{segment.caption}</p>
+                }
+                {body}
+            </div>
+        "example" => <figure class="rd-docs-example rd-docs-block" data-rocci-docs="example">{body}</figure>
+        "include" => <>{body}</>
+        _ => <section class="rd-docs-block" data-rocci-docs={segment.kind}>{body}</section>
+    }
+}

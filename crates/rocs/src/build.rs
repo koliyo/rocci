@@ -77,6 +77,7 @@ pub struct BuildSession {
     workspace: PathBuf,
     apply_bin: PathBuf,
     roc_hash: Option<String>,
+    pub snippet_paths: std::collections::BTreeSet<String>,
 }
 
 impl BuildSession {
@@ -88,6 +89,7 @@ impl BuildSession {
             workspace,
             apply_bin,
             roc_hash: None,
+            snippet_paths: std::collections::BTreeSet::new(),
         })
     }
 
@@ -133,6 +135,7 @@ impl BuildSession {
         write_planned_outputs(&staging, &plan)?;
         write_static_files(&staging, &loaded.static_files)?;
         commit_output(&staging, output)?;
+        self.snippet_paths = plan.snippet_paths.clone();
 
         Ok(BuildReport {
             generated_roc_bytes: staged.generated_roc_bytes,
@@ -169,12 +172,24 @@ struct StagedBuild {
 fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Result<StagedBuild> {
     let mut generated_roc_bytes = runtime::runtime_bytes();
     generated_roc_bytes += plan.theme_roc.len();
+    generated_roc_bytes += plan.docs_roc.len();
 
     let articles = workspace.join("articles");
     fs::create_dir_all(&articles).context("failed to create articles directory")?;
     for page in &plan.pages {
         fs::write(workspace.join(&page.article_path), &page.article_html)
             .with_context(|| format!("failed to write {}", page.article_path))?;
+        for (path, html) in &page.fragments {
+            if let Some(parent) = Path::new(path).parent()
+                && parent != Path::new("")
+            {
+                fs::create_dir_all(workspace.join(parent)).with_context(|| {
+                    format!("failed to create {}", workspace.join(parent).display())
+                })?;
+            }
+            fs::write(workspace.join(path), html)
+                .with_context(|| format!("failed to write {path}"))?;
+        }
         if let Some(parent) = Path::new(&page.output_path).parent()
             && parent != Path::new("")
         {
@@ -189,13 +204,15 @@ fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Resul
         .context("failed to write RocsPages.roc")?;
     fs::write(workspace.join("RocsTheme.roc"), &plan.theme_roc)
         .context("failed to write RocsTheme.roc")?;
+    fs::write(workspace.join("DocsComponents.roc"), &plan.docs_roc)
+        .context("failed to write DocsComponents.roc")?;
     let main = main_roc();
     generated_roc_bytes += main.len();
     fs::write(workspace.join("main.roc"), &main).context("failed to write main.roc")?;
 
     Ok(StagedBuild {
         generated_roc_bytes,
-        roc_hash: roc_source_hash(&pages_roc, &plan.theme_roc, &main),
+        roc_hash: roc_source_hash(&pages_roc, &plan.theme_roc, &plan.docs_roc, &main),
     })
 }
 
@@ -218,21 +235,36 @@ fn write_static_files(staging: &Path, files: &[crate::site::StaticFile]) -> Resu
 }
 
 fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
-    vec![MappedModule {
-        type_name: "RocsTheme".into(),
-        generated: plan.theme_roc.clone(),
-        source_name: "RocsTheme.rocci".into(),
-        source_src: plan.theme_src.clone(),
-        segments: plan.theme_segments.clone(),
-    }]
+    vec![
+        MappedModule {
+            type_name: "RocsTheme".into(),
+            generated: plan.theme_roc.clone(),
+            source_name: "RocsTheme.rocci".into(),
+            source_src: plan.theme_src.clone(),
+            segments: plan.theme_segments.clone(),
+        },
+        MappedModule {
+            type_name: "DocsComponents".into(),
+            generated: plan.docs_roc.clone(),
+            source_name: "DocsComponents.rocci".into(),
+            source_src: plan.docs_src.clone(),
+            segments: plan.docs_segments.clone(),
+        },
+    ]
 }
 
-pub(crate) fn roc_source_hash(pages_roc: &str, theme_roc: &str, main_roc: &str) -> String {
+pub(crate) fn roc_source_hash(
+    pages_roc: &str,
+    theme_roc: &str,
+    docs_roc: &str,
+    main_roc: &str,
+) -> String {
     let mut hasher = Sha256::new();
     hasher.update(runtime::HTML.as_bytes());
     hasher.update(runtime::BUILD.as_bytes());
     hasher.update(pages_roc.as_bytes());
     hasher.update(theme_roc.as_bytes());
+    hasher.update(docs_roc.as_bytes());
     hasher.update(main_roc.as_bytes());
     hasher
         .finalize()
@@ -533,6 +565,44 @@ mod tests {
         assert!(
             not_found.contains("id=\"main-content\"") || not_found.contains("id='main-content'")
         );
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn docs_components_render_asides_tabs_and_includes() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("docs-src");
+        fs::write(
+            root.join("snippet.rs"),
+            "// docs-region: hello\nfn hello() {}\n// docs-region-end: hello\n",
+        )
+        .unwrap();
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    Read this.\n}\n\n@docs tabs {\n    group: \"os\"\n    kind: \"platform\"\n\n    @docs tab {\n        id: \"mac\"\n        label: \"macOS\"\n\n        Mac panel.\n    }\n    @docs tab {\n        id: \"linux\"\n        label: \"Linux\"\n\n        Linux panel.\n    }\n}\n\n@docs include {\n    path: \"snippet.rs\"\n    region: \"hello\"\n}\n",
+        );
+        let output = temp_dir("docs-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("data-rocci-docs=\"note\""), "{html}");
+        assert!(html.contains("rd-docs-label"), "{html}");
+        assert!(
+            html.contains("<p class=\"rd-paragraph\">Read this.</p>"),
+            "{html}"
+        );
+        assert!(!html.contains("&lt;p"), "{html}");
+        assert!(html.contains("data-rocci-docs=\"tabs\""), "{html}");
+        assert!(html.contains("aria-label=\"macOS\""), "{html}");
+        assert!(html.contains("Linux panel"), "{html}");
+        assert!(html.contains("fn hello()"), "{html}");
+        assert!(!html.contains("role=\"tablist\""), "{html}");
+        assert!(!html.contains("<script"), "{html}");
+        assert!(html.contains("script-src 'none'") || html.contains("script-src &#39;none&#39;"));
+        let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }
 

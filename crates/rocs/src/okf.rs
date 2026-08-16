@@ -486,6 +486,7 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
             article_html: render_document(&document),
+            docs: crate::docs::PageDocs::default(),
         });
     }
     for concept in &bundle.concepts {
@@ -515,6 +516,7 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
             article_html: render_document(&document),
+            docs: crate::docs::PageDocs::default(),
         });
     }
     if config.navigation.is_empty() {

@@ -243,7 +243,9 @@ Exit gate: a 100-page fixture checks as one site; every internal reference is re
 
 ### Phase 5 — semantic components, includes, tested examples
 
-Rust recognizes a bounded `@docs` directive family structurally. Rocci renders the components. Validation and Markdown/search projections stay on the typed catalog, not in the parser. Example commands are opt-in host execution.
+Shipped: bounded `@docs` family (parser structure, Rocs catalog types, Rocci `DocsComponents`, includes, Markdown/search projections, opt-in `rocs test`). See the Phase 5 plan for the contract. Exit gate: a guide can use asides, steps, no-JS tabs, link cards, a file include, and a declared example without raw HTML; `rocs check` validates without Roc; `rocs build` still compiles the theme once; fences never execute.
+
+Not shipped: `api-operation`, snippet parameter substitution, tab persistence JS, collection pages.
 
 ### Phase 6 — generated references and richer themes
 

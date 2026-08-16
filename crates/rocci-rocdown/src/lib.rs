@@ -1,6 +1,7 @@
 //! Parse `.rocdown` documents and lower Markdown plus `@` declarations to Roc.
 
 mod ast;
+mod docs;
 mod links;
 mod lower;
 mod markdown;
@@ -10,7 +11,12 @@ mod pprint;
 mod scan;
 
 pub use ast::{
-    Document, HeadingInfo, Item, LinkInfo, MdNode, PageDecl, PageMeta, RenderDecl, RocDecl,
+    DocsDecl, Document, HeadingInfo, Item, LinkInfo, MdNode, PageDecl, PageMeta, RenderDecl,
+    RocDecl,
+};
+pub use docs::{
+    DocsField, extract_lines, extract_region, field_bool, field_string, field_strings,
+    include_path_error, resolve_include_path, split_docs_body,
 };
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
@@ -34,6 +40,7 @@ pub struct CompileOptions {
     pub theme: ThemeOptions,
     pub pages: Vec<PageRef>,
     pub resolve_links: bool,
+    pub resolve_includes: bool,
 }
 
 impl Default for CompileOptions {
@@ -44,6 +51,7 @@ impl Default for CompileOptions {
             theme: ThemeOptions::default(),
             pages: Vec::new(),
             resolve_links: true,
+            resolve_includes: true,
         }
     }
 }
@@ -85,6 +93,10 @@ pub fn parse_markdown_body(
     options: MarkdownBodyOptions,
 ) -> ParseOutput {
     parse::parse_markdown_body(source, body, options)
+}
+
+pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> ParseOutput {
+    parse::parse_fragment(source, body, raw_html)
 }
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {

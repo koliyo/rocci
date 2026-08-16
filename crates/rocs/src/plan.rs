@@ -76,6 +76,8 @@ pub struct PlannedPage {
     pub article_path: String,
     pub output_path: String,
     pub article_html: String,
+    pub fragments: Vec<(String, String)>,
+    pub segments: Vec<crate::docs::PlannedSegment>,
     pub view: PageView,
 }
 
@@ -120,6 +122,10 @@ pub struct BuildPlan {
     pub theme_roc: String,
     pub theme_src: String,
     pub theme_segments: Vec<Segment>,
+    pub docs_roc: String,
+    pub docs_src: String,
+    pub docs_segments: Vec<Segment>,
+    pub snippet_paths: std::collections::BTreeSet<String>,
 }
 
 impl BuildPlan {
@@ -167,10 +173,12 @@ impl BuildPlan {
 
 pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<BuildPlan> {
     let compiled = compile_theme()?;
+    let docs = compile_docs_components()?;
     let mut assets = hash_site_assets(root, config)?;
     let theme_css = compiled
         .styles
         .iter()
+        .chain(docs.styles.iter())
         .map(|style| style.css.as_str())
         .collect::<Vec<_>>()
         .join("\n");
@@ -261,6 +269,10 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         theme_roc: compiled.roc,
         theme_src: compiled.src,
         theme_segments: compiled.segments,
+        docs_roc: docs.roc,
+        docs_src: docs.src,
+        docs_segments: docs.segments,
+        snippet_paths: site.snippet_paths.clone(),
     })
 }
 
@@ -300,6 +312,35 @@ fn compile_theme() -> Result<CompiledTheme> {
     })
 }
 
+fn compile_docs_components() -> Result<CompiledTheme> {
+    let src = runtime::DOCS.to_string();
+    let compiled = compile(
+        SourceFile::new("DocsComponents.rocci", &src),
+        &LowerOptions {
+            embed_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    for diagnostic in &compiled.diagnostics {
+        eprintln!(
+            "{}",
+            format_diagnostic(SourceFile::new("DocsComponents.rocci", &src), diagnostic)
+        );
+    }
+    if compiled.has_errors() {
+        bail!("DocsComponents.rocci compilation failed");
+    }
+    if compiled.roc.contains("import Datastar") {
+        bail!("DocsComponents.rocci uses Datastar, which the rocs runtime does not stage");
+    }
+    Ok(CompiledTheme {
+        roc: wrap_type_module(&compiled.roc, "DocsComponents"),
+        src,
+        segments: compiled.segments,
+        styles: compiled.styles,
+    })
+}
+
 fn planned_page(
     page: &ResolvedPage,
     site: &SiteView,
@@ -327,10 +368,46 @@ fn planned_page(
     } else {
         format!("Page{}", &hex_sha256(page.id.as_bytes())[..HASH_LEN])
     };
+    let (segments, fragments) = crate::docs::plan_segments(&article_name, &page.article, rewrite);
+    let fragments = if fragments.is_empty() {
+        vec![(
+            format!("articles/{article_name}.html"),
+            article_html.clone(),
+        )]
+    } else {
+        fragments
+    };
+    let segments = if segments.is_empty() {
+        vec![crate::docs::PlannedSegment {
+            tag: "html".into(),
+            path: format!("articles/{article_name}.html"),
+            kind: String::new(),
+            title: String::new(),
+            summary: String::new(),
+            label: String::new(),
+            href: String::new(),
+            tone: String::new(),
+            group: String::new(),
+            tab_kind: String::new(),
+            tab_id: String::new(),
+            origin: String::new(),
+            caption: String::new(),
+            credit: String::new(),
+            alt: String::new(),
+            language: String::new(),
+            open: false,
+            verify: false,
+            children: Vec::new(),
+        }]
+    } else {
+        segments
+    };
     PlannedPage {
         article_path: format!("articles/{article_name}.html"),
         output_path: page.output_path.clone(),
         article_html,
+        fragments,
+        segments,
         view: PageView {
             site: site.clone(),
             lanes,
@@ -373,6 +450,28 @@ fn not_found_page(
         article_path: "articles/NotFound.html".into(),
         output_path: "404.html".into(),
         article_html: not_found_html(),
+        fragments: vec![("articles/NotFound.html".into(), not_found_html())],
+        segments: vec![crate::docs::PlannedSegment {
+            tag: "html".into(),
+            path: "articles/NotFound.html".into(),
+            kind: String::new(),
+            title: String::new(),
+            summary: String::new(),
+            label: String::new(),
+            href: String::new(),
+            tone: String::new(),
+            group: String::new(),
+            tab_kind: String::new(),
+            tab_id: String::new(),
+            origin: String::new(),
+            caption: String::new(),
+            credit: String::new(),
+            alt: String::new(),
+            language: String::new(),
+            open: false,
+            verify: false,
+            children: Vec::new(),
+        }],
         view: PageView {
             site: site.clone(),
             lanes,
@@ -715,6 +814,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.article_path);
         out.push_str(",\n            output_path: ");
         push_roc_string(&mut out, &page.output_path);
+        out.push_str(",\n            segments: ");
+        push_segments(&mut out, &page.segments, 3);
         out.push_str(
             ",\n            view: {\n                site: {\n                    title: ",
         );
@@ -795,6 +896,70 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
     }
     out.push_str("    ]\n}\n");
     out
+}
+
+fn push_segments(out: &mut String, segments: &[crate::docs::PlannedSegment], indent: usize) {
+    let mut flat = Vec::new();
+    collect_flat(segments, &mut flat);
+    out.push_str("[\n");
+    for segment in flat {
+        for _ in 0..indent + 1 {
+            out.push_str("    ");
+        }
+        out.push_str("{ tag: ");
+        push_roc_string(out, &segment.tag);
+        out.push_str(", kind: ");
+        push_roc_string(out, &segment.kind);
+        out.push_str(", path: ");
+        push_roc_string(out, &segment.path);
+        out.push_str(", title: ");
+        push_roc_string(out, &segment.title);
+        out.push_str(", summary: ");
+        push_roc_string(out, &segment.summary);
+        out.push_str(", label: ");
+        push_roc_string(out, &segment.label);
+        out.push_str(", href: ");
+        push_roc_string(out, &segment.href);
+        out.push_str(", tone: ");
+        push_roc_string(out, &segment.tone);
+        out.push_str(", group: ");
+        push_roc_string(out, &segment.group);
+        out.push_str(", tab_kind: ");
+        push_roc_string(out, &segment.tab_kind);
+        out.push_str(", tab_id: ");
+        push_roc_string(out, &segment.tab_id);
+        out.push_str(", origin: ");
+        push_roc_string(out, &segment.origin);
+        out.push_str(", caption: ");
+        push_roc_string(out, &segment.caption);
+        out.push_str(", credit: ");
+        push_roc_string(out, &segment.credit);
+        out.push_str(", alt: ");
+        push_roc_string(out, &segment.alt);
+        out.push_str(", language: ");
+        push_roc_string(out, &segment.language);
+        out.push_str(", open: ");
+        out.push_str(if segment.open { "True" } else { "False" });
+        out.push_str(", verify: ");
+        out.push_str(if segment.verify { "True" } else { "False" });
+        out.push_str(", child_count: ");
+        out.push_str(&segment.children.len().to_string());
+        out.push_str(" },\n");
+    }
+    for _ in 0..indent {
+        out.push_str("    ");
+    }
+    out.push(']');
+}
+
+fn collect_flat<'a>(
+    segments: &'a [crate::docs::PlannedSegment],
+    out: &mut Vec<&'a crate::docs::PlannedSegment>,
+) {
+    for segment in segments {
+        out.push(segment);
+        collect_flat(&segment.children, out);
+    }
 }
 
 fn push_roc_string(out: &mut String, value: &str) {
@@ -991,6 +1156,41 @@ items = ["index", "guide"]
         fs::write(
             root.join("index.rocdown"),
             "# Home changed\n\n![og](/assets/og.png)\n\nSee the [guide](/guide/).\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        let third = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        assert_ne!(first_roc, third.pages_roc());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn pages_roc_is_stable_for_docs_body_only_edits() {
+        let root = temp("hash-docs-body");
+        write_site(&root);
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    First body.\n}\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let first = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let first_roc = first.pages_roc();
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    Second body, still a note.\n}\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        let second = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        assert_eq!(first_roc, second.pages_roc());
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n@docs note {\n    title: \"Changed\"\n\n    Second body, still a note.\n}\n",
         )
         .unwrap();
         let loaded = load_site(&root).unwrap();

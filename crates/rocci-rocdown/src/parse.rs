@@ -3,9 +3,11 @@ use rocci_template::{
     Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from, parse_template_item_from,
 };
 
-use crate::ast::{Document, Item, PageDecl, RenderDecl, RocDecl};
+use crate::ast::{DocsDecl, Document, Item, PageDecl, RenderDecl, RocDecl};
 use crate::markdown::{self, BlockOrHole};
-use crate::scan::{self, Reserved, ScannedDecl, ScannedKind, inner_span};
+use crate::scan::{
+    self, Reserved, ScannedDecl, ScannedKind, docs_inner_span, docs_kind_span, inner_span,
+};
 
 pub struct ParseOutput {
     pub document: Document,
@@ -87,6 +89,49 @@ pub fn parse_markdown_body(
     }
 }
 
+pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> ParseOutput {
+    let start = body.start as usize;
+    let end = body.end as usize;
+    if start >= end || start >= source.src.len() {
+        return ParseOutput {
+            document: Document {
+                items: Vec::new(),
+                span: body,
+            },
+            diagnostics: Vec::new(),
+            headings: Vec::new(),
+            links: Vec::new(),
+        };
+    }
+    let end = end.min(source.src.len());
+    let mut diagnostics = Vec::new();
+    let scanned = scan::scan_range(source.src, start, end, &mut diagnostics);
+    let (synthetic, map) = markdown::punch_holes_range(source.src, start, end, &scanned);
+    let arena = Arena::new();
+    let options = markdown_options(false, true);
+    let root = parse_document(&arena, &synthetic, &options);
+    let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
+
+    let mut items = Vec::new();
+    for block in converted.blocks {
+        match block {
+            BlockOrHole::Block(node) => items.push(Item::Markdown(node)),
+            BlockOrHole::Hole(index) => {
+                if let Some(decl) = scanned.get(index) {
+                    items.push(fill_decl(source.src, decl, &mut diagnostics));
+                }
+            }
+        }
+    }
+
+    ParseOutput {
+        document: Document { items, span: body },
+        diagnostics,
+        headings: converted.headings,
+        links: converted.links,
+    }
+}
+
 fn markdown_options(footnotes: bool, wikilinks: bool) -> Options<'static> {
     let mut options = Options::default();
     options.extension.table = true;
@@ -139,6 +184,15 @@ fn fill_at_decl(
             let expr = inner_span(src, decl.at);
             Item::Render(RenderDecl {
                 expr,
+                span: Span::new(decl.at, decl.end),
+            })
+        }
+        Reserved::Docs => {
+            let kind_span = docs_kind_span(src, decl.at);
+            Item::Docs(DocsDecl {
+                kind: kind_span.of(src).to_string(),
+                kind_span,
+                body: docs_inner_span(src, decl.at),
                 span: Span::new(decl.at, decl.end),
             })
         }

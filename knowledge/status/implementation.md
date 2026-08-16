@@ -63,7 +63,7 @@ sources:
 
 Template and Rocdown compilation, standalone preview/run workflows, the desktop preview host, ad-hoc macOS application packaging, editor registration, and the Rust-catalog/Rocci-shell Rocs foundation are implemented.[^roadmap]
 
-Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input.[^rocs-plan]
+Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocs types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocs test` runs declared example commands on demand and is not part of `rocs build`.[^rocs-plan]
 
 The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
@@ -71,7 +71,7 @@ Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate a
 
 ## Missing
 
-Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete.[^roadmap]
+Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
 
 ## Decided direction
 

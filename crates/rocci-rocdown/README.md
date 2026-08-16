@@ -38,7 +38,7 @@ Indent              := (" " | "\t")*
 ```
 
 Reserved names: `page`, `roc`, `render`, `component`, `fixture`, `css`,
-`context`, `init`, `on`, `if`, `for`, `match`, `let`. Unknown `@name` stays
+`context`, `init`, `on`, `if`, `for`, `match`, `let`, `docs`. Unknown `@name` stays
 Markdown. `\@roc` is escaped prose; the backslash is dropped in rendered text.
 
 Declarations are recognized only when all of these hold:
@@ -109,6 +109,7 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
+| `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocs types the body |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
 `@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template

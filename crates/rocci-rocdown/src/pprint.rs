@@ -20,6 +20,7 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             Item::Context(_) => w.leaf("context", &[]),
             Item::Init(_) => w.leaf("init", &[]),
             Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
+            Item::Docs(docs) => w.leaf("docs", &[docs.kind.clone()]),
             Item::Template(item) => match item {
                 TemplateItem::If(_) => w.leaf("if", &[]),
                 TemplateItem::For(dir) => w.leaf("for", &[dir.binder.name.clone()]),

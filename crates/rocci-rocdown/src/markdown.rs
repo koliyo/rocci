@@ -96,6 +96,46 @@ pub fn punch_holes(src: &str, decls: &[crate::scan::ScannedDecl]) -> (String, Of
     (synthetic, OffsetMap { regions })
 }
 
+pub fn punch_holes_range(
+    src: &str,
+    start: usize,
+    end: usize,
+    decls: &[crate::scan::ScannedDecl],
+) -> (String, OffsetMap) {
+    let mut synthetic = String::new();
+    let mut regions = Vec::new();
+    let mut orig = start.min(end);
+    let end = end.min(src.len());
+    for (i, decl) in decls.iter().enumerate() {
+        if orig < decl.line_start {
+            let syn_start = synthetic.len();
+            synthetic.push_str(&src[orig..decl.line_start.min(end)]);
+            regions.push(MappedRegion {
+                synthetic: syn_start..synthetic.len(),
+                original: Some(orig..decl.line_start.min(end)),
+            });
+        }
+        let syn_start = synthetic.len();
+        synthetic.push_str("\n\n<!--rocdown:");
+        synthetic.push_str(&i.to_string());
+        synthetic.push_str("-->\n\n");
+        regions.push(MappedRegion {
+            synthetic: syn_start..synthetic.len(),
+            original: None,
+        });
+        orig = decl.end.min(end);
+    }
+    if orig < end {
+        let syn_start = synthetic.len();
+        synthetic.push_str(&src[orig..end]);
+        regions.push(MappedRegion {
+            synthetic: syn_start..synthetic.len(),
+            original: Some(orig..end),
+        });
+    }
+    (synthetic, OffsetMap { regions })
+}
+
 enum Converted {
     Block(MdNode),
     Hole(usize),

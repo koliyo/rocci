@@ -8,8 +8,12 @@ use rocci_template::{
 };
 
 use crate::CompileOptions;
-use crate::ast::{Document, Item, MdNode, PageMeta, RenderDecl};
+use crate::ast::{DocsDecl, Document, Item, MdNode, PageMeta, RenderDecl};
+use crate::docs::{
+    extract_lines, extract_region, field_bool, field_string, resolve_include_path, split_docs_body,
+};
 use crate::page::{extract_page, imports_html, roc_binding_names, split_roc_body};
+use crate::parse_fragment;
 
 const META_NAME: &str = "rocci_meta";
 const CONTENT_NAME: &str = "rocci_content";
@@ -136,6 +140,8 @@ pub fn lower(
         css_stamp,
         field_defaults,
         theme: resolved_theme.clone(),
+        diagnostics,
+        resolve_includes: options.resolve_includes,
     };
 
     let mut imports = Vec::new();
@@ -322,6 +328,8 @@ struct Emitter<'a> {
     css_stamp: Option<String>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
     theme: Option<rocci_theme::ResolvedTheme>,
+    diagnostics: &'a mut Vec<Diagnostic>,
+    resolve_includes: bool,
 }
 
 impl<'a> Emitter<'a> {
@@ -426,6 +434,7 @@ impl<'a> Emitter<'a> {
             self.push_indent();
             match node {
                 ContentPiece::Markdown(md) => self.lower_md(md),
+                ContentPiece::Docs(docs) => self.lower_docs(docs),
                 ContentPiece::Render(render) => {
                     let expr = render.expr.of(self.source.src).trim();
                     self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
@@ -456,6 +465,272 @@ impl<'a> Emitter<'a> {
             segment.generated.end += start as u32;
             self.segments.push(segment);
         }
+    }
+
+    fn lower_docs(&mut self, docs: &DocsDecl) {
+        let src = self.source.src;
+        let (fields, content) = split_docs_body(src, docs.body);
+        let title = fields
+            .iter()
+            .find(|field| field.name == "title")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let summary = fields
+            .iter()
+            .find(|field| field.name == "summary")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let label = fields
+            .iter()
+            .find(|field| field.name == "label")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let open = fields
+            .iter()
+            .find(|field| field.name == "open")
+            .and_then(|field| field_bool(src, field))
+            .unwrap_or(false);
+        if docs.kind == "include" {
+            self.lower_docs_include(docs, &fields);
+            return;
+        }
+        let parsed = parse_fragment(self.source, content, false);
+        self.diagnostics.extend(parsed.diagnostics);
+        for item in &parsed.document.items {
+            if let Some(kind) = illegal_docs_item(item) {
+                self.diagnostics.push(Diagnostic::error(
+                    item.span(),
+                    format!("`@{kind}` is not allowed inside `@docs`"),
+                ));
+            }
+        }
+        let class = format!("rd-docs-{} rd-docs-block", docs.kind);
+        let tag = match docs.kind.as_str() {
+            "note" | "tip" | "caution" | "danger" | "deprecated" => "aside",
+            "details" => "details",
+            "figure" => "figure",
+            "badge" => "p",
+            "tabs" | "tab" | "steps" | "step" | "card-grid" | "link-card" | "file-tree"
+            | "compatibility" | "definition" | "example" => "section",
+            _ => "div",
+        };
+        let label_text = match docs.kind.as_str() {
+            "note" => "Note",
+            "tip" => "Tip",
+            "caution" => "Caution",
+            "danger" => "Danger",
+            "deprecated" => "Deprecated",
+            _ => "",
+        };
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string(tag, docs.span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        let mut attrs = vec![
+            ("class", class.as_str()),
+            ("data-rocci-docs", docs.kind.as_str()),
+        ];
+        let aria = if docs.kind == "deprecated" {
+            "Deprecated"
+        } else if docs.kind == "file-tree" {
+            "File tree"
+        } else if docs.kind == "tab" && !label.is_empty() {
+            label.as_str()
+        } else {
+            ""
+        };
+        if !aria.is_empty() {
+            attrs.push(("aria-label", aria));
+        }
+        if docs.kind == "details" && open {
+            attrs.push(("open", "open"));
+        }
+        self.emit_attrs(&attrs, docs.span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        if docs.kind == "details" {
+            self.push_indent();
+            self.emit_text_element("summary", "rd-docs-summary", &summary, docs.span);
+            self.emit(",\n");
+        } else if !label_text.is_empty() {
+            self.push_indent();
+            self.emit_text_element("p", "rd-docs-label", label_text, docs.span);
+            self.emit(",\n");
+        }
+        if !title.is_empty() && docs.kind != "details" {
+            self.push_indent();
+            self.emit_text_element("p", "rd-docs-title", &title, docs.span);
+            self.emit(",\n");
+        }
+        if docs.kind == "badge" {
+            self.push_indent();
+            self.emit_text_element(
+                "span",
+                "rd-docs-badge-label",
+                if label.is_empty() { &title } else { &label },
+                docs.span,
+            );
+            self.emit(",\n");
+        }
+        self.lower_docs_items(&parsed.document.items);
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_docs_items(&mut self, items: &[Item]) {
+        for item in items {
+            match item {
+                Item::Markdown(node) => {
+                    self.push_indent();
+                    self.lower_md(node);
+                    self.emit(",\n");
+                }
+                Item::Docs(nested) => {
+                    self.push_indent();
+                    self.lower_docs(nested);
+                    self.emit(",\n");
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn lower_docs_include(&mut self, docs: &DocsDecl, fields: &[crate::docs::DocsField]) {
+        if !self.resolve_includes {
+            self.emit_html(".empty");
+            return;
+        }
+        let src = self.source.src;
+        let path = fields
+            .iter()
+            .find(|field| field.name == "path")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let region = fields
+            .iter()
+            .find(|field| field.name == "region")
+            .and_then(|field| field_string(src, field));
+        let start = fields
+            .iter()
+            .find(|field| field.name == "start")
+            .and_then(|field| field.value.of(src).trim().parse::<u32>().ok());
+        let end = fields
+            .iter()
+            .find(|field| field.name == "end")
+            .and_then(|field| field.value.of(src).trim().parse::<u32>().ok());
+        let language = fields
+            .iter()
+            .find(|field| field.name == "language")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let resolved = match resolve_include_path(self.source.name, &path) {
+            Ok(path) => path,
+            Err(err) => {
+                self.diagnostics.push(Diagnostic::error(docs.span, err));
+                self.emit_html(".empty");
+                return;
+            }
+        };
+        let contents = match std::fs::read_to_string(&resolved) {
+            Ok(contents) => contents,
+            Err(_) => {
+                self.diagnostics.push(Diagnostic::error(
+                    docs.span,
+                    format!("could not read include `{}`", resolved.display()),
+                ));
+                self.emit_html(".empty");
+                return;
+            }
+        };
+        let excerpt = if let Some(region) = region.as_deref() {
+            match extract_region(&contents, region) {
+                Ok((excerpt, _, _)) => excerpt,
+                Err(err) => {
+                    self.diagnostics.push(Diagnostic::error(docs.span, err));
+                    self.emit_html(".empty");
+                    return;
+                }
+            }
+        } else if let (Some(start), Some(end)) = (start, end) {
+            match extract_lines(&contents, start, end) {
+                Ok((excerpt, _, _)) => excerpt,
+                Err(err) => {
+                    self.diagnostics.push(Diagnostic::error(docs.span, err));
+                    self.emit_html(".empty");
+                    return;
+                }
+            }
+        } else {
+            contents
+        };
+        if resolved.extension().and_then(|ext| ext.to_str()) == Some("rocdown") {
+            let included = crate::parse(
+                SourceFile::new(&resolved.to_string_lossy(), &excerpt),
+                false,
+            );
+            self.diagnostics.extend(included.diagnostics);
+            for item in &included.document.items {
+                if let Some(kind) = illegal_docs_item(item) {
+                    self.diagnostics.push(Diagnostic::error(
+                        item.span(),
+                        format!("`@{kind}` is not allowed inside `@docs include`"),
+                    ));
+                }
+            }
+            self.emit_html(".fragment([\n");
+            self.indent += 1;
+            self.lower_docs_items(&included.document.items);
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("])");
+            return;
+        }
+        let info = if language.is_empty() {
+            resolved
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("")
+                .to_string()
+        } else {
+            language
+        };
+        self.lower_md(&MdNode::CodeBlock {
+            info,
+            literal: excerpt,
+            span: docs.span,
+        });
+    }
+
+    fn emit_text_element(&mut self, tag: &str, class: &str, value: &str, span: Span) {
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string(tag, span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", class)], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".text(");
+        self.emit_string(value, span, OriginKind::MarkdownText);
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
     }
 
     fn lower_md(&mut self, node: &MdNode) {
@@ -1179,6 +1454,7 @@ impl<'a> Emitter<'a> {
 
 enum ContentPiece<'a> {
     Markdown(&'a MdNode),
+    Docs(&'a DocsDecl),
     Render(&'a RenderDecl),
     Template(&'a TemplateItem),
 }
@@ -1194,6 +1470,7 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
     for item in &document.items {
         match item {
             Item::Markdown(node) => current.push(ContentPiece::Markdown(node)),
+            Item::Docs(docs) => current.push(ContentPiece::Docs(docs)),
             Item::Render(render) => current.push(ContentPiece::Render(render)),
             Item::Template(TemplateItem::Let(_)) => {}
             Item::Template(item) if matches!(item, TemplateItem::For(_)) => {
@@ -1210,4 +1487,20 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
         groups.push(ContentGroup::Nodes(current));
     }
     groups
+}
+
+fn illegal_docs_item(item: &Item) -> Option<&'static str> {
+    match item {
+        Item::Markdown(_) | Item::Docs(_) => None,
+        Item::Page(_) => Some("page"),
+        Item::Roc(_) => Some("roc"),
+        Item::Render(_) => Some("render"),
+        Item::Component(_) => Some("component"),
+        Item::Fixture(_) => Some("fixture"),
+        Item::Css(_) => Some("css"),
+        Item::Context(_) => Some("context"),
+        Item::Init(_) => Some("init"),
+        Item::On(_) => Some("on"),
+        Item::Template(_) => Some("template"),
+    }
 }
