@@ -8,17 +8,7 @@ write_page! = |staging, item| {
     article = Path.utf8(item.article_path).read_utf8!()?
     html = Html.render_document(
         RocsTheme.siteShell(
-            {
-                site: RocsPages.site,
-                nav: RocsPages.nav,
-                route: item.route,
-                title: item.title,
-                description: item.description,
-                outline: item.outline,
-                breadcrumbs: item.breadcrumbs,
-                previous: item.previous,
-                next: item.next,
-            },
+            item.view,
             Html.dangerously_include_unescaped_html(article),
         ),
     )

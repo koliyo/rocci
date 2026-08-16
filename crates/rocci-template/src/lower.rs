@@ -16,6 +16,7 @@ pub struct LowerOptions {
     pub theme_css: Option<String>,
     pub theme_id: Option<String>,
     pub color_scheme_attr: Option<String>,
+    pub embed_css: bool,
 }
 
 impl Default for LowerOptions {
@@ -25,6 +26,7 @@ impl Default for LowerOptions {
             theme_css: None,
             theme_id: None,
             color_scheme_attr: None,
+            embed_css: true,
         }
     }
 }
@@ -133,6 +135,7 @@ pub fn lower_template_items(
         theme_css: options.theme_css.clone(),
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
+        embed_css: options.embed_css,
     };
     match items {
         [] => emitter.emit_html(".empty"),
@@ -247,6 +250,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         theme_css: options.theme_css.clone(),
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
+        embed_css: options.embed_css,
     };
     let inject_datastar =
         document_has_action(document) && !document_imports_datastar(source.src, document);
@@ -309,6 +313,7 @@ struct Emitter<'a> {
     theme_css: Option<String>,
     theme_id: Option<String>,
     color_scheme_attr: Option<String>,
+    embed_css: bool,
 }
 
 impl<'a> Emitter<'a> {
@@ -384,10 +389,14 @@ impl<'a> Emitter<'a> {
         } else {
             Some(stamp.join(" "))
         };
-        if let Some(css) = self.injected_css(&component_css, component_id.as_deref()) {
-            self.lower_html_value_with_style(rest, &body_params, &css);
-        } else if self.theme_css.is_some() && is_html_document(rest) {
-            self.lower_html_value_with_style(rest, &body_params, "");
+        if self.embed_css {
+            if let Some(css) = self.injected_css(&component_css, component_id.as_deref()) {
+                self.lower_html_value_with_style(rest, &body_params, &css);
+            } else if self.theme_css.is_some() && is_html_document(rest) {
+                self.lower_html_value_with_style(rest, &body_params, "");
+            } else {
+                self.lower_html_value(rest, &body_params);
+            }
         } else {
             self.lower_html_value(rest, &body_params);
         }

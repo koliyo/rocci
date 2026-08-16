@@ -20,6 +20,8 @@ base_url = "https://rocci.dev"
 language = "en"
 repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
+subtitle = "Roc-native interface tools"
+footer = "Rocci is experimental software."
 
 [build]
 output = "../dist/rocci.dev"
@@ -46,16 +48,27 @@ Unknown keys are errors.
 | `language` | `en` | Document language |
 | `repository` | Empty | Source link in the header |
 | `social_image` | Empty | Site-relative Open Graph image path |
+| `subtitle` | Empty | Short header tagline beside the brand |
+| `footer` | Empty | Article footer text |
+| `csp` | Strict static default | Content-Security-Policy for generated HTML |
 
 `base_url` must use HTTP or HTTPS. A trailing slash is normalized away.
+Empty `subtitle` and `footer` omit those chrome pieces. Leave `csp` empty to use
+the default policy: no scripts, no `unsafe-eval` or `unsafe-inline`, styles and
+images from `'self'`.
 
 ## Build fields
 
 `output` is resolved relative to the content root unless `--output` overrides
-it. `assets` names a directory copied to `/assets/` in the published tree.
+it. `assets` names a directory whose files are content-hashed into `/assets/`
+in the published tree (`og.png` becomes `og.<hash>.png`). Markdown image URLs
+and `social_image` are rewritten to those hashed paths.
 
 Rocs writes into a staging directory and atomically replaces the output only
 after a successful build.
+
+The first-party theme CSS is extracted once, hashed, and linked from every
+page. Generated HTML declares the CSP with a `<meta>` tag.
 
 ## Navigation
 
@@ -73,8 +86,12 @@ Published pages may remain unlisted when that is intentional.
 
 ## Generated artifacts
 
-In addition to page HTML and copied assets, a configured build emits
-`llms.txt`. When `base_url` is set, it also emits `sitemap.xml` and `robots.txt`.
+In addition to page HTML, a configured build emits hashed `/assets/` files, a
+themed `404.html`, alias redirect HTML, and `llms.txt`. When `base_url` is set,
+it also emits `sitemap.xml` and `robots.txt`.
+
+`rocs inspect artifacts` lists the planned output tree, including hashed asset
+paths, without invoking Roc.
 
 Build this site's content from the repository root with:
 

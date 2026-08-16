@@ -15,4 +15,5 @@ rocci-template = { workspace = true }
 rocci-rocdown = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = "0.10"
 toml = { workspace = true }

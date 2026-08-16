@@ -7,14 +7,11 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use rocci_template::{
-    LowerOptions, MappedModule, SourceFile, compile, format_diagnostic, remap_roc_output,
-    type_name_from_path, wrap_type_module,
-};
+use rocci_template::{MappedModule, remap_roc_output};
 
 use crate::BASIC_CLI_PLATFORM;
-use crate::catalog::{self, NavLink, NavSection, PageHeading};
-use crate::config::SiteConfig;
+use crate::catalog;
+use crate::plan::{self, BuildPlan};
 use crate::runtime;
 use crate::site::{load_site, resolve_loaded};
 
@@ -52,59 +49,19 @@ fn build_loaded(loaded: &crate::site::LoadedSite, output: &Path) -> Result<Build
     if result.has_errors() {
         bail!("{}", result.error_summary());
     }
-    let config = &loaded.config;
-    let pages: Vec<_> = result
-        .site
-        .pages
-        .iter()
-        .filter(|page| !page.draft)
-        .cloned()
-        .collect();
-    let navigation = result.site.navigation.clone();
-
-    let theme_src = runtime::THEME;
-    let theme_compiled = compile(
-        SourceFile::new("RocsTheme.rocci", theme_src),
-        &LowerOptions::default(),
-    );
-    for diagnostic in &theme_compiled.diagnostics {
-        eprintln!(
-            "{}",
-            format_diagnostic(SourceFile::new("RocsTheme.rocci", theme_src), diagnostic)
-        );
-    }
-    if theme_compiled.has_errors() {
-        bail!("RocsTheme.rocci compilation failed");
-    }
-    if theme_compiled.roc.contains("import Datastar") {
-        bail!("RocsTheme.rocci uses Datastar, which the rocs runtime does not stage");
-    }
-    let theme_wrapped = wrap_type_module(&theme_compiled.roc, "RocsTheme");
-    let mut generated_roc_bytes = theme_wrapped.len();
-    let maps = vec![MappedModule {
-        type_name: "RocsTheme".into(),
-        generated: theme_wrapped.clone(),
-        source_name: "RocsTheme.rocci".into(),
-        source_src: theme_src.to_string(),
-        segments: theme_compiled.segments,
-    }];
+    let plan = plan::plan(&loaded.root, &loaded.config, &result.site)?;
 
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
     runtime::stage_into(&workspace)?;
-    generated_roc_bytes += runtime::runtime_bytes();
+    let mut generated_roc_bytes = runtime::runtime_bytes();
+    generated_roc_bytes += plan.theme_roc.len();
 
     let articles = workspace.join("articles");
     fs::create_dir_all(&articles).context("failed to create articles directory")?;
-    let mut index_pages = Vec::new();
-    for page in &pages {
-        let type_name = type_name_from_path(Path::new(&page.source_path));
-        let article_rel = format!("articles/{type_name}.html");
-        let title_rel = format!("articles/{type_name}.title");
-        fs::write(workspace.join(&article_rel), &page.article_html)
-            .with_context(|| format!("failed to write {article_rel}"))?;
-        fs::write(workspace.join(&title_rel), &page.title)
-            .with_context(|| format!("failed to write {title_rel}"))?;
+    for page in &plan.pages {
+        fs::write(workspace.join(&page.article_path), &page.article_html)
+            .with_context(|| format!("failed to write {}", page.article_path))?;
         if let Some(parent) = Path::new(&page.output_path).parent() {
             if parent != Path::new("") {
                 fs::create_dir_all(staging.join(parent)).with_context(|| {
@@ -112,36 +69,25 @@ fn build_loaded(loaded: &crate::site::LoadedSite, output: &Path) -> Result<Build
                 })?;
             }
         }
-        index_pages.push(ThemePage {
-            indexed: IndexedPage {
-                title_path: title_rel,
-                article_path: article_rel,
-                output_path: page.output_path.clone(),
-            },
-            route: page.route.clone(),
-            title: page.title.clone(),
-            description: page.description.clone(),
-            outline: page
-                .headings
-                .iter()
-                .filter(|heading| (2..=3).contains(&heading.level))
-                .cloned()
-                .collect(),
-            breadcrumbs: page.breadcrumbs.clone(),
-            previous: page.previous.clone(),
-            next: page.next.clone(),
-        });
     }
 
-    let pages_roc = site_pages_source(&index_pages, config, &navigation);
+    let pages_roc = plan.pages_roc();
     generated_roc_bytes += pages_roc.len();
     fs::write(workspace.join("RocsPages.roc"), &pages_roc)
         .context("failed to write RocsPages.roc")?;
-    fs::write(workspace.join("RocsTheme.roc"), &theme_wrapped)
+    fs::write(workspace.join("RocsTheme.roc"), &plan.theme_roc)
         .context("failed to write RocsTheme.roc")?;
     let main_roc = main_roc();
     generated_roc_bytes += main_roc.len();
     fs::write(workspace.join("main.roc"), main_roc).context("failed to write main.roc")?;
+
+    let maps = vec![MappedModule {
+        type_name: "RocsTheme".into(),
+        generated: plan.theme_roc.clone(),
+        source_name: "RocsTheme.rocci".into(),
+        source_src: plan.theme_src.clone(),
+        segments: plan.theme_segments.clone(),
+    }];
 
     eprintln!("rocs: generated {generated_roc_bytes} bytes of Roc, compiling with roc");
     let roc_started = Instant::now();
@@ -153,10 +99,7 @@ fn build_loaded(loaded: &crate::site::LoadedSite, output: &Path) -> Result<Build
         eprint!("{roc_output}");
     }
 
-    copy_site_assets(&loaded.root, &staging, config)?;
-    write_alias_redirects(&staging, &pages)?;
-    write_discovery_artifacts(&staging, config, &pages)?;
-
+    write_planned_outputs(&staging, &plan)?;
     commit_output(&staging, output)?;
     let _ = fs::remove_dir_all(&workspace);
 
@@ -170,25 +113,6 @@ fn build_loaded(loaded: &crate::site::LoadedSite, output: &Path) -> Result<Build
 pub struct BuildReport {
     pub generated_roc_bytes: usize,
     pub roc_ms: u128,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct IndexedPage {
-    pub title_path: String,
-    pub article_path: String,
-    pub output_path: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ThemePage {
-    indexed: IndexedPage,
-    route: String,
-    title: String,
-    description: String,
-    outline: Vec<PageHeading>,
-    breadcrumbs: Vec<NavLink>,
-    previous: Option<NavLink>,
-    next: Option<NavLink>,
 }
 
 pub fn discover_rocdown(root: &Path) -> Result<Vec<PathBuf>> {
@@ -221,142 +145,6 @@ fn discover_in(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
         }
     }
     Ok(())
-}
-
-pub fn pages_source(pages: &[IndexedPage]) -> String {
-    let config = SiteConfig::default();
-    let pages = pages
-        .iter()
-        .cloned()
-        .map(|indexed| ThemePage {
-            title: indexed
-                .title_path
-                .strip_prefix("articles/")
-                .and_then(|name| name.strip_suffix(".title"))
-                .unwrap_or("Page")
-                .to_string(),
-            route: if indexed.output_path == "index.html" {
-                "/".into()
-            } else {
-                format!(
-                    "/{}/",
-                    indexed
-                        .output_path
-                        .strip_suffix("/index.html")
-                        .unwrap_or(&indexed.output_path)
-                )
-            },
-            indexed,
-            description: String::new(),
-            outline: Vec::new(),
-            breadcrumbs: Vec::new(),
-            previous: None,
-            next: None,
-        })
-        .collect::<Vec<_>>();
-    site_pages_source(&pages, &config, &[])
-}
-
-fn site_pages_source(
-    pages: &[ThemePage],
-    config: &SiteConfig,
-    navigation: &[NavSection],
-) -> String {
-    let mut pages = pages.to_vec();
-    pages.sort_by(|a, b| a.indexed.output_path.cmp(&b.indexed.output_path));
-    let mut out = String::from("RocsPages := [].{\n    site = {\n        title: ");
-    push_roc_string(&mut out, &config.site.title);
-    out.push_str(",\n        description: ");
-    push_roc_string(&mut out, &config.site.description);
-    out.push_str(",\n        base_url: ");
-    push_roc_string(&mut out, &config.site.base_url);
-    out.push_str(",\n        language: ");
-    push_roc_string(&mut out, &config.site.language);
-    out.push_str(",\n        repository: ");
-    push_roc_string(&mut out, &config.site.repository);
-    out.push_str(",\n        social_image: ");
-    push_roc_string(&mut out, &config.site.social_image);
-    out.push_str("\n    }\n\n    nav = [\n");
-    for section in navigation {
-        out.push_str("        { label: ");
-        push_roc_string(&mut out, &section.label);
-        out.push_str(", items: [\n");
-        for item in &section.items {
-            out.push_str("            { title: ");
-            push_roc_string(&mut out, &item.title);
-            out.push_str(", href: ");
-            push_roc_string(&mut out, &item.route);
-            out.push_str(" },\n");
-        }
-        out.push_str("        ] },\n");
-    }
-    out.push_str("    ]\n\n    pages = [\n");
-    for page in &pages {
-        out.push_str("        {\n            title_path: ");
-        push_roc_string(&mut out, &page.indexed.title_path);
-        out.push_str(",\n            article_path: ");
-        push_roc_string(&mut out, &page.indexed.article_path);
-        out.push_str(",\n            output_path: ");
-        push_roc_string(&mut out, &page.indexed.output_path);
-        out.push_str(",\n            route: ");
-        push_roc_string(&mut out, &page.route);
-        out.push_str(",\n            title: ");
-        push_roc_string(&mut out, &page.title);
-        out.push_str(",\n            description: ");
-        push_roc_string(&mut out, &page.description);
-        out.push_str(",\n            outline: [\n");
-        for heading in &page.outline {
-            out.push_str("                { id: ");
-            push_roc_string(&mut out, &heading.id);
-            out.push_str(", title: ");
-            push_roc_string(&mut out, &heading.text);
-            out.push_str(", level: ");
-            push_roc_string(&mut out, &heading.level.to_string());
-            out.push_str(" },\n");
-        }
-        out.push_str("            ],\n            breadcrumbs: [\n");
-        for crumb in &page.breadcrumbs {
-            out.push_str("                { title: ");
-            push_roc_string(&mut out, &crumb.title);
-            out.push_str(", href: ");
-            push_roc_string(&mut out, &crumb.route);
-            out.push_str(" },\n");
-        }
-        out.push_str("            ],\n            previous: { title: ");
-        push_nav_link(&mut out, page.previous.as_ref());
-        out.push_str(",\n            next: { title: ");
-        push_nav_link(&mut out, page.next.as_ref());
-        out.push_str("\n        },\n");
-    }
-    out.push_str("    ]\n}\n");
-    out
-}
-
-fn push_nav_link(out: &mut String, link: Option<&NavLink>) {
-    match link {
-        Some(link) => {
-            push_roc_string(out, &link.title);
-            out.push_str(", href: ");
-            push_roc_string(out, &link.route);
-            out.push_str(" }");
-        }
-        None => out.push_str("\"\", href: \"\" }"),
-    }
-}
-
-fn push_roc_string(out: &mut String, value: &str) {
-    out.push('"');
-    for ch in value.chars() {
-        match ch {
-            '\\' => out.push_str("\\\\"),
-            '"' => out.push_str("\\\""),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            _ => out.push(ch),
-        }
-    }
-    out.push('"');
 }
 
 fn main_roc() -> String {
@@ -410,118 +198,30 @@ fn invoke_roc(workspace: &Path, staging: &Path, maps: &[MappedModule]) -> Result
     );
 }
 
-fn copy_site_assets(root: &Path, staging: &Path, config: &SiteConfig) -> Result<()> {
-    if config.build.assets.trim().is_empty() {
-        return Ok(());
-    }
-    let source = root.join(&config.build.assets);
-    if !source.exists() {
-        return Ok(());
-    }
-    if !source.is_dir() {
-        bail!(
-            "configured assets path {} is not a directory",
-            source.display()
-        );
-    }
-    copy_directory(&source, &staging.join("assets"))
-}
-
-fn copy_directory(source: &Path, target: &Path) -> Result<()> {
-    fs::create_dir_all(target).with_context(|| format!("failed to create {}", target.display()))?;
-    let mut entries: Vec<_> = fs::read_dir(source)
-        .with_context(|| format!("failed to read {}", source.display()))?
-        .collect::<std::io::Result<Vec<_>>>()?;
-    entries.sort_by_key(|entry| entry.file_name());
-    for entry in entries {
-        let from = entry.path();
-        let to = target.join(entry.file_name());
-        if from.is_dir() {
-            copy_directory(&from, &to)?;
-        } else {
-            fs::copy(&from, &to).with_context(|| {
-                format!("failed to copy {} to {}", from.display(), to.display())
-            })?;
+fn write_planned_outputs(staging: &Path, plan: &BuildPlan) -> Result<()> {
+    for asset in &plan.assets {
+        let dest = staging.join(&asset.output_path);
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
         }
+        fs::write(&dest, &asset.bytes)
+            .with_context(|| format!("failed to write {}", dest.display()))?;
+    }
+    for redirect in &plan.redirects {
+        let dest = staging.join(&redirect.output_path);
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        fs::write(&dest, &redirect.html)
+            .with_context(|| format!("failed to write {}", dest.display()))?;
+    }
+    for file in &plan.files {
+        fs::write(staging.join(&file.output_path), &file.contents)
+            .with_context(|| format!("failed to write {}", file.output_path))?;
     }
     Ok(())
-}
-
-fn write_alias_redirects(staging: &Path, pages: &[catalog::ResolvedPage]) -> Result<()> {
-    for page in pages {
-        for alias in &page.aliases {
-            let output_path = catalog::route_output_path(alias);
-            let dest = staging.join(&output_path);
-            if let Some(parent) = dest.parent() {
-                fs::create_dir_all(parent)
-                    .with_context(|| format!("failed to create {}", parent.display()))?;
-            }
-            fs::write(&dest, redirect_html(&page.route))
-                .with_context(|| format!("failed to write redirect {}", dest.display()))?;
-        }
-    }
-    Ok(())
-}
-
-fn redirect_html(target: &str) -> String {
-    let target = escape_xml(target);
-    format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Redirect</title>\n<link rel=\"canonical\" href=\"{target}\">\n<meta http-equiv=\"refresh\" content=\"0; url={target}\">\n</head>\n<body>\n<p>Moved to <a href=\"{target}\">{target}</a>.</p>\n</body>\n</html>\n"
-    )
-}
-
-fn write_discovery_artifacts(
-    staging: &Path,
-    config: &SiteConfig,
-    pages: &[catalog::ResolvedPage],
-) -> Result<()> {
-    let mut llms = format!("# {}\n\n{}\n\n", config.site.title, config.site.description);
-    for page in pages {
-        let url = format!("{}{}", config.site.base_url, page.route);
-        if page.description.is_empty() {
-            llms.push_str(&format!("- [{}]({url})\n", page.title));
-        } else {
-            llms.push_str(&format!(
-                "- [{}]({url}): {}\n",
-                page.title, page.description
-            ));
-        }
-    }
-    fs::write(staging.join("llms.txt"), llms).context("failed to write llms.txt")?;
-
-    if !config.site.base_url.is_empty() {
-        let mut sitemap = String::from(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n",
-        );
-        for page in pages {
-            sitemap.push_str("  <url><loc>");
-            sitemap.push_str(&escape_xml(&format!(
-                "{}{}",
-                config.site.base_url, page.route
-            )));
-            sitemap.push_str("</loc></url>\n");
-        }
-        sitemap.push_str("</urlset>\n");
-        fs::write(staging.join("sitemap.xml"), sitemap).context("failed to write sitemap.xml")?;
-        fs::write(
-            staging.join("robots.txt"),
-            format!(
-                "User-agent: *\nAllow: /\nSitemap: {}/sitemap.xml\n",
-                config.site.base_url
-            ),
-        )
-        .context("failed to write robots.txt")?;
-    }
-    Ok(())
-}
-
-fn escape_xml(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
 }
 
 fn commit_output(staging: &Path, output: &Path) -> Result<()> {
@@ -624,34 +324,6 @@ mod tests {
         files
     }
 
-    fn sample_pages() -> [IndexedPage; 2] {
-        [
-            IndexedPage {
-                title_path: "articles/Index.title".into(),
-                article_path: "articles/Index.html".into(),
-                output_path: "index.html".into(),
-            },
-            IndexedPage {
-                title_path: "articles/Guide.title".into(),
-                article_path: "articles/Guide.html".into(),
-                output_path: "guide/index.html".into(),
-            },
-        ]
-    }
-
-    #[test]
-    fn pages_source_is_invariant_under_shuffle() {
-        let src = pages_source(&sample_pages());
-        let mut shuffled = sample_pages();
-        shuffled.reverse();
-        assert_eq!(src, pages_source(&shuffled));
-        let guide = src.find("output_path: \"guide/index.html\"").unwrap();
-        let index = src.find("output_path: \"index.html\"").unwrap();
-        assert!(guide < index);
-        assert!(src.contains("articles/Guide.html"));
-        assert!(src.contains("articles/Index.html"));
-    }
-
     #[test]
     fn two_page_build_writes_shell_and_escapes() {
         if skip_without_roc() {
@@ -675,6 +347,23 @@ mod tests {
         }
         assert!(index.contains("href=\"/guide/\""));
         assert!(index.contains("class=\"rd-paragraph\""));
+        for html in [&index, &guide] {
+            assert!(html.contains("rel=\"stylesheet\""));
+            assert!(html.contains("Content-Security-Policy"));
+            assert!(!html.contains("<script"));
+            let style_idx = html.find("<style");
+            if let Some(idx) = style_idx {
+                let window = &html[idx..idx.saturating_add(80).min(html.len())];
+                assert!(
+                    !window.contains(":scope") && !window.contains("--canvas"),
+                    "theme CSS should not be inlined: {window}"
+                );
+            }
+        }
+        let not_found = fs::read_to_string(output.join("404.html")).unwrap();
+        assert!(not_found.contains("skip-link"));
+        assert!(not_found.contains("Page not found"));
+        assert!(not_found.contains("id=\"main-content\"") || not_found.contains("id='main-content'"));
         let _ = fs::remove_dir_all(&output);
     }
 

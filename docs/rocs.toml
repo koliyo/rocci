@@ -5,6 +5,8 @@ base_url = "https://rocci.dev"
 language = "en"
 repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
+subtitle = "Roc-native interface tools"
+footer = "Rocci is experimental software. Verify APIs against the current source before production use."
 
 [build]
 output = "../dist/rocci.dev"
