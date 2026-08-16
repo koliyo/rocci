@@ -830,7 +830,7 @@ fn apply_journey(
         .collect();
 
     for page in pages.iter_mut() {
-        page.unlisted = !page.draft && !listed_ids.contains(page.id.as_str());
+        page.unlisted = !page.draft && page.route != "/" && !listed_ids.contains(page.id.as_str());
         if page.unlisted {
             diagnostics.push(CatalogDiagnostic::warning(
                 "RD2202",
@@ -1131,8 +1131,8 @@ mod tests {
             .map(|item| item.id.as_str())
             .collect();
         assert_eq!(ids, ["guides/index", "guides/build"]);
-        assert!(result.site.unlisted.contains(&"index".to_string()));
-        assert!(codes(&result).contains(&"RD2202"));
+        assert!(!result.site.unlisted.contains(&"index".to_string()));
+        assert!(!codes(&result).contains(&"RD2202"));
         assert!(!result.has_errors());
     }
 

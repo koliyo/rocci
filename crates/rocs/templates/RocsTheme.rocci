@@ -166,6 +166,31 @@ import Html
         color: var(--accent-strong);
         font-weight: 680;
     }
+    .nav-category {
+        position: relative;
+        padding-right: 1.75rem;
+        color: var(--ink);
+        font-weight: 680;
+    }
+    .nav-category::after {
+        content: "+";
+        position: absolute;
+        right: .68rem;
+        color: var(--faint);
+        font-weight: 500;
+    }
+    .nav-category.is-expanded::after { content: "−"; }
+    .nav-category.is-expanded:not(.is-current) {
+        color: var(--accent-strong);
+    }
+    .nav-category:not(:first-child) { margin-top: .28rem; }
+    .nav-child {
+        margin-left: .7rem;
+        padding-left: 1rem;
+        border-left: 1px solid var(--line);
+        border-radius: 0 .45rem .45rem 0;
+        font-size: .82rem;
+    }
 
     .content-column { min-width: 0; padding: 3.4rem clamp(1.5rem, 5vw, 5rem) 5rem; }
     .article { width: min(100%, 46rem); margin: 0 auto; overflow-x: auto; }
@@ -516,11 +541,11 @@ import Html
                                     >{lane.label}</a>
                                 }
                             </nav>
-                            <nav aria-label="Documentation">
+                            <nav aria-label="Site navigation">
                                 <div class="nav-items">
                                     @for item in sidebar {
                                         <a
-                                            class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
+                                            class={item.class_name}
                                             href={item.href}
                                             aria-current={if item.href == route { "page" } else { "false" }}
                                         >{item.title}</a>
@@ -533,11 +558,11 @@ import Html
             </header>
             <div class="site-grid">
                 <aside class="sidebar">
-                    <nav aria-label="Documentation">
+                    <nav aria-label="Site navigation">
                         <div class="nav-items">
                             @for item in sidebar {
                                 <a
-                                    class={if item.href == route { "nav-link is-current" } else { "nav-link" }}
+                                    class={item.class_name}
                                     href={item.href}
                                     aria-current={if item.href == route { "page" } else { "false" }}
                                 >{item.title}</a>
@@ -587,4 +612,3 @@ import Html
         </body>
     </html>
 }
-

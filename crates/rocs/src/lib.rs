@@ -20,7 +20,7 @@ pub use catalog::{
     SourcePage, resolve,
 };
 pub use config::{BuildConfig, NavConfig, SiteConfig, SiteMeta, load_config};
-pub use dev::{DevServer, run};
+pub use dev::{DevServer, run, run_knowledge};
 pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use site::{CheckFormat, CheckReport, InspectKind, check, inspect, load_site, resolve_loaded};

@@ -3,8 +3,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
-    LowerOptions, Segment, SourceFile, compile, format_diagnostic, type_name_from_path,
-    wrap_type_module,
+    LowerOptions, Segment, SourceFile, compile, format_diagnostic, wrap_type_module,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -55,6 +54,7 @@ pub struct LaneView {
 pub struct NavItemView {
     pub title: String,
     pub href: String,
+    pub class_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,6 +222,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
             page,
             &site_view,
             &site.navigation,
+            config.sidebar_tree,
             &stylesheet_url,
             &csp,
             &rewrite,
@@ -231,6 +232,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     pages.push(not_found_page(
         &site_view,
         &site.navigation,
+        config.sidebar_tree,
         &stylesheet_url,
         &csp,
     ));
@@ -302,6 +304,7 @@ fn planned_page(
     page: &ResolvedPage,
     site: &SiteView,
     navigation: &[NavSection],
+    sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
     rewrite: &BTreeMap<String, String>,
@@ -312,20 +315,20 @@ fn planned_page(
     } else {
         Some(page.id.as_str())
     };
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id);
+    let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id, sidebar_tree);
     let canonical = if not_found || site.base_url.is_empty() {
         String::new()
     } else {
         format!("{}{}", site.base_url, page.route)
     };
     let article_html = rewrite_urls(&page.article_html, rewrite);
-    let type_name = if not_found {
+    let article_name = if not_found {
         "NotFound".to_string()
     } else {
-        type_name_from_path(Path::new(&page.source_path))
+        format!("Page{}", &hex_sha256(page.id.as_bytes())[..HASH_LEN])
     };
     PlannedPage {
-        article_path: format!("articles/{type_name}.html"),
+        article_path: format!("articles/{article_name}.html"),
         output_path: page.output_path.clone(),
         article_html,
         view: PageView {
@@ -356,6 +359,7 @@ fn planned_page(
 fn not_found_page(
     site: &SiteView,
     navigation: &[NavSection],
+    sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
 ) -> PlannedPage {
@@ -364,7 +368,7 @@ fn not_found_page(
         .find(|section| section.items.iter().any(|item| item.route == "/"))
         .and_then(|section| section.items.iter().find(|item| item.route == "/"))
         .map(|item| item.id.as_str());
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, home);
+    let (lanes, sidebar) = lanes_and_sidebar(navigation, home, sidebar_tree);
     PlannedPage {
         article_path: "articles/NotFound.html".into(),
         output_path: "404.html".into(),
@@ -381,10 +385,12 @@ fn not_found_page(
             previous: NavItemView {
                 title: String::new(),
                 href: String::new(),
+                class_name: String::new(),
             },
             next: NavItemView {
                 title: String::new(),
                 href: String::new(),
+                class_name: String::new(),
             },
             resources: ResourceView {
                 stylesheet: stylesheet.to_string(),
@@ -404,36 +410,79 @@ fn not_found_html() -> String {
 fn lanes_and_sidebar(
     navigation: &[NavSection],
     current_id: Option<&str>,
+    sidebar_tree: bool,
 ) -> (Vec<LaneView>, Vec<NavItemView>) {
     let current_section = current_id.and_then(|id| {
         navigation
             .iter()
             .find(|section| section.items.iter().any(|item| item.id == id))
     });
-    let lanes = navigation
-        .iter()
-        .map(|section| LaneView {
-            label: section.label.clone(),
-            href: section
-                .items
-                .first()
-                .map(|item| item.route.clone())
-                .unwrap_or_else(|| "/".into()),
-            current: current_section.is_some_and(|current| current.label == section.label),
-        })
-        .collect();
-    let sidebar = current_section
-        .map(|section| {
-            section
-                .items
-                .iter()
-                .map(|item| NavItemView {
+    let lanes = if sidebar_tree {
+        Vec::new()
+    } else {
+        navigation
+            .iter()
+            .map(|section| LaneView {
+                label: section.label.clone(),
+                href: section
+                    .items
+                    .first()
+                    .map(|item| item.route.clone())
+                    .unwrap_or_else(|| "/".into()),
+                current: current_section.is_some_and(|current| current.label == section.label),
+            })
+            .collect()
+    };
+    let sidebar = if sidebar_tree {
+        let mut items = Vec::new();
+        for section in navigation {
+            let Some(category) = section.items.first() else {
+                continue;
+            };
+            let expanded = current_section.is_some_and(|current| current.label == section.label);
+            let category_current = current_id == Some(category.id.as_str());
+            let class_name = match (expanded, category_current) {
+                (true, true) => "nav-link nav-category is-expanded is-current",
+                (true, false) => "nav-link nav-category is-expanded",
+                (false, _) => "nav-link nav-category",
+            };
+            items.push(NavItemView {
+                title: section.label.clone(),
+                href: category.route.clone(),
+                class_name: class_name.into(),
+            });
+            if expanded {
+                items.extend(section.items.iter().skip(1).map(|item| NavItemView {
                     title: item.title.clone(),
                     href: item.route.clone(),
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+                    class_name: if current_id == Some(item.id.as_str()) {
+                        "nav-link nav-child is-current".into()
+                    } else {
+                        "nav-link nav-child".into()
+                    },
+                }));
+            }
+        }
+        items
+    } else {
+        current_section
+            .map(|section| {
+                section
+                    .items
+                    .iter()
+                    .map(|item| NavItemView {
+                        title: item.title.clone(),
+                        href: item.route.clone(),
+                        class_name: if current_id == Some(item.id.as_str()) {
+                            "nav-link is-current".into()
+                        } else {
+                            "nav-link".into()
+                        },
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
     (lanes, sidebar)
 }
 
@@ -449,6 +498,7 @@ fn nav_from_link(link: &NavLink) -> NavItemView {
     NavItemView {
         title: link.title.clone(),
         href: link.route.clone(),
+        class_name: String::new(),
     }
 }
 
@@ -458,6 +508,7 @@ fn optional_link(link: Option<&NavLink>) -> NavItemView {
         None => NavItemView {
             title: String::new(),
             href: String::new(),
+            class_name: String::new(),
         },
     }
 }
@@ -698,6 +749,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
             push_roc_string(&mut out, &item.title);
             out.push_str(", href: ");
             push_roc_string(&mut out, &item.href);
+            out.push_str(", class_name: ");
+            push_roc_string(&mut out, &item.class_name);
             out.push_str(" },\n");
         }
         out.push_str("                ],\n                route: ");

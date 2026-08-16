@@ -118,6 +118,19 @@ non-reserved `.md` file as inert Markdown with YAML frontmatter. `index.md` and
 `log.md` retain their OKF meanings; `.rocdown` files and `@page` metadata are
 not accepted as canonical knowledge records.
 
+Preview a knowledge collection with watch and live reload:
+
+```sh
+cargo run -p rocs-cli -- knowledge run knowledge
+```
+
+The preview uses the standard Rocs theme and a temporary output directory by
+default. It maps OKF Markdown links to generated routes, serves linked bundle
+resources, derives navigation sections from collection `index.md` files, and
+retains the last successful site when a later edit fails validation.
+The left navigation keeps every top-level collection visible and expands only
+the collection containing the current page.
+
 The body parser shares Rocdown's static Markdown AST and `rd-*` rendering
 classes, with keyed footnotes enabled. Rocdown declarations, raw HTML, and
 wikilinks are disabled for portability and execution safety.

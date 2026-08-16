@@ -19,7 +19,14 @@ pub struct LoadedSite {
     pub config: SiteConfig,
     pub sources: Vec<SourcePage>,
     pub files: BTreeSet<String>,
+    pub static_files: Vec<StaticFile>,
     pub diagnostics: Vec<CatalogDiagnostic>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StaticFile {
+    pub source: PathBuf,
+    pub output_path: String,
 }
 
 pub fn load_site(root: &Path) -> Result<LoadedSite> {
@@ -156,6 +163,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         config,
         sources,
         files,
+        static_files: Vec::new(),
         diagnostics,
     })
 }

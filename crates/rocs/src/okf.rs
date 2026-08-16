@@ -13,7 +13,10 @@ use serde_json::{Map, Value};
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::article::render_document;
-use crate::catalog::Severity;
+use crate::build::{commit_output, unique_temp};
+use crate::catalog::{CatalogDiagnostic, PageHeading, RouteHint, Severity, SourcePage};
+use crate::config::{NavConfig, SiteConfig};
+use crate::site::{LoadedSite, StaticFile};
 
 const STANDARD_FIELDS: &[&str] = &[
     "type",
@@ -48,6 +51,34 @@ const PROFILE_TYPES: &[&str] = &[
 pub enum Profile {
     Base,
     Rocci,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TrustTier {
+    HumanReviewed,
+    Generated,
+    Unverified,
+}
+
+impl TrustTier {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::HumanReviewed => "human-reviewed",
+            Self::Generated => "generated",
+            Self::Unverified => "unverified",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct KnowledgeFilter {
+    pub types: Vec<String>,
+    pub tags: Vec<String>,
+    pub statuses: Vec<String>,
+    pub authorities: Vec<String>,
+    pub trust_tiers: Vec<TrustTier>,
+    pub stale: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -231,6 +262,27 @@ pub struct BuildSummary {
     pub output: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SearchChunk {
+    pub id: String,
+    pub concept_id: String,
+    pub path: String,
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heading: Option<String>,
+    pub title: String,
+    pub description: String,
+    #[serde(rename = "type")]
+    pub concept_type: String,
+    pub tags: Vec<String>,
+    pub status: String,
+    pub authority: String,
+    pub trust_tier: TrustTier,
+    pub stale: bool,
+    pub url: String,
+    pub text: String,
+}
+
 pub fn check(root: &Path, profile: Profile) -> Result<CheckReport> {
     let bundle = load(root, profile)?;
     Ok(CheckReport {
@@ -308,11 +360,283 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
     })
 }
 
+pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
+    let bundle = load(root, profile)?;
+    let mut config = SiteConfig::default();
+    config.sidebar_tree = true;
+    config.site.title = bundle
+        .indexes
+        .iter()
+        .find(|index| index.path == "index.md")
+        .and_then(|index| document_headings(&index.document).into_iter().next())
+        .map(|heading| heading.text)
+        .unwrap_or_else(|| "Knowledge".into());
+    config.navigation = bundle
+        .indexes
+        .iter()
+        .filter_map(|index| {
+            let directory = index.path.strip_suffix("/index.md")?;
+            let label = document_headings(&index.document)
+                .into_iter()
+                .next()
+                .map(|heading| heading.text)
+                .unwrap_or_else(|| directory.replace(['-', '_'], " "));
+            Some(NavConfig {
+                label,
+                items: Vec::new(),
+                directory: Some(directory.to_string()),
+            })
+        })
+        .collect();
+
+    let routes = bundle
+        .indexes
+        .iter()
+        .map(|index| {
+            let id = index.path.strip_suffix(".md").unwrap_or(&index.path);
+            (index.path.clone(), crate::catalog::derived_route(id))
+        })
+        .chain(bundle.concepts.iter().map(|concept| {
+            (
+                concept.path.clone(),
+                crate::catalog::derived_route(&concept.id),
+            )
+        }))
+        .collect::<BTreeMap<_, _>>();
+
+    let mut files = BTreeSet::new();
+    let mut static_files = Vec::new();
+    collect_bundle_files(&bundle.root, &bundle.root, &mut files, &mut static_files)?;
+
+    let mut sources = Vec::new();
+    for index in &bundle.indexes {
+        let id = index
+            .path
+            .strip_suffix(".md")
+            .unwrap_or(&index.path)
+            .to_string();
+        let headings = document_headings(&index.document);
+        let title = headings
+            .first()
+            .map(|heading| heading.text.clone())
+            .unwrap_or_else(|| id.clone());
+        let document = rewrite_document_urls(&index.document, &index.path, &routes, &files);
+        sources.push(SourcePage {
+            id,
+            id_explicit: false,
+            source_path: index.path.clone(),
+            route_hint: RouteHint::Derived,
+            aliases: Vec::new(),
+            draft: false,
+            title,
+            description: String::new(),
+            headings,
+            outgoing_links: Vec::new(),
+            image_urls: Vec::new(),
+            article_html: render_document(&document),
+        });
+    }
+    for concept in &bundle.concepts {
+        let document = rewrite_document_urls(&concept.document, &concept.path, &routes, &files);
+        sources.push(SourcePage {
+            id: concept.id.clone(),
+            id_explicit: true,
+            source_path: concept.path.clone(),
+            route_hint: RouteHint::Derived,
+            aliases: Vec::new(),
+            draft: false,
+            title: string_field(&concept.metadata, "title")
+                .unwrap_or(&concept.id)
+                .to_string(),
+            description: string_field(&concept.metadata, "description")
+                .unwrap_or_default()
+                .to_string(),
+            headings: concept
+                .headings
+                .iter()
+                .map(|heading| PageHeading {
+                    level: heading.level,
+                    id: heading.id.clone(),
+                    text: heading.text.clone(),
+                })
+                .collect(),
+            outgoing_links: Vec::new(),
+            image_urls: Vec::new(),
+            article_html: render_document(&document),
+        });
+    }
+    if config.navigation.is_empty() {
+        config.navigation.push(NavConfig {
+            label: config.site.title.clone(),
+            items: sources.iter().map(|page| page.id.clone()).collect(),
+            directory: None,
+        });
+    }
+
+    Ok(LoadedSite {
+        root: bundle.root,
+        config,
+        sources,
+        files,
+        static_files,
+        diagnostics: bundle
+            .diagnostics
+            .iter()
+            .map(|diagnostic| CatalogDiagnostic {
+                code: diagnostic.code,
+                severity: diagnostic.severity,
+                path: diagnostic.path.clone(),
+                message: diagnostic.message.clone(),
+            })
+            .collect(),
+    })
+}
+
+fn document_headings(document: &Document) -> Vec<PageHeading> {
+    fn walk(node: &MdNode, headings: &mut Vec<PageHeading>) {
+        if let MdNode::Heading {
+            level,
+            id,
+            children,
+            ..
+        } = node
+        {
+            headings.push(PageHeading {
+                level: *level,
+                id: id.clone(),
+                text: children.iter().map(MdNode::text_content).collect(),
+            });
+        }
+        for child in node_children(node) {
+            walk(child, headings);
+        }
+    }
+
+    let mut headings = Vec::new();
+    for item in &document.items {
+        if let Item::Markdown(node) = item {
+            walk(node, &mut headings);
+        }
+    }
+    headings
+}
+
+fn rewrite_document_urls(
+    document: &Document,
+    source_path: &str,
+    routes: &BTreeMap<String, String>,
+    files: &BTreeSet<String>,
+) -> Document {
+    fn rewritten_url(
+        url: &str,
+        source_path: &str,
+        routes: &BTreeMap<String, String>,
+        files: &BTreeSet<String>,
+    ) -> String {
+        if url.starts_with('#') || external_url(url) {
+            return url.to_string();
+        }
+        let (path, fragment) = split_fragment(url);
+        let Some(resolved) = resolve_bundle_path(source_path, path) else {
+            return url.to_string();
+        };
+        let index = resolved
+            .strip_suffix('/')
+            .map(|directory| format!("{directory}/index.md"));
+        let target = routes
+            .get(&resolved)
+            .or_else(|| index.as_ref().and_then(|index| routes.get(index)))
+            .cloned()
+            .or_else(|| files.contains(&resolved).then(|| format!("/{resolved}")));
+        let Some(mut target) = target else {
+            return url.to_string();
+        };
+        if let Some(fragment) = fragment {
+            target.push('#');
+            target.push_str(fragment);
+        }
+        target
+    }
+
+    fn walk(
+        node: &mut MdNode,
+        source_path: &str,
+        routes: &BTreeMap<String, String>,
+        files: &BTreeSet<String>,
+    ) {
+        match node {
+            MdNode::Link { url, children, .. } => {
+                *url = rewritten_url(url, source_path, routes, files);
+                for child in children {
+                    walk(child, source_path, routes, files);
+                }
+            }
+            MdNode::Image { url, .. } => {
+                *url = rewritten_url(url, source_path, routes, files);
+            }
+            _ => {
+                for child in node.children_mut() {
+                    walk(child, source_path, routes, files);
+                }
+            }
+        }
+    }
+
+    let mut document = document.clone();
+    for item in &mut document.items {
+        if let Item::Markdown(node) = item {
+            walk(node, source_path, routes, files);
+        }
+    }
+    document
+}
+
+fn collect_bundle_files(
+    root: &Path,
+    directory: &Path,
+    files: &mut BTreeSet<String>,
+    static_files: &mut Vec<StaticFile>,
+) -> Result<()> {
+    let mut entries = fs::read_dir(directory)
+        .with_context(|| format!("failed to read {}", directory.display()))?
+        .collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        if entry.file_name().as_encoded_bytes().starts_with(b".") {
+            continue;
+        }
+        let path = entry.path();
+        if path.is_dir() {
+            collect_bundle_files(root, &path, files, static_files)?;
+            continue;
+        }
+        let relative = relative_path(root, &path);
+        files.insert(relative.clone());
+        if path.extension().is_none_or(|extension| extension != "md") {
+            static_files.push(StaticFile {
+                source: path,
+                output_path: relative,
+            });
+        }
+    }
+    Ok(())
+}
+
 pub fn inspect(
     root: &Path,
     kind: InspectKind,
     target: Option<&str>,
     profile: Profile,
+) -> Result<String> {
+    inspect_filtered(root, kind, target, profile, &KnowledgeFilter::default())
+}
+
+pub fn inspect_filtered(
+    root: &Path,
+    kind: InspectKind,
+    target: Option<&str>,
+    profile: Profile,
+    filter: &KnowledgeFilter,
 ) -> Result<String> {
     let bundle = load(root, profile)?;
     match kind {
@@ -320,6 +644,7 @@ pub fn inspect(
             let catalog = bundle
                 .concepts
                 .iter()
+                .filter(|concept| filter.matches(concept))
                 .map(ConceptInspect::from)
                 .collect::<Vec<_>>();
             Ok(serde_json::to_string_pretty(&catalog)?)
@@ -342,15 +667,53 @@ pub fn inspect(
     }
 }
 
+pub fn search(
+    root: &Path,
+    query: &str,
+    profile: Profile,
+    filter: &KnowledgeFilter,
+) -> Result<String> {
+    let bundle = load(root, profile)?;
+    let terms = query
+        .split_whitespace()
+        .map(|term| term.to_lowercase())
+        .collect::<Vec<_>>();
+    let results = search_index(&bundle)
+        .into_iter()
+        .filter(|chunk| {
+            let Some(concept) = bundle
+                .concepts
+                .iter()
+                .find(|concept| concept.id == chunk.concept_id)
+            else {
+                return false;
+            };
+            if !filter.matches(concept) {
+                return false;
+            }
+            let haystack = format!(
+                "{} {} {} {} {}",
+                chunk.title,
+                chunk.description,
+                chunk.heading.as_deref().unwrap_or_default(),
+                chunk.text,
+                chunk.tags.join(" ")
+            )
+            .to_lowercase();
+            terms.iter().all(|term| haystack.contains(term))
+        })
+        .collect::<Vec<_>>();
+    Ok(serde_json::to_string_pretty(&results)?)
+}
+
 pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummary> {
     let bundle = load(root, profile)?;
     if bundle.has_errors() {
         bail!("knowledge bundle has validation errors");
     }
     let output = absolute(output)?;
-    fs::create_dir_all(&output)
-        .with_context(|| format!("failed to create {}", output.display()))?;
-    let site = output.join("site");
+    let staging = unique_temp("knowledge-stage")?;
+    let site = staging.join("site");
     fs::create_dir_all(&site).with_context(|| format!("failed to create {}", site.display()))?;
 
     for concept in &bundle.concepts {
@@ -376,15 +739,23 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
         .map(ConceptInspect::from)
         .collect::<Vec<_>>();
     fs::write(
-        output.join("catalog.json"),
+        staging.join("catalog.json"),
         format!("{}\n", serde_json::to_string_pretty(&catalog)?),
     )
     .context("failed to write knowledge catalog")?;
     fs::write(
-        output.join("validation.json"),
+        staging.join("search.json"),
+        format!("{}\n", serde_json::to_string_pretty(&search_index(&bundle))?),
+    )
+    .context("failed to write knowledge search index")?;
+    fs::write(staging.join("llms.txt"), llms_text(&bundle))
+        .context("failed to write knowledge llms index")?;
+    fs::write(
+        staging.join("validation.json"),
         format!("{}\n", serde_json::to_string_pretty(&bundle.diagnostics)?),
     )
     .context("failed to write knowledge validation report")?;
+    commit_output(&staging, &output)?;
 
     Ok(BuildSummary {
         concepts: bundle.concepts.len(),
@@ -398,6 +769,8 @@ struct ConceptInspect<'a> {
     id: &'a str,
     path: &'a str,
     metadata: &'a BTreeMap<String, Value>,
+    trust_tier: TrustTier,
+    stale: bool,
     body_span: SourceLocation,
     headings: &'a [Heading],
     links: &'a [Link],
@@ -411,6 +784,8 @@ impl<'a> From<&'a Concept> for ConceptInspect<'a> {
             id: &concept.id,
             path: &concept.path,
             metadata: &concept.metadata,
+            trust_tier: concept_trust_tier(&concept.metadata),
+            stale: concept_is_stale(&concept.metadata),
             body_span: concept.body_location.clone(),
             headings: &concept.headings,
             links: &concept.links,
@@ -418,6 +793,247 @@ impl<'a> From<&'a Concept> for ConceptInspect<'a> {
             footnote_ids: &concept.footnote_ids,
         }
     }
+}
+
+impl KnowledgeFilter {
+    fn matches(&self, concept: &Concept) -> bool {
+        let metadata = &concept.metadata;
+        let string_matches = |values: &[String], key: &str| {
+            values.is_empty()
+                || string_field(metadata, key).is_some_and(|actual| {
+                    values
+                        .iter()
+                        .any(|expected| actual.eq_ignore_ascii_case(expected))
+                })
+        };
+        if !string_matches(&self.types, "type")
+            || !string_matches(&self.statuses, "status")
+            || !string_matches(&self.authorities, "authority")
+        {
+            return false;
+        }
+        if !self.tags.is_empty() {
+            let tags = metadata_string_array(metadata, "tags");
+            if !self
+                .tags
+                .iter()
+                .all(|expected| tags.iter().any(|actual| actual == expected))
+            {
+                return false;
+            }
+        }
+        if !self.trust_tiers.is_empty()
+            && !self
+                .trust_tiers
+                .contains(&concept_trust_tier(metadata))
+        {
+            return false;
+        }
+        if let Some(stale) = self.stale
+            && concept_is_stale(metadata) != stale
+        {
+            return false;
+        }
+        true
+    }
+}
+
+fn search_index(bundle: &Bundle) -> Vec<SearchChunk> {
+    let mut chunks = Vec::new();
+    for concept in &bundle.concepts {
+        let title = string_field(&concept.metadata, "title")
+            .unwrap_or(&concept.id)
+            .to_string();
+        let description = string_field(&concept.metadata, "description")
+            .unwrap_or_default()
+            .to_string();
+        let concept_type = string_field(&concept.metadata, "type")
+            .unwrap_or_default()
+            .to_string();
+        let tags = metadata_string_array(&concept.metadata, "tags");
+        let status = string_field(&concept.metadata, "status")
+            .unwrap_or_default()
+            .to_string();
+        let authority = string_field(&concept.metadata, "authority")
+            .unwrap_or_default()
+            .to_string();
+        let trust_tier = concept_trust_tier(&concept.metadata);
+        let stale = concept_is_stale(&concept.metadata);
+
+        chunks.push(SearchChunk {
+            id: format!("{}#metadata", concept.id),
+            concept_id: concept.id.clone(),
+            path: concept.path.clone(),
+            kind: "metadata".into(),
+            heading: None,
+            title: title.clone(),
+            description: description.clone(),
+            concept_type: concept_type.clone(),
+            tags: tags.clone(),
+            status: status.clone(),
+            authority: authority.clone(),
+            trust_tier,
+            stale,
+            url: format!("/{}/", concept.id),
+            text: normalize_search_text(&format!(
+                "{title} {description} {concept_type} {}",
+                tags.join(" ")
+            )),
+        });
+
+        let mut current: Option<(String, String, Vec<String>)> = None;
+        for item in &concept.document.items {
+            let Item::Markdown(node) = item else {
+                continue;
+            };
+            if let MdNode::Heading {
+                id,
+                children,
+                ..
+            } = node
+            {
+                if let Some((id, heading, text)) = current.take() {
+                    chunks.push(search_heading_chunk(
+                        concept,
+                        &title,
+                        &description,
+                        &concept_type,
+                        &tags,
+                        &status,
+                        &authority,
+                        trust_tier,
+                        stale,
+                        id,
+                        heading,
+                        text,
+                    ));
+                }
+                current = Some((
+                    id.clone(),
+                    children.iter().map(MdNode::text_content).collect(),
+                    Vec::new(),
+                ));
+            } else if let Some((_, _, text)) = &mut current {
+                let value = normalize_search_text(&node.text_content());
+                if !value.is_empty() {
+                    text.push(value);
+                }
+            }
+        }
+        if let Some((id, heading, text)) = current {
+            chunks.push(search_heading_chunk(
+                concept,
+                &title,
+                &description,
+                &concept_type,
+                &tags,
+                &status,
+                &authority,
+                trust_tier,
+                stale,
+                id,
+                heading,
+                text,
+            ));
+        }
+    }
+    chunks
+}
+
+#[allow(clippy::too_many_arguments)]
+fn search_heading_chunk(
+    concept: &Concept,
+    title: &str,
+    description: &str,
+    concept_type: &str,
+    tags: &[String],
+    status: &str,
+    authority: &str,
+    trust_tier: TrustTier,
+    stale: bool,
+    id: String,
+    heading: String,
+    text: Vec<String>,
+) -> SearchChunk {
+    SearchChunk {
+        id: format!("{}#{id}", concept.id),
+        concept_id: concept.id.clone(),
+        path: concept.path.clone(),
+        kind: "heading".into(),
+        heading: Some(heading),
+        title: title.to_string(),
+        description: description.to_string(),
+        concept_type: concept_type.to_string(),
+        tags: tags.to_vec(),
+        status: status.to_string(),
+        authority: authority.to_string(),
+        trust_tier,
+        stale,
+        url: format!("/{}/#{id}", concept.id),
+        text: normalize_search_text(&text.join(" ")),
+    }
+}
+
+fn normalize_search_text(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn llms_text(bundle: &Bundle) -> String {
+    let mut output = String::from(
+        "# Rocci knowledge\n\n> Local, generated index. Canonical records remain in knowledge/**/*.md.\n\n",
+    );
+    for concept in &bundle.concepts {
+        let title = string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+        let description = string_field(&concept.metadata, "description").unwrap_or_default();
+        let status = string_field(&concept.metadata, "status").unwrap_or("unknown");
+        let authority = string_field(&concept.metadata, "authority").unwrap_or("unspecified");
+        let trust = concept_trust_tier(&concept.metadata).as_str();
+        let stale = if concept_is_stale(&concept.metadata) {
+            ", stale"
+        } else {
+            ""
+        };
+        output.push_str(&format!(
+            "## {title}\n\n- ID: `{}`\n- Lifecycle: `{status}`; authority: `{authority}`; trust: `{trust}`{stale}\n- URL: /{}/\n\n{description}\n\n",
+            concept.id, concept.id
+        ));
+    }
+    output
+}
+
+fn concept_trust_tier(metadata: &BTreeMap<String, Value>) -> TrustTier {
+    let generated_at = metadata
+        .get("generated")
+        .and_then(Value::as_object)
+        .and_then(|generated| generated.get("at"))
+        .and_then(Value::as_str)
+        .and_then(parse_timestamp);
+    let human_at = latest_human_verification(metadata).map(|(timestamp, _)| timestamp);
+    match (generated_at, human_at) {
+        (Some(generated), Some(human)) if human >= generated => TrustTier::HumanReviewed,
+        (Some(_), _) => TrustTier::Generated,
+        (None, Some(_)) => TrustTier::HumanReviewed,
+        (None, None) => TrustTier::Unverified,
+    }
+}
+
+fn concept_is_stale(metadata: &BTreeMap<String, Value>) -> bool {
+    let Some(today) = current_utc_date() else {
+        return false;
+    };
+    string_field(metadata, "stale_after")
+        .is_some_and(|date| is_date(date) && date < today.as_str())
+}
+
+fn metadata_string_array(metadata: &BTreeMap<String, Value>, key: &str) -> Vec<String> {
+    metadata
+        .get(key)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect()
 }
 
 fn parse_concept(
@@ -1841,6 +2457,130 @@ mod tests {
         assert_eq!(
             first_page,
             fs::read(output.join("site/test/index.html")).unwrap()
+        );
+        fs::write(root.join("test.md"), "# Invalid knowledge record\n").unwrap();
+        assert!(build(&root, &output, Profile::Rocci).is_err());
+        assert_eq!(
+            first_page,
+            fs::read(output.join("site/test/index.html")).unwrap()
+        );
+        fs::remove_file(root.join("test.md")).unwrap();
+        let summary = build(&root, &output, Profile::Rocci).unwrap();
+        assert_eq!(summary.concepts, 0);
+        assert!(!output.join("site/test/index.html").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn loaded_site_includes_indexes_rewrites_links_and_copies_static_files() {
+        let root = temp("loaded-site");
+        fs::create_dir_all(root.join("architecture")).unwrap();
+        fs::create_dir_all(root.join("decisions")).unwrap();
+        fs::write(
+            root.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n\n[Architecture](architecture/)\n\n[Matrix](matrix.tsv)\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("architecture/index.md"),
+            "# Architecture\n\n[System](system.md)\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("architecture/system.md"),
+            "---\ntype: Note\ntitle: System\n---\n\n# System\n\n[Home](/index.md)\n",
+        )
+        .unwrap();
+        fs::write(root.join("decisions/index.md"), "# Decisions\n").unwrap();
+        fs::write(
+            root.join("decisions/choice.md"),
+            "---\ntype: Note\ntitle: Choice\n---\n\n# Choice\n",
+        )
+        .unwrap();
+        fs::write(root.join("matrix.tsv"), "name\tstatus\nSystem\tstable\n").unwrap();
+
+        let loaded = load_site(&root, Profile::Base).unwrap();
+        assert_eq!(loaded.config.site.title, "Knowledge");
+        assert_eq!(loaded.config.navigation.len(), 2);
+        assert_eq!(loaded.config.navigation[0].label, "Architecture");
+        assert_eq!(
+            loaded.config.navigation[0].directory.as_deref(),
+            Some("architecture")
+        );
+        assert!(loaded.sources.iter().any(|page| page.id == "index"));
+        assert!(
+            loaded
+                .sources
+                .iter()
+                .any(|page| page.id == "architecture/index")
+        );
+        let home = loaded
+            .sources
+            .iter()
+            .find(|page| page.id == "index")
+            .unwrap();
+        assert!(home.article_html.contains("href=\"/architecture/\""));
+        assert!(home.article_html.contains("href=\"/matrix.tsv\""));
+        let section = loaded
+            .sources
+            .iter()
+            .find(|page| page.id == "architecture/index")
+            .unwrap();
+        assert!(
+            section
+                .article_html
+                .contains("href=\"/architecture/system/\"")
+        );
+        let system = loaded
+            .sources
+            .iter()
+            .find(|page| page.id == "architecture/system")
+            .unwrap();
+        assert!(system.article_html.contains("href=\"/\""));
+        assert_eq!(loaded.static_files.len(), 1);
+        assert_eq!(loaded.static_files[0].output_path, "matrix.tsv");
+        let resolved = crate::site::resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{:?}", resolved.diagnostics);
+        assert_eq!(resolved.site.navigation.len(), 2);
+        assert_eq!(resolved.site.navigation[0].label, "Architecture");
+        assert_eq!(resolved.site.navigation[0].items[0].route, "/architecture/");
+        assert!(!resolved.site.unlisted.iter().any(|id| id == "index"));
+        let plan = crate::plan::plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let article_paths = plan
+            .pages
+            .iter()
+            .map(|page| page.article_path.as_str())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(article_paths.len(), plan.pages.len());
+        let system_page = plan
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/architecture/system/")
+            .unwrap();
+        assert!(system_page.view.lanes.is_empty());
+        assert_eq!(
+            system_page
+                .view
+                .sidebar
+                .iter()
+                .map(|item| item.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Architecture", "System", "Decisions"]
+        );
+        assert!(
+            system_page.view.sidebar[0]
+                .class_name
+                .contains("is-expanded")
+        );
+        assert!(system_page.view.sidebar[1].class_name.contains("nav-child"));
+        assert!(
+            system_page.view.sidebar[1]
+                .class_name
+                .contains("is-current")
+        );
+        assert_eq!(
+            system_page.view.sidebar[2].class_name,
+            "nav-link nav-category"
         );
         fs::remove_dir_all(root).unwrap();
     }

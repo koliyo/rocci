@@ -62,6 +62,7 @@ fn build_loaded(loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
     }
 
     write_planned_outputs(&staging, &plan)?;
+    write_static_files(&staging, &loaded.static_files)?;
     commit_output(&staging, output)?;
     let _ = fs::remove_dir_all(&workspace);
 
@@ -130,6 +131,7 @@ impl BuildSession {
         }
 
         write_planned_outputs(&staging, &plan)?;
+        write_static_files(&staging, &loaded.static_files)?;
         commit_output(&staging, output)?;
 
         Ok(BuildReport {
@@ -195,6 +197,24 @@ fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Resul
         generated_roc_bytes,
         roc_hash: roc_source_hash(&pages_roc, &plan.theme_roc, &main),
     })
+}
+
+fn write_static_files(staging: &Path, files: &[crate::site::StaticFile]) -> Result<()> {
+    for file in files {
+        let destination = staging.join(&file.output_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        fs::copy(&file.source, &destination).with_context(|| {
+            format!(
+                "failed to copy {} to {}",
+                file.source.display(),
+                destination.display()
+            )
+        })?;
+    }
+    Ok(())
 }
 
 fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
@@ -371,7 +391,7 @@ fn write_planned_outputs(staging: &Path, plan: &BuildPlan) -> Result<()> {
     Ok(())
 }
 
-fn commit_output(staging: &Path, output: &Path) -> Result<()> {
+pub(crate) fn commit_output(staging: &Path, output: &Path) -> Result<()> {
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)
             .with_context(|| format!("failed to create {}", parent.display()))?;
