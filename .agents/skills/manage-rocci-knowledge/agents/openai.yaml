@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Rocci Knowledge"
+  short_description: "Query and maintain Rocci knowledge"
+  default_prompt: "Use $manage-rocci-knowledge to query, validate, or update the Rocci knowledge bundle."
