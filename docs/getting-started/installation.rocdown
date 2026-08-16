@@ -1,0 +1,68 @@
+@page {
+    meta: {
+        title: "Installation",
+        description: "Prepare Rust, Roc, and platform dependencies to build and run Rocci from source.",
+    },
+}
+
+# Installation
+
+Rocci is currently built from source. You need a Rust toolchain, the Roc
+compiler, and the native webview dependencies for your platform.
+
+## Prerequisites
+
+| Requirement | Why it is needed |
+| --- | --- |
+| Rust and Cargo | Build the Rocci workspace and command-line tools |
+| Roc | Compile generated Roc programs and authored apps |
+| Git | Clone the repository |
+| Native webview libraries | Open the embedded Tao/Wry preview window |
+
+> The project currently follows a Roc nightly toolchain. A mismatched compiler
+> can reject syntax that is valid for the revision used by the repository.
+
+## Build from source
+
+```sh
+git clone https://github.com/koliyo/rocci.git
+cd rocci
+cargo build --workspace
+```
+
+Confirm that the configuration parser and template compiler run:
+
+```sh
+cargo run -p rocci-cli -- validate
+cargo run -p rocci-cli -- build examples/styling/Styling.rocci
+```
+
+## Platform notes
+
+### macOS
+
+Tao and Wry use the system WebKit view. The repository can also assemble an
+ad-hoc-signed `.app` bundle for local development.
+
+### Linux
+
+Install the WebKitGTK development packages required by Wry. Package names vary
+by distribution. Both X11 and Wayland behavior still need broader CI coverage.
+
+### Windows
+
+Wry uses the operating-system webview. Windows packaging is not implemented
+yet, but development runs use the same local HTTP and window model.
+
+## Verify the setup
+
+Run the starter counter:
+
+```sh
+cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
+```
+
+The command prints a local URL and opens a window. To use only your browser,
+add `--no-window`; the default browser-only port is `8000`.
+
+Next, follow the [quickstart](/getting-started/quickstart/).

@@ -5,10 +5,19 @@ import RocsTheme
 import RocsPages
 
 write_page! = |staging, item| {
-    title = Path.utf8(item.title_path).read_utf8!()?
     article = Path.utf8(item.article_path).read_utf8!()?
     html = Html.render_document(
-        RocsTheme.siteShell({ title: title }, Html.dangerously_include_unescaped_html(article)),
+        RocsTheme.siteShell(
+            {
+                site: RocsPages.site,
+                nav: RocsPages.nav,
+                route: item.route,
+                title: item.title,
+                description: item.description,
+                outline: item.outline,
+            },
+            Html.dangerously_include_unescaped_html(article),
+        ),
     )
     Path.utf8("${staging}/${item.output_path}").write_utf8!(html)?
     Ok({})

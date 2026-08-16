@@ -1,0 +1,108 @@
+@page {
+    meta: {
+        title: "CLI reference",
+        description: "Look up rocci and rocs commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
+    },
+}
+
+# CLI reference
+
+The workspace provides `rocci` for templates, documents, runtime apps, and
+bundles, plus `rocs` for static documentation sites.
+
+Examples below use `cargo run` from a source checkout. Installed binaries use
+the same arguments without the Cargo prefix.
+
+## Validate configuration
+
+```sh
+cargo run -p rocci-cli -- validate [rocci.toml]
+```
+
+Parse and validate the application configuration. Unknown fields and unsafe
+runtime settings are errors.
+
+## Build source to Roc
+
+```sh
+cargo run -p rocci-cli -- build INPUT [-o OUTPUT]
+```
+
+Accepts `.rocci` or `.rocdown`. Without `-o`, generated Roc is printed to
+standard output. Theme and color-scheme flags apply to Rocdown's default shell.
+
+## Inspect source
+
+```sh
+cargo run -p rocci-cli -- inspect [--ast] INPUT
+cargo run -p rocci-cli -- ast INPUT
+```
+
+`inspect` reports components, fixtures, page and route metadata, source-map
+segments, and generated Roc. `--ast` adds the parse tree. `ast` prints only the
+LISPy parse tree.
+
+## Run an app
+
+```sh
+cargo run -p rocci-cli -- run [OPTIONS] [FILE_OR_DIRECTORY] [-- ROC_ARGS...]
+```
+
+The input may be a standalone `.rocci` or `.rocdown` file, a directory, or an
+authored `main.roc`. The default input is `main.roc`.
+
+| Option | Effect |
+| --- | --- |
+| `--no-window` | Serve without opening the embedded window |
+| `--port PORT` | Override the listening port |
+| `--theme THEME` | Select a default Rocdown CSS theme |
+| `--color-scheme auto|light|dark` | Set Rocdown color policy |
+
+`ROC_BASIC_WEBSERVER_PORT` can also override the server port.
+
+## Preview one component
+
+```sh
+cargo run -p rocci-cli -- view FILE \
+  --component NAME \
+  --arg name=value
+```
+
+Arguments may repeat. Component names accept authored PascalCase or lowered
+camelCase.
+
+## Browse components
+
+```sh
+cargo run -p rocci-cli -- browse [ROOTS...]
+```
+
+Discover `.rocci` files recursively and open the component and fixture browser.
+
+## Manage Datastar
+
+```sh
+cargo run -p rocci-cli -- datastar pin VERSION --app PATH
+cargo run -p rocci-cli -- datastar update --app PATH
+```
+
+Pin copies an exact supported version into the application's configured assets.
+Update resolves the latest release explicitly. Normal `run` never auto-upgrades.
+
+## Bundle a desktop app
+
+```sh
+cargo run -p rocci-cli -- bundle --config rocci.toml
+```
+
+Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
+implemented yet.
+
+## Build documentation
+
+```sh
+cargo run -p rocs-cli -- build [ROOT] [--output DIRECTORY]
+```
+
+The default root is the current directory. Rocs reads `rocs.toml` from that
+root. `--output` overrides `build.output`.

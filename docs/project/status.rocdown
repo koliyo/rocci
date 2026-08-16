@@ -1,0 +1,50 @@
+@page {
+    meta: {
+        title: "Project status",
+        description: "See what works today, what remains deliberately limited, and which architecture decisions are stable.",
+    },
+}
+
+# Project status
+
+Rocci is an active experiment with a working compiler core, examples, editor
+support, local runtime, macOS development bundle, and an emerging documentation
+generator. It is not a stable production framework yet.
+
+## Working today
+
+- `.rocci` parsing and deterministic lowering to Roc.
+- Components, fixtures, structural directives, scoped CSS, and Datastar actions.
+- Standalone `@context`, `@init`, and `@on` applications.
+- `.rocdown` Markdown, page metadata, Roc and Rocci regions, links, themes, and preview.
+- Build, inspect, AST, run, view, and browse commands.
+- VS Code and Zed language registration plus LSP diagnostics and navigation.
+- Tao/Wry embedded preview windows.
+- Local ad-hoc-signed macOS application bundles.
+- Rocs nested content, curated navigation, static HTML, sitemap, robots, and `llms.txt`.
+
+## Deliberate current limitations
+
+- Rocs dynamic island splicing is not implemented.
+- Rocs search, clean per-page Markdown, aliases, and development watch mode are pending.
+- The desktop host manages one main window.
+- Windows and Linux installers are not implemented.
+- Production signing, notarization, updates, tray behavior, and deep links are absent.
+- Native capabilities such as dialogs, filesystem access, and notifications are planned.
+- Cross-platform CI coverage is incomplete.
+
+## Stable architectural direction
+
+The project intends to keep these boundaries:
+
+1. Rocci and Rocdown are explicit source syntaxes that lower to ordinary Roc or semantic content data.
+2. HTML and local HTTP remain the interface between backend and browser or webview.
+3. Datastar is pinned per application and never auto-updated by `run`.
+4. Rocs keeps its catalog and static prose processing in Rust while authoring site chrome in Rocci.
+5. Dynamic behavior remains opt-in and identifiable in source.
+
+## Before adopting
+
+Read the [architecture](/concepts/architecture/), run the
+[examples](/examples/), and review the repository roadmap. Pin the exact Rocci,
+Roc, and Datastar revisions used by your application.

@@ -328,7 +328,7 @@ fn page_layout_and_route_are_emitted() {
     route: "/guides/rocdown/",
     layout: Docs.article,
     draft: Bool.false,
-    meta: { title: "Rocdown" },
+    meta: { title: "Rocdown", description: "Markdown-first pages" },
 }
 
 # Hello
@@ -337,11 +337,18 @@ fn page_layout_and_route_are_emitted() {
     assert_eq!(out.page_meta.route.as_deref(), Some("/guides/rocdown/"));
     assert!(!out.page_meta.draft);
     assert_eq!(out.page_meta.layout.as_deref(), Some("Docs.article"));
+    assert_eq!(
+        out.page_meta.description.as_deref(),
+        Some("Markdown-first pages")
+    );
     assert!(
         out.roc
             .contains("Docs.article({ meta: rocci_meta, content: rocci_content({}) })")
     );
-    assert!(out.roc.contains("rocci_meta = { title: \"Rocdown\" }"));
+    assert!(
+        out.roc
+            .contains("rocci_meta = { title: \"Rocdown\", description: \"Markdown-first pages\" }")
+    );
     assert!(
         out.routes
             .iter()

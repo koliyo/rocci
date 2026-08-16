@@ -1,0 +1,101 @@
+@page {
+    meta: {
+        title: "Write Rocdown pages",
+        description: "Author Markdown-first pages with explicit metadata, Roc values, components, rendered regions, and links.",
+    },
+}
+
+# Write a Rocdown page
+
+Rocdown keeps prose portable and makes executable regions visible. Start with
+ordinary Markdown, then add a document-root declaration only where the page
+needs structure or behavior.
+
+## Start with page metadata
+
+````rocdown
+@page {
+    route: "/guides/hello/",
+    draft: Bool.false,
+    meta: {
+        title: "Hello from Rocdown",
+        description: "A small Markdown-first page",
+    },
+}
+
+# Hello from Rocdown
+
+This paragraph is ordinary Markdown.
+````
+
+Rocs can derive routes from file paths, so documentation sites usually omit
+`route`. Use an explicit route when an existing URL must stay stable.
+
+## Display code safely
+
+Fenced code is always display-only, even if the language is `roc`, `rocci`, or
+`rocdown`:
+
+````markdown
+```roc
+answer = 42
+```
+````
+
+This rule prevents a documentation example from silently becoming build-time
+or runtime code.
+
+## Add Roc values and components
+
+For standalone Rocdown preview, a page can colocate Roc and Rocci:
+
+````rocdown
+@roc {
+published = "2026-08-16"
+}
+
+@component Byline = |{ date }|
+    <p>Published {date}</p>
+
+# Article title
+
+<Byline date={published} />
+````
+
+Document-root component tags and directives are explicit islands in the
+Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
+
+> The current static Rocs pipeline accepts Markdown-only pages plus `@page`.
+> Dynamic `@roc`, `@render`, Rocci components, file CSS, and handlers work in
+> `rocci run` but are rejected by `rocs build` until island splicing lands.
+
+## Link pages
+
+Standalone sibling previews understand wiki links and Rocdown file links:
+
+```markdown
+See [[Interactive]] or [the interactive guide](Interactive.rocdown).
+```
+
+For a Rocs site, stable absolute routes are the clearest current form:
+
+```markdown
+Read the [Rocdown reference](/reference/rocdown/).
+```
+
+## Preview and publish
+
+Preview one page with its sibling routes:
+
+```sh
+cargo run -p rocci-cli -- run docs/guide.rocdown
+```
+
+Build a static documentation tree:
+
+```sh
+cargo run -p rocs-cli -- build docs
+```
+
+Rocs reads `docs/rocs.toml`, validates its curated navigation, compiles the
+Rocci site theme, and writes the configured output directory atomically.

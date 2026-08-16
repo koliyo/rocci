@@ -103,6 +103,18 @@ Content edits do not recompile Markdown as Roc. Pages with `@render` or other
 islands are rejected until that splice path exists. See
 [`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md).
 
+The project documentation lives in [`docs`](docs) and is configured by
+[`docs/rocs.toml`](docs/rocs.toml). With `roc` and `cargo` on `PATH`, build the
+publishable `rocci.dev` tree with:
+
+```sh
+cargo run -p rocs-cli -- build docs
+```
+
+That build uses the configured output at `dist/rocci.dev`, copies the social
+preview asset, and emits `llms.txt`, `sitemap.xml`, and `robots.txt` beside the
+static pages.
+
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
 `/page/` or the reverse with **308**, matching the registered `@page` route;

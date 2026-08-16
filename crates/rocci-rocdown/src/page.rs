@@ -91,6 +91,7 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
             "meta" => {
                 meta.meta = Some(value);
                 meta.title = record_string_field(src, value, "title");
+                meta.description = record_string_field(src, value, "description");
             }
             other => diagnostics.push(Diagnostic::error(
                 name_span,

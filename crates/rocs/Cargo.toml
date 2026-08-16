@@ -13,3 +13,5 @@ path = "src/lib.rs"
 anyhow = { workspace = true }
 rocci-template = { workspace = true }
 rocci-rocdown = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
