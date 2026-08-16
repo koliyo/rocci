@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rocci Language Dev"
+  short_description: "Develop Rocci and Rocdown language features"
+  default_prompt: "Use $rocci-language-dev to implement and validate a Rocci or Rocdown language change."
