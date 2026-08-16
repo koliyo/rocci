@@ -137,6 +137,18 @@ pub enum MdNode {
         children: Vec<MdNode>,
         span: Span,
     },
+    FootnoteDefinition {
+        name: String,
+        total_references: u32,
+        children: Vec<MdNode>,
+        span: Span,
+    },
+    FootnoteReference {
+        name: String,
+        reference_number: u32,
+        index: u32,
+        span: Span,
+    },
     Link {
         url: String,
         title: String,
@@ -176,6 +188,8 @@ impl MdNode {
             | Self::Emph { span, .. }
             | Self::Strong { span, .. }
             | Self::Strikethrough { span, .. }
+            | Self::FootnoteDefinition { span, .. }
+            | Self::FootnoteReference { span, .. }
             | Self::Link { span, .. }
             | Self::Image { span, .. }
             | Self::RawHtml { span, .. } => *span,
@@ -199,10 +213,12 @@ impl MdNode {
             | Self::Emph { children, .. }
             | Self::Strong { children, .. }
             | Self::Strikethrough { children, .. }
+            | Self::FootnoteDefinition { children, .. }
             | Self::Link { children, .. } => children.iter().map(Self::text_content).collect(),
-            Self::CodeBlock { .. } | Self::ThematicBreak { .. } | Self::RawHtml { .. } => {
-                String::new()
-            }
+            Self::CodeBlock { .. }
+            | Self::ThematicBreak { .. }
+            | Self::FootnoteReference { .. }
+            | Self::RawHtml { .. } => String::new(),
         }
     }
 
@@ -220,6 +236,7 @@ impl MdNode {
             | Self::Emph { children, .. }
             | Self::Strong { children, .. }
             | Self::Strikethrough { children, .. }
+            | Self::FootnoteDefinition { children, .. }
             | Self::Link { children, .. } => children,
             Self::CodeBlock { .. }
             | Self::ThematicBreak { .. }
@@ -227,6 +244,7 @@ impl MdNode {
             | Self::SoftBreak { .. }
             | Self::LineBreak { .. }
             | Self::Code { .. }
+            | Self::FootnoteReference { .. }
             | Self::Image { .. }
             | Self::RawHtml { .. } => &mut [],
         }

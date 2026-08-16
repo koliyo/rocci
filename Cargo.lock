@@ -2332,6 +2332,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "toml",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -2342,6 +2343,7 @@ dependencies = [
  "clap",
  "rocci-wry",
  "rocs",
+ "serde_json",
 ]
 
 [[package]]

@@ -130,3 +130,19 @@ Port defaults to a free port with the embedded window, or `8000` with
 Content edits rebuild the static HTML. The Rocci theme is recompiled only when
 generated Roc changes (titles, headings, navigation, theme CSS). Dynamic
 islands are not live-reloaded; pages that use them still fail the catalog.
+
+## Validate and build knowledge
+
+```sh
+cargo run -p rocs-cli -- knowledge check [ROOT] [--profile base|rocci] [--format terminal|json]
+cargo run -p rocs-cli -- knowledge inspect catalog [ROOT]
+cargo run -p rocs-cli -- knowledge inspect concept ID [ROOT]
+cargo run -p rocs-cli -- knowledge inspect graph [ROOT]
+cargo run -p rocs-cli -- knowledge build [ROOT] [--output DIRECTORY]
+```
+
+The default root is `knowledge`. Base mode checks OKF v0.2 without imposing
+Rocci's repository vocabulary. Rocci mode additionally requires the approved
+types, tags, lifecycle, provenance, authority, and owner fields. The build
+validates before writing minimal static HTML, `catalog.json`, and
+`validation.json`; knowledge Markdown is never executed as Roc or Rocci.

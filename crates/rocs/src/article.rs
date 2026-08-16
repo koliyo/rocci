@@ -20,10 +20,27 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
 
 pub fn render_document(document: &Document) -> String {
     let mut parts = Vec::new();
+    let mut footnotes = Vec::new();
     for item in &document.items {
         if let Item::Markdown(node) = item {
-            parts.push(render_md(node));
+            if matches!(node, MdNode::FootnoteDefinition { .. }) {
+                footnotes.push(render_md(node));
+            } else {
+                parts.push(render_md(node));
+            }
         }
+    }
+    if !footnotes.is_empty() {
+        let list = element("ol", &[attribute("class", "rd-footnote-list")], &footnotes);
+        parts.push(element(
+            "section",
+            &[
+                attribute("class", "rd-footnotes"),
+                boolean_attribute("data-footnotes", true),
+                attribute("aria-label", "Footnotes"),
+            ],
+            &[list],
+        ));
     }
     fragment(&parts)
 }
@@ -171,6 +188,68 @@ fn render_md(node: &MdNode) -> String {
             &[attribute("class", "rd-strikethrough")],
             &render_all(children),
         ),
+        MdNode::FootnoteDefinition {
+            name,
+            total_references,
+            children,
+            ..
+        } => {
+            let mut body = render_all(children);
+            let mut backlinks = Vec::new();
+            for reference_number in 1..=*total_references {
+                let suffix = if reference_number == 1 {
+                    String::new()
+                } else {
+                    format!("-{reference_number}")
+                };
+                backlinks.push(element(
+                    "a",
+                    &[
+                        attribute("class", "rd-footnote-backref"),
+                        attribute("href", &format!("#fnref-{name}{suffix}")),
+                        boolean_attribute("data-footnote-backref", true),
+                        attribute("aria-label", &format!("Back to reference {name}{suffix}")),
+                    ],
+                    &[text("↩")],
+                ));
+            }
+            body.push(element(
+                "span",
+                &[attribute("class", "rd-footnote-backlinks")],
+                &backlinks,
+            ));
+            element(
+                "li",
+                &[
+                    attribute("class", "rd-footnote-definition"),
+                    attribute("id", &format!("fn-{name}")),
+                ],
+                &body,
+            )
+        }
+        MdNode::FootnoteReference {
+            name,
+            reference_number,
+            index,
+            ..
+        } => {
+            let suffix = if *reference_number == 1 {
+                String::new()
+            } else {
+                format!("-{reference_number}")
+            };
+            let link = element(
+                "a",
+                &[
+                    attribute("href", &format!("#fn-{name}")),
+                    attribute("id", &format!("fnref-{name}{suffix}")),
+                    boolean_attribute("data-footnote-ref", true),
+                    attribute("aria-label", &format!("Footnote {index}")),
+                ],
+                &[text(&index.to_string())],
+            );
+            element("sup", &[attribute("class", "rd-footnote-ref")], &[link])
+        }
         MdNode::Link {
             url,
             title,

@@ -386,6 +386,7 @@ fn walk_images(node: &MdNode, urls: &mut Vec<String>) {
         | MdNode::Emph { children, .. }
         | MdNode::Strong { children, .. }
         | MdNode::Strikethrough { children, .. }
+        | MdNode::FootnoteDefinition { children, .. }
         | MdNode::Link { children, .. } => {
             for child in children {
                 walk_images(child, urls);

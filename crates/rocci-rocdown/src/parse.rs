@@ -14,17 +14,18 @@ pub struct ParseOutput {
     pub links: Vec<crate::ast::LinkInfo>,
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MarkdownBodyOptions {
+    pub raw_html: bool,
+    pub footnotes: bool,
+}
+
 pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let mut diagnostics = Vec::new();
     let scanned = scan::scan(source.src, &mut diagnostics);
     let (synthetic, map) = markdown::punch_holes(source.src, &scanned);
     let arena = Arena::new();
-    let mut options = Options::default();
-    options.extension.table = true;
-    options.extension.strikethrough = true;
-    options.extension.tasklist = true;
-    options.extension.autolink = true;
-    options.extension.wikilinks_title_after_pipe = true;
+    let options = markdown_options(false, true);
     let root = parse_document(&arena, &synthetic, &options);
     let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
 
@@ -49,6 +50,52 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         headings: converted.headings,
         links: converted.links,
     }
+}
+
+pub fn parse_markdown_body(
+    source: SourceFile<'_>,
+    body: Span,
+    body_options: MarkdownBodyOptions,
+) -> ParseOutput {
+    let body_src = source.slice(body);
+    let map = markdown::OffsetMap::from_original(body.as_range());
+    let arena = Arena::new();
+    let options = markdown_options(body_options.footnotes, false);
+    let root = parse_document(&arena, body_src, &options);
+    let mut diagnostics = Vec::new();
+    let converted = markdown::convert_document(
+        root,
+        body_src,
+        &map,
+        body_options.raw_html,
+        &mut diagnostics,
+    );
+    let items = converted
+        .blocks
+        .into_iter()
+        .filter_map(|block| match block {
+            BlockOrHole::Block(node) => Some(Item::Markdown(node)),
+            BlockOrHole::Hole(_) => None,
+        })
+        .collect();
+
+    ParseOutput {
+        document: Document { items, span: body },
+        diagnostics,
+        headings: converted.headings,
+        links: converted.links,
+    }
+}
+
+fn markdown_options(footnotes: bool, wikilinks: bool) -> Options<'static> {
+    let mut options = Options::default();
+    options.extension.table = true;
+    options.extension.strikethrough = true;
+    options.extension.tasklist = true;
+    options.extension.autolink = true;
+    options.extension.footnotes = footnotes;
+    options.extension.wikilinks_title_after_pipe = wikilinks;
+    options
 }
 
 fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> Item {

@@ -14,3 +14,4 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 rocci-wry = { workspace = true }
 rocs = { workspace = true }
+serde_json = { workspace = true }
