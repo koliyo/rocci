@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Rocci ships its core template, Rocdown, preview, desktop, packaging, editor, and static Rocs foundations while dynamic islands and broader packaging remain incomplete.
 tags: [domain/rocci, domain/rocs, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-16T18:32:45Z }
+generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -36,6 +36,16 @@ sources:
     title: Rocci design-token research
     author: process:okf-phase-4
     last_modified: 2026-08-16
+  - id: okf
+    resource: ../../crates/rocs/src/okf.rs
+    title: OKF knowledge implementation
+    author: process:git
+    last_modified: 2026-08-16
+  - id: publication
+    resource: ../decisions/local-knowledge-publication.md
+    title: Local knowledge publication decision
+    author: process:okf-phase-5
+    last_modified: 2026-08-16
 ---
 
 # Rocci implementation status
@@ -49,6 +59,8 @@ sources:
 Template and Rocdown compilation, standalone preview/run workflows, the desktop preview host, ad-hoc macOS application packaging, editor registration, and the Rust-catalog/Rocci-shell Rocs foundation are implemented.[^roadmap]
 
 Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input.[^rocs-plan]
+
+The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
 ## Missing
 
@@ -64,6 +76,10 @@ The OKF compatibility boundary, bundle location, metadata vocabulary, ownership 
 
 The root `DESIGN.md` and two design knowledge records now document the current CSS theme surfaces and DTCG-informed research.[^design-system][^design-tokens] Rocci still has no DTCG token sources, checked compatibility CSS, per-theme token resolvers, generator, or token validation, and Phase 4 does not approve those artifacts.[^okf-plan]
 
+## Publication
+
+Knowledge output remains local and repository-visible. CI validates and compares temporary builds, but no public deployment or verbatim bundle archive is configured pending an explicit source-and-license review.[^publication][^okf-plan]
+
 ## Proposed, not approved
 
 Typed client-behavior islands, their syntax, generated JavaScript artifact model, and any licensed Rocket provider remain exploratory. They are not part of the shipped language or the Phase 0 approved decision register.
@@ -77,3 +93,5 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^okf-plan]: Approved OKF contract and amended knowledge-only DTCG boundary.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
+[^okf]: Current Phase 5 knowledge outputs, retrieval filters, and search implementation.
+[^publication]: Draft record of the approved local-first publication disposition.

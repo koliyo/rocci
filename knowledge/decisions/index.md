@@ -6,3 +6,4 @@
 * [Keep Rocdown Markdown-first](markdown-first-explicit-islands.md) - Executable regions remain explicit and opt-in.
 * [Use a Rust catalog and Rocci shell](rust-catalog-rocci-shell.md) - Static documentation ownership boundary.
 * [Use explicit client-behavior islands](client-behavior-islands.md) - Proposed browser-only behavior boundary; not approved or implemented.
+* [Keep knowledge publication local](local-knowledge-publication.md) - Generate local and CI artifacts without public deployment or archive publication.

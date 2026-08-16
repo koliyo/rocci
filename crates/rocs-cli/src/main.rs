@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Result, bail};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(name = "rocs", about = "Static documentation generator built on Rocci")]
@@ -123,6 +123,58 @@ impl From<KnowledgeProfileArg> for rocs::okf::Profile {
     }
 }
 
+#[derive(Clone, Copy, ValueEnum)]
+enum TrustTierArg {
+    HumanReviewed,
+    Generated,
+    Unverified,
+}
+
+impl From<TrustTierArg> for rocs::okf::TrustTier {
+    fn from(value: TrustTierArg) -> Self {
+        match value {
+            TrustTierArg::HumanReviewed => Self::HumanReviewed,
+            TrustTierArg::Generated => Self::Generated,
+            TrustTierArg::Unverified => Self::Unverified,
+        }
+    }
+}
+
+#[derive(Args, Default)]
+struct KnowledgeFiltersArg {
+    /// Match any of these concept types. Repeat to add alternatives.
+    #[arg(long = "type")]
+    types: Vec<String>,
+    /// Require this tag. Repeat to require multiple tags.
+    #[arg(long = "tag")]
+    tags: Vec<String>,
+    /// Match any of these lifecycle statuses. Repeat to add alternatives.
+    #[arg(long = "status")]
+    statuses: Vec<String>,
+    /// Match any of these authority levels. Repeat to add alternatives.
+    #[arg(long = "authority")]
+    authorities: Vec<String>,
+    /// Match any of these derived trust tiers. Repeat to add alternatives.
+    #[arg(long = "trust-tier", value_enum)]
+    trust_tiers: Vec<TrustTierArg>,
+    /// Match stale (`true`) or current (`false`) records.
+    #[arg(long)]
+    stale: Option<bool>,
+}
+
+impl From<&KnowledgeFiltersArg> for rocs::okf::KnowledgeFilter {
+    fn from(value: &KnowledgeFiltersArg) -> Self {
+        Self {
+            types: value.types.clone(),
+            tags: value.tags.clone(),
+            statuses: value.statuses.clone(),
+            authorities: value.authorities.clone(),
+            trust_tiers: value.trust_tiers.iter().copied().map(Into::into).collect(),
+            stale: value.stale,
+        }
+    }
+}
+
 #[derive(Subcommand)]
 enum KnowledgeCommand {
     /// Watch an OKF bundle, rebuild, and serve with live reload.
@@ -165,6 +217,16 @@ enum KnowledgeCommand {
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
     },
+    /// Search metadata and heading chunks as JSON.
+    Search {
+        query: String,
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+        profile: KnowledgeProfileArg,
+        #[command(flatten)]
+        filters: KnowledgeFiltersArg,
+    },
     /// Render a validated bundle and emit its normalized catalog.
     Build {
         #[arg(default_value = "knowledge")]
@@ -181,6 +243,8 @@ enum KnowledgeInspectTarget {
     Catalog {
         #[arg(default_value = "knowledge")]
         root: PathBuf,
+        #[command(flatten)]
+        filters: KnowledgeFiltersArg,
     },
     Concept {
         concept: String,
@@ -305,22 +369,41 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             Ok(())
         }
         KnowledgeCommand::Inspect { target, profile } => {
-            let (kind, root, concept) = match &target {
-                KnowledgeInspectTarget::Catalog { root } => {
-                    (rocs::okf::InspectKind::Catalog, root, None)
-                }
+            let (kind, root, concept, filter) = match &target {
+                KnowledgeInspectTarget::Catalog { root, filters } => (
+                    rocs::okf::InspectKind::Catalog,
+                    root,
+                    None,
+                    rocs::okf::KnowledgeFilter::from(filters),
+                ),
                 KnowledgeInspectTarget::Concept { concept, root } => (
                     rocs::okf::InspectKind::Concept,
                     root,
                     Some(concept.as_str()),
+                    rocs::okf::KnowledgeFilter::default(),
                 ),
-                KnowledgeInspectTarget::Graph { root } => {
-                    (rocs::okf::InspectKind::Graph, root, None)
-                }
+                KnowledgeInspectTarget::Graph { root } => (
+                    rocs::okf::InspectKind::Graph,
+                    root,
+                    None,
+                    rocs::okf::KnowledgeFilter::default(),
+                ),
             };
             println!(
                 "{}",
-                rocs::okf::inspect(root, kind, concept, profile.into())?
+                rocs::okf::inspect_filtered(root, kind, concept, profile.into(), &filter)?
+            );
+            Ok(())
+        }
+        KnowledgeCommand::Search {
+            query,
+            root,
+            profile,
+            filters,
+        } => {
+            println!(
+                "{}",
+                rocs::okf::search(&root, &query, profile.into(), &(&filters).into())?
             );
             Ok(())
         }
@@ -506,5 +589,49 @@ mod tests {
                 command: KnowledgeCommand::Inspect { .. }
             }
         ));
+        let cli = Cli::try_parse_from([
+            "rocs",
+            "knowledge",
+            "search",
+            "theme resolver",
+            "knowledge",
+            "--type",
+            "Architecture",
+            "--tag",
+            "domain/rocdown",
+            "--status",
+            "stable",
+            "--authority",
+            "descriptive",
+            "--trust-tier",
+            "human-reviewed",
+            "--stale",
+            "false",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Knowledge {
+                command:
+                    KnowledgeCommand::Search {
+                        query,
+                        root,
+                        filters,
+                        ..
+                    },
+            } => {
+                assert_eq!(query, "theme resolver");
+                assert_eq!(root, PathBuf::from("knowledge"));
+                assert_eq!(filters.types, ["Architecture"]);
+                assert_eq!(filters.tags, ["domain/rocdown"]);
+                assert_eq!(filters.statuses, ["stable"]);
+                assert_eq!(filters.authorities, ["descriptive"]);
+                assert!(matches!(
+                    filters.trust_tiers.as_slice(),
+                    [TrustTierArg::HumanReviewed]
+                ));
+                assert_eq!(filters.stale, Some(false));
+            }
+            _ => panic!("expected filtered knowledge search"),
+        }
     }
 }
