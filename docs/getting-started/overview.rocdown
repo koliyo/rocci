@@ -58,5 +58,10 @@ Choose Rocci when you want the guarantees and data modeling of Roc, but you
 also want to author semantic HTML directly. It is especially suited to small
 tools, server-driven interfaces, desktop utilities, and technical documents.
 
+The deeper reason is architectural: pure Roc functions make views predictable,
+while a selected platform gives the native host explicit control over I/O and
+application capabilities. [Why Roc fits Rocci](/concepts/why-roc/) covers that
+design, including interpreted development and compiled delivery.
+
 Continue with [installation](/getting-started/installation/) or jump straight
 to the [quickstart](/getting-started/quickstart/).

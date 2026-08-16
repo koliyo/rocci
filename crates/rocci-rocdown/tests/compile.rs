@@ -335,6 +335,8 @@ fn page_layout_and_route_are_emitted() {
 "#;
     let out = compile_ok(src);
     assert_eq!(out.page_meta.route.as_deref(), Some("/guides/rocdown/"));
+    assert!(out.page_meta.id.is_none());
+    assert!(out.page_meta.aliases.is_empty());
     assert!(!out.page_meta.draft);
     assert_eq!(out.page_meta.layout.as_deref(), Some("Docs.article"));
     assert_eq!(
@@ -393,6 +395,51 @@ fn page_theme_and_color_scheme_are_extracted() {
             .iter()
             .any(|style| style.kind == rocci_rocdown::StyleKind::Theme)
     );
+}
+
+#[test]
+fn page_id_and_aliases_are_extracted() {
+    let src = r#"
+@page {
+    id: "guides.install",
+    route: "/install/",
+    aliases: ["/getting-started/install/", "/gs/install/"],
+    meta: { title: "Install" },
+}
+
+# Install
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.page_meta.id.as_deref(), Some("guides.install"));
+    assert_eq!(
+        out.page_meta.aliases,
+        vec!["/getting-started/install/", "/gs/install/"]
+    );
+}
+
+#[test]
+fn page_id_and_aliases_reject_invalid_values() {
+    let errs = compile_err(
+        r#"
+@page {
+    id: "/not-an-id",
+    aliases: ["relative", "/ok/../secret/"],
+}
+
+# X
+"#,
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`id` must not start with `/`")),
+        "{errs:?}"
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("must be an absolute URL path")),
+        "{errs:?}"
+    );
+    assert!(errs.iter().any(|msg| msg.contains("`..`")), "{errs:?}");
 }
 
 #[test]

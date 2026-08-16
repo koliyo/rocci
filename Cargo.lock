@@ -2251,6 +2251,7 @@ dependencies = [
  "rocci-rocdown",
  "rocci-template",
  "serde",
+ "serde_json",
  "toml",
 ]
 

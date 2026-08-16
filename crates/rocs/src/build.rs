@@ -13,28 +13,25 @@ use rocci_template::{
 };
 
 use crate::BASIC_CLI_PLATFORM;
-use crate::article::{is_static_document, render_document};
-use crate::catalog::{self, NavSection, PageHeading, RouteHint, SourcePage};
-use crate::config::{SiteConfig, load_config};
+use crate::catalog::{self, NavLink, NavSection, PageHeading};
+use crate::config::SiteConfig;
 use crate::runtime;
+use crate::site::{load_site, resolve_loaded};
 
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub fn build(root: &Path, output: &Path) -> Result<BuildReport> {
-    let root = absolute(root)?;
-    let output = absolute(output)?;
-    let config = load_config(&root)?;
-    build_with_config(&root, &output, &config)
+    let loaded = load_site(root)?;
+    build_loaded(&loaded, &absolute(output)?)
 }
 
 pub fn build_configured(root: &Path, output_override: Option<&Path>) -> Result<BuildReport> {
-    let root = absolute(root)?;
-    let config = load_config(&root)?;
+    let loaded = load_site(root)?;
     let output = match output_override {
         Some(output) => absolute(output)?,
-        None => root.join(&config.build.output),
+        None => loaded.root.join(&loaded.config.build.output),
     };
-    build_with_config(&root, &output, &config)
+    build_loaded(&loaded, &output)
 }
 
 fn absolute(path: &Path) -> Result<PathBuf> {
@@ -45,99 +42,25 @@ fn absolute(path: &Path) -> Result<PathBuf> {
     }
 }
 
-fn build_with_config(root: &Path, output: &Path, config: &SiteConfig) -> Result<BuildReport> {
-    let files = discover_rocdown(root)?;
-    let mut sources = Vec::new();
-
-    for path in &files {
-        let src = fs::read_to_string(path)
-            .with_context(|| format!("failed to read {}", path.display()))?;
-        let name = path.display().to_string();
-        let relative_name = path
-            .strip_prefix(root)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .replace('\\', "/");
-        let page_id = relative_name
-            .strip_suffix(".rocdown")
-            .unwrap_or(&relative_name)
-            .to_string();
-        let compiled = rocci_rocdown::compile(
-            SourceFile::new(&name, &src),
-            &rocci_rocdown::CompileOptions {
-                resolve_links: false,
-                ..rocci_rocdown::CompileOptions::default()
-            },
-        );
-        for diagnostic in &compiled.diagnostics {
-            eprintln!(
-                "{}",
-                format_diagnostic(SourceFile::new(&name, &src), diagnostic)
-            );
+fn build_loaded(loaded: &crate::site::LoadedSite, output: &Path) -> Result<BuildReport> {
+    let result = resolve_loaded(loaded);
+    for diagnostic in &result.diagnostics {
+        if diagnostic.severity == catalog::Severity::Warning {
+            eprintln!("{diagnostic}");
         }
-        if compiled.has_errors() {
-            bail!("template compilation failed for {}", path.display());
-        }
-        if compiled.page_meta.draft {
-            continue;
-        }
-        if compiled.roc.contains("import Datastar") {
-            bail!(
-                "{} uses Datastar, which the rocs runtime does not stage",
-                path.display()
-            );
-        }
-        if let Some(layout) = compiled.page_meta.layout.as_deref() {
-            bail!(
-                "{} uses layout `{layout}`, which static rocs pages do not support yet",
-                path.display()
-            );
-        }
-        if let Err(kind) = is_static_document(&compiled.document) {
-            bail!(
-                "{} contains {kind}; static rocs pages cannot include Roc/Rocci islands yet",
-                path.display()
-            );
-        }
-        let title = compiled
-            .page_meta
-            .title
-            .clone()
-            .or_else(|| {
-                compiled
-                    .headings
-                    .first()
-                    .map(|heading| heading.text.clone())
-            })
-            .unwrap_or_else(|| page_id.clone());
-        let description = compiled.page_meta.description.clone().unwrap_or_default();
-        let route_hint = match compiled.page_meta.route {
-            Some(route) => RouteHint::Explicit(route),
-            None => RouteHint::Derived,
-        };
-        sources.push(SourcePage {
-            id: page_id,
-            source_path: relative_name,
-            route_hint,
-            title,
-            description,
-            headings: compiled
-                .headings
-                .iter()
-                .map(|heading| PageHeading {
-                    level: heading.level,
-                    id: heading.id.clone(),
-                    text: heading.text.clone(),
-                })
-                .collect(),
-            outgoing_links: compiled.links.iter().map(|link| link.url.clone()).collect(),
-            article_html: render_document(&compiled.document),
-        });
     }
-
-    let pages = catalog::validate(&sources).map_err(anyhow::Error::msg)?;
-    let navigation =
-        catalog::resolve_navigation(&pages, &config.navigation).map_err(anyhow::Error::msg)?;
+    if result.has_errors() {
+        bail!("{}", result.error_summary());
+    }
+    let config = &loaded.config;
+    let pages: Vec<_> = result
+        .site
+        .pages
+        .iter()
+        .filter(|page| !page.draft)
+        .cloned()
+        .collect();
+    let navigation = result.site.navigation.clone();
 
     let theme_src = runtime::THEME;
     let theme_compiled = compile(
@@ -204,6 +127,9 @@ fn build_with_config(root: &Path, output: &Path, config: &SiteConfig) -> Result<
                 .filter(|heading| (2..=3).contains(&heading.level))
                 .cloned()
                 .collect(),
+            breadcrumbs: page.breadcrumbs.clone(),
+            previous: page.previous.clone(),
+            next: page.next.clone(),
         });
     }
 
@@ -227,7 +153,8 @@ fn build_with_config(root: &Path, output: &Path, config: &SiteConfig) -> Result<
         eprint!("{roc_output}");
     }
 
-    copy_site_assets(root, &staging, config)?;
+    copy_site_assets(&loaded.root, &staging, config)?;
+    write_alias_redirects(&staging, &pages)?;
     write_discovery_artifacts(&staging, config, &pages)?;
 
     commit_output(&staging, output)?;
@@ -259,6 +186,9 @@ struct ThemePage {
     title: String,
     description: String,
     outline: Vec<PageHeading>,
+    breadcrumbs: Vec<NavLink>,
+    previous: Option<NavLink>,
+    next: Option<NavLink>,
 }
 
 pub fn discover_rocdown(root: &Path) -> Result<Vec<PathBuf>> {
@@ -319,6 +249,9 @@ pub fn pages_source(pages: &[IndexedPage]) -> String {
             indexed,
             description: String::new(),
             outline: Vec::new(),
+            breadcrumbs: Vec::new(),
+            previous: None,
+            next: None,
         })
         .collect::<Vec<_>>();
     site_pages_source(&pages, &config, &[])
@@ -343,7 +276,7 @@ fn site_pages_source(
     push_roc_string(&mut out, &config.site.repository);
     out.push_str(",\n        social_image: ");
     push_roc_string(&mut out, &config.site.social_image);
-    out.push_str(",\n    },\n    nav = [\n");
+    out.push_str("\n    }\n\n    nav = [\n");
     for section in navigation {
         out.push_str("        { label: ");
         push_roc_string(&mut out, &section.label);
@@ -357,7 +290,7 @@ fn site_pages_source(
         }
         out.push_str("        ] },\n");
     }
-    out.push_str("    ],\n    pages = [\n");
+    out.push_str("    ]\n\n    pages = [\n");
     for page in &pages {
         out.push_str("        {\n            title_path: ");
         push_roc_string(&mut out, &page.indexed.title_path);
@@ -381,10 +314,34 @@ fn site_pages_source(
             push_roc_string(&mut out, &heading.level.to_string());
             out.push_str(" },\n");
         }
-        out.push_str("            ],\n        },\n");
+        out.push_str("            ],\n            breadcrumbs: [\n");
+        for crumb in &page.breadcrumbs {
+            out.push_str("                { title: ");
+            push_roc_string(&mut out, &crumb.title);
+            out.push_str(", href: ");
+            push_roc_string(&mut out, &crumb.route);
+            out.push_str(" },\n");
+        }
+        out.push_str("            ],\n            previous: { title: ");
+        push_nav_link(&mut out, page.previous.as_ref());
+        out.push_str(",\n            next: { title: ");
+        push_nav_link(&mut out, page.next.as_ref());
+        out.push_str("\n        },\n");
     }
     out.push_str("    ]\n}\n");
     out
+}
+
+fn push_nav_link(out: &mut String, link: Option<&NavLink>) {
+    match link {
+        Some(link) => {
+            push_roc_string(out, &link.title);
+            out.push_str(", href: ");
+            push_roc_string(out, &link.route);
+            out.push_str(" }");
+        }
+        None => out.push_str("\"\", href: \"\" }"),
+    }
 }
 
 fn push_roc_string(out: &mut String, value: &str) {
@@ -488,6 +445,29 @@ fn copy_directory(source: &Path, target: &Path) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn write_alias_redirects(staging: &Path, pages: &[catalog::ResolvedPage]) -> Result<()> {
+    for page in pages {
+        for alias in &page.aliases {
+            let output_path = catalog::route_output_path(alias);
+            let dest = staging.join(&output_path);
+            if let Some(parent) = dest.parent() {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("failed to create {}", parent.display()))?;
+            }
+            fs::write(&dest, redirect_html(&page.route))
+                .with_context(|| format!("failed to write redirect {}", dest.display()))?;
+        }
+    }
+    Ok(())
+}
+
+fn redirect_html(target: &str) -> String {
+    let target = escape_xml(target);
+    format!(
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Redirect</title>\n<link rel=\"canonical\" href=\"{target}\">\n<meta http-equiv=\"refresh\" content=\"0; url={target}\">\n</head>\n<body>\n<p>Moved to <a href=\"{target}\">{target}</a>.</p>\n</body>\n</html>\n"
+    )
 }
 
 fn write_discovery_artifacts(

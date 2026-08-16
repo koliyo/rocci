@@ -2,7 +2,16 @@ use rocci_template::{Cursor, Diagnostic, Span, is_ident_continue, is_ident_start
 
 use crate::ast::PageMeta;
 
-const CONTROL_FIELDS: &[&str] = &["route", "layout", "draft", "meta", "theme", "color_scheme"];
+const CONTROL_FIELDS: &[&str] = &[
+    "id",
+    "route",
+    "aliases",
+    "layout",
+    "draft",
+    "meta",
+    "theme",
+    "color_scheme",
+];
 
 pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) -> PageMeta {
     let mut meta = PageMeta::default();
@@ -38,6 +47,19 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
         skip_value(&mut cur, end);
         let value = Span::new(value_start, cur.pos.min(end));
         match name.as_str() {
+            "id" => match string_literal(src, value) {
+                Some(id) => {
+                    if let Some(err) = validate_id(&id) {
+                        diagnostics.push(Diagnostic::error(value, err));
+                    } else {
+                        meta.id = Some(id);
+                    }
+                }
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`id` must be a compile-time string literal",
+                )),
+            },
             "route" => match string_literal(src, value) {
                 Some(route) => {
                     if let Some(err) = validate_route(&route) {
@@ -49,6 +71,24 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                 None => diagnostics.push(Diagnostic::error(
                     value,
                     "`route` must be a compile-time string literal",
+                )),
+            },
+            "aliases" => match string_list(src, value) {
+                Some(aliases) => {
+                    let mut valid = Vec::new();
+                    for alias in aliases {
+                        if let Some(err) = validate_route(&alias) {
+                            diagnostics
+                                .push(Diagnostic::error(value, format!("alias `{alias}`: {err}")));
+                        } else {
+                            valid.push(alias);
+                        }
+                    }
+                    meta.aliases = valid;
+                }
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`aliases` must be a list of compile-time string literals",
                 )),
             },
             "layout" => match value_path(src, value) {
@@ -270,6 +310,65 @@ fn record_string_field(src: &str, record: Span, field: &str) -> Option<String> {
         }
     }
     None
+}
+
+pub fn validate_id(id: &str) -> Option<String> {
+    if id.trim().is_empty() {
+        return Some("`id` must not be empty".into());
+    }
+    if id.contains('\0') {
+        return Some("`id` must not contain NUL bytes".into());
+    }
+    if id.contains("..") {
+        return Some("`id` must not contain `..`".into());
+    }
+    if id.starts_with('/') {
+        return Some("`id` must not start with `/`; page identity is distinct from route".into());
+    }
+    if id.contains('?') || id.contains('#') {
+        return Some("`id` must not contain a query string or fragment".into());
+    }
+    None
+}
+
+fn string_list(src: &str, span: Span) -> Option<Vec<String>> {
+    let text = span.of(src).trim();
+    if !text.starts_with('[') || !text.ends_with(']') {
+        return None;
+    }
+    let mut cur = Cursor::at(src, span.start as usize);
+    let end = span.end as usize;
+    cur.skip_trivia();
+    if !cur.eat('[') {
+        return None;
+    }
+    let mut items = Vec::new();
+    loop {
+        cur.skip_trivia();
+        if cur.pos >= end {
+            return None;
+        }
+        if cur.peek() == Some(']') {
+            cur.bump();
+            break;
+        }
+        if cur.peek() == Some(',') {
+            cur.bump();
+            continue;
+        }
+        if cur.peek() != Some('"') {
+            return None;
+        }
+        let value_start = cur.pos;
+        cur.skip_string();
+        let value = Span::new(value_start, cur.pos.min(end));
+        items.push(string_literal(src, value)?);
+        cur.skip_trivia();
+        if cur.peek() == Some(',') {
+            cur.bump();
+        }
+    }
+    Some(items)
 }
 
 pub fn validate_route(route: &str) -> Option<String> {

@@ -1,11 +1,11 @@
 use std::{fs, path::Path};
 
 use anyhow::{Context, Result, bail};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub const CONFIG_FILE: &str = "rocs.toml";
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SiteConfig {
     pub site: SiteMeta,
@@ -24,7 +24,7 @@ impl Default for SiteConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SiteMeta {
     pub title: String,
@@ -48,7 +48,7 @@ impl Default for SiteMeta {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BuildConfig {
     pub output: String,
@@ -64,11 +64,12 @@ impl Default for BuildConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(default, deny_unknown_fields)]
 pub struct NavConfig {
     pub label: String,
     pub items: Vec<String>,
+    pub directory: Option<String>,
 }
 
 pub fn load_config(root: &Path) -> Result<SiteConfig> {
@@ -112,9 +113,23 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 path.display()
             );
         }
-        if section.items.is_empty() {
+        let directory = section
+            .directory
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        if section.items.is_empty() && directory.is_none() {
             bail!(
-                "nav section `{}` has no items in {}",
+                "nav section `{}` has no items or directory in {}",
+                section.label,
+                path.display()
+            );
+        }
+        if let Some(directory) = directory
+            && (directory.contains("..") || directory.starts_with('/'))
+        {
+            bail!(
+                "nav section `{}` has an invalid directory `{directory}` in {}",
                 section.label,
                 path.display()
             );
@@ -167,6 +182,27 @@ items = ["index", "quickstart"]
         assert_eq!(config.site.base_url, "https://rocci.dev");
         assert_eq!(config.build.output, "../dist/docs");
         assert_eq!(config.navigation[0].items[1], "quickstart");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_directory_navigation() {
+        let root = temp("dir-nav");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[nav]]
+label = "Guides"
+directory = "guides"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.navigation[0].directory.as_deref(), Some("guides"));
+        assert!(config.navigation[0].items.is_empty());
         let _ = fs::remove_dir_all(root);
     }
 

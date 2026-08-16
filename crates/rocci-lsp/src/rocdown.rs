@@ -280,7 +280,16 @@ fn page_completion(
             .collect();
         return CompletionResponse::Array(items);
     }
-    let fields = ["route", "layout", "draft", "meta", "theme", "color_scheme"];
+    let fields = [
+        "id",
+        "route",
+        "aliases",
+        "layout",
+        "draft",
+        "meta",
+        "theme",
+        "color_scheme",
+    ];
     let items = fields
         .into_iter()
         .filter(|field| field.starts_with(&prefix))
