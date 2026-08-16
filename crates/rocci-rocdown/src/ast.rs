@@ -249,7 +249,9 @@ pub struct LinkInfo {
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct PageMeta {
+    pub id: Option<String>,
     pub route: Option<String>,
+    pub aliases: Vec<String>,
     pub draft: bool,
     pub layout: Option<String>,
     pub meta: Option<Span>,

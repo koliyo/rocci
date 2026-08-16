@@ -49,6 +49,7 @@ and interaction stays opt-in.
 ## Choose a path
 
 - New to the project? Read [What is Rocci?](/getting-started/overview/).
+- Evaluating the language choice? Read [Why Roc fits Rocci](/concepts/why-roc/).
 - Ready to type code? Follow the [five-minute quickstart](/getting-started/quickstart/).
 - Building server-driven UI? Start with [server actions and Datastar](/guides/server-actions/).
 - Writing technical content? See [Rocdown pages](/guides/rocdown-pages/).

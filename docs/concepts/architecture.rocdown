@@ -31,6 +31,10 @@ local HTTP server ──► browser or Tao/Wry window
 The template crates do not invoke Roc, start a server, or open a window. Those
 effects belong to the CLI and host layers.
 
+That split follows Roc's own pure-application and effect-providing-platform
+model. Read [Why Roc fits Rocci](/concepts/why-roc/) for the effect, capability,
+hosting, and execution-mode rationale.
+
 ## Workspace responsibilities
 
 | Crate | Responsibility |

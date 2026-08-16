@@ -1,6 +1,6 @@
 # Implementation plan for the Rocdown documentation generator
 
-**Status:** active — Phase 0 complete; static catalog and article HTML moved to Rust
+**Status:** active — Phase 2 complete; Rust catalog resolves identity, graph, navigation, and `rocs check` / `inspect`
 
 **Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
 
@@ -47,8 +47,8 @@ Dynamic islands are the exception. They are real Roc functions. They stay on the
 | --- | --- | --- |
 | `crates/rocci-rocdown` | Span-preserving Markdown/Rocdown AST; `rocci_content` / `rocci_page` for preview | Unchanged for `rocci run`; Rocs consumes `Document` + metadata without compiling page modules |
 | `crates/rocci-template` | `.rocci` → Roc `Html` | Compile first-party docs themes once per build |
-| `crates/rocs` | Discovers `.rocdown`, builds a Rust catalog, renders article HTML, compiles `RocsTheme.rocci` once, writes `dist/` | Nested content roots, graph, nav, validation, island splice |
-| `crates/rocs-cli` | `rocs build [ROOT] --output dist` | `check`, `dev`, `inspect` |
+| `crates/rocs` | Discovers `.rocdown`, resolves a Rust catalog (ids, aliases, graph, nav), renders article HTML, compiles `RocsTheme.rocci` once, writes `dist/` | Island splice |
+| `crates/rocs-cli` | `rocs build` / `check` / `inspect` | `dev` |
 | `crates/rocci-lsp` | Local syntax diagnostics | Consume catalog snapshots from Rust, not a Roc checker subprocess |
 
 Phase 0 leftover: `examples/rocs/{index,guide}.rocdown` still build through `rocs build`. Per-page Roc modules, `RocsRegistry`, `RocsModel`, and `RocsRoute` are gone.
@@ -152,7 +152,7 @@ Site-critical metadata stays a statically extractable subset of `@page`. `Source
 
 ### 6.4 Catalog states
 
-Same phased types as the product report (`Catalog` → `ResolvedSite` → `BuildPlan`), implemented in Rust. Current slice: route derivation, trailing slash, output paths, duplicate detection, `..` / non-absolute rejection.
+Same phased types as the product report (`Catalog` → `ResolvedSite` → `BuildPlan`), implemented in Rust. Current slice: stable ids, aliases, trailing slash, output paths, duplicate/case-insensitive collisions, reference graph, navigation, breadcrumbs/previous/next, all-at-once diagnostics.
 
 ### 6.5 Theme contract
 
@@ -183,6 +183,8 @@ Same phased types as the product report (`Catalog` → `ResolvedSite` → `Build
 
 ```text
 rocs build [ROOT] [--output dist]
+rocs check [ROOT] [--format terminal|json]
+rocs inspect config|catalog|page|graph|nav|artifacts [TARGET] [ROOT]
 ```
 
 Later, also as `rocci docs …` if the CLI should own the user-facing name:
@@ -215,9 +217,7 @@ Two-page site through one Rocci shell; duplicate routes fail; failed builds leav
 
 Exit gate: HTML and plain text can be derived from `MdNode`; the Roc compiler sees only the theme plus a path index.
 
-### Phase 2 — catalog, routing, graph, navigation, validation (Rust)
-
-Previously specified as pure Roc. Same product rules, different language:
+### Phase 2 — done
 
 - stable IDs independent of routes; nested `index.rocdown`; aliases; drafts
 - resolve relative, wiki, absolute, heading, and asset links
@@ -257,7 +257,8 @@ Versioning, locales, remote search, explicit client islands, optional API explor
 | --- | --- |
 | Markdown parse/spans | `rocci-rocdown` |
 | Article HTML parity | `rocs` article tests (no `roc`) |
-| Catalog/routes/duplicates | `rocs` catalog tests (no `roc`) |
+| Catalog/routes/graph/nav | `rocs` catalog tests (no `roc`) |
+| Check fixture (100 pages) | `rocs` site tests (no `roc`) |
 | Theme shell, escaping, determinism | `rocs` build tests (need `roc`) |
 | CLI staging | `rocs-cli` |
 
