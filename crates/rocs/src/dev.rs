@@ -447,8 +447,7 @@ fn serve_file(
 }
 
 pub(crate) fn inject_live_reload(html: &str) -> String {
-    let html = html.replace("script-src 'none'", "script-src 'self'");
-    let html = html.replace("connect-src 'none'", "connect-src 'self'");
+    let html = relax_csp(html);
     if let Some(idx) = html.rfind("</body>") {
         let mut out = String::with_capacity(html.len() + LIVE_RELOAD_TAG.len());
         out.push_str(&html[..idx]);
@@ -458,6 +457,13 @@ pub(crate) fn inject_live_reload(html: &str) -> String {
     } else {
         format!("{html}{LIVE_RELOAD_TAG}")
     }
+}
+
+fn relax_csp(html: &str) -> String {
+    html.replace("script-src 'none'", "script-src 'self'")
+        .replace("script-src &#39;none&#39;", "script-src &#39;self&#39;")
+        .replace("connect-src 'none'", "connect-src 'self'")
+        .replace("connect-src &#39;none&#39;", "connect-src &#39;self&#39;")
 }
 
 fn write_error_html(stream: &mut TcpStream, message: &str) -> io::Result<()> {
@@ -570,7 +576,7 @@ mod tests {
         fs::create_dir_all(root.join("assets")).unwrap();
         fs::write(
             root.join("index.html"),
-            "<html><head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'none'; connect-src 'none'\"></head><body>home</body></html>",
+            "<html><head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src &#39;none&#39;; script-src &#39;none&#39;; connect-src &#39;none&#39;\"></head><body>home</body></html>",
         )
         .unwrap();
         fs::write(
@@ -631,6 +637,17 @@ mod tests {
         assert!(injected.contains("/__rocs/reload.js"));
         assert!(injected.contains("</body>"));
         assert!(!html.contains("/__rocs/reload.js"));
+    }
+
+    #[test]
+    fn inject_rewrites_html_escaped_csp_quotes() {
+        let html = "<html><head><meta http-equiv=\"Content-Security-Policy\" content=\"default-src &#39;none&#39;; script-src &#39;none&#39;; connect-src &#39;none&#39;\"></head><body>hi</body></html>";
+        let injected = inject_live_reload(html);
+        assert!(injected.contains("script-src &#39;self&#39;"));
+        assert!(injected.contains("connect-src &#39;self&#39;"));
+        assert!(!injected.contains("script-src &#39;none&#39;"));
+        assert!(injected.contains("default-src &#39;none&#39;"));
+        assert!(injected.contains("/__rocs/reload.js"));
     }
 
     #[test]
@@ -700,7 +717,8 @@ mod tests {
 
         let html = http_get(port, "/");
         assert!(html.contains("200 OK"));
-        assert!(html.contains("script-src 'self'"));
+        assert!(html.contains("script-src &#39;self&#39;"));
+        assert!(!html.contains("script-src &#39;none&#39;"));
         assert!(html.contains("/__rocs/reload.js"));
         assert!(html.contains("Cache-Control: no-store"));
 
