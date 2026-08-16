@@ -7,6 +7,7 @@ use rocci_template::{
     template_items_have_action, validate, validate_template_items,
 };
 
+use crate::CompileOptions;
 use crate::ast::{Document, Item, MdNode, PageMeta, RenderDecl};
 use crate::page::{extract_page, imports_html, roc_binding_names, split_roc_body};
 
@@ -24,16 +25,18 @@ pub struct Lowered {
     pub init: Option<InitInfo>,
     pub routes: Vec<RouteInfo>,
     pub page_meta: PageMeta,
+    pub theme: Option<rocci_theme::ResolvedTheme>,
 }
 
 pub fn lower(
     source: SourceFile<'_>,
     document: &Document,
-    options: &LowerOptions,
+    options: &CompileOptions,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Lowered {
     let mut page_meta = PageMeta::default();
     let mut page_count = 0;
+    let mut page_span = Span::point(0);
     for item in &document.items {
         if let Item::Page(page) = item {
             page_count += 1;
@@ -43,6 +46,7 @@ pub fn lower(
                     "duplicate `@page`; a document may declare page metadata once",
                 ));
             } else {
+                page_span = page.span;
                 page_meta = extract_page(source.src, page.body, diagnostics);
             }
         }
@@ -80,7 +84,25 @@ pub fn lower(
             validate_template_items(std::slice::from_ref(template), diagnostics);
         }
     }
-    let lowered_rocci = rocci_template::lower(source, &rocci_doc, options);
+
+    let resolved_theme = match rocci_theme::resolve(
+        page_meta.theme.as_deref(),
+        page_meta.color_scheme.as_deref(),
+        &options.theme,
+    ) {
+        Ok(theme) => Some(theme),
+        Err(err) => {
+            diagnostics.push(Diagnostic::error(page_span, err.to_string()));
+            None
+        }
+    };
+    let mut lower_opts = options.lower.clone();
+    if let Some(theme) = resolved_theme.as_ref().filter(|theme| !theme.is_none()) {
+        lower_opts.theme_css = Some(theme.css.clone());
+        lower_opts.theme_id = Some(theme.id.clone());
+        lower_opts.color_scheme_attr = theme.policy.html_attr().map(str::to_string);
+    }
+    let lowered_rocci = rocci_template::lower(source, &rocci_doc, &lower_opts);
 
     let css_stamp = if lowered_rocci
         .styles
@@ -104,14 +126,15 @@ pub fn lower(
 
     let mut emitter = Emitter {
         source,
-        options,
-        html: &options.html_module,
+        options: &lower_opts,
+        html: &lower_opts.html_module,
         roc: String::new(),
         segments: Vec::new(),
         indent: 0,
         at_line_start: true,
         css_stamp,
         field_defaults,
+        theme: resolved_theme.clone(),
     };
 
     let mut imports = Vec::new();
@@ -260,17 +283,30 @@ pub fn lower(
     }
 
     let segments = emitter.segments;
+    let mut styles = lowered_rocci.styles;
+    if let Some(theme) = resolved_theme.as_ref().filter(|theme| !theme.is_none()) {
+        styles.insert(
+            0,
+            StyleArtifact {
+                kind: rocci_template::StyleKind::Theme,
+                name: theme.id.clone(),
+                css: theme.css.clone(),
+                span: Span::point(0),
+            },
+        );
+    }
 
     Lowered {
         roc: emitter.roc,
         segments,
         components: lowered_rocci.components,
         fixtures: lowered_rocci.fixtures,
-        styles: lowered_rocci.styles,
+        styles,
         state_type: lowered_rocci.state_type,
         init: lowered_rocci.init,
         routes,
         page_meta,
+        theme: resolved_theme,
     }
 }
 
@@ -284,6 +320,7 @@ struct Emitter<'a> {
     at_line_start: bool,
     css_stamp: Option<String>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
+    theme: Option<rocci_theme::ResolvedTheme>,
 }
 
 impl<'a> Emitter<'a> {
@@ -428,19 +465,33 @@ impl<'a> Emitter<'a> {
                 children,
                 span,
             } => {
+                let tag = format!("h{level}");
+                let class = format!("rd-header-{level}");
                 self.emit_element(
-                    &format!("h{level}"),
-                    &[("id", id.as_str())],
+                    &tag,
+                    &[("class", class.as_str()), ("id", id.as_str())],
                     children,
                     false,
                     *span,
                 );
             }
             MdNode::Paragraph { children, span } => {
-                self.emit_element("p", &[], children, false, *span);
+                self.emit_element(
+                    "p",
+                    &[("class", "rd-paragraph")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::BlockQuote { children, span } => {
-                self.emit_element("blockquote", &[], children, false, *span);
+                self.emit_element(
+                    "blockquote",
+                    &[("class", "rd-blockquote")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::List {
                 ordered,
@@ -449,16 +500,26 @@ impl<'a> Emitter<'a> {
                 span,
             } => {
                 let name = if *ordered { "ol" } else { "ul" };
-                let start_value = start.to_string();
-                let attrs: Vec<(&str, &str)> = if *ordered && *start != 1 {
-                    vec![("start", start_value.as_str())]
+                let class = if *ordered {
+                    "rd-list-ordered"
                 } else {
-                    Vec::new()
+                    "rd-list"
                 };
+                let start_value = start.to_string();
+                let mut attrs = vec![("class", class)];
+                if *ordered && *start != 1 {
+                    attrs.push(("start", start_value.as_str()));
+                }
                 self.emit_element(name, &attrs, children, false, *span);
             }
             MdNode::Item { children, span } => {
-                self.emit_element("li", &[], children, false, *span);
+                self.emit_element(
+                    "li",
+                    &[("class", "rd-list-item")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::TaskItem {
                 checked,
@@ -471,7 +532,7 @@ impl<'a> Emitter<'a> {
                 self.emit_string("li", *span, OriginKind::MarkdownStructure);
                 self.emit(",\n");
                 self.push_indent();
-                self.emit_attrs(&[], *span);
+                self.emit_attrs(&[("class", "rd-task-item")], *span);
                 self.emit(",\n");
                 self.push_indent();
                 self.emit("[\n");
@@ -500,23 +561,19 @@ impl<'a> Emitter<'a> {
                 literal,
                 span,
             } => {
-                let class = if info.is_empty() {
-                    String::new()
+                let code_class = if info.is_empty() {
+                    "rd-code".to_string()
                 } else {
-                    format!("language-{info}")
+                    format!("rd-code language-{info}")
                 };
-                let code_attrs: Vec<(&str, &str)> = if class.is_empty() {
-                    Vec::new()
-                } else {
-                    vec![("class", class.as_str())]
-                };
+                let code_attrs = [("class", code_class.as_str())];
                 self.emit_html(".element(\n");
                 self.indent += 1;
                 self.push_indent();
                 self.emit_string("pre", *span, OriginKind::MarkdownStructure);
                 self.emit(",\n");
                 self.push_indent();
-                self.emit_attrs(&[], *span);
+                self.emit_attrs(&[("class", "rd-code-block")], *span);
                 self.emit(",\n");
                 self.push_indent();
                 self.emit("[\n");
@@ -551,7 +608,7 @@ impl<'a> Emitter<'a> {
                 self.emit(")");
             }
             MdNode::ThematicBreak { span } => {
-                self.emit_void("hr", &[], *span);
+                self.emit_void("hr", &[("class", "rd-thematic-break")], *span);
             }
             MdNode::Table { children, span } => {
                 let mut head = Vec::new();
@@ -568,19 +625,31 @@ impl<'a> Emitter<'a> {
                 self.emit_string("table", *span, OriginKind::MarkdownStructure);
                 self.emit(",\n");
                 self.push_indent();
-                self.emit_attrs(&[], *span);
+                self.emit_attrs(&[("class", "rd-table")], *span);
                 self.emit(",\n");
                 self.push_indent();
                 self.emit("[\n");
                 self.indent += 1;
                 if !head.is_empty() {
                     self.push_indent();
-                    self.emit_element("thead", &[], &head, false, *span);
+                    self.emit_element(
+                        "thead",
+                        &[("class", "rd-table-head")],
+                        &head,
+                        false,
+                        *span,
+                    );
                     self.emit(",\n");
                 }
                 if !body.is_empty() {
                     self.push_indent();
-                    self.emit_element("tbody", &[], &body, false, *span);
+                    self.emit_element(
+                        "tbody",
+                        &[("class", "rd-table-body")],
+                        &body,
+                        false,
+                        *span,
+                    );
                     self.emit(",\n");
                 }
                 self.indent -= 1;
@@ -601,7 +670,7 @@ impl<'a> Emitter<'a> {
                 self.emit_string("tr", *span, OriginKind::MarkdownStructure);
                 self.emit(",\n");
                 self.push_indent();
-                self.emit_attrs(&[], *span);
+                self.emit_attrs(&[("class", "rd-table-row")], *span);
                 self.emit(",\n");
                 self.push_indent();
                 self.emit("[\n");
@@ -610,7 +679,13 @@ impl<'a> Emitter<'a> {
                     self.push_indent();
                     if *header {
                         if let MdNode::TableCell { children, span } = child {
-                            self.emit_element("th", &[], children, false, *span);
+                            self.emit_element(
+                                "th",
+                                &[("class", "rd-table-header")],
+                                children,
+                                false,
+                                *span,
+                            );
                         } else {
                             self.lower_md(child);
                         }
@@ -627,7 +702,13 @@ impl<'a> Emitter<'a> {
                 self.emit(")");
             }
             MdNode::TableCell { children, span } => {
-                self.emit_element("td", &[], children, false, *span);
+                self.emit_element(
+                    "td",
+                    &[("class", "rd-table-cell")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::Text { value, span } => {
                 self.emit_html(".text(");
@@ -643,7 +724,7 @@ impl<'a> Emitter<'a> {
             MdNode::Code { value, span } => {
                 self.emit_element(
                     "code",
-                    &[],
+                    &[("class", "rd-code")],
                     &[MdNode::Text {
                         value: value.clone(),
                         span: *span,
@@ -653,13 +734,31 @@ impl<'a> Emitter<'a> {
                 );
             }
             MdNode::Emph { children, span } => {
-                self.emit_element("em", &[], children, false, *span);
+                self.emit_element(
+                    "em",
+                    &[("class", "rd-emphasis")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::Strong { children, span } => {
-                self.emit_element("strong", &[], children, false, *span);
+                self.emit_element(
+                    "strong",
+                    &[("class", "rd-strong")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::Strikethrough { children, span } => {
-                self.emit_element("del", &[], children, false, *span);
+                self.emit_element(
+                    "del",
+                    &[("class", "rd-strikethrough")],
+                    children,
+                    false,
+                    *span,
+                );
             }
             MdNode::Link {
                 url,
@@ -667,7 +766,7 @@ impl<'a> Emitter<'a> {
                 children,
                 span,
             } => {
-                let mut attrs = vec![("href", url.as_str())];
+                let mut attrs = vec![("class", "rd-link"), ("href", url.as_str())];
                 if !title.is_empty() {
                     attrs.push(("title", title.as_str()));
                 }
@@ -679,7 +778,11 @@ impl<'a> Emitter<'a> {
                 alt,
                 span,
             } => {
-                let mut attrs = vec![("src", url.as_str()), ("alt", alt.as_str())];
+                let mut attrs = vec![
+                    ("class", "rd-image"),
+                    ("src", url.as_str()),
+                    ("alt", alt.as_str()),
+                ];
                 if !title.is_empty() {
                     attrs.push(("title", title.as_str()));
                 }
@@ -811,11 +914,46 @@ impl<'a> Emitter<'a> {
             .unwrap_or_else(|| "Rocdown".to_string());
         let file_css = styles.iter().find_map(|style| {
             if matches!(style.kind, rocci_template::StyleKind::File) {
-                Some(style.css.as_str())
+                Some(style.css.clone())
             } else {
                 None
             }
         });
+        let theme_active = self.theme.as_ref().is_some_and(|theme| !theme.is_none());
+        let theme_id = self
+            .theme
+            .as_ref()
+            .filter(|theme| !theme.is_none())
+            .map(|theme| theme.id.clone());
+        let theme_css = self
+            .theme
+            .as_ref()
+            .filter(|theme| !theme.is_none())
+            .map(|theme| theme.css.clone());
+        let scheme_attr = self
+            .theme
+            .as_ref()
+            .and_then(|theme| theme.policy.html_attr())
+            .map(str::to_string);
+        let scheme_meta = self
+            .theme
+            .as_ref()
+            .filter(|theme| !theme.is_none())
+            .map(|theme| theme.policy.meta_content());
+        let mut html_attrs: Vec<(String, String)> = vec![("lang".into(), "en".into())];
+        if theme_active {
+            html_attrs.push(("class".into(), "rd-document".into()));
+            if let Some(id) = &theme_id {
+                html_attrs.push(("data-rd-theme".into(), id.clone()));
+            }
+            if let Some(scheme) = &scheme_attr {
+                html_attrs.push(("data-rd-color-scheme".into(), scheme.clone()));
+            }
+        }
+        let html_attr_refs: Vec<(&str, &str)> = html_attrs
+            .iter()
+            .map(|(name, value)| (name.as_str(), value.as_str()))
+            .collect();
         let span = Span::point(0);
         self.emit_html(".element(\n");
         self.indent += 1;
@@ -823,7 +961,7 @@ impl<'a> Emitter<'a> {
         self.emit_string("html", span, OriginKind::MarkdownBoilerplate);
         self.emit(",\n");
         self.push_indent();
-        self.emit_attrs(&[("lang", "en")], span);
+        self.emit_attrs(&html_attr_refs, span);
         self.emit(",\n");
         self.push_indent();
         self.emit("[\n");
@@ -853,6 +991,15 @@ impl<'a> Emitter<'a> {
             span,
         );
         self.emit(",\n");
+        if let Some(content) = scheme_meta {
+            self.push_indent();
+            self.emit_void(
+                "meta",
+                &[("name", "color-scheme"), ("content", content)],
+                span,
+            );
+            self.emit(",\n");
+        }
         self.css_stamp = stamp;
         self.push_indent();
         self.emit_html(".element(\n");
@@ -875,28 +1022,11 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit("),\n");
-        if let Some(css) = file_css {
-            self.push_indent();
-            self.emit_html(".element(\n");
-            self.indent += 1;
-            self.push_indent();
-            self.emit_string("style", span, OriginKind::Css);
-            self.emit(",\n");
-            self.push_indent();
-            self.emit("[],\n");
-            self.push_indent();
-            self.emit("[\n");
-            self.indent += 1;
-            self.push_indent();
-            self.emit_html(".text(");
-            self.emit_string(css, span, OriginKind::Css);
-            self.emit("),\n");
-            self.indent -= 1;
-            self.push_indent();
-            self.emit("],\n");
-            self.indent -= 1;
-            self.push_indent();
-            self.emit("),\n");
+        if let Some(css) = &theme_css {
+            self.emit_style_element(css, span);
+        }
+        if let Some(css) = &file_css {
+            self.emit_style_element(css, span);
         }
         self.indent -= 1;
         self.push_indent();
@@ -948,6 +1078,30 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit(")\n");
+    }
+
+    fn emit_style_element(&mut self, css: &str, span: Span) {
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("style", span, OriginKind::Css);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[],\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".text(");
+        self.emit_string(css, span, OriginKind::Css);
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
     }
 
     fn emit_html(&mut self, suffix: &str) {

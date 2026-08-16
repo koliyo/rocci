@@ -14,18 +14,25 @@ use crate::dispatch;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
+use crate::theme::ThemeArgs;
 
-pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) -> Result<()> {
+pub fn run(
+    file: &Path,
+    args: &[String],
+    no_window: bool,
+    port: serve::PortArg,
+    theme: &ThemeArgs,
+) -> Result<()> {
     if file
         .extension()
         .is_some_and(|ext| ext == "rocci" || ext == "rocdown")
     {
-        return run_standalone(file, args, no_window, port);
+        return run_standalone(file, args, no_window, port, theme);
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
     runtime_assets::stage_into(&resolved.app_dir)?;
-    compile_rocci_modules(&resolved.app_dir)?;
+    compile_rocci_modules(&resolved.app_dir, theme)?;
     invoke_roc(&resolved, args, no_window, port)
 }
 
@@ -94,6 +101,7 @@ fn run_standalone(
     args: &[String],
     no_window: bool,
     port: serve::PortArg,
+    theme: &ThemeArgs,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -112,7 +120,7 @@ fn run_standalone(
     let src =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
     let name = path.display().to_string();
-    let compiled = compile_source(&path, &name, &src)?;
+    let compiled = compile_source(&path, &name, &src, theme)?;
     if compiled.failed {
         bail!("template compilation failed");
     }
@@ -193,10 +201,10 @@ fn generated_module_path(rocci: &Path) -> PathBuf {
     rocci.with_extension("roc")
 }
 
-pub fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
+pub fn compile_rocci_modules(app_dir: &Path, theme: &ThemeArgs) -> Result<()> {
     let mut failed = false;
     for input in discover_rocci(app_dir)? {
-        if !compile_one(&input)? {
+        if !compile_one(&input, theme)? {
             failed = true;
         }
     }
@@ -206,11 +214,11 @@ pub fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn compile_one(input: &Path) -> Result<bool> {
+fn compile_one(input: &Path, theme: &ThemeArgs) -> Result<bool> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
-    let compiled = compile_source(input, &name, &src)?;
+    let compiled = compile_source(input, &name, &src, theme)?;
     if compiled.failed {
         return Ok(false);
     }
@@ -230,10 +238,15 @@ struct CompiledSource {
     failed: bool,
 }
 
-fn compile_source(input: &Path, name: &str, src: &str) -> Result<CompiledSource> {
+fn compile_source(
+    input: &Path,
+    name: &str,
+    src: &str,
+    theme: &ThemeArgs,
+) -> Result<CompiledSource> {
     let source = SourceFile::new(name, src);
     if input.extension().is_some_and(|ext| ext == "rocdown") {
-        let compiled = rocci_rocdown::compile(source, &rocci_rocdown::CompileOptions::default());
+        let compiled = rocci_rocdown::compile(source, &theme.compile_options(Some(input)));
         for diagnostic in &compiled.diagnostics {
             eprintln!("{}", format_diagnostic(source, diagnostic));
         }
@@ -595,7 +608,7 @@ mod tests {
             "import Html\n\n@component Hello = |{ name }| {\n    <p>{name}</p>\n}\n",
         )
         .unwrap();
-        compile_rocci_modules(&dir).unwrap();
+        compile_rocci_modules(&dir, &crate::theme::ThemeArgs::default()).unwrap();
         let generated = fs::read_to_string(dir.join("Hello.roc")).unwrap();
         assert!(generated.starts_with("import Html\n\nHello := [].{\n"));
         assert!(generated.contains("    hello = |{ name }| {"));

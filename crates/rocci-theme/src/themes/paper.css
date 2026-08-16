@@ -1,0 +1,45 @@
+.rd-document {
+  color-scheme: light dark;
+  --rd-font-body: ui-sans-serif, system-ui, sans-serif;
+  --rd-font-heading: ui-sans-serif, system-ui, sans-serif;
+  --rd-font-code: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --rd-color-bg: light-dark(#f7f7f5, #18181b);
+  --rd-color-surface: light-dark(#ffffff, #27272a);
+  --rd-color-text: light-dark(#1c1917, #fafafa);
+  --rd-color-muted: light-dark(#57534e, #a1a1aa);
+  --rd-color-accent: light-dark(#2563eb, #60a5fa);
+  --rd-color-border: light-dark(#d6d3d1, #3f3f46);
+  --rd-color-code-bg: light-dark(#f5f5f4, #27272a);
+  --rd-color-code-text: light-dark(#1c1917, #f4f4f5);
+
+  --rd-header-1-color: var(--rd-color-text);
+  --rd-header-2-color: var(--rd-color-text);
+  --rd-header-3-color: var(--rd-color-text);
+  --rd-header-4-color: var(--rd-color-text);
+  --rd-header-5-color: var(--rd-color-text);
+  --rd-header-6-color: var(--rd-color-text);
+  --rd-header-1-font: var(--rd-font-heading);
+  --rd-header-2-font: var(--rd-font-heading);
+  --rd-header-3-font: var(--rd-font-heading);
+  --rd-header-4-font: var(--rd-font-heading);
+  --rd-header-5-font: var(--rd-font-heading);
+  --rd-header-6-font: var(--rd-font-heading);
+  --rd-paragraph-color: var(--rd-color-muted);
+  --rd-blockquote-color: var(--rd-color-muted);
+  --rd-blockquote-border: var(--rd-color-border);
+  --rd-list-color: var(--rd-color-muted);
+  --rd-link-color: var(--rd-color-accent);
+  --rd-link-hover-color: var(--rd-color-text);
+  --rd-code-color: var(--rd-color-code-text);
+  --rd-code-background: var(--rd-color-code-bg);
+  --rd-code-block-background: var(--rd-color-code-bg);
+  --rd-code-block-border: var(--rd-color-border);
+  --rd-table-border: var(--rd-color-border);
+  --rd-table-header-background: var(--rd-color-surface);
+  --rd-table-header-color: var(--rd-color-text);
+  --rd-thematic-break-color: var(--rd-color-border);
+  --rd-strong-color: var(--rd-color-text);
+  --rd-emphasis-color: var(--rd-color-muted);
+  --rd-strikethrough-color: var(--rd-color-muted);
+}

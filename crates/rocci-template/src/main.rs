@@ -114,6 +114,7 @@ fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
         let kind = match style.kind {
             rocci_template::StyleKind::File => "file",
             rocci_template::StyleKind::Component => "component",
+            rocci_template::StyleKind::Theme => "theme",
         };
         println!("- {} {} ({} bytes)", kind, style.name, style.css.len());
     }

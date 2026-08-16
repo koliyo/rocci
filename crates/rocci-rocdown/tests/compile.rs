@@ -1,5 +1,6 @@
 use rocci_rocdown::{CompileOptions, OriginKind, SourceFile, compile, format_ast};
 use rocci_template::LowerOptions;
+use rocci_theme::ThemeOptions;
 
 fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
     let out = compile(
@@ -157,9 +158,13 @@ fn css_nested_rules_and_media() {
 # Title
 "#;
     let out = compile_ok(src);
-    assert_eq!(out.styles.len(), 1);
-    assert!(out.styles[0].css.contains("@media"));
-    assert!(out.styles[0].css.contains(".card"));
+    let file = out
+        .styles
+        .iter()
+        .find(|style| style.kind == rocci_rocdown::StyleKind::File)
+        .expect("file css");
+    assert!(file.css.contains("@media"));
+    assert!(file.css.contains(".card"));
 }
 
 #[test]
@@ -251,6 +256,7 @@ fn raw_html_can_be_enabled() {
         &CompileOptions {
             lower: LowerOptions::default(),
             raw_html: true,
+            ..CompileOptions::default()
         },
     );
     assert!(!out.has_errors(), "{:?}", out.diagnostics);
@@ -315,6 +321,107 @@ fn page_layout_and_route_are_emitted() {
             .iter()
             .any(|route| route.method == "GET" && route.path == "/")
     );
+}
+
+#[test]
+fn page_theme_and_color_scheme_are_extracted() {
+    let src = r#"
+@page {
+    route: "/x/",
+    theme: "rocdown:rocci",
+    color_scheme: "dark",
+    meta: { title: "Hi" },
+}
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.page_meta.theme.as_deref(), Some("rocdown:rocci"));
+    assert_eq!(out.page_meta.color_scheme.as_deref(), Some("dark"));
+    assert_eq!(
+        out.theme.as_ref().map(|theme| theme.id.as_str()),
+        Some("rocci")
+    );
+    assert!(out.roc.contains("data-rd-theme"));
+    assert!(out.roc.contains("\"rocci\""));
+    assert!(out.roc.contains("data-rd-color-scheme"));
+    assert!(out.roc.contains("color-scheme"));
+    assert!(out.roc.contains("--rd-color-accent"));
+    assert!(out.roc.contains("#48eda4"));
+    assert!(out.roc.contains("light-dark("));
+    assert!(out.roc.contains("rd-header-1"));
+    assert!(
+        out.styles
+            .iter()
+            .any(|style| style.kind == rocci_rocdown::StyleKind::Theme)
+    );
+}
+
+#[test]
+fn default_theme_is_paper() {
+    let out = compile_ok("# Hello\n");
+    assert!(out.roc.contains("rd-document"));
+    assert!(out.roc.contains("\"paper\""));
+    assert!(out.roc.contains("--rd-font-body"));
+    assert!(out.roc.contains("rd-header-1"));
+}
+
+#[test]
+fn none_theme_skips_injection() {
+    let src = r#"
+@page { theme: "none" }
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("rd-document"));
+    assert!(!out.roc.contains("--rd-color-bg"));
+}
+
+#[test]
+fn unknown_theme_is_an_error() {
+    let errs = compile_err("@page { theme: \"nope\" }\n");
+    assert!(errs.iter().any(|msg| msg.contains("unknown theme `nope`")));
+}
+
+#[test]
+fn invalid_color_scheme_is_an_error() {
+    let errs = compile_err("@page { color_scheme: \"sepia\" }\n");
+    assert!(errs.iter().any(|msg| msg.contains("color scheme")));
+}
+
+#[test]
+fn cli_default_theme_applies_without_page_theme() {
+    let out = compile(
+        SourceFile::new("test.rocdown", "# Hello\n"),
+        &CompileOptions {
+            theme: ThemeOptions {
+                default_id: Some("rocci".into()),
+                ..ThemeOptions::default()
+            },
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(out.roc.contains("\"rocci\""));
+    assert!(out.roc.contains("#48eda4"));
+}
+
+#[test]
+fn theme_css_is_emitted_before_file_css() {
+    let src = r#"
+@page { theme: "paper" }
+
+@css {
+    body { margin: 1rem; }
+}
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    let theme_at = out.roc.find("--rd-color-bg").expect("theme css");
+    let file_at = out.roc.find("margin: 1rem").expect("file css");
+    assert!(theme_at < file_at);
 }
 
 #[test]

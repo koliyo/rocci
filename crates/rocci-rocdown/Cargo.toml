@@ -12,3 +12,4 @@ path = "src/lib.rs"
 [dependencies]
 comrak = "0.54"
 rocci-template = { workspace = true }
+rocci-theme = { workspace = true }

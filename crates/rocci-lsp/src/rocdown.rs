@@ -2,7 +2,7 @@ use lsp_types::{
     CompletionItemKind, CompletionResponse, Diagnostic, DocumentSymbol, DocumentSymbolResponse,
     GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
 };
-use rocci_rocdown::{CompileOptions, CompileOutput, Item, PageDecl, PageMeta};
+use rocci_rocdown::{CompileOptions, CompileOutput, Item, PageDecl, PageMeta, discovered_ids};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
 use crate::analysis::{
@@ -116,6 +116,12 @@ pub fn hover(
         return Some(hover);
     }
     let source = SourceFile::new(name, text);
+    if let Some(page) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Page(page) if page.span.contains(offset) => Some(page),
+        _ => None,
+    }) {
+        return Some(page_hover(source, page, compiled, encoding));
+    }
     compiled.headings.iter().find_map(|heading| {
         if !heading.span.contains(offset) {
             return None;
@@ -154,6 +160,12 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
         let components = components(compiled);
         return completion_in_template(text, &components, offset as u32);
     }
+    if let Some(page) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Page(page) if page.body.contains(offset as u32) => Some(page),
+        _ => None,
+    }) {
+        return page_completion(text, page, offset, compiled);
+    }
     if let Some(prefix) = root_declaration_prefix(text, offset) {
         return CompletionResponse::Array(
             ROOT_DECLARATIONS
@@ -170,6 +182,102 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
         );
     }
     CompletionResponse::Array(Vec::new())
+}
+
+fn page_hover(
+    source: SourceFile<'_>,
+    page: &PageDecl,
+    compiled: &CompileOutput,
+    encoding: PositionEncoding,
+) -> Hover {
+    let mut value = String::from("```rocdown\n@page\n```\n");
+    if let Some(theme) = &compiled.theme {
+        value.push_str(&format!(
+            "\n**theme** `{}` ({})\n\n- color-scheme: `{}`\n{}\n",
+            theme.id,
+            match theme.origin {
+                rocci_rocdown::ThemeOrigin::Builtin => "builtin",
+                rocci_rocdown::ThemeOrigin::Local => "local",
+                rocci_rocdown::ThemeOrigin::None => "none",
+            },
+            theme.policy,
+            theme
+                .path
+                .as_ref()
+                .map(|path| format!("- path: `{}`\n", path.display()))
+                .unwrap_or_default(),
+        ));
+    }
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value,
+        }),
+        range: Some(lsp_range(source, page.span, encoding)),
+    }
+}
+
+fn page_completion(
+    text: &str,
+    page: &PageDecl,
+    offset: usize,
+    compiled: &CompileOutput,
+) -> CompletionResponse {
+    let body = page.body.of(text);
+    let rel = offset
+        .saturating_sub(page.body.start as usize)
+        .min(body.len());
+    let prefix = field_prefix(&body[..rel]);
+    if let Some(value) = after_field(&body[..rel], "theme") {
+        let items = discovered_ids()
+            .into_iter()
+            .filter(|id| id.starts_with(&value))
+            .map(|id| completion_item(&id, CompletionItemKind::ENUM_MEMBER, Some("theme".into())))
+            .collect();
+        return CompletionResponse::Array(items);
+    }
+    if let Some(value) = after_field(&body[..rel], "color_scheme") {
+        let items = ["auto", "light", "dark"]
+            .into_iter()
+            .filter(|id| id.starts_with(&value))
+            .map(|id| {
+                completion_item(
+                    id,
+                    CompletionItemKind::ENUM_MEMBER,
+                    Some("color_scheme".into()),
+                )
+            })
+            .collect();
+        return CompletionResponse::Array(items);
+    }
+    let fields = ["route", "layout", "draft", "meta", "theme", "color_scheme"];
+    let items = fields
+        .into_iter()
+        .filter(|field| field.starts_with(&prefix))
+        .map(|field| completion_item(field, CompletionItemKind::FIELD, Some("@page".into())))
+        .collect();
+    let _ = compiled;
+    CompletionResponse::Array(items)
+}
+
+fn field_prefix(before: &str) -> String {
+    let trimmed = before.trim_end();
+    let ident_start = trimmed
+        .rfind(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'))
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    trimmed[ident_start..].to_string()
+}
+
+fn after_field(before: &str, field: &str) -> Option<String> {
+    let trimmed = before.trim_end();
+    let needle = format!("{field}:");
+    let idx = trimmed.rfind(&needle)?;
+    let rest = trimmed[idx + needle.len()..].trim_start();
+    if rest.contains(',') || rest.contains('\n') {
+        return None;
+    }
+    Some(rest.trim_matches('"').to_string())
 }
 
 fn page_symbol(
@@ -190,6 +298,10 @@ fn page_symbol(
             detail.push(' ');
         }
         detail.push_str(title);
+    }
+    if let Some(theme) = &meta.theme {
+        detail.push_str(" · ");
+        detail.push_str(theme);
     }
     named_symbol(
         "@page",
