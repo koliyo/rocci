@@ -64,6 +64,9 @@ pub struct HttpConfig {
     pub host: String,
     #[serde(default)]
     pub port: u16,
+    /// 308 GET `/page` ↔ `/page/` to the registered form. Default true.
+    #[serde(default = "default_true")]
+    pub redirect_trailing_slash: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -232,6 +235,7 @@ impl Default for HttpConfig {
         Self {
             host: default_http_host(),
             port: 0,
+            redirect_trailing_slash: true,
         }
     }
 }
@@ -520,6 +524,21 @@ mod tests {
     #[test]
     fn default_config_is_valid() {
         Config::default().validate().unwrap();
+        assert!(Config::default().http.redirect_trailing_slash);
+    }
+
+    #[test]
+    fn parses_trailing_slash_redirect_opt_out() {
+        let config = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            [http]
+            redirect_trailing_slash = false
+            "#,
+        )
+        .unwrap();
+        assert!(!config.http.redirect_trailing_slash);
     }
 
     #[test]

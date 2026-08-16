@@ -1584,6 +1584,17 @@ fn value_expr(param: &BrowseParam) -> String {
 }
 
 fn generate_main_roc() -> String {
+    let listed = [
+        ListedRoute::new("GET", "/", "Browser.homePage"),
+        ListedRoute::new("GET", "/c", "inspector"),
+        ListedRoute::new("GET", "/preview", "preview"),
+    ];
+    let slash_arms = error_page::roc_slash_redirect_arms(&listed);
+    let slash_binding = if slash_arms.is_empty() {
+        String::new()
+    } else {
+        error_page::roc_redirect_slash_binding().to_string()
+    };
     let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
@@ -1638,12 +1649,12 @@ respond! = |request, _context| {{
             _ => ""
         }}
     args = Query.parse(query)
-
+{slash_binding}
     match (Method.to_str(request.method()), path) {{
         ("GET", "/") => html_ok(Html.render(Browser.homePage({{ groups: Catalog.groups }})))
         ("GET", "/c") => inspector(args)
         ("GET", "/preview") => preview(args)
-{not_found}    }}
+{slash_arms}{not_found}    }}
 }}
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
@@ -1741,11 +1752,7 @@ html_ok = |body|
 "#,
         not_found = error_page::roc_not_found_arm(),
     );
-    out.push_str(&error_page::roc_runtime_helpers(&[
-        ListedRoute::new("GET", "/", "Browser.homePage"),
-        ListedRoute::new("GET", "/c", "inspector"),
-        ListedRoute::new("GET", "/preview", "preview"),
-    ]));
+    out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out
 }

@@ -38,11 +38,25 @@ pub fn merge_standalone_routes<'a>(
     bound
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DispatchOptions {
+    pub redirect_trailing_slash: bool,
+}
+
+impl Default for DispatchOptions {
+    fn default() -> Self {
+        Self {
+            redirect_trailing_slash: true,
+        }
+    }
+}
+
 pub fn generate_bound_main_roc(
     type_name: &str,
     state_type: Option<&str>,
     init: Option<&InitInfo>,
     bound: &[(&str, &RouteInfo)],
+    options: DispatchOptions,
 ) -> String {
     let context_ty = if state_type.is_some() {
         format!("{type_name}.State")
@@ -95,6 +109,18 @@ pub fn generate_bound_main_roc(
         );
     }
 
+    let (slash_binding, slash_arms) = if options.redirect_trailing_slash {
+        let slash_arms = error_page::roc_slash_redirect_arms(&listed);
+        let slash_binding = if slash_arms.is_empty() {
+            String::new()
+        } else {
+            error_page::roc_redirect_slash_binding().to_string()
+        };
+        (slash_binding, slash_arms)
+    } else {
+        (String::new(), String::new())
+    };
+
     let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
@@ -142,9 +168,9 @@ respond! = |request, context| {{
             Resource({{ raw_path, .. }}) => raw_path
             _ => ""
         }}
-
+{slash_binding}
     match (Method.to_str(request.method()), path) {{
-{arms}{not_found}    }}
+{arms}{slash_arms}{not_found}    }}
 }}
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
@@ -243,6 +269,7 @@ mod tests {
             state_type,
             init,
             &merge_standalone_routes(DispatchSource { type_name, routes }, &[]),
+            DispatchOptions::default(),
         )
     }
 
@@ -330,7 +357,7 @@ mod tests {
             ]
         );
 
-        let main = generate_bound_main_roc("Home", None, None, &bound);
+        let main = generate_bound_main_roc("Home", None, None, &bound, DispatchOptions::default());
         assert!(main.contains("import Home"));
         assert!(main.contains("import About"));
         assert!(main.contains("Home.on_get_root!(context)"));
@@ -339,5 +366,50 @@ mod tests {
         assert!(main.contains("(\"GET\", \"/about/\")"));
         assert!(main.contains("match Home.on_get_root!(context)"));
         assert!(!main.contains("About.on_get_root!"));
+        assert!(main.contains("(\"GET\", \"/about\") =>"));
+        assert!(main.contains("redirect_slash(\"/about/\")"));
+        assert!(main.contains("Response.from_status(308)"));
+    }
+
+    #[test]
+    fn slash_redirect_can_be_disabled() {
+        let main = generate_bound_main_roc(
+            "Dx",
+            None,
+            None,
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Dx",
+                    routes: &[route("GET", "/dx/", "on_get_dx!")],
+                },
+                &[],
+            ),
+            DispatchOptions {
+                redirect_trailing_slash: false,
+            },
+        );
+        assert!(!main.contains("redirect_slash("));
+        assert!(!main.contains("from_status(308)"));
+        assert!(main.contains("\"/dx\" => Ok(\"/dx/\")"));
+    }
+
+    #[test]
+    fn registered_slash_pair_stays_distinct() {
+        let main = generate_main_roc(
+            "App",
+            None,
+            None,
+            &[
+                route("GET", "/dx", "on_get_dx!"),
+                route("GET", "/dx/", "on_get_dx_slash!"),
+            ],
+        );
+        assert!(!main.contains("redirect_slash(\"/dx\")"));
+        assert!(!main.contains("redirect_slash(\"/dx/\")"));
+        assert!(main.contains("redirect_slash(\"/health\")"));
+        assert!(main.contains("(\"GET\", \"/dx\") =>"));
+        assert!(main.contains("(\"GET\", \"/dx/\") =>"));
+        assert!(main.contains("App.on_get_dx!(context)"));
+        assert!(main.contains("App.on_get_dx_slash!(context)"));
     }
 }

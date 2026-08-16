@@ -199,6 +199,7 @@ enum StandaloneReady {
 struct StandalonePlan {
     primary_name: String,
     modules: Vec<StandaloneModule>,
+    redirect_trailing_slash: bool,
 }
 
 impl StandalonePlan {
@@ -230,6 +231,9 @@ impl StandalonePlan {
             primary.state_type.as_deref(),
             primary.init.as_ref(),
             &bound,
+            dispatch::DispatchOptions {
+                redirect_trailing_slash: self.redirect_trailing_slash,
+            },
         )
     }
 }
@@ -272,7 +276,20 @@ fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady>
     Ok(StandaloneReady::Ready(StandalonePlan {
         primary_name: type_name_from_path(primary),
         modules,
+        redirect_trailing_slash: redirect_trailing_slash_for(
+            primary.parent().unwrap_or_else(|| Path::new(".")),
+        ),
     }))
+}
+
+fn redirect_trailing_slash_for(dir: &Path) -> bool {
+    let path = dir.join("rocci.toml");
+    if !path.is_file() {
+        return true;
+    }
+    Config::from_file(path)
+        .map(|config| config.http.redirect_trailing_slash)
+        .unwrap_or(true)
 }
 
 fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {
@@ -892,20 +909,23 @@ See [[About]]
     }
 
     #[test]
-    fn errors_example_lists_dx_route_on_404() {
-        let dx = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../examples/errors/Dx.rocdown")
+    fn errors_example_lists_error_demo_route_on_404() {
+        let demo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/errors/ErrorDemo.rocdown")
             .canonicalize()
             .unwrap();
-        let plan = plan_ready(&dx);
+        let plan = plan_ready(&demo);
         let main = plan.main_roc();
         assert_eq!(
-            dispatch_handler(&main, "GET", "/dx/"),
-            "Dx.on_get_dx!(context)"
+            dispatch_handler(&main, "GET", "/error-demo/"),
+            "ErrorDemo.on_get_error_demo!(context)"
         );
         assert!(main.contains("html_status(404, not_found_html("));
-        assert!(main.contains("/dx/"));
-        assert!(main.contains("\"/dx\" => Ok(\"/dx/\")"));
+        assert!(main.contains("/error-demo/"));
+        assert!(main.contains("(\"GET\", \"/error-demo\") =>"));
+        assert!(main.contains("redirect_slash(\"/error-demo/\")"));
+        assert!(main.contains("Response.from_status(308)"));
+        assert!(main.contains("\"/error-demo\" => Ok(\"/error-demo/\")"));
     }
 
     #[test]
