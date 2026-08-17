@@ -160,7 +160,8 @@ fn try_main() -> Result<()> {
 }
 
 fn is_rocdown(path: &Path) -> bool {
-    path.extension().is_some_and(|ext| ext == "rocdown")
+    path.extension()
+        .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
 }
 
 fn build_module(input: &Path, output: Option<&Path>, theme: &theme::ThemeArgs) -> Result<()> {

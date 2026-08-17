@@ -25,10 +25,7 @@ pub fn run(
     port: serve::PortArg,
     theme: &ThemeArgs,
 ) -> Result<()> {
-    if file
-        .extension()
-        .is_some_and(|ext| ext == "rocci" || ext == "rocdown")
-    {
+    if is_standalone_file(file) {
         return run_standalone(file, args, no_window, port, theme);
     }
     let resolved = resolve_entry(file)?;
@@ -96,7 +93,7 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
 }
 
 fn suggest_standalone(dir: &Path) -> Result<Vec<PathBuf>> {
-    Ok(discover_rocci(dir)?
+    Ok(discover_standalone(dir)?
         .into_iter()
         .map(|path| {
             path.strip_prefix(env::current_dir().unwrap_or_else(|_| dir.to_path_buf()))
@@ -104,6 +101,28 @@ fn suggest_standalone(dir: &Path) -> Result<Vec<PathBuf>> {
                 .unwrap_or(path)
         })
         .collect())
+}
+
+fn is_standalone_file(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|ext| ext == "rocci" || ext == "rocdown" || ext == "md" || ext == "markdown")
+}
+
+fn is_document_path(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
+}
+
+fn discover_standalone(dir: &Path) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let path = entry?.path();
+        if path.is_file() && is_standalone_file(&path) {
+            files.push(path);
+        }
+    }
+    files.sort();
+    Ok(files)
 }
 
 fn run_standalone(
@@ -424,7 +443,7 @@ fn compile_source(
     theme: &ThemeArgs,
 ) -> Result<CompiledSource> {
     let source = SourceFile::new(name, src);
-    if input.extension().is_some_and(|ext| ext == "rocdown") {
+    if is_document_path(input) {
         let mut options = theme.compile_options(Some(input));
         options.check_assets = true;
         let compiled = rocci_rocdown::compile(source, &options);
@@ -1020,6 +1039,72 @@ See [[About]]
         assert!(html.contains("Roc compile error"));
         assert!(html.contains("Found 1 error"));
         assert!(html.contains("BrokenRoc"));
+    }
+
+    #[test]
+    fn standalone_markdown_serves_themed_page() {
+        let dir = temp_app("standalone-md");
+        let path = dir.join("Plan.md");
+        fs::write(
+            &path,
+            "# Implementation Plan\n\nThis is a plan.\n\n```roc\nmain = \"hello\"\n```\n",
+        )
+        .unwrap();
+        let plan = plan_ready(&path);
+        assert_eq!(plan.primary_name, "Plan");
+        let main = plan.main_roc();
+        assert!(main.contains("import Plan"));
+        assert_eq!(
+            dispatch_handler(&main, "GET", "/"),
+            "Plan.on_get_root!(context)"
+        );
+        let module_roc = &plan.modules[0].roc;
+        assert!(module_roc.contains("Implementation Plan"));
+        assert!(module_roc.contains("rd-document"));
+        assert!(module_roc.contains("data-rd-theme"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn standalone_markdown_supports_custom_theme() {
+        let dir = temp_app("custom-theme-md");
+        let path = dir.join("Plan.md");
+        fs::write(&path, "# Custom Themed Plan\n\nSome body text.\n").unwrap();
+        let theme_args = crate::theme::ThemeArgs {
+            theme: Some("rocci".to_string()),
+            color_scheme: Some("dark".to_string()),
+        };
+        let StandaloneReady::Ready(plan) = plan_standalone(&path, &theme_args).unwrap() else {
+            panic!("expected standalone plan ready");
+        };
+        let module_roc = &plan.modules[0].roc;
+        assert!(module_roc.contains("data-rd-theme"));
+        assert!(module_roc.contains("rocci"));
+        assert!(module_roc.contains("data-rd-color-scheme"));
+        assert!(module_roc.contains("dark"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn linked_standalone_inputs_for_markdown_is_single_file() {
+        let dir = temp_app("linked-md-inputs");
+        let home = dir.join("Home.md");
+        let about = dir.join("About.markdown");
+        let guide = dir.join("Guide.rocdown");
+        let other_guide = dir.join("Other.rocdown");
+        fs::write(&home, "# Home").unwrap();
+        fs::write(&about, "# About").unwrap();
+        fs::write(&guide, "# Guide").unwrap();
+        fs::write(&other_guide, "# Other Guide").unwrap();
+
+        let md_inputs = linked_standalone_inputs(&home).unwrap();
+        assert_eq!(md_inputs, vec![home.canonicalize().unwrap()]);
+
+        let rocdown_inputs = linked_standalone_inputs(&guide).unwrap();
+        assert_eq!(rocdown_inputs[0], guide.canonicalize().unwrap());
+        assert!(rocdown_inputs.contains(&other_guide.canonicalize().unwrap()));
+        assert!(!rocdown_inputs.contains(&home.canonicalize().unwrap()));
+        cleanup(&dir);
     }
 
     #[test]
