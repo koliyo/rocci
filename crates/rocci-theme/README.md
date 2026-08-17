@@ -43,4 +43,6 @@ Copy a builtin and change variables:
 ```
 
 Rocci always appends chrome that maps those variables onto Markdown classes
-such as `rd-header-1` and `rd-paragraph`.
+such as `rd-header-1` and `rd-paragraph`. The same chrome styles the
+standalone left navigator (`.rd-toc`) when the default page shell emits one,
+and ships a short script so navigator clicks scroll quickly instead of jumping.

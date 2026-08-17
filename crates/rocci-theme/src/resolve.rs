@@ -274,6 +274,14 @@ mod tests {
         assert!(theme.css.contains("--rd-color-bg:"));
         assert!(theme.css.contains("light-dark("));
         assert!(theme.css.contains(".rd-header-1"));
+        assert!(theme.css.contains(".rd-shell"));
+        assert!(
+            theme.css.contains("@media (max-width: 48rem)"),
+            "standalone TOC must stay visible in the 1040px default preview window"
+        );
+        assert!(theme.css.contains(".rd-document body"));
+        assert!(theme.css.contains("--rd-chrome-top"));
+        assert!(!theme.css.contains("max-width: 70rem"));
     }
 
     #[test]

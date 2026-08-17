@@ -1,3 +1,7 @@
+.rd-document,
+.rd-document body {
+  scroll-behavior: smooth;
+}
 .rd-document:not([data-rd-color-scheme]) {
   color-scheme: light dark;
 }
@@ -16,10 +20,82 @@
   font-family: var(--rd-font-body);
   font-synthesis: none;
 }
+.rd-shell {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  align-items: start;
+  min-height: 100vh;
+}
 .rd-document main {
+  box-sizing: border-box;
+  min-width: 0;
   width: min(42rem, calc(100% - 2rem));
   margin: 0 auto;
   padding: 2.5rem 0 4rem;
+}
+
+.rd-toc {
+  position: sticky;
+  top: 0;
+  box-sizing: border-box;
+  min-width: 0;
+  max-height: 100vh;
+  padding: 2.15rem 1.2rem 2rem 1.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.rd-toc-label {
+  margin: 0 0 0.65rem;
+  color: var(--rd-color-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+.rd-toc-items {
+  display: grid;
+  gap: 0.45rem;
+  border-left: 1px solid var(--rd-color-border);
+}
+.rd-toc-link {
+  margin-left: -1px;
+  padding-left: 0.8rem;
+  border-left: 1px solid transparent;
+  color: var(--rd-color-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.rd-toc-link:hover {
+  border-color: var(--rd-color-accent);
+  color: var(--rd-color-text);
+}
+.rd-toc-link.rd-toc-level-3 {
+  padding-left: 1.35rem;
+}
+.rd-toc:not(:has(.rd-toc-link)) {
+  display: none;
+}
+
+@media (max-width: 48rem) {
+  .rd-shell {
+    display: block;
+  }
+  .rd-toc {
+    display: none;
+  }
+}
+@media print {
+  .rd-toc {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-document,
+  .rd-document body {
+    scroll-behavior: auto;
+  }
 }
 
 .rd-header-1,
@@ -30,6 +106,15 @@
 .rd-header-6 {
   color: var(--rd-header-1-color);
   font-family: var(--rd-header-1-font);
+  scroll-margin-top: calc(1.25rem + var(--rd-chrome-top, 0px));
+}
+.rd-header-1:target,
+.rd-header-2:target,
+.rd-header-3:target,
+.rd-header-4:target,
+.rd-header-5:target,
+.rd-header-6:target {
+  color: var(--rd-color-accent);
 }
 .rd-header-1 {
   color: var(--rd-header-1-color);

@@ -1,4 +1,34 @@
-pub const INITIALIZATION_SCRIPT: &str = r#"
+pub const INITIALIZATION_SCRIPT: &str = concat!(
+    r#"
+(function () {
+  var nativeMatchMedia = window.matchMedia.bind(window);
+  window.matchMedia = function (query) {
+    var mql = nativeMatchMedia(query);
+    if (String(query).toLowerCase().indexOf("prefers-reduced-motion") !== -1) {
+      try {
+        Object.defineProperty(mql, "matches", {
+          configurable: true,
+          get: function () {
+            return false;
+          },
+        });
+      } catch (err) {}
+    }
+    return mql;
+  };
+  var css = document.createElement("style");
+  css.textContent =
+    "@media (prefers-reduced-motion: reduce) { html, body, html.rd-document, html.rd-document body { scroll-behavior: smooth; } }";
+  if (document.documentElement) {
+    document.documentElement.appendChild(css);
+  } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      document.documentElement.appendChild(css);
+    });
+  }
+})();
+"#,
+    r#"
 (function () {
   if (window.__rocciPreviewNav) {
     return;
@@ -122,10 +152,12 @@ pub const INITIALIZATION_SCRIPT: &str = r#"
     document.addEventListener("DOMContentLoaded", mount);
   }
   const spacer = document.createElement("style");
-  spacer.textContent = "html { padding-top: " + HEIGHT + " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; height: " + HEIGHT + "; z-index: 2147483647; }";
+  spacer.textContent = "html { --rd-chrome-top: " + HEIGHT + "; padding-top: " + HEIGHT + " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; height: " + HEIGHT + "; z-index: 2147483647; }";
   document.documentElement.appendChild(spacer);
 })();
-"#;
+"#,
+    include_str!("../../rocci-theme/src/themes/toc.js"),
+);
 
 pub fn update_script(title: &str, path: &str, can_back: bool, can_forward: bool) -> String {
     format!(
@@ -170,6 +202,11 @@ mod tests {
         }
         assert!(INITIALIZATION_SCRIPT.contains("window.ipc.postMessage"));
         assert!(INITIALIZATION_SCRIPT.contains("rocci-preview-nav"));
+        assert!(INITIALIZATION_SCRIPT.contains("rd-toc-link"));
+        assert!(INITIALIZATION_SCRIPT.contains("requestAnimationFrame"));
+        assert!(INITIALIZATION_SCRIPT.contains("nativeMatchMedia"));
+        assert!(INITIALIZATION_SCRIPT.contains("prefers-reduced-motion"));
+        assert!(INITIALIZATION_SCRIPT.contains("--rd-chrome-top"));
     }
 
     #[test]

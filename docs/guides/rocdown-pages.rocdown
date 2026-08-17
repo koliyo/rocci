@@ -94,6 +94,11 @@ Preview one page with its sibling routes:
 cargo run -p rocci-cli -- run docs/guide.rocdown
 ```
 
+Standalone preview uses the default Paper (or selected) reading shell. Pages
+with H2 or H3 headings get a left “On this page” navigator that scrolls to the
+same heading IDs. Rocs site builds keep a separate right-hand outline inside
+documentation chrome.
+
 Build a static documentation tree:
 
 ```sh

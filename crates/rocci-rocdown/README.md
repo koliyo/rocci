@@ -188,9 +188,15 @@ Without `layout`, the compiler emits a minimal `<html>` document: charset,
 viewport, `color-scheme` meta, title, selected theme CSS, file CSS in `<head>`,
 `.rd-document` and `data-rd-theme` on `html`, `data-rd-color-scheme` when
 light or dark is forced, `data-rocci-css` on `html` / `body` / `main` when the
-file has `@css`, and `rocci_content({})` inside `<main>`. Document `@css`
-overrides the theme. Default theme comes from `rocci run --theme`,
-`ROCCI_THEME`, then builtin `paper`. `@page.theme` wins for that file.
+file has `@css`, an automatic left `<nav class="rd-toc">` for heading levels
+2–3, and `rocci_content({})` inside `<main>`. The navigator uses the same
+heading IDs as in-page `#` links, is omitted when there are no outline
+headings, and is hidden on narrow and print viewports by theme chrome. Clicks
+scroll the article quickly with a short animation. Theme
+`none` skips chrome, including the navigator. A custom `layout` replaces the
+default shell entirely. Document `@css` overrides the theme. Default theme
+comes from `rocci run --theme`, `ROCCI_THEME`, then builtin `paper`.
+`@page.theme` wins for that file.
 
 Without `@page.route`, the synthesized GET path is `/`.
 
@@ -290,7 +296,7 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
 - `@img` alt/decorative contract and `@docs figure` caption/credit
-- Heading IDs, scoped CSS, default HTML shell, synthesized GET
+- Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
 - CLI `build` / `inspect` / `ast` / `run` for one file or sibling modules
@@ -305,5 +311,5 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 - `@island` and client JS
 - Content collections, feeds, sitemaps
 - Formatter
-- Admonitions, definition lists, math, and automatic TOC tokens
+- Admonitions, definition lists, math, and in-body automatic TOC tokens
 - Near-miss warnings for typos such as `@componnent`
