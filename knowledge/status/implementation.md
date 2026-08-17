@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Rocci ships its core template, Rocdown, preview, desktop, packaging, editor, and static Rocs foundations while dynamic islands and broader packaging remain incomplete.
 tags: [domain/rocci, domain/rocs, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
+generated: { by: process:codex, at: 2026-08-17T05:44:10Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -51,13 +51,18 @@ sources:
     title: OKF consolidation disposition
     author: process:okf-phase-6
     last_modified: 2026-08-16
+  - id: lsp-plan
+    resource: ../plans/language-server.md
+    title: Proposed full Rocci and Rocdown language-server plan
+    author: process:codex
+    last_modified: 2026-08-17
 ---
 
 # Rocci implementation status
 
 ## Snapshot date
 
-2026-08-16.
+2026-08-17.
 
 ## Shipped
 
@@ -67,11 +72,17 @@ Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed
 
 The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
-Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate and mean-reciprocal-rank reporting, and CI threshold enforcement. Seven dated research and audit reports are preserved under `archive/reports/`; two active detailed plans remain at the repository root.[^consolidation]
+Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate and mean-reciprocal-rank reporting, and CI threshold enforcement. Seven dated research and audit reports are preserved under `archive/reports/`; the two plans retained during consolidation remain active, and a third proposed language-server plan now lives at the repository root.[^consolidation][^lsp-plan]
 
 ## Missing
 
 Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
+
+The editor adapters and basic host-language LSP exist, but embedded Roc/CSS
+highlighting, complete HTML-shaped/Markdown highlighting, workspace-wide
+language intelligence, and compiler-backed Roc semantics remain proposed work.
+The detailed language-server plan is exploratory and must not be presented as
+shipped.[^lsp-plan]
 
 ## Decided direction
 
@@ -103,3 +114,4 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^okf]: Current Phase 5 knowledge outputs, retrieval filters, and search implementation.
 [^publication]: Draft record of the approved local-first publication disposition.
 [^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.
+[^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
