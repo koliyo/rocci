@@ -2,6 +2,26 @@
 
 ## 2026-08-17
 
+- Evaluated the branding report as a Rocdown long-form authoring case study.
+  Recorded strengths, cross-consumer image-field loss, validated links that are
+  not rewritten for static output, citation and asset gaps, report-presentation
+  needs, and a phased path toward frictionless static report generation without
+  expanding Rocdown into a word processor.
+- Made the branding and community foundation report a Rocdown document with
+  page metadata and native `@img` declarations for all seven visual concept
+  sheets; updated its canonical research and plan source references.
+- Added exploratory branding and community research, a public-preview plan,
+  three generated logo-direction probes, and a detailed report. The working
+  recommendation keeps Rocci as the preview masterbrand, endorses Rocdown as
+  its document format, and presents Rocs publicly as Rocci Docs while retaining
+  implementation names for compatibility. Corrected the logo brief to exclude
+  the existing `r` placeholder as evidence, added four zero-based probes, and
+  retained the orange folded R only as the maintainer's current preference
+  alongside non-letter and wordmark-only comparison routes.
+  Added a dated exact-name package, repository, and Rocweave-domain snapshot;
+  prepared Roc-first and Datastar-focused launch messages plus structured
+  feedback and synthesis templates; and specified and responsively tested a
+  dedicated landing-page direction that uses no candidate logo.
 - Extended the language-server report and exploratory plan with a shared
   token-span architecture for static Rocs syntax highlighting, including
   fenced code, `@docs include`, and `@docs example`; recorded that current
