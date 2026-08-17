@@ -1,0 +1,675 @@
+@page {
+    id: "branding-and-community-foundation",
+    route: "/branding-and-community-foundation/",
+    theme: "paper",
+    color_scheme: "auto",
+    meta: {
+        title: "Rocci branding and community foundation",
+        description: "Exploratory brand architecture, naming, visual identity, SEO, and public-preview community plan for Rocci.",
+    },
+}
+
+# Rocci branding and community foundation
+
+**Exploratory recommendation — 17 August 2026**
+
+This report prepares Rocci for a public preview and community discussion. It
+does not approve a permanent name, authorize use of the Roc logo, or replace a
+trademark search. Recommendations are deliberately reversible until Roc and
+Datastar community feedback has been collected.
+
+## Executive recommendation
+
+Keep **Rocci** as the public masterbrand for the first preview. The acquired
+`rocci.dev` domain, existing command, file extension, repository history, and
+documentation already give the name meaningful equity. A rename before anyone
+outside the project has reacted would exchange known, manageable ambiguity for
+new migration work and equally uncertain alternatives.
+
+Use one public family:
+
+```text
+Rocci — web and desktop interface tools for Roc
+├── Rocci templates        .rocci components and pages
+├── Rocdown                Rocci's Markdown-first document format
+├── Rocci Docs             public product name for the Rocs generator
+│   └── rocs               engine, crate, and compatibility command
+└── Rocci runtime          run, preview, and bundle
+
+Ecosystem relationships: Roc language · Datastar hypermedia
+```
+
+The important change is hierarchy, not mass renaming. **Rocdown** remains a
+useful endorsed subname. **Rocs** should recede from public brand status because
+it is generic, difficult to search, and already strongly associated with other
+software and scientific products. Documentation should say “Rocci Docs” in
+prose and show `rocs build` only when naming the current command.
+
+Use **“Rocci — web and desktop interface tools for Roc”** as the consistent
+descriptor during the preview. A strong home-page headline is:
+
+> Build web and desktop interfaces in Roc.
+
+This is clearer and more searchable than “without the framework tax,” which is
+vague to newcomers and frames the introduction as an argument against other
+tools.
+
+## What the implementation already says
+
+The current repository supports a masterbrand architecture even though its
+names are sometimes presented as peers:
+
+- Rocci is the workspace, CLI, configuration prefix, desktop host, template
+  syntax, repository, and website name.
+- `.rocci` is a source format that lowers templates to ordinary Roc `Html`.
+- `.rocdown` is a Markdown-first sibling format with explicit executable
+  regions.
+- Rocs is the static documentation compiler. It uses a Rocci-authored theme and
+  renders static article/catalog work in Rust.
+- Datastar is an external client-side hypermedia dependency, pinned per app;
+  Roc is the language and compiler ecosystem on which Rocci builds.
+
+This is not a portfolio of independent products. It is one toolchain with two
+authoring formats and several delivery modes. The public vocabulary should
+reflect that reality.
+
+## Naming assessment
+
+### Rocci
+
+**Strengths**
+
+- Short, visually distinctive, and immediately contains “Roc.”
+- Flexible enough to cover templates, documents, static sites, and desktop
+  hosting without becoming false as the implementation evolves.
+- `rocci.dev`, `.rocci`, `rocci.toml`, and the `rocci` command form a coherent
+  owned namespace.
+- Friendly rather than enterprise-coded, which fits Roc's stated “fast,
+  friendly, functional” character.
+
+**Weaknesses and risks**
+
+- Pronunciation is not self-evident. “ROCK-ee,” “ROW-chee,” and “Roc C.I.” are
+  plausible readings. The project should choose one and show it unobtrusively
+  on the About page.
+- The name does not explain the product without a descriptor. Every early
+  mention should pair it with “web and desktop interface tools for Roc.”
+- Search ownership is not clean. `rocci` is an active Python package for ROC
+  confidence intervals; historical rOCCI cloud tooling and ROCI robotics work
+  also appear for similar queries.
+- A Roc-derived name and Roc-adjacent logo can look official. The site must say
+  that Rocci is an independent open-source project unless and until the Roc
+  project agrees to a different relationship.
+
+**Conclusion:** retain for preview, with a descriptor and a two-week naming
+feedback window. Do not call the project “the Rocci Foundation” unless a legal
+entity actually exists; use **Rocci Project** or simply **Rocci**.
+
+### Rocdown
+
+Rocdown is the best of the component names. Developers can infer the Markdown
+relationship, the `.rocdown` extension is memorable, and its scope is bounded.
+The name does collide with the statistical phrase “ROC down” and unrelated
+organizations, so it should not be expected to rank well alone.
+
+Use these forms consistently:
+
+- First mention: **“Rocdown, Rocci's Markdown-first document format”**
+- Navigation: **Rocdown**
+- Search titles: **“Rocdown syntax | Rocci”** or **“Write Rocdown pages with
+  Rocci”**
+
+Do not make Rocdown a separate website, logo, community, or top-level social
+account during the preview.
+
+### Rocs
+
+Rocs is compact and playful, but a poor public product identity:
+
+- “rocs” is the ordinary plural of ROC and an acronym in several fields.
+- KDE has long shipped an application named Rocs.
+- OpenEye ROCS is established chemistry software.
+- Search results also contain recent academic ROCS acronyms.
+- Spoken references such as “Rocs docs” are easy to mishear and hard to query.
+
+Keep the implementation name where changing it has a cost, but present it as
+**Rocci Docs**. A later compatibility path can introduce `rocci docs build` as
+an alias while retaining `rocs build`. Rename crates only if publishing or
+registry ownership makes that necessary.
+
+## Alternative names and structures
+
+No alternative is clearly better enough to justify an immediate rename. These
+are candidates for community testing, not availability or legal clearance:
+
+| Candidate | Useful signal | Main drawback | Preliminary finding |
+| --- | --- | --- | --- |
+| Rocci | Ownable masterbrand; existing domain and syntax | Ambiguous pronunciation; Python/rOCCI/ROCI collisions | Best low-regret preview choice |
+| Rocweave | Composition of templates, content, and HTML | Longer; less obviously a toolchain; registry/domain checks still required | Cleanest fresh-name candidate from a basic web search |
+| Rocwing | Connection to Roc's mythical bird and movement | An existing VTOL product uses ROCWING; risks appearing official | Do not advance without stronger differentiation |
+| Roclet | Small Roc unit; friendly diminutive | “Roclet” is already roxygen2's plugin concept and older OCL tooling | Reject |
+| Rocfold | Source folding into output; strong visual idea | Existing scientific software term; may sound like a formatter | Keep only as a design metaphor |
+| Rocform | Forms/interfaces and “form” as structure | Long-standing construction product and related marks | Reject |
+| Rocbound | Boundary-oriented architecture | Existing business use; “bound” can imply limitation | Weak reserve candidate |
+
+Three structuring alternatives remain valid:
+
+1. **Masterbrand (recommended):** Rocci Templates, Rocdown by Rocci, Rocci Docs,
+   Rocci Runtime. Lowest explanation and maintenance cost.
+2. **Endorsed family:** Rocci, Rocdown, and Rocs each get identities followed by
+   “by Rocci.” Useful only if they acquire independent users and release cycles.
+3. **Descriptive umbrella:** “Roc Web Tools” as the site, with Rocci and Rocdown
+   underneath. Immediately clear, but generic, hard to own, and more likely to
+   imply official Roc status.
+
+Advance from the masterbrand model only when usage data demonstrates separate
+audiences, maintainers, or distribution channels.
+
+### Preliminary exact-name snapshot — 17 August 2026
+
+A dated API and registry screen narrows the practical namespace question. It is
+not a reservation, trademark search, or proof that an account can be created:
+
+- **Rocci:** crates.io and npm returned no exact package record, while PyPI is
+  occupied. GitHub's case-insensitive repository-name search returned 126
+  results, led by the established `rOCCI` cloud-tooling family. The owned
+  `rocci.dev` domain remains the strongest namespace advantage.
+- **Rocdown:** crates.io, npm, and PyPI returned no exact package record, and
+  GitHub returned no repository-name match. This improves package practicality
+  but does not remove the ordinary “ROC down” search phrase collision.
+- **Rocweave:** crates.io, npm, and PyPI returned no exact package record;
+  GitHub returned no repository-name match; and RDAP returned no record for
+  `rocweave.dev`, `.org`, or `.com`. Those results make it the cleanest reserve
+  candidate in this limited screen, but none of the names or domains has been
+  reserved and legal clearance remains outstanding.
+
+Exact-name absence is volatile and weaker than ownership. If Rocweave is kept
+as a serious fallback, reserve the relevant namespace before publicly promoting
+it. If Rocci remains, expect search results to require the full descriptor and
+`rocci.dev` rather than the bare name alone.
+
+## Searchability and SEO
+
+### Current strengths
+
+The generated site already emits descriptive per-page titles and descriptions,
+canonical URLs, Open Graph fields, a social image, `sitemap.xml`, `robots.txt`,
+and `llms.txt`. The content is static, semantic, and available without
+JavaScript. These are excellent foundations.
+
+### Current gaps
+
+- The home title puts a long proposition before the name. Prefer **“Rocci — Web
+  and desktop interfaces for Roc.”**
+- The H1 should contain both the activity and language. “Build web and desktop
+  interfaces in Roc” serves humans and queries better than an anti-framework
+  slogan.
+- There is no `WebSite` structured-data declaration or alternate name.
+  Google recommends one consistent, unique site name and supports
+  `alternateName`. Because the site intentionally uses a strict CSP, choose
+  CSP-compatible JSON-LD or standards-compliant microdata and test the result.
+- No favicon or multi-size application icon appears in the generated head.
+- The current single social card uses a serif identity while the site uses a
+  heavy sans-serif identity. This weakens recognition between shared links and
+  the destination.
+- The docs hierarchy lacks short brand-intent landing pages for Rocdown and
+  Rocci Docs. Reference pages alone do not answer broad discovery queries.
+
+### Search plan
+
+1. Use one site name everywhere: **Rocci**; add the alternate name **Rocci
+   Project** only if it is used visibly.
+2. Put the descriptor in the home title, description, repository About text,
+   package metadata, social bios, and the first README paragraph.
+3. Create focused evergreen pages:
+   - `/rocdown/`: “Rocdown: Markdown-first documents for Roc”
+   - `/docs/`: “Rocci Docs: static documentation from Rocdown”
+   - `/datastar/`: “Server-driven Roc interfaces with Datastar”
+4. Use compact, unique page titles and headings; keep important pages in the
+   top-level internal-link graph. Google explicitly cites compact headings,
+   logical structure, and relevant anchors as inputs to useful sitelinks.
+5. Add `SoftwareSourceCode` or another appropriate schema only after the basic
+   `WebSite` identity validates; do not add decorative structured data.
+6. Add GitHub topics such as `roc-lang`, `datastar`, `template-language`,
+   `static-site-generator`, and `desktop-app`, provided each still accurately
+   describes shipped behavior.
+7. Preserve the dated preliminary crates.io, npm, PyPI, GitHub, and domain
+   snapshot above. Before publishing packages, complete the remaining VS Code
+   Marketplace, Open VSX, Homebrew, organization/account, and intended package
+   manager checks. The PyPI `rocci` name is already occupied. Registry results
+   can change and do not reserve a name.
+8. Conduct a professional trademark search before investing in a final identity
+   or merchandise. This report is not legal clearance.
+
+## Visual identity and site styling
+
+### Existing system
+
+There are currently three accent stories:
+
+- The Rocs site uses warm ivory, charcoal, and coral-orange.
+- Rocdown's default `paper` theme uses neutral stone with blue links.
+- Rocdown's `rocci` theme uses deep green.
+
+All three are individually plausible, but together they do not teach users
+that the surfaces belong to one project. The current Rocs site is polished and
+content-first; it should evolve rather than be replaced.
+
+### Recommended palette
+
+Use the warm Rocs foundation as the shared family and add a restrained violet
+only as an ecosystem bridge to Roc's purple identity:
+
+| Role | Light | Dark | Use |
+| --- | --- | --- | --- |
+| Canvas | `#FAF9F6` | `#191817` | Page background |
+| Surface | `#FFFFFF` | `#22201E` | Cards, tables, navigation |
+| Ink | `#201E1C` | `#F3EEE8` | Body and headings |
+| Muted | `#6D6862` | `#B8B0A8` | Secondary text |
+| Signal coral | `#B92F19` | `#FF987F` | Links, focus, selected state |
+| Fold coral | `#E64B2F` | `#FF765A` | Large marks and non-text accents |
+| Roc bridge violet | `#6D4AFF` | `#A78BFA` | Rare ecosystem/reference facet |
+
+Do not use violet as a second general-purpose accent. It belongs in the logo's
+fold geometry, ecosystem diagrams, or a small “built for Roc” marker. Coral
+remains Rocci's recognizable action color.
+
+The existing contrast is mostly strong: `#B92F19` on `#FAF9F6` is about
+5.73:1, and dark `#FF987F` on `#191817` is about 8.49:1. Two current cases need
+attention:
+
+- White text on `#E64B2F` is about 3.88:1 and fails WCAG AA for the current
+  small CTA text. Use the darker `#B92F19` fill, dark text, or a larger text
+  treatment.
+- Rocdown green `#0D9A5C` on `#F3F7F5` is about 3.35:1 and fails normal-text
+  contrast. Darken the light-scheme green if the branded Rocdown theme remains.
+
+Run a complete automated and manual audit before launch; these spot checks do
+not validate every mixed or state color.
+
+### Site hierarchy
+
+The current documentation shell treats the home page like a very large article.
+At desktop widths the 4.35rem headline dominates the explanation and pushes
+the code sample down. The left navigation also repeats the full SEO title.
+
+Recommended changes for a launch-ready home page:
+
+- Add a landing-page presentation mode rather than forcing the article template
+  to carry marketing, orientation, and reference navigation simultaneously.
+- Cap the hero at roughly 3.4rem on ordinary desktop widths and use a 10–14 word
+  descriptive headline.
+- Follow with three concrete paths: **Build a component**, **Write a Rocdown
+  page**, and **Add a Datastar action**.
+- Show a compact architecture strip: `.rocci / .rocdown → Roc + HTML → web or
+  desktop`.
+- Move status and compatibility beside the first CTA: experimental, supported
+  Roc revision, Datastar pin, and platform limitations.
+- Replace “Source ↗” with a familiar GitHub label/icon and add a visible
+  “Community” destination when the feedback channel is ready.
+- Use a short nav label such as **Overview** instead of repeating the home-page
+  SEO title in the sidebar and breadcrumb.
+
+Typography should be consistent across the site, social cards, report covers,
+and logo lockups. A system sans stack with a system monospace is the most
+reliable zero-network choice. A display serif can be used in editorial
+illustrations, but should not become a second wordmark without a deliberate
+type license and asset pipeline.
+
+### Default Rocdown sites
+
+Keep **Paper** as the default. A generated document should feel useful before
+it feels branded. Evolve it into a neutral member of the Rocci family:
+
+- warm-neutral canvas and ink shared with the main site;
+- a darker accessible blue or coral for links;
+- 42–46rem measure, generous line-height, strong code overflow, and restrained
+  tables;
+- visible focus, selection, task-list, print, forced-color, and reduced-motion
+  behavior;
+- no Rocci header, product badge, remote font, or decorative logo by default.
+
+The named **Rocci** Rocdown theme can carry coral plus the rare violet fold.
+Replace its unrelated green palette or rename that green theme if compatibility
+requires preserving it. Keep the stable `--rd-*` compatibility variables;
+visual consolidation should not force an authoring-contract break.
+
+## Logo and icon exploration
+
+### Corrected brief: begin from zero
+
+The existing single-letter `r` is a placeholder, not a brand asset, research
+input, or constraint. It should not influence proportions, geometry,
+typography, color, or the choice of whether Rocci needs a symbol at all. An
+`r`-based mark is not disqualified, but it must earn its place against
+non-letter symbols and a wordmark-only identity.
+
+The first orange folded-R sheet remains in the exploration because the
+maintainer likes it, not because it resembles or improves the placeholder. As
+that generation saw the current social card, it is not independent evidence
+for the direction. Any production sketch must be redrawn from first principles
+without the placeholder or generated raster as geometry to trace.
+
+Roc's official explanation says its mark is an origami bird, derived from a
+physical paper model and formed from triangles as both an Elm homage and a
+computer-graphics primitive. Folds, bounded shapes, and composition are
+available ideas, not requirements. The Roc relationship belongs in the later
+similarity and official-status review, not as the starting grid for Rocci's
+mark. It does **not** grant permission to copy, recolor, crop, or modify the Roc
+bird.
+
+Seven generated explorations accompany this report. The first three are the
+original constrained probes; the next four deliberately reset the brief.
+
+### A. Folded R — maintainer-preferred candidate
+
+@img {
+    src: "assets/rocci-logo-folded-r.png",
+    alt: "Exploratory Rocci logo sheet showing an orange folded lowercase R.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+The folded lowercase “r” is compact and memorable, and the maintainer likes the
+orange direction. Those are valid reasons to keep testing it. It must not be
+treated as the default merely because an `r` placeholder existed. Redraw it in
+one color from a blank canvas, then test whether it reads as an “r,” survives
+16px use, and resembles any existing technology mark.
+
+### B. Page wing
+
+@img {
+    src: "assets/rocci-logo-page-wing.png",
+    alt: "Exploratory Rocci logo sheet combining a page, wing, and code marks.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+The page/wing idea connects Rocdown and code, but the current concept has too
+many parts for 16px use and begins to look like an illustration. Keep it as a
+Rocdown or documentation motif, not the primary mark.
+
+### C. Connected tags
+
+@img {
+    src: "assets/rocci-logo-connected-tags.png",
+    alt: "Exploratory Rocci logo sheet showing three connected angular tags.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+The three chevrons express multiple inputs converging on one boundary and use
+violet as a Roc reference. The silhouette is generic and risks resembling
+deployment, terminal, or cloud tooling. It is more useful as an architecture
+diagram motif than as a logo.
+
+### D. Open aperture — unconstrained probe
+
+@img {
+    src: "assets/rocci-logo-open-aperture.png",
+    alt: "Exploratory Rocci logo sheet showing an open coral aperture symbol.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+This fresh direction does not depend on a letter or the Roc logo. Its strong
+negative-space center suggests an interface or opening, but the rotating-blade
+construction is strongly associated with cameras and creative software. Do not
+advance this exact form.
+
+### E. Modular commons — strongest non-letter candidate
+
+@img {
+    src: "assets/rocci-logo-modular-commons.png",
+    alt: "Exploratory Rocci logo sheet showing four modular shapes around an open center.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+Four cooperating pieces around an open center express composition, contribution,
+and shared infrastructure without relying on an `r`. It is friendly and holds
+up reasonably well in one color, but flower, fan, and puzzle associations make
+the current silhouette generic. Advance only as a black-and-white sketch track
+with fewer, more ownable shapes.
+
+### F. Signal bridge — unconstrained probe
+
+@img {
+    src: "assets/rocci-logo-signal-bridge.png",
+    alt: "Exploratory Rocci logo sheet showing a coral signal crossing a dark boundary.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+The boundary-crossing story is relevant, but the generated form is too literal,
+too detailed at small sizes, and can read as networking or infrastructure
+software. Do not advance this exact form.
+
+### G. Wordmark only — no-symbol control
+
+@img {
+    src: "assets/rocci-logo-wordmark-only.png",
+    alt: "Exploratory Rocci wordmark sheet without a separate symbol.",
+    loading: "lazy",
+    decoding: "async",
+}
+
+A custom wordmark is the necessary control case: Rocci may not need a separate
+emblem. The generated lettering is clear and developer-friendly, but its
+geometric initial and rounded construction are not yet distinctive enough.
+Advance the strategy, not this exact drawing, alongside the folded-R and
+modular-commons tracks.
+
+The next comparison should therefore contain three genuinely different
+black-and-white vector routes: a fresh folded-letter mark, a non-letter modular
+mark, and a wordmark with no emblem. Use color only after silhouette,
+legibility, similarity, and community perception have been tested. The orange
+folded R is the current subjective favorite, not a settled recommendation.
+
+The generated sheets are ideation artifacts, not source logos. Production work
+must be redrawn in SVG, simplified, optically corrected, checked in one color,
+tested at 16/24/32px, screened for confusing similarity, and licensed to the
+project. Ask the Roc project before using its actual mark in lockups or implying
+an official relationship.
+
+## Community foundation and public-preview plan
+
+### Launch posture
+
+Call the first release a **public preview** or **early design preview**, not a
+general production release. The invitation is strongest when it asks the Roc
+community to shape a small, working system rather than approve a finished
+framework.
+
+Suggested one-sentence pitch:
+
+> Rocci is an independent open-source toolchain for writing HTML components and
+> Markdown-first documents in Roc, adding server-driven interaction with
+> Datastar, and running the same interface on the web or in a desktop webview.
+
+### Non-negotiable repository blockers
+
+The workspace declares `MIT OR Apache-2.0`, but the repository root currently
+contains neither license text. It also lacks the standard root community files.
+Resolve these before making the repository public:
+
+- add `LICENSE-MIT` and `LICENSE-APACHE` (or change metadata to the license
+  actually selected);
+- add `CODE_OF_CONDUCT.md` with a real enforcement contact;
+- add `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, and `GOVERNANCE.md`;
+- add issue forms for bugs, design feedback, and documentation problems;
+- state the supported Roc compiler revision, Datastar version, OS status, and
+  compatibility policy in one visible page;
+- provide one deterministic install path, one five-minute example, expected
+  output, uninstall/cleanup instructions, and a known-limitations list;
+- decide where the domain, GitHub organization, package registry accounts,
+  signing keys, and social identities should live as maintainers are added.
+
+GitHub treats these files as community health infrastructure, not decoration.
+Do not adopt a code of conduct unless the maintainer is prepared to enforce it.
+
+### Four-week feedback sequence
+
+#### Week 0 — make evaluation safe
+
+- Resolve licenses and community health files.
+- Tag a reproducible preview revision; pin the tested Roc and Datastar versions.
+- Record which paths work and which are demonstrations.
+- Publish the five-minute component example and one small Datastar counter.
+- Open one “Public preview feedback” discussion or issue with scoped questions.
+
+#### Week 1 — Roc community first
+
+Introduce the project in Roc Zulip, the community's primary gathering place.
+Choose the current projects/show-and-tell location with help from community
+regulars rather than assuming a channel. Lead with a 60–90 second demo, an
+architecture diagram, and the explicit independent-project disclaimer.
+
+Ask five answerable questions:
+
+1. Does “Rocci” read naturally, and how did you pronounce it?
+2. Is the Rocci/Rocdown/Rocci Docs hierarchy understandable after one screen?
+3. Does “Roc-native” accurately describe the integration or sound official?
+4. Which one workflow would make the project worth trying next?
+5. Does the folded visual direction feel related, derivative, or unrelated to
+   Roc?
+
+Do not begin by asking the community to review the entire syntax. Separate
+brand, product need, syntax, compiler compatibility, and governance topics.
+
+#### Week 2 — Datastar community
+
+Share a focused integration demo in the Datastar Discord, which the Star
+Federation identifies as its community support venue. Frame Rocci as an
+independent backend integration and ask about event/patch semantics,
+documentation accuracy, and the value of a Roc example or SDK. Do not call the
+integration an official SDK without acceptance into the Datastar project.
+
+#### Weeks 3–4 — synthesize in public
+
+- Publish a short feedback summary with counts, quotations only with consent,
+  and decisions/non-decisions.
+- Keep a decision log: retained, changed, deferred, rejected, and why.
+- Choose the pronunciation and confirm or reopen the name.
+- Select one vector-logo direction only after the name decision.
+- Announce the next narrow milestone and invite contributions with bounded
+  “good first” issues.
+
+### Community operating model
+
+Start with honest, lightweight governance: **maintainer-led, open development**.
+Document how decisions are made, how contributors become maintainers, where
+security issues go, and which assets are project-controlled. Avoid premature
+committees or the word “foundation.” Revisit a formal nonprofit or fiscal host
+only when there are multiple active maintainers, money to steward, or ecosystem
+assets that need durable neutral ownership.
+
+Measure the preview by learning and retention, not stars:
+
+- successful clean installs;
+- time to first rendered component;
+- number and quality of independent examples;
+- repeat contributors after 30 and 90 days;
+- unanswered support questions and median response time;
+- feedback themes resolved or explicitly deferred;
+- documentation search terms that produce no useful destination.
+
+### Ready-to-review execution material
+
+Two companion documents turn the recommendation into reviewable work without
+publishing anything externally:
+
+- `COMMUNITY_LAUNCH_KIT.md` contains a Roc-first announcement, a focused
+  Datastar follow-up, a feedback issue template, a moderation protocol, and a
+  two-week synthesis format.
+- `LANDING_PAGE_PROTOTYPE.md` specifies the dedicated home-page information
+  architecture, responsive rules, content constraints, and acceptance checks.
+  A responsive visual direction was tested at mobile, laptop, and desktop
+  widths. It deliberately uses a wordmark-only header so no logo candidate
+  becomes the default by appearing in the prototype.
+
+These are drafts. The announcement placeholders, community venue, support
+owner, demo claims, and compatibility facts must be verified immediately before
+use.
+
+## Decisions to take now, later, and not yet
+
+### Take now
+
+- Rocci is the public preview masterbrand.
+- Rocdown is an endorsed format: “Rocdown by Rocci.”
+- Rocs becomes “Rocci Docs” in public prose; current command names remain.
+- Use a clear Roc descriptor on every first mention.
+- Keep the warm neutral/coral family and begin accessibility fixes.
+- Compare three zero-based vector routes: folded letter, non-letter modular
+  symbol, and wordmark only. Treat the orange folded R as the current
+  maintainer preference, not the inherited default.
+- Fix licensing and community health before publicity.
+
+### Take after community feedback
+
+- Final pronunciation and whether the name survives the preview.
+- Permission and rules for any actual Roc-logo co-branding.
+- Final vector mark and wordmark typography.
+- Whether `rocci docs` should become the primary CLI spelling.
+- Whether the branded Rocdown theme replaces its green palette.
+- Which community channel and governance host should be durable.
+
+### Do not take yet
+
+- A legal “Rocci Foundation.”
+- Separate Rocdown or Rocs communities and websites.
+- Broad package/crate renames.
+- A token-format migration or a large design-system implementation.
+- Claims of official Roc or Datastar status.
+- Merchandise or trademark filings before name and similarity review.
+
+## Remaining investigations
+
+The following work is intentionally separated because it needs direct community,
+legal, or user evidence:
+
+1. **Naming validation:** 8–12 short interviews split between Roc developers,
+   Datastar users, and developers unfamiliar with either; test unaided
+   pronunciation, recall, expected function, and perceived official status.
+2. **Registry and legal clearance:** the preliminary crates.io, npm, PyPI,
+   GitHub, and Rocweave-domain screen is complete. Reserve chosen namespaces,
+   check editor and distribution marketplaces, and commission company and
+   trademark searches in intended jurisdictions.
+3. **Logo route and similarity audit:** commission black-and-white folded-letter,
+   non-letter modular, and wordmark-only sketches; run reverse
+   image/similarity checks, small-size tests, and request Roc project feedback
+   on ecosystem use.
+4. **Accessibility audit:** automated contrast/semantics plus keyboard, zoom,
+   forced colors, reduced motion, print, and light/dark manual review.
+5. **Landing-page implementation test:** the exploratory dedicated layout now
+   exists. Implement it only after a short first-impression test, then validate
+   real content, links, performance, and accessibility in the Rocs shell.
+6. **Message testing:** announcement drafts now exist. Compare “web and desktop
+   interface tools for Roc,” “Roc-native interface toolkit,” and “server-driven
+   UI for Roc” against actual task comprehension rather than preference alone.
+7. **Governance design:** revisit maintainership, asset ownership, funding, and
+   a fiscal host after the preview produces real contributors.
+
+## Sources
+
+- Current repository contracts: root `README.md`, `docs/rocs.toml`,
+  `docs/index.rocdown`, `crates/rocci-rocdown/README.md`,
+  `crates/rocci-theme`, and `crates/rocs/templates/RocsTheme.rocci`.
+- [Roc FAQ: name and origami-bird logo](https://www.roc-lang.org/faq)
+- [Roc community](https://roc-lang.org/community)
+- [Roc Programming Language Foundation](https://www.roc-lang.org/foundation)
+- [Datastar / Star Federation community](https://data-star.dev/star_federation)
+- [Google guidance for site names](https://developers.google.com/search/docs/appearance/site-names)
+- [Google sitelink guidance](https://developers.google.com/search/docs/appearance/sitelinks)
+- [GitHub community health files](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file)
+- [PyPI `rocci` package](https://pypi.org/project/rocci/)
+- [rOCCI cloud project](https://indigo-dc.gitbook.io/rocci)
+- [KDE Rocs handbook](https://docs.kde.org/trunk5/en/rocs/rocs/rocs.pdf)
+- [crates.io exact-name registry](https://crates.io/)
+- [npm package registry](https://www.npmjs.com/)
+- [PyPI package registry](https://pypi.org/)
+- [GitHub repository search](https://github.com/search)
+- [RDAP domain lookup](https://rdap.org/)
+- Companion execution drafts: `reports/branding/COMMUNITY_LAUNCH_KIT.md` and
+  `reports/branding/LANDING_PAGE_PROTOTYPE.md`.
