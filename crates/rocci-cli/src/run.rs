@@ -10,7 +10,7 @@ use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, for
 use rocci_wry::PreviewOptions;
 
 use crate::datastar_asset;
-use crate::dispatch;
+use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
 use crate::error_page::{self, FailedFile, MappedModule};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
@@ -33,20 +33,14 @@ pub fn run(
     runtime_assets::stage_into(&resolved.app_dir)?;
     let compiled = compile_rocci_app(&resolved.app_dir, theme)?;
     if !compiled.failures.is_empty() {
-        return serve_template_errors(
+        return driver::serve_template_errors(
             &compiled.failures,
             port,
             no_window,
-            &window_title(&resolved),
+            &driver::window_title(&resolved),
         );
     }
-    invoke_roc(&resolved, args, no_window, port, &compiled.maps)
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ResolvedEntry {
-    app_dir: PathBuf,
-    roc_file: PathBuf,
+    driver::execute_resolved_entry(&resolved, args, no_window, port, &compiled.maps, None)
 }
 
 fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
@@ -153,130 +147,24 @@ fn run_standalone(
         .to_string();
     let plan = match plan_standalone(&path, theme)? {
         StandaloneReady::Failed(files) => {
-            return serve_template_errors(&files, port, no_window, &title);
+            return driver::serve_template_errors(&files, port, no_window, &title);
         }
         StandaloneReady::Ready(plan) => plan,
     };
-    let type_name = plan.primary_name.clone();
-    let workspace = TempDir::create("run")?;
-    runtime_assets::stage_into(&workspace.path)?;
-    copy_sibling_roc(&src_dir, &workspace.path, &type_name)?;
-    let sibling_assets = src_dir.join("assets");
-    let workspace_assets = workspace.path.join("assets");
-    if sibling_assets.is_dir() {
-        copy_tree(&sibling_assets, &workspace_assets)?;
-    }
-    for module in &plan.modules {
-        for url in &module.local_assets {
-            let Some(relative) = rocci_rocdown::normalize_local_asset_url(url) else {
-                continue;
-            };
-            let from = src_dir.join(&relative);
-            if !from.is_file() {
-                continue;
-            }
-            let to = workspace.path.join("media").join(&relative);
-            if let Some(parent) = to.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(&from, &to).with_context(|| format!("failed to copy {}", from.display()))?;
-        }
-    }
-    let stage_version = datastar_asset::stage_version_for_dir(&src_dir);
-    if let Some(version) = &stage_version {
-        datastar_asset::stage_into(&workspace_assets, version)?;
-        datastar_asset::print_hint(version);
-    } else {
-        fs::create_dir_all(&workspace_assets)?;
-    }
-
-    for module in &plan.modules {
-        fs::write(
-            workspace.path.join(format!("{}.roc", module.type_name)),
-            wrap_type_module(&module.roc, &module.type_name),
-        )
-        .with_context(|| format!("failed to write {}.roc", module.type_name))?;
-    }
-    fs::write(workspace.path.join("main.roc"), plan.main_roc())
-        .context("failed to write generated main.roc")?;
-
-    let db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
-    let resolved = ResolvedEntry {
-        app_dir: workspace.path.clone(),
-        roc_file: PathBuf::from("main.roc"),
-    };
-    invoke_standalone(
-        &resolved,
-        args,
+    let options = driver::DriverOptions {
+        args: args.to_vec(),
         no_window,
         port,
-        &db_path,
-        &title,
-        preview_path(&plan.modules[0].routes),
-        &plan.maps(),
-    )
-}
-
-struct StandaloneModule {
-    type_name: String,
-    roc: String,
-    state_type: Option<String>,
-    init: Option<rocci_template::InitInfo>,
-    routes: Vec<rocci_template::RouteInfo>,
-    mapped: MappedModule,
-    local_assets: Vec<String>,
+        db_path: None,
+        title,
+        preview_path: None,
+    };
+    driver::execute_app_plan(&plan, &src_dir, &options)
 }
 
 enum StandaloneReady {
-    Ready(StandalonePlan),
+    Ready(GenericAppPlan),
     Failed(Vec<FailedFile>),
-}
-
-struct StandalonePlan {
-    primary_name: String,
-    modules: Vec<StandaloneModule>,
-    redirect_trailing_slash: bool,
-}
-
-impl StandalonePlan {
-    fn maps(&self) -> Vec<MappedModule> {
-        self.modules
-            .iter()
-            .map(|module| module.mapped.clone())
-            .collect()
-    }
-
-    fn main_roc(&self) -> String {
-        let primary = &self.modules[0];
-        let siblings: Vec<dispatch::DispatchSource<'_>> = self.modules[1..]
-            .iter()
-            .map(|module| dispatch::DispatchSource {
-                type_name: &module.type_name,
-                routes: &module.routes,
-            })
-            .collect();
-        let bound = dispatch::merge_standalone_routes(
-            dispatch::DispatchSource {
-                type_name: &primary.type_name,
-                routes: &primary.routes,
-            },
-            &siblings,
-        );
-        dispatch::generate_bound_main_roc(
-            &primary.type_name,
-            primary.state_type.as_deref(),
-            primary.init.as_ref(),
-            &bound,
-            dispatch::DispatchOptions {
-                redirect_trailing_slash: self.redirect_trailing_slash,
-                media_dirs: dispatch::media_dirs_from_urls(
-                    self.modules
-                        .iter()
-                        .flat_map(|module| module.local_assets.iter()),
-                ),
-            },
-        )
-    }
 }
 
 fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady> {
@@ -296,7 +184,7 @@ fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady>
             continue;
         }
         let type_name = type_name_from_path(&input);
-        modules.push(StandaloneModule {
+        modules.push(GenericModule {
             type_name: type_name.clone(),
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
@@ -315,7 +203,7 @@ fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady>
     if !failures.is_empty() {
         return Ok(StandaloneReady::Failed(failures));
     }
-    Ok(StandaloneReady::Ready(StandalonePlan {
+    Ok(StandaloneReady::Ready(GenericAppPlan {
         primary_name: type_name_from_path(primary),
         modules,
         redirect_trailing_slash: redirect_trailing_slash_for(
@@ -483,162 +371,6 @@ fn compile_source(
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct RocInvocation {
-    program: &'static str,
-    app_dir: PathBuf,
-    roc_file: PathBuf,
-    args: Vec<String>,
-}
-
-fn roc_invocation(resolved: &ResolvedEntry, args: &[String]) -> RocInvocation {
-    RocInvocation {
-        program: "roc",
-        app_dir: resolved.app_dir.clone(),
-        roc_file: resolved.roc_file.clone(),
-        args: args.to_vec(),
-    }
-}
-
-fn roc_command(invocation: &RocInvocation, port: u16) -> Command {
-    let mut cmd = Command::new(invocation.program);
-    cmd.arg(&invocation.roc_file)
-        .args(&invocation.args)
-        .current_dir(&invocation.app_dir)
-        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
-    cmd
-}
-
-fn preview_path(routes: &[rocci_template::RouteInfo]) -> String {
-    routes
-        .iter()
-        .find(|route| route.method == "GET" && route.path != "/health")
-        .map(|route| {
-            if route.path.starts_with('/') {
-                route.path.clone()
-            } else {
-                format!("/{}", route.path)
-            }
-        })
-        .unwrap_or_else(|| "/".to_string())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn invoke_standalone(
-    resolved: &ResolvedEntry,
-    args: &[String],
-    no_window: bool,
-    port: serve::PortArg,
-    db_path: &Path,
-    title: &str,
-    path: String,
-    maps: &[MappedModule],
-) -> Result<()> {
-    let invocation = roc_invocation(resolved, args);
-    let port = port.resolve()?;
-    let url = format!("http://127.0.0.1:{port}{path}");
-    let mut cmd = roc_command(&invocation, port);
-    if env::var_os("DB_PATH").is_none() {
-        cmd.env("DB_PATH", db_path);
-    }
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
-    match serve::wait_for_roc(&mut child, &mut tee, port, &path)? {
-        serve::RocStart::Ready => {
-            println!("{}", style::serving(title, &url));
-            serve::with_window(&mut child, &url, title, no_window)
-        }
-        serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
-    }
-}
-
-fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
-    let skip = format!("{type_name}.roc");
-    if !src_dir.is_dir() {
-        return Ok(());
-    }
-    for entry in fs::read_dir(src_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("roc") {
-            continue;
-        }
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
-        if name == "main.roc" || name == skip {
-            continue;
-        }
-        fs::copy(&path, dest.join(&file_name))
-            .with_context(|| format!("failed to copy {}", path.display()))?;
-    }
-    Ok(())
-}
-
-fn copy_tree(from: &Path, to: &Path) -> Result<()> {
-    if from.is_file() {
-        if let Some(parent) = to.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::copy(from, to)?;
-        return Ok(());
-    }
-    fs::create_dir_all(to)?;
-    for entry in fs::read_dir(from)? {
-        let entry = entry?;
-        copy_tree(&entry.path(), &to.join(entry.file_name()))?;
-    }
-    Ok(())
-}
-
-struct TempDir {
-    path: PathBuf,
-}
-
-impl TempDir {
-    fn create(kind: &str) -> Result<Self> {
-        let path = env::temp_dir().join(format!("rocci-{kind}-{}", std::process::id()));
-        if path.exists() {
-            fs::remove_dir_all(&path)
-                .with_context(|| format!("failed to clear {}", path.display()))?;
-        }
-        fs::create_dir_all(&path)
-            .with_context(|| format!("failed to create {}", path.display()))?;
-        Ok(Self { path })
-    }
-}
-
-impl Drop for TempDir {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
-
-fn invoke_roc(
-    resolved: &ResolvedEntry,
-    args: &[String],
-    no_window: bool,
-    port: serve::PortArg,
-    maps: &[MappedModule],
-) -> Result<()> {
-    let invocation = roc_invocation(resolved, args);
-    let port = port.resolve()?;
-    let url = format!("http://127.0.0.1:{port}/");
-    let title = window_title(resolved);
-    let cmd = roc_command(&invocation, port);
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
-    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
-        serve::RocStart::Ready => {
-            println!(
-                "{}",
-                style::serving(&invocation.app_dir.display().to_string(), &url)
-            );
-            serve::with_window(&mut child, &url, &title, no_window)
-        }
-        serve::RocStart::Failed(output) => {
-            serve_roc_failure(&output, maps, port, no_window, &title)
-        }
-    }
-}
-
 pub fn run_bundled(resources: &Path) -> Result<()> {
     let config = Config::from_file(resources.join("rocci.toml"))?;
     let app_dir = resources.join("app");
@@ -692,40 +424,10 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     preview_result
 }
 
-fn serve_template_errors(
-    files: &[FailedFile],
-    port: serve::PortArg,
-    no_window: bool,
-    title: &str,
-) -> Result<()> {
-    let html = error_page::render_template_errors(files);
-    let port = port.resolve()?;
-    serve::serve_html(port, 500, &html, title, no_window)
-}
-
-fn serve_roc_failure(
-    output: &str,
-    maps: &[MappedModule],
-    port: u16,
-    no_window: bool,
-    title: &str,
-) -> Result<()> {
-    let html = error_page::render_roc_compile_error(output, maps);
-    serve::serve_html(port, 500, &html, title, no_window)
-}
-
-fn window_title(resolved: &ResolvedEntry) -> String {
-    resolved
-        .app_dir
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("rocci")
-        .to_string()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::driver::{roc_command, roc_invocation, window_title};
 
     fn temp_app(name: &str) -> PathBuf {
         let dir = env::temp_dir().join(format!("rocci-run-{}-{}", name, std::process::id()));
@@ -738,7 +440,7 @@ mod tests {
         let _ = fs::remove_dir_all(dir);
     }
 
-    fn plan_ready(path: &Path) -> StandalonePlan {
+    fn plan_ready(path: &Path) -> GenericAppPlan {
         match plan_standalone(path, &crate::theme::ThemeArgs::default()).unwrap() {
             StandaloneReady::Ready(plan) => plan,
             StandaloneReady::Failed(files) => {

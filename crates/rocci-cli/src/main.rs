@@ -2,6 +2,7 @@ mod browse;
 mod bundle;
 mod datastar_asset;
 mod dispatch;
+mod driver;
 mod error_page;
 mod roc_module;
 mod run;
