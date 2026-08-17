@@ -45,15 +45,15 @@ pub struct WindowStateStore {
 
 /// Return the path to the user's `.rocci/state` directory.
 pub fn state_dir() -> Option<PathBuf> {
-    if let Ok(dir) = std::env::var("ROCCI_STATE_DIR") {
-        if !dir.is_empty() {
-            return Some(PathBuf::from(dir));
-        }
+    if let Ok(dir) = std::env::var("ROCCI_STATE_DIR")
+        && !dir.is_empty()
+    {
+        return Some(PathBuf::from(dir));
     }
-    if let Ok(home) = std::env::var("ROCCI_HOME") {
-        if !home.is_empty() {
-            return Some(PathBuf::from(home).join(".rocci").join("state"));
-        }
+    if let Ok(home) = std::env::var("ROCCI_HOME")
+        && !home.is_empty()
+    {
+        return Some(PathBuf::from(home).join(".rocci").join("state"));
     }
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
     Some(PathBuf::from(home).join(".rocci").join("state"))
@@ -142,8 +142,8 @@ pub fn is_position_visible<T>(
         let mon_w = size.width as f64 / scale;
         let mon_h = size.height as f64 / scale;
 
-        let check_w = width.min(100.0).max(20.0);
-        let check_h = height.min(40.0).max(20.0);
+        let check_w = width.clamp(20.0, 100.0);
+        let check_h = height.clamp(20.0, 40.0);
 
         if x + check_w > mon_x && x < mon_x + mon_w && y + check_h > mon_y && y < mon_y + mon_h {
             return true;
