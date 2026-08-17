@@ -421,6 +421,427 @@ import Html
         }
     }
 
+    /* OKF Concept Metadata & Governance UI */
+    .okf-concept-meta {
+        margin: 0 0 2.2rem;
+        padding: 1.25rem 1.4rem;
+        border: 1px solid var(--line);
+        border-radius: .68rem;
+        background: var(--surface);
+        box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .02);
+    }
+    .okf-badge-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .4rem .5rem;
+        margin-bottom: .85rem;
+    }
+    .okf-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: .2rem .55rem;
+        border-radius: .35rem;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .74rem;
+        font-weight: 650;
+        line-height: 1.2;
+        letter-spacing: -.01em;
+    }
+    .okf-type {
+        background: var(--surface-raised);
+        color: var(--ink);
+        border: 1px solid var(--line-strong);
+    }
+    .okf-status-stable {
+        background: color-mix(in srgb, #10b981 14%, var(--surface));
+        color: #059669;
+        border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
+    }
+    .okf-status-draft {
+        background: color-mix(in srgb, #f59e0b 14%, var(--surface));
+        color: #d97706;
+        border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+    }
+    .okf-status-deprecated {
+        background: color-mix(in srgb, #ef4444 14%, var(--surface));
+        color: #dc2626;
+        border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+    }
+    .okf-auth-normative {
+        background: color-mix(in srgb, #6366f1 14%, var(--surface));
+        color: #4f46e5;
+        border: 1px solid color-mix(in srgb, #6366f1 35%, transparent);
+    }
+    .okf-auth-descriptive {
+        background: var(--surface-raised);
+        color: var(--muted);
+        border: 1px solid var(--line);
+    }
+    .okf-auth-exploratory {
+        background: color-mix(in srgb, #8b5cf6 14%, var(--surface));
+        color: #7c3aed;
+        border: 1px solid color-mix(in srgb, #8b5cf6 35%, transparent);
+    }
+    .okf-trust-human {
+        background: color-mix(in srgb, #10b981 12%, var(--surface));
+        color: #059669;
+        border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+    }
+    .okf-trust-generated {
+        background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+        color: #b45309;
+        border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+    }
+    .okf-trust-unverified {
+        background: var(--surface-raised);
+        color: var(--faint);
+        border: 1px dashed var(--line-strong);
+    }
+    .okf-badge-stale {
+        background: color-mix(in srgb, #dc2626 12%, var(--surface));
+        color: #b91c1c;
+        border: 1px solid color-mix(in srgb, #dc2626 30%, transparent);
+    }
+
+    .okf-alert-banner {
+        display: flex;
+        gap: .65rem;
+        align-items: flex-start;
+        margin: .85rem 0;
+        padding: .75rem .95rem;
+        border-radius: .45rem;
+        background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+        border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
+        border-left: .28rem solid #f59e0b;
+        color: var(--ink);
+        font-size: .86rem;
+        line-height: 1.5;
+    }
+    .okf-alert-icon { font-size: 1.05rem; line-height: 1; flex-shrink: 0; }
+    .okf-alert-content { flex: 1; }
+
+    .okf-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        gap: .55rem 1rem;
+        margin: .85rem 0;
+        font-size: .82rem;
+        color: var(--muted);
+    }
+    .okf-meta-label {
+        font-weight: 650;
+        color: var(--ink);
+        margin-right: .35rem;
+    }
+    .okf-meta-grid code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .84em;
+        background: var(--surface-raised);
+        padding: .1em .3em;
+        border-radius: .25rem;
+        border: 1px solid var(--line);
+    }
+
+    .okf-sources-drawer {
+        margin-top: .9rem;
+        padding-top: .75rem;
+        border-top: 1px solid var(--line);
+        font-size: .83rem;
+    }
+    .okf-sources-drawer summary {
+        cursor: pointer;
+        color: var(--ink);
+        font-weight: 650;
+        user-select: none;
+    }
+    .okf-sources-drift-note {
+        font-weight: 500;
+        color: var(--muted);
+        margin-left: .4rem;
+        font-size: .8rem;
+    }
+    .okf-sources-table {
+        width: 100%;
+        margin-top: .65rem;
+        border-collapse: collapse;
+        font-size: .8rem;
+    }
+    .okf-sources-table th, .okf-sources-table td {
+        padding: .5rem .65rem;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+    }
+    .okf-sources-table th {
+        background: var(--surface-raised);
+        color: var(--muted);
+        font-weight: 650;
+        font-size: .75rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+    .okf-sources-table code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .82em;
+    }
+
+    .okf-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        margin-top: .75rem;
+    }
+    .okf-tag {
+        font-size: .74rem;
+        color: var(--muted);
+        background: var(--surface-raised);
+        padding: .12rem .45rem;
+        border-radius: .3rem;
+        border: 1px solid var(--line);
+    }
+
+    /* OKF Review Dashboard */
+    .okf-review-view {
+        width: 100%;
+    }
+    .okf-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+        gap: .85rem;
+        margin: 1.6rem 0 2.2rem;
+    }
+    .okf-stat-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: .68rem;
+        padding: 1.1rem .85rem;
+        text-align: center;
+        box-shadow: 0 .15rem .6rem rgba(0, 0, 0, .02);
+    }
+    .okf-stat-value {
+        font-size: 1.95rem;
+        font-weight: 800;
+        letter-spacing: -.03em;
+        line-height: 1.1;
+        color: var(--ink);
+        margin-bottom: .25rem;
+    }
+    .okf-stat-label {
+        font-size: .72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+    .okf-stat-card.is-action .okf-stat-value {
+        color: #d97706;
+    }
+
+    .okf-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .5rem;
+        margin: 1.8rem 0 1rem;
+    }
+    .okf-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: .42rem .85rem;
+        border: 1px solid var(--line);
+        border-radius: .5rem;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: .83rem;
+        font-weight: 650;
+        cursor: pointer;
+        transition: all .15s ease;
+    }
+    .okf-filter-btn:hover {
+        border-color: var(--line-strong);
+        color: var(--ink);
+    }
+    .okf-filter-btn.is-active {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        border-color: var(--accent);
+        font-weight: 700;
+    }
+    .okf-search-input {
+        margin-left: auto;
+        padding: .45rem .85rem;
+        border: 1px solid var(--line);
+        border-radius: .5rem;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: .83rem;
+        min-width: 16rem;
+    }
+    .okf-search-input:focus {
+        outline: .15rem solid var(--accent);
+        border-color: var(--accent);
+    }
+
+    .okf-table-container {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: .68rem;
+        background: var(--surface);
+        margin: 1rem 0 2.5rem;
+        box-shadow: 0 .2rem .8rem rgba(0, 0, 0, .02);
+    }
+    .okf-review-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .85rem;
+        text-align: left;
+    }
+    .okf-review-table th {
+        background: var(--surface-raised);
+        padding: .85rem .95rem;
+        font-weight: 700;
+        color: var(--ink);
+        border-bottom: 1px solid var(--line-strong);
+        white-space: nowrap;
+    }
+    .okf-review-table td {
+        padding: .85rem .95rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+    }
+    .okf-review-table tr:last-child td {
+        border-bottom: 0;
+    }
+    .okf-review-table tr:hover td {
+        background: color-mix(in srgb, var(--canvas) 45%, var(--surface));
+    }
+    .okf-concept-title-link {
+        color: var(--accent-strong);
+        font-size: .92rem;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .okf-concept-title-link:hover {
+        color: var(--accent);
+        text-decoration: underline;
+    }
+    .okf-concept-id-sub code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .78rem;
+        color: var(--muted);
+    }
+    .okf-verifier-sub code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .76rem;
+        color: var(--muted);
+    }
+    .okf-action-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: .3rem;
+    }
+    .okf-action-pill {
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        padding: .2rem .55rem;
+        border-radius: .35rem;
+        font-size: .75rem;
+        font-weight: 750;
+        letter-spacing: -.01em;
+    }
+    .okf-action-pill.pill-action {
+        background: color-mix(in srgb, #f59e0b 16%, var(--surface));
+        color: #b45309;
+        border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
+    }
+    .okf-action-pill.pill-clean {
+        background: color-mix(in srgb, #10b981 16%, var(--surface));
+        color: #059669;
+        border: 1px solid color-mix(in srgb, #10b981 45%, transparent);
+    }
+    .okf-action-pill.pill-error {
+        background: color-mix(in srgb, #ef4444 16%, var(--surface));
+        color: #dc2626;
+        border: 1px solid color-mix(in srgb, #ef4444 45%, transparent);
+    }
+    .okf-action-pill.pill-info {
+        background: var(--surface-raised);
+        color: var(--muted);
+        border: 1px solid var(--line);
+    }
+    .okf-action-detail-text {
+        font-size: .78rem;
+        color: var(--muted);
+        line-height: 1.35;
+    }
+    .okf-focus-text {
+        font-size: .84rem;
+        color: var(--ink);
+        line-height: 1.4;
+    }
+    .okf-priority-1-section {
+        margin: 1.8rem 0;
+    }
+    .okf-cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1.25rem;
+        margin: 1.5rem 0 2rem;
+    }
+    .okf-cta-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: .55rem 1.15rem;
+        background: var(--accent);
+        color: #ffffff !important;
+        border-radius: .45rem;
+        font-weight: 700;
+        font-size: .86rem;
+        text-decoration: none !important;
+        transition: opacity .15s ease;
+    }
+    .okf-cta-btn:hover {
+        opacity: .9;
+    }
+    .okf-secondary-link {
+        font-size: .86rem;
+        font-weight: 650;
+        color: var(--accent-strong);
+        text-decoration: none;
+    }
+    .okf-secondary-link:hover {
+        text-decoration: underline;
+    }
+    .okf-home-governance {
+        margin-bottom: 2rem;
+    }
+
+    .okf-diagnostics-list {
+        display: flex;
+        flex-direction: column;
+        gap: .55rem;
+        margin: 1rem 0;
+    }
+    .okf-diagnostic-item {
+        padding: .75rem .95rem;
+        border: 1px solid var(--line);
+        border-radius: .5rem;
+        background: var(--surface);
+        font-size: .83rem;
+        line-height: 1.45;
+    }
+    .okf-diagnostic-item code {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: .84em;
+        background: var(--surface-raised);
+        padding: .1em .3em;
+        border-radius: .25rem;
+        border: 1px solid var(--line);
+        margin: 0 .3rem;
+    }
+
     @media (prefers-color-scheme: dark) {
         :scope {
             --canvas: #191817;
@@ -439,6 +860,12 @@ import Html
         }
         .article .rd-blockquote { border-color: #5b352c; }
         .article .rd-code { color: #ff9a84; }
+        .okf-status-stable, .okf-trust-human, .okf-action-pill.pill-clean { color: #34d399; }
+        .okf-status-draft, .okf-trust-generated, .okf-action-pill.pill-action, .okf-stat-card.is-action .okf-stat-value { color: #fbbf24; }
+        .okf-status-deprecated, .okf-action-pill.pill-error { color: #f87171; }
+        .okf-auth-normative { color: #818cf8; }
+        .okf-auth-exploratory { color: #a78bfa; }
+        .okf-alert-banner { border-left-color: #fbbf24; }
     }
 
     @media print {
