@@ -17,7 +17,7 @@ small desktop host:
    dispatcher. Authored `main.roc` apps keep full control of `init!` /
    `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc` and starts the
    server.
-4. **Shell** — `rocci-wry` opens a tao/wry preview window against the local
+4. **Shell** — `rocci-desktop` opens a tao/wry preview window against the local
    server. `rocci bundle` wraps the same host plus a `roc build` server binary
    in an ad-hoc signed macOS `.app`.
 5. **Tooling** — `rocci-cli` and `rocci-lsp` stay the front door for build,

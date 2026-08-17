@@ -45,7 +45,7 @@ hosting, and execution-mode rationale.
 | `rocci-theme` | Resolve built-in and local document CSS themes |
 | `rocci-core` | Configuration and shared runtime contracts |
 | `rocci-cli` | Build, inspect, run, bundle, and manage Datastar assets (`rocci`) |
-| `rocci-wry` | Native preview windows backed by Tao and Wry |
+| `rocci-desktop` | Native preview windows backed by Tao and Wry |
 | `rocci-lsp` | Diagnostics, symbols, hover, completion, and semantic tokens |
 
 ## Why templates lower to Roc

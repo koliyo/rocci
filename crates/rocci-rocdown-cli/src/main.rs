@@ -528,11 +528,11 @@ fn run_site_dev(root: &Path, output: Option<&Path>, no_window: bool, port: PortA
         server.wait();
         return Ok(());
     }
-    let result = rocci_wry::preview(rocci_wry::PreviewOptions {
+    let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
         url: server.url.clone(),
         title: server.title.clone(),
         state_key: Some("rocdown".to_string()),
-        ..rocci_wry::PreviewOptions::default()
+        ..rocci_desktop::PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     drop(server);
@@ -629,11 +629,11 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
                 server.wait();
                 return Ok(());
             }
-            let result = rocci_wry::preview(rocci_wry::PreviewOptions {
+            let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
                 url: server.url.clone(),
                 title: server.title.clone(),
                 state_key: Some("rocdown:knowledge".to_string()),
-                ..rocci_wry::PreviewOptions::default()
+                ..rocci_desktop::PreviewOptions::default()
             })
             .map_err(|error| anyhow::anyhow!("{error}"));
             drop(server);

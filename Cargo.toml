@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "crates/rocci-core",
-    "crates/rocci-wry",
+    "crates/rocci-desktop",
     "crates/rocci-cli",
     "crates/rocci-template",
     "crates/rocci-rocdown",
@@ -22,7 +22,7 @@ description = "A Datastar-first .rocci template language and desktop runtime bui
 
 [workspace.dependencies]
 rocci-core = { path = "crates/rocci-core" }
-rocci-wry = { path = "crates/rocci-wry" }
+rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
 rocci-template = { path = "crates/rocci-template" }
 rocci-rocdown = { path = "crates/rocci-rocdown" }

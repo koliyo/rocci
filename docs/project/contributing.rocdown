@@ -31,7 +31,7 @@ toolchain problem.
 | Markdown, Rocdown declarations, site catalog, and outputs | `rocci-rocdown` |
 | CLI document and site commands | `rocci-rocdown-cli` |
 | Runtime configuration | `rocci-core` |
-| CLI template build, run, preview, or bundle behavior | `rocci-cli` and `rocci-wry` |
+| CLI template build, run, preview, or bundle behavior | `rocci-cli` and `rocci-desktop` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 
 Do not interpret Rocci templates in Rust just to avoid compiling a theme. Do

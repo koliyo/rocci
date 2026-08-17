@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BASE_ROCCI = {
     "rocci-core",
     "rocci-template",
-    "rocci-wry",
+    "rocci-desktop",
     "rocci-cli",
     "rocci-lsp",
     "rocci-highlight",

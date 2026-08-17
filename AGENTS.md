@@ -20,7 +20,7 @@
 | `.rocci` grammar, lowering, or source maps | `crates/rocci-template` |
 | Markdown, Rocdown declarations, site catalog, and generator | `crates/rocci-rocdown` |
 | Shared runtime configuration | `crates/rocci-core` |
-| CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-wry` |
+| CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-desktop` |
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 | Editor behavior | `crates/rocci-lsp`, `editors/vscode`, or `editors/zed` |
