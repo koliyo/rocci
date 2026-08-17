@@ -423,7 +423,7 @@ fn trailing_text(src: &str, end: usize) -> Option<Diagnostic> {
     }
 }
 
-fn skip_0_3_spaces(line: &str) -> &str {
+pub(crate) fn skip_0_3_spaces(line: &str) -> &str {
     let mut n = 0;
     let mut idx = 0;
     for ch in line.chars() {
@@ -437,7 +437,7 @@ fn skip_0_3_spaces(line: &str) -> &str {
     &line[idx..]
 }
 
-fn fence_open(stripped: &str) -> Option<(u8, usize)> {
+pub(crate) fn fence_open(stripped: &str) -> Option<(u8, usize)> {
     let bytes = stripped.as_bytes();
     let ch = *bytes.first()?;
     if ch != b'`' && ch != b'~' {
@@ -453,7 +453,7 @@ fn fence_open(stripped: &str) -> Option<(u8, usize)> {
     Some((ch, n))
 }
 
-fn is_fence_close(line: &str, ch: u8, n: usize) -> bool {
+pub(crate) fn is_fence_close(line: &str, ch: u8, n: usize) -> bool {
     let stripped = skip_0_3_spaces(line);
     let bytes = stripped.as_bytes();
     let m = bytes.iter().take_while(|b| **b == ch).count();

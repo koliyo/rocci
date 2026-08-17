@@ -672,7 +672,7 @@ fn img_completion(_text: &str, _img: &ImgDecl, _offset: usize) -> CompletionResp
                 } else {
                     format!("{name}: \"\"")
                 };
-                completion_item(*name, CompletionItemKind::PROPERTY, Some(insert))
+                completion_item(name, CompletionItemKind::PROPERTY, Some(insert))
             })
             .collect(),
     )
