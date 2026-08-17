@@ -367,3 +367,29 @@ pub fn trim_span(src: &str, span: Span) -> Span {
         Span::new(start, end)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cursor_skip_string_handles_interpolations_and_unclosed() {
+        let src = r#""hello ${name} world" and more"#;
+        let mut cur = Cursor::at(src, 0);
+        cur.skip_string();
+        assert_eq!(cur.pos, r#""hello ${name} world""#.len());
+
+        let unclosed = r#""unclosed string with ${nested"#;
+        let mut cur2 = Cursor::at(unclosed, 0);
+        cur2.skip_string();
+        assert!(cur2.is_eof());
+    }
+
+    #[test]
+    fn cursor_skip_balanced_braces_handles_unclosed_without_hanging() {
+        let unclosed = "{ nested { unclosed";
+        let mut cur = Cursor::at(unclosed, 0);
+        cur.skip_balanced_braces();
+        assert!(cur.is_eof());
+    }
+}

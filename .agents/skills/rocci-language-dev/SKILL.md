@@ -53,6 +53,9 @@ scripts.
 - Keep parser and lowering tests independent of servers. Do not invoke Roc from
   compiler-core tests unless the test explicitly verifies a generated-Roc
   compatibility contract.
+- Ensure all lexical scanners, cursors, and token skippers guarantee monotonic
+  forward progress (`cur.pos > before` or `cur.bump()`) on every branch, even on
+  malformed, multiline, or unclosed delimiters, to prevent CPU-spinning infinite loops.
 - Preserve byte spans through scanning and parsing. Update source-map segments
   whenever generated text or origin ownership changes.
 - Emit actionable diagnostics at the narrowest source span and preserve parser
@@ -115,6 +118,10 @@ or semantic tokens may change. Run `cargo test -p rocci-cli` when compilation
 metadata or CLI inspection output changes. Run `cargo test --workspace` for a
 cross-format or cross-consumer change. Set `ROCCI_REQUIRE_ROC=1` only when the
 task must prove compatibility with the pinned Roc toolchain.
+
+If a test or build task takes unexpectedly long (>5s for focused unit tests),
+check `manage_task` with `Action: 'list'` and terminate stuck or hanging tasks
+immediately with `manage_task(Action: 'kill')` before retrying.
 
 Build `docs` with `cargo run -q -p rocs-cli -- build docs` when public language
 documentation changes and inspect the affected generated page.

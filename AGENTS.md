@@ -39,6 +39,9 @@
   Roc, HTML, runtime behavior, or diagnostic.
 - Add tests at the lowest owning boundary. Parser and lowering tests should not
   require a server; catalog and route tests should not require Roc.
+- Ensure all cursor and token scanner loops enforce monotonic forward progress
+  (`cur.pos > before` or `cur.bump()`) on every path to guarantee termination
+  on malformed, unclosed, or multiline inputs.
 - When behavior changes, update the relevant public Rocdown reference and the
   owning crate README. Mark planned behavior as planned.
 - Treat `dist/` and other generated output as derived artifacts, not sources of
@@ -47,6 +50,9 @@
 ## Validate proportionally
 
 - Run the narrowest relevant crate tests while iterating.
+- When running commands asynchronously, inspect running background tasks with
+  `manage_task` and terminate stuck or superseded tasks (`manage_task` with
+  `Action: 'kill'`) before launching subsequent runs.
 - Run `cargo fmt --all -- --check` for Rust changes.
 - Run `cargo test --workspace` for cross-cutting changes or before handing off a
   change that affects multiple crates. Some end-to-end tests use Roc only when

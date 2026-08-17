@@ -160,14 +160,22 @@ pub(crate) fn skip_value(cur: &mut Cursor<'_>, end: usize) {
             cur.bump();
             cur.bracket += 1;
             while cur.pos < end && !cur.is_eof() && cur.bracket > 0 {
+                let before = cur.pos;
                 cur.skip_roc_token();
+                if cur.pos == before {
+                    cur.bump();
+                }
             }
         }
         Some('(') => {
             cur.bump();
             cur.paren += 1;
             while cur.pos < end && !cur.is_eof() && cur.paren > 0 {
+                let before = cur.pos;
                 cur.skip_roc_token();
+                if cur.pos == before {
+                    cur.bump();
+                }
             }
         }
         _ => {
@@ -554,4 +562,42 @@ pub fn imports_html(src: &str, imports: &[Span]) -> bool {
             || rest.starts_with("Html\n")
             || rest.starts_with("Html\t")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn roc_binding_names_handles_multiline_and_nested_brackets() {
+        let src = r#"
+Status : [Active(U64), Idle]
+
+items = [
+    { id: 1, name: "Item 1 🚀" },
+    { id: 2, name: "Item 2 ✨" },
+]
+status = Active(42)
+isLoaded = Bool.true
+"#;
+        let names = roc_binding_names(src, Span::new(0, src.len()));
+        let binding_names: Vec<_> = names.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(binding_names, vec!["items", "status", "isLoaded"]);
+    }
+
+    #[test]
+    fn roc_binding_names_handles_unclosed_delimiters_without_hanging() {
+        let src = "broken = [\n  { id: 1, \n";
+        let names = roc_binding_names(src, Span::new(0, src.len()));
+        assert_eq!(names.len(), 1);
+        assert_eq!(names[0].0, "broken");
+    }
+
+    #[test]
+    fn skip_value_terminates_on_malformed_input() {
+        let src = "[ 1, 2, 3, \n\n";
+        let mut cur = Cursor::at(src, 0);
+        skip_value(&mut cur, src.len());
+        assert!(cur.pos >= src.len() || cur.is_eof());
+    }
 }
