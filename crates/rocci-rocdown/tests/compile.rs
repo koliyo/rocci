@@ -1092,3 +1092,23 @@ fn render_inside_docs_is_an_error() {
         "{errs:?}"
     );
 }
+
+#[test]
+fn embedded_languages_rocdown_fixture_compiles() {
+    let src = include_str!("../../../test/EmbeddedLanguages.rocdown");
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../test/EmbeddedLanguages.rocdown")
+        .canonicalize()
+        .expect("canonicalize path");
+    let out = compile(
+        SourceFile::new(&path.display().to_string(), src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        out.diagnostics
+            .iter()
+            .all(|d| d.severity != rocci_template::Severity::Error),
+        "{:?}",
+        out.diagnostics
+    );
+}

@@ -1,0 +1,171 @@
+module EmbeddedLanguages exposing [view, Status, main]
+
+import pf.Html
+import Design
+
+Status : [Active(U64), Idle, Pending(Str)]
+
+User : {
+    name : Str,
+    age : U64,
+    flags : List Str,
+}
+
+defaultLimit = 100u64
+
+formatUser = \user -> "${user.name} (${Num.toStr(user.age)})"
+
+@css {
+    :root {
+        --primary-color: #3b82f6;
+        --text-color: #1f2937;
+    }
+
+    body {
+        font-family: system-ui, -apple-system, sans-serif;
+        color: var(--text-color);
+        margin: 0;
+        padding: 1rem;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+}
+
+@fixture{target: UserCard}
+sampleUser = {
+    user: {
+        name: "Alice 🦄",
+        age: 30,
+        flags: ["admin", "verified 🚀"],
+    },
+    selected: Bool.true,
+    tone: Light,
+}
+
+@component
+UserCard = |{ user, selected ?? Bool.false, tone : [Dark, Light] ?? Light }, children| {
+    @css {
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            background: #ffffff;
+            transition: border-color 0.2s ease;
+        }
+
+        .card--selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .card__title {
+            font-size: 1.25rem;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .card__badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            background: #f3f4f6;
+        }
+    }
+
+    <section id="user-profile" class={if selected { "card card--selected" } else { "card" }} data-on-click=@post("/api/users/select")>
+        <h2 class="card__title">{formatUser(user)}</h2>
+        <span class="card__badge">🚀 Level {Num.toStr(user.age)} ✨</span>
+        <input type="text" value={user.name} disabled={!selected} />
+        <hr />
+        {children}
+    </section>
+}
+
+@component
+Badge = |{ label, tone ?? "neutral" }|
+    <span class={Str.concat("badge badge--", tone)}>
+        {label}
+    </span>
+
+@component
+StatusView = |{ status, isVisible ?? Bool.true }| {
+    @if !isVisible {
+        <p class="hidden">Status is hidden 🙈</p>
+    } @else {
+        @match status {
+            Active(count) =>
+                <div class="status-active">
+                    <Badge label="Active 🟢" tone="positive" />
+                    <span>Count: {Num.toStr(count)}</span>
+                </div>
+
+            Pending(message) =>
+                <div class="status-pending">
+                    <Badge label="Pending ⏳" tone="warning" />
+                    <em>{message}</em>
+                </div>
+
+            Idle =>
+                <div class="status-idle">
+                    <Badge label="Idle 💤" tone="neutral" />
+                </div>
+        }
+    }
+}
+
+@component
+UserDirectory = |{ users, query, status }| {
+    @let filtered = List.keepIf(users, |u| Str.contains(u.name, query))
+
+    <main class="container">
+        <header>
+            <h1>User Directory 🌐</h1>
+            <p>Managing {Num.toStr(List.len(users))} team members 👥</p>
+        </header>
+
+        <StatusView status={status} isVisible={Bool.true} />
+
+        @if List.isEmpty(filtered) {
+            <section class="empty-state">
+                <p>No users found matching &quot;{query}&quot; 🔍</p>
+            </section>
+        } @else {
+            <ul class="user-list">
+                @for u in filtered {
+                    <li key={u.name}>
+                        <UserCard user={u} selected={Str.contains(u.name, "Alice")}>
+                            <div class="flags">
+                                @for flag in u.flags {
+                                    <span class="flag-pill">🏷️ {flag}</span>
+                                }
+                            </div>
+                        </UserCard>
+                    </li>
+                }
+            </ul>
+        }
+
+        <footer>
+            <Design.Button tone="primary" data-on-click=@get("/api/users/refresh")>
+                Refresh List 🔄
+            </Design.Button>
+            <>
+                <span>Fragment A 🌟</span>
+                <span>Fragment B 💫</span>
+            </>
+        </footer>
+    </main>
+}
+
+@context AppState
+
+@init {
+    initAppState
+}
+
+@on:get("/api/users") {
+    jsonResponse(users)
+}

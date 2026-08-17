@@ -1,0 +1,206 @@
+@page {
+    route: "/embedded-languages/",
+    draft: Bool.false,
+    theme: "rocci",
+    meta: {
+        title: "Embedded Languages Demo 🚀",
+        description: "Demonstrating every region context in Rocdown 🌟",
+    },
+}
+
+@roc {
+Status : [Active(U64), Idle]
+
+items = [
+    { id: 1, name: "Item 1 🚀" },
+    { id: 2, name: "Item 2 ✨" },
+]
+status = Active(42)
+isLoaded = Bool.true
+}
+
+@css {
+    .docs-banner {
+        background: #f0f4f8;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
+    }
+
+    .code-highlight {
+        color: #0066cc;
+        font-family: ui-monospace, monospace;
+    }
+}
+
+@component
+Card = |{ title, count ?? 0 }|
+    <div class="card">
+        <h3>{title}</h3>
+        <p>Count: {Num.toStr(count)}</p>
+    </div>
+
+@fixture{target: Card}
+cardSample = {
+    title: "Sample Card 🎴",
+    count: 42,
+}
+
+# Embedded Languages Test Suite 🌐
+
+Welcome to the comprehensive embedded language test suite for Rocdown. This document
+exercises every structural, executable, display-only, and metadata region.
+
+Email docs@example.com for questions, or mention @roclang on community channels.
+
+## Section 1: Typography and Formatting {#sec-typography}
+
+Here is standard prose featuring **bold text**, *italic text*, and ~~strikethrough~~.
+Inline code looks like `Num.toStr(42)`. You can also visit [External Link](https://example.com).
+
+- Unordered item 🍎
+- Unordered item 🍌
+  - Nested item 🍒
+
+1. Ordered step 1 🚀
+2. Ordered step 2 🌟
+
+- [x] Completed task item 🎉
+- [ ] Incomplete task item ⏳
+
+> "Rocci bridges host Markdown documents with type-safe Roc execution." — Rocci Guide
+
+| Feature | Kind | Status | Emoji |
+| :--- | :--- | :---: | ---: |
+| Roc | Executable | Active | 🚀 |
+| CSS | Stylesheet | Active | 🎨 |
+| HTML | Structure | Active | 🌐 |
+
+---
+
+## Section 2: Documentation Components {#sec-docs}
+
+@docs note {
+    title: "Important Usage Note",
+    open: Bool.true
+
+This is the content of the note. It supports *Markdown* and `inline code`.
+}
+
+@docs tabs {
+    group: "platform",
+    kind: "platform"
+
+    @docs tab {
+        id: "mac",
+        label: "macOS 🍎"
+
+Run on macOS:
+
+```sh
+cargo run -- mac
+```
+    }
+
+    @docs tab {
+        id: "linux",
+        label: "Linux 🐧"
+
+Run on Linux:
+
+```sh
+cargo run -- linux
+```
+    }
+}
+
+@docs include {
+    path: "AllSyntax.rocci",
+    language: "rocci"
+}
+
+@docs example {
+    name: "counter-test",
+    command: "cargo test",
+    language: "roc"
+
+```roc
+counter = 42
+```
+}
+
+@docs link-card {
+    page: "/guides/getting-started/",
+    title: "Getting Started 🚀",
+    description: "Learn how to build applications with Rocci."
+}
+
+@docs details {
+    summary: "Advanced Details 🔍",
+    open: Bool.false
+
+Here is collapsible markdown content that stays hidden until expanded.
+}
+
+## Section 3: Display-Only Code Fences {#sec-fences}
+
+The following code blocks are display-only and must never be executed or treated as executable islands:
+
+```roc
+# Ordinary display-only Roc fence
+main = \{} -> "Hello from display Roc!"
+```
+
+```html
+<div class="display-container">
+    <p>Raw HTML snippet for display only &amp; entities</p>
+</div>
+```
+
+```css
+.display-class {
+    color: #10b981;
+    font-size: 1rem;
+}
+```
+
+```sh
+rocci build --release
+```
+
+```text
+Plain inert text block 📝
+```
+
+## Section 4: Executable Island and Template Directives {#sec-executable}
+
+@render {
+    Card({ title: "Rendered Card 🎉", count: 100 })
+}
+
+@let activeItems = List.keepIf(items, |item| item.id > 0)
+
+@if isLoaded {
+    <p>Data loaded successfully! 🌟</p>
+} @else if List.isEmpty(activeItems) {
+    <p>No active items available.</p>
+} @else {
+    <p>Loading pending... ⏳</p>
+}
+
+@for item in activeItems {
+    <li>{item.name}</li>
+}
+
+@match status {
+    Active(n) => <p>Active count: {Num.toStr(n)}</p>
+    Idle => <p>System is currently idle 💤</p>
+}
+
+## Section 5: Escaped Syntax and Edge Cases {#sec-escapes}
+
+\@docs note { this is escaped and not a real directive }
+
+\@if this is also escaped
+
+More trailing markdown with non-BMP Gothic character 𐍈 and emojis 🌈✨.

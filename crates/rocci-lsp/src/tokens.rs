@@ -246,7 +246,34 @@ fn collect_rocdown(
             rocci_rocdown::Item::Template(item) => {
                 collect_items(collector, std::slice::from_ref(item))
             }
+            rocci_rocdown::Item::Docs(docs) => {
+                collect_docs(collector, docs);
+            }
         }
+    }
+}
+
+fn collect_docs(collector: &mut Collector<'_>, docs: &rocci_rocdown::DocsDecl) {
+    collect_keyword(collector, docs.span, docs.kind_span.start, "@docs");
+    collector.token(docs.kind_span, TOKEN_TYPE, 0);
+    let (fields, content) = rocci_rocdown::split_docs_body(collector.src, docs.body);
+    for field in fields {
+        collector.token(field.name_span, TOKEN_PROPERTY, 0);
+        let val_str = field.value.of(collector.src).trim();
+        if val_str.starts_with('"') {
+            collector.token(field.value, TOKEN_STRING, 0);
+        } else if val_str == "true"
+            || val_str == "false"
+            || val_str == "Bool.true"
+            || val_str == "Bool.false"
+        {
+            collector.token(field.value, TOKEN_KEYWORD, 0);
+        }
+    }
+    if !content.is_empty() && (content.start as usize) < collector.src.len() {
+        let source = SourceFile::new("docs", collector.src);
+        let parsed = rocci_rocdown::parse_fragment(source, content, false);
+        collect_rocdown(collector, &parsed.document, &parsed.headings);
     }
 }
 

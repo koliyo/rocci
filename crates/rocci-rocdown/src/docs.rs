@@ -142,6 +142,7 @@ pub fn resolve_include_path(from_file: &str, path: &str) -> Result<PathBuf, Stri
     if let Some(err) = include_path_error(path) {
         return Err(err);
     }
+    let from_file = from_file.strip_prefix("file://").unwrap_or(from_file);
     let base = Path::new(from_file)
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())

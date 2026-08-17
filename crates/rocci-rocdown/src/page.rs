@@ -455,7 +455,17 @@ fn skip_statement(cur: &mut Cursor<'_>, end: usize) {
                 _ => {}
             }
         }
+        let before = cur.pos;
         skip_token_keep_newline(cur);
+        if cur.pos == before {
+            if matches!(cur.peek(), Some('\n' | '\r')) {
+                cur.bump();
+            } else if cur.pos >= end || cur.peek().is_none() {
+                return;
+            } else {
+                cur.bump();
+            }
+        }
         started = true;
         if cur.pos == end {
             return;
