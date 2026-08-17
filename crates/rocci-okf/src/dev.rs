@@ -197,18 +197,17 @@ pub fn run_knowledge(
     let watch_output = output.clone();
     let watch_hub = hub;
     let watch_error = last_error;
-    let watch_has_build = has_build;
+    let watch_ctx = WatchContext {
+        root: watch_root,
+        output: watch_output,
+        profile,
+        hub: watch_hub,
+        last_error: watch_error,
+        has_build,
+        stop: watch_stop,
+    };
     let watch = thread::spawn(move || {
-        knowledge_watch_loop(
-            rx,
-            watch_root,
-            watch_output,
-            profile,
-            watch_hub,
-            watch_error,
-            watch_has_build,
-            watch_stop,
-        );
+        knowledge_watch_loop(rx, watch_ctx);
     });
 
     Ok(DevServer {
@@ -253,8 +252,7 @@ impl ReloadHub {
     }
 }
 
-fn knowledge_watch_loop(
-    rx: mpsc::Receiver<notify::Result<notify::Event>>,
+struct WatchContext {
     root: PathBuf,
     output: PathBuf,
     profile: Profile,
@@ -262,9 +260,11 @@ fn knowledge_watch_loop(
     last_error: Arc<Mutex<Option<String>>>,
     has_build: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
-) {
+}
+
+fn knowledge_watch_loop(rx: mpsc::Receiver<notify::Result<notify::Event>>, ctx: WatchContext) {
     loop {
-        if stop.load(Ordering::Relaxed) {
+        if ctx.stop.load(Ordering::Relaxed) {
             break;
         }
         let event = match rx.recv_timeout(DEBOUNCE) {
@@ -272,11 +272,11 @@ fn knowledge_watch_loop(
             Err(mpsc::RecvTimeoutError::Timeout) => continue,
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         };
-        let mut rebuild = knowledge_event_is_relevant(&event, &root, &output);
+        let mut rebuild = knowledge_event_is_relevant(&event, &ctx.root, &ctx.output);
         loop {
             match rx.recv_timeout(DEBOUNCE) {
                 Ok(next) => {
-                    rebuild = rebuild || knowledge_event_is_relevant(&next, &root, &output);
+                    rebuild = rebuild || knowledge_event_is_relevant(&next, &ctx.root, &ctx.output);
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => break,
                 Err(mpsc::RecvTimeoutError::Disconnected) => return,
@@ -285,18 +285,18 @@ fn knowledge_watch_loop(
         if !rebuild {
             continue;
         }
-        match rebuild_site(&root, &output, profile) {
+        match rebuild_site(&ctx.root, &ctx.output, ctx.profile) {
             Ok(_) => {
-                has_build.store(true, Ordering::Relaxed);
-                *last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
-                hub.broadcast();
+                ctx.has_build.store(true, Ordering::Relaxed);
+                *ctx.last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
+                ctx.hub.broadcast();
             }
             Err(err) => {
                 eprintln!("rocci-okf: rebuild failed: {err:#}");
-                if !has_build.load(Ordering::Relaxed) {
-                    *last_error.lock().unwrap_or_else(|err| err.into_inner()) =
+                if !ctx.has_build.load(Ordering::Relaxed) {
+                    *ctx.last_error.lock().unwrap_or_else(|err| err.into_inner()) =
                         Some(format!("{err:#}"));
-                    hub.broadcast();
+                    ctx.hub.broadcast();
                 }
             }
         }
@@ -450,7 +450,7 @@ fn stream_events(stream: &mut TcpStream, hub: &Arc<ReloadHub>) -> Result<()> {
         "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n"
     )?;
     stream.flush()?;
-    while let Ok(_) = rx.recv() {
+    while rx.recv().is_ok() {
         if write!(stream, "event: reload\ndata: {}\n\n", 1).is_err() {
             break;
         }

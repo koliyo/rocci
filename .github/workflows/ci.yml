@@ -63,9 +63,9 @@ jobs:
       - name: Inspect AST syntax fixtures
         run: |
           cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
-          cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
+          cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
           cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocci
-          cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocdown
+          cargo run -q -p rocci-rocdown-cli -- inspect ast test/EmbeddedLanguages.rocdown
       - name: Validate documentation site
         run: cargo run -q -p rocci-rocdown-cli -- check docs
 

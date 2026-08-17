@@ -39,25 +39,20 @@ pub fn parse_markdown_body(
     let options = comrak_options();
     let root = parse_document(&arena, body_str, &options);
 
-    let mut headings = Vec::new();
-    let mut links = Vec::new();
-    let mut footnote_ids = BTreeSet::new();
-    let mut defined_footnotes = BTreeSet::new();
-    let mut heading_ids = HashMap::<String, usize>::new();
-
-    walk_node(
-        root,
+    let mut walker = MarkdownWalker {
         relative,
         source,
-        body.start as usize,
+        body_offset: body.start as usize,
         body_str,
-        &mut headings,
-        &mut links,
-        &mut footnote_ids,
-        &mut defined_footnotes,
-        &mut heading_ids,
+        headings: Vec::new(),
+        links: Vec::new(),
+        footnote_ids: BTreeSet::new(),
+        defined_footnotes: BTreeSet::new(),
+        heading_ids: HashMap::new(),
         diagnostics,
-    );
+    };
+
+    walker.walk(root);
 
     // Extract heading sections for search indexing
     let mut heading_sections = Vec::new();
@@ -69,7 +64,7 @@ pub fn parse_markdown_body(
                 heading_sections.push(prev);
             }
             let text = collect_text(child);
-            let mut ids_copy = heading_ids.clone();
+            let mut ids_copy = walker.heading_ids.clone();
             let id = assign_heading_id(&mut ids_copy, &text);
             current_section = Some(HeadingSection {
                 id,
@@ -92,98 +87,89 @@ pub fn parse_markdown_body(
     let _ = comrak::format_html(root, &options, &mut article_html);
 
     MarkdownOutput {
-        headings,
+        headings: walker.headings,
         heading_sections,
-        links,
-        footnote_ids,
-        defined_footnotes,
+        links: walker.links,
+        footnote_ids: walker.footnote_ids,
+        defined_footnotes: walker.defined_footnotes,
         article_html,
     }
 }
 
-fn walk_node<'a>(
-    node: &'a AstNode<'a>,
-    relative: &str,
-    source: &str,
+struct MarkdownWalker<'a> {
+    relative: &'a str,
+    source: &'a str,
     body_offset: usize,
-    body_str: &str,
-    headings: &mut Vec<Heading>,
-    links: &mut Vec<Link>,
-    footnote_ids: &mut BTreeSet<String>,
-    defined_footnotes: &mut BTreeSet<String>,
-    heading_ids: &mut HashMap<String, usize>,
-    diagnostics: &mut Vec<Diagnostic>,
-) {
-    let data = node.data.borrow();
-    let span = source_span(body_str, body_offset, data.sourcepos);
+    body_str: &'a str,
+    headings: Vec<Heading>,
+    links: Vec<Link>,
+    footnote_ids: BTreeSet<String>,
+    defined_footnotes: BTreeSet<String>,
+    heading_ids: HashMap<String, usize>,
+    diagnostics: &'a mut Vec<Diagnostic>,
+}
 
-    match &data.value {
-        NodeValue::Heading(heading) => {
-            let text = collect_text(node);
-            let id = assign_heading_id(heading_ids, &text);
-            headings.push(Heading {
-                level: heading.level,
-                id,
-                text,
-                location: location(source, span),
-            });
-        }
-        NodeValue::Link(link) => {
-            links.push(Link {
-                url: link.url.clone(),
-                location: location(source, span),
-            });
-        }
-        NodeValue::FootnoteReference(reference) => {
-            footnote_ids.insert(reference.name.clone());
-        }
-        NodeValue::FootnoteDefinition(definition) => {
-            defined_footnotes.insert(definition.name.clone());
-        }
-        NodeValue::HtmlBlock(block) => {
-            diagnostics.push(Diagnostic::error(
-                "OKF2009",
-                relative,
-                Some(location(source, span)),
-                format!(
-                    "raw HTML is forbidden in knowledge records: `{}`",
-                    block.literal.trim()
-                ),
-            ));
-        }
-        NodeValue::HtmlInline(html) => {
-            diagnostics.push(Diagnostic::error(
-                "OKF2009",
-                relative,
-                Some(location(source, span)),
-                format!(
-                    "raw HTML is forbidden in knowledge records: `{}`",
-                    html.trim()
-                ),
-            ));
-        }
-        NodeValue::Text(text) => {
-            footnote_ids.extend(footnote_labels(text));
-        }
-        _ => {}
-    }
+impl<'a> MarkdownWalker<'a> {
+    fn walk(&mut self, node: &'a AstNode<'a>) {
+        let data = node.data.borrow();
+        let span = source_span(self.body_str, self.body_offset, data.sourcepos);
 
-    drop(data);
+        match &data.value {
+            NodeValue::Heading(heading) => {
+                let text = collect_text(node);
+                let id = assign_heading_id(&mut self.heading_ids, &text);
+                self.headings.push(Heading {
+                    level: heading.level,
+                    id,
+                    text,
+                    location: location(self.source, span),
+                });
+            }
+            NodeValue::Link(link) => {
+                self.links.push(Link {
+                    url: link.url.clone(),
+                    location: location(self.source, span),
+                });
+            }
+            NodeValue::FootnoteReference(reference) => {
+                self.footnote_ids.insert(reference.name.clone());
+            }
+            NodeValue::FootnoteDefinition(definition) => {
+                self.defined_footnotes.insert(definition.name.clone());
+            }
+            NodeValue::HtmlBlock(block) => {
+                self.diagnostics.push(Diagnostic::error(
+                    "OKF2009",
+                    self.relative,
+                    Some(location(self.source, span)),
+                    format!(
+                        "raw HTML is forbidden in knowledge records: `{}`",
+                        block.literal.trim()
+                    ),
+                ));
+            }
+            NodeValue::HtmlInline(html) => {
+                self.diagnostics.push(Diagnostic::error(
+                    "OKF2009",
+                    self.relative,
+                    Some(location(self.source, span)),
+                    format!(
+                        "raw HTML is forbidden in knowledge records: `{}`",
+                        html.trim()
+                    ),
+                ));
+            }
+            NodeValue::Text(text) => {
+                self.footnote_ids.extend(footnote_labels(text));
+            }
+            _ => {}
+        }
 
-    for child in node.children() {
-        walk_node(
-            child,
-            relative,
-            source,
-            body_offset,
-            body_str,
-            headings,
-            links,
-            footnote_ids,
-            defined_footnotes,
-            heading_ids,
-            diagnostics,
-        );
+        drop(data);
+
+        for child in node.children() {
+            self.walk(child);
+        }
     }
 }
 

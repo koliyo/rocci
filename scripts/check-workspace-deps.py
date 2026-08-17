@@ -24,6 +24,7 @@ BASE_ROCCI = {
     "rocci-lsp",
     "rocci-highlight",
     "rocci-ui",
+    "rocci-datastar",
 }
 
 ROCDOWN = {
