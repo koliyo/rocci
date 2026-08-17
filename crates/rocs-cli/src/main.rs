@@ -454,11 +454,7 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             let report = rocs::okf::benchmark_retrieval(&root, &questions, profile.into())?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             if !report.threshold_met {
-                bail!(
-                    "knowledge retrieval hit rate {:.3} is below the required {:.3}",
-                    report.hit_rate,
-                    report.minimum_hit_rate
-                );
+                bail!(retrieval_benchmark_failure(&report));
             }
             Ok(())
         }
@@ -472,6 +468,48 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             Ok(())
         }
     }
+}
+
+fn retrieval_benchmark_failure(report: &rocs::okf::RetrievalReport) -> String {
+    let failures = report
+        .questions
+        .iter()
+        .filter(|question| !question.passed)
+        .map(|question| {
+            let expected = question.expected_concepts.join(", ");
+            let returned = if question.returned_concepts.is_empty() {
+                "none".to_owned()
+            } else {
+                question.returned_concepts.join(", ")
+            };
+            let reason = if question.first_relevant_rank.is_none() {
+                "no expected concept returned"
+            } else {
+                "lifecycle metadata mismatch"
+            };
+            let lifecycle = if question.first_relevant_rank.is_some() {
+                format!(
+                    "; expected status={}, authority={}; actual status={}, authority={}",
+                    question.expected_status.as_deref().unwrap_or("any"),
+                    question.expected_authority.as_deref().unwrap_or("any"),
+                    question.actual_status.as_deref().unwrap_or("missing"),
+                    question.actual_authority.as_deref().unwrap_or("missing"),
+                )
+            } else {
+                String::new()
+            };
+            format!(
+                "  - {}: {reason}{lifecycle}; expected [{expected}], returned [{returned}]",
+                question.id
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    format!(
+        "knowledge retrieval benchmark failed: {}/{} questions passed (hit rate {:.3}; required {:.3})\n{failures}",
+        report.passed, report.total, report.hit_rate, report.minimum_hit_rate
+    )
 }
 
 fn run(
@@ -505,6 +543,39 @@ fn preview(server: rocs::DevServer, no_window: bool) -> Result<()> {
 mod tests {
     use super::*;
     use clap::Parser;
+
+    #[test]
+    fn retrieval_benchmark_failure_names_the_failed_question() {
+        let report = rocs::okf::RetrievalReport {
+            benchmark: "knowledge/retrieval-benchmark.toml".into(),
+            top_k: 5,
+            total: 2,
+            passed: 1,
+            hit_rate: 0.5,
+            mean_reciprocal_rank: 0.5,
+            minimum_hit_rate: 1.0,
+            threshold_met: false,
+            questions: vec![rocs::okf::RetrievalQuestionResult {
+                id: "lifecycle-mismatch".into(),
+                question: "What lifecycle is expected?".into(),
+                query: "lifecycle".into(),
+                expected_concepts: vec!["architecture/record".into()],
+                returned_concepts: vec!["architecture/record".into()],
+                first_relevant_rank: Some(1),
+                expected_status: Some("stable".into()),
+                expected_authority: Some("descriptive".into()),
+                actual_status: Some("draft".into()),
+                actual_authority: Some("descriptive".into()),
+                lifecycle_matched: false,
+                passed: false,
+            }],
+        };
+
+        assert_eq!(
+            retrieval_benchmark_failure(&report),
+            "knowledge retrieval benchmark failed: 1/2 questions passed (hit rate 0.500; required 1.000)\n  - lifecycle-mismatch: lifecycle metadata mismatch; expected status=stable, authority=descriptive; actual status=draft, authority=descriptive; expected [architecture/record], returned [architecture/record]"
+        );
+    }
 
     #[test]
     fn build_parses() {

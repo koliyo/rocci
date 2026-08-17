@@ -331,6 +331,10 @@ pub struct RetrievalQuestionResult {
     pub expected_status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expected_authority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actual_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actual_authority: Option<String>,
     pub lifecycle_matched: bool,
     pub passed: bool,
 }
@@ -805,19 +809,27 @@ pub fn benchmark_retrieval(
         if let Some(rank) = first_relevant_rank {
             reciprocal_rank += 1.0 / rank as f64;
         }
-        let lifecycle_matched = first_relevant.is_some_and(|(_, expected)| {
-            bundle.concepts.iter().any(|concept| {
-                concept.id.as_str() == expected.as_str()
-                    && question.expected_status.as_deref().is_none_or(|status| {
-                        string_field(&concept.metadata, "status") == Some(status)
-                    })
-                    && question
-                        .expected_authority
-                        .as_deref()
-                        .is_none_or(|authority| {
-                            string_field(&concept.metadata, "authority") == Some(authority)
-                        })
-            })
+        let matched_concept = first_relevant.and_then(|(_, expected)| {
+            bundle
+                .concepts
+                .iter()
+                .find(|concept| concept.id.as_str() == expected.as_str())
+        });
+        let actual_status = matched_concept
+            .and_then(|concept| string_field(&concept.metadata, "status"))
+            .map(str::to_owned);
+        let actual_authority = matched_concept
+            .and_then(|concept| string_field(&concept.metadata, "authority"))
+            .map(str::to_owned);
+        let lifecycle_matched = matched_concept.is_some_and(|_| {
+            question
+                .expected_status
+                .as_deref()
+                .is_none_or(|status| actual_status.as_deref() == Some(status))
+                && question
+                    .expected_authority
+                    .as_deref()
+                    .is_none_or(|authority| actual_authority.as_deref() == Some(authority))
         });
         let question_passed = first_relevant_rank.is_some() && lifecycle_matched;
         if question_passed {
@@ -832,6 +844,8 @@ pub fn benchmark_retrieval(
             first_relevant_rank,
             expected_status: question.expected_status,
             expected_authority: question.expected_authority,
+            actual_status,
+            actual_authority,
             lifecycle_matched,
             passed: question_passed,
         });
