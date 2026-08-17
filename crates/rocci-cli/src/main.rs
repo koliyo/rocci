@@ -1,16 +1,4 @@
-mod browse;
-mod bundle;
-mod datastar_asset;
-mod dispatch;
-mod driver;
-mod error_page;
-mod roc_module;
-mod run;
-mod runtime_assets;
-mod serve;
-mod style;
-mod theme;
-mod view;
+use rocci_cli::{browse, bundle, datastar_asset, run, serve, style, theme, view};
 
 use std::{
     env, fs,

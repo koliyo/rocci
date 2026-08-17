@@ -2304,9 +2304,30 @@ dependencies = [
 name = "rocci-rocdown"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "comrak",
+ "rocci-core",
  "rocci-template",
  "rocci-theme",
+ "rocci-wry",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
+name = "rocci-rocdown-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "rocci-cli",
+ "rocci-rocdown",
+ "rocci-wry",
+ "rocs",
+ "serde",
+ "serde_json",
+ "toml",
 ]
 
 [[package]]

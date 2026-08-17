@@ -4,6 +4,7 @@ use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 pub const CONFIG_FILE: &str = "rocs.toml";
+pub const ROCDOWN_CONFIG_FILE: &str = "rocdown.toml";
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
@@ -97,7 +98,15 @@ impl Default for ExamplesConfig {
 }
 
 pub fn load_config(root: &Path) -> Result<SiteConfig> {
-    let path = root.join(CONFIG_FILE);
+    load_config_named(root, CONFIG_FILE)
+}
+
+pub fn load_rocdown_config(root: &Path) -> Result<SiteConfig> {
+    load_config_named(root, ROCDOWN_CONFIG_FILE)
+}
+
+pub fn load_config_named(root: &Path, filename: &str) -> Result<SiteConfig> {
+    let path = root.join(filename);
     if !path.exists() {
         return Ok(SiteConfig::default());
     }

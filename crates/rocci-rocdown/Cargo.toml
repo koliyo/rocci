@@ -10,6 +10,12 @@ name = "rocci_rocdown"
 path = "src/lib.rs"
 
 [dependencies]
+anyhow = { workspace = true }
 comrak = "0.54"
+rocci-core = { workspace = true }
 rocci-template = { workspace = true }
 rocci-theme = { workspace = true }
+rocci-wry = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }

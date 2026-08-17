@@ -23,7 +23,10 @@ pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
     RouteHint, Severity, SourcePage, resolve,
 };
-pub use config::{BuildConfig, NavConfig, SiteConfig, SiteMeta, load_config};
+pub use config::{
+    BuildConfig, CONFIG_FILE, NavConfig, ROCDOWN_CONFIG_FILE, SiteConfig, SiteMeta, load_config,
+    load_config_named, load_rocdown_config,
+};
 pub use dev::{DevServer, run, run_knowledge};
 pub use docs::{
     ArticleNode, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin, PageDocs,

@@ -11,7 +11,7 @@ use rocci_wry::PreviewOptions;
 
 use crate::datastar_asset;
 use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
-use crate::error_page::{self, FailedFile, MappedModule};
+use crate::error_page::{FailedFile, MappedModule};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
