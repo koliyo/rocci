@@ -22,6 +22,8 @@
 | Shared runtime configuration | `crates/rocci-core` |
 | CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-desktop` |
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
+| Portable OKF parsing, validation, search, and artifacts | `crates/okf` |
+| Knowledge review CLI, desktop preview, and bundle tools | `crates/rocci-okf` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 | Editor behavior | `crates/rocci-lsp`, `editors/vscode`, or `editors/zed` |
 
@@ -69,7 +71,7 @@
 - For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run
-  `cargo run -q -p rocci-rocdown-cli -- knowledge check knowledge --profile rocci` and
+  `cargo run -q -p rocci-okf -- check knowledge --profile rocci` and
   report lifecycle or provenance warnings separately from errors.
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.

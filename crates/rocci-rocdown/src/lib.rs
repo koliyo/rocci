@@ -13,7 +13,6 @@ mod links;
 mod lower;
 pub mod lsp;
 mod markdown;
-pub mod okf;
 mod page;
 mod parse;
 mod plan;
@@ -38,7 +37,7 @@ pub use config::{
     BuildConfig, CONFIG_FILE, NavConfig, ROCDOWN_CONFIG_FILE, SiteConfig, SiteMeta, load_config,
     load_config_named, load_rocdown_config,
 };
-pub use dev::{DevServer, run, run_knowledge};
+pub use dev::{DevServer, run};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
     PageDocs, extract_lines, extract_region, field_bool, field_string, field_strings,

@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use clap::{Args, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use rocci_cli::driver::{DriverOptions, GenericAppPlan, GenericModule};
 use rocci_cli::serve::{PortArg, parse_port_arg};
 use rocci_rocdown::{SourceFile, StandaloneReady, ThemeArgs, format_diagnostic};
@@ -82,11 +82,6 @@ enum Commands {
         #[command(subcommand)]
         target: InspectTarget,
     },
-    /// Validate, inspect, or build an Open Knowledge Format bundle (migration adapter).
-    Knowledge {
-        #[command(subcommand)]
-        command: KnowledgeCommand,
-    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -133,165 +128,6 @@ enum InspectTarget {
         input: PathBuf,
         #[command(flatten)]
         theme: ThemeArgs,
-    },
-}
-
-#[derive(Clone, Copy, ValueEnum)]
-enum KnowledgeProfileArg {
-    Base,
-    Rocci,
-}
-
-impl From<KnowledgeProfileArg> for rocci_rocdown::okf::Profile {
-    fn from(value: KnowledgeProfileArg) -> Self {
-        match value {
-            KnowledgeProfileArg::Base => Self::Base,
-            KnowledgeProfileArg::Rocci => Self::Rocci,
-        }
-    }
-}
-
-#[derive(Clone, Copy, ValueEnum)]
-enum TrustTierArg {
-    HumanReviewed,
-    Generated,
-    Unverified,
-}
-
-impl From<TrustTierArg> for rocci_rocdown::okf::TrustTier {
-    fn from(value: TrustTierArg) -> Self {
-        match value {
-            TrustTierArg::HumanReviewed => Self::HumanReviewed,
-            TrustTierArg::Generated => Self::Generated,
-            TrustTierArg::Unverified => Self::Unverified,
-        }
-    }
-}
-
-#[derive(Args, Default)]
-struct KnowledgeFiltersArg {
-    /// Match any of these concept types. Repeat to add alternatives.
-    #[arg(long = "type")]
-    types: Vec<String>,
-    /// Require this tag. Repeat to require multiple tags.
-    #[arg(long = "tag")]
-    tags: Vec<String>,
-    /// Match any of these lifecycle statuses. Repeat to add alternatives.
-    #[arg(long = "status")]
-    statuses: Vec<String>,
-    /// Match any of these authority levels. Repeat to add alternatives.
-    #[arg(long = "authority")]
-    authorities: Vec<String>,
-    /// Match any of these derived trust tiers. Repeat to add alternatives.
-    #[arg(long = "trust-tier", value_enum)]
-    trust_tiers: Vec<TrustTierArg>,
-    /// Match stale (`true`) or current (`false`) records.
-    #[arg(long)]
-    stale: Option<bool>,
-}
-
-impl From<&KnowledgeFiltersArg> for rocci_rocdown::okf::KnowledgeFilter {
-    fn from(value: &KnowledgeFiltersArg) -> Self {
-        Self {
-            types: value.types.clone(),
-            tags: value.tags.clone(),
-            statuses: value.statuses.clone(),
-            authorities: value.authorities.clone(),
-            trust_tiers: value.trust_tiers.iter().copied().map(Into::into).collect(),
-            stale: value.stale,
-        }
-    }
-}
-
-#[derive(Subcommand)]
-enum KnowledgeCommand {
-    /// Watch an OKF bundle, rebuild, and serve with live reload.
-    Run {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        /// Write preview output here instead of a temp directory.
-        #[arg(short, long)]
-        output: Option<PathBuf>,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-        /// Skip the embedded window; print the URL and keep serving.
-        #[arg(long)]
-        no_window: bool,
-        /// TCP port to listen on. Defaults to a free port with the embedded window,
-        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
-        #[arg(
-            long,
-            default_value = "auto",
-            default_value_if("no_window", "true", "8000"),
-            value_name = "PORT",
-            value_parser = parse_port_arg,
-            env = "ROC_BASIC_WEBSERVER_PORT"
-        )]
-        port: PortArg,
-    },
-    /// Validate an OKF bundle without writing output.
-    Check {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-        #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
-        format: CheckFormatArg,
-    },
-    /// Print normalized concepts or the bundle graph as JSON.
-    Inspect {
-        #[command(subcommand)]
-        target: KnowledgeInspectTarget,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-    },
-    /// Search metadata and heading chunks as JSON.
-    Search {
-        query: String,
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-        #[command(flatten)]
-        filters: KnowledgeFiltersArg,
-    },
-    /// Measure lexical retrieval against a fixed question set.
-    Benchmark {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        /// Question set. Defaults to retrieval-benchmark.toml inside the bundle.
-        #[arg(long, value_name = "PATH")]
-        questions: Option<PathBuf>,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-    },
-    /// Render a validated bundle and emit its normalized catalog.
-    Build {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        #[arg(short, long, default_value = "dist/knowledge")]
-        output: PathBuf,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-    },
-}
-
-#[derive(Subcommand)]
-enum KnowledgeInspectTarget {
-    Catalog {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-        #[command(flatten)]
-        filters: KnowledgeFiltersArg,
-    },
-    Concept {
-        concept: String,
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
-    },
-    Graph {
-        #[arg(default_value = "knowledge")]
-        root: PathBuf,
     },
 }
 
@@ -419,7 +255,6 @@ fn try_main() -> Result<()> {
             InspectTarget::Ast { input, theme } => inspect_ast(&input, &theme),
             InspectTarget::Roc { input, theme } => inspect_roc(&input, &theme),
         },
-        Commands::Knowledge { command } => knowledge(command),
     }
 }
 
@@ -610,158 +445,6 @@ fn inspect_roc(input: &Path, theme: &ThemeArgs) -> Result<()> {
         bail!("document compilation failed");
     }
     Ok(())
-}
-
-fn knowledge(command: KnowledgeCommand) -> Result<()> {
-    match command {
-        KnowledgeCommand::Run {
-            root,
-            output,
-            profile,
-            no_window,
-            port,
-        } => {
-            let port = port.resolve()?;
-            let server =
-                rocci_rocdown::run_knowledge(&root, output.as_deref(), port, profile.into())?;
-            eprintln!("rocdown: review queue at {}review/", server.url);
-            if no_window {
-                server.wait();
-                return Ok(());
-            }
-            let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
-                url: server.url.clone(),
-                title: server.title.clone(),
-                state_key: Some("rocdown:knowledge".to_string()),
-                ..rocci_desktop::PreviewOptions::default()
-            })
-            .map_err(|error| anyhow::anyhow!("{error}"));
-            drop(server);
-            result
-        }
-        KnowledgeCommand::Check {
-            root,
-            profile,
-            format,
-        } => {
-            let report = rocci_rocdown::okf::check(&root, profile.into())?;
-            let rendered = match format {
-                CheckFormatArg::Terminal => report.terminal(),
-                CheckFormatArg::Json => report.json()?,
-            };
-            if !rendered.is_empty() {
-                println!("{rendered}");
-            }
-            if report.has_errors() {
-                bail!("knowledge bundle has errors");
-            }
-            Ok(())
-        }
-        KnowledgeCommand::Inspect { target, profile } => {
-            let (kind, root, concept, filter) = match &target {
-                KnowledgeInspectTarget::Catalog { root, filters } => (
-                    rocci_rocdown::okf::InspectKind::Catalog,
-                    root,
-                    None,
-                    rocci_rocdown::okf::KnowledgeFilter::from(filters),
-                ),
-                KnowledgeInspectTarget::Concept { concept, root } => (
-                    rocci_rocdown::okf::InspectKind::Concept,
-                    root,
-                    Some(concept.as_str()),
-                    rocci_rocdown::okf::KnowledgeFilter::default(),
-                ),
-                KnowledgeInspectTarget::Graph { root } => (
-                    rocci_rocdown::okf::InspectKind::Graph,
-                    root,
-                    None,
-                    rocci_rocdown::okf::KnowledgeFilter::default(),
-                ),
-            };
-            println!(
-                "{}",
-                rocci_rocdown::okf::inspect_filtered(root, kind, concept, profile.into(), &filter)?
-            );
-            Ok(())
-        }
-        KnowledgeCommand::Search {
-            query,
-            root,
-            profile,
-            filters,
-        } => {
-            println!(
-                "{}",
-                rocci_rocdown::okf::search(&root, &query, profile.into(), &(&filters).into())?
-            );
-            Ok(())
-        }
-        KnowledgeCommand::Benchmark {
-            root,
-            questions,
-            profile,
-        } => {
-            let questions = questions.unwrap_or_else(|| root.join("retrieval-benchmark.toml"));
-            let report =
-                rocci_rocdown::okf::benchmark_retrieval(&root, &questions, profile.into())?;
-            println!("{}", serde_json::to_string_pretty(&report)?);
-            if !report.threshold_met {
-                bail!(retrieval_benchmark_failure(&report));
-            }
-            Ok(())
-        }
-        KnowledgeCommand::Build {
-            root,
-            output,
-            profile,
-        } => {
-            let summary = rocci_rocdown::okf::build(&root, &output, profile.into())?;
-            println!("{}", serde_json::to_string_pretty(&summary)?);
-            Ok(())
-        }
-    }
-}
-
-fn retrieval_benchmark_failure(report: &rocci_rocdown::okf::RetrievalReport) -> String {
-    let failures = report
-        .questions
-        .iter()
-        .filter(|question| !question.passed)
-        .map(|question| {
-            let expected = question.expected_concepts.join(", ");
-            let returned = if question.returned_concepts.is_empty() {
-                "none".to_owned()
-            } else {
-                question.returned_concepts.join(", ")
-            };
-            let reason = if question.first_relevant_rank.is_none() {
-                "no expected concept returned"
-            } else {
-                "lifecycle metadata mismatch"
-            };
-            let lifecycle = if question.first_relevant_rank.is_some() {
-                format!(
-                    "; expected status={}, authority={}; actual status={}, authority={}",
-                    question.expected_status.as_deref().unwrap_or("any"),
-                    question.expected_authority.as_deref().unwrap_or("any"),
-                    question.actual_status.as_deref().unwrap_or("missing"),
-                    question.actual_authority.as_deref().unwrap_or("missing"),
-                )
-            } else {
-                String::new()
-            };
-            format!(
-                "  - {}: {reason}{lifecycle}; expected [{expected}], returned [{returned}]",
-                question.id
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    format!(
-        "knowledge retrieval benchmark failed: {}/{} questions passed (hit rate {:.3}; required {:.3})\n{failures}",
-        report.passed, report.total, report.hit_rate, report.minimum_hit_rate
-    )
 }
 
 #[cfg(test)]

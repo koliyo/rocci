@@ -10,6 +10,8 @@ members = [
     "crates/rocci-highlight",
     "crates/rocci-lsp",
     "crates/rocci-rocdown-cli",
+    "crates/okf",
+    "crates/rocci-okf",
 ]
 exclude = ["editors/zed"]
 default-members = ["crates/rocci-cli"]
@@ -21,6 +23,8 @@ license = "MIT OR Apache-2.0"
 description = "A Datastar-first .rocci template language and desktop runtime built on tao and wry"
 
 [workspace.dependencies]
+okf = { path = "crates/okf" }
+rocci-okf = { path = "crates/rocci-okf" }
 rocci-core = { path = "crates/rocci-core" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
