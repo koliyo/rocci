@@ -12,6 +12,8 @@ use rocci_lsp::{LanguageServer, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, T
 use rocci_template::{PositionEncoding, SourceFile};
 
 const KITCHEN_SINK: &str = include_str!("../../../test/AllSyntax.rocci");
+const EMBEDDED_ROCCI: &str = include_str!("../../../test/EmbeddedLanguages.rocci");
+const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
 
 const INCOMPLETE_TAG: &str = r#"
 @component Broken = |{}| {
@@ -354,6 +356,16 @@ fn guide_uri() -> Uri {
         .expect("guide uri")
 }
 
+fn embedded_rocdown_uri() -> Uri {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../test/EmbeddedLanguages.rocdown")
+        .canonicalize()
+        .expect("embedded rocdown path");
+    format!("file://{}", path.display())
+        .parse()
+        .expect("embedded rocdown uri")
+}
+
 fn open_rocdown_at(
     server: &mut LanguageServer,
     uri: Uri,
@@ -547,6 +559,331 @@ fn rocdown_page_completes_theme_ids() {
     assert!(
         labels.iter().any(|label| label.contains("rocci")),
         "{labels:?}"
+    );
+}
+
+#[test]
+fn embedded_languages_rocci_symbols_tokens_and_regions() {
+    let mut server = initialize(true);
+    let published = open(&mut server, EMBEDDED_ROCCI);
+    assert!(
+        published
+            .diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.severity != Some(DiagnosticSeverity::ERROR)),
+        "{:?}",
+        published.diagnostics
+    );
+
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("symbols");
+    let DocumentSymbolResponse::Nested(symbols) = symbols else {
+        panic!("expected nested document symbols");
+    };
+    let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+    assert!(names.contains(&"UserCard"), "{names:?}");
+    assert!(names.contains(&"Badge"), "{names:?}");
+    assert!(names.contains(&"StatusView"), "{names:?}");
+    assert!(names.contains(&"UserDirectory"), "{names:?}");
+    assert!(names.contains(&"sampleUser"), "{names:?}");
+    assert!(names.contains(&"State"), "{names:?}");
+    assert!(names.contains(&"init!"), "{names:?}");
+
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("semantic tokens");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full semantic tokens");
+    };
+
+    let user_card_kw = EMBEDDED_ROCCI
+        .find("@component\nUserCard")
+        .expect("@component");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, user_card_kw),
+        Some(TOKEN_KEYWORD)
+    );
+    let section_tag = EMBEDDED_ROCCI.find("<section").expect("<section") + 1;
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, section_tag),
+        Some(TOKEN_TYPE)
+    );
+    let id_attr = EMBEDDED_ROCCI.find("id=\"user-profile\"").expect("id attr");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, id_attr),
+        Some(TOKEN_PROPERTY)
+    );
+
+    let action_kw = EMBEDDED_ROCCI.find("@post").expect("@post");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, action_kw),
+        Some(TOKEN_KEYWORD)
+    );
+
+    let ordinary_roc = EMBEDDED_ROCCI.find("formatUser =").expect("formatUser");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, ordinary_roc),
+        None,
+        "ordinary Roc should not be tokenized by the host template server"
+    );
+
+    let regions = server
+        .embedded_ranges(&test_uri())
+        .expect("embedded ranges");
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && range_covers(&region.range, EMBEDDED_ROCCI, ordinary_roc)));
+    let css_pos = EMBEDDED_ROCCI
+        .find(".card--selected")
+        .expect("card--selected");
+    assert!(
+        regions.iter().any(|region| region.language == "css"
+            && range_covers(&region.range, EMBEDDED_ROCCI, css_pos))
+    );
+}
+
+#[test]
+fn embedded_languages_rocdown_symbols_tokens_and_regions() {
+    let mut server = initialize(true);
+    let uri = embedded_rocdown_uri();
+    let published = open_rocdown_at(&mut server, uri.clone(), EMBEDDED_ROCDOWN);
+    assert!(
+        published
+            .diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.severity != Some(DiagnosticSeverity::ERROR)),
+        "{:?}",
+        published.diagnostics
+    );
+
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("symbols");
+    let DocumentSymbolResponse::Nested(symbols) = symbols else {
+        panic!("expected nested document symbols");
+    };
+    let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+    assert!(names.contains(&"@page"), "{names:?}");
+    assert!(names.contains(&"@roc"), "{names:?}");
+    assert!(names.contains(&"Card"), "{names:?}");
+    assert!(names.contains(&"cardSample"), "{names:?}");
+    assert!(names.contains(&"@docs note"), "{names:?}");
+    assert!(names.contains(&"@docs tabs"), "{names:?}");
+    assert!(names.contains(&"@docs include"), "{names:?}");
+    assert!(names.contains(&"@docs example"), "{names:?}");
+    assert!(names.contains(&"@docs link-card"), "{names:?}");
+    assert!(names.contains(&"@docs details"), "{names:?}");
+    assert!(
+        names.contains(&"Embedded Languages Test Suite 🌐"),
+        "{names:?}"
+    );
+
+    let tabs_sym = symbols
+        .iter()
+        .find(|sym| sym.name == "@docs tabs")
+        .expect("@docs tabs symbol");
+    let tab_children = tabs_sym.children.as_ref().expect("tabs children");
+    let child_names: Vec<_> = tab_children.iter().map(|s| s.name.as_str()).collect();
+    assert!(child_names.contains(&"@docs tab"), "{child_names:?}");
+
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("semantic tokens");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full semantic tokens");
+    };
+
+    let docs_kw = EMBEDDED_ROCDOWN.find("@docs note").expect("@docs note");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &tokens, docs_kw),
+        Some(TOKEN_KEYWORD)
+    );
+    let note_kind = EMBEDDED_ROCDOWN.find("note {").expect("note {");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &tokens, note_kind),
+        Some(TOKEN_TYPE)
+    );
+    let title_field = EMBEDDED_ROCDOWN
+        .find("title: \"Important")
+        .expect("title field");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &tokens, title_field),
+        Some(TOKEN_PROPERTY)
+    );
+
+    let regions = server.embedded_ranges(&uri).expect("embedded ranges");
+
+    let roc_decl = EMBEDDED_ROCDOWN
+        .find("Status : [Active(U64)")
+        .expect("roc decl");
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && range_covers(&region.range, EMBEDDED_ROCDOWN, roc_decl)));
+    let render_expr = EMBEDDED_ROCDOWN
+        .find("Card({ title: \"Rendered")
+        .expect("render expr");
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && range_covers(&region.range, EMBEDDED_ROCDOWN, render_expr)));
+    let css_pos = EMBEDDED_ROCDOWN.find(".docs-banner").expect("docs-banner");
+    assert!(
+        regions.iter().any(|region| region.language == "css"
+            && range_covers(&region.range, EMBEDDED_ROCDOWN, css_pos))
+    );
+
+    let display_roc = EMBEDDED_ROCDOWN
+        .find("Hello from display Roc")
+        .expect("display roc");
+    assert!(
+        !regions.iter().any(|region| region.language == "roc"
+            && range_covers(&region.range, EMBEDDED_ROCDOWN, display_roc)),
+        "display fences must NOT be reported as executable roc ranges"
+    );
+    let display_html = EMBEDDED_ROCDOWN
+        .find("display-container")
+        .expect("display-container");
+    assert!(
+        !regions
+            .iter()
+            .any(|region| range_covers(&region.range, EMBEDDED_ROCDOWN, display_html)),
+        "display html fences must NOT be reported as embedded ranges"
+    );
+    let escaped_docs = EMBEDDED_ROCDOWN.find(r"\@docs note").expect(r"\@docs note");
+    assert!(
+        !regions
+            .iter()
+            .any(|region| range_covers(&region.range, EMBEDDED_ROCDOWN, escaped_docs)),
+        "escaped directives must NOT be reported as embedded ranges"
+    );
+}
+
+#[test]
+fn docs_hover_and_completion_work() {
+    let mut server = initialize(true);
+    let uri = embedded_rocdown_uri();
+    open_rocdown_at(&mut server, uri.clone(), EMBEDDED_ROCDOWN);
+
+    let docs_note = EMBEDDED_ROCDOWN.find("@docs note").expect("@docs note") + 2;
+    let (line, character) = line_col(EMBEDDED_ROCDOWN, docs_note);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position::new(line, character),
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("docs hover");
+    let lsp_types::HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("@docs note"), "{}", markup.value);
+    assert!(markup.value.contains("title"), "{}", markup.value);
+
+    let docs_include_body = EMBEDDED_ROCDOWN
+        .find("path: \"AllSyntax")
+        .expect("include path")
+        + 2;
+    let (line, character) = line_col(EMBEDDED_ROCDOWN, docs_include_body);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: TextDocumentPositionParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                position: Position::new(line, character),
+            },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("include completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels: Vec<_> = items.iter().map(|item| item.label.as_str()).collect();
+    assert_eq!(labels, vec!["path"]);
+
+    const EMPTY_DOCS_SRC: &str = "@page {}\n\n@docs include {\n    \n}\n";
+    let mut empty_server = initialize(true);
+    open_rocdown(&mut empty_server, EMPTY_DOCS_SRC);
+    let at_empty = EMPTY_DOCS_SRC.find("    \n").expect("empty line") + 4;
+    let (line, character) = line_col(EMPTY_DOCS_SRC, at_empty);
+    let CompletionResponse::Array(items) = empty_server
+        .completion(CompletionParams {
+            text_document_position: rocdown_position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("empty include completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels: Vec<_> = items.iter().map(|item| item.label.as_str()).collect();
+    assert!(labels.contains(&"path"), "{labels:?}");
+    assert!(labels.contains(&"region"), "{labels:?}");
+    assert!(labels.contains(&"language"), "{labels:?}");
+
+    const ROOT_DOCS_SRC: &str = "@page {}\n\n@d\n";
+    let mut root_server = initialize(true);
+    open_rocdown(&mut root_server, ROOT_DOCS_SRC);
+    let at_d = ROOT_DOCS_SRC.find("@d").expect("@d") + 2;
+    let (line, character) = line_col(ROOT_DOCS_SRC, at_d);
+    let CompletionResponse::Array(items) = root_server
+        .completion(CompletionParams {
+            text_document_position: rocdown_position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("root completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels: Vec<_> = items.iter().map(|item| item.label.as_str()).collect();
+    assert!(labels.contains(&"docs"), "{labels:?}");
+}
+
+#[test]
+fn non_bmp_position_encoding_in_fixtures() {
+    let mut utf8_rocci = initialize(true);
+    let mut utf16_rocci = initialize(false);
+    open(&mut utf8_rocci, EMBEDDED_ROCCI);
+    open(&mut utf16_rocci, EMBEDDED_ROCCI);
+
+    let offset_after_emoji = EMBEDDED_ROCCI.find("🦄").expect("unicorn emoji") + 4;
+    let (u8_line, u8_col) = SourceFile::new("t.rocci", EMBEDDED_ROCCI)
+        .position(offset_after_emoji as u32, PositionEncoding::Utf8);
+    let (u16_line, u16_col) = SourceFile::new("t.rocci", EMBEDDED_ROCCI)
+        .position(offset_after_emoji as u32, PositionEncoding::Utf16);
+    assert_eq!(u8_line, u16_line);
+    assert_ne!(
+        u8_col, u16_col,
+        "UTF-8 byte length (4) vs UTF-16 code units (2) must differ"
+    );
+
+    let offset_gothic = EMBEDDED_ROCDOWN.find("𐍈").expect("gothic letter") + 4;
+    let (u8_rd_line, u8_rd_col) = SourceFile::new("t.rocdown", EMBEDDED_ROCDOWN)
+        .position(offset_gothic as u32, PositionEncoding::Utf8);
+    let (u16_rd_line, u16_rd_col) = SourceFile::new("t.rocdown", EMBEDDED_ROCDOWN)
+        .position(offset_gothic as u32, PositionEncoding::Utf16);
+    assert_eq!(u8_rd_line, u16_rd_line);
+    assert_ne!(
+        u8_rd_col, u16_rd_col,
+        "Gothic character UTF-8 (4) vs UTF-16 (2) must differ"
     );
 }
 

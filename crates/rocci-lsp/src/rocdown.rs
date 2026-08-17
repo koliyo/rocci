@@ -5,8 +5,8 @@ use lsp_types::{
     GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
 };
 use rocci_rocdown::{
-    CompileOptions, CompileOutput, Item, PageDecl, PageMeta, discovered_ids, index_pages_in_dir,
-    page_ref_from_source,
+    CompileOptions, CompileOutput, DocsDecl, Item, PageDecl, PageMeta, discovered_ids,
+    index_pages_in_dir, page_ref_from_source,
 };
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
@@ -26,6 +26,7 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "context",
     "init",
     "on",
+    "docs",
     "if",
     "for",
     "match",
@@ -125,6 +126,7 @@ pub fn document_symbols(
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::On(on) => on_symbol(source, on, encoding),
             Item::Template(item) => template_symbol(source, text, item, encoding),
+            Item::Docs(docs) => docs_symbol(source, text, docs, encoding),
         };
         symbols.push((item.span().start, symbol));
     }
@@ -151,6 +153,12 @@ pub fn hover(
         _ => None,
     }) {
         return Some(page_hover(source, page, compiled, encoding));
+    }
+    if let Some(docs) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Docs(docs) if docs.span.contains(offset) => Some(docs),
+        _ => None,
+    }) {
+        return Some(docs_hover(source, docs, encoding));
     }
     compiled.headings.iter().find_map(|heading| {
         if !heading.span.contains(offset) {
@@ -195,6 +203,12 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
         _ => None,
     }) {
         return page_completion(text, page, offset, compiled);
+    }
+    if let Some(docs) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Docs(docs) if docs.span.contains(offset as u32) => Some(docs),
+        _ => None,
+    }) {
+        return docs_completion(text, docs, offset);
     }
     if let Some(prefix) = root_declaration_prefix(text, offset) {
         return CompletionResponse::Array(
@@ -449,5 +463,136 @@ fn keyword_selection(src: &str, span: Span, keyword: &str) -> Span {
         Span::new(start, start + keyword.len())
     } else {
         span
+    }
+}
+
+fn docs_hover(source: SourceFile<'_>, docs: &DocsDecl, encoding: PositionEncoding) -> Hover {
+    let (fields, _) = rocci_rocdown::split_docs_body(source.src, docs.body);
+    let mut value = format!("```rocdown\n@docs {}\n```\n", docs.kind);
+    for field in fields {
+        value.push_str(&format!(
+            "\n- **{}**: `{}`",
+            field.name,
+            source.slice(field.value).trim()
+        ));
+    }
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value,
+        }),
+        range: Some(lsp_range(source, docs.span, encoding)),
+    }
+}
+
+fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResponse {
+    let body = docs.body.of(text);
+    let rel = offset
+        .saturating_sub(docs.body.start as usize)
+        .min(body.len());
+    let prefix = field_prefix(&body[..rel]);
+    if docs.kind == "tabs"
+        && let Some(value) = after_field(&body[..rel], "kind")
+    {
+        let items = ["language", "platform", "tool"]
+            .into_iter()
+            .filter(|id| id.starts_with(&value))
+            .map(|id| completion_item(id, CompletionItemKind::ENUM_MEMBER, Some("kind".into())))
+            .collect();
+        return CompletionResponse::Array(items);
+    }
+    if let Some(value) = after_field(&body[..rel], "open") {
+        let items = ["true", "false", "Bool.true", "Bool.false"]
+            .into_iter()
+            .filter(|id| id.starts_with(&value))
+            .map(|id| completion_item(id, CompletionItemKind::ENUM_MEMBER, Some("open".into())))
+            .collect();
+        return CompletionResponse::Array(items);
+    }
+    let fields: &[&str] = match docs.kind.as_str() {
+        "include" => &["path", "region", "language", "start_line", "end_line"],
+        "tabs" => &["group", "kind"],
+        "tab" => &["id", "label"],
+        "link-card" => &["page", "href", "title", "description"],
+        "details" => &["summary", "open"],
+        "figure" => &["alt", "caption"],
+        "definition" => &["term"],
+        "badge" => &["label", "tone"],
+        "example" => &["name", "command", "language"],
+        _ => &["title", "summary", "open", "label"],
+    };
+    let items = fields
+        .iter()
+        .filter(|field| field.starts_with(&prefix))
+        .map(|field| {
+            completion_item(
+                field,
+                CompletionItemKind::FIELD,
+                Some(format!("@docs {}", docs.kind)),
+            )
+        })
+        .collect();
+    CompletionResponse::Array(items)
+}
+
+fn docs_symbol(
+    source: SourceFile<'_>,
+    text: &str,
+    docs: &DocsDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    let (fields, content) = rocci_rocdown::split_docs_body(source.src, docs.body);
+    let title = fields
+        .iter()
+        .find(|field| field.name == "title" || field.name == "label" || field.name == "summary")
+        .and_then(|field| rocci_rocdown::field_string(source.src, field));
+    let mut detail = format!("@docs {}", docs.kind);
+    if let Some(title) = title {
+        detail.push_str(" · ");
+        detail.push_str(&title);
+    }
+    let mut children = Vec::new();
+    if !content.is_empty() && (content.start as usize) < source.src.len() {
+        let parsed = rocci_rocdown::parse_fragment(source, content, false);
+        for heading in &parsed.headings {
+            children.push((
+                heading.span.start,
+                named_symbol(
+                    &heading.text,
+                    Some(format!("{{#{}}}", heading.id)),
+                    SymbolKind::STRING,
+                    source,
+                    heading.span,
+                    heading.span,
+                    encoding,
+                ),
+            ));
+        }
+        for item in &parsed.document.items {
+            if let Item::Docs(nested) = item {
+                children.push((
+                    nested.span.start,
+                    docs_symbol(source, text, nested, encoding),
+                ));
+            }
+        }
+    }
+    children.sort_by_key(|(start, _)| *start);
+    let children = if children.is_empty() {
+        None
+    } else {
+        Some(children.into_iter().map(|(_, sym)| sym).collect())
+    };
+
+    DocumentSymbol {
+        name: format!("@docs {}", docs.kind),
+        detail: Some(detail),
+        kind: SymbolKind::STRUCT,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, docs.span, encoding),
+        selection_range: lsp_range(source, docs.kind_span, encoding),
+        children,
     }
 }
