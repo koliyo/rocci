@@ -107,16 +107,15 @@ pub fn view(
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
     let title = format!("rocci view · {}", info.name);
-    match serve::wait_for_listen(&mut child, port)? {
-        serve::ListenWait::Ready => {
+    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+        serve::RocStart::Ready => {
             println!(
                 "{}",
                 style::viewing(&format!("{} from {}", info.name, input.display()), &url)
             );
             serve::with_window(&mut child, &url, &title, no_window)
         }
-        serve::ListenWait::Exited(_) => {
-            let output = tee.finish();
+        serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(
                 &output,
                 &[MappedModule {

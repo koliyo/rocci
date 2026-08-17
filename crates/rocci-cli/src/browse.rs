@@ -102,10 +102,9 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
 
-    match serve::wait_for_listen(&mut child, port)? {
-        serve::ListenWait::Ready => {}
-        serve::ListenWait::Exited(_) => {
-            let output = tee.finish();
+    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+        serve::RocStart::Ready => {}
+        serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(&output, &[]);
             return serve::serve_html(port, 500, &html, "rocci browse", no_window);
         }

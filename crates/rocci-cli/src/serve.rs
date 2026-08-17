@@ -90,14 +90,18 @@ pub struct StderrTee {
 }
 
 impl StderrTee {
-    pub fn finish(&mut self) -> String {
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
-        }
+    pub fn snapshot(&self) -> String {
         self.buf
             .lock()
             .unwrap_or_else(|err| err.into_inner())
             .clone()
+    }
+
+    pub fn finish(&mut self) -> String {
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+        self.snapshot()
     }
 }
 
@@ -105,6 +109,11 @@ pub fn spawn_roc(mut cmd: Command) -> Result<(Child, StderrTee)> {
     cmd.stdin(Stdio::null())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped());
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
     let mut child = cmd
         .spawn()
         .context("failed to start `roc`; is it on PATH?")?;
@@ -122,12 +131,12 @@ pub fn spawn_roc(mut cmd: Command) -> Result<(Child, StderrTee)> {
                 Ok(0) => break,
                 Ok(n) => {
                     let text = String::from_utf8_lossy(&chunk[..n]);
-                    eprint!("{text}");
-                    let _ = io::stderr().flush();
                     thread_buf
                         .lock()
                         .unwrap_or_else(|err| err.into_inner())
                         .push_str(&text);
+                    eprint!("{text}");
+                    let _ = io::stderr().flush();
                 }
                 Err(_) => break,
             }
@@ -165,6 +174,133 @@ pub fn wait_for_server(child: &mut Child, port: u16) -> Result<()> {
         ListenWait::Ready => Ok(()),
         ListenWait::Exited(status) => bail!("roc exited before serving ({status})"),
     }
+}
+
+pub enum RocStart {
+    Ready,
+    Failed(String),
+}
+
+pub fn roc_output_is_failure(output: &str) -> bool {
+    if output.contains("[ROC CRASHED]") {
+        return true;
+    }
+    found_error_count(output).is_some_and(|count| count > 0)
+}
+
+fn found_error_count(output: &str) -> Option<u32> {
+    let mut rest = output;
+    while let Some(idx) = rest.find("Found ") {
+        let after = &rest[idx + 6..];
+        let digits = after.chars().take_while(|ch| ch.is_ascii_digit()).count();
+        if digits > 0 {
+            let count = after[..digits].parse().ok()?;
+            if after[digits..].starts_with(" error") {
+                return Some(count);
+            }
+        }
+        rest = after.get(1..).unwrap_or("");
+        if rest.is_empty() {
+            break;
+        }
+    }
+    None
+}
+
+pub fn wait_for_roc(
+    child: &mut Child,
+    tee: &mut StderrTee,
+    port: u16,
+    probe_path: &str,
+) -> Result<RocStart> {
+    match wait_for_listen(child, port)? {
+        ListenWait::Exited(_) => Ok(RocStart::Failed(tee.finish())),
+        ListenWait::Ready => {
+            let output = wait_for_roc_diagnostics(tee);
+            if roc_output_is_failure(&output) {
+                return Ok(RocStart::Failed(stop_roc(child, tee, port)));
+            }
+            let path = normalize_probe_path(probe_path);
+            let _ = probe_http(port, &path);
+            thread::sleep(Duration::from_millis(50));
+            if matches!(child.try_wait(), Ok(Some(_))) || roc_output_is_failure(&tee.snapshot()) {
+                return Ok(RocStart::Failed(stop_roc(child, tee, port)));
+            }
+            Ok(RocStart::Ready)
+        }
+    }
+}
+
+fn wait_for_roc_diagnostics(tee: &StderrTee) -> String {
+    let start = Instant::now();
+    loop {
+        let snap = tee.snapshot();
+        if roc_output_is_failure(&snap)
+            || snap.contains("Found 0 error")
+            || snap.contains("Listening on")
+        {
+            return snap;
+        }
+        if start.elapsed() > Duration::from_millis(750) {
+            return snap;
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn stop_roc(child: &mut Child, tee: &mut StderrTee, port: u16) -> String {
+    stop_child(child);
+    let start = Instant::now();
+    while port_in_use(port) && start.elapsed() < Duration::from_secs(2) {
+        thread::sleep(Duration::from_millis(20));
+    }
+    tee.finish()
+}
+
+fn stop_child(child: &mut Child) {
+    #[cfg(unix)]
+    kill_process_group(child.id());
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+#[cfg(unix)]
+fn kill_process_group(pid: u32) {
+    unsafe extern "C" {
+        fn kill(pid: i32, sig: i32) -> i32;
+    }
+    let _ = unsafe { kill(-(pid as i32), 9) };
+}
+
+fn normalize_probe_path(path: &str) -> String {
+    if path.is_empty() {
+        "/".to_string()
+    } else if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    }
+}
+
+fn probe_http(port: u16, path: &str) -> io::Result<()> {
+    let mut stream = TcpStream::connect_timeout(
+        &std::net::SocketAddr::from(([127, 0, 0, 1], port)),
+        Duration::from_secs(2),
+    )?;
+    stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+    stream.set_write_timeout(Some(Duration::from_secs(2)))?;
+    let request =
+        format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes())?;
+    let mut buf = [0u8; 256];
+    let n = stream.read(&mut buf)?;
+    if n == 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::UnexpectedEof,
+            "empty HTTP response",
+        ));
+    }
+    Ok(())
 }
 
 pub fn serve_html(port: u16, status: u16, html: &str, title: &str, no_window: bool) -> Result<()> {
@@ -242,8 +378,7 @@ pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -
     }
 
     let preview_result = open_preview(url, title);
-    let _ = child.kill();
-    let _ = child.wait();
+    stop_child(child);
     preview_result
 }
 
@@ -365,5 +500,73 @@ mod tests {
         assert!(buf.contains("500 Internal Server Error"));
         assert!(buf.contains("text/html; charset=utf-8"));
         assert!(buf.contains("<html>boom</html>"));
+    }
+
+    #[test]
+    fn roc_output_treats_error_summary_as_failure() {
+        assert!(roc_output_is_failure(
+            "Found 20 errors and 2 warnings for main.roc.\n"
+        ));
+        assert!(roc_output_is_failure(
+            "Found 1 error and 0 warnings for main.roc.\n"
+        ));
+        assert!(!roc_output_is_failure(
+            "Found 0 errors and 5 warnings for main.roc.\n"
+        ));
+        assert!(!roc_output_is_failure(
+            "Listening on http://127.0.0.1:8000\n"
+        ));
+    }
+
+    #[test]
+    fn roc_output_treats_crash_marker_as_failure() {
+        assert!(roc_output_is_failure("[ROC CRASHED] runtime error\n"));
+        assert!(roc_output_is_failure(
+            "Found 0 errors and 0 warnings for main.roc.\n[ROC CRASHED] runtime error\n"
+        ));
+    }
+
+    #[test]
+    fn stderr_snapshot_does_not_consume_the_buffer() {
+        let tee = StderrTee {
+            buf: Arc::new(Mutex::new(String::from("Found 2 errors\n"))),
+            thread: None,
+        };
+        assert_eq!(tee.snapshot(), "Found 2 errors\n");
+        assert_eq!(tee.snapshot(), "Found 2 errors\n");
+        assert!(roc_output_is_failure(&tee.snapshot()));
+    }
+
+    #[test]
+    fn wait_for_roc_diagnostics_returns_existing_summary() {
+        let tee = StderrTee {
+            buf: Arc::new(Mutex::new(String::from(
+                "Found 2 errors and 0 warnings for main.roc.\nListening on http://127.0.0.1:1\n",
+            ))),
+            thread: None,
+        };
+        let snap = wait_for_roc_diagnostics(&tee);
+        assert!(roc_output_is_failure(&snap));
+    }
+
+    #[test]
+    fn probe_http_succeeds_when_server_responds() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 256];
+            let _ = stream.read(&mut buf);
+            let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n");
+        });
+        probe_http(port, "/").unwrap();
+        server.join().unwrap();
+    }
+
+    #[test]
+    fn normalize_probe_path_adds_a_leading_slash() {
+        assert_eq!(normalize_probe_path(""), "/");
+        assert_eq!(normalize_probe_path("/all-syntax/"), "/all-syntax/");
+        assert_eq!(normalize_probe_path("all-syntax/"), "/all-syntax/");
     }
 }

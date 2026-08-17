@@ -1,0 +1,16 @@
+@page {
+    route: "/broken-roc/",
+    meta: {
+        title: "Broken Roc on purpose",
+    },
+}
+
+@roc {
+x : Str
+x = 1
+}
+
+# Broken Roc
+
+This file parses as Rocdown. Roc rejects the generated program, and
+`rocci run` shows that diagnostic in the preview.
