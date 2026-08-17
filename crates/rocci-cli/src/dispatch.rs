@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::Path;
 
 use rocci_template::{InitInfo, RouteInfo};
 
@@ -277,7 +278,7 @@ where
 {
     let mut dirs = Vec::new();
     for url in urls {
-        let Some(relative) = rocci_rocdown::normalize_local_asset_url(url) else {
+        let Some(relative) = normalize_local_asset_url(url) else {
             continue;
         };
         let Some((dir, _)) = relative.split_once('/') else {
@@ -289,6 +290,40 @@ where
     }
     dirs.sort();
     dirs
+}
+
+fn normalize_local_asset_url(url: &str) -> Option<String> {
+    let url = url.trim();
+    if url.is_empty()
+        || url.starts_with("http://")
+        || url.starts_with("https://")
+        || url.starts_with("//")
+        || url.starts_with('/')
+    {
+        return None;
+    }
+    let path = Path::new(url);
+    if path.is_absolute() {
+        return None;
+    }
+    let mut parts = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::Normal(part) => {
+                parts.push(part.to_string_lossy().into_owned());
+            }
+            std::path::Component::ParentDir => {
+                parts.pop()?;
+            }
+            std::path::Component::Prefix(_) | std::path::Component::RootDir => return None,
+        }
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("/"))
+    }
 }
 
 fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {

@@ -2,15 +2,18 @@
 
 mod ast;
 mod docs;
+pub mod highlight;
 mod img;
 mod links;
 mod lower;
+pub mod lsp;
 mod markdown;
 mod page;
 mod parse;
 mod pprint;
 mod scan;
 pub mod standalone;
+pub mod theme;
 
 pub use ast::{
     DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
@@ -20,11 +23,13 @@ pub use docs::{
     DocsField, extract_lines, extract_region, field_bool, field_string, field_strings,
     include_path_error, resolve_include_path, split_docs_body,
 };
+pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{
     ImgFields, ImgHtmlAttr, StaticImage, collect_local_media, extract_img_fields, is_remote_asset,
     normalize_local_asset_url, resolve_local_asset,
 };
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
+pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use pprint::format_ast;
 pub use rocci_template::{
@@ -36,6 +41,7 @@ pub use rocci_theme::{
     ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,
     resolve as resolve_theme,
 };
+pub use theme::{ThemeArgs, compile_options as theme_compile_options};
 
 // Standalone interactive document planning
 pub use standalone::{

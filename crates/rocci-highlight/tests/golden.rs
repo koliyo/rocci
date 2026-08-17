@@ -103,44 +103,6 @@ fn golden_rocci_composite_highlight() {
 }
 
 #[test]
-fn golden_rocdown_composite_highlight() {
-    let src = r#"# Rocdown Guide
-
-Here is a paragraph with [Link](/url) and `inline code`.
-
-@roc {
-    message = "Hello from executable region"
-}
-
-```roc
-# Display-only code fence
-add = |a, b| a + b
-```
-"#;
-    let (lang, spans) = highlight_source("rocdown", src);
-    assert_eq!(lang, LanguageId::Rocdown);
-    assert_invariants(src, &spans);
-
-    // Verify markdown header keyword
-    assert!(
-        spans
-            .iter()
-            .any(|s| s.kind == HighlightKind::Keyword && &src[s.start()..s.end()] == "#")
-    );
-
-    // Verify executable @roc keyword
-    assert!(
-        spans
-            .iter()
-            .any(|s| s.kind == HighlightKind::Keyword && &src[s.start()..s.end()] == "@roc")
-    );
-
-    // Verify fenced code tokens
-    assert!(spans.iter().any(|s| s.kind == HighlightKind::Comment
-        && &src[s.start()..s.end()] == "# Display-only code fence"));
-}
-
-#[test]
 fn golden_roc_qualified_module_identifiers() {
     let src = r#"
 row = Sqlite.query!(

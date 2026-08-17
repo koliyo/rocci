@@ -5,14 +5,11 @@ pub mod regions;
 pub mod token;
 pub mod tree_sitter;
 
-pub use composite::{
-    highlight, highlight_rocci, highlight_rocci_document, highlight_rocdown,
-    highlight_rocdown_document,
-};
+pub use composite::{highlight, highlight_rocci, highlight_rocci_document};
 pub use language::LanguageId;
 pub use regions::{
     Region, RegionBuilder, RegionContext, RegionPurpose, RegionTree, RegionValidationError,
-    extract_rocci_regions, extract_rocdown_regions,
+    css_ranges, executable_roc_ranges, extract_rocci_regions,
 };
 pub use token::{
     HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION,
@@ -58,16 +55,6 @@ mod tests {
             "@component Card = |{ title }| { <div class=\"card\">{title}</div> }",
         );
         assert_eq!(lang, LanguageId::Rocci);
-        assert!(!spans.is_empty());
-    }
-
-    #[test]
-    fn test_highlight_rocdown_snippet() {
-        let (lang, spans) = highlight_source(
-            "rocdown",
-            "# Title\n\n```roc\nx = 42\n```\n\nParagraph text.",
-        );
-        assert_eq!(lang, LanguageId::Rocdown);
         assert!(!spans.is_empty());
     }
 }

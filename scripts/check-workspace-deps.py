@@ -43,12 +43,7 @@ CLASSES = {
     "okf-app": OKF_APP,
 }
 
-ALLOWED_REVERSE = {
-    ("rocci-cli", "rocci-rocdown"),
-    ("rocci-cli", "rocci-theme"),
-    ("rocci-lsp", "rocci-rocdown"),
-    ("rocci-highlight", "rocci-rocdown"),
-}
+ALLOWED_REVERSE: set[tuple[str, str]] = set()
 
 # Populate with (rocci-okf, rocdown-package) when the presentation adapter is
 # introduced together with a tracking issue. Empty until then.

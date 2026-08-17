@@ -95,15 +95,12 @@ async function startClient(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { language: 'rocci' },
-      { pattern: '**/*.rocci' },
-      { language: 'rocdown' },
-      { pattern: '**/*.rocdown' }
+      { pattern: '**/*.rocci' }
     ],
     synchronize: {
       configurationSection: 'rocci',
       fileEvents: [
-        workspace.createFileSystemWatcher('**/*.rocci'),
-        workspace.createFileSystemWatcher('**/*.rocdown')
+        workspace.createFileSystemWatcher('**/*.rocci')
       ]
     },
     outputChannel: wrappedOutput,

@@ -21,11 +21,6 @@ use crate::style;
 const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 
-fn is_document_path(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
-}
-
 pub fn view(
     input: &Path,
     component: &str,
@@ -37,35 +32,14 @@ pub fn view(
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
-    let (roc, diagnostics, components, has_errors, segments, wrap_in_shell) =
-        if is_document_path(input) {
-            let compiled = rocci_rocdown::compile(
-                source,
-                &crate::theme::compile_options(Some(input), &crate::theme::ThemeArgs::from_env()),
-            );
-            let has_errors = compiled.has_errors();
-            let wrap = !rocdown_component_is_html_document(&compiled.document, component);
-            (
-                compiled.roc,
-                compiled.diagnostics,
-                compiled.components,
-                has_errors,
-                compiled.segments,
-                wrap,
-            )
-        } else {
-            let compiled = compile(source, &LowerOptions::default());
-            let has_errors = compiled.has_errors();
-            let wrap = !component_is_html_document(&compiled.document, component);
-            (
-                compiled.roc,
-                compiled.diagnostics,
-                compiled.components,
-                has_errors,
-                compiled.segments,
-                wrap,
-            )
-        };
+    let compiled = compile(source, &LowerOptions::default());
+    let has_errors = compiled.has_errors();
+    let wrap_in_shell = !component_is_html_document(&compiled.document, component);
+    let roc = compiled.roc;
+    let diagnostics = compiled.diagnostics;
+    let components = compiled.components;
+    let segments = compiled.segments;
+
     for diagnostic in &diagnostics {
         eprintln!("{}", format_diagnostic(source, diagnostic));
     }
@@ -151,7 +125,7 @@ pub fn view(
                 &output,
                 &[MappedModule {
                     type_name: type_name.clone(),
-                    generated: roc,
+                    generated: roc.clone(),
                     source_name: name,
                     source_src: src,
                     segments,
@@ -160,18 +134,6 @@ pub fn view(
             serve::serve_html(port, 500, &html, &title, no_window)
         }
     }
-}
-
-fn rocdown_component_is_html_document(document: &rocci_rocdown::Document, roc_name: &str) -> bool {
-    document.items.iter().any(|item| match item {
-        rocci_rocdown::Item::Component(decl) if component_matches(&decl.name.name, roc_name) => {
-            matches!(
-                decl.body.items.iter().find(|item| !item.is_preamble()),
-                Some(TemplateItem::Element(el)) if el.name.name == "html"
-            )
-        }
-        _ => false,
-    })
 }
 
 fn find_component<'a>(components: &'a [ComponentInfo], name: &str) -> Option<&'a ComponentInfo> {

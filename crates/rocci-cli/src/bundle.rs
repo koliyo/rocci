@@ -20,7 +20,7 @@ pub fn bundle(config_path: &Path) -> Result<()> {
 
     datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
     runtime_assets::stage_into(&app_dir)?;
-    run::compile_rocci_modules(&app_dir, &crate::theme::ThemeArgs::default())?;
+    run::compile_rocci_modules(&app_dir)?;
 
     match env::consts::OS {
         "macos" => bundle_macos(&root, &app_dir, &config, config_path),

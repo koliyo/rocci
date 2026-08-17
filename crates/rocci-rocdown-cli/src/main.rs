@@ -7,8 +7,7 @@ use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use rocci_cli::driver::{DriverOptions, GenericAppPlan, GenericModule};
 use rocci_cli::serve::{PortArg, parse_port_arg};
-use rocci_cli::theme::ThemeArgs;
-use rocci_rocdown::{SourceFile, StandaloneReady, format_diagnostic};
+use rocci_rocdown::{SourceFile, StandaloneReady, ThemeArgs, format_diagnostic};
 
 #[derive(Parser)]
 #[command(

@@ -1,8 +1,7 @@
-mod analysis;
+pub mod analysis;
 pub mod analyzer;
 pub mod embedded;
-mod regions;
-mod rocdown;
+pub mod regions;
 pub mod tokens;
 
 use std::collections::HashMap;
@@ -26,11 +25,11 @@ use lsp_types::{
 };
 use rocci_template::PositionEncoding;
 
-pub use analyzer::{DocumentAnalysis, DocumentAnalyzer, RocciAnalyzer, RocdownAnalyzer};
+pub use analyzer::{DocumentAnalysis, DocumentAnalyzer, RocciAnalysis, RocciAnalyzer};
 pub use regions::{
     InspectedRegion, Language, Region, RegionContext, RegionPurpose, RegionSpan, RegionTree,
     RegionValidationError, css_ranges, executable_roc_ranges, extract_rocci_regions,
-    extract_rocdown_regions, inspect_regions,
+    inspect_regions,
 };
 pub use tokens::{
     MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION, MOD_READONLY, TOKEN_COMMENT,
@@ -53,7 +52,7 @@ impl LanguageServer {
     pub fn new() -> Self {
         Self {
             encoding: PositionEncoding::Utf16,
-            analyzers: vec![Box::new(RocciAnalyzer), Box::new(RocdownAnalyzer)],
+            analyzers: vec![Box::new(RocciAnalyzer)],
             documents: HashMap::new(),
         }
     }

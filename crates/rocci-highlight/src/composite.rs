@@ -5,7 +5,7 @@ use rocci_template::{
 
 use crate::embedded;
 use crate::language::LanguageId;
-use crate::regions::{RegionPurpose, RegionTree, extract_rocci_regions, extract_rocdown_regions};
+use crate::regions::{RegionPurpose, RegionTree, extract_rocci_regions};
 use crate::token::{
     HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, floor_char_boundary,
     resolve_and_sort_spans,
@@ -26,10 +26,12 @@ pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
             resolve_and_sort_spans(source, &raw)
         }
         LanguageId::Rocci => highlight_rocci(source),
-        LanguageId::Rocdown | LanguageId::Markdown => highlight_rocdown(source),
-        LanguageId::Shell | LanguageId::Toml | LanguageId::PlainText | LanguageId::Other(_) => {
-            Vec::new()
-        }
+        LanguageId::Rocdown
+        | LanguageId::Markdown
+        | LanguageId::Shell
+        | LanguageId::Toml
+        | LanguageId::PlainText
+        | LanguageId::Other(_) => Vec::new(),
     }
 }
 
@@ -43,24 +45,6 @@ pub fn highlight_rocci_document(source: &str, document: &RocciDocument) -> Vec<H
     let regions = extract_rocci_regions("snippet.rocci", source, document);
     let mut raw_tokens = Vec::new();
     collect_rocci_document(source, &mut raw_tokens, document);
-    collect_embedded_regions(source, &mut raw_tokens, &regions);
-    resolve_and_sort_spans(source, &raw_tokens)
-}
-
-pub fn highlight_rocdown(source: &str) -> Vec<HighlightSpan> {
-    let sf = SourceFile::new("snippet.rocdown", source);
-    let parsed = rocci_rocdown::parse(sf, false);
-    highlight_rocdown_document(source, &parsed.document, &parsed.headings)
-}
-
-pub fn highlight_rocdown_document(
-    source: &str,
-    document: &rocci_rocdown::Document,
-    headings: &[rocci_rocdown::HeadingInfo],
-) -> Vec<HighlightSpan> {
-    let regions = extract_rocdown_regions("snippet.rocdown", source, document, headings);
-    let mut raw_tokens = Vec::new();
-    collect_rocdown(source, &mut raw_tokens, document, headings);
     collect_embedded_regions(source, &mut raw_tokens, &regions);
     resolve_and_sort_spans(source, &raw_tokens)
 }
@@ -166,143 +150,7 @@ pub fn collect_rocci_document(
         }
     }
 }
-
-pub fn collect_rocdown(
-    src: &str,
-    collector: &mut Vec<HighlightSpan>,
-    document: &rocci_rocdown::Document,
-    headings: &[rocci_rocdown::HeadingInfo],
-) {
-    for heading in headings {
-        if let Some(span) = heading_marker(src, heading.span, heading.level) {
-            collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
-        }
-    }
-    for item in &document.items {
-        match item {
-            rocci_rocdown::Item::Markdown(md_node) => {
-                let mut md_tokens = Vec::new();
-                embedded::markdown::collect_markdown_node(src, md_node, &mut md_tokens);
-                for tok in md_tokens {
-                    collector.push(HighlightSpan::new(
-                        tok.span,
-                        tok.kind,
-                        tok.modifiers,
-                        tok.priority,
-                    ));
-                }
-            }
-            rocci_rocdown::Item::Page(page) => {
-                collect_keyword(src, collector, page.span, page.body.start, "@page");
-            }
-            rocci_rocdown::Item::Roc(roc) => {
-                collect_keyword(src, collector, roc.span, roc.body.start, "@roc");
-            }
-            rocci_rocdown::Item::Render(render) => {
-                collect_keyword(src, collector, render.span, render.expr.start, "@render");
-            }
-            rocci_rocdown::Item::Component(component) => {
-                collect_component(src, collector, component)
-            }
-            rocci_rocdown::Item::Fixture(fixture) => collect_fixture(src, collector, fixture),
-            rocci_rocdown::Item::Css(css) => collect_css(src, collector, css),
-            rocci_rocdown::Item::Context(context) => collect_context(src, collector, context),
-            rocci_rocdown::Item::Init(init) => collect_init(src, collector, init),
-            rocci_rocdown::Item::On(on) => collect_on(src, collector, on),
-            rocci_rocdown::Item::Template(item) => {
-                collect_items(src, collector, std::slice::from_ref(item))
-            }
-            rocci_rocdown::Item::Docs(docs) => {
-                collect_docs(src, collector, docs);
-            }
-            rocci_rocdown::Item::Img(img) => {
-                collect_img(src, collector, img);
-            }
-        }
-    }
-}
-
-fn collect_img(src: &str, collector: &mut Vec<HighlightSpan>, img: &rocci_rocdown::ImgDecl) {
-    collect_keyword(src, collector, img.span, img.body.start, "@img");
-    let mut cur = rocci_template::Cursor::at(src, img.body.start as usize);
-    let end = img.body.end as usize;
-    while cur.pos < end && !cur.is_eof() {
-        cur.skip_trivia();
-        if cur.pos >= end {
-            break;
-        }
-        if cur.peek() == Some(',') {
-            cur.bump();
-            continue;
-        }
-        let Some(name_span) = cur.scan_ident() else {
-            break;
-        };
-        collector.push(HighlightSpan::new(
-            name_span,
-            HighlightKind::Property,
-            0,
-            50,
-        ));
-        cur.skip_trivia();
-        if !cur.eat(':') {
-            break;
-        }
-        cur.skip_trivia();
-        let value_start = cur.pos;
-        if cur.peek() == Some('"') {
-            cur.skip_string();
-            let value_span = Span::new(value_start, cur.pos.min(end));
-            collector.push(HighlightSpan::new(value_span, HighlightKind::String, 0, 50));
-        }
-    }
-}
-
-fn collect_docs(src: &str, collector: &mut Vec<HighlightSpan>, docs: &rocci_rocdown::DocsDecl) {
-    collect_keyword(src, collector, docs.span, docs.kind_span.start, "@docs");
-    collector.push(HighlightSpan::new(
-        docs.kind_span,
-        HighlightKind::Type,
-        0,
-        55,
-    ));
-    let (fields, content) = rocci_rocdown::split_docs_body(src, docs.body);
-    for field in fields {
-        collector.push(HighlightSpan::new(
-            field.name_span,
-            HighlightKind::Property,
-            0,
-            50,
-        ));
-        let val_str = field.value.of(src).trim();
-        if val_str.starts_with('"') {
-            collector.push(HighlightSpan::new(
-                field.value,
-                HighlightKind::String,
-                0,
-                50,
-            ));
-        } else if val_str == "true"
-            || val_str == "false"
-            || val_str == "Bool.true"
-            || val_str == "Bool.false"
-        {
-            collector.push(HighlightSpan::new(
-                field.value,
-                HighlightKind::Keyword,
-                0,
-                50,
-            ));
-        }
-    }
-    if !content.is_empty() && (content.start as usize) < src.len() {
-        let source = SourceFile::new("docs", src);
-        let parsed = rocci_rocdown::parse_fragment(source, content, false);
-        collect_rocdown(src, collector, &parsed.document, &parsed.headings);
-    }
-}
-
-fn collect_keyword(
+pub fn collect_keyword(
     src: &str,
     collector: &mut Vec<HighlightSpan>,
     span: Span,
@@ -314,7 +162,7 @@ fn collect_keyword(
     }
 }
 
-fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
+pub fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
     let text = span.of(src);
     let indent = text.len() - text.trim_start_matches([' ', '\t']).len();
     let trimmed = &text[indent..];
@@ -326,25 +174,25 @@ fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
     Some(Span::new(start, start + hashes.min(level as usize)))
 }
 
-fn collect_css(src: &str, collector: &mut Vec<HighlightSpan>, css: &CssDecl) {
+pub fn collect_css(src: &str, collector: &mut Vec<HighlightSpan>, css: &CssDecl) {
     if let Some(span) = ident_between(src, css.span.start, css.body.start, "@css") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
-fn collect_context(src: &str, collector: &mut Vec<HighlightSpan>, context: &ContextDecl) {
+pub fn collect_context(src: &str, collector: &mut Vec<HighlightSpan>, context: &ContextDecl) {
     if let Some(span) = ident_between(src, context.span.start, context.ty.start, "@context") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
-fn collect_init(src: &str, collector: &mut Vec<HighlightSpan>, init: &InitDecl) {
+pub fn collect_init(src: &str, collector: &mut Vec<HighlightSpan>, init: &InitDecl) {
     if let Some(span) = ident_between(src, init.span.start, init.body.start, "@init") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
-fn collect_on(src: &str, collector: &mut Vec<HighlightSpan>, on: &OnDecl) {
+pub fn collect_on(src: &str, collector: &mut Vec<HighlightSpan>, on: &OnDecl) {
     if let Some(span) = ident_between(src, on.span.start, on.method.span.start, "@on") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
@@ -362,7 +210,7 @@ fn collect_on(src: &str, collector: &mut Vec<HighlightSpan>, on: &OnDecl) {
     ));
 }
 
-fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, component: &ComponentDecl) {
+pub fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, component: &ComponentDecl) {
     collector.push(HighlightSpan::new(
         component.name.span,
         HighlightKind::Function,
@@ -380,7 +228,7 @@ fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, component: &
     collect_items(src, collector, &component.body.items);
 }
 
-fn collect_fixture(src: &str, collector: &mut Vec<HighlightSpan>, fixture: &FixtureDecl) {
+pub fn collect_fixture(src: &str, collector: &mut Vec<HighlightSpan>, fixture: &FixtureDecl) {
     collector.push(HighlightSpan::new(
         fixture.name.span,
         HighlightKind::Function,
@@ -397,7 +245,7 @@ fn collect_fixture(src: &str, collector: &mut Vec<HighlightSpan>, fixture: &Fixt
     collect_path(collector, &fixture.target.parts);
 }
 
-fn collect_items(src: &str, collector: &mut Vec<HighlightSpan>, items: &[TemplateItem]) {
+pub fn collect_items(src: &str, collector: &mut Vec<HighlightSpan>, items: &[TemplateItem]) {
     for item in items {
         match item {
             TemplateItem::Element(el) => collect_element(src, collector, el),
@@ -481,7 +329,7 @@ fn collect_items(src: &str, collector: &mut Vec<HighlightSpan>, items: &[Templat
     }
 }
 
-fn collect_element(src: &str, collector: &mut Vec<HighlightSpan>, el: &Element) {
+pub fn collect_element(src: &str, collector: &mut Vec<HighlightSpan>, el: &Element) {
     collector.push(HighlightSpan::new(
         el.name.span,
         HighlightKind::Tag,
@@ -502,7 +350,7 @@ fn collect_element(src: &str, collector: &mut Vec<HighlightSpan>, el: &Element) 
     }
 }
 
-fn collect_call(src: &str, collector: &mut Vec<HighlightSpan>, call: &ComponentCall) {
+pub fn collect_call(src: &str, collector: &mut Vec<HighlightSpan>, call: &ComponentCall) {
     collect_path(collector, &call.path.parts);
     collect_attrs(src, collector, &call.attrs);
     if let Some(children) = &call.children {
@@ -514,7 +362,7 @@ fn collect_call(src: &str, collector: &mut Vec<HighlightSpan>, call: &ComponentC
     }
 }
 
-fn collect_path(collector: &mut Vec<HighlightSpan>, parts: &[rocci_template::Ident]) {
+pub fn collect_path(collector: &mut Vec<HighlightSpan>, parts: &[rocci_template::Ident]) {
     for (i, part) in parts.iter().enumerate() {
         let kind = if i + 1 == parts.len() {
             HighlightKind::Function
@@ -525,7 +373,7 @@ fn collect_path(collector: &mut Vec<HighlightSpan>, parts: &[rocci_template::Ide
     }
 }
 
-fn collect_path_at(
+pub fn collect_path_at(
     collector: &mut Vec<HighlightSpan>,
     span: Span,
     parts: &[rocci_template::Ident],
@@ -547,7 +395,11 @@ fn collect_path_at(
     }
 }
 
-fn collect_attrs(_src: &str, collector: &mut Vec<HighlightSpan>, attrs: &[rocci_template::Attr]) {
+pub fn collect_attrs(
+    _src: &str,
+    collector: &mut Vec<HighlightSpan>,
+    attrs: &[rocci_template::Attr],
+) {
     for attr in attrs {
         collector.push(HighlightSpan::new(
             attr.name.span,
@@ -574,7 +426,7 @@ fn collect_attrs(_src: &str, collector: &mut Vec<HighlightSpan>, attrs: &[rocci_
     }
 }
 
-fn path_source(parts: &[rocci_template::Ident]) -> String {
+pub fn path_source(parts: &[rocci_template::Ident]) -> String {
     parts
         .iter()
         .map(|part| part.name.as_str())
@@ -582,11 +434,11 @@ fn path_source(parts: &[rocci_template::Ident]) -> String {
         .join(".")
 }
 
-fn directive_keyword(span: Span, name: &str) -> Span {
+pub fn directive_keyword(span: Span, name: &str) -> Span {
     Span::new(span.start as usize, span.start as usize + 1 + name.len())
 }
 
-fn closing_name(src: &str, span: Span, name: &str) -> Option<Span> {
+pub fn closing_name(src: &str, span: Span, name: &str) -> Option<Span> {
     let text = span.of(src);
     let needle = format!("</{name}");
     let idx = text.rfind(&needle)?;
@@ -594,7 +446,7 @@ fn closing_name(src: &str, span: Span, name: &str) -> Option<Span> {
     Some(Span::new(start, start + name.len()))
 }
 
-fn ident_between(src: &str, start: u32, end: u32, word: &str) -> Option<Span> {
+pub fn ident_between(src: &str, start: u32, end: u32, word: &str) -> Option<Span> {
     let from = start as usize;
     let to = (end as usize).min(src.len());
     if from >= to {
@@ -622,11 +474,11 @@ fn ident_between(src: &str, start: u32, end: u32, word: &str) -> Option<Span> {
     None
 }
 
-fn is_ident_char(ch: char) -> bool {
+pub fn is_ident_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 
-fn else_if_keyword(src: &str, before: u32) -> Option<Span> {
+pub fn else_if_keyword(src: &str, before: u32) -> Option<Span> {
     let mut i = skip_ws_back(src, before as usize);
     i = match_back(src, i, "if")?;
     i = skip_ws_back(src, i);
@@ -635,7 +487,7 @@ fn else_if_keyword(src: &str, before: u32) -> Option<Span> {
     Some(Span::new(i, before as usize))
 }
 
-fn keyword_before(src: &str, before: u32, keyword: &str) -> Option<Span> {
+pub fn keyword_before(src: &str, before: u32, keyword: &str) -> Option<Span> {
     let i = skip_ws_back(src, before as usize);
     let start = match_back(src, i, keyword)?;
     Some(Span::new(start, i))

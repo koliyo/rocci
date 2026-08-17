@@ -1,16 +1,16 @@
 use lsp_types::{
-    ClientCapabilities, CompletionParams, DiagnosticSeverity, DidOpenTextDocumentParams,
-    DocumentSymbolParams, DocumentSymbolResponse, GeneralClientCapabilities, HoverParams,
-    InitializeParams, PartialResultParams, Position, PositionEncodingKind, SemanticTokensParams,
+    ClientCapabilities, DiagnosticSeverity, DidOpenTextDocumentParams, DocumentSymbolParams,
+    DocumentSymbolResponse, GeneralClientCapabilities, HoverParams, InitializeParams,
+    PartialResultParams, Position, PositionEncodingKind, SemanticTokensParams,
     TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
     WorkDoneProgressParams,
 };
 use rocci_lsp::LanguageServer;
 
-const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
+const ALL_SYNTAX_ROCCI: &str = include_str!("../../../test/AllSyntax.rocci");
 
 fn test_uri() -> Uri {
-    "file:///AllSyntax.rocdown".parse().expect("test uri")
+    "file:///AllSyntax.rocci".parse().expect("test uri")
 }
 
 fn initialize_server() -> LanguageServer {
@@ -32,7 +32,7 @@ fn initialize_server() -> LanguageServer {
 }
 
 #[test]
-fn golden_lsp_all_syntax_rocdown() {
+fn golden_lsp_all_syntax_rocci() {
     let mut server = initialize_server();
     let uri = test_uri();
 
@@ -41,9 +41,9 @@ fn golden_lsp_all_syntax_rocdown() {
         .did_open(DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
                 uri: uri.clone(),
-                language_id: "rocdown".to_string(),
+                language_id: "rocci".to_string(),
                 version: 1,
-                text: ALL_SYNTAX_ROCDOWN.to_string(),
+                text: ALL_SYNTAX_ROCCI.to_string(),
             },
         })
         .expect("should publish diagnostics");
@@ -69,61 +69,50 @@ fn golden_lsp_all_syntax_rocdown() {
     match symbols {
         DocumentSymbolResponse::Nested(syms) => {
             assert!(
-                syms.iter().any(|s| s.name == "@page"),
-                "missing @page symbol"
-            );
-            assert!(
-                syms.iter().any(|s| s.name == "All syntax"),
-                "missing heading symbol"
+                syms.iter().any(|s| s.name == "Badge"),
+                "missing Badge symbol"
             );
             assert!(
                 syms.iter().any(|s| s.name == "Hello"),
-                "missing component Hello symbol"
+                "missing Hello symbol"
             );
-            assert!(syms.iter().any(|s| s.name == "@img"), "missing @img symbol");
+            assert!(
+                syms.iter().any(|s| s.name == "CounterPage"),
+                "missing CounterPage symbol"
+            );
         }
         DocumentSymbolResponse::Flat(_) => panic!("expected nested symbols"),
     }
 
-    // 3. Hover on @page (line 0, char 2)
-    let page_hover = server.hover(HoverParams {
+    // 3. Hover on component
+    let hello_pos = ALL_SYNTAX_ROCCI.find("<Hello").expect("<Hello") + 1;
+    let (line, character) = {
+        let mut l = 0;
+        let mut col = 0;
+        for (i, ch) in ALL_SYNTAX_ROCCI.char_indices() {
+            if i >= hello_pos {
+                break;
+            }
+            if ch == '\n' {
+                l += 1;
+                col = 0;
+            } else {
+                col += 1;
+            }
+        }
+        (l, col)
+    };
+
+    let hover_res = server.hover(HoverParams {
         text_document_position_params: TextDocumentPositionParams {
             text_document: TextDocumentIdentifier { uri: uri.clone() },
-            position: Position::new(0, 2),
+            position: Position::new(line, character),
         },
         work_done_progress_params: WorkDoneProgressParams::default(),
     });
-    assert!(page_hover.is_some(), "hover on @page should return info");
+    assert!(hover_res.is_some(), "hover on <Hello> should return info");
 
-    // 4. Hover on heading "All syntax" (line 28, char 5)
-    let heading_hover = server.hover(HoverParams {
-        text_document_position_params: TextDocumentPositionParams {
-            text_document: TextDocumentIdentifier { uri: uri.clone() },
-            position: Position::new(28, 5),
-        },
-        work_done_progress_params: WorkDoneProgressParams::default(),
-    });
-    assert!(
-        heading_hover.is_some(),
-        "hover on heading should return info"
-    );
-
-    // 5. Completion for @page fields (line 1, char 4)
-    let page_completion = server.completion(CompletionParams {
-        text_document_position: TextDocumentPositionParams {
-            text_document: TextDocumentIdentifier { uri: uri.clone() },
-            position: Position::new(1, 4),
-        },
-        work_done_progress_params: WorkDoneProgressParams::default(),
-        partial_result_params: PartialResultParams::default(),
-        context: None,
-    });
-    assert!(
-        page_completion.is_some(),
-        "completion inside @page should return fields"
-    );
-
-    // 6. Semantic Tokens Full
+    // 4. Semantic Tokens Full
     let tokens = server.semantic_tokens_full(SemanticTokensParams {
         text_document: TextDocumentIdentifier { uri: uri.clone() },
         work_done_progress_params: WorkDoneProgressParams::default(),
@@ -131,7 +120,7 @@ fn golden_lsp_all_syntax_rocdown() {
     });
     assert!(tokens.is_some(), "semantic tokens should be present");
 
-    // 7. Inspect Regions
+    // 5. Inspect Regions
     let regions = server.inspect_regions(&uri);
     assert!(
         regions.is_some(),

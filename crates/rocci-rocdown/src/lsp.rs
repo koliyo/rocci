@@ -1,19 +1,25 @@
 use std::path::{Path, PathBuf};
 
 use lsp_types::{
-    CompletionItemKind, CompletionResponse, Diagnostic, DocumentSymbol, DocumentSymbolResponse,
-    GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
+    CompletionItemKind, CompletionParams, CompletionResponse, Diagnostic, DocumentSymbol,
+    DocumentSymbolParams, DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse,
+    Hover, HoverContents, HoverParams, MarkupContent, MarkupKind, Range, SemanticTokens,
+    SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeResult,
+    SemanticTokensResult, SymbolKind, Uri,
 };
-use rocci_rocdown::{
-    CompileOptions, CompileOutput, DocsDecl, ImgDecl, Item, PageDecl, PageMeta, discovered_ids,
-    index_pages_in_dir, page_ref_from_source,
-};
-use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
-
-use crate::analysis::{
+use rocci_lsp::analysis::{
     completion_in_template, completion_item, component_symbol, context_symbol, css_symbol,
     fixture_symbol, goto_definition_components, hover_components, init_symbol, lsp_range,
-    map_diagnostics, named_symbol, on_symbol,
+    map_diagnostics, named_symbol, offset_at, on_symbol,
+};
+use rocci_lsp::tokens::{RawToken, encode_tokens};
+use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
+use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
+
+use crate::ast::{DocsDecl, Document, HeadingInfo, ImgDecl, Item, PageDecl, PageMeta};
+use crate::highlight::{extract_rocdown_regions, highlight_rocdown_document};
+use crate::{
+    CompileOptions, CompileOutput, discovered_ids, index_pages_in_dir, page_ref_from_source,
 };
 
 const ROOT_DECLARATIONS: &[&str] = &[
@@ -34,6 +40,135 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "let",
 ];
 
+pub struct RocdownAnalyzer;
+
+impl DocumentAnalyzer for RocdownAnalyzer {
+    fn can_analyze(&self, uri: &Uri, language_id: Option<&str>) -> bool {
+        match language_id {
+            Some("rocdown" | "markdown" | "md") => true,
+            Some(_) => false,
+            None => {
+                let path = uri.path().as_str();
+                path.ends_with(".rocdown") || path.ends_with(".md") || path.ends_with(".markdown")
+            }
+        }
+    }
+
+    fn analyze(
+        &self,
+        name: &str,
+        uri: &Uri,
+        text: &str,
+        encoding: PositionEncoding,
+    ) -> Box<dyn DocumentAnalysis> {
+        let compiled = compile_text(name, text);
+        Box::new(RocdownAnalysis {
+            name: name.to_string(),
+            uri: uri.clone(),
+            text: text.to_string(),
+            compiled,
+            encoding,
+        })
+    }
+}
+
+pub struct RocdownAnalysis {
+    pub name: String,
+    pub uri: Uri,
+    pub text: String,
+    pub compiled: CompileOutput,
+    pub encoding: PositionEncoding,
+}
+
+impl DocumentAnalysis for RocdownAnalysis {
+    fn diagnostics(&self) -> Vec<Diagnostic> {
+        diagnostics(&self.name, &self.text, &self.compiled, self.encoding)
+    }
+
+    fn document_symbols(&self, _params: &DocumentSymbolParams) -> Option<DocumentSymbolResponse> {
+        Some(document_symbols(
+            &self.name,
+            &self.text,
+            &self.compiled,
+            self.encoding,
+        ))
+    }
+
+    fn hover(&self, params: &HoverParams) -> Option<Hover> {
+        let position = params.text_document_position_params.position;
+        let source = SourceFile::new(&self.name, &self.text);
+        let offset = offset_at(source, position, self.encoding);
+        hover(
+            &self.name,
+            &self.text,
+            &self.compiled,
+            offset,
+            self.encoding,
+        )
+    }
+
+    fn goto_definition(&self, params: &GotoDefinitionParams) -> Option<GotoDefinitionResponse> {
+        let position = params.text_document_position_params.position;
+        let source = SourceFile::new(&self.name, &self.text);
+        let offset = offset_at(source, position, self.encoding);
+        goto_definition(
+            &self.name,
+            &self.text,
+            &self.compiled,
+            offset,
+            self.encoding,
+            self.uri.clone(),
+        )
+    }
+
+    fn completion(&self, params: &CompletionParams) -> Option<CompletionResponse> {
+        let position = params.text_document_position.position;
+        let source = SourceFile::new(&self.name, &self.text);
+        let offset = offset_at(source, position, self.encoding);
+        Some(completion(&self.text, &self.compiled, offset))
+    }
+
+    fn semantic_tokens_full(&self, _params: &SemanticTokensParams) -> Option<SemanticTokensResult> {
+        Some(SemanticTokensResult::Tokens(semantic_tokens_rocdown(
+            &self.name,
+            &self.text,
+            &self.compiled.document,
+            &self.compiled.headings,
+            self.encoding,
+            None,
+        )))
+    }
+
+    fn semantic_tokens_range(
+        &self,
+        params: &SemanticTokensRangeParams,
+    ) -> Option<SemanticTokensRangeResult> {
+        Some(SemanticTokensRangeResult::Tokens(semantic_tokens_rocdown(
+            &self.name,
+            &self.text,
+            &self.compiled.document,
+            &self.compiled.headings,
+            self.encoding,
+            Some(params.range),
+        )))
+    }
+
+    fn inspect_regions(&self) -> Option<Vec<InspectedRegion>> {
+        let source = SourceFile::new(&self.name, &self.text);
+        let tree = extract_rocdown_regions(
+            &self.name,
+            &self.text,
+            &self.compiled.document,
+            &self.compiled.headings,
+        );
+        Some(rocci_lsp::regions::inspect_regions(
+            source,
+            &tree,
+            self.encoding,
+        ))
+    }
+}
+
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
     let mut options = CompileOptions::default();
     if let Some(path) = filesystem_path(name)
@@ -47,7 +182,7 @@ pub fn compile_text(name: &str, text: &str) -> CompileOutput {
         pages.push(current);
         options.pages = pages;
     }
-    rocci_rocdown::compile(SourceFile::new(name, text), &options)
+    crate::compile(SourceFile::new(name, text), &options)
 }
 
 fn filesystem_path(name: &str) -> Option<PathBuf> {
@@ -144,9 +279,9 @@ pub fn hover(
     offset: u32,
     encoding: PositionEncoding,
 ) -> Option<Hover> {
-    let components = components(compiled);
+    let comps = components(compiled);
     let extra = template_items(compiled);
-    if let Some(hover) = hover_components(name, text, &components, &extra, offset, encoding) {
+    if let Some(hover) = hover_components(name, text, &comps, &extra, offset, encoding) {
         return Some(hover);
     }
     let source = SourceFile::new(name, text);
@@ -195,16 +330,16 @@ pub fn goto_definition(
     encoding: PositionEncoding,
     uri: lsp_types::Uri,
 ) -> Option<GotoDefinitionResponse> {
-    let components = components(compiled);
+    let comps = components(compiled);
     let extra = template_items(compiled);
-    goto_definition_components(name, text, &components, &extra, offset, encoding, uri)
+    goto_definition_components(name, text, &comps, &extra, offset, encoding, uri)
 }
 
 pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
     let offset = (offset as usize).min(text.len());
     if component_at(compiled, offset as u32).is_some() || template_at(compiled, offset as u32) {
-        let components = components(compiled);
-        return completion_in_template(text, &components, offset as u32);
+        let comps = components(compiled);
+        return completion_in_template(text, &comps, offset as u32);
     }
     if let Some(page) = compiled.document.items.iter().find_map(|item| match item {
         Item::Page(page) if page.body.contains(offset as u32) => Some(page),
@@ -242,6 +377,37 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     CompletionResponse::Array(Vec::new())
 }
 
+pub fn semantic_tokens_rocdown(
+    name: &str,
+    text: &str,
+    document: &Document,
+    headings: &[HeadingInfo],
+    encoding: PositionEncoding,
+    range: Option<Range>,
+) -> SemanticTokens {
+    let source = SourceFile::new(name, text);
+    let spans = highlight_rocdown_document(text, document, headings);
+    let mut raw_tokens: Vec<RawToken> = spans
+        .into_iter()
+        .map(|s| RawToken {
+            span: s.span,
+            kind: s.kind.to_lsp_index(),
+            modifiers: s.modifiers,
+            priority: s.priority,
+        })
+        .collect();
+    let range_span = range.map(|range| {
+        Span::new(
+            source.offset_at(range.start.line, range.start.character, encoding) as usize,
+            source.offset_at(range.end.line, range.end.character, encoding) as usize,
+        )
+    });
+    SemanticTokens {
+        result_id: None,
+        data: encode_tokens(source, &mut raw_tokens, encoding, range_span),
+    }
+}
+
 fn page_hover(
     source: SourceFile<'_>,
     page: &PageDecl,
@@ -254,9 +420,9 @@ fn page_hover(
             "\n**theme** `{}` ({})\n\n- color-scheme: `{}`\n{}\n",
             theme.id,
             match theme.origin {
-                rocci_rocdown::ThemeOrigin::Builtin => "builtin",
-                rocci_rocdown::ThemeOrigin::Local => "local",
-                rocci_rocdown::ThemeOrigin::None => "none",
+                crate::ThemeOrigin::Builtin => "builtin",
+                crate::ThemeOrigin::Local => "local",
+                crate::ThemeOrigin::None => "none",
             },
             theme.policy,
             theme
@@ -481,7 +647,7 @@ fn keyword_selection(src: &str, span: Span, keyword: &str) -> Span {
 }
 
 fn docs_hover(source: SourceFile<'_>, docs: &DocsDecl, encoding: PositionEncoding) -> Hover {
-    let (fields, _) = rocci_rocdown::split_docs_body(source.src, docs.body);
+    let (fields, _) = crate::split_docs_body(source.src, docs.body);
     let mut value = format!("```rocdown\n@docs {}\n```\n", docs.kind);
     for field in fields {
         value.push_str(&format!(
@@ -554,11 +720,11 @@ fn docs_symbol(
     docs: &DocsDecl,
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
-    let (fields, content) = rocci_rocdown::split_docs_body(source.src, docs.body);
+    let (fields, content) = crate::split_docs_body(source.src, docs.body);
     let title = fields
         .iter()
         .find(|field| field.name == "title" || field.name == "label" || field.name == "summary")
-        .and_then(|field| rocci_rocdown::field_string(source.src, field));
+        .and_then(|field| crate::field_string(source.src, field));
     let mut detail = format!("@docs {}", docs.kind);
     if let Some(title) = title {
         detail.push_str(" · ");
@@ -566,7 +732,7 @@ fn docs_symbol(
     }
     let mut children = Vec::new();
     if !content.is_empty() && (content.start as usize) < source.src.len() {
-        let parsed = rocci_rocdown::parse_fragment(source, content, false);
+        let parsed = crate::parse_fragment(source, content, false);
         for heading in &parsed.headings {
             children.push((
                 heading.span.start,
@@ -609,7 +775,7 @@ fn docs_symbol(
 
 fn img_symbol(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> DocumentSymbol {
     let mut diags = Vec::new();
-    let fields = rocci_rocdown::extract_img_fields(source.src, img.body, &mut diags);
+    let fields = crate::extract_img_fields(source.src, img.body, &mut diags);
     let detail = fields.src.as_ref().map(|(s, _)| s.clone());
     named_symbol(
         "@img",
@@ -624,7 +790,7 @@ fn img_symbol(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding)
 
 fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> Hover {
     let mut diags = Vec::new();
-    let fields = rocci_rocdown::extract_img_fields(source.src, img.body, &mut diags);
+    let fields = crate::extract_img_fields(source.src, img.body, &mut diags);
     let mut doc = String::from("```rocdown\n@img\n```\n\nNative Rocdown image element.\n");
     if let Some((src, _)) = &fields.src {
         doc.push_str(&format!("\n- **src**: `{src}`"));

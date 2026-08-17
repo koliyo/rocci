@@ -548,17 +548,17 @@ mod tests {
 
     #[test]
     fn template_error_page_contains_source_and_message() {
-        let src = "@page\n";
-        let diagnostic = Diagnostic::error(Span::new(0, 5), "expected `{` to open `@page`");
+        let src = "@component Broken\n";
+        let diagnostic = Diagnostic::error(Span::new(0, 10), "expected `=` after component name");
         let html = render_template_errors(&[FailedFile {
-            name: "Guide.rocdown".into(),
+            name: "Page.rocci".into(),
             src: src.into(),
             diagnostics: vec![diagnostic],
         }]);
-        assert!(html.contains("expected `{` to open `@page`"));
-        assert!(html.contains("Guide.rocdown"));
-        assert!(html.contains("@page"));
-        assert!(html.contains("^^^^^"));
+        assert!(html.contains("expected `=` after component name"));
+        assert!(html.contains("Page.rocci"));
+        assert!(html.contains("@component"));
+        assert!(html.contains("^^^^^^^^^^"));
     }
 
     #[test]

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub use rocci_highlight::LanguageId as Language;
 pub use rocci_highlight::regions::{
     Region, RegionContext, RegionPurpose, RegionSpan, RegionTree, RegionValidationError,
-    extract_rocci_regions, extract_rocdown_regions,
+    extract_rocci_regions,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
