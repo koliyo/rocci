@@ -30,9 +30,13 @@ toolchain problem.
 | Template grammar or source maps | `rocci-template` |
 | Markdown, Rocdown declarations, site catalog, and outputs | `rocci-rocdown` |
 | CLI document and site commands | `rocci-rocdown-cli` |
+| Portable OKF engine | `okf` |
+| Knowledge review application | `rocci-okf` |
+| Domain-neutral view records & UI components | `rocci-ui` |
 | Runtime configuration | `rocci-core` |
 | CLI template build, run, preview, or bundle behavior | `rocci-cli` and `rocci-desktop` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
+| Editor language server and highlighting | `rocci-lsp` and `rocci-highlight` |
 
 Do not interpret Rocci templates in Rust just to avoid compiling a theme. Do
 not encode static documentation prose as Roc constructors just to keep catalog
@@ -44,7 +48,7 @@ For syntax work:
 
 ```sh
 cargo run -p rocci-cli -- inspect --ast test/AllSyntax.rocci
-cargo run -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
+cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 ```
 
 For documentation work:

@@ -42,9 +42,9 @@ Use `@img` for first-class image elements with compile-time field extraction and
 
 Local `src` paths, including `./img/photo.png`, resolve against the source file
 directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /
-`data:` URLs pass through. Missing local files are errors in `rocci run` and in
-Rocs catalog checks. Standalone preview copies those files without hashing and
-serves them beside the page route; Rocs hashes files under `build.assets`.
+`data:` URLs pass through. Missing local files are errors in `rocdown run` and in
+Rocdown catalog checks. Standalone preview copies those files without hashing and
+serves them beside the page route; static site builds hash files under `build.assets`.
 
 ````rocdown
 @img {
@@ -72,7 +72,7 @@ serves them beside the page route; Rocs hashes files under `build.assets`.
 
 `@docs` is one reserved family. Kinds such as `note` or `tabs` are not
 top-level `@` names. The parser stores the kind identifier and brace body.
-Rocdown types the body; standalone `rocdown run` (or `rocci run`) paints a conservative preview.
+Rocdown types the body; standalone `rocdown run` paints a conservative preview.
 
 ````rocdown
 @docs note {
@@ -150,7 +150,7 @@ The claim is sourced.[^note]
 ````
 
 Definitions are collected out of the article flow into a footnotes section.
-Standalone lowering and Rocs HTML share the same accessible contract:
+Standalone lowering and site HTML share the same accessible contract:
 `data-footnote-ref`, `aria-label="Footnotes"`, `data-footnote-backref`, and
 stable `fn-{name}` / `fnref-{name}` ids. Missing definitions and duplicate
 labels are errors at the reference or definition span. This is not an OKF
@@ -162,10 +162,10 @@ Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown file paths, and
 same-page heading validation. Absolute routes are checked when a page index is
 available. External schemes such as `https:` and `mailto:` pass through.
 
-In Rocs, a passing catalog check rewrites validated page and heading links to
+In static site builds, a passing catalog check rewrites validated page and heading links to
 the emitted route (`./foo.rocdown` becomes `/foo/`, and `{id}#heading` becomes
 `/route/#heading`). Same-page `#heading` stays a fragment. Asset hrefs are
-hashed in a later plan pass. Standalone `rocci run` still rewrites sibling
+hashed in a later plan pass. Standalone `rocdown run` still rewrites sibling
 stems when `resolve_links` is true.
 
 ## Generated values
@@ -179,22 +179,22 @@ rocci_page    : {} -> Html
 ```
 
 If no GET handler exists for the page route, lowering synthesizes one. A
-non-root page also gets a root preview route so `rocci run` can open it.
+non-root page also gets a root preview route so `rocdown run` can open it.
 
 The default standalone shell is a single-document reader. When the selected
 theme is not `none`, `rocci_page` emits a left `<nav class="rd-toc">` from
 heading levels 2 and 3, linking to the same heading IDs used in the article.
 H1 is the page title and stays out of the navigator. Empty outlines are
 omitted. Theme chrome keeps the article measure, animates navigator jumps
-quickly, and hides the navigator on narrow screens and in print. This is not the Rocs
-site outline: Rocs keeps its right-hand “On this page” rail inside
+quickly, and hides the navigator on narrow screens and in print. This is not the site
+outline: site builds keep a right-hand “On this page” rail inside
 documentation-site chrome.
 
 A custom `@page.layout` replaces that shell and does not receive the
 automatic navigator.
 
-## Static Rocs support
+## Static documentation site support
 
-Rocs currently accepts the static Markdown tree plus `@page`. It rejects Roc,
-Rocci, CSS, handlers, and custom layouts until the island splice path is
-implemented. Draft pages are excluded from production builds.
+Rocdown site builds currently accept the static Markdown tree plus `@page` and `@docs`.
+They reject dynamic Roc, Rocci templates, `@css`, handlers, and custom layouts until the
+island splice path is implemented. Draft pages are excluded from production builds.

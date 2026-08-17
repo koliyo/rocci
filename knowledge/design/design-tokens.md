@@ -2,9 +2,9 @@
 type: Design Standard
 title: Rocci design-token research
 description: Rocci ships CSS custom-property theme surfaces but no DTCG token system; this draft inventories current roles and records DTCG-informed future options as research only.
-tags: [domain/design-system, domain/rocdown, domain/rocs, concern/theming, integration/dtcg]
+tags: [domain/design-system, domain/rocdown, concern/theming, integration/dtcg]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-16T18:32:45Z }
+generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
 stale_after: 2026-09-15
 authority: exploratory
 owners: [human:nils]
@@ -25,10 +25,10 @@ sources:
     author: process:git
     last_modified: 2026-08-16
   - id: rocs-theme
-    resource: ../../crates/rocs/templates/RocsTheme.rocci
-    title: Rocs documentation shell
+    resource: ../../crates/rocci-rocdown/templates/RocdownTheme.rocci
+    title: Rocdown documentation shell
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: dtcg-format
     resource: https://www.w3.org/community/reports/design-tokens/CG-FINAL-format-20251028/
     title: Design Tokens Format Module 2025.10
@@ -60,11 +60,11 @@ Rocci does not have DTCG token files, a token generator, a resolver configuratio
 | Surface | Current roles | Resolution |
 | --- | --- | --- |
 | Standalone Rocdown | Body, heading, and code fonts; background, surface, text, muted, accent, border, code background, and code text; content-specific aliases | `paper` and `rocci` use CSS `light-dark()` values; `chrome.css` consumes aliases |
-| Rocs shell | Canvas, surface levels, ink hierarchy, border hierarchy, accent levels, code colors, and header height | Light values on the shell root with dark overrides under `prefers-color-scheme` |
+| Rocdown shell | Canvas, surface levels, ink hierarchy, border hierarchy, accent levels, code colors, and header height | Light values on the shell root with dark overrides under `prefers-color-scheme` |
 
 The two built-in Rocdown themes share the same variable shape but provide different values. Content aliases decouple emitted `.rd-*` elements from foundation colors, while the shared chrome owns typography, spacing, sizing, borders, and layout.[^paper-theme][^rocci-theme][^theme-chrome]
 
-The Rocs shell has a similar semantic vocabulary, but different names, values, scope, and resolution. It also contains literal shadows, translucent colors, and layout values. Similarity is evidence for possible analysis, not proof that the surfaces already share tokens.[^rocs-theme]
+The Rocdown shell has a similar semantic vocabulary, but different names, values, scope, and resolution. It also contains literal shadows, translucent colors, and layout values. Similarity is evidence for possible analysis, not proof that the surfaces already share tokens.[^rocs-theme]
 
 ## DTCG standards findings
 
@@ -92,7 +92,7 @@ The DTCG reports are external research sources. This record does not make them R
 [^paper-theme]: Current Paper font, foundation-color, and content-alias values.
 [^rocci-theme]: Current Rocci font, foundation-color, and content-alias values.
 [^theme-chrome]: Current consumer of the `--rd-*` compatibility surface.
-[^rocs-theme]: Current independent Rocs shell variables, literals, and media-query resolution.
+[^rocs-theme]: Current independent Rocdown shell variables, literals, and media-query resolution.
 [^dtcg-format]: External format, naming, typing, alias, group, metadata, and extension vocabulary.
 [^dtcg-resolver]: External ordered-set and contextual-modifier resolution model.
 [^dtcg-color]: External structured color representation.

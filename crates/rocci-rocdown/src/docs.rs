@@ -2094,7 +2094,8 @@ mod tests {
 
     #[test]
     fn include_reads_region_and_warns_on_line_range() {
-        let root = std::env::temp_dir().join(format!("rocs-docs-include-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("rocdown-docs-include-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(
@@ -2159,7 +2160,7 @@ mod tests {
 
     #[test]
     fn cyclic_include_is_rd2505() {
-        let root = std::env::temp_dir().join(format!("rocs-docs-cycle-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("rocdown-docs-cycle-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(

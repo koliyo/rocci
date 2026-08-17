@@ -1,25 +1,24 @@
 # rocci-rocdown
 
-Parse `.rocdown` documents and lower Markdown plus explicit `@` declarations to
-ordinary Roc.
+Parse `.rocdown` documents, compile multi-page static documentation sites, and lower Markdown plus explicit `@` declarations to ordinary Roc.
 
-Rocdown is a Markdown-first sibling of `.rocci`. Ordinary document text is
-Markdown. Executable regions are line-start `@` declarations. Fenced code is
-always displayed and never executed. The page is static unless it defines
-`@on` routes.
-
-This crate does not invoke the Roc compiler, type-check expressions, or spawn
-servers. `rocci build` / `inspect` / `ast` / `run` on the workspace CLI accept a
-`.rocdown` file.
+Rocdown is a Markdown-first document and static documentation system. Ordinary document text is Markdown. Executable regions are line-start `@` declarations. Fenced code is always displayed and never executed.
 
 ```sh
-cargo run -p rocci-cli -- build examples/rocdown/Guide.rocdown
-cargo run -p rocci-cli -- inspect --ast examples/rocdown/Guide.rocdown
-cargo run -p rocci-cli -- run examples/rocdown/Guide.rocdown
+# Run a single interactive .rocdown document
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
+
+# Build a documentation site to dist/
+cargo run -p rocci-rocdown-cli -- build docs --output dist
+
+# Check documentation catalog, routes, links, and includes
+cargo run -p rocci-rocdown-cli -- check docs
+
+# Inspect Rocdown AST
+cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 ```
 
-Library entry points are `parse`, `compile`, and `format_ast` in
-`rocci_rocdown`.
+Library entry points are `parse`, `compile`, and `format_ast` in `rocci_rocdown`.
 
 The original language design lives in
 [`ROCDOWN_FORMAT_REPORT.md`](../../archive/reports/ROCDOWN_FORMAT_REPORT.md). This README is
@@ -109,7 +108,7 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
-| `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocs types the body |
+| `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocdown types the body |
 | `@img { ... }` | image fields | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
@@ -164,12 +163,7 @@ Native image declaration. Lowers to `Html.void_element("img", ...)` with standar
 
 Markdown `![](path)` remains the empty-alt decorative shorthand. Nested `@img`
 inside `@docs figure` owns accessibility text; figure `caption` and `credit`
-do not substitute for `alt`. Local `src` paths, including `./img/photo.png`,
-resolve against the source file directory. `http(s):`, `mailto:`, and `data:`
-pass through. `rocci run` diagnoses missing files, copies them into the preview
-workspace without hashing, and serves them next to the page route so a document
-at `/all-syntax/` can load `./img/photo.png` from `/all-syntax/img/photo.png`.
-Rocs hashes files under `build.assets`.
+do not substitute for `alt`. Local `src` paths, including `./img/photo.png`, resolve against the source file directory. `http(s):`, `mailto:`, and `data:` pass through. `rocdown run` diagnoses missing files, copies them into the preview workspace without hashing, and serves them next to the page route. Static site builds (`rocdown build`) hash files under `build.assets`.
 
 ### `@page`
 
@@ -195,7 +189,7 @@ headings, and is hidden on narrow and print viewports by theme chrome. Clicks
 scroll the article quickly with a short animation. Theme
 `none` skips chrome, including the navigator. A custom `layout` replaces the
 default shell entirely. Document `@css` overrides the theme. Default theme
-comes from `rocci run --theme`, `ROCCI_THEME`, then builtin `paper`.
+comes from `rocdown run --theme`, `ROCCI_THEME`, then builtin `paper`.
 `@page.theme` wins for that file.
 
 Without `@page.route`, the synthesized GET path is `/`.
@@ -269,21 +263,20 @@ id as `.rocci`. Component CSS keeps a per-component id.
 
 If the file has no `@on:get` for the page route, lowering synthesizes a GET
 handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
-registered to the same handler so `rocci run` can open a preview.
+registered to the same handler so `rocdown run` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
 
 ## CLI
 
-`build`, `inspect`, `ast`, and `run` accept `.rocdown` the same way they accept
-`.rocci`. `rocci run --theme paper foo.rocdown` (or `--theme path/to/theme.css`,
-or `ROCCI_THEME`) selects the default theme; `@page.theme` overrides it.
-`--color-scheme` / `ROCCI_COLOR_SCHEME` force `light`, `dark`, or `auto`.
-`rocci run` on a directory compiles sibling `.rocdown` next to `.rocci`.
-Preview opens the first GET route that is not `/health`.
+`rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
-`rocci view` / `browse` still target `.rocci` components. The language server
-and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
+- `rocdown run FILE.rocdown`: Run a single interactive document.
+- `rocdown run DIR`: Run/preview a documentation site with live reload.
+- `rocdown build DIR`: Build a static documentation site to `dist/`.
+- `rocdown check DIR`: Check catalog, routes, and links.
+- `rocdown test DIR`: Run documented `@docs example` tests.
+- `rocdown inspect ast FILE.rocdown`: Inspect AST.
 
 ## Implemented vs deferred
 
@@ -301,9 +294,6 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
 - Static site generation (`build`, `check`, `test`, `run`), content catalog,
   curated navigation, and hashed asset pipeline
-- OKF knowledge bundle validation, inspection, search, benchmarking, and preview
-- LSP diagnostics, symbols, hover, completion, semantic tokens, and editor
-  registration for `.rocdown`
 
 **Not implemented / Deferred**
 

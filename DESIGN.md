@@ -9,7 +9,8 @@ Rocci should feel calm, direct, and content-first. Documentation must remain rea
 The design surfaces have different jobs:
 
 - Rocdown is the portable article surface. Its stable styling hooks are the `.rd-*` classes emitted by the renderer and the `--rd-*` custom properties consumed by the bundled chrome.
-- Rocs is the documentation-site shell. It owns the header, navigation, article column, outline, responsive layout, and its present shell palette.
+- Rocdown Theme is the documentation-site shell. It owns the header, navigation, article column, outline, responsive layout, and its present shell palette.
+- `rocci-ui` provides domain-neutral base design tokens (`themes/base.css`) and shared presentation components.
 - Presentation renderers and broader application UI are separate design problems; neither is silently governed by the article theme.
 
 ## Current theme model
@@ -18,7 +19,7 @@ Standalone Rocdown supports `paper`, `rocci`, `none`, a local theme name, or a C
 
 The bundled themes define three font roles, eight foundation color roles, and content aliases under `.rd-document`. [Chrome CSS](crates/rocci-theme/src/themes/chrome.css) maps those aliases to headings, paragraphs, links, blockquotes, code, tables, media, and inline emphasis. Theme authors should preserve these public hooks even when changing values.
 
-Rocs currently has a separate implementation in [RocsTheme.rocci](crates/rocs/templates/RocsTheme.rocci). Its custom properties describe canvas and surface levels, text hierarchy, borders, accents, code colors, and header height. The shell also contains layout rules and a few literal values; those are current implementation details, not a shared token system.
+The site documentation shell lives in [RocdownTheme.rocci](crates/rocci-rocdown/templates/RocdownTheme.rocci) and consumes [rocci-ui](crates/rocci-ui/README.md). Its custom properties describe canvas and surface levels, text hierarchy, borders, accents, code colors, and header height. The shell also contains layout rules and a few literal values; those are current implementation details, not a shared token system.
 
 ## Content and layout guidance
 
@@ -42,4 +43,4 @@ Rocci has no DTCG token files, generator, resolver, compatibility map, or token-
 
 ## Evidence and updates
 
-Use [Rocci theming surfaces](knowledge/architecture/theming.md) for the architectural boundary and [Design-system knowledge](knowledge/design/design-system.md) plus [Design-token research](knowledge/design/design-tokens.md) for evidence and proposals. Update this reference when public hooks, supported themes or schemes, accessibility expectations, or the Rocs shell contract change. Substantive revisions should be checked against code and reviewed by a human before this document is treated as stable design authority.
+Use [Rocci theming surfaces](knowledge/architecture/theming.md) for the architectural boundary and [Design-system knowledge](knowledge/design/design-system.md) plus [Design-token research](knowledge/design/design-tokens.md) for evidence and proposals. Update this reference when public hooks, supported themes or schemes, accessibility expectations, or the documentation shell contract change. Substantive revisions should be checked against code and reviewed by a human before this document is treated as stable design authority.

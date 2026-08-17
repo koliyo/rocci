@@ -20,15 +20,15 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: site-config
-    resource: ../../docs/rocs.toml
-    title: Rocci documentation site configuration
+    resource: ../../docs/rocdown.toml
+    title: Rocdown documentation site configuration
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: site-theme
-    resource: ../../crates/rocs/templates/RocsTheme.rocci
-    title: Rocs documentation shell
+    resource: ../../crates/rocci-rocdown/templates/RocdownTheme.rocci
+    title: Rocdown documentation shell
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: paper-theme
     resource: ../../crates/rocci-theme/src/themes/paper.css
     title: Default Rocdown Paper theme

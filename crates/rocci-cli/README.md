@@ -1,0 +1,43 @@
+# rocci-cli
+
+Command-line interface and development driver for `.rocci` templates, Roc applications, desktop bundling, and Datastar asset management.
+
+## Binary
+
+Executable name: `rocci`
+
+## Commands
+
+```sh
+# Validate configuration
+cargo run -p rocci-cli -- validate [rocci.toml]
+
+# Compile a single .rocci template to Roc
+cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
+
+# Run a standalone template application with live reload and embedded preview
+cargo run -p rocci-cli -- run examples/counter/Counter.rocci
+
+# Run an authored Roc application directory
+cargo run -p rocci-cli -- run examples/datastar
+
+# Render a single component with mock arguments in a preview window
+cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component CounterCard --arg count=3
+
+# Browse all discovered components in an application directory
+cargo run -p rocci-cli -- browse examples/counter
+
+# Inspect AST, component signatures, and source-map segments
+cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
+
+# Bundle an ad-hoc signed macOS application
+cargo run -p rocci-cli -- bundle --config rocci.toml
+
+# Pin or update Datastar JavaScript assets
+cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
+cargo run -p rocci-cli -- datastar update --app examples/datastar
+```
+
+## Architectural Boundary
+
+`rocci-cli` owns execution and orchestration for `.rocci` templates and Roc applications. It does not parse or execute `.rocdown` documents (which are owned by `rocci-rocdown-cli` / `rocdown`).

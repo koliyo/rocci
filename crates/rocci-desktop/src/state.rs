@@ -208,10 +208,10 @@ mod tests {
         let state1 = WindowState::new(120.0, 80.0, 1024.0, 768.0, false);
         let state2 = WindowState::new(200.0, 150.0, 1400.0, 900.0, true);
 
-        save_window_state_to(&temp_file, "rocs", state1).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state1).unwrap();
         save_window_state_to(&temp_file, "rocci:dev.rocci.snake", state2).unwrap();
 
-        let loaded1 = load_window_state_from(&temp_file, "rocs");
+        let loaded1 = load_window_state_from(&temp_file, "rocdown");
         let loaded2 = load_window_state_from(&temp_file, "rocci:dev.rocci.snake");
         let loaded3 = load_window_state_from(&temp_file, "nonexistent");
 
@@ -233,12 +233,12 @@ mod tests {
         }
         fs::write(&temp_file, "{ invalid json...").unwrap();
 
-        assert_eq!(load_window_state_from(&temp_file, "rocs"), None);
+        assert_eq!(load_window_state_from(&temp_file, "rocdown"), None);
 
         // Saving over corrupt state should succeed and replace with valid JSON
         let state = WindowState::new(50.0, 50.0, 800.0, 600.0, false);
-        save_window_state_to(&temp_file, "rocs", state).unwrap();
-        assert_eq!(load_window_state_from(&temp_file, "rocs"), Some(state));
+        save_window_state_to(&temp_file, "rocdown", state).unwrap();
+        assert_eq!(load_window_state_from(&temp_file, "rocdown"), Some(state));
 
         if let Some(parent) = temp_file.parent() {
             let _ = fs::remove_dir_all(parent);
@@ -254,12 +254,12 @@ mod tests {
         let state2 = WindowState::new(200.0, 200.0, 1024.0, 768.0, false);
         let state1_updated = WindowState::new(150.0, 120.0, 900.0, 700.0, true);
 
-        save_window_state_to(&temp_file, "rocs", state1).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state1).unwrap();
         save_window_state_to(&temp_file, "rocci:app", state2).unwrap();
-        save_window_state_to(&temp_file, "rocs", state1_updated).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state1_updated).unwrap();
 
         assert_eq!(
-            load_window_state_from(&temp_file, "rocs"),
+            load_window_state_from(&temp_file, "rocdown"),
             Some(state1_updated)
         );
         assert_eq!(

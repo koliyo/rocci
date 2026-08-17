@@ -7,13 +7,13 @@ id = "architecture-ownership"
 question = "Which crates own Rocci's language, runtime, desktop, and documentation boundaries?"
 query = "compiler theme runtime desktop"
 expected_concepts = ["architecture/system-overview"]
-expected_status = "stable"
+expected_status = "draft"
 expected_authority = "descriptive"
 
 [[questions]]
 id = "current-status"
 question = "What ships today across Rocci and the OKF knowledge path?"
-query = "shipped OKF knowledge"
+query = "shipped implementation status"
 expected_concepts = ["status/implementation"]
 expected_status = "draft"
 expected_authority = "descriptive"
@@ -47,7 +47,7 @@ id = "catalog-decision"
 question = "Why does Rust own the Rocs catalog while Rocci owns the visible shell?"
 query = "Rust catalog Rocci shell"
 expected_concepts = ["decisions/rust-catalog-rocci-shell"]
-expected_status = "stable"
+expected_status = "draft"
 expected_authority = "normative"
 
 [[questions]]

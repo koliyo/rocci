@@ -71,7 +71,7 @@ open or change notifications, publishes parser diagnostics, and serves
 document symbols, hover, same-file component definition, completion, and full
 or range semantic tokens.[^lsp-server][^lsp-tests]
 
-The host AST remains the authority for language boundaries. Current token
+The host AST remains the authority for language boundaries.[^lsp-rocdown][^rocdown-ast] Current token
 collection highlights Rocci/Rocdown declarations, components, HTML-shaped
 template names and attributes, handlers, and heading markers. It records Roc
 and CSS body spans separately and intentionally leaves their contents out of
