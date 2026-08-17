@@ -2,6 +2,12 @@
 
 ## 2026-08-17
 
+- Researched the emerging OKF tool ecosystem and recorded a proposed standalone
+  rocs-okf direction: extract a portable UI-neutral engine from Rocs, preserve
+  direct agent Markdown authoring, make the browser an evidence review and
+  query surface, bind decisions to exact revisions, serve authorized evidence
+  through scoped API tokens and MCP, and add full-text then optional semantic
+  retrieval only under versioned evaluation.
 - Evaluated the branding report as a Rocdown long-form authoring case study.
   Recorded strengths, cross-consumer image-field loss, validated links that are
   not rewritten for static output, citation and asset gaps, report-presentation
