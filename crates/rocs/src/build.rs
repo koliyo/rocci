@@ -474,13 +474,13 @@ pub(crate) fn unique_temp(kind: &str) -> Result<PathBuf> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    static ROC_LOCK: Mutex<()> = Mutex::new(());
+    pub(crate) static ROC_LOCK: Mutex<()> = Mutex::new(());
 
-    fn skip_without_roc() -> bool {
+    pub(crate) fn skip_without_roc() -> bool {
         let available = Command::new("roc")
             .arg("help")
             .output()

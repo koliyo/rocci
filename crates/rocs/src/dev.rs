@@ -1011,6 +1011,10 @@ mod tests {
 
     #[test]
     fn knowledge_server_rebuilds_changed_markdown() {
+        if crate::build::tests::skip_without_roc() {
+            return;
+        }
+        let _lock = crate::build::tests::ROC_LOCK.lock().unwrap();
         let root = temp("knowledge-live-reload");
         fs::write(
             root.join("index.md"),
