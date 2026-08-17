@@ -416,6 +416,826 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
     })
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionKind {
+    FixErrors,
+    ReverifySources,
+    ReverifyRegenerated,
+    RefreshStale,
+    UncommittedChanges,
+    UntrackedSources,
+    InitialVerification,
+    PendingPromotion,
+    Exploratory,
+    Clean,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConceptAction {
+    pub kind: ActionKind,
+    pub label: String,
+    pub detail: String,
+    pub is_action_required: bool,
+    pub pill_class: &'static str,
+}
+
+pub fn classify_concept_action(
+    concept: &Concept,
+    bundle_diagnostics: &[Diagnostic],
+) -> ConceptAction {
+    let status = string_field(&concept.metadata, "status").unwrap_or("draft");
+    let authority = string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+    let stale = concept_is_stale(&concept.metadata);
+    let stale_after = string_field(&concept.metadata, "stale_after").unwrap_or("");
+
+    let concept_diagnostics: Vec<&Diagnostic> = bundle_diagnostics
+        .iter()
+        .filter(|d| d.path == concept.path)
+        .collect();
+
+    let has_errors = concept_diagnostics
+        .iter()
+        .any(|d| d.severity == Severity::Error);
+    if has_errors {
+        return ConceptAction {
+            kind: ActionKind::FixErrors,
+            label: "Fix Errors".into(),
+            detail: "Validation errors in record must be resolved".into(),
+            is_action_required: true,
+            pill_class: "pill-error",
+        };
+    }
+
+    if stale {
+        return ConceptAction {
+            kind: ActionKind::RefreshStale,
+            label: "Refresh Stale".into(),
+            detail: format!("Record reached stale_after limit ({stale_after})"),
+            is_action_required: true,
+            pill_class: "pill-action",
+        };
+    }
+
+    let drift_diagnostics: Vec<&Diagnostic> = concept_diagnostics
+        .iter()
+        .copied()
+        .filter(|d| d.code == "OKF4006")
+        .collect();
+
+    if !drift_diagnostics.is_empty() {
+        let drifted_sources: Vec<String> = drift_diagnostics
+            .iter()
+            .map(|d| {
+                if let Some(start) = d.message.find("source `") {
+                    if let Some(end) = d.message[start + 8..].find('`') {
+                        return d.message[start + 8..start + 8 + end].to_string();
+                    }
+                }
+                d.message.clone()
+            })
+            .collect();
+        return ConceptAction {
+            kind: ActionKind::ReverifySources,
+            label: "Re-verify".into(),
+            detail: format!(
+                "{} source(s) changed after human verification ({})",
+                drift_diagnostics.len(),
+                drifted_sources.join(", ")
+            ),
+            is_action_required: true,
+            pill_class: "pill-action",
+        };
+    }
+
+    let regenerated_diag = concept_diagnostics.iter().any(|d| d.code == "OKF4005");
+    if regenerated_diag {
+        return ConceptAction {
+            kind: ActionKind::ReverifyRegenerated,
+            label: "Re-verify".into(),
+            detail: "Substantively modified by generation after last human verification".into(),
+            is_action_required: true,
+            pill_class: "pill-action",
+        };
+    }
+
+    let uncommitted_diag = concept_diagnostics.iter().any(|d| d.code == "OKF4008");
+    if uncommitted_diag {
+        return ConceptAction {
+            kind: ActionKind::UncommittedChanges,
+            label: "Commit Evidence".into(),
+            detail: "Local working tree contains uncommitted source edits".into(),
+            is_action_required: true,
+            pill_class: "pill-action",
+        };
+    }
+
+    let untracked_diag = concept_diagnostics.iter().any(|d| d.code == "OKF4007");
+    if untracked_diag {
+        return ConceptAction {
+            kind: ActionKind::UntrackedSources,
+            label: "Track Evidence".into(),
+            detail: "Cited source is untracked with no git provenance".into(),
+            is_action_required: true,
+            pill_class: "pill-action",
+        };
+    }
+
+    if status == "draft" && authority == "exploratory" {
+        return ConceptAction {
+            kind: ActionKind::Exploratory,
+            label: "Exploratory".into(),
+            detail: "Intentional draft exploratory research (no action required)".into(),
+            is_action_required: false,
+            pill_class: "pill-info",
+        };
+    }
+
+    let has_human_verification = concept
+        .metadata
+        .get("verified")
+        .and_then(Value::as_array)
+        .is_some_and(|arr| {
+            arr.iter().any(|v| {
+                v.get("by")
+                    .and_then(Value::as_str)
+                    .is_some_and(|actor| actor.starts_with("human:"))
+            })
+        });
+
+    if status == "draft" {
+        if !has_human_verification {
+            return ConceptAction {
+                kind: ActionKind::InitialVerification,
+                label: "Verify".into(),
+                detail: "Initial human review and verification needed to stabilize".into(),
+                is_action_required: true,
+                pill_class: "pill-action",
+            };
+        } else {
+            return ConceptAction {
+                kind: ActionKind::PendingPromotion,
+                label: "Verify".into(),
+                detail: "Draft revision pending human verification to promote to stable".into(),
+                is_action_required: true,
+                pill_class: "pill-action",
+            };
+        }
+    }
+
+    if status == "stable" {
+        return ConceptAction {
+            kind: ActionKind::Clean,
+            label: "Stable".into(),
+            detail: "Human-verified and in sync with repository evidence".into(),
+            is_action_required: false,
+            pill_class: "pill-clean",
+        };
+    }
+
+    ConceptAction {
+        kind: ActionKind::Clean,
+        label: status.to_string(),
+        detail: "Archived or historical record".into(),
+        is_action_required: false,
+        pill_class: "pill-info",
+    }
+}
+
+pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic]) -> String {
+    let status = string_field(&concept.metadata, "status").unwrap_or("draft");
+    let authority = string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+    let trust_tier = concept_trust_tier(&concept.metadata);
+    let stale = concept_is_stale(&concept.metadata);
+    let stale_after = string_field(&concept.metadata, "stale_after").unwrap_or("");
+    let concept_type = string_field(&concept.metadata, "type").unwrap_or("Concept");
+    let owners = metadata_string_array(&concept.metadata, "owners");
+    let tags = metadata_string_array(&concept.metadata, "tags");
+
+    let action = classify_concept_action(concept, bundle_diagnostics);
+
+    let (trust_slug, trust_label) = match trust_tier {
+        TrustTier::HumanReviewed => ("human", "human-reviewed"),
+        TrustTier::Generated => ("generated", "generated"),
+        TrustTier::Unverified => ("unverified", "unverified"),
+    };
+
+    let latest_verification = latest_human_verification(&concept.metadata);
+    let generated_by = concept
+        .metadata
+        .get("generated")
+        .and_then(Value::as_object)
+        .and_then(|g| g.get("by"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let generated_at = concept
+        .metadata
+        .get("generated")
+        .and_then(Value::as_object)
+        .and_then(|g| g.get("at"))
+        .and_then(Value::as_str)
+        .unwrap_or("");
+
+    let mut out = String::new();
+    out.push_str(
+        "<section class=\"okf-concept-meta\" aria-label=\"Concept Metadata &amp; Governance\">\n",
+    );
+    out.push_str("  <div class=\"okf-badge-group\">\n");
+    out.push_str(&format!(
+        "    <span class=\"okf-badge okf-type\">{}</span>\n",
+        escape(concept_type)
+    ));
+    out.push_str(&format!(
+        "    <span class=\"okf-badge okf-status okf-status-{}\">{}</span>\n",
+        escape(status),
+        escape(status)
+    ));
+    out.push_str(&format!(
+        "    <span class=\"okf-badge okf-auth okf-auth-{}\">{}</span>\n",
+        escape(authority),
+        escape(authority)
+    ));
+    out.push_str(&format!(
+        "    <span class=\"okf-badge okf-trust okf-trust-{}\">{}</span>\n",
+        trust_slug, trust_label
+    ));
+    if stale {
+        out.push_str(&format!(
+            "    <span class=\"okf-badge okf-badge-stale\">Stale (expired {})</span>\n",
+            escape(stale_after)
+        ));
+    }
+    out.push_str("  </div>\n");
+
+    if action.is_action_required {
+        out.push_str("  <div class=\"okf-alert-banner\" role=\"alert\">\n");
+        out.push_str("    <span class=\"okf-alert-icon\" aria-hidden=\"true\">⚠️</span>\n");
+        out.push_str("    <div class=\"okf-alert-content\">\n");
+        out.push_str(&format!(
+            "      <strong>Review Action Required:</strong> {}\n",
+            escape(&action.detail)
+        ));
+        out.push_str("    </div>\n");
+        out.push_str("  </div>\n");
+    }
+
+    out.push_str("  <div class=\"okf-meta-grid\">\n");
+    if !owners.is_empty() {
+        out.push_str(&format!(
+            "    <div><span class=\"okf-meta-label\">Owners:</span> <code>{}</code></div>\n",
+            escape(&owners.join(", "))
+        ));
+    }
+    if let Some((_, verifier_str)) = latest_verification {
+        out.push_str(&format!(
+            "    <div><span class=\"okf-meta-label\">Verified:</span> <code>{}</code></div>\n",
+            escape(verifier_str)
+        ));
+    } else {
+        out.push_str(
+            "    <div><span class=\"okf-meta-label\">Verified:</span> <em>Unverified</em></div>\n",
+        );
+    }
+    if !generated_by.is_empty() {
+        out.push_str(&format!(
+            "    <div><span class=\"okf-meta-label\">Generated:</span> <code>{} @ {}</code></div>\n",
+            escape(generated_by),
+            escape(generated_at)
+        ));
+    }
+    if !stale_after.is_empty() {
+        out.push_str(&format!(
+            "    <div><span class=\"okf-meta-label\">Stale after:</span> <code>{}</code></div>\n",
+            escape(stale_after)
+        ));
+    }
+    out.push_str("  </div>\n");
+
+    if let Some(sources) = concept.metadata.get("sources").and_then(Value::as_array) {
+        if !sources.is_empty() {
+            let drift_diags: Vec<&Diagnostic> = bundle_diagnostics
+                .iter()
+                .filter(|d| d.path == concept.path && d.code == "OKF4006")
+                .collect();
+            let drift_summary = if !drift_diags.is_empty() {
+                format!("({} drifted)", drift_diags.len())
+            } else {
+                "(all clean)".to_string()
+            };
+
+            out.push_str("  <details class=\"okf-sources-drawer\">\n");
+            out.push_str(&format!(
+                "    <summary><strong>{} Cited Sources</strong> <span class=\"okf-sources-drift-note\">{}</span></summary>\n",
+                sources.len(),
+                escape(&drift_summary)
+            ));
+            out.push_str("    <table class=\"okf-sources-table\">\n");
+            out.push_str("      <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>\n");
+            out.push_str("      <tbody>\n");
+            for source in sources {
+                let s_id = source.get("id").and_then(Value::as_str).unwrap_or("-");
+                let s_res = source
+                    .get("resource")
+                    .and_then(Value::as_str)
+                    .unwrap_or("-");
+                let s_author = source.get("author").and_then(Value::as_str).unwrap_or("-");
+                let is_drifted = drift_diags
+                    .iter()
+                    .any(|d| d.message.contains(&format!("`{s_id}`")));
+                let status_badge = if is_drifted {
+                    "<span class=\"okf-badge okf-status-draft\">Modified since verification</span>"
+                } else {
+                    "<span class=\"okf-badge okf-status-stable\">Clean</span>"
+                };
+                out.push_str(&format!(
+                    "        <tr><td><code>{}</code></td><td><code>{}</code></td><td>{}</td><td>{}</td></tr>\n",
+                    escape(s_id),
+                    escape(s_res),
+                    escape(s_author),
+                    status_badge
+                ));
+            }
+            out.push_str("      </tbody>\n");
+            out.push_str("    </table>\n");
+            out.push_str("  </details>\n");
+        }
+    }
+
+    if !tags.is_empty() {
+        out.push_str("  <div class=\"okf-tags\">\n");
+        for tag in tags {
+            out.push_str(&format!(
+                "    <span class=\"okf-tag\">#{}</span>\n",
+                escape(&tag)
+            ));
+        }
+        out.push_str("  </div>\n");
+    }
+
+    out.push_str("</section>\n\n");
+    out
+}
+
+const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
+    (
+        "architecture/rocdown-format",
+        "Parser/README precedence over original report; root HTML template islands",
+    ),
+    (
+        "architecture/rocs-documentation-compiler",
+        "Ordinary Rocs compiler plus isolated OKF preview/retrieval path",
+    ),
+    (
+        "architecture/theming",
+        "Two current surfaces versus DTCG research-only boundary",
+    ),
+    (
+        "status/implementation",
+        "Snapshot accuracy; shipped, approved, proposed separation",
+    ),
+    (
+        "status/known-limitations",
+        "Current absences; ordinary-site versus OKF search boundary",
+    ),
+    (
+        "architecture/system-overview",
+        "Workspace and product boundaries",
+    ),
+    (
+        "decisions/pure-render-components",
+        "Implemented render semantics versus application architecture",
+    ),
+    (
+        "decisions/server-owned-state",
+        "Current direction versus optional browser state",
+    ),
+    (
+        "decisions/markdown-first-explicit-islands",
+        "Implemented syntax boundary versus unimplemented @island",
+    ),
+    (
+        "decisions/rust-catalog-rocci-shell",
+        "Implemented ownership boundary and remaining splice path",
+    ),
+];
+
+pub fn render_priority_1_queue(bundle: &Bundle) -> String {
+    let mut out = String::new();
+    out.push_str("<div class=\"okf-priority-1-section\">\n");
+    out.push_str("  <h2 class=\"rd-header-2\" id=\"priority-1-review-queue\">Priority-1 Review Queue (5 Actionable Records)</h2>\n");
+    out.push_str("  <p class=\"rd-paragraph\">The evidence-based human review gate for stabilizing Rocci's core architectural and decision records. Below are the 10 priority-1 records, explicitly highlighting the <strong>5 records requiring human re-verification</strong>.</p>\n\n");
+
+    out.push_str("  <div class=\"okf-table-container\">\n");
+    out.push_str("    <table class=\"okf-review-table\">\n");
+    out.push_str("      <thead>\n");
+    out.push_str("        <tr>\n");
+    out.push_str("          <th style=\"width: 25%;\">Priority-1 Record</th>\n");
+    out.push_str("          <th style=\"width: 27%;\">Review Focus</th>\n");
+    out.push_str("          <th style=\"width: 15%;\">Lifecycle / Authority</th>\n");
+    out.push_str("          <th style=\"width: 15%;\">Trust &amp; Verifier</th>\n");
+    out.push_str("          <th style=\"width: 18%;\">Required Action</th>\n");
+    out.push_str("        </tr>\n");
+    out.push_str("      </thead>\n");
+    out.push_str("      <tbody>\n");
+
+    for &(id, focus) in PRIORITY_1_RECORDS {
+        let Some(concept) = bundle.concepts.iter().find(|c| c.id == id) else {
+            continue;
+        };
+        let title = string_field(&concept.metadata, "title").unwrap_or(id);
+        let status = string_field(&concept.metadata, "status").unwrap_or("draft");
+        let authority = string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+        let action = classify_concept_action(concept, &bundle.diagnostics);
+        let trust_tier = concept_trust_tier(&concept.metadata);
+        let (trust_slug, trust_label) = match trust_tier {
+            TrustTier::HumanReviewed => ("human", "human-reviewed"),
+            TrustTier::Generated => ("generated", "generated"),
+            TrustTier::Unverified => ("unverified", "unverified"),
+        };
+        let verifier_text = if let Some((_, v_str)) = latest_human_verification(&concept.metadata) {
+            v_str.to_string()
+        } else {
+            "None".to_string()
+        };
+
+        out.push_str("        <tr>\n");
+        out.push_str(&format!(
+            "          <td><a href=\"/{}/\" class=\"okf-concept-title-link\"><strong>{}</strong></a><div class=\"okf-concept-id-sub\"><code>{}</code></div></td>\n",
+            concept.id,
+            escape(title),
+            escape(&concept.id)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-focus-text\">{}</span></td>\n",
+            escape(focus)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-badge okf-status okf-status-{}\">{}</span> <span class=\"okf-badge okf-auth okf-auth-{}\">{}</span></td>\n",
+            escape(status),
+            escape(status),
+            escape(authority),
+            escape(authority)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-badge okf-trust okf-trust-{}\">{}</span><div class=\"okf-verifier-sub\"><code>{}</code></div></td>\n",
+            trust_slug,
+            trust_label,
+            escape(&verifier_text)
+        ));
+        out.push_str(&format!(
+            "          <td><div class=\"okf-action-wrapper\"><span class=\"okf-action-pill {}\">{}</span><div class=\"okf-action-detail-text\">{}</div></div></td>\n",
+            action.pill_class,
+            escape(&action.label),
+            escape(&action.detail)
+        ));
+        out.push_str("        </tr>\n");
+    }
+
+    out.push_str("      </tbody>\n");
+    out.push_str("    </table>\n");
+    out.push_str("  </div>\n");
+    out.push_str("</div>\n\n");
+    out
+}
+
+pub fn render_home_page_governance(bundle: &Bundle) -> String {
+    let total_concepts = bundle.concepts.len();
+    let mut stable_count = 0;
+    let mut draft_count = 0;
+    let mut action_count = 0;
+    let mut stale_count = 0;
+
+    for concept in &bundle.concepts {
+        let status = string_field(&concept.metadata, "status").unwrap_or("draft");
+        let stale = concept_is_stale(&concept.metadata);
+        if stale {
+            stale_count += 1;
+        }
+        if status == "stable" {
+            stable_count += 1;
+        } else {
+            draft_count += 1;
+        }
+        let action = classify_concept_action(concept, &bundle.diagnostics);
+        if action.is_action_required {
+            action_count += 1;
+        }
+    }
+    let warnings_count = bundle.diagnostics.len();
+
+    let mut out = String::new();
+    out.push_str("<div class=\"okf-home-governance\">\n");
+    out.push_str("  <div class=\"okf-stat-grid\">\n");
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Total Concepts</div></div>\n",
+        total_concepts
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stable</div></div>\n",
+        stable_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Draft</div></div>\n",
+        draft_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card is-action\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Action Required</div></div>\n",
+        action_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stale Records</div></div>\n",
+        stale_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Diagnostics</div></div>\n",
+        warnings_count
+    ));
+    out.push_str("  </div>\n\n");
+
+    out.push_str(&render_priority_1_queue(bundle));
+
+    out.push_str("  <div class=\"okf-cta-row\">\n");
+    out.push_str("    <a href=\"/review/\" class=\"okf-cta-btn\">Open Complete Review Queue (All 19 Concepts) &rarr;</a>\n");
+    out.push_str("    <a href=\"/reference/priority-1-review/\" class=\"okf-secondary-link\">View Priority-1 Review Checklist &rarr;</a>\n");
+    out.push_str("  </div>\n");
+    out.push_str("  <hr class=\"rd-hr\" />\n");
+    out.push_str(
+        "  <h2 class=\"rd-header-2\" id=\"knowledge-collections\">Knowledge Collections</h2>\n",
+    );
+    out.push_str("</div>\n\n");
+    out
+}
+
+pub fn render_review_page(bundle: &Bundle) -> String {
+    let total_concepts = bundle.concepts.len();
+    let mut stable_count = 0;
+    let mut draft_count = 0;
+    let mut action_count = 0;
+    let mut stale_count = 0;
+
+    struct RowData<'a> {
+        concept: &'a Concept,
+        action: ConceptAction,
+        status: &'a str,
+        authority: &'a str,
+        concept_type: &'a str,
+        trust_slug: &'static str,
+        trust_label: &'static str,
+        verifier_text: String,
+    }
+
+    let mut rows = Vec::new();
+    for concept in &bundle.concepts {
+        let status = string_field(&concept.metadata, "status").unwrap_or("draft");
+        let authority = string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+        let concept_type = string_field(&concept.metadata, "type").unwrap_or("Concept");
+        let stale = concept_is_stale(&concept.metadata);
+        if stale {
+            stale_count += 1;
+        }
+        if status == "stable" {
+            stable_count += 1;
+        } else {
+            draft_count += 1;
+        }
+
+        let action = classify_concept_action(concept, &bundle.diagnostics);
+        if action.is_action_required {
+            action_count += 1;
+        }
+
+        let trust_tier = concept_trust_tier(&concept.metadata);
+        let (trust_slug, trust_label) = match trust_tier {
+            TrustTier::HumanReviewed => ("human", "human-reviewed"),
+            TrustTier::Generated => ("generated", "generated"),
+            TrustTier::Unverified => ("unverified", "unverified"),
+        };
+
+        let verifier_text = if let Some((_, v_str)) = latest_human_verification(&concept.metadata) {
+            v_str.to_string()
+        } else {
+            "None".to_string()
+        };
+
+        rows.push(RowData {
+            concept,
+            action,
+            status,
+            authority,
+            concept_type,
+            trust_slug,
+            trust_label,
+            verifier_text,
+        });
+    }
+
+    let warnings_count = bundle.diagnostics.len();
+
+    let mut out = String::new();
+    out.push_str("<div class=\"okf-review-view\">\n");
+    out.push_str("  <h1 class=\"rd-header-1\">Knowledge Governance &amp; Review Queue</h1>\n");
+    out.push_str("  <p class=\"rd-paragraph\">Deterministic overview of bundle lifecycle status, trust tiers, source drift, and required human actions.</p>\n\n");
+
+    out.push_str("  <div class=\"okf-stat-grid\">\n");
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Total Concepts</div></div>\n",
+        total_concepts
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stable</div></div>\n",
+        stable_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Draft</div></div>\n",
+        draft_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card is-action\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Action Required</div></div>\n",
+        action_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stale Records</div></div>\n",
+        stale_count
+    ));
+    out.push_str(&format!(
+        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Diagnostics</div></div>\n",
+        warnings_count
+    ));
+    out.push_str("  </div>\n\n");
+
+    out.push_str(&render_priority_1_queue(bundle));
+
+    out.push_str("  <h2 class=\"rd-header-2\" id=\"all-concepts-queue\">2. All Bundle Concepts (19 Records)</h2>\n");
+    out.push_str("  <div class=\"okf-filter-bar\">\n");
+    out.push_str(&format!(
+        "    <button type=\"button\" class=\"okf-filter-btn is-active\" data-filter=\"all\">All ({})</button>\n",
+        total_concepts
+    ));
+    out.push_str(&format!(
+        "    <button type=\"button\" class=\"okf-filter-btn\" data-filter=\"action\">Needs Action ({})</button>\n",
+        action_count
+    ));
+    out.push_str(&format!(
+        "    <button type=\"button\" class=\"okf-filter-btn\" data-filter=\"draft\">Draft ({})</button>\n",
+        draft_count
+    ));
+    out.push_str(&format!(
+        "    <button type=\"button\" class=\"okf-filter-btn\" data-filter=\"stable\">Stable ({})</button>\n",
+        stable_count
+    ));
+    out.push_str("    <input type=\"search\" id=\"okf-search-input\" class=\"okf-search-input\" placeholder=\"Filter by concept, path, tag, or action...\" aria-label=\"Search review queue\" />\n");
+    out.push_str("  </div>\n\n");
+
+    out.push_str("  <div class=\"okf-table-container\">\n");
+    out.push_str("    <table class=\"okf-review-table\" id=\"okf-review-table\">\n");
+    out.push_str("      <thead>\n");
+    out.push_str("        <tr>\n");
+    out.push_str("          <th style=\"width: 28%;\">Concept</th>\n");
+    out.push_str("          <th style=\"width: 14%;\">Collection</th>\n");
+    out.push_str("          <th style=\"width: 18%;\">Lifecycle / Authority</th>\n");
+    out.push_str("          <th style=\"width: 18%;\">Trust &amp; Verification</th>\n");
+    out.push_str("          <th style=\"width: 22%;\">Required Action</th>\n");
+    out.push_str("        </tr>\n");
+    out.push_str("      </thead>\n");
+    out.push_str("      <tbody>\n");
+
+    for row in &rows {
+        let title = string_field(&row.concept.metadata, "title").unwrap_or(&row.concept.id);
+        let tags = metadata_string_array(&row.concept.metadata, "tags");
+        let search_haystack = format!(
+            "{} {} {} {} {} {} {}",
+            title,
+            row.concept.id,
+            row.concept_type,
+            row.status,
+            row.authority,
+            row.action.detail,
+            tags.join(" ")
+        )
+        .to_lowercase();
+
+        out.push_str(&format!(
+            "        <tr class=\"okf-row\" data-status=\"{}\" data-action=\"{}\" data-search=\"{}\">\n",
+            escape(row.status),
+            if row.action.is_action_required { "true" } else { "false" },
+            escape(&search_haystack)
+        ));
+        out.push_str(&format!(
+            "          <td><a href=\"/{}/\" class=\"okf-concept-title-link\"><strong>{}</strong></a><div class=\"okf-concept-id-sub\"><code>{}</code></div></td>\n",
+            row.concept.id,
+            escape(title),
+            escape(&row.concept.id)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-badge okf-type\">{}</span></td>\n",
+            escape(row.concept_type)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-badge okf-status okf-status-{}\">{}</span> <span class=\"okf-badge okf-auth okf-auth-{}\">{}</span></td>\n",
+            escape(row.status),
+            escape(row.status),
+            escape(row.authority),
+            escape(row.authority)
+        ));
+        out.push_str(&format!(
+            "          <td><span class=\"okf-badge okf-trust okf-trust-{}\">{}</span><div class=\"okf-verifier-sub\"><code>{}</code></div></td>\n",
+            row.trust_slug,
+            row.trust_label,
+            escape(&row.verifier_text)
+        ));
+        out.push_str(&format!(
+            "          <td><div class=\"okf-action-wrapper\"><span class=\"okf-action-pill {}\">{}</span><div class=\"okf-action-detail-text\">{}</div></div></td>\n",
+            row.action.pill_class,
+            escape(&row.action.label),
+            escape(&row.action.detail)
+        ));
+        out.push_str("        </tr>\n");
+    }
+
+    out.push_str("      </tbody>\n");
+    out.push_str("    </table>\n");
+    out.push_str("  </div>\n\n");
+
+    out.push_str("  <h2 class=\"rd-header-2\" id=\"diagnostics\">Active Bundle Diagnostics</h2>\n");
+    if bundle.diagnostics.is_empty() {
+        out.push_str("  <p class=\"rd-paragraph\">No validation errors or provenance warnings detected.</p>\n");
+    } else {
+        out.push_str("  <div class=\"okf-diagnostics-list\">\n");
+        for diag in &bundle.diagnostics {
+            let sev_badge = match diag.severity {
+                Severity::Error => "<span class=\"okf-badge okf-status-deprecated\">Error</span>",
+                Severity::Warning => "<span class=\"okf-badge okf-status-draft\">Warning</span>",
+            };
+            out.push_str(&format!(
+                "    <div class=\"okf-diagnostic-item\">{} <code>{}</code> <strong>{}</strong>: {}</div>\n",
+                sev_badge,
+                escape(diag.code),
+                escape(&diag.path),
+                escape(&diag.message)
+            ));
+        }
+        out.push_str("  </div>\n");
+    }
+
+    out.push_str(
+        r#"  <script>
+    (function() {
+      var currentFilter = 'all';
+      var searchQuery = '';
+      var buttons = document.querySelectorAll('.okf-filter-btn');
+      var searchInput = document.getElementById('okf-search-input');
+      var rows = document.querySelectorAll('.okf-row');
+
+      function updateRows() {
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var status = row.getAttribute('data-status');
+          var isAction = row.getAttribute('data-action') === 'true';
+          var searchData = row.getAttribute('data-search') || '';
+
+          var matchesFilter = true;
+          if (currentFilter === 'action') {
+            matchesFilter = isAction;
+          } else if (currentFilter === 'draft') {
+            matchesFilter = status === 'draft';
+          } else if (currentFilter === 'stable') {
+            matchesFilter = status === 'stable';
+          }
+
+          var matchesSearch = true;
+          if (searchQuery.length > 0) {
+            matchesSearch = searchData.indexOf(searchQuery) !== -1;
+          }
+
+          row.style.display = (matchesFilter && matchesSearch) ? '' : 'none';
+        }
+      }
+
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].addEventListener('click', function(e) {
+          for (var j = 0; j < buttons.length; j++) {
+            buttons[j].classList.remove('is-active');
+          }
+          this.classList.add('is-active');
+          currentFilter = this.getAttribute('data-filter') || 'all';
+          updateRows();
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          searchQuery = (e.target.value || '').trim().toLowerCase();
+          updateRows();
+        });
+      }
+    })();
+  </script>
+"#,
+    );
+
+    out.push_str("</div>\n");
+    out
+}
+
 pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
     let bundle = load(root, profile)?;
     let mut config = SiteConfig::default();
@@ -445,6 +1265,15 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
         })
         .collect();
 
+    config.navigation.insert(
+        0,
+        NavConfig {
+            label: "Governance & Review".into(),
+            items: vec!["review".into()],
+            directory: None,
+        },
+    );
+
     let routes = bundle
         .indexes
         .iter()
@@ -458,6 +1287,10 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
                 crate::catalog::derived_route(&concept.id),
             )
         }))
+        .chain(std::iter::once((
+            "review.md".to_string(),
+            crate::catalog::derived_route("review"),
+        )))
         .collect::<BTreeMap<_, _>>();
 
     let mut files = BTreeSet::new();
@@ -465,6 +1298,43 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
     collect_bundle_files(&bundle.root, &bundle.root, &mut files, &mut static_files)?;
 
     let mut sources = Vec::new();
+    sources.push(SourcePage {
+        id: "review".to_string(),
+        id_explicit: true,
+        source_path: "review.md".to_string(),
+        route_hint: RouteHint::Derived,
+        aliases: Vec::new(),
+        draft: false,
+        title: "Knowledge Governance & Review Queue".to_string(),
+        description: "Deterministic overview of bundle lifecycle status, trust tiers, source drift, and required actions.".to_string(),
+        headings: vec![
+            PageHeading {
+                level: 2,
+                id: "summary-metrics".to_string(),
+                text: "Summary Metrics".to_string(),
+            },
+            PageHeading {
+                level: 2,
+                id: "priority-1-review-queue".to_string(),
+                text: "Priority-1 Review Queue".to_string(),
+            },
+            PageHeading {
+                level: 2,
+                id: "all-concepts-queue".to_string(),
+                text: "All Bundle Concepts".to_string(),
+            },
+            PageHeading {
+                level: 2,
+                id: "diagnostics".to_string(),
+                text: "Active Bundle Diagnostics".to_string(),
+            },
+        ],
+        outgoing_links: Vec::new(),
+        image_urls: Vec::new(),
+        article_html: render_review_page(&bundle),
+        docs: crate::docs::PageDocs::default(),
+    });
+
     for index in &bundle.indexes {
         let id = index
             .path
@@ -477,6 +1347,11 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
             .map(|heading| heading.text.clone())
             .unwrap_or_else(|| id.clone());
         let document = rewrite_document_urls(&index.document, &index.path, &routes, &files);
+        let mut article_html = render_document(&document);
+        if index.path == "index.md" {
+            let governance_header = render_home_page_governance(&bundle);
+            article_html = format!("{governance_header}{article_html}");
+        }
         sources.push(SourcePage {
             id,
             id_explicit: false,
@@ -489,12 +1364,15 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
             headings,
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
-            article_html: render_document(&document),
+            article_html,
             docs: crate::docs::PageDocs::default(),
         });
     }
     for concept in &bundle.concepts {
         let document = rewrite_document_urls(&concept.document, &concept.path, &routes, &files);
+        let rendered_doc = render_document(&document);
+        let meta_header = render_concept_meta(concept, &bundle.diagnostics);
+        let article_html = format!("{meta_header}{rendered_doc}");
         sources.push(SourcePage {
             id: concept.id.clone(),
             id_explicit: true,
@@ -519,7 +1397,7 @@ pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
                 .collect(),
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
-            article_html: render_document(&document),
+            article_html,
             docs: crate::docs::PageDocs::default(),
         });
     }
@@ -936,16 +1814,30 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
         let title = string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-        fs::write(&destination, html_page(title, &concept.article_html))
+        let meta_header = render_concept_meta(concept, &bundle.diagnostics);
+        let full_html = format!("{meta_header}{}", &concept.article_html);
+        fs::write(&destination, html_page(title, &full_html))
             .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
-        fs::write(
-            site.join("index.html"),
-            html_page("Knowledge", &index.article_html),
-        )
-        .context("failed to write knowledge index")?;
+        let governance_header = render_home_page_governance(&bundle);
+        let full_index = format!("{governance_header}{}", &index.article_html);
+        fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
+            .context("failed to write knowledge index")?;
     }
+    let review_dest = site.join("review").join("index.html");
+    if let Some(parent) = review_dest.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+    fs::write(
+        &review_dest,
+        html_page(
+            "Knowledge Governance & Review Queue",
+            &render_review_page(&bundle),
+        ),
+    )
+    .context("failed to write knowledge review page")?;
     let catalog = bundle
         .concepts
         .iter()
@@ -2790,16 +3682,17 @@ expected_authority = "descriptive"
         )
         .unwrap();
         fs::write(root.join("matrix.tsv"), "name\tstatus\nSystem\tstable\n").unwrap();
-
         let loaded = load_site(&root, Profile::Base).unwrap();
         assert_eq!(loaded.config.site.title, "Knowledge");
-        assert_eq!(loaded.config.navigation.len(), 2);
-        assert_eq!(loaded.config.navigation[0].label, "Architecture");
+        assert_eq!(loaded.config.navigation.len(), 3);
+        assert_eq!(loaded.config.navigation[0].label, "Governance & Review");
+        assert_eq!(loaded.config.navigation[1].label, "Architecture");
         assert_eq!(
-            loaded.config.navigation[0].directory.as_deref(),
+            loaded.config.navigation[1].directory.as_deref(),
             Some("architecture")
         );
         assert!(loaded.sources.iter().any(|page| page.id == "index"));
+        assert!(loaded.sources.iter().any(|page| page.id == "review"));
         assert!(
             loaded
                 .sources
@@ -2813,6 +3706,7 @@ expected_authority = "descriptive"
             .unwrap();
         assert!(home.article_html.contains("href=\"/architecture/\""));
         assert!(home.article_html.contains("href=\"/matrix.tsv\""));
+        assert!(home.article_html.contains("Priority-1 Review Queue"));
         let section = loaded
             .sources
             .iter()
@@ -2829,13 +3723,22 @@ expected_authority = "descriptive"
             .find(|page| page.id == "architecture/system")
             .unwrap();
         assert!(system.article_html.contains("href=\"/\""));
+        assert!(system.article_html.contains("okf-concept-meta"));
+        let review = loaded
+            .sources
+            .iter()
+            .find(|page| page.id == "review")
+            .unwrap();
+        assert!(review.article_html.contains("okf-review-table"));
         assert_eq!(loaded.static_files.len(), 1);
         assert_eq!(loaded.static_files[0].output_path, "matrix.tsv");
         let resolved = crate::site::resolve_loaded(&loaded);
         assert!(!resolved.has_errors(), "{:?}", resolved.diagnostics);
-        assert_eq!(resolved.site.navigation.len(), 2);
-        assert_eq!(resolved.site.navigation[0].label, "Architecture");
-        assert_eq!(resolved.site.navigation[0].items[0].route, "/architecture/");
+        assert_eq!(resolved.site.navigation.len(), 3);
+        assert_eq!(resolved.site.navigation[0].label, "Governance & Review");
+        assert_eq!(resolved.site.navigation[0].items[0].route, "/review/");
+        assert_eq!(resolved.site.navigation[1].label, "Architecture");
+        assert_eq!(resolved.site.navigation[1].items[0].route, "/architecture/");
         assert!(!resolved.site.unlisted.iter().any(|id| id == "index"));
         let plan = crate::plan::plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
         let article_paths = plan
@@ -2857,21 +3760,35 @@ expected_authority = "descriptive"
                 .iter()
                 .map(|item| item.title.as_str())
                 .collect::<Vec<_>>(),
-            ["Architecture", "System", "Decisions"]
+            ["Governance & Review", "Architecture", "System", "Decisions"]
+        );
+        assert_eq!(
+            system_page
+                .view
+                .sidebar
+                .iter()
+                .find(|item| item.href == "/architecture/system/")
+                .unwrap()
+                .class_name,
+            "nav-link nav-child is-current"
+        );
+        assert_eq!(
+            system_page.view.sidebar[0].class_name,
+            "nav-link nav-category"
         );
         assert!(
-            system_page.view.sidebar[0]
+            system_page.view.sidebar[1]
                 .class_name
                 .contains("is-expanded")
         );
-        assert!(system_page.view.sidebar[1].class_name.contains("nav-child"));
+        assert!(system_page.view.sidebar[2].class_name.contains("nav-child"));
         assert!(
-            system_page.view.sidebar[1]
+            system_page.view.sidebar[2]
                 .class_name
                 .contains("is-current")
         );
         assert_eq!(
-            system_page.view.sidebar[2].class_name,
+            system_page.view.sidebar[3].class_name,
             "nav-link nav-category"
         );
         fs::remove_dir_all(root).unwrap();

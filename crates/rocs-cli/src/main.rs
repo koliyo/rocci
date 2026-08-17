@@ -386,6 +386,7 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
         } => {
             let port = port.resolve()?;
             let server = rocs::run_knowledge(&root, output.as_deref(), port, profile.into())?;
+            eprintln!("rocs: review queue at {}review/", server.url);
             preview(server, no_window)
         }
         KnowledgeCommand::Check {
