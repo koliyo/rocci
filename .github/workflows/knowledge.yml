@@ -25,16 +25,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Test knowledge implementation
         run: |
-          cargo test -p rocci-rocdown okf --lib
-          cargo test -p rocci-rocdown-cli
+          cargo test -p okf
+          cargo test -p rocci-okf
       - name: Validate profile, graph, provenance, freshness, and source drift
         run: |
           mkdir -p target/knowledge-ci
-          cargo run -q -p rocci-rocdown-cli -- knowledge check knowledge --profile rocci --format json > target/knowledge-ci/validation.json
-          cargo run -q -p rocci-rocdown-cli -- knowledge inspect --profile rocci graph knowledge > target/knowledge-ci/graph.json
-          cargo run -q -p rocci-rocdown-cli -- knowledge benchmark knowledge > target/knowledge-ci/retrieval.json
+          cargo run -q -p rocci-okf -- check knowledge --profile rocci --format json > target/knowledge-ci/validation.json
+          cargo run -q -p rocci-okf -- inspect --profile rocci graph knowledge > target/knowledge-ci/graph.json
+          cargo run -q -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge --profile rocci > target/knowledge-ci/retrieval.json
       - name: Verify deterministic publication artifacts
         run: |
-          cargo run -q -p rocci-rocdown-cli -- knowledge build knowledge --output target/knowledge-ci/build-a
-          cargo run -q -p rocci-rocdown-cli -- knowledge build knowledge --output target/knowledge-ci/build-b
+          cargo run -q -p rocci-okf -- build knowledge --output target/knowledge-ci/build-a --profile rocci
+          cargo run -q -p rocci-okf -- build knowledge --output target/knowledge-ci/build-b --profile rocci
           diff -qr target/knowledge-ci/build-a target/knowledge-ci/build-b
