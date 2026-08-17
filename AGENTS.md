@@ -24,6 +24,7 @@
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
 | Portable OKF parsing, validation, search, and artifacts | `crates/okf` |
 | Knowledge review CLI, desktop preview, and bundle tools | `crates/rocci-okf` |
+| Shared UI primitives, view records, and component templates | `crates/rocci-ui` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 | Editor behavior | `crates/rocci-lsp`, `editors/vscode`, or `editors/zed` |
 

@@ -1,0 +1,58 @@
+import Html
+
+@component Breadcrumbs = |{ breadcrumbs, route }| {
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+            @for crumb in breadcrumbs {
+                <li>
+                    <a
+                        class={if crumb.href == route { "crumb-current" } else { "" }}
+                        href={crumb.href}
+                        aria-current={if crumb.href == route { "page" } else { "false" }}
+                    >{crumb.title}</a>
+                </li>
+            }
+        </ol>
+    </nav>
+}
+
+@component Outline = |{ outline }| {
+    <aside class="outline" aria-label="On this page">
+        <p class="outline-label">On this page</p>
+        <div class="outline-items">
+            @for heading in outline {
+                <a
+                    class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
+                    href={"#${heading.id}"}
+                >{heading.title}</a>
+            }
+        </div>
+    </aside>
+}
+
+@component Journey = |{ previous, next }| {
+    <nav class="journey" aria-label="Page">
+        @if previous.href != "" {
+            <a class="journey-prev" href={previous.href}>← {previous.title}</a>
+        }
+        @if next.href != "" {
+            <a class="journey-next" href={next.href}>{next.title} →</a>
+        }
+    </nav>
+}
+
+@component StatCard = |{ value, label, is_action ?? False }| {
+    <div class={if is_action { "okf-stat-card is-action" } else { "okf-stat-card" }}>
+        <div class="okf-stat-value">{value}</div>
+        <div class="okf-stat-label">{label}</div>
+    </div>
+}
+
+@component AlertBanner = |{ title, message, icon ?? "⚠️" }| {
+    <div class="okf-alert-banner" role="alert">
+        <span class="okf-alert-icon" aria-hidden="true">{icon}</span>
+        <div class="okf-alert-content">
+            <strong>{title}:</strong> {message}
+        </div>
+    </div>
+}

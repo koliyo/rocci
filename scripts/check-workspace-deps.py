@@ -23,6 +23,7 @@ BASE_ROCCI = {
     "rocci-cli",
     "rocci-lsp",
     "rocci-highlight",
+    "rocci-ui",
 }
 
 ROCDOWN = {

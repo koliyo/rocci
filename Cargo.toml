@@ -12,6 +12,7 @@ members = [
     "crates/rocci-rocdown-cli",
     "crates/okf",
     "crates/rocci-okf",
+    "crates/rocci-ui",
 ]
 exclude = ["editors/zed"]
 default-members = ["crates/rocci-cli"]
@@ -25,6 +26,7 @@ description = "A Datastar-first .rocci template language and desktop runtime bui
 [workspace.dependencies]
 okf = { path = "crates/okf" }
 rocci-okf = { path = "crates/rocci-okf" }
+rocci-ui = { path = "crates/rocci-ui" }
 rocci-core = { path = "crates/rocci-core" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
