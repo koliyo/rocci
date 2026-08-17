@@ -7,7 +7,7 @@ use rocci_template::{PositionEncoding, SourceFile};
 
 use crate::analysis::offset_at;
 use crate::regions::InspectedRegion;
-use crate::{analysis, regions, rocdown, tokens};
+use crate::{analysis, regions, tokens};
 
 pub trait DocumentAnalysis: Send + Sync {
     fn diagnostics(&self) -> Vec<Diagnostic>;
@@ -140,135 +140,6 @@ impl DocumentAnalyzer for RocciAnalyzer {
     ) -> Box<dyn DocumentAnalysis> {
         let compiled = analysis::compile_text(name, text);
         Box::new(RocciAnalysis {
-            name: name.to_string(),
-            uri: uri.clone(),
-            text: text.to_string(),
-            compiled,
-            encoding,
-        })
-    }
-}
-
-pub struct RocdownAnalysis {
-    pub name: String,
-    pub uri: Uri,
-    pub text: String,
-    pub compiled: rocci_rocdown::CompileOutput,
-    pub encoding: PositionEncoding,
-}
-
-impl DocumentAnalysis for RocdownAnalysis {
-    fn diagnostics(&self) -> Vec<Diagnostic> {
-        rocdown::diagnostics(&self.name, &self.text, &self.compiled, self.encoding)
-    }
-
-    fn document_symbols(&self, _params: &DocumentSymbolParams) -> Option<DocumentSymbolResponse> {
-        Some(rocdown::document_symbols(
-            &self.name,
-            &self.text,
-            &self.compiled,
-            self.encoding,
-        ))
-    }
-
-    fn hover(&self, params: &HoverParams) -> Option<Hover> {
-        let position = params.text_document_position_params.position;
-        let source = SourceFile::new(&self.name, &self.text);
-        let offset = offset_at(source, position, self.encoding);
-        rocdown::hover(
-            &self.name,
-            &self.text,
-            &self.compiled,
-            offset,
-            self.encoding,
-        )
-    }
-
-    fn goto_definition(&self, params: &GotoDefinitionParams) -> Option<GotoDefinitionResponse> {
-        let position = params.text_document_position_params.position;
-        let source = SourceFile::new(&self.name, &self.text);
-        let offset = offset_at(source, position, self.encoding);
-        rocdown::goto_definition(
-            &self.name,
-            &self.text,
-            &self.compiled,
-            offset,
-            self.encoding,
-            self.uri.clone(),
-        )
-    }
-
-    fn completion(&self, params: &CompletionParams) -> Option<CompletionResponse> {
-        let position = params.text_document_position.position;
-        let source = SourceFile::new(&self.name, &self.text);
-        let offset = offset_at(source, position, self.encoding);
-        Some(rocdown::completion(&self.text, &self.compiled, offset))
-    }
-
-    fn semantic_tokens_full(&self, _params: &SemanticTokensParams) -> Option<SemanticTokensResult> {
-        Some(SemanticTokensResult::Tokens(
-            tokens::semantic_tokens_rocdown(
-                &self.name,
-                &self.text,
-                &self.compiled.document,
-                &self.compiled.headings,
-                self.encoding,
-                None,
-            ),
-        ))
-    }
-
-    fn semantic_tokens_range(
-        &self,
-        params: &SemanticTokensRangeParams,
-    ) -> Option<SemanticTokensRangeResult> {
-        Some(SemanticTokensRangeResult::Tokens(
-            tokens::semantic_tokens_rocdown(
-                &self.name,
-                &self.text,
-                &self.compiled.document,
-                &self.compiled.headings,
-                self.encoding,
-                Some(params.range),
-            ),
-        ))
-    }
-
-    fn inspect_regions(&self) -> Option<Vec<InspectedRegion>> {
-        let source = SourceFile::new(&self.name, &self.text);
-        let tree = regions::extract_rocdown_regions(
-            &self.name,
-            &self.text,
-            &self.compiled.document,
-            &self.compiled.headings,
-        );
-        Some(regions::inspect_regions(source, &tree, self.encoding))
-    }
-}
-
-pub struct RocdownAnalyzer;
-
-impl DocumentAnalyzer for RocdownAnalyzer {
-    fn can_analyze(&self, uri: &Uri, language_id: Option<&str>) -> bool {
-        match language_id {
-            Some("rocdown" | "markdown" | "md") => true,
-            Some(_) => false,
-            None => {
-                let path = uri.path().as_str();
-                path.ends_with(".rocdown") || path.ends_with(".md") || path.ends_with(".markdown")
-            }
-        }
-    }
-
-    fn analyze(
-        &self,
-        name: &str,
-        uri: &Uri,
-        text: &str,
-        encoding: PositionEncoding,
-    ) -> Box<dyn DocumentAnalysis> {
-        let compiled = rocdown::compile_text(name, text);
-        Box::new(RocdownAnalysis {
             name: name.to_string(),
             uri: uri.clone(),
             text: text.to_string(),

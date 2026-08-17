@@ -1,4 +1,4 @@
-use rocci_cli::{browse, bundle, datastar_asset, run, serve, style, theme, view};
+use rocci_cli::{browse, bundle, datastar_asset, run, serve, style, view};
 
 use std::{
     env, fs,
@@ -29,21 +29,17 @@ enum Commands {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
     },
-    /// Build a .rocci or .rocdown module to ordinary Roc.
+    /// Build a .rocci template to ordinary Roc.
     Build {
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
-        #[command(flatten)]
-        theme: theme::ThemeArgs,
     },
-    /// Compile sibling .rocci/.rocdown modules and run a Roc app, or run a standalone file.
+    /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
         #[command(flatten)]
         serve: serve::ServeOptions,
-        #[command(flatten)]
-        theme: theme::ThemeArgs,
-        /// Roc app file, directory, or standalone .rocci/.rocdown file
+        /// Roc app file, directory, or standalone .rocci file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
         /// Extra arguments forwarded to `roc` after `--`.
@@ -56,10 +52,8 @@ enum Commands {
         /// Also print the parse tree as an S-expression.
         #[arg(long)]
         ast: bool,
-        #[command(flatten)]
-        theme: theme::ThemeArgs,
     },
-    /// Print a .rocci or .rocdown parse tree as a LISPy S-expression.
+    /// Print a .rocci parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
     /// Render a component in an embedded window.
     View {
@@ -121,18 +115,9 @@ fn try_main() -> Result<()> {
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle::bundle(&config),
-        Commands::Build {
-            input,
-            output,
-            theme,
-        } => build_module(&input, output.as_deref(), &theme),
-        Commands::Run {
-            file,
-            args,
-            serve,
-            theme,
-        } => run::run(&file, &args, serve.no_window, serve.port, &theme),
-        Commands::Inspect { input, ast, theme } => inspect_module(&input, ast, &theme),
+        Commands::Build { input, output } => build_module(&input, output.as_deref()),
+        Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
+        Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
         Commands::View {
             input,
@@ -148,41 +133,23 @@ fn try_main() -> Result<()> {
     }
 }
 
-fn is_rocdown(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
-}
-
-fn build_module(input: &Path, output: Option<&Path>, theme: &theme::ThemeArgs) -> Result<()> {
+fn build_module(input: &Path, output: Option<&Path>) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
-    let (roc, diagnostics, failed) = if is_rocdown(input) {
-        let compiled = rocci_rocdown::compile(
-            SourceFile::new(&name, &src),
-            &theme.compile_options(Some(input)),
-        );
-        let failed = compiled.has_errors();
-        (compiled.roc, compiled.diagnostics, failed)
-    } else {
-        let compiled = compile(SourceFile::new(&name, &src), &LowerOptions::default());
-        let failed = compiled.has_errors();
-        (compiled.roc, compiled.diagnostics, failed)
-    };
-    for diagnostic in &diagnostics {
-        eprintln!(
-            "{}",
-            format_diagnostic(SourceFile::new(&name, &src), diagnostic)
-        );
+    let source = SourceFile::new(&name, &src);
+    let compiled = compile(source, &LowerOptions::default());
+    let failed = compiled.has_errors();
+    for diagnostic in &compiled.diagnostics {
+        eprintln!("{}", format_diagnostic(source, diagnostic));
     }
     if failed {
         bail!("template compilation failed");
     }
     match output {
-        Some(path) => {
-            fs::write(path, roc).with_context(|| format!("failed to write {}", path.display()))?
-        }
-        None => print!("{roc}"),
+        Some(path) => fs::write(path, &compiled.roc)
+            .with_context(|| format!("failed to write {}", path.display()))?,
+        None => print!("{}", compiled.roc),
     }
     Ok(())
 }
@@ -192,20 +159,6 @@ fn ast_module(input: &Path) -> Result<()> {
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
-    if is_rocdown(input) {
-        let compiled = rocci_rocdown::compile(
-            source,
-            &theme::ThemeArgs::from_env().compile_options(Some(input)),
-        );
-        for diagnostic in &compiled.diagnostics {
-            eprintln!("{}", format_diagnostic(source, diagnostic));
-        }
-        print!("{}", rocci_rocdown::format_ast(&src, &compiled.document));
-        if compiled.has_errors() {
-            bail!("template compilation failed");
-        }
-        return Ok(());
-    }
     let compiled = compile(source, &LowerOptions::default());
     for diagnostic in &compiled.diagnostics {
         eprintln!("{}", format_diagnostic(source, diagnostic));
@@ -217,67 +170,11 @@ fn ast_module(input: &Path) -> Result<()> {
     Ok(())
 }
 
-fn inspect_module(input: &Path, ast: bool, theme: &theme::ThemeArgs) -> Result<()> {
+fn inspect_module(input: &Path, ast: bool) -> Result<()> {
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
     let source = SourceFile::new(&name, &src);
-    if is_rocdown(input) {
-        let compiled = rocci_rocdown::compile(source, &theme.compile_options(Some(input)));
-        for diagnostic in &compiled.diagnostics {
-            eprintln!("{}", format_diagnostic(source, diagnostic));
-        }
-        println!("# components ({})", compiled.components.len());
-        for component in &compiled.components {
-            println!(
-                "- {} ({})",
-                component.name,
-                component.param_names.join(", ")
-            );
-        }
-        println!("# fixtures ({})", compiled.fixtures.len());
-        for fixture in &compiled.fixtures {
-            println!("- {} -> {}", fixture.name, fixture.target);
-        }
-        println!(
-            "# page route={} draft={} layout={}",
-            compiled.page_meta.route.as_deref().unwrap_or("/"),
-            compiled.page_meta.draft,
-            compiled.page_meta.layout.as_deref().unwrap_or("-")
-        );
-        println!(
-            "# theme id={} color_scheme={}",
-            compiled
-                .theme
-                .as_ref()
-                .map(|theme| theme.id.as_str())
-                .unwrap_or("none"),
-            compiled
-                .theme
-                .as_ref()
-                .map(|theme| theme.policy.as_str())
-                .unwrap_or("-")
-        );
-        if ast {
-            println!(
-                "\n# ast\n{}",
-                rocci_rocdown::format_ast(&src, &compiled.document)
-            );
-        }
-        println!("\n# generated roc\n{}", compiled.roc);
-        println!("# segments ({})", compiled.segments.len());
-        for segment in &compiled.segments {
-            let (line, col) = source.line_col(segment.source.start);
-            println!(
-                "- generated {}..{} <- {name}:{line}:{col} {}",
-                segment.generated.start, segment.generated.end, segment.origin
-            );
-        }
-        if compiled.has_errors() {
-            bail!("template compilation failed");
-        }
-        return Ok(());
-    }
     inspect_rocci(input, ast, &src, source)
 }
 
@@ -459,28 +356,6 @@ mod tests {
             Commands::Datastar {
                 command: DatastarCmd::Update { app },
             } => assert_eq!(app, PathBuf::from(".")),
-            _ => panic!("unexpected command"),
-        }
-    }
-
-    #[test]
-    fn run_theme_flag_parses() {
-        let cli = Cli::try_parse_from([
-            "rocci",
-            "run",
-            "--theme",
-            "paper",
-            "--color-scheme",
-            "dark",
-            "foo.rocdown",
-        ])
-        .unwrap();
-        match cli.command {
-            Commands::Run { theme, file, .. } => {
-                assert_eq!(theme.theme.as_deref(), Some("paper"));
-                assert_eq!(theme.color_scheme.as_deref(), Some("dark"));
-                assert_eq!(file, PathBuf::from("foo.rocdown"));
-            }
             _ => panic!("unexpected command"),
         }
     }

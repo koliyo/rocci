@@ -1,8 +1,10 @@
 use std::path::Path;
 
 use clap::Args;
-use rocci_rocdown::index_pages_in_dir;
 use rocci_theme::{ColorSchemePolicy, ThemeOptions};
+
+use crate::CompileOptions;
+use crate::links::index_pages_in_dir;
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct ThemeArgs {
@@ -32,12 +34,12 @@ impl ThemeArgs {
         }
     }
 
-    pub fn compile_options(&self, input: Option<&Path>) -> rocci_rocdown::CompileOptions {
+    pub fn compile_options(&self, input: Option<&Path>) -> CompileOptions {
         compile_options(input, self)
     }
 }
 
-pub fn compile_options(input: Option<&Path>, args: &ThemeArgs) -> rocci_rocdown::CompileOptions {
+pub fn compile_options(input: Option<&Path>, args: &ThemeArgs) -> CompileOptions {
     let env_theme = std::env::var("ROCCI_THEME").ok();
     let env_scheme = std::env::var("ROCCI_COLOR_SCHEME").ok();
     let theme = args
@@ -54,13 +56,13 @@ pub fn compile_options(input: Option<&Path>, args: &ThemeArgs) -> rocci_rocdown:
         .and_then(Path::parent)
         .map(index_pages_in_dir)
         .unwrap_or_default();
-    rocci_rocdown::CompileOptions {
+    CompileOptions {
         theme: ThemeOptions {
             default_id: theme,
             color_scheme,
             source_dir: input.and_then(Path::parent).map(Path::to_path_buf),
         },
         pages,
-        ..rocci_rocdown::CompileOptions::default()
+        ..CompileOptions::default()
     }
 }

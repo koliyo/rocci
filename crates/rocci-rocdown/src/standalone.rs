@@ -55,6 +55,11 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
     let mut failures = Vec::new();
     let inputs = linked_standalone_inputs(&primary)?;
 
+    let pages = primary
+        .parent()
+        .map(crate::index_pages_in_dir)
+        .unwrap_or_default();
+
     for input in inputs {
         let src = fs::read_to_string(&input)
             .with_context(|| format!("failed to read {}", input.display()))?;
@@ -64,6 +69,7 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
         let options = CompileOptions {
             theme: theme.clone(),
             check_assets: true,
+            pages: pages.clone(),
             ..CompileOptions::default()
         };
         let compiled = compile(source, &options);
@@ -126,6 +132,7 @@ pub fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {
     };
     let mut files: Vec<PathBuf> = discover_rocdown_files(dir)?
         .into_iter()
+        .filter(|path| path.extension().is_some_and(|ext| ext == "rocdown"))
         .map(|path| path.canonicalize().unwrap_or(path))
         .collect();
     files.sort();

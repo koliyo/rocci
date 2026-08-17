@@ -110,37 +110,6 @@ pub fn semantic_tokens(
     }
 }
 
-pub fn semantic_tokens_rocdown(
-    name: &str,
-    text: &str,
-    document: &rocci_rocdown::Document,
-    headings: &[rocci_rocdown::HeadingInfo],
-    encoding: PositionEncoding,
-    range: Option<Range>,
-) -> SemanticTokens {
-    let source = SourceFile::new(name, text);
-    let spans = rocci_highlight::highlight_rocdown_document(text, document, headings);
-    let mut raw_tokens: Vec<RawToken> = spans
-        .into_iter()
-        .map(|s| RawToken {
-            span: s.span,
-            kind: s.kind.to_lsp_index(),
-            modifiers: s.modifiers,
-            priority: s.priority,
-        })
-        .collect();
-    let range_span = range.map(|range| {
-        Span::new(
-            source.offset_at(range.start.line, range.start.character, encoding) as usize,
-            source.offset_at(range.end.line, range.end.character, encoding) as usize,
-        )
-    });
-    SemanticTokens {
-        result_id: None,
-        data: encode_tokens(source, &mut raw_tokens, encoding, range_span),
-    }
-}
-
 pub fn encode_tokens(
     source: SourceFile<'_>,
     tokens: &mut [RawToken],

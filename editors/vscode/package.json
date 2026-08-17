@@ -1,7 +1,7 @@
 {
   "name": "rocci",
   "displayName": "Rocci",
-  "description": "Rocci template and Rocdown language support for VS Code",
+  "description": "Rocci template language support for VS Code",
   "repository": {
     "type": "git",
     "url": "https://github.com/koliyo/rocci"
@@ -49,9 +49,6 @@
     "configurationDefaults": {
       "[rocci]": {
         "editor.semanticHighlighting.enabled": true
-      },
-      "[rocdown]": {
-        "editor.semanticHighlighting.enabled": true
       }
     },
     "languages": [
@@ -64,16 +61,6 @@
           ".rocci"
         ],
         "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "rocdown",
-        "aliases": [
-          "Rocdown"
-        ],
-        "extensions": [
-          ".rocdown"
-        ],
-        "configuration": "./rocdown-language-configuration.json"
       }
     ],
     "commands": [

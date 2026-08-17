@@ -18,7 +18,7 @@ pub const INITIALIZATION_SCRIPT: &str = concat!(
   };
   var css = document.createElement("style");
   css.textContent =
-    "@media (prefers-reduced-motion: reduce) { html, body, html.rd-document, html.rd-document body { scroll-behavior: smooth; } }";
+    "@media (prefers-reduced-motion: reduce) { html, body { scroll-behavior: smooth; } }";
   if (document.documentElement) {
     document.documentElement.appendChild(css);
   } else {
@@ -152,11 +152,10 @@ pub const INITIALIZATION_SCRIPT: &str = concat!(
     document.addEventListener("DOMContentLoaded", mount);
   }
   const spacer = document.createElement("style");
-  spacer.textContent = "html { --rd-chrome-top: " + HEIGHT + "; padding-top: " + HEIGHT + " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; height: " + HEIGHT + "; z-index: 2147483647; }";
+  spacer.textContent = "html { --rocci-chrome-top: " + HEIGHT + "; padding-top: " + HEIGHT + " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; height: " + HEIGHT + "; z-index: 2147483647; }";
   document.documentElement.appendChild(spacer);
 })();
-"#,
-    include_str!("../../rocci-theme/src/themes/toc.js"),
+"#
 );
 
 pub fn update_script(title: &str, path: &str, can_back: bool, can_forward: bool) -> String {
@@ -202,11 +201,7 @@ mod tests {
         }
         assert!(INITIALIZATION_SCRIPT.contains("window.ipc.postMessage"));
         assert!(INITIALIZATION_SCRIPT.contains("rocci-preview-nav"));
-        assert!(INITIALIZATION_SCRIPT.contains("rd-toc-link"));
-        assert!(INITIALIZATION_SCRIPT.contains("requestAnimationFrame"));
-        assert!(INITIALIZATION_SCRIPT.contains("nativeMatchMedia"));
-        assert!(INITIALIZATION_SCRIPT.contains("prefers-reduced-motion"));
-        assert!(INITIALIZATION_SCRIPT.contains("--rd-chrome-top"));
+        assert!(INITIALIZATION_SCRIPT.contains("--rocci-chrome-top"));
     }
 
     #[test]

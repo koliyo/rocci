@@ -10,8 +10,6 @@ use rocci_lsp::LanguageServer;
 
 const KITCHEN_SINK_ROCCI: &str = include_str!("../../../test/AllSyntax.rocci");
 const EMBEDDED_ROCCI: &str = include_str!("../../../test/EmbeddedLanguages.rocci");
-const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
-const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
 
 fn test_uri(path: &str) -> Uri {
     format!("file:///{path}").parse().expect("valid test uri")
@@ -135,73 +133,6 @@ fn generate_large_rocci(target_lines: usize) -> String {
     buf
 }
 
-fn generate_large_rocdown(target_lines: usize) -> String {
-    let mut buf = String::with_capacity(target_lines * 60);
-    buf.push_str("---\n");
-    buf.push_str("title: Benchmark Rocdown Document\n");
-    buf.push_str("description: Generated large fixture for performance measurement\n");
-    buf.push_str("---\n\n");
-    buf.push_str("@page { title: \"Performance Benchmark\", theme: \"docs\" }\n\n");
-
-    let mut line_count = 8;
-    let mut section_idx = 0;
-
-    while line_count < target_lines {
-        section_idx += 1;
-        let section = format!(
-            r#"## Section {section_idx}: Architecture Overview
-
-This is section {section_idx} of the generated benchmark document. It exercises **Markdown parsing**,
-*inline emphasis*, `inline_code_elements()`, and [hyperlinks](https://example.com/section-{section_idx}).
-
-- Unordered item 1 with **bold** text
-- Unordered item 2 with `code` snippet
-- Unordered item 3 with [link](#section-{section_idx})
-
-1. Numbered step 1
-2. Numbered step 2
-3. Numbered step 3
-
-@roc {{
-    Status{section_idx} : [Active(U64), Pending, Disabled]
-
-    process_status_{section_idx} = \status ->
-        when status is
-            Active(n) -> "Active count: $(Num.toStr(n))"
-            Pending -> "Pending..."
-            Disabled -> "Disabled"
-}}
-
-```roc
-# Fenced Roc example in Section {section_idx}
-calculate_{section_idx} : U64, U64 -> U64
-calculate_{section_idx} = \a, b -> a + b * 2
-```
-
-```html
-<div class="section-card" data-idx="{section_idx}">
-    <h4>HTML preview {section_idx}</h4>
-    <p>Sample content for HTML highlighter.</p>
-</div>
-```
-
-```css
-.section-card[data-idx="{section_idx}"] {{
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-}}
-```
-
-"#
-        );
-        line_count += section.lines().count();
-        buf.push_str(&section);
-    }
-
-    buf
-}
-
 #[test]
 #[ignore = "performance latency benchmark; run with: cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored"]
 fn perf_cold_start_and_small_fixtures() {
@@ -238,18 +169,6 @@ fn perf_cold_start_and_small_fixtures() {
             "rocci",
             EMBEDDED_ROCCI,
             test_uri("EmbeddedLanguages.rocci"),
-        ),
-        (
-            "AllSyntax.rocdown",
-            "rocdown",
-            ALL_SYNTAX_ROCDOWN,
-            test_uri("AllSyntax.rocdown"),
-        ),
-        (
-            "EmbeddedLanguages.rocdown",
-            "rocdown",
-            EMBEDDED_ROCDOWN,
-            test_uri("EmbeddedLanguages.rocdown"),
         ),
     ];
 
@@ -363,25 +282,6 @@ fn perf_large_fixtures_and_budget_verification() {
             rocci_tok_count
         );
 
-        // Test .rocdown
-        let rocdown_text = generate_large_rocdown(size);
-        let rocdown_lines = rocdown_text.lines().count();
-        let rocdown_bytes = rocdown_text.len();
-        let rocdown_uri = test_uri(&format!("Large_{size}.rocdown"));
-
-        let rocdown_open = open_doc(&mut server, rocdown_uri.clone(), "rocdown", &rocdown_text);
-        let (rocdown_tok_count, rocdown_tokens) = request_tokens(&server, rocdown_uri);
-
-        println!(
-            "{:<20} | {:>8}       | {:>9}       | {:>8.2}   | {:>8.2}      | {:>6}",
-            format!(".rocdown ({size})"),
-            rocdown_lines,
-            rocdown_bytes,
-            rocdown_open.as_secs_f64() * 1000.0,
-            rocdown_tokens.as_secs_f64() * 1000.0,
-            rocdown_tok_count
-        );
-
         // For 10,000-line documents, check budget
         if size == 10_000 {
             let budget_10k_rocci = if cfg!(debug_assertions) {
@@ -389,23 +289,12 @@ fn perf_large_fixtures_and_budget_verification() {
             } else {
                 Duration::from_millis(200)
             };
-            let budget_10k_rocdown = if cfg!(debug_assertions) {
-                Duration::from_secs(45)
-            } else {
-                Duration::from_millis(2000)
-            };
 
             assert!(
                 rocci_tokens < budget_10k_rocci,
                 "10,000-line .rocci token generation took {:?}, exceeding budget of {:?}",
                 rocci_tokens,
                 budget_10k_rocci
-            );
-            assert!(
-                rocdown_tokens < budget_10k_rocdown,
-                "10,000-line .rocdown token generation took {:?}, exceeding budget of {:?}",
-                rocdown_tokens,
-                budget_10k_rocdown
             );
         }
     }

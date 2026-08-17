@@ -359,7 +359,12 @@ fn fragment(nodes: &[String]) -> String {
 }
 
 fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) -> String {
-    let spans = rocci_highlight::highlight(lang.clone(), literal);
+    let spans = match lang {
+        rocci_highlight::LanguageId::Rocdown | rocci_highlight::LanguageId::Markdown => {
+            rocci_rocdown::highlight_rocdown(literal)
+        }
+        _ => rocci_highlight::highlight(lang.clone(), literal),
+    };
     if spans.is_empty() {
         return escape(literal);
     }

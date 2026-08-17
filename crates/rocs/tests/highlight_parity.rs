@@ -74,7 +74,7 @@ fn golden_parity_composite_rocci_snippet() {
 #[test]
 fn golden_parity_composite_rocdown_snippet() {
     let snippet = "# Header\n\n```roc\nx = 1\n```\n";
-    let spans = rocci_highlight::highlight_rocdown(snippet);
+    let spans = rocci_rocdown::highlight_rocdown(snippet);
     assert!(!spans.is_empty());
 
     let rocdown_doc = format!("```rocdown\n{snippet}\n```\n");

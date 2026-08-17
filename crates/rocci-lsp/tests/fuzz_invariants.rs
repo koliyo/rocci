@@ -4,15 +4,11 @@ use lsp_types::{
     SemanticTokensParams, SemanticTokensRangeParams, TextDocumentIdentifier, TextDocumentItem, Uri,
     WorkDoneProgressParams,
 };
-use rocci_lsp::{
-    LanguageServer, RegionPurpose, RegionTree, extract_rocci_regions, extract_rocdown_regions,
-};
+use rocci_lsp::{LanguageServer, RegionPurpose, RegionTree, extract_rocci_regions};
 use rocci_template::{PositionEncoding, SourceFile};
 
 const KITCHEN_SINK_ROCCI: &str = include_str!("../../../test/AllSyntax.rocci");
 const EMBEDDED_ROCCI: &str = include_str!("../../../test/EmbeddedLanguages.rocci");
-const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
-const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
 
 fn test_uri(path: &str) -> Uri {
     format!("file:///{path}").parse().expect("valid test uri")
@@ -135,38 +131,29 @@ fn assert_region_invariants(tree: &RegionTree, src: &str) {
 #[test]
 fn test_invariants_on_all_standard_fixtures() {
     let fixtures = [
-        ("AllSyntax.rocci", KITCHEN_SINK_ROCCI, true),
-        ("EmbeddedLanguages.rocci", EMBEDDED_ROCCI, true),
-        ("AllSyntax.rocdown", ALL_SYNTAX_ROCDOWN, false),
-        ("EmbeddedLanguages.rocdown", EMBEDDED_ROCDOWN, false),
+        ("AllSyntax.rocci", KITCHEN_SINK_ROCCI),
+        ("EmbeddedLanguages.rocci", EMBEDDED_ROCCI),
     ];
 
-    for (name, text, is_rocci) in fixtures {
+    for (name, text) in fixtures {
         for utf8 in [true, false] {
             let mut server = initialize(utf8);
             let encoding = server.encoding();
             let uri = test_uri(name);
-            let lang = if is_rocci { "rocci" } else { "rocdown" };
 
             server.did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: uri.clone(),
-                    language_id: lang.to_string(),
+                    language_id: "rocci".to_string(),
                     version: 1,
                     text: text.to_string(),
                 },
             });
 
             // Validate regions
-            if is_rocci {
-                let parsed = rocci_template::parse(SourceFile::new(name, text));
-                let tree = extract_rocci_regions(name, text, &parsed.document);
-                assert_region_invariants(&tree, text);
-            } else {
-                let parsed = rocci_rocdown::parse(SourceFile::new(name, text), false);
-                let tree = extract_rocdown_regions(name, text, &parsed.document, &parsed.headings);
-                assert_region_invariants(&tree, text);
-            }
+            let parsed = rocci_template::parse(SourceFile::new(name, text));
+            let tree = extract_rocci_regions(name, text, &parsed.document);
+            assert_region_invariants(&tree, text);
 
             // Validate full tokens
             let full_result = server
@@ -221,52 +208,11 @@ module [UnicodeApp]
 }
 "#;
 
-    let unicode_rocdown = r#"---
-title: Unicode & Non-BMP Stress Document 🦀🚀
-description: Testing character boundaries with 𠜎 and math symbols ∑
----
-
-# Unicode Heading with 🦀 and 𠜎
-
-This is a paragraph with *italic 🚀* and **bold 🦀** text, plus `inline_code(𠜎)`.
-
-@page {
-    title: "Unicode 🚀 Page",
-    theme: "docs"
-}
-
-@roc {
-    # Roc function with unicode in strings
-    greet_emoji = \name -> "Hello 🦀 $(name)! 🚀 𠜎"
-}
-
-```roc
-# Fenced code with emojis
-emoji_list = ["🦀", "🚀", "✨", "𠜎"]
-```
-
-```html
-<div class="container-🦀" data-test="𠜎">
-    <span>Emoji 🚀</span>
-</div>
-```
-
-```css
-.container-🦀 {
-    content: "✨";
-}
-```
-"#;
-
-    for (name, text, is_rocci) in [
-        ("Unicode.rocci", unicode_rocci, true),
-        ("Unicode.rocdown", unicode_rocdown, false),
-    ] {
+    for (name, text) in [("Unicode.rocci", unicode_rocci)] {
         for utf8 in [true, false] {
             let mut server = initialize(utf8);
             let encoding = server.encoding();
             let uri = test_uri(name);
-            let lang = if is_rocci { "rocci" } else { "rocdown" };
 
             let indices: Vec<_> = text.char_indices().map(|(idx, _)| idx).collect();
             for (i, &byte_idx) in indices.iter().enumerate() {
@@ -277,7 +223,7 @@ emoji_list = ["🦀", "🚀", "✨", "𠜎"]
                 server.did_open(DidOpenTextDocumentParams {
                     text_document: TextDocumentItem {
                         uri: uri.clone(),
-                        language_id: lang.to_string(),
+                        language_id: "rocci".to_string(),
                         version: 1,
                         text: slice.to_string(),
                     },
@@ -368,27 +314,6 @@ fn test_truncated_and_malformed_constructs_stress() {
         r#"@css { @media"#,
         r#"@css { @media (min-width: 600px) {"#,
         r#"@css { :root { --custom-color: "#,
-        // Rocdown malformed declarations & fences
-        r#"@page"#,
-        r#"@page {"#,
-        r#"@page { title: "#,
-        r#"@page { title: "Test", theme: "#,
-        r#"@roc"#,
-        r#"@roc {"#,
-        r#"@roc { main = "#,
-        r#"@roc { Type : [ "#,
-        r#"@docs"#,
-        r#"@docs { "#,
-        r#"@docs component = "#,
-        r#"```"#,
-        r#"```roc"#,
-        r#"```roc\nlet x = "#,
-        r#"```html"#,
-        r#"```html\n<div class=""#,
-        r#"```css"#,
-        r#"```css\n.test { "#,
-        r#"```unknown_lang_12345"#,
-        r#"```unknown_lang_12345\nsome text here"#,
     ];
 
     for (idx, &src) in malformed_cases.iter().enumerate() {
@@ -499,12 +424,7 @@ fn run_mutation_fuzzing(iterations: usize) {
     let mut server = initialize(true);
     let encoding = server.encoding();
 
-    let base_fixtures = [
-        KITCHEN_SINK_ROCCI,
-        EMBEDDED_ROCCI,
-        ALL_SYNTAX_ROCDOWN,
-        EMBEDDED_ROCDOWN,
-    ];
+    let base_fixtures = [KITCHEN_SINK_ROCCI, EMBEDDED_ROCCI];
 
     let injection_bytes = [
         b'{', b'}', b'<', b'>', b'@', b'"', b'/', b':', b'=', b';', b'#', b'\\', b'\n', b'\r',

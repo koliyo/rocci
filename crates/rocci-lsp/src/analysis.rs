@@ -34,7 +34,7 @@ pub fn diagnostics(
     map_diagnostics(name, text, &compiled.diagnostics, encoding)
 }
 
-pub(crate) fn map_diagnostics(
+pub fn map_diagnostics(
     name: &str,
     text: &str,
     diagnostics: &[rocci_template::Diagnostic],
@@ -94,7 +94,7 @@ pub fn hover(
     hover_components(name, text, &components, &[], offset, encoding)
 }
 
-pub(crate) fn hover_components(
+pub fn hover_components(
     name: &str,
     text: &str,
     components: &[&ComponentDecl],
@@ -133,7 +133,7 @@ pub fn goto_definition(
     goto_definition_components(name, text, &components, &[], offset, encoding, uri)
 }
 
-pub(crate) fn goto_definition_components(
+pub fn goto_definition_components(
     name: &str,
     text: &str,
     components: &[&ComponentDecl],
@@ -158,7 +158,7 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     completion_in_template(text, &components, offset)
 }
 
-pub(crate) fn completion_in_template(
+pub fn completion_in_template(
     text: &str,
     components: &[&ComponentDecl],
     offset: u32,
@@ -188,7 +188,7 @@ pub(crate) fn completion_in_template(
     }
 }
 
-pub(crate) fn component_symbol(
+pub fn component_symbol(
     source: SourceFile<'_>,
     component: &ComponentDecl,
     encoding: PositionEncoding,
@@ -206,7 +206,7 @@ pub(crate) fn component_symbol(
     }
 }
 
-pub(crate) fn fixture_symbol(
+pub fn fixture_symbol(
     source: SourceFile<'_>,
     fixture: &FixtureDecl,
     encoding: PositionEncoding,
@@ -227,7 +227,7 @@ pub(crate) fn fixture_symbol(
     }
 }
 
-pub(crate) fn context_symbol(
+pub fn context_symbol(
     source: SourceFile<'_>,
     context: &ContextDecl,
     encoding: PositionEncoding,
@@ -245,7 +245,7 @@ pub(crate) fn context_symbol(
     }
 }
 
-pub(crate) fn init_symbol(
+pub fn init_symbol(
     source: SourceFile<'_>,
     init: &InitDecl,
     encoding: PositionEncoding,
@@ -263,7 +263,7 @@ pub(crate) fn init_symbol(
     }
 }
 
-pub(crate) fn css_symbol(
+pub fn css_symbol(
     source: SourceFile<'_>,
     css: &rocci_template::CssDecl,
     encoding: PositionEncoding,
@@ -279,7 +279,7 @@ pub(crate) fn css_symbol(
     )
 }
 
-pub(crate) fn named_symbol(
+pub fn named_symbol(
     name: &str,
     detail: Option<String>,
     kind: SymbolKind,
@@ -301,7 +301,7 @@ pub(crate) fn named_symbol(
     }
 }
 
-pub(crate) fn on_symbol(
+pub fn on_symbol(
     source: SourceFile<'_>,
     on: &OnDecl,
     encoding: PositionEncoding,
@@ -372,7 +372,7 @@ fn html_tag_items(prefix: &str) -> Vec<CompletionItem> {
         .collect()
 }
 
-pub(crate) fn completion_item(
+pub fn completion_item(
     label: &str,
     kind: CompletionItemKind,
     detail: Option<String>,
