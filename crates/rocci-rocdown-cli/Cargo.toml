@@ -1,28 +1,21 @@
 [package]
-name = "rocci-cli"
+name = "rocci-rocdown-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Command-line interface for Rocci configuration, packaging, and .rocci template compilation"
-
-[lib]
-name = "rocci_cli"
-path = "src/lib.rs"
+description = "Command-line interface for the Rocdown document system and static generator"
 
 [[bin]]
-name = "rocci"
+name = "rocdown"
 path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-rocci-core = { workspace = true }
-rocci-template = { workspace = true }
+rocci-cli = { workspace = true }
 rocci-rocdown = { workspace = true }
-rocci-theme = { workspace = true }
 rocci-wry = { workspace = true }
+rocs = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = "0.10"
 toml = { workspace = true }
-ureq = "2.12"

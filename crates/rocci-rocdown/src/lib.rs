@@ -10,6 +10,7 @@ mod page;
 mod parse;
 mod pprint;
 mod scan;
+pub mod standalone;
 
 pub use ast::{
     DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
@@ -27,13 +28,19 @@ pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use pprint::format_ast;
 pub use rocci_template::{
-    ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, OriginKind,
-    RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact, StyleKind, TemplateItem,
-    format_diagnostic, supports_ansi,
+    ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, MappedModule,
+    OriginKind, RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact, StyleKind,
+    TemplateItem, format_diagnostic, supports_ansi, type_name_from_path, wrap_type_module,
 };
 pub use rocci_theme::{
     ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,
     resolve as resolve_theme,
+};
+
+// Standalone interactive document planning
+pub use standalone::{
+    StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
+    discover_rocdown_files, linked_standalone_inputs, plan_standalone,
 };
 
 use crate::parse::parse as parse_impl;

@@ -1,0 +1,10 @@
+[site]
+title = "Ampersand & Company"
+base_url = "https://example.com"
+
+[build]
+output = "dist"
+
+[[nav]]
+label = "Documentation"
+items = ["index", "guide"]

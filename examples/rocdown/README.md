@@ -10,8 +10,8 @@ Markdown-first pages with colocated Roc and Rocci.
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/rocdown/Guide.rocdown
-cargo run -q -p rocci-cli -- run examples/rocdown/Interactive.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Interactive.rocdown
 ```
 
 Each command opens an embedded window on a free local TCP port and prints the
