@@ -141,6 +141,81 @@ add = |a, b| a + b
 }
 
 #[test]
+fn golden_roc_qualified_module_identifiers() {
+    let src = r#"
+row = Sqlite.query!(
+    {
+        db,
+        query: "SELECT value FROM counter WHERE id = 1",
+        limits: Sqlite.default_query_limits,
+    },
+)?
+res = Sqlite.execute!(db)
+count_str = Num.toStr(42)
+item = Dict.get(items, "key")
+"#;
+    let (lang, spans) = highlight_source("roc", src);
+    assert_eq!(lang, LanguageId::Roc);
+    assert_invariants(src, &spans);
+
+    // Verify Sqlite.query! spans
+    let sqlite_spans: Vec<_> = spans
+        .iter()
+        .filter(|s| &src[s.start()..s.end()] == "Sqlite")
+        .collect();
+    assert_eq!(sqlite_spans.len(), 3, "expected 3 Sqlite module references");
+    for s in sqlite_spans {
+        assert_eq!(s.kind, HighlightKind::Namespace);
+    }
+
+    // Verify qualified function / member spans match exact text without dropped first character
+    let query_span = spans
+        .iter()
+        .find(|s| {
+            s.start() > src.find("Sqlite.query").unwrap()
+                && s.start() < src.find("Sqlite.query").unwrap() + 15
+                && &src[s.start()..s.end()] == "query!"
+        })
+        .expect("query! span");
+    assert_eq!(&src[query_span.start()..query_span.end()], "query!");
+
+    let default_limits_span = spans
+        .iter()
+        .find(|s| &src[s.start()..s.end()] == "default_query_limits")
+        .expect("default_query_limits span");
+    assert_eq!(
+        &src[default_limits_span.start()..default_limits_span.end()],
+        "default_query_limits"
+    );
+
+    let execute_span = spans
+        .iter()
+        .find(|s| {
+            s.start() > src.find("Sqlite.execute").unwrap()
+                && s.start() < src.find("Sqlite.execute").unwrap() + 17
+                && &src[s.start()..s.end()] == "execute!"
+        })
+        .expect("execute! span");
+    assert_eq!(&src[execute_span.start()..execute_span.end()], "execute!");
+
+    let to_str_span = spans
+        .iter()
+        .find(|s| &src[s.start()..s.end()] == "toStr")
+        .expect("toStr span");
+    assert_eq!(&src[to_str_span.start()..to_str_span.end()], "toStr");
+
+    let dict_get_span = spans
+        .iter()
+        .find(|s| {
+            s.start() > src.find("Dict.get").unwrap()
+                && s.start() < src.find("Dict.get").unwrap() + 10
+                && &src[s.start()..s.end()] == "get"
+        })
+        .expect("get span");
+    assert_eq!(&src[dict_get_span.start()..dict_get_span.end()], "get");
+}
+
+#[test]
 fn golden_unknown_language_fallback() {
     let src = "fn main() { println!(\"hello\"); }";
     let (lang, spans) = highlight_source("rust", src);
