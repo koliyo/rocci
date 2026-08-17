@@ -142,8 +142,11 @@ fn finish_tokens(
 
 fn collect_embedded_regions(collector: &mut Collector<'_>, regions: &crate::regions::RegionTree) {
     for region in &regions.regions {
-        let region_start = region.span.start as usize;
-        let region_end = (region.span.end as usize).min(collector.src.len());
+        let region_start = floor_char_boundary(collector.src, region.span.start as usize);
+        let region_end = floor_char_boundary(
+            collector.src,
+            (region.span.end as usize).min(collector.src.len()),
+        );
         if region_start >= region_end {
             continue;
         }
@@ -153,8 +156,12 @@ fn collect_embedded_regions(collector: &mut Collector<'_>, regions: &crate::regi
             crate::regions::Language::Roc => {
                 let hl_tokens = crate::embedded::roc::highlight(slice);
                 for tok in hl_tokens {
-                    let tok_start = region_start + tok.span.start as usize;
-                    let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                    let tok_start =
+                        floor_char_boundary(collector.src, region_start + tok.span.start as usize);
+                    let tok_end = floor_char_boundary(
+                        collector.src,
+                        (region_start + tok.span.end as usize).min(region_end),
+                    );
                     if tok_start < tok_end {
                         collector.token_with_priority(
                             Span::new(tok_start, tok_end),
@@ -168,8 +175,12 @@ fn collect_embedded_regions(collector: &mut Collector<'_>, regions: &crate::regi
             crate::regions::Language::Css => {
                 let hl_tokens = crate::embedded::css::highlight(slice);
                 for tok in hl_tokens {
-                    let tok_start = region_start + tok.span.start as usize;
-                    let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                    let tok_start =
+                        floor_char_boundary(collector.src, region_start + tok.span.start as usize);
+                    let tok_end = floor_char_boundary(
+                        collector.src,
+                        (region_start + tok.span.end as usize).min(region_end),
+                    );
                     if tok_start < tok_end {
                         collector.token_with_priority(
                             Span::new(tok_start, tok_end),
@@ -184,8 +195,14 @@ fn collect_embedded_regions(collector: &mut Collector<'_>, regions: &crate::regi
                 if region.purpose == crate::regions::RegionPurpose::DisplayOnly {
                     let hl_tokens = crate::embedded::html::highlight(slice);
                     for tok in hl_tokens {
-                        let tok_start = region_start + tok.span.start as usize;
-                        let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                        let tok_start = floor_char_boundary(
+                            collector.src,
+                            region_start + tok.span.start as usize,
+                        );
+                        let tok_end = floor_char_boundary(
+                            collector.src,
+                            (region_start + tok.span.end as usize).min(region_end),
+                        );
                         if tok_start < tok_end {
                             collector.token_with_priority(
                                 Span::new(tok_start, tok_end),
@@ -616,6 +633,54 @@ fn match_back(src: &str, end: usize, word: &str) -> Option<usize> {
     }
 }
 
+struct LineIndex<'a> {
+    src: &'a str,
+    line_starts: Vec<usize>,
+}
+
+impl<'a> LineIndex<'a> {
+    fn new(src: &'a str) -> Self {
+        let mut line_starts = vec![0];
+        for (i, &b) in src.as_bytes().iter().enumerate() {
+            if b == b'\n' {
+                line_starts.push(i + 1);
+            }
+        }
+        Self { src, line_starts }
+    }
+
+    #[inline]
+    fn position(&self, offset: u32, encoding: PositionEncoding) -> (u32, u32) {
+        let offset = floor_char_boundary(self.src, (offset as usize).min(self.src.len()));
+        let line_idx = match self.line_starts.binary_search(&offset) {
+            Ok(idx) => idx,
+            Err(idx) => idx.saturating_sub(1),
+        };
+        let line_start = self.line_starts[line_idx];
+        let col = count_units(&self.src[line_start..offset], encoding);
+        (line_idx as u32, col)
+    }
+}
+
+fn floor_char_boundary(src: &str, mut index: usize) -> usize {
+    index = index.min(src.len());
+    while index > 0 && !src.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
+}
+
+fn count_units(text: &str, encoding: PositionEncoding) -> u32 {
+    match encoding {
+        PositionEncoding::Utf8 => text.len() as u32,
+        PositionEncoding::Utf16 => text.chars().map(utf16_len).sum(),
+    }
+}
+
+fn utf16_len(ch: char) -> u32 {
+    if (ch as u32) > 0xFFFF { 2 } else { 1 }
+}
+
 fn encode_tokens(
     source: SourceFile<'_>,
     tokens: &mut [RawToken],
@@ -648,6 +713,7 @@ fn encode_tokens(
             .then_with(|| a.kind.cmp(&b.kind))
     });
 
+    let line_index = LineIndex::new(source.src);
     let mut data = Vec::new();
     let mut prev_line = 0u32;
     let mut prev_col = 0u32;
@@ -657,8 +723,8 @@ fn encode_tokens(
         if token.span.start < prev_end {
             continue;
         }
-        let (line, col) = source.position(token.span.start, encoding);
-        let (_, end_col) = source.position(token.span.end, encoding);
+        let (line, col) = line_index.position(token.span.start, encoding);
+        let (_, end_col) = line_index.position(token.span.end, encoding);
         let length = end_col.saturating_sub(col);
         if length == 0 {
             continue;
@@ -680,8 +746,11 @@ fn encode_tokens(
 }
 
 fn for_each_line_span(src: &str, span: Span, mut f: impl FnMut(Span)) {
-    let start = span.start as usize;
-    let end = (span.end as usize).min(src.len());
+    let start = floor_char_boundary(src, (span.start as usize).min(src.len()));
+    let end = floor_char_boundary(src, (span.end as usize).min(src.len()));
+    if start >= end {
+        return;
+    }
     let mut line_start = start;
     for (i, ch) in src[start..end].char_indices() {
         if ch == '\n' {

@@ -38,9 +38,9 @@ impl Span {
     }
 
     pub fn of(self, src: &str) -> &str {
-        let start = (self.start as usize).min(src.len());
-        let end = (self.end as usize).min(src.len());
-        &src[start..end]
+        let start = floor_char_boundary(src, (self.start as usize).min(src.len()));
+        let end = floor_char_boundary(src, (self.end as usize).min(src.len()));
+        if start >= end { "" } else { &src[start..end] }
     }
 
     pub fn union(self, other: Self) -> Self {
