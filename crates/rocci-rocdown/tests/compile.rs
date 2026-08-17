@@ -37,6 +37,7 @@ fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
         stem: stem.to_string(),
         file_name: format!("{stem}.rocdown"),
         route: route.to_string(),
+        explicit_route: true,
         heading_ids: headings.iter().map(|id| id.to_string()).collect(),
     }
 }
@@ -808,6 +809,8 @@ See [[Foo]], [[Foo|label]], and [[Foo#hello]].
 
 Also [md](Foo.rocdown) and [rel](./Foo.rocdown).
 
+Also [plain md](Foo.md) and [rel md](./Foo.md).
+
 [ref]: Foo.rocdown
 And [ref text][ref].
 ";
@@ -820,7 +823,7 @@ And [ref text][ref].
             .iter()
             .filter(|link| link.url.starts_with("/guides/foo/"))
             .count()
-            >= 5
+            >= 7
     );
 }
 

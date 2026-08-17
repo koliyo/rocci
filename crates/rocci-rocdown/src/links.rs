@@ -12,6 +12,7 @@ pub struct PageRef {
     pub stem: String,
     pub file_name: String,
     pub route: String,
+    pub explicit_route: bool,
     pub heading_ids: Vec<String>,
 }
 
@@ -23,16 +24,11 @@ pub fn page_ref_from_source(path: &Path, src: &str) -> PageRef {
 
 fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef {
     let mut diagnostics = Vec::new();
-    let route = parsed
-        .document
-        .items
-        .iter()
-        .find_map(|item| match item {
-            Item::Page(page) => Some(extract_page(src, page.body, &mut diagnostics).route),
-            _ => None,
-        })
-        .flatten()
-        .unwrap_or_else(|| "/".to_string());
+    let explicit_route = parsed.document.items.iter().find_map(|item| match item {
+        Item::Page(page) => extract_page(src, page.body, &mut diagnostics).route,
+        _ => None,
+    });
+    let route = explicit_route.clone().unwrap_or_else(|| "/".to_string());
     PageRef {
         stem: path
             .file_stem()
@@ -43,6 +39,7 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default(),
         route,
+        explicit_route: explicit_route.is_some(),
         heading_ids: parsed.headings.iter().map(|h| h.id.clone()).collect(),
     }
 }
@@ -132,13 +129,15 @@ fn report_route_collisions(
         }
         None => (Span::point(0), "/".to_string(), false),
     };
-    let in_index = pages.iter().any(|page| page.file_name == current_name);
+    if !explicit {
+        return;
+    }
     let others: Vec<&str> = pages
         .iter()
-        .filter(|page| page.route == route && page.file_name != current_name)
+        .filter(|page| page.explicit_route && page.route == route && page.file_name != current_name)
         .map(|page| page.file_name.as_str())
         .collect();
-    if !others.is_empty() && (explicit || in_index) {
+    if !others.is_empty() {
         diagnostics.push(Diagnostic::error(
             span,
             format!(
@@ -238,11 +237,12 @@ fn resolve_page(
     span: Span,
     options: &CompileOptions,
 ) -> Result<String, Diagnostic> {
-    let Some(page) = options
-        .pages
-        .iter()
-        .find(|page| page.stem == stem || page.file_name == format!("{stem}.rocdown"))
-    else {
+    let Some(page) = options.pages.iter().find(|page| {
+        page.stem == stem
+            || page.file_name == format!("{stem}.rocdown")
+            || page.file_name == format!("{stem}.md")
+            || page.file_name == format!("{stem}.markdown")
+    }) else {
         return Err(Diagnostic::error(
             span,
             format!("unknown Rocdown page `{stem}`"),
@@ -268,7 +268,11 @@ fn page_stem(path: &str) -> Option<&str> {
     if trimmed.is_empty() || trimmed.contains('/') || trimmed.contains('\\') {
         return None;
     }
-    if let Some(stem) = trimmed.strip_suffix(".rocdown") {
+    if let Some(stem) = trimmed
+        .strip_suffix(".rocdown")
+        .or_else(|| trimmed.strip_suffix(".md"))
+        .or_else(|| trimmed.strip_suffix(".markdown"))
+    {
         if stem.is_empty() {
             return None;
         }

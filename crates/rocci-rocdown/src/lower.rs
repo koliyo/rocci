@@ -966,7 +966,11 @@ impl<'a> Emitter<'a> {
         } else {
             contents
         };
-        if resolved.extension().and_then(|ext| ext.to_str()) == Some("rocdown") {
+        let is_doc = matches!(
+            resolved.extension().and_then(|ext| ext.to_str()),
+            Some("rocdown" | "md" | "markdown")
+        );
+        if is_doc {
             let included = crate::parse(
                 SourceFile::new(&resolved.to_string_lossy(), &excerpt),
                 false,
