@@ -1,5 +1,11 @@
 # Knowledge log
 
+## 2026-08-17
+
+- Added the draft [language-tooling architecture](architecture/language-tooling.md), separating the current common LSP and editor registrations from the still-unconsumed Roc/CSS embedded ranges and recording the current `@docs` build regression.
+- Added the exploratory [full language-server plan](plans/language-server.md) and its detailed root report, recommending server-owned region/projection composition and reuse of the pinned Roc Tree-sitter grammar/query work rather than merging the whole Zed Roc extension.
+- Updated the implementation snapshot to distinguish the shipped basic host-language LSP from the proposed embedded-language and Roc-semantic work, and to account for the new third root plan.
+
 ## 2026-08-16
 
 - Added the strict OKF parser, static Rocdown body profile, knowledge CLI, and the first three representative records.
