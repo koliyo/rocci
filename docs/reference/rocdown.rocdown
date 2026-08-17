@@ -181,6 +181,18 @@ rocci_page    : {} -> Html
 If no GET handler exists for the page route, lowering synthesizes one. A
 non-root page also gets a root preview route so `rocci run` can open it.
 
+The default standalone shell is a single-document reader. When the selected
+theme is not `none`, `rocci_page` emits a left `<nav class="rd-toc">` from
+heading levels 2 and 3, linking to the same heading IDs used in the article.
+H1 is the page title and stays out of the navigator. Empty outlines are
+omitted. Theme chrome keeps the article measure, animates navigator jumps
+quickly, and hides the navigator on narrow screens and in print. This is not the Rocs
+site outline: Rocs keeps its right-hand “On this page” rail inside
+documentation-site chrome.
+
+A custom `@page.layout` replaces that shell and does not receive the
+automatic navigator.
+
 ## Static Rocs support
 
 Rocs currently accepts the static Markdown tree plus `@page`. It rejects Roc,

@@ -115,7 +115,13 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         img::check_document_assets(source, &parsed.document, options, &mut parsed.diagnostics);
     }
     let mut diagnostics = parsed.diagnostics;
-    let lowered = lower::lower(source, &parsed.document, options, &mut diagnostics);
+    let lowered = lower::lower(
+        source,
+        &parsed.document,
+        &parsed.headings,
+        options,
+        &mut diagnostics,
+    );
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,

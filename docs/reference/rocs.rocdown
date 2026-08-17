@@ -131,6 +131,11 @@ path without `.rocdown`:
 Navigation order is explicit. Unknown IDs and duplicate items fail the build.
 Published pages may remain unlisted when that is intentional.
 
+Each page also gets a right-hand “On this page” outline from heading levels 2
+and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
+with `rocci run` uses the standalone left navigator instead; see
+[Rocdown](/reference/rocdown/).
+
 ## Generated artifacts
 
 In addition to page HTML, a configured build emits hashed `/assets/` files, a

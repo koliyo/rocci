@@ -479,10 +479,59 @@ fn none_theme_skips_injection() {
 @page { theme: "none" }
 
 # Hello
+
+## Section
 "#;
     let out = compile_ok(src);
     assert!(!out.roc.contains("rd-document"));
     assert!(!out.roc.contains("--rd-color-bg"));
+    assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("On this page"));
+    assert!(!out.roc.contains("requestAnimationFrame"));
+}
+
+#[test]
+fn default_shell_emits_toc_for_h2_and_h3() {
+    let src = "# Title\n\n## Alpha\n\n### Beta\n\n#### Gamma\n";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("\"rd-toc\""));
+    assert!(out.roc.contains("\"rd-shell\""));
+    assert!(out.roc.contains("On this page"));
+    assert!(out.roc.contains("\"#alpha\""));
+    assert!(out.roc.contains("\"#beta\""));
+    assert!(out.roc.contains("rd-toc-level-3"));
+    assert!(out.roc.contains("requestAnimationFrame"));
+    assert!(!out.roc.contains("\"#title\""));
+    assert!(!out.roc.contains("\"#gamma\""));
+}
+
+#[test]
+fn default_shell_omits_toc_without_outline_headings() {
+    let out = compile_ok("# Hello\n\nA paragraph.\n");
+    assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("\"rd-shell\""));
+    assert!(!out.roc.contains("On this page"));
+    assert!(!out.roc.contains("requestAnimationFrame"));
+}
+
+#[test]
+fn custom_layout_omits_toc() {
+    let src = r#"
+@page { layout: Docs.article }
+
+# Title
+
+## Section
+"#;
+    let out = compile_ok(src);
+    assert!(
+        out.roc
+            .contains("Docs.article({ meta: rocci_meta, content: rocci_content({}) })")
+    );
+    assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("\"rd-shell\""));
+    assert!(!out.roc.contains("On this page"));
+    assert!(!out.roc.contains("requestAnimationFrame"));
 }
 
 #[test]

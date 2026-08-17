@@ -13,3 +13,5 @@ pub use resolve::{
     builtin_ids, discovered_ids, resolve, resolve_id,
 };
 pub use scheme::ColorSchemePolicy;
+
+pub const TOC_SCRIPT: &str = include_str!("themes/toc.js");

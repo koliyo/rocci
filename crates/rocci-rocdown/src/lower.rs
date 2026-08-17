@@ -8,7 +8,7 @@ use rocci_template::{
 };
 
 use crate::CompileOptions;
-use crate::ast::{DocsDecl, Document, ImgDecl, Item, MdNode, PageMeta, RenderDecl};
+use crate::ast::{DocsDecl, Document, HeadingInfo, ImgDecl, Item, MdNode, PageMeta, RenderDecl};
 use crate::docs::{
     extract_lines, extract_region, field_bool, field_string, resolve_include_path, split_docs_body,
 };
@@ -35,6 +35,7 @@ pub struct Lowered {
 pub fn lower(
     source: SourceFile<'_>,
     document: &Document,
+    headings: &[HeadingInfo],
     options: &CompileOptions,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Lowered {
@@ -235,7 +236,7 @@ pub fn lower(
         emitter.emit(layout);
         emitter.emit("({ meta: rocci_meta, content: rocci_content({}) })\n");
     } else {
-        emitter.emit_default_page(&page_meta, &lowered_rocci.styles);
+        emitter.emit_default_page(&page_meta, &lowered_rocci.styles, headings);
     }
     emitter.indent -= 1;
     emitter.push_indent();
@@ -1517,7 +1518,141 @@ impl<'a> Emitter<'a> {
         self.emit("]");
     }
 
-    fn emit_default_page(&mut self, page_meta: &PageMeta, styles: &[StyleArtifact]) {
+    fn emit_toc(&mut self, headings: &[HeadingInfo], span: Span) {
+        let outline: Vec<&HeadingInfo> = headings
+            .iter()
+            .filter(|heading| (2..=3).contains(&heading.level))
+            .collect();
+        if outline.is_empty() {
+            return;
+        }
+
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("nav", span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", "rd-toc"), ("aria-label", "On this page")], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.emit_tagged_text(
+            "p",
+            &[("class", "rd-toc-label")],
+            "On this page",
+            span,
+            OriginKind::MarkdownBoilerplate,
+        );
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("div", span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", "rd-toc-items")], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        let hrefs: Vec<String> = outline
+            .iter()
+            .map(|heading| format!("#{}", heading.id))
+            .collect();
+        for (heading, href) in outline.iter().zip(hrefs.iter()) {
+            let class = if heading.level == 3 {
+                "rd-toc-link rd-toc-level-3"
+            } else {
+                "rd-toc-link"
+            };
+            self.emit_tagged_text(
+                "a",
+                &[("class", class), ("href", href)],
+                &heading.text,
+                heading.span,
+                OriginKind::MarkdownText,
+            );
+            self.emit(",\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+    }
+
+    fn emit_main(&mut self, span: Span) {
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("main", span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("rocci_content({}),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+    }
+
+    fn emit_tagged_text(
+        &mut self,
+        name: &str,
+        attrs: &[(&str, &str)],
+        text: &str,
+        span: Span,
+        text_origin: OriginKind,
+    ) {
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string(name, span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(attrs, span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".text(");
+        self.emit_string(text, span, text_origin);
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn emit_default_page(
+        &mut self,
+        page_meta: &PageMeta,
+        styles: &[StyleArtifact],
+        headings: &[HeadingInfo],
+    ) {
         let title = page_meta
             .title
             .clone()
@@ -1656,26 +1791,35 @@ impl<'a> Emitter<'a> {
         self.push_indent();
         self.emit("[\n");
         self.indent += 1;
-        self.push_indent();
-        self.emit_html(".element(\n");
-        self.indent += 1;
-        self.push_indent();
-        self.emit_string("main", span, OriginKind::MarkdownBoilerplate);
-        self.emit(",\n");
-        self.push_indent();
-        self.emit_attrs(&[], span);
-        self.emit(",\n");
-        self.push_indent();
-        self.emit("[\n");
-        self.indent += 1;
-        self.push_indent();
-        self.emit("rocci_content({}),\n");
-        self.indent -= 1;
-        self.push_indent();
-        self.emit("],\n");
-        self.indent -= 1;
-        self.push_indent();
-        self.emit("),\n");
+        let show_toc = theme_active
+            && headings
+                .iter()
+                .any(|heading| (2..=3).contains(&heading.level));
+        if show_toc {
+            self.push_indent();
+            self.emit_html(".element(\n");
+            self.indent += 1;
+            self.push_indent();
+            self.emit_string("div", span, OriginKind::MarkdownBoilerplate);
+            self.emit(",\n");
+            self.push_indent();
+            self.emit_attrs(&[("class", "rd-shell")], span);
+            self.emit(",\n");
+            self.push_indent();
+            self.emit("[\n");
+            self.indent += 1;
+            self.emit_toc(headings, span);
+            self.emit_main(span);
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("],\n");
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("),\n");
+            self.emit_toc_script(span);
+        } else {
+            self.emit_main(span);
+        }
         self.indent -= 1;
         self.push_indent();
         self.emit("],\n");
@@ -1688,6 +1832,14 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit(")\n");
+    }
+
+    fn emit_toc_script(&mut self, span: Span) {
+        let html = format!("<script>{}</script>", rocci_theme::TOC_SCRIPT.trim());
+        self.push_indent();
+        self.emit_html(".dangerously_include_unescaped_html(");
+        self.emit_string(&html, span, OriginKind::Scaffolding);
+        self.emit("),\n");
     }
 
     fn emit_style_element(&mut self, css: &str, span: Span) {
