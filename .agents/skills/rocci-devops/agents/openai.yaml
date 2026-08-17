@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rocci DevOps"
+  short_description: "Inspect and fix GitHub Actions CI/CD workflows with gh CLI"
+  default_prompt: "Use $rocci-devops to inspect CI status, diagnose failures, or verify workflows using gh."
