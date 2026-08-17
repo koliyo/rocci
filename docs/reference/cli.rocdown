@@ -60,6 +60,9 @@ authored `main.roc`. The default input is `main.roc`.
 
 `ROC_BASIC_WEBSERVER_PORT` can also override the server port.
 
+When the template does not compile, or Roc rejects the generated program, the
+preview stays open on a diagnostic page instead of a crashed server.
+
 ## Preview one component
 
 ```sh

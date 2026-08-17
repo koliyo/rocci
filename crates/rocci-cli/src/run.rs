@@ -523,15 +523,12 @@ fn invoke_standalone(
         cmd.env("DB_PATH", db_path);
     }
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
-    match serve::wait_for_listen(&mut child, port)? {
-        serve::ListenWait::Ready => {
+    match serve::wait_for_roc(&mut child, &mut tee, port, &path)? {
+        serve::RocStart::Ready => {
             println!("{}", style::serving(title, &url));
             serve::with_window(&mut child, &url, title, no_window)
         }
-        serve::ListenWait::Exited(_) => {
-            let output = tee.finish();
-            serve_roc_failure(&output, maps, port, no_window, title)
-        }
+        serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
     }
 }
 
@@ -609,16 +606,15 @@ fn invoke_roc(
     let title = window_title(resolved);
     let cmd = roc_command(&invocation, port);
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
-    match serve::wait_for_listen(&mut child, port)? {
-        serve::ListenWait::Ready => {
+    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+        serve::RocStart::Ready => {
             println!(
                 "{}",
                 style::serving(&invocation.app_dir.display().to_string(), &url)
             );
             serve::with_window(&mut child, &url, &title, no_window)
         }
-        serve::ListenWait::Exited(_) => {
-            let output = tee.finish();
+        serve::RocStart::Failed(output) => {
             serve_roc_failure(&output, maps, port, no_window, &title)
         }
     }
@@ -1007,6 +1003,23 @@ See [[About]]
         assert!(html.contains("Broken.rocdown"));
         assert!(html.contains("@page"));
         assert!(html.contains("error"));
+    }
+
+    #[test]
+    fn errors_roc_example_compiles_as_template() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/errors/roc/BrokenRoc.rocdown")
+            .canonicalize()
+            .unwrap();
+        let plan = plan_ready(&path);
+        assert_eq!(plan.primary_name, "BrokenRoc");
+        let html = error_page::render_roc_compile_error(
+            "Found 1 error and 0 warnings for main.roc.\n── TYPE MISMATCH in BrokenRoc.roc:2 ──\n",
+            &plan.maps(),
+        );
+        assert!(html.contains("Roc compile error"));
+        assert!(html.contains("Found 1 error"));
+        assert!(html.contains("BrokenRoc"));
     }
 
     #[test]

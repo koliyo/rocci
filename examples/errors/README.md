@@ -8,9 +8,10 @@ renders if CSS or lowering is the thing that broke.
 | --- | --- |
 | [`ErrorDemo.rocdown`](ErrorDemo.rocdown) | A working page at `/error-demo/` with links that hit the 404 page |
 | [`parse/Broken.rocdown`](parse/Broken.rocdown) | Unterminated `@page`; compile frames in the browser |
+| [`roc/BrokenRoc.rocdown`](roc/BrokenRoc.rocdown) | Valid Rocdown that Roc rejects; compiler output in the browser |
 
-The parse file sits in its own directory so it is not compiled as a sibling of
-`ErrorDemo.rocdown`.
+The parse and Roc-failure files sit in their own directories so they are not
+compiled as siblings of `ErrorDemo.rocdown`.
 
 ## 404
 
@@ -39,6 +40,17 @@ cargo run -q -p rocci-cli -- run examples/errors/parse/Broken.rocdown
 The CLI still prints a rustc-style frame on stderr. The preview stays up and
 shows the same diagnostic. `rocci build` on that file exits after printing
 frames and does not start a server.
+
+## Roc compile error
+
+```sh
+cargo run -q -p rocci-cli -- run examples/errors/roc/BrokenRoc.rocdown
+```
+
+The document parses. Roc then rejects the generated program (a `Str` bound to
+`1`). If Roc exits, or if it binds the port anyway and then crashes, the
+preview still opens on the remapped compiler output instead of a crashed
+server.
 
 Handler failures (a route `Err`) render a 500 page or a Datastar overlay on
 POST. Those need a `Try` that actually fails at runtime; this folder does not
