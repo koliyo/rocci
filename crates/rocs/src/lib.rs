@@ -20,14 +20,14 @@ mod site;
 pub use article::render_document;
 pub use build::{BuildReport, BuildSession, build, build_configured, discover_rocdown};
 pub use catalog::{
-    CatalogDiagnostic, Edge, EdgeKind, ResolveOptions, ResolveResult, ResolvedSite, Severity,
-    SourcePage, resolve,
+    CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
+    RouteHint, Severity, SourcePage, resolve,
 };
 pub use config::{BuildConfig, NavConfig, SiteConfig, SiteMeta, load_config};
 pub use dev::{DevServer, run, run_knowledge};
 pub use docs::{
-    ExampleRecord, ExampleTestOptions, IncludeOrigin, PageDocs, markdown_fragment, run_examples,
-    search_text,
+    ArticleNode, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin, PageDocs,
+    load_page_docs, markdown_fragment, render_article, run_examples, search_text,
 };
 pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};

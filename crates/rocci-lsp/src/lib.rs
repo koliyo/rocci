@@ -1,4 +1,5 @@
 mod analysis;
+pub mod analyzer;
 pub mod embedded;
 mod regions;
 mod rocdown;
@@ -23,10 +24,9 @@ use lsp_types::{
     SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensServerCapabilities,
     ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, Uri,
 };
-use rocci_template::{PositionEncoding, SourceFile};
+use rocci_template::PositionEncoding;
 
-use crate::analysis::offset_at;
-
+pub use analyzer::{DocumentAnalysis, DocumentAnalyzer, RocciAnalyzer, RocdownAnalyzer};
 pub use regions::{
     InspectedRegion, Language, Region, RegionContext, RegionPurpose, RegionSpan, RegionTree,
     RegionValidationError, css_ranges, executable_roc_ranges, extract_rocci_regions,
@@ -45,31 +45,23 @@ pub fn method_inspect_regions() -> &'static str {
 
 pub struct LanguageServer {
     encoding: PositionEncoding,
-    documents: HashMap<String, OpenDocument>,
-}
-
-#[derive(Clone, Copy)]
-enum DocumentKind {
-    Rocci,
-    Rocdown,
-}
-
-#[allow(clippy::large_enum_variant)]
-enum Compiled {
-    Rocci(rocci_template::CompileOutput),
-    Rocdown(rocci_rocdown::CompileOutput),
-}
-
-struct OpenDocument {
-    kind: DocumentKind,
-    text: String,
-    compiled: Compiled,
+    analyzers: Vec<Box<dyn DocumentAnalyzer>>,
+    documents: HashMap<String, Box<dyn DocumentAnalysis>>,
 }
 
 impl LanguageServer {
     pub fn new() -> Self {
         Self {
             encoding: PositionEncoding::Utf16,
+            analyzers: vec![Box::new(RocciAnalyzer), Box::new(RocdownAnalyzer)],
+            documents: HashMap::new(),
+        }
+    }
+
+    pub fn with_analyzers(analyzers: Vec<Box<dyn DocumentAnalyzer>>) -> Self {
+        Self {
+            encoding: PositionEncoding::Utf16,
+            analyzers,
             documents: HashMap::new(),
         }
     }
@@ -119,21 +111,40 @@ impl LanguageServer {
         &mut self,
         params: DidOpenTextDocumentParams,
     ) -> Option<PublishDiagnosticsParams> {
-        let kind = document_kind(
-            &params.text_document.uri,
-            Some(&params.text_document.language_id),
-        )?;
-        Some(self.set_document(params.text_document.uri, params.text_document.text, kind))
+        let uri = params.text_document.uri;
+        let text = params.text_document.text;
+        let language_id = Some(params.text_document.language_id.as_str());
+        let analyzer = self
+            .analyzers
+            .iter()
+            .find(|a| a.can_analyze(&uri, language_id))?;
+        let name = uri_key(&uri);
+        let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
+        let diagnostics = analysis.diagnostics();
+        self.documents.insert(name, analysis);
+        Some(PublishDiagnosticsParams {
+            uri,
+            diagnostics,
+            version: None,
+        })
     }
 
     pub fn did_change(
         &mut self,
         params: DidChangeTextDocumentParams,
     ) -> Option<PublishDiagnosticsParams> {
-        let key = uri_key(&params.text_document.uri);
-        let kind = self.documents.get(&key)?.kind;
+        let uri = params.text_document.uri;
+        let name = uri_key(&uri);
         let text = params.content_changes.into_iter().next()?.text;
-        Some(self.set_document(params.text_document.uri, text, kind))
+        let analyzer = self.analyzers.iter().find(|a| a.can_analyze(&uri, None))?;
+        let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
+        let diagnostics = analysis.diagnostics();
+        self.documents.insert(name, analysis);
+        Some(PublishDiagnosticsParams {
+            uri,
+            diagnostics,
+            version: None,
+        })
     }
 
     pub fn did_close(&mut self, params: DidCloseTextDocumentParams) -> PublishDiagnosticsParams {
@@ -149,138 +160,47 @@ impl LanguageServer {
         &self,
         params: DocumentSymbolParams,
     ) -> Option<lsp_types::DocumentSymbolResponse> {
-        let (name, doc) = self.document(&params.text_document.uri)?;
-        Some(match &doc.compiled {
-            Compiled::Rocci(compiled) => {
-                analysis::document_symbols(name, &doc.text, compiled, self.encoding)
-            }
-            Compiled::Rocdown(compiled) => {
-                rocdown::document_symbols(name, &doc.text, compiled, self.encoding)
-            }
-        })
+        let doc = self.document(&params.text_document.uri)?;
+        doc.document_symbols(&params)
     }
 
     pub fn hover(&self, params: HoverParams) -> Option<lsp_types::Hover> {
-        let uri = &params.text_document_position_params.text_document.uri;
-        let position = params.text_document_position_params.position;
-        let (name, doc) = self.document(uri)?;
-        let source = SourceFile::new(name, &doc.text);
-        let offset = offset_at(source, position, self.encoding);
-        match &doc.compiled {
-            Compiled::Rocci(compiled) => {
-                analysis::hover(name, &doc.text, compiled, offset, self.encoding)
-            }
-            Compiled::Rocdown(compiled) => {
-                rocdown::hover(name, &doc.text, compiled, offset, self.encoding)
-            }
-        }
+        let doc = self.document(&params.text_document_position_params.text_document.uri)?;
+        doc.hover(&params)
     }
 
     pub fn goto_definition(
         &self,
         params: GotoDefinitionParams,
     ) -> Option<lsp_types::GotoDefinitionResponse> {
-        let uri = params
-            .text_document_position_params
-            .text_document
-            .uri
-            .clone();
-        let position = params.text_document_position_params.position;
-        let (name, doc) = self.document(&uri)?;
-        let source = SourceFile::new(name, &doc.text);
-        let offset = offset_at(source, position, self.encoding);
-        match &doc.compiled {
-            Compiled::Rocci(compiled) => {
-                analysis::goto_definition(name, &doc.text, compiled, offset, self.encoding, uri)
-            }
-            Compiled::Rocdown(compiled) => {
-                rocdown::goto_definition(name, &doc.text, compiled, offset, self.encoding, uri)
-            }
-        }
+        let doc = self.document(&params.text_document_position_params.text_document.uri)?;
+        doc.goto_definition(&params)
     }
 
     pub fn completion(&self, params: CompletionParams) -> Option<lsp_types::CompletionResponse> {
-        let uri = &params.text_document_position.text_document.uri;
-        let position = params.text_document_position.position;
-        let (name, doc) = self.document(uri)?;
-        let source = SourceFile::new(name, &doc.text);
-        let offset = offset_at(source, position, self.encoding);
-        Some(match &doc.compiled {
-            Compiled::Rocci(compiled) => analysis::completion(&doc.text, compiled, offset),
-            Compiled::Rocdown(compiled) => rocdown::completion(&doc.text, compiled, offset),
-        })
+        let doc = self.document(&params.text_document_position.text_document.uri)?;
+        doc.completion(&params)
     }
 
     pub fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
     ) -> Option<lsp_types::SemanticTokensResult> {
-        let (name, doc) = self.document(&params.text_document.uri)?;
-        Some(lsp_types::SemanticTokensResult::Tokens(
-            match &doc.compiled {
-                Compiled::Rocci(compiled) => tokens::semantic_tokens(
-                    name,
-                    &doc.text,
-                    &compiled.document,
-                    self.encoding,
-                    None,
-                ),
-                Compiled::Rocdown(compiled) => tokens::semantic_tokens_rocdown(
-                    name,
-                    &doc.text,
-                    &compiled.document,
-                    &compiled.headings,
-                    self.encoding,
-                    None,
-                ),
-            },
-        ))
+        let doc = self.document(&params.text_document.uri)?;
+        doc.semantic_tokens_full(&params)
     }
 
     pub fn semantic_tokens_range(
         &self,
         params: SemanticTokensRangeParams,
     ) -> Option<lsp_types::SemanticTokensRangeResult> {
-        let (name, doc) = self.document(&params.text_document.uri)?;
-        Some(lsp_types::SemanticTokensRangeResult::Tokens(
-            match &doc.compiled {
-                Compiled::Rocci(compiled) => tokens::semantic_tokens(
-                    name,
-                    &doc.text,
-                    &compiled.document,
-                    self.encoding,
-                    Some(params.range),
-                ),
-                Compiled::Rocdown(compiled) => tokens::semantic_tokens_rocdown(
-                    name,
-                    &doc.text,
-                    &compiled.document,
-                    &compiled.headings,
-                    self.encoding,
-                    Some(params.range),
-                ),
-            },
-        ))
+        let doc = self.document(&params.text_document.uri)?;
+        doc.semantic_tokens_range(&params)
     }
 
     pub fn inspect_regions(&self, uri: &Uri) -> Option<Vec<regions::InspectedRegion>> {
-        let (name, doc) = self.document(uri)?;
-        let source = SourceFile::new(name, &doc.text);
-        Some(match &doc.compiled {
-            Compiled::Rocci(compiled) => {
-                let tree = regions::extract_rocci_regions(name, &doc.text, &compiled.document);
-                regions::inspect_regions(source, &tree, self.encoding)
-            }
-            Compiled::Rocdown(compiled) => {
-                let tree = regions::extract_rocdown_regions(
-                    name,
-                    &doc.text,
-                    &compiled.document,
-                    &compiled.headings,
-                );
-                regions::inspect_regions(source, &tree, self.encoding)
-            }
-        })
+        let doc = self.document(uri)?;
+        doc.inspect_regions()
     }
 
     pub fn handle_request(&self, req: Request) -> Response {
@@ -356,44 +276,8 @@ impl LanguageServer {
         }
     }
 
-    fn set_document(
-        &mut self,
-        uri: Uri,
-        text: String,
-        kind: DocumentKind,
-    ) -> PublishDiagnosticsParams {
-        let name = uri_key(&uri);
-        let compiled = match kind {
-            DocumentKind::Rocci => Compiled::Rocci(analysis::compile_text(&name, &text)),
-            DocumentKind::Rocdown => Compiled::Rocdown(rocdown::compile_text(&name, &text)),
-        };
-        let diagnostics = match &compiled {
-            Compiled::Rocci(compiled) => {
-                analysis::diagnostics(&name, &text, compiled, self.encoding)
-            }
-            Compiled::Rocdown(compiled) => {
-                rocdown::diagnostics(&name, &text, compiled, self.encoding)
-            }
-        };
-        self.documents.insert(
-            name,
-            OpenDocument {
-                kind,
-                text,
-                compiled,
-            },
-        );
-        PublishDiagnosticsParams {
-            uri,
-            diagnostics,
-            version: None,
-        }
-    }
-
-    fn document(&self, uri: &Uri) -> Option<(&str, &OpenDocument)> {
-        self.documents
-            .get_key_value(&uri_key(uri))
-            .map(|(key, doc)| (key.as_str(), doc))
+    fn document(&self, uri: &Uri) -> Option<&(dyn DocumentAnalysis + 'static)> {
+        self.documents.get(&uri_key(uri)).map(|b| &**b)
     }
 }
 
@@ -423,23 +307,6 @@ fn position_encoding_kind(encoding: PositionEncoding) -> PositionEncodingKind {
     match encoding {
         PositionEncoding::Utf8 => PositionEncodingKind::UTF8,
         PositionEncoding::Utf16 => PositionEncodingKind::UTF16,
-    }
-}
-
-fn document_kind(uri: &Uri, language_id: Option<&str>) -> Option<DocumentKind> {
-    match language_id {
-        Some("rocdown") => Some(DocumentKind::Rocdown),
-        Some("rocci") => Some(DocumentKind::Rocci),
-        _ => {
-            let key = uri_key(uri);
-            if key.ends_with(".rocdown") {
-                Some(DocumentKind::Rocdown)
-            } else if key.ends_with(".rocci") {
-                Some(DocumentKind::Rocci)
-            } else {
-                None
-            }
-        }
     }
 }
 

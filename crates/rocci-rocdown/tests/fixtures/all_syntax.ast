@@ -1,0 +1,39 @@
+(rocdown
+  (page route: "/all-syntax/", draft: Bool.false…)
+  (roc Status : [Ready, Loading] items = [{ nam…)
+  (css)
+  (component Hello)
+  (fixture helloSample)
+  (h 1 all-syntax
+    (text All syntax))
+  (p
+    (text Email)
+    (a mailto:docs@example.com
+      (text docs@example.com))
+    (text or mention @roclang.))
+  (p
+    (text This is)
+    (strong
+      (text bold))
+    (text and)
+    (em
+      (text italic))
+    (text .))
+  (ul
+    (li
+      (p
+        (text list item))))
+  (fence roc answer = 42)
+  (md)
+  (render hello({ name: "render" }))
+  (let visible)
+  (if)
+  (for item)
+  (match)
+  (img src: "./img/yammi_banana.png" alt: "A ba…)
+  (p
+    (text @if this is escaped))
+  (p
+    (text More markdown after.)
+    (md))
+  (md))
