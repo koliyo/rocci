@@ -17,6 +17,7 @@ pub enum Language {
 }
 
 impl Language {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s.trim().to_ascii_lowercase().as_str() {
             "roc" => Self::Roc,
@@ -269,16 +270,14 @@ impl RegionTree {
                 for fence in &self.regions {
                     if fence.purpose == RegionPurpose::DisplayOnly
                         && fence.context == RegionContext::Fence
+                        && region.span.start <= fence.span.start
+                        && fence.span.end <= region.span.end
+                        && !fence.span.is_empty()
                     {
-                        if region.span.start <= fence.span.start
-                            && fence.span.end <= region.span.end
-                            && !fence.span.is_empty()
-                        {
-                            return Err(RegionValidationError::ExecutableContainsDisplayFence {
-                                exec_id: region.id,
-                                fence_id: fence.id,
-                            });
-                        }
+                        return Err(RegionValidationError::ExecutableContainsDisplayFence {
+                            exec_id: region.id,
+                            fence_id: fence.id,
+                        });
                     }
                 }
             }
@@ -457,17 +456,17 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                     Some(root),
                     10,
                 );
-                if let Some(params) = on.params {
-                    if !params.is_empty() {
-                        builder.add(
-                            Language::Roc,
-                            RegionContext::Params,
-                            RegionPurpose::Executable,
-                            params,
-                            Some(on_id),
-                            20,
-                        );
-                    }
+                if let Some(params) = on.params
+                    && !params.is_empty()
+                {
+                    builder.add(
+                        Language::Roc,
+                        RegionContext::Params,
+                        RegionPurpose::Executable,
+                        params,
+                        Some(on_id),
+                        20,
+                    );
                 }
                 if !on.body.is_empty() {
                     builder.add(
@@ -688,17 +687,17 @@ fn collect_rocdown_items(
                     Some(parent_id),
                     10,
                 );
-                if let Some(params) = on.params {
-                    if !params.is_empty() {
-                        builder.add(
-                            Language::Roc,
-                            RegionContext::Params,
-                            RegionPurpose::Executable,
-                            params,
-                            Some(on_id),
-                            20,
-                        );
-                    }
+                if let Some(params) = on.params
+                    && !params.is_empty()
+                {
+                    builder.add(
+                        Language::Roc,
+                        RegionContext::Params,
+                        RegionPurpose::Executable,
+                        params,
+                        Some(on_id),
+                        20,
+                    );
                 }
                 if !on.body.is_empty() {
                     builder.add(

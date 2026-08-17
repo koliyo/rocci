@@ -299,7 +299,7 @@ fn first_param_names(first: &str) -> (bool, Vec<NamedParam>) {
         let record_inner = &first[1..first.len() - 1];
         let fields = split_top_level(record_inner, ',')
             .into_iter()
-            .filter_map(|part| named_param(part))
+            .filter_map(named_param)
             .collect();
         (true, fields)
     } else {
@@ -357,10 +357,8 @@ fn find_top_level_qq(part: &str) -> Option<usize> {
                     }
                 }
             }
-            '?' if depth == 0 => {
-                if chars.peek().is_some_and(|(_, next)| *next == '?') {
-                    return Some(i);
-                }
+            '?' if depth == 0 && chars.peek().is_some_and(|(_, next)| *next == '?') => {
+                return Some(i);
             }
             _ => {}
         }

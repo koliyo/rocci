@@ -228,6 +228,7 @@ fn discards_indentation_between_tags() {
 }
 
 #[test]
+#[allow(clippy::type_complexity)]
 fn extracts_component_param_names() {
     let cases: &[(&str, bool, &[&str], &[&str], &[&str])] = &[
         ("|{ name }|", true, &["name"], &[], &[]),

@@ -210,10 +210,11 @@ fn fs_theme_names(root: &Path) -> Vec<String> {
             if let Some(stem) = path.file_stem().and_then(|name| name.to_str()) {
                 names.push(stem.to_string());
             }
-        } else if path.is_dir() && path.join("theme.css").is_file() {
-            if let Some(name) = path.file_name().and_then(|name| name.to_str()) {
-                names.push(name.to_string());
-            }
+        } else if path.is_dir()
+            && path.join("theme.css").is_file()
+            && let Some(name) = path.file_name().and_then(|name| name.to_str())
+        {
+            names.push(name.to_string());
         }
     }
     names
@@ -284,8 +285,10 @@ mod tests {
 
     #[test]
     fn page_theme_wins_and_aliases_resolve() {
-        let mut options = ThemeOptions::default();
-        options.default_id = Some(PAPER_ID.into());
+        let options = ThemeOptions {
+            default_id: Some(PAPER_ID.into()),
+            ..Default::default()
+        };
         let theme = resolve(Some("rocdown:rocci"), Some("dark"), &options).unwrap();
         assert_eq!(theme.id, ROCCI_ID);
         assert_eq!(theme.policy.as_str(), "dark");

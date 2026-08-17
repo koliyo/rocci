@@ -126,7 +126,7 @@ pub fn document_symbols(
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::On(on) => on_symbol(source, on, encoding),
             Item::Template(item) => template_symbol(source, text, item, encoding),
-            Item::Docs(docs) => docs_symbol(source, text, docs, encoding),
+            Item::Docs(docs) => docs_symbol(source, docs, encoding),
         };
         symbols.push((item.span().start, symbol));
     }
@@ -537,7 +537,6 @@ fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResp
 
 fn docs_symbol(
     source: SourceFile<'_>,
-    text: &str,
     docs: &DocsDecl,
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
@@ -570,10 +569,7 @@ fn docs_symbol(
         }
         for item in &parsed.document.items {
             if let Item::Docs(nested) = item {
-                children.push((
-                    nested.span.start,
-                    docs_symbol(source, text, nested, encoding),
-                ));
+                children.push((nested.span.start, docs_symbol(source, nested, encoding)));
             }
         }
     }

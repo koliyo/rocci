@@ -188,10 +188,10 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
 
     let rewrite = rewrite_map(&assets);
     let rewritten_css = rewrite_urls(&theme_css, &rewrite);
-    if let Some(asset) = assets.iter_mut().find(|asset| asset.kind == "stylesheet") {
-        if rewritten_css != theme_css {
-            *asset = hashed_asset("theme.css", rewritten_css.as_bytes());
-        }
+    if let Some(asset) = assets.iter_mut().find(|asset| asset.kind == "stylesheet")
+        && rewritten_css != theme_css
+    {
+        *asset = hashed_asset("theme.css", rewritten_css.as_bytes());
     }
     let rewrite = rewrite_map(&assets);
     let stylesheet_url = assets
@@ -341,6 +341,7 @@ fn compile_docs_components() -> Result<CompiledTheme> {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn planned_page(
     page: &ResolvedPage,
     site: &SiteView,

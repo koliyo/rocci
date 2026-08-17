@@ -51,6 +51,7 @@ enum DocumentKind {
     Rocdown,
 }
 
+#[allow(clippy::large_enum_variant)]
 enum Compiled {
     Rocci(rocci_template::CompileOutput),
     Rocdown(rocci_rocdown::CompileOutput),

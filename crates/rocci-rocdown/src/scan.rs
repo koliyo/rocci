@@ -98,13 +98,13 @@ pub fn bom_len(src: &str) -> usize {
 pub fn scan(src: &str, diagnostics: &mut Vec<Diagnostic>) -> Vec<ScannedDecl> {
     let mut decls = Vec::new();
     let mut pos = bom_len(src);
-    if src[pos..].contains('\u{FEFF}') {
-        if let Some(off) = src[pos..].find('\u{FEFF}') {
-            diagnostics.push(Diagnostic::error(
-                Span::new(pos + off, pos + off + '\u{FEFF}'.len_utf8()),
-                "a UTF-8 BOM is only allowed at the start of a Rocdown file",
-            ));
-        }
+    if src[pos..].contains('\u{FEFF}')
+        && let Some(off) = src[pos..].find('\u{FEFF}')
+    {
+        diagnostics.push(Diagnostic::error(
+            Span::new(pos + off, pos + off + '\u{FEFF}'.len_utf8()),
+            "a UTF-8 BOM is only allowed at the start of a Rocdown file",
+        ));
     }
 
     let mut fence: Option<(u8, usize)> = None;
@@ -204,15 +204,11 @@ fn try_scan_decl(
     }
 
     let (end, mut extra) = if kind.is_rocci() {
-        match parse_declaration_from(src, at) {
-            Some(parsed) => (parsed.end, parsed.diagnostics),
-            None => return None,
-        }
+        let parsed = parse_declaration_from(src, at)?;
+        (parsed.end, parsed.diagnostics)
     } else if kind.is_template() {
-        match parse_template_item_from(src, at) {
-            Some(parsed) => (parsed.end, parsed.diagnostics),
-            None => return None,
-        }
+        let parsed = parse_template_item_from(src, at)?;
+        (parsed.end, parsed.diagnostics)
     } else {
         skip_brace_block(src, at, kind)
     };
@@ -362,7 +358,7 @@ fn header_matches_for(src: &str, after_name: usize) -> bool {
         return false;
     }
     let after_in = cur.pos;
-    if cur.peek().is_some_and(|ch| is_ident_continue(ch)) {
+    if cur.peek().is_some_and(is_ident_continue) {
         return false;
     }
     header_has_body_brace(src, after_in)

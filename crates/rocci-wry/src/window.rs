@@ -6,22 +6,12 @@ use tao::{
 };
 use wry::{PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
 
+#[derive(Default)]
 pub struct WebViewHooks {
     pub initialization_script: Option<String>,
     pub ipc_handler: Option<Box<dyn Fn(Request<String>) + 'static>>,
     pub on_page_load: Option<Box<dyn Fn(PageLoadEvent, String) + 'static>>,
     pub on_title_changed: Option<Box<dyn Fn(String) + 'static>>,
-}
-
-impl Default for WebViewHooks {
-    fn default() -> Self {
-        Self {
-            initialization_script: None,
-            ipc_handler: None,
-            on_page_load: None,
-            on_title_changed: None,
-        }
-    }
 }
 
 pub struct LiveWindow {

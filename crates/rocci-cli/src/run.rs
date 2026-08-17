@@ -472,6 +472,7 @@ fn preview_path(routes: &[rocci_template::RouteInfo]) -> String {
         .unwrap_or_else(|| "/".to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn invoke_standalone(
     resolved: &ResolvedEntry,
     args: &[String],

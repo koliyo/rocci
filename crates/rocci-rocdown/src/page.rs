@@ -249,9 +249,7 @@ fn value_path(src: &str, span: Span) -> Option<String> {
         if cur.pos >= end {
             break;
         }
-        let Some(ident) = cur.scan_ident() else {
-            return None;
-        };
+        let ident = cur.scan_ident()?;
         if !ident.of(src).chars().next().is_some_and(is_ident_start) {
             return None;
         }
