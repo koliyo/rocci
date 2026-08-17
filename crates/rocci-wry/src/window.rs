@@ -1,6 +1,6 @@
 use rocci_core::{Error, Result, WindowConfig, WindowId};
 use tao::{
-    dpi::LogicalSize,
+    dpi::{LogicalPosition, LogicalSize},
     event_loop::EventLoopWindowTarget,
     window::{Window, WindowBuilder},
 };
@@ -22,6 +22,7 @@ pub struct LiveWindow {
 }
 
 impl LiveWindow {
+    #[allow(clippy::too_many_arguments)]
     pub fn create<T: 'static>(
         event_loop: &EventLoopWindowTarget<T>,
         template: &WindowConfig,
@@ -30,12 +31,20 @@ impl LiveWindow {
         mut context: WebContext,
         devtools: bool,
         hooks: WebViewHooks,
+        position: Option<LogicalPosition<f64>>,
+        maximized: bool,
     ) -> Result<Self> {
         let mut builder = WindowBuilder::new()
             .with_title(&template.title)
             .with_inner_size(LogicalSize::new(template.width, template.height));
         if let (Some(min_width), Some(min_height)) = (template.min_width, template.min_height) {
             builder = builder.with_min_inner_size(LogicalSize::new(min_width, min_height));
+        }
+        if let Some(pos) = position {
+            builder = builder.with_position(pos);
+        }
+        if maximized {
+            builder = builder.with_maximized(true);
         }
         let window = builder
             .build(event_loop)

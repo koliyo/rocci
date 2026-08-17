@@ -2329,9 +2329,12 @@ version = "0.1.0"
 dependencies = [
  "muda",
  "rocci-core",
+ "serde",
+ "serde_json",
  "tao",
  "tokio",
  "tracing",
+ "uuid",
  "wry",
 ]
 

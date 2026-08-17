@@ -363,6 +363,7 @@ pub fn open_preview(url: &str, title: &str) -> Result<()> {
     preview(PreviewOptions {
         url: url.to_string(),
         title: title.to_string(),
+        state_key: Some("rocci:view".to_string()),
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"))
