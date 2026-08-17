@@ -28,7 +28,7 @@ needs structure or behavior.
 This paragraph is ordinary Markdown.
 ````
 
-Rocs can derive routes from file paths, so documentation sites usually omit
+Rocdown can derive routes from file paths, so documentation sites usually omit
 `route`. Use an explicit route when an existing URL must stay stable.
 
 ## Display code safely
@@ -65,9 +65,9 @@ published = "2026-08-16"
 Document-root component tags and directives are explicit islands in the
 Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
 
-> The current static Rocs pipeline accepts Markdown, `@page`, and `@docs`.
+> The current static Rocdown site pipeline accepts Markdown, `@page`, and `@docs`.
 > Dynamic `@roc`, `@render`, Rocci components, file CSS, and handlers work in
-> `rocci run` but are rejected by `rocs build` until island splicing lands.
+> `rocci run` but are rejected by `rocdown build` until island splicing lands.
 >
 > For asides, steps, includes, and tabs, see
 > [Write documentation components](/guides/docs-components/).
@@ -80,7 +80,7 @@ Standalone sibling previews understand wiki links and Rocdown file links:
 See [[Interactive]] or [the interactive guide](Interactive.rocdown).
 ```
 
-For a Rocs site, stable absolute routes are the clearest current form:
+For a Rocdown site, stable absolute routes are the clearest current form:
 
 ```markdown
 Read the [Rocdown reference](/reference/rocdown/).
@@ -96,14 +96,14 @@ cargo run -p rocci-cli -- run docs/guide.rocdown
 
 Standalone preview uses the default Paper (or selected) reading shell. Pages
 with H2 or H3 headings get a left “On this page” navigator that scrolls to the
-same heading IDs. Rocs site builds keep a separate right-hand outline inside
+same heading IDs. Rocdown site builds keep a separate right-hand outline inside
 documentation chrome.
 
 Build a static documentation tree:
 
 ```sh
-cargo run -p rocs-cli -- build docs
+cargo run -p rocci-rocdown-cli -- build docs
 ```
 
-Rocs reads `docs/rocs.toml`, validates its curated navigation, compiles the
-Rocci site theme, and writes the configured output directory atomically.
+Rocdown reads `docs/rocdown.toml`, validates its curated navigation, compiles the
+Rocdown site theme, and writes the configured output directory atomically.

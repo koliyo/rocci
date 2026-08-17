@@ -2,9 +2,10 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
-use rocci_rocdown::{Document, Item, MdNode, SourceFile};
-use rocci_template::format_diagnostic;
+use rocci_template::{SourceFile, format_diagnostic};
 use serde::Serialize;
+
+use crate::{CompileOptions, Document, Item, MdNode, compile};
 
 use crate::article::{is_static_document, render_document};
 use crate::catalog::{
@@ -72,12 +73,12 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             .unwrap_or(path)
             .to_string_lossy()
             .replace('\\', "/");
-        let compiled = rocci_rocdown::compile(
+        let compiled = compile(
             SourceFile::new(&name, &src),
-            &rocci_rocdown::CompileOptions {
+            &CompileOptions {
                 resolve_links: false,
                 resolve_includes: false,
-                ..rocci_rocdown::CompileOptions::default()
+                ..CompileOptions::default()
             },
         );
         for diagnostic in &compiled.diagnostics {
@@ -97,7 +98,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 path: relative_name.clone(),
                 message: diagnostic.message.clone(),
             });
-            if std::env::var_os("ROCS_QUIET").is_none() {
+            if std::env::var_os("ROCDOWN_QUIET").is_none() {
                 eprintln!(
                     "{}",
                     format_diagnostic(SourceFile::new(&name, &src), diagnostic)
@@ -111,7 +112,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             diagnostics.push(CatalogDiagnostic::error(
                 "RD2301",
                 &relative_name,
-                format!("{relative_name} uses Datastar, which the rocs runtime does not stage"),
+                format!("{relative_name} uses Datastar, which the rocdown runtime does not stage"),
             ));
             continue;
         }
@@ -120,7 +121,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 "RD2301",
                 &relative_name,
                 format!(
-                    "{relative_name} uses layout `{layout}`, which static rocs pages do not support yet"
+                    "{relative_name} uses layout `{layout}`, which static rocdown pages do not support yet"
                 ),
             ));
             continue;
@@ -130,7 +131,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 "RD2301",
                 &relative_name,
                 format!(
-                    "{relative_name} contains {kind}; static rocs pages cannot include Roc/Rocci islands yet"
+                    "{relative_name} contains {kind}; static rocdown pages cannot include Roc/Rocci islands yet"
                 ),
             ));
             continue;
@@ -539,7 +540,7 @@ mod tests {
     use std::{env, fs};
 
     fn temp(name: &str) -> PathBuf {
-        let path = env::temp_dir().join(format!("rocs-site-{}-{name}", std::process::id()));
+        let path = env::temp_dir().join(format!("rocdown-site-{}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path

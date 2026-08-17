@@ -1,20 +1,20 @@
 @page {
     meta: {
-        title: "Rocs site configuration",
-        description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocs.toml.",
+        title: "Rocdown site configuration",
+        description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocdown.toml.",
     },
 }
 
-# Rocs site configuration
+# Rocdown site configuration
 
-Place `rocs.toml` at the documentation content root when you need site metadata,
+Place `rocdown.toml` at the documentation content root when you need site metadata,
 hashed assets, or curated navigation. The file is optional: a directory of
 `.rocdown` pages, or a single `.rocdown` file whose parent is the content root,
-is enough for `rocs build`, `rocs check`, and `rocs run`.
+is enough for `rocdown build`, `rocdown check`, and `rocdown run`.
 
 ```sh
-cargo run -p rocs-cli -- build report.rocdown --output dist
-cargo run -p rocs-cli -- run report.rocdown
+cargo run -p rocci-rocdown-cli -- build report.rocdown --output dist
+cargo run -p rocci-rocdown-cli -- run report.rocdown
 ```
 
 ## Example
@@ -63,18 +63,18 @@ allow_network = false
 `@docs include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
 code literal. Named regions use `docs-region: NAME` / `docs-region-end: NAME`
 markers. Line ranges emit warning `RD2504`. Cycles are `RD2505`. Included files
-are watch inputs for `rocs run`.
+are watch inputs for `rocdown run`.
 
-`rocs check` validates components and includes without Roc. Untested
+`rocdown check` validates components and includes without Roc. Untested
 `@docs example` records warn (`RD2601`). Example commands never run during
-`rocs build` or `rocs check`.
+`rocdown build` or `rocdown check`.
 
 ```sh
-cargo run -p rocs-cli -- test docs
-cargo run -p rocs-cli -- test docs --update
+cargo run -p rocci-rocdown-cli -- test docs
+cargo run -p rocci-rocdown-cli -- test docs --update
 ```
 
-`rocs test` runs declared `test` argument lists with cwd at the content root, a
+`rocdown test` runs declared `test` argument lists with cwd at the content root, a
 timeout, no extra environment, and no shell expansion. `--update` rewrites
 golden files. Failures are diagnostics (`RD2603`); `dist/` is not written.
 Fenced code is never executed. Default CSP stays `script-src 'none'`; tab
@@ -108,10 +108,10 @@ URLs under that tree are rewritten whether they are authored as
 `/assets/foo.png` or `assets/foo.png`. `social_image` is rewritten the same way.
 
 Local image paths resolve against the source file directory. Missing files fail
-`rocs check` with `RD2103`. Validated page and heading links are rewritten to
+`rocdown check` with `RD2103`. Validated page and heading links are rewritten to
 emitted routes after catalog resolve, so a passing check implies a usable href.
 
-Rocs writes into a staging directory and atomically replaces the output only
+Rocdown writes into a staging directory and atomically replaces the output only
 after a successful build.
 
 The first-party theme CSS is extracted once, hashed, and linked from every
@@ -133,7 +133,7 @@ Published pages may remain unlisted when that is intentional.
 
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
-with `rocci run` uses the standalone left navigator instead; see
+with `rocdown run` (or `rocci run`) uses the standalone left navigator instead; see
 [Rocdown](/reference/rocdown/).
 
 ## Generated artifacts
@@ -142,29 +142,29 @@ In addition to page HTML, a configured build emits hashed `/assets/` files, a
 themed `404.html`, alias redirect HTML, and `llms.txt`. When `base_url` is set,
 it also emits `sitemap.xml` and `robots.txt`.
 
-`rocs inspect artifacts` lists the planned output tree, including hashed asset
+`rocdown inspect artifacts` lists the planned output tree, including hashed asset
 paths, without invoking Roc.
 
 Build this site's content from the repository root with:
 
 ```sh
-cargo run -p rocs-cli -- build docs
+cargo run -p rocci-rocdown-cli -- build docs
 ```
 
 Preview with watch and live reload:
 
 ```sh
-cargo run -p rocs-cli -- run docs
+cargo run -p rocci-rocdown-cli -- run docs
 ```
 
-`rocs run` writes to a temp directory by default so it does not replace
+`rocdown run` writes to a temp directory by default so it does not replace
 `build.output`. Pass `--output` to keep the preview files. `--no-window` serves
 in the browser only. Static content reloads after a successful rebuild; dynamic
 islands are not part of this preview path.
 
 ## OKF knowledge collections
 
-`rocs knowledge` is isolated from ordinary documentation discovery. It reads
+`rocdown knowledge` is isolated from ordinary documentation discovery. It reads
 only the explicitly supplied OKF bundle (default `knowledge/`) and treats every
 non-reserved `.md` file as inert Markdown with YAML frontmatter. `index.md` and
 `log.md` retain their OKF meanings; `.rocdown` files and `@page` metadata are
@@ -173,10 +173,10 @@ not accepted as canonical knowledge records.
 Preview a knowledge collection with watch and live reload:
 
 ```sh
-cargo run -p rocs-cli -- knowledge run knowledge
+cargo run -p rocci-rocdown-cli -- knowledge run knowledge
 ```
 
-The preview uses the standard Rocs theme and a temporary output directory by
+The preview uses the standard Rocdown theme and a temporary output directory by
 default. It maps OKF Markdown links to generated routes, serves linked bundle
 resources, derives navigation sections from collection `index.md` files, and
 retains the last successful site when a later edit fails validation.
@@ -196,7 +196,7 @@ deployment or verbatim archive publication is configured.
 Measure the checked-in lexical retrieval baseline with:
 
 ```sh
-cargo run -p rocs-cli -- knowledge benchmark knowledge
+cargo run -p rocci-rocdown-cli -- knowledge benchmark knowledge
 ```
 
 The versioned question set records expected concepts plus lifecycle and

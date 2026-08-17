@@ -37,12 +37,12 @@ may need a small amount of Roc-native behavior.
 with an authored `main.roc`. It serves the app over local HTTP and can open it
 inside a native Tao/Wry window. The same URL works in an ordinary browser.
 
-### Rocs
+### Rocdown sites and knowledge
 
-Rocs is the static documentation generator built on Rocdown and Rocci. Rust
-owns discovery, routes, the content catalog, and Markdown rendering. A Rocci
-theme owns the visible site shell. This split keeps content builds deterministic
-without asking the Roc compiler to type-check prose.
+Rocdown includes a static site generator and Open Knowledge Format tooling
+(`rocdown`). Rust owns discovery, routes, the content catalog, and Markdown
+rendering. A Rocdown theme owns the visible site shell. This split keeps
+content builds deterministic without asking the Roc compiler to type-check prose.
 
 ## What Rocci is not
 

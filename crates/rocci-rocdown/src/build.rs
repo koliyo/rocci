@@ -49,14 +49,14 @@ fn build_loaded(loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
     let maps = theme_maps(&plan);
 
     eprintln!(
-        "rocs: generated {} bytes of Roc, compiling with roc",
+        "rocdown: generated {} bytes of Roc, compiling with roc",
         staged.generated_roc_bytes
     );
     let roc_started = Instant::now();
     let roc_output = invoke_roc_main(&workspace, &staging, &maps)
         .with_context(|| format!("workspace {}", workspace.display()))?;
     let roc_ms = roc_started.elapsed().as_millis();
-    eprintln!("rocs: roc finished in {roc_ms}ms");
+    eprintln!("rocdown: roc finished in {roc_ms}ms");
     if !roc_output.is_empty() {
         eprint!("{roc_output}");
     }
@@ -107,21 +107,21 @@ impl BuildSession {
 
         if self.roc_hash.as_deref() != Some(&staged.roc_hash) || !self.apply_bin.is_file() {
             eprintln!(
-                "rocs: generated {} bytes of Roc, compiling with roc",
+                "rocdown: generated {} bytes of Roc, compiling with roc",
                 staged.generated_roc_bytes
             );
             let roc_started = Instant::now();
             let roc_output = invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
                 .with_context(|| format!("workspace {}", self.workspace.display()))?;
             let roc_ms = roc_started.elapsed().as_millis();
-            eprintln!("rocs: roc finished in {roc_ms}ms");
+            eprintln!("rocdown: roc finished in {roc_ms}ms");
             if !roc_output.is_empty() {
                 eprint!("{roc_output}");
             }
             self.roc_hash = Some(staged.roc_hash.clone());
             recompiled = true;
         } else {
-            eprintln!("rocs: content changed, applying without recompile");
+            eprintln!("rocdown: content changed, applying without recompile");
         }
 
         let roc_started = Instant::now();
@@ -200,10 +200,10 @@ fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Resul
 
     let pages_roc = plan.pages_roc();
     generated_roc_bytes += pages_roc.len();
-    fs::write(workspace.join("RocsPages.roc"), &pages_roc)
-        .context("failed to write RocsPages.roc")?;
-    fs::write(workspace.join("RocsTheme.roc"), &plan.theme_roc)
-        .context("failed to write RocsTheme.roc")?;
+    fs::write(workspace.join("RocdownPages.roc"), &pages_roc)
+        .context("failed to write RocdownPages.roc")?;
+    fs::write(workspace.join("RocdownTheme.roc"), &plan.theme_roc)
+        .context("failed to write RocdownTheme.roc")?;
     fs::write(workspace.join("DocsComponents.roc"), &plan.docs_roc)
         .context("failed to write DocsComponents.roc")?;
     let main = main_roc();
@@ -237,9 +237,9 @@ fn write_static_files(staging: &Path, files: &[crate::site::StaticFile]) -> Resu
 fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
     vec![
         MappedModule {
-            type_name: "RocsTheme".into(),
+            type_name: "RocdownTheme".into(),
             generated: plan.theme_roc.clone(),
-            source_name: "RocsTheme.rocci".into(),
+            source_name: "RocdownTheme.rocci".into(),
             source_src: plan.theme_src.clone(),
             segments: plan.theme_segments.clone(),
         },
@@ -317,10 +317,10 @@ fn main_roc() -> String {
         "\
 app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
 
-import RocsBuild
+import RocdownBuild
 
 main! = |_args| {{
-    RocsBuild.run!({{}})?
+    RocdownBuild.run!({{}})?
     Ok({{}})
 }}
 "
@@ -331,7 +331,7 @@ fn invoke_roc_main(workspace: &Path, staging: &Path, maps: &[MappedModule]) -> R
     let output = Command::new("roc")
         .arg("main.roc")
         .current_dir(workspace)
-        .env("ROCS_STAGING", staging)
+        .env("ROCDOWN_STAGING", staging)
         .output()
         .context("failed to invoke roc")?;
     finish_roc(output, maps)
@@ -361,9 +361,9 @@ fn invoke_apply(
 ) -> Result<String> {
     let output = Command::new(apply_bin)
         .current_dir(workspace)
-        .env("ROCS_STAGING", staging)
+        .env("ROCDOWN_STAGING", staging)
         .output()
-        .context("failed to run rocs applicator")?;
+        .context("failed to run rocdown applicator")?;
     finish_roc(output, maps)
 }
 
@@ -388,7 +388,7 @@ fn finish_roc(output: std::process::Output, maps: &[MappedModule]) -> Result<Str
         eprintln!("{}", combined.trim_end());
     }
     bail!(
-        "roc rocs build failed{}",
+        "roc rocdown build failed{}",
         if combined.trim().is_empty() {
             String::new()
         } else {
@@ -450,22 +450,26 @@ pub(crate) fn commit_output(staging: &Path, output: &Path) -> Result<()> {
             let _ = fs::rename(&prev, output);
             return Err(err).with_context(|| {
                 format!(
-                    "failed to replace {} with staged rocs output",
+                    "failed to replace {} with staged rocdown output",
                     output.display()
                 )
             });
         }
         let _ = fs::remove_dir_all(&prev);
     } else if let Err(err) = fs::rename(staging, output) {
-        return Err(err)
-            .with_context(|| format!("failed to move staged rocs output to {}", output.display()));
+        return Err(err).with_context(|| {
+            format!(
+                "failed to move staged rocdown output to {}",
+                output.display()
+            )
+        });
     }
     Ok(())
 }
 
 pub(crate) fn unique_temp(kind: &str) -> Result<PathBuf> {
     let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let path = env::temp_dir().join(format!("rocs-{kind}-{}-{n}", std::process::id()));
+    let path = env::temp_dir().join(format!("rocdown-{kind}-{}-{n}", std::process::id()));
     if path.exists() {
         fs::remove_dir_all(&path).with_context(|| format!("failed to clear {}", path.display()))?;
     }
@@ -552,7 +556,7 @@ pub(crate) mod tests {
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocs");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
         let output = temp_dir("out");
         let report = build(&root, &output).unwrap();
         assert!(report.generated_roc_bytes > 0);
@@ -680,7 +684,7 @@ pub(crate) mod tests {
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocs");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
         let first = temp_dir("det-a");
         let second = temp_dir("det-b");
         build(&root, &first).unwrap();
@@ -696,7 +700,7 @@ pub(crate) mod tests {
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocs");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
         let output = temp_dir("session-out");
         let mut session = BuildSession::create().unwrap();
         let first = session.rebuild(&root, &output).unwrap();

@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-pub const CONFIG_FILE: &str = "rocs.toml";
+pub const CONFIG_FILE: &str = "rocdown.toml";
 pub const ROCDOWN_CONFIG_FILE: &str = "rocdown.toml";
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -186,7 +186,7 @@ mod tests {
     use std::{env, fs};
 
     fn temp(name: &str) -> std::path::PathBuf {
-        let path = env::temp_dir().join(format!("rocs-config-{}-{name}", std::process::id()));
+        let path = env::temp_dir().join(format!("rocdown-config-{}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path

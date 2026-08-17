@@ -1,7 +1,6 @@
 use rocci_highlight::LanguageId;
-use rocci_rocdown::{CompileOptions, SourceFile, compile};
+use rocci_rocdown::{CompileOptions, SourceFile, compile, render_document};
 use rocci_template::PositionEncoding;
-use rocs::render_document;
 
 #[test]
 fn golden_parity_roc_snippet_drives_lsp_and_rocs_html() {

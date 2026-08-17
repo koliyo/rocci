@@ -286,7 +286,7 @@ struct CompiledTheme {
 fn compile_theme() -> Result<CompiledTheme> {
     let src = runtime::THEME.to_string();
     let compiled = compile(
-        SourceFile::new("RocsTheme.rocci", &src),
+        SourceFile::new("RocdownTheme.rocci", &src),
         &LowerOptions {
             embed_css: false,
             ..LowerOptions::default()
@@ -295,17 +295,17 @@ fn compile_theme() -> Result<CompiledTheme> {
     for diagnostic in &compiled.diagnostics {
         eprintln!(
             "{}",
-            format_diagnostic(SourceFile::new("RocsTheme.rocci", &src), diagnostic)
+            format_diagnostic(SourceFile::new("RocdownTheme.rocci", &src), diagnostic)
         );
     }
     if compiled.has_errors() {
-        bail!("RocsTheme.rocci compilation failed");
+        bail!("RocdownTheme.rocci compilation failed");
     }
     if compiled.roc.contains("import Datastar") {
-        bail!("RocsTheme.rocci uses Datastar, which the rocs runtime does not stage");
+        bail!("RocdownTheme.rocci uses Datastar, which the rocdown runtime does not stage");
     }
     Ok(CompiledTheme {
-        roc: wrap_type_module(&compiled.roc, "RocsTheme"),
+        roc: wrap_type_module(&compiled.roc, "RocdownTheme"),
         src,
         segments: compiled.segments,
         styles: compiled.styles,
@@ -331,7 +331,7 @@ fn compile_docs_components() -> Result<CompiledTheme> {
         bail!("DocsComponents.rocci compilation failed");
     }
     if compiled.roc.contains("import Datastar") {
-        bail!("DocsComponents.rocci uses Datastar, which the rocs runtime does not stage");
+        bail!("DocsComponents.rocci uses Datastar, which the rocdown runtime does not stage");
     }
     Ok(CompiledTheme {
         roc: wrap_type_module(&compiled.roc, "DocsComponents"),
@@ -809,7 +809,7 @@ fn escape_xml(value: &str) -> String {
 fn pages_roc(pages: &[PlannedPage]) -> String {
     let mut pages = pages.to_vec();
     pages.sort_by(|a, b| a.output_path.cmp(&b.output_path));
-    let mut out = String::from("RocsPages := [].{\n    pages = [\n");
+    let mut out = String::from("RocdownPages := [].{\n    pages = [\n");
     for page in &pages {
         out.push_str("        {\n            article_path: ");
         push_roc_string(&mut out, &page.article_path);
@@ -985,7 +985,7 @@ mod tests {
     use std::{env, fs, path::PathBuf};
 
     fn temp(name: &str) -> PathBuf {
-        let path = env::temp_dir().join(format!("rocs-plan-{}-{name}", std::process::id()));
+        let path = env::temp_dir().join(format!("rocdown-plan-{}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path
@@ -996,7 +996,7 @@ mod tests {
         fs::write(root.join("assets/og.png"), b"og-bytes").unwrap();
         fs::write(root.join("assets/icons/logo.png"), b"logo-bytes").unwrap();
         fs::write(
-            root.join("rocs.toml"),
+            root.join("rocdown.toml"),
             r#"
 [site]
 title = "Rocci"

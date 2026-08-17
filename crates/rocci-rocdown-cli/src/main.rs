@@ -142,7 +142,7 @@ enum KnowledgeProfileArg {
     Rocci,
 }
 
-impl From<KnowledgeProfileArg> for rocs::okf::Profile {
+impl From<KnowledgeProfileArg> for rocci_rocdown::okf::Profile {
     fn from(value: KnowledgeProfileArg) -> Self {
         match value {
             KnowledgeProfileArg::Base => Self::Base,
@@ -158,7 +158,7 @@ enum TrustTierArg {
     Unverified,
 }
 
-impl From<TrustTierArg> for rocs::okf::TrustTier {
+impl From<TrustTierArg> for rocci_rocdown::okf::TrustTier {
     fn from(value: TrustTierArg) -> Self {
         match value {
             TrustTierArg::HumanReviewed => Self::HumanReviewed,
@@ -190,7 +190,7 @@ struct KnowledgeFiltersArg {
     stale: Option<bool>,
 }
 
-impl From<&KnowledgeFiltersArg> for rocs::okf::KnowledgeFilter {
+impl From<&KnowledgeFiltersArg> for rocci_rocdown::okf::KnowledgeFilter {
     fn from(value: &KnowledgeFiltersArg) -> Self {
         Self {
             types: value.types.clone(),
@@ -319,7 +319,7 @@ fn try_main() -> Result<()> {
             if is_document_file(&path) {
                 build_single_doc(&path, output.as_deref(), &theme)
             } else {
-                rocs::build_configured(&path, output.as_deref())?;
+                rocci_rocdown::build_configured(&path, output.as_deref())?;
                 Ok(())
             }
         }
@@ -338,10 +338,10 @@ fn try_main() -> Result<()> {
             }
         }
         Commands::Check { root, format } => {
-            let report = rocs::check(&root)?;
+            let report = rocci_rocdown::check(&root)?;
             let rendered = report.render(match format {
-                CheckFormatArg::Terminal => rocs::CheckFormat::Terminal,
-                CheckFormatArg::Json => rocs::CheckFormat::Json,
+                CheckFormatArg::Terminal => rocci_rocdown::CheckFormat::Terminal,
+                CheckFormatArg::Json => rocci_rocdown::CheckFormat::Json,
             })?;
             if !rendered.is_empty() {
                 println!("{rendered}");
@@ -356,10 +356,10 @@ fn try_main() -> Result<()> {
             update,
             format,
         } => {
-            let report = rocs::test_examples(&root, update)?;
+            let report = rocci_rocdown::test_examples(&root, update)?;
             let rendered = report.render(match format {
-                CheckFormatArg::Terminal => rocs::CheckFormat::Terminal,
-                CheckFormatArg::Json => rocs::CheckFormat::Json,
+                CheckFormatArg::Terminal => rocci_rocdown::CheckFormat::Terminal,
+                CheckFormatArg::Json => rocci_rocdown::CheckFormat::Json,
             })?;
             if !rendered.is_empty() {
                 println!("{rendered}");
@@ -371,35 +371,48 @@ fn try_main() -> Result<()> {
         }
         Commands::Inspect { target } => match target {
             InspectTarget::Config { root } => {
-                println!("{}", rocs::inspect(&root, rocs::InspectKind::Config, None)?);
+                println!(
+                    "{}",
+                    rocci_rocdown::inspect(&root, rocci_rocdown::InspectKind::Config, None)?
+                );
                 Ok(())
             }
             InspectTarget::Catalog { root } => {
                 println!(
                     "{}",
-                    rocs::inspect(&root, rocs::InspectKind::Catalog, None)?
+                    rocci_rocdown::inspect(&root, rocci_rocdown::InspectKind::Catalog, None)?
                 );
                 Ok(())
             }
             InspectTarget::Page { page, root } => {
                 println!(
                     "{}",
-                    rocs::inspect(&root, rocs::InspectKind::Page, Some(page.as_str()))?
+                    rocci_rocdown::inspect(
+                        &root,
+                        rocci_rocdown::InspectKind::Page,
+                        Some(page.as_str())
+                    )?
                 );
                 Ok(())
             }
             InspectTarget::Graph { root } => {
-                println!("{}", rocs::inspect(&root, rocs::InspectKind::Graph, None)?);
+                println!(
+                    "{}",
+                    rocci_rocdown::inspect(&root, rocci_rocdown::InspectKind::Graph, None)?
+                );
                 Ok(())
             }
             InspectTarget::Nav { root } => {
-                println!("{}", rocs::inspect(&root, rocs::InspectKind::Nav, None)?);
+                println!(
+                    "{}",
+                    rocci_rocdown::inspect(&root, rocci_rocdown::InspectKind::Nav, None)?
+                );
                 Ok(())
             }
             InspectTarget::Artifacts { root } => {
                 println!(
                     "{}",
-                    rocs::inspect(&root, rocs::InspectKind::Artifacts, None)?
+                    rocci_rocdown::inspect(&root, rocci_rocdown::InspectKind::Artifacts, None)?
                 );
                 Ok(())
             }
@@ -509,7 +522,7 @@ fn run_standalone_doc(
 
 fn run_site_dev(root: &Path, output: Option<&Path>, no_window: bool, port: PortArg) -> Result<()> {
     let port = port.resolve()?;
-    let server = rocs::run(root, output, port)?;
+    let server = rocci_rocdown::run(root, output, port)?;
     eprintln!("rocdown: serving {} at {}", server.title, server.url);
     if no_window {
         server.wait();
@@ -609,7 +622,8 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             port,
         } => {
             let port = port.resolve()?;
-            let server = rocs::run_knowledge(&root, output.as_deref(), port, profile.into())?;
+            let server =
+                rocci_rocdown::run_knowledge(&root, output.as_deref(), port, profile.into())?;
             eprintln!("rocdown: review queue at {}review/", server.url);
             if no_window {
                 server.wait();
@@ -630,7 +644,7 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             profile,
             format,
         } => {
-            let report = rocs::okf::check(&root, profile.into())?;
+            let report = rocci_rocdown::okf::check(&root, profile.into())?;
             let rendered = match format {
                 CheckFormatArg::Terminal => report.terminal(),
                 CheckFormatArg::Json => report.json()?,
@@ -646,27 +660,27 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
         KnowledgeCommand::Inspect { target, profile } => {
             let (kind, root, concept, filter) = match &target {
                 KnowledgeInspectTarget::Catalog { root, filters } => (
-                    rocs::okf::InspectKind::Catalog,
+                    rocci_rocdown::okf::InspectKind::Catalog,
                     root,
                     None,
-                    rocs::okf::KnowledgeFilter::from(filters),
+                    rocci_rocdown::okf::KnowledgeFilter::from(filters),
                 ),
                 KnowledgeInspectTarget::Concept { concept, root } => (
-                    rocs::okf::InspectKind::Concept,
+                    rocci_rocdown::okf::InspectKind::Concept,
                     root,
                     Some(concept.as_str()),
-                    rocs::okf::KnowledgeFilter::default(),
+                    rocci_rocdown::okf::KnowledgeFilter::default(),
                 ),
                 KnowledgeInspectTarget::Graph { root } => (
-                    rocs::okf::InspectKind::Graph,
+                    rocci_rocdown::okf::InspectKind::Graph,
                     root,
                     None,
-                    rocs::okf::KnowledgeFilter::default(),
+                    rocci_rocdown::okf::KnowledgeFilter::default(),
                 ),
             };
             println!(
                 "{}",
-                rocs::okf::inspect_filtered(root, kind, concept, profile.into(), &filter)?
+                rocci_rocdown::okf::inspect_filtered(root, kind, concept, profile.into(), &filter)?
             );
             Ok(())
         }
@@ -678,7 +692,7 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
         } => {
             println!(
                 "{}",
-                rocs::okf::search(&root, &query, profile.into(), &(&filters).into())?
+                rocci_rocdown::okf::search(&root, &query, profile.into(), &(&filters).into())?
             );
             Ok(())
         }
@@ -688,7 +702,8 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             profile,
         } => {
             let questions = questions.unwrap_or_else(|| root.join("retrieval-benchmark.toml"));
-            let report = rocs::okf::benchmark_retrieval(&root, &questions, profile.into())?;
+            let report =
+                rocci_rocdown::okf::benchmark_retrieval(&root, &questions, profile.into())?;
             println!("{}", serde_json::to_string_pretty(&report)?);
             if !report.threshold_met {
                 bail!(retrieval_benchmark_failure(&report));
@@ -700,14 +715,14 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             output,
             profile,
         } => {
-            let summary = rocs::okf::build(&root, &output, profile.into())?;
+            let summary = rocci_rocdown::okf::build(&root, &output, profile.into())?;
             println!("{}", serde_json::to_string_pretty(&summary)?);
             Ok(())
         }
     }
 }
 
-fn retrieval_benchmark_failure(report: &rocs::okf::RetrievalReport) -> String {
+fn retrieval_benchmark_failure(report: &rocci_rocdown::okf::RetrievalReport) -> String {
     let failures = report
         .questions
         .iter()

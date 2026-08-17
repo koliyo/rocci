@@ -1,4 +1,4 @@
-use rocci_rocdown::{Document, Item, MdNode};
+use crate::{Document, Item, MdNode};
 
 pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
     for item in &document.items {
@@ -297,7 +297,7 @@ pub(crate) fn render_md(node: &MdNode) -> String {
     }
 }
 
-pub(crate) fn render_static_image(image: &rocci_rocdown::StaticImage) -> String {
+pub(crate) fn render_static_image(image: &crate::StaticImage) -> String {
     let attrs: Vec<String> = image
         .html_attrs()
         .iter()
@@ -361,7 +361,7 @@ fn fragment(nodes: &[String]) -> String {
 fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) -> String {
     let spans = match lang {
         rocci_highlight::LanguageId::Rocdown | rocci_highlight::LanguageId::Markdown => {
-            rocci_rocdown::highlight_rocdown(literal)
+            crate::highlight_rocdown(literal)
         }
         _ => rocci_highlight::highlight(lang.clone(), literal),
     };
@@ -401,7 +401,7 @@ fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rocci_rocdown::{CompileOptions, SourceFile, compile};
+    use crate::{CompileOptions, SourceFile, compile};
 
     fn html(src: &str) -> String {
         let out = compile(

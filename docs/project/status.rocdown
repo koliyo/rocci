@@ -21,12 +21,12 @@ generator. It is not a stable production framework yet.
 - VS Code and Zed language registration plus LSP diagnostics and navigation.
 - Tao/Wry embedded preview windows.
 - Local ad-hoc-signed macOS application bundles.
-- Rocs nested content, curated navigation, static HTML, sitemap, robots, and `llms.txt`.
+- Rocdown site generator with nested content, curated navigation, static HTML, sitemap, robots, and `llms.txt`.
 
 ## Deliberate current limitations
 
-- Rocs dynamic island splicing is not implemented.
-- Rocs public-site search and clean per-page Markdown are pending.
+- Rocdown static site dynamic island splicing is not implemented.
+- Rocdown static site public-site search and clean per-page Markdown are pending.
 - The desktop host manages one main window.
 - Windows and Linux installers are not implemented.
 - Production signing, notarization, updates, tray behavior, and deep links are absent.
@@ -40,7 +40,7 @@ The project intends to keep these boundaries:
 1. Rocci and Rocdown are explicit source syntaxes that lower to ordinary Roc or semantic content data.
 2. HTML and local HTTP remain the interface between backend and browser or webview.
 3. Datastar is pinned per application and never auto-updated by `run`.
-4. Rocs keeps its catalog and static prose processing in Rust while authoring site chrome in Rocci.
+4. Rocdown keeps its catalog and static prose processing in Rust while authoring site chrome in Rocci.
 5. Dynamic behavior remains opt-in and identifiable in source.
 
 ## Before adopting

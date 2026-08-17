@@ -22,7 +22,7 @@ use crate::okf::{Profile, load_site as load_knowledge_site};
 const DEBOUNCE: Duration = Duration::from_millis(200);
 const RELOAD_JS: &str = r#"(function () {
   function connect() {
-    var es = new EventSource("/__rocs/events");
+    var es = new EventSource("/__rocdown/events");
     es.addEventListener("reload", function () { location.reload(); });
     es.onerror = function () {
       es.close();
@@ -32,7 +32,7 @@ const RELOAD_JS: &str = r#"(function () {
   connect();
 })();
 "#;
-const LIVE_RELOAD_TAG: &str = r#"<script src="/__rocs/reload.js" defer></script>"#;
+const LIVE_RELOAD_TAG: &str = r#"<script src="/__rocdown/reload.js" defer></script>"#;
 
 pub struct DevServer {
     pub url: String,
@@ -91,7 +91,7 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
             has_build.store(true, Ordering::Relaxed);
         }
         Err(err) => {
-            eprintln!("rocs: {err:#}");
+            eprintln!("rocdown: {err:#}");
             *last_error.lock().unwrap_or_else(|err| err.into_inner()) = Some(format!("{err:#}"));
         }
     }
@@ -199,7 +199,7 @@ pub fn run_knowledge(
             has_build.store(true, Ordering::Relaxed);
         }
         Err(err) => {
-            eprintln!("rocs: {err:#}");
+            eprintln!("rocdown: {err:#}");
             *last_error.lock().unwrap_or_else(|err| err.into_inner()) = Some(format!("{err:#}"));
         }
     }
@@ -351,7 +351,7 @@ fn watch_loop(
                 hub.broadcast();
             }
             Err(err) => {
-                eprintln!("rocs: rebuild failed: {err:#}");
+                eprintln!("rocdown: rebuild failed: {err:#}");
                 if !has_build.load(Ordering::Relaxed) {
                     *last_error.lock().unwrap_or_else(|err| err.into_inner()) =
                         Some(format!("{err:#}"));
@@ -403,7 +403,7 @@ fn knowledge_watch_loop(
                 hub.broadcast();
             }
             Err(err) => {
-                eprintln!("rocs: rebuild failed: {err:#}");
+                eprintln!("rocdown: rebuild failed: {err:#}");
                 if !has_build.load(Ordering::Relaxed) {
                     *last_error.lock().unwrap_or_else(|err| err.into_inner()) =
                         Some(format!("{err:#}"));
@@ -643,10 +643,10 @@ pub(crate) enum ServeTarget {
 pub(crate) fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
     let path = url_path.split(['?', '#']).next().unwrap_or(url_path);
     let path = if path.is_empty() { "/" } else { path };
-    if path == "/__rocs/reload.js" {
+    if path == "/__rocdown/reload.js" {
         return ServeTarget::ReloadJs;
     }
-    if path == "/__rocs/events" {
+    if path == "/__rocdown/events" {
         return ServeTarget::Events;
     }
     if path.split('/').any(|segment| segment == "..") {
@@ -730,7 +730,7 @@ fn error_page(message: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;");
     format!(
-        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Rocs build failed</title></head><body><h1>Build failed</h1><pre>{escaped}</pre></body></html>"
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Rocdown build failed</title></head><body><h1>Build failed</h1><pre>{escaped}</pre></body></html>"
     )
 }
 
@@ -864,11 +864,11 @@ mod tests {
         );
         assert_eq!(resolve_request(&root, "/missing"), ServeTarget::NotFound);
         assert_eq!(
-            resolve_request(&root, "/__rocs/reload.js"),
+            resolve_request(&root, "/__rocdown/reload.js"),
             ServeTarget::ReloadJs
         );
         assert_eq!(
-            resolve_request(&root, "/__rocs/events"),
+            resolve_request(&root, "/__rocdown/events"),
             ServeTarget::Events
         );
         assert_eq!(resolve_request(&root, "/../secret"), ServeTarget::NotFound);
@@ -882,9 +882,9 @@ mod tests {
         assert!(injected.contains("script-src 'self'"));
         assert!(injected.contains("connect-src 'self'"));
         assert!(!injected.contains("script-src 'none'"));
-        assert!(injected.contains("/__rocs/reload.js"));
+        assert!(injected.contains("/__rocdown/reload.js"));
         assert!(injected.contains("</body>"));
-        assert!(!html.contains("/__rocs/reload.js"));
+        assert!(!html.contains("/__rocdown/reload.js"));
     }
 
     #[test]
@@ -895,7 +895,7 @@ mod tests {
         assert!(injected.contains("connect-src &#39;self&#39;"));
         assert!(!injected.contains("script-src &#39;none&#39;"));
         assert!(injected.contains("default-src &#39;none&#39;"));
-        assert!(injected.contains("/__rocs/reload.js"));
+        assert!(injected.contains("/__rocdown/reload.js"));
     }
 
     #[test]
@@ -911,7 +911,7 @@ mod tests {
             &none
         ));
         assert!(path_is_relevant(
-            Path::new("/docs/rocs.toml"),
+            Path::new("/docs/rocdown.toml"),
             &root,
             &output,
             "assets",
@@ -1009,9 +1009,26 @@ mod tests {
         ));
     }
 
+    fn skip_without_loopback() -> bool {
+        let Ok(listener) = TcpListener::bind("127.0.0.1:0") else {
+            return true;
+        };
+        let Ok(port) = listener.local_addr().map(|a| a.port()) else {
+            return true;
+        };
+        match TcpStream::connect(("127.0.0.1", port)) {
+            Ok(_) => false,
+            Err(err) if err.kind() == io::ErrorKind::PermissionDenied => {
+                eprintln!("skipping: loopback TCP connections not permitted in this environment");
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
     #[test]
     fn knowledge_server_rebuilds_changed_markdown() {
-        if crate::build::tests::skip_without_roc() {
+        if skip_without_loopback() || crate::build::tests::skip_without_roc() {
             return;
         }
         let _lock = crate::build::tests::ROC_LOCK.lock().unwrap();
@@ -1067,6 +1084,9 @@ mod tests {
 
     #[test]
     fn knowledge_server_reports_initial_validation_error() {
+        if skip_without_loopback() {
+            return;
+        }
         let root = temp("knowledge-initial-error");
         fs::write(
             root.join("index.md"),
@@ -1093,6 +1113,9 @@ mod tests {
 
     #[test]
     fn html_response_injects_reload_and_css_does_not() {
+        if skip_without_loopback() {
+            return;
+        }
         let root = temp("serve-http");
         write_tree(&root);
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -1112,7 +1135,7 @@ mod tests {
         assert!(html.contains("200 OK"));
         assert!(html.contains("script-src &#39;self&#39;"));
         assert!(!html.contains("script-src &#39;none&#39;"));
-        assert!(html.contains("/__rocs/reload.js"));
+        assert!(html.contains("/__rocdown/reload.js"));
         assert!(html.contains("Cache-Control: no-store"));
 
         let redirect = http_get(port, "/guide");
@@ -1122,14 +1145,14 @@ mod tests {
         let css = http_get(port, "/assets/theme.css");
         assert!(css.contains("200 OK"));
         assert!(css.contains("body{color:black}"));
-        assert!(!css.contains("/__rocs/reload.js"));
+        assert!(!css.contains("/__rocdown/reload.js"));
 
         let missing = http_get(port, "/nope");
         assert!(missing.contains("404"));
         assert!(missing.contains("missing"));
-        assert!(missing.contains("/__rocs/reload.js"));
+        assert!(missing.contains("/__rocdown/reload.js"));
 
-        let js = http_get(port, "/__rocs/reload.js");
+        let js = http_get(port, "/__rocdown/reload.js");
         assert!(js.contains("EventSource"));
 
         stop.store(true, Ordering::Relaxed);
@@ -1162,7 +1185,10 @@ mod tests {
                     }
                     last = buf;
                 }
-                Err(_) => thread::sleep(Duration::from_millis(20)),
+                Err(err) => {
+                    eprintln!("connect error: {err:?}");
+                    thread::sleep(Duration::from_millis(20));
+                }
             }
         }
         last

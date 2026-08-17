@@ -3,7 +3,7 @@ name = "rocci-rocdown"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Parse and lower .rocdown Markdown documents to ordinary Roc"
+description = "Parse, compile, lower, and generate sites from .rocdown Markdown documents"
 
 [lib]
 name = "rocci_rocdown"
@@ -14,6 +14,7 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 comrak = "0.54"
 lsp-types = { workspace = true }
+notify = "8"
 rocci-core = { workspace = true }
 rocci-highlight = { workspace = true }
 rocci-lsp = { workspace = true }
@@ -21,4 +22,6 @@ rocci-template = { workspace = true }
 rocci-theme = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = "0.10"
 toml = { workspace = true }
+yaml-rust = "0.4"

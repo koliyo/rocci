@@ -8,12 +8,12 @@ HTTP with Datastar. `rocci run` opens the app in an embedded
 window.
 
 The workspace is `rocci-template` (`.rocci` parse/lower), `rocci-rocdown`
-(Markdown documents), `rocci-lsp`, `rocci-cli`, `rocci-core` (config),
-`rocci-wry` (preview windows), and `rocs` / `rocs-cli` (a documentation
-generator). Rocs keeps a Rust catalog and article renderer, compiles a Rocci
-theme once, and only uses Roc for that shell (and later for dynamic islands).
-Other doc frameworks can depend on the same base crates without taking a Rocs
-dependency.
+(Markdown documents, static site generator, and OKF tooling),
+`rocci-rocdown-cli` (`rocdown` binary), `rocci-lsp`, `rocci-cli` (`rocci` binary),
+`rocci-core` (config), and `rocci-wry` (preview windows). Rocdown keeps a Rust
+catalog and article renderer, compiles a Rocdown theme once, and only uses Roc
+for that shell (and later for dynamic islands). Other doc frameworks can depend
+on the same base crates without taking a site generator dependency.
 
 ## Run an example
 
@@ -94,27 +94,27 @@ cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
-cargo run -p rocs-cli -- build examples/rocs --output dist
-cargo run -p rocs-cli -- knowledge benchmark knowledge
+cargo run -p rocci-rocdown-cli -- build examples/rocdown-site --output dist
+cargo run -p rocci-rocdown-cli -- knowledge benchmark knowledge
 ```
 
-Rocs discovers `.rocdown` files, resolves routes in Rust, renders article HTML
-from the Markdown AST, and wraps each page in [`RocsTheme.rocci`](crates/rocs/templates/RocsTheme.rocci).
+Rocdown discovers `.rocdown` files, resolves routes in Rust, renders article HTML
+from the Markdown AST, and wraps each page in [`RocdownTheme.rocci`](crates/rocci-rocdown/templates/RocdownTheme.rocci).
 Content edits do not recompile Markdown as Roc. Pages with `@render` or other
 islands are rejected until that splice path exists. See
 [`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md).
 
 The separate OKF knowledge path validates, inspects, searches, and renders
 `knowledge/`. Its fixed lexical retrieval questions are measured by
-`rocs knowledge benchmark`; the command reports hit rate and mean reciprocal
+`rocdown knowledge benchmark`; the command reports hit rate and mean reciprocal
 rank and fails when the checked-in threshold is missed.
 
 The project documentation lives in [`docs`](docs) and is configured by
-[`docs/rocs.toml`](docs/rocs.toml). With `roc` and `cargo` on `PATH`, build the
+[`docs/rocdown.toml`](docs/rocdown.toml). With `roc` and `cargo` on `PATH`, build the
 publishable `rocci.dev` tree with:
 
 ```sh
-cargo run -p rocs-cli -- build docs
+cargo run -p rocci-rocdown-cli -- build docs
 ```
 
 That build uses the configured output at `dist/rocci.dev`, copies the social

@@ -1,14 +1,14 @@
 @page {
     meta: {
         title: "CLI reference",
-        description: "Look up rocci and rocs commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
+        description: "Look up rocci and rocdown commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
     },
 }
 
 # CLI reference
 
 The workspace provides `rocci` for templates, documents, runtime apps, and
-bundles, plus `rocs` for static documentation sites.
+bundles, plus `rocdown` for documents, static sites, and knowledge bundles.
 
 Examples below use `cargo run` from a source checkout. Installed binaries use
 the same arguments without the Cargo prefix.
@@ -28,74 +28,47 @@ runtime settings are errors.
 cargo run -p rocci-cli -- build INPUT [-o OUTPUT]
 ```
 
-Accepts `.rocci` or `.rocdown`. Without `-o`, generated Roc is printed to
-standard output. Theme and color-scheme flags apply to Rocdown's default shell.
+Compile a single `.rocci` template or `.rocdown` document to Roc. With `-o`,
+write to the given path; otherwise print to stdout.
 
-## Inspect source
-
-```sh
-cargo run -p rocci-cli -- inspect [--ast] INPUT
-cargo run -p rocci-cli -- ast INPUT
-```
-
-`inspect` reports components, fixtures, page and route metadata, source-map
-segments, and generated Roc. `--ast` adds the parse tree. `ast` prints only the
-LISPy parse tree.
-
-## Run an app
+## Inspect source and AST
 
 ```sh
-cargo run -p rocci-cli -- run [OPTIONS] [FILE_OR_DIRECTORY] [-- ROC_ARGS...]
+cargo run -p rocci-cli -- inspect INPUT [--ast] [--segments]
 ```
 
-The input may be a standalone `.rocci` or `.rocdown` file, a directory, or an
-authored `main.roc`. The default input is `main.roc`.
+Inspect compiled information: component signatures, fixtures, styles, page
+metadata, routes, and source map segments. `--ast` prints the parsed AST as an
+S-expression.
+
+## Run a single component
+
+```sh
+cargo run -p rocci-cli -- view INPUT [--state-type TYPE] [--port PORT] [--no-window]
+```
+
+Run a component with mock arguments and an optional state type. The component
+is wrapped in a minimal application and launched in a native window.
+
+## Run an application
+
+```sh
+cargo run -p rocci-cli -- run [ENTRY] [--port PORT] [--no-window] [--args...]
+```
+
+Run the entry template or directory with live reload. The application server
+starts and opens a native desktop window by default.
 
 | Option | Effect |
 | --- | --- |
 | `--no-window` | Serve without opening the embedded window |
-| `--port PORT` | Override the listening port |
-| `--theme THEME` | Select a default Rocdown CSS theme |
-| `--color-scheme auto|light|dark` | Set Rocdown color policy |
+| `--port PORT` | Override the listening port (defaults to a free port, or 8000 with `--no-window`) |
+| `--args...` | Extra arguments forwarded to the Roc binary |
 
-`ROC_BASIC_WEBSERVER_PORT` can also override the server port.
-
-When the template does not compile, or Roc rejects the generated program, the
-preview stays open on a diagnostic page instead of a crashed server.
-
-## Preview one component
+## Bundle a macOS app
 
 ```sh
-cargo run -p rocci-cli -- view FILE \
-  --component NAME \
-  --arg name=value
-```
-
-Arguments may repeat. Component names accept authored PascalCase or lowered
-camelCase.
-
-## Browse components
-
-```sh
-cargo run -p rocci-cli -- browse [ROOTS...]
-```
-
-Discover `.rocci` files recursively and open the component and fixture browser.
-
-## Manage Datastar
-
-```sh
-cargo run -p rocci-cli -- datastar pin VERSION --app PATH
-cargo run -p rocci-cli -- datastar update --app PATH
-```
-
-Pin copies an exact supported version into the application's configured assets.
-Update resolves the latest release explicitly. Normal `run` never auto-upgrades.
-
-## Bundle a desktop app
-
-```sh
-cargo run -p rocci-cli -- bundle --config rocci.toml
+cargo run -p rocci-cli -- bundle
 ```
 
 Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
@@ -104,16 +77,16 @@ implemented yet.
 ## Build documentation
 
 ```sh
-cargo run -p rocs-cli -- build [ROOT] [--output DIRECTORY]
+cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY]
 ```
 
 The default root is the current directory. `ROOT` may be a documentation
 directory or a `.rocdown` file. A file root uses the parent directory as the
-content root and still discovers sibling pages and assets. `rocs.toml` is
+content root and still discovers sibling pages and assets. `rocdown.toml` is
 optional. `--output` overrides `build.output`.
 
 ```sh
-cargo run -p rocs-cli -- build report.rocdown --output dist
+cargo run -p rocci-rocdown-cli -- build report.rocdown --output dist
 ```
 
 Local `@img` and Markdown image paths resolve against the source file. Missing
@@ -124,17 +97,17 @@ content-hashed whether the authored URL is `/assets/foo.png` or
 ## Preview documentation
 
 ```sh
-cargo run -p rocs-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
+cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
 ```
 
-Watch `.rocdown` sources, `rocs.toml`, and assets, rebuild, and serve the site
+Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
 with live reload. The default root is the current directory. A `.rocdown` file
 root uses the same parent-directory rule as `build`. Preview output
 goes to a temp directory unless `--output` is set, so a production `dist/` is
 not overwritten.
 
 ```sh
-cargo run -p rocs-cli -- run report.rocdown
+cargo run -p rocci-rocdown-cli -- run report.rocdown
 ```
 
 | Option | Effect |
@@ -146,7 +119,7 @@ cargo run -p rocs-cli -- run report.rocdown
 Port defaults to a free port with the embedded window, or `8000` with
 `--no-window`. `ROC_BASIC_WEBSERVER_PORT` can also override the server port.
 
-Content edits rebuild the static HTML. The Rocci theme is recompiled only when
+Content edits rebuild the static HTML. The Rocdown theme is recompiled only when
 generated Roc changes (titles, headings, navigation, theme CSS, docs component
 titles). Included snippet files also trigger a rebuild. Dynamic islands are
 not live-reloaded; pages that use them still fail the catalog.
@@ -154,7 +127,7 @@ not live-reloaded; pages that use them still fail the catalog.
 ## Check documentation
 
 ```sh
-cargo run -p rocs-cli -- check [ROOT] [--format terminal|json]
+cargo run -p rocci-rocdown-cli -- check [ROOT] [--format terminal|json]
 ```
 
 Validate the catalog, including `@docs` content models, includes, page links,
@@ -164,22 +137,22 @@ directory or a `.rocdown` file.
 ## Test documented examples
 
 ```sh
-cargo run -p rocs-cli -- test [ROOT] [--update] [--format terminal|json]
+cargo run -p rocci-rocdown-cli -- test [ROOT] [--update] [--format terminal|json]
 ```
 
 Run `@docs example` commands that declare `test`. This is not part of
-`rocs build`. `--update` rewrites golden files named by `expect`.
+`rocdown build`. `--update` rewrites golden files named by `expect`.
 
 ## Validate and build knowledge
 
 ```sh
-cargo run -p rocs-cli -- knowledge check [ROOT] [--profile base|rocci] [--format terminal|json]
-cargo run -p rocs-cli -- knowledge inspect catalog [ROOT]
-cargo run -p rocs-cli -- knowledge inspect concept ID [ROOT]
-cargo run -p rocs-cli -- knowledge inspect graph [ROOT]
-cargo run -p rocs-cli -- knowledge search QUERY [ROOT]
-cargo run -p rocs-cli -- knowledge build [ROOT] [--output DIRECTORY]
-cargo run -p rocs-cli -- knowledge run [ROOT] [--profile base|rocci] [--port PORT] [--no-window] [--output DIRECTORY]
+cargo run -p rocci-rocdown-cli -- knowledge check [ROOT] [--profile base|rocci] [--format terminal|json]
+cargo run -p rocci-rocdown-cli -- knowledge inspect catalog [ROOT]
+cargo run -p rocci-rocdown-cli -- knowledge inspect concept ID [ROOT]
+cargo run -p rocci-rocdown-cli -- knowledge inspect graph [ROOT]
+cargo run -p rocci-rocdown-cli -- knowledge search QUERY [ROOT]
+cargo run -p rocci-rocdown-cli -- knowledge build [ROOT] [--output DIRECTORY]
+cargo run -p rocci-rocdown-cli -- knowledge run [ROOT] [--profile base|rocci] [--port PORT] [--no-window] [--output DIRECTORY]
 ```
 
 `knowledge inspect catalog` and `knowledge search` accept repeatable `--type`,
@@ -196,7 +169,7 @@ validates before writing static HTML, `catalog.json`, `search.json`,
 `llms.txt`, and `validation.json`; knowledge Markdown is never executed as Roc
 or Rocci.
 `knowledge run` watches Markdown records, rebuilds the bundle, serves its
-generated site with the standard Rocs theme, and live-reloads after successful
+generated site with the standard Rocdown theme, and live-reloads after successful
 changes. Bundle links are mapped to clean routes and linked non-Markdown files
 are served alongside the pages. Preview output uses a temporary directory
 unless `--output` is set.

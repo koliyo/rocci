@@ -40,13 +40,13 @@ hosting, and execution-mode rationale.
 | Crate | Responsibility |
 | --- | --- |
 | `rocci-template` | Parse `.rocci`, lower template regions, preserve source maps |
-| `rocci-rocdown` | Parse Markdown plus explicit declarations, headings, links, and page metadata |
+| `rocci-rocdown` | Parse Markdown plus explicit declarations, headings, links, site catalog, article rendering, and static artifacts |
+| `rocci-rocdown-cli` | Rocdown document, site generator, and knowledge CLI (`rocdown`) |
 | `rocci-theme` | Resolve built-in and local document CSS themes |
 | `rocci-core` | Configuration and shared runtime contracts |
-| `rocci-cli` | Build, inspect, run, bundle, and manage Datastar assets |
+| `rocci-cli` | Build, inspect, run, bundle, and manage Datastar assets (`rocci`) |
 | `rocci-wry` | Native preview windows backed by Tao and Wry |
 | `rocci-lsp` | Diagnostics, symbols, hover, completion, and semantic tokens |
-| `rocs` | Documentation catalog, routes, article rendering, theme application, and static artifacts |
 
 ## Why templates lower to Roc
 
@@ -59,9 +59,9 @@ constructor interface has useful consequences:
 - hosts can supply different compatible `Html` implementations;
 - a component remains a Roc function rather than an object in a runtime registry.
 
-## Why Rocs keeps prose in Rust
+## Why Rocdown keeps prose in Rust
 
-The first Rocs prototype emitted every Markdown node as Roc source. That made
+The first prototype emitted every Markdown node as Roc source. That made
 Roc compile time grow with prose, duplicated graph logic needed by the LSP, and
 turned routing into missing-standard-library work.
 

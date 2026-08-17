@@ -287,7 +287,7 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 ## Implemented vs deferred
 
-**In this crate (compiler core)**
+**In this crate**
 
 - Scan / parse / lower a single `.rocdown` file to Roc
 - Declaration boundary rules (prose `@`, fences, lists, quotes, indent, `\@`)
@@ -299,17 +299,16 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
-- CLI `build` / `inspect` / `ast` / `run` for one file or sibling modules
+- Static site generation (`build`, `check`, `test`, `run`), content catalog,
+  curated navigation, and hashed asset pipeline
+- OKF knowledge bundle validation, inspection, search, benchmarking, and preview
 - LSP diagnostics, symbols, hover, completion, semantic tokens, and editor
   registration for `.rocdown`
 
-**Not implemented**
+**Not implemented / Deferred**
 
-- Multi-page SSG, `dist/` output, path-derived routes, draft exclusion
-- Hashed published assets (Rocs; standalone preview copies local files as-is)
+- `@island` and client JS dynamic island splicing
 - Project default layouts and layout packages
-- `@island` and client JS
-- Content collections, feeds, sitemaps
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens
 - Near-miss warnings for typos such as `@componnent`

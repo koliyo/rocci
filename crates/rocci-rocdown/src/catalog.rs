@@ -732,7 +732,7 @@ fn resolve_navigation(
         if ids.is_empty() {
             diagnostics.push(CatalogDiagnostic::error(
                 "RD2204",
-                "rocs.toml",
+                "rocdown.toml",
                 format!("navigation section `{}` has no pages", section.label),
             ));
             continue;
@@ -742,7 +742,7 @@ fn resolve_navigation(
             let Some(page) = by_id.get(id.as_str()) else {
                 diagnostics.push(CatalogDiagnostic::error(
                     "RD2201",
-                    "rocs.toml",
+                    "rocdown.toml",
                     format!(
                         "navigation section `{}` references unknown page id `{id}`",
                         section.label

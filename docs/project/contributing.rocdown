@@ -28,11 +28,11 @@ toolchain problem.
 | Change | Primary owner |
 | --- | --- |
 | Template grammar or source maps | `rocci-template` |
-| Markdown or Rocdown declarations | `rocci-rocdown` |
+| Markdown, Rocdown declarations, site catalog, and outputs | `rocci-rocdown` |
+| CLI document and site commands | `rocci-rocdown-cli` |
 | Runtime configuration | `rocci-core` |
-| Build, run, preview, or bundle behavior | `rocci-cli` and `rocci-wry` |
-| Static docs catalog and outputs | `rocs` |
-| Documentation site chrome | `RocsTheme.rocci` |
+| CLI template build, run, preview, or bundle behavior | `rocci-cli` and `rocci-wry` |
+| Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 
 Do not interpret Rocci templates in Rust just to avoid compiling a theme. Do
 not encode static documentation prose as Roc constructors just to keep catalog
@@ -50,7 +50,7 @@ cargo run -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
 For documentation work:
 
 ```sh
-cargo run -p rocs-cli -- build docs
+cargo run -p rocci-rocdown-cli -- build docs
 ```
 
 Check generated HTML at narrow and wide widths, with keyboard navigation, in

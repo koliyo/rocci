@@ -96,19 +96,19 @@ fn collect_files(dir: &Path) -> Vec<(String, Vec<u8>)> {
 }
 
 #[test]
-fn parity_build_output_matches_rocs_on_example_site() {
+fn parity_build_output_matches_rocdown_lib_on_example_site() {
     if skip_without_roc() {
         return;
     }
     let _lock = ROC_LOCK.lock().unwrap();
     let root = repo_root();
-    let site_root = root.join("examples/rocs");
+    let site_root = root.join("examples/rocdown-site");
 
-    let rocs_out = temp_dir("rocs-out");
-    let rocdown_out = temp_dir("rocdown-out");
+    let lib_out = temp_dir("lib-out");
+    let cli_out = temp_dir("cli-out");
 
-    // Build with rocs library / builder
-    rocs::build(&site_root, &rocs_out).unwrap();
+    // Build with rocci_rocdown library
+    rocci_rocdown::build(&site_root, &lib_out).unwrap();
 
     // Build with rocdown CLI
     let bin = rocdown_bin();
@@ -116,7 +116,7 @@ fn parity_build_output_matches_rocs_on_example_site() {
         .arg("build")
         .arg(&site_root)
         .arg("--output")
-        .arg(&rocdown_out)
+        .arg(&cli_out)
         .current_dir(&root)
         .output()
         .unwrap();
@@ -126,28 +126,25 @@ fn parity_build_output_matches_rocs_on_example_site() {
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let rocs_files = collect_files(&rocs_out);
-    let rocdown_files = collect_files(&rocdown_out);
+    let lib_files = collect_files(&lib_out);
+    let cli_files = collect_files(&cli_out);
 
     assert_eq!(
-        rocs_files.len(),
-        rocdown_files.len(),
-        "file count mismatch: rocs has {} files, rocdown has {} files",
-        rocs_files.len(),
-        rocdown_files.len()
+        lib_files.len(),
+        cli_files.len(),
+        "file count mismatch: lib has {} files, cli has {} files",
+        lib_files.len(),
+        cli_files.len()
     );
 
-    for (rocs_name, rocs_bytes) in &rocs_files {
-        let rocdown_match = rocdown_files
+    for (lib_name, lib_bytes) in &lib_files {
+        let cli_match = cli_files
             .iter()
-            .find(|(name, _)| name == rocs_name)
-            .unwrap_or_else(|| panic!("missing file {rocs_name} in rocdown output"));
-        assert_eq!(
-            rocs_bytes, &rocdown_match.1,
-            "byte mismatch for file {rocs_name}"
-        );
+            .find(|(name, _)| name == lib_name)
+            .unwrap_or_else(|| panic!("missing file {lib_name} in rocdown cli output"));
+        assert_eq!(lib_bytes, &cli_match.1, "byte mismatch for file {lib_name}");
     }
 
-    let _ = fs::remove_dir_all(rocs_out);
-    let _ = fs::remove_dir_all(rocdown_out);
+    let _ = fs::remove_dir_all(lib_out);
+    let _ = fs::remove_dir_all(cli_out);
 }

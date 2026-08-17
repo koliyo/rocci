@@ -1,6 +1,11 @@
-//! Parse `.rocdown` documents and lower Markdown plus `@` declarations to Roc.
+//! Parse, compile, lower, and generate sites from `.rocdown` Markdown documents.
 
+mod article;
 mod ast;
+mod build;
+mod catalog;
+mod config;
+mod dev;
 mod docs;
 pub mod highlight;
 mod img;
@@ -8,20 +13,37 @@ mod links;
 mod lower;
 pub mod lsp;
 mod markdown;
+pub mod okf;
 mod page;
 mod parse;
+mod plan;
 mod pprint;
+mod runtime;
 mod scan;
+mod site;
 pub mod standalone;
 pub mod theme;
 
+pub use article::render_document;
 pub use ast::{
     DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
     RenderDecl, RocDecl,
 };
+pub use build::{BuildReport, BuildSession, build, build_configured, discover_rocdown};
+pub use catalog::{
+    CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
+    RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
+};
+pub use config::{
+    BuildConfig, CONFIG_FILE, NavConfig, ROCDOWN_CONFIG_FILE, SiteConfig, SiteMeta, load_config,
+    load_config_named, load_rocdown_config,
+};
+pub use dev::{DevServer, run, run_knowledge};
 pub use docs::{
-    DocsField, extract_lines, extract_region, field_bool, field_string, field_strings,
-    include_path_error, resolve_include_path, split_docs_body,
+    ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
+    PageDocs, extract_lines, extract_region, field_bool, field_string, field_strings,
+    include_path_error, load_page_docs, markdown_fragment, render_article, resolve_include_path,
+    run_examples, search_text, split_docs_body,
 };
 pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{
@@ -31,7 +53,18 @@ pub use img::{
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
+pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use pprint::format_ast;
+pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
+pub use site::{
+    CheckFormat, CheckReport, InspectKind, check, inspect, load_site, resolve_loaded, test_examples,
+};
+pub use standalone::{
+    StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
+    discover_rocdown_files, linked_standalone_inputs, plan_standalone,
+};
+pub use theme::{ThemeArgs, compile_options as theme_compile_options};
+
 pub use rocci_template::{
     ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, MappedModule,
     OriginKind, RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact, StyleKind,
@@ -41,13 +74,9 @@ pub use rocci_theme::{
     ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,
     resolve as resolve_theme,
 };
-pub use theme::{ThemeArgs, compile_options as theme_compile_options};
 
-// Standalone interactive document planning
-pub use standalone::{
-    StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
-    discover_rocdown_files, linked_standalone_inputs, plan_standalone,
-};
+pub const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst";
+pub const STAGING_ENV: &str = "ROCDOWN_STAGING";
 
 use crate::parse::parse as parse_impl;
 

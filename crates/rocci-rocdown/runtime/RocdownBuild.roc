@@ -1,9 +1,9 @@
 import pf.Env
 import pf.Path
 import Html
-import RocsTheme
+import RocdownTheme
 import DocsComponents
-import RocsPages
+import RocdownPages
 
 render_tree! = |segments, index| {
     seg = List.get(segments, index)?
@@ -38,7 +38,7 @@ render_forest! = |segments, index|
 write_page! = |staging, item| {
     content = render_forest!(item.segments, 0)?
     html = Html.render_document(
-        RocsTheme.siteShell(
+        RocdownTheme.siteShell(
             item.view,
             content,
         ),
@@ -56,9 +56,9 @@ write_all! = |staging, pages|
         }
     }
 
-RocsBuild := [].{
+RocdownBuild := [].{
     run! = |{}| {
-        staging = Env.var_str!("ROCS_STAGING")?
-        write_all!(staging, RocsPages.pages)
+        staging = Env.var_str!("ROCDOWN_STAGING")?
+        write_all!(staging, RocdownPages.pages)
     }
 }

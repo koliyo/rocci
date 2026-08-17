@@ -28,8 +28,6 @@ BASE_ROCCI = {
 ROCDOWN = {
     "rocci-rocdown",
     "rocci-theme",
-    "rocs",
-    "rocs-cli",
     "rocci-rocdown-cli",
 }
 
