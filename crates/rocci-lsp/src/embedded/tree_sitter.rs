@@ -1,5 +1,12 @@
+use std::cell::RefCell;
+
 use rocci_template::Span;
 use tree_sitter::{Language, Parser, Query, QueryCursor};
+
+thread_local! {
+    static PARSER: RefCell<Parser> = RefCell::new(Parser::new());
+    static CURSOR: RefCell<QueryCursor> = RefCell::new(QueryCursor::new());
+}
 
 #[derive(Clone, Debug)]
 pub struct HighlightToken {
@@ -25,38 +32,44 @@ impl TreeSitterHighlighter {
         src: &str,
         map_capture: impl Fn(&str) -> Option<(u32, u32, u32)>,
     ) -> Vec<HighlightToken> {
-        let mut parser = Parser::new();
-        if parser.set_language(&self.language).is_err() {
-            return Vec::new();
-        }
-        parser.set_timeout_micros(200_000);
-        let Some(tree) = parser.parse(src, None) else {
+        let tree = PARSER.with(|parser_cell| {
+            let mut parser = parser_cell.borrow_mut();
+            if parser.set_language(&self.language).is_err() {
+                return None;
+            }
+            parser.set_timeout_micros(200_000);
+            parser.parse(src, None)
+        });
+
+        let Some(tree) = tree else {
             return Vec::new();
         };
 
-        let mut cursor = QueryCursor::new();
-        let matches = cursor.matches(&self.query, tree.root_node(), src.as_bytes());
         let capture_names = self.query.capture_names();
         let mut tokens = Vec::new();
 
-        for m in matches {
-            for capture in m.captures {
-                let name = &capture_names[capture.index as usize];
-                if let Some((kind, modifiers, priority)) = map_capture(name) {
-                    let node = capture.node;
-                    let start = node.start_byte();
-                    let end = node.end_byte();
-                    if start < end && end <= src.len() {
-                        tokens.push(HighlightToken {
-                            span: Span::new(start, end),
-                            kind,
-                            modifiers,
-                            priority,
-                        });
+        CURSOR.with(|cursor_cell| {
+            let mut cursor = cursor_cell.borrow_mut();
+            let matches = cursor.matches(&self.query, tree.root_node(), src.as_bytes());
+            for m in matches {
+                for capture in m.captures {
+                    let name = &capture_names[capture.index as usize];
+                    if let Some((kind, modifiers, priority)) = map_capture(name) {
+                        let node = capture.node;
+                        let start = node.start_byte();
+                        let end = node.end_byte();
+                        if start < end && end <= src.len() {
+                            tokens.push(HighlightToken {
+                                span: Span::new(start, end),
+                                kind,
+                                modifiers,
+                                priority,
+                            });
+                        }
                     }
                 }
             }
-        }
+        });
 
         tokens
     }

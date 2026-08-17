@@ -4,23 +4,35 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 
 ## Features
 
-- **Full Syntax and Embedded Language Highlighting**: Highlighting for Rocci/Rocdown declarations, template HTML tags/attributes, component invocations, and embedded Roc, CSS, and Markdown constructs via LSP semantic tokens.
-- **Embedded Region Support**: Accurate highlighting across executable `@roc`, `@css`, `{expression}`, and Markdown display-only code fences (`roc`, `html`, `css`, etc.).
-- **Diagnostics & Error Recovery**: Direct compiler syntax diagnostics and graceful partial highlighting on incomplete code.
-- **Same-File Navigation**: Go-to-definition for component declarations (`<UserCard>` -> `@component UserCard`).
+- **Full Syntax and Embedded Language Highlighting**: Semantic highlighting out-of-the-box for Rocci/Rocdown declarations, template HTML tags/attributes, component invocations, and embedded Roc, CSS, HTML, and Markdown constructs via LSP semantic tokens.
+- **Embedded Language Backends**: In-process Tree-sitter backends highlight executable `@roc`, `@css`, `{expression}` interpolations, and display-only code fences (`roc`, `html`, `css`, etc.) with zero boundary leaks.
+- **Document Symbols & Outline**: Outline view and breadcrumbs for components, handlers, fixtures, styles, page metadata, and Rocdown headings.
+- **Diagnostics & Error Recovery**: Push diagnostics for parser syntax errors with parser recovery that preserves partial highlighting on incomplete documents.
+- **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
+- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@on`, `@page`, `@roc`, `@docs`), HTML elements, and components; hover documentation for template elements.
+
+## Configuration
+
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `rocci.lsp.serverPath` | `string` | `""` | Path to the `rocci-language-server` executable (defaults to packaged binary or `target/debug/rocci-language-server`) |
+| `rocci.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
+
+Semantic highlighting is enabled by default in VS Code (`editor.semanticHighlighting.enabled: true`).
 
 ## Development
 
-From the rocci repository:
+From the repository root:
 
-1. `cargo build -p rocci-lsp`
-2. Run **Run Rocci Extension** from the repo root, or open `editors/vscode` and run **Run Extension** (F5).
-
-Override the server path with `rocci.lsp.serverPath` in settings if needed.
+1. Build the language server:
+   ```sh
+   cargo build -p rocci-lsp
+   ```
+2. Press **F5** in VS Code (or run **Run Rocci Extension** from the Run & Debug panel).
 
 ## Testing
 
-Run the automated Extension Host integration tests against the live language server:
+Run automated extension-host integration tests against the live `rocci-language-server`:
 
 ```sh
 cd editors/vscode
