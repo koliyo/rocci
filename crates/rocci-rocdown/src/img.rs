@@ -345,9 +345,7 @@ pub fn normalize_local_asset_url(url: &str) -> Option<String> {
                 parts.push(part.to_string_lossy().into_owned());
             }
             std::path::Component::ParentDir => {
-                if parts.pop().is_none() {
-                    return None;
-                }
+                parts.pop()?;
             }
             std::path::Component::Prefix(_) | std::path::Component::RootDir => return None,
         }

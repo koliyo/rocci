@@ -1427,6 +1427,21 @@ Claim.[^source]
 }
 
 #[test]
+fn inline_code_and_fenced_footnote_patterns_do_not_require_definitions() {
+    let src = "\
+`[^label]` in inline code is not a reference.
+
+````rocdown
+Claim.[^note]
+
+[^note]: In fence.
+````
+";
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("rd-footnotes"));
+}
+
+#[test]
 fn missing_local_asset_is_diagnosed_when_enabled() {
     let src = "\
 @img {

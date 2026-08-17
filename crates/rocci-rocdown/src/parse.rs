@@ -189,56 +189,85 @@ fn validate_footnotes(src: &str, document: &Document, diagnostics: &mut Vec<Diag
 
 fn scan_source_footnote_refs(src: &str) -> Vec<(String, Span)> {
     let mut refs = Vec::new();
-    let mut fence = false;
-    let mut inline_code = false;
-    let mut chars = src.char_indices().peekable();
-    while let Some((i, ch)) = chars.next() {
-        if !inline_code && src[i..].starts_with("```") {
-            fence = !fence;
-            chars.next();
-            chars.next();
-            continue;
-        }
-        if fence {
-            continue;
-        }
-        if ch == '`' {
-            inline_code = !inline_code;
-            continue;
-        }
-        if inline_code {
-            continue;
-        }
-        if ch == '[' && chars.peek().is_some_and(|(_, next)| *next == '^') {
-            chars.next();
-            let name_start = chars.peek().map(|(idx, _)| *idx).unwrap_or(src.len());
-            let mut name_end = name_start;
-            let mut closed = false;
-            while let Some((idx, next)) = chars.peek().copied() {
-                if next == ']' {
-                    name_end = idx;
-                    chars.next();
-                    closed = true;
-                    break;
-                }
-                if next == '\n' {
-                    break;
-                }
-                chars.next();
+    let mut fence: Option<(u8, usize)> = None;
+    let mut offset = 0;
+
+    for line in src.split_inclusive('\n') {
+        let line_offset = offset;
+        offset += line.len();
+
+        let line_no_newline = line.strip_suffix('\n').unwrap_or(line);
+        let line_trimmed = line_no_newline
+            .strip_suffix('\r')
+            .unwrap_or(line_no_newline);
+
+        if let Some((ch, n)) = fence {
+            if scan::is_fence_close(line_trimmed, ch, n) {
+                fence = None;
             }
-            if !closed {
+            continue;
+        }
+
+        let stripped = scan::skip_0_3_spaces(line_trimmed);
+        if let Some(open) = scan::fence_open(stripped) {
+            fence = Some(open);
+            continue;
+        }
+
+        let bytes = line_trimmed.as_bytes();
+        let len = bytes.len();
+        let mut i = 0;
+
+        while i < len {
+            if bytes[i] == b'`' {
+                let code_start = i;
+                let mut tick_count = 0;
+                while i < len && bytes[i] == b'`' {
+                    tick_count += 1;
+                    i += 1;
+                }
+                let rest = &line_trimmed[i..];
+                let needle = &line_trimmed[code_start..code_start + tick_count];
+                if let Some(found) = rest.find(needle) {
+                    i += found + tick_count;
+                }
                 continue;
             }
-            let end = chars.peek().map(|(idx, _)| *idx).unwrap_or(src.len());
-            if chars.peek().is_some_and(|(_, next)| *next == ':') {
+
+            if bytes[i] == b'[' && i + 1 < len && bytes[i + 1] == b'^' {
+                let ref_start = i;
+                i += 2;
+                let name_start = i;
+                let mut name_end = i;
+                let mut closed = false;
+                while i < len {
+                    if bytes[i] == b']' {
+                        name_end = i;
+                        i += 1;
+                        closed = true;
+                        break;
+                    }
+                    if bytes[i] == b' ' || bytes[i] == b'\t' {
+                        break;
+                    }
+                    i += 1;
+                }
+
+                if closed && name_end > name_start {
+                    if i < len && bytes[i] == b':' {
+                        continue;
+                    }
+                    let name = &line_trimmed[name_start..name_end];
+                    let span = Span::new(line_offset + ref_start, line_offset + i);
+                    refs.push((name.to_string(), span));
+                }
                 continue;
             }
-            let name = src[name_start..name_end].to_string();
-            if !name.is_empty() {
-                refs.push((name, Span::new(i, end)));
-            }
+
+            i += 1;
         }
     }
+
     refs
 }
 
