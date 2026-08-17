@@ -18,15 +18,15 @@
 | Change | Primary owner |
 | --- | --- |
 | `.rocci` grammar, lowering, or source maps | `crates/rocci-template` |
-| Markdown or Rocdown declarations | `crates/rocci-rocdown` |
+| Markdown, Rocdown declarations, site catalog, and generator | `crates/rocci-rocdown` |
 | Shared runtime configuration | `crates/rocci-core` |
-| CLI build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-wry` |
-| Static documentation catalog, routes, and outputs | `crates/rocs` and `crates/rocs-cli` |
-| Documentation site chrome | `crates/rocs/templates/RocsTheme.rocci` |
+| CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-wry` |
+| CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
+| Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 | Editor behavior | `crates/rocci-lsp`, `editors/vscode`, or `editors/zed` |
 
-- Preserve the boundary where Rocs owns static catalog and article work in
-  Rust while the Rocci theme owns the visible documentation shell.
+- Preserve the boundary where Rocdown owns static catalog and article work in
+  Rust while the Rocdown theme owns the visible documentation shell.
 - Do not interpret Rocci templates in Rust merely to avoid compiling a theme.
 - Do not encode static documentation prose as Roc constructors merely to keep
   catalog logic in Roc.
@@ -66,10 +66,10 @@
 - For syntax changes, inspect the corresponding `test/AllSyntax.rocci` or
   `test/AllSyntax.rocdown` fixture with
   `cargo run -q -p rocci-cli -- inspect --ast PATH`.
-- For documentation-site changes, run `cargo run -q -p rocs-cli -- build docs`
+- For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run
-  `cargo run -q -p rocs-cli -- knowledge check knowledge --profile rocci` and
+  `cargo run -q -p rocci-rocdown-cli -- knowledge check knowledge --profile rocci` and
   report lifecycle or provenance warnings separately from errors.
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.

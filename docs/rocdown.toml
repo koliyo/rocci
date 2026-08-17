@@ -46,7 +46,7 @@ items = [
     "reference/rocdown",
     "reference/cli",
     "reference/configuration",
-    "reference/rocs",
+    "reference/rocdown-site",
 ]
 
 [[nav]]

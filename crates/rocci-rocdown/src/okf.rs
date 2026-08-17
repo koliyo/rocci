@@ -5,9 +5,7 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, bail};
-use rocci_rocdown::{
-    Document, Item, MarkdownBodyOptions, MdNode, SourceFile, Span, parse_markdown_body,
-};
+use rocci_template::{SourceFile, Span};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use yaml_rust::{Yaml, YamlLoader};
@@ -17,6 +15,7 @@ use crate::build::{commit_output, unique_temp};
 use crate::catalog::{CatalogDiagnostic, PageHeading, RouteHint, Severity, SourcePage};
 use crate::config::{NavConfig, SiteConfig};
 use crate::site::{LoadedSite, StaticFile};
+use crate::{Document, Item, MarkdownBodyOptions, MdNode, parse_markdown_body};
 
 const STANDARD_FIELDS: &[&str] = &[
     "type",

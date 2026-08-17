@@ -64,10 +64,10 @@ Markdown text, headings, tables, links, and fences are static. `@roc`,
 `@render`, document-root Rocci tags, and handlers introduce executable regions
 that are visible in source. Raw inline HTML is disabled by default.
 
-## Rocs pre-renders the documentation shell
+## Rocdown pre-renders the documentation shell
 
-Rocs resolves every publishable page before output. It renders article HTML,
-passes normalized site and navigation data to the Rocci theme, and writes
+Rocdown resolves every publishable page before output. It renders article HTML,
+passes normalized site and navigation data to the Rocdown theme, and writes
 ordinary static documents. Navigation and reading remain functional without
 client JavaScript.
 

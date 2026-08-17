@@ -1,10 +1,9 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use rocci_rocdown::{CompileOptions, SourceFile, compile};
-use rocs::{
-    IncludeOptions, NavConfig, PageDocs, PageHeading, ResolveOptions, RouteHint, SourcePage,
-    load_page_docs, render_article, resolve,
+use rocci_rocdown::{
+    CompileOptions, IncludeOptions, NavConfig, PageDocs, PageHeading, ResolveOptions, RouteHint,
+    SourceFile, SourcePage, compile, load_page_docs, render_article, resolve,
 };
 
 #[test]
@@ -80,7 +79,7 @@ Footnote reference.[^first]
         &compiled.document,
         "guide.rocdown",
         IncludeOptions {
-            root: &root,
+            root,
             snippet_roots: &[],
         },
         &mut diagnostics,

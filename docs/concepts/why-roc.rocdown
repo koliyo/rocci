@@ -77,9 +77,9 @@ write_page! = |staging, item| {
 }
 ```
 
-The example is simplified, but the split is real in Rocs today:
-`RocsTheme.siteShell` is a pure Rocci-generated function, while
-`RocsBuild.run!` performs environment, file-read, and file-write operations.
+The example is simplified, but the split is real in Rocdown today:
+`RocdownTheme.siteShell` is a pure Rocci-generated function, while
+`RocdownBuild.run!` performs environment, file-read, and file-write operations.
 
 ### Why this matters for UI code
 
@@ -116,7 +116,7 @@ That is unusually well matched to Rocci's possible hosts:
 
 | Host | Useful platform surface |
 | --- | --- |
-| Static Rocs build | Read staged articles, render the Rocci theme, write output |
+| Static Rocdown site build | Read staged articles, render the Rocdown theme, write output |
 | Local web application | Receive HTTP input, query application storage, return documents or SSE patches |
 | Desktop application | Web server operations plus explicitly selected dialogs, notifications, and filesystem access |
 | Component preview | Load fixtures and render `Html`, ideally with no production capabilities |
@@ -202,9 +202,9 @@ That would give Rocci several useful modes:
 3. **Production build:** compile and optimize the application and host contract
    for distribution.
 4. **Static generation:** let Rust resolve content and routes, then invoke the
-   compiled Rocci theme at the narrow build boundary.
+   compiled Rocdown theme at the narrow build boundary.
 
-Only the last mode is how Rocs works today. Current `rocci run`, component view,
+Only the last mode is how Rocdown site generation works today. Current `rocci run`, component view,
 and bundle paths invoke the Roc toolchain; Rocci does not yet embed Roc's
 interpreter. Interpreter-backed preview is a design opportunity, not a shipped
 feature. It would require a stable embedding API, compatible value and `Html`
@@ -230,10 +230,10 @@ Rocci can generate ordinary Roc without making authors repeat every intermediate
 type, while still leaving the Roc compiler—not the template lowerer—as the
 authority on records, tags, functions, and effects.
 
-## Why Rocs does not put everything in Roc
+## Why Rocdown does not put everything in Roc
 
 Choosing Roc does not mean every byte must pass through the Roc compiler. The
-Rocs architecture deliberately keeps content discovery, link validation,
+Rocdown architecture deliberately keeps content discovery, link validation,
 navigation compilation, Markdown rendering, and atomic filesystem commits in
 Rust. Those jobs already operate on Rocdown's span-preserving syntax tree and
 would make Roc compilation scale with prose rather than executable behavior.

@@ -2304,6 +2304,7 @@ dependencies = [
  "clap",
  "comrak",
  "lsp-types",
+ "notify",
  "rocci-core",
  "rocci-highlight",
  "rocci-lsp",
@@ -2311,7 +2312,9 @@ dependencies = [
  "rocci-theme",
  "serde",
  "serde_json",
+ "sha2",
  "toml",
+ "yaml-rust",
 ]
 
 [[package]]
@@ -2324,7 +2327,6 @@ dependencies = [
  "rocci-rocdown",
  "rocci-theme",
  "rocci-wry",
- "rocs",
  "serde",
  "serde_json",
  "toml",
@@ -2357,34 +2359,6 @@ dependencies = [
  "tracing",
  "uuid",
  "wry",
-]
-
-[[package]]
-name = "rocs"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "notify",
- "rocci-highlight",
- "rocci-lsp",
- "rocci-rocdown",
- "rocci-template",
- "serde",
- "serde_json",
- "sha2",
- "toml",
- "yaml-rust",
-]
-
-[[package]]
-name = "rocs-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "rocci-wry",
- "rocs",
- "serde_json",
 ]
 
 [[package]]

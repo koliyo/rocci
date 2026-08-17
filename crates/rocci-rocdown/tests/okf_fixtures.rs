@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rocs::okf::{
+use rocci_rocdown::okf::{
     InspectKind, KnowledgeFilter, Profile, TrustTier, build, inspect_filtered, load, search,
 };
 

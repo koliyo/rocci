@@ -8,13 +8,13 @@
 # Write documentation components
 
 Use `@docs` for bounded documentation components. The parser stores the kind
-and body; Rocs validates the content model; the theme paints the HTML. Fenced
+and body; Rocdown validates the content model; the theme paints the HTML. Fenced
 code stays display-only.
 
 @docs note {
     title: "Static pages"
 
-    Rocs accepts `@docs` next to Markdown and `@page`. `@render`, `@roc`, and
+    Rocdown accepts `@docs` next to Markdown and `@page`. `@render`, `@roc`, and
     other islands still require `rocci run`.
 }
 
@@ -67,7 +67,7 @@ script exists.
         Check the catalog without compiling Roc:
 
         ```sh
-        cargo run -p rocs-cli -- check docs
+        cargo run -p rocci-rocdown-cli -- check docs
         ```
     }
 
@@ -75,10 +75,10 @@ script exists.
         id: "test"
         label: "Examples"
 
-        Run declared example commands. This is not part of `rocs build`.
+        Run declared example commands. This is not part of `rocdown build`.
 
         ```sh
-        cargo run -p rocs-cli -- test docs
+        cargo run -p rocci-rocdown-cli -- test docs
         ```
     }
 }
@@ -91,7 +91,7 @@ script exists.
     }
 
     @docs link-card {
-        page: "reference/rocs"
+        page: "reference/rocdown-site"
     }
 }
 

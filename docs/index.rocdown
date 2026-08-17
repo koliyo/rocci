@@ -33,14 +33,14 @@ and interaction stays opt-in.
 | Documents | `.rocdown` | Markdown plus explicit Roc or Rocci regions |
 | Server interaction | `@on` and Datastar actions | HTML documents or targeted SSE patches |
 | Desktop apps | `rocci run` and `rocci bundle` | A local HTTP app inside a native webview |
-| Documentation | `rocs build` | Deterministic static HTML |
+| Documentation | `rocdown build` | Deterministic static HTML |
 
 ## Designed around visible boundaries
 
 - **Markdown remains Markdown.** A fenced example is displayed, never executed.
 - **Templates remain bounded.** Markup is legal in `@component` bodies, not in arbitrary Roc expressions.
 - **The server owns state.** Datastar transports HTML patches instead of introducing a second client application.
-- **Static stays static.** Rocs compiles prose in Rust and evaluates its Rocci theme once per build.
+- **Static stays static.** Rocdown compiles prose in Rust and evaluates its Rocdown theme once per build.
 
 > Rocci is experimental. The language and toolchain are usable for exploration,
 > examples, and documentation, but some packaging and static-site features are

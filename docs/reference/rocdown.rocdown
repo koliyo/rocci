@@ -72,13 +72,13 @@ serves them beside the page route; Rocs hashes files under `build.assets`.
 
 `@docs` is one reserved family. Kinds such as `note` or `tabs` are not
 top-level `@` names. The parser stores the kind identifier and brace body.
-Rocs types the body; standalone `rocci run` paints a conservative preview.
+Rocdown types the body; standalone `rocdown run` (or `rocci run`) paints a conservative preview.
 
 ````rocdown
 @docs note {
     title: "Deprecation"
 
-    This API will be removed in 0.4. See [Routing](/reference/rocs/).
+    This API will be removed in 0.4. See [Routing](/reference/rocdown-site/).
 }
 ````
 
@@ -99,11 +99,11 @@ handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
 | `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool` |
 | `include` | File or region include |
 | `example` | Display sample with optional `test` metadata |
-| `api-operation` | Reserved; Rocs reports `RD2406` (not shipped) |
+| `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |
 
 See [Write documentation components](/guides/docs-components/) for a working
-page. Includes, snippet roots, and `rocs test` are documented in
-[Rocs](/reference/rocs/).
+page. Includes, snippet roots, and `rocdown test` are documented in
+[Rocdown site](/reference/rocdown-site/).
 
 ## Page metadata
 

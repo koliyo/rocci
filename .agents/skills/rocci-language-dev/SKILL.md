@@ -1,12 +1,12 @@
 ---
 name: rocci-language-dev
-description: Develop and review Rocci's `.rocci` template language and `.rocdown` document language. Use for grammar, scanning, parsing, AST, validation, lowering, generated Roc, diagnostics, recovery, source maps, syntax fixtures, or language-reference changes in `rocci-template` and `rocci-rocdown`. Do not use for pure runtime, desktop, Rocs-site, or knowledge-bundle work unless the language change directly requires it.
+description: Develop and review Rocci's `.rocci` template language and `.rocdown` document language. Use for grammar, scanning, parsing, AST, validation, lowering, generated Roc, diagnostics, recovery, source maps, syntax fixtures, or language-reference changes in `rocci-template` and `rocci-rocdown`. Do not use for pure runtime, desktop, Rocdown-site, or knowledge-bundle work unless the language change directly requires it.
 ---
 
 # Rocci Language Development
 
 Change Rocci and Rocdown as source languages while preserving their boundary
-with ordinary Roc, Markdown, runtime hosting, and Rocs static-site behavior.
+with ordinary Roc, Markdown, runtime hosting, and Rocdown static-site behavior.
 Use existing compiler entry points and fixtures instead of creating wrapper
 scripts.
 
@@ -126,7 +126,7 @@ If a test or build task takes unexpectedly long (>5s for focused unit tests),
 check `manage_task` with `Action: 'list'` and terminate stuck or hanging tasks
 immediately with `manage_task(Action: 'kill')` before retrying.
 
-Build `docs` with `cargo run -q -p rocs-cli -- build docs` when public language
+Build `docs` with `cargo run -q -p rocci-rocdown-cli -- build docs` when public language
 documentation changes and inspect the affected generated page.
 
 ## Report results
@@ -136,4 +136,4 @@ documentation changes and inspect the affected generated page.
 - Call out generated-Roc or source-map changes explicitly.
 - List focused, package, consumer, and workspace validation separately.
 - Identify deferred integrations instead of silently expanding the task into
-  runtime, LSP, Rocs, or knowledge work.
+  runtime, LSP, Rocdown, or knowledge work.

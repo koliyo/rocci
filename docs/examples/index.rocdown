@@ -20,11 +20,11 @@ runtime boundary that is easy to inspect in source.
 | `errors` | Styled 404 and parse-error previews | `rocci run examples/errors/ErrorDemo.rocdown` |
 | `snake` | A larger standalone Rocci app | `rocci run examples/snake` |
 | `datastar` | Search, edit, todos, tabs, and validation patterns | `rocci run examples/datastar` |
-| `rocs` | Two-page static documentation fixture | `rocs build examples/rocs --output dist` |
+| `rocdown-site` | Two-page static documentation fixture | `rocdown build examples/rocdown-site --output dist` |
 
 When working from source, prefix `rocci` with
-`cargo run -q -p rocci-cli --` and `rocs` with
-`cargo run -q -p rocs-cli --`.
+`cargo run -q -p rocci-cli --` and `rocdown` with
+`cargo run -q -p rocci-rocdown-cli --`.
 
 ## Counter
 
