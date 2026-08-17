@@ -2,14 +2,20 @@
 
 Language support for `.rocci` template modules and `.rocdown` documents. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
 
-Zed does not bundle the language server. Build or install `rocci-language-server` separately.
+Zed does not bundle the language server binary into the extension WASM. Build or install `rocci-language-server` separately.
+
+## Features
+
+- **Semantic Highlighting**: Full semantic token support for host declarations, Roc, CSS, HTML elements, and Markdown structure.
+- **Embedded Languages**: Highlighting for `@css`, `@roc`, inline Roc expressions, and display-only code fences.
+- **Diagnostics**: Compiler diagnostics and recovery on syntax errors.
 
 ## Development
 
 From the rocci repository:
 
 1. `cargo build -p rocci-lsp`
-2. In Zed, run **zed: install dev extension** and choose `editors/zed`
+2. In Zed, run **zed: install dev extension** (from Command Palette) and choose `editors/zed`.
 
 The extension looks up the server in this order:
 
@@ -31,9 +37,9 @@ Override the binary if needed:
 }
 ```
 
-## Highlighting
+## Highlighting Configuration
 
-Highlighting comes from LSP semantic tokens. Enable them for Rocci and Rocdown (this repository already does via `.zed/settings.json`):
+Highlighting comes from LSP semantic tokens. Enable them for Rocci and Rocdown (this repository already enables this in `.zed/settings.json`):
 
 ```json
 {
@@ -46,4 +52,18 @@ Highlighting comes from LSP semantic tokens. Enable them for Rocci and Rocdown (
     }
   }
 }
+```
+
+## Testing & Packaging
+
+Verify the Zed extension build and configuration:
+
+```sh
+./scripts/test-zed-extension.sh
+```
+
+Package the release WASM extension artifact:
+
+```sh
+./scripts/package-zed.sh
 ```
