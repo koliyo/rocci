@@ -28,6 +28,15 @@ pub fn view(
     no_window: bool,
     port: serve::PortArg,
 ) -> Result<()> {
+    if !input.is_file() {
+        bail!("no such file: {}", input.display());
+    }
+    if input.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!(
+            "unsupported file extension for `rocci view`: {}; expected a .rocci file",
+            input.display()
+        );
+    }
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -614,5 +623,19 @@ mod tests {
         assert!(page.contains("Html.render(Counter.counterPage({ count: 0 }))"));
         assert!(!page.contains("rocci view"));
         assert!(!page.contains("/assets/datastar.js"));
+    }
+
+    #[test]
+    fn view_rejects_unsupported_extensions() {
+        let temp_dir = std::env::temp_dir().join(format!("rocci-test-view-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+        let md_file = temp_dir.join("test.md");
+        fs::write(&md_file, "# Hello").unwrap();
+        let err = view(&md_file, "main", &[], true, serve::PortArg::Auto)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unsupported file extension for `rocci view`"));
+        assert!(err.contains("expected a .rocci file"));
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

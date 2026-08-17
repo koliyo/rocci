@@ -151,6 +151,15 @@ fn read_input(path: &Path) -> Result<(String, String), String> {
             .map_err(|err| format!("failed to read stdin: {err}"))?;
         return Ok(("<stdin>".to_string(), src));
     }
+    if !path.is_file() {
+        return Err(format!("no such file: {}", path.display()));
+    }
+    if path.extension().and_then(|e| e.to_str()) != Some("rocci") {
+        return Err(format!(
+            "unsupported file extension: {}; expected a .rocci file",
+            path.display()
+        ));
+    }
     let src = fs::read_to_string(path)
         .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
     Ok((path.display().to_string(), src))
