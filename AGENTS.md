@@ -57,6 +57,12 @@
 - Run `cargo test --workspace` for cross-cutting changes or before handing off a
   change that affects multiple crates. Some end-to-end tests use Roc only when
   it is available; use `ROCCI_REQUIRE_ROC=1` only where Roc is required.
+- Default test suites (`cargo test`, `cargo test -p <pkg>`, `cargo test --workspace`)
+  are structured for sub-second execution (<2s).
+- Intensive stress tests, exhaustive property fuzzing, and latency benchmarks
+  are gated behind `#[ignore]`. Run them on demand:
+  - Deep invariant fuzzing: `cargo test -p rocci-lsp --test fuzz_invariants -- --nocapture --ignored`
+  - Release latency benchmarks: `cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored`
 - For syntax changes, inspect the corresponding `test/AllSyntax.rocci` or
   `test/AllSyntax.rocdown` fixture with
   `cargo run -q -p rocci-cli -- inspect --ast PATH`.
