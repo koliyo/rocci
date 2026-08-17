@@ -5,6 +5,7 @@ mod events;
 mod history;
 mod menu;
 mod preview;
+pub mod state;
 mod window;
 
 use std::{collections::HashMap, env, fs, path::PathBuf};
@@ -127,6 +128,12 @@ pub fn run(mut options: RunOptions) -> Result<()> {
                 shell.handle_user_event(event_loop, control_flow, user_event)
             }
             Event::LoopDestroyed => {
+                for (id, live) in &shell.windows {
+                    let state_key = format!("{}:{}", shell.config.app.identifier, id.as_str());
+                    if let Some(state) = state::capture_window_state(&live.window) {
+                        state::save_window_state(&state_key, state);
+                    }
+                }
                 shell.hooks.emit(&AppEvent::Exited);
                 if let Some(on_exit) = shell.hooks.on_exit.take() {
                     on_exit();
@@ -148,14 +155,47 @@ impl Shell {
         let id = id.unwrap_or_else(|| self.allocate_id(&template.label));
         let url = self.backend.attach_window(&id, &template.url)?;
         let context = WebContext::new(Some(web_context_dir(&self.config.app.identifier, &id)));
+
+        let state_key = format!("{}:{}", self.config.app.identifier, template.label);
+        let saved_state = state::load_window_state(&state_key);
+        let mut template = template.clone();
+        if let Some(state) = saved_state
+            && state.width >= 100.0
+            && state.height >= 100.0
+        {
+            template.width = state.width;
+            template.height = state.height;
+        }
+
+        let (initial_position, initial_maximized) = match saved_state {
+            Some(state) => {
+                let visible = state::is_position_visible(
+                    event_loop,
+                    state.x,
+                    state.y,
+                    template.width,
+                    template.height,
+                );
+                let pos = if visible {
+                    Some(state.position())
+                } else {
+                    None
+                };
+                (pos, state.is_maximized)
+            }
+            None => (None, false),
+        };
+
         let live = LiveWindow::create(
             event_loop,
-            template,
+            &template,
             id.clone(),
             url,
             context,
             self.devtools,
             window::WebViewHooks::default(),
+            initial_position,
+            initial_maximized,
         )?;
         self.menu.attach(&live.window)?;
         let tao_id = live.window.id();
@@ -217,6 +257,10 @@ impl Shell {
 
     fn close_window(&mut self, id: WindowId, control_flow: &mut ControlFlow) {
         if let Some(live) = self.windows.remove(&id) {
+            let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
+            if let Some(state) = state::capture_window_state(&live.window) {
+                state::save_window_state(&state_key, state);
+            }
             self.tao_ids.remove(&live.window.id());
             self.backend.detach_window(&id);
             if self.focused.as_ref() == Some(&id) {

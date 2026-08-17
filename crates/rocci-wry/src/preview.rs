@@ -22,6 +22,7 @@ pub struct PreviewOptions {
     pub width: f64,
     pub height: f64,
     pub devtools: bool,
+    pub state_key: Option<String>,
 }
 
 impl Default for PreviewOptions {
@@ -33,6 +34,7 @@ impl Default for PreviewOptions {
             width: defaults.width,
             height: defaults.height,
             devtools: true,
+            state_key: None,
         }
     }
 }
@@ -41,11 +43,36 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
     let id = WindowId::new("preview");
+    let state_key = options
+        .state_key
+        .clone()
+        .unwrap_or_else(|| "preview".to_string());
+
+    let saved_state = crate::state::load_window_state(&state_key);
+    let (width, height) = match saved_state {
+        Some(state) if state.width >= 100.0 && state.height >= 100.0 => (state.width, state.height),
+        _ => (options.width, options.height),
+    };
+
+    let (initial_position, initial_maximized) = match saved_state {
+        Some(state) => {
+            let visible =
+                crate::state::is_position_visible(&event_loop, state.x, state.y, width, height);
+            let pos = if visible {
+                Some(state.position())
+            } else {
+                None
+            };
+            (pos, state.is_maximized)
+        }
+        None => (None, false),
+    };
+
     let template = WindowConfig {
         label: "preview".into(),
         title: options.title.clone(),
-        width: options.width,
-        height: options.height,
+        width,
+        height,
         ..WindowConfig::default()
     };
     let context = WebContext::new(Some(web_context_dir("dev.rocci.preview", &id)));
@@ -76,6 +103,8 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 let _ = title_proxy.send_event(ShellEvent::Preview(PreviewEvent::Title(title)));
             })),
         },
+        initial_position,
+        initial_maximized,
     )?;
     let menu = menu::NativeMenu::install(
         proxy,
@@ -93,14 +122,20 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut history = NavHistory::new(options.url);
     let mut title = options.title;
     let mut modifiers = ModifiersState::empty();
-    event_loop.run_return(move |event, _, control_flow| {
+    let save_key = state_key.clone();
+    event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         let _keep = &menu;
         match event {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
-            } => *control_flow = ControlFlow::Exit,
+            } => {
+                if let Some(state) = crate::state::capture_window_state(&live.window) {
+                    crate::state::save_window_state(&save_key, state);
+                }
+                *control_flow = ControlFlow::Exit;
+            }
             Event::WindowEvent {
                 event: WindowEvent::ModifiersChanged(next),
                 ..
@@ -109,10 +144,16 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } if events::is_close_key_event(&event, modifiers) => {
+                if let Some(state) = crate::state::capture_window_state(&live.window) {
+                    crate::state::save_window_state(&save_key, state);
+                }
                 *control_flow = ControlFlow::Exit;
             }
             Event::UserEvent(ShellEvent::Menu(menu_event)) => {
                 if menu::is(&menu_event, menu::CLOSE_WINDOW_ID) {
+                    if let Some(state) = crate::state::capture_window_state(&live.window) {
+                        crate::state::save_window_state(&save_key, state);
+                    }
                     *control_flow = ControlFlow::Exit;
                 } else if menu::is(&menu_event, menu::BACK_ID) {
                     apply_command(&live, &mut history, NavCommand::Back);
@@ -145,6 +186,10 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             _ => {}
         }
     });
+
+    if let Some(state) = crate::state::capture_window_state(&live.window) {
+        crate::state::save_window_state(&state_key, state);
+    }
     Ok(())
 }
 

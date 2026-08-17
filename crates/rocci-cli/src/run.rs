@@ -677,12 +677,14 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     }
 
     println!("{}", style::serving(&app_dir.display().to_string(), &url));
+    let state_key = format!("rocci:{}", config.app.identifier);
     let preview_result = rocci_wry::preview(PreviewOptions {
         url,
         title,
         width,
         height,
         devtools: config.development.devtools,
+        state_key: Some(state_key),
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     let _ = child.kill();

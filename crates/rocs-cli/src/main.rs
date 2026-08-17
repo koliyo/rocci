@@ -387,7 +387,7 @@ fn knowledge(command: KnowledgeCommand) -> Result<()> {
             let port = port.resolve()?;
             let server = rocs::run_knowledge(&root, output.as_deref(), port, profile.into())?;
             eprintln!("rocs: review queue at {}review/", server.url);
-            preview(server, no_window)
+            preview(server, no_window, "rocs:knowledge")
         }
         KnowledgeCommand::Check {
             root,
@@ -521,10 +521,10 @@ fn run(
 ) -> Result<()> {
     let port = port.resolve()?;
     let server = rocs::run(root, output, port)?;
-    preview(server, no_window)
+    preview(server, no_window, "rocs")
 }
 
-fn preview(server: rocs::DevServer, no_window: bool) -> Result<()> {
+fn preview(server: rocs::DevServer, no_window: bool, state_key: &str) -> Result<()> {
     eprintln!("rocs: serving {} at {}", server.title, server.url);
     if no_window {
         server.wait();
@@ -533,6 +533,7 @@ fn preview(server: rocs::DevServer, no_window: bool) -> Result<()> {
     let result = rocci_wry::preview(rocci_wry::PreviewOptions {
         url: server.url.clone(),
         title: server.title.clone(),
+        state_key: Some(state_key.to_string()),
         ..rocci_wry::PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));

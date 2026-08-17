@@ -8,7 +8,11 @@ description = "tao/wry desktop shell for Rocci: windows, webviews, and native ev
 [dependencies]
 rocci-core = { workspace = true }
 muda = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 tao = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+uuid = { workspace = true }
 wry = { workspace = true }
+
