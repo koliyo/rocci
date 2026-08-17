@@ -1,33 +1,36 @@
 /target
 .DS_Store
+.zig-cache
+dist
+
+# Editor extensions
 editors/vscode/node_modules
 editors/vscode/out
 editors/vscode/dist
 editors/vscode/*.vsix
 editors/zed/target
-examples/counter/generated/*.roc
+
+# Staged runtime assets and Datastar bundles
+Html.roc
+Datastar.roc
+!crates/**/runtime/Html.roc
+!crates/**/runtime/Datastar.roc
+datastar.js
+
+# SQLite databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Generated Roc modules and examples artifacts
+**/generated/*.roc
 examples/counter/Counter.roc
-examples/counter/counter.db
-examples/counter/counter.db-*
-examples/counter/assets/datastar.js
-examples/styling/generated/*.roc
 examples/styling/Styling.roc
-examples/styling/assets/datastar.js
-examples/*/Html.roc
-examples/*/Datastar.roc
-examples/snake/generated/*.roc
 examples/snake/Snake.roc
-examples/snake/snake.db
-examples/snake/snake.db-*
-examples/snake/assets/datastar.js
 examples/datastar/Gallery.roc
 examples/datastar/Search.roc
 examples/datastar/Edit.roc
 examples/datastar/Todos.roc
 examples/datastar/Tabs.roc
 examples/datastar/Validate.roc
-examples/datastar/gallery.db
-examples/datastar/gallery.db-*
-examples/datastar/assets/datastar.js
-.zig-cache
-dist
