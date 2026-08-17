@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:codex, at: 2026-08-16T20:21:15Z }
+generated: { by: process:cursor, at: 2026-08-17T13:30:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -15,12 +15,12 @@ sources:
     resource: ../../crates/rocci-rocdown/README.md
     title: Implemented Rocdown language reference
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: parser
     resource: ../../crates/rocci-rocdown/src/parse.rs
     title: Rocdown parser
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: scanner
     resource: ../../crates/rocci-rocdown/src/scan.rs
     title: Rocdown document-root scanner
@@ -30,12 +30,17 @@ sources:
     resource: ../../crates/rocci-rocdown/src/lower.rs
     title: Rocdown to Roc lowerer
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
+  - id: img
+    resource: ../../crates/rocci-rocdown/src/img.rs
+    title: Rocdown image field extraction
+    author: process:git
+    last_modified: 2026-08-17
   - id: compiler-tests
     resource: ../../crates/rocci-rocdown/tests/compile.rs
     title: Rocdown compiler contract tests
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: cli-options
     resource: ../../crates/rocci-cli/src/theme.rs
     title: Rocdown CLI compile-option construction
@@ -52,9 +57,11 @@ sources:
 
 ## Current contract
 
-A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, rendered Roc expressions, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, the `@docs` documentation-component family, and document-root HTML islands.[^rocdown-readme][^parser]
+A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, rendered Roc expressions, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, the `@docs` documentation-component family, `@img`, and document-root HTML islands.[^rocdown-readme][^parser]
 
-Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, and Rocdown page-link forms. Raw inline HTML is disabled by default. Ordinary `.rocdown` compilation keeps footnotes disabled; the body-only OKF adapter enables them separately.[^rocdown-readme]
+Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, footnotes, and Rocdown page-link forms. Raw inline HTML is disabled by default. Ordinary compilation and the OKF adapter share footnote parsing; OKF still validates keyed `sources[].id` separately.[^rocdown-readme][^parser][^compiler-tests]
+
+`@img` requires `alt` unless `decorative: Bool.true`. Nested `@img` inside `@docs figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
 
 The standalone compiler lowers documents to ordinary Roc exports for metadata, content, and the page shell. It does not type-check Roc or run the server itself.[^rocdown-readme]
 
@@ -74,16 +81,17 @@ This is the implemented form of the [Markdown-first explicit-islands decision](/
 
 ## Not yet implemented
 
-`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions are not part of ordinary Rocdown today. `@docs api-operation` is parsed and rejected by Rocs until generated API reference ships. Multi-page static generation exists in Rocs rather than in the single-file Rocdown compiler.[^rocdown-readme]
+`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions (admonitions, definition lists, math, automatic TOC) are not part of ordinary Rocdown today. `@docs api-operation` is parsed and rejected by Rocs until generated API reference ships. Multi-page static generation and hashed assets exist in Rocs rather than in the single-file Rocdown compiler; standalone preview copies local images without hashing.[^rocdown-readme]
 
 ## Evidence policy
 
 The crate README and parser describe shipped behavior. The 2026-08-15 report supplies design rationale and future proposals only where explicitly labeled; it is not allowed to override the current implementation.[^format-report]
 
 [^rocdown-readme]: Current file shape, declarations, Markdown profile, lowering, and implemented/deferred list.
-[^parser]: Executable recognition and parsing behavior in code.
+[^parser]: Executable recognition and parsing behavior in code, including ordinary footnotes.
 [^scanner]: Document-root recognition, exclusions, and handoff to the Rocci template parser.
 [^lowerer]: Structured Markdown lowering and the explicit raw-HTML escape hatch.
-[^compiler-tests]: Regression coverage for root HTML islands, autolinks, list and fence boundaries, and raw-HTML defaults.
+[^img]: `@img` field extraction, alt/decorative validation, and source-relative asset resolution.
+[^compiler-tests]: Regression coverage for root HTML islands, autolinks, list and fence boundaries, raw-HTML defaults, footnotes, and the image/figure contract.
 [^cli-options]: CLI construction of Rocdown compile options without a raw-HTML override.
 [^format-report]: Original design rationale, with its own warning that current crate documentation has precedence.

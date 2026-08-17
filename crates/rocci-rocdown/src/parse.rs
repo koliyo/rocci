@@ -3,7 +3,7 @@ use rocci_template::{
     Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from, parse_template_item_from,
 };
 
-use crate::ast::{DocsDecl, Document, ImgDecl, Item, PageDecl, RenderDecl, RocDecl};
+use crate::ast::{DocsDecl, Document, ImgDecl, Item, MdNode, PageDecl, RenderDecl, RocDecl};
 use crate::markdown::{self, BlockOrHole};
 use crate::scan::{
     self, Reserved, ScannedDecl, ScannedKind, docs_inner_span, docs_kind_span, inner_span,
@@ -27,7 +27,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let scanned = scan::scan(source.src, &mut diagnostics);
     let (synthetic, map) = markdown::punch_holes(source.src, &scanned);
     let arena = Arena::new();
-    let options = markdown_options(false, true);
+    let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
     let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
 
@@ -43,11 +43,14 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         }
     }
 
+    let document = Document {
+        items,
+        span: Span::new(0, source.src.len()),
+    };
+    validate_footnotes(source.src, &document, &mut diagnostics);
+
     ParseOutput {
-        document: Document {
-            items,
-            span: Span::new(0, source.src.len()),
-        },
+        document,
         diagnostics,
         headings: converted.headings,
         links: converted.links,
@@ -108,7 +111,7 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     let scanned = scan::scan_range(source.src, start, end, &mut diagnostics);
     let (synthetic, map) = markdown::punch_holes_range(source.src, start, end, &scanned);
     let arena = Arena::new();
-    let options = markdown_options(false, true);
+    let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
     let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
 
@@ -141,6 +144,102 @@ fn markdown_options(footnotes: bool, wikilinks: bool) -> Options<'static> {
     options.extension.footnotes = footnotes;
     options.extension.wikilinks_title_after_pipe = wikilinks;
     options
+}
+
+fn validate_footnotes(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic>) {
+    let mut definitions = Vec::new();
+    let mut references = Vec::new();
+    for item in &document.items {
+        let Item::Markdown(node) = item else {
+            continue;
+        };
+        node.walk(&mut |child| match child {
+            MdNode::FootnoteDefinition { name, span, .. } => {
+                definitions.push((name.clone(), *span));
+            }
+            MdNode::FootnoteReference { name, span, .. } => {
+                references.push((name.clone(), *span));
+            }
+            _ => {}
+        });
+    }
+    let mut seen = std::collections::BTreeMap::<String, Span>::new();
+    for (name, span) in &definitions {
+        if seen.insert(name.clone(), *span).is_some() {
+            diagnostics.push(Diagnostic::error(
+                *span,
+                format!("duplicate footnote definition `[^{name}]`"),
+            ));
+        }
+    }
+    for (name, span) in scan_source_footnote_refs(src) {
+        if !seen.contains_key(&name) && !references.iter().any(|(existing, _)| existing == &name) {
+            references.push((name, span));
+        }
+    }
+    for (name, span) in references {
+        if !seen.contains_key(&name) {
+            diagnostics.push(Diagnostic::error(
+                span,
+                format!("footnote `[^{name}]` has no definition"),
+            ));
+        }
+    }
+}
+
+fn scan_source_footnote_refs(src: &str) -> Vec<(String, Span)> {
+    let mut refs = Vec::new();
+    let mut fence = false;
+    let mut inline_code = false;
+    let mut chars = src.char_indices().peekable();
+    while let Some((i, ch)) = chars.next() {
+        if !inline_code && src[i..].starts_with("```") {
+            fence = !fence;
+            chars.next();
+            chars.next();
+            continue;
+        }
+        if fence {
+            continue;
+        }
+        if ch == '`' {
+            inline_code = !inline_code;
+            continue;
+        }
+        if inline_code {
+            continue;
+        }
+        if ch == '[' && chars.peek().is_some_and(|(_, next)| *next == '^') {
+            chars.next();
+            let name_start = chars.peek().map(|(idx, _)| *idx).unwrap_or(src.len());
+            let mut name_end = name_start;
+            let mut closed = false;
+            while let Some((idx, next)) = chars.peek().copied() {
+                if next == ']' {
+                    name_end = idx;
+                    chars.next();
+                    closed = true;
+                    break;
+                }
+                if next == '\n' {
+                    break;
+                }
+                chars.next();
+            }
+            if !closed {
+                continue;
+            }
+            let end = chars.peek().map(|(idx, _)| *idx).unwrap_or(src.len());
+            if chars.peek().is_some_and(|(_, next)| *next == ':') {
+                continue;
+            }
+            let name = src[name_start..name_end].to_string();
+            if !name.is_empty() {
+                refs.push((name, Span::new(i, end)));
+            }
+        }
+    }
+    refs
 }
 
 fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> Item {

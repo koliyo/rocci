@@ -376,6 +376,7 @@ impl<'a> Emitter<'a> {
                 self.emit_html(".fragment([\n");
                 self.indent += 1;
                 self.emit_nodes(nodes);
+                self.emit_footnote_section(document);
                 self.indent -= 1;
                 self.push_indent();
                 self.emit("])");
@@ -384,8 +385,26 @@ impl<'a> Emitter<'a> {
                 self.emit_html(".fragment(\n");
                 self.indent += 1;
                 self.push_indent();
-                self.emit_concat_groups(&groups);
-                self.emit("\n");
+                if document_has_footnotes(document) {
+                    self.emit("List.concat(\n");
+                    self.indent += 1;
+                    self.push_indent();
+                    self.emit_concat_groups(&groups);
+                    self.emit(",\n");
+                    self.push_indent();
+                    self.emit("[\n");
+                    self.indent += 1;
+                    self.emit_footnote_section(document);
+                    self.indent -= 1;
+                    self.push_indent();
+                    self.emit("],\n");
+                    self.indent -= 1;
+                    self.push_indent();
+                    self.emit(")\n");
+                } else {
+                    self.emit_concat_groups(&groups);
+                    self.emit("\n");
+                }
                 self.indent -= 1;
                 self.push_indent();
                 self.emit(")");
@@ -431,6 +450,12 @@ impl<'a> Emitter<'a> {
 
     fn emit_nodes(&mut self, nodes: &[ContentPiece<'_>]) {
         for node in nodes {
+            if matches!(
+                node,
+                ContentPiece::Markdown(MdNode::FootnoteDefinition { .. })
+            ) {
+                continue;
+            }
             self.push_indent();
             match node {
                 ContentPiece::Markdown(md) => self.lower_md(md),
@@ -446,6 +471,201 @@ impl<'a> Emitter<'a> {
             }
             self.emit(",\n");
         }
+    }
+
+    fn emit_footnote_section(&mut self, document: &Document) {
+        let defs: Vec<&MdNode> = document
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Markdown(node @ MdNode::FootnoteDefinition { .. }) => Some(node),
+                _ => None,
+            })
+            .collect();
+        if defs.is_empty() {
+            return;
+        }
+        let span = defs[0].span();
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("section", span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".attribute(");
+        self.emit_string("class", span, OriginKind::MarkdownStructure);
+        self.emit(", ");
+        self.emit_string("rd-footnotes", span, OriginKind::MarkdownBoilerplate);
+        self.emit("),\n");
+        self.push_indent();
+        self.emit_html(".boolean_attribute(");
+        self.emit_string("data-footnotes", span, OriginKind::MarkdownStructure);
+        self.emit(", True),\n");
+        self.push_indent();
+        self.emit_html(".attribute(");
+        self.emit_string("aria-label", span, OriginKind::MarkdownStructure);
+        self.emit(", ");
+        self.emit_string("Footnotes", span, OriginKind::MarkdownBoilerplate);
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("ol", span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", "rd-footnote-list")], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        for def in defs {
+            self.push_indent();
+            self.emit_footnote_definition(def);
+            self.emit(",\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+    }
+
+    fn emit_footnote_definition(&mut self, node: &MdNode) {
+        let MdNode::FootnoteDefinition {
+            name,
+            total_references,
+            children,
+            span,
+        } = node
+        else {
+            return;
+        };
+        let id = format!("fn-{name}");
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("li", *span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(
+            &[("class", "rd-footnote-definition"), ("id", id.as_str())],
+            *span,
+        );
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        for child in children {
+            self.push_indent();
+            self.lower_md(child);
+            self.emit(",\n");
+        }
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("span", *span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", "rd-footnote-backlinks")], *span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        for reference_number in 1..=*total_references {
+            let suffix = if reference_number == 1 {
+                String::new()
+            } else {
+                format!("-{reference_number}")
+            };
+            let href = format!("#fnref-{name}{suffix}");
+            let label = format!("Back to reference {name}{suffix}");
+            self.push_indent();
+            self.emit_html(".element(\n");
+            self.indent += 1;
+            self.push_indent();
+            self.emit_string("a", *span, OriginKind::MarkdownStructure);
+            self.emit(",\n");
+            self.push_indent();
+            self.emit("[\n");
+            self.indent += 1;
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string("class", *span, OriginKind::MarkdownStructure);
+            self.emit(", ");
+            self.emit_string(
+                "rd-footnote-backref",
+                *span,
+                OriginKind::MarkdownBoilerplate,
+            );
+            self.emit("),\n");
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string("href", *span, OriginKind::MarkdownStructure);
+            self.emit(", ");
+            self.emit_string(&href, *span, OriginKind::MarkdownBoilerplate);
+            self.emit("),\n");
+            self.push_indent();
+            self.emit_html(".boolean_attribute(");
+            self.emit_string(
+                "data-footnote-backref",
+                *span,
+                OriginKind::MarkdownStructure,
+            );
+            self.emit(", True),\n");
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string("aria-label", *span, OriginKind::MarkdownStructure);
+            self.emit(", ");
+            self.emit_string(&label, *span, OriginKind::MarkdownBoilerplate);
+            self.emit("),\n");
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("],\n");
+            self.push_indent();
+            self.emit("[\n");
+            self.indent += 1;
+            self.push_indent();
+            self.emit_html(".text(");
+            self.emit_string("↩", *span, OriginKind::MarkdownBoilerplate);
+            self.emit("),\n");
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("],\n");
+            self.indent -= 1;
+            self.push_indent();
+            self.emit("),\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
     }
 
     fn splice_template(&mut self, items: &[TemplateItem], ctx: TemplateValueCtx) {
@@ -491,6 +711,16 @@ impl<'a> Emitter<'a> {
             .find(|field| field.name == "open")
             .and_then(|field| field_bool(src, field))
             .unwrap_or(false);
+        let caption = fields
+            .iter()
+            .find(|field| field.name == "caption")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
+        let credit = fields
+            .iter()
+            .find(|field| field.name == "credit")
+            .and_then(|field| field_string(src, field))
+            .unwrap_or_default();
         if docs.kind == "include" {
             self.lower_docs_include(docs, &fields);
             return;
@@ -578,6 +808,18 @@ impl<'a> Emitter<'a> {
             self.emit(",\n");
         }
         self.lower_docs_items(&parsed.document.items);
+        if docs.kind == "figure" {
+            if !caption.is_empty() {
+                self.push_indent();
+                self.emit_text_element("figcaption", "rd-docs-caption", &caption, docs.span);
+                self.emit(",\n");
+            }
+            if !credit.is_empty() {
+                self.push_indent();
+                self.emit_text_element("p", "rd-docs-credit", &credit, docs.span);
+                self.emit(",\n");
+            }
+        }
         self.indent -= 1;
         self.push_indent();
         self.emit("],\n");
@@ -611,42 +853,8 @@ impl<'a> Emitter<'a> {
 
     fn lower_img(&mut self, img: &ImgDecl) {
         let fields = crate::img::extract_img_fields(self.source.src, img.body, self.diagnostics);
-        let src = fields.src.as_ref().map(|(s, _)| s.as_str()).unwrap_or("");
-        let alt = fields.alt.as_ref().map(|(s, _)| s.as_str()).unwrap_or("");
-        let class = match &fields.class {
-            Some((custom, _)) => format!("rd-image {custom}"),
-            None => "rd-image".to_string(),
-        };
-
-        let mut attrs: Vec<(&str, &str, Span)> = vec![
-            ("class", &class, img.span),
-            (
-                "src",
-                src,
-                fields.src.as_ref().map(|(_, sp)| *sp).unwrap_or(img.span),
-            ),
-            (
-                "alt",
-                alt,
-                fields.alt.as_ref().map(|(_, sp)| *sp).unwrap_or(img.span),
-            ),
-        ];
-
-        if let Some((width, sp)) = &fields.width {
-            attrs.push(("width", width.as_str(), *sp));
-        }
-        if let Some((height, sp)) = &fields.height {
-            attrs.push(("height", height.as_str(), *sp));
-        }
-        if let Some((title, sp)) = &fields.title {
-            attrs.push(("title", title.as_str(), *sp));
-        }
-        if let Some((loading, sp)) = &fields.loading {
-            attrs.push(("loading", loading.as_str(), *sp));
-        }
-        if let Some((decoding, sp)) = &fields.decoding {
-            attrs.push(("decoding", decoding.as_str(), *sp));
-        }
+        let image = crate::img::StaticImage::from_fields(&fields, img.span);
+        let attrs = image.html_attrs();
 
         self.emit_html(".void_element(\n");
         self.indent += 1;
@@ -661,19 +869,19 @@ impl<'a> Emitter<'a> {
         self.emit(")");
     }
 
-    fn emit_img_attrs(&mut self, attrs: &[(&str, &str, Span)], decl_span: Span) {
+    fn emit_img_attrs(&mut self, attrs: &[crate::img::ImgHtmlAttr], decl_span: Span) {
         if attrs.is_empty() && self.css_stamp.is_none() {
             self.emit("[]");
             return;
         }
         self.emit("[\n");
         self.indent += 1;
-        for (name, value, span) in attrs {
+        for attr in attrs {
             self.push_indent();
             self.emit_html(".attribute(");
-            self.emit_string(name, *span, OriginKind::MarkdownStructure);
+            self.emit_string(attr.name, attr.span, OriginKind::MarkdownStructure);
             self.emit(", ");
-            self.emit_string(value, *span, OriginKind::MarkdownText);
+            self.emit_string(&attr.value, attr.span, OriginKind::MarkdownText);
             self.emit("),\n");
         }
         if let Some(stamp) = &self.css_stamp.clone() {
@@ -1080,41 +1288,87 @@ impl<'a> Emitter<'a> {
                     *span,
                 );
             }
-            MdNode::FootnoteDefinition {
+            MdNode::FootnoteDefinition { .. } => self.emit_html(".empty"),
+            MdNode::FootnoteReference {
                 name,
-                children,
+                reference_number,
+                index,
                 span,
                 ..
             } => {
-                let id = format!("fn-{name}");
-                self.emit_element(
-                    "li",
-                    &[("class", "rd-footnote-definition"), ("id", id.as_str())],
-                    children,
-                    false,
-                    *span,
-                );
-            }
-            MdNode::FootnoteReference {
-                name, index, span, ..
-            } => {
-                let href = format!("#fn-{name}");
-                let link = MdNode::Link {
-                    url: href,
-                    title: String::new(),
-                    children: vec![MdNode::Text {
-                        value: index.to_string(),
-                        span: *span,
-                    }],
-                    span: *span,
+                let suffix = if *reference_number == 1 {
+                    String::new()
+                } else {
+                    format!("-{reference_number}")
                 };
-                self.emit_element(
-                    "sup",
-                    &[("class", "rd-footnote-ref"), ("data-footnote-ref", "")],
-                    &[link],
-                    false,
-                    *span,
-                );
+                let href = format!("#fn-{name}");
+                let id = format!("fnref-{name}{suffix}");
+                let label = format!("Footnote {index}");
+                let number = index.to_string();
+                self.emit_html(".element(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_string("sup", *span, OriginKind::MarkdownStructure);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit_attrs(&[("class", "rd-footnote-ref")], *span);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit("[\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_html(".element(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_string("a", *span, OriginKind::MarkdownStructure);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit("[\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_html(".attribute(");
+                self.emit_string("href", *span, OriginKind::MarkdownStructure);
+                self.emit(", ");
+                self.emit_string(&href, *span, OriginKind::MarkdownBoilerplate);
+                self.emit("),\n");
+                self.push_indent();
+                self.emit_html(".attribute(");
+                self.emit_string("id", *span, OriginKind::MarkdownStructure);
+                self.emit(", ");
+                self.emit_string(&id, *span, OriginKind::MarkdownBoilerplate);
+                self.emit("),\n");
+                self.push_indent();
+                self.emit_html(".boolean_attribute(");
+                self.emit_string("data-footnote-ref", *span, OriginKind::MarkdownStructure);
+                self.emit(", True),\n");
+                self.push_indent();
+                self.emit_html(".attribute(");
+                self.emit_string("aria-label", *span, OriginKind::MarkdownStructure);
+                self.emit(", ");
+                self.emit_string(&label, *span, OriginKind::MarkdownBoilerplate);
+                self.emit("),\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("],\n");
+                self.push_indent();
+                self.emit("[\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_html(".text(");
+                self.emit_string(&number, *span, OriginKind::MarkdownText);
+                self.emit("),\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("],\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("),\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("],\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
             }
             MdNode::Link {
                 url,
@@ -1220,12 +1474,12 @@ impl<'a> Emitter<'a> {
         self.push_indent();
         self.emit_html(".boolean_attribute(");
         self.emit_string("disabled", span, OriginKind::MarkdownStructure);
-        self.emit(", Bool.true),\n");
+        self.emit(", True),\n");
         if checked {
             self.push_indent();
             self.emit_html(".boolean_attribute(");
             self.emit_string("checked", span, OriginKind::MarkdownStructure);
-            self.emit(", Bool.true),\n");
+            self.emit(", True),\n");
         }
         self.indent -= 1;
         self.push_indent();
@@ -1575,6 +1829,13 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
         groups.push(ContentGroup::Nodes(current));
     }
     groups
+}
+
+fn document_has_footnotes(document: &Document) -> bool {
+    document
+        .items
+        .iter()
+        .any(|item| matches!(item, Item::Markdown(MdNode::FootnoteDefinition { .. })))
 }
 
 fn illegal_docs_item(item: &Item) -> Option<&'static str> {

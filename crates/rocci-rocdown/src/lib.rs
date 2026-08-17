@@ -19,7 +19,10 @@ pub use docs::{
     DocsField, extract_lines, extract_region, field_bool, field_string, field_strings,
     include_path_error, resolve_include_path, split_docs_body,
 };
-pub use img::{ImgFields, extract_img_fields};
+pub use img::{
+    ImgFields, ImgHtmlAttr, StaticImage, collect_local_media, extract_img_fields, is_remote_asset,
+    normalize_local_asset_url, resolve_local_asset,
+};
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use pprint::format_ast;
@@ -43,6 +46,7 @@ pub struct CompileOptions {
     pub pages: Vec<PageRef>,
     pub resolve_links: bool,
     pub resolve_includes: bool,
+    pub check_assets: bool,
 }
 
 impl Default for CompileOptions {
@@ -54,6 +58,7 @@ impl Default for CompileOptions {
             pages: Vec::new(),
             resolve_links: true,
             resolve_includes: true,
+            check_assets: false,
         }
     }
 }
@@ -105,6 +110,9 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
     let mut parsed = parse(source, options.raw_html);
     if options.resolve_links {
         links::resolve_document(source, &mut parsed, options);
+    }
+    if options.check_assets {
+        img::check_document_assets(source, &parsed.document, options, &mut parsed.diagnostics);
     }
     let mut diagnostics = parsed.diagnostics;
     let lowered = lower::lower(source, &parsed.document, options, &mut diagnostics);

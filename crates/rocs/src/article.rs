@@ -31,18 +31,22 @@ pub fn render_document(document: &Document) -> String {
         }
     }
     if !footnotes.is_empty() {
-        let list = element("ol", &[attribute("class", "rd-footnote-list")], &footnotes);
-        parts.push(element(
-            "section",
-            &[
-                attribute("class", "rd-footnotes"),
-                boolean_attribute("data-footnotes", true),
-                attribute("aria-label", "Footnotes"),
-            ],
-            &[list],
-        ));
+        parts.push(render_footnote_section(&footnotes));
     }
     fragment(&parts)
+}
+
+pub(crate) fn render_footnote_section(items: &[String]) -> String {
+    let list = element("ol", &[attribute("class", "rd-footnote-list")], items);
+    element(
+        "section",
+        &[
+            attribute("class", "rd-footnotes"),
+            boolean_attribute("data-footnotes", true),
+            attribute("aria-label", "Footnotes"),
+        ],
+        &[list],
+    )
 }
 
 pub(crate) fn render_md(node: &MdNode) -> String {
@@ -291,6 +295,15 @@ pub(crate) fn render_md(node: &MdNode) -> String {
         }
         MdNode::RawHtml { html, .. } => html.clone(),
     }
+}
+
+pub(crate) fn render_static_image(image: &rocci_rocdown::StaticImage) -> String {
+    let attrs: Vec<String> = image
+        .html_attrs()
+        .iter()
+        .map(|attr| attribute(attr.name, &attr.value))
+        .collect();
+    void_element("img", &attrs)
 }
 
 fn render_all(children: &[MdNode]) -> Vec<String> {

@@ -845,7 +845,7 @@ impl<'a> Emitter<'a> {
                 AttrValue::Boolean => {
                     self.emit_html(".boolean_attribute(");
                     self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
-                    self.emit(", Bool.true)");
+                    self.emit(", True)");
                 }
             }
             self.emit(",\n");
@@ -929,7 +929,7 @@ impl<'a> Emitter<'a> {
                 AttrValue::Boolean => {
                     self.emit_html(".boolean_attribute(");
                     self.emit_string(&attr.name.name, attr.name.span, OriginKind::StaticMarkup);
-                    self.emit(", Bool.true)");
+                    self.emit(", True)");
                 }
             }
             self.emit(",\n");
@@ -1006,7 +1006,7 @@ impl<'a> Emitter<'a> {
                 }
                 AttrValue::Boolean => {
                     self.emit_mapped(&attr.name.name, attr.name.span, OriginKind::ComponentTag);
-                    self.emit(": Bool.true");
+                    self.emit(": True");
                 }
             }
         }

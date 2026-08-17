@@ -739,7 +739,7 @@ fn embedded_languages_rocdown_symbols_tokens_and_regions() {
         && region.purpose == "executable"
         && range_covers(&region.range, EMBEDDED_ROCDOWN, roc_decl)));
     let render_expr = EMBEDDED_ROCDOWN
-        .find("Card({ title: \"Rendered")
+        .find("card({ title: \"Rendered")
         .expect("render expr");
     assert!(regions.iter().any(|region| region.language == "roc"
         && region.purpose == "executable"

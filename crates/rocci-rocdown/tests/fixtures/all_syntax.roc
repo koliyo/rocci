@@ -6,7 +6,7 @@ items = [{ name: "alpha" }, { name: "beta" }]
 
 status = Ready
 
-show_notice = Bool.true
+show_notice = True
 
 hello = |{ name }| {
     Html.fragment(
@@ -39,308 +39,393 @@ rocci_meta = {
     }
 
 rocci_content = |{}| {
-    visible = List.keepIf(items, |_| Bool.true)
+    visible = List.keep_if(items, |_| True)
 
     Html.fragment(
         List.concat(
-            [
-                Html.element(
-                    "h1",
-                    [
-                        Html.attribute("class", "rd-header-1"),
-                        Html.attribute("id", "all-syntax"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.text("All syntax"),
-                    ],
-                ),
-                Html.element(
-                    "p",
-                    [
-                        Html.attribute("class", "rd-paragraph"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.text("Email "),
-                        Html.element(
-                            "a",
-                            [
-                                Html.attribute("class", "rd-link"),
-                                Html.attribute("href", "mailto:docs@example.com"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.text("docs@example.com"),
-                            ],
-                        ),
-                        Html.text(" or mention @roclang."),
-                    ],
-                ),
-                Html.element(
-                    "p",
-                    [
-                        Html.attribute("class", "rd-paragraph"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.text("This is "),
-                        Html.element(
-                            "strong",
-                            [
-                                Html.attribute("class", "rd-strong"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.text("bold"),
-                            ],
-                        ),
-                        Html.text(" and "),
-                        Html.element(
-                            "em",
-                            [
-                                Html.attribute("class", "rd-emphasis"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.text("italic"),
-                            ],
-                        ),
-                        Html.text("."),
-                    ],
-                ),
-                Html.element(
-                    "ul",
-                    [
-                        Html.attribute("class", "rd-list"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.element(
-                            "li",
-                            [
-                                Html.attribute("class", "rd-list-item"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.element(
-                                    "p",
-                                    [
-                                        Html.attribute("class", "rd-paragraph"),
-                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                    ],
-                                    [
-                                        Html.text("list item"),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-                Html.element(
-                    "pre",
-                    [
-                        Html.attribute("class", "rd-code-block"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.element(
-                            "code",
-                            [
-                                Html.attribute("class", "rd-code language-roc"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.text("answer = 42\n"),
-                            ],
-                        ),
-                    ],
-                ),
-                Html.element(
-                    "table",
-                    [
-                        Html.attribute("class", "rd-table"),
-                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                    ],
-                    [
-                        Html.element(
-                            "thead",
-                            [
-                                Html.attribute("class", "rd-table-head"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.element(
-                                    "tr",
-                                    [
-                                        Html.attribute("class", "rd-table-row"),
-                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                    ],
-                                    [
-                                        Html.element(
-                                            "th",
-                                            [
-                                                Html.attribute("class", "rd-table-header"),
-                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                            ],
-                                            [
-                                                Html.text("col"),
-                                            ],
-                                        ),
-                                        Html.element(
-                                            "th",
-                                            [
-                                                Html.attribute("class", "rd-table-header"),
-                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                            ],
-                                            [
-                                                Html.text("val"),
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                        Html.element(
-                            "tbody",
-                            [
-                                Html.attribute("class", "rd-table-body"),
-                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                            ],
-                            [
-                                Html.element(
-                                    "tr",
-                                    [
-                                        Html.attribute("class", "rd-table-row"),
-                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                    ],
-                                    [
-                                        Html.element(
-                                            "td",
-                                            [
-                                                Html.attribute("class", "rd-table-cell"),
-                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                            ],
-                                            [
-                                                Html.text("a"),
-                                            ],
-                                        ),
-                                        Html.element(
-                                            "td",
-                                            [
-                                                Html.attribute("class", "rd-table-cell"),
-                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                                            ],
-                                            [
-                                                Html.text("b"),
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-                hello({ name: "render" }),
-                if show_notice {
+            List.concat(
+                [
+                    Html.element(
+                        "h1",
+                        [
+                            Html.attribute("class", "rd-header-1"),
+                            Html.attribute("id", "all-syntax"),
+                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                        ],
+                        [
+                            Html.text("All syntax"),
+                        ],
+                    ),
                     Html.element(
                         "p",
                         [
+                            Html.attribute("class", "rd-paragraph"),
                             Html.attribute("data-rocci-css", "AllSyntax-13744130"),
                         ],
                         [
-                            Html.text("Notice"),
-                        ],
-                    )
-                } else if List.isEmpty(visible) {
-                    Html.element(
-                        "p",
-                        [
-                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                        ],
-                        [
-                            Html.text("Empty"),
-                        ],
-                    )
-                } else {
-                    Html.element(
-                        "ul",
-                        [
-                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                        ],
-                        List.map(visible, |item| {
+                            Html.text("Email "),
                             Html.element(
-                                "li",
+                                "a",
                                 [
+                                    Html.attribute("class", "rd-link"),
+                                    Html.attribute("href", "mailto:docs@example.com"),
                                     Html.attribute("data-rocci-css", "AllSyntax-13744130"),
                                 ],
                                 [
-                                    Html.text(item.name),
+                                    Html.text("docs@example.com"),
                                 ],
-                            )
-                        }),
-                    )
-                },
-            ],
-            List.concat(
-                List.map(visible, |item| {
+                            ),
+                            Html.text(" or mention @roclang."),
+                        ],
+                    ),
                     Html.element(
-                        "li",
+                        "p",
                         [
+                            Html.attribute("class", "rd-paragraph"),
                             Html.attribute("data-rocci-css", "AllSyntax-13744130"),
                         ],
                         [
-                            Html.text(item.name),
+                            Html.text("This is "),
+                            Html.element(
+                                "strong",
+                                [
+                                    Html.attribute("class", "rd-strong"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.text("bold"),
+                                ],
+                            ),
+                            Html.text(" and "),
+                            Html.element(
+                                "em",
+                                [
+                                    Html.attribute("class", "rd-emphasis"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.text("italic"),
+                                ],
+                            ),
+                            Html.text("."),
                         ],
-                    )
-                }),
-                [
-                    match status {
-                        Loading => Html.element(
+                    ),
+                    Html.element(
+                        "ul",
+                        [
+                            Html.attribute("class", "rd-list"),
+                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                        ],
+                        [
+                            Html.element(
+                                "li",
+                                [
+                                    Html.attribute("class", "rd-list-item"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.element(
+                                        "p",
+                                        [
+                                            Html.attribute("class", "rd-paragraph"),
+                                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                        ],
+                                        [
+                                            Html.text("list item"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    Html.element(
+                        "pre",
+                        [
+                            Html.attribute("class", "rd-code-block"),
+                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                        ],
+                        [
+                            Html.element(
+                                "code",
+                                [
+                                    Html.attribute("class", "rd-code language-roc"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.text("answer = 42\n"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    Html.element(
+                        "table",
+                        [
+                            Html.attribute("class", "rd-table"),
+                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                        ],
+                        [
+                            Html.element(
+                                "thead",
+                                [
+                                    Html.attribute("class", "rd-table-head"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.element(
+                                        "tr",
+                                        [
+                                            Html.attribute("class", "rd-table-row"),
+                                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                        ],
+                                        [
+                                            Html.element(
+                                                "th",
+                                                [
+                                                    Html.attribute("class", "rd-table-header"),
+                                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                                ],
+                                                [
+                                                    Html.text("col"),
+                                                ],
+                                            ),
+                                            Html.element(
+                                                "th",
+                                                [
+                                                    Html.attribute("class", "rd-table-header"),
+                                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                                ],
+                                                [
+                                                    Html.text("val"),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            Html.element(
+                                "tbody",
+                                [
+                                    Html.attribute("class", "rd-table-body"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.element(
+                                        "tr",
+                                        [
+                                            Html.attribute("class", "rd-table-row"),
+                                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                        ],
+                                        [
+                                            Html.element(
+                                                "td",
+                                                [
+                                                    Html.attribute("class", "rd-table-cell"),
+                                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                                ],
+                                                [
+                                                    Html.text("a"),
+                                                ],
+                                            ),
+                                            Html.element(
+                                                "td",
+                                                [
+                                                    Html.attribute("class", "rd-table-cell"),
+                                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                                ],
+                                                [
+                                                    Html.text("b"),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    hello({ name: "render" }),
+                    if show_notice {
+                        Html.element(
                             "p",
                             [
                                 Html.attribute("data-rocci-css", "AllSyntax-13744130"),
                             ],
                             [
-                                Html.text("Loading"),
+                                Html.text("Notice"),
                             ],
                         )
-                        Ready => hello(
-                            { name: "ready" },
+                    } else if List.is_empty(visible) {
+                        Html.element(
+                            "p",
+                            [
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.text("Empty"),
+                            ],
+                        )
+                    } else {
+                        Html.element(
+                            "ul",
+                            [
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            List.map(visible, |item| {
+                                Html.element(
+                                    "li",
+                                    [
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text(item.name),
+                                    ],
+                                )
+                            }),
                         )
                     },
-                    Html.void_element(
-                        "img",
-                        [
-                            Html.attribute("class", "rd-image"),
-                            Html.attribute("src", "img/yammi_banana.png"),
-                            Html.attribute("alt", ""),
-                            Html.attribute("width", "50px"),
-                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                        ],
-                    ),
-                    Html.element(
-                        "p",
-                        [
-                            Html.attribute("class", "rd-paragraph"),
-                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                        ],
-                        [
-                            Html.text("@if this is escaped"),
-                        ],
-                    ),
-                    Html.element(
-                        "p",
-                        [
-                            Html.attribute("class", "rd-paragraph"),
-                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
-                        ],
-                        [
-                            Html.text("More markdown after."),
-                        ],
-                    ),
                 ],
+                List.concat(
+                    List.map(visible, |item| {
+                        Html.element(
+                            "li",
+                            [
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.text(item.name),
+                            ],
+                        )
+                    }),
+                    [
+                        match status {
+                            Loading => Html.element(
+                                "p",
+                                [
+                                    Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                ],
+                                [
+                                    Html.text("Loading"),
+                                ],
+                            )
+                            Ready => hello(
+                                { name: "ready" },
+                            )
+                        },
+                        Html.void_element(
+                            "img",
+                            [
+                                Html.attribute("class", "rd-image"),
+                                Html.attribute("src", "./img/yammi_banana.png"),
+                                Html.attribute("alt", "A banana"),
+                                Html.attribute("width", "50px"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                        ),
+                        Html.element(
+                            "p",
+                            [
+                                Html.attribute("class", "rd-paragraph"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.text("@if this is escaped"),
+                            ],
+                        ),
+                        Html.element(
+                            "p",
+                            [
+                                Html.attribute("class", "rd-paragraph"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.text("More markdown after."),
+                                Html.element(
+                                    "sup",
+                                    [
+                                        Html.attribute("class", "rd-footnote-ref"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.element(
+                                            "a",
+                                            [
+                                                Html.attribute("href", "#fn-note"),
+                                                Html.attribute("id", "fnref-note"),
+                                                Html.boolean_attribute("data-footnote-ref", True),
+                                                Html.attribute("aria-label", "Footnote 1"),
+                                            ],
+                                            [
+                                                Html.text("1"),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
             ),
+            [
+                Html.element(
+                    "section",
+                    [
+                        Html.attribute("class", "rd-footnotes"),
+                        Html.boolean_attribute("data-footnotes", True),
+                        Html.attribute("aria-label", "Footnotes"),
+                    ],
+                    [
+                        Html.element(
+                            "ol",
+                            [
+                                Html.attribute("class", "rd-footnote-list"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.element(
+                                    "li",
+                                    [
+                                        Html.attribute("class", "rd-footnote-definition"),
+                                        Html.attribute("id", "fn-note"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.element(
+                                            "p",
+                                            [
+                                                Html.attribute("class", "rd-paragraph"),
+                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                            ],
+                                            [
+                                                Html.text("Footnotes stay in ordinary Rocdown and include a backlink."),
+                                            ],
+                                        ),
+                                        Html.element(
+                                            "span",
+                                            [
+                                                Html.attribute("class", "rd-footnote-backlinks"),
+                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                            ],
+                                            [
+                                                Html.element(
+                                                    "a",
+                                                    [
+                                                        Html.attribute("class", "rd-footnote-backref"),
+                                                        Html.attribute("href", "#fnref-note"),
+                                                        Html.boolean_attribute("data-footnote-backref", True),
+                                                        Html.attribute("aria-label", "Back to reference note"),
+                                                    ],
+                                                    [
+                                                        Html.text("↩"),
+                                                    ],
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
         )
     )
 }

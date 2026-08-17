@@ -38,15 +38,17 @@ pub fn merge_standalone_routes<'a>(
     bound
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DispatchOptions {
     pub redirect_trailing_slash: bool,
+    pub media_dirs: Vec<String>,
 }
 
 impl Default for DispatchOptions {
     fn default() -> Self {
         Self {
             redirect_trailing_slash: true,
+            media_dirs: Vec::new(),
         }
     }
 }
@@ -126,6 +128,27 @@ pub fn generate_bound_main_roc(
     ];
     let mut seen_mounts = HashSet::new();
     seen_mounts.insert("/assets".to_string());
+    let mut file_root_bindings = String::from(
+        r#"    assets = Server.file_root({
+        id: "assets",
+        path: Path.utf8("assets"),
+    })
+"#,
+    );
+    let mut file_root_ids = vec!["assets".to_string()];
+    for dir in &options.media_dirs {
+        let id = media_root_id(dir);
+        file_root_bindings.push_str(&format!(
+            "    {id} = Server.file_root({{\n        id: \"{id}\",\n        path: Path.utf8(\"media/{dir}\"),\n    }})\n"
+        ));
+        file_root_ids.push(id.clone());
+        let suffix = format!("/{dir}");
+        if seen_mounts.insert(suffix.clone()) {
+            static_mounts.push(format!(
+                "                Server.static_mount({{ at: \"{suffix}\", files: {id} }}),"
+            ));
+        }
+    }
     for (_, route) in bound {
         let trimmed = route.path.trim_matches('/');
         if !trimmed.is_empty() {
@@ -139,10 +162,20 @@ pub fn generate_bound_main_roc(
                         "                Server.static_mount({{ at: \"{at}\", files: assets }}),"
                     ));
                 }
+                for dir in &options.media_dirs {
+                    let id = media_root_id(dir);
+                    let at = format!("{accum}/{dir}");
+                    if seen_mounts.insert(at.clone()) {
+                        static_mounts.push(format!(
+                            "                Server.static_mount({{ at: \"{at}\", files: {id} }}),"
+                        ));
+                    }
+                }
             }
         }
     }
     let static_mounts_code = static_mounts.join("\n");
+    let file_roots_list = file_root_ids.join(", ");
 
     let mut out = format!(
         r#"app [Context, program] {{
@@ -166,14 +199,10 @@ program = {{ init!, respond!, shutdown! }}
 init! : () => Try({{ config : Server.Config, context : Context }}, [Exit(I64), ..])
 init! = || {{
     context = {context_init}
-    assets = Server.file_root({{
-        id: "assets",
-        path: Path.utf8("assets"),
-    }})
-    config =
+{file_root_bindings}    config =
         Server.default_config
         .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
-        .with_file_roots([assets])
+        .with_file_roots([{file_roots_list}])
         .with_native_routes({{
             files: [
 {static_mounts_code}
@@ -225,6 +254,41 @@ patch_html! = |node| {{
     out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out
+}
+
+fn media_root_id(dir: &str) -> String {
+    let mut id = String::from("media_");
+    for ch in dir.chars() {
+        if ch.is_ascii_alphanumeric() {
+            id.push(ch);
+        } else {
+            id.push('_');
+        }
+    }
+    if id.ends_with('_') {
+        id.push('x');
+    }
+    id
+}
+
+pub fn media_dirs_from_urls<'a, I>(urls: I) -> Vec<String>
+where
+    I: IntoIterator<Item = &'a String>,
+{
+    let mut dirs = Vec::new();
+    for url in urls {
+        let Some(relative) = rocci_rocdown::normalize_local_asset_url(url) else {
+            continue;
+        };
+        let Some((dir, _)) = relative.split_once('/') else {
+            continue;
+        };
+        if !dir.is_empty() && !dirs.iter().any(|existing| existing == dir) {
+            dirs.push(dir.to_string());
+        }
+    }
+    dirs.sort();
+    dirs
 }
 
 fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
@@ -409,6 +473,7 @@ mod tests {
             ),
             DispatchOptions {
                 redirect_trailing_slash: false,
+                ..DispatchOptions::default()
             },
         );
         assert!(!main.contains("redirect_slash("));
@@ -463,6 +528,35 @@ mod tests {
             main.contains(
                 "Server.static_mount({ at: \"/nested/sub/path/assets\", files: assets })"
             )
+        );
+    }
+
+    #[test]
+    fn static_mounts_include_document_relative_media() {
+        let main = generate_bound_main_roc(
+            "Page",
+            None,
+            None,
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Page",
+                    routes: &[route("GET", "/all-syntax/", "on_get_all_syntax!")],
+                },
+                &[],
+            ),
+            DispatchOptions {
+                media_dirs: vec!["img".to_string()],
+                ..DispatchOptions::default()
+            },
+        );
+        assert!(main.contains("path: Path.utf8(\"media/img\")"), "{main}");
+        assert!(
+            main.contains("Server.static_mount({ at: \"/img\", files: media_img })"),
+            "{main}"
+        );
+        assert!(
+            main.contains("Server.static_mount({ at: \"/all-syntax/img\", files: media_img })"),
+            "{main}"
         );
     }
 }

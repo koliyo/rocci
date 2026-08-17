@@ -7,8 +7,15 @@
 
 # Rocs site configuration
 
-Place `rocs.toml` at the documentation content root. Rocs uses the same file for
-site metadata, build paths, copied assets, and curated navigation.
+Place `rocs.toml` at the documentation content root when you need site metadata,
+hashed assets, or curated navigation. The file is optional: a directory of
+`.rocdown` pages, or a single `.rocdown` file whose parent is the content root,
+is enough for `rocs build`, `rocs check`, and `rocs run`.
+
+```sh
+cargo run -p rocs-cli -- build report.rocdown --output dist
+cargo run -p rocs-cli -- run report.rocdown
+```
 
 ## Example
 
@@ -96,8 +103,13 @@ images from `'self'`.
 
 `output` is resolved relative to the content root unless `--output` overrides
 it. `assets` names a directory whose files are content-hashed into `/assets/`
-in the published tree (`og.png` becomes `og.<hash>.png`). Markdown image URLs
-and `social_image` are rewritten to those hashed paths.
+in the published tree (`og.png` becomes `og.<hash>.png`). Markdown and `@img`
+URLs under that tree are rewritten whether they are authored as
+`/assets/foo.png` or `assets/foo.png`. `social_image` is rewritten the same way.
+
+Local image paths resolve against the source file directory. Missing files fail
+`rocs check` with `RD2103`. Validated page and heading links are rewritten to
+emitted routes after catalog resolve, so a passing check implies a usable href.
 
 Rocs writes into a staging directory and atomically replaces the output only
 after a successful build.

@@ -5,14 +5,14 @@ use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
 use rocci_rocdown::{
-    DocsDecl, Document, Item, MdNode, SourceFile, extract_lines, extract_region, field_bool,
-    field_string, field_strings, include_path_error, parse_fragment, resolve_include_path,
-    split_docs_body,
+    DocsDecl, Document, Item, MdNode, SourceFile, StaticImage, extract_img_fields, extract_lines,
+    extract_region, field_bool, field_string, field_strings, include_path_error, parse_fragment,
+    resolve_include_path, split_docs_body,
 };
 use serde::Serialize;
 
-use crate::article::render_md;
-use crate::catalog::{CatalogDiagnostic, PageHeading, ResolvedPage, Severity};
+use crate::article::{render_md, render_static_image};
+use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 
 const ASIDES: &[&str] = &["note", "tip", "caution", "danger", "deprecated"];
 const TAB_KINDS: &[&str] = &["language", "platform", "tool"];
@@ -31,6 +31,7 @@ pub struct PageDocs {
 pub enum ArticleNode {
     Markdown(MdNode),
     Docs(DocsNode),
+    Image(StaticImage),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -261,6 +262,8 @@ fn walk_links(nodes: &[ArticleNode], urls: &mut Vec<String>, images: bool) {
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => walk_md_links(md, urls, images),
+            ArticleNode::Image(image) if images => urls.push(image.src.clone()),
+            ArticleNode::Image(_) => {}
             ArticleNode::Docs(docs) => {
                 if let Some(href) = &docs.attrs.href
                     && !images
@@ -300,6 +303,68 @@ pub fn fill_link_cards(pages: &mut [ResolvedPage]) {
         .collect();
     for page in pages {
         fill_cards_in(&mut page.article, &lookup);
+    }
+}
+
+pub fn rewrite_resolved_links(pages: &mut [ResolvedPage], graph: &[Edge]) {
+    let routes: BTreeMap<String, String> = pages
+        .iter()
+        .map(|page| (page.id.clone(), page.route.clone()))
+        .collect();
+    let mut maps: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    for edge in graph {
+        if edge.raw.starts_with('#') {
+            continue;
+        }
+        let href = match edge.kind {
+            EdgeKind::Page => routes.get(&edge.target).cloned(),
+            EdgeKind::Heading => edge.target.split_once('#').and_then(|(id, fragment)| {
+                routes.get(id).map(|route| format!("{route}#{fragment}"))
+            }),
+            EdgeKind::Asset | EdgeKind::External => None,
+        };
+        if let Some(href) = href {
+            maps.entry(edge.from_id.clone())
+                .or_default()
+                .insert(edge.raw.clone(), href);
+        }
+    }
+    for page in pages {
+        let Some(map) = maps.get(&page.id) else {
+            continue;
+        };
+        rewrite_nodes(&mut page.article, map);
+        if !page.article.is_empty() {
+            page.article_html = render_article(&page.article);
+        }
+    }
+}
+
+fn rewrite_nodes(nodes: &mut [ArticleNode], map: &BTreeMap<String, String>) {
+    for node in nodes {
+        match node {
+            ArticleNode::Markdown(md) => rewrite_md(md, map),
+            ArticleNode::Docs(docs) => {
+                if let Some(href) = &docs.attrs.href
+                    && let Some(rewritten) = map.get(href)
+                {
+                    docs.attrs.href = Some(rewritten.clone());
+                }
+                rewrite_nodes(&mut docs.children, map);
+            }
+            ArticleNode::Image(_) => {}
+        }
+    }
+}
+
+fn rewrite_md(node: &mut MdNode, map: &BTreeMap<String, String>) {
+    if let MdNode::Link { url, .. } = node
+        && let Some(rewritten) = map.get(url.as_str())
+    {
+        *url = rewritten.clone();
+    }
+    for child in node.children_mut() {
+        rewrite_md(child, map);
     }
 }
 
@@ -374,17 +439,26 @@ fn nodes_from_items(
             }
             Item::Img(img) => {
                 let mut diags = Vec::new();
-                let fields =
-                    rocci_rocdown::extract_img_fields(ctx.source.src, img.body, &mut diags);
-                let src = fields.src.map(|(s, _)| s).unwrap_or_default();
-                let alt = fields.alt.map(|(s, _)| s).unwrap_or_default();
-                let title = fields.title.map(|(s, _)| s).unwrap_or_default();
-                nodes.push(ArticleNode::Markdown(MdNode::Image {
-                    url: src,
-                    title,
-                    alt,
-                    span: img.span,
-                }));
+                let fields = extract_img_fields(ctx.source.src, img.body, &mut diags);
+                for diagnostic in diags {
+                    ctx.diagnostics.push(CatalogDiagnostic {
+                        code: if diagnostic.is_error() {
+                            "RD1001"
+                        } else {
+                            "RD1002"
+                        },
+                        severity: if diagnostic.is_error() {
+                            Severity::Error
+                        } else {
+                            Severity::Warning
+                        },
+                        path: ctx.source_path.to_string(),
+                        message: diagnostic.message,
+                    });
+                }
+                nodes.push(ArticleNode::Image(StaticImage::from_fields(
+                    &fields, img.span,
+                )));
             }
             Item::Page(_) if parent_kind.is_some() => illegal(ctx, item, "page"),
             Item::Page(_) => {}
@@ -502,7 +576,6 @@ fn parse_attrs(src: &str, fields: &[rocci_rocdown::DocsField]) -> DocsAttrs {
             "summary" => attrs.summary = field_string(src, field),
             "label" => attrs.label = field_string(src, field),
             "term" => attrs.term = field_string(src, field),
-            "alt" => attrs.alt = field_string(src, field),
             "caption" => attrs.caption = field_string(src, field),
             "credit" => attrs.credit = field_string(src, field),
             "tone" => attrs.tone = field_string(src, field),
@@ -582,7 +655,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
             let extra = node.children.iter().any(|child| match child {
                 ArticleNode::Docs(docs) => docs.kind != "step",
                 ArticleNode::Markdown(MdNode::List { ordered: true, .. }) => false,
-                ArticleNode::Markdown(_) => true,
+                ArticleNode::Markdown(_) | ArticleNode::Image(_) => true,
             });
             if has_step && has_list {
                 malformed(
@@ -606,13 +679,6 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
             }
         }
         "figure" => {
-            if node.attrs.alt.as_deref().unwrap_or("").is_empty() {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2404",
-                    path,
-                    format!("line {line}: `@docs figure` requires `alt`"),
-                ));
-            }
             let images = count_images(&node.children);
             if images != 1 {
                 malformed(
@@ -828,7 +894,7 @@ fn count_images(nodes: &[ArticleNode]) -> usize {
                 .iter()
                 .filter(|child| matches!(child, MdNode::Image { .. }))
                 .count(),
-            ArticleNode::Markdown(MdNode::Image { .. }) => 1,
+            ArticleNode::Markdown(MdNode::Image { .. }) | ArticleNode::Image(_) => 1,
             ArticleNode::Docs(docs) => count_images(&docs.children),
             _ => 0,
         })
@@ -1098,13 +1164,27 @@ fn push_example(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
 }
 
 pub fn render_article(nodes: &[ArticleNode]) -> String {
-    nodes.iter().map(render_node).collect()
+    let mut parts = Vec::new();
+    let mut footnotes = Vec::new();
+    for node in nodes {
+        match node {
+            ArticleNode::Markdown(md) if matches!(md, MdNode::FootnoteDefinition { .. }) => {
+                footnotes.push(render_md(md));
+            }
+            other => parts.push(render_node(other)),
+        }
+    }
+    if !footnotes.is_empty() {
+        parts.push(crate::article::render_footnote_section(&footnotes));
+    }
+    parts.concat()
 }
 
 fn render_node(node: &ArticleNode) -> String {
     match node {
         ArticleNode::Markdown(md) => render_md(md),
         ArticleNode::Docs(docs) => render_docs(docs),
+        ArticleNode::Image(image) => render_static_image(image),
     }
 }
 
@@ -1257,6 +1337,10 @@ pub fn markdown_fragment(nodes: &[ArticleNode]) -> String {
                 out.push('\n');
             }
             ArticleNode::Docs(docs) => out.push_str(&docs_to_markdown(docs)),
+            ArticleNode::Image(image) => {
+                out.push_str(&format!("![{}]({})", image.alt, image.src));
+                out.push('\n');
+            }
         }
     }
     out
@@ -1439,7 +1523,12 @@ fn plan_nodes(
         if markdown.is_empty() {
             return;
         }
-        let html = rewrite_urls(&markdown.iter().map(render_md).collect::<String>(), rewrite);
+        let nodes: Vec<ArticleNode> = markdown
+            .iter()
+            .cloned()
+            .map(ArticleNode::Markdown)
+            .collect();
+        let html = rewrite_urls(&render_article(&nodes), rewrite);
         let path = format!("articles/{article_name}.{counter}.html");
         *counter += 1;
         files.push((path.clone(), html));
@@ -1449,6 +1538,14 @@ fn plan_nodes(
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => markdown.push(md.clone()),
+            ArticleNode::Image(image) => {
+                flush(&mut markdown, files, counter, &mut segments);
+                let html = rewrite_urls(&render_static_image(image), rewrite);
+                let path = format!("articles/{article_name}.{counter}.html");
+                *counter += 1;
+                files.push((path.clone(), html));
+                segments.push(html_segment(path));
+            }
             ArticleNode::Docs(docs) => {
                 flush(&mut markdown, files, counter, &mut segments);
                 segments.push(docs_segment(article_name, docs, rewrite, files, counter));
@@ -1818,12 +1915,23 @@ mod tests {
     }
 
     #[test]
-    fn figure_without_alt_is_rd2404() {
+    fn figure_with_markdown_image_does_not_require_figure_alt() {
         let (_docs, diagnostics) = load("@docs figure {\n    ![x](/x.png)\n}\n");
         assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == "RD2404")
+            !diagnostics.iter().any(CatalogDiagnostic::is_error),
+            "{diagnostics:?}"
+        );
+    }
+
+    #[test]
+    fn figure_level_alt_is_unknown() {
+        let (_docs, diagnostics) =
+            load("@docs figure {\n    alt: \"Diagram\"\n\n    ![x](/x.png)\n}\n");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "RD2402" && diagnostic.message.contains("unknown")
+            }),
+            "{diagnostics:?}"
         );
     }
 
@@ -1988,13 +2096,52 @@ mod tests {
     }
 
     #[test]
-    fn img_decl_is_projected_as_image_node() {
-        let (docs, diags) =
-            load("# Guide\n\n@img {\n    src: \"img/banner.png\"\n    width: \"300px\"\n}\n");
+    fn footnotes_render_in_accessible_section() {
+        let (docs, diags) = load("Claim.[^source]\n\n[^source]: Evidence.\n");
+        assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
+        let html = render_article(&docs.article);
+        assert!(html.contains("data-footnote-ref"), "{html}");
+        assert!(html.contains("aria-label=\"Footnotes\""), "{html}");
+        assert!(html.contains("data-footnote-backref"), "{html}");
+        assert!(html.contains("id=\"fn-source\""), "{html}");
+        assert!(html.contains("id=\"fnref-source\""), "{html}");
+        assert!(html.contains("Evidence."), "{html}");
+    }
+
+    #[test]
+    fn img_decl_preserves_all_fields() {
+        let (docs, diags) = load(
+            "# Guide\n\n@img {\n    src: \"img/banner.png\"\n    alt: \"Banner\"\n    title: \"Hero\"\n    width: \"300px\"\n    height: \"120px\"\n    class: \"hero\"\n    loading: \"lazy\"\n    decoding: \"async\"\n}\n",
+        );
         assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
         assert_eq!(collect_images(&docs.article), vec!["img/banner.png"]);
         let html = render_article(&docs.article);
-        assert!(html.contains("src=\"img/banner.png\""));
-        assert!(html.contains("rd-image"));
+        assert!(html.contains("src=\"img/banner.png\""), "{html}");
+        assert!(html.contains("alt=\"Banner\""), "{html}");
+        assert!(html.contains("title=\"Hero\""), "{html}");
+        assert!(html.contains("width=\"300px\""), "{html}");
+        assert!(html.contains("height=\"120px\""), "{html}");
+        assert!(html.contains("class=\"rd-image hero\""), "{html}");
+        assert!(html.contains("loading=\"lazy\""), "{html}");
+        assert!(html.contains("decoding=\"async\""), "{html}");
+    }
+
+    #[test]
+    fn figure_preserves_caption_credit_and_nested_img_fields() {
+        let (docs, diags) = load(
+            "@docs figure {\n    caption: \"Architecture\"\n    credit: \"Rocci docs\"\n\n    @img {\n        src: \"diagram.png\"\n        alt: \"Diagram\"\n        width: \"400px\"\n        loading: \"lazy\"\n        decoding: \"async\"\n    }\n}\n",
+        );
+        assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
+        let html = render_article(&docs.article);
+        assert!(html.contains("<figure"), "{html}");
+        assert!(html.contains("rd-docs-caption"), "{html}");
+        assert!(html.contains("Architecture"), "{html}");
+        assert!(html.contains("rd-docs-credit"), "{html}");
+        assert!(html.contains("Rocci docs"), "{html}");
+        assert!(html.contains("alt=\"Diagram\""), "{html}");
+        assert!(html.contains("width=\"400px\""), "{html}");
+        assert!(html.contains("loading=\"lazy\""), "{html}");
+        assert!(html.contains("decoding=\"async\""), "{html}");
+        assert!(!html.contains("alt=\"Architecture\""), "{html}");
     }
 }

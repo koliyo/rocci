@@ -214,6 +214,41 @@ impl MdNode {
         }
     }
 
+    pub fn children(&self) -> &[MdNode] {
+        match self {
+            Self::Heading { children, .. }
+            | Self::Paragraph { children, .. }
+            | Self::BlockQuote { children, .. }
+            | Self::List { children, .. }
+            | Self::Item { children, .. }
+            | Self::TaskItem { children, .. }
+            | Self::Table { children, .. }
+            | Self::TableRow { children, .. }
+            | Self::TableCell { children, .. }
+            | Self::Emph { children, .. }
+            | Self::Strong { children, .. }
+            | Self::Strikethrough { children, .. }
+            | Self::FootnoteDefinition { children, .. }
+            | Self::Link { children, .. } => children,
+            Self::CodeBlock { .. }
+            | Self::ThematicBreak { .. }
+            | Self::Text { .. }
+            | Self::SoftBreak { .. }
+            | Self::LineBreak { .. }
+            | Self::Code { .. }
+            | Self::FootnoteReference { .. }
+            | Self::Image { .. }
+            | Self::RawHtml { .. } => &[],
+        }
+    }
+
+    pub fn walk<'a>(&'a self, visit: &mut impl FnMut(&'a MdNode)) {
+        visit(self);
+        for child in self.children() {
+            child.walk(visit);
+        }
+    }
+
     pub fn text_content(&self) -> String {
         match self {
             Self::Text { value, .. } | Self::Code { value, .. } => value.clone(),

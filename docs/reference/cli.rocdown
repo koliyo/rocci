@@ -104,8 +104,19 @@ implemented yet.
 cargo run -p rocs-cli -- build [ROOT] [--output DIRECTORY]
 ```
 
-The default root is the current directory. Rocs reads `rocs.toml` from that
-root. `--output` overrides `build.output`.
+The default root is the current directory. `ROOT` may be a documentation
+directory or a `.rocdown` file. A file root uses the parent directory as the
+content root and still discovers sibling pages and assets. `rocs.toml` is
+optional. `--output` overrides `build.output`.
+
+```sh
+cargo run -p rocs-cli -- build report.rocdown --output dist
+```
+
+Local `@img` and Markdown image paths resolve against the source file. Missing
+local files fail the catalog (`RD2103`). Files under `build.assets` are
+content-hashed whether the authored URL is `/assets/foo.png` or
+`assets/foo.png`.
 
 ## Preview documentation
 
@@ -114,9 +125,14 @@ cargo run -p rocs-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECT
 ```
 
 Watch `.rocdown` sources, `rocs.toml`, and assets, rebuild, and serve the site
-with live reload. The default root is the current directory. Preview output
+with live reload. The default root is the current directory. A `.rocdown` file
+root uses the same parent-directory rule as `build`. Preview output
 goes to a temp directory unless `--output` is set, so a production `dist/` is
 not overwritten.
+
+```sh
+cargo run -p rocs-cli -- run report.rocdown
+```
 
 | Option | Effect |
 | --- | --- |
@@ -138,8 +154,9 @@ not live-reloaded; pages that use them still fail the catalog.
 cargo run -p rocs-cli -- check [ROOT] [--format terminal|json]
 ```
 
-Validate the catalog, including `@docs` content models and includes, without
-compiling Roc or writing output.
+Validate the catalog, including `@docs` content models, includes, page links,
+and local assets, without compiling Roc or writing output. `ROOT` may be a
+directory or a `.rocdown` file.
 
 ## Test documented examples
 
