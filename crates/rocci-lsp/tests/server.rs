@@ -1366,3 +1366,64 @@ fn semantic_tokens_malformed_and_incomplete_recovery() {
         }
     }
 }
+
+#[test]
+fn semantic_tokens_counter_rocci_qualified_precision() {
+    let src = include_str!("../../../examples/counter/Counter.rocci");
+    for utf8 in [true, false] {
+        let mut server = initialize(utf8);
+        let uri = test_uri();
+        open(&mut server, src);
+
+        let result = server
+            .semantic_tokens_full(SemanticTokensParams {
+                text_document: TextDocumentIdentifier { uri },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
+            })
+            .expect("tokens response");
+        let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+            panic!("expected full tokens");
+        };
+
+        let mut cur_line = 0u32;
+        let mut cur_col = 0u32;
+        let mut matched_sqlite_query = false;
+        let mut matched_sqlite_execute = false;
+        let mut matched_default_limits = false;
+
+        for tok in &tokens.data {
+            cur_line += tok.delta_line;
+            if tok.delta_line == 0 {
+                cur_col += tok.delta_start;
+            } else {
+                cur_col = tok.delta_start;
+            }
+            let line_text = src.lines().nth(cur_line as usize).unwrap_or("");
+            if (cur_col as usize + tok.length as usize) <= line_text.len() {
+                let slice = &line_text[cur_col as usize..cur_col as usize + tok.length as usize];
+                if slice == "query" && line_text.contains("Sqlite.query!") {
+                    matched_sqlite_query = true;
+                }
+                if slice == "execute" && line_text.contains("Sqlite.execute!") {
+                    matched_sqlite_execute = true;
+                }
+                if slice == "default_query_limits"
+                    && line_text.contains("Sqlite.default_query_limits")
+                {
+                    matched_default_limits = true;
+                }
+                assert_ne!(slice, "uery", "token was chopped off by one");
+                assert_ne!(slice, "xecute", "token was chopped off by one");
+                assert_ne!(slice, "efault_query_limits", "token was chopped off by one");
+            }
+        }
+
+        assert!(matched_sqlite_query, "did not match Sqlite.query");
+        assert!(matched_sqlite_execute, "did not match Sqlite.execute");
+        assert!(
+            matched_default_limits,
+            "did not match Sqlite.default_query_limits"
+        );
+    }
+}

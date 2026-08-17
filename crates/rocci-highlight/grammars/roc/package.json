@@ -1,0 +1,12 @@
+{
+  "name": "tree-sitter-roc",
+  "version": "1.0.0",
+  "description": "Tree-sitter grammar for Roc",
+  "main": "grammar.js",
+  "scripts": {
+    "generate": "tree-sitter generate"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8"
+  }
+}
