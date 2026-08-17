@@ -114,7 +114,10 @@ cargo fmt --all -- --check
 ```
 
 Run `cargo test -p rocci-lsp` when diagnostics, positions, symbols, completion,
-or semantic tokens may change. Run `cargo test -p rocci-cli` when compilation
+or semantic tokens may change (default tests complete in <2s; use
+`cargo test -p rocci-lsp --test fuzz_invariants -- --ignored` for deep mutation
+fuzzing and `cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored`
+for latency benchmarks). Run `cargo test -p rocci-cli` when compilation
 metadata or CLI inspection output changes. Run `cargo test --workspace` for a
 cross-format or cross-consumer change. Set `ROCCI_REQUIRE_ROC=1` only when the
 task must prove compatibility with the pinned Roc toolchain.

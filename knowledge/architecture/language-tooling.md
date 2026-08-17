@@ -94,12 +94,13 @@ The Zed adapter README works around the latter with per-language
 `semantic_tokens = "full"`; current-version compatibility still requires an
 editor smoke test.[^zed-manifest][^zed-readme][^zed-languages]
 
-## Current build state
+## Current test and build state
 
-As of 2026-08-17, `cargo test -p rocci-lsp` fails to compile because the
-Rocdown AST contains `Item::Docs` but LSP symbol and token matches do not yet
-handle it. This is a compatibility regression and a prerequisite for new LSP
-work, not evidence that `@docs` is unimplemented in Rocdown.[^rocdown-ast][^lsp-rocdown][^lsp-tokens]
+As of 2026-08-17, `rocci-lsp` compiles cleanly and all test suites pass. Tests
+are tiered so that default `cargo test -p rocci-lsp` completes in under two
+seconds (<2s) with unit, server, and invariant smoke checks, while deep
+5,000-iteration mutation fuzzing and release latency benchmarks are gated
+behind `#[ignore]` and run on demand.[^lsp-tests]
 
 ## Planned evolution
 

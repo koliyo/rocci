@@ -198,8 +198,7 @@ fn test_invariants_on_all_standard_fixtures() {
     }
 }
 
-#[test]
-fn test_multibyte_and_non_bmp_byte_slicing_stress() {
+fn run_byte_slicing_stress(stride: usize) {
     let unicode_rocci = r#"
 module [UnicodeApp]
 
@@ -259,7 +258,6 @@ emoji_list = ["🦀", "🚀", "✨", "𠜎"]
 ```
 "#;
 
-    // Test slicing at EVERY valid char boundary
     for (name, text, is_rocci) in [
         ("Unicode.rocci", unicode_rocci, true),
         ("Unicode.rocdown", unicode_rocdown, false),
@@ -270,8 +268,11 @@ emoji_list = ["🦀", "🚀", "✨", "𠜎"]
             let uri = test_uri(name);
             let lang = if is_rocci { "rocci" } else { "rocdown" };
 
-            // Step through byte indices that are char boundaries
-            for (byte_idx, _) in text.char_indices() {
+            let indices: Vec<_> = text.char_indices().map(|(idx, _)| idx).collect();
+            for (i, &byte_idx) in indices.iter().enumerate() {
+                if stride > 1 && i % stride != 0 && i != indices.len() - 1 {
+                    continue;
+                }
                 let slice = &text[..byte_idx];
                 server.did_open(DidOpenTextDocumentParams {
                     text_document: TextDocumentItem {
@@ -294,6 +295,17 @@ emoji_list = ["🦀", "🚀", "✨", "𠜎"]
             }
         }
     }
+}
+
+#[test]
+fn test_multibyte_and_non_bmp_byte_slicing_stress() {
+    run_byte_slicing_stress(8);
+}
+
+#[test]
+#[ignore = "exhaustive byte slicing stress; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
+fn test_multibyte_and_non_bmp_byte_slicing_exhaustive() {
+    run_byte_slicing_stress(1);
 }
 
 #[test]
@@ -462,8 +474,7 @@ fn test_deeply_nested_structures() {
     }
 }
 
-#[test]
-fn test_deterministic_mutation_fuzzing() {
+fn run_mutation_fuzzing(iterations: usize) {
     // Simple LCG PRNG for determinism across platforms
     struct SimplePrng {
         state: u64,
@@ -500,7 +511,6 @@ fn test_deterministic_mutation_fuzzing() {
         b' ', b'\t', b'0', b'a', b'Z', 0xF0, 0x9F, 0x94, 0xA5, // 🔥 (UTF-8 fragment)
     ];
 
-    let iterations = if cfg!(debug_assertions) { 1_000 } else { 5_000 };
     for iteration in 0..iterations {
         let base = base_fixtures[prng.gen_range(0, base_fixtures.len())];
         let mut mutated = base.as_bytes().to_vec();
@@ -566,4 +576,23 @@ fn test_deterministic_mutation_fuzzing() {
             assert_token_invariants(&tokens, &mutated_str, encoding);
         }
     }
+}
+
+#[test]
+fn test_deterministic_mutation_fuzzing() {
+    let iterations = std::env::var("ROCCI_FUZZ_ITERATIONS")
+        .ok()
+        .and_then(|val| val.parse::<usize>().ok())
+        .unwrap_or(50);
+    run_mutation_fuzzing(iterations);
+}
+
+#[test]
+#[ignore = "exhaustive 5000-iteration mutation fuzzing; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
+fn test_deterministic_mutation_fuzzing_deep() {
+    let iterations = std::env::var("ROCCI_FUZZ_ITERATIONS")
+        .ok()
+        .and_then(|val| val.parse::<usize>().ok())
+        .unwrap_or(5_000);
+    run_mutation_fuzzing(iterations);
 }

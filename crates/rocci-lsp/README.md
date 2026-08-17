@@ -75,17 +75,14 @@ Typed Region Graph (RegionTree)
 ## Testing
 
 ```sh
-# Run all unit and server integration tests
+# Run fast unit, server integration, and smoke invariant tests (< 1s)
 cargo test -p rocci-lsp
 
-# Run performance benchmarks and print latency tables
-cargo test -p rocci-lsp --test perf -- --nocapture
+# Run deep invariant property tests and exhaustive byte-slicing stress tests
+cargo test -p rocci-lsp --test fuzz_invariants -- --nocapture --ignored
 
-# Run release-mode performance verification
-cargo test -p rocci-lsp --test perf --release -- --nocapture
-
-# Run fuzz and invariant property tests
-cargo test -p rocci-lsp --test fuzz_invariants -- --nocapture
+# Run release-mode performance latency benchmarks
+cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored
 ```
 
 ---
