@@ -5,6 +5,8 @@ use anyhow::{Context, Result};
 use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, Severity, TrustTier, classify_concept_action,
 };
+pub use rocci_ui::escape;
+use rocci_ui::{StatCardView, StatTone, render_stat_grid};
 use serde_json::Value;
 
 pub const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
@@ -333,32 +335,15 @@ pub fn render_home_page_governance(bundle: &Bundle) -> String {
 
     let mut out = String::new();
     out.push_str("<div class=\"okf-home-governance\">\n");
-    out.push_str("  <div class=\"okf-stat-grid\">\n");
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Total Concepts</div></div>\n",
-        total_concepts
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stable</div></div>\n",
-        stable_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Draft</div></div>\n",
-        draft_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card is-action\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Action Required</div></div>\n",
-        action_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stale Records</div></div>\n",
-        stale_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Diagnostics</div></div>\n",
-        warnings_count
-    ));
-    out.push_str("  </div>\n\n");
+    out.push_str(&render_stat_grid(&governance_stat_cards(
+        total_concepts,
+        stable_count,
+        draft_count,
+        action_count,
+        stale_count,
+        warnings_count,
+    )));
+    out.push('\n');
 
     out.push_str(&render_priority_1_queue(bundle));
 
@@ -375,6 +360,30 @@ pub fn render_home_page_governance(bundle: &Bundle) -> String {
     );
     out.push_str("</div>\n\n");
     out
+}
+
+pub fn governance_stat_cards(
+    total_concepts: usize,
+    stable_count: usize,
+    draft_count: usize,
+    action_count: usize,
+    stale_count: usize,
+    warnings_count: usize,
+) -> Vec<StatCardView> {
+    vec![
+        StatCardView::new(total_concepts.to_string(), "Total Concepts"),
+        StatCardView::new(stable_count.to_string(), "Stable"),
+        StatCardView::new(draft_count.to_string(), "Draft"),
+        StatCardView::new(action_count.to_string(), "Action Required").with_tone(
+            if action_count > 0 {
+                StatTone::Action
+            } else {
+                StatTone::Default
+            },
+        ),
+        StatCardView::new(stale_count.to_string(), "Stale Records"),
+        StatCardView::new(warnings_count.to_string(), "Diagnostics"),
+    ]
 }
 
 pub fn render_review_page(bundle: &Bundle) -> String {
@@ -448,32 +457,15 @@ pub fn render_review_page(bundle: &Bundle) -> String {
     out.push_str("  <h1 class=\"rd-header-1\">Knowledge Governance &amp; Review Queue</h1>\n");
     out.push_str("  <p class=\"rd-paragraph\">Deterministic overview of bundle lifecycle status, trust tiers, source drift, and required human actions.</p>\n\n");
 
-    out.push_str("  <div class=\"okf-stat-grid\">\n");
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Total Concepts</div></div>\n",
-        total_concepts
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stable</div></div>\n",
-        stable_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Draft</div></div>\n",
-        draft_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card is-action\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Action Required</div></div>\n",
-        action_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Stale Records</div></div>\n",
-        stale_count
-    ));
-    out.push_str(&format!(
-        "    <div class=\"okf-stat-card\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">Diagnostics</div></div>\n",
-        warnings_count
-    ));
-    out.push_str("  </div>\n\n");
+    out.push_str(&render_stat_grid(&governance_stat_cards(
+        total_concepts,
+        stable_count,
+        draft_count,
+        action_count,
+        stale_count,
+        warnings_count,
+    )));
+    out.push('\n');
 
     out.push_str(&render_priority_1_queue(bundle));
 
@@ -695,13 +687,4 @@ pub fn html_page(title: &str, article: &str) -> String {
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body><main class=\"rd-document\">{article}</main></body></html>\n",
         escape(title)
     )
-}
-
-pub fn escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#39;")
 }

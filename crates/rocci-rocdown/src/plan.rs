@@ -16,60 +16,9 @@ pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 
 
 const HASH_LEN: usize = 16;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PageView {
-    pub site: SiteView,
-    pub lanes: Vec<LaneView>,
-    pub sidebar: Vec<NavItemView>,
-    pub route: String,
-    pub title: String,
-    pub description: String,
-    pub outline: Vec<OutlineView>,
-    pub breadcrumbs: Vec<NavItemView>,
-    pub previous: NavItemView,
-    pub next: NavItemView,
-    pub resources: ResourceView,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SiteView {
-    pub title: String,
-    pub description: String,
-    pub base_url: String,
-    pub language: String,
-    pub repository: String,
-    pub social_image: String,
-    pub subtitle: String,
-    pub footer: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LaneView {
-    pub label: String,
-    pub href: String,
-    pub current: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NavItemView {
-    pub title: String,
-    pub href: String,
-    pub class_name: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OutlineView {
-    pub id: String,
-    pub title: String,
-    pub level: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResourceView {
-    pub stylesheet: String,
-    pub csp: String,
-    pub canonical: String,
-}
+pub use rocci_ui::{
+    BreadcrumbView, LaneView, NavItemView, OutlineView, PageView, ResourceView, SiteView,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedPage {
@@ -422,7 +371,7 @@ fn planned_page(
                 .filter(|heading| (2..=3).contains(&heading.level))
                 .map(outline_view)
                 .collect(),
-            breadcrumbs: page.breadcrumbs.iter().map(nav_from_link).collect(),
+            breadcrumbs: page.breadcrumbs.iter().map(breadcrumb_from_link).collect(),
             previous: optional_link(page.previous.as_ref()),
             next: optional_link(page.next.as_ref()),
             resources: ResourceView {
@@ -592,6 +541,10 @@ fn outline_view(heading: &PageHeading) -> OutlineView {
         title: heading.text.clone(),
         level: heading.level.to_string(),
     }
+}
+
+fn breadcrumb_from_link(link: &NavLink) -> BreadcrumbView {
+    BreadcrumbView::new(&link.title, &link.route)
 }
 
 fn nav_from_link(link: &NavLink) -> NavItemView {

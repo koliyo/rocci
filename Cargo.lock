@@ -2337,6 +2337,7 @@ dependencies = [
  "rocci-core",
  "rocci-desktop",
  "rocci-rocdown",
+ "rocci-ui",
  "serde",
  "serde_json",
 ]
@@ -2355,6 +2356,7 @@ dependencies = [
  "rocci-lsp",
  "rocci-template",
  "rocci-theme",
+ "rocci-ui",
  "serde",
  "serde_json",
  "sha2",
@@ -2388,6 +2390,15 @@ name = "rocci-theme"
 version = "0.1.0"
 dependencies = [
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "rocci-ui"
+version = "0.1.0"
+dependencies = [
+ "rocci-template",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
