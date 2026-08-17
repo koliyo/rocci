@@ -12,6 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = { workspace = true }
 notify = "8"
+rocci-highlight = { workspace = true }
 rocci-template = { workspace = true }
 rocci-rocdown = { workspace = true }
 serde = { workspace = true }
@@ -19,3 +20,6 @@ serde_json = { workspace = true }
 sha2 = "0.10"
 toml = { workspace = true }
 yaml-rust = "0.4"
+
+[dev-dependencies]
+rocci-lsp = { workspace = true }

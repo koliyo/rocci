@@ -102,13 +102,27 @@ pub(crate) fn render_md(node: &MdNode) -> String {
             element("li", &[attribute("class", "rd-task-item")], &kids)
         }
         MdNode::CodeBlock { info, literal, .. } => {
+            let lang = rocci_highlight::LanguageId::parse(info);
+            let mut pre_attrs = vec![attribute("class", "rd-code-block")];
+            if lang.is_highlighted() {
+                pre_attrs.push(attribute("data-language", lang.canonical_name()));
+            }
             let code_class = if info.is_empty() {
                 "rd-code".to_string()
             } else {
-                format!("rd-code language-{info}")
+                format!("rd-code language-{}", lang.canonical_name())
             };
-            let code = element("code", &[attribute("class", &code_class)], &[text(literal)]);
-            element("pre", &[attribute("class", "rd-code-block")], &[code])
+            let code_html = if lang.is_highlighted() {
+                render_highlighted_code(&lang, literal)
+            } else {
+                escape(literal)
+            };
+            let code = format!(
+                "<code class=\"{}\">{}</code>",
+                escape(&code_class),
+                code_html
+            );
+            element("pre", &pre_attrs, &[code])
         }
         MdNode::ThematicBreak { .. } => {
             void_element("hr", &[attribute("class", "rd-thematic-break")])
@@ -331,6 +345,41 @@ fn fragment(nodes: &[String]) -> String {
     nodes.concat()
 }
 
+fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) -> String {
+    let spans = rocci_highlight::highlight(lang.clone(), literal);
+    if spans.is_empty() {
+        return escape(literal);
+    }
+    let mut html = String::with_capacity(literal.len() * 2);
+    let mut prev_end = 0usize;
+    for span in spans {
+        let start = span.start().min(literal.len());
+        let end = span.end().min(literal.len());
+        if start > prev_end {
+            html.push_str(&escape(&literal[prev_end..start]));
+        }
+        if start < end {
+            let kind_class = span.kind.css_class();
+            let mod_classes = rocci_highlight::modifier_css_classes(span.modifiers);
+            let class_str = if mod_classes.is_empty() {
+                kind_class.to_string()
+            } else {
+                format!("{kind_class} {}", mod_classes.join(" "))
+            };
+            html.push_str("<span class=\"");
+            html.push_str(&class_str);
+            html.push_str("\">");
+            html.push_str(&escape(&literal[start..end]));
+            html.push_str("</span>");
+        }
+        prev_end = end;
+    }
+    if prev_end < literal.len() {
+        html.push_str(&escape(&literal[prev_end..]));
+    }
+    html
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -384,14 +433,62 @@ mod tests {
         assert!(rendered.contains("<li class=\"rd-list-item\">"));
         assert!(rendered.contains("one"));
         assert!(rendered.contains("<ol class=\"rd-list-ordered\">"));
-        assert!(rendered.contains("<pre class=\"rd-code-block\">"));
+        assert!(rendered.contains("<pre class=\"rd-code-block\" data-language=\"roc\">"));
         assert!(rendered.contains("<code class=\"rd-code language-roc\">"));
-        assert!(rendered.contains("1 &lt; 2"));
+        assert!(rendered.contains("<span class=\"tok-number\">1</span>"));
+        assert!(rendered.contains("<span class=\"tok-operator\">&lt;</span>"));
+        assert!(rendered.contains("<span class=\"tok-number\">2</span>"));
         assert!(rendered.contains("<li class=\"rd-task-item\">"));
         assert!(rendered.contains("<input type=\"checkbox\" disabled checked />"));
         assert!(rendered.contains("<table class=\"rd-table\">"));
         assert!(rendered.contains("<th class=\"rd-table-header\">A</th>"));
         assert!(rendered.contains("<td class=\"rd-table-cell\">1</td>"));
+    }
+
+    #[test]
+    fn renders_syntax_highlighted_fences_for_all_languages() {
+        let rendered = html(
+            "\
+```html
+<div class=\"card\"><p>Hello &amp; World</p></div>
+```
+
+```css
+.card { color: #fff; margin: 10px; }
+```
+
+```rocci
+@component Header = |{ title }| { <h1>{title}</h1> }
+```
+
+```rocdown
+# Section
+
+Text in rocdown.
+```
+
+```unknown_lang
+<script>alert(1)</script>
+```
+",
+        );
+        assert!(rendered.contains("<pre class=\"rd-code-block\" data-language=\"html\"><code class=\"rd-code language-html\">"));
+        assert!(rendered.contains("<span class=\"tok-tag tok-default-library\">div</span>"));
+        assert!(rendered.contains("&amp;amp;"));
+
+        assert!(rendered.contains("<pre class=\"rd-code-block\" data-language=\"css\"><code class=\"rd-code language-css\">"));
+        assert!(rendered.contains("<span class=\"tok-property\">color</span>"));
+        assert!(rendered.contains("<span class=\"tok-number\">#fff</span>"));
+
+        assert!(rendered.contains("<pre class=\"rd-code-block\" data-language=\"rocci\"><code class=\"rd-code language-rocci\">"));
+        assert!(rendered.contains("<span class=\"tok-keyword\">@component</span>"));
+        assert!(rendered.contains("<span class=\"tok-function tok-definition\">Header</span>"));
+
+        assert!(rendered.contains("<pre class=\"rd-code-block\" data-language=\"rocdown\"><code class=\"rd-code language-rocdown\">"));
+        assert!(rendered.contains("<span class=\"tok-keyword\">#</span>"));
+
+        // Fallback for unknown language safely escapes HTML and omits data-language
+        assert!(rendered.contains("<pre class=\"rd-code-block\"><code class=\"rd-code language-unknown_lang\">&lt;script&gt;alert(1)&lt;/script&gt;"));
     }
 
     #[test]

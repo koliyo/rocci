@@ -7,6 +7,7 @@ members = [
     "crates/rocci-template",
     "crates/rocci-rocdown",
     "crates/rocci-theme",
+    "crates/rocci-highlight",
     "crates/rocci-lsp",
     "crates/rocs",
     "crates/rocs-cli",
@@ -26,6 +27,7 @@ rocci-wry = { path = "crates/rocci-wry" }
 rocci-template = { path = "crates/rocci-template" }
 rocci-rocdown = { path = "crates/rocci-rocdown" }
 rocci-theme = { path = "crates/rocci-theme" }
+rocci-highlight = { path = "crates/rocci-highlight" }
 rocci-lsp = { path = "crates/rocci-lsp" }
 rocs = { path = "crates/rocs" }
 lsp-server = "0.7"
