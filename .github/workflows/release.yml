@@ -1,0 +1,163 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Build release binaries
+        run: cargo build --release -p rocci-cli -p rocs-cli -p rocci-lsp
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            short_sha="${GITHUB_SHA::7}"
+            echo "version=dev-${short_sha}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package archive
+        id: archive
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          target="${{ matrix.target }}"
+          archive_name="rocci-${version}-${target}"
+
+          mkdir -p "staging/${archive_name}"
+          cp target/release/rocci "staging/${archive_name}/"
+          cp target/release/rocs "staging/${archive_name}/"
+          cp target/release/rocci-language-server "staging/${archive_name}/"
+          cp README.md "staging/${archive_name}/"
+
+          tar -czf "${archive_name}.tar.gz" -C staging "${archive_name}"
+          if command -v sha256sum &>/dev/null; then
+            sha256sum "${archive_name}.tar.gz" > "${archive_name}.tar.gz.sha256"
+          else
+            shasum -a 256 "${archive_name}.tar.gz" > "${archive_name}.tar.gz.sha256"
+          fi
+          echo "archive=${archive_name}.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.archive.outputs.archive }}
+          path: |
+            ${{ steps.archive.outputs.archive }}
+            ${{ steps.archive.outputs.archive }}.sha256
+          retention-days: 7
+
+  ci-gate:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI workflow
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          check-name: 'Test Workspace (macos-latest)'
+          wait-interval: 30
+      - name: Wait for CI tests (Linux)
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          check-name: 'Test Workspace (ubuntu-latest)'
+          wait-interval: 30
+
+  release:
+    name: Publish Release
+    needs: [build, ci-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lhR artifacts/
+
+      - name: Determine release parameters
+        id: params
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            short_sha="${GITHUB_SHA::7}"
+            echo "tag=dev" >> "$GITHUB_OUTPUT"
+            echo "name=Development Build (${short_sha})" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # For dev builds, delete the old release so we can recreate it with new assets.
+      - name: Delete existing dev release
+        if: steps.params.outputs.prerelease == 'true'
+        run: gh release delete dev --yes --cleanup-tag 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        run: |
+          if [[ "${{ steps.params.outputs.prerelease }}" == "true" ]]; then
+            gh release create "${{ steps.params.outputs.tag }}" \
+              --title "${{ steps.params.outputs.name }}" \
+              --prerelease \
+              --generate-notes \
+              --target "${{ github.sha }}" \
+              artifacts/*.tar.gz artifacts/*.sha256
+          else
+            gh release create "${{ steps.params.outputs.tag }}" \
+              --title "${{ steps.params.outputs.name }}" \
+              --generate-notes \
+              artifacts/*.tar.gz artifacts/*.sha256
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
