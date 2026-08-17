@@ -12,7 +12,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use clap::Args;
-use rocci_wry::{PreviewOptions, preview};
+use rocci_desktop::{PreviewOptions, preview};
 
 use crate::style;
 

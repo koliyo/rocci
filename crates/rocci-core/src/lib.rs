@@ -2,7 +2,7 @@
 //!
 //! This crate has no HTTP or webview dependency. Configuration, window
 //! sessions, lifecycle events, and the backend factory contract live here so
-//! `rocci-wry` and the CLI can evolve independently.
+//! `rocci-desktop` and the CLI can evolve independently.
 
 mod backend;
 mod config;

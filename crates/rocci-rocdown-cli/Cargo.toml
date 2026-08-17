@@ -15,7 +15,7 @@ clap = { workspace = true }
 rocci-cli = { workspace = true }
 rocci-rocdown = { workspace = true }
 rocci-theme = { workspace = true }
-rocci-wry = { workspace = true }
+rocci-desktop = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }

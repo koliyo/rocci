@@ -1,9 +1,9 @@
 [package]
-name = "rocci-wry"
+name = "rocci-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "tao/wry desktop shell for Rocci: windows, webviews, and native events"
+description = "Native desktop shell for Rocci: windows, webviews, and native events"
 
 [dependencies]
 rocci-core = { workspace = true }

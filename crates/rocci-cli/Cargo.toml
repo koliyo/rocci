@@ -18,7 +18,7 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 rocci-core = { workspace = true }
 rocci-template = { workspace = true }
-rocci-wry = { workspace = true }
+rocci-desktop = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10"

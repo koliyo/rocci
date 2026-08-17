@@ -10,7 +10,7 @@ window.
 The workspace is `rocci-template` (`.rocci` parse/lower), `rocci-rocdown`
 (Markdown documents, static site generator, and OKF tooling),
 `rocci-rocdown-cli` (`rocdown` binary), `rocci-lsp`, `rocci-cli` (`rocci` binary),
-`rocci-core` (config), and `rocci-wry` (preview windows). Rocdown keeps a Rust
+`rocci-core` (config), and `rocci-desktop` (preview windows and desktop shell). Rocdown keeps a Rust
 catalog and article renderer, compiles a Rocdown theme once, and only uses Roc
 for that shell (and later for dynamic islands). Other doc frameworks can depend
 on the same base crates without taking a site generator dependency.

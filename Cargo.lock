@@ -2253,8 +2253,8 @@ dependencies = [
  "anyhow",
  "clap",
  "rocci-core",
+ "rocci-desktop",
  "rocci-template",
- "rocci-wry",
  "serde",
  "serde_json",
  "sha2",
@@ -2271,6 +2271,21 @@ dependencies = [
  "toml",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "rocci-desktop"
+version = "0.1.0"
+dependencies = [
+ "muda",
+ "rocci-core",
+ "serde",
+ "serde_json",
+ "tao",
+ "tokio",
+ "tracing",
+ "uuid",
+ "wry",
 ]
 
 [[package]]
@@ -2324,9 +2339,9 @@ dependencies = [
  "anyhow",
  "clap",
  "rocci-cli",
+ "rocci-desktop",
  "rocci-rocdown",
  "rocci-theme",
- "rocci-wry",
  "serde",
  "serde_json",
  "toml",
@@ -2344,21 +2359,6 @@ name = "rocci-theme"
 version = "0.1.0"
 dependencies = [
  "thiserror 2.0.20",
-]
-
-[[package]]
-name = "rocci-wry"
-version = "0.1.0"
-dependencies = [
- "muda",
- "rocci-core",
- "serde",
- "serde_json",
- "tao",
- "tokio",
- "tracing",
- "uuid",
- "wry",
 ]
 
 [[package]]

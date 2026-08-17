@@ -6,8 +6,8 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_core::Config;
+use rocci_desktop::PreviewOptions;
 use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, format_diagnostic};
-use rocci_wry::PreviewOptions;
 
 use crate::datastar_asset;
 use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
@@ -343,7 +343,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
 
     println!("{}", style::serving(&app_dir.display().to_string(), &url));
     let state_key = format!("rocci:{}", config.app.identifier);
-    let preview_result = rocci_wry::preview(PreviewOptions {
+    let preview_result = rocci_desktop::preview(PreviewOptions {
         url,
         title,
         width,
