@@ -33,46 +33,6 @@ pub fn highlight(src: &str) -> Vec<HighlightToken> {
     hl.highlight(src, map_roc_capture)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_roc_highlight() {
-        let res = highlight("badgeClass = |s| s");
-        assert!(!res.is_empty(), "expected tokens, but got none");
-    }
-
-    #[test]
-    fn test_roc_highlight_rocdown() {
-        let fixture = include_str!("../../../../test/EmbeddedLanguages.rocdown");
-        let parsed = rocci_rocdown::parse(
-            rocci_template::SourceFile::new("EmbeddedLanguages.rocdown", fixture),
-            false,
-        );
-        for item in &parsed.document.items {
-            if let rocci_rocdown::Item::Roc(roc) = item {
-                let slice = &fixture[roc.body.start as usize..roc.body.end as usize];
-                eprintln!(
-                    "Rocdown @roc body ({} bytes):\n---\n{}\n---",
-                    slice.len(),
-                    slice
-                );
-                let tokens = highlight(slice);
-                eprintln!("Rocdown @roc tokens: {}", tokens.len());
-                for t in &tokens {
-                    eprintln!(
-                        "  token: span={:?} text={:?} kind={}",
-                        t.span,
-                        &slice[t.span.start as usize..t.span.end as usize],
-                        t.kind
-                    );
-                }
-            }
-        }
-    }
-}
-
 fn map_roc_capture(capture: &str) -> Option<(u32, u32, u32)> {
     match capture {
         "keyword"
@@ -122,5 +82,45 @@ fn map_roc_capture(capture: &str) -> Option<(u32, u32, u32)> {
         | "special.roc-special.exposed" => Some((TOKEN_VARIABLE, 0, 35)),
 
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_roc_highlight() {
+        let res = highlight("badgeClass = |s| s");
+        assert!(!res.is_empty(), "expected tokens, but got none");
+    }
+
+    #[test]
+    fn test_roc_highlight_rocdown() {
+        let fixture = include_str!("../../../../test/EmbeddedLanguages.rocdown");
+        let parsed = rocci_rocdown::parse(
+            rocci_template::SourceFile::new("EmbeddedLanguages.rocdown", fixture),
+            false,
+        );
+        for item in &parsed.document.items {
+            if let rocci_rocdown::Item::Roc(roc) = item {
+                let slice = &fixture[roc.body.start as usize..roc.body.end as usize];
+                eprintln!(
+                    "Rocdown @roc body ({} bytes):\n---\n{}\n---",
+                    slice.len(),
+                    slice
+                );
+                let tokens = highlight(slice);
+                eprintln!("Rocdown @roc tokens: {}", tokens.len());
+                for t in &tokens {
+                    eprintln!(
+                        "  token: span={:?} text={:?} kind={}",
+                        t.span,
+                        &slice[t.span.start as usize..t.span.end as usize],
+                        t.kind
+                    );
+                }
+            }
+        }
     }
 }
