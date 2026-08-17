@@ -31,7 +31,7 @@ id = "language-behavior"
 question = "How does Rocdown separate Markdown from executable declarations?"
 query = "Markdown executable declarations"
 expected_concepts = ["architecture/rocdown-format"]
-expected_status = "stable"
+expected_status = "draft"
 expected_authority = "descriptive"
 
 [[questions]]
