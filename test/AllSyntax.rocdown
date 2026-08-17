@@ -12,7 +12,7 @@ Status : [Ready, Loading]
 
 items = [{ name: "alpha" }, { name: "beta" }]
 status = Ready
-show_notice = Bool.true
+show_notice = True
 }
 
 @css {
@@ -46,11 +46,11 @@ answer = 42
     hello({ name: "render" })
 }
 
-@let visible = List.keepIf(items, |_| Bool.true)
+@let visible = List.keep_if(items, |_| True)
 
 @if show_notice {
     <p>Notice</p>
-} @else if List.isEmpty(visible) {
+} @else if List.is_empty(visible) {
     <p>Empty</p>
 } @else {
     <ul>
@@ -70,11 +70,14 @@ answer = 42
 }
 
 @img {
-    src: "img/yammi_banana.png"
+    src: "./img/yammi_banana.png"
+    alt: "A banana"
     width: "50px"
 }
 
 \@if this is escaped
 
-More markdown after.
+More markdown after.[^note]
+
+[^note]: Footnotes stay in ordinary Rocdown and include a backlink.
 

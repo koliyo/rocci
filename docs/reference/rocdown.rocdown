@@ -32,26 +32,35 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
 | `@docs <kind> { ... }` | Bounded documentation component; see below |
-| `@img { ... }` | Native image element with optional sizing; see below |
+| `@img { ... }` | Native image element; `alt` or `decorative` required; see below |
 
 `@island` is reserved in the design but not parsed yet.
 
 ## `@img` native images
 
-Use `@img` for first-class image elements with compile-time field extraction and optional sizing:
+Use `@img` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand.
+
+Local `src` paths, including `./img/photo.png`, resolve against the source file
+directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /
+`data:` URLs pass through. Missing local files are errors in `rocci run` and in
+Rocs catalog checks. Standalone preview copies those files without hashing and
+serves them beside the page route; Rocs hashes files under `build.assets`.
 
 ````rocdown
 @img {
-    src: "img/yammi_banana.png",
+    src: "./img/yammi_banana.png",
     alt: "A delicious banana",
     width: "50px",
+    loading: "lazy",
+    decoding: "async",
 }
 ````
 
 | Field | Requirement | Meaning |
 | --- | --- | --- |
 | `src` | **Required** | Compile-time string literal path or URL |
-| `alt` | Optional | Accessible description; defaults to `""` |
+| `alt` | Required unless `decorative` | Accessible description |
+| `decorative` | Optional | `Bool.true` emits empty `alt` for purely decorative images |
 | `title` | Optional | Tooltip text |
 | `width` | Optional | Explicit width string (e.g. `"50px"`, `"100%"`) |
 | `height` | Optional | Explicit height string (e.g. `"50px"`, `"auto"`) |
@@ -81,7 +90,7 @@ handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
 | `note`, `tip`, `caution`, `danger`, `deprecated` | Labeled asides |
 | `details` | Disclosure with required `summary` |
 | `steps` / `step` | Ordered procedure; `step` only inside `steps` |
-| `figure` | One image with required `alt` |
+| `figure` | Exactly one image; nested `@img.alt` owns accessibility; `caption` and `credit` optional; figure-level `alt` is unknown |
 | `definition` | Local term and definition |
 | `badge` | Block status label |
 | `compatibility` | Table of supported combinations |
@@ -122,18 +131,42 @@ page. Includes, snippet roots, and `rocs test` are documented in
 
 ## Markdown profile
 
-Rocdown uses CommonMark with GFM tables, strikethrough, task lists, and extended
-URL autolinks. It adds deterministic heading IDs, stable `rd-*` classes,
-language classes on fenced code, wiki links, and page-link resolution.
+Rocdown uses CommonMark with GFM tables, strikethrough, task lists, extended
+URL autolinks, and footnotes. It adds deterministic heading IDs, stable `rd-*`
+classes, language classes on fenced code, wiki links, and page-link resolution.
 
 Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
 Rocci tag, or `@render` instead.
+
+## Footnotes
+
+`[^label]` in ordinary Rocdown is a footnote reference. Pair it with a
+definition:
+
+````rocdown
+The claim is sourced.[^note]
+
+[^note]: Evidence stays with the document.
+````
+
+Definitions are collected out of the article flow into a footnotes section.
+Standalone lowering and Rocs HTML share the same accessible contract:
+`data-footnote-ref`, `aria-label="Footnotes"`, `data-footnote-backref`, and
+stable `fn-{name}` / `fnref-{name}` ids. Missing definitions and duplicate
+labels are errors at the reference or definition span. This is not an OKF
+`sources[].id` citation.
 
 ## Links
 
 Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown file paths, and
 same-page heading validation. Absolute routes are checked when a page index is
 available. External schemes such as `https:` and `mailto:` pass through.
+
+In Rocs, a passing catalog check rewrites validated page and heading links to
+the emitted route (`./foo.rocdown` becomes `/foo/`, and `{id}#heading` becomes
+`/route/#heading`). Same-page `#heading` stays a fragment. Asset hrefs are
+hashed in a later plan pass. Standalone `rocci run` still rewrites sibling
+stems when `resolve_links` is true.
 
 ## Generated values
 

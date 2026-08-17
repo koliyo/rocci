@@ -30,12 +30,32 @@ pub struct StaticFile {
     pub output_path: String,
 }
 
-pub fn load_site(root: &Path) -> Result<LoadedSite> {
-    let root = if root.is_absolute() {
-        root.to_path_buf()
+pub fn content_root(path: &Path) -> Result<PathBuf> {
+    let path = if path.is_absolute() {
+        path.to_path_buf()
     } else {
-        std::env::current_dir()?.join(root)
+        std::env::current_dir()?.join(path)
     };
+    if path.is_file() {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("rocdown") {
+            bail!(
+                "{} is not a documentation root or .rocdown file",
+                path.display()
+            );
+        }
+        return path
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| anyhow::anyhow!("{} has no parent directory", path.display()));
+    }
+    if !path.is_dir() {
+        bail!("{} is not a directory or .rocdown file", path.display());
+    }
+    Ok(path)
+}
+
+pub fn load_site(root: &Path) -> Result<LoadedSite> {
+    let root = content_root(root)?;
     let config = load_config(&root)?;
     let discovered = crate::build::discover_rocdown(&root)?;
     let files = collect_files(&root)?;
@@ -530,12 +550,12 @@ mod tests {
         let root = temp("rel");
         fs::write(
             root.join("index.rocdown"),
-            "# Home\n\nSee the [guide](./guide.rocdown).\n",
+            "# Home\n\nSee the [guide](./guide.rocdown), [explicit](/guide/), [alias](/old-guide/), and [heading](./guide.rocdown#install).\n",
         )
         .unwrap();
         fs::write(
             root.join("guide.rocdown"),
-            "@page {\n    aliases: [\"/old-guide/\"],\n    meta: { title: \"Guide\" },\n}\n\n# Guide\n",
+            "@page {\n    aliases: [\"/old-guide/\"],\n    meta: { title: \"Guide\" },\n}\n\n# Guide\n\n## Install\n",
         )
         .unwrap();
         let report = check(&root).unwrap();
@@ -544,11 +564,46 @@ mod tests {
             "{}",
             report.render(CheckFormat::Terminal).unwrap()
         );
+        let resolved = resolve_loaded(&load_site(&root).unwrap());
+        let home = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id == "index")
+            .unwrap();
+        assert!(
+            home.article_html.contains("href=\"/guide/\""),
+            "{}",
+            home.article_html
+        );
+        assert!(
+            home.article_html.contains("href=\"/guide/#install\""),
+            "{}",
+            home.article_html
+        );
+        assert!(
+            !home.article_html.contains("guide.rocdown"),
+            "{}",
+            home.article_html
+        );
         let catalog = inspect(&root, InspectKind::Catalog, None).unwrap();
         assert!(catalog.contains("\"id\": \"guide\""));
         let artifacts = inspect(&root, InspectKind::Artifacts, None).unwrap();
         assert!(artifacts.contains("old-guide/index.html"));
         assert!(artifacts.contains("404.html"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_accepts_rocdown_file_as_root() {
+        let root = temp("file-root");
+        fs::write(root.join("report.rocdown"), "# Report\n\nHello.\n").unwrap();
+        let report = check(&root.join("report.rocdown")).unwrap();
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
         let _ = fs::remove_dir_all(root);
     }
 

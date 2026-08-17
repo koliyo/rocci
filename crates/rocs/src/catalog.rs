@@ -279,6 +279,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
     crate::docs::fill_link_cards(&mut resolved);
 
     let graph = resolve_graph(pages, &resolved, &options.files, &mut diagnostics);
+    crate::docs::rewrite_resolved_links(&mut resolved, &graph);
     let navigation = resolve_navigation(&resolved, &options.navigation, &mut diagnostics);
     apply_journey(&mut resolved, &navigation, &mut diagnostics);
 

@@ -462,7 +462,7 @@ Lowering targets a small `Html` constructor set:
 | `<p>...</p>` | `Html.element("p", attrs, children)` |
 | void element | `Html.void_element("br", attrs)` |
 | static / dynamic attr | `Html.attribute("class", ...)` |
-| valueless attr | `Html.boolean_attribute("disabled", Bool.true)` |
+| valueless attr | `Html.boolean_attribute("disabled", True)` |
 | text | `Html.text(...)` |
 | `<>...</>` | `Html.fragment(...)` |
 | missing `@else` | `Html.empty` |

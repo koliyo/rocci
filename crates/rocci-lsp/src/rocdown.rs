@@ -529,7 +529,7 @@ fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResp
         "tab" => &["id", "label"],
         "link-card" => &["page", "href", "title", "description"],
         "details" => &["summary", "open"],
-        "figure" => &["alt", "caption"],
+        "figure" => &["caption", "credit"],
         "definition" => &["term"],
         "badge" => &["label", "tone"],
         "example" => &["name", "command", "language"],
@@ -632,6 +632,9 @@ fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) 
     if let Some((alt, _)) = &fields.alt {
         doc.push_str(&format!("\n- **alt**: `{alt}`"));
     }
+    if fields.decorative.as_ref().is_some_and(|(value, _)| *value) {
+        doc.push_str("\n- **decorative**: `Bool.true`");
+    }
     if let Some((width, _)) = &fields.width {
         doc.push_str(&format!("\n- **width**: `{width}`"));
     }
@@ -648,7 +651,15 @@ fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) 
 }
 
 const IMG_FIELDS: &[&str] = &[
-    "src", "alt", "title", "width", "height", "class", "loading", "decoding",
+    "src",
+    "alt",
+    "title",
+    "width",
+    "height",
+    "class",
+    "loading",
+    "decoding",
+    "decorative",
 ];
 
 fn img_completion(_text: &str, _img: &ImgDecl, _offset: usize) -> CompletionResponse {
@@ -656,11 +667,12 @@ fn img_completion(_text: &str, _img: &ImgDecl, _offset: usize) -> CompletionResp
         IMG_FIELDS
             .iter()
             .map(|name| {
-                completion_item(
-                    name,
-                    CompletionItemKind::PROPERTY,
-                    Some(format!("{name}: \"\"")),
-                )
+                let insert = if *name == "decorative" {
+                    format!("{name}: Bool.true")
+                } else {
+                    format!("{name}: \"\"")
+                };
+                completion_item(*name, CompletionItemKind::PROPERTY, Some(insert))
             })
             .collect(),
     )

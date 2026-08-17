@@ -2,6 +2,7 @@
 
 ## 2026-08-17
 
+- Updated the [Rocdown format](architecture/rocdown-format.md) architecture record for shipped ordinary footnotes and the `@img` / `@docs figure` alt contract; standalone preview copies local images without hashing.
 - Researched the emerging OKF tool ecosystem and recorded a proposed standalone
   rocs-okf direction: extract a portable UI-neutral engine from Rocs, preserve
   direct agent Markdown authoring, make the browser an evidence review and

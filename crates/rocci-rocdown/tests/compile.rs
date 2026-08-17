@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 
 use rocci_rocdown::{
@@ -622,7 +623,7 @@ fn all_syntax_example_compiles() {
             .collect::<Vec<_>>()
             .join("\n")
     );
-    assert!(out.roc.contains("visible = List.keepIf"));
+    assert!(out.roc.contains("visible = List.keep_if"));
     assert!(out.roc.contains("if show_notice {"));
     assert!(out.roc.contains("List.map(visible, |item|"));
     assert!(out.roc.contains("List.concat("));
@@ -1120,6 +1121,7 @@ fn img_with_src_and_width_is_parsed_and_lowered() {
 
 @img {
     src: \"img/yammi_banana.png\"
+    alt: \"A banana\"
     width: \"50px\"
 }
 ";
@@ -1166,7 +1168,8 @@ fn img_with_all_optional_fields() {
 fn img_without_explicit_sizing_is_valid() {
     let src = "\
 @img {
-    src: \"img/simple.png\"
+    src: \"img/simple.png\",
+    alt: \"Simple image\"
 }
 ";
     let out = compile_ok(src);
@@ -1195,7 +1198,8 @@ fn img_missing_src_is_an_error() {
 fn img_unknown_field_is_an_error() {
     let src = "\
 @img {
-    src: \"img/banana.png\"
+    src: \"img/banana.png\",
+    alt: \"A tasty banana\",
     bad_field: \"value\"
 }
 ";
@@ -1240,10 +1244,12 @@ fn escaped_img_and_img_in_fences_are_inert() {
 fn img_nested_inside_docs_component() {
     let src = "\
 @docs figure {
-    alt: \"Diagram\"
+    caption: \"Architecture\"
+    credit: \"Rocci docs\"
 
     @img {
         src: \"diagram.png\"
+        alt: \"Diagram\"
         width: \"400px\"
     }
 }
@@ -1252,4 +1258,215 @@ fn img_nested_inside_docs_component() {
     assert!(out.roc.contains("rd-docs-figure"));
     assert!(out.roc.contains("\"diagram.png\""));
     assert!(out.roc.contains("\"400px\""));
+    assert!(out.roc.contains("\"rd-docs-caption\""));
+    assert!(out.roc.contains("\"Architecture\""));
+    assert!(out.roc.contains("\"rd-docs-credit\""));
+    assert!(out.roc.contains("\"Rocci docs\""));
+}
+
+#[test]
+fn img_missing_alt_is_an_error() {
+    let src = "\
+@img {
+    src: \"img/simple.png\"
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`@img` requires `alt` for meaningful images")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn img_decorative_emits_empty_alt() {
+    let src = "\
+@img {
+    src: \"img/divider.png\"
+    decorative: Bool.true
+}
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("\"img/divider.png\""));
+    assert!(out.roc.contains(".attribute(\"alt\", \"\")"));
+}
+
+#[test]
+fn img_decorative_rejects_nonempty_alt() {
+    let src = "\
+@img {
+    src: \"img/divider.png\"
+    alt: \"Divider\"
+    decorative: Bool.true
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("decorative `@img` must not set a non-empty `alt`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn img_invalid_loading_and_decoding_are_errors() {
+    let src = "\
+@img {
+    src: \"img/simple.png\"
+    alt: \"Simple\"
+    loading: \"whenever\"
+    decoding: \"fast\"
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`loading` must be one of")),
+        "{errs:?}"
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`decoding` must be one of")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn ordinary_footnotes_render_with_backlinks() {
+    let src = "\
+Claim.[^source]
+
+[^source]: Evidence.
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("rd-footnote-ref"));
+    assert!(out.roc.contains("data-footnote-ref"));
+    assert!(out.roc.contains("rd-footnotes"));
+    assert!(out.roc.contains("Footnotes"));
+    assert!(out.roc.contains("data-footnote-backref"));
+    assert!(out.roc.contains("fn-source"));
+    assert!(out.roc.contains("fnref-source"));
+    assert!(out.roc.contains("Evidence."));
+}
+
+#[test]
+fn missing_footnote_definition_is_an_error() {
+    let src = "Claim.[^missing]\n";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("footnote `[^missing]` has no definition")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn duplicate_footnote_definition_is_an_error() {
+    let src = "\
+Claim.[^source]
+
+[^source]: One.
+[^source]: Two.
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("duplicate footnote definition `[^source]`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn missing_local_asset_is_diagnosed_when_enabled() {
+    let src = "\
+@img {
+    src: \"missing-file.png\"
+    alt: \"Missing\"
+}
+";
+    let out = compile_with(
+        src,
+        CompileOptions {
+            check_assets: true,
+            theme: ThemeOptions {
+                source_dir: Some(std::env::temp_dir()),
+                ..ThemeOptions::default()
+            },
+            ..CompileOptions::default()
+        },
+    );
+    assert!(
+        out.diagnostics.iter().any(|diagnostic| {
+            diagnostic.is_error() && diagnostic.message.contains("missing local asset")
+        }),
+        "{:?}",
+        out.diagnostics
+    );
+}
+
+#[test]
+fn dotted_relative_img_resolves_against_source_dir() {
+    let dir = std::env::temp_dir().join(format!("rocci-rocdown-rel-img-{}", std::process::id()));
+    fs::create_dir_all(dir.join("img")).unwrap();
+    fs::write(dir.join("img/dot.png"), b"png").unwrap();
+    let src = "\
+@img {
+    src: \"./img/dot.png\"
+    alt: \"Dot\"
+}
+";
+    let out = compile_with(
+        src,
+        CompileOptions {
+            check_assets: true,
+            theme: ThemeOptions {
+                source_dir: Some(dir.clone()),
+                ..ThemeOptions::default()
+            },
+            ..CompileOptions::default()
+        },
+    );
+    let _ = fs::remove_dir_all(&dir);
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("./img/dot.png"));
+}
+
+#[test]
+fn parent_relative_img_is_rejected_when_checking_assets() {
+    let src = "\
+@img {
+    src: \"../secret.png\"
+    alt: \"Secret\"
+}
+";
+    let out = compile_with(
+        src,
+        CompileOptions {
+            check_assets: true,
+            theme: ThemeOptions {
+                source_dir: Some(std::env::temp_dir()),
+                ..ThemeOptions::default()
+            },
+            ..CompileOptions::default()
+        },
+    );
+    assert!(
+        out.diagnostics.iter().any(|diagnostic| {
+            diagnostic.is_error()
+                && diagnostic
+                    .message
+                    .contains("is not a path under the source file")
+        }),
+        "{:?}",
+        out.diagnostics
+    );
 }

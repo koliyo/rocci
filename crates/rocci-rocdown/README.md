@@ -110,7 +110,7 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 | `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocs types the body |
-| `@img { ... }` | image fields | native image element with optional sizing (`src`, `width`, `height`, `alt`, `title`, `class`, `loading`, `decoding`) |
+| `@img { ... }` | image fields | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
 `@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template
@@ -140,10 +140,12 @@ Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 
 Native image declaration. Lowers to `Html.void_element("img", ...)` with standard
 `.rd-image` class and compile-time field extraction. Explicit sizing is optional.
+`alt` is required unless the image is purely decorative.
 
 ```rocdown
 @img {
-    src: "img/yammi_banana.png"
+    src: "./img/yammi_banana.png"
+    alt: "A banana"
     width: "50px"
 }
 ```
@@ -151,13 +153,23 @@ Native image declaration. Lowers to `Html.void_element("img", ...)` with standar
 | Field | Requirement | Rule |
 | --- | --- | --- |
 | `src` | **Required** | Compile-time string literal path or URL to image |
-| `alt` | Optional | Compile-time string literal; defaults to `""` if omitted |
+| `alt` | Required unless `decorative` | Compile-time string literal accessible description |
+| `decorative` | Optional | `Bool.true` emits `alt=""`; a non-empty `alt` with this flag is an error |
 | `title` | Optional | Compile-time string literal tooltip / title attribute |
 | `width` | Optional | Compile-time string literal (e.g. `"50px"`, `"100%"`) |
 | `height` | Optional | Compile-time string literal (e.g. `"50px"`, `"auto"`) |
 | `class` | Optional | Compile-time string literal appended to `rd-image` |
 | `loading` | Optional | Compile-time string literal (`"lazy"` or `"eager"`) |
 | `decoding` | Optional | Compile-time string literal (`"async"`, `"auto"`, `"sync"`) |
+
+Markdown `![](path)` remains the empty-alt decorative shorthand. Nested `@img`
+inside `@docs figure` owns accessibility text; figure `caption` and `credit`
+do not substitute for `alt`. Local `src` paths, including `./img/photo.png`,
+resolve against the source file directory. `http(s):`, `mailto:`, and `data:`
+pass through. `rocci run` diagnoses missing files, copies them into the preview
+workspace without hashing, and serves them next to the page route so a document
+at `/all-syntax/` can load `./img/photo.png` from `/all-syntax/img/photo.png`.
+Rocs hashes files under `build.assets`.
 
 ### `@page`
 
@@ -211,6 +223,13 @@ duplicates; stable `rd-*` classes on Markdown HTML (`rd-header-1`,
 `class="rd-code language-…"`; wiki links `[[Foo]]` and `[[Foo|label]]`
 (optionally `[[Foo#heading-id]]`).
 
+**Footnotes:** `[^label]` references and `[^label]:` definitions are parsed in
+ordinary Rocdown. Definitions are collected out of flow into a footnotes
+section with `data-footnote-ref`, `aria-label="Footnotes"`, and
+`data-footnote-backref` (`id="fn-{name}"` / `fnref-{name}`). Missing
+definitions and duplicate labels are errors. This is not an OKF `sources[].id`
+citation.
+
 **Page links:** `[[Foo]]`, `[text](Foo.rocdown)`, `[text](./Foo.rocdown)`,
 `[text](Foo)`, and reference links to those destinations resolve to the
 target file’s `@page.route` using sibling `.rocdown` files in the same
@@ -226,8 +245,7 @@ preserves that inline/comment HTML through `Html.dangerously_include_unescaped_h
 It never turns inline tags into Rocci component calls. Document-root `<Hello />`
 is an HTML island, not this escape hatch.
 
-**Not parsed yet:** footnotes, admonitions, definition lists, math,
-automatic TOC tokens.
+**Not parsed yet:** admonitions, definition lists, math, automatic TOC tokens.
 
 ## Generated Roc
 
@@ -269,8 +287,9 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 - Declaration boundary rules (prose `@`, fences, lists, quotes, indent, `\@`)
 - `@page`, `@roc`, `@render`, delegated Rocci declarations, document-root
   `@if` / `@for` / `@match` / `@let`, and document-root HTML islands
-- CommonMark + GFM tables/strikethrough/task lists/autolink + wiki links
+- CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
+- `@img` alt/decorative contract and `@docs figure` caption/credit
 - Heading IDs, scoped CSS, default HTML shell, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
@@ -280,10 +299,11 @@ and VS Code / Zed extensions register `.rocdown` next to `.rocci`.
 
 **Not implemented**
 
-- Multi-page SSG, `dist/` output, path-derived routes, draft exclusion, assets
+- Multi-page SSG, `dist/` output, path-derived routes, draft exclusion
+- Hashed published assets (Rocs; standalone preview copies local files as-is)
 - Project default layouts and layout packages
 - `@island` and client JS
 - Content collections, feeds, sitemaps
 - Formatter
-- Footnotes and the other deferred Markdown extensions
+- Admonitions, definition lists, math, and automatic TOC tokens
 - Near-miss warnings for typos such as `@componnent`

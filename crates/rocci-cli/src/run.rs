@@ -147,6 +147,22 @@ fn run_standalone(
     if sibling_assets.is_dir() {
         copy_tree(&sibling_assets, &workspace_assets)?;
     }
+    for module in &plan.modules {
+        for url in &module.local_assets {
+            let Some(relative) = rocci_rocdown::normalize_local_asset_url(url) else {
+                continue;
+            };
+            let from = src_dir.join(&relative);
+            if !from.is_file() {
+                continue;
+            }
+            let to = workspace.path.join("media").join(&relative);
+            if let Some(parent) = to.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(&from, &to).with_context(|| format!("failed to copy {}", from.display()))?;
+        }
+    }
     let stage_version = datastar_asset::stage_version_for_dir(&src_dir);
     if let Some(version) = &stage_version {
         datastar_asset::stage_into(&workspace_assets, version)?;
@@ -189,6 +205,7 @@ struct StandaloneModule {
     init: Option<rocci_template::InitInfo>,
     routes: Vec<rocci_template::RouteInfo>,
     mapped: MappedModule,
+    local_assets: Vec<String>,
 }
 
 enum StandaloneReady {
@@ -233,6 +250,11 @@ impl StandalonePlan {
             &bound,
             dispatch::DispatchOptions {
                 redirect_trailing_slash: self.redirect_trailing_slash,
+                media_dirs: dispatch::media_dirs_from_urls(
+                    self.modules
+                        .iter()
+                        .flat_map(|module| module.local_assets.iter()),
+                ),
             },
         )
     }
@@ -268,6 +290,7 @@ fn plan_standalone(primary: &Path, theme: &ThemeArgs) -> Result<StandaloneReady>
                 source_src: src,
                 segments: compiled.segments,
             },
+            local_assets: compiled.local_assets,
         });
     }
     if !failures.is_empty() {
@@ -391,6 +414,7 @@ struct CompiledSource {
     failed: bool,
     diagnostics: Vec<Diagnostic>,
     segments: Vec<Segment>,
+    local_assets: Vec<String>,
 }
 
 fn compile_source(
@@ -401,11 +425,17 @@ fn compile_source(
 ) -> Result<CompiledSource> {
     let source = SourceFile::new(name, src);
     if input.extension().is_some_and(|ext| ext == "rocdown") {
-        let compiled = rocci_rocdown::compile(source, &theme.compile_options(Some(input)));
+        let mut options = theme.compile_options(Some(input));
+        options.check_assets = true;
+        let compiled = rocci_rocdown::compile(source, &options);
         for diagnostic in &compiled.diagnostics {
             eprintln!("{}", format_diagnostic(source, diagnostic));
         }
         let failed = compiled.has_errors();
+        let local_assets = rocci_rocdown::collect_local_media(source, &compiled.document)
+            .into_iter()
+            .map(|(url, _)| url)
+            .collect();
         return Ok(CompiledSource {
             roc: compiled.roc,
             state_type: compiled.state_type,
@@ -414,6 +444,7 @@ fn compile_source(
             failed,
             diagnostics: compiled.diagnostics,
             segments: compiled.segments,
+            local_assets,
         });
     }
     let compiled = compile(source, &LowerOptions::default());
@@ -429,6 +460,7 @@ fn compile_source(
         failed,
         diagnostics: compiled.diagnostics,
         segments: compiled.segments,
+        local_assets: Vec::new(),
     })
 }
 
@@ -882,6 +914,37 @@ See [[About]]
         assert!(main.contains("html_status(404, not_found_html("));
         assert!(!main.contains("Not found"));
         assert!(!main.contains("About.on_get_root!"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn standalone_mounts_document_relative_images() {
+        let dir = temp_app("doc-rel-img");
+        fs::create_dir_all(dir.join("img")).unwrap();
+        fs::write(dir.join("img/dot.png"), b"png").unwrap();
+        fs::write(
+            dir.join("Page.rocdown"),
+            r#"
+@page { route: "/page/" }
+
+@img {
+    src: "./img/dot.png"
+    alt: "Dot"
+}
+"#,
+        )
+        .unwrap();
+        let plan = plan_ready(&dir.join("Page.rocdown"));
+        assert!(
+            plan.modules[0]
+                .local_assets
+                .iter()
+                .any(|url| url == "./img/dot.png")
+        );
+        let main = plan.main_roc();
+        assert!(main.contains("Path.utf8(\"media/img\")"), "{main}");
+        assert!(main.contains("at: \"/img\""), "{main}");
+        assert!(main.contains("at: \"/page/img\""), "{main}");
         cleanup(&dir);
     }
 

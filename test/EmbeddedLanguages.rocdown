@@ -16,7 +16,7 @@ items = [
     { id: 2, name: "Item 2 ✨" },
 ]
 status = Active(42)
-isLoaded = Bool.true
+isLoaded = True
 }
 
 @css {
@@ -37,7 +37,7 @@ isLoaded = Bool.true
 Card = |{ title, count ?? 0 }|
     <div class="card">
         <h3>{title}</h3>
-        <p>Count: {Num.toStr(count)}</p>
+        <p>Count: {count.to_str()}</p>
     </div>
 
 @fixture{target: Card}
@@ -175,14 +175,14 @@ Plain inert text block 📝
 ## Section 4: Executable Island and Template Directives {#sec-executable}
 
 @render {
-    Card({ title: "Rendered Card 🎉", count: 100 })
+    card({ title: "Rendered Card 🎉", count: 100 })
 }
 
-@let activeItems = List.keepIf(items, |item| item.id > 0)
+@let activeItems = List.keep_if(items, |item| item.id > 0)
 
 @if isLoaded {
     <p>Data loaded successfully! 🌟</p>
-} @else if List.isEmpty(activeItems) {
+} @else if List.is_empty(activeItems) {
     <p>No active items available.</p>
 } @else {
     <p>Loading pending... ⏳</p>
@@ -193,7 +193,7 @@ Plain inert text block 📝
 }
 
 @match status {
-    Active(n) => <p>Active count: {Num.toStr(n)}</p>
+    Active(n) => <p>Active count: {n.to_str()}</p>
     Idle => <p>System is currently idle 💤</p>
 }
 
