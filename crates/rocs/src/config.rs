@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 pub const CONFIG_FILE: &str = "rocs.toml";
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SiteConfig {
     pub site: SiteMeta,
@@ -18,19 +18,6 @@ pub struct SiteConfig {
     pub examples: ExamplesConfig,
     #[serde(skip)]
     pub sidebar_tree: bool,
-}
-
-impl Default for SiteConfig {
-    fn default() -> Self {
-        Self {
-            site: SiteMeta::default(),
-            build: BuildConfig::default(),
-            navigation: Vec::new(),
-            snippets: SnippetsConfig::default(),
-            examples: ExamplesConfig::default(),
-            sidebar_tree: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]

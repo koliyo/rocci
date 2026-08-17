@@ -486,10 +486,10 @@ pub fn classify_concept_action(
         let drifted_sources: Vec<String> = drift_diagnostics
             .iter()
             .map(|d| {
-                if let Some(start) = d.message.find("source `") {
-                    if let Some(end) = d.message[start + 8..].find('`') {
-                        return d.message[start + 8..start + 8 + end].to_string();
-                    }
+                if let Some(start) = d.message.find("source `")
+                    && let Some(end) = d.message[start + 8..].find('`')
+                {
+                    return d.message[start + 8..start + 8 + end].to_string();
                 }
                 d.message.clone()
             })
@@ -710,54 +710,54 @@ pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic])
     }
     out.push_str("  </div>\n");
 
-    if let Some(sources) = concept.metadata.get("sources").and_then(Value::as_array) {
-        if !sources.is_empty() {
-            let drift_diags: Vec<&Diagnostic> = bundle_diagnostics
-                .iter()
-                .filter(|d| d.path == concept.path && d.code == "OKF4006")
-                .collect();
-            let drift_summary = if !drift_diags.is_empty() {
-                format!("({} drifted)", drift_diags.len())
-            } else {
-                "(all clean)".to_string()
-            };
+    if let Some(sources) = concept.metadata.get("sources").and_then(Value::as_array)
+        && !sources.is_empty()
+    {
+        let drift_diags: Vec<&Diagnostic> = bundle_diagnostics
+            .iter()
+            .filter(|d| d.path == concept.path && d.code == "OKF4006")
+            .collect();
+        let drift_summary = if !drift_diags.is_empty() {
+            format!("({} drifted)", drift_diags.len())
+        } else {
+            "(all clean)".to_string()
+        };
 
-            out.push_str("  <details class=\"okf-sources-drawer\">\n");
-            out.push_str(&format!(
+        out.push_str("  <details class=\"okf-sources-drawer\">\n");
+        out.push_str(&format!(
                 "    <summary><strong>{} Cited Sources</strong> <span class=\"okf-sources-drift-note\">{}</span></summary>\n",
                 sources.len(),
                 escape(&drift_summary)
             ));
-            out.push_str("    <table class=\"okf-sources-table\">\n");
-            out.push_str("      <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>\n");
-            out.push_str("      <tbody>\n");
-            for source in sources {
-                let s_id = source.get("id").and_then(Value::as_str).unwrap_or("-");
-                let s_res = source
-                    .get("resource")
-                    .and_then(Value::as_str)
-                    .unwrap_or("-");
-                let s_author = source.get("author").and_then(Value::as_str).unwrap_or("-");
-                let is_drifted = drift_diags
-                    .iter()
-                    .any(|d| d.message.contains(&format!("`{s_id}`")));
-                let status_badge = if is_drifted {
-                    "<span class=\"okf-badge okf-status-draft\">Modified since verification</span>"
-                } else {
-                    "<span class=\"okf-badge okf-status-stable\">Clean</span>"
-                };
-                out.push_str(&format!(
+        out.push_str("    <table class=\"okf-sources-table\">\n");
+        out.push_str("      <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>\n");
+        out.push_str("      <tbody>\n");
+        for source in sources {
+            let s_id = source.get("id").and_then(Value::as_str).unwrap_or("-");
+            let s_res = source
+                .get("resource")
+                .and_then(Value::as_str)
+                .unwrap_or("-");
+            let s_author = source.get("author").and_then(Value::as_str).unwrap_or("-");
+            let is_drifted = drift_diags
+                .iter()
+                .any(|d| d.message.contains(&format!("`{s_id}`")));
+            let status_badge = if is_drifted {
+                "<span class=\"okf-badge okf-status-draft\">Modified since verification</span>"
+            } else {
+                "<span class=\"okf-badge okf-status-stable\">Clean</span>"
+            };
+            out.push_str(&format!(
                     "        <tr><td><code>{}</code></td><td><code>{}</code></td><td>{}</td><td>{}</td></tr>\n",
                     escape(s_id),
                     escape(s_res),
                     escape(s_author),
                     status_badge
                 ));
-            }
-            out.push_str("      </tbody>\n");
-            out.push_str("    </table>\n");
-            out.push_str("  </details>\n");
         }
+        out.push_str("      </tbody>\n");
+        out.push_str("    </table>\n");
+        out.push_str("  </details>\n");
     }
 
     if !tags.is_empty() {
@@ -1238,8 +1238,10 @@ pub fn render_review_page(bundle: &Bundle) -> String {
 
 pub(crate) fn load_site(root: &Path, profile: Profile) -> Result<LoadedSite> {
     let bundle = load(root, profile)?;
-    let mut config = SiteConfig::default();
-    config.sidebar_tree = true;
+    let mut config = SiteConfig {
+        sidebar_tree: true,
+        ..Default::default()
+    };
     config.site.title = bundle
         .indexes
         .iter()
@@ -1815,13 +1817,13 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
         }
         let title = string_field(&concept.metadata, "title").unwrap_or(&concept.id);
         let meta_header = render_concept_meta(concept, &bundle.diagnostics);
-        let full_html = format!("{meta_header}{}", &concept.article_html);
+        let full_html = format!("{meta_header}{}", concept.article_html);
         fs::write(&destination, html_page(title, &full_html))
             .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
         let governance_header = render_home_page_governance(&bundle);
-        let full_index = format!("{governance_header}{}", &index.article_html);
+        let full_index = format!("{governance_header}{}", index.article_html);
         fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
             .context("failed to write knowledge index")?;
     }

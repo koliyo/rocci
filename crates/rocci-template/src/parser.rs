@@ -47,10 +47,8 @@ pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput
         ModuleItem::On(decl)
     } else if let Some(decl) = parser.try_parse_component() {
         ModuleItem::Component(decl)
-    } else if let Some(decl) = parser.try_parse_css() {
-        ModuleItem::Css(decl)
     } else {
-        return None;
+        ModuleItem::Css(parser.try_parse_css()?)
     };
     Some(ParseDeclOutput {
         end: parser.cur.pos,

@@ -84,18 +84,13 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn skip_formatting_ws(&mut self) {
-        loop {
-            match self.peek() {
-                Some('\n') | Some('\r') => {
-                    if self.eat('\r') {
-                        self.eat('\n');
-                    } else {
-                        self.bump();
-                    }
-                    self.skip_spaces_tabs();
-                }
-                _ => break,
+        while let Some('\n' | '\r') = self.peek() {
+            if self.eat('\r') {
+                self.eat('\n');
+            } else {
+                self.bump();
             }
+            self.skip_spaces_tabs();
         }
     }
 

@@ -79,15 +79,15 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
         }
     }
 
-    if init_span.is_some() && context_span.is_none() {
+    if let (Some(init), None) = (init_span, context_span) {
         diagnostics.push(Diagnostic::error(
-            init_span.unwrap(),
+            init,
             "`@init` requires `@context` to declare the app state type",
         ));
     }
-    if context_span.is_some() && init_span.is_none() {
+    if let (Some(ctx), None) = (context_span, init_span) {
         diagnostics.push(Diagnostic::error(
-            context_span.unwrap(),
+            ctx,
             "`@context` requires `@init` to produce the app state value",
         ));
     }

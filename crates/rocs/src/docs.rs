@@ -26,6 +26,7 @@ pub struct PageDocs {
     pub snippet_paths: Vec<String>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArticleNode {
     Markdown(MdNode),
@@ -744,7 +745,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
 }
 
 fn validate_example(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
-    let has_path = node.attrs.path.as_deref().unwrap_or("").is_empty() == false;
+    let has_path = !node.attrs.path.as_deref().unwrap_or("").is_empty();
     let has_code = contains_code(&node.children);
     if has_path && has_code && !only_caption(&node.children) {
         malformed(

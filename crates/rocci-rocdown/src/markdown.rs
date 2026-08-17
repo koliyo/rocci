@@ -252,7 +252,6 @@ impl MarkdownConvert {
             NodeValue::CodeBlock(block) => Some(MdNode::CodeBlock {
                 info: block
                     .info
-                    .trim()
                     .split_whitespace()
                     .next()
                     .unwrap_or("")

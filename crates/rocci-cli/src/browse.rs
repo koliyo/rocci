@@ -665,12 +665,10 @@ fn find_passthrough_item(
             for attr in &call.attrs {
                 if let rocci_template::AttrValue::Expr { expr } = attr.value
                     && expr.of(src).trim() == param
-                {
-                    if let Some(kind) =
+                    && let Some(kind) =
                         known.get(&(call.path.roc_name.clone(), attr.name.name.clone()))
-                    {
-                        *found = Some(kind.clone());
-                    }
+                {
+                    *found = Some(kind.clone());
                 }
             }
             if let Some(children) = &call.children {
@@ -1846,7 +1844,7 @@ mod tests {
         fs::write(git.join("Hidden.rocci"), "").unwrap();
         fs::write(dir.join("notes.txt"), "").unwrap();
 
-        let found = discover_rocci_files(&[dir.clone()]).unwrap();
+        let found = discover_rocci_files(std::slice::from_ref(&dir)).unwrap();
         assert_eq!(
             found,
             vec![dir.join("Top.rocci"), nested.join("Other.rocci")]

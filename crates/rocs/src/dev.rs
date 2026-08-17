@@ -299,6 +299,7 @@ impl ReloadHub {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn watch_loop(
     rx: mpsc::Receiver<notify::Result<notify::Event>>,
     mut session: BuildSession,

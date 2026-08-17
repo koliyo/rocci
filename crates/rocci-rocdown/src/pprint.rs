@@ -13,21 +13,23 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             Item::Roc(roc) => w.leaf("roc", &[atom(roc.body.of(src).trim())]),
             Item::Render(render) => w.leaf("render", &[atom(render.expr.of(src).trim())]),
             Item::Component(component) => {
-                w.leaf("component", &[component.name.name.clone()]);
+                w.leaf("component", std::slice::from_ref(&component.name.name));
             }
-            Item::Fixture(fixture) => w.leaf("fixture", &[fixture.name.name.clone()]),
+            Item::Fixture(fixture) => w.leaf("fixture", std::slice::from_ref(&fixture.name.name)),
             Item::Css(_) => w.leaf("css", &[]),
             Item::Context(_) => w.leaf("context", &[]),
             Item::Init(_) => w.leaf("init", &[]),
             Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
-            Item::Docs(docs) => w.leaf("docs", &[docs.kind.clone()]),
+            Item::Docs(docs) => w.leaf("docs", std::slice::from_ref(&docs.kind)),
             Item::Template(item) => match item {
                 TemplateItem::If(_) => w.leaf("if", &[]),
-                TemplateItem::For(dir) => w.leaf("for", &[dir.binder.name.clone()]),
+                TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),
                 TemplateItem::Match(_) => w.leaf("match", &[]),
-                TemplateItem::Let(dir) => w.leaf("let", &[dir.binder.name.clone()]),
-                TemplateItem::ComponentCall(call) => w.leaf("call", &[call.path.roc_name.clone()]),
-                TemplateItem::Element(el) => w.leaf("element", &[el.name.name.clone()]),
+                TemplateItem::Let(dir) => w.leaf("let", std::slice::from_ref(&dir.binder.name)),
+                TemplateItem::ComponentCall(call) => {
+                    w.leaf("call", std::slice::from_ref(&call.path.roc_name))
+                }
+                TemplateItem::Element(el) => w.leaf("element", std::slice::from_ref(&el.name.name)),
                 TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
                 _ => w.leaf("template", &[]),
             },

@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Code Formatting & Lints
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: Test Workspace (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Run workspace tests
+        run: cargo test --workspace
+      - name: Run doc tests
+        run: cargo test --workspace --doc
+
+  fixtures-and-docs:
+    name: AST Fixtures & Docs Validation
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Inspect AST syntax fixtures
+        run: |
+          cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
+          cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
+          cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocci
+          cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocdown
+      - name: Validate documentation site
+        run: cargo run -q -p rocs-cli -- check docs
+
+  editors:
+    name: Editor Extensions (VS Code & Zed)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+      - uses: Swatinem/rust-cache@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - name: Lint and compile VS Code extension
+        run: |
+          npm --prefix editors/vscode ci
+          npm --prefix editors/vscode run lint
+          npm --prefix editors/vscode run compile
+          npm --prefix editors/vscode run vscode:prepublish
+      - name: Check Zed extension (WebAssembly)
+        run: |
+          cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1
+          cargo check --manifest-path editors/zed/Cargo.toml
