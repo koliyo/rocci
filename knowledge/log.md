@@ -2,6 +2,7 @@
 
 ## 2026-08-17
 
+- Added the [Rocdown product-boundary refactor completion review](audits/rocdown-boundary-refactor-review.md), distinguishing the successful package and CLI consolidation from red Phase 8 workflows, missing Rocdown editor wiring, an unnecessary OKF-to-Rocdown edge, over-extracted shared UI, and stale knowledge and operational documentation. Recorded follow-up CI fixes in `b353895` as locally validated but not yet verified by a visible GitHub run.
 - Shipped Phase 8 of the Rocdown boundary refactor: updated root README, ROADMAP, DESIGN, AGENT_SKILLS_PLAN, all crate READMEs, public `docs/` site pages, canonical knowledge records, and knowledge indexes; audited obsolete Rocs references across active code and docs; verified workspace dependencies and test matrix.
 - Shipped Phase 7 of the Rocdown boundary refactor: created `crates/rocci-ui` providing domain-neutral view models (`StatCardView`, `StatTone`), presentation renderers, and base styles (`themes/base.css`), eliminating duplication between `rocci-rocdown` and `rocci-okf`.
 - Shipped Phase 6 of the Rocdown boundary refactor: extracted portable, zero-dependency `crates/okf` engine and created `crates/rocci-okf` CLI and dev server application. Completely removed `okf` module and `knowledge` subcommands from `rocci-rocdown` and `rocci-rocdown-cli`, allowlisting the temporary presentation edge in `scripts/check-workspace-deps.py`.
