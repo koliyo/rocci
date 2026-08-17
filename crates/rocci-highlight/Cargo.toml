@@ -1,0 +1,19 @@
+[package]
+name = "rocci-highlight"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared lexical highlighting library for Roc, HTML, CSS, Rocci, and Rocdown"
+
+[lib]
+name = "rocci_highlight"
+path = "src/lib.rs"
+
+[dependencies]
+rocci-template = { workspace = true }
+rocci-rocdown = { workspace = true }
+serde = { workspace = true }
+tree-sitter = "0.22.6"
+
+[build-dependencies]
+cc = "1.0"

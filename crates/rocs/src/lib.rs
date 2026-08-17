@@ -17,6 +17,7 @@ mod plan;
 mod runtime;
 mod site;
 
+pub use article::render_document;
 pub use build::{BuildReport, BuildSession, build, build_configured, discover_rocdown};
 pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, ResolveOptions, ResolveResult, ResolvedSite, Severity,

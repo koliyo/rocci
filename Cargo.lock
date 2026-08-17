@@ -2276,12 +2276,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "rocci-lsp"
+name = "rocci-highlight"
 version = "0.1.0"
 dependencies = [
  "cc",
+ "rocci-rocdown",
+ "rocci-template",
+ "serde",
+ "tree-sitter",
+]
+
+[[package]]
+name = "rocci-lsp"
+version = "0.1.0"
+dependencies = [
  "lsp-server",
  "lsp-types",
+ "rocci-highlight",
  "rocci-rocdown",
  "rocci-template",
  "serde",
@@ -2330,6 +2341,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "notify",
+ "rocci-highlight",
+ "rocci-lsp",
  "rocci-rocdown",
  "rocci-template",
  "serde",

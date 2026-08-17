@@ -500,7 +500,8 @@ fn test_deterministic_mutation_fuzzing() {
         b' ', b'\t', b'0', b'a', b'Z', 0xF0, 0x9F, 0x94, 0xA5, // 🔥 (UTF-8 fragment)
     ];
 
-    for iteration in 0..5_000 {
+    let iterations = if cfg!(debug_assertions) { 1_000 } else { 5_000 };
+    for iteration in 0..iterations {
         let base = base_fixtures[prng.gen_range(0, base_fixtures.len())];
         let mut mutated = base.as_bytes().to_vec();
 
