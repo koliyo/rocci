@@ -1,12 +1,12 @@
 ---
 name: manage-rocci-knowledge
-description: Query, inspect, validate, author, or review Rocci's `knowledge/` Open Knowledge Format bundle with `rocdown knowledge`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless they also require consulting or updating canonical knowledge.
+description: Query, inspect, validate, author, or review Rocci's `knowledge/` Open Knowledge Format bundle with `rocci-okf`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless they also require consulting or updating canonical knowledge.
 ---
 
 # Manage Rocci Knowledge
 
 Use the checked-in `knowledge/` bundle as the canonical database and the
-repository's `rocdown knowledge` CLI as its deterministic interface. Keep domain
+repository's `rocci-okf` CLI as its deterministic interface. Keep domain
 facts in the bundle rather than copying them into this skill.
 
 ## Establish context
@@ -31,16 +31,16 @@ rg -n "SEARCH_TERMS" knowledge --glob '*.md'
 When the concept ID is known, inspect its normalized representation:
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- knowledge inspect \
+cargo run -q -p rocci-okf -- inspect \
   --profile rocci concept CONCEPT_ID knowledge
 ```
 
 Inspect the catalog for metadata-wide questions and the graph for relationships:
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- knowledge inspect \
+cargo run -q -p rocci-okf -- inspect \
   --profile rocci catalog knowledge
-cargo run -q -p rocci-rocdown-cli -- knowledge inspect \
+cargo run -q -p rocci-okf -- inspect \
   --profile rocci graph knowledge
 ```
 
@@ -73,14 +73,14 @@ targeted record and source reads over loading the entire JSON catalog.
 Run the Rocci profile after every knowledge edit:
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- knowledge check knowledge \
+cargo run -q -p rocci-okf -- check knowledge \
   --profile rocci --format terminal
 ```
 
 Use the base profile only when explicitly testing portable OKF behavior:
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- knowledge check knowledge \
+cargo run -q -p rocci-okf -- check knowledge \
   --profile base --format terminal
 ```
 
@@ -88,8 +88,8 @@ If parser, validation, inspection, or CLI behavior changed, also run focused
 Rust tests before broader workspace tests:
 
 ```sh
-cargo test -p rocci-rocdown okf::
-cargo test -p rocci-rocdown-cli
+cargo test -p okf
+cargo test -p rocci-okf
 ```
 
 Treat validation errors as failures. Report lifecycle and repository-provenance

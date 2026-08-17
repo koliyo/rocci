@@ -1876,6 +1876,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "okf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "comrak",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.20",
+ "toml",
+ "yaml-rust",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2312,6 +2326,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocci-okf"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "notify",
+ "okf",
+ "rocci-cli",
+ "rocci-core",
+ "rocci-desktop",
+ "rocci-rocdown",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rocci-rocdown"
 version = "0.1.0"
 dependencies = [
@@ -2329,7 +2359,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "toml",
- "yaml-rust",
 ]
 
 [[package]]

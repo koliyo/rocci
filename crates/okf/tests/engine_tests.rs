@@ -2,8 +2,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rocci_rocdown::okf::{
-    InspectKind, KnowledgeFilter, Profile, TrustTier, build, inspect_filtered, load, search,
+use okf::{
+    InspectKind, KnowledgeFilter, Profile, TrustTier, build, check, inspect_filtered, load, search,
 };
 
 fn temp(name: &str) -> PathBuf {
@@ -11,7 +11,7 @@ fn temp(name: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let path = std::env::temp_dir().join(format!("rocs-okf-fixture-{name}-{nonce}"));
+    let path = std::env::temp_dir().join(format!("okf-engine-test-{name}-{nonce}"));
     fs::create_dir_all(&path).unwrap();
     path
 }
@@ -26,7 +26,6 @@ fn valid_rocci_concept(id: &str, extra_yaml: &str, body: &str) -> String {
 fn test_okf_profile_matrix() {
     let root = temp("profiles");
 
-    // Base profile document (valid for Base, invalid for Rocci because missing tags, owners, etc.)
     fs::write(
         root.join("minimal.md"),
         "---\ntype: Note\ntitle: Minimal\n---\n\n# Minimal\n\nBody text.\n",
@@ -159,6 +158,31 @@ fn test_okf_deterministic_build_artifacts() {
 
     assert_eq!(catalog_1, catalog_2, "catalog.json must be deterministic");
     assert_eq!(search_1, search_2, "search.json must be deterministic");
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn test_okf_rejects_declarations_and_raw_html() {
+    let root = temp("rejects");
+    fs::write(
+        root.join("bad_decl.md"),
+        valid_rocci_concept(
+            "BadDecl",
+            "",
+            "Some text\n\n@render {\n  Html.text(\"forbidden\")\n}\n",
+        ),
+    )
+    .unwrap();
+
+    let report = check(&root, Profile::Rocci).expect("check");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "OKF2007" && d.message.contains("@render")),
+        "should reject @render declaration"
+    );
 
     let _ = fs::remove_dir_all(root);
 }

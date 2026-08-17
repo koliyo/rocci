@@ -45,7 +45,9 @@ ALLOWED_REVERSE: set[tuple[str, str]] = set()
 
 # Populate with (rocci-okf, rocdown-package) when the presentation adapter is
 # introduced together with a tracking issue. Empty until then.
-TEMPORARY_OKF_ROCDOWN_PRESENTATION: set[tuple[str, str]] = set()
+TEMPORARY_OKF_ROCDOWN_PRESENTATION: set[tuple[str, str]] = {
+    ("rocci-okf", "rocci-rocdown"),
+}
 
 
 def classify(name: str) -> str | None:

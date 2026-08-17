@@ -197,26 +197,3 @@ fn test_docs_examples() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
-
-#[test]
-fn knowledge_check_adapter_passes() {
-    let root = repo_root();
-    let bin = rocdown_bin();
-
-    let output = Command::new(&bin)
-        .arg("knowledge")
-        .arg("check")
-        .arg(root.join("knowledge"))
-        .arg("--profile")
-        .arg("rocci")
-        .arg("--format")
-        .arg("json")
-        .current_dir(&root)
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "knowledge check failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
