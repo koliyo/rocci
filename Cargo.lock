@@ -2267,6 +2267,7 @@ dependencies = [
  "anyhow",
  "clap",
  "rocci-core",
+ "rocci-datastar",
  "rocci-desktop",
  "rocci-template",
  "serde",
@@ -2285,6 +2286,17 @@ dependencies = [
  "toml",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "rocci-datastar"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.20",
+ "ureq",
 ]
 
 [[package]]
@@ -2318,6 +2330,7 @@ version = "0.1.0"
 dependencies = [
  "lsp-server",
  "lsp-types",
+ "rocci-datastar",
  "rocci-highlight",
  "rocci-template",
  "serde",
