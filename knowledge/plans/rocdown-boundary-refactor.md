@@ -96,6 +96,7 @@ product, format, and configuration use `rocdown`. The portable OKF engine is
 | `rocs.toml` | `rocdown.toml` | Switch in-repo; do not parse both filenames |
 | `RocsTheme.rocci`, `DocsComponents.rocci`, `RocsBuild.roc` | Rocdown templates/runtime | Rename after behavior parity so generated-module changes are isolated |
 | `rocs knowledge` and `rocs::okf` | `okf` engine plus `rocci-okf` app | Preserve current commands through an adapter until `rocci-okf` matches fixtures, then remove from Rocdown |
+| `rocci-wry` | `rocci-desktop` | Rename crate and module to reflect domain role as the native window/webview host rather than one backend dependency |
 
 ## Architectural end state
 
@@ -223,9 +224,26 @@ surface uses Rocs naming. Historical knowledge and archived reports may retain
 it with explicit historical status. Full docs build output is byte-equivalent
 apart from approved naming, metadata, and asset-path changes.
 
-## Phase 5 — separate OKF without coupling Rocdown to it
+## Phase 5 — rename rocci-wry to rocci-desktop
 
-1. During Phases 1–4, preserve `knowledge check`, inspect, search, benchmark,
+1. Rename crate directory `crates/rocci-wry` to `crates/rocci-desktop` and update
+   its package manifest name to `rocci-desktop`.
+2. Update workspace manifests (`Cargo.toml`), dependencies in `rocci-cli`,
+   `rocci-rocdown-cli`, and any in-flight tools to consume `rocci-desktop`.
+3. Update module-level docs and Rust import paths (`use rocci_desktop::...`)
+   across the codebase.
+4. Update `scripts/check-workspace-deps.py` so `BASE_ROCCI` classifies
+   `rocci-desktop`.
+5. Update repository documentation, contributor guides, and agent instructions
+   (`AGENTS.md`) referencing `rocci-wry`.
+
+Exit gate: no active code, workspace manifest, or test references `rocci-wry` or
+`rocci_wry`; `rocci-desktop` builds and passes all windowing, webview, menu, and
+state tests; workspace dependency assertions pass.
+
+## Phase 6 — separate OKF without coupling Rocdown to it
+
+1. During Phases 1–5, preserve `knowledge check`, inspect, search, benchmark,
    build, and run through a compatibility adapter. Do not add new OKF policy to
    Rocdown.
 2. Extract the UI-neutral `okf` engine using the existing standalone plan: parsing
@@ -248,7 +266,7 @@ Exit gate: Rocdown has no OKF dependency or command; the OKF engine can be used
 by a minimal non-Rocci, non-Rocdown consumer; the Rocci OKF application matches
 the current deterministic outputs and governance behavior.
 
-## Phase 6 — extract shared UI only from demonstrated duplication
+## Phase 7 — extract shared UI only from demonstrated duplication
 
 1. Implement Rocdown and Rocci OKF navigation models independently first.
    Compare their actual data and component contracts after both work.
@@ -266,7 +284,7 @@ Exit gate: either no shared package is created and the divergence is recorded,
 or both products consume a small dependency-neutral component package without
 moving domain behavior into it.
 
-## Phase 7 — documentation, knowledge, and release cleanup
+## Phase 8 — documentation, knowledge, and release cleanup
 
 1. Update the root README, roadmap, owning crate READMEs, public Rocdown/CLI
    references, contributing guide, examples, and editor documentation.
@@ -280,7 +298,7 @@ moving domain behavior into it.
    workspace tests, Rocdown AST inspection, the documentation site build,
    editor integration tests, OKF deterministic checks, and dependency audits.
 5. Search active source and docs for obsolete `rocs`, `Rocs`,
-   `rocci-rocdown`, `rocci_theme`, and old command/config names. Classify every
+   `rocci-rocdown`, `rocci_theme`, `rocci-wry`, and old command/config names. Classify every
    remaining match as compatibility, generated, or historical before release.
 
 Exit gate: dependency rules are mechanically enforced; public documentation
