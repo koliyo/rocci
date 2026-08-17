@@ -133,7 +133,7 @@ Published pages may remain unlisted when that is intentional.
 
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
-with `rocdown run` (or `rocci run`) uses the standalone left navigator instead; see
+with `rocdown run` uses the standalone left navigator instead; see
 [Rocdown](/reference/rocdown/).
 
 ## Generated artifacts
@@ -162,45 +162,11 @@ cargo run -p rocci-rocdown-cli -- run docs
 in the browser only. Static content reloads after a successful rebuild; dynamic
 islands are not part of this preview path.
 
-## OKF knowledge collections
+## Open Knowledge Format (OKF)
 
-`rocdown knowledge` is isolated from ordinary documentation discovery. It reads
-only the explicitly supplied OKF bundle (default `knowledge/`) and treats every
-non-reserved `.md` file as inert Markdown with YAML frontmatter. `index.md` and
-`log.md` retain their OKF meanings; `.rocdown` files and `@page` metadata are
-not accepted as canonical knowledge records.
-
-Preview a knowledge collection with watch and live reload:
+Knowledge bundles are managed through the dedicated [`rocci-okf`](/reference/cli/) application rather than the documentation site generator:
 
 ```sh
-cargo run -p rocci-rocdown-cli -- knowledge run knowledge
+cargo run -p rocci-okf -- check knowledge --profile rocci
+cargo run -p rocci-okf -- run knowledge
 ```
-
-The preview uses the standard Rocdown theme and a temporary output directory by
-default. It maps OKF Markdown links to generated routes, serves linked bundle
-resources, derives navigation sections from collection `index.md` files, and
-retains the last successful site when a later edit fails validation.
-The left navigation keeps every top-level collection visible and expands only
-the collection containing the current page.
-
-The body parser shares Rocdown's static Markdown AST and `rd-*` rendering
-classes, with keyed footnotes enabled. Rocdown declarations, raw HTML, and
-wikilinks are disabled for portability and execution safety.
-
-Knowledge builds also emit `catalog.json`, heading-chunked `search.json`,
-`llms.txt`, and `validation.json`. Catalog inspection and search can filter by
-type, tag, lifecycle status, authority, derived trust tier, and staleness. The
-generated site and indexes are local/repository-visible artifacts; no public
-deployment or verbatim archive publication is configured.
-
-Measure the checked-in lexical retrieval baseline with:
-
-```sh
-cargo run -p rocci-rocdown-cli -- knowledge benchmark knowledge
-```
-
-The versioned question set records expected concepts plus lifecycle and
-authority metadata. The command reports top-five hit rate and mean reciprocal
-rank as JSON and exits unsuccessfully when the configured hit-rate threshold is
-not met. This baseline is intentionally lexical; it should be measured before
-adding embeddings or a database service.

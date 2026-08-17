@@ -65,15 +65,15 @@ Run the same app with `--no-window` and open the printed URL in a browser. If
 the browser works, check platform Wry dependencies. On Linux, WebKitGTK
 development libraries are the most common missing prerequisite.
 
-## Rocs rejects a page as an island
+## Rocdown site build rejects a page as an island
 
 The current static pipeline rejects `@roc`, `@render`, `@component`, `@css`,
 server declarations, document-root templates, and custom layouts.
 
-Keep the static documentation page to Markdown plus `@page`, or preview the
-interactive document with `rocci run` until Rocs island splicing is implemented.
+Keep the static documentation page to Markdown plus `@page` and `@docs`, or run the
+interactive document with `rocdown run` until static island splicing is implemented.
 
-## A Rocs navigation item is unknown
+## A Rocdown navigation item is unknown
 
 Navigation uses content-root-relative page IDs without `.rocdown`. For example,
 `docs/guides/build.rocdown` is `guides/build`. Nested `index.rocdown` retains
@@ -83,7 +83,7 @@ Navigation uses content-root-relative page IDs without `.rocdown`. For example,
 
 ```sh
 cargo run -p rocci-cli -- inspect --ast path/to/file.rocci
-cargo run -p rocci-cli -- inspect --ast path/to/file.rocdown
+cargo run -p rocci-rocdown-cli -- inspect ast path/to/file.rocdown
 ```
 
 If the issue persists, reduce it to one file and include the command, platform,

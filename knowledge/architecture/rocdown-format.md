@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T13:30:00Z }
+generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -25,7 +25,7 @@ sources:
     resource: ../../crates/rocci-rocdown/src/scan.rs
     title: Rocdown document-root scanner
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: lowerer
     resource: ../../crates/rocci-rocdown/src/lower.rs
     title: Rocdown to Roc lowerer
@@ -42,10 +42,10 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: cli-options
-    resource: ../../crates/rocci-cli/src/theme.rs
+    resource: ../../crates/rocci-rocdown-cli/src/main.rs
     title: Rocdown CLI compile-option construction
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: format-report
     resource: ../../archive/reports/ROCDOWN_FORMAT_REPORT.md
     title: Original Rocdown format investigation
@@ -81,7 +81,7 @@ This is the implemented form of the [Markdown-first explicit-islands decision](/
 
 ## Not yet implemented
 
-`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions (admonitions, definition lists, math, automatic TOC) are not part of ordinary Rocdown today. `@docs api-operation` is parsed and rejected by Rocs until generated API reference ships. Multi-page static generation and hashed assets exist in Rocs rather than in the single-file Rocdown compiler; standalone preview copies local images without hashing.[^rocdown-readme]
+`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions (admonitions, definition lists, math, automatic TOC) are not part of ordinary Rocdown today. `@docs api-operation` is parsed and rejected by Rocdown until generated API reference ships. Multi-page static generation and hashed assets are owned by Rocdown (`rocci-rocdown`); standalone preview copies local images without hashing.[^rocdown-readme]
 
 ## Evidence policy
 

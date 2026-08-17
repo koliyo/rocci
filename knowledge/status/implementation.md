@@ -1,10 +1,10 @@
 ---
 type: Status
 title: Rocci implementation status
-description: Rocci ships its core template, Rocdown, preview, desktop, packaging, editor, and static Rocs foundations while dynamic islands and broader packaging remain incomplete.
-tags: [domain/rocci, domain/rocs, concern/tooling, concern/packaging]
+description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
+tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T07:28:01Z }
+generated: { by: process:codex, at: 2026-08-17T23:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -15,12 +15,12 @@ sources:
     resource: ../../ROADMAP.md
     title: Implementation roadmap
     author: human:nils
-    last_modified: 2026-08-16
-  - id: rocs-plan
-    resource: ../../ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md
-    title: Rocs implementation plan
-    author: human:nils
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
+  - id: refactor-plan
+    resource: ../plans/rocdown-boundary-refactor.md
+    title: Rocdown product-boundary refactor plan
+    author: process:codex
+    last_modified: 2026-08-17
   - id: okf-plan
     resource: ../../OKF_PLAN.md
     title: Open Knowledge Format plan for Rocci
@@ -37,10 +37,10 @@ sources:
     author: process:okf-phase-4
     last_modified: 2026-08-16
   - id: okf
-    resource: ../../crates/rocs/src/okf.rs
-    title: OKF knowledge implementation
+    resource: ../../crates/okf/README.md
+    title: OKF portable engine
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: publication
     resource: ../decisions/local-knowledge-publication.md
     title: Local knowledge publication decision
@@ -56,9 +56,9 @@ sources:
     title: Proposed full Rocci and Rocdown language-server plan
     author: process:codex
     last_modified: 2026-08-17
-  - id: rocs-compiler
+  - id: rocdown-compiler
     resource: ../architecture/rocs-documentation-compiler.md
-    title: Current Rocs documentation compiler boundary
+    title: Current Rocdown documentation generator boundary
     author: process:codex
     last_modified: 2026-08-17
 ---
@@ -71,34 +71,25 @@ sources:
 
 ## Shipped
 
-Template and Rocdown compilation, standalone preview/run workflows, the desktop preview host, ad-hoc macOS application packaging, editor registration, and the Rust-catalog/Rocci-shell Rocs foundation are implemented.[^roadmap]
+The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration, domain-neutral presentation components (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
 
-Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocs types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocs test` runs declared example commands on demand and is not part of `rocs build`.[^rocs-plan]
+Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan]
 
-Rocs code fences and non-Rocdown includes currently render escaped code with
-language classes but no per-token syntax-highlighting spans.[^rocs-compiler]
+Tree-sitter highlighting library `rocci-highlight` provides token spans for LSP and documentation rendering parity.[^rocdown-compiler]
 
-The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
+The shipped OKF knowledge path validates, graphs, renders, previews, inspects, and searches the knowledge bundle using the portable `okf` engine and `rocci-okf` review application. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
-Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate and mean-reciprocal-rank reporting, and CI threshold enforcement. Seven dated research and audit reports are preserved under `archive/reports/`; the two plans retained during consolidation remain active, and a third proposed language-server plan now lives at the repository root.[^consolidation][^lsp-plan]
+Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark with JSON hit-rate and mean-reciprocal-rank reporting, with CI threshold enforcement.[^consolidation]
 
 ## Missing
 
 Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
 
-The editor adapters and basic host-language LSP exist, but embedded Roc/CSS
-highlighting, complete HTML-shaped/Markdown highlighting, workspace-wide
-language intelligence, and compiler-backed Roc semantics remain proposed work.
-The detailed language-server plan is exploratory and must not be presented as
-shipped.[^lsp-plan]
-
-Static syntax highlighting for Rocs code fences, includes, and examples is
-also proposed rather than shipped. The plan shares language-neutral token
-spans with the LSP while keeping escaped HTML generation in Rocs.[^lsp-plan]
+The editor adapters and basic host-language LSP exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
 
 ## Decided direction
 
-Current implementation and accepted project direction keep render components as ordinary Roc functions, durable application state on the server, Rocdown Markdown-first with visible executable regions, and the Rocs catalog in Rust with its visible shell in Rocci. These choices are recorded separately so their lifecycle does not depend on this status snapshot.
+Current implementation and accepted project direction keep render components as ordinary Roc functions, durable application state on the server, Rocdown Markdown-first with visible executable regions, and the Rocdown catalog in Rust with its visible shell in Rocci. These choices are recorded separately so their lifecycle does not depend on this status snapshot.
 
 The OKF compatibility boundary, bundle location, metadata vocabulary, ownership convention, and local-first publication are approved implementation contracts. DTCG is approved only as research evidence for design knowledge, not as implementation authority.[^okf-plan]
 
@@ -119,12 +110,12 @@ Typed client-behavior islands, their syntax, generated JavaScript artifact model
 This record must be reviewed when its `stale_after` date is reached or when either cited implementation plan changes.
 
 [^roadmap]: Current shipped focus and deliberate remaining limitations.
-[^rocs-plan]: Current Rocs phase state and build architecture.
+[^refactor-plan]: Active ownership rule, implementation phases, testing, and remaining work.
 [^okf-plan]: Approved OKF contract and amended knowledge-only DTCG boundary.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
-[^okf]: Current Phase 5 knowledge outputs, retrieval filters, and search implementation.
+[^okf]: Portable OKF engine and rocci-okf review application.
 [^publication]: Draft record of the approved local-first publication disposition.
 [^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
-[^rocs-compiler]: Current static code-block rendering path and absence of per-token syntax spans.
+[^rocdown-compiler]: Current static code-block rendering path and token spans.

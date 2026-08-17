@@ -16,7 +16,7 @@ pub const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
     ),
     (
         "architecture/rocs-documentation-compiler",
-        "Ordinary Rocs compiler plus isolated OKF preview/retrieval path",
+        "Rocdown generator plus isolated OKF preview/retrieval path",
     ),
     (
         "architecture/theming",

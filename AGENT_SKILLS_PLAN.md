@@ -16,10 +16,10 @@ Rocci has several distinct work surfaces:
 
 | Surface | Workflow |
 |---|---|
-| Knowledge system | Query, inspect, author, review, and validate OKF records |
+| Knowledge system | Query, inspect, author, review, and validate OKF records with `rocci-okf` |
 | Language/compiler | Change `.rocci` or `.rocdown` parsing, lowering, diagnostics, and source maps |
-| Rocs sites | Change documentation cataloging, routes, assets, static rendering, or the theme |
-| Runtime/desktop | Change configuration, serving, bundling, Wry, or application behavior |
+| Rocdown sites | Change documentation cataloging, routes, assets, static rendering, or the theme |
+| Runtime/desktop | Change configuration, serving, bundling, desktop host, or application behavior |
 
 Those boundaries already exist in the workspace map in [README.md](/Users/nils/Projects/rocci/README.md:10) and the ownership table in [contributing.rocdown](/Users/nils/Projects/rocci/docs/project/contributing.rocdown:26).
 
@@ -46,7 +46,7 @@ Add further skills only after observing recurring workflows.
 Keep it around 40–80 lines and include only universal policy:
 
 - Brief product and crate ownership map.
-- Preserve the compiler/runtime/Rocs boundaries documented in the repository.
+- Preserve the compiler/runtime/Rocdown boundaries documented in the repository.
 - Inspect the working tree before editing and preserve unrelated changes.
 - Use focused crate tests first; use `cargo test --workspace` for cross-cutting work.
 - Update the owning README or Rocdown reference when behavior changes.
@@ -60,7 +60,7 @@ Do not embed CLI tutorials, the OKF schema, or a full architecture guide. Those 
 
 Suggested trigger description:
 
-> Query, inspect, validate, author, or review Rocci’s `knowledge/` OKF bundle using `rocs knowledge`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless the task also requires consulting or updating canonical knowledge.
+> Query, inspect, validate, author, or review Rocci’s `knowledge/` OKF bundle using `rocci-okf`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless the task also requires consulting or updating canonical knowledge.
 
 The body should define four workflows:
 
@@ -84,20 +84,20 @@ The body should define four workflows:
    Use the exact current command forms:
 
    ```sh
-   cargo run -q -p rocs-cli -- knowledge check knowledge \
+   cargo run -q -p rocci-okf -- check knowledge \
      --profile rocci --format terminal
 
-   cargo run -q -p rocs-cli -- knowledge inspect \
+   cargo run -q -p rocci-okf -- inspect \
      --profile rocci concept CONCEPT_ID knowledge
 
-   cargo run -q -p rocs-cli -- knowledge inspect \
+   cargo run -q -p rocci-okf -- inspect \
      --profile rocci catalog knowledge
 
-   cargo run -q -p rocs-cli -- knowledge inspect \
+   cargo run -q -p rocci-okf -- inspect \
      --profile rocci graph knowledge
    ```
 
-   For `inspect`, `--profile` must precede `catalog`, `concept`, or `graph`; that follows the actual Clap structure in [main.rs](/Users/nils/Projects/rocci/crates/rocs-cli/src/main.rs:161).
+   For `inspect`, `--profile` must precede `catalog`, `concept`, or `graph`.
 
 4. **Report**
 
@@ -107,7 +107,7 @@ The body should define four workflows:
 
 The skill should point to the existing review policy in [priority-1-review.md](/Users/nils/Projects/rocci/knowledge/reference/priority-1-review.md:21) and CLI reference in [cli.rocdown](/Users/nils/Projects/rocci/docs/reference/cli.rocdown:134), rather than copying them into bundled references.
 
-No script is needed initially: `rocs knowledge` is already the deterministic implementation. The current knowledge check completes without errors, while correctly reporting warnings caused by the dirty/untracked source state and outdated verification.
+No script is needed initially: `rocci-okf` is already the deterministic implementation. The current knowledge check completes without errors, while correctly reporting warnings caused by the dirty/untracked source state and outdated verification.
 
 ## Implementation plan
 

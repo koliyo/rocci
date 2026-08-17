@@ -4,7 +4,7 @@ title: Rocdown product-boundary refactor
 description: Phased migration that removes Rocdown from base Rocci, consolidates the Rocdown format and static generator, retires Rocs, and separates portable OKF behavior.
 tags: [domain/rocci, domain/rocdown, concern/architecture, concern/migration, concern/tooling, integration/okf]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T19:50:00Z }
+generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -21,7 +21,7 @@ sources:
     last_modified: 2026-08-17
   - id: current-generator
     resource: ../architecture/rocs-documentation-compiler.md
-    title: Current Rocs documentation compiler
+    title: Current Rocdown documentation generator
     author: process:codex
     last_modified: 2026-08-17
   - id: workspace
@@ -30,8 +30,8 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: current-okf
-    resource: ../../crates/rocs/src/okf.rs
-    title: Current coupled OKF implementation
+    resource: ../../crates/okf/src/lib.rs
+    title: Portable OKF engine implementation
     author: process:git
     last_modified: 2026-08-17
   - id: architecture-check

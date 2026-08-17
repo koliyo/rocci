@@ -7,13 +7,11 @@ HTTP with Datastar. `rocci run` opens the app in an embedded
 [tao](https://github.com/tauri-apps/tao) / [wry](https://github.com/tauri-apps/wry)
 window.
 
-The workspace is `rocci-template` (`.rocci` parse/lower), `rocci-rocdown`
-(Markdown documents, static site generator, and OKF tooling),
-`rocci-rocdown-cli` (`rocdown` binary), `rocci-lsp`, `rocci-cli` (`rocci` binary),
-`rocci-core` (config), and `rocci-desktop` (preview windows and desktop shell). Rocdown keeps a Rust
-catalog and article renderer, compiles a Rocdown theme once, and only uses Roc
-for that shell (and later for dynamic islands). Other doc frameworks can depend
-on the same base crates without taking a site generator dependency.
+The workspace is organized into focused packages with strictly enforced one-way boundaries:
+- **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
+- **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).
+- **Open Knowledge Format:** `okf` (portable, UI-neutral knowledge engine), `rocci-okf` (`rocci-okf` application binary and review server).
+- **Tooling:** `rocci-lsp` (language server for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
 
 ## Run an example
 
@@ -23,10 +21,10 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 ```sh
 cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
-cargo run -q -p rocci-cli -- run examples/rocdown/Guide.rocdown
-cargo run -q -p rocci-cli -- run examples/errors/ErrorDemo.rocdown
 cargo run -q -p rocci-cli -- run examples/snake
 cargo run -q -p rocci-cli -- run examples/datastar
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/errors/ErrorDemo.rocdown
 ```
 
 [`examples/counter`](examples/counter) is the starting app: SQLite, `@on`, and a
@@ -82,31 +80,49 @@ Packaging is currently macOS-only.
 
 ## CLI
 
+### Rocci
+
 ```sh
 cargo run -p rocci-cli -- validate
 cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- build path/to/file.rocci
-cargo run -p rocci-cli -- build examples/rocdown/Guide.rocdown
 cargo run -p rocci-cli -- run examples/counter/Counter.rocci
-cargo run -p rocci-cli -- run examples/rocdown/Guide.rocdown
 cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component CounterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
+```
+
+### Rocdown
+
+```sh
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
 cargo run -p rocci-rocdown-cli -- build examples/rocdown-site --output dist
-cargo run -p rocci-rocdown-cli -- knowledge benchmark knowledge
+cargo run -p rocci-rocdown-cli -- check docs
+cargo run -p rocci-rocdown-cli -- test docs
+cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 ```
 
 Rocdown discovers `.rocdown` files, resolves routes in Rust, renders article HTML
 from the Markdown AST, and wraps each page in [`RocdownTheme.rocci`](crates/rocci-rocdown/templates/RocdownTheme.rocci).
-Content edits do not recompile Markdown as Roc. Pages with `@render` or other
-islands are rejected until that splice path exists. See
-[`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md`](ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md).
+Content edits do not recompile Markdown as Roc.
 
-The separate OKF knowledge path validates, inspects, searches, and renders
+### Rocci OKF
+
+```sh
+cargo run -p rocci-okf -- check knowledge --profile rocci
+cargo run -p rocci-okf -- inspect concept architecture/system-overview knowledge
+cargo run -p rocci-okf -- inspect graph knowledge
+cargo run -p rocci-okf -- search "rendering" knowledge
+cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
+cargo run -p rocci-okf -- run knowledge
+cargo run -p rocci-okf -- build knowledge --output dist/knowledge
+```
+
+The separate OKF knowledge path validates, inspects, searches, benchmarks, and renders
 `knowledge/`. Its fixed lexical retrieval questions are measured by
-`rocdown knowledge benchmark`; the command reports hit rate and mean reciprocal
+`rocci-okf benchmark`; the command reports hit rate and mean reciprocal
 rank and fails when the checked-in threshold is missed.
 
 The project documentation lives in [`docs`](docs) and is configured by

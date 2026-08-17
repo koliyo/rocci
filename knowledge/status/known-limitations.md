@@ -1,10 +1,10 @@
 ---
 type: Status
 title: Known Rocci limitations
-description: Rocci deliberately lacks dynamic Rocs islands, public documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
-tags: [domain/rocci, domain/rocs, domain/desktop, concern/validation, concern/packaging]
+description: Rocci deliberately lacks dynamic Rocdown islands, public documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
+tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
+generated: { by: process:okf-phase-6, at: 2026-08-17T23:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -15,45 +15,45 @@ sources:
     resource: ../../ROADMAP.md
     title: Implementation roadmap
     author: human:nils
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: status-doc
     resource: ../../docs/project/status.rocdown
     title: Published project status
     author: human:nils
-    last_modified: 2026-08-16
-  - id: rocs-site
-    resource: ../../crates/rocs/src/site.rs
-    title: Current Rocs site loader
+    last_modified: 2026-08-17
+  - id: rocdown-site
+    resource: ../../crates/rocci-rocdown/src/site.rs
+    title: Current Rocdown site loader
     author: process:git
-    last_modified: 2026-08-16
-  - id: rocs-article
-    resource: ../../crates/rocs/src/article.rs
-    title: Current Rocs static-document feature gate
+    last_modified: 2026-08-17
+  - id: rocdown-article
+    resource: ../../crates/rocci-rocdown/src/article.rs
+    title: Current Rocdown static-document feature gate
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: roadmap-plan
-    resource: ../../ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md
-    title: Rocs implementation plan
-    author: human:nils
-    last_modified: 2026-08-16
+    resource: ../plans/rocdown-boundary-refactor.md
+    title: Rocdown refactor plan
+    author: process:codex
+    last_modified: 2026-08-17
   - id: okf
-    resource: ../../crates/rocs/src/okf.rs
-    title: OKF knowledge implementation
+    resource: ../../crates/okf/README.md
+    title: OKF portable engine
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
 ---
 
 # Known Rocci limitations
 
 ## Snapshot date
 
-2026-08-16.
+2026-08-17.
 
 ## Static documentation
 
-Rocs rejects pages containing `@render`, Roc blocks, Rocci templates, handlers, file CSS, or custom layouts; the dynamic-island splice path is not implemented. This includes document-root `<Tag>` islands because Rocdown classifies them as Rocci template items before Rocs applies its static feature gate. `@docs` components are allowed on static pages.[^rocs-site][^rocs-article]
+Rocdown site builds reject pages containing `@render`, Roc blocks, Rocci templates, handlers, file CSS, or custom layouts; the dynamic-island splice path is not implemented. This includes document-root `<Tag>` islands because Rocdown classifies them as Rocci template items before applying its static feature gate. `@docs` components are allowed on static pages.[^rocdown-site][^rocdown-article]
 
-Public documentation-site search, clean per-page Markdown artifacts, and some machine-output polish remain in the ordinary Rocs backlog. Markdown and search text functions already exist for `@docs` nodes so those outputs stay honest when they land. The separate OKF knowledge path emits a heading-chunk search index, supports filtered CLI search, and measures a fixed lexical retrieval benchmark; that does not add a search interface to ordinary generated documentation sites. Watch/serve, aliases, and live reload are already implemented, and the public status page now reflects that boundary.[^roadmap-plan][^status-doc][^okf]
+Public documentation-site search, clean per-page Markdown artifacts, and some machine-output polish remain in the ordinary Rocdown backlog. Markdown and search text functions already exist for `@docs` nodes so those outputs stay honest when they land. The separate OKF knowledge path emits a heading-chunk search index, supports filtered CLI search, and measures a fixed lexical retrieval benchmark; that does not add a search interface to ordinary generated documentation sites. Watch/serve, aliases, and live reload are already implemented, and the public status page reflects that boundary.[^roadmap-plan][^status-doc][^okf]
 
 ## Runtime and desktop delivery
 
@@ -71,7 +71,7 @@ Review this record when a cited source changes or on its `stale_after` date. The
 
 [^roadmap]: Current deliberate limitations and unchecked roadmap items.
 [^status-doc]: Published audience-facing limitations after the Phase 6 stale-status correction.
-[^rocs-site]: Static-page feature rejection in the current site loader.
-[^rocs-article]: Exact static-item allowlist and Rocci-template rejection.
-[^roadmap-plan]: Current Rocs Phase 4 status and remaining outputs.
-[^okf]: Current local search and machine-output support for OKF knowledge collections only.
+[^rocdown-site]: Static-page feature rejection in the current site loader.
+[^rocdown-article]: Exact static-item allowlist and Rocci-template rejection.
+[^roadmap-plan]: Current Rocdown refactor plan and remaining outputs.
+[^okf]: Current local search and machine-output support in portable OKF engine.

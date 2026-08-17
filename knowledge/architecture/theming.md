@@ -1,10 +1,10 @@
 ---
 type: Architecture
 title: Rocci theming surfaces
-description: Standalone Rocdown uses CSS variable themes while Rocs uses a separate Rocci-authored documentation shell; DTCG is research evidence, not an adopted token authority.
-tags: [domain/rocdown, domain/rocs, domain/design-system, concern/theming, concern/accessibility]
+description: Standalone Rocdown uses CSS variable themes while Rocdown sites use a Rocci-authored documentation shell and rocci-ui base styles; DTCG is research evidence, not an adopted token authority.
+tags: [domain/rocdown, domain/design-system, concern/theming, concern/accessibility]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-16T18:32:45Z }
+generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -15,17 +15,22 @@ sources:
     resource: ../../crates/rocci-theme/README.md
     title: Standalone Rocdown theme reference
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
   - id: theme-resolver
     resource: ../../crates/rocci-theme/src/resolve.rs
     title: Theme resolver implementation
     author: process:git
-    last_modified: 2026-08-16
-  - id: rocs-theme
-    resource: ../../crates/rocs/templates/RocsTheme.rocci
-    title: Rocs documentation shell
+    last_modified: 2026-08-17
+  - id: rocdown-theme
+    resource: ../../crates/rocci-rocdown/templates/RocdownTheme.rocci
+    title: Rocdown documentation shell
     author: process:git
-    last_modified: 2026-08-16
+    last_modified: 2026-08-17
+  - id: ui-readme
+    resource: ../../crates/rocci-ui/README.md
+    title: Rocci UI shared primitives and base styles
+    author: process:git
+    last_modified: 2026-08-17
   - id: theming-report
     resource: ../../archive/reports/ROCDOWN_THEMING_REPORT.md
     title: Rocdown theming investigation
@@ -56,11 +61,11 @@ Standalone Rocdown resolves `paper`, `rocci`, `none`, a local theme name, or a C
 
 Standalone themes set `--rd-*` variables under `.rd-document`; shared chrome CSS maps those variables to stable Markdown classes. Built-ins are compiled into `rocci-theme`, while named local files are discovered under the user's theme directory.[^theme-readme][^theme-resolver]
 
-Rocs does not consume that theme resolver for its full site shell. `RocsTheme.rocci` owns layout, navigation, article presentation, responsive behavior, and its own palette variables, and its extracted CSS is fingerprinted as a build asset.[^rocs-theme]
+Multi-page documentation sites use `RocdownTheme.rocci`, which owns layout, navigation, article presentation, responsive behavior, and shell palette variables using `rocci-ui` base styles (`themes/base.css`). Its extracted CSS is fingerprinted as a build asset.[^rocdown-theme][^ui-readme]
 
 ## Boundaries
 
-Format, layout, visual theme, and code highlighting are separate concerns. The current implementation covers native article themes and a first-party Rocs shell, not presentation renderers or a general external theme-package interface.[^theming-report]
+Format, layout, visual theme, and code highlighting are separate concerns. The current implementation covers native article themes and a first-party documentation shell, not presentation renderers or a general external theme-package interface.[^theming-report]
 
 ## DTCG research boundary
 
@@ -70,7 +75,7 @@ Any future token proposal would still need to keep DOM classes, page structure, 
 
 ## Current gap
 
-No DTCG token files, resolver matrix, generated shared CSS, manifest, or token validation exists. Current variables and literal shell values therefore remain two distinct implementation surfaces. The root `DESIGN.md` and design knowledge records describe those surfaces without creating a new machine-readable authority.[^okf-plan][^design-system][^design-tokens]
+No DTCG token files, resolver matrix, generated shared CSS, manifest, or token validation exists. Current variables and literal shell values therefore remain distinct implementation surfaces. The root `DESIGN.md` and design knowledge records describe those surfaces without creating a new machine-readable authority.[^okf-plan][^design-system][^design-tokens]
 
 ## Evidence policy
 
@@ -78,7 +83,8 @@ The resolver and shell establish current behavior. The theming report remains us
 
 [^theme-readme]: Current standalone selection precedence and CSS-variable authoring contract.
 [^theme-resolver]: Built-in, local, path, alias, and color-scheme resolution in code.
-[^rocs-theme]: Current independent Rocs shell layout and palette implementation.
+[^rocdown-theme]: Current independent Rocdown documentation shell layout and palette implementation.
+[^ui-readme]: Shared UI primitives and base styles in rocci-ui.
 [^theming-report]: Research-derived separation of format, layout, theme, and code theme.
 [^okf-plan]: Amended Phase 4 DTCG research role and explicit non-adoption boundary.
 [^design-system]: Phase 4 description of current design intent and shipped surface boundaries.

@@ -4,7 +4,7 @@ title: Standalone Rocci OKF review and query application
 description: Extract a portable OKF engine from the current Rocs implementation and build a Rocci application for agent-authored knowledge review, authenticated retrieval, and measured optional semantic search.
 tags: [domain/okf, domain/rocci-okf, domain/rocci, concern/architecture, concern/review, concern/retrieval, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T19:50:00Z }
+generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -15,13 +15,13 @@ sources:
     author: process:codex
     last_modified: 2026-08-17
   - id: current-okf
-    resource: ../../crates/rocs/src/okf.rs
-    title: Current Rocs OKF implementation
+    resource: ../../crates/okf/src/lib.rs
+    title: Portable OKF engine implementation
     author: process:git
     last_modified: 2026-08-17
   - id: current-cli
-    resource: ../../crates/rocs-cli/src/main.rs
-    title: Current rocs knowledge CLI
+    resource: ../../crates/rocci-okf/src/main.rs
+    title: rocci-okf CLI and review application
     author: process:git
     last_modified: 2026-08-17
   - id: static-boundary

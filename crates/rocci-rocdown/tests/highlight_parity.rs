@@ -3,7 +3,7 @@ use rocci_rocdown::{CompileOptions, SourceFile, compile, render_document};
 use rocci_template::PositionEncoding;
 
 #[test]
-fn golden_parity_roc_snippet_drives_lsp_and_rocs_html() {
+fn golden_parity_roc_snippet_drives_lsp_and_rocdown_html() {
     let snippet = "main = \\{} -> \"Hello World\"";
     let (lang, spans) = rocci_highlight::highlight_source("roc", snippet);
     assert_eq!(lang, LanguageId::Roc);
@@ -23,7 +23,7 @@ fn golden_parity_roc_snippet_drives_lsp_and_rocs_html() {
         rocci_lsp::tokens::encode_tokens(source, &mut raw_tokens, PositionEncoding::Utf8, None);
     assert!(!lsp_tokens.is_empty(), "LSP semantic tokens produced");
 
-    // 2. Check Rocs HTML rendering from the same snippet
+    // 2. Check Rocdown HTML rendering from the same snippet
     let rocdown_doc = format!("```roc\n{snippet}\n```\n");
     let compiled = compile(
         SourceFile::new("test.rocdown", &rocdown_doc),
