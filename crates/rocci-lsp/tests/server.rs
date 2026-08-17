@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use lsp_server::Request;
 use lsp_types::{
     ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
     DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
@@ -8,12 +9,17 @@ use lsp_types::{
     SemanticTokensParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams,
     Uri, WorkDoneProgressParams,
 };
-use rocci_lsp::{LanguageServer, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE};
+use rocci_lsp::{
+    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_FUNCTION,
+    TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, extract_rocci_regions, extract_rocdown_regions,
+    method_inspect_regions,
+};
 use rocci_template::{PositionEncoding, SourceFile};
 
 const KITCHEN_SINK: &str = include_str!("../../../test/AllSyntax.rocci");
 const EMBEDDED_ROCCI: &str = include_str!("../../../test/EmbeddedLanguages.rocci");
 const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
+const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
 
 const INCOMPLETE_TAG: &str = r#"
 @component Broken = |{}| {
@@ -271,21 +277,21 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
     );
 
     let regions = server
-        .embedded_ranges(&test_uri())
-        .expect("embedded ranges");
-    assert!(regions.iter().any(
-        |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, roc_fn,)
-    ));
-    assert!(regions.iter().any(
-        |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, interp)
-    ));
+        .inspect_regions(&test_uri())
+        .expect("inspected regions");
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
+        && range_covers(&region.range, KITCHEN_SINK, roc_fn,)));
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
+        && range_covers(&region.range, KITCHEN_SINK, interp)));
     let params = KITCHEN_SINK
         .find("|{ name ?? \"World\" }|")
         .expect("params")
         + 3;
-    assert!(regions.iter().any(
-        |region| region.language == "roc" && range_covers(&region.range, KITCHEN_SINK, params)
-    ));
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
+        && range_covers(&region.range, KITCHEN_SINK, params)));
 }
 
 #[test]
@@ -324,8 +330,8 @@ fn css_blocks_are_keywords_with_embedded_css_ranges() {
     );
 
     let regions = server
-        .embedded_ranges(&test_uri())
-        .expect("embedded ranges");
+        .inspect_regions(&test_uri())
+        .expect("inspected regions");
     let card = SRC.find(".card").expect("card");
     let greeting = SRC.find(".greeting").expect("greeting");
     assert!(
@@ -487,15 +493,15 @@ fn rocdown_tokens_and_embedded_roc_ranges() {
     );
 
     let regions = server
-        .embedded_ranges(&guide_uri())
-        .expect("embedded ranges");
-    assert!(regions.iter().any(
-        |region| region.language == "roc" && range_covers(&region.range, GUIDE, published)
-    ));
+        .inspect_regions(&guide_uri())
+        .expect("inspected regions");
+    assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
+        && range_covers(&region.range, GUIDE, published)));
     assert!(
-        !regions
-            .iter()
-            .any(|region| region.language == "roc" && range_covers(&region.range, GUIDE, fence)),
+        !regions.iter().any(|region| region.language == "roc"
+            && region.purpose == "executable"
+            && range_covers(&region.range, GUIDE, fence)),
         "display fences must not be executable roc ranges"
     );
     let css_body = GUIDE.find("box-sizing").expect("css");
@@ -637,9 +643,10 @@ fn embedded_languages_rocci_symbols_tokens_and_regions() {
     );
 
     let regions = server
-        .embedded_ranges(&test_uri())
-        .expect("embedded ranges");
+        .inspect_regions(&test_uri())
+        .expect("inspected regions");
     assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
         && range_covers(&region.range, EMBEDDED_ROCCI, ordinary_roc)));
     let css_pos = EMBEDDED_ROCCI
         .find(".card--selected")
@@ -727,17 +734,19 @@ fn embedded_languages_rocdown_symbols_tokens_and_regions() {
         Some(TOKEN_PROPERTY)
     );
 
-    let regions = server.embedded_ranges(&uri).expect("embedded ranges");
+    let regions = server.inspect_regions(&uri).expect("inspected regions");
 
     let roc_decl = EMBEDDED_ROCDOWN
         .find("Status : [Active(U64)")
         .expect("roc decl");
     assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
         && range_covers(&region.range, EMBEDDED_ROCDOWN, roc_decl)));
     let render_expr = EMBEDDED_ROCDOWN
         .find("Card({ title: \"Rendered")
         .expect("render expr");
     assert!(regions.iter().any(|region| region.language == "roc"
+        && region.purpose == "executable"
         && range_covers(&region.range, EMBEDDED_ROCDOWN, render_expr)));
     let css_pos = EMBEDDED_ROCDOWN.find(".docs-banner").expect("docs-banner");
     assert!(
@@ -750,24 +759,30 @@ fn embedded_languages_rocdown_symbols_tokens_and_regions() {
         .expect("display roc");
     assert!(
         !regions.iter().any(|region| region.language == "roc"
+            && region.purpose == "executable"
             && range_covers(&region.range, EMBEDDED_ROCDOWN, display_roc)),
-        "display fences must NOT be reported as executable roc ranges"
+        "display fences must NOT be reported as executable roc regions"
+    );
+    assert!(
+        regions.iter().any(|region| region.language == "roc"
+            && region.purpose == "displayOnly"
+            && range_covers(&region.range, EMBEDDED_ROCDOWN, display_roc)),
+        "display fences MUST be reported as display-only fences"
     );
     let display_html = EMBEDDED_ROCDOWN
         .find("display-container")
         .expect("display-container");
     assert!(
-        !regions
-            .iter()
-            .any(|region| range_covers(&region.range, EMBEDDED_ROCDOWN, display_html)),
-        "display html fences must NOT be reported as embedded ranges"
+        regions.iter().any(|region| region.language == "html"
+            && region.purpose == "displayOnly"
+            && range_covers(&region.range, EMBEDDED_ROCDOWN, display_html)),
+        "display html fences MUST be reported as display-only html fences"
     );
     let escaped_docs = EMBEDDED_ROCDOWN.find(r"\@docs note").expect(r"\@docs note");
     assert!(
-        !regions
-            .iter()
-            .any(|region| range_covers(&region.range, EMBEDDED_ROCDOWN, escaped_docs)),
-        "escaped directives must NOT be reported as embedded ranges"
+        !regions.iter().any(|region| region.purpose == "executable"
+            && range_covers(&region.range, EMBEDDED_ROCDOWN, escaped_docs)),
+        "escaped directives must NOT be reported as executable regions"
     );
 }
 
@@ -928,4 +943,227 @@ fn line_col(src: &str, offset: usize) -> (u32, u32) {
         }
     }
     (line, (offset - start) as u32)
+}
+
+#[test]
+fn rocci_region_tree_validation_and_invariants() {
+    let rocci_fixtures = [
+        ("AllSyntax.rocci", KITCHEN_SINK),
+        ("EmbeddedLanguages.rocci", EMBEDDED_ROCCI),
+    ];
+    for (name, src) in rocci_fixtures {
+        let parsed = rocci_template::parse(SourceFile::new(name, src));
+        let tree = extract_rocci_regions(name, src, &parsed.document);
+        tree.validate(src.len())
+            .unwrap_or_else(|err| panic!("validation failed on {name}: {err:?}"));
+        assert!(
+            tree.regions.len() > 5,
+            "expected multiple regions in {name}"
+        );
+        for region in &tree.regions {
+            assert!(region.span.start <= region.span.end);
+            assert!(region.span.end as usize <= src.len());
+            if let Some(parent) = region.parent {
+                let p = &tree.regions[parent];
+                assert!(
+                    region.span.start >= p.span.start && region.span.end <= p.span.end,
+                    "region {region:?} not contained in parent {p:?}"
+                );
+            }
+        }
+    }
+
+    let rocdown_fixtures = [
+        ("AllSyntax.rocdown", ALL_SYNTAX_ROCDOWN),
+        ("EmbeddedLanguages.rocdown", EMBEDDED_ROCDOWN),
+        ("Guide.rocdown", GUIDE),
+    ];
+    for (name, src) in rocdown_fixtures {
+        let parsed = rocci_rocdown::parse(SourceFile::new(name, src), false);
+        let tree = extract_rocdown_regions(name, src, &parsed.document, &parsed.headings);
+        tree.validate(src.len())
+            .unwrap_or_else(|err| panic!("validation failed on {name}: {err:?}"));
+        assert!(
+            tree.regions.len() > 5,
+            "expected multiple regions in {name}"
+        );
+        for region in &tree.regions {
+            assert!(region.span.start <= region.span.end);
+            assert!(region.span.end as usize <= src.len());
+            if let Some(parent) = region.parent {
+                let p = &tree.regions[parent];
+                assert!(
+                    region.span.start >= p.span.start && region.span.end <= p.span.end,
+                    "region {region:?} not contained in parent {p:?}"
+                );
+            }
+            if region.context == RegionContext::Fence {
+                assert_eq!(
+                    region.purpose,
+                    RegionPurpose::DisplayOnly,
+                    "fences must be display-only"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn inspect_regions_lsp_request_and_payload() {
+    let mut server = initialize(true);
+    open(&mut server, EMBEDDED_ROCCI);
+
+    let req = Request::new(
+        1.into(),
+        method_inspect_regions().to_string(),
+        serde_json::to_value(&SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .unwrap(),
+    );
+    let resp = server.handle_request(req);
+    assert!(
+        resp.error.is_none(),
+        "inspect_regions request failed: {:?}",
+        resp.error
+    );
+    let regions: Vec<InspectedRegion> =
+        serde_json::from_value(resp.result.unwrap()).expect("deserialized regions");
+    assert!(!regions.is_empty(), "expected inspected regions");
+
+    let root = &regions[0];
+    assert_eq!(root.id, 0);
+    assert_eq!(root.language, "rocci");
+    assert_eq!(root.context, "document");
+    assert_eq!(root.purpose, "hostStructure");
+    assert_eq!(root.parent, None);
+
+    for r in &regions {
+        assert!(r.span.start <= r.span.end);
+        if let Some(parent_id) = r.parent {
+            let parent = &regions[parent_id];
+            assert!(r.span.start >= parent.span.start && r.span.end <= parent.span.end);
+        }
+    }
+
+    let uri = embedded_rocdown_uri();
+    open_rocdown_at(&mut server, uri.clone(), EMBEDDED_ROCDOWN);
+    let rd_req = Request::new(
+        2.into(),
+        method_inspect_regions().to_string(),
+        serde_json::to_value(&SemanticTokensParams {
+            text_document: TextDocumentIdentifier { uri },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .unwrap(),
+    );
+    let rd_resp = server.handle_request(rd_req);
+    assert!(
+        rd_resp.error.is_none(),
+        "rd inspect_regions failed: {:?}",
+        rd_resp.error
+    );
+    let rd_regions: Vec<InspectedRegion> =
+        serde_json::from_value(rd_resp.result.unwrap()).expect("deserialized rd regions");
+    assert!(!rd_regions.is_empty(), "expected rd inspected regions");
+    assert_eq!(rd_regions[0].language, "markdown");
+    assert_eq!(rd_regions[0].context, "document");
+
+    let fence_regions: Vec<_> = rd_regions.iter().filter(|r| r.context == "fence").collect();
+    assert!(
+        !fence_regions.is_empty(),
+        "expected fence regions in rocdown"
+    );
+    for fence in fence_regions {
+        assert_eq!(fence.purpose, "displayOnly");
+    }
+}
+
+#[test]
+fn region_boundaries_independent_of_tokens() {
+    let parsed = rocci_template::parse(SourceFile::new("EmbeddedLanguages.rocci", EMBEDDED_ROCCI));
+    let tree = extract_rocci_regions("EmbeddedLanguages.rocci", EMBEDDED_ROCCI, &parsed.document);
+
+    let format_user_offset = EMBEDDED_ROCCI.find("formatUser =").expect("formatUser");
+    let leaf = tree
+        .find_at(format_user_offset)
+        .expect("leaf for formatUser");
+    assert_eq!(leaf.language, Language::Roc);
+    assert_eq!(leaf.context, RegionContext::Module);
+    assert_eq!(leaf.purpose, RegionPurpose::Executable);
+
+    let css_offset = EMBEDDED_ROCCI
+        .find(".card--selected")
+        .expect(".card--selected");
+    let css_leaf = tree.find_at(css_offset).expect("leaf for css");
+    assert_eq!(css_leaf.language, Language::Css);
+    assert_eq!(css_leaf.context, RegionContext::Stylesheet);
+
+    let interp_offset = EMBEDDED_ROCCI.find("{formatUser(user)}").expect("interp") + 1;
+    let interp_leaf = tree.find_at(interp_offset).expect("leaf for interp");
+    assert_eq!(interp_leaf.language, Language::Roc);
+    assert_eq!(interp_leaf.context, RegionContext::Expression);
+    assert_eq!(interp_leaf.purpose, RegionPurpose::Executable);
+
+    let parsed_rd = rocci_rocdown::parse(
+        SourceFile::new("EmbeddedLanguages.rocdown", EMBEDDED_ROCDOWN),
+        false,
+    );
+    let rd_tree = extract_rocdown_regions(
+        "EmbeddedLanguages.rocdown",
+        EMBEDDED_ROCDOWN,
+        &parsed_rd.document,
+        &parsed_rd.headings,
+    );
+
+    let page_offset = EMBEDDED_ROCDOWN
+        .find("route: \"/embedded-languages/\"")
+        .expect("page route");
+    let page_leaf = rd_tree.find_at(page_offset).expect("leaf for page");
+    assert_eq!(page_leaf.language, Language::Roc);
+    assert_eq!(page_leaf.purpose, RegionPurpose::Metadata);
+
+    let fence_offset = EMBEDDED_ROCDOWN
+        .find("main = \\{} -> \"Hello from display Roc!\"")
+        .expect("display fence");
+    let fence_leaf = rd_tree.find_at(fence_offset).expect("leaf for fence");
+    assert_eq!(fence_leaf.language, Language::Roc);
+    assert_eq!(fence_leaf.context, RegionContext::Fence);
+    assert_eq!(fence_leaf.purpose, RegionPurpose::DisplayOnly);
+}
+
+#[test]
+fn malformed_and_unclosed_syntax_produces_valid_regions() {
+    let broken_rocci_inputs = [
+        INCOMPLETE_TAG,
+        "@component Foo = |{}| { <p>{user. </p> }",
+        "@css { .foo { color: ",
+        "@on:get(\"/api\") { let x = ",
+        "@init {",
+    ];
+    for src in broken_rocci_inputs {
+        let parsed = rocci_template::parse(SourceFile::new("broken.rocci", src));
+        let tree = extract_rocci_regions("broken.rocci", src, &parsed.document);
+        tree.validate(src.len()).unwrap_or_else(|err| {
+            panic!("validation failed on broken rocci:\n{src}\nErr: {err:?}")
+        });
+    }
+
+    let broken_rocdown_inputs = [
+        "@page {\n  draft: Bool.true,\n\n# Unclosed page",
+        "@docs note {\n  title: \"unclosed\"\n",
+        "```roc\nlet x = 1\n",
+        "@if isTrue {\n  <p>unclosed if\n",
+    ];
+    for src in broken_rocdown_inputs {
+        let parsed = rocci_rocdown::parse(SourceFile::new("broken.rocdown", src), false);
+        let tree =
+            extract_rocdown_regions("broken.rocdown", src, &parsed.document, &parsed.headings);
+        tree.validate(src.len()).unwrap_or_else(|err| {
+            panic!("validation failed on broken rocdown:\n{src}\nErr: {err:?}")
+        });
+    }
 }
