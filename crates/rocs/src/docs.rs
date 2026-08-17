@@ -372,6 +372,20 @@ fn nodes_from_items(
                     nodes.push(ArticleNode::Docs(node));
                 }
             }
+            Item::Img(img) => {
+                let mut diags = Vec::new();
+                let fields =
+                    rocci_rocdown::extract_img_fields(ctx.source.src, img.body, &mut diags);
+                let src = fields.src.map(|(s, _)| s).unwrap_or_default();
+                let alt = fields.alt.map(|(s, _)| s).unwrap_or_default();
+                let title = fields.title.map(|(s, _)| s).unwrap_or_default();
+                nodes.push(ArticleNode::Markdown(MdNode::Image {
+                    url: src,
+                    title,
+                    alt,
+                    span: img.span,
+                }));
+            }
             Item::Page(_) if parent_kind.is_some() => illegal(ctx, item, "page"),
             Item::Page(_) => {}
             Item::Roc(_) => illegal(ctx, item, "roc"),
@@ -1971,5 +1985,16 @@ mod tests {
         };
         assert_eq!(paths(&first_segs), paths(&second_segs));
         assert_ne!(first_files, second_files);
+    }
+
+    #[test]
+    fn img_decl_is_projected_as_image_node() {
+        let (docs, diags) =
+            load("# Guide\n\n@img {\n    src: \"img/banner.png\"\n    width: \"300px\"\n}\n");
+        assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
+        assert_eq!(collect_images(&docs.article), vec!["img/banner.png"]);
+        let html = render_article(&docs.article);
+        assert!(html.contains("src=\"img/banner.png\""));
+        assert!(html.contains("rd-image"));
     }
 }

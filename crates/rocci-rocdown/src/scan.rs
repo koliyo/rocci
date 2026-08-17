@@ -19,6 +19,7 @@ pub enum Reserved {
     Match,
     Let,
     Docs,
+    Img,
 }
 
 impl Reserved {
@@ -38,6 +39,7 @@ impl Reserved {
             "match" => Self::Match,
             "let" => Self::Let,
             "docs" => Self::Docs,
+            "img" => Self::Img,
             _ => return None,
         })
     }
@@ -58,6 +60,7 @@ impl Reserved {
             Self::Match => "match",
             Self::Let => "let",
             Self::Docs => "docs",
+            Self::Img => "img",
         }
     }
 
@@ -292,7 +295,12 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             matches!(cur.peek(), Some('{')) || cur.peek().is_some_and(is_ident_start)
         }
-        Reserved::Page | Reserved::Roc | Reserved::Render | Reserved::Css | Reserved::Init => {
+        Reserved::Page
+        | Reserved::Roc
+        | Reserved::Render
+        | Reserved::Css
+        | Reserved::Init
+        | Reserved::Img => {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }

@@ -3,7 +3,7 @@ use rocci_template::{
     Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from, parse_template_item_from,
 };
 
-use crate::ast::{DocsDecl, Document, Item, PageDecl, RenderDecl, RocDecl};
+use crate::ast::{DocsDecl, Document, ImgDecl, Item, PageDecl, RenderDecl, RocDecl};
 use crate::markdown::{self, BlockOrHole};
 use crate::scan::{
     self, Reserved, ScannedDecl, ScannedKind, docs_inner_span, docs_kind_span, inner_span,
@@ -193,6 +193,13 @@ fn fill_at_decl(
                 kind: kind_span.of(src).to_string(),
                 kind_span,
                 body: docs_inner_span(src, decl.at),
+                span: Span::new(decl.at, decl.end),
+            })
+        }
+        Reserved::Img => {
+            let body = inner_span(src, decl.at);
+            Item::Img(ImgDecl {
+                body,
                 span: Span::new(decl.at, decl.end),
             })
         }

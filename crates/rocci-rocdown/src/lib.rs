@@ -2,6 +2,7 @@
 
 mod ast;
 mod docs;
+mod img;
 mod links;
 mod lower;
 mod markdown;
@@ -11,13 +12,14 @@ mod pprint;
 mod scan;
 
 pub use ast::{
-    DocsDecl, Document, HeadingInfo, Item, LinkInfo, MdNode, PageDecl, PageMeta, RenderDecl,
-    RocDecl,
+    DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
+    RenderDecl, RocDecl,
 };
 pub use docs::{
     DocsField, extract_lines, extract_region, field_bool, field_string, field_strings,
     include_path_error, resolve_include_path, split_docs_body,
 };
+pub use img::{ImgFields, extract_img_fields};
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use pprint::format_ast;
