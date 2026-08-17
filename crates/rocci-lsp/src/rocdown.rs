@@ -5,7 +5,7 @@ use lsp_types::{
     GotoDefinitionResponse, Hover, HoverContents, MarkupContent, MarkupKind, SymbolKind,
 };
 use rocci_rocdown::{
-    CompileOptions, CompileOutput, DocsDecl, Item, PageDecl, PageMeta, discovered_ids,
+    CompileOptions, CompileOutput, DocsDecl, ImgDecl, Item, PageDecl, PageMeta, discovered_ids,
     index_pages_in_dir, page_ref_from_source,
 };
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
@@ -27,6 +27,7 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "init",
     "on",
     "docs",
+    "img",
     "if",
     "for",
     "match",
@@ -127,6 +128,7 @@ pub fn document_symbols(
             Item::On(on) => on_symbol(source, on, encoding),
             Item::Template(item) => template_symbol(source, text, item, encoding),
             Item::Docs(docs) => docs_symbol(source, docs, encoding),
+            Item::Img(img) => img_symbol(source, img, encoding),
         };
         symbols.push((item.span().start, symbol));
     }
@@ -159,6 +161,12 @@ pub fn hover(
         _ => None,
     }) {
         return Some(docs_hover(source, docs, encoding));
+    }
+    if let Some(img) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Img(img) if img.span.contains(offset) => Some(img),
+        _ => None,
+    }) {
+        return Some(img_hover(source, img, encoding));
     }
     compiled.headings.iter().find_map(|heading| {
         if !heading.span.contains(offset) {
@@ -209,6 +217,12 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
         _ => None,
     }) {
         return docs_completion(text, docs, offset);
+    }
+    if let Some(img) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Img(img) if img.span.contains(offset as u32) => Some(img),
+        _ => None,
+    }) {
+        return img_completion(text, img, offset);
     }
     if let Some(prefix) = root_declaration_prefix(text, offset) {
         return CompletionResponse::Array(
@@ -591,4 +605,63 @@ fn docs_symbol(
         selection_range: lsp_range(source, docs.kind_span, encoding),
         children,
     }
+}
+
+fn img_symbol(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> DocumentSymbol {
+    let mut diags = Vec::new();
+    let fields = rocci_rocdown::extract_img_fields(source.src, img.body, &mut diags);
+    let detail = fields.src.as_ref().map(|(s, _)| s.clone());
+    named_symbol(
+        "@img",
+        detail,
+        SymbolKind::OBJECT,
+        source,
+        img.span,
+        img.span,
+        encoding,
+    )
+}
+
+fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> Hover {
+    let mut diags = Vec::new();
+    let fields = rocci_rocdown::extract_img_fields(source.src, img.body, &mut diags);
+    let mut doc = String::from("```rocdown\n@img\n```\n\nNative Rocdown image element.\n");
+    if let Some((src, _)) = &fields.src {
+        doc.push_str(&format!("\n- **src**: `{src}`"));
+    }
+    if let Some((alt, _)) = &fields.alt {
+        doc.push_str(&format!("\n- **alt**: `{alt}`"));
+    }
+    if let Some((width, _)) = &fields.width {
+        doc.push_str(&format!("\n- **width**: `{width}`"));
+    }
+    if let Some((height, _)) = &fields.height {
+        doc.push_str(&format!("\n- **height**: `{height}`"));
+    }
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: doc,
+        }),
+        range: Some(lsp_range(source, img.span, encoding)),
+    }
+}
+
+const IMG_FIELDS: &[&str] = &[
+    "src", "alt", "title", "width", "height", "class", "loading", "decoding",
+];
+
+fn img_completion(_text: &str, _img: &ImgDecl, _offset: usize) -> CompletionResponse {
+    CompletionResponse::Array(
+        IMG_FIELDS
+            .iter()
+            .map(|name| {
+                completion_item(
+                    name,
+                    CompletionItemKind::PROPERTY,
+                    Some(format!("{name}: \"\"")),
+                )
+            })
+            .collect(),
+    )
 }

@@ -309,6 +309,16 @@ rocci_content = |{}| {
                             { name: "ready" },
                         )
                     },
+                    Html.void_element(
+                        "img",
+                        [
+                            Html.attribute("class", "rd-image"),
+                            Html.attribute("src", "img/yammi_banana.png"),
+                            Html.attribute("alt", ""),
+                            Html.attribute("width", "50px"),
+                            Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                        ],
+                    ),
                     Html.element(
                         "p",
                         [

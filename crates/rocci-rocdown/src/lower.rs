@@ -8,7 +8,7 @@ use rocci_template::{
 };
 
 use crate::CompileOptions;
-use crate::ast::{DocsDecl, Document, Item, MdNode, PageMeta, RenderDecl};
+use crate::ast::{DocsDecl, Document, ImgDecl, Item, MdNode, PageMeta, RenderDecl};
 use crate::docs::{
     extract_lines, extract_region, field_bool, field_string, resolve_include_path, split_docs_body,
 };
@@ -435,6 +435,7 @@ impl<'a> Emitter<'a> {
             match node {
                 ContentPiece::Markdown(md) => self.lower_md(md),
                 ContentPiece::Docs(docs) => self.lower_docs(docs),
+                ContentPiece::Img(img) => self.lower_img(img),
                 ContentPiece::Render(render) => {
                     let expr = render.expr.of(self.source.src).trim();
                     self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
@@ -598,9 +599,94 @@ impl<'a> Emitter<'a> {
                     self.lower_docs(nested);
                     self.emit(",\n");
                 }
+                Item::Img(img) => {
+                    self.push_indent();
+                    self.lower_img(img);
+                    self.emit(",\n");
+                }
                 _ => {}
             }
         }
+    }
+
+    fn lower_img(&mut self, img: &ImgDecl) {
+        let fields = crate::img::extract_img_fields(self.source.src, img.body, self.diagnostics);
+        let src = fields.src.as_ref().map(|(s, _)| s.as_str()).unwrap_or("");
+        let alt = fields.alt.as_ref().map(|(s, _)| s.as_str()).unwrap_or("");
+        let class = match &fields.class {
+            Some((custom, _)) => format!("rd-image {custom}"),
+            None => "rd-image".to_string(),
+        };
+
+        let mut attrs: Vec<(&str, &str, Span)> = vec![
+            ("class", &class, img.span),
+            (
+                "src",
+                src,
+                fields.src.as_ref().map(|(_, sp)| *sp).unwrap_or(img.span),
+            ),
+            (
+                "alt",
+                alt,
+                fields.alt.as_ref().map(|(_, sp)| *sp).unwrap_or(img.span),
+            ),
+        ];
+
+        if let Some((width, sp)) = &fields.width {
+            attrs.push(("width", width.as_str(), *sp));
+        }
+        if let Some((height, sp)) = &fields.height {
+            attrs.push(("height", height.as_str(), *sp));
+        }
+        if let Some((title, sp)) = &fields.title {
+            attrs.push(("title", title.as_str(), *sp));
+        }
+        if let Some((loading, sp)) = &fields.loading {
+            attrs.push(("loading", loading.as_str(), *sp));
+        }
+        if let Some((decoding, sp)) = &fields.decoding {
+            attrs.push(("decoding", decoding.as_str(), *sp));
+        }
+
+        self.emit_html(".void_element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("img", img.span, OriginKind::MarkdownStructure);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_img_attrs(&attrs, img.span);
+        self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn emit_img_attrs(&mut self, attrs: &[(&str, &str, Span)], decl_span: Span) {
+        if attrs.is_empty() && self.css_stamp.is_none() {
+            self.emit("[]");
+            return;
+        }
+        self.emit("[\n");
+        self.indent += 1;
+        for (name, value, span) in attrs {
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string(name, *span, OriginKind::MarkdownStructure);
+            self.emit(", ");
+            self.emit_string(value, *span, OriginKind::MarkdownText);
+            self.emit("),\n");
+        }
+        if let Some(stamp) = &self.css_stamp.clone() {
+            self.push_indent();
+            self.emit_html(".attribute(");
+            self.emit_string("data-rocci-css", decl_span, OriginKind::Scaffolding);
+            self.emit(", ");
+            self.emit_string(stamp, decl_span, OriginKind::Scaffolding);
+            self.emit("),\n");
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("]");
     }
 
     fn lower_docs_include(&mut self, docs: &DocsDecl, fields: &[crate::docs::DocsField]) {
@@ -1455,6 +1541,7 @@ impl<'a> Emitter<'a> {
 enum ContentPiece<'a> {
     Markdown(&'a MdNode),
     Docs(&'a DocsDecl),
+    Img(&'a ImgDecl),
     Render(&'a RenderDecl),
     Template(&'a TemplateItem),
 }
@@ -1471,6 +1558,7 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
         match item {
             Item::Markdown(node) => current.push(ContentPiece::Markdown(node)),
             Item::Docs(docs) => current.push(ContentPiece::Docs(docs)),
+            Item::Img(img) => current.push(ContentPiece::Img(img)),
             Item::Render(render) => current.push(ContentPiece::Render(render)),
             Item::Template(TemplateItem::Let(_)) => {}
             Item::Template(item) if matches!(item, TemplateItem::For(_)) => {
@@ -1491,7 +1579,7 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
 
 fn illegal_docs_item(item: &Item) -> Option<&'static str> {
     match item {
-        Item::Markdown(_) | Item::Docs(_) => None,
+        Item::Markdown(_) | Item::Docs(_) | Item::Img(_) => None,
         Item::Page(_) => Some("page"),
         Item::Roc(_) => Some("roc"),
         Item::Render(_) => Some("render"),

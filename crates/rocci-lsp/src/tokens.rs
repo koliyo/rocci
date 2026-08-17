@@ -279,6 +279,40 @@ fn collect_rocdown(
             rocci_rocdown::Item::Docs(docs) => {
                 collect_docs(collector, docs);
             }
+            rocci_rocdown::Item::Img(img) => {
+                collect_img(collector, img);
+            }
+        }
+    }
+}
+
+fn collect_img(collector: &mut Collector<'_>, img: &rocci_rocdown::ImgDecl) {
+    collect_keyword(collector, img.span, img.body.start, "@img");
+    let mut cur = rocci_template::Cursor::at(collector.src, img.body.start as usize);
+    let end = img.body.end as usize;
+    while cur.pos < end && !cur.is_eof() {
+        cur.skip_trivia();
+        if cur.pos >= end {
+            break;
+        }
+        if cur.peek() == Some(',') {
+            cur.bump();
+            continue;
+        }
+        let Some(name_span) = cur.scan_ident() else {
+            break;
+        };
+        collector.token_with_priority(name_span, TOKEN_PROPERTY, 0, 50);
+        cur.skip_trivia();
+        if !cur.eat(':') {
+            break;
+        }
+        cur.skip_trivia();
+        let value_start = cur.pos;
+        if cur.peek() == Some('"') {
+            cur.skip_string();
+            let value_span = Span::new(value_start, cur.pos.min(end));
+            collector.token_with_priority(value_span, TOKEN_STRING, 0, 50);
         }
     }
 }

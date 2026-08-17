@@ -38,7 +38,7 @@ Indent              := (" " | "\t")*
 ```
 
 Reserved names: `page`, `roc`, `render`, `component`, `fixture`, `css`,
-`context`, `init`, `on`, `if`, `for`, `match`, `let`, `docs`. Unknown `@name` stays
+`context`, `init`, `on`, `if`, `for`, `match`, `let`, `docs`, `img`. Unknown `@name` stays
 Markdown. `\@roc` is escaped prose; the backslash is dropped in rendered text.
 
 Declarations are recognized only when all of these hold:
@@ -110,6 +110,7 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 | `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocs types the body |
+| `@img { ... }` | image fields | native image element with optional sizing (`src`, `width`, `height`, `alt`, `title`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
 `@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template
@@ -134,6 +135,29 @@ Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 `@for`, `@match`, `@let`, and component-local `@css`.
 
 `@island` is reserved in the design and is **not** parsed yet.
+
+### `@img`
+
+Native image declaration. Lowers to `Html.void_element("img", ...)` with standard
+`.rd-image` class and compile-time field extraction. Explicit sizing is optional.
+
+```rocdown
+@img {
+    src: "img/yammi_banana.png"
+    width: "50px"
+}
+```
+
+| Field | Requirement | Rule |
+| --- | --- | --- |
+| `src` | **Required** | Compile-time string literal path or URL to image |
+| `alt` | Optional | Compile-time string literal; defaults to `""` if omitted |
+| `title` | Optional | Compile-time string literal tooltip / title attribute |
+| `width` | Optional | Compile-time string literal (e.g. `"50px"`, `"100%"`) |
+| `height` | Optional | Compile-time string literal (e.g. `"50px"`, `"auto"`) |
+| `class` | Optional | Compile-time string literal appended to `rd-image` |
+| `loading` | Optional | Compile-time string literal (`"lazy"` or `"eager"`) |
+| `decoding` | Optional | Compile-time string literal (`"async"`, `"auto"`, `"sync"`) |
 
 ### `@page`
 

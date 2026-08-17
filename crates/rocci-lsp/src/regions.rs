@@ -729,6 +729,16 @@ fn collect_rocdown_items(
                     collect_rocdown_items(builder, text, &parsed.document.items, docs_id);
                 }
             }
+            rocci_rocdown::Item::Img(img) => {
+                builder.add(
+                    Language::Markdown,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    img.span,
+                    Some(parent_id),
+                    10,
+                );
+            }
         }
     }
 }

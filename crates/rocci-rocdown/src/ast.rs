@@ -22,6 +22,7 @@ pub enum Item {
     On(OnDecl),
     Template(TemplateItem),
     Docs(DocsDecl),
+    Img(ImgDecl),
 }
 
 impl Item {
@@ -39,6 +40,7 @@ impl Item {
             Self::On(item) => item.span,
             Self::Template(item) => item.span(),
             Self::Docs(item) => item.span,
+            Self::Img(item) => item.span,
         }
     }
 }
@@ -65,6 +67,12 @@ pub struct RenderDecl {
 pub struct DocsDecl {
     pub kind: String,
     pub kind_span: Span,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImgDecl {
     pub body: Span,
     pub span: Span,
 }

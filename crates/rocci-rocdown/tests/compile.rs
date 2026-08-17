@@ -1112,3 +1112,144 @@ fn embedded_languages_rocdown_fixture_compiles() {
         out.diagnostics
     );
 }
+
+#[test]
+fn img_with_src_and_width_is_parsed_and_lowered() {
+    let src = "\
+# Image Demo
+
+@img {
+    src: \"img/yammi_banana.png\"
+    width: \"50px\"
+}
+";
+    let out = compile_ok(src);
+    assert!(
+        out.document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Img(_)))
+    );
+    assert!(out.roc.contains("Html.void_element("));
+    assert!(out.roc.contains("\"img\""));
+    assert!(out.roc.contains("\"rd-image\""));
+    assert!(out.roc.contains("\"img/yammi_banana.png\""));
+    assert!(out.roc.contains("\"50px\""));
+}
+
+#[test]
+fn img_with_all_optional_fields() {
+    let src = "\
+@img {
+    src: \"img/banana.png\",
+    alt: \"A tasty banana\",
+    title: \"Yummy banana\",
+    width: \"100px\",
+    height: \"80px\",
+    class: \"hero-img\",
+    loading: \"lazy\",
+    decoding: \"async\",
+}
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("rd-image hero-img"));
+    assert!(out.roc.contains("\"img/banana.png\""));
+    assert!(out.roc.contains("\"A tasty banana\""));
+    assert!(out.roc.contains("\"Yummy banana\""));
+    assert!(out.roc.contains("\"100px\""));
+    assert!(out.roc.contains("\"80px\""));
+    assert!(out.roc.contains("\"lazy\""));
+    assert!(out.roc.contains("\"async\""));
+}
+
+#[test]
+fn img_without_explicit_sizing_is_valid() {
+    let src = "\
+@img {
+    src: \"img/simple.png\"
+}
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("\"rd-image\""));
+    assert!(out.roc.contains("\"img/simple.png\""));
+    assert!(!out.roc.contains("\"width\""));
+    assert!(!out.roc.contains("\"height\""));
+}
+
+#[test]
+fn img_missing_src_is_an_error() {
+    let src = "\
+@img {
+    width: \"50px\"
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("missing required field `src` in `@img`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn img_unknown_field_is_an_error() {
+    let src = "\
+@img {
+    src: \"img/banana.png\"
+    bad_field: \"value\"
+}
+";
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("unknown field `bad_field` in `@img`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn escaped_img_and_img_in_fences_are_inert() {
+    let src = "\
+\\@img {
+    src: \"not-an-img\"
+}
+
+```rocdown
+@img {
+    src: \"in-fence\"
+}
+```
+
+- list
+  @img {
+      src: \"in-list\"
+  }
+";
+    let out = compile_ok(src);
+    assert!(
+        !out.document
+            .items
+            .iter()
+            .any(|item| matches!(item, rocci_rocdown::Item::Img(_)))
+    );
+    assert!(out.roc.contains("@img {"));
+    assert!(out.roc.contains("not-an-img"));
+}
+
+#[test]
+fn img_nested_inside_docs_component() {
+    let src = "\
+@docs figure {
+    alt: \"Diagram\"
+
+    @img {
+        src: \"diagram.png\"
+        width: \"400px\"
+    }
+}
+";
+    let out = compile_ok(src);
+    assert!(out.roc.contains("rd-docs-figure"));
+    assert!(out.roc.contains("\"diagram.png\""));
+    assert!(out.roc.contains("\"400px\""));
+}

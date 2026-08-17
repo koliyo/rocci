@@ -32,8 +32,32 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
 | `@docs <kind> { ... }` | Bounded documentation component; see below |
+| `@img { ... }` | Native image element with optional sizing; see below |
 
 `@island` is reserved in the design but not parsed yet.
+
+## `@img` native images
+
+Use `@img` for first-class image elements with compile-time field extraction and optional sizing:
+
+````rocdown
+@img {
+    src: "img/yammi_banana.png",
+    alt: "A delicious banana",
+    width: "50px",
+}
+````
+
+| Field | Requirement | Meaning |
+| --- | --- | --- |
+| `src` | **Required** | Compile-time string literal path or URL |
+| `alt` | Optional | Accessible description; defaults to `""` |
+| `title` | Optional | Tooltip text |
+| `width` | Optional | Explicit width string (e.g. `"50px"`, `"100%"`) |
+| `height` | Optional | Explicit height string (e.g. `"50px"`, `"auto"`) |
+| `class` | Optional | Custom class name appended to `.rd-image` |
+| `loading` | Optional | `"lazy"` or `"eager"` |
+| `decoding` | Optional | `"async"`, `"auto"`, or `"sync"` |
 
 ## `@docs` components
 
