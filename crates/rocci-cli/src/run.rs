@@ -62,6 +62,25 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
         });
     }
 
+    if !path.is_file() {
+        bail!("no such Roc app: {}", path.display());
+    }
+
+    let ext = path.extension().and_then(|e| e.to_str());
+    if ext != Some("roc") {
+        if ext == Some("rocdown") || ext == Some("md") || ext == Some("markdown") {
+            bail!(
+                "unsupported file extension for `rocci run`: {}; run Markdown and Rocdown documents with `rocdown run {}`",
+                path.display(),
+                file.display()
+            );
+        }
+        bail!(
+            "unsupported file extension for `rocci run`: {}; expected a .roc or .rocci file",
+            path.display()
+        );
+    }
+
     let roc_file = path
         .file_name()
         .map(PathBuf::from)
@@ -489,5 +508,27 @@ mod tests {
             roc_file: PathBuf::from("main.roc"),
         };
         assert_eq!(window_title(&resolved), "snake");
+    }
+
+    #[test]
+    fn resolve_entry_rejects_unsupported_file_extensions() {
+        let dir = temp_app("unsupported-ext");
+        let txt_file = dir.join("notes.txt");
+        fs::write(&txt_file, "hello").unwrap();
+        let err = resolve_entry(&txt_file).unwrap_err().to_string();
+        assert!(err.contains("unsupported file extension"));
+        assert!(err.contains("expected a .roc or .rocci file"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_entry_suggests_rocdown_for_markdown_documents() {
+        let dir = temp_app("markdown-hint");
+        let md_file = dir.join("PLAN.md");
+        fs::write(&md_file, "# Plan").unwrap();
+        let err = resolve_entry(&md_file).unwrap_err().to_string();
+        assert!(err.contains("unsupported file extension"));
+        assert!(err.contains("rocdown run"));
+        cleanup(&dir);
     }
 }

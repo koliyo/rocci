@@ -38,9 +38,13 @@ pub fn content_root(path: &Path) -> Result<PathBuf> {
         std::env::current_dir()?.join(path)
     };
     if path.is_file() {
-        if path.extension().and_then(|ext| ext.to_str()) != Some("rocdown") {
+        let is_doc = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown");
+        if !is_doc {
             bail!(
-                "{} is not a documentation root or .rocdown file",
+                "{} is not a documentation root, .rocdown, or .md file",
                 path.display()
             );
         }
@@ -50,7 +54,10 @@ pub fn content_root(path: &Path) -> Result<PathBuf> {
             .ok_or_else(|| anyhow::anyhow!("{} has no parent directory", path.display()));
     }
     if !path.is_dir() {
-        bail!("{} is not a directory or .rocdown file", path.display());
+        bail!(
+            "{} is not a directory or documentation file",
+            path.display()
+        );
     }
     Ok(path)
 }

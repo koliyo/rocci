@@ -154,6 +154,11 @@ fn try_main() -> Result<()> {
         } => {
             if is_document_file(&path) {
                 build_single_doc(&path, output.as_deref(), &theme)
+            } else if path.is_file() {
+                bail!(
+                    "unsupported file extension for `rocdown build`: {}; expected a .rocdown, .md, or .markdown file",
+                    path.display()
+                );
             } else {
                 rocci_rocdown::build_configured(&path, output.as_deref())?;
                 Ok(())
@@ -169,6 +174,11 @@ fn try_main() -> Result<()> {
         } => {
             if is_document_file(&path) {
                 run_standalone_doc(&path, &args, no_window, port, &theme)
+            } else if path.is_file() {
+                bail!(
+                    "unsupported file extension for `rocdown run`: {}; expected a .rocdown, .md, or .markdown file",
+                    path.display()
+                );
             } else {
                 run_site_dev(&path, output.as_deref(), no_window, port)
             }
@@ -258,7 +268,21 @@ fn try_main() -> Result<()> {
     }
 }
 
+fn ensure_document_file(input: &Path, command_name: &str) -> Result<()> {
+    if !input.is_file() {
+        bail!("no such file: {}", input.display());
+    }
+    if !is_document_file(input) {
+        bail!(
+            "unsupported file extension for `rocdown {command_name}`: {}; expected a .rocdown, .md, or .markdown file",
+            input.display()
+        );
+    }
+    Ok(())
+}
+
 fn build_single_doc(input: &Path, output: Option<&Path>, theme: &ThemeArgs) -> Result<()> {
+    ensure_document_file(input, "build")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -375,6 +399,7 @@ fn run_site_dev(root: &Path, output: Option<&Path>, no_window: bool, port: PortA
 }
 
 fn inspect_ast(input: &Path, theme: &ThemeArgs) -> Result<()> {
+    ensure_document_file(input, "inspect ast")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -392,6 +417,7 @@ fn inspect_ast(input: &Path, theme: &ThemeArgs) -> Result<()> {
 }
 
 fn inspect_roc(input: &Path, theme: &ThemeArgs) -> Result<()> {
+    ensure_document_file(input, "inspect roc")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -533,5 +559,24 @@ mod tests {
             }
             _ => panic!("expected inspect roc"),
         }
+    }
+
+    #[test]
+    fn ensure_document_file_rejects_unsupported_extensions() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("rocdown-test-main-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+        let rocci_file = temp_dir.join("test.rocci");
+        fs::write(&rocci_file, "Hello := []").unwrap();
+        let err = ensure_document_file(&rocci_file, "build")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unsupported file extension for `rocdown build`"));
+        assert!(err.contains("expected a .rocdown, .md, or .markdown file"));
+
+        let md_file = temp_dir.join("test.md");
+        fs::write(&md_file, "# Doc").unwrap();
+        assert!(ensure_document_file(&md_file, "build").is_ok());
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

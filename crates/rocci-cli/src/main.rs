@@ -133,7 +133,21 @@ fn try_main() -> Result<()> {
     }
 }
 
+fn ensure_rocci_file(input: &Path, command: &str) -> Result<()> {
+    if !input.is_file() {
+        bail!("no such file: {}", input.display());
+    }
+    if input.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!(
+            "unsupported file extension for `rocci {command}`: {}; expected a .rocci file",
+            input.display()
+        );
+    }
+    Ok(())
+}
+
 fn build_module(input: &Path, output: Option<&Path>) -> Result<()> {
+    ensure_rocci_file(input, "build")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -155,6 +169,7 @@ fn build_module(input: &Path, output: Option<&Path>) -> Result<()> {
 }
 
 fn ast_module(input: &Path) -> Result<()> {
+    ensure_rocci_file(input, "ast")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -171,6 +186,7 @@ fn ast_module(input: &Path) -> Result<()> {
 }
 
 fn inspect_module(input: &Path, ast: bool) -> Result<()> {
+    ensure_rocci_file(input, "inspect")?;
     let src =
         fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
     let name = input.display().to_string();
@@ -358,5 +374,23 @@ mod tests {
             } => assert_eq!(app, PathBuf::from(".")),
             _ => panic!("unexpected command"),
         }
+    }
+
+    #[test]
+    fn ensure_rocci_file_rejects_unsupported_extensions() {
+        let temp_dir = std::env::temp_dir().join(format!("rocci-test-main-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+        let md_file = temp_dir.join("test.md");
+        fs::write(&md_file, "# Hello").unwrap();
+        let err = ensure_rocci_file(&md_file, "build")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unsupported file extension for `rocci build`"));
+        assert!(err.contains("expected a .rocci file"));
+
+        let rocci_file = temp_dir.join("test.rocci");
+        fs::write(&rocci_file, "Hello := []").unwrap();
+        assert!(ensure_rocci_file(&rocci_file, "build").is_ok());
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }
