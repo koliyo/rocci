@@ -1,12 +1,11 @@
 use lsp_types::{
-    Position, Range, SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokens,
+    Range, SemanticToken, SemanticTokenModifier, SemanticTokenType, SemanticTokens,
     SemanticTokensLegend,
 };
 use rocci_template::{
     AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element, FixtureDecl,
     InitDecl, ModuleItem, OnDecl, PositionEncoding, SourceFile, Span, TemplateItem,
 };
-use serde::Serialize;
 
 pub const TOKEN_KEYWORD: u32 = 0;
 pub const TOKEN_FUNCTION: u32 = 1;
@@ -19,12 +18,6 @@ pub const TOKEN_OPERATOR: u32 = 7;
 
 const MOD_DECLARATION: u32 = 1 << 0;
 const MOD_DEFAULT_LIBRARY: u32 = 1 << 1;
-
-const EMBEDDED_RANGES_METHOD: &str = "rocci/embeddedRanges";
-
-pub fn method_embedded_ranges() -> &'static str {
-    EMBEDDED_RANGES_METHOD
-}
 
 pub fn legend() -> SemanticTokensLegend {
     SemanticTokensLegend {
@@ -45,13 +38,6 @@ pub fn legend() -> SemanticTokensLegend {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EmbeddedRange {
-    pub language: String,
-    pub range: Range,
-}
-
 struct RawToken {
     span: Span,
     kind: u32,
@@ -61,8 +47,6 @@ struct RawToken {
 struct Collector<'a> {
     src: &'a str,
     tokens: Vec<RawToken>,
-    roc: Vec<Span>,
-    css: Vec<Span>,
 }
 
 impl<'a> Collector<'a> {
@@ -73,18 +57,6 @@ impl<'a> Collector<'a> {
                 kind,
                 modifiers,
             });
-        }
-    }
-
-    fn roc(&mut self, span: Span) {
-        if !span.is_empty() {
-            self.roc.push(span);
-        }
-    }
-
-    fn css(&mut self, span: Span) {
-        if !span.is_empty() {
-            self.css.push(span);
         }
     }
 }
@@ -114,29 +86,6 @@ pub fn semantic_tokens_rocdown(
     })
 }
 
-pub fn embedded_ranges(
-    name: &str,
-    text: &str,
-    document: &Document,
-    encoding: PositionEncoding,
-) -> Vec<EmbeddedRange> {
-    finish_ranges(name, text, encoding, |collector| {
-        collect_document(collector, document);
-    })
-}
-
-pub fn embedded_ranges_rocdown(
-    name: &str,
-    text: &str,
-    document: &rocci_rocdown::Document,
-    headings: &[rocci_rocdown::HeadingInfo],
-    encoding: PositionEncoding,
-) -> Vec<EmbeddedRange> {
-    finish_ranges(name, text, encoding, |collector| {
-        collect_rocdown(collector, document, headings);
-    })
-}
-
 fn finish_tokens(
     name: &str,
     text: &str,
@@ -148,8 +97,6 @@ fn finish_tokens(
     let mut collector = Collector {
         src: text,
         tokens: Vec::new(),
-        roc: Vec::new(),
-        css: Vec::new(),
     };
     collect(&mut collector);
     let range_span = range.map(|range| {
@@ -164,44 +111,10 @@ fn finish_tokens(
     }
 }
 
-fn finish_ranges(
-    name: &str,
-    text: &str,
-    encoding: PositionEncoding,
-    collect: impl FnOnce(&mut Collector<'_>),
-) -> Vec<EmbeddedRange> {
-    let source = SourceFile::new(name, text);
-    let mut collector = Collector {
-        src: text,
-        tokens: Vec::new(),
-        roc: Vec::new(),
-        css: Vec::new(),
-    };
-    collect(&mut collector);
-    let mut ranges = Vec::new();
-    for span in collector.roc {
-        if !span.is_empty() {
-            ranges.push(EmbeddedRange {
-                language: "roc".to_string(),
-                range: lsp_range(source, span, encoding),
-            });
-        }
-    }
-    for span in collector.css {
-        if !span.is_empty() {
-            ranges.push(EmbeddedRange {
-                language: "css".to_string(),
-                range: lsp_range(source, span, encoding),
-            });
-        }
-    }
-    ranges
-}
-
 fn collect_document(collector: &mut Collector<'_>, document: &Document) {
     for item in &document.items {
         match item {
-            ModuleItem::Roc { span } => collector.roc(*span),
+            ModuleItem::Roc { .. } => {}
             ModuleItem::Component(component) => collect_component(collector, component),
             ModuleItem::Fixture(fixture) => collect_fixture(collector, fixture),
             ModuleItem::Css(css) => collect_css(collector, css),
@@ -227,15 +140,12 @@ fn collect_rocdown(
             rocci_rocdown::Item::Markdown(_) => {}
             rocci_rocdown::Item::Page(page) => {
                 collect_keyword(collector, page.span, page.body.start, "@page");
-                collector.roc(page.body);
             }
             rocci_rocdown::Item::Roc(roc) => {
                 collect_keyword(collector, roc.span, roc.body.start, "@roc");
-                collector.roc(roc.body);
             }
             rocci_rocdown::Item::Render(render) => {
                 collect_keyword(collector, render.span, render.expr.start, "@render");
-                collector.roc(render.expr);
             }
             rocci_rocdown::Item::Component(component) => collect_component(collector, component),
             rocci_rocdown::Item::Fixture(fixture) => collect_fixture(collector, fixture),
@@ -299,7 +209,6 @@ fn collect_css(collector: &mut Collector<'_>, css: &CssDecl) {
     if let Some(span) = ident_between(collector.src, css.span.start, css.body.start, "@css") {
         collector.token(span, TOKEN_KEYWORD, 0);
     }
-    collector.css(css.body);
 }
 
 fn collect_context(collector: &mut Collector<'_>, context: &ContextDecl) {
@@ -311,14 +220,12 @@ fn collect_context(collector: &mut Collector<'_>, context: &ContextDecl) {
     ) {
         collector.token(span, TOKEN_KEYWORD, 0);
     }
-    collector.roc(context.ty);
 }
 
 fn collect_init(collector: &mut Collector<'_>, init: &InitDecl) {
     if let Some(span) = ident_between(collector.src, init.span.start, init.body.start, "@init") {
         collector.token(span, TOKEN_KEYWORD, 0);
     }
-    collector.roc(init.body);
 }
 
 fn collect_on(collector: &mut Collector<'_>, on: &OnDecl) {
@@ -327,10 +234,6 @@ fn collect_on(collector: &mut Collector<'_>, on: &OnDecl) {
     }
     collector.token(on.method.span, TOKEN_KEYWORD, 0);
     collector.token(on.path_span, TOKEN_STRING, 0);
-    if let Some(params) = on.params {
-        collector.roc(params);
-    }
-    collector.roc(on.body);
 }
 
 fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
@@ -343,7 +246,6 @@ fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
     ) {
         collector.token(span, TOKEN_KEYWORD, 0);
     }
-    collector.roc(component.params);
     collect_items(collector, &component.body.items);
 }
 
@@ -366,7 +268,6 @@ fn collect_fixture(collector: &mut Collector<'_>, fixture: &FixtureDecl) {
         collector.token(span, TOKEN_PROPERTY, 0);
     }
     collect_path(collector, &fixture.target.parts);
-    collector.roc(fixture.value);
 }
 
 fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
@@ -375,16 +276,14 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
             TemplateItem::Element(el) => collect_element(collector, el),
             TemplateItem::ComponentCall(call) => collect_call(collector, call),
             TemplateItem::Fragment(frag) => collect_items(collector, &frag.children),
-            TemplateItem::Interpolation(interp) => collector.roc(interp.expr),
+            TemplateItem::Interpolation(_) => {}
             TemplateItem::If(dir) => {
                 collector.token(directive_keyword(dir.span, "if"), TOKEN_KEYWORD, 0);
-                collector.roc(dir.condition);
                 collect_items(collector, &dir.then_body.items);
                 for (cond, body) in &dir.else_ifs {
                     if let Some(span) = else_if_keyword(collector.src, cond.start) {
                         collector.token(span, TOKEN_KEYWORD, 0);
                     }
-                    collector.roc(*cond);
                     collect_items(collector, &body.items);
                 }
                 if let Some(body) = &dir.else_body {
@@ -405,14 +304,11 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
                 ) {
                     collector.token(span, TOKEN_KEYWORD, 0);
                 }
-                collector.roc(dir.collection);
                 collect_items(collector, &dir.body.items);
             }
             TemplateItem::Match(dir) => {
                 collector.token(directive_keyword(dir.span, "match"), TOKEN_KEYWORD, 0);
-                collector.roc(dir.scrutinee);
                 for arm in &dir.arms {
-                    collector.roc(arm.pattern);
                     if let Some(span) =
                         ident_between(collector.src, arm.pattern.end, arm.value.span().start, "=>")
                     {
@@ -424,7 +320,6 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
             TemplateItem::Let(dir) => {
                 collector.token(directive_keyword(dir.span, "let"), TOKEN_KEYWORD, 0);
                 collector.token(dir.binder.span, TOKEN_PARAMETER, MOD_DECLARATION);
-                collector.roc(dir.expr);
             }
             TemplateItem::Css(css) => collect_css(collector, css),
             TemplateItem::Text(_) => {}
@@ -484,15 +379,14 @@ fn collect_attrs(collector: &mut Collector<'_>, attrs: &[rocci_template::Attr]) 
         collector.token(attr.name.span, TOKEN_PROPERTY, 0);
         match &attr.value {
             AttrValue::Static { span, .. } => collector.token(*span, TOKEN_STRING, 0),
-            AttrValue::Expr { expr } => collector.roc(*expr),
-            AttrValue::Action { name, args } => {
+            AttrValue::Expr { .. } => {}
+            AttrValue::Action { name, .. } => {
                 let at_start = (name.span.start as usize).saturating_sub(1);
                 collector.token(
                     Span::new(at_start, name.span.end as usize),
                     TOKEN_KEYWORD,
                     0,
                 );
-                collector.roc(*args);
             }
             AttrValue::Boolean => {}
         }
@@ -656,13 +550,5 @@ fn for_each_line_span(src: &str, span: Span, mut f: impl FnMut(Span)) {
     }
     if line_start < end {
         f(Span::new(line_start, end));
-    }
-}
-
-fn lsp_range(source: SourceFile<'_>, span: Span, encoding: PositionEncoding) -> Range {
-    let ((start_line, start_col), (end_line, end_col)) = source.range(span, encoding);
-    Range {
-        start: Position::new(start_line, start_col),
-        end: Position::new(end_line, end_col),
     }
 }

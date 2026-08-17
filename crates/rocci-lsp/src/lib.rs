@@ -1,4 +1,5 @@
 mod analysis;
+mod regions;
 mod rocdown;
 mod tokens;
 
@@ -25,10 +26,19 @@ use rocci_template::{PositionEncoding, SourceFile};
 
 use crate::analysis::offset_at;
 
+pub use regions::{
+    InspectedRegion, Language, Region, RegionContext, RegionPurpose, RegionSpan, RegionTree,
+    RegionValidationError, css_ranges, executable_roc_ranges, extract_rocci_regions,
+    extract_rocdown_regions, inspect_regions,
+};
 pub use tokens::{
-    EmbeddedRange, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_NAMESPACE, TOKEN_OPERATOR, TOKEN_PARAMETER,
+    TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_NAMESPACE, TOKEN_OPERATOR, TOKEN_PARAMETER,
     TOKEN_PROPERTY, TOKEN_STRING, TOKEN_TYPE,
 };
+
+pub fn method_inspect_regions() -> &'static str {
+    "rocci/inspectRegions"
+}
 
 pub struct LanguageServer {
     encoding: PositionEncoding,
@@ -89,7 +99,9 @@ impl LanguageServer {
                         },
                     ),
                 ),
-                experimental: Some(serde_json::json!({ "embeddedRanges": true })),
+                experimental: Some(serde_json::json!({
+                    "inspectRegions": true,
+                })),
                 ..ServerCapabilities::default()
             },
             server_info: Some(ServerInfo {
@@ -247,19 +259,23 @@ impl LanguageServer {
         ))
     }
 
-    pub fn embedded_ranges(&self, uri: &Uri) -> Option<Vec<tokens::EmbeddedRange>> {
+    pub fn inspect_regions(&self, uri: &Uri) -> Option<Vec<regions::InspectedRegion>> {
         let (name, doc) = self.document(uri)?;
+        let source = SourceFile::new(name, &doc.text);
         Some(match &doc.compiled {
             Compiled::Rocci(compiled) => {
-                tokens::embedded_ranges(name, &doc.text, &compiled.document, self.encoding)
+                let tree = regions::extract_rocci_regions(name, &doc.text, &compiled.document);
+                regions::inspect_regions(source, &tree, self.encoding)
             }
-            Compiled::Rocdown(compiled) => tokens::embedded_ranges_rocdown(
-                name,
-                &doc.text,
-                &compiled.document,
-                &compiled.headings,
-                self.encoding,
-            ),
+            Compiled::Rocdown(compiled) => {
+                let tree = regions::extract_rocdown_regions(
+                    name,
+                    &doc.text,
+                    &compiled.document,
+                    &compiled.headings,
+                );
+                regions::inspect_regions(source, &tree, self.encoding)
+            }
         })
     }
 
@@ -298,10 +314,11 @@ impl LanguageServer {
                     Err(err) => invalid_params(id, err),
                 }
             }
-            method if method == tokens::method_embedded_ranges() => {
+
+            method if method == method_inspect_regions() => {
                 match serde_json::from_value::<SemanticTokensParams>(req.params) {
                     Ok(params) => {
-                        Response::new_ok(id, self.embedded_ranges(&params.text_document.uri))
+                        Response::new_ok(id, self.inspect_regions(&params.text_document.uri))
                     }
                     Err(err) => invalid_params(id, err),
                 }
