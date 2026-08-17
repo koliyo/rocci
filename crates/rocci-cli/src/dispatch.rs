@@ -121,6 +121,29 @@ pub fn generate_bound_main_roc(
         (String::new(), String::new())
     };
 
+    let mut static_mounts = vec![
+        "                Server.static_mount({ at: \"/assets\", files: assets }),".to_string(),
+    ];
+    let mut seen_mounts = HashSet::new();
+    seen_mounts.insert("/assets".to_string());
+    for (_, route) in bound {
+        let trimmed = route.path.trim_matches('/');
+        if !trimmed.is_empty() {
+            let mut accum = String::new();
+            for segment in trimmed.split('/') {
+                accum.push('/');
+                accum.push_str(segment);
+                let at = format!("{accum}/assets");
+                if seen_mounts.insert(at.clone()) {
+                    static_mounts.push(format!(
+                        "                Server.static_mount({{ at: \"{at}\", files: assets }}),"
+                    ));
+                }
+            }
+        }
+    }
+    let static_mounts_code = static_mounts.join("\n");
+
     let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
@@ -153,7 +176,7 @@ init! = || {{
         .with_file_roots([assets])
         .with_native_routes({{
             files: [
-                Server.static_mount({{ at: "/assets", files: assets }}),
+{static_mounts_code}
             ],
             liveness: [],
             readiness: [],
@@ -411,5 +434,35 @@ mod tests {
         assert!(main.contains("(\"GET\", \"/dx/\") =>"));
         assert!(main.contains("App.on_get_dx!(context)"));
         assert!(main.contains("App.on_get_dx_slash!(context)"));
+    }
+
+    #[test]
+    fn static_mounts_include_route_prefixes() {
+        let main = generate_main_roc(
+            "Report",
+            None,
+            None,
+            &[
+                route(
+                    "GET",
+                    "/branding-and-community-foundation/",
+                    "on_get_report!",
+                ),
+                route("GET", "/nested/sub/path/", "on_get_sub!"),
+            ],
+        );
+        assert!(main.contains("Server.static_mount({ at: \"/assets\", files: assets })"));
+        assert!(main.contains(
+            "Server.static_mount({ at: \"/branding-and-community-foundation/assets\", files: assets })"
+        ));
+        assert!(main.contains("Server.static_mount({ at: \"/nested/assets\", files: assets })"));
+        assert!(
+            main.contains("Server.static_mount({ at: \"/nested/sub/assets\", files: assets })")
+        );
+        assert!(
+            main.contains(
+                "Server.static_mount({ at: \"/nested/sub/path/assets\", files: assets })"
+            )
+        );
     }
 }
