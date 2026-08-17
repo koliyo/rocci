@@ -10,9 +10,9 @@ use lsp_types::{
     Uri, WorkDoneProgressParams,
 };
 use rocci_lsp::{
-    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_FUNCTION,
-    TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, extract_rocci_regions, extract_rocdown_regions,
-    method_inspect_regions,
+    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_ENUM_MEMBER,
+    TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_STRING, TOKEN_TYPE, TOKEN_VARIABLE,
+    extract_rocci_regions, extract_rocdown_regions, method_inspect_regions,
 };
 use rocci_template::{PositionEncoding, SourceFile};
 
@@ -223,7 +223,7 @@ fn completes_local_component_and_directive() {
 }
 
 #[test]
-fn template_tokens_leave_roc_regions_for_nested_highlighting() {
+fn template_tokens_and_embedded_roc_highlighting() {
     let mut server = initialize(true);
     open(&mut server, KITCHEN_SINK);
     let result = server
@@ -264,16 +264,15 @@ fn template_tokens_leave_roc_regions_for_nested_highlighting() {
     );
 
     let roc_fn = KITCHEN_SINK.find("badgeClass =").expect("badgeClass");
-    assert_eq!(
-        token_type_at(KITCHEN_SINK, &tokens, roc_fn),
-        None,
-        "ordinary Roc should not be tokenized by the template server"
+    assert!(
+        token_type_at(KITCHEN_SINK, &tokens, roc_fn).is_some(),
+        "ordinary Roc functions should be highlighted by the Roc lexical backend"
     );
     let interp = KITCHEN_SINK.find("{name}").expect("name interp") + 1;
     assert_eq!(
         token_type_at(KITCHEN_SINK, &tokens, interp),
-        None,
-        "Roc interpolation holes should be left for nested Roc highlighting"
+        Some(TOKEN_VARIABLE),
+        "Roc interpolation holes should be highlighted by the Roc lexical backend"
     );
 
     let regions = server
@@ -480,16 +479,14 @@ fn rocdown_tokens_and_embedded_roc_ranges() {
     let roc_kw = GUIDE.find("@roc").expect("@roc");
     assert_eq!(token_type_at(GUIDE, &tokens, roc_kw), Some(TOKEN_KEYWORD));
     let published = GUIDE.find("published =").expect("published");
-    assert_eq!(
-        token_type_at(GUIDE, &tokens, published),
-        None,
-        "executable @roc body should be left for nested Roc highlighting"
+    assert!(
+        token_type_at(GUIDE, &tokens, published).is_some(),
+        "executable @roc body should be highlighted by Roc lexical backend"
     );
     let fence = GUIDE.find("answer = 42").expect("fenced roc");
-    assert_eq!(
-        token_type_at(GUIDE, &tokens, fence),
-        None,
-        "display fences should not be tokenized as executable Roc"
+    assert!(
+        token_type_at(GUIDE, &tokens, fence).is_some(),
+        "display fences should be highlighted by lexical backend"
     );
 
     let regions = server
@@ -636,10 +633,9 @@ fn embedded_languages_rocci_symbols_tokens_and_regions() {
     );
 
     let ordinary_roc = EMBEDDED_ROCCI.find("formatUser =").expect("formatUser");
-    assert_eq!(
-        token_type_at(EMBEDDED_ROCCI, &tokens, ordinary_roc),
-        None,
-        "ordinary Roc should not be tokenized by the host template server"
+    assert!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, ordinary_roc).is_some(),
+        "ordinary Roc should be tokenized by the Roc lexical backend"
     );
 
     let regions = server
@@ -1165,5 +1161,208 @@ fn malformed_and_unclosed_syntax_produces_valid_regions() {
         tree.validate(src.len()).unwrap_or_else(|err| {
             panic!("validation failed on broken rocdown:\n{src}\nErr: {err:?}")
         });
+    }
+}
+
+#[test]
+fn semantic_tokens_invariants_no_overlaps_and_single_line_spans() {
+    let fixtures = [
+        ("AllSyntax.rocci", KITCHEN_SINK, true),
+        ("EmbeddedLanguages.rocci", EMBEDDED_ROCCI, true),
+        ("AllSyntax.rocdown", ALL_SYNTAX_ROCDOWN, false),
+        ("EmbeddedLanguages.rocdown", EMBEDDED_ROCDOWN, false),
+        ("Guide.rocdown", GUIDE, false),
+    ];
+
+    for (name, src, is_rocci) in fixtures {
+        for utf8 in [true, false] {
+            let mut server = initialize(utf8);
+            let uri: Uri = format!("file:///{name}").parse().unwrap();
+            if is_rocci {
+                server.did_open(DidOpenTextDocumentParams {
+                    text_document: TextDocumentItem {
+                        uri: uri.clone(),
+                        language_id: "rocci".to_string(),
+                        version: 1,
+                        text: src.to_string(),
+                    },
+                });
+            } else {
+                open_rocdown_at(&mut server, uri.clone(), src);
+            }
+
+            let result = server
+                .semantic_tokens_full(SemanticTokensParams {
+                    text_document: TextDocumentIdentifier { uri: uri.clone() },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default(),
+                })
+                .expect("tokens response");
+            let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+                panic!("expected full tokens for {name}");
+            };
+
+            assert!(!tokens.data.is_empty(), "expected tokens for {name}");
+
+            let mut cur_line = 0u32;
+            let mut cur_col = 0u32;
+            let mut prev_token_end = 0u32;
+
+            for (idx, tok) in tokens.data.iter().enumerate() {
+                assert!(tok.length > 0, "token {idx} in {name} has length 0");
+
+                cur_line += tok.delta_line;
+                if tok.delta_line == 0 {
+                    cur_col += tok.delta_start;
+                    assert!(
+                        cur_col >= prev_token_end,
+                        "token {idx} at line {cur_line} col {cur_col} overlaps prev end {prev_token_end} in {name} (utf8={utf8})"
+                    );
+                } else {
+                    cur_col = tok.delta_start;
+                }
+                prev_token_end = cur_col + tok.length;
+            }
+        }
+    }
+}
+
+#[test]
+fn semantic_tokens_embedded_languages_coverage() {
+    let mut server = initialize(true);
+    open(&mut server, EMBEDDED_ROCCI);
+
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("tokens response");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full tokens");
+    };
+
+    // Roc module functions and types in .rocci
+    let fn_pos = EMBEDDED_ROCCI.find("formatUser =").expect("formatUser");
+    assert!(token_type_at(EMBEDDED_ROCCI, &tokens, fn_pos).is_some());
+
+    let roc_type_pos = EMBEDDED_ROCCI.find("User : {").expect("User :");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, roc_type_pos),
+        Some(TOKEN_TYPE)
+    );
+
+    // CSS rules in .rocci
+    let css_prop = EMBEDDED_ROCCI.find("padding: 1rem").expect("padding: 1rem");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCCI, &tokens, css_prop),
+        Some(TOKEN_PROPERTY)
+    );
+
+    // Now test .rocdown embedded languages
+    let uri = embedded_rocdown_uri();
+    open_rocdown_at(&mut server, uri.clone(), EMBEDDED_ROCDOWN);
+    let rd_result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: TextDocumentIdentifier { uri },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("rd tokens");
+    let lsp_types::SemanticTokensResult::Tokens(rd_tokens) = rd_result else {
+        panic!("expected rd tokens");
+    };
+
+    // Executable Roc in @roc
+    let status_decl = EMBEDDED_ROCDOWN.find("Status : [").expect("Status : [");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, status_decl),
+        Some(TOKEN_TYPE)
+    );
+    let u64_type = EMBEDDED_ROCDOWN.find("U64)").expect("U64)");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, u64_type),
+        Some(TOKEN_TYPE)
+    );
+    let active_val = EMBEDDED_ROCDOWN
+        .find("status = Active(42)")
+        .expect("status = Active(42)")
+        + 9;
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, active_val),
+        Some(TOKEN_ENUM_MEMBER)
+    );
+
+    // Display-only Roc fence
+    let display_roc_str = EMBEDDED_ROCDOWN
+        .find("\"Hello from display Roc!\"")
+        .expect("display roc string");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, display_roc_str),
+        Some(TOKEN_STRING)
+    );
+
+    // Display-only HTML fence
+    let display_html_tag = EMBEDDED_ROCDOWN
+        .find("<div class=\"display-container\"")
+        .expect("<div");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, display_html_tag + 1),
+        Some(TOKEN_TYPE)
+    );
+    let display_html_attr = EMBEDDED_ROCDOWN
+        .find("class=\"display-container\"")
+        .expect("class=");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, display_html_attr),
+        Some(TOKEN_PROPERTY)
+    );
+
+    // Display-only CSS fence
+    let display_css_prop = EMBEDDED_ROCDOWN.find("font-size").expect("font-size");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, display_css_prop),
+        Some(TOKEN_PROPERTY)
+    );
+
+    // Markdown inline code
+    let md_code = EMBEDDED_ROCDOWN
+        .find("`Num.toStr(42)`")
+        .expect("`Num.toStr(42)`");
+    assert_eq!(
+        token_type_at(EMBEDDED_ROCDOWN, &rd_tokens, md_code),
+        Some(TOKEN_STRING)
+    );
+}
+
+#[test]
+fn semantic_tokens_malformed_and_incomplete_recovery() {
+    let broken_inputs = [
+        INCOMPLETE_TAG,
+        "@component Broken = |{}| { <p>{person. </p> }",
+        "@css { .card { color: #fff; width: ",
+        "@on:get(\"/api\") { let result = ",
+        "```roc\nlet broken = \"unclosed string\n```",
+        "```html\n<div class=\"unclosed\n```",
+        "```css\n.foo { color:\n```",
+    ];
+
+    for src in broken_inputs {
+        for utf8 in [true, false] {
+            let mut server = initialize(utf8);
+            let uri = test_uri();
+            open(&mut server, src);
+
+            let result = server.semantic_tokens_full(SemanticTokensParams {
+                text_document: TextDocumentIdentifier { uri: uri.clone() },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+                partial_result_params: PartialResultParams::default(),
+            });
+            assert!(
+                result.is_some(),
+                "expected token result on broken input:\n{src}"
+            );
+        }
     }
 }

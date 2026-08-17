@@ -15,47 +15,72 @@ pub const TOKEN_PROPERTY: u32 = 4;
 pub const TOKEN_STRING: u32 = 5;
 pub const TOKEN_PARAMETER: u32 = 6;
 pub const TOKEN_OPERATOR: u32 = 7;
+pub const TOKEN_VARIABLE: u32 = 8;
+pub const TOKEN_NUMBER: u32 = 9;
+pub const TOKEN_COMMENT: u32 = 10;
+pub const TOKEN_ENUM_MEMBER: u32 = 11;
+pub const TOKEN_STRUCT: u32 = 12;
+pub const TOKEN_MACRO: u32 = 13;
+pub const TOKEN_DECORATOR: u32 = 14;
 
-const MOD_DECLARATION: u32 = 1 << 0;
-const MOD_DEFAULT_LIBRARY: u32 = 1 << 1;
+pub const MOD_DECLARATION: u32 = 1 << 0;
+pub const MOD_DEFAULT_LIBRARY: u32 = 1 << 1;
+pub const MOD_READONLY: u32 = 1 << 2;
+pub const MOD_DOCUMENTATION: u32 = 1 << 3;
 
 pub fn legend() -> SemanticTokensLegend {
     SemanticTokensLegend {
         token_types: vec![
-            SemanticTokenType::KEYWORD,
-            SemanticTokenType::FUNCTION,
-            SemanticTokenType::TYPE,
-            SemanticTokenType::NAMESPACE,
-            SemanticTokenType::PROPERTY,
-            SemanticTokenType::STRING,
-            SemanticTokenType::PARAMETER,
-            SemanticTokenType::OPERATOR,
+            SemanticTokenType::KEYWORD,     // 0
+            SemanticTokenType::FUNCTION,    // 1
+            SemanticTokenType::TYPE,        // 2
+            SemanticTokenType::NAMESPACE,   // 3
+            SemanticTokenType::PROPERTY,    // 4
+            SemanticTokenType::STRING,      // 5
+            SemanticTokenType::PARAMETER,   // 6
+            SemanticTokenType::OPERATOR,    // 7
+            SemanticTokenType::VARIABLE,    // 8
+            SemanticTokenType::NUMBER,      // 9
+            SemanticTokenType::COMMENT,     // 10
+            SemanticTokenType::ENUM_MEMBER, // 11
+            SemanticTokenType::STRUCT,      // 12
+            SemanticTokenType::MACRO,       // 13
+            SemanticTokenType::DECORATOR,   // 14
         ],
         token_modifiers: vec![
-            SemanticTokenModifier::DECLARATION,
-            SemanticTokenModifier::DEFAULT_LIBRARY,
+            SemanticTokenModifier::DECLARATION,     // 1 << 0
+            SemanticTokenModifier::DEFAULT_LIBRARY, // 1 << 1
+            SemanticTokenModifier::READONLY,        // 1 << 2
+            SemanticTokenModifier::DOCUMENTATION,   // 1 << 3
         ],
     }
 }
 
-struct RawToken {
-    span: Span,
-    kind: u32,
-    modifiers: u32,
+#[derive(Clone, Debug)]
+pub struct RawToken {
+    pub span: Span,
+    pub kind: u32,
+    pub modifiers: u32,
+    pub priority: u32,
 }
 
-struct Collector<'a> {
-    src: &'a str,
-    tokens: Vec<RawToken>,
+pub struct Collector<'a> {
+    pub src: &'a str,
+    pub tokens: Vec<RawToken>,
 }
 
 impl<'a> Collector<'a> {
-    fn token(&mut self, span: Span, kind: u32, modifiers: u32) {
-        if !span.is_empty() {
+    pub fn token(&mut self, span: Span, kind: u32, modifiers: u32) {
+        self.token_with_priority(span, kind, modifiers, 50);
+    }
+
+    pub fn token_with_priority(&mut self, span: Span, kind: u32, modifiers: u32, priority: u32) {
+        if !span.is_empty() && (span.end as usize) <= self.src.len() {
             self.tokens.push(RawToken {
                 span,
                 kind,
                 modifiers,
+                priority,
             });
         }
     }
@@ -68,8 +93,10 @@ pub fn semantic_tokens(
     encoding: PositionEncoding,
     range: Option<Range>,
 ) -> SemanticTokens {
+    let regions = crate::regions::extract_rocci_regions(name, text, document);
     finish_tokens(name, text, encoding, range, |collector| {
         collect_document(collector, document);
+        collect_embedded_regions(collector, &regions);
     })
 }
 
@@ -81,8 +108,10 @@ pub fn semantic_tokens_rocdown(
     encoding: PositionEncoding,
     range: Option<Range>,
 ) -> SemanticTokens {
+    let regions = crate::regions::extract_rocdown_regions(name, text, document, headings);
     finish_tokens(name, text, encoding, range, |collector| {
         collect_rocdown(collector, document, headings);
+        collect_embedded_regions(collector, &regions);
     })
 }
 
@@ -111,6 +140,70 @@ fn finish_tokens(
     }
 }
 
+fn collect_embedded_regions(collector: &mut Collector<'_>, regions: &crate::regions::RegionTree) {
+    for region in &regions.regions {
+        let region_start = region.span.start as usize;
+        let region_end = (region.span.end as usize).min(collector.src.len());
+        if region_start >= region_end {
+            continue;
+        }
+        let slice = &collector.src[region_start..region_end];
+
+        match region.language {
+            crate::regions::Language::Roc => {
+                let hl_tokens = crate::embedded::roc::highlight(slice);
+                for tok in hl_tokens {
+                    let tok_start = region_start + tok.span.start as usize;
+                    let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                    if tok_start < tok_end {
+                        collector.token_with_priority(
+                            Span::new(tok_start, tok_end),
+                            tok.kind,
+                            tok.modifiers,
+                            tok.priority,
+                        );
+                    }
+                }
+            }
+            crate::regions::Language::Css => {
+                let hl_tokens = crate::embedded::css::highlight(slice);
+                for tok in hl_tokens {
+                    let tok_start = region_start + tok.span.start as usize;
+                    let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                    if tok_start < tok_end {
+                        collector.token_with_priority(
+                            Span::new(tok_start, tok_end),
+                            tok.kind,
+                            tok.modifiers,
+                            tok.priority,
+                        );
+                    }
+                }
+            }
+            crate::regions::Language::Html => {
+                if region.purpose == crate::regions::RegionPurpose::DisplayOnly {
+                    let hl_tokens = crate::embedded::html::highlight(slice);
+                    for tok in hl_tokens {
+                        let tok_start = region_start + tok.span.start as usize;
+                        let tok_end = (region_start + tok.span.end as usize).min(region_end);
+                        if tok_start < tok_end {
+                            collector.token_with_priority(
+                                Span::new(tok_start, tok_end),
+                                tok.kind,
+                                tok.modifiers,
+                                tok.priority,
+                            );
+                        }
+                    }
+                }
+            }
+            crate::regions::Language::Markdown
+            | crate::regions::Language::RocciTemplate
+            | crate::regions::Language::Other(_) => {}
+        }
+    }
+}
+
 fn collect_document(collector: &mut Collector<'_>, document: &Document) {
     for item in &document.items {
         match item {
@@ -132,12 +225,22 @@ fn collect_rocdown(
 ) {
     for heading in headings {
         if let Some(span) = heading_marker(collector.src, heading.span, heading.level) {
-            collector.token(span, TOKEN_KEYWORD, 0);
+            collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
         }
     }
     for item in &document.items {
         match item {
-            rocci_rocdown::Item::Markdown(_) => {}
+            rocci_rocdown::Item::Markdown(md_node) => {
+                let mut md_tokens = Vec::new();
+                crate::embedded::markdown::collect_markdown_node(
+                    collector.src,
+                    md_node,
+                    &mut md_tokens,
+                );
+                for tok in md_tokens {
+                    collector.token_with_priority(tok.span, tok.kind, tok.modifiers, tok.priority);
+                }
+            }
             rocci_rocdown::Item::Page(page) => {
                 collect_keyword(collector, page.span, page.body.start, "@page");
             }
@@ -165,19 +268,19 @@ fn collect_rocdown(
 
 fn collect_docs(collector: &mut Collector<'_>, docs: &rocci_rocdown::DocsDecl) {
     collect_keyword(collector, docs.span, docs.kind_span.start, "@docs");
-    collector.token(docs.kind_span, TOKEN_TYPE, 0);
+    collector.token_with_priority(docs.kind_span, TOKEN_TYPE, 0, 55);
     let (fields, content) = rocci_rocdown::split_docs_body(collector.src, docs.body);
     for field in fields {
-        collector.token(field.name_span, TOKEN_PROPERTY, 0);
+        collector.token_with_priority(field.name_span, TOKEN_PROPERTY, 0, 50);
         let val_str = field.value.of(collector.src).trim();
         if val_str.starts_with('"') {
-            collector.token(field.value, TOKEN_STRING, 0);
+            collector.token_with_priority(field.value, TOKEN_STRING, 0, 50);
         } else if val_str == "true"
             || val_str == "false"
             || val_str == "Bool.true"
             || val_str == "Bool.false"
         {
-            collector.token(field.value, TOKEN_KEYWORD, 0);
+            collector.token_with_priority(field.value, TOKEN_KEYWORD, 0, 50);
         }
     }
     if !content.is_empty() && (content.start as usize) < collector.src.len() {
@@ -189,7 +292,7 @@ fn collect_docs(collector: &mut Collector<'_>, docs: &rocci_rocdown::DocsDecl) {
 
 fn collect_keyword(collector: &mut Collector<'_>, span: Span, before: u32, word: &str) {
     if let Some(keyword) = ident_between(collector.src, span.start, before, word) {
-        collector.token(keyword, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(keyword, TOKEN_KEYWORD, 0, 55);
     }
 }
 
@@ -207,7 +310,7 @@ fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
 
 fn collect_css(collector: &mut Collector<'_>, css: &CssDecl) {
     if let Some(span) = ident_between(collector.src, css.span.start, css.body.start, "@css") {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
 }
 
@@ -218,46 +321,46 @@ fn collect_context(collector: &mut Collector<'_>, context: &ContextDecl) {
         context.ty.start,
         "@context",
     ) {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
 }
 
 fn collect_init(collector: &mut Collector<'_>, init: &InitDecl) {
     if let Some(span) = ident_between(collector.src, init.span.start, init.body.start, "@init") {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
 }
 
 fn collect_on(collector: &mut Collector<'_>, on: &OnDecl) {
     if let Some(span) = ident_between(collector.src, on.span.start, on.method.span.start, "@on") {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
-    collector.token(on.method.span, TOKEN_KEYWORD, 0);
-    collector.token(on.path_span, TOKEN_STRING, 0);
+    collector.token_with_priority(on.method.span, TOKEN_KEYWORD, 0, 50);
+    collector.token_with_priority(on.path_span, TOKEN_STRING, 0, 50);
 }
 
 fn collect_component(collector: &mut Collector<'_>, component: &ComponentDecl) {
-    collector.token(component.name.span, TOKEN_FUNCTION, MOD_DECLARATION);
+    collector.token_with_priority(component.name.span, TOKEN_FUNCTION, MOD_DECLARATION, 55);
     if let Some(span) = ident_between(
         collector.src,
         component.span.start,
         component.name.span.start,
         "@component",
     ) {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
     collect_items(collector, &component.body.items);
 }
 
 fn collect_fixture(collector: &mut Collector<'_>, fixture: &FixtureDecl) {
-    collector.token(fixture.name.span, TOKEN_FUNCTION, MOD_DECLARATION);
+    collector.token_with_priority(fixture.name.span, TOKEN_FUNCTION, MOD_DECLARATION, 55);
     if let Some(span) = ident_between(
         collector.src,
         fixture.span.start,
         fixture.name.span.start,
         "@fixture",
     ) {
-        collector.token(span, TOKEN_KEYWORD, 0);
+        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
     }
     if let Some(span) = ident_between(
         collector.src,
@@ -265,7 +368,7 @@ fn collect_fixture(collector: &mut Collector<'_>, fixture: &FixtureDecl) {
         fixture.name.span.start,
         "target",
     ) {
-        collector.token(span, TOKEN_PROPERTY, 0);
+        collector.token_with_priority(span, TOKEN_PROPERTY, 0, 50);
     }
     collect_path(collector, &fixture.target.parts);
 }
@@ -278,48 +381,78 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
             TemplateItem::Fragment(frag) => collect_items(collector, &frag.children),
             TemplateItem::Interpolation(_) => {}
             TemplateItem::If(dir) => {
-                collector.token(directive_keyword(dir.span, "if"), TOKEN_KEYWORD, 0);
+                collector.token_with_priority(
+                    directive_keyword(dir.span, "if"),
+                    TOKEN_KEYWORD,
+                    0,
+                    55,
+                );
                 collect_items(collector, &dir.then_body.items);
                 for (cond, body) in &dir.else_ifs {
                     if let Some(span) = else_if_keyword(collector.src, cond.start) {
-                        collector.token(span, TOKEN_KEYWORD, 0);
+                        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
                     }
                     collect_items(collector, &body.items);
                 }
                 if let Some(body) = &dir.else_body {
                     if let Some(span) = keyword_before(collector.src, body.span.start, "@else") {
-                        collector.token(span, TOKEN_KEYWORD, 0);
+                        collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
                     }
                     collect_items(collector, &body.items);
                 }
             }
             TemplateItem::For(dir) => {
-                collector.token(directive_keyword(dir.span, "for"), TOKEN_KEYWORD, 0);
-                collector.token(dir.binder.span, TOKEN_PARAMETER, MOD_DECLARATION);
+                collector.token_with_priority(
+                    directive_keyword(dir.span, "for"),
+                    TOKEN_KEYWORD,
+                    0,
+                    55,
+                );
+                collector.token_with_priority(
+                    dir.binder.span,
+                    TOKEN_PARAMETER,
+                    MOD_DECLARATION,
+                    50,
+                );
                 if let Some(span) = ident_between(
                     collector.src,
                     dir.binder.span.end,
                     dir.collection.start,
                     "in",
                 ) {
-                    collector.token(span, TOKEN_KEYWORD, 0);
+                    collector.token_with_priority(span, TOKEN_KEYWORD, 0, 55);
                 }
                 collect_items(collector, &dir.body.items);
             }
             TemplateItem::Match(dir) => {
-                collector.token(directive_keyword(dir.span, "match"), TOKEN_KEYWORD, 0);
+                collector.token_with_priority(
+                    directive_keyword(dir.span, "match"),
+                    TOKEN_KEYWORD,
+                    0,
+                    55,
+                );
                 for arm in &dir.arms {
                     if let Some(span) =
                         ident_between(collector.src, arm.pattern.end, arm.value.span().start, "=>")
                     {
-                        collector.token(span, TOKEN_OPERATOR, 0);
+                        collector.token_with_priority(span, TOKEN_OPERATOR, 0, 50);
                     }
                     collect_items(collector, std::slice::from_ref(&*arm.value));
                 }
             }
             TemplateItem::Let(dir) => {
-                collector.token(directive_keyword(dir.span, "let"), TOKEN_KEYWORD, 0);
-                collector.token(dir.binder.span, TOKEN_PARAMETER, MOD_DECLARATION);
+                collector.token_with_priority(
+                    directive_keyword(dir.span, "let"),
+                    TOKEN_KEYWORD,
+                    0,
+                    55,
+                );
+                collector.token_with_priority(
+                    dir.binder.span,
+                    TOKEN_PARAMETER,
+                    MOD_DECLARATION,
+                    50,
+                );
             }
             TemplateItem::Css(css) => collect_css(collector, css),
             TemplateItem::Text(_) => {}
@@ -328,13 +461,13 @@ fn collect_items(collector: &mut Collector<'_>, items: &[TemplateItem]) {
 }
 
 fn collect_element(collector: &mut Collector<'_>, el: &Element) {
-    collector.token(el.name.span, TOKEN_TYPE, MOD_DEFAULT_LIBRARY);
+    collector.token_with_priority(el.name.span, TOKEN_TYPE, MOD_DEFAULT_LIBRARY, 55);
     collect_attrs(collector, &el.attrs);
     collect_items(collector, &el.children);
     if !el.self_closing
         && let Some(span) = closing_name(collector.src, el.span, &el.name.name)
     {
-        collector.token(span, TOKEN_TYPE, MOD_DEFAULT_LIBRARY);
+        collector.token_with_priority(span, TOKEN_TYPE, MOD_DEFAULT_LIBRARY, 55);
     }
 }
 
@@ -357,7 +490,7 @@ fn collect_path(collector: &mut Collector<'_>, parts: &[rocci_template::Ident]) 
         } else {
             TOKEN_NAMESPACE
         };
-        collector.token(part.span, kind, 0);
+        collector.token_with_priority(part.span, kind, 0, 50);
     }
 }
 
@@ -369,23 +502,26 @@ fn collect_path_at(collector: &mut Collector<'_>, span: Span, parts: &[rocci_tem
         } else {
             TOKEN_NAMESPACE
         };
-        collector.token(Span::new(start, start + part.name.len()), kind, 0);
+        collector.token_with_priority(Span::new(start, start + part.name.len()), kind, 0, 50);
         start += part.name.len() + 1;
     }
 }
 
 fn collect_attrs(collector: &mut Collector<'_>, attrs: &[rocci_template::Attr]) {
     for attr in attrs {
-        collector.token(attr.name.span, TOKEN_PROPERTY, 0);
+        collector.token_with_priority(attr.name.span, TOKEN_PROPERTY, 0, 50);
         match &attr.value {
-            AttrValue::Static { span, .. } => collector.token(*span, TOKEN_STRING, 0),
+            AttrValue::Static { span, .. } => {
+                collector.token_with_priority(*span, TOKEN_STRING, 0, 50)
+            }
             AttrValue::Expr { .. } => {}
             AttrValue::Action { name, .. } => {
                 let at_start = (name.span.start as usize).saturating_sub(1);
-                collector.token(
+                collector.token_with_priority(
                     Span::new(at_start, name.span.end as usize),
                     TOKEN_KEYWORD,
                     0,
+                    55,
                 );
             }
             AttrValue::Boolean => {}
@@ -498,14 +634,25 @@ fn encode_tokens(
                 span,
                 kind: token.kind,
                 modifiers: token.modifiers,
+                priority: token.priority,
             });
         });
     }
-    line_tokens.sort_by_key(|token| (token.span.start, token.span.end, token.kind));
+
+    line_tokens.sort_by(|a, b| {
+        a.span
+            .start
+            .cmp(&b.span.start)
+            .then_with(|| b.priority.cmp(&a.priority))
+            .then_with(|| (b.span.end - b.span.start).cmp(&(a.span.end - a.span.start)))
+            .then_with(|| a.kind.cmp(&b.kind))
+    });
+
     let mut data = Vec::new();
     let mut prev_line = 0u32;
     let mut prev_col = 0u32;
     let mut prev_end = 0u32;
+
     for token in line_tokens {
         if token.span.start < prev_end {
             continue;

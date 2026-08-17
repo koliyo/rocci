@@ -20,3 +20,7 @@ rocci-rocdown = { workspace = true }
 rocci-template = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tree-sitter = "0.22.6"
+
+[build-dependencies]
+cc = "1.0"

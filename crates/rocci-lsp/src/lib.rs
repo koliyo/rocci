@@ -1,7 +1,8 @@
 mod analysis;
+pub mod embedded;
 mod regions;
 mod rocdown;
-mod tokens;
+pub mod tokens;
 
 use std::collections::HashMap;
 
@@ -32,8 +33,10 @@ pub use regions::{
     extract_rocdown_regions, inspect_regions,
 };
 pub use tokens::{
-    TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_NAMESPACE, TOKEN_OPERATOR, TOKEN_PARAMETER,
-    TOKEN_PROPERTY, TOKEN_STRING, TOKEN_TYPE,
+    MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION, MOD_READONLY, TOKEN_COMMENT,
+    TOKEN_DECORATOR, TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_MACRO,
+    TOKEN_NAMESPACE, TOKEN_NUMBER, TOKEN_OPERATOR, TOKEN_PARAMETER, TOKEN_PROPERTY, TOKEN_STRING,
+    TOKEN_STRUCT, TOKEN_TYPE, TOKEN_VARIABLE,
 };
 
 pub fn method_inspect_regions() -> &'static str {
