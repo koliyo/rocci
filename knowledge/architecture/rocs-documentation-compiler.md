@@ -4,7 +4,7 @@ title: Rocs documentation compiler
 description: Rocs resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocs, domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
+generated: { by: process:codex, at: 2026-08-17T07:28:01Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -66,6 +66,15 @@ Rocs discovers `.rocdown` pages, derives or reads stable identity and routes, re
 
 Static article bodies are rendered in Rust from Rocdown's semantic Markdown nodes. `@docs` declarations become a typed article tree: includes and examples are catalog data, Markdown runs become fragment files, and documentation components are Rocci-rendered from scalar segment records. A structured page view plus composed article Html is passed to a Rocci-authored theme compiled once for the build; Roc is not asked to parse or type-check ordinary prose.[^rocs-plan]
 
+Code blocks currently render as escaped source inside `rd-code-block` and
+`rd-code` elements with a `language-*` class when a fence language is present;
+Rocs does not yet emit per-token syntax spans. Non-Rocdown `@docs include`
+content becomes the same Markdown code-block node, taking its language from an
+explicit field and then the file extension, while fences inside `@docs
+example` bodies use the ordinary Markdown path. This gives a single future
+insertion point for static highlighting without changing example execution or
+Markdown/search projections.[^article][^docs]
+
 The build plan owns output paths, hashed assets and theme CSS, URL rewriting, redirects, `404.html`, CSP, canonical metadata, and the complete artifact set before the output tree is committed.[^plan][^rocs-reference]
 
 ## HTML composition boundary
@@ -88,7 +97,13 @@ The isolated OKF path additionally validates and renders knowledge collections, 
 
 ## Not yet implemented
 
-Dynamic island splicing is rejected. Public documentation-site search, clean per-page Markdown artifacts, and remaining machine-output polish are still ordinary Rocs backlog; the shipped OKF search is a separate local knowledge-retrieval path. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, generated API references, richer themes, locales, and advanced interaction remain planned.[^site][^rocs-plan][^okf]
+Dynamic island splicing is rejected. Static per-token syntax highlighting,
+public documentation-site search, clean per-page Markdown artifacts, and
+remaining machine-output polish are still ordinary Rocs backlog; the shipped
+OKF search is a separate local knowledge-retrieval path. `@docs
+api-operation`, snippet parameter substitution, tab-persistence JavaScript,
+generated API references, richer themes, locales, and advanced interaction
+remain planned.[^site][^article][^rocs-plan][^okf]
 
 ## Validation
 

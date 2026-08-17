@@ -2,6 +2,10 @@
 
 ## 2026-08-17
 
+- Extended the language-server report and exploratory plan with a shared
+  token-span architecture for static Rocs syntax highlighting, including
+  fenced code, `@docs include`, and `@docs example`; recorded that current
+  Rocs output is escaped but not highlighted per token.
 - Added the draft [language-tooling architecture](architecture/language-tooling.md), separating the current common LSP and editor registrations from the still-unconsumed Roc/CSS embedded ranges and recording the current `@docs` build regression.
 - Added the exploratory [full language-server plan](plans/language-server.md) and its detailed root report, recommending server-owned region/projection composition and reuse of the pinned Roc Tree-sitter grammar/query work rather than merging the whole Zed Roc extension.
 - Updated the implementation snapshot to distinguish the shipped basic host-language LSP from the proposed embedded-language and Roc-semantic work, and to account for the new third root plan.

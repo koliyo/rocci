@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Rocci ships its core template, Rocdown, preview, desktop, packaging, editor, and static Rocs foundations while dynamic islands and broader packaging remain incomplete.
 tags: [domain/rocci, domain/rocs, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T05:44:10Z }
+generated: { by: process:codex, at: 2026-08-17T07:28:01Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -56,6 +56,11 @@ sources:
     title: Proposed full Rocci and Rocdown language-server plan
     author: process:codex
     last_modified: 2026-08-17
+  - id: rocs-compiler
+    resource: ../architecture/rocs-documentation-compiler.md
+    title: Current Rocs documentation compiler boundary
+    author: process:codex
+    last_modified: 2026-08-17
 ---
 
 # Rocci implementation status
@@ -70,6 +75,9 @@ Template and Rocdown compilation, standalone preview/run workflows, the desktop 
 
 Rocs currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocs types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocs test` runs declared example commands on demand and is not part of `rocs build`.[^rocs-plan]
 
+Rocs code fences and non-Rocdown includes currently render escaped code with
+language classes but no per-token syntax-highlighting spans.[^rocs-compiler]
+
 The isolated OKF path validates, graphs, renders, previews, inspects, and searches the knowledge bundle. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
 Phase 6 adds a fixed seven-question lexical retrieval benchmark, JSON hit-rate and mean-reciprocal-rank reporting, and CI threshold enforcement. Seven dated research and audit reports are preserved under `archive/reports/`; the two plans retained during consolidation remain active, and a third proposed language-server plan now lives at the repository root.[^consolidation][^lsp-plan]
@@ -83,6 +91,10 @@ highlighting, complete HTML-shaped/Markdown highlighting, workspace-wide
 language intelligence, and compiler-backed Roc semantics remain proposed work.
 The detailed language-server plan is exploratory and must not be presented as
 shipped.[^lsp-plan]
+
+Static syntax highlighting for Rocs code fences, includes, and examples is
+also proposed rather than shipped. The plan shares language-neutral token
+spans with the LSP while keeping escaped HTML generation in Rocs.[^lsp-plan]
 
 ## Decided direction
 
@@ -115,3 +127,4 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^publication]: Draft record of the approved local-first publication disposition.
 [^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
+[^rocs-compiler]: Current static code-block rendering path and absence of per-token syntax spans.

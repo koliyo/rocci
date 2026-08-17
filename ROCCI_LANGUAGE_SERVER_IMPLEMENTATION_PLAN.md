@@ -27,7 +27,10 @@ For the short-term demonstrator:
    the Rocci AST, because it is not ordinary HTML and already has exact spans;
 6. merge host, Roc, CSS, and HTML-shaped tokens into one non-overlapping LSP
    semantic-token stream;
-7. demonstrate the same server binary and token fixtures in VS Code and Zed.
+7. expose that language-neutral token stream to Rocs so static sites can emit
+   highlighted HTML without running an editor or a language-server process;
+8. demonstrate the same server binary and token fixtures in VS Code and Zed,
+   plus equivalent static HTML classes in a Rocs fixture.
 
 Do **not** fully merge `h2000/zed-roc` into Rocci. Its Zed manifest and Rust
 entry point are editor-specific and would conflict with Rocci's existing Zed
@@ -390,6 +393,23 @@ fixture visibly highlights Roc, CSS, and HTML-shaped syntax.
 
 Exit gate: no crashes or overlapping tokens, bounded performance, license
 inventory complete, and both editor instructions verified.
+
+### D5 — prove the shared Rocs renderer
+
+- Extract the resolved byte-span token vocabulary and bundled grammar registry
+  into a small library crate with no LSP or Rocs dependency.
+- Keep region discovery in the owning Rocci/Rocdown parsers; expose a composite
+  snippet-highlighting entry point for `.rocci` and `.rocdown` source.
+- Inject the shared highlighter into Rocs' article renderer and emit escaped,
+  classed `<span>` elements for Roc, HTML, CSS, Rocci, and Rocdown examples.
+- Exercise ordinary fences, non-Rocdown `@docs include`, nested fences inside
+  `@docs example`, unknown languages, malformed source, and hostile HTML text.
+- Add light, dark, print, and forced-colors token styles to the Rocci-owned Rocs
+  theme, using CSS variables rather than inline colors.
+
+Exit gate: one token-span golden drives LSP semantic-token assertions and Rocs
+HTML assertions; a Rocs build needs neither Node.js nor a running LSP server,
+and unknown or malformed snippets safely fall back to escaped source.
 
 ## 8. Full language-server architecture
 
@@ -776,6 +796,8 @@ Repository implementation evidence:
 - `crates/rocci-lsp/tests/server.rs`
 - `crates/rocci-template/src/{span,source_map,remap}.rs`
 - `crates/rocci-rocdown/src/{ast,scan,markdown}.rs`
+- `crates/rocs/src/{article,docs,site}.rs`, `crates/rocs/Cargo.toml`, and
+  `Cargo.lock`
 - `editors/vscode` and `editors/zed`
 - `test/AllSyntax.rocci`, `test/AllSyntax.rocdown`, and current crate READMEs
 
@@ -795,3 +817,260 @@ External primary sources:
 - [VS Code syntax and injection grammar guide](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide)
 - [Current Language Server Protocol specification](https://microsoft.github.io/language-server-protocol/specifications/specification-current/)
 - [Tree-sitter syntax-highlighting documentation](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html)
+- [`tree-sitter-highlight` Rust API](https://docs.rs/tree-sitter-highlight/latest/tree_sitter_highlight/)
+- [Comrak syntax-highlighter adapter API](https://docs.rs/comrak/latest/comrak/adapters/trait.SyntaxHighlighterAdapter.html)
+- [Syntect classed HTML generator](https://docs.rs/syntect/latest/syntect/html/struct.ClassedHTMLGenerator.html)
+- [Shiki installation and HTML-generation guide](https://shiki.style/guide/install)
+
+## 18. Static syntax-highlighting HTML for Rocs
+
+### 18.1 Recommendation
+
+Make static highlighting a second renderer over the demonstrator's shared
+token-span engine:
+
+```mermaid
+flowchart LR
+    S["Roc, HTML, CSS, Rocci, or Rocdown source"] --> A["Grammar registry plus Rocci/Rocdown region analysis"]
+    A --> T["Sorted, non-overlapping byte token spans"]
+    T --> L["LSP semantic-token encoder"]
+    T --> H["Rocs escaped HTML renderer"]
+    H --> C["Rocci-owned syntax CSS"]
+```
+
+Rocs must link the library in-process. It must not spawn
+`rocci-language-server`, invoke `tree-sitter highlight`, run Node/Shiki, or ask
+an editor to render code. This keeps `rocs build` deterministic, offline, and
+portable while avoiding a second interpretation of Rocci's embedded-language
+boundaries.
+
+The reusable unit from `zed-roc` remains the Roc grammar/query work, not its
+HTML output or Zed extension. Tree-sitter's Rust highlighting library already
+provides `HighlightConfiguration`, a reusable per-thread `Highlighter`,
+injection callbacks, highlight events, and an `HtmlRenderer`. The project
+should use the configuration and event model but normalize events to its own
+token spans before rendering. A direct `HtmlRenderer` call is sufficient for
+one Tree-sitter language, but it cannot by itself merge Rocci-AST host tokens
+with Roc/CSS regions or guarantee the same overlap resolution as LSP.
+
+### 18.2 Current Rocs pipeline and exact insertion point
+
+Current behavior is safe but unhighlighted:
+
+- `rocci-rocdown` stores only the first whitespace-delimited fence-info token
+  in `MdNode::CodeBlock.info`;
+- `crates/rocs/src/article.rs::render_md` emits
+  `<pre class="rd-code-block"><code class="rd-code language-…">…</code></pre>`
+  and escapes the literal as text;
+- a non-Rocdown `@docs include` becomes the same `MdNode::CodeBlock`, choosing
+  its language from the explicit `language` field and then the file extension;
+- an `@docs example` retains its test metadata separately, while code fences
+  in its body flow through the same Markdown node and renderer;
+- ordinary site pages, included fragments, examples, and the OKF preview all
+  ultimately use the static article renderer.
+
+Therefore highlighting should be injected at `render_md(CodeBlock)`, not into
+Comrak parsing and not into the Roc build runtime. Rocs deliberately converts
+Comrak's AST into a source-aware project AST and owns its HTML contract after
+that point. Using Comrak's renderer plugin would create a second Markdown HTML
+path and would not cover the already-converted `@docs include` nodes cleanly.
+
+The implementation should evolve the renderer from free functions to an
+explicit context, for example:
+
+```rust
+struct ArticleRenderContext<'a> {
+    highlighter: &'a dyn SyntaxHighlighter,
+    diagnostics: &'a mut Vec<CatalogDiagnostic>,
+}
+
+trait SyntaxHighlighter {
+    fn highlight(&self, language: LanguageId, source: &str)
+        -> Result<Vec<HighlightSpan>, HighlightError>;
+}
+
+struct HighlightSpan {
+    bytes: std::ops::Range<usize>,
+    kind: HighlightKind,
+    modifiers: HighlightModifiers,
+}
+```
+
+`HighlightSpan` is sorted, source-relative, UTF-8-boundary-aligned, and
+non-overlapping after composition. The LSP adapter converts it to negotiated
+UTF-16 or UTF-8 positions; Rocs slices the original source by byte range,
+escapes every slice, and wraps only classified slices in constant class names.
+Neither consumer sees Tree-sitter capture IDs or editor wire types.
+
+### 18.3 HTML contract
+
+Prefer semantic classes and theme CSS over inline styles. An illustrative Roc
+fence could become:
+
+```html
+<pre class="rd-code-block" data-language="roc"><code class="rd-code language-roc"><span class="tok-variable tok-definition">main</span> <span class="tok-operator">=</span> <span class="tok-keyword">\</span>{} <span class="tok-operator">-&gt;</span> <span class="tok-string">&quot;Hello&quot;</span>
+</code></pre>
+```
+
+This example describes the output shape, not final Roc capture choices. Exact
+classification is fixed by token goldens. The contract should be:
+
+- preserve the existing `rd-code-block`, `rd-code`, and `language-*` hooks;
+- add a canonical `data-language` only for a recognized, normalized language;
+- emit classes such as `tok-keyword`, `tok-string`, `tok-comment`,
+  `tok-type`, `tok-function`, `tok-variable`, `tok-property`, `tok-tag`, and
+  `tok-punctuation` from a fixed allowlist;
+- express modifiers as additional allowlisted classes, such as
+  `tok-definition`, rather than inventing language-specific CSS;
+- emit no inline colors, untrusted element names, or untrusted attributes;
+- leave newlines and all unclassified bytes intact;
+- produce the old escaped `<pre><code>` shape when no backend is available.
+
+The renderer must never concatenate a raw fence info string into HTML. The
+parser already reduces authored fences to the first token, but the renderer
+should still normalize aliases and derive the class from a safe registry key.
+For example, `shell`, `bash`, and `sh` may normalize to `shell`; an unknown
+token keeps escaped code but omits `data-language` and uses either no language
+class or a separately sanitized display label.
+
+### 18.4 Composite Rocci and Rocdown examples
+
+Roc and CSS snippets can go directly to Tree-sitter. HTML snippets can use the
+HTML grammar and its CSS/script injections only for languages actually bundled
+and explicitly enabled. Whole Rocci and Rocdown snippets require the same
+region composition as editor documents:
+
+1. parse the host language with `rocci-template` or `rocci-rocdown`;
+2. collect host tokens and the typed region graph;
+3. run Roc, CSS, HTML, or display-fence backends only inside owned regions;
+4. map region-relative spans to snippet bytes;
+5. apply the same precedence and overlap elimination used by the LSP;
+6. render the resulting flat token spans as HTML.
+
+This is why a generic HTML highlighter must not receive a complete `.rocci`
+snippet: braces, Roc expressions, component names, directives, and Rocci's
+HTML-shaped template semantics are not ordinary HTML. Likewise a fenced `roc`
+block inside Rocdown is display-only even though its lexical tokens look like
+an executable `@roc` block.
+
+For `@docs include`, explicit `language` should continue to win over file
+extension. For `@docs example`, the fence's own language should control its
+display; the example record's `language` controls test metadata. If an example
+contains exactly one fence and these disagree, a future validation diagnostic
+is useful, but the highlighter must not silently rewrite either contract.
+
+### 18.5 Language pack
+
+Use an explicit built-in registry; do not download grammars while building a
+site.
+
+| Tier | Languages | Reason |
+| --- | --- | --- |
+| Demonstrator | Roc, HTML, CSS, composite Rocci, composite Rocdown | Product promise and direct parity with the LSP milestone |
+| Documentation core | shell, TOML, Markdown, plain text | Checked-in Rocs content uses these frequently; shell is currently the second-most common named fence |
+| Optional later pack | Rust, JSON, YAML, JavaScript, TypeScript and other measured needs | Useful for general documentation, but each grammar increases compatibility, binary-size, query, and license work |
+
+The checked-in `docs/` corpus currently contains 37 `sh`, 15 `rocci`, 6
+`text`, 4 `toml`, 2 `roc`, and 2 `markdown` opening fences. Treat this as a
+dated repository inventory, not a permanent language-policy decision. HTML
+and CSS remain in the demonstrator because they are explicit product targets
+even though current docs have no named HTML or CSS fence.
+
+### 18.6 Theming, accessibility, and print
+
+Rocs' Rocci theme should own color assignment. Add stable variables such as
+`--syntax-keyword`, `--syntax-string`, and `--syntax-comment`, then map token
+classes to them. Define both light and dark values under the existing color
+scheme, retain readable unclassified text, and test WCAG contrast for the code
+background. In forced-colors mode, do not depend on color alone; preserve font
+weight/style sparingly and allow system colors. Print should avoid dark solid
+backgrounds unless explicitly requested.
+
+Static classes have three advantages over inline theme colors: CSP remains
+simple, the existing page color scheme can switch without regenerating HTML,
+and token meaning stays testable independently of presentation. A copy button,
+collapsible block, or interactive line selection is a separate optional island
+and is not required for highlighting.
+
+### 18.7 Errors, security, and determinism
+
+Highlighting is presentation, so its failure policy differs from parsing the
+document:
+
+- invalid bundled grammar/query initialization is a build/release defect and
+  should fail early;
+- unknown languages render escaped plain code without failing the site;
+- malformed source uses Tree-sitter recovery and partial tokens, without
+  turning snippet syntax errors into Rocs errors by default;
+- a timeout, size limit, invalid returned span, or backend panic boundary falls
+  back to fully escaped code and emits a bounded warning;
+- strict checking for unknown languages or snippet parse quality can be a
+  future opt-in validation mode.
+
+The HTML renderer must verify sorted spans, bounds, UTF-8 boundaries, and
+non-overlap before slicing. Every source segment, including unclassified gaps,
+is escaped exactly once. Attribute and class names come only from registries.
+Highlighting executes no authored code, makes no network requests, and does not
+invoke Roc.
+
+Keep configured highlighters long-lived. Cache fragments within a build by
+`SHA-256(highlighter revision, normalized language, source)`; include grammar
+and query revisions so upgrades invalidate the cache. A persistent cache is
+optional later. Generated output must be identical across repeated builds and
+independent of thread scheduling.
+
+### 18.8 Alternatives
+
+| Option | Strength | Why it is not the primary design |
+| --- | --- | --- |
+| `tree-sitter-highlight` events plus a Rocs renderer | Shares grammars and capture normalization with LSP; supports recovery and injections; in-process Rust | Requires explicit grammar/query pins and a small safe HTML renderer |
+| Tree-sitter `HtmlRenderer` directly | Mature escaping/event renderer and line offsets | Best for one Tree-sitter document; does not alone compose Rocci AST tokens and embedded projections |
+| Comrak `SyntaxHighlighterAdapter` plus Syntect | The dependency is already present transitively; broad TextMate syntax set; classed HTML API | Rocs no longer uses Comrak's HTML renderer, Roc/Rocci support is absent, and it creates a second token/theme taxonomy |
+| Syntect called directly from Rocs | Broad conventional documentation languages; straightforward HTML generation | Still does not serve the LSP or structural Rocci/Rocdown regions; class scopes and Tree-sitter captures would drift |
+| Shiki | Excellent TextMate theme compatibility and broad language ecosystem | Adds an ESM/Node or WASM toolchain and typically inline themed HTML; poor fit for the current all-Rust offline build |
+| Client-side highlighting | Small build-time implementation | Adds JavaScript, layout shift, CSP/runtime cost, and produces unhighlighted non-JS/reader outputs |
+
+Syntect remains a defensible later fallback if broad third-party language
+coverage becomes more valuable than one taxonomy. If adopted, it should still
+normalize scopes into `HighlightKind` and use the same safe Rocs renderer,
+rather than injecting Syntect-generated HTML. Do not run Tree-sitter and
+Syntect for the same language without an explicit precedence and conformance
+test.
+
+### 18.9 Implementation sequence
+
+**R0 — freeze current output.** Add exact tests for escaped plain fences,
+language aliases, hostile text, non-Rocdown includes, example-body fences,
+Markdown/search projections, and repeated deterministic output.
+
+**R1 — shared lexical core.** Create `crates/rocci-highlight` with
+`LanguageId`, alias registry, `HighlightKind`, modifiers, span validation,
+Tree-sitter configuration, and composition. Start with Roc, HTML, and CSS. The
+crate owns no LSP types, HTML strings, theme colors, filesystem access, or
+network behavior.
+
+**R2 — static HTML demonstrator.** Inject the service into the Rocs site-load
+or article-render context, render semantic classes, preserve plain fallback,
+and add theme variables. Cover ordinary fences and `@docs` include/example.
+Build a representative site and inspect light, dark, forced-color, print, and
+no-CSS output.
+
+**R3 — composite product snippets.** Promote region/token collection behind a
+non-LSP API and add whole-file Rocci/Rocdown snippet highlighting. Assert that
+the same byte-span golden maps to both LSP tokens and Rocs spans.
+
+**R4 — documentation pack and performance.** Add shell, TOML, and Markdown
+from measured demand; decide whether Rust belongs in the default pack. Measure
+cold initialization, per-snippet time, binary size, and full docs-build time.
+Add bounded concurrency and content-hash caching only from measured need.
+
+**R5 — product contract.** Document supported fence identifiers, aliases,
+fallback behavior, CSS class stability, grammar/query revisions, licenses, and
+upgrade policy. Treat CSS class names as a public theme API only after this
+phase.
+
+For the shortest credible demo, R1 and R2 can precede the LSP reorganization:
+adapt the `zed-roc` query into the shared crate, add HTML/CSS grammars, render
+Rocs spans, then have `rocci-lsp` consume the same core. Do not put the code in
+`rocs` first and copy it into the LSP; the shared token vocabulary is the
+architectural seam that makes the demonstration valuable.
