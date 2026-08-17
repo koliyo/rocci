@@ -2,9 +2,13 @@
 
 ## 2026-08-17
 
+- Froze Phase 0 of the Rocdown product-boundary contract: approved names are `rocci-rocdown`, `rocci-rocdown-cli` / `rocdown`, `rocci-okf`, and portable engine `okf`; there is no `rocs` / `rocs.toml` compatibility window; `RDxxxx` diagnostic codes stay; `rocci-okf` may use a temporary Rocdown presentation adapter only with a tracking issue. Encoded the dependency rules in `scripts/check-workspace-deps.py`. Current architecture records remain descriptive of shipped behavior.
+- Clarified the recommended naming layers: Rocdown is the product, format, configuration prefix, and `rocdown` executable; `rocci-rocdown` is the Rust facade and `rocci-rocdown-cli` its Cargo command package; `rocci-okf` remains the recommended Rocci application name while its portable engine requires a separate neutral name. Confirmed that Rocs disappears from every active surface after the compatibility window.
+- Recorded maintainer approval of the Rocci/Rocdown product symmetry and separate CLI ownership: `rocci run` owns applications and `.rocci`, while `rocdown run` owns both single interactive documents and documentation sites. The decision remains draft pending evidence review and the narrower naming, compatibility, and temporary OKF-adapter choices.
+- Recorded the proposed Rocdown product consolidation and a phased refactor plan: base Rocci becomes unaware of Rocdown; the format, static generator, CLI, themes, and document tooling become one Rocdown product; Rocs is retired; dependency arrows are mechanically enforced; OKF remains independent and strict Markdown; and shared Rocci UI is extracted only from demonstrated duplication. Reconciled the standalone OKF application and language-tooling plans with this boundary and left the OKF product name open.
 - Updated the [Rocdown format](architecture/rocdown-format.md) architecture record for shipped ordinary footnotes and the `@img` / `@docs figure` alt contract; standalone preview copies local images without hashing.
 - Researched the emerging OKF tool ecosystem and recorded a proposed standalone
-  rocs-okf direction: extract a portable UI-neutral engine from Rocs, preserve
+  Rocci OKF direction: extract a portable UI-neutral engine from the current Rocs implementation, preserve
   direct agent Markdown authoring, make the browser an evidence review and
   query surface, bind decisions to exact revisions, serve authorized evidence
   through scoped API tokens and MCP, and add full-text then optional semantic

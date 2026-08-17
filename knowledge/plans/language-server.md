@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
-title: Full Rocci and Rocdown language server
-description: Build one region-aware language server for VS Code and Zed and reuse its language-neutral token spans for static Rocs code highlighting.
+title: Full Rocci and Rocdown language tooling
+description: Build region-aware Rocci and Rocdown language tooling for VS Code and Zed and reuse language-neutral token spans for static Rocdown code highlighting.
 tags: [domain/rocci, domain/rocdown, domain/rocs, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T07:28:01Z }
+generated: { by: process:codex, at: 2026-08-17T19:29:13Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -89,22 +89,34 @@ sources:
     title: Shiki installation and HTML generation
     author: organization:shikijs
     last_modified: 2026-08-17
+  - id: product-boundary
+    resource: ../decisions/consolidate-rocdown-product-boundary.md
+    title: Approved consolidated Rocdown product direction
+    author: process:codex
+    last_modified: 2026-08-17
 ---
 
-# Full Rocci and Rocdown language server
+# Full Rocci and Rocdown language tooling
 
 ## Goal
 
-Provide a single `rocci-language-server` that owns Rocci/Rocdown analysis and
-composes embedded-language results into ordinary LSP responses for VS Code and
-Zed. The first milestone is syntax highlighting for embedded Roc and CSS plus
-HTML-shaped Rocci templates and Rocdown Markdown; the full target adds
-workspace navigation, safe rename and formatting, and compiler-backed Roc
-semantics. The same language-neutral byte-span tokens should also drive static
-syntax-highlighting HTML in Rocs.[^detailed-plan]
+Provide region-aware Rocci and Rocdown analysis that composes embedded-language
+results into ordinary LSP responses for VS Code and Zed. The first milestone is
+syntax highlighting for embedded Roc and CSS plus HTML-shaped Rocci templates
+and Rocdown Markdown; the full target adds workspace navigation, safe rename
+and formatting, and compiler-backed Roc semantics. The same language-neutral
+byte-span tokens should also drive static syntax-highlighting HTML in the
+documentation generator.[^detailed-plan]
 
 This record is a proposed implementation sequence, not an approved or shipped
 contract.
+
+The detailed root plan originally assumed one `rocci-language-server` owned
+both file types. Under the approved product direction, base Rocci
+tooling must not import Rocdown AST types. Reusable protocol, Roc/Rocci
+analysis, region, and token primitives stay below the boundary; a
+Rocdown-owned server or adapter composes them with Rocdown analysis and editor
+registration.[^product-boundary]
 
 ## Direction
 
@@ -126,10 +138,11 @@ server. Zed-specific queries and VS Code-specific forwarding are evidence, not
 portable LSP APIs.[^zed-roc][^tree-sitter-roc][^zed-languages][^vscode-embedded]
 
 Keep grammar/query configuration, normalized token kinds, span validation, and
-overlap composition in a small shared Rust crate. LSP position encoding stays
-in `rocci-lsp`; escaped HTML and CSS theming stay in Rocs and its Rocci theme.
-Rocs links the library in-process and never launches an LSP, editor, Node
-process, or authored code to highlight a site.[^rocs-compiler][^detailed-plan]
+overlap composition in a small shared Rust crate. Protocol position encoding
+and Rocci analysis remain reusable without a Rocdown dependency; escaped HTML
+and CSS theming stay in the current Rocs generator and move with it into
+Rocdown. The generator links the token library in-process and never launches an
+LSP, editor, Node process, or authored code to highlight a site.[^rocs-compiler][^detailed-plan][^product-boundary]
 
 ## Prerequisites
 
@@ -146,7 +159,7 @@ process, or authored code to highlight a site.[^rocs-compiler][^detailed-plan]
 ### 0. Compatibility baseline
 
 Repair the `@docs` LSP regression, freeze current behavior with fixtures, and
-verify both clients attach to the same server. Exit when `cargo test -p
+verify both clients attach to the current server. Exit when `cargo test -p
 rocci-lsp` passes and editor prerequisites are reproducible.[^tooling-architecture]
 
 ### 1. Embedded-highlighting demonstrator
@@ -155,12 +168,13 @@ Extract a typed region graph, add pinned in-process Tree-sitter backends for
 Roc, CSS, and ordinary/display-only HTML, retain Rocci-AST highlighting for
 executable HTML-shaped templates, add Markdown and display-fence tokens, and
 merge all streams into standard non-overlapping semantic tokens. VS Code and
-Zed must render the same fixture through one server
-binary.[^tree-sitter-highlighting][^vscode-semantic]
+Zed must render the same fixture through the applicable product server or
+adapter.[^tree-sitter-highlighting][^vscode-semantic][^product-boundary]
 
-### 1b. Static Rocs demonstrator
+### 1b. Static documentation demonstrator
 
-Inject the shared token service at Rocs' `MdNode::CodeBlock` renderer. Preserve
+Inject the shared token service at the current Rocs `MdNode::CodeBlock`
+renderer, which moves into Rocdown under the approved boundary. Preserve
 the existing escaped `<pre><code>` fallback and emit only allowlisted semantic
 classes around escaped source slices. Cover ordinary fences, non-Rocdown
 `@docs include`, fences nested in `@docs example`, unknown languages,
@@ -173,7 +187,8 @@ do not emit inline colors or require client-side JavaScript.[^detailed-plan]
 
 Tree-sitter's Rust highlighter already exposes reusable configurations,
 highlight events, injections, and HTML rendering support. Normalize its events
-before rendering so the LSP and Rocs share classification and precedence.
+before rendering so language tooling and the generator share classification
+and precedence.
 Syntect or Shiki can provide broader TextMate language coverage, but either
 would create a second grammar/theme pipeline and is not the initial product
 language solution.[^tree-sitter-highlight-rust][^syntect-html][^shiki]
@@ -190,7 +205,8 @@ without Roc installed.
 Index modules, components, pages, routes, headings, links, styles, selectors,
 and literal class/id uses. Add cross-file definition, references, workspace
 symbols, and conservative rename with dependency-based invalidation. Reuse
-Rocs catalog logic for page and link semantics.
+the documentation catalog logic for page and link semantics without moving
+that logic into base Rocci tooling.
 
 ### 4. Roc semantics
 
@@ -222,9 +238,11 @@ and Zed versions.
 - Fenced examples can be highlighted but are never classified as executable.
 - Child-backend locations, diagnostics, and edits map only to authored spans;
   stale or ambiguous edits are refused.
-- Both editors pass client smoke tests with the same server and fixtures.
-- Rocs HTML and LSP semantic tokens are derived from the same byte-span golden
-  for representative Roc, HTML, CSS, Rocci, and Rocdown snippets.
+- Both editors pass client smoke tests with the same fixtures and the
+  product-owned server or adapter selected by the boundary refactor.
+- Static documentation HTML and LSP semantic tokens are derived from the same
+  byte-span golden for representative Roc, HTML, CSS, Rocci, and Rocdown
+  snippets.
 - Static output escapes every source segment exactly once, uses only
   allowlisted classes, has a deterministic plain fallback, and is identical
   across repeated builds.
@@ -239,7 +257,7 @@ current Zed's grammar requirement against the existing adapter, prove the Roc
 child server's generated-workspace behavior, and decide whether display fences
 and static sites support only bundled lexical backends or a broader optional
 documentation pack. It must also decide when token CSS class names become a
-public theme API. These gates do not block the common semantic-token and Rocs
+public theme API. These gates do not block the common semantic-token and static
 HTML demonstrators.[^detailed-plan]
 
 [^detailed-plan]: Detailed baseline, alternatives, region/projection architecture, demonstrator tasks, feature roadmap, risks, and evidence.
@@ -258,3 +276,4 @@ HTML demonstrators.[^detailed-plan]
 [^rocs-docs]: Current include-language precedence, example metadata, and normalization to article code blocks.
 [^syntect-html]: Alternative classed HTML renderer over TextMate-style syntax sets.
 [^shiki]: Alternative ESM/WASM TextMate highlighter with HTML, token, and HAST output.
+[^product-boundary]: Proposed removal of Rocdown from base Rocci tooling, Rocdown-owned document composition, and one-way dependency rules.

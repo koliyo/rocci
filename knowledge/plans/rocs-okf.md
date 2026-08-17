@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
-title: Standalone rocs-okf review and query application
-description: Extract a portable OKF engine from Rocs and build a sibling Rocci application for agent-authored knowledge review, authenticated retrieval, and measured optional semantic search.
-tags: [domain/okf, domain/rocs-okf, domain/rocci, concern/architecture, concern/review, concern/retrieval, concern/security]
+title: Standalone Rocci OKF review and query application
+description: Extract a portable OKF engine from the current Rocs implementation and build a Rocci application for agent-authored knowledge review, authenticated retrieval, and measured optional semantic search.
+tags: [domain/okf, domain/rocci-okf, domain/rocci, concern/architecture, concern/review, concern/retrieval, concern/security]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T13:24:13Z }
+generated: { by: process:cursor, at: 2026-08-17T19:50:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -34,21 +34,31 @@ sources:
     title: State-of-the-art OKF tools and workflows
     author: process:codex
     last_modified: 2026-08-17
+  - id: rocdown-boundary
+    resource: ../decisions/consolidate-rocdown-product-boundary.md
+    title: Approved consolidated Rocdown product direction
+    author: process:codex
+    last_modified: 2026-08-17
 ---
 
-# Standalone rocs-okf review and query application
+# Standalone Rocci OKF review and query application
 
 ## Direction and authority
 
-This is an exploratory implementation plan, not an approved crate name,
-authentication system, deployment, or semantic-search dependency. It records
-the requested direction that OKF management should become a standalone Rocci
-application analogous to Rocs while remaining open to third-party consumers.
-The detailed architecture and tradeoffs are in the Rocdown report.[^report]
+This is an exploratory implementation plan, not an approved authentication
+system, deployment, or semantic-search dependency. It records the requested
+direction that OKF management should become a standalone Rocci application
+while remaining open to third-party consumers. `rocci-okf` is the approved
+application and Cargo namespace because this is a Rocci-built OKF product. The
+portable engine beneath it is `okf`; the historical `rocs-okf` label is retired
+with Rocs. The detailed architecture and tradeoffs are in the Rocdown
+report.[^report][^rocdown-boundary]
 
 Canonical records remain strict OKF Markdown. The portable engine and
 application must not introduce Rocdown declarations, executable content, or a
-required service into the bundle contract.[^static-boundary]
+required service into the bundle contract.[^static-boundary] Under the approved
+product consolidation, Rocdown must not depend on OKF, and the target portable
+engine depends on neither Rocdown nor Rocci.[^rocdown-boundary]
 
 ## Existing vertical slice
 
@@ -66,15 +76,22 @@ Rocci-specific review text, Rocs HTML, and application orchestration are
 coupled; review cannot yet record a revision-bound decision; and query has no
 authenticated service or token contract.[^current-okf][^report]
 
+During the Rocdown boundary refactor, the current knowledge commands and
+rendered review site may remain behind a compatibility adapter. A temporary
+application-level dependency on Rocdown's inert Markdown or presentation path
+is approved only to preserve behavior while the engine is extracted; it
+requires a tracking issue when introduced and must not leak into the canonical
+format or portable domain types.[^rocdown-boundary]
+
 ## Target boundary
 
 Create three layers:
 
-1. A UI-neutral Rust OKF engine owns loss-preserving parsing, base conformance,
+1. The `okf` crate owns loss-preserving parsing, base conformance,
    curation findings, configurable profile policy, graph/backlinks, semantic
    diff inputs, chunks, filters, scorer interfaces, revision preconditions, and
    stable serializable types.
-2. `rocs-okf` is a sibling application built with Rocci. It owns the review,
+2. The Rocci OKF application is built with Rocci. It owns the review,
    query, explorer, and health UI; CLI and server orchestration; authenticated
    HTTP and MCP projections; review decision capture; and immutable snapshot
    publication.
@@ -82,9 +99,11 @@ Create three layers:
    optional vectors, identity and token storage, git-host integration, answer
    composition, and events.[^report]
 
-The engine must not depend on Rocs, Roc compilation, an HTTP server, a theme, a
-git host, a vector database, or an LLM. Rocs and rocs-okf may share extracted
-lower-level utilities but remain siblings.[^report]
+The engine must not depend on Rocdown/Rocs, Rocci, Roc compilation, an HTTP
+server, a theme, a git host, a vector database, or an LLM. Rocdown and the Rocci
+OKF application may share domain-neutral Rocci view components only after two
+working consumers establish a stable common contract; navigation and graph
+resolution remain domain-owned.[^report][^rocdown-boundary]
 
 ## Workflow contract
 
@@ -119,16 +138,20 @@ calls.[^ecosystem][^report]
   chunks, actions, and retrieval results.
 - Classify each rule as base conformance, curation, or Rocci profile policy.
 - Remove bundle-specific IDs and counts from domain behavior.
-- Decide the neutral engine crate and publication boundary.
+- The portable engine crate is `okf`; keep its publication boundary separate
+  from Rocci and Rocdown.
+- Keep the current knowledge command available through the Rocdown migration
+  until the replacement application passes the same fixtures.
 
 ### 1. Extract the engine
 
 - Move portable domain behavior out of Rocs.
 - Add stable finding/action codes, machine capability description, and
   full-rebuild determinism tests.
-- Keep `rocs knowledge` as a compatibility wrapper.
+- Keep the current knowledge command as a compatibility wrapper, regardless of
+  whether its temporary spelling is `rocs knowledge` or `rocdown knowledge`.
 - Prove a third-party binary can validate, inspect, graph, and search without a
-  Rocs dependency.
+  Rocdown, Rocs, or Rocci dependency.
 
 ### 2. Build the local application
 
@@ -174,25 +197,27 @@ calls.[^ecosystem][^report]
 
 The extraction is successful when the existing Rocci bundle produces the same
 portable normalized concepts, diagnostics by classified layer, graph, chunk
-IDs, filters, lexical benchmark, and review actions; Rocs uses the new engine
-through a compatibility path; and a separate minimal consumer does the same
-without linking Rocs.[^current-okf][^report]
+IDs, filters, lexical benchmark, and review actions; the temporary
+Rocs/Rocdown compatibility path uses the new engine; and a separate minimal
+consumer does the same without linking Rocdown, Rocs, or Rocci.[^current-okf][^report][^rocdown-boundary]
 
-The first application release is successful when `rocs-okf run knowledge`
-matches current local browse/review capability, replaces hardcoded queue
-content with profile data, identifies the served snapshot, preserves the last
-good revision after a failed edit, and requires no authoring UI.[^report]
+The first application release is successful when the chosen application
+command matches current local browse/review capability, replaces hardcoded
+queue content with profile data, identifies the served snapshot, preserves the
+last good revision after a failed edit, and requires no authoring UI.[^report]
 
 ## Deferred decisions
 
-Human review is required before choosing the engine name, direct-commit versus
-pull-request default, profile syntax, local identity model, token verifier,
-semantic-diff minimum, answer-provider ownership, or public product naming.
-Semantic search remains optional until measured against the improved full-text
-baseline.[^report]
+The engine crate is `okf` and the application name is `rocci-okf`. Human review
+is still required before choosing the direct-commit versus pull-request
+default, profile syntax, local identity model, token verifier, semantic-diff
+minimum, answer-provider ownership, or public presentation name. Semantic
+search remains optional until measured against the improved full-text
+baseline.[^report][^rocdown-boundary]
 
 [^report]: Detailed current-state audit, ecosystem comparison, product architecture, review and query contracts, security model, delivery phases, acceptance scenarios, and open decisions.
 [^current-okf]: Current implemented parser, profiles, diagnostics, graph, filters, chunks, review HTML, build artifacts, lexical search, and benchmark behavior.
 [^current-cli]: Current implemented local knowledge command and JSON output surface.
 [^static-boundary]: Approved canonical strict-Markdown and inert static-rendering boundary.
 [^ecosystem]: Emerging workflow evidence for deterministic agent interfaces, conformance/curation separation, multiple views, guarded production, revision history, authenticated MCP, and evaluation.
+[^rocdown-boundary]: Approved one-way dependency rules, frozen `okf` engine name, temporary presentation-adapter allowance, and separate-decision requirement for any future Rocdown-backed canonical OKF storage.
