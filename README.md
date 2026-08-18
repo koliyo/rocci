@@ -150,6 +150,9 @@ on `run`.
 
 ```sh
 cargo test --workspace
+./scripts/ci-local.sh
 ```
+
+`cargo test --workspace` is the fast crate suite. `./scripts/ci-local.sh` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `./scripts/ci-local.sh lint test`.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.

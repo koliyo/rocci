@@ -110,6 +110,14 @@ Categorize the root cause by examining the failing job and log output:
 
 ## Reproduce and fix locally
 
+To run the GitHub Actions validation jobs on this OS (no ubuntu/macos
+matrix, no release cross-platform builds):
+
+```sh
+./scripts/ci-local.sh
+./scripts/ci-local.sh lint test
+```
+
 1. Run the narrowest relevant test first before running workspace tests:
    ```sh
    cargo test -p CRATE --test TEST_FILE TEST_NAME -- --exact
