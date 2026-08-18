@@ -824,7 +824,7 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
 
 pub fn html_page(title: &str, article: &str) -> String {
     format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body><main class=\"rd-document\">{article}</main></body></html>\n",
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body><main class=\"rd-document\">{article}</main></body></html>\n",
         escape(title)
     )
 }
@@ -931,5 +931,13 @@ mod tests {
         ));
         assert!(html.contains("<code>../../README.md</code>"));
         assert!(!html.contains("href=\"../../README.md\""));
+    }
+
+    #[test]
+    fn html_page_declares_dark_color_scheme() {
+        let html = html_page("Knowledge", "<p>body</p>");
+        assert!(html.contains("name=\"color-scheme\""));
+        assert!(html.contains("content=\"dark\""));
+        assert!(html.contains("class=\"rd-document\""));
     }
 }

@@ -4,14 +4,14 @@
   --rd-font-heading: ui-sans-serif, system-ui, sans-serif;
   --rd-font-code: ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --rd-color-bg: light-dark(#f7f7f5, #18181b);
-  --rd-color-surface: light-dark(#ffffff, #27272a);
-  --rd-color-text: light-dark(#1c1917, #fafafa);
-  --rd-color-muted: light-dark(#57534e, #a1a1aa);
-  --rd-color-accent: light-dark(#2563eb, #60a5fa);
-  --rd-color-border: light-dark(#d6d3d1, #3f3f46);
-  --rd-color-code-bg: light-dark(#f5f5f4, #27272a);
-  --rd-color-code-text: light-dark(#1c1917, #f4f4f5);
+  --rd-color-bg: light-dark(#fafafa, #282c34);
+  --rd-color-surface: light-dark(#ffffff, #21252b);
+  --rd-color-text: light-dark(#383a42, #abb2bf);
+  --rd-color-muted: light-dark(#696c77, #9da5b4);
+  --rd-color-accent: light-dark(#4078f2, #61afef);
+  --rd-color-border: light-dark(#e5e5e6, #3e4451);
+  --rd-color-code-bg: light-dark(#f0f0f1, #21252b);
+  --rd-color-code-text: light-dark(#383a42, #abb2bf);
 
   --rd-header-1-color: var(--rd-color-text);
   --rd-header-2-color: var(--rd-color-text);
@@ -25,10 +25,10 @@
   --rd-header-4-font: var(--rd-font-heading);
   --rd-header-5-font: var(--rd-font-heading);
   --rd-header-6-font: var(--rd-font-heading);
-  --rd-paragraph-color: var(--rd-color-muted);
+  --rd-paragraph-color: var(--rd-color-text);
   --rd-blockquote-color: var(--rd-color-muted);
-  --rd-blockquote-border: var(--rd-color-border);
-  --rd-list-color: var(--rd-color-muted);
+  --rd-blockquote-border: var(--rd-color-accent);
+  --rd-list-color: var(--rd-color-text);
   --rd-link-color: var(--rd-color-accent);
   --rd-link-hover-color: var(--rd-color-text);
   --rd-code-color: var(--rd-color-code-text);

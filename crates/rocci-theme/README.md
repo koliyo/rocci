@@ -22,6 +22,7 @@ rocdown run --color-scheme dark foo.rocdown
 
 Named themes load from `~/.rocci/themes/{name}.css` or
 `~/.rocci/themes/{name}/theme.css`. Builtins: `paper`, `rocci`, `none`.
+The default `paper` palette follows One Light / One Dark Pro.
 
 ## Authoring
 
@@ -33,9 +34,9 @@ Copy a builtin and change variables:
   --rd-font-body: ui-sans-serif, system-ui, sans-serif;
   --rd-font-heading: ui-sans-serif, system-ui, sans-serif;
   --rd-font-code: ui-monospace, monospace;
-  --rd-color-bg: light-dark(#f7f7f5, #18181b);
-  --rd-color-text: light-dark(#1c1917, #fafafa);
-  --rd-color-accent: light-dark(#2563eb, #60a5fa);
+  --rd-color-bg: light-dark(#fafafa, #282c34);
+  --rd-color-text: light-dark(#383a42, #abb2bf);
+  --rd-color-accent: light-dark(#4078f2, #61afef);
   --rd-header-1-color: var(--rd-color-text);
   --rd-paragraph-color: var(--rd-color-muted);
   --rd-link-color: var(--rd-color-accent);

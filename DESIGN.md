@@ -15,7 +15,7 @@ The design surfaces have different jobs:
 
 ## Current theme model
 
-Standalone Rocdown supports `paper`, `rocci`, `none`, a local theme name, or a CSS path. Page metadata has priority over command or environment defaults, with `paper` as the fallback. `none` disables injected theme CSS. `auto` follows the user agent's light/dark preference; `light` and `dark` force the corresponding color-scheme branch. See the [theme reference](crates/rocci-theme/README.md), [resolver](crates/rocci-theme/src/resolve.rs), and [scheme policy](crates/rocci-theme/src/scheme.rs).
+Standalone Rocdown supports `paper`, `rocci`, `none`, a local theme name, or a CSS path. Page metadata has priority over command or environment defaults, with `paper` as the fallback. The default `paper` palette follows One Light / One Dark Pro. `none` disables injected theme CSS. `auto` follows the user agent's light/dark preference; `light` and `dark` force the corresponding color-scheme branch. See the [theme reference](crates/rocci-theme/README.md), [resolver](crates/rocci-theme/src/resolve.rs), and [scheme policy](crates/rocci-theme/src/scheme.rs).
 
 The bundled themes define three font roles, eight foundation color roles, and content aliases under `.rd-document`. [Chrome CSS](crates/rocci-theme/src/themes/chrome.css) maps those aliases to headings, paragraphs, links, blockquotes, code, tables, media, and inline emphasis. Theme authors should preserve these public hooks even when changing values.
 

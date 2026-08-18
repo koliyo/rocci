@@ -39,6 +39,8 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 ### Live Reload Review Server & Desktop Preview
 
+The review viewer uses a dark One Dark Pro palette.
+
 ```sh
 # Run with desktop window
 cargo run -p rocci-okf -- run knowledge
