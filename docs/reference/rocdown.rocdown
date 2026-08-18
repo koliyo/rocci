@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/reference/rocdown/"],
+
     meta: {
         title: "Rocdown language reference",
         description: "Look up Rocdown page metadata, declarations, Markdown behavior, links, themes, routes, and generated values.",
@@ -78,7 +81,7 @@ Rocdown types the body; standalone `rocdown run` paints a conservative preview.
 @docs note {
     title: "Deprecation"
 
-    This API will be removed in 0.4. See [Routing](/reference/rocdown-site/).
+    This API will be removed in 0.4. See [Routing](/docs/reference/rocdown-site/).
 }
 ````
 
@@ -99,12 +102,11 @@ handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
 | `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool` |
 | `include` | File or region include |
 | `example` | Display sample with optional `test` metadata |
-| `playground` | In-browser live WebAssembly compiler; `id` is an initial example ID |
 | `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |
 
-See [Write documentation components](/guides/docs-components/) for a working
+See [Write documentation components](/docs/guides/docs-components/) for a working
 page. Includes, snippet roots, and `rocdown test` are documented in
-[Rocdown site](/reference/rocdown-site/).
+[Rocdown site](/docs/reference/rocdown-site/).
 
 ## Page metadata
 
@@ -127,7 +129,7 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 | `layout` | Statically resolvable Roc value path |
 | `draft` | `Bool.true` or `Bool.false` |
 | `theme` | Built-in ID, local theme ID, `none`, or CSS file path |
-| `color_scheme` | `auto`, `light`, or `dark`. Default `paper` uses One Light / One Dark Pro |
+| `color_scheme` | `auto`, `light`, or `dark` |
 | `meta` | Roc record; title and description are statically extracted |
 
 ## Markdown profile

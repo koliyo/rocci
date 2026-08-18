@@ -77,7 +77,7 @@ fn inspect_config_reads_rocdown_toml() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let config: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(config["site"]["title"], "Rocci");
-    assert_eq!(config["build"]["output"], "../dist/rocci.dev");
+    assert_eq!(config["build"]["output"], "../dist/docs");
 }
 
 #[test]

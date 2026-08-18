@@ -280,6 +280,13 @@ parameter: write `@component Layout = |{ view }, content|` and `{content}` in
 the template body. Putting `content` in the props record wraps it in
 `Html.text` and escapes the article as text.
 
+## Composable content mounts
+
+Sites can mount external documentation catalogs using `[[mount]]` in `rocdown.toml`.
+For example, `site/` mounts `../docs` at prefix `docs` with `layout = "docs"`,
+allowing `docs/` to remain at repository root for standalone `rocdown run docs`
+while building as part of `rocdown build site`.
+
 ## CLI
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).

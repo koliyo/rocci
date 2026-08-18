@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/guides/desktop-app/"],
+
     meta: {
         title: "Package a desktop app",
         description: "Configure a Rocci application, compile its Roc server, and assemble a local macOS app bundle.",
@@ -75,4 +78,4 @@ runtime `PATH`.
 - Native capability APIs beyond the webview are planned, not available.
 
 Use the [configuration reference](/reference/configuration/) for every field
-and [project status](/project/status/) before planning a release workflow.
+before planning a release workflow.

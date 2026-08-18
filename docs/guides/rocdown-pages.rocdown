@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/guides/rocdown-pages/"],
+
     meta: {
         title: "Write Rocdown pages",
         description: "Author Markdown-first pages with explicit metadata, Roc values, components, rendered regions, and links.",
@@ -70,7 +73,7 @@ Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
 > `rocci run` but are rejected by `rocdown build` until island splicing lands.
 >
 > For asides, steps, includes, and tabs, see
-> [Write documentation components](/guides/docs-components/).
+> [Write documentation components](/docs/guides/docs-components/).
 
 ## Link pages
 
@@ -86,7 +89,7 @@ This plan follows [the product-boundary decision](knowledge/decisions/consolidat
 For a Rocdown site, stable absolute routes are the clearest current form:
 
 ```markdown
-Read the [Rocdown reference](/reference/rocdown/).
+Read the [Rocdown reference](/docs/reference/rocdown/).
 ```
 
 ## Preview and publish

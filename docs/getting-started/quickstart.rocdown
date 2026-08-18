@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/getting-started/quickstart/"],
+
     meta: {
         title: "Quickstart",
         description: "Build, inspect, and preview a first Rocci component in about five minutes.",
@@ -12,7 +15,7 @@ ordinary Roc, and open it in the component preview.
 
 ## Before you begin
 
-You need the repository dependencies from [Installation](/getting-started/installation/),
+You need the repository dependencies from [Installation](/docs/getting-started/installation/),
 including `cargo` and `roc` on your `PATH`.
 
 ## 1. Create a module
@@ -75,6 +78,6 @@ not open, rerun with `--no-window` and visit the printed local URL.
 
 ## Next steps
 
-- Learn the full component model in [Build a component](/guides/build-a-component/).
-- Add backend interaction with [server actions and Datastar](/guides/server-actions/).
-- Look up exact forms in the [Rocci reference](/reference/rocci/).
+- Learn the full component model in [Build a component](/docs/guides/build-a-component/).
+- Add backend interaction with [server actions and Datastar](/docs/guides/server-actions/).
+- Look up exact forms in the [Rocci reference](/docs/reference/rocci/).

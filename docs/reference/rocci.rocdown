@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/reference/rocci/"],
+
     meta: {
         title: "Rocci language reference",
         description: "Look up .rocci file structure, component tags, attributes, directives, fixtures, CSS, and server declarations.",

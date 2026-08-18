@@ -9,7 +9,7 @@ subtitle = "Roc-native interface tools"
 footer = "Rocci is experimental software. Verify APIs against the current source before production use."
 
 [build]
-output = "../dist/rocci.dev"
+output = "../dist/docs"
 assets = "assets"
 
 [[nav]]
@@ -55,6 +55,4 @@ items = [
     "playground",
     "examples/index",
     "troubleshooting",
-    "project/status",
-    "project/contributing",
 ]

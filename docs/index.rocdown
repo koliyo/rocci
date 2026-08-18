@@ -1,56 +1,21 @@
 @page {
-    route: "/",
+    layout: "section",
+    aliases: ["/documentation/"],
     meta: {
-        title: "Roc-native interfaces, from first tag to desktop app",
-        description: "Rocci brings a small HTML template language, Markdown-first documents, Datastar actions, and a desktop webview host to Roc.",
+        title: "Documentation",
+        description: "Browse guides, architecture concepts, tutorials, and API reference for Rocci and Rocdown.",
     },
 }
 
-# Roc-native interfaces, without the framework tax
+# Documentation Portal
 
-Rocci is a small toolchain for authoring HTML in `.rocci`, writing content in
-`.rocdown`, adding server-driven interaction with Datastar, and shipping the
-same web interface in a desktop window.
+Welcome to the Rocci documentation.
 
-```rocci
-import Html
+## Sections
 
-@component Greeting = |{ name }|
-    <p>Hello, {name}</p>
-```
-
-[Build your first component →](/getting-started/quickstart/)
-
-## One model from source to screen
-
-Rocci lowers explicit template regions to ordinary Roc `Html` constructors.
-Your Roc values and functions stay Roc. The browser receives semantic HTML,
-and interaction stays opt-in.
-
-| Surface | Author with | Result |
-| --- | --- | --- |
-| Components | `.rocci` | Roc functions returning `Html` |
-| Documents | `.rocdown` | Markdown plus explicit Roc or Rocci regions |
-| Server interaction | `@on` and Datastar actions | HTML documents or targeted SSE patches |
-| Desktop apps | `rocci run` and `rocci bundle` | A local HTTP app inside a native webview |
-| Documentation | `rocdown build` | Deterministic static HTML |
-
-## Designed around visible boundaries
-
-- **Markdown remains Markdown.** A fenced example is displayed, never executed.
-- **Templates remain bounded.** Markup is legal in `@component` bodies, not in arbitrary Roc expressions.
-- **The server owns state.** Datastar transports HTML patches instead of introducing a second client application.
-- **Static stays static.** Rocdown compiles prose in Rust and evaluates its Rocdown theme once per build.
-
-> Rocci is experimental. The language and toolchain are usable for exploration,
-> examples, and documentation, but some packaging and static-site features are
-> still under active development.
-
-## Choose a path
-
-- New to the project? Read [What is Rocci?](/getting-started/overview/).
-- Evaluating the language choice? Read [Why Roc fits Rocci](/concepts/why-roc/).
-- Ready to type code? Follow the [five-minute quickstart](/getting-started/quickstart/).
-- Building server-driven UI? Start with [server actions and Datastar](/guides/server-actions/).
-- Writing technical content? See [Rocdown pages](/guides/rocdown-pages/) and [documentation components](/guides/docs-components/).
-- Looking up exact syntax? Open the [Rocci language reference](/reference/rocci/).
+- [What is Rocci?](/docs/getting-started/overview/)
+- [Installation](/docs/getting-started/installation/)
+- [Quickstart Tutorial](/docs/getting-started/quickstart/)
+- [Implementation Guides](/docs/guides/build-a-component/)
+- [Architecture Concepts](/docs/concepts/architecture/)
+- [Reference Manuals](/docs/reference/rocci/)

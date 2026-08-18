@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/getting-started/installation/"],
+
     meta: {
         title: "Installation",
         description: "Prepare Rust, Roc, and platform dependencies to build and run Rocci from source.",
@@ -65,4 +68,4 @@ cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 The command prints a local URL and opens a window. To use only your browser,
 add `--no-window`; the default browser-only port is `8000`.
 
-Next, follow the [quickstart](/getting-started/quickstart/).
+Next, follow the [quickstart](/docs/getting-started/quickstart/).

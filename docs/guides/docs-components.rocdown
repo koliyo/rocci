@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/guides/docs-components/"],
+
     meta: {
         title: "Write documentation components",
         description: "Author asides, steps, includes, and no-JS tabs in Rocdown without raw HTML.",
@@ -67,7 +70,7 @@ script exists.
         Check the catalog without compiling Roc:
 
         ```sh
-        cargo run -p rocci-rocdown-cli -- check docs
+        cargo run -p rocci-rocdown-cli -- check site
         ```
     }
 
@@ -78,7 +81,7 @@ script exists.
         Run declared example commands. This is not part of `rocdown build`.
 
         ```sh
-        cargo run -p rocci-rocdown-cli -- test docs
+        cargo run -p rocci-rocdown-cli -- test site
         ```
     }
 }
@@ -105,18 +108,6 @@ script exists.
     echo hello
     ```
 }
-
-## Embed an interactive playground
-
-Embed an in-browser WebAssembly compiler that allows readers to edit and inspect `.rocci` templates and `.rocdown` documents live:
-
-````rocdown
-@docs playground {
-    id: "counter"
-}
-````
-
-Rocdown site compilation automatically detects pages containing `@docs playground`, bundles self-hosted hashed assets (`playground-app.js`, `playground-worker.js`, `styles.css`, `compiler.wasm`), and generates page-scoped Content Security Policies (`script-src 'self' 'wasm-unsafe-eval'`). All other documentation pages remain script-free with strict `script-src 'none'`.
 
 `api-operation` is reserved for generated API reference and is rejected until
 that work ships.

@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/guides/build-a-component/"],
+
     meta: {
         title: "Build a component",
         description: "Compose Roc values, Rocci markup, fixtures, control flow, and scoped CSS in a reusable component.",
@@ -104,5 +107,5 @@ cargo run -p rocci-cli -- view Status.rocci --component StatusCard
 ```
 
 For every available component and fixture under a directory, use
-`rocci browse`. Continue with [server actions](/guides/server-actions/) when the
+`rocci browse`. Continue with [server actions](/docs/guides/server-actions/) when the
 component needs to update state.

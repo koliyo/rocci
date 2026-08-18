@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/concepts/rendering-model/"],
+
     meta: {
         title: "Rendering model",
         description: "Understand documents, components, server-rendered patches, static pages, and the boundaries between them.",
@@ -71,5 +74,5 @@ passes normalized site and navigation data to the Rocdown theme, and writes
 ordinary static documents. Navigation and reading remain functional without
 client JavaScript.
 
-See [Architecture](/concepts/architecture/) for crate ownership or build a
-working patch flow in [Server actions](/guides/server-actions/).
+See [Architecture](/docs/concepts/architecture/) for crate ownership or build a
+working patch flow in [Server actions](/docs/guides/server-actions/).

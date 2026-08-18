@@ -128,6 +128,19 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
         .watch(&root, RecursiveMode::Recursive)
         .with_context(|| format!("failed to watch {}", root.display()))?;
     if let Ok(config) = load_config(&root) {
+        for mount in &config.mounts {
+            let mount_dir = root.join(&mount.source);
+            if mount_dir.is_dir() {
+                let canonical = fs::canonicalize(&mount_dir).unwrap_or(mount_dir);
+                if !canonical.starts_with(&root) {
+                    watcher
+                        .watch(&canonical, RecursiveMode::Recursive)
+                        .with_context(|| {
+                            format!("failed to watch mount {}", canonical.display())
+                        })?;
+                }
+            }
+        }
         for entry in &config.snippets.roots {
             let path = root.join(entry);
             if path.is_dir() && !path.starts_with(&root) {

@@ -225,3 +225,99 @@ fn test_site_catalog_resolution() {
     assert_eq!(resolved.site.navigation.len(), 1);
     assert_eq!(resolved.site.navigation[0].items.len(), 2);
 }
+
+#[test]
+fn test_site_with_mounts() {
+    let temp_root = std::env::temp_dir().join(format!("rocdown-mount-test-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&temp_root);
+    let site_dir = temp_root.join("site");
+    let docs_dir = temp_root.join("docs");
+    std::fs::create_dir_all(&site_dir).unwrap();
+    std::fs::create_dir_all(&docs_dir).unwrap();
+
+    std::fs::write(
+        site_dir.join("rocdown.toml"),
+        r#"
+[site]
+title = "Mount Test"
+
+[[mount]]
+source = "../docs"
+prefix = "docs"
+layout = "docs"
+
+[[nav]]
+label = "Main"
+items = ["index"]
+
+[[nav]]
+label = "Docs"
+items = ["docs/getting-started"]
+"#,
+    )
+    .unwrap();
+
+    std::fs::write(
+        site_dir.join("index.rocdown"),
+        r#"
+@page {
+    meta: {
+        title: "Welcome",
+    },
+}
+
+# Welcome
+
+Read our [Getting Started guide](/docs/getting-started/).
+"#,
+    )
+    .unwrap();
+
+    std::fs::write(
+        docs_dir.join("getting-started.rocdown"),
+        r#"
+@page {
+    aliases: ["/getting-started/"],
+    meta: {
+        title: "Getting Started",
+    },
+}
+
+# Getting Started
+
+Back to [Home](/) or [Relative Home](../).
+"#,
+    )
+    .unwrap();
+
+    let loaded = rocci_rocdown::load_site(&site_dir).unwrap();
+    assert_eq!(loaded.sources.len(), 2);
+
+    let result = rocci_rocdown::resolve_loaded(&loaded);
+    assert!(!result.has_errors(), "{:?}", result.diagnostics);
+
+    let home = result.site.pages.iter().find(|p| p.id == "index").unwrap();
+    let docs_page = result
+        .site
+        .pages
+        .iter()
+        .find(|p| p.id == "docs/getting-started")
+        .unwrap();
+
+    assert_eq!(home.route, "/");
+    assert_eq!(docs_page.route, "/docs/getting-started/");
+    assert_eq!(docs_page.layout, "docs");
+    assert_eq!(docs_page.aliases, vec!["/getting-started/"]);
+
+    assert_eq!(result.site.navigation.len(), 2);
+    assert_eq!(
+        result.site.navigation[1].items[0].id,
+        "docs/getting-started"
+    );
+    assert_eq!(
+        result.site.navigation[1].items[0].route,
+        "/docs/getting-started/"
+    );
+
+    let _ = std::fs::remove_dir_all(&temp_root);
+}

@@ -403,8 +403,8 @@ Human approval is required before treating any of these exploratory choices as
 normative:
 
 1. Move public documentation beneath `/docs/` rather than preserving the
-   current top-level route families.
-2. Rename the source root from `docs/` to `site/`.
+   current top-level route families. (Approved: aliases preserve old routes)
+2. Rename the source root from `docs/` to `site/`. (Approved with composable mounts: `docs/` remains at the project root as the canonical documentation catalog; `site/` mounts `../docs` at prefix `docs` for the unified `rocci.dev` build)
 3. Adopt the proposed named-layout and project-shell contract.
 4. Standardize collection metadata in `@page`.
 5. Introduce `rocci-site` as any public name, even if only for a starter.
