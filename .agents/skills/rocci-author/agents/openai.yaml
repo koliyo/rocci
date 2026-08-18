@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rocci Author"
+  short_description: "Write idiomatic Rocci, Rocdown, and Roc"
+  default_prompt: "Use $rocci-author to write or review .rocci, .rocdown, and Roc used from those files."
