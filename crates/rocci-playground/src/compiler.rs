@@ -77,7 +77,7 @@ fn compile_rocdown(request: &CompileRequest) -> CompileResponse {
     let ast = rocci_rocdown::format_ast(&request.source, &output.document);
     let has_errors = output.has_errors();
 
-    let diagnostics = output
+    let mut diagnostics: Vec<PlaygroundDiagnostic> = output
         .diagnostics
         .into_iter()
         .map(|d| {
@@ -98,6 +98,15 @@ fn compile_rocdown(request: &CompileRequest) -> CompileResponse {
             }
         })
         .collect();
+
+    if let Some(workspace) = &request.workspace {
+        validate_and_check_workspace(
+            workspace,
+            &output.document,
+            &request.source,
+            &mut diagnostics,
+        );
+    }
 
     let highlights = compute_highlights(LanguageId::Rocdown, &request.source, &output.roc, &ast);
 
@@ -259,5 +268,60 @@ fn compute_highlights(
         source: convert_spans(source, source_spans),
         roc: convert_spans(roc, roc_spans),
         ast: convert_spans(ast, ast_spans),
+    }
+}
+
+const MAX_WORKSPACE_FILES: usize = 50;
+const MAX_WORKSPACE_BYTES: usize = 1_048_576; // 1 MB
+
+fn validate_and_check_workspace(
+    workspace: &crate::protocol::VirtualWorkspace,
+    _doc: &rocci_rocdown::Document,
+    _source: &str,
+    diagnostics: &mut Vec<PlaygroundDiagnostic>,
+) {
+    if workspace.files.len() > MAX_WORKSPACE_FILES {
+        diagnostics.push(PlaygroundDiagnostic {
+            severity: DiagnosticSeverity::Warning,
+            message: format!(
+                "virtual workspace exceeds file limit ({} > {MAX_WORKSPACE_FILES})",
+                workspace.files.len()
+            ),
+            start_byte: 0,
+            end_byte: 0,
+            from: 0,
+            to: 0,
+        });
+    }
+
+    let mut total_bytes = 0;
+    for f in &workspace.files {
+        total_bytes += f.path.len() + f.content.len();
+        if f.path.starts_with('/') || f.path.contains("..") || f.path.contains('\0') {
+            diagnostics.push(PlaygroundDiagnostic {
+                severity: DiagnosticSeverity::Warning,
+                message: format!(
+                    "virtual workspace path `{}` contains invalid or traversal characters",
+                    f.path
+                ),
+                start_byte: 0,
+                end_byte: 0,
+                from: 0,
+                to: 0,
+            });
+        }
+    }
+
+    if total_bytes > MAX_WORKSPACE_BYTES {
+        diagnostics.push(PlaygroundDiagnostic {
+            severity: DiagnosticSeverity::Warning,
+            message: format!(
+                "virtual workspace exceeds size limit ({total_bytes} > {MAX_WORKSPACE_BYTES} bytes)"
+            ),
+            start_byte: 0,
+            end_byte: 0,
+            from: 0,
+            to: 0,
+        });
     }
 }

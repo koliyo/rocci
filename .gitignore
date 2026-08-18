@@ -3,12 +3,14 @@
 .zig-cache
 dist
 
-# Editor extensions
+# Editor extensions & playground
 editors/vscode/node_modules
 editors/vscode/out
 editors/vscode/dist
 editors/vscode/*.vsix
 editors/zed/target
+playground/node_modules
+playground/dist
 
 # Staged runtime assets and Datastar bundles
 Html.roc

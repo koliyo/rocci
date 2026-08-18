@@ -460,3 +460,21 @@ html, body {
     cursor: row-resize;
   }
 }
+
+@media (forced-colors: active) {
+  .tab-btn:focus-visible,
+  .action-btn:focus-visible,
+  .mode-btn:focus-visible,
+  .mode-select:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+  .tab-btn.is-active,
+  .mode-btn.is-active {
+    border: 2px solid currentColor;
+  }
+  .splitter {
+    background: ButtonBorder;
+  }
+}
+

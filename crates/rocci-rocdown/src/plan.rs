@@ -173,9 +173,11 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         .cloned()
         .collect();
 
-    let has_playground = published
-        .iter()
-        .any(|p| crate::docs::collect_kinds(&p.article).iter().any(|k| k == "playground"));
+    let has_playground = published.iter().any(|p| {
+        crate::docs::collect_kinds(&p.article)
+            .iter()
+            .any(|k| k == "playground")
+    });
 
     let (playground_app_url, playground_css_url) = if has_playground {
         let app_asset = hashed_asset("playground-app.js", runtime::PLAYGROUND_APP_JS);
