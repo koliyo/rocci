@@ -1,0 +1,18 @@
+@page {
+    layout: "home",
+    meta: {
+        title: "Rocci · Roc-native interfaces & Markdown-first documents",
+        description: "Build Roc-native interfaces, Markdown-first documents, and lightweight desktop apps.",
+    },
+}
+
+# Roc-native interfaces with the power of the web
+
+Rocci brings functional purity, zero runtime surprises, and compiler-checked type safety to user interfaces and technical documents.
+
+## Get Started
+
+- [Read the Overview](/docs/getting-started/overview/)
+- [Installation Guide](/docs/getting-started/installation/)
+- [Explore Rocdown](/rocdown/)
+- [Browse Documentation](/docs/)

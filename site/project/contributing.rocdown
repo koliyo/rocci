@@ -1,0 +1,31 @@
+@page {
+    layout: "plain",
+    meta: {
+        title: "Contributing to Rocci",
+        description: "Learn how to build, test, and contribute to Rocci and its developer documentation.",
+    },
+}
+
+# Contributing to Rocci
+
+We welcome contributions across the compiler, editor plugins, documentation, and runtime tooling.
+
+## Getting started
+
+1. Clone the repository and inspect the branch structure.
+2. Verify you have a modern Rust toolchain (1.85+).
+3. Run `cargo test --workspace` to verify your environment.
+
+## Ownership layers
+
+- `.rocci` grammar, lowering, or source maps: `crates/rocci-template`
+- Markdown, Rocdown declarations, site catalog, and generator: `crates/rocci-rocdown`
+- Shared runtime configuration: `crates/rocci-core`
+- CLI tools: `crates/rocci-cli` and `crates/rocci-rocdown-cli`
+- Documentation site chrome: `site/theme/`
+
+## Code conventions
+
+- Keep parsing loops monotonic to avoid hangs on malformed inputs.
+- Run `cargo fmt --all -- --check` before submitting changes.
+- Add regression tests in the narrowest owning crate.

@@ -1,0 +1,210 @@
+import Html
+import Layouts
+
+@component SiteShell = |view, content| {
+    <html lang={view.site.language}>
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="color-scheme" content="light dark" />
+            <meta http-equiv="Content-Security-Policy" content={view.resources.csp} />
+            <title>{view.title} · {view.site.title}</title>
+            <link rel="stylesheet" href={view.resources.stylesheet} />
+            @if view.description != "" {
+                <meta name="description" content={view.description} />
+            } @else if view.site.description != "" {
+                <meta name="description" content={view.site.description} />
+            }
+            @if view.resources.canonical != "" {
+                <link rel="canonical" href={view.resources.canonical} />
+                <meta property="og:url" content={view.resources.canonical} />
+            }
+            <meta property="og:type" content="website" />
+            <meta property="og:title" content={view.title} />
+            <meta property="og:site_name" content={view.site.title} />
+            @if view.description != "" {
+                <meta property="og:description" content={view.description} />
+            }
+            @if view.site.social_image != "" {
+                <meta property="og:image" content={"${view.site.base_url}${view.site.social_image}"} />
+                <meta name="twitter:card" content="summary_large_image" />
+            }
+        </head>
+        <body>
+            <a class="skip-link" href="#main-content">Skip to content</a>
+            <header class="site-header">
+                <div class="header-inner">
+                    <a class="brand" href="/" aria-label={"${view.site.title} home"}>
+                        <span class="brand-mark" aria-hidden="true">r</span>
+                        <span>{view.site.title}</span>
+                    </a>
+                    @if view.site.subtitle != "" {
+                        <span class="header-rule" aria-hidden="true"></span>
+                        <span class="header-subtitle">{view.site.subtitle}</span>
+                    }
+                    <nav class="lanes" aria-label="Sections">
+                        @for lane in view.lanes {
+                            <a
+                                class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                href={lane.href}
+                                aria-current={if lane.current { "true" } else { "false" }}
+                            >{lane.label}</a>
+                        }
+                    </nav>
+                    <div class="header-actions">
+                        @if view.site.repository != "" {
+                            <a class="header-link" href={view.site.repository}>Source ↗</a>
+                        }
+                    </div>
+                </div>
+            </header>
+            <div class="site-container">
+                @if view.layout == "home" {
+                    <Layouts.Home view={view} content={content} />
+                } @else if view.layout == "product" {
+                    <Layouts.Product view={view} content={content} />
+                } @else if view.layout == "section" {
+                    <Layouts.Section view={view} content={content} />
+                } @else if view.layout == "news-index" {
+                    <Layouts.NewsIndex view={view} content={content} />
+                } @else if view.layout == "news-post" {
+                    <Layouts.NewsPost view={view} content={content} />
+                } @else if view.layout == "plain" {
+                    <Layouts.Plain view={view} content={content} />
+                } @else if view.layout == "not-found" {
+                    <Layouts.NotFound view={view} content={content} />
+                } @else {
+                    <Layouts.Docs view={view} content={content} />
+                }
+            </div>
+            <footer class="site-footer">
+                <div class="footer-inner">
+                    <p class="footer-text">{view.site.footer}</p>
+                </div>
+            </footer>
+        </body>
+    </html>
+}
+
+@css {
+    :root {
+        --rd-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        --rd-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        --rd-color-bg: light-dark(#ffffff, #0d1117);
+        --rd-color-text: light-dark(#1f2937, #f3f4f6);
+        --rd-color-text-muted: light-dark(#6b7280, #9ca3af);
+        --rd-color-border: light-dark(#e5e7eb, #374151);
+        --rd-color-accent: light-dark(#2563eb, #60a5fa);
+        --rd-color-bg-alt: light-dark(#f9fafb, #161b22);
+    }
+    body {
+        margin: 0;
+        font-family: var(--rd-font-body);
+        color: var(--rd-color-text);
+        background: var(--rd-color-bg);
+        line-height: 1.6;
+    }
+    .skip-link {
+        position: absolute;
+        top: -3rem;
+        left: 1rem;
+        background: var(--rd-color-accent);
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        z-index: 100;
+        transition: top 0.1s ease;
+    }
+    .skip-link:focus {
+        top: 1rem;
+    }
+    .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--rd-color-bg);
+        border-bottom: 1px solid var(--rd-color-border);
+    }
+    .header-inner {
+        max-width: 86rem;
+        margin: 0 auto;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 1.25rem;
+        text-decoration: none;
+        color: inherit;
+    }
+    .brand-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.375rem;
+        background: var(--rd-color-accent);
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1rem;
+    }
+    .header-rule {
+        width: 1px;
+        height: 1.25rem;
+        background: var(--rd-color-border);
+    }
+    .header-subtitle {
+        font-size: 0.875rem;
+        color: var(--rd-color-text-muted);
+    }
+    .lanes {
+        display: flex;
+        gap: 1rem;
+        margin-left: auto;
+    }
+    .lane-link {
+        text-decoration: none;
+        color: var(--rd-color-text-muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .lane-link:hover, .lane-link.is-current {
+        color: var(--rd-color-text);
+    }
+    .lane-link.is-current {
+        background: var(--rd-color-bg-alt);
+    }
+    .header-actions {
+        display: flex;
+        align-items: center;
+    }
+    .header-link {
+        text-decoration: none;
+        color: var(--rd-color-text-muted);
+        font-size: 0.875rem;
+    }
+    .site-footer {
+        border-top: 1px solid var(--rd-color-border);
+        padding: 2rem 1rem;
+        margin-top: 4rem;
+        background: var(--rd-color-bg-alt);
+    }
+    .footer-inner {
+        max-width: 86rem;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .footer-text {
+        font-size: 0.875rem;
+        color: var(--rd-color-text-muted);
+        margin: 0;
+    }
+}

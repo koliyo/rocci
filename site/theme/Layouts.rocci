@@ -1,0 +1,268 @@
+import Html
+
+@component Home = |{ view, content }| {
+    <div class="layout-home">
+        <main class="home-main" id="main-content">
+            <article class="article">{content}</article>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+    </div>
+}
+
+@component Product = |{ view, content }| {
+    <div class="layout-product">
+        <main class="product-main" id="main-content">
+            <article class="article">{content}</article>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+    </div>
+}
+
+@component Section = |{ view, content }| {
+    <div class="layout-section">
+        <main class="section-main" id="main-content">
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                    @for crumb in view.breadcrumbs {
+                        <li>
+                            <a
+                                class={if crumb.href == view.route { "crumb-current" } else { "" }}
+                                href={crumb.href}
+                                aria-current={if crumb.href == view.route { "page" } else { "false" }}
+                            >{crumb.title}</a>
+                        </li>
+                    }
+                </ol>
+            </nav>
+            <article class="article">{content}</article>
+        </main>
+    </div>
+}
+
+@component Docs = |{ view, content }| {
+    <div class="layout-docs">
+        <aside class="sidebar">
+            <nav aria-label="Documentation navigation">
+                <div class="nav-items">
+                    @for item in view.sidebar {
+                        <a
+                            class={item.class_name}
+                            href={item.href}
+                            aria-current={if item.href == view.route { "page" } else { "false" }}
+                        >{item.title}</a>
+                    }
+                </div>
+            </nav>
+        </aside>
+        <main class="content-column" id="main-content">
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
+                <ol>
+                    @for crumb in view.breadcrumbs {
+                        <li>
+                            <a
+                                class={if crumb.href == view.route { "crumb-current" } else { "" }}
+                                href={crumb.href}
+                                aria-current={if crumb.href == view.route { "page" } else { "false" }}
+                            >{crumb.title}</a>
+                        </li>
+                    }
+                </ol>
+            </nav>
+            <article class="article">{content}</article>
+            <nav class="journey" aria-label="Page journey">
+                @if view.previous.href != "" {
+                    <a class="journey-prev" href={view.previous.href}>← {view.previous.title}</a>
+                }
+                @if view.next.href != "" {
+                    <a class="journey-next" href={view.next.href}>{view.next.title} →</a>
+                }
+            </nav>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+        <aside class="outline" aria-label="On this page">
+            <p class="outline-label">On this page</p>
+            <div class="outline-items">
+                @for heading in view.outline {
+                    <a
+                        class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
+                        href={"#${heading.id}"}
+                    >{heading.title}</a>
+                }
+            </div>
+        </aside>
+    </div>
+}
+
+@component NewsIndex = |{ view, content }| {
+    <div class="layout-news-index">
+        <main class="news-main" id="main-content">
+            <article class="article">{content}</article>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+    </div>
+}
+
+@component NewsPost = |{ view, content }| {
+    <div class="layout-news-post">
+        <main class="news-post-main" id="main-content">
+            <header class="post-header">
+                @if view.published != "" {
+                    <time class="post-date">{view.published}</time>
+                }
+            </header>
+            <article class="article">{content}</article>
+            <div class="post-footer">
+                <a class="back-link" href="/news/">← Back to news</a>
+            </div>
+        </main>
+    </div>
+}
+
+@component Plain = |{ view, content }| {
+    <div class="layout-plain">
+        <main class="plain-main" id="main-content">
+            <article class="article">{content}</article>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+    </div>
+}
+
+@component NotFound = |{ view, content }| {
+    <div class="layout-not-found">
+        <main class="not-found-main" id="main-content">
+            <article class="article">{content}</article>
+            @if view.site.footer != "" {
+                <footer class="article-footer">{view.site.footer}</footer>
+            }
+        </main>
+    </div>
+}
+
+@css {
+    .layout-docs {
+        display: grid;
+        grid-template-columns: 16rem minmax(0, 1fr) 14rem;
+        gap: 2rem;
+        max-width: 86rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+    }
+    @media (max-width: 64rem) {
+        .layout-docs {
+            grid-template-columns: 14rem minmax(0, 1fr);
+        }
+        .outline {
+            display: none;
+        }
+    }
+    @media (max-width: 48rem) {
+        .layout-docs {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .sidebar {
+            display: none;
+        }
+    }
+    .layout-home, .layout-product, .layout-section, .layout-news-index, .layout-news-post, .layout-plain, .layout-not-found {
+        max-width: 54rem;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+    }
+    .sidebar {
+        position: sticky;
+        top: 4.5rem;
+        height: calc(100vh - 5rem);
+        overflow-y: auto;
+    }
+    .outline {
+        position: sticky;
+        top: 4.5rem;
+        height: calc(100vh - 5rem);
+        overflow-y: auto;
+        font-size: 0.875rem;
+    }
+    .outline-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: var(--rd-color-text-muted, #64748b);
+    }
+    .outline-link {
+        display: block;
+        padding: 0.25rem 0;
+        color: var(--rd-color-text-muted, #64748b);
+        text-decoration: none;
+    }
+    .outline-link:hover {
+        color: var(--rd-color-accent, #2563eb);
+    }
+    .outline-link.level-3 {
+        padding-left: 0.75rem;
+    }
+    .breadcrumbs {
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+    }
+    .breadcrumbs ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .breadcrumbs li+li::before {
+        content: "/";
+        margin-right: 0.5rem;
+        color: var(--rd-color-text-muted, #94a3b8);
+    }
+    .breadcrumbs a {
+        color: var(--rd-color-text-muted, #64748b);
+        text-decoration: none;
+    }
+    .breadcrumbs a.crumb-current {
+        color: inherit;
+        font-weight: 500;
+    }
+    .journey {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--rd-color-border, #e2e8f0);
+    }
+    .journey a {
+        text-decoration: none;
+        color: var(--rd-color-accent, #2563eb);
+        font-weight: 500;
+    }
+    .article-footer {
+        margin-top: 2.5rem;
+        font-size: 0.875rem;
+        color: var(--rd-color-text-muted, #64748b);
+    }
+    .post-date {
+        font-size: 0.875rem;
+        color: var(--rd-color-text-muted, #64748b);
+    }
+    .post-footer {
+        margin-top: 2rem;
+    }
+    .back-link {
+        text-decoration: none;
+        color: var(--rd-color-accent, #2563eb);
+        font-weight: 500;
+    }
+}

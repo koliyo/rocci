@@ -1,0 +1,81 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/desktop-app/"],
+
+    meta: {
+        title: "Package a desktop app",
+        description: "Configure a Rocci application, compile its Roc server, and assemble a local macOS app bundle.",
+    },
+}
+
+# Package a desktop app
+
+Rocci desktop apps are local web applications: an authored or generated Roc
+server listens on loopback, while Tao and Wry display that origin in a native
+window. The UI remains usable in a normal browser.
+
+## Configure the app
+
+Create `rocci.toml` beside the project:
+
+```toml
+[app]
+name = "My Tool"
+identifier = "dev.example.my-tool"
+version = "0.1.0"
+
+[[windows]]
+label = "main"
+title = "My Tool"
+url = "/"
+width = 1040
+height = 760
+min_width = 720
+min_height = 560
+
+[http]
+host = "127.0.0.1"
+port = 0
+
+[assets]
+directory = "assets"
+embed = true
+datastar = "1.0.2"
+
+[bundle]
+app = "."
+```
+
+`port = 0` chooses a free local port. The runtime accepts only loopback hosts.
+
+## Validate before bundling
+
+```sh
+cargo run -p rocci-cli -- validate rocci.toml
+```
+
+Unknown keys are errors. Validation also checks app identifiers, unique window
+labels, URLs, security settings, and bundle resource paths.
+
+## Build the bundle
+
+On macOS:
+
+```sh
+cargo run -p rocci-cli -- bundle --config rocci.toml
+```
+
+The command compiles the Roc app, builds the native host, assembles an `.app`,
+and applies an ad-hoc signature. The bundled app does not need `roc` on the
+runtime `PATH`.
+
+## Understand the current boundary
+
+- Packaging is macOS-only today.
+- The signature is suitable for local development, not distribution.
+- Production signing, notarization, installers, and updates are not implemented.
+- The host currently manages one application window.
+- Native capability APIs beyond the webview are planned, not available.
+
+Use the [configuration reference](/docs/reference/configuration/) for every field
+and [project status](/project/status/) before planning a release workflow.

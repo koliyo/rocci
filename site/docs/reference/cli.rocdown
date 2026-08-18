@@ -1,0 +1,212 @@
+@page {
+    layout: "docs",
+    aliases: ["/reference/cli/"],
+
+    meta: {
+        title: "CLI reference",
+        description: "Look up rocci and rocdown commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
+    },
+}
+
+# CLI reference
+
+The workspace provides `rocci` for template modules and runtime applications, `rocdown` for Markdown documents and static sites, and `rocci-okf` for knowledge bundle review and retrieval.
+
+Examples below use `cargo run` from a source checkout. Installed binaries use
+the same arguments without the Cargo prefix.
+
+## Rocci CLI
+
+### Validate configuration
+
+```sh
+cargo run -p rocci-cli -- validate [rocci.toml]
+```
+
+Parse and validate the application configuration. Unknown fields and unsafe
+runtime settings are errors.
+
+### Build .rocci template to Roc
+
+```sh
+cargo run -p rocci-cli -- build INPUT [-o OUTPUT]
+```
+
+Compile a single `.rocci` template to Roc. With `-o`, write to the given path;
+otherwise print to stdout.
+
+### Inspect template source and AST
+
+```sh
+cargo run -p rocci-cli -- inspect INPUT [--ast] [--segments]
+```
+
+Inspect compiled information: component signatures, fixtures, styles, handlers,
+and source map segments. `--ast` prints the parsed AST as an S-expression.
+
+### Run a single component
+
+```sh
+cargo run -p rocci-cli -- view INPUT [--component NAME] [--arg name=val] [--port PORT] [--no-window]
+```
+
+Run a component with mock arguments and an optional state type. The component
+is wrapped in a minimal application and launched in a native window.
+
+### Browse components
+
+```sh
+cargo run -p rocci-cli -- browse [DIRECTORY] [--port PORT] [--no-window]
+```
+
+Discover and interactively browse all `.rocci` components and fixtures in a directory.
+
+### Run an application
+
+```sh
+cargo run -p rocci-cli -- run [ENTRY] [--port PORT] [--no-window] [--args...]
+```
+
+Run the entry template or directory with live reload. The application server
+starts and opens a native desktop window by default.
+
+| Option | Effect |
+| --- | --- |
+| `--no-window` | Serve without opening the embedded window |
+| `--port PORT` | Override the listening port (defaults to a free port, or 8000 with `--no-window`) |
+| `--args...` | Extra arguments forwarded to the Roc binary |
+
+### Bundle a macOS app
+
+```sh
+cargo run -p rocci-cli -- bundle [--config rocci.toml]
+```
+
+Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
+implemented yet.
+
+### Datastar asset management
+
+```sh
+cargo run -p rocci-cli -- datastar pin [VERSION] [--app PATH]
+cargo run -p rocci-cli -- datastar update [--app PATH]
+```
+
+Pin or update the Datastar JavaScript runtime asset in an application directory.
+
+---
+
+## Rocdown CLI
+
+### Run an interactive document or documentation site
+
+```sh
+# Run a single interactive document
+cargo run -p rocci-rocdown-cli -- run report.rocdown
+
+# Run a documentation site directory with live reload
+cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
+```
+
+Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
+with live reload. The default root is the current directory. Preview output
+goes to a temp directory unless `--output` is set. `rocdown run` and
+`rocdown build` refuse OKF knowledge records and bundles and point to
+`rocci-okf run`.
+
+| Option | Effect |
+| --- | --- |
+| `--no-window` | Serve without opening the embedded window |
+| `--port PORT` | Override the listening port |
+| `--output DIRECTORY` | Write preview files here instead of a temp directory |
+
+### Build documentation
+
+```sh
+cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY]
+```
+
+The default root is the current directory. `ROOT` may be a documentation
+directory or a `.rocdown` file. `rocdown.toml` is optional. `--output` overrides
+`build.output`. OKF knowledge records are refused here as well.
+
+Local `@img` and Markdown image paths resolve against the source file. Missing
+local files fail the catalog (`RD2103`). Files under `build.assets` are
+content-hashed whether the authored URL is `/assets/foo.png` or `assets/foo.png`.
+
+### Check documentation
+
+```sh
+cargo run -p rocci-rocdown-cli -- check [ROOT] [--format terminal|json]
+```
+
+Validate the catalog, including `@docs` content models, includes, page links,
+and local assets, without compiling Roc or writing output.
+
+### Test documented examples
+
+```sh
+cargo run -p rocci-rocdown-cli -- test [ROOT] [--update] [--format terminal|json]
+```
+
+Run `@docs example` commands that declare `test`. `--update` rewrites golden
+files named by `expect`.
+
+### Inspect Rocdown AST and planned artifacts
+
+```sh
+cargo run -p rocci-rocdown-cli -- inspect ast FILE.rocdown
+cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
+```
+
+---
+
+## Rocci OKF CLI
+
+### Validate knowledge bundle
+
+```sh
+cargo run -p rocci-okf -- check [ROOT] [--profile base|rocci] [--format terminal|json]
+```
+
+Base mode checks OKF v0.2. Rocci mode additionally validates approved types,
+tags, lifecycle, provenance, authority, and owner fields.
+
+### Inspect knowledge catalog, concept, and graph
+
+```sh
+cargo run -p rocci-okf -- inspect concept ID [ROOT] [--profile base|rocci]
+cargo run -p rocci-okf -- inspect catalog [ROOT] [--profile base|rocci]
+cargo run -p rocci-okf -- inspect graph [ROOT] [--profile base|rocci]
+```
+
+### Search knowledge records
+
+```sh
+cargo run -p rocci-okf -- search QUERY [ROOT] [--profile base|rocci]
+```
+
+### Retrieval benchmarks
+
+```sh
+cargo run -p rocci-okf -- benchmark BENCHMARK_FILE [ROOT] [--profile base|rocci]
+```
+
+Measures top-5 hit rate and mean reciprocal rank against versioned questions and
+enforces passing thresholds.
+
+### Live review preview server
+
+```sh
+cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-window]
+```
+
+`PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
+the bundle-root `index.md`. A concept file opens the review site on that
+record.
+
+### Build static review artifacts
+
+```sh
+cargo run -p rocci-okf -- build [ROOT] [--output DIRECTORY] [--profile base|rocci]
+```

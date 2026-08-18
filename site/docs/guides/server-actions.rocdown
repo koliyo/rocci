@@ -1,0 +1,98 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/server-actions/"],
+
+    meta: {
+        title: "Server actions and Datastar",
+        description: "Add server-owned state and targeted HTML updates to a Rocci component with @context, @init, @on, and Datastar actions.",
+    },
+}
+
+# Add server actions with Datastar
+
+Rocci uses Datastar as a transport for server-rendered updates. The browser
+declares an action, the Roc handler changes state, and the response replaces a
+targeted HTML fragment.
+
+This guide sketches the counter included in `examples/counter`.
+
+## Declare application state
+
+```rocci
+import pf.Sqlite
+
+@context { db : Sqlite.Db }
+
+@init {
+    db = Sqlite.open!(Sqlite.default_config(Path.utf8("./counter.db")))?
+    { db: db }
+}
+```
+
+`@context` defines the state record used by generated handlers. `@init` creates
+that state once when the standalone app starts.
+
+## Serve the document
+
+```rocci
+@on:get("/") = |{ db }| {
+    count = read_count!(db)?
+    counterPage({ count })
+}
+```
+
+GET handlers return complete HTML documents. Rocci generates a basic-webserver
+dispatcher around the authored function.
+
+## Return a targeted patch
+
+```rocci
+@on:post("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    counterCard({ count })
+}
+
+@component CounterCard = |{ count }|
+    <section id="counter">
+        <p>Shared count</p>
+        <output>{count.to_str()}</output>
+    </section>
+```
+
+Non-GET handlers return one-shot `datastar-patch-elements` events. The stable
+`id` lets Datastar target the existing fragment.
+
+## Trigger the action
+
+```rocci
+<button data-on:click=@post("/actions/counter/increment")>
+    Increment
+</button>
+```
+
+The `@post` attribute form is Rocci syntax. Rocci injects the Datastar import
+and produces the client expression. Its argument is Roc and therefore uses
+double-quoted Roc strings.
+
+> A quoted value such as `data-on:click="@post('/actions/x')"` stays an opaque
+> Datastar expression. Use the unquoted Rocci action form when the URL depends
+> on Roc values or when you want compiler help.
+
+## Choose route conventions
+
+| Response | Suggested route | Example |
+| --- | --- | --- |
+| HTML document | Resource path | `GET /todos` |
+| HTML or SSE patch | `/actions/...` | `POST /actions/todos/add` |
+| JSON API | `/api/...` | `POST /api/direction` |
+| Long-lived SSE | `/sse` | `GET /sse` in an authored `main.roc` |
+
+## Run the complete example
+
+```sh
+cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
+```
+
+Increment the counter in two browser windows to verify that SQLite-backed
+state is shared. See [the rendering model](/docs/concepts/rendering-model/) for the
+boundary between documents, patches, and client behavior.

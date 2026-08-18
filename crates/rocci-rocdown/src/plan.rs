@@ -370,7 +370,7 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
 
     if !modules.iter().any(|m| m.type_name == "RocdownTheme") {
         if modules.iter().any(|m| m.type_name == "SiteShell") {
-            let synth_roc = "import Html\nimport SiteShell\n\nRocdownTheme := [].{\n    siteShell = |view, content|\n        SiteShell.siteShell(view, content),\n}\n";
+            let synth_roc = "import Html\nimport SiteShell\n\nRocdownTheme := [].{\n    siteShell = |view, content|\n        SiteShell.siteShell(view, content)\n}\n";
             modules.push(CompiledThemeModule {
                 type_name: "RocdownTheme".to_string(),
                 source_name: "RocdownTheme.roc".to_string(),

@@ -1,0 +1,71 @@
+[site]
+title = "Rocci"
+description = "Build Roc-native interfaces, Markdown-first documents, and small desktop apps without giving up the web platform."
+base_url = "https://rocci.dev"
+language = "en"
+repository = "https://github.com/koliyo/rocci"
+social_image = "/assets/og.png"
+subtitle = "Roc-native interface tools"
+footer = "Rocci is experimental software. Verify APIs against the current source before production use."
+
+[build]
+output = "../dist/rocci.dev"
+assets = "assets"
+theme = "theme"
+
+[[nav]]
+label = "Docs"
+directory = "docs"
+items = [
+    "docs/index",
+    "docs/getting-started/overview",
+    "docs/getting-started/installation",
+    "docs/getting-started/quickstart",
+    "docs/guides/build-a-component",
+    "docs/guides/server-actions",
+    "docs/guides/rocdown-pages",
+    "docs/guides/docs-components",
+    "docs/guides/desktop-app",
+    "docs/concepts/architecture",
+    "docs/concepts/why-roc",
+    "docs/concepts/rendering-model",
+    "docs/reference/rocci",
+    "docs/reference/rocdown",
+    "docs/reference/cli",
+    "docs/reference/configuration",
+    "docs/reference/rocdown-site",
+    "docs/examples/index",
+    "docs/troubleshooting",
+]
+
+[[nav]]
+label = "Rocdown"
+directory = "rocdown"
+items = [
+    "rocdown/index",
+]
+
+[[nav]]
+label = "News"
+directory = "news"
+items = [
+    "news/index",
+    "news/introducing-rocci",
+]
+
+[[nav]]
+label = "FAQ"
+directory = "faq"
+items = [
+    "faq/index",
+]
+
+[[nav]]
+label = "Project"
+directory = "project"
+items = [
+    "project/index",
+    "project/status",
+    "project/roadmap",
+    "project/contributing",
+]

@@ -1,0 +1,15 @@
+@page {
+    layout: "news-index",
+    meta: {
+        title: "News & Updates",
+        description: "Announcements, releases, design notes, and project milestones for the Rocci ecosystem.",
+    },
+}
+
+# News & Updates
+
+Stay up to date with releases, language features, and ecosystem news.
+
+## Latest Posts
+
+- [Introducing Rocci: Typed Functional Interfaces for the Web](/news/introducing-rocci/) (August 18, 2026)
