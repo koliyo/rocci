@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
-    classify_concept_action, external_url, resolve_bundle_path, slugify,
+    classify_concept_action, external_url, published_href, slugify,
 };
 pub use rocci_ui::escape;
 use serde_json::Value;
@@ -280,7 +280,7 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
             out.push_str(&format!(
                 "        <tr><td><code>{}</code></td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
                 escape(s_id),
-                source_resource_cell(concept, s_res, bundle),
+                source_resource_cell(concept, s_res),
                 escape(s_author),
                 status_badge
             ));
@@ -332,9 +332,9 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
     out
 }
 
-fn source_resource_cell(concept: &Concept, resource: &str, bundle: &Bundle) -> String {
+fn source_resource_cell(concept: &Concept, resource: &str) -> String {
     let label = format!("<code>{}</code>", escape(resource));
-    match source_href(concept, resource, bundle) {
+    match source_href(concept, resource) {
         Some(href) if external_url(resource) => format!(
             "<a href=\"{}\" rel=\"noopener noreferrer\">{}</a>",
             escape(&href),
@@ -345,16 +345,11 @@ fn source_resource_cell(concept: &Concept, resource: &str, bundle: &Bundle) -> S
     }
 }
 
-fn source_href(concept: &Concept, resource: &str, bundle: &Bundle) -> Option<String> {
+fn source_href(concept: &Concept, resource: &str) -> Option<String> {
     if external_url(resource) {
         return Some(resource.to_string());
     }
-    let resolved = resolve_bundle_path(&concept.path, resource)?;
-    bundle
-        .concepts
-        .iter()
-        .find(|candidate| candidate.path == resolved)
-        .map(|candidate| format!("/{}/", candidate.id))
+    published_href(&concept.path, resource)
 }
 
 fn compact_json_value(value: &Value) -> String {
@@ -806,6 +801,18 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
         fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
             .context("failed to write knowledge index")?;
     }
+    for index in &bundle.indexes {
+        let Some(collection) = index.path.strip_suffix("/index.md") else {
+            continue;
+        };
+        let destination = site.join(collection).join("index.html");
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        fs::write(&destination, html_page(collection, &index.article_html))
+            .with_context(|| format!("failed to write {}", destination.display()))?;
+    }
     let review_dest = site.join("review").join("index.html");
     if let Some(parent) = review_dest.parent() {
         fs::create_dir_all(parent)
@@ -1144,5 +1151,43 @@ mod tests {
         assert!(html.contains("href=\"#all-concepts-queue\""));
         assert!(html.contains(">All Bundle Concepts</a>"));
         assert_eq!(html.matches("id=\"all-concepts-queue\"").count(), 1);
+    }
+
+    #[test]
+    fn review_site_writes_collection_indexes() {
+        let site =
+            std::env::temp_dir().join(format!("rocci-okf-collection-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&site);
+        fs::create_dir_all(&site).unwrap();
+
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "architecture/overview".into();
+        overview.path = "architecture/overview.md".into();
+        overview.article_html = "<p>See <a href=\"/decisions/choice/\">choice</a>.</p>".into();
+
+        let mut bundle = bundle_with(vec![overview]);
+        bundle.indexes = vec![
+            okf::Index {
+                path: "index.md".into(),
+                version: Some("0.2".into()),
+                body_span: Span::new(0, 0),
+                article_html: "<p><a href=\"/architecture/\">Architecture</a></p>".into(),
+            },
+            okf::Index {
+                path: "architecture/index.md".into(),
+                version: None,
+                body_span: Span::new(0, 0),
+                article_html: "<h1>Architecture</h1>".into(),
+            },
+        ];
+
+        build_review_site(&bundle, &site).unwrap();
+        assert!(site.join("architecture").join("index.html").is_file());
+        let home = fs::read_to_string(site.join("index.html")).unwrap();
+        assert!(home.contains("href=\"/architecture/\""));
+        let collection = fs::read_to_string(site.join("architecture").join("index.html")).unwrap();
+        assert!(collection.contains("Architecture"));
+        assert!(collection.contains("id=\"architecture\""));
+        let _ = fs::remove_dir_all(&site);
     }
 }
