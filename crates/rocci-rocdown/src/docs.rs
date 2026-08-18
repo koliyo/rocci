@@ -445,19 +445,23 @@ fn walk_md_links(node: &MdNode, urls: &mut Vec<String>, images: bool) {
 }
 
 pub fn fill_link_cards(pages: &mut [ResolvedPage]) {
-    let lookup: BTreeMap<String, (String, String, String)> = pages
-        .iter()
-        .map(|page| {
-            (
-                page.id.clone(),
-                (
-                    page.route.clone(),
-                    page.title.clone(),
-                    page.description.clone(),
-                ),
-            )
-        })
-        .collect();
+    let mut lookup: BTreeMap<String, (String, String, String)> = BTreeMap::new();
+    for page in pages.iter() {
+        let val = (
+            page.route.clone(),
+            page.title.clone(),
+            page.description.clone(),
+        );
+        lookup.insert(page.id.clone(), val.clone());
+        lookup.insert(page.route.clone(), val.clone());
+        for alias in &page.aliases {
+            lookup.insert(alias.clone(), val.clone());
+        }
+        if let Some(stripped) = page.id.strip_prefix("docs/") {
+            lookup.insert(stripped.to_string(), val.clone());
+            lookup.insert(format!("/{stripped}/"), val.clone());
+        }
+    }
     for page in pages {
         fill_cards_in(&mut page.article, &lookup);
     }
@@ -548,7 +552,18 @@ fn fill_cards_in(nodes: &mut [ArticleNode], lookup: &BTreeMap<String, (String, S
 }
 
 pub fn validate_resolved(pages: &[ResolvedPage], diagnostics: &mut Vec<CatalogDiagnostic>) {
-    let ids: BTreeSet<_> = pages.iter().map(|page| page.id.as_str()).collect();
+    let mut ids: BTreeSet<String> = BTreeSet::new();
+    for page in pages {
+        ids.insert(page.id.clone());
+        ids.insert(page.route.clone());
+        for alias in &page.aliases {
+            ids.insert(alias.clone());
+        }
+        if let Some(stripped) = page.id.strip_prefix("docs/") {
+            ids.insert(stripped.to_string());
+            ids.insert(format!("/{stripped}/"));
+        }
+    }
     for page in pages {
         validate_link_cards(&page.article, &page.source_path, &ids, diagnostics);
     }
@@ -557,7 +572,7 @@ pub fn validate_resolved(pages: &[ResolvedPage], diagnostics: &mut Vec<CatalogDi
 fn validate_link_cards(
     nodes: &[ArticleNode],
     path: &str,
-    ids: &BTreeSet<&str>,
+    ids: &BTreeSet<String>,
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) {
     for node in nodes {
@@ -565,6 +580,9 @@ fn validate_link_cards(
             if docs.kind == "link-card"
                 && let Some(page) = &docs.attrs.page
                 && !ids.contains(page.as_str())
+                && !ids.contains(page.strip_prefix("docs/").unwrap_or(page))
+                && !ids.contains(&format!("docs/{page}"))
+                && !ids.contains(page.strip_prefix('/').unwrap_or(page))
             {
                 diagnostics.push(CatalogDiagnostic::error(
                     "RD2101",

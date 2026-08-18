@@ -249,13 +249,16 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
         let mut aliases = Vec::new();
         for alias in &page.aliases {
             let alias = with_trailing_slash(alias);
+            if alias == route {
+                continue;
+            }
             if let Some(reason) = invalid_route_reason(&alias) {
                 diagnostics.push(CatalogDiagnostic::error(
                     "RD2005",
                     &page.source_path,
                     format!("invalid alias `{alias}` ({reason})"),
                 ));
-            } else {
+            } else if !aliases.contains(&alias) {
                 aliases.push(alias);
             }
         }
@@ -509,7 +512,18 @@ fn resolve_ref(
     }
     if path.starts_with('/') {
         let route = with_trailing_slash(path);
-        let Some(target) = by_route.get(route.as_str()) else {
+        let target = by_route.get(route.as_str()).copied().or_else(|| {
+            if let Some(stripped) = route.strip_prefix("/docs/") {
+                let stripped_route = format!("/{stripped}");
+                by_route.get(stripped_route.as_str()).copied()
+            } else if route == "/docs/" {
+                by_route.get("/").copied()
+            } else {
+                let prefixed = format!("/docs{route}");
+                by_route.get(prefixed.as_str()).copied()
+            }
+        });
+        let Some(target) = target else {
             return Err(CatalogDiagnostic::error(
                 "RD2101",
                 &page.source_path,
@@ -616,9 +630,17 @@ fn wiki_target<'a>(
 fn page_for_path<'a>(pages: &'a [ResolvedPage], normalized: &str) -> Option<&'a ResolvedPage> {
     let id = normalized.strip_suffix(".rocdown").unwrap_or(normalized);
     pages.iter().find(|page| {
+        if (id.is_empty() || id == ".") && (page.id == "index" || page.route == "/") {
+            return true;
+        }
         page.source_path == normalized
             || page.source_path == format!("{id}.rocdown")
             || page.id == id
+            || page.id.strip_prefix("docs/").is_some_and(|p| p == id)
+            || page
+                .source_path
+                .strip_prefix("docs/")
+                .is_some_and(|p| p == normalized)
     })
 }
 

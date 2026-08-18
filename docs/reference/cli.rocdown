@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/reference/cli/"],
+
     meta: {
         title: "CLI reference",
         description: "Look up rocci and rocdown commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
@@ -82,14 +85,6 @@ cargo run -p rocci-cli -- bundle [--config rocci.toml]
 Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
 implemented yet.
 
-### Open in-browser playground
-
-```sh
-cargo run -p rocci-cli -- playground INPUT.rocci [--port PORT] [--no-window]
-```
-
-Launch the in-memory WebAssembly playground in a browser or native window for interactive live lowering of a `.rocci` template.
-
 ### Datastar asset management
 
 ```sh
@@ -164,14 +159,6 @@ cargo run -p rocci-rocdown-cli -- inspect ast FILE.rocdown
 cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
 ```
 
-### Open in-browser playground
-
-```sh
-cargo run -p rocci-rocdown-cli -- playground [FILE.rocdown|FILE.md] [--port PORT] [--no-window]
-```
-
-Launch the in-memory WebAssembly playground for interactive live lowering of a `.rocdown` or `.md` document.
-
 ---
 
 ## Rocci OKF CLI
@@ -216,7 +203,7 @@ cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-
 
 `PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
 the bundle-root `index.md`. A concept file opens the review site on that
-record. Pages with H2 or H3 headings get a left “On this page” navigator.
+record.
 
 ### Build static review artifacts
 

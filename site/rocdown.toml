@@ -13,6 +13,11 @@ output = "../dist/rocci.dev"
 assets = "assets"
 theme = "theme"
 
+[[mount]]
+source = "../docs"
+prefix = "docs"
+layout = "docs"
+
 [[nav]]
 label = "Docs"
 directory = "docs"
@@ -34,6 +39,7 @@ items = [
     "docs/reference/cli",
     "docs/reference/configuration",
     "docs/reference/rocdown-site",
+    "docs/playground",
     "docs/examples/index",
     "docs/troubleshooting",
 ]

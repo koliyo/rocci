@@ -291,7 +291,7 @@ pub fn discover_rocdown(root: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-fn discover_in(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
+pub(crate) fn discover_in(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
     let mut entries: Vec<_> = fs::read_dir(dir)
         .with_context(|| format!("failed to read {}", dir.display()))?
         .collect::<std::io::Result<Vec<_>>>()?;

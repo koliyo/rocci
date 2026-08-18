@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/troubleshooting/"],
+
     meta: {
         title: "Troubleshooting",
         description: "Recover from common Rocci compiler, Roc toolchain, routing, Datastar, webview, and static documentation failures.",

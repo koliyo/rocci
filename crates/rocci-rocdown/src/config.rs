@@ -10,6 +10,8 @@ pub const CONFIG_FILE: &str = "rocdown.toml";
 pub struct SiteConfig {
     pub site: SiteMeta,
     pub build: BuildConfig,
+    #[serde(rename = "mount", default)]
+    pub mounts: Vec<MountConfig>,
     #[serde(rename = "nav")]
     pub navigation: Vec<NavConfig>,
     #[serde(default)]
@@ -18,6 +20,15 @@ pub struct SiteConfig {
     pub examples: ExamplesConfig,
     #[serde(skip)]
     pub sidebar_tree: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct MountConfig {
+    pub source: String,
+    pub prefix: String,
+    #[serde(default)]
+    pub layout: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -144,6 +155,49 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
             );
         }
     }
+    for (index, mount) in config.mounts.iter().enumerate() {
+        if mount.source.trim().is_empty()
+            || mount.source.contains('\0')
+            || Path::new(&mount.source).is_absolute()
+        {
+            bail!(
+                "mount[{}] source `{}` must be a valid relative path in {}",
+                index + 1,
+                mount.source,
+                path.display()
+            );
+        }
+        let prefix = mount.prefix.trim();
+        if prefix.contains("..") || prefix.starts_with('/') || prefix.ends_with('/') {
+            bail!(
+                "mount[{}] prefix `{}` must not start/end with '/' or contain '..' in {}",
+                index + 1,
+                mount.prefix,
+                path.display()
+            );
+        }
+        if let Some(layout) = &mount.layout {
+            const VALID_LAYOUTS: &[&str] = &[
+                "home",
+                "product",
+                "section",
+                "docs",
+                "news-index",
+                "news-post",
+                "plain",
+                "not-found",
+            ];
+            if !VALID_LAYOUTS.contains(&layout.trim().trim_matches('"')) {
+                bail!(
+                    "mount[{}] layout `{}` must be one of {} in {}",
+                    index + 1,
+                    layout,
+                    VALID_LAYOUTS.join(", "),
+                    path.display()
+                );
+            }
+        }
+    }
     for (index, section) in config.navigation.iter().enumerate() {
         if section.label.trim().is_empty() {
             bail!(
@@ -177,8 +231,9 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
     for (index, root) in config.snippets.roots.iter().enumerate() {
         if root.trim().is_empty() || root.contains('\0') || Path::new(root).is_absolute() {
             bail!(
-                "snippets.roots[{}] `{root}` must be a relative path in {}",
+                "snippets.roots[{}] `{}` must be a relative path in {}",
                 index + 1,
+                root,
                 path.display()
             );
         }
@@ -272,6 +327,85 @@ directory = "guides"
         let config = load_config(&root).unwrap();
         assert_eq!(config.navigation[0].directory.as_deref(), Some("guides"));
         assert!(config.navigation[0].items.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_mounts() {
+        let root = temp("mounts");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[mount]]
+source = "../docs"
+prefix = "docs"
+layout = "docs"
+
+[[nav]]
+label = "Docs"
+items = ["docs/index"]
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.mounts.len(), 1);
+        assert_eq!(config.mounts[0].source, "../docs");
+        assert_eq!(config.mounts[0].prefix, "docs");
+        assert_eq!(config.mounts[0].layout.as_deref(), Some("docs"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_invalid_mounts() {
+        let root = temp("invalid-mount");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[mount]]
+source = "/absolute/path"
+prefix = "docs"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must be a valid relative path"), "{err}");
+
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[mount]]
+source = "../docs"
+prefix = "/docs/"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must not start/end with '/'"), "{err}");
+
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[mount]]
+source = "../docs"
+prefix = "docs"
+layout = "invalid_layout"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must be one of"), "{err}");
         let _ = fs::remove_dir_all(root);
     }
 

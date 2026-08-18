@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/getting-started/overview/", "/getting-started/"],
+
     meta: {
         title: "What is Rocci?",
         description: "Understand how Rocci connects Roc, HTML templates, Markdown documents, Datastar, and a desktop webview host.",
@@ -60,8 +63,8 @@ tools, server-driven interfaces, desktop utilities, and technical documents.
 
 The deeper reason is architectural: pure Roc functions make views predictable,
 while a selected platform gives the native host explicit control over I/O and
-application capabilities. [Why Roc fits Rocci](/concepts/why-roc/) covers that
+application capabilities. [Why Roc fits Rocci](/docs/concepts/why-roc/) covers that
 design, including interpreted development and compiled delivery.
 
-Continue with [installation](/getting-started/installation/) or jump straight
-to the [quickstart](/getting-started/quickstart/).
+Continue with [installation](/docs/getting-started/installation/) or jump straight
+to the [quickstart](/docs/getting-started/quickstart/).

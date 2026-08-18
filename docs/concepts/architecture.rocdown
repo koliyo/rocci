@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/concepts/architecture/"],
+
     meta: {
         title: "Architecture",
         description: "See how Rocci separates parsing, lowering, static content, site chrome, runtime hosting, and editor tooling.",
@@ -33,7 +36,7 @@ The template and parsing crates do not invoke Roc, start a server, or open a win
 effects belong to the CLI and host layers.
 
 That split follows Roc's own pure-application and effect-providing-platform
-model. Read [Why Roc fits Rocci](/concepts/why-roc/) for the effect, capability,
+model. Read [Why Roc fits Rocci](/docs/concepts/why-roc/) for the effect, capability,
 hosting, and execution-mode rationale.
 
 ## Workspace responsibilities
@@ -89,5 +92,5 @@ The runtime communicates over local HTTP. GET handlers produce documents;
 mutation handlers can produce Datastar SSE patches. This keeps the interface
 inspectable and gives the embedded webview and a normal browser the same backend.
 
-Read [the rendering model](/concepts/rendering-model/) for the request and
+Read [the rendering model](/docs/concepts/rendering-model/) for the request and
 response semantics.

@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/reference/configuration/"],
+
     meta: {
         title: "Application configuration",
         description: "Configure app identity, windows, loopback HTTP, security, assets, development behavior, and bundles in rocci.toml.",

@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/guides/server-actions/"],
+
     meta: {
         title: "Server actions and Datastar",
         description: "Add server-owned state and targeted HTML updates to a Rocci component with @context, @init, @on, and Datastar actions.",
@@ -91,5 +94,5 @@ cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 ```
 
 Increment the counter in two browser windows to verify that SQLite-backed
-state is shared. See [the rendering model](/concepts/rendering-model/) for the
+state is shared. See [the rendering model](/docs/concepts/rendering-model/) for the
 boundary between documents, patches, and client behavior.

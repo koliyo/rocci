@@ -62,24 +62,82 @@ pub fn content_root(path: &Path) -> Result<PathBuf> {
     Ok(path)
 }
 
+struct DiscoveredPage {
+    path: PathBuf,
+    relative_name: String,
+    mount_prefix: String,
+    default_layout: Option<String>,
+}
+
 pub fn load_site(root: &Path) -> Result<LoadedSite> {
     let root = content_root(root)?;
     let config = load_config(&root)?;
-    let discovered = crate::build::discover_rocdown(&root)?;
-    let files = collect_files(&root)?;
+    let mut discovered_pages = Vec::new();
+    let mut root_files = Vec::new();
+    crate::build::discover_in(&root, &mut root_files)?;
+    root_files.sort();
+    for path in root_files {
+        let relative_name = path
+            .strip_prefix(&root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        discovered_pages.push(DiscoveredPage {
+            path,
+            relative_name,
+            mount_prefix: String::new(),
+            default_layout: None,
+        });
+    }
+
+    for (index, mount) in config.mounts.iter().enumerate() {
+        let mount_dir = root.join(&mount.source);
+        if !mount_dir.is_dir() {
+            bail!(
+                "mount[{}] source `{}` does not exist or is not a directory in {}",
+                index + 1,
+                mount.source,
+                root.display()
+            );
+        }
+        let mut mount_files = Vec::new();
+        crate::build::discover_in(&mount_dir, &mut mount_files)?;
+        mount_files.sort();
+        for path in mount_files {
+            let rel_in_mount = path
+                .strip_prefix(&mount_dir)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            let relative_name = if mount.prefix.is_empty() {
+                rel_in_mount
+            } else {
+                format!("{}/{}", mount.prefix, rel_in_mount)
+            };
+            discovered_pages.push(DiscoveredPage {
+                path,
+                relative_name,
+                mount_prefix: mount.prefix.clone(),
+                default_layout: mount.layout.clone(),
+            });
+        }
+    }
+
+    if discovered_pages.is_empty() {
+        bail!("no .rocdown files in {}", root.display());
+    }
+
+    let files = collect_files(&root, &config)?;
     let snippet_roots = snippet_roots(&root, &config)?;
     let mut sources = Vec::new();
     let mut diagnostics = Vec::new();
 
-    for path in &discovered {
+    for page_info in &discovered_pages {
+        let path = &page_info.path;
+        let relative_name = page_info.relative_name.clone();
         let src = std::fs::read_to_string(path)
             .with_context(|| format!("failed to read {}", path.display()))?;
         let name = path.display().to_string();
-        let relative_name = path
-            .strip_prefix(&root)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .replace('\\', "/");
         let compiled = compile(
             SourceFile::new(&name, &src),
             &CompileOptions {
@@ -146,6 +204,8 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 ));
             }
             clean.to_string()
+        } else if let Some(default_layout) = &page_info.default_layout {
+            default_layout.clone()
         } else if relative_name == "index.rocdown" || relative_name == "index.md" {
             "home".to_string()
         } else {
@@ -166,7 +226,18 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             .unwrap_or(&relative_name)
             .to_string();
         let id_explicit = compiled.page_meta.id.is_some();
-        let page_id = compiled.page_meta.id.clone().unwrap_or(derived_id.clone());
+        let page_id = match compiled.page_meta.id.clone() {
+            Some(id) => {
+                if page_info.mount_prefix.is_empty()
+                    || id.starts_with(&format!("{}/", page_info.mount_prefix))
+                {
+                    id
+                } else {
+                    format!("{}/{}", page_info.mount_prefix, id)
+                }
+            }
+            None => derived_id.clone(),
+        };
         let title = compiled
             .page_meta
             .title
@@ -198,7 +269,16 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         let tags = compiled.page_meta.tags.clone();
         let collection = compiled.page_meta.collection.clone().unwrap_or_default();
         let route_hint = match compiled.page_meta.route {
-            Some(route) => RouteHint::Explicit(route),
+            Some(route) => {
+                if page_info.mount_prefix.is_empty()
+                    || route.starts_with(&format!("/{}/", page_info.mount_prefix))
+                    || route == format!("/{}", page_info.mount_prefix)
+                {
+                    RouteHint::Explicit(route)
+                } else {
+                    RouteHint::Explicit(format!("/{}{route}", page_info.mount_prefix))
+                }
+            }
             None => RouteHint::Derived,
         };
         let page_docs = docs::load_page_docs(
@@ -493,13 +573,24 @@ struct JourneyInspect<'a> {
     next: Option<&'a catalog::NavLink>,
 }
 
-fn collect_files(root: &Path) -> Result<BTreeSet<String>> {
+fn collect_files(root: &Path, config: &SiteConfig) -> Result<BTreeSet<String>> {
     let mut files = BTreeSet::new();
-    collect_files_in(root, root, &mut files)?;
+    collect_files_in(root, root, "", &mut files)?;
+    for mount in &config.mounts {
+        let mount_dir = root.join(&mount.source);
+        if mount_dir.is_dir() {
+            collect_files_in(&mount_dir, &mount_dir, &mount.prefix, &mut files)?;
+        }
+    }
     Ok(files)
 }
 
-fn collect_files_in(root: &Path, dir: &Path, files: &mut BTreeSet<String>) -> Result<()> {
+fn collect_files_in(
+    root: &Path,
+    dir: &Path,
+    prefix: &str,
+    files: &mut BTreeSet<String>,
+) -> Result<()> {
     let mut entries: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("failed to read {}", dir.display()))?
         .collect::<std::io::Result<Vec<_>>>()?;
@@ -511,14 +602,19 @@ fn collect_files_in(root: &Path, dir: &Path, files: &mut BTreeSet<String>) -> Re
             continue;
         }
         if path.is_dir() {
-            collect_files_in(root, &path, files)?;
+            collect_files_in(root, &path, prefix, files)?;
         } else {
             let relative = path
                 .strip_prefix(root)
                 .unwrap_or(&path)
                 .to_string_lossy()
                 .replace('\\', "/");
-            files.insert(relative);
+            let full_rel = if prefix.is_empty() {
+                relative
+            } else {
+                format!("{prefix}/{relative}")
+            };
+            files.insert(full_rel);
         }
     }
     Ok(())
@@ -541,6 +637,13 @@ fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
             roots.push(canonical);
         } else {
             roots.push(path);
+        }
+    }
+    for mount in &config.mounts {
+        let mount_dir = root.join(&mount.source);
+        let mount_snippets = mount_dir.join("snippets");
+        if mount_snippets.is_dir() && !roots.contains(&mount_snippets) {
+            roots.push(mount_snippets);
         }
     }
     Ok(roots)

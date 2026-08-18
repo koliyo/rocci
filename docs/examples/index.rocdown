@@ -1,4 +1,6 @@
 @page {
+    layout: "docs",
+    aliases: ["/examples/"],
     meta: {
         title: "Examples",
         description: "Choose a focused Rocci, Rocdown, Datastar, error-handling, or desktop example from the repository.",
@@ -47,6 +49,6 @@ source-map behavior.
 
 ## What to read next
 
-- [Build a component](/guides/build-a-component/) explains the component examples.
-- [Server actions](/guides/server-actions/) explains the counter and gallery request flow.
-- [Rocdown pages](/guides/rocdown-pages/) explains the document examples.
+- [Build a component](/docs/guides/build-a-component/) explains the component examples.
+- [Server actions](/docs/guides/server-actions/) explains the counter and gallery request flow.
+- [Rocdown pages](/docs/guides/rocdown-pages/) explains the document examples.

@@ -1,4 +1,7 @@
 @page {
+    layout: "docs",
+    aliases: ["/reference/rocdown-site/"],
+
     meta: {
         title: "Rocdown site configuration",
         description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocdown.toml.",
@@ -114,8 +117,30 @@ emitted routes after catalog resolve, so a passing check implies a usable href.
 Rocdown writes into a staging directory and atomically replaces the output only
 after a successful build.
 
-The first-party theme CSS is extracted once, hashed, and linked from every
-page. Generated HTML declares the CSP with a `<meta>` tag.
+The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
+from every page, including sites with a project-local `theme/`. Project chrome
+and named layouts compile beside it. Generated HTML declares the CSP with a
+`<meta>` tag. Article HTML must be a component body parameter; a record field
+named `content` is escaped as text.
+
+`build.theme` names a directory or `SiteShell.rocci` file relative to the
+content root. When omitted, Rocdown uses `theme/` if it contains `.rocci`
+files, otherwise the builtin documentation shell.
+
+## Composable content mounts
+
+Sites can mount external documentation catalogs or content trees using `[[mount]]` tables in `rocdown.toml`. This allows maintaining standalone documentation at repository root (`docs/`) while mounting it into a full website (`site/`):
+
+```toml
+[[mount]]
+source = "../docs"
+prefix = "docs"
+layout = "docs"
+```
+
+- `source`: Relative path to the mounted content directory.
+- `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `getting-started/quickstart` to ID `docs/getting-started/quickstart` and route `/docs/getting-started/quickstart/`).
+- `layout`: Optional default layout applied to pages in this mount.
 
 ## Navigation
 
@@ -134,7 +159,7 @@ Published pages may remain unlisted when that is intentional.
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
 with `rocdown run` uses the standalone left navigator instead; see
-[Rocdown](/reference/rocdown/).
+[Rocdown](/docs/reference/rocdown/).
 
 ## Generated artifacts
 
@@ -164,7 +189,7 @@ islands are not part of this preview path.
 
 ## Open Knowledge Format (OKF)
 
-Knowledge bundles are managed through the dedicated [`rocci-okf`](/reference/cli/) application rather than the documentation site generator:
+Knowledge bundles are managed through the dedicated [`rocci-okf`](/docs/reference/cli/) application rather than the documentation site generator:
 
 ```sh
 cargo run -p rocci-okf -- check knowledge --profile rocci
