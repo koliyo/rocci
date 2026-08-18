@@ -1,11 +1,11 @@
 # Rocci and Rocdown client-side playground implementation plan
 
 > [!NOTE]
-> **Product-Boundary Rebase:** This proposed plan is aligned with the consolidated Rocci and Rocdown product boundary approved in [`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md). CLI commands, desktop window hosting (`rocci-desktop`), and static site generation (`rocci-rocdown`) use current crate identities.
+> **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`scripts/check-workspace-deps.py`) reflect the current post-split architecture.
 
 **Status:** proposed — implementation not started
 
-**Date:** 2026-08-17
+**Date:** 2026-08-18
 
 **First delivery target:** `rocci playground Foo.rocci` or `rocdown playground Guide.rocdown` opens the shared
 playground in a desktop window, with all parsing, lowering, AST formatting, and
@@ -18,8 +18,9 @@ Build one reusable playground application with three hosts:
 1. a Rust/WASM compiler package that exposes the existing `.rocci` and
    `.rocdown` parsers, lowerers, AST formatters, diagnostics, and highlighting;
 2. a browser UI with an editable source pane and a read-only output pane;
-3. thin host adapters for the local `rocci playground` / `rocdown playground` commands and the static
-   `rocci.dev` site.
+3. thin host adapters for the local `rocci playground` (for `.rocci`) and
+   `rocdown playground` (for `.rocdown`) commands and the static `rocci.dev`
+   documentation site.
 
 The output selector has exactly these user-visible choices:
 
@@ -39,26 +40,30 @@ and browser-based testing the same shape as production.
 
 ## 2. Product contract
 
-### 2.1 Local command
+### 2.1 Local commands
 
 ```text
 rocci playground Foo.rocci
 rocdown playground Guide.rocdown
 ```
 
-The command:
+The command behavior mirrors the product boundary:
 
-1. validates that the input is a readable `.rocci` or `.rocdown` file;
-2. reads it as the initial in-memory document without modifying it;
-3. starts a loopback-only server on a free port;
+1. `rocci playground` validates that the input is a readable `.rocci` file (and
+   provides a friendly diagnostic hint if given `.rocdown` or `.md`);
+   `rocdown playground` validates that the input is a readable `.rocdown`,
+   `.md`, or `.markdown` file;
+2. reads the target file as the initial in-memory document without modifying it;
+3. starts a loopback-only server on an allocated free port;
 4. serves the playground shell, module worker, JS/CSS, WASM, and bootstrap
    document data with correct MIME types and CSP headers;
 5. opens the URL with the existing `rocci-desktop` preview window;
 6. stops the server when the window closes.
 
-Add `--no-window` and `--port` through the existing `ServeOptions` shape so
-the same command is testable in an ordinary browser. Editing is in-memory in
-the first release: no autosave, file watcher, or filesystem write is implied.
+Add `--no-window` and `--port` through the existing `ServeOptions` / `PortArg`
+shape so the same command is testable in an ordinary browser. Editing is
+in-memory in the first release: no autosave, file watcher, or filesystem write
+is implied.
 
 ### 2.2 Browser layout
 
@@ -111,7 +116,7 @@ fails, clear the output and identify the failed revision.
 
 ### Goals
 
-- Live `.rocci` and `.rocdown` editing in Wry and on `rocci.dev`.
+- Live `.rocci` and `.rocdown` editing in `rocci-desktop` and on `rocci.dev`.
 - Parser/lowerer parity with native library entry points.
 - Generated Roc, formatted AST, structured diagnostics, and syntax tokens
   from Rust/WASM.
@@ -125,7 +130,7 @@ fails, clear the output and identify the failed revision.
 ### Non-goals for the first delivery
 
 - Running or type-checking generated Roc.
-- Native-side compilation through Wry IPC.
+- Native-side compilation through desktop IPC.
 - Editing multiple arbitrary workspace files at once.
 - Saving changes back to the input file.
 - Server actions, network access, Datastar execution, or native capabilities.
@@ -150,15 +155,19 @@ The plan relies on shipped code, not on older exploratory reports:
   target compatibility is a Phase 0 gate rather than an assumption.
 - `comrak` currently uses default features, which pull CLI and native Syntect/
   Oniguruma dependencies that are inappropriate for a browser WASM package.
-- [`rocci-desktop`](crates/rocci-desktop) already opens a URL in a preview window and
-  supports lifecycle, navigation, reload, and developer tools. The MVP can use
-  this URL boundary without adding a compiler IPC protocol.
-- [`rocci-rocdown`](crates/rocci-rocdown) already hashes static assets and owns final page
-  resources and CSP. Its default production CSP intentionally has
+- [`rocci-desktop`](crates/rocci-desktop) (renamed from `rocci-wry`) already
+  opens a URL in a preview window and supports lifecycle, navigation, reload,
+  and developer tools. The MVP uses this URL boundary without adding a compiler
+  IPC protocol.
+- [`rocci-ui`](crates/rocci-ui) provides domain-neutral shared view records
+  (`PageView`, `SiteView`, `NavConfig`, `ResourceView`) and string escaping.
+- [`rocci-rocdown`](crates/rocci-rocdown) already hashes static assets and owns
+  final page resources and CSP. Its default production CSP intentionally has
   `script-src 'none'`, so an interactive playground needs typed, page-scoped
   resource planning rather than a global relaxation.
-- The first-party Rocdown theme already defines syntax-token colors. Reuse those
-  token roles so static code blocks and the editor look related.
+- The first-party Rocdown theme (`templates/RocdownTheme.rocci`) already defines
+  syntax-token colors. Reuse those token roles so static code blocks and the
+  editor look related.
 
 Canonical architecture consulted for this proposal:
 
@@ -166,6 +175,7 @@ Canonical architecture consulted for this proposal:
 - [`knowledge/architecture/language-tooling.md`](knowledge/architecture/language-tooling.md)
 - [`knowledge/architecture/rocdown-format.md`](knowledge/architecture/rocdown-format.md)
 - [`knowledge/architecture/rocdown-documentation-compiler.md`](knowledge/architecture/rocdown-documentation-compiler.md)
+- [`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md)
 - [`knowledge/status/known-limitations.md`](knowledge/status/known-limitations.md)
 
 ## 5. Architecture
@@ -173,11 +183,13 @@ Canonical architecture consulted for this proposal:
 ```mermaid
 flowchart LR
     subgraph Hosts
-        CLI["rocci / rocdown playground FILE"]
+        CLI_ROCCI["rocci playground FILE.rocci"]
+        CLI_ROCDOWN["rocdown playground FILE.rocdown"]
         SITE["Rocdown page on rocci.dev"]
     end
 
-    CLI --> HTTP["loopback static server"]
+    CLI_ROCCI --> HTTP["loopback static server"]
+    CLI_ROCDOWN --> HTTP
     SITE --> CDN["hashed static assets"]
     HTTP --> UI["shared playground web app"]
     CDN --> UI
@@ -203,10 +215,13 @@ flowchart LR
 | Serializable playground contract | new `rocci-playground` crate | Target-neutral Rust; no desktop, HTTP, or DOM types |
 | WASM exports | new `rocci-playground-wasm` crate | Thin `wasm-bindgen` adapter only |
 | Editor and worker | new `playground/` web package | CodeMirror UI, scheduling, decorations, state |
-| Local lifecycle | `rocci-cli` / `rocci-rocdown-cli` | Read input, serve bundle, open desktop window, shut down |
-| Window | existing `rocci-desktop::preview` | URL host; no compilation IPC |
+| Local CLI hosting (`.rocci`) | `rocci-cli` | Read input, serve bundle, open desktop window, shut down |
+| Local CLI hosting (`.rocdown`) | `rocci-rocdown-cli` | Read input, serve bundle, open desktop window, shut down |
+| Reusable loopback server | `rocci-cli` / `rocci-core` | Shared static loopback host consumed by both CLIs |
+| Window | `rocci-desktop::preview` | URL host; no compilation IPC |
 | Site catalog/assets/CSP | `rocci-rocdown` | Detect playground nodes, fingerprint resources, keep default pages script-free |
-| Site markup/chrome | Rocdown theme and docs components | Render mount point and resource tags from typed data |
+| Site markup/chrome | `RocdownTheme.rocci` and `DocsComponents.rocci` | Render mount point and resource tags from typed data |
+| Shared UI view records | `rocci-ui` | Shared neutral page and resource view structures where applicable |
 | Future HTML execution | separate Roc runtime WASM adapter | Never folded into the Rust parser/lowerer module |
 
 ### 5.2 Proposed layout
@@ -219,8 +234,9 @@ crates/
 ├── rocci-playground-wasm/         # cdylib + wasm-bindgen exports
 │   ├── src/lib.rs
 │   └── tests/web.rs
-├── rocci-cli/src/playground.rs    # loopback host and CLI command
-└── rocs/                          # typed playground node/resources
+├── rocci-cli/src/playground.rs    # loopback host and `rocci playground` CLI command
+├── rocci-rocdown-cli/             # `rocdown playground` CLI command
+└── rocci-rocdown/                 # typed playground node/resources in catalog/theme
 
 playground/
 ├── package.json
@@ -236,12 +252,21 @@ docs/
 └── playground.rocdown             # or an embedded home-page section
 
 scripts/
-└── build-playground.sh             # reproducible Rust/WASM + web bundle
+├── build-playground.sh            # reproducible Rust/WASM + web bundle
+└── check-workspace-deps.py        # package classification and dependency-rule enforcement
 ```
 
 Do not check `playground/dist` in as the source of truth unless packaging
 constraints later require release artifacts. Rust, TypeScript, CSS, example
 manifest, and lockfiles are authoritative.
+
+Classify `rocci-playground` and `rocci-playground-wasm` in
+`scripts/check-workspace-deps.py` under the appropriate class so CI dependency
+checks enforce one-way layering: base Rocci packages (`rocci-core`,
+`rocci-template`, `rocci-cli`, etc.) have zero dependencies on Rocdown packages.
+Because `rocci-playground` compiles both `.rocci` and `.rocdown`, it is classified
+in the `rocdown` or specialized playground tier, and base `rocci-cli` interacts
+with it only through static assets served over HTTP at runtime.
 
 ## 6. Core contracts
 
@@ -299,7 +324,8 @@ must satisfy `0 <= from <= to <= document.length` in its coordinate system.
 
 ### 6.3 Browser-safe Rocdown options
 
-Introduce an explicit browser profile rather than relying on defaults:
+Introduce an explicit browser profile in `rocci-rocdown` rather than relying
+on defaults:
 
 - raw HTML disabled;
 - built-in theme only;
@@ -331,9 +357,9 @@ PlaygroundBootstrap {
 }
 ```
 
-The local host serves this as session JSON. Rocs emits a hashed manifest URL
-and a semantic mount element. Keep source out of executable inline scripts;
-serve JSON or escaped text and retain a CSP without `unsafe-inline`.
+The local host serves this as session JSON. `rocci-rocdown` emits a hashed
+manifest URL and a semantic mount element. Keep source out of executable inline
+scripts; serve JSON or escaped text and retain a CSP without `unsafe-inline`.
 
 ## 7. Web application decisions
 
@@ -422,7 +448,7 @@ diagnostic parity with the native facade on the shared fixture corpus.
 - Serialize token kinds using the existing `tok-*` semantic vocabulary.
 - Add bounds, ordering, non-overlap, multiline, malformed-input, and Unicode
   invariants.
-- Add native/WASM/Rocs token parity fixtures for representative files.
+- Add native/WASM/Rocdown token parity fixtures for representative files.
 
 Exit gate: browser-rendered source and generated Roc contain the same semantic
 token classes as `rocci-highlight` on native Rust.
@@ -493,27 +519,33 @@ assets exist, and the bundle runs from a simple static HTTP server.
 
 ### Phase 9 — local loopback host
 
-- Add a small playground server in `rocci-cli` or a reusable host module.
+- Add a reusable playground server module in `rocci-cli` (or `rocci-core`),
+  consumable by both `rocci-cli` and `rocci-rocdown-cli`.
 - Bind only `127.0.0.1` on an allocated port.
 - Serve exact MIME types for HTML, JS modules, CSS, JSON, and
   `application/wasm`.
 - Add cache policy: session/bootstrap data is `no-store`; content-addressed
   code and WASM are immutable.
 - Add security headers and a minimal CSP for self-hosted modules, workers, and
-  WASM. Test whether each Wry engine accepts `wasm-unsafe-eval`; do not add
-  broad `unsafe-eval` unless a target proves it is required.
+  WASM. Test whether each desktop engine (macOS WKWebView, Windows WebView2,
+  Linux WebKitGTK) accepts `wasm-unsafe-eval`; do not add broad `unsafe-eval`
+  unless a target proves it is required.
 - Reject traversal, unknown methods, and unknown session IDs.
-- Shut down via an atomic stop signal when Wry closes.
+- Shut down via an atomic stop signal when the `rocci-desktop` window closes.
 
 Exit gate: `--no-window` serves a fully functional playground that passes HTTP
 route, MIME, CSP, and traversal tests.
 
-### Phase 10 — `rocci playground` CLI and Wry delivery
+### Phase 10 — `rocci playground` and `rocdown playground` CLI delivery
 
-- Add `Commands::Playground` with input plus flattened `ServeOptions`.
-- Validate extension, UTF-8, and file size before opening a window.
+- Add `Commands::Playground` to `rocci-cli` (for `.rocci` files) and
+  `rocci-rocdown-cli` (for `.rocdown` files) with flattened `ServeOptions` /
+  `PortArg`.
+- Validate extension (`.rocci` for `rocci`, `.rocdown`/`.md`/`.markdown` for
+  `rocdown`), UTF-8, and file size before opening a window.
+- Reject `.rocdown` in `rocci playground` with a friendly hint to run `rocdown playground`.
 - Seed bootstrap data with filename, language, and source.
-- Open the URL through `rocci_wry::preview` with an appropriate title/size.
+- Open the URL through `rocci_desktop::preview` with an appropriate title/size.
 - Keep developer tools consistent with other development previews.
 - Confirm closing the window stops the loopback server and releases the port.
 - Add help text that states edits are in-memory.
@@ -523,7 +555,7 @@ compiled in browser WASM:
 
 ```sh
 rocci playground examples/counter/Counter.rocci
-rocci playground examples/rocdown/Guide.rocdown
+rocdown playground examples/rocdown/Guide.rocdown
 ```
 
 ### Phase 11 — native/WASM behavior parity suite
@@ -540,36 +572,36 @@ rocci playground examples/rocdown/Guide.rocdown
 
 Exit gate: parity failures are release-blocking and produce a readable diff.
 
-### Phase 12 — typed Rocs playground component
+### Phase 12 — typed Rocdown playground component
 
 - Add a bounded `@docs playground` kind or an equivalently typed static
   document node. Do not permit raw HTML or arbitrary scripts in Rocdown.
-- Validate example IDs and accepted language extensions in Rust.
+- Validate example IDs and accepted language extensions in Rust (`rocci-rocdown`).
 - Render a semantic mount/fallback through `DocsComponents.rocci`.
-- Have the Rocs planner detect pages that use the component and attach a typed
+- Have the Rocdown planner detect pages that use the component and attach a typed
   playground resource set.
-- Extend `ResourceView` with optional module script, worker, WASM, CSS, and
-  manifest URLs rather than concatenating tags in Rust.
-- Make `RocsTheme.rocci` emit those resources only when present.
+- Extend `ResourceView` (from `rocci-ui`) with optional module script, worker,
+  WASM, CSS, and manifest URLs rather than concatenating tags in Rust.
+- Make `RocdownTheme.rocci` emit those resources only when present.
 - Keep every non-playground page on the existing `script-src 'none'` CSP.
 
 Exit gate: a static page without a playground is byte-for-byte unchanged in
 resource policy; a playground page receives only the declared self-hosted
 assets.
 
-### Phase 13 — Rocs asset and CSP integration
+### Phase 13 — Rocdown asset and CSP integration
 
-- Consume the playground asset manifest during site planning.
+- Consume the playground asset manifest during site planning in `rocci-rocdown`.
 - Add every output to the deterministic artifact plan and atomic build.
 - Content-address assets once or pass their final URLs explicitly; never let
-  Rocs rename an imported worker/WASM file behind the application's back.
+  Rocdown rename an imported worker/WASM file behind the application's back.
 - Generate page-scoped CSP with `script-src 'self'`, `worker-src 'self'`, and
   only the minimal WASM directive confirmed by browser tests.
 - Keep `connect-src` limited to self if bootstrap/example JSON uses `fetch`.
-- Ensure live-reload CSP rewriting in `rocs run` composes with the playground
+- Ensure live-reload CSP rewriting in `rocdown run` composes with the playground
   policy rather than broadening it twice.
 
-Exit gate: `rocs build docs` produces an atomic, internally consistent site;
+Exit gate: `rocdown build docs` produces an atomic, internally consistent site;
 artifact inspection lists every playground file; no external request is made.
 
 ### Phase 14 — main-site examples
@@ -594,7 +626,7 @@ playground assets.
 - Introduce a read-only `VirtualWorkspace` abstraction at the Rocdown boundary
   for sibling page metadata, includes, and asset existence.
 - Preserve existing filesystem-backed native behavior as one adapter.
-- Have `rocci playground FILE` snapshot only allowed files under an explicit
+- Have `rocdown playground FILE` snapshot only allowed files under an explicit
   root and pass normalized logical paths to the browser.
 - Reject traversal and symlink escape before data enters bootstrap JSON.
 - Bound total files and bytes; report omitted capabilities explicitly.
@@ -611,12 +643,12 @@ same Roc/diagnostics in native and WASM paths without browser filesystem APIs.
 - Verify 320 CSS px, 200% zoom, forced colors, light/dark schemes, and reduced
   motion.
 - Test Chromium, Firefox, and WebKit in browser automation.
-- Smoke-test macOS WKWebView, Windows WebView2, and Linux WebKitGTK where CI or
-  maintainers have the platform.
+- Smoke-test macOS WKWebView, Windows WebView2, and Linux WebKitGTK in
+  `rocci-desktop` where CI or maintainers have the platform.
 - Verify IME composition, paste, undo/redo, non-ASCII filenames, and large
   selections.
 
-Exit gate: no critical WCAG 2.2 AA issue in the core flow and no Wry-only
+Exit gate: no critical WCAG 2.2 AA issue in the core flow and no desktop window
 rendering or worker failure on supported desktop targets.
 
 ### Phase 17 — performance and failure budgets
@@ -648,14 +680,17 @@ regressions fail with the measured values.
 - Add one top-level build command for Rust/WASM/web assets.
 - Pin tool versions and document prerequisites.
 - Add CI lanes for Rust tests, WASM build/parity, web unit tests, browser E2E,
-  Rocs build, and `cargo fmt --all -- --check`.
-- Update the root README, CLI reference, Rocs reference, project status, and
-  owning crate READMEs.
+  Rocdown docs build, dependency direction checks (`python3 scripts/check-workspace-deps.py`),
+  and `cargo fmt --all -- --check`.
+- Update the root README, `rocci` CLI reference, `rocdown` CLI reference,
+  project status, and owning crate READMEs.
+- Classify `rocci-playground` and `rocci-playground-wasm` in
+  `scripts/check-workspace-deps.py` under the appropriate dependency rules.
 - Mark HTML rendering as unavailable everywhere it is described.
 - Add third-party notices and verify license compatibility.
-- Add the built asset manifest to release packaging for the `rocci` binary.
+- Add the built asset manifest to release packaging for the `rocci` and `rocdown` binaries.
 
-Exit gate: a clean release build can run the local command and build the site
+Exit gate: a clean release build can run the local commands and build the site
 without hand-copied assets, undeclared global tools, or network access at
 runtime.
 
@@ -687,14 +722,14 @@ unsupported browsers continue to show the Phase 7 availability panel.
 | `rocci-template` / `rocci-rocdown` | Existing parser/lowerer suites; browser-profile and virtual-workspace additions |
 | `rocci-playground` | Response snapshots, language dispatch, HTML capability, UTF-16 conversion |
 | WASM adapter | Native/WASM parity, panic conversion, initialization metadata |
-| Highlighting | Span bounds/order/non-overlap, native/WASM/Rocs parity, malformed input |
+| Highlighting | Span bounds/order/non-overlap, native/WASM/Rocdown parity, malformed input |
 | Worker | Debounce, revision races, crash/restart, timeouts |
-| Web UI | editor state, mode switch, diagnostics, tabs, copy, unavailable HTML |
-| CLI host | routes, MIME, CSP, traversal, lifecycle, `--no-window` |
-| Wry | manual/platform smoke with actual WASM worker |
-| Rocs | typed component validation, asset planning, CSP isolation, atomic output |
+| Web UI | Editor state, mode switch, diagnostics, tabs, copy, unavailable HTML |
+| CLI hosts | Routes, MIME, CSP, traversal, lifecycle, `--no-window` in `rocci-cli` and `rocci-rocdown-cli` |
+| Desktop window (`rocci-desktop`) | Manual/platform smoke with actual WASM worker |
+| Rocdown site | Typed component validation, asset planning, CSP isolation, atomic output |
 | Browser E2E | Chromium/Firefox/WebKit live edit of both languages |
-| Accessibility | automated audit plus keyboard, zoom, forced-colors, screen-reader smoke |
+| Accessibility | Automated audit plus keyboard, zoom, forced-colors, screen-reader smoke |
 
 Run narrow tests while iterating, then before handoff:
 
@@ -705,10 +740,11 @@ cargo test -p rocci-highlight
 cargo test -p rocci-playground
 cargo test -p rocci-playground-wasm
 cargo test -p rocci-cli
-cargo test -p rocs
+cargo test -p rocci-rocdown-cli
 cargo fmt --all -- --check
+python3 scripts/check-workspace-deps.py
 cargo test --workspace
-cargo run -q -p rocs-cli -- build docs
+cargo run -q -p rocci-rocdown-cli -- build docs
 ```
 
 The final two commands are required once site integration begins. Inspect the
@@ -736,7 +772,7 @@ generated playground page and asset/CSP plan, not merely process exit status.
 | --- | --- |
 | Comrak native/default features prevent WASM | Disable defaults, enable only parser features, run full Rocdown parity suite |
 | Tree-sitter C grammars complicate browser target | Time-box Phase 0; fall back to `web-tree-sitter` sidecar with identical span schema |
-| JS bundler and Rocs both rename assets | Pass final worker/WASM URLs in a typed manifest; avoid hidden relative imports |
+| JS bundler and Rocdown both rename assets | Pass final worker/WASM URLs in a typed manifest; avoid hidden relative imports |
 | Site CSP is weakened globally | Page-scoped resource capability; retain `script-src 'none'` elsewhere |
 | Rapid edits reorder results | Monotonic revisions and stale-response discard in worker client |
 | Byte offsets point at wrong JS characters | Serialize tested UTF-16 offsets, including non-BMP fixtures |
@@ -756,14 +792,15 @@ For the shortest path to a convincing local result:
 4. **Main-site launch:** Phases 12–14 plus the relevant 16–18 gates.
 5. **Actual HTML preview:** Phase 19 only after Roc WASM support exists.
 
-Do not start Rocs integration before the local browser bundle is functional.
+Do not start Rocdown site integration before the local browser bundle is functional.
 Do not wait for Roc-in-WASM to ship the useful `roc` and `AST` playground.
 
 ## 13. Definition of done for the current goal
 
 The current goal is complete when:
 
-- `rocci playground Foo.rocci` and `rocci playground Foo.rocdown` open in Wry;
+- `rocci playground Foo.rocci` and `rocdown playground Guide.rocdown` open in
+  `rocci-desktop` preview windows;
 - editing occurs in a highlighted code editor and triggers browser-WASM
   compilation without invoking Roc;
 - the right panel switches among `roc`, `AST`, and the truthful `html`
@@ -771,9 +808,9 @@ The current goal is complete when:
 - diagnostics track the current edit and Unicode ranges correctly;
 - the same bundle is embedded on `rocci.dev` with canonical `.rocci` and
   `.rocdown` examples;
-- only playground pages load scripts/WASM and ordinary Rocs pages keep the
+- only playground pages load scripts/WASM and ordinary Rocdown pages keep the
   strict no-script policy;
-- native/WASM parity, browser E2E, Wry smoke, workspace tests, formatting, and
-  a full docs build pass;
+- native/WASM parity, browser E2E, desktop window smoke, workspace tests,
+  dependency direction checks, formatting, and a full docs build pass;
 - public documentation distinguishes shipped Rust-WASM lowering from the
   still-unavailable Roc-runtime-WASM HTML renderer.
