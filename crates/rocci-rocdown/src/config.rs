@@ -55,6 +55,8 @@ impl Default for SiteMeta {
 pub struct BuildConfig {
     pub output: String,
     pub assets: String,
+    #[serde(default)]
+    pub theme: Option<String>,
 }
 
 impl Default for BuildConfig {
@@ -62,6 +64,7 @@ impl Default for BuildConfig {
         Self {
             output: "dist".into(),
             assets: "assets".into(),
+            theme: None,
         }
     }
 }
@@ -132,6 +135,14 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
     }
     if config.build.output.trim().is_empty() {
         bail!("build.output must not be empty in {}", path.display());
+    }
+    if let Some(theme) = &config.build.theme {
+        if theme.trim().is_empty() || theme.contains('\0') || Path::new(theme).is_absolute() {
+            bail!(
+                "build.theme `{theme}` must be a relative path in {}",
+                path.display()
+            );
+        }
     }
     for (index, section) in config.navigation.iter().enumerate() {
         if section.label.trim().is_empty() {

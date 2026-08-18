@@ -123,16 +123,34 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             ));
             continue;
         }
-        if let Some(layout) = compiled.page_meta.layout.as_deref() {
-            diagnostics.push(CatalogDiagnostic::error(
-                "RD2301",
-                &relative_name,
-                format!(
-                    "{relative_name} uses layout `{layout}`, which static rocdown pages do not support yet"
-                ),
-            ));
-            continue;
-        }
+        const VALID_LAYOUTS: &[&str] = &[
+            "home",
+            "product",
+            "section",
+            "docs",
+            "news-index",
+            "news-post",
+            "plain",
+            "not-found",
+        ];
+        let layout = if let Some(layout) = compiled.page_meta.layout.as_deref() {
+            let clean = layout.trim().trim_matches('"');
+            if !VALID_LAYOUTS.contains(&clean) {
+                diagnostics.push(CatalogDiagnostic::error(
+                    "RD2007",
+                    &relative_name,
+                    format!(
+                        "unknown layout `{layout}`; expected one of {}",
+                        VALID_LAYOUTS.join(", ")
+                    ),
+                ));
+            }
+            clean.to_string()
+        } else if relative_name == "index.rocdown" || relative_name == "index.md" {
+            "home".to_string()
+        } else {
+            "docs".to_string()
+        };
         if let Err(kind) = is_static_document(&compiled.document) {
             diagnostics.push(CatalogDiagnostic::error(
                 "RD2301",
@@ -160,7 +178,25 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                     .map(|heading| heading.text.clone())
             })
             .unwrap_or_else(|| page_id.clone());
-        let description = compiled.page_meta.description.clone().unwrap_or_default();
+        let summary = compiled.page_meta.summary.clone().unwrap_or_default();
+        let description = compiled
+            .page_meta
+            .description
+            .clone()
+            .filter(|d| !d.is_empty())
+            .or_else(|| {
+                if !summary.is_empty() {
+                    Some(summary.clone())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+        let published = compiled.page_meta.published.clone().unwrap_or_default();
+        let updated = compiled.page_meta.updated.clone().unwrap_or_default();
+        let authors = compiled.page_meta.authors.clone();
+        let tags = compiled.page_meta.tags.clone();
+        let collection = compiled.page_meta.collection.clone().unwrap_or_default();
         let route_hint = match compiled.page_meta.route {
             Some(route) => RouteHint::Explicit(route),
             None => RouteHint::Derived,
@@ -227,6 +263,12 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             route_hint,
             aliases: compiled.page_meta.aliases.clone(),
             draft: compiled.page_meta.draft,
+            layout,
+            published,
+            updated,
+            authors,
+            tags,
+            collection,
             title,
             description,
             headings,

@@ -63,17 +63,22 @@ pub struct ArtifactInspect {
 }
 
 #[derive(Debug, Clone)]
+pub struct CompiledThemeModule {
+    pub type_name: String,
+    pub source_name: String,
+    pub src: String,
+    pub roc: String,
+    pub segments: Vec<Segment>,
+    pub styles: Vec<rocci_template::StyleArtifact>,
+}
+
+#[derive(Debug, Clone)]
 pub struct BuildPlan {
     pub pages: Vec<PlannedPage>,
     pub redirects: Vec<PlannedRedirect>,
     pub assets: Vec<PlannedAsset>,
     pub files: Vec<PlannedFile>,
-    pub theme_roc: String,
-    pub theme_src: String,
-    pub theme_segments: Vec<Segment>,
-    pub docs_roc: String,
-    pub docs_src: String,
-    pub docs_segments: Vec<Segment>,
+    pub theme_modules: Vec<CompiledThemeModule>,
     pub snippet_paths: std::collections::BTreeSet<String>,
 }
 
@@ -121,13 +126,11 @@ impl BuildPlan {
 }
 
 pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<BuildPlan> {
-    let compiled = compile_theme()?;
-    let docs = compile_docs_components()?;
+    let theme_modules = compile_theme_modules(root, config)?;
     let mut assets = hash_site_assets(root, config)?;
-    let theme_css = compiled
-        .styles
+    let theme_css = theme_modules
         .iter()
-        .chain(docs.styles.iter())
+        .flat_map(|m| m.styles.iter())
         .map(|style| style.css.as_str())
         .collect::<Vec<_>>()
         .join("\n");
@@ -242,79 +245,155 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         redirects,
         assets,
         files,
-        theme_roc: compiled.roc,
-        theme_src: compiled.src,
-        theme_segments: compiled.segments,
-        docs_roc: docs.roc,
-        docs_src: docs.src,
-        docs_segments: docs.segments,
+        theme_modules,
         snippet_paths: site.snippet_paths.clone(),
     })
 }
 
-struct CompiledTheme {
-    roc: String,
-    src: String,
-    segments: Vec<Segment>,
-    styles: Vec<rocci_template::StyleArtifact>,
+fn compile_theme_modules(root: &Path, config: &SiteConfig) -> Result<Vec<CompiledThemeModule>> {
+    let target = if let Some(theme) = &config.build.theme {
+        let p = root.join(theme);
+        if !p.exists() {
+            bail!(
+                "configured theme path `{theme}` does not exist in {}",
+                root.display()
+            );
+        }
+        Some(p)
+    } else {
+        let theme_dir = root.join("theme");
+        let site_shell = root.join("theme/SiteShell.rocci");
+        let rocdown_theme = root.join("theme/RocdownTheme.rocci");
+        let root_site_shell = root.join("SiteShell.rocci");
+        if site_shell.is_file()
+            || rocdown_theme.is_file()
+            || (theme_dir.is_dir() && has_rocci_files(&theme_dir))
+        {
+            Some(theme_dir)
+        } else if root_site_shell.is_file() {
+            Some(root_site_shell)
+        } else {
+            None
+        }
+    };
+
+    if let Some(target) = target {
+        compile_project_theme(root, &target)
+    } else {
+        compile_builtin_theme()
+    }
 }
 
-fn compile_theme() -> Result<CompiledTheme> {
-    let src = runtime::THEME.to_string();
+fn has_rocci_files(dir: &Path) -> bool {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if entry.path().extension().is_some_and(|ext| ext == "rocci") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn compile_single_module(
+    source_name: &str,
+    type_name: &str,
+    src: &str,
+) -> Result<CompiledThemeModule> {
+    let source_file = SourceFile::new(source_name, src);
     let compiled = compile(
-        SourceFile::new("RocdownTheme.rocci", &src),
+        source_file,
         &LowerOptions {
             embed_css: false,
             ..LowerOptions::default()
         },
     );
     for diagnostic in &compiled.diagnostics {
-        eprintln!(
-            "{}",
-            format_diagnostic(SourceFile::new("RocdownTheme.rocci", &src), diagnostic)
-        );
+        eprintln!("{}", format_diagnostic(source_file, diagnostic));
     }
     if compiled.has_errors() {
-        bail!("RocdownTheme.rocci compilation failed");
+        bail!("{source_name} compilation failed");
     }
     if compiled.roc.contains("import Datastar") {
-        bail!("RocdownTheme.rocci uses Datastar, which the rocdown runtime does not stage");
+        bail!("{source_name} uses Datastar, which the rocdown runtime does not stage");
     }
-    Ok(CompiledTheme {
-        roc: wrap_type_module(&compiled.roc, "RocdownTheme"),
-        src,
+    Ok(CompiledThemeModule {
+        type_name: type_name.to_string(),
+        source_name: source_name.to_string(),
+        src: src.to_string(),
+        roc: wrap_type_module(&compiled.roc, type_name),
         segments: compiled.segments,
         styles: compiled.styles,
     })
 }
 
-fn compile_docs_components() -> Result<CompiledTheme> {
-    let src = runtime::DOCS.to_string();
-    let compiled = compile(
-        SourceFile::new("DocsComponents.rocci", &src),
-        &LowerOptions {
-            embed_css: false,
-            ..LowerOptions::default()
-        },
-    );
-    for diagnostic in &compiled.diagnostics {
-        eprintln!(
-            "{}",
-            format_diagnostic(SourceFile::new("DocsComponents.rocci", &src), diagnostic)
-        );
+fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledThemeModule>> {
+    let mut modules = Vec::new();
+    let theme_dir = if target.is_dir() {
+        target.to_path_buf()
+    } else {
+        target.parent().unwrap_or(root).to_path_buf()
+    };
+
+    let mut rocci_files = Vec::new();
+    if theme_dir.is_dir() {
+        for entry in std::fs::read_dir(&theme_dir)
+            .with_context(|| format!("failed to read {}", theme_dir.display()))?
+        {
+            let path = entry?.path();
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "rocci") {
+                rocci_files.push(path);
+            }
+        }
+    } else if target.is_file() {
+        rocci_files.push(target.to_path_buf());
     }
-    if compiled.has_errors() {
-        bail!("DocsComponents.rocci compilation failed");
+    rocci_files.sort();
+
+    for file in &rocci_files {
+        let type_name = rocci_template::type_name_from_path(file);
+        let src = std::fs::read_to_string(file)
+            .with_context(|| format!("failed to read {}", file.display()))?;
+        let rel_name = file
+            .strip_prefix(root)
+            .unwrap_or(file)
+            .to_string_lossy()
+            .replace('\\', "/");
+        let module = compile_single_module(&rel_name, &type_name, &src)?;
+        modules.push(module);
     }
-    if compiled.roc.contains("import Datastar") {
-        bail!("DocsComponents.rocci uses Datastar, which the rocdown runtime does not stage");
+
+    if !modules.iter().any(|m| m.type_name == "DocsComponents") {
+        let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
+        modules.push(docs);
     }
-    Ok(CompiledTheme {
-        roc: wrap_type_module(&compiled.roc, "DocsComponents"),
-        src,
-        segments: compiled.segments,
-        styles: compiled.styles,
-    })
+
+    if !modules.iter().any(|m| m.type_name == "RocdownTheme") {
+        if modules.iter().any(|m| m.type_name == "SiteShell") {
+            let synth_roc = "import Html\nimport SiteShell\n\nRocdownTheme := [].{\n    siteShell = |view, content|\n        SiteShell.siteShell(view, content),\n}\n";
+            modules.push(CompiledThemeModule {
+                type_name: "RocdownTheme".to_string(),
+                source_name: "RocdownTheme.roc".to_string(),
+                src: synth_roc.to_string(),
+                roc: synth_roc.to_string(),
+                segments: Vec::new(),
+                styles: Vec::new(),
+            });
+        } else {
+            bail!(
+                "project theme in {} must define at least SiteShell.rocci or RocdownTheme.rocci",
+                theme_dir.display()
+            );
+        }
+    }
+
+    Ok(modules)
+}
+
+fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
+    let theme = compile_single_module("RocdownTheme.rocci", "RocdownTheme", runtime::THEME)?;
+    let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
+    Ok(vec![theme, docs])
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -410,6 +489,12 @@ fn planned_page(
             route: page.route.clone(),
             title: page.title.clone(),
             description: page.description.clone(),
+            layout: page.layout.clone(),
+            published: page.published.clone(),
+            updated: page.updated.clone(),
+            authors: page.authors.clone(),
+            tags: page.tags.clone(),
+            collection: page.collection.clone(),
             outline: page
                 .headings
                 .iter()
@@ -476,6 +561,12 @@ fn not_found_page(
             route: "/404.html".into(),
             title: "Page not found".into(),
             description: "This page does not exist.".into(),
+            layout: "not-found".into(),
+            published: String::new(),
+            updated: String::new(),
+            authors: Vec::new(),
+            tags: Vec::new(),
+            collection: String::new(),
             outline: Vec::new(),
             breadcrumbs: Vec::new(),
             previous: NavItemView {
@@ -863,6 +954,26 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.title);
         out.push_str(",\n                description: ");
         push_roc_string(&mut out, &page.view.description);
+        out.push_str(",\n                layout: ");
+        push_roc_string(&mut out, &page.view.layout);
+        out.push_str(",\n                published: ");
+        push_roc_string(&mut out, &page.view.published);
+        out.push_str(",\n                updated: ");
+        push_roc_string(&mut out, &page.view.updated);
+        out.push_str(",\n                authors: [\n");
+        for author in &page.view.authors {
+            out.push_str("                    ");
+            push_roc_string(&mut out, author);
+            out.push_str(",\n");
+        }
+        out.push_str("                ],\n                tags: [\n");
+        for tag in &page.view.tags {
+            out.push_str("                    ");
+            push_roc_string(&mut out, tag);
+            out.push_str(",\n");
+        }
+        out.push_str("                ],\n                collection: ");
+        push_roc_string(&mut out, &page.view.collection);
         out.push_str(",\n                outline: [\n");
         for heading in &page.view.outline {
             out.push_str("                    { id: ");
@@ -1204,6 +1315,118 @@ items = ["index", "guide"]
         let resolved = resolve_loaded(&loaded);
         let third = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
         assert_ne!(first_roc, third.pages_roc());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn project_local_theme_compiles_and_is_staged() {
+        let root = temp("custom-theme");
+        write_site(&root);
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+@component SiteShell = |view, content| {
+    <html>
+        <head>
+            <title>{view.title} - Custom Theme</title>
+        </head>
+        <body>
+            <header>Custom Header</header>
+            <main>{content}</main>
+        </body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+
+        let type_names: Vec<_> = planned
+            .theme_modules
+            .iter()
+            .map(|m| m.type_name.as_str())
+            .collect();
+        assert!(type_names.contains(&"SiteShell"));
+        assert!(type_names.contains(&"RocdownTheme"));
+        assert!(type_names.contains(&"DocsComponents"));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn named_layouts_and_collection_metadata_are_propagated() {
+        let root = temp("layouts-meta");
+        write_site(&root);
+        fs::write(
+            root.join("guide.rocdown"),
+            r#"
+@page {
+    layout: "plain",
+    published: "2026-08-18",
+    updated: "2026-08-19",
+    authors: ["Nils", "Collaborator"],
+    tags: ["guide", "release"],
+    collection: "guides",
+    summary: "A plain guide without docs sidebar",
+}
+
+# Guide
+
+Content here.
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+
+        let guide = planned
+            .pages
+            .iter()
+            .find(|p| p.view.route == "/guide/")
+            .unwrap();
+        assert_eq!(guide.view.layout, "plain");
+        assert_eq!(guide.view.published, "2026-08-18");
+        assert_eq!(guide.view.updated, "2026-08-19");
+        assert_eq!(guide.view.authors, vec!["Nils", "Collaborator"]);
+        assert_eq!(guide.view.tags, vec!["guide", "release"]);
+        assert_eq!(guide.view.collection, "guides");
+        assert_eq!(guide.view.description, "A plain guide without docs sidebar");
+
+        let roc = planned.pages_roc();
+        assert!(roc.contains("layout: \"plain\""));
+        assert!(roc.contains("published: \"2026-08-18\""));
+        assert!(roc.contains("authors: ["));
+        assert!(roc.contains("\"Nils\""));
+        assert!(roc.contains("collection: \"guides\""));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn unknown_layout_returns_rd2007_diagnostic() {
+        let root = temp("bad-layout");
+        write_site(&root);
+        fs::write(
+            root.join("guide.rocdown"),
+            "@page {\n    layout: \"nonexistent_layout\"\n}\n\n# Guide\n",
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(resolved.has_errors());
+        assert!(resolved.diagnostics.iter().any(
+            |d| d.code == "RD2007" && d.message.contains("unknown layout `nonexistent_layout`")
+        ));
+
         let _ = fs::remove_dir_all(root);
     }
 }

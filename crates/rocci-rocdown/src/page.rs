@@ -11,6 +11,12 @@ const CONTROL_FIELDS: &[&str] = &[
     "meta",
     "theme",
     "color_scheme",
+    "published",
+    "updated",
+    "authors",
+    "tags",
+    "collection",
+    "summary",
 ];
 
 pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) -> PageMeta {
@@ -91,12 +97,15 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                     "`aliases` must be a list of compile-time string literals",
                 )),
             },
-            "layout" => match value_path(src, value) {
-                Some(path) => meta.layout = Some(path),
-                None => diagnostics.push(Diagnostic::error(
-                    value,
-                    "`layout` must be a statically resolvable Roc value path",
-                )),
+            "layout" => match string_literal(src, value) {
+                Some(layout) => meta.layout = Some(layout),
+                None => match value_path(src, value) {
+                    Some(path) => meta.layout = Some(path),
+                    None => diagnostics.push(Diagnostic::error(
+                        value,
+                        "`layout` must be a compile-time string literal or statically resolvable Roc value path",
+                    )),
+                },
             },
             "draft" => match bool_literal(src, value) {
                 Some(draft) => meta.draft = draft,
@@ -126,6 +135,48 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                 None => diagnostics.push(Diagnostic::error(
                     value,
                     "`color_scheme` must be a compile-time string literal",
+                )),
+            },
+            "published" => match string_literal(src, value) {
+                Some(date) => meta.published = Some(date),
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`published` must be a compile-time string literal",
+                )),
+            },
+            "updated" => match string_literal(src, value) {
+                Some(date) => meta.updated = Some(date),
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`updated` must be a compile-time string literal",
+                )),
+            },
+            "authors" => match string_list(src, value) {
+                Some(authors) => meta.authors = authors,
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`authors` must be a list of compile-time string literals",
+                )),
+            },
+            "tags" => match string_list(src, value) {
+                Some(tags) => meta.tags = tags,
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`tags` must be a list of compile-time string literals",
+                )),
+            },
+            "collection" => match string_literal(src, value) {
+                Some(collection) => meta.collection = Some(collection),
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`collection` must be a compile-time string literal",
+                )),
+            },
+            "summary" => match string_literal(src, value) {
+                Some(summary) => meta.summary = Some(summary),
+                None => diagnostics.push(Diagnostic::error(
+                    value,
+                    "`summary` must be a compile-time string literal",
                 )),
             },
             "meta" => {
