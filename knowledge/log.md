@@ -2,6 +2,7 @@
 
 ## 2026-08-18
 
+- Added the draft [rocci.dev site architecture and Rocdown evolution plan](plans/rocci-dev-site.md), proposing one static site and catalog for landing pages, documentation, news, FAQ, and project information; project-local Rocci shells and named layouts above Rust-owned catalog work; typed news collections as a later phase; and no separate `rocci-site` engine unless multiple sites demonstrate a distinct product boundary.
 - Closed all remaining findings from the [Rocdown boundary refactor review](audits/rocdown-boundary-refactor-review.md):
   - Removed direct `rocci-theme` dependency from `rocci-rocdown-cli` (consumed via `rocci-rocdown`), supported `ROCDOWN_THEME` / `ROCDOWN_COLOR_SCHEME` with backward-compatible fallbacks, and documented `rocci-theme` role (F-08).
   - Internalized `load_config_named` in `rocci-rocdown`, leaving `CONFIG_FILE` and `load_config` as the sole canonical configuration loader API (F-09).
