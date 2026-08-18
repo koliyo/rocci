@@ -1,0 +1,18 @@
+@page {
+    layout: "plain",
+    meta: {
+        title: "Frequently Asked Questions",
+        description: "Answers to common questions about Rocci, Rocdown, performance, dependencies, and integration.",
+    },
+}
+
+# Frequently Asked Questions
+
+### What is Rocci?
+Rocci is a set of focused tools for building interfaces and technical documents with the Roc programming language.
+
+### How does Rocdown differ from standard Markdown?
+Rocdown is Markdown with explicit, compiler-checked structural declarations (`@page`, `@docs`, `@component`).
+
+### Where should I start?
+Read the [overview](/docs/getting-started/overview/) and follow the [installation guide](/docs/getting-started/installation/).

@@ -1,0 +1,93 @@
+@page {
+    layout: "docs",
+    aliases: ["/troubleshooting/"],
+
+    meta: {
+        title: "Troubleshooting",
+        description: "Recover from common Rocci compiler, Roc toolchain, routing, Datastar, webview, and static documentation failures.",
+    },
+}
+
+# Troubleshooting
+
+Start with the exact error and the smallest command that reproduces it. Rocci
+maps its own parser diagnostics to source; Roc type errors are mapped back from
+generated code where source segments are available.
+
+## `roc` was not found
+
+**Cause:** the Roc compiler is missing from `PATH`.
+
+**Fix:** install or activate the expected Roc toolchain, then verify `roc help`
+works in the same shell that runs Cargo.
+
+## Generated Roc does not type-check
+
+**Cause:** Rocci parses Roc regions but does not type-check them. A valid Rocci
+template can still contain a Roc type error.
+
+**Fix:** run `rocci build FILE` to inspect the generated module, then use the
+mapped compiler frame from `rocci run` to correct the authored expression.
+
+## A directive is rendered as text
+
+**Cause:** the reserved declaration is not at the document root, its header is
+malformed, or it is inside a fence, list, or quote.
+
+**Fix:** run `rocci inspect --ast FILE`. Move the declaration to the document
+root and compare its header with the relevant language reference.
+
+## Raw HTML is rejected in Rocdown
+
+**Cause:** inline raw HTML is disabled by default.
+
+**Fix:** use Markdown, a document-root Rocci tag, or `@render { ... }`. Use a
+fence when the HTML is an example rather than page content.
+
+## A Datastar button does nothing
+
+Check all four boundaries:
+
+1. The page includes the staged `/assets/datastar.js` module.
+2. The attribute uses the intended form: Rocci `@post(...)` or an explicitly quoted Datastar expression.
+3. The handler route and HTTP method match.
+4. The returned fragment has a stable target ID already present in the document.
+
+For row-specific URLs, make the attribute a Roc expression. A static quoted
+string does not interpolate a Roc loop value.
+
+## `/page` returns a redirect or 404
+
+Rocci preserves registered route shape. With `redirect_trailing_slash = true`,
+GET requests redirect with 308 between `/page` and `/page/`. When false, the
+wrong form returns 404 with a hint.
+
+## The preview window does not open
+
+Run the same app with `--no-window` and open the printed URL in a browser. If
+the browser works, check platform Wry dependencies. On Linux, WebKitGTK
+development libraries are the most common missing prerequisite.
+
+## Rocdown site build rejects a page as an island
+
+The current static pipeline rejects `@roc`, `@render`, `@component`, `@css`,
+server declarations, document-root templates, and custom layouts.
+
+Keep the static documentation page to Markdown plus `@page` and `@docs`, or run the
+interactive document with `rocdown run` until static island splicing is implemented.
+
+## A Rocdown navigation item is unknown
+
+Navigation uses content-root-relative page IDs without `.rocdown`. For example,
+`docs/guides/build.rocdown` is `guides/build`. Nested `index.rocdown` retains
+`/index` in its ID even though its route ends at the directory.
+
+## Get a structural view
+
+```sh
+cargo run -p rocci-cli -- inspect --ast path/to/file.rocci
+cargo run -p rocci-rocdown-cli -- inspect ast path/to/file.rocdown
+```
+
+If the issue persists, reduce it to one file and include the command, platform,
+Roc version, and complete diagnostic in a repository issue.

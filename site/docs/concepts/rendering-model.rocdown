@@ -1,0 +1,78 @@
+@page {
+    layout: "docs",
+    aliases: ["/concepts/rendering-model/"],
+
+    meta: {
+        title: "Rendering model",
+        description: "Understand documents, components, server-rendered patches, static pages, and the boundaries between them.",
+    },
+}
+
+# Rendering model
+
+Rocci treats HTML as the shared boundary between build time, server time, and
+the browser. JavaScript can enhance a page, but it is not the default unit of
+composition.
+
+## Components are Roc functions
+
+An authored component lowers to a function that returns `Html`:
+
+```text
+@component Status = |{ label }| <strong>{label}</strong>
+                         │
+                         ▼
+status = |{ label }| Html.element("strong", [], [Html.text(label)])
+```
+
+Component calls become ordinary function calls. Props are Roc records. A paired
+tag passes its body as an additional `Html` argument.
+
+## Documents and fragments are distinct
+
+GET handlers are expected to return complete HTML documents. Mutation handlers
+return fragments that the generated server encodes as Datastar patch events.
+
+| Handler | Typical result | Browser behavior |
+| --- | --- | --- |
+| `@on:get` | `<html>...</html>` | Load or navigate a document |
+| `@on:post` / `put` / `patch` / `delete` | Element with a stable target | Patch matching DOM |
+| Authored long-lived SSE | Stream of events | Update over time |
+
+This distinction prevents every fragment from carrying a document shell, CSS,
+or script setup.
+
+## CSS is colocated and scoped
+
+File and component `@css` blocks are raw CSS. Lowering adds stable
+`data-rocci-css` stamps and wraps rules in CSS `@scope`. A component author
+keeps writing familiar selectors while separate components avoid accidental
+global collisions.
+
+The current compiler also injects styles for direct preview. A production
+asset pipeline can extract the same `StyleArtifact` values and include them once.
+
+## Datastar transports intent and HTML
+
+An attribute such as `data-on:click=@post("/actions/save")` declares a browser
+event and backend request. The handler returns HTML, not a client-state diff.
+Datastar patches the matching element.
+
+This gives server-owned data one authoritative representation. It also means
+stable element IDs and focused fragment boundaries matter.
+
+## Rocdown is static until made explicit
+
+Markdown text, headings, tables, links, and fences are static. `@roc`,
+`@render`, document-root Rocci tags, and handlers introduce executable regions
+that are visible in source. Raw inline HTML is disabled by default.
+
+## Rocdown pre-renders the documentation shell
+
+Rocdown resolves every publishable page before output. It renders article HTML,
+passes normalized site and navigation data to the Rocdown theme, and writes
+ordinary static documents. Navigation and reading remain functional without
+client JavaScript.
+
+See [Architecture](/docs/concepts/architecture/) for crate ownership or build a
+working patch flow in [Server actions](/docs/guides/server-actions/).

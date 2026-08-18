@@ -1,0 +1,33 @@
+@page {
+    layout: "plain",
+    meta: {
+        title: "Project roadmap",
+        description: "Explore the planned phases and milestones for the Rocci ecosystem and rocci.dev.",
+    },
+}
+
+# Project roadmap
+
+This document tracks the phased milestones for Rocci and Rocdown.
+
+## Milestones
+
+### Phase 1: Project-shell seam & named layouts (Completed)
+- Configurable `theme` in `rocdown.toml`.
+- Project-local `.rocci` theme compilation into modules.
+- Named layout validation and view record expansion.
+
+### Phase 2: Complete rocci.dev structure (Current)
+- Canonical route tree under `site/`.
+- Branded shell and named layout templates in `.rocci`.
+- Route aliases preserving backwards compatibility.
+- Structural pages across Home, Rocdown, Docs, News, FAQ, and Project portals.
+
+### Phase 3: Typed collections & feeds
+- First-class collection definitions in Rocdown.
+- Automated `news` catalog queries and Atom / RSS feed generation.
+- Recent-news integration into Home and Section views.
+
+### Phase 4: Extended capabilities
+- Static client-side search indexing with zero runtime dependencies.
+- Reusable site starter templates and distribution packaging.

@@ -1,0 +1,138 @@
+import Html
+
+@component Card = |{ title, href ?? "", description ?? "", tag ?? "" }| {
+    <div class="rd-card">
+        @if href != "" {
+            <a class="rd-card-link" href={href}>
+                <div class="rd-card-header">
+                    <span class="rd-card-title">{title}</span>
+                    @if tag != "" {
+                        <span class="rd-card-tag">{tag}</span>
+                    }
+                </div>
+                @if description != "" {
+                    <p class="rd-card-desc">{description}</p>
+                }
+            </a>
+        } @else {
+            <div class="rd-card-inner">
+                <div class="rd-card-header">
+                    <span class="rd-card-title">{title}</span>
+                    @if tag != "" {
+                        <span class="rd-card-tag">{tag}</span>
+                    }
+                </div>
+                @if description != "" {
+                    <p class="rd-card-desc">{description}</p>
+                }
+            </div>
+        }
+    </div>
+}
+
+@component CardGrid = |{}|, children {
+    <div class="rd-card-grid">
+        {children}
+    </div>
+}
+
+@component Hero = |{ title, subtitle ?? "", cta_label ?? "", cta_href ?? "" }| {
+    <section class="rd-hero">
+        <h1 class="rd-hero-title">{title}</h1>
+        @if subtitle != "" {
+            <p class="rd-hero-subtitle">{subtitle}</p>
+        }
+        @if cta_label != "" && cta_href != "" {
+            <div class="rd-hero-actions">
+                <a class="rd-btn primary" href={cta_href}>{cta_label}</a>
+            </div>
+        }
+    </section>
+}
+
+@component Badge = |{ label, tone ?? "neutral" }| {
+    <span class={"rd-badge tone-${tone}"}>{label}</span>
+}
+
+@css {
+    .rd-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+        gap: 1.25rem;
+        margin: 1.5rem 0;
+    }
+    .rd-card {
+        border: 1px solid var(--rd-color-border, #e2e8f0);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        background: var(--rd-color-bg-card, #ffffff);
+        transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .rd-card:hover {
+        border-color: var(--rd-color-accent, #3b82f6);
+        transform: translateY(-1px);
+    }
+    .rd-card-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .rd-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    .rd-card-title {
+        font-weight: 600;
+        font-size: 1.125rem;
+    }
+    .rd-card-tag {
+        font-size: 0.75rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        background: var(--rd-color-bg-tag, #f1f5f9);
+        color: var(--rd-color-text-muted, #64748b);
+    }
+    .rd-card-desc {
+        color: var(--rd-color-text-muted, #64748b);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        margin: 0;
+    }
+    .rd-hero {
+        padding: 3rem 0 2rem;
+        text-align: center;
+    }
+    .rd-hero-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+        margin-bottom: 1rem;
+    }
+    .rd-hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--rd-color-text-muted, #64748b);
+        max-width: 42rem;
+        margin: 0 auto 1.5rem;
+    }
+    .rd-btn {
+        display: inline-block;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        text-decoration: none;
+    }
+    .rd-btn.primary {
+        background: var(--rd-color-accent, #2563eb);
+        color: #ffffff;
+    }
+    .rd-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+}
