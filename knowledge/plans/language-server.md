@@ -24,9 +24,9 @@ sources:
     title: Rocdown format boundary
     author: process:codex
     last_modified: 2026-08-16
-  - id: rocs-compiler
-    resource: ../architecture/rocs-documentation-compiler.md
-    title: Current Rocs documentation compiler boundary
+  - id: rocdown-compiler
+    resource: ../architecture/rocdown-documentation-compiler.md
+    title: Current Rocdown documentation generator boundary
     author: process:codex
     last_modified: 2026-08-17
   - id: rocs-article
@@ -142,7 +142,7 @@ overlap composition in a small shared Rust crate. Protocol position encoding
 and Rocci analysis remain reusable without a Rocdown dependency; escaped HTML
 and CSS theming stay in the current Rocs generator and move with it into
 Rocdown. The generator links the token library in-process and never launches an
-LSP, editor, Node process, or authored code to highlight a site.[^rocs-compiler][^detailed-plan][^product-boundary]
+LSP, editor, Node process, or authored code to highlight a site.[^rocdown-compiler][^detailed-plan][^product-boundary]
 
 ## Prerequisites
 
@@ -271,7 +271,7 @@ HTML demonstrators.[^detailed-plan]
 [^vscode-semantic]: Standard semantic-token classification and enablement behavior.
 [^tree-sitter-highlighting]: Query capture and in-process highlighting model.
 [^tree-sitter-highlight-rust]: Reusable Rust highlighter configuration, event stream, injection callback, and HTML-renderer API.
-[^rocs-compiler]: Current Rust article-rendering and Rocci-shell ownership boundary.
+[^rocdown-compiler]: Current Rust article-rendering and Rocci-shell ownership boundary.
 [^rocs-article]: Current escaped code-block HTML shape and central rendering path.
 [^rocs-docs]: Current include-language precedence, example metadata, and normalization to article code blocks.
 [^syntect-html]: Alternative classed HTML renderer over TextMate-style syntax sets.

@@ -20,7 +20,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-17
   - id: current-generator
-    resource: ../architecture/rocs-documentation-compiler.md
+    resource: ../architecture/rocdown-documentation-compiler.md
     title: Current Rocdown documentation generator
     author: process:codex
     last_modified: 2026-08-17
@@ -40,7 +40,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-17
   - id: okf-plan
-    resource: rocs-okf.md
+    resource: rocci-okf-app.md
     title: Standalone Rocci OKF application plan
     author: process:codex
     last_modified: 2026-08-17

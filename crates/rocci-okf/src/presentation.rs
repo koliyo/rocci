@@ -6,8 +6,67 @@ use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, Severity, TrustTier, classify_concept_action,
 };
 pub use rocci_ui::escape;
-use rocci_ui::{StatCardView, StatTone, render_stat_grid};
 use serde_json::Value;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StatTone {
+    #[default]
+    Default,
+    Action,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct StatCardView {
+    pub value: String,
+    pub label: String,
+    pub tone: StatTone,
+    pub href: Option<String>,
+}
+
+impl StatCardView {
+    pub fn new(value: impl Into<String>, label: impl Into<String>) -> Self {
+        Self {
+            value: value.into(),
+            label: label.into(),
+            tone: StatTone::Default,
+            href: None,
+        }
+    }
+
+    pub fn with_tone(mut self, tone: StatTone) -> Self {
+        self.tone = tone;
+        self
+    }
+}
+
+pub fn render_stat_grid(cards: &[StatCardView]) -> String {
+    let mut out = String::new();
+    out.push_str("<div class=\"okf-stat-grid\">\n");
+    for card in cards {
+        let tone_class = match card.tone {
+            StatTone::Default => "",
+            StatTone::Action => " is-action",
+        };
+        if let Some(href) = &card.href {
+            out.push_str(&format!(
+                "  <a href=\"{}\" class=\"okf-stat-card{}\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">{}</div></a>\n",
+                escape(href),
+                tone_class,
+                escape(&card.value),
+                escape(&card.label)
+            ));
+        } else {
+            out.push_str(&format!(
+                "  <div class=\"okf-stat-card{}\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">{}</div></div>\n",
+                tone_class,
+                escape(&card.value),
+                escape(&card.label)
+            ));
+        }
+    }
+    out.push_str("</div>\n");
+    out
+}
 
 pub const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
     (
@@ -15,7 +74,7 @@ pub const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
         "Parser/README precedence over original report; root HTML template islands",
     ),
     (
-        "architecture/rocs-documentation-compiler",
+        "architecture/rocdown-documentation-compiler",
         "Rocdown generator plus isolated OKF preview/retrieval path",
     ),
     (

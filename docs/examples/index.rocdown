@@ -16,8 +16,8 @@ runtime boundary that is easy to inspect in source.
 | --- | --- | --- |
 | `counter` | Standalone state, SQLite, GET document, POST patches | `rocci run examples/counter/Counter.rocci` |
 | `styling` | File-level and component-scoped `@css` | `rocci run examples/styling/Styling.rocci` |
-| `rocdown` | Markdown, page metadata, Roc values, components, links | `rocci run examples/rocdown/Guide.rocdown` |
-| `errors` | Styled 404 and parse-error previews | `rocci run examples/errors/ErrorDemo.rocdown` |
+| `rocdown` | Markdown, page metadata, Roc values, components, links | `rocdown run examples/rocdown/Guide.rocdown` |
+| `errors` | Styled 404 and parse-error previews | `rocdown run examples/errors/ErrorDemo.rocdown` |
 | `snake` | A larger standalone Rocci app | `rocci run examples/snake` |
 | `datastar` | Search, edit, todos, tabs, and validation patterns | `rocci run examples/datastar` |
 | `rocdown-site` | Two-page static documentation fixture | `rocdown build examples/rocdown-site --output dist` |
@@ -41,8 +41,9 @@ dynamic Datastar URLs in realistic components.
 ## Syntax fixtures
 
 `test/AllSyntax.rocci` and `test/AllSyntax.rocdown` intentionally exercise the
-grammar more densely than a tutorial. Use them with `inspect --ast` when
-working on parser or source-map behavior.
+grammar more densely than a tutorial. Use them with `rocci inspect --ast` (for
+`.rocci`) and `rocdown inspect ast` (for `.rocdown`) when working on parser or
+source-map behavior.
 
 ## What to read next
 

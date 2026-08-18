@@ -32,7 +32,7 @@ Substantive corrections update `generated.at` and leave the record `draft`. An a
 | [Implementation status](/status/implementation.md) | Snapshot accuracy; shipped, approved, proposed separation | Revised through Phase 6 consolidation and retrieval measurement; draft; re-verification required |
 | [Known limitations](/status/known-limitations.md) | Current absences; ordinary-site versus OKF search boundary | Revised through the Phase 6 public-status correction; draft; re-verification required |
 | [Rocdown format](/architecture/rocdown-format.md) | Parser/README precedence over the original report; root HTML template islands | Revised for document-root HTML template island boundary; draft; re-verification required |
-| [Rocs documentation compiler](/architecture/rocs-documentation-compiler.md) | Ordinary Rocs compiler plus isolated OKF preview/retrieval path | Revised for the Phase 6 retrieval benchmark; draft; re-verification required |
+| [Rocdown documentation generator](/architecture/rocdown-documentation-compiler.md) | Rocdown generator plus isolated OKF preview/retrieval path | Revised for the Phase 6 retrieval benchmark; draft; re-verification required |
 | [Theming](/architecture/theming.md) | Two current surfaces versus DTCG research-only boundary | Revised for amended Phase 4 contract; draft; re-verification required |
 | [Pure render components](/decisions/pure-render-components.md) | Implemented render semantics versus application architecture | Verified by `human:nils`; stable |
 | [Server-owned state](/decisions/server-owned-state.md) | Current direction versus optional browser state | Verified by `human:nils`; stable |
@@ -48,7 +48,7 @@ Substantive corrections update `generated.at` and leave the record `draft`. An a
 
 ## Mechanical checks
 
-Run `rocs knowledge check knowledge --profile rocci`. `OKF4004` reports stale records, `OKF4005` reports verification older than generation, `OKF4006` reports a tracked source committed after human verification, `OKF4007` reports an untracked local source with no git provenance, and `OKF4008` reports tracked evidence with uncommitted changes that cannot be matched to its verification.
+Run `rocci-okf check knowledge --profile rocci`. `OKF4004` reports stale records, `OKF4005` reports verification older than generation, `OKF4006` reports a tracked source committed after human verification, `OKF4007` reports an untracked local source with no git provenance, and `OKF4008` reports tracked evidence with uncommitted changes that cannot be matched to its verification.
 
 ## Current review state
 

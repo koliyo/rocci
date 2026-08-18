@@ -104,7 +104,7 @@ Inspect the comprehensive source, AST, diagnostics, generated Roc, and maps:
 
 ```sh
 cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
-cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocdown
+cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 ```
 
 Also run:

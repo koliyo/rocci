@@ -89,7 +89,7 @@ Categorize the root cause by examining the failing job and log output:
 |---|---|---|
 | `lint` | Unformatted code, clippy warnings | Run `cargo fmt --all -- --check` and `cargo clippy --workspace --all-targets -- -D warnings`. Fix warnings or format with `cargo fmt --all`. |
 | `test` (macOS / Ubuntu) | Logic regressions, platform differences, socket permissions, timing/budget assertions | Run `cargo test -p CRATE` for the failing test. Ensure timing assertions account for unoptimized debug mode on shared CI VMs (`cfg!(debug_assertions)`). Ensure stress/fuzz iterations scale appropriately in debug mode. |
-| `fixtures-and-docs` | AST snapshot drift, broken markdown links, missing frontmatter | Inspect syntax with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci` (and `.rocdown`, `EmbeddedLanguages.*`). Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs`. |
+| `fixtures-and-docs` | AST snapshot drift, broken markdown links, missing frontmatter | Inspect syntax with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci` and `cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown` (and `test/EmbeddedLanguages.rocdown`). Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs`. |
 | `editors` | TypeScript/ESLint errors, VS Code packaging issues, Zed Wasm build errors | Run `npm --prefix editors/vscode ci && npm --prefix editors/vscode run lint && npm --prefix editors/vscode run compile` and `cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1`. |
 | `knowledge` | OKF schema errors, broken cross-references, graph cycles, benchmark regressions | Run `cargo run -q -p rocci-okf -- check knowledge --profile rocci` and `cargo test -p okf && cargo test -p rocci-okf`. |
 
@@ -128,6 +128,7 @@ Categorize the root cause by examining the failing job and log output:
 5. If public syntax or CLI contracts changed, inspect AST fixtures and docs:
    ```sh
    cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
+   cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
    cargo run -q -p rocci-rocdown-cli -- check docs
    ```
 

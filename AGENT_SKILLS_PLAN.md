@@ -137,7 +137,7 @@ Test the skill in fresh agent contexts.
 Positive prompts:
 
 - “What has Rocci decided about client-side islands?”
-- “Find the current Rocs architecture and verify it against code.”
+- “Find the current Rocdown architecture and verify it against code.”
 - “Add a knowledge record for this accepted decision.”
 - “Audit stale and source-drift warnings in the knowledge bundle.”
 - “Show the knowledge graph around the static OKF boundary.”
@@ -163,8 +163,8 @@ Acceptance criteria:
 Likely next candidates:
 
 - `change-rocci-language`: `.rocci`/`.rocdown` grammar, AST, lowering, diagnostics, source maps, fixtures, and reference updates.
-- `build-rocs-site`: catalog, routes, navigation, assets, static HTML, theme shell, preview, and visual QA.
-- `develop-rocci-runtime`: only if runtime, Wry, serving, and packaging tasks recur enough to need a dedicated workflow.
+- `build-rocdown-site`: catalog, routes, navigation, assets, static HTML, theme shell, preview, and visual QA.
+- `develop-rocci-runtime`: only if runtime, desktop host, serving, and packaging tasks recur enough to need a dedicated workflow.
 
 Each should represent one end-to-end job, not one crate. Defer creating them until several real prompts demonstrate repeated mistakes or rediscovery cost.
 

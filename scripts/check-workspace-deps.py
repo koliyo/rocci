@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Check workspace package edges against the frozen Rocdown product boundary.
 
-Package classes and allowlisted reverse edges come from
+Package classes and dependency rules come from
 knowledge/decisions/consolidate-rocdown-product-boundary.md. Unclassified
-workspace members fail. Today's Rocci-to-Rocdown edges stay allowlisted until
-Phase 3 removes them.
+workspace members fail.
 """
 
 from __future__ import annotations
@@ -45,12 +44,6 @@ CLASSES = {
 }
 
 ALLOWED_REVERSE: set[tuple[str, str]] = set()
-
-# Populate with (rocci-okf, rocdown-package) when the presentation adapter is
-# introduced together with a tracking issue. Empty until then.
-TEMPORARY_OKF_ROCDOWN_PRESENTATION: set[tuple[str, str]] = {
-    ("rocci-okf", "rocci-rocdown"),
-}
 
 
 def classify(name: str) -> str | None:
@@ -114,12 +107,7 @@ def forbidden(src: str, dest: str) -> str | None:
         return f"okf engine must not depend on {dest_class} package {dest}"
 
     if src_class == "okf-app" and dest_class == "rocdown":
-        if (src, dest) in TEMPORARY_OKF_ROCDOWN_PRESENTATION:
-            return None
-        return (
-            f"rocci-okf may depend on Rocdown package {dest} only while that "
-            "presentation edge is allowlisted with a tracking issue"
-        )
+        return f"rocci-okf must not depend on Rocdown package {dest}"
 
     return None
 

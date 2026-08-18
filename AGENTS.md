@@ -69,9 +69,10 @@
   are gated behind `#[ignore]`. Run them on demand:
   - Deep invariant fuzzing: `cargo test -p rocci-lsp --test fuzz_invariants -- --nocapture --ignored`
   - Release latency benchmarks: `cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored`
-- For syntax changes, inspect the corresponding `test/AllSyntax.rocci` or
-  `test/AllSyntax.rocdown` fixture with
-  `cargo run -q -p rocci-cli -- inspect --ast PATH`.
+- For syntax changes, inspect the corresponding `test/AllSyntax.rocci`
+  fixture with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci`
+  or `test/AllSyntax.rocdown` with
+  `cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown`.
 - For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run

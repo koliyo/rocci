@@ -1,7 +1,7 @@
 ---
 type: Architecture
 title: Rocci theming surfaces
-description: Standalone Rocdown uses CSS variable themes while Rocdown sites use a Rocci-authored documentation shell and rocci-ui base styles; DTCG is research evidence, not an adopted token authority.
+description: Standalone Rocdown uses CSS variable themes while Rocdown sites use a Rocci-authored documentation shell and rocci-ui view records; DTCG is research evidence, not an adopted token authority.
 tags: [domain/rocdown, domain/design-system, concern/theming, concern/accessibility]
 status: draft
 generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
@@ -61,7 +61,7 @@ Standalone Rocdown resolves `paper`, `rocci`, `none`, a local theme name, or a C
 
 Standalone themes set `--rd-*` variables under `.rd-document`; shared chrome CSS maps those variables to stable Markdown classes. Built-ins are compiled into `rocci-theme`, while named local files are discovered under the user's theme directory.[^theme-readme][^theme-resolver]
 
-Multi-page documentation sites use `RocdownTheme.rocci`, which owns layout, navigation, article presentation, responsive behavior, and shell palette variables using `rocci-ui` base styles (`themes/base.css`). Its extracted CSS is fingerprinted as a build asset.[^rocdown-theme][^ui-readme]
+Multi-page documentation sites use `RocdownTheme.rocci`, which owns layout, navigation, article presentation, responsive behavior, and shell palette variables using structured `PageView` records from `rocci-ui`. Its extracted CSS is fingerprinted as a build asset.[^rocdown-theme][^ui-readme]
 
 ## Boundaries
 
@@ -84,7 +84,7 @@ The resolver and shell establish current behavior. The theming report remains us
 [^theme-readme]: Current standalone selection precedence and CSS-variable authoring contract.
 [^theme-resolver]: Built-in, local, path, alias, and color-scheme resolution in code.
 [^rocdown-theme]: Current independent Rocdown documentation shell layout and palette implementation.
-[^ui-readme]: Shared UI primitives and base styles in rocci-ui.
+[^ui-readme]: Shared UI domain-neutral view records in rocci-ui.
 [^theming-report]: Research-derived separation of format, layout, theme, and code theme.
 [^okf-plan]: Amended Phase 4 DTCG research role and explicit non-adoption boundary.
 [^design-system]: Phase 4 description of current design intent and shipped surface boundaries.

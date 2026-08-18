@@ -1,6 +1,9 @@
 # Implementation plan for the Rocdown documentation generator
 
-**Status:** active — Phase 4 dev-mode (`rocs run`) complete; remaining Phase 4 is search / clean Markdown / machine-output polish
+> [!NOTE]
+> **Historical Archive:** This plan documents the initial documentation generator implementation. The architecture, CLI commands, and crate structures have been consolidated into `rocci-rocdown` and `rocci-rocdown-cli` under the approved decision [`consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md).
+
+**Status:** historical / superseded
 
 **Companion product report:** [`ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md`](archive/reports/ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md)
 

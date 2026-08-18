@@ -57,7 +57,7 @@ sources:
     author: process:codex
     last_modified: 2026-08-17
   - id: rocdown-compiler
-    resource: ../architecture/rocs-documentation-compiler.md
+    resource: ../architecture/rocdown-documentation-compiler.md
     title: Current Rocdown documentation generator boundary
     author: process:codex
     last_modified: 2026-08-17
@@ -71,7 +71,7 @@ sources:
 
 ## Shipped
 
-The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration, domain-neutral presentation components (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
+The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
 
 Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan]
 
@@ -85,7 +85,7 @@ Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark 
 
 Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
 
-The editor adapters and basic host-language LSP exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
+The editor adapters and host-language LSP with Rocdown composition exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
 
 ## Decided direction
 
