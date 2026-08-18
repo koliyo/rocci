@@ -18,24 +18,36 @@ Keep facts in the public references. This skill is the authoring workflow,
 gotchas, and style. For match vs if/else, naming, purity, and worked examples,
 read [idioms.md](idioms.md) before writing non-trivial control flow.
 
-## Choose the file
+## Choose the file and location
 
-| Need | File | Notes |
+| Need | File & Location | Notes |
 | --- | --- | --- |
-| HTML components, handlers, fixtures | `.rocci` | Roc module plus `@component` / `@on` |
-| Markdown-first page or docs | `.rocdown` | Prose is Markdown; `@` only at document root |
-| Shared Roc helpers / opaque modules | `.roc` | Import from `.rocci`; no template grammar |
-| Site chrome / layouts | theme `.rocci` | Article is a **body parameter**, not a prop |
+| Reusable UI widgets & design primitives | `components/*.rocci` | Composable `@component` declarations, scoped `@css`, and `@fixture` |
+| Markdown-first page or docs | `docs/*.rocdown` or `*.rocdown` | Prose is Markdown; `@` only at document root |
+| Site chrome / document layouts | `theme/*.rocci` or `layouts/*.rocci` | Article is a **body parameter**, not a prop (`|{ view }, content|`) |
+| Standalone HTTP apps / route modules | `pages/*.rocci` or root `*.rocci` | App state (`@context`, `@init`), routes (`@on`), and full-page HTML |
+| Shared Roc helpers / domain modules | `*.roc` | Import from `.rocci`; ordinary Roc functions/types without template grammar |
+
+> [!NOTE]
+> Store reusable UI components in `components/` rather than a monolithic `templates/` directory. Rocci files are type-safe, compiled Roc modules with `@component`, scoped `@css`, and `@fixture` metadata—not passive string templates. The internal `crates/*/templates/` directories are reserved for static assets embedded in Rust compiler binaries via `include_str!`.
 
 Static `rocdown build` currently accepts Markdown, `@page`, and `@docs`. Dynamic
 `@roc`, `@render`, Rocci components, file `@css`, handlers, and custom layouts
 work with `rocci run` / standalone `rocdown run`, and are rejected by the static
 site pipeline until island splicing lands.
 
+## Project and directory conventions
+
+- **`components/`**: Place reusable UI components here (e.g. `components/Button.rocci`, `components/StatusCard.rocci`, `components/NavList.rocci`). Each file may define one or several related components and fixtures.
+- **`theme/` or `layouts/`**: Place site shells, document frames, and chrome layouts here (e.g. `theme/Layouts.rocci`, `theme/SiteShell.rocci`).
+- **`pages/` or `routes/` (or app root)**: Place standalone full-page applications and HTTP route modules with `@on:get`, `@context`, and `@init` here.
+- **Co-location rule**: Keep private helper components and page-specific sub-components in the same `.rocci` module where they are consumed. Extract to `components/` when reused across multiple modules or when authoring a shared component library.
+- **Interactive browsing**: Use `cargo run -p rocci-cli -- browse components/` to discover, test, and preview all components and fixtures in the directory.
+
 ## Establish context
 
 1. Inspect `git status --short`. Preserve unrelated work.
-2. Read the closest existing file of the same kind (`examples/`, `site/theme/`,
+2. Read the closest existing file of the same kind (`components/`, `examples/`, `site/theme/`,
    or the page being edited) before inventing a new shape.
 3. Look up exact syntax in:
    - `docs/reference/rocci.rocdown` and `crates/rocci-template/README.md`
@@ -43,8 +55,8 @@ site pipeline until island splicing lands.
    - `docs/guides/build-a-component.rocdown`, `docs/guides/rocdown-pages.rocdown`,
      `docs/guides/docs-components.rocdown`, `docs/guides/server-actions.rocdown`
 4. Treat `test/AllSyntax.rocci` as a compiler fixture, not as a style guide.
-   Prefer `examples/` and current Roc nightly snake_case (`List.is_empty`,
-   `to_str()`, `split_on`).
+   Prefer `examples/`, `site/theme/`, and current Roc nightly snake_case
+   (`List.is_empty`, `to_str()`, `split_on`).
 
 ## Rocci essentials
 

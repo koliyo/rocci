@@ -1,8 +1,31 @@
 # Rocci, Rocdown, and Roc idioms
 
-Style for code written **in** the languages. Syntax details live in
+Style and best practices for code written **in** the languages. Syntax details live in
 `docs/reference/rocci.rocdown`, `docs/reference/rocdown.rocdown`, and the
 owning crate READMEs.
+
+## Directory and Module Organization
+In Rocci projects, structure directories according to the semantic role of each file:
+
+| Directory | Primary Role | Examples | Key Constructs |
+| --- | --- | --- | --- |
+| **`components/`** | Reusable UI widgets and design primitives | `Button.rocci`, `StatusCard.rocci`, `NavList.rocci` | `@component`, `@fixture`, scoped `@css` |
+| **`theme/`** or **`layouts/`** | Document frames, site chrome, and responsive shells | `SiteShell.rocci`, `Layouts.rocci`, `RocdownTheme.rocci` | `@component Layout = \|{ view }, content\|`, global CSS tokens |
+| **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `Todos.rocci`, `Edit.rocci` | `@context`, `@init`, `@on:get`, `@on:post` |
+| **`docs/`** | Documentation pages and guides | `overview.rocdown`, `quickstart.rocdown` | Markdown, `@page`, `@docs`, `@img` |
+
+### Why `components/` instead of `templates/`
+
+- **Language identity**: Rocci defines components via `@component Name = |props| ...` and instantiates them with `<Name />` tags. Calling reusable UI directories `components/` matches the syntax and frontend mental model.
+- **Avoid template misconceptions**: The word "templates" often connotes untyped string interpolation (Jinja, EJS, Handlebars). Rocci `.rocci` files are type-safe, compiled Roc modules with scoped CSS and fixture metadata.
+- **Distinction from layouts & pages**: Not every `.rocci` file is a widget. Using `components/` for reusable widgets, `layouts/` for chrome frames, and `pages/` for full-page apps prevents dumping unrelated concerns into a single catch-all folder.
+- **Crate internal exception**: `crates/*/templates/` is strictly an internal Rust convention for static assets compiled into binaries via `include_str!`. User projects and site code should use `components/`, `theme/`, or `layouts/`.
+
+### Co-location vs Extraction
+
+1. **Co-locate private sub-components**: If a small sub-component is only used within a single page or parent component, declare it directly in that same `.rocci` file (e.g. `@component ItemRow` inside `TodoList.rocci`).
+2. **Extract shared components to `components/`**: When a component is reused across multiple pages or designed as part of a design system, move it to `components/` (e.g. `components/Button.rocci`).
+3. **Explore with `rocci browse`**: Run `cargo run -p rocci-cli -- browse components/` to discover, test, and interactively preview all components and fixtures in the component directory.
 
 ## Prefer match over chained if/else
 
