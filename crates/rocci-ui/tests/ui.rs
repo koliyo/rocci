@@ -45,6 +45,8 @@ fn test_view_constructors_and_serialization() {
             stylesheet: "/assets/theme.css".into(),
             csp: "default-src 'self'".into(),
             canonical: "https://rocci.dev/guide/".into(),
+            module_script: String::new(),
+            playground_css: String::new(),
         },
     };
 

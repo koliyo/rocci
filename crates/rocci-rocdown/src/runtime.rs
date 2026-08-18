@@ -8,9 +8,11 @@ pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
 pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
 
 pub static PLAYGROUND_APP_JS: &[u8] = include_bytes!("../../../playground/dist/app.js");
-pub static PLAYGROUND_WORKER_JS: &[u8] = include_bytes!("../../../playground/dist/compiler-worker.js");
+pub static PLAYGROUND_WORKER_JS: &[u8] =
+    include_bytes!("../../../playground/dist/compiler-worker.js");
 pub static PLAYGROUND_STYLES_CSS: &[u8] = include_bytes!("../../../playground/dist/styles.css");
-pub static PLAYGROUND_COMPILER_WASM: &[u8] = include_bytes!("../../../playground/dist/compiler.wasm");
+pub static PLAYGROUND_COMPILER_WASM: &[u8] =
+    include_bytes!("../../../playground/dist/compiler.wasm");
 
 pub const HTML_BINDINGS: &[&str] = &[
     "element",
