@@ -9,8 +9,9 @@ Executable name: `rocdown`
 ## Commands
 
 ```sh
-# Run a single interactive .rocdown or .md document with live reload.
+# Run a single interactive .rocdown or ordinary .md document with live reload.
 # Relative links to other documents are compiled and served as extra routes.
+# OKF knowledge records are refused with a pointer to `rocci-okf run`.
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
 
 # Run/preview a documentation site directory with watch and live reload
@@ -32,4 +33,4 @@ cargo run -p rocci-rocdown-cli -- inspect artifacts docs
 
 ## Architectural Boundary
 
-`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation.
+`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation. It does not parse OKF; `rocdown run` and `rocdown build` refuse knowledge records and bundles and point to `rocci-okf run`.

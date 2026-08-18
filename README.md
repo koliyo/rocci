@@ -117,6 +117,7 @@ cargo run -p rocci-okf -- inspect graph knowledge
 cargo run -p rocci-okf -- search "rendering" knowledge
 cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 cargo run -p rocci-okf -- run knowledge
+cargo run -p rocci-okf -- run knowledge/plans/cli-entry-points.md
 cargo run -p rocci-okf -- build knowledge --output dist/knowledge
 ```
 

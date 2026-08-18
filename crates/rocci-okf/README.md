@@ -43,6 +43,9 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 # Run with desktop window
 cargo run -p rocci-okf -- run knowledge
 
+# Open a concept inside the enclosing bundle
+cargo run -p rocci-okf -- run knowledge/plans/cli-entry-points.md
+
 # Run headless (prints server URL)
 cargo run -p rocci-okf -- run knowledge --no-window --port 8000
 ```

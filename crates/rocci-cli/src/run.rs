@@ -46,6 +46,13 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
     if path.is_dir() {
         let roc_file = path.join("main.roc");
         if !roc_file.is_file() {
+            if crate::path_hint::looks_like_okf_bundle(&path) {
+                bail!(
+                    "no main.roc in {}; preview OKF knowledge bundles with `rocci-okf run {}`",
+                    path.display(),
+                    file.display()
+                );
+            }
             let standalone = suggest_standalone(&path)?;
             if standalone.is_empty() {
                 bail!("no main.roc in {}", path.display());
@@ -69,6 +76,13 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
     let ext = path.extension().and_then(|e| e.to_str());
     if ext != Some("roc") {
         if ext == Some("rocdown") || ext == Some("md") || ext == Some("markdown") {
+            if ext != Some("rocdown") && crate::path_hint::looks_like_okf_file(&path) {
+                bail!(
+                    "unsupported file extension for `rocci run`: {}; preview OKF knowledge records with `rocci-okf run {}`",
+                    path.display(),
+                    file.display()
+                );
+            }
             bail!(
                 "unsupported file extension for `rocci run`: {}; run Markdown and Rocdown documents with `rocdown run {}`",
                 path.display(),
@@ -529,6 +543,34 @@ mod tests {
         let err = resolve_entry(&md_file).unwrap_err().to_string();
         assert!(err.contains("unsupported file extension"));
         assert!(err.contains("rocdown run"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_entry_suggests_okf_for_knowledge_records() {
+        let dir = temp_app("okf-hint");
+        let md_file = dir.join("plan.md");
+        fs::write(
+            &md_file,
+            "---\ntype: Implementation Plan\ntitle: Plan\nauthority: exploratory\n---\n\n# Plan\n",
+        )
+        .unwrap();
+        let err = resolve_entry(&md_file).unwrap_err().to_string();
+        assert!(err.contains("unsupported file extension"));
+        assert!(err.contains("rocci-okf run"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_entry_suggests_okf_for_knowledge_bundle() {
+        let dir = temp_app("okf-bundle-hint");
+        fs::write(
+            dir.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        let err = resolve_entry(&dir).unwrap_err().to_string();
+        assert!(err.contains("rocci-okf run"));
         cleanup(&dir);
     }
 }

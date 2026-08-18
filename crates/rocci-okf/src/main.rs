@@ -20,10 +20,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Watch an OKF bundle, rebuild, and serve with live reload.
+    /// Watch an OKF bundle or a concept file inside one, rebuild, and serve with live reload.
     Run {
+        /// Knowledge bundle directory or a Markdown file inside one.
         #[arg(default_value = "knowledge")]
-        root: PathBuf,
+        path: PathBuf,
         /// Write preview output here instead of a temp directory.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -264,14 +265,21 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::Run {
-            root,
+            path,
             output,
             profile,
             no_window,
             port,
         } => {
+            let target = okf::resolve_preview_path(&path)?;
             let port = port.resolve()?;
-            let server = dev::run_knowledge(&root, output.as_deref(), port, profile.into())?;
+            let server = dev::run_knowledge(
+                &target.root,
+                output.as_deref(),
+                port,
+                profile.into(),
+                &target.open_path,
+            )?;
             eprintln!("rocci-okf: serving {} at {}", server.title, server.url);
             if no_window {
                 server.wait();

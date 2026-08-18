@@ -38,6 +38,7 @@ const DEFAULT_CSS: &str = r#"
   --rd-font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --rd-bg: #ffffff;
   --rd-fg: #1f2328;
+  --rd-muted: #656d76;
   --rd-border: #d0d7de;
   --rd-border-subtle: #eaeef2;
   --rd-bg-subtle: #f6f8fa;
@@ -47,6 +48,7 @@ const DEFAULT_CSS: &str = r#"
   :root {
     --rd-bg: #0d1117;
     --rd-fg: #e6edf3;
+    --rd-muted: #8b949e;
     --rd-border: #30363d;
     --rd-border-subtle: #21262d;
     --rd-bg-subtle: #161b22;
@@ -68,15 +70,23 @@ main.rd-document {
 a { color: var(--rd-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code { font-family: var(--rd-font-mono); font-size: 0.9em; background: var(--rd-bg-subtle); padding: 0.2em 0.4em; border-radius: 4px; }
-.okf-badge-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.okf-badge-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
 .okf-badge { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 9999px; border: 1px solid var(--rd-border); font-weight: 500; }
 .okf-type { background: var(--rd-bg-subtle); }
 .okf-status-stable { background: #dafbe1; color: #1a7f37; border-color: #4ac26b; }
 .okf-status-draft { background: #fff8c5; color: #9a6700; border-color: #d4a72c; }
 .okf-status-deprecated { background: #ffebe9; color: #cf222e; border-color: #ff8182; }
 .okf-alert-banner { display: flex; gap: 0.5rem; background: #fff8c5; border: 1px solid #d4a72c; padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; }
+.okf-concept-meta { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rd-border); }
+.okf-lead { color: var(--rd-muted); margin: 0 0 0.75rem; }
+.okf-provenance { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; padding: 0; margin: 0 0 0.75rem; font-size: 0.9rem; }
 .okf-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; background: var(--rd-bg-subtle); padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
 .okf-meta-label { font-weight: 600; margin-right: 0.5rem; }
+.okf-sources-drawer, .okf-other-meta { margin: 0.5rem 0; }
+.okf-sources-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+.okf-sources-table th, .okf-sources-table td { padding: 0.4rem 0.5rem; border: 1px solid var(--rd-border); text-align: left; vertical-align: top; }
+.okf-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.okf-tag { font-size: 0.8rem; color: var(--rd-muted); }
 .okf-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
 .okf-stat-card { background: var(--rd-bg-subtle); border: 1px solid var(--rd-border); padding: 1rem; border-radius: 8px; text-align: center; }
 .okf-stat-value { font-size: 1.8rem; font-weight: bold; }
@@ -132,6 +142,7 @@ pub fn run_knowledge(
     output: Option<&Path>,
     port: u16,
     profile: Profile,
+    open_path: &str,
 ) -> Result<DevServer> {
     let root = okf::absolute(root)?;
     if !root.is_dir() {
@@ -165,7 +176,7 @@ pub fn run_knowledge(
         .set_nonblocking(true)
         .context("failed to set listener non-blocking")?;
     let bound = listener.local_addr()?.port();
-    let url = format!("http://127.0.0.1:{bound}/");
+    let url = format!("http://127.0.0.1:{bound}{open_path}");
 
     let server_stop = stop.clone();
     let server_hub = hub.clone();
