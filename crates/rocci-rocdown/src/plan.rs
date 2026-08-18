@@ -173,6 +173,29 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         .cloned()
         .collect();
 
+    let has_playground = published
+        .iter()
+        .any(|p| crate::docs::collect_kinds(&p.article).iter().any(|k| k == "playground"));
+
+    let (playground_app_url, playground_css_url) = if has_playground {
+        let app_asset = hashed_asset("playground-app.js", runtime::PLAYGROUND_APP_JS);
+        let worker_asset = hashed_asset("playground-worker.js", runtime::PLAYGROUND_WORKER_JS);
+        let css_asset = hashed_asset("playground-styles.css", runtime::PLAYGROUND_STYLES_CSS);
+        let wasm_asset = hashed_asset("compiler.wasm", runtime::PLAYGROUND_COMPILER_WASM);
+
+        let app_url = app_asset.hashed_url.clone();
+        let css_url = css_asset.hashed_url.clone();
+
+        assets.push(app_asset);
+        assets.push(worker_asset);
+        assets.push(css_asset);
+        assets.push(wasm_asset);
+
+        (Some(app_url), Some(css_url))
+    } else {
+        (None, None)
+    };
+
     let mut pages = Vec::new();
     for page in &published {
         pages.push(planned_page(
@@ -182,6 +205,8 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
             config.sidebar_tree,
             &stylesheet_url,
             &csp,
+            playground_app_url.as_deref(),
+            playground_css_url.as_deref(),
             &rewrite,
             false,
         ));
@@ -298,6 +323,8 @@ fn planned_page(
     sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
+    playground_app: Option<&str>,
+    playground_css: Option<&str>,
     rewrite: &BTreeMap<String, String>,
     not_found: bool,
 ) -> PlannedPage {
@@ -352,6 +379,22 @@ fn planned_page(
     } else {
         segments
     };
+
+    let page_has_playground = !not_found
+        && crate::docs::collect_kinds(&page.article)
+            .iter()
+            .any(|k| k == "playground");
+
+    let (page_csp, module_script, playground_css_val) = if page_has_playground {
+        (
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'".to_string(),
+            playground_app.unwrap_or_default().to_string(),
+            playground_css.unwrap_or_default().to_string(),
+        )
+    } else {
+        (csp.to_string(), String::new(), String::new())
+    };
+
     PlannedPage {
         article_path: format!("articles/{article_name}.html"),
         output_path: page.output_path.clone(),
@@ -376,8 +419,10 @@ fn planned_page(
             next: optional_link(page.next.as_ref()),
             resources: ResourceView {
                 stylesheet: stylesheet.to_string(),
-                csp: csp.to_string(),
+                csp: page_csp,
                 canonical,
+                module_script,
+                playground_css: playground_css_val,
             },
         },
     }
@@ -445,6 +490,8 @@ fn not_found_page(
                 stylesheet: stylesheet.to_string(),
                 csp: csp.to_string(),
                 canonical: String::new(),
+                module_script: String::new(),
+                playground_css: String::new(),
             },
         },
     }
@@ -846,6 +893,10 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.resources.csp);
         out.push_str(",\n                    canonical: ");
         push_roc_string(&mut out, &page.view.resources.canonical);
+        out.push_str(",\n                    module_script: ");
+        push_roc_string(&mut out, &page.view.resources.module_script);
+        out.push_str(",\n                    playground_css: ");
+        push_roc_string(&mut out, &page.view.resources.playground_css);
         out.push_str("\n                }\n            }\n        },\n");
     }
     out.push_str("    ]\n}\n");

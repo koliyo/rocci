@@ -77,6 +77,10 @@ pub struct ResourceView {
     pub stylesheet: String,
     pub csp: String,
     pub canonical: String,
+    #[serde(default)]
+    pub module_script: String,
+    #[serde(default)]
+    pub playground_css: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

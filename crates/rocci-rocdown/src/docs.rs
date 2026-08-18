@@ -722,6 +722,7 @@ fn known_kind(kind: &str) -> bool {
                 | "tab"
                 | "example"
                 | "include"
+                | "playground"
         )
 }
 
@@ -1466,6 +1467,12 @@ fn render_docs(docs: &DocsNode) -> String {
             "<p class=\"{class}\" data-rocci-docs=\"badge\"><span class=\"rd-docs-badge-label\">{}</span></p>",
             escape(docs.attrs.label.as_deref().unwrap_or(""))
         ),
+        "playground" => {
+            let doc_id = escape(docs.attrs.id.as_deref().unwrap_or("counter"));
+            format!(
+                "<div class=\"rd-docs-playground {class}\" data-rocci-docs=\"playground\" data-doc-id=\"{doc_id}\"><div id=\"playground-root\">{body}</div></div>"
+            )
+        }
         "include" => body,
         _ => format!(
             "<section class=\"{class}\" data-rocci-docs=\"{}\">{body}</section>",

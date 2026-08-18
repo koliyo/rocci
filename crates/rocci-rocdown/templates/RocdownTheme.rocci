@@ -965,6 +965,12 @@ import Html
             <meta http-equiv="Content-Security-Policy" content={resources.csp} />
             <title>{title} · {site.title}</title>
             <link rel="stylesheet" href={resources.stylesheet} />
+            @if resources.playground_css != "" {
+                <link rel="stylesheet" href={resources.playground_css} />
+            }
+            @if resources.module_script != "" {
+                <script type="module" src={resources.module_script}></script>
+            }
             @if description != "" {
                 <meta name="description" content={description} />
             } @else if site.description != "" {

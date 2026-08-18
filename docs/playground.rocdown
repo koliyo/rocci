@@ -1,0 +1,15 @@
+@page {
+    meta: {
+        title: "Interactive Playground",
+        description: "Try Rocci templates and Rocdown documents live in WebAssembly.",
+    },
+}
+
+# Interactive Playground
+
+Experiment with `.rocci` templates and `.rocdown` documents live in your browser. All parsing, lowering, AST formatting, and syntax token classification run entirely client-side in WebAssembly.
+
+@docs playground { id: "counter" }
+
+@docs note { title: "About WebAssembly Lowering" }
+The playground lowers `.rocci` templates and `.rocdown` documents directly to ordinary Roc source code and S-expression ASTs inside a Web Worker. Rendering generated Roc modules to live HTML requires a Roc runtime in WebAssembly, which is in development.
