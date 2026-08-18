@@ -1,6 +1,7 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use anyhow::{Context, Result, bail};
@@ -89,9 +90,12 @@ enum Commands {
         #[command(subcommand)]
         target: InspectTarget,
     },
-    /// Open an in-browser WASM playground to live edit and inspect a .rocdown or .md document.
+    /// Open a playground to live edit a `.rocdown` document or `.rocci` template.
     Playground {
-        /// .rocdown, .md, or .markdown document to open in the playground.
+        /// Compiler host: `wasm` runs in the browser worker; `local` compiles natively.
+        #[arg(long, value_enum, default_value_t = PlaygroundModeArg::Wasm)]
+        mode: PlaygroundModeArg,
+        /// Source file to open (`.rocdown`, `.md`, `.markdown`, or `.rocci`).
         #[arg(default_value = "Guide.rocdown")]
         input: PathBuf,
         /// Skip the embedded window; print the URL and keep serving.
@@ -136,6 +140,51 @@ impl From<HostArg> for rocci_rocdown::HostChoice {
             HostArg::Wasm => rocci_rocdown::HostChoice::Wasm,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum PlaygroundModeArg {
+    #[default]
+    Wasm,
+    Local,
+}
+
+impl From<PlaygroundModeArg> for rocci_cli::playground::PlaygroundMode {
+    fn from(mode: PlaygroundModeArg) -> Self {
+        match mode {
+            PlaygroundModeArg::Wasm => Self::Wasm,
+            PlaygroundModeArg::Local => Self::Local,
+        }
+    }
+}
+
+fn rocdown_local_compile_hook() -> rocci_cli::playground::PlaygroundCompileHook {
+    Arc::new(
+        |body| match serde_json::from_slice::<rocci_playground::CompileRequest>(body) {
+            Ok(request) => {
+                let mut resp = rocci_playground::compile(&request);
+                resp.capabilities.html = rocci_playground::HtmlCapability {
+                    available: false,
+                    reason: rocci_cli::playground::ROCDOWN_LOCAL_HTML_REASON.to_string(),
+                };
+                serde_json::to_vec(&resp).unwrap_or_else(|err| {
+                    serde_json::to_vec(&serde_json::json!({
+                        "protocol_version": 1,
+                        "revision": request.revision,
+                        "error": format!("serialization error: {err}"),
+                        "has_errors": true,
+                    }))
+                    .unwrap_or_default()
+                })
+            }
+            Err(err) => serde_json::to_vec(&serde_json::json!({
+                "protocol_version": 1,
+                "error": format!("invalid JSON request: {err}"),
+                "has_errors": true,
+            }))
+            .unwrap_or_default(),
+        },
+    )
 }
 
 #[derive(Subcommand)]
@@ -350,9 +399,14 @@ fn try_main() -> Result<()> {
             input,
             no_window,
             port,
+            mode,
         } => {
             let serve = rocci_cli::serve::ServeOptions { no_window, port };
-            rocci_cli::playground::run_playground_cli(&input, serve, "rocdown")
+            let hook = match mode {
+                PlaygroundModeArg::Local => Some(rocdown_local_compile_hook()),
+                PlaygroundModeArg::Wasm => None,
+            };
+            rocci_cli::playground::run_playground_cli(&input, serve, "rocdown", mode.into(), hook)
         }
     }
 }
@@ -607,6 +661,36 @@ mod tests {
                 assert_eq!(port, PortArg::Exact(8000));
             }
             _ => panic!("expected run"),
+        }
+    }
+
+    #[test]
+    fn playground_mode_flag_defaults_to_wasm() {
+        let cli = Cli::try_parse_from(["rocdown", "playground", "Guide.rocdown"]).unwrap();
+        match cli.command {
+            Commands::Playground { mode, input, .. } => {
+                assert!(matches!(mode, PlaygroundModeArg::Wasm));
+                assert_eq!(input, PathBuf::from("Guide.rocdown"));
+            }
+            _ => panic!("expected playground"),
+        }
+
+        let cli =
+            Cli::try_parse_from(["rocdown", "playground", "--mode", "local", "Guide.rocdown"])
+                .unwrap();
+        match cli.command {
+            Commands::Playground { mode, .. } => {
+                assert!(matches!(mode, PlaygroundModeArg::Local));
+            }
+            _ => panic!("expected playground"),
+        }
+
+        let cli = Cli::try_parse_from(["rocdown", "playground", "Foo.rocci"]).unwrap();
+        match cli.command {
+            Commands::Playground { input, .. } => {
+                assert_eq!(input, PathBuf::from("Foo.rocci"));
+            }
+            _ => panic!("expected playground"),
         }
     }
 

@@ -53,6 +53,7 @@ fn compile_rocci(request: &CompileRequest) -> CompileResponse {
         language: Language::Rocci,
         roc: output.roc,
         ast,
+        html: String::new(),
         diagnostics,
         highlights,
         capabilities: PlaygroundCapabilities {
@@ -116,6 +117,7 @@ fn compile_rocdown(request: &CompileRequest) -> CompileResponse {
         language: Language::Rocdown,
         roc: output.roc,
         ast,
+        html: String::new(),
         diagnostics,
         highlights,
         capabilities: PlaygroundCapabilities {

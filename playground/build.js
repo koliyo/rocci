@@ -80,9 +80,12 @@ const indexHtmlContent = `<!DOCTYPE html>
       selected_document: "counter",
       compiler_wasm_url: "./compiler.wasm",
       worker_url: "./compiler-worker.js",
+      mode: "wasm",
+      compile_url: "",
+      native_languages: [],
       html_runtime: {
         available: false,
-        reason: "HTML preview is not available yet. Rocci can parse and lower this file in Rust/WASM, but rendering the generated Roc also requires a Roc runtime in WebAssembly."
+        reason: "HTML preview is not available in WASM mode. The browser cannot dynamically compile generated Roc to WebAssembly."
       }
     };
 

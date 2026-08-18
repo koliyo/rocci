@@ -145,13 +145,16 @@ pub fn view(
     }
 }
 
-fn find_component<'a>(components: &'a [ComponentInfo], name: &str) -> Option<&'a ComponentInfo> {
+pub(crate) fn find_component<'a>(
+    components: &'a [ComponentInfo],
+    name: &str,
+) -> Option<&'a ComponentInfo> {
     components
         .iter()
         .find(|component| component.name == name || camel_to_pascal(&component.name) == name)
 }
 
-fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
+pub(crate) fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(decl) if component_matches(&decl.name.name, roc_name) => {
             matches!(
@@ -407,7 +410,7 @@ html_ok = |body|
     out
 }
 
-fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
+pub(crate) fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
     let skip = format!("{type_name}.roc");
     if !src_dir.is_dir() {
         return Ok(());

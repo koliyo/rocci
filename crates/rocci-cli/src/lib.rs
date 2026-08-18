@@ -7,6 +7,8 @@ pub mod driver;
 pub mod error_page;
 pub mod path_hint;
 pub mod playground;
+pub(crate) mod playground_compile;
+pub(crate) mod playground_html;
 pub mod roc_module;
 pub mod run;
 pub mod runtime_assets;

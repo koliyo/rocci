@@ -27,6 +27,7 @@ fn test_rocci_valid_compilation() {
     assert_eq!(resp.capabilities.ast, Capability { available: true });
     assert!(!resp.capabilities.html.available);
     assert_eq!(resp.capabilities.html.reason, HTML_UNAVAILABLE_REASON);
+    assert!(resp.html.is_empty());
 }
 
 #[test]

@@ -29,6 +29,13 @@ cargo run -p rocci-rocdown-cli -- test docs [--update]
 # Inspect Rocdown AST and planned artifacts
 cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 cargo run -p rocci-rocdown-cli -- inspect artifacts docs
+
+# Open the playground with a .rocdown or .rocci file
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- playground examples/counter/Counter.rocci
+
+# Local mode: native parse/lower; Rocdown HTML snapshots are not available yet
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown --mode local
 ```
 
 ## Architectural Boundary

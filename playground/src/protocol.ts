@@ -5,9 +5,10 @@
 
 export const PROTOCOL_VERSION = 1;
 export const HTML_UNAVAILABLE_REASON =
-  "HTML preview is not available yet. Rocci can parse and lower this file in Rust/WASM, but rendering the generated Roc also requires a Roc runtime in WebAssembly.";
+  "HTML preview is not available in WASM mode. The browser cannot dynamically compile generated Roc to WebAssembly.";
 
 export type Language = "rocci" | "rocdown";
+export type PlaygroundMode = "wasm" | "local";
 export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
 
 export interface VirtualFile {
@@ -71,6 +72,7 @@ export interface CompileResponse {
   language: Language;
   roc: string;
   ast: string;
+  html?: string;
   diagnostics: PlaygroundDiagnostic[];
   highlights: PlaygroundHighlights;
   capabilities: PlaygroundCapabilities;
@@ -91,6 +93,9 @@ export interface PlaygroundBootstrap {
   selected_document: string;
   compiler_wasm_url: string;
   worker_url: string;
+  mode?: PlaygroundMode;
+  compile_url?: string;
+  native_languages?: Language[];
   html_runtime: HtmlCapability;
 }
 
