@@ -35,7 +35,7 @@ before publishing.
 
 ## Roc community post
 
-**Suggested subject:** Early preview: Rocci, web and desktop interface tools for Roc
+**Suggested subject:** Early preview: Rocci, composable authoring for applications and content
 
 Hi! I am preparing an early public preview of **Rocci**, an independent
 open-source toolchain for building HTML interfaces and Markdown-first documents
@@ -66,8 +66,8 @@ The most useful questions for this round are:
    to do?
 2. After one screen, is the relationship between Rocci, Rocdown, and Rocci Docs
    clear?
-3. Does “web and desktop interface tools for Roc” describe the project without
-   sounding official?
+3. Does “Composable authoring for applications and content” describe the project
+   clearly, and does the supporting copy make its relationship to Roc explicit?
 4. Which single workflow would make you most likely to try it?
 5. For the early identity directions, does the folded visual language feel
    related to Roc, derivative of Roc, or unrelated?
@@ -186,4 +186,3 @@ allow it.
 4. Correct material issues before sharing the focused Datastar example.
 5. Close and synthesize the round after two weeks; publish decisions before the
    next announcement.
-

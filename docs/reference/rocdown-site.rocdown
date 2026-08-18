@@ -25,12 +25,12 @@ cargo run -p rocci-rocdown-cli -- run report.rocdown
 ```toml
 [site]
 title = "Rocci"
-description = "Roc-native interface tools"
+description = "Rocci — Composable authoring for applications and content"
 base_url = "https://rocci.dev"
 language = "en"
 repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
-subtitle = "Roc-native interface tools"
+subtitle = "Composable authoring for applications and content"
 footer = "Rocci is experimental software."
 
 [build]

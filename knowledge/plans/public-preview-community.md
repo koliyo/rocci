@@ -4,7 +4,7 @@ title: Rocci public-preview branding and community plan
 description: Prepare a reversible Rocci public preview, collect Roc and Datastar feedback, and turn the results into explicit naming, visual, and governance decisions.
 tags: [domain/rocci, domain/rocdown, domain/rocs, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T10:35:05Z }
+generated: { by: process:codex, at: 2026-08-18T12:04:47Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -13,12 +13,12 @@ sources:
     resource: ../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
     title: Rocci branding and community foundation report
     author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: branding-research
     resource: ../research/branding-community-foundation.md
     title: Rocci branding and community foundation research
     author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: root-readme
     resource: ../../README.md
     title: Rocci workspace overview
@@ -40,7 +40,7 @@ sources:
     resource: ../../reports/branding/COMMUNITY_LAUNCH_KIT.md
     title: Rocci public-preview community launch kit
     author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: landing-prototype
     resource: ../../reports/branding/LANDING_PAGE_PROTOTYPE.md
     title: Rocci landing-page prototype brief
@@ -61,10 +61,10 @@ as permanent brand decisions.[^branding-report][^branding-research]
 ## Working position
 
 Use Rocci as the preview masterbrand, Rocdown as the endorsed document format,
-and Rocci Docs as the public label for the current Rocs engine and command. Pair
-Rocci with “web and desktop interface tools for Roc,” describe the project as
-independent, and retain implementation names for compatibility during the
-feedback period.[^branding-research]
+and Rocci Docs as the public label for the current Rocs engine and command. Use
+“Rocci — Composable authoring for applications and content” as the descriptor,
+describe the project as independent, and retain implementation names for
+compatibility during the feedback period.[^branding-research]
 
 ## Phase 0: repository launch gate
 
