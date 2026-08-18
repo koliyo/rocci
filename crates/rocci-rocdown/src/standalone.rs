@@ -1,4 +1,5 @@
 use std::{
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -9,6 +10,10 @@ use rocci_template::{
 };
 use rocci_theme::ThemeOptions;
 
+use crate::links::{
+    PageRef, has_scheme, is_document_href, normalize_components, normalize_join, percent_decode,
+    split_fragment,
+};
 use crate::{CompileOptions, compile};
 
 #[derive(Debug, Clone)]
@@ -50,26 +55,49 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
     if !primary.is_file() {
         bail!("no such Rocdown file: {}", primary.display());
     }
+    let primary = primary.canonicalize().unwrap_or(primary);
 
     let mut modules = Vec::new();
     let mut failures = Vec::new();
     let inputs = linked_standalone_inputs(&primary)?;
-
-    let pages = primary
+    let root = primary
         .parent()
-        .map(crate::index_pages_in_dir)
-        .unwrap_or_default();
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
 
-    for input in inputs {
-        let src = fs::read_to_string(&input)
+    let mut sources = Vec::with_capacity(inputs.len());
+    for input in &inputs {
+        let src = fs::read_to_string(input)
             .with_context(|| format!("failed to read {}", input.display()))?;
-        let name = input.display().to_string();
-        let source = SourceFile::new(&name, &src);
+        sources.push(src);
+    }
 
+    let pages: Vec<PageRef> = inputs
+        .iter()
+        .zip(sources.iter())
+        .map(|(path, src)| preview_page_ref(path, src, &primary, &root))
+        .collect();
+    let type_names = unique_type_names(&root, &inputs);
+
+    for (((input, src), page), type_name) in inputs
+        .iter()
+        .zip(sources.iter())
+        .zip(pages.iter())
+        .zip(type_names.iter())
+    {
+        let name = input.display().to_string();
+        let source = SourceFile::new(&name, src);
+        let default_route = if input == &primary || page.explicit_route {
+            None
+        } else {
+            Some(page.route.clone())
+        };
         let options = CompileOptions {
             theme: theme.clone(),
             check_assets: true,
             pages: pages.clone(),
+            default_route,
             ..CompileOptions::default()
         };
         let compiled = compile(source, &options);
@@ -77,13 +105,12 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
         if compiled.has_errors() {
             failures.push(StandaloneFailedFile {
                 name,
-                src,
+                src: src.clone(),
                 diagnostics: compiled.diagnostics,
             });
             continue;
         }
 
-        let type_name = type_name_from_path(&input);
         let local_assets = crate::collect_local_media(source, &compiled.document)
             .into_iter()
             .map(|(url, _)| url)
@@ -96,10 +123,10 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             init: compiled.init,
             routes: compiled.routes,
             mapped: MappedModule {
-                type_name,
+                type_name: type_name.clone(),
                 generated: compiled.roc,
                 source_name: name,
-                source_src: src,
+                source_src: src.clone(),
                 segments: compiled.segments,
             },
             local_assets,
@@ -110,11 +137,10 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
         return Ok(StandaloneReady::Failed(failures));
     }
 
-    let redirect_trailing_slash =
-        redirect_trailing_slash_for(primary.parent().unwrap_or_else(|| Path::new(".")));
+    let redirect_trailing_slash = redirect_trailing_slash_for(&root);
 
     Ok(StandaloneReady::Ready(StandalonePlan {
-        primary_name: type_name_from_path(&primary),
+        primary_name: type_names[0].clone(),
         modules,
         redirect_trailing_slash,
     }))
@@ -124,21 +150,34 @@ pub fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {
     let primary = primary
         .canonicalize()
         .unwrap_or_else(|_| primary.to_path_buf());
-    if !primary.extension().is_some_and(|ext| ext == "rocdown") {
-        return Ok(vec![primary]);
+    let mut files = Vec::new();
+    let mut seen = HashSet::new();
+    enqueue(&mut files, &mut seen, primary.clone());
+
+    if primary.extension().is_some_and(|ext| ext == "rocdown")
+        && let Some(dir) = primary.parent()
+    {
+        for path in discover_rocdown_files(dir)? {
+            if path.extension().is_some_and(|ext| ext == "rocdown") {
+                enqueue(&mut files, &mut seen, path.canonicalize().unwrap_or(path));
+            }
+        }
     }
-    let Some(dir) = primary.parent() else {
-        return Ok(vec![primary]);
-    };
-    let mut files: Vec<PathBuf> = discover_rocdown_files(dir)?
-        .into_iter()
-        .filter(|path| path.extension().is_some_and(|ext| ext == "rocdown"))
-        .map(|path| path.canonicalize().unwrap_or(path))
-        .collect();
-    files.sort();
-    files.dedup();
-    if let Some(index) = files.iter().position(|path| path == &primary) {
-        files.swap(0, index);
+
+    let mut index = 0;
+    while index < files.len() {
+        let path = files[index].clone();
+        index += 1;
+        let Ok(src) = fs::read_to_string(&path) else {
+            continue;
+        };
+        for target in linked_document_targets(&path, &src) {
+            enqueue(&mut files, &mut seen, target);
+        }
+    }
+
+    if let Some(position) = files.iter().position(|path| path == &primary) {
+        files.swap(0, position);
     } else {
         files.insert(0, primary);
     }
@@ -159,6 +198,192 @@ pub fn discover_rocdown_files(dir: &Path) -> Result<Vec<PathBuf>> {
     }
     files.sort();
     Ok(files)
+}
+
+fn enqueue(files: &mut Vec<PathBuf>, seen: &mut HashSet<PathBuf>, path: PathBuf) {
+    if seen.insert(path.clone()) {
+        files.push(path);
+    }
+}
+
+fn preview_page_ref(path: &Path, src: &str, primary: &Path, root: &Path) -> PageRef {
+    let mut page = crate::page_ref_from_source(path, src);
+    if !page.explicit_route {
+        page.route = if path == primary {
+            "/".to_string()
+        } else {
+            derived_preview_route(root, path)
+        };
+    }
+    page
+}
+
+fn derived_preview_route(root: &Path, file: &Path) -> String {
+    let rel = file
+        .strip_prefix(root)
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|_| {
+            file.file_name()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| file.to_path_buf())
+        });
+    let mut route = String::from("/");
+    let rel = rel.to_string_lossy().replace('\\', "/");
+    route.push_str(rel.trim_start_matches('/'));
+    route
+}
+
+fn unique_type_names(root: &Path, inputs: &[PathBuf]) -> Vec<String> {
+    let preferred: Vec<String> = inputs
+        .iter()
+        .map(|path| type_name_from_path(path))
+        .collect();
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for name in &preferred {
+        *counts.entry(name.clone()).or_insert(0) += 1;
+    }
+    let mut used = HashSet::new();
+    inputs
+        .iter()
+        .zip(preferred)
+        .map(|(path, stem)| {
+            let mut name = if counts.get(&stem) == Some(&1) {
+                stem
+            } else {
+                pascal_from_rel(path.strip_prefix(root).unwrap_or(path))
+            };
+            if name.is_empty() {
+                name = "View".to_string();
+            }
+            if !used.insert(name.clone()) {
+                let mut index = 2;
+                while !used.insert(format!("{name}{index}")) {
+                    index += 1;
+                }
+                name = format!("{name}{index}");
+            }
+            name
+        })
+        .collect()
+}
+
+fn pascal_from_rel(rel: &Path) -> String {
+    let mut out = String::new();
+    let file_name = rel.file_name();
+    for component in rel.components() {
+        let raw = component.as_os_str();
+        let text = if file_name == Some(raw) {
+            Path::new(raw)
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().into_owned())
+                .unwrap_or_else(|| raw.to_string_lossy().into_owned())
+        } else {
+            raw.to_string_lossy().into_owned()
+        };
+        out.push_str(&pascal_segment(&text));
+    }
+    if out.is_empty() {
+        "View".to_string()
+    } else {
+        out
+    }
+}
+
+fn pascal_segment(text: &str) -> String {
+    let mut out = String::new();
+    let mut cap_next = true;
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if cap_next {
+                out.extend(ch.to_uppercase());
+                cap_next = false;
+            } else {
+                out.push(ch);
+            }
+        } else {
+            cap_next = true;
+        }
+    }
+    out
+}
+
+fn linked_document_targets(from: &Path, src: &str) -> Vec<PathBuf> {
+    let name = from.display().to_string();
+    let parsed = crate::parse(SourceFile::new(&name, src), false);
+    let mut targets = Vec::new();
+    let mut seen = HashSet::new();
+    for link in parsed.links {
+        let decoded = percent_decode(&link.url);
+        let (path, _) = split_fragment(&decoded);
+        if let Some(target) = resolve_document_target(from, path)
+            && seen.insert(target.clone())
+        {
+            targets.push(target);
+        }
+    }
+    targets
+}
+
+fn resolve_document_target(from: &Path, href: &str) -> Option<PathBuf> {
+    if href.is_empty() || has_scheme(href) {
+        return None;
+    }
+    if href.starts_with('/') {
+        return resolve_absolute_document(from, href);
+    }
+    let Some(parent) = from.parent() else {
+        return None;
+    };
+    if is_document_href(href) {
+        let candidate = normalize_join(parent, href);
+        return existing_document(&candidate);
+    }
+    if href.contains('/') || href.contains('\\') {
+        return None;
+    }
+    let stem = href
+        .strip_suffix(".rocdown")
+        .or_else(|| href.strip_suffix(".markdown"))
+        .or_else(|| href.strip_suffix(".md"))
+        .unwrap_or(href);
+    if stem.is_empty() {
+        return None;
+    }
+    for ext in ["rocdown", "md", "markdown"] {
+        let candidate = parent.join(format!("{stem}.{ext}"));
+        if let Some(path) = existing_document(&candidate) {
+            return Some(path);
+        }
+    }
+    None
+}
+
+fn resolve_absolute_document(from: &Path, href: &str) -> Option<PathBuf> {
+    if !is_document_href(href) {
+        return None;
+    }
+    let rel = href.trim_start_matches('/');
+    let mut dir = from.parent()?;
+    for _ in 0..16 {
+        let candidate = normalize_components(dir.join(rel));
+        if let Some(path) = existing_document(&candidate) {
+            return Some(path);
+        }
+        dir = dir.parent()?;
+    }
+    None
+}
+
+fn existing_document(path: &Path) -> Option<PathBuf> {
+    if path.is_file()
+        && path
+            .extension()
+            .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
+    {
+        Some(path.canonicalize().unwrap_or_else(|_| path.to_path_buf()))
+    } else {
+        None
+    }
 }
 
 fn redirect_trailing_slash_for(dir: &Path) -> bool {

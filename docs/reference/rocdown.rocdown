@@ -158,15 +158,19 @@ labels are errors at the reference or definition span. This is not an OKF
 
 ## Links
 
-Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown file paths, and
-same-page heading validation. Absolute routes are checked when a page index is
-available. External schemes such as `https:` and `mailto:` pass through.
+Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown and Markdown file
+paths (including nested relative paths such as `knowledge/decisions/foo.md`),
+and same-page heading validation. Absolute routes are checked when a page index
+is available. Absolute `*.md` / `*.rocdown` paths suffix-match indexed files
+when that match is unique; otherwise they pass through. External schemes such
+as `https:` and `mailto:` pass through.
 
 In static site builds, a passing catalog check rewrites validated page and heading links to
 the emitted route (`./foo.rocdown` becomes `/foo/`, and `{id}#heading` becomes
 `/route/#heading`). Same-page `#heading` stays a fragment. Asset hrefs are
-hashed in a later plan pass. Standalone `rocdown run` still rewrites sibling
-stems when `resolve_links` is true.
+hashed in a later plan pass. Standalone `rocdown run` rewrites sibling stems and
+reachable relative document links when `resolve_links` is true, and serves those
+linked pages as extra routes.
 
 ## Generated values
 

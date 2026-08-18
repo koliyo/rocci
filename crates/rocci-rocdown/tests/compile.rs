@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rocci_rocdown::{
     CompileOptions, MarkdownBodyOptions, MdNode, OriginKind, PageRef, SourceFile, Span, compile,
@@ -36,6 +36,7 @@ fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
     PageRef {
         stem: stem.to_string(),
         file_name: format!("{stem}.rocdown"),
+        path: PathBuf::new(),
         route: route.to_string(),
         explicit_route: true,
         heading_ids: headings.iter().map(|id| id.to_string()).collect(),
@@ -825,6 +826,98 @@ And [ref text][ref].
             .count()
             >= 7
     );
+}
+
+#[test]
+fn nested_markdown_page_links_resolve_to_preview_routes() {
+    let pages = vec![
+        PageRef {
+            stem: "Plan".to_string(),
+            file_name: "Plan.md".to_string(),
+            path: PathBuf::from("Plan.md"),
+            route: "/".to_string(),
+            explicit_route: false,
+            heading_ids: vec!["plan".to_string()],
+        },
+        PageRef {
+            stem: "About".to_string(),
+            file_name: "About.md".to_string(),
+            path: PathBuf::from("docs/About.md"),
+            route: "/docs/About.md".to_string(),
+            explicit_route: false,
+            heading_ids: vec!["about".to_string()],
+        },
+    ];
+    let out = compile(
+        SourceFile::new(
+            "Plan.md",
+            "See [about](docs/About.md) and [heading](docs/About.md#about).\n",
+        ),
+        &CompileOptions {
+            pages: pages.clone(),
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(out.roc.contains("\"/docs/About.md\""));
+    assert!(out.roc.contains("\"/docs/About.md#about\""));
+
+    let back = compile(
+        SourceFile::new("docs/About.md", "Back to [plan](../Plan.md).\n"),
+        &CompileOptions {
+            pages,
+            default_route: Some("/docs/About.md".to_string()),
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!back.has_errors(), "{:?}", back.diagnostics);
+    assert!(back.roc.contains("\"/\""));
+    assert!(
+        back.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/docs/About.md")
+    );
+}
+
+#[test]
+fn absolute_document_path_suffix_matches_page() {
+    let pages = vec![PageRef {
+        stem: "boundary".to_string(),
+        file_name: "static-okf-boundary.md".to_string(),
+        path: PathBuf::from("knowledge/decisions/static-okf-boundary.md"),
+        route: "/knowledge/decisions/static-okf-boundary.md".to_string(),
+        explicit_route: false,
+        heading_ids: vec![],
+    }];
+    let out = compile(
+        SourceFile::new(
+            "knowledge/decisions/foo.md",
+            "See [okf](/decisions/static-okf-boundary.md).\n",
+        ),
+        &CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(
+        out.roc
+            .contains("\"/knowledge/decisions/static-okf-boundary.md\"")
+    );
+}
+
+#[test]
+fn unmatched_absolute_markdown_path_is_not_a_route_error() {
+    let pages = vec![page("Foo", "/guides/foo/", &[])];
+    let out = compile(
+        SourceFile::new("test.rocdown", "[go](/missing.md)\n"),
+        &CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(out.roc.contains("\"/missing.md\""));
 }
 
 #[test]

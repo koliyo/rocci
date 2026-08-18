@@ -243,7 +243,11 @@ pub fn lower(
     emitter.emit("}\n");
 
     let mut routes = lowered_rocci.routes;
-    let page_route = page_meta.route.clone().unwrap_or_else(|| "/".to_string());
+    let page_route = page_meta
+        .route
+        .clone()
+        .or_else(|| options.default_route.clone())
+        .unwrap_or_else(|| "/".to_string());
     let has_get = routes
         .iter()
         .any(|route| route.method == "GET" && route.path == page_route);

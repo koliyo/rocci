@@ -9,7 +9,8 @@ Executable name: `rocdown`
 ## Commands
 
 ```sh
-# Run a single interactive .rocdown document with live reload
+# Run a single interactive .rocdown or .md document with live reload.
+# Relative links to other documents are compiled and served as extra routes.
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
 
 # Run/preview a documentation site directory with watch and live reload
