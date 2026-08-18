@@ -1,8 +1,10 @@
 pub mod composite;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
 pub mod language;
 pub mod regions;
 pub mod token;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod tree_sitter;
 
 pub use composite::{highlight, highlight_rocci, highlight_rocci_document};

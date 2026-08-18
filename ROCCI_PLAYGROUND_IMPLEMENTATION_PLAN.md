@@ -3,7 +3,7 @@
 > [!NOTE]
 > **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`scripts/check-workspace-deps.py`) reflect the current post-split architecture.
 
-**Status:** proposed — implementation not started
+**Status:** in progress — Phase 0 complete
 
 **Date:** 2026-08-18
 
@@ -390,29 +390,20 @@ Each phase is intended to be independently reviewable. A capable coding model
 should finish the exit gate, update the plan/status, and run the named checks
 before starting the next phase.
 
-### Phase 0 — WASM feasibility and dependency gate
+### Phase 0 — WASM feasibility and dependency gate [Complete]
 
-- Add the browser target and a minimal, non-published spike crate.
-- Compile `rocci-template` for `wasm32-unknown-unknown`.
-- Change `comrak` to `default-features = false` with only features actually
-  required by Rocdown; run the complete Rocdown test suite to prove behavior.
-- Compile `rocci-rocdown` with a built-in theme and all filesystem operations
-  disabled at runtime.
-- Attempt `rocci-highlight` on the browser target, including its C-generated
-  Tree-sitter parsers.
-- Record release WASM sizes before and after optimization.
+- [x] Add the browser target (`wasm32-unknown-unknown`) and a minimal, non-published spike crate (`crates/rocci-playground-spike`).
+- [x] Compile `rocci-template` for `wasm32-unknown-unknown`.
+- [x] Change `comrak` to `default-features = false` in `rocci-rocdown` and `okf`; run the complete Rocdown and OKF test suites to prove behavior.
+- [x] Compile `rocci-rocdown` with a built-in theme and all filesystem operations disabled at runtime.
+- [x] Attempt `rocci-highlight` on the browser target, including its C-generated Tree-sitter parsers.
+- [x] Record release WASM sizes: raw release WASM **861.4 KB** (882,085 bytes), gzipped **258.9 KB** (265,065 bytes).
 
-Highlighting decision gate:
+Highlighting decision gate outcome:
 
-1. Preferred: `rocci-highlight` links into the Rust WASM package and returns
-   its canonical spans directly.
-2. If its native C build cannot be made reliable in one bounded phase, keep
-   the compiler WASM independent and use `web-tree-sitter` in a second browser
-   module. Adapt its results to the exact `HighlightSpan` vocabulary and add
-   parity fixtures. Do not block parser/lowerer delivery on the C toolchain.
+- **Selected: Option 2 (`web-tree-sitter` sidecar)**. Native C Tree-sitter parsers require C standard library headers (`<stdio.h>`) that are not present on bare `wasm32-unknown-unknown`. `rocci-highlight` and `rocci-lsp` have been target-gated so the pure Rust types (`LanguageId`, `HighlightSpan`, `HighlightKind`, `regions`) compile cleanly for WASM while C Tree-sitter remains native-only. Highlighting in the browser will be driven by `web-tree-sitter` in Phase 3, mapping to the exact canonical `HighlightSpan` schema without blocking parser/lowerer WASM delivery.
 
-Exit gate: minimal browser code returns generated Roc and AST for one `.rocci`
-and one `.rocdown` fixture; native tests remain unchanged.
+Exit gate: `scripts/test-phase0-wasm.mjs` verifies that compiled browser-target WASM executes in Node.js and returns valid generated Roc, formatted AST, and diagnostics for `.rocci` and `.rocdown` fixtures (`Counter.rocci`, `AllSyntax.rocci`, `Guide.rocdown`, `AllSyntax.rocdown`); all workspace tests pass 100%.
 
 ### Phase 1 — target-neutral playground facade
 

@@ -15,6 +15,7 @@ members = [
     "crates/rocci-okf",
     "crates/rocci-ui",
     "crates/rocci-datastar",
+    "crates/rocci-playground-spike",
 ]
 exclude = ["editors/zed"]
 default-members = ["crates/rocci-cli"]
@@ -52,7 +53,7 @@ thiserror = "2.0"
 tokio = { version = "1.47", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 toml = "0.8"
 tracing = "0.1"
-uuid = { version = "1.18", features = ["v4"] }
+uuid = { version = "1.18", features = ["v4", "js"] }
 wry = { version = "0.55", features = ["devtools"] }
 
 [profile.release]

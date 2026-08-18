@@ -1,4 +1,8 @@
 fn main() {
+    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    if target_arch == "wasm32" {
+        return;
+    }
     // Compile Roc Tree-sitter parser
     let roc_dir = std::path::PathBuf::from("grammars/roc/src");
     let mut roc_build = cc::Build::new();

@@ -1,5 +1,6 @@
 pub mod analysis;
 pub mod analyzer;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
 pub mod regions;
 pub mod tokens;

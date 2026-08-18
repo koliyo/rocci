@@ -12,6 +12,8 @@ path = "src/lib.rs"
 [dependencies]
 rocci-template = { workspace = true }
 serde = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tree-sitter = "0.22.6"
 
 [build-dependencies]

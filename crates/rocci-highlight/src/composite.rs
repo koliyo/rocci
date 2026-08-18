@@ -3,28 +3,37 @@ use rocci_template::{
     Element, FixtureDecl, InitDecl, ModuleItem, OnDecl, SourceFile, Span, TemplateItem,
 };
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::embedded;
 use crate::language::LanguageId;
-use crate::regions::{RegionPurpose, RegionTree, extract_rocci_regions};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::regions::RegionPurpose;
+use crate::regions::{RegionTree, extract_rocci_regions};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::token::floor_char_boundary;
 use crate::token::{
-    HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, floor_char_boundary,
-    resolve_and_sort_spans,
+    HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, resolve_and_sort_spans,
 };
 
 pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
     match language {
+        #[cfg(not(target_arch = "wasm32"))]
         LanguageId::Roc => {
             let raw = embedded::roc::highlight(source);
             resolve_and_sort_spans(source, &raw)
         }
+        #[cfg(not(target_arch = "wasm32"))]
         LanguageId::Css => {
             let raw = embedded::css::highlight(source);
             resolve_and_sort_spans(source, &raw)
         }
+        #[cfg(not(target_arch = "wasm32"))]
         LanguageId::Html => {
             let raw = embedded::html::highlight(source);
             resolve_and_sort_spans(source, &raw)
         }
+        #[cfg(target_arch = "wasm32")]
+        LanguageId::Roc | LanguageId::Css | LanguageId::Html => Vec::new(),
         LanguageId::Rocci => highlight_rocci(source),
         LanguageId::Rocdown
         | LanguageId::Markdown
@@ -54,6 +63,11 @@ pub fn collect_embedded_regions(
     collector: &mut Vec<HighlightSpan>,
     regions: &RegionTree,
 ) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = (src, collector, regions);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     for region in &regions.regions {
         let region_start = floor_char_boundary(src, region.span.start as usize);
         let region_end = floor_char_boundary(src, (region.span.end as usize).min(src.len()));
