@@ -8,7 +8,10 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_roc_host::{InputFingerprint, NativeHost, compute_compile_hash, compute_gen_hash};
-use rocci_template::{ComponentInfo, Document, FixtureInfo, type_name_from_path, wrap_type_module};
+use rocci_template::{
+    ComponentInfo, Document, FixtureInfo, LowerOptions, SourceFile, compile, format_diagnostic,
+    type_name_from_path, wrap_type_module,
+};
 
 use crate::error_page::MappedModule;
 use crate::view::{
@@ -85,12 +88,118 @@ pub fn render_html_snapshot(
     fixtures: &[FixtureInfo],
     src_dir: Option<&Path>,
 ) -> Result<String, String> {
+    render_html(
+        filename, source, roc, segments, document, components, fixtures, src_dir, false,
+    )
+}
+
+pub fn render_html_fragment(
+    filename: &str,
+    source: &str,
+    roc: &str,
+    segments: &[rocci_template::Segment],
+    document: &Document,
+    components: &[ComponentInfo],
+    fixtures: &[FixtureInfo],
+    src_dir: Option<&Path>,
+) -> Result<String, String> {
+    render_html(
+        filename, source, roc, segments, document, components, fixtures, src_dir, true,
+    )
+}
+
+fn render_html(
+    filename: &str,
+    source: &str,
+    roc: &str,
+    segments: &[rocci_template::Segment],
+    document: &Document,
+    components: &[ComponentInfo],
+    fixtures: &[FixtureInfo],
+    src_dir: Option<&Path>,
+    fragment: bool,
+) -> Result<String, String> {
     let type_name = type_name_from_path(Path::new(filename));
-    let target = select_html_target(document, components, fixtures, &type_name)?;
+    let mut target = select_html_target(document, components, fixtures, &type_name)?;
+    if fragment {
+        target.wrap_in_shell = false;
+    }
     stage_and_render(
         filename, source, roc, segments, &type_name, &target, src_dir,
     )
     .map_err(|err| err.to_string())
+}
+
+pub fn render_file(input: &Path, fragment: bool, output: Option<&Path>) -> Result<()> {
+    if !input.is_file() {
+        bail!("no such file: {}", input.display());
+    }
+    if input.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!(
+            "unsupported file extension for `rocci render`: {}; expected a .rocci file",
+            input.display()
+        );
+    }
+    let src =
+        fs::read_to_string(input).with_context(|| format!("failed to read {}", input.display()))?;
+    let name = input
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("template.rocci")
+        .to_string();
+    let source = SourceFile::new(&name, &src);
+    let compiled = compile(source, &LowerOptions::default());
+    for diagnostic in &compiled.diagnostics {
+        eprintln!("{}", format_diagnostic(source, diagnostic));
+    }
+    if compiled.has_errors() {
+        bail!("template compilation failed");
+    }
+    let src_dir = input
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty());
+    let html = if fragment {
+        render_html_fragment(
+            &name,
+            &src,
+            &compiled.roc,
+            &compiled.segments,
+            &compiled.document,
+            &compiled.components,
+            &compiled.fixtures,
+            src_dir,
+        )
+    } else {
+        render_html_snapshot(
+            &name,
+            &src,
+            &compiled.roc,
+            &compiled.segments,
+            &compiled.document,
+            &compiled.components,
+            &compiled.fixtures,
+            src_dir,
+        )
+    }
+    .map_err(|err| anyhow::anyhow!(err))?;
+    match output {
+        Some(path) => {
+            let mut body = html;
+            if !body.ends_with('\n') {
+                body.push('\n');
+            }
+            if let Some(parent) = path
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+            {
+                fs::create_dir_all(parent)
+                    .with_context(|| format!("failed to create {}", parent.display()))?;
+            }
+            fs::write(path, body).with_context(|| format!("failed to write {}", path.display()))?;
+        }
+        None => print!("{html}"),
+    }
+    Ok(())
 }
 
 fn stage_and_render(
@@ -360,11 +469,84 @@ helloTest = {}
     }
 
     #[test]
+    fn snapshots_fixture_component_fragment() {
+        if skip_without_roc() {
+            return;
+        }
+        let src = r#"
+import Html
+
+@component Hello = |{}| { <p>hello</p> }
+
+@fixture{target: Hello}
+helloTest = {}
+"#;
+        let out = compile_src(src);
+        assert!(!out.has_errors(), "{:?}", out.diagnostics);
+        let html = render_html_fragment(
+            "Card.rocci",
+            src,
+            &out.roc,
+            &out.segments,
+            &out.document,
+            &out.components,
+            &out.fixtures,
+            None,
+        )
+        .expect("html fragment");
+        assert!(html.contains("<p>hello</p>"), "{html}");
+        assert!(!html.contains("<html"), "{html}");
+    }
+
+    #[test]
+    fn desktop_preview_nav_fragment_matches_committed() {
+        if skip_without_roc() {
+            return;
+        }
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let src_path = manifest.join("../rocci-desktop/templates/PreviewNav.rocci");
+        let expected_path = manifest.join("../rocci-desktop/generated/preview_nav.html");
+        let src = fs::read_to_string(&src_path).expect("PreviewNav.rocci");
+        let expected = fs::read_to_string(&expected_path).expect("preview_nav.html");
+        let out = compile(
+            SourceFile::new("PreviewNav.rocci", &src),
+            &LowerOptions::default(),
+        );
+        assert!(!out.has_errors(), "{:?}", out.diagnostics);
+        let html = render_html_fragment(
+            "PreviewNav.rocci",
+            &src,
+            &out.roc,
+            &out.segments,
+            &out.document,
+            &out.components,
+            &out.fixtures,
+            src_path.parent(),
+        )
+        .expect("preview nav fragment");
+        let mut actual = html;
+        if !actual.ends_with('\n') {
+            actual.push('\n');
+        }
+        assert_eq!(
+            actual, expected,
+            "preview_nav.html is stale; cargo build -p rocci-desktop regenerates it when roc is on PATH, or run:\n  cargo run -q -p rocci-cli -- render crates/rocci-desktop/templates/PreviewNav.rocci --fragment -o crates/rocci-desktop/generated/preview_nav.html"
+        );
+    }
+
+    #[test]
     fn snapshot_main_prints_render() {
         let main = generate_snapshot_main("Card", "Card.hello({ name: \"x\" })", true);
         assert!(main.contains("import pf.Stdout"));
         assert!(main.contains("_ = Stdout.line!(Html.render("));
         assert!(main.contains("Card.hello({ name: \"x\" })"));
         assert!(main.contains("Html.element(\"body\""));
+    }
+
+    #[test]
+    fn snapshot_main_fragment_skips_shell() {
+        let main = generate_snapshot_main("Card", "Card.hello({})", false);
+        assert!(main.contains("Html.render(Card.hello({}))"));
+        assert!(!main.contains("Html.element(\"body\""));
     }
 }

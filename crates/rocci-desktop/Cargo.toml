@@ -16,3 +16,8 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 wry = { workspace = true }
 
+[build-dependencies]
+rocci-roc-host = { workspace = true }
+rocci-template = { workspace = true }
+rocci-ui = { workspace = true }
+

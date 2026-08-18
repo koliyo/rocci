@@ -1,0 +1,105 @@
+import Html
+
+@component IconBack = |{}| {
+    <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M10 3 5 8l5 5"
+        />
+    </svg>
+}
+
+@component IconForward = |{}| {
+    <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 3l5 5-5 5"
+        />
+    </svg>
+}
+
+@component IconHome = |{}| {
+    <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3 8 8 3.5 13 8"
+        />
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M5.5 8.5V13h5V8.5"
+        />
+    </svg>
+}
+
+@component IconReload = |{}| {
+    <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M13 8A5 5 0 1 1 11.5 4.2"
+        />
+        <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M13 3.5V6.5H10"
+        />
+    </svg>
+}
+
+@component PreviewNav = |{ title ?? "", path ?? "", can_back ?? False, can_forward ?? False }| {
+    <nav>
+        <div class="controls">
+            <div class="group">
+                @if can_back {
+                    <button type="button" id="back" aria-label="Back"><IconBack /></button>
+                } @else {
+                    <button type="button" id="back" aria-label="Back" disabled><IconBack /></button>
+                }
+                @if can_forward {
+                    <button type="button" id="forward" aria-label="Forward"><IconForward /></button>
+                } @else {
+                    <button type="button" id="forward" aria-label="Forward" disabled><IconForward /></button>
+                }
+            </div>
+            <div class="divider"></div>
+            <div class="group">
+                <button type="button" id="home" aria-label="Home"><IconHome /></button>
+                <button type="button" id="reload" aria-label="Reload"><IconReload /></button>
+            </div>
+        </div>
+        <div class="meta">
+            <div class="path" id="path">{path}</div>
+            <div class="title" id="title">{title}</div>
+        </div>
+    </nav>
+}
+
+@fixture{target: PreviewNav}
+idle = {
+    title: "",
+    path: "",
+    can_back: False,
+    can_forward: False,
+}

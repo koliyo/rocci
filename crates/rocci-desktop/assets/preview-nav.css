@@ -1,0 +1,136 @@
+:host {
+  all: initial;
+  color-scheme: inherit;
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  min-width: 100%;
+  height: 48px;
+  overflow: hidden;
+  background-color: #21252b;
+  background-color: light-dark(#f7f7f8, #21252b);
+  color: #d7dae0;
+  color: light-dark(#18181b, #d7dae0);
+  z-index: 2147483647;
+}
+
+nav {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 48px;
+  padding: 0 12px 0 10px;
+  border-bottom: 1px solid #3e4451;
+  border-bottom-color: light-dark(#e4e4e7, #3e4451);
+  background-color: #21252b;
+  background-color: light-dark(#f7f7f8, #21252b);
+  color: inherit;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+.controls,
+.group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.controls {
+  gap: 8px;
+}
+
+.group {
+  gap: 2px;
+}
+
+.divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 18px;
+  background: #3e4451;
+  background: light-dark(#d4d4d8, #3e4451);
+}
+
+button {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  background: light-dark(rgba(24, 24, 27, 0.07), rgba(255, 255, 255, 0.08));
+}
+
+button:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  background: light-dark(rgba(24, 24, 27, 0.12), rgba(255, 255, 255, 0.12));
+}
+
+button:focus-visible {
+  outline: 2px solid #61afef;
+  outline: 2px solid light-dark(#3b82f6, #61afef);
+  outline-offset: 1px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.32;
+}
+
+.icon {
+  display: block;
+}
+
+.meta {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.25;
+}
+
+.path,
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path {
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, Menlo, monospace;
+  color: inherit;
+}
+
+.title {
+  font-size: 11.5px;
+  font-weight: 450;
+  color: #9da5b4;
+  color: light-dark(#71717a, #9da5b4);
+}

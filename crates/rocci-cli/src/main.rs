@@ -1,4 +1,4 @@
-use rocci_cli::{browse, bundle, datastar_asset, run, serve, style, view};
+use rocci_cli::{browse, bundle, datastar_asset, render_file, run, serve, style, view};
 
 use std::{
     env, fs,
@@ -55,6 +55,16 @@ enum Commands {
     },
     /// Print a .rocci parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
+    /// Snapshot a .rocci component to HTML via Html.render.
+    Render {
+        input: PathBuf,
+        /// Emit the component fragment without wrapping `<html><body>`.
+        #[arg(long)]
+        fragment: bool,
+        /// Write HTML to this path instead of stdout.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Render a component in an embedded window.
     View {
         input: PathBuf,
@@ -145,6 +155,11 @@ fn try_main() -> Result<()> {
         Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
+        Commands::Render {
+            input,
+            fragment,
+            output,
+        } => render_file(&input, fragment, output.as_deref()),
         Commands::View {
             input,
             component,
@@ -384,6 +399,31 @@ mod tests {
     fn no_window_still_accepts_explicit_port() {
         let cli = Cli::try_parse_from(["rocci", "run", "--no-window", "--port", "auto"]).unwrap();
         assert_eq!(port_of(&cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn render_parses_fragment_and_output() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "render",
+            "PreviewNav.rocci",
+            "--fragment",
+            "-o",
+            "out.html",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Render {
+                input,
+                fragment,
+                output,
+            } => {
+                assert_eq!(input, PathBuf::from("PreviewNav.rocci"));
+                assert!(fragment);
+                assert_eq!(output.as_deref(), Some(Path::new("out.html")));
+            }
+            _ => panic!("expected render"),
+        }
     }
 
     #[test]

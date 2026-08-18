@@ -87,7 +87,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         context,
         options.devtools,
         WebViewHooks {
-            initialization_script: Some(chrome::INITIALIZATION_SCRIPT.into()),
+            initialization_script: Some(chrome::initialization_script()),
             ipc_handler: Some(Box::new(move |request| {
                 if let Some(command) = NavCommand::parse(request.body()) {
                     let _ =
