@@ -52,6 +52,7 @@ items = [
 [[nav]]
 label = "Resources"
 items = [
+    "playground",
     "examples/index",
     "troubleshooting",
     "project/status",
