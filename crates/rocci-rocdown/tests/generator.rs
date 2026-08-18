@@ -7,7 +7,7 @@ use rocci_rocdown::{
 };
 
 #[test]
-fn golden_article_html_components() {
+fn test_article_html_components() {
     let doc_src = r#"# Components Guide
 
 @docs note {
@@ -139,7 +139,7 @@ Footnote reference.[^first]
 }
 
 #[test]
-fn golden_site_catalog_resolution() {
+fn test_site_catalog_resolution() {
     let pages = vec![
         SourcePage {
             id: "index".to_string(),
