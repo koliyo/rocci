@@ -1,0 +1,51 @@
+@page {
+    layout: "news-post",
+    published: "2026-08-20",
+    authors: ["Rocci Team"],
+    tags: ["feature", "desktop", "release"],
+    collection: "news",
+    summary: "Rocci now includes built-in tooling to package lightweight standalone macOS desktop applications backed by Tao and Wry.",
+    meta: {
+        title: "Building Native Desktop Apps with Rocci",
+        description: "Learn how Rocci compiles and packages standalone native desktop applications with webview frontends and compiled Roc backends.",
+    },
+}
+
+# Building Native Desktop Apps with Rocci
+
+We are excited to share details on Rocci's desktop host capabilities, enabling developers to package lightweight, single-binary native applications.
+
+---
+
+## The Desktop Architecture
+
+Rocci's desktop architecture combines:
+- **Pure Roc Backends**: Application logic, state management, and HTTP/SSE endpoints written in Roc.
+- **Tao & Wry Webviews**: Fast, memory-efficient native webviews utilizing macOS WebKit without shipping a heavy Chromium bundle.
+- **Ad-Hoc Signing & Packaging**: Automatic `.app` bundle synthesis and local signing.
+
+---
+
+## Packaging an Application
+
+Running an interactive application in desktop mode is as simple as:
+
+```sh
+rocci run examples/snake
+```
+
+To create a standalone application bundle for distribution on macOS:
+
+```sh
+rocci bundle examples/counter --output dist/Counter.app
+```
+
+---
+
+## Roadmap for Desktop
+
+- **Cross-Platform Bundles**: Windows (`.msi`/`.exe`) and Linux (`.AppImage`/`.deb`) packaging.
+- **Native OS Dialogs**: File open/save dialogs, system notifications, and tray icons.
+- **Deep Linking**: Custom URI scheme protocol handlers.
+
+Check out the [desktop packaging guide](/docs/guides/desktop-app/) or read the [project roadmap](/project/roadmap/) for more details.

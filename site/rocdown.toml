@@ -52,6 +52,7 @@ items = [
     "news/index",
     "news/introducing-rocci",
     "news/rocdown-static-collections",
+    "news/rocci-desktop-apps",
 ]
 
 [[nav]]
