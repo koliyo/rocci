@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 pub const HTML: &str = include_str!("../runtime/Html.roc");
 pub(crate) const BUILD: &str = include_str!("../runtime/RocdownBuild.roc");
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
+pub const BASE: &str = include_str!("../templates/RocdownBase.rocci");
 pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
 
 pub static PLAYGROUND_APP_JS: &[u8] = include_bytes!("../../../playground/dist/app.js");

@@ -17,6 +17,7 @@ pub struct LowerOptions {
     pub theme_id: Option<String>,
     pub color_scheme_attr: Option<String>,
     pub embed_css: bool,
+    pub scope_file_css: bool,
 }
 
 impl Default for LowerOptions {
@@ -27,6 +28,7 @@ impl Default for LowerOptions {
             theme_id: None,
             color_scheme_attr: None,
             embed_css: true,
+            scope_file_css: true,
         }
     }
 }
@@ -215,17 +217,22 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         .map(|(text, _)| text.trim())
         .collect::<Vec<_>>()
         .join("\n\n");
-    let file_scope_id = if file_css.is_empty() {
+    let file_scope_id = if file_css.is_empty() || !options.scope_file_css {
         None
     } else {
         Some(file_scope_id(source.name))
     };
     let mut styles = Vec::new();
-    if let Some(id) = &file_scope_id {
+    if !file_css.is_empty() {
+        let css = if let Some(id) = &file_scope_id {
+            scope_css(&file_css, id)
+        } else {
+            file_css.clone()
+        };
         styles.push(StyleArtifact {
             kind: StyleKind::File,
             name: file_stem(source.name),
-            css: scope_css(&file_css, id),
+            css,
             span: file_css_parts[0].1,
         });
     }

@@ -117,8 +117,15 @@ emitted routes after catalog resolve, so a passing check implies a usable href.
 Rocdown writes into a staging directory and atomically replaces the output only
 after a successful build.
 
-The first-party theme CSS is extracted once, hashed, and linked from every
-page. Generated HTML declares the CSP with a `<meta>` tag.
+The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
+from every page, including sites with a project-local `theme/`. Project chrome
+and named layouts compile beside it. Generated HTML declares the CSP with a
+`<meta>` tag. Article HTML must be a component body parameter; a record field
+named `content` is escaped as text.
+
+`build.theme` names a directory or `SiteShell.rocci` file relative to the
+content root. When omitted, Rocdown uses `theme/` if it contains `.rocci`
+files, otherwise the builtin documentation shell.
 
 ## Navigation
 

@@ -2,57 +2,53 @@
     layout: "product",
     meta: {
         title: "Rocdown · Markdown-first documents & static sites",
-        description: "Rocdown combines author-friendly Markdown with static site generation, typed Roc integration, deterministic builds, and typed collections.",
+        description: "Rocdown is Markdown-first documentation with a static catalog, named layouts, and project-local Rocci themes.",
     },
 }
 
-# Rocdown: Document Language & Static Site Generator
+# Rocdown
 
-Rocdown is a Markdown-first document language, static site compiler, and interactive documentation toolchain built on Roc and Rust.
+Rocdown is the document language and static-site compiler. Write pages in Markdown, declare metadata with `@page`, and keep presentation in `.rocci` layouts. Rust owns the catalog; Rocci owns the visible shell.
 
----
+@docs note {
+    title: "Static pages stay Markdown-first"
 
-## Core Capabilities
+    Ordinary `.rocdown` site pages cannot include `@roc` or `@component` islands yet. Use `@docs` components and Markdown here; put chrome in `site/theme/`.
+}
 
-### ⚡ Author in Markdown
-Write documentation prose, headings, lists, tables, callouts, and code blocks using standard CommonMark and GitHub Flavored Markdown syntax.
+## What to author next
 
-### 🔒 Deterministic Static Compiler
-Rust owns discovery, catalog resolution, link checking, sitemaps, RSS/Atom feeds, and Markdown rendering. Content builds are byte-reproducible and lightning fast.
+@docs card-grid {
+    @docs link-card {
+        page: "docs/guides/rocdown-pages"
+        title: "Rocdown pages"
+        summary: "Declarations, islands, and page links."
+    }
 
-### 🎨 Custom `.rocci` Themes
-Decouple static documentation prose from presentation templates. Custom themes written in `.rocci` define named layouts (`home`, `product`, `section`, `docs`, `news-index`, `news-post`, `plain`, `not-found`) with compile-time type checking.
+    @docs link-card {
+        page: "docs/guides/docs-components"
+        title: "Docs components"
+        summary: "Notes, tabs, figures, and includes."
+    }
 
-### 📦 Typed Static Collections
-Organize blogs, announcements, changelogs, and case studies into typed collections with deterministic date sorting, draft exclusion, and automated Atom feed generation.
+    @docs link-card {
+        page: "docs/reference/rocdown-site"
+        title: "Site configuration"
+        summary: "rocdown.toml, navigation, and assets."
+    }
 
-### 🧩 Rich Semantic Components
-Use built-in semantic documentation directives like `@docs tabs`, `@docs note`, `@docs figure`, and `@docs include` to build structured technical manuals without client JavaScript.
+    @docs link-card {
+        page: "docs/reference/cli"
+        title: "CLI"
+        summary: "check, build, run, and inspect."
+    }
+}
 
----
+## Page metadata
 
-## Architecture at a Glance
-
-```text
-Rocci Ecosystem
-├── Core: Application runtime, CLI, and .rocci template engine
-└── Rocdown
-    ├── .rocdown content format & parser
-    ├── Content catalog & static site generator
-    ├── Typed static collections & Atom feeds
-    └── Project-local .rocci theme seam
-```
-
----
-
-## Syntax Showcase
-
-### 1. Page Metadata Declaration
-```markdown
+```rocdown
 @page {
     layout: "docs",
-    published: "2026-08-18",
-    authors: ["Rocci Team"],
     meta: {
         title: "Getting Started",
         description: "Orientation and first success with Rocci",
@@ -60,47 +56,4 @@ Rocci Ecosystem
 }
 ```
 
-### 2. Tabbed Code Panels (No JavaScript Required)
-```markdown
-@docs tabs {
-    group: "install"
-    kind: "tool"
-
-    @docs tab {
-        id: "cli"
-        label: "CLI"
-        Run the site check command:
-        ```sh
-        rocdown check site
-        ```
-    }
-
-    @docs tab {
-        id: "cargo"
-        label: "Cargo"
-        Run with cargo:
-        ```sh
-        cargo run -p rocci-rocdown-cli -- check site
-        ```
-    }
-}
-```
-
-### 3. Semantic Callouts
-```markdown
-@docs note {
-    title: "Important"
-    kind: "important"
-
-    Rocdown static builds verify every link at compile time.
-}
-```
-
----
-
-## Get Started with Rocdown
-
-- [Authoring Rocdown Pages](/docs/guides/rocdown-pages/) — Complete syntax reference for declarations, islands, and links.
-- [Documentation Components](/docs/guides/docs-components/) — Built-in directives for tabs, callouts, figures, and code includes.
-- [Site Configuration Reference](/docs/reference/rocdown-site/) — Full `rocdown.toml` options and schema.
-- [CLI Reference](/docs/reference/cli/) — Explore `rocdown check`, `rocdown build`, and `rocdown run`.
+Named layouts currently available: `home`, `product`, `section`, `docs`, `news-index`, `news-post`, `plain`, and `not-found`.
