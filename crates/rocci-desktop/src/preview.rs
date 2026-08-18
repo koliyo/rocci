@@ -23,6 +23,7 @@ pub struct PreviewOptions {
     pub height: f64,
     pub devtools: bool,
     pub state_key: Option<String>,
+    pub inspector_url: Option<String>,
 }
 
 impl Default for PreviewOptions {
@@ -35,6 +36,7 @@ impl Default for PreviewOptions {
             height: defaults.height,
             devtools: true,
             state_key: None,
+            inspector_url: None,
         }
     }
 }
@@ -87,7 +89,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         context,
         options.devtools,
         WebViewHooks {
-            initialization_script: Some(chrome::initialization_script()),
+            initialization_script: Some(chrome::initialization_script_with_inspector(
+                options.inspector_url.as_deref(),
+            )),
             ipc_handler: Some(Box::new(move |request| {
                 if let Some(command) = NavCommand::parse(request.body()) {
                     let _ =

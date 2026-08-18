@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
     classify_concept_action, external_url, published_href, slugify,
 };
+use rocci_cli::profile::{ProfileSnapshot, SpanRecorder};
 pub use rocci_ui::escape;
 use serde_json::Value;
 
@@ -782,7 +784,8 @@ pub fn render_review_page(bundle: &Bundle) -> String {
 
 #[allow(dead_code)]
 pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
-    build_review_site_with_host(bundle, site, None)
+    let _ = build_review_site_with_host(bundle, site, None)?;
+    Ok(())
 }
 
 const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst";
@@ -1399,18 +1402,21 @@ pub fn build_review_site_with_host(
     bundle: &Bundle,
     site: &Path,
     host: Option<rocci_roc_host::HostChoice>,
-) -> Result<()> {
+) -> Result<ProfileSnapshot> {
+    let mut rec = SpanRecorder::new();
     let host_choice = host.unwrap_or(rocci_roc_host::HostChoice::Auto).resolve();
     let is_wasm = host_choice == rocci_roc_host::HostChoice::Wasm;
     let force_roc =
         host.is_some() || std::env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1");
 
     if !force_roc && !is_roc_available() && !is_wasm {
-        return build_review_site_pure_rust(bundle, site);
+        rec.span("write", || build_review_site_pure_rust(bundle, site))?;
+        return Ok(rec.finish());
     }
 
-    let modules = compile_okf_templates()?;
-    let (pages_roc, articles, output_paths) = generate_okf_pages_roc(bundle)?;
+    let modules = rec.span("compile templates", compile_okf_templates)?;
+    let (pages_roc, articles, output_paths) =
+        rec.span("generate", || generate_okf_pages_roc(bundle))?;
 
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
@@ -1476,6 +1482,7 @@ pub fn build_review_site_with_host(
             if is_wasm { "wasm" } else { "native" },
             &roc_hash[..8.min(roc_hash.len())]
         );
+        rec.push("compile", 0, Some("cached".into()));
         cached
     } else {
         eprintln!(
@@ -1483,92 +1490,102 @@ pub fn build_review_site_with_host(
             if is_wasm { "wasm32" } else { "native" },
             workspace.display()
         );
-        let roc_started = std::time::Instant::now();
+        rec.span("compile", || {
+            let roc_started = Instant::now();
+            let roc_output = if is_wasm {
+                invoke_roc_wasm_build(&workspace, &apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", workspace.display()))?
+            } else {
+                invoke_roc_build(&workspace, &apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", workspace.display()))?
+            };
+            eprintln!(
+                "rocci-okf: roc finished in {}ms",
+                roc_started.elapsed().as_millis()
+            );
+            if !roc_output.is_empty() {
+                eprint!("{roc_output}");
+            }
+            let bytes = fs::read(&apply_bin)?;
+            let fp = okf_fingerprints(&modules);
+            cache.store_renderer(&roc_hash, &target, &bytes, &fp)
+        })?
+    };
+
+    rec.span("render", || {
         let roc_output = if is_wasm {
-            invoke_roc_wasm_build(&workspace, &apply_bin, &maps)
-                .with_context(|| format!("workspace {}", workspace.display()))?
+            invoke_wasm_apply(&apply_path, &staging)
         } else {
-            invoke_roc_build(&workspace, &apply_bin, &maps)
-                .with_context(|| format!("workspace {}", workspace.display()))?
-        };
-        let roc_ms = roc_started.elapsed().as_millis();
-        eprintln!("rocci-okf: roc finished in {roc_ms}ms");
+            invoke_apply(&apply_path, &workspace, &staging, &maps)
+        }?;
         if !roc_output.is_empty() {
             eprint!("{roc_output}");
         }
-        let bytes = fs::read(&apply_bin)?;
-        let fp = okf_fingerprints(&modules);
-        cache.store_renderer(&roc_hash, &target, &bytes, &fp)?
-    };
+        Ok::<(), anyhow::Error>(())
+    })?;
 
-    let roc_output = if is_wasm {
-        invoke_wasm_apply(&apply_path, &staging)?
-    } else {
-        invoke_apply(&apply_path, &workspace, &staging, &maps)?
-    };
-    if !roc_output.is_empty() {
-        eprint!("{roc_output}");
-    }
-
-    for concept in &bundle.concepts {
-        let destination = staging.join(&concept.id).join("index.html");
-        if !destination.exists() {
-            if let Some(parent) = destination.parent() {
+    rec.span("write", || {
+        for concept in &bundle.concepts {
+            let destination = staging.join(&concept.id).join("index.html");
+            if !destination.exists() {
+                if let Some(parent) = destination.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+                let meta_header = render_concept_meta(concept, bundle);
+                let full_html = format!("{meta_header}{}", concept.article_html);
+                fs::write(&destination, html_page(title, &full_html))?;
+            }
+        }
+        if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
+            let destination = staging.join("index.html");
+            if !destination.exists() {
+                let governance_header = render_home_page_governance(bundle);
+                let full_index = format!("{governance_header}{}", index.article_html);
+                fs::write(&destination, html_page("Knowledge", &full_index))?;
+            }
+        }
+        for index in &bundle.indexes {
+            let Some(collection) = index.path.strip_suffix("/index.md") else {
+                continue;
+            };
+            let destination = staging.join(collection).join("index.html");
+            if !destination.exists() {
+                if let Some(parent) = destination.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                fs::write(&destination, html_page(collection, &index.article_html))?;
+            }
+        }
+        let review_dest = staging.join("review").join("index.html");
+        if !review_dest.exists() {
+            if let Some(parent) = review_dest.parent() {
                 fs::create_dir_all(parent)?;
             }
-            let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-            let meta_header = render_concept_meta(concept, bundle);
-            let full_html = format!("{meta_header}{}", concept.article_html);
-            fs::write(&destination, html_page(title, &full_html))?;
+            fs::write(
+                &review_dest,
+                html_page(
+                    "Knowledge Governance & Review Queue",
+                    &render_review_page(bundle),
+                ),
+            )?;
         }
-    }
-    if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
-        let destination = staging.join("index.html");
-        if !destination.exists() {
-            let governance_header = render_home_page_governance(bundle);
-            let full_index = format!("{governance_header}{}", index.article_html);
-            fs::write(&destination, html_page("Knowledge", &full_index))?;
-        }
-    }
-    for index in &bundle.indexes {
-        let Some(collection) = index.path.strip_suffix("/index.md") else {
-            continue;
-        };
-        let destination = staging.join(collection).join("index.html");
-        if !destination.exists() {
-            if let Some(parent) = destination.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(&destination, html_page(collection, &index.article_html))?;
-        }
-    }
-    let review_dest = staging.join("review").join("index.html");
-    if !review_dest.exists() {
-        if let Some(parent) = review_dest.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(
-            &review_dest,
-            html_page(
-                "Knowledge Governance & Review Queue",
-                &render_review_page(bundle),
-            ),
-        )?;
-    }
 
-    fs::create_dir_all(site).with_context(|| format!("failed to create {}", site.display()))?;
-    copy_dir_recursive(&staging, site)?;
+        fs::create_dir_all(site).with_context(|| format!("failed to create {}", site.display()))?;
+        copy_dir_recursive(&staging, site)?;
 
-    let okf_static_dir = site.join("__rocci_okf");
-    fs::create_dir_all(&okf_static_dir)
-        .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
-    fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
-        .context("failed to write knowledge review stylesheet")?;
+        let okf_static_dir = site.join("__rocci_okf");
+        fs::create_dir_all(&okf_static_dir)
+            .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
+        fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
+            .context("failed to write knowledge review stylesheet")?;
 
-    let _ = fs::remove_dir_all(&workspace);
-    let _ = fs::remove_dir_all(&staging);
+        let _ = fs::remove_dir_all(&workspace);
+        let _ = fs::remove_dir_all(&staging);
+        Ok::<(), anyhow::Error>(())
+    })?;
 
-    Ok(())
+    Ok(rec.finish())
 }
 
 pub const DEFAULT_CSS: &str = r#"

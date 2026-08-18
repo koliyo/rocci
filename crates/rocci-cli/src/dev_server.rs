@@ -16,6 +16,9 @@ use anyhow::{Context, Result};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rocci_desktop::{PreviewOptions, preview};
 
+use crate::inspector;
+use crate::profile::ProfileSnapshot;
+
 const DEBOUNCE: Duration = Duration::from_millis(200);
 
 const RELOAD_JS: &str = r#"(function () {
@@ -36,6 +39,7 @@ const LIVE_RELOAD_TAG: &str = r#"<script src="/__rocci/reload.js" defer></script
 pub struct DevServer {
     pub url: String,
     pub title: String,
+    pub inspector_url: String,
     pub output: PathBuf,
     stop: Arc<AtomicBool>,
     owns_output: bool,
@@ -64,6 +68,7 @@ impl Drop for DevServer {
 pub struct ReloadHub {
     waiters: Mutex<Vec<mpsc::Sender<u64>>>,
     generation: AtomicU64,
+    profile: Mutex<Option<ProfileSnapshot>>,
 }
 
 impl ReloadHub {
@@ -71,6 +76,7 @@ impl ReloadHub {
         Self {
             waiters: Mutex::new(Vec::new()),
             generation: AtomicU64::new(0),
+            profile: Mutex::new(None),
         }
     }
 
@@ -89,6 +95,17 @@ impl ReloadHub {
             .lock()
             .unwrap_or_else(|err| err.into_inner())
             .retain(|tx| tx.send(generation).is_ok());
+    }
+
+    pub fn set_profile(&self, snapshot: Option<ProfileSnapshot>) {
+        *self.profile.lock().unwrap_or_else(|err| err.into_inner()) = snapshot;
+    }
+
+    pub fn profile(&self) -> Option<ProfileSnapshot> {
+        self.profile
+            .lock()
+            .unwrap_or_else(|err| err.into_inner())
+            .clone()
     }
 }
 
@@ -110,7 +127,7 @@ pub struct StaticDevServerConfig {
 
 pub fn serve_static_site<F>(config: StaticDevServerConfig, mut rebuild: F) -> Result<DevServer>
 where
-    F: FnMut(&Path) -> Result<()> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
 {
     let (output, owns_output) = match config.output {
         Some(path) => {
@@ -145,8 +162,9 @@ where
     let stop = Arc::new(AtomicBool::new(false));
 
     match rebuild(&output) {
-        Ok(_) => {
+        Ok(snapshot) => {
             has_build.store(true, Ordering::Relaxed);
+            hub.set_profile(snapshot);
         }
         Err(err) => {
             eprintln!("{}: {err:#}", config.log_prefix);
@@ -171,6 +189,7 @@ where
         format!("/{open_path}")
     };
     let url = format!("http://127.0.0.1:{bound}{open_path}");
+    let inspector_url = format!("http://127.0.0.1:{bound}/__rocci/dev");
 
     let server_stop = stop.clone();
     let server_hub = hub.clone();
@@ -227,6 +246,7 @@ where
     Ok(DevServer {
         url,
         title: config.title,
+        inspector_url,
         stop,
         output,
         owns_output,
@@ -242,7 +262,7 @@ pub fn preview_static_site<F>(
     rebuild: F,
 ) -> Result<()>
 where
-    F: FnMut(&Path) -> Result<()> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
 {
     let prefix = config.log_prefix.clone();
     let title = config.title.clone();
@@ -258,6 +278,7 @@ where
         state_key,
         width: 1200.0,
         height: 800.0,
+        inspector_url: Some(server.inspector_url.clone()),
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
@@ -276,7 +297,7 @@ fn watch_loop<F>(
     has_build: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
 ) where
-    F: FnMut(&Path) -> Result<()> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
 {
     loop {
         if stop.load(Ordering::Relaxed) {
@@ -302,8 +323,9 @@ fn watch_loop<F>(
             continue;
         }
         match rebuild(&output) {
-            Ok(_) => {
+            Ok(snapshot) => {
                 has_build.store(true, Ordering::Relaxed);
+                hub.set_profile(snapshot);
                 *last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
                 hub.broadcast();
             }
@@ -409,6 +431,30 @@ fn handle_client(
             RELOAD_JS.as_bytes(),
         ),
         ServeTarget::Events => write_sse(&mut stream, hub),
+        ServeTarget::Profile => {
+            let body = hub
+                .profile()
+                .map(|snapshot| snapshot.to_json())
+                .unwrap_or_else(|| "{\"total_ms\":0,\"spans\":[]}".to_string());
+            write_response(
+                &mut stream,
+                200,
+                "application/json; charset=utf-8",
+                false,
+                body.as_bytes(),
+            )
+        }
+        ServeTarget::Dev => {
+            let html = inspector::render_panel_html(hub.profile().as_ref());
+            let body = inject_live_reload(&html);
+            write_response(
+                &mut stream,
+                200,
+                "text/html; charset=utf-8",
+                true,
+                body.as_bytes(),
+            )
+        }
         ServeTarget::Redirect(location) => write_redirect(&mut stream, &location),
         ServeTarget::File { relative } => serve_file(&mut stream, output, &relative, 200),
         ServeTarget::NotFound => {
@@ -441,6 +487,8 @@ fn request_path(request: &str) -> Option<&str> {
 pub enum ServeTarget {
     ReloadJs,
     Events,
+    Profile,
+    Dev,
     Redirect(String),
     File { relative: String },
     NotFound,
@@ -457,6 +505,13 @@ pub fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
     }
     if path == "/__rocci/events" || path == "/__rocdown/events" || path == "/__rocci_okf/events" {
         return ServeTarget::Events;
+    }
+    if path == "/__rocci/profile" || path == "/__rocdown/profile" || path == "/__rocci_okf/profile"
+    {
+        return ServeTarget::Profile;
+    }
+    if path == "/__rocci/dev" || path == "/__rocdown/dev" || path == "/__rocci_okf/dev" {
+        return ServeTarget::Dev;
     }
     if path.split('/').any(|segment| segment == "..") {
         return ServeTarget::NotFound;
@@ -722,6 +777,16 @@ mod tests {
             resolve_request(&temp, "/__rocci_okf/events"),
             ServeTarget::Events
         );
+        assert_eq!(
+            resolve_request(&temp, "/__rocci/profile"),
+            ServeTarget::Profile
+        );
+        assert_eq!(
+            resolve_request(&temp, "/__rocci_okf/profile"),
+            ServeTarget::Profile
+        );
+        assert_eq!(resolve_request(&temp, "/__rocci/dev"), ServeTarget::Dev);
+        assert_eq!(resolve_request(&temp, "/__rocdown/dev"), ServeTarget::Dev);
         assert_eq!(
             resolve_request(&temp, "/__rocci/reload.js"),
             ServeTarget::ReloadJs

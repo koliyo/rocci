@@ -96,6 +96,17 @@ fn lowers_if_for_and_match() {
 }
 
 #[test]
+fn compile_output_includes_parse_validate_and_lower_timings() {
+    let out = compile_ok("@component Hello = |{}| <p>hi</p>");
+    let _ = out.timings.parse_ms;
+    let _ = out.timings.validate_ms;
+    let _ = out.timings.lower_ms;
+    assert!(out.timings.parse_ms < 10_000);
+    assert!(out.timings.validate_ms < 10_000);
+    assert!(out.timings.lower_ms < 10_000);
+}
+
+#[test]
 fn concatenates_sibling_nodes_and_for_loops_with_two_arg_concat() {
     let src = r#"
 @component Picker = |{ items }| {

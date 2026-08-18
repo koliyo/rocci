@@ -65,7 +65,7 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Render a component in an embedded window.
+    /// Render a component in a preview window.
     View {
         input: PathBuf,
         #[arg(long, default_value = "main")]

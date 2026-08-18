@@ -71,12 +71,16 @@ fn build_loaded_with_host(
     output: &Path,
     host: rocci_roc_host::HostChoice,
 ) -> Result<BuildReport> {
+    let plan_started = Instant::now();
     let plan = prepare_plan(loaded)?;
+    let plan_ms = plan_started.elapsed().as_millis();
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
     runtime::stage_into(&workspace)?;
     let is_wasm = host.resolve() == rocci_roc_host::HostChoice::Wasm;
+    let generate_started = Instant::now();
     let staged = write_plan_files(&workspace, &staging, &plan, is_wasm)?;
+    let generate_ms = generate_started.elapsed().as_millis();
     let maps = theme_maps(&plan);
     let cache = rocci_roc_host::TwoTierCache::default();
 
@@ -87,14 +91,14 @@ fn build_loaded_with_host(
     };
 
     let apply_bin = workspace.join(if is_wasm { "components.wasm" } else { "apply" });
-    let (apply_path, recompiled) =
+    let (apply_path, recompiled, compile_ms) =
         if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
             eprintln!(
                 "rocdown: using cached {} renderer for {}",
                 if is_wasm { "wasm" } else { "native" },
                 &staged.roc_hash[..8.min(staged.roc_hash.len())]
             );
-            (cached, false)
+            (cached, false, 0)
         } else {
             eprintln!(
                 "rocdown: generated {} bytes of Roc, compiling ({}) with roc",
@@ -117,7 +121,7 @@ fn build_loaded_with_host(
             let bytes = fs::read(&apply_bin)?;
             let fp = staged_fingerprints(&plan);
             let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
-            (stored, true)
+            (stored, true, roc_ms)
         };
 
     let roc_started = Instant::now();
@@ -132,14 +136,21 @@ fn build_loaded_with_host(
         eprint!("{roc_output}");
     }
 
+    let write_started = Instant::now();
     write_planned_outputs(&staging, &plan)?;
     write_static_files(&staging, &loaded.static_files)?;
     commit_output(&staging, output)?;
+    let write_ms = write_started.elapsed().as_millis();
     let _ = fs::remove_dir_all(&workspace);
 
     Ok(BuildReport {
         generated_roc_bytes: staged.generated_roc_bytes,
+        load_ms: 0,
+        plan_ms,
+        generate_ms,
+        compile_ms,
         roc_ms,
+        write_ms,
         recompiled,
     })
 }
@@ -173,8 +184,12 @@ impl BuildSession {
     }
 
     pub fn rebuild(&mut self, root: &Path, output: &Path) -> Result<BuildReport> {
+        let load_started = Instant::now();
         let loaded = load_site(root)?;
-        self.rebuild_loaded(&loaded, output)
+        let load_ms = load_started.elapsed().as_millis();
+        let mut report = self.rebuild_loaded(&loaded, output)?;
+        report.load_ms = load_ms;
+        Ok(report)
     }
 
     pub fn rebuild_loaded(&mut self, loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
@@ -192,10 +207,14 @@ impl BuildSession {
         output: &Path,
         host: rocci_roc_host::HostChoice,
     ) -> Result<BuildReport> {
+        let plan_started = Instant::now();
         let plan = prepare_plan(loaded)?;
+        let plan_ms = plan_started.elapsed().as_millis();
         let staging = unique_temp("stage")?;
         let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
+        let generate_started = Instant::now();
         let staged = write_plan_files(&self.workspace, &staging, &plan, is_wasm)?;
+        let generate_ms = generate_started.elapsed().as_millis();
         let maps = theme_maps(&plan);
         let cache = rocci_roc_host::TwoTierCache::default();
         let target = if is_wasm {
@@ -204,10 +223,11 @@ impl BuildSession {
             format!("native:{}", env::consts::ARCH)
         };
         let mut recompiled = false;
-
+        let compile_ms;
         let apply_bin =
             if self.roc_hash.as_deref() == Some(&staged.roc_hash) && self.apply_bin.is_file() {
                 eprintln!("rocdown: content changed, applying without recompile");
+                compile_ms = 0;
                 self.apply_bin.clone()
             } else if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
                 eprintln!(
@@ -216,6 +236,7 @@ impl BuildSession {
                     &staged.roc_hash[..8.min(staged.roc_hash.len())]
                 );
                 self.roc_hash = Some(staged.roc_hash.clone());
+                compile_ms = 0;
                 cached
             } else {
                 eprintln!(
@@ -231,8 +252,8 @@ impl BuildSession {
                     invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
                         .with_context(|| format!("workspace {}", self.workspace.display()))?
                 };
-                let roc_ms = roc_started.elapsed().as_millis();
-                eprintln!("rocdown: roc finished in {roc_ms}ms");
+                compile_ms = roc_started.elapsed().as_millis();
+                eprintln!("rocdown: roc finished in {compile_ms}ms");
                 if !roc_output.is_empty() {
                     eprint!("{roc_output}");
                 }
@@ -256,14 +277,21 @@ impl BuildSession {
             eprint!("{roc_output}");
         }
 
+        let write_started = Instant::now();
         write_planned_outputs(&staging, &plan)?;
         write_static_files(&staging, &loaded.static_files)?;
         commit_output(&staging, output)?;
+        let write_ms = write_started.elapsed().as_millis();
         self.snippet_paths = plan.snippet_paths.clone();
 
         Ok(BuildReport {
             generated_roc_bytes: staged.generated_roc_bytes,
+            load_ms: 0,
+            plan_ms,
+            generate_ms,
+            compile_ms,
             roc_ms,
+            write_ms,
             recompiled,
         })
     }
@@ -426,7 +454,12 @@ pub(crate) fn roc_source_hash(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildReport {
     pub generated_roc_bytes: usize,
+    pub load_ms: u128,
+    pub plan_ms: u128,
+    pub generate_ms: u128,
+    pub compile_ms: u128,
     pub roc_ms: u128,
+    pub write_ms: u128,
     pub recompiled: bool,
 }
 

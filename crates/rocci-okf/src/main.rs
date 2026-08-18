@@ -34,10 +34,10 @@ enum Commands {
         /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
-        /// Skip the embedded window; print the URL and keep serving.
+        /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
-        /// TCP port to listen on. Defaults to a free port with the embedded window,
+        /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
             long,
@@ -323,6 +323,7 @@ fn main() -> Result<()> {
                 state_key: Some("rocci:knowledge".to_string()),
                 width: 1200.0,
                 height: 800.0,
+                inspector_url: Some(server.inspector_url.clone()),
                 ..rocci_desktop::PreviewOptions::default()
             })
             .map_err(|error| anyhow::anyhow!("{error}"));

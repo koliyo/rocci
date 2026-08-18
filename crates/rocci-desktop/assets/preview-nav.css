@@ -50,6 +50,10 @@ nav {
   gap: 8px;
 }
 
+.trailing {
+  margin-left: auto;
+}
+
 .group {
   gap: 2px;
 }

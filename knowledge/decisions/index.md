@@ -8,3 +8,4 @@
 * [Consolidate the Rocdown product boundary](consolidate-rocdown-product-boundary.md) - Approved direction that gives Rocci and Rocdown separate symmetrical app/document CLIs and removes Rocdown from base Rocci.
 * [Use explicit client-behavior islands](client-behavior-islands.md) - Proposed browser-only behavior boundary; not approved or implemented.
 * [Keep knowledge publication local](local-knowledge-publication.md) - Generate local and CI artifacts without public deployment or archive publication.
+* [Call the embedded Tao/Wry shell the preview window](preview-window.md) - Name the native window the preview window; keep overlay chrome distinct from preview-origin inspector UI.

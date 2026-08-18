@@ -33,7 +33,15 @@ pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) 
             &driver::window_title(&resolved),
         );
     }
-    driver::execute_resolved_entry(&resolved, args, no_window, port, &compiled.maps, None)
+    driver::execute_resolved_entry(
+        &resolved,
+        args,
+        no_window,
+        port,
+        &compiled.maps,
+        None,
+        compiled.profile,
+    )
 }
 
 fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
@@ -165,11 +173,12 @@ fn run_standalone(
         .unwrap_or("rocci")
         .to_string();
     let plan = match plan_standalone(&path)? {
-        StandaloneReady::Failed(files) => {
+        (StandaloneReady::Failed(files), _) => {
             return driver::serve_template_errors(&files, port, no_window, &title);
         }
-        StandaloneReady::Ready(plan) => plan,
+        (StandaloneReady::Ready(plan), profile) => (plan, profile),
     };
+    let (plan, profile) = plan;
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
@@ -177,6 +186,7 @@ fn run_standalone(
         db_path: None,
         title,
         preview_path: None,
+        profile,
     };
     driver::execute_app_plan(&plan, &src_dir, &options)
 }
@@ -186,7 +196,8 @@ enum StandaloneReady {
     Failed(Vec<FailedFile>),
 }
 
-fn plan_standalone(primary: &Path) -> Result<StandaloneReady> {
+fn plan_standalone(primary: &Path) -> Result<(StandaloneReady, crate::profile::ProfileSnapshot)> {
+    let mut rec = crate::profile::SpanRecorder::new();
     let mut modules = Vec::new();
     let mut failures = Vec::new();
     let primary = primary
@@ -194,10 +205,18 @@ fn plan_standalone(primary: &Path) -> Result<StandaloneReady> {
         .unwrap_or_else(|_| primary.to_path_buf());
     let inputs = vec![primary.clone()];
     for input in inputs {
-        let src = fs::read_to_string(&input)
-            .with_context(|| format!("failed to read {}", input.display()))?;
+        let src = rec.span("read", || {
+            fs::read_to_string(&input)
+                .with_context(|| format!("failed to read {}", input.display()))
+        })?;
         let name = input.display().to_string();
         let compiled = compile_source(&name, &src)?;
+        rec.push(
+            "parse",
+            compiled.timings.parse_ms + compiled.timings.validate_ms,
+            None,
+        );
+        rec.push("generate", compiled.timings.lower_ms, None);
         if compiled.failed {
             failures.push(FailedFile {
                 name,
@@ -223,16 +242,20 @@ fn plan_standalone(primary: &Path) -> Result<StandaloneReady> {
             local_assets: compiled.local_assets,
         });
     }
+    let profile = rec.finish();
     if !failures.is_empty() {
-        return Ok(StandaloneReady::Failed(failures));
+        return Ok((StandaloneReady::Failed(failures), profile));
     }
-    Ok(StandaloneReady::Ready(GenericAppPlan {
-        primary_name: type_name_from_path(&primary),
-        modules,
-        redirect_trailing_slash: redirect_trailing_slash_for(
-            primary.parent().unwrap_or_else(|| Path::new(".")),
-        ),
-    }))
+    Ok((
+        StandaloneReady::Ready(GenericAppPlan {
+            primary_name: type_name_from_path(&primary),
+            modules,
+            redirect_trailing_slash: redirect_trailing_slash_for(
+                primary.parent().unwrap_or_else(|| Path::new(".")),
+            ),
+        }),
+        profile,
+    ))
 }
 
 fn redirect_trailing_slash_for(dir: &Path) -> bool {
@@ -274,16 +297,26 @@ pub fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
 struct CompiledApp {
     failures: Vec<FailedFile>,
     maps: Vec<MappedModule>,
+    profile: crate::profile::ProfileSnapshot,
 }
 
 fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
+    let mut rec = crate::profile::SpanRecorder::new();
     let mut failures = Vec::new();
     let mut maps = Vec::new();
     for input in discover_rocci(app_dir)? {
-        let src = fs::read_to_string(&input)
-            .with_context(|| format!("failed to read {}", input.display()))?;
+        let src = rec.span("read", || {
+            fs::read_to_string(&input)
+                .with_context(|| format!("failed to read {}", input.display()))
+        })?;
         let name = input.display().to_string();
         let compiled = compile_source(&name, &src)?;
+        rec.push(
+            "parse",
+            compiled.timings.parse_ms + compiled.timings.validate_ms,
+            None,
+        );
+        rec.push("generate", compiled.timings.lower_ms, None);
         if compiled.failed {
             failures.push(FailedFile {
                 name,
@@ -294,8 +327,10 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
         }
         let type_name = type_name_from_path(&input);
         let output = generated_module_path(&input);
-        fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
-            .with_context(|| format!("failed to write {}", output.display()))?;
+        rec.span("write", || {
+            fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
+                .with_context(|| format!("failed to write {}", output.display()))
+        })?;
         maps.push(MappedModule {
             type_name,
             generated: compiled.roc,
@@ -304,7 +339,11 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
             segments: compiled.segments,
         });
     }
-    Ok(CompiledApp { failures, maps })
+    Ok(CompiledApp {
+        failures,
+        maps,
+        profile: rec.finish(),
+    })
 }
 
 struct CompiledSource {
@@ -316,6 +355,7 @@ struct CompiledSource {
     diagnostics: Vec<Diagnostic>,
     segments: Vec<Segment>,
     local_assets: Vec<String>,
+    timings: rocci_template::CompileTimings,
 }
 
 fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
@@ -334,6 +374,7 @@ fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
         diagnostics: compiled.diagnostics,
         segments: compiled.segments,
         local_assets: Vec::new(),
+        timings: compiled.timings,
     })
 }
 
@@ -383,6 +424,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         height,
         devtools: config.development.devtools,
         state_key: Some(state_key),
+        inspector_url: None,
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     let _ = child.kill();
