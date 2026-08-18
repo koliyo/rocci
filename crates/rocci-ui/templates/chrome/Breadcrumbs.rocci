@@ -1,0 +1,17 @@
+import Html
+
+@component Breadcrumbs = |{ breadcrumbs, route }| {
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+            @for crumb in breadcrumbs {
+                <li>
+                    <a
+                        class={if crumb.href == route { "crumb-current" } else { "" }}
+                        href={crumb.href}
+                        aria-current={if crumb.href == route { "page" } else { "false" }}
+                    >{crumb.title}</a>
+                </li>
+            }
+        </ol>
+    </nav>
+}

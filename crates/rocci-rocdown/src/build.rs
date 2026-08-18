@@ -23,13 +23,34 @@ pub fn build(root: &Path, output: &Path) -> Result<BuildReport> {
     build_loaded(&loaded, &absolute(output)?)
 }
 
+pub fn build_with_host(
+    root: &Path,
+    output: &Path,
+    host: rocci_roc_host::HostChoice,
+) -> Result<BuildReport> {
+    let loaded = load_site(root)?;
+    build_loaded_with_host(&loaded, &absolute(output)?, host)
+}
+
 pub fn build_configured(root: &Path, output_override: Option<&Path>) -> Result<BuildReport> {
+    build_configured_with_host(root, output_override, None)
+}
+
+pub fn build_configured_with_host(
+    root: &Path,
+    output_override: Option<&Path>,
+    host_override: Option<rocci_roc_host::HostChoice>,
+) -> Result<BuildReport> {
     let loaded = load_site(root)?;
     let output = match output_override {
         Some(output) => absolute(output)?,
         None => loaded.root.join(&loaded.config.build.output),
     };
-    build_loaded(&loaded, &output)
+    let host = host_override
+        .or(loaded.config.build.host)
+        .unwrap_or_default()
+        .resolve();
+    build_loaded_with_host(&loaded, &output, host)
 }
 
 pub(crate) fn absolute(path: &Path) -> Result<PathBuf> {
@@ -41,22 +62,73 @@ pub(crate) fn absolute(path: &Path) -> Result<PathBuf> {
 }
 
 fn build_loaded(loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
+    let host = loaded.config.build.host.unwrap_or_default().resolve();
+    build_loaded_with_host(loaded, output, host)
+}
+
+fn build_loaded_with_host(
+    loaded: &LoadedSite,
+    output: &Path,
+    host: rocci_roc_host::HostChoice,
+) -> Result<BuildReport> {
     let plan = prepare_plan(loaded)?;
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
     runtime::stage_into(&workspace)?;
     let staged = write_plan_files(&workspace, &staging, &plan)?;
     let maps = theme_maps(&plan);
+    let cache = rocci_roc_host::TwoTierCache::default();
+    let host = host.resolve();
+    let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
 
-    eprintln!(
-        "rocdown: generated {} bytes of Roc, compiling with roc",
-        staged.generated_roc_bytes
-    );
+    let target = if is_wasm {
+        "wasm32".to_string()
+    } else {
+        format!("native:{}", env::consts::ARCH)
+    };
+
+    let apply_bin = workspace.join(if is_wasm { "components.wasm" } else { "apply" });
+    let (apply_path, recompiled) =
+        if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
+            eprintln!(
+                "rocdown: using cached {} renderer for {}",
+                if is_wasm { "wasm" } else { "native" },
+                &staged.roc_hash[..8.min(staged.roc_hash.len())]
+            );
+            (cached, false)
+        } else {
+            eprintln!(
+                "rocdown: generated {} bytes of Roc, compiling ({}) with roc",
+                staged.generated_roc_bytes,
+                if is_wasm { "wasm32" } else { "native" }
+            );
+            let roc_started = Instant::now();
+            let roc_output = if is_wasm {
+                invoke_roc_wasm_build(&workspace, &apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", workspace.display()))?
+            } else {
+                invoke_roc_build(&workspace, &apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", workspace.display()))?
+            };
+            let roc_ms = roc_started.elapsed().as_millis();
+            eprintln!("rocdown: roc finished in {roc_ms}ms");
+            if !roc_output.is_empty() {
+                eprint!("{roc_output}");
+            }
+            let bytes = fs::read(&apply_bin)?;
+            let fp = staged_fingerprints(&plan);
+            let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
+            (stored, true)
+        };
+
     let roc_started = Instant::now();
-    let roc_output = invoke_roc_main(&workspace, &staging, &maps)
-        .with_context(|| format!("workspace {}", workspace.display()))?;
+    let roc_output = if is_wasm {
+        invoke_wasm_apply(&apply_path, &staging)?
+    } else {
+        invoke_apply(&apply_path, &workspace, &staging, &maps)
+            .with_context(|| format!("workspace {}", workspace.display()))?
+    };
     let roc_ms = roc_started.elapsed().as_millis();
-    eprintln!("rocdown: roc finished in {roc_ms}ms");
     if !roc_output.is_empty() {
         eprint!("{roc_output}");
     }
@@ -69,7 +141,7 @@ fn build_loaded(loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
     Ok(BuildReport {
         generated_roc_bytes: staged.generated_roc_bytes,
         roc_ms,
-        recompiled: true,
+        recompiled,
     })
 }
 
@@ -77,18 +149,26 @@ pub struct BuildSession {
     workspace: PathBuf,
     apply_bin: PathBuf,
     roc_hash: Option<String>,
+    pub host: rocci_roc_host::HostChoice,
     pub snippet_paths: std::collections::BTreeSet<String>,
 }
 
 impl BuildSession {
     pub fn create() -> Result<Self> {
+        Self::create_with_host(rocci_roc_host::HostChoice::Auto)
+    }
+
+    pub fn create_with_host(host: rocci_roc_host::HostChoice) -> Result<Self> {
         let workspace = unique_temp("ws")?;
         runtime::stage_into(&workspace)?;
-        let apply_bin = workspace.join("apply");
+        let host = host.resolve();
+        let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
+        let apply_bin = workspace.join(if is_wasm { "components.wasm" } else { "apply" });
         Ok(Self {
             workspace,
             apply_bin,
             roc_hash: None,
+            host,
             snippet_paths: std::collections::BTreeSet::new(),
         })
     }
@@ -99,34 +179,79 @@ impl BuildSession {
     }
 
     pub fn rebuild_loaded(&mut self, loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
+        let host = if self.host == rocci_roc_host::HostChoice::Auto {
+            loaded.config.build.host.unwrap_or_default().resolve()
+        } else {
+            self.host.resolve()
+        };
+        self.rebuild_loaded_with_host(loaded, output, host)
+    }
+
+    pub fn rebuild_loaded_with_host(
+        &mut self,
+        loaded: &LoadedSite,
+        output: &Path,
+        host: rocci_roc_host::HostChoice,
+    ) -> Result<BuildReport> {
         let plan = prepare_plan(loaded)?;
         let staging = unique_temp("stage")?;
         let staged = write_plan_files(&self.workspace, &staging, &plan)?;
         let maps = theme_maps(&plan);
+        let cache = rocci_roc_host::TwoTierCache::default();
+        let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
+        let target = if is_wasm {
+            "wasm32".to_string()
+        } else {
+            format!("native:{}", env::consts::ARCH)
+        };
         let mut recompiled = false;
 
-        if self.roc_hash.as_deref() != Some(&staged.roc_hash) || !self.apply_bin.is_file() {
-            eprintln!(
-                "rocdown: generated {} bytes of Roc, compiling with roc",
-                staged.generated_roc_bytes
-            );
-            let roc_started = Instant::now();
-            let roc_output = invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
-                .with_context(|| format!("workspace {}", self.workspace.display()))?;
-            let roc_ms = roc_started.elapsed().as_millis();
-            eprintln!("rocdown: roc finished in {roc_ms}ms");
-            if !roc_output.is_empty() {
-                eprint!("{roc_output}");
-            }
-            self.roc_hash = Some(staged.roc_hash.clone());
-            recompiled = true;
-        } else {
-            eprintln!("rocdown: content changed, applying without recompile");
-        }
+        let apply_bin =
+            if self.roc_hash.as_deref() == Some(&staged.roc_hash) && self.apply_bin.is_file() {
+                eprintln!("rocdown: content changed, applying without recompile");
+                self.apply_bin.clone()
+            } else if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
+                eprintln!(
+                    "rocdown: using cached {} renderer for {}",
+                    if is_wasm { "wasm" } else { "native" },
+                    &staged.roc_hash[..8.min(staged.roc_hash.len())]
+                );
+                self.roc_hash = Some(staged.roc_hash.clone());
+                cached
+            } else {
+                eprintln!(
+                    "rocdown: generated {} bytes of Roc, compiling ({}) with roc",
+                    staged.generated_roc_bytes,
+                    if is_wasm { "wasm32" } else { "native" }
+                );
+                let roc_started = Instant::now();
+                let roc_output = if is_wasm {
+                    invoke_roc_wasm_build(&self.workspace, &self.apply_bin, &maps)
+                        .with_context(|| format!("workspace {}", self.workspace.display()))?
+                } else {
+                    invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
+                        .with_context(|| format!("workspace {}", self.workspace.display()))?
+                };
+                let roc_ms = roc_started.elapsed().as_millis();
+                eprintln!("rocdown: roc finished in {roc_ms}ms");
+                if !roc_output.is_empty() {
+                    eprint!("{roc_output}");
+                }
+                self.roc_hash = Some(staged.roc_hash.clone());
+                let bytes = fs::read(&self.apply_bin)?;
+                let fp = staged_fingerprints(&plan);
+                let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
+                recompiled = true;
+                stored
+            };
 
         let roc_started = Instant::now();
-        let roc_output = invoke_apply(&self.apply_bin, &self.workspace, &staging, &maps)
-            .with_context(|| format!("workspace {}", self.workspace.display()))?;
+        let roc_output = if is_wasm {
+            invoke_wasm_apply(&apply_bin, &staging)?
+        } else {
+            invoke_apply(&apply_bin, &self.workspace, &staging, &maps)
+                .with_context(|| format!("workspace {}", self.workspace.display()))?
+        };
         let roc_ms = roc_started.elapsed().as_millis();
         if !roc_output.is_empty() {
             eprint!("{roc_output}");
@@ -250,6 +375,25 @@ fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
         .collect()
 }
 
+fn staged_fingerprints(plan: &BuildPlan) -> Vec<rocci_roc_host::InputFingerprint> {
+    let mut fps = Vec::new();
+    for module in &plan.theme_modules {
+        fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+            &format!("{}.roc", module.type_name),
+            module.roc.as_bytes(),
+        ));
+    }
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "Html.roc",
+        runtime::HTML.as_bytes(),
+    ));
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "RocdownBuild.roc",
+        runtime::BUILD.as_bytes(),
+    ));
+    fps
+}
+
 pub(crate) fn roc_source_hash(
     pages_roc: &str,
     theme_modules: &[crate::plan::CompiledThemeModule],
@@ -349,6 +493,32 @@ fn invoke_roc_build(workspace: &Path, apply_bin: &Path, maps: &[MappedModule]) -
         bail!("roc build did not write {}", apply_bin.display());
     }
     Ok(combined)
+}
+
+fn invoke_roc_wasm_build(
+    workspace: &Path,
+    wasm_file: &Path,
+    maps: &[MappedModule],
+) -> Result<String> {
+    let output = Command::new("roc")
+        .arg("build")
+        .arg("main.roc")
+        .arg("--target=wasm32")
+        .arg("--opt=dev")
+        .arg(format!("--output={}", wasm_file.display()))
+        .current_dir(workspace)
+        .output()
+        .context("failed to invoke roc build for wasm32")?;
+    let combined = finish_roc(output, maps)?;
+    if !wasm_file.is_file() {
+        bail!("roc build did not write {}", wasm_file.display());
+    }
+    Ok(combined)
+}
+
+fn invoke_wasm_apply(wasm_file: &Path, staging: &Path) -> Result<String> {
+    let host = rocci_roc_host::WasmHost::from_file(wasm_file)?;
+    host.run_wasi(staging)
 }
 
 fn invoke_apply(

@@ -10,4 +10,6 @@ name = "rocci_theme"
 path = "src/lib.rs"
 
 [dependencies]
+rocci-ui = { workspace = true }
 thiserror = { workspace = true }
+

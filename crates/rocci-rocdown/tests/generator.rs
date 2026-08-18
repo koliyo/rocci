@@ -36,7 +36,7 @@ fn test_article_html_components() {
 
 @docs details {
     summary: "Click to expand"
-    open: true
+    open: Bool.true
     Hidden content revealed.
 }
 
@@ -86,52 +86,59 @@ Footnote reference.[^first]
     );
     assert!(!diagnostics.iter().any(|d| d.is_error()), "{diagnostics:?}");
 
+    let (segments, _fragments) =
+        rocci_rocdown::plan_segments("guide", &page_docs.article, &Default::default());
+
+    // Verify note aside segment
+    let note = segments
+        .iter()
+        .find(|s| s.kind == "note")
+        .expect("missing note segment");
+    assert_eq!(note.tag, "docs");
+    assert_eq!(note.title, "Important");
+
+    // Verify tabs segment
+    let tabs = segments
+        .iter()
+        .find(|s| s.kind == "tabs")
+        .expect("missing tabs segment");
+    assert_eq!(tabs.tag, "docs");
+    assert_eq!(tabs.children.len(), 2);
+    assert_eq!(tabs.children[0].kind, "tab");
+    assert_eq!(tabs.children[0].label, "Roc");
+    assert_eq!(tabs.children[1].kind, "tab");
+    assert_eq!(tabs.children[1].label, "Rust");
+
+    // Verify details segment
+    let details = segments
+        .iter()
+        .find(|s| s.kind == "details")
+        .expect("missing details segment");
+    assert_eq!(details.summary, "Click to expand");
+    assert!(details.open);
+
+    // Verify badge segment
+    let badge = segments
+        .iter()
+        .find(|s| s.kind == "badge")
+        .expect("missing badge segment");
+    assert_eq!(badge.label, "Beta");
+    assert_eq!(badge.tone, "beta");
+
+    // Verify link card segment
+    let link_card = segments
+        .iter()
+        .find(|s| s.kind == "link-card")
+        .expect("missing link-card segment");
+    assert_eq!(link_card.title, "Installation");
+    assert_eq!(link_card.href, "/guides/install/");
+
+    // Verify markdown projection and image / footnote rendering
     let html = render_article(&page_docs.article);
-
-    // Verify note aside rendering
-    assert!(
-        html.contains("class=\"rd-docs-aside rd-docs-note rd-docs-block\""),
-        "missing note: {html}"
-    );
-    assert!(
-        html.contains("This is a callout note."),
-        "missing note body: {html}"
-    );
-
-    // Verify tabs rendering
-    assert!(
-        html.contains("class=\"rd-docs-tabs rd-docs-block\""),
-        "missing tabs: {html}"
-    );
-    assert!(html.contains("Roc"), "missing roc tab: {html}");
-
-    // Verify details rendering
-    assert!(
-        html.contains("<details class=\"rd-docs-details rd-docs-block\"")
-            && html.contains("<summary class=\"rd-docs-summary\">Click to expand</summary>"),
-        "missing details: {html}"
-    );
-
-    // Verify badge rendering
-    assert!(
-        html.contains("class=\"rd-docs-badge rd-docs-block\""),
-        "missing badge: {html}"
-    );
-    assert!(html.contains("Beta"), "missing badge label: {html}");
-
-    // Verify link card rendering
-    assert!(
-        html.contains("class=\"rd-docs-card rd-docs-link-card rd-docs-block\""),
-        "missing link card: {html}"
-    );
-
-    // Verify img rendering
     assert!(
         html.contains("<img class=\"rd-image\"") && html.contains("src=\"/media/logo.png\""),
         "missing img: {html}"
     );
-
-    // Verify footnotes
     assert!(
         html.contains("data-footnote-ref") && html.contains("aria-label=\"Footnotes\""),
         "missing footnote: {html}"

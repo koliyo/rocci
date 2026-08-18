@@ -225,7 +225,9 @@ pub fn run_knowledge(
     port: u16,
     profile: Profile,
     open_path: &str,
+    host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<DevServer> {
+    let _ = host;
     let root = okf::absolute(root)?;
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());

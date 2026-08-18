@@ -1,4 +1,7 @@
 import Html
+import Breadcrumbs
+import NavList
+import PageOutline
 
 @css {
     .skip-link {
@@ -830,17 +833,7 @@ import Html
                                     >{lane.label}</a>
                                 }
                             </nav>
-                            <nav aria-label="Site navigation">
-                                <div class="nav-items">
-                                    @for item in sidebar {
-                                        <a
-                                            class={item.class_name}
-                                            href={item.href}
-                                            aria-current={if item.href == route { "page" } else { "false" }}
-                                        >{item.title}</a>
-                                    }
-                                </div>
-                            </nav>
+                            <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
                         </div>
                     </details>
                 </div>
@@ -860,36 +853,14 @@ import Html
                     @if layout != "home" {
                         @if layout != "not-found" {
                             <aside class="sidebar">
-                                <nav aria-label="Site navigation">
-                                    <div class="nav-items">
-                                        @for item in sidebar {
-                                            <a
-                                                class={item.class_name}
-                                                href={item.href}
-                                                aria-current={if item.href == route { "page" } else { "false" }}
-                                            >{item.title}</a>
-                                        }
-                                    </div>
-                                </nav>
+                                <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
                             </aside>
                         }
                     }
                 }
                 <main class="content-column" id="main-content">
                     @if layout != "home" {
-                        <nav class="breadcrumbs" aria-label="Breadcrumb">
-                            <ol>
-                                @for crumb in breadcrumbs {
-                                    <li>
-                                        <a
-                                            class={if crumb.href == route { "crumb-current" } else { "" }}
-                                            href={crumb.href}
-                                            aria-current={if crumb.href == route { "page" } else { "false" }}
-                                        >{crumb.title}</a>
-                                    </li>
-                                }
-                            </ol>
-                        </nav>
+                        <Breadcrumbs.breadcrumbs breadcrumbs={breadcrumbs} route={route} />
                     }
                     <article class="article">{content}</article>
                     @if layout == "collection" {
@@ -916,17 +887,7 @@ import Html
                 @if layout != "plain" {
                     @if layout != "home" {
                         @if layout != "not-found" {
-                            <aside class="outline" aria-label="On this page">
-                                <p class="outline-label">On this page</p>
-                                <div class="outline-items">
-                                    @for heading in outline {
-                                        <a
-                                            class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
-                                            href={"#${heading.id}"}
-                                        >{heading.title}</a>
-                                    }
-                                </div>
-                            </aside>
+                            <PageOutline.pageOutline outline={outline} />
                         }
                     }
                 }

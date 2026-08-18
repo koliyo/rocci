@@ -3,10 +3,10 @@ type: Implementation Plan
 title: First-party Rocci chrome library and generation host
 description: Extract demonstrated documentation chrome into base-Rocci components, keep Markdown and OKF governance in their owners, and host Roc through a cached native subprocess and an embedded Wasmtime runtime.
 tags: [domain/rocci, domain/rocdown, domain/rocci-okf, integration/roc, concern/rendering, concern/performance, concern/architecture, concern/caching]
-status: draft
+status: stable
 generated: { by: process:cursor, at: 2026-08-18T13:50:00Z }
 stale_after: 2026-11-18
-authority: exploratory
+authority: normative
 owners: [human:nils]
 sources:
   - id: research

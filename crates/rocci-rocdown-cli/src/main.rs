@@ -30,6 +30,9 @@ enum Commands {
         /// Override output path (directory for site, file for single document).
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+        host: HostArg,
         #[command(flatten)]
         theme: ThemeArgs,
     },
@@ -41,6 +44,9 @@ enum Commands {
         /// Write preview output here instead of a temp directory (for site dev server).
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+        host: HostArg,
         /// Skip the embedded window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
@@ -109,6 +115,24 @@ enum Commands {
 enum CheckFormatArg {
     Terminal,
     Json,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, Default)]
+enum HostArg {
+    #[default]
+    Auto,
+    Native,
+    Wasm,
+}
+
+impl From<HostArg> for rocci_rocdown::HostChoice {
+    fn from(arg: HostArg) -> Self {
+        match arg {
+            HostArg::Auto => rocci_rocdown::HostChoice::Auto,
+            HostArg::Native => rocci_rocdown::HostChoice::Native,
+            HostArg::Wasm => rocci_rocdown::HostChoice::Wasm,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -194,6 +218,7 @@ fn try_main() -> Result<()> {
         Commands::Build {
             path,
             output,
+            host,
             theme,
         } => {
             if is_document_file(&path) {
@@ -206,13 +231,18 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "build")?;
-                rocci_rocdown::build_configured(&path, output.as_deref())?;
+                rocci_rocdown::build_configured_with_host(
+                    &path,
+                    output.as_deref(),
+                    Some(host.into()),
+                )?;
                 Ok(())
             }
         }
         Commands::Run {
             path,
             output,
+            host,
             no_window,
             port,
             theme,
@@ -228,7 +258,7 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "run")?;
-                run_site_dev(&path, output.as_deref(), no_window, port)
+                run_site_dev(&path, output.as_deref(), no_window, port, host.into())
             }
         }
         Commands::Check { root, format } => {
@@ -435,9 +465,15 @@ fn run_standalone_doc(
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)
 }
 
-fn run_site_dev(root: &Path, output: Option<&Path>, no_window: bool, port: PortArg) -> Result<()> {
+fn run_site_dev(
+    root: &Path,
+    output: Option<&Path>,
+    no_window: bool,
+    port: PortArg,
+    host: rocci_rocdown::HostChoice,
+) -> Result<()> {
     let port = port.resolve()?;
-    let server = rocci_rocdown::run(root, output, port)?;
+    let server = rocci_rocdown::run_with_host(root, output, port, Some(host))?;
     eprintln!("rocdown: serving {} at {}", server.title, server.url);
     if no_window {
         server.wait();

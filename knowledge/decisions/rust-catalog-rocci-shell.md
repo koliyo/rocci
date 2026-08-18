@@ -37,17 +37,17 @@ The initial Roc-first static-site spike proved a shared Rocci shell but made Roc
 
 Deterministic transformations of parsed documentation data belong in Rust: discovery, identity, routing, graph and navigation resolution, validation, article HTML, search projections, artifact planning, hashing, and output orchestration.[^refactor-plan][^site]
 
-Visible site chrome belongs in a Rocci theme (`RocdownTheme.rocci`) evaluated through Roc. Authored dynamic regions are programs and stay on the Roc/Rocci compilation path, compiled only for pages that require them.[^refactor-plan][^rocdown-theme]
+Visible site chrome belongs in a Rocci theme (`RocdownTheme.rocci`) evaluated through Roc. Shared chrome primitives (`PageOutline.rocci`, `NavList.rocci`, `Breadcrumbs.rocci`) live in base Rocci (`crates/rocci-ui/templates/chrome/`) while product layouts compose them. Authored dynamic regions are programs and stay on the Roc/Rocci compilation path, compiled only for pages that require them.[^refactor-plan][^rocdown-theme]
 
 ## Consequences
 
 Content-only work can be checked without Roc, prose changes do not become generated Roc modules, and all output projections can share one resolved catalog. Rust must not grow an unrelated docs-template language, while the Rocci shell receives normalized view data rather than owning file discovery or routing.[^refactor-plan]
 
-Full builds still depend on the theme compilation/application path, and dynamic-page splicing needs a later explicit integration.
+Full builds use a two-tier persistent renderer cache (`rocci-roc-host`) for native subprocess (Host A) and in-process Wasmtime (Host B).
 
 ## Current disposition
 
-Implemented for static pages, including the resolved catalog, Rust article renderer, structured page view, once-compiled shell, and planned artifact set. Island splicing remains absent.
+Implemented for static pages, including the resolved catalog, Rust article renderer, structured page view, shared base chrome components, two-tier renderer cache, and planned artifact set. Island splicing remains absent.
 
 [^refactor-plan]: Accepted ownership rule, rejected Roc-first shape, and phased implementation record.
 [^site]: Current Rust discovery, validation, catalog inspection, and static feature gate.

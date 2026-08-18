@@ -28,18 +28,21 @@ pub use ast::{
     DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
     RenderDecl, RocDecl,
 };
-pub use build::{BuildReport, BuildSession, build, build_configured, discover_rocdown};
+pub use build::{
+    BuildReport, BuildSession, build, build_configured, build_configured_with_host,
+    build_with_host, discover_rocdown,
+};
 pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
     RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
 };
 pub use config::{BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config};
-pub use dev::{DevServer, run};
+pub use dev::{DevServer, run, run_with_host};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
-    PageDocs, extract_lines, extract_region, field_bool, field_string, field_strings,
-    include_path_error, load_page_docs, markdown_fragment, render_article, resolve_include_path,
-    run_examples, search_text, split_docs_body,
+    PageDocs, PlannedSegment, extract_lines, extract_region, field_bool, field_string,
+    field_strings, include_path_error, load_page_docs, markdown_fragment, plan_segments,
+    render_article, resolve_include_path, run_examples, search_text, split_docs_body,
 };
 pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{
@@ -51,6 +54,7 @@ pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
 pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use pprint::format_ast;
+pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use site::{
     CheckFormat, CheckReport, InspectKind, check, inspect, load_site, resolve_loaded, test_examples,

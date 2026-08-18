@@ -68,6 +68,8 @@ pub struct BuildConfig {
     pub assets: String,
     #[serde(default)]
     pub theme: Option<String>,
+    #[serde(default)]
+    pub host: Option<rocci_roc_host::HostChoice>,
 }
 
 impl Default for BuildConfig {
@@ -76,6 +78,7 @@ impl Default for BuildConfig {
             output: "dist".into(),
             assets: "assets".into(),
             theme: None,
+            host: None,
         }
     }
 }

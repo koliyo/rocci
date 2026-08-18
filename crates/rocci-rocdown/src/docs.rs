@@ -1365,138 +1365,7 @@ fn render_node(node: &ArticleNode) -> String {
 }
 
 fn render_docs(docs: &DocsNode) -> String {
-    let body = docs.children.iter().map(render_node).collect::<String>();
-    let class = format!("rd-docs-{} rd-docs-block", docs.kind);
-    match docs.kind.as_str() {
-        kind if ASIDES.contains(&kind) => {
-            let label = aside_label(kind);
-            let title = docs
-                .attrs
-                .title
-                .as_deref()
-                .map(|title| format!("<p class=\"rd-docs-title\">{}</p>", escape(title)))
-                .unwrap_or_default();
-            let aria = if kind == "deprecated" {
-                " aria-label=\"Deprecated\""
-            } else {
-                ""
-            };
-            format!(
-                "<aside class=\"rd-docs-aside {class}\" data-rocci-docs=\"{kind}\"{aria}><p class=\"rd-docs-label\">{label}</p>{title}<div class=\"rd-docs-body\">{body}</div></aside>"
-            )
-        }
-        "details" => {
-            let open = if docs.attrs.open { " open" } else { "" };
-            format!(
-                "<details class=\"{class}\" data-rocci-docs=\"details\"{open}><summary class=\"rd-docs-summary\">{}</summary><div class=\"rd-docs-body\">{body}</div></details>",
-                escape(docs.attrs.summary.as_deref().unwrap_or(""))
-            )
-        }
-        "tabs" => {
-            let panels = docs
-                .children
-                .iter()
-                .filter_map(|child| match child {
-                    ArticleNode::Docs(tab) if tab.kind == "tab" => Some(format!(
-                        "<section class=\"rd-docs-tab\" data-rocci-docs=\"tab\" aria-label=\"{}\"><h3 class=\"rd-docs-tab-label\">{}</h3>{}</section>",
-                        escape(tab.attrs.label.as_deref().unwrap_or("")),
-                        escape(tab.attrs.label.as_deref().unwrap_or("")),
-                        tab.children.iter().map(render_node).collect::<String>()
-                    )),
-                    _ => None,
-                })
-                .collect::<String>();
-            format!("<div class=\"{class}\" data-rocci-docs=\"tabs\">{panels}</div>")
-        }
-        "link-card" => {
-            let href = docs.attrs.href.clone().unwrap_or_else(|| {
-                docs.attrs
-                    .page
-                    .as_deref()
-                    .map(|page| format!("/{page}/"))
-                    .unwrap_or_else(|| "#".into())
-            });
-            format!(
-                "<a class=\"rd-docs-card {class}\" data-rocci-docs=\"link-card\" href=\"{}\"><span class=\"rd-docs-card-title\">{}</span></a>",
-                escape(&href),
-                escape(
-                    docs.attrs
-                        .title
-                        .as_deref()
-                        .unwrap_or(docs.attrs.page.as_deref().unwrap_or(""))
-                )
-            )
-        }
-        "file-tree" => format!(
-            "<div class=\"{class}\" data-rocci-docs=\"file-tree\" aria-label=\"File tree\">{body}</div>"
-        ),
-        "steps" => {
-            format!("<div class=\"rd-docs-steps {class}\" data-rocci-docs=\"steps\">{body}</div>")
-        }
-        "step" => {
-            let verify = if docs.attrs.verify {
-                "<p class=\"rd-docs-verify\">Verify</p>"
-            } else {
-                ""
-            };
-            let title = docs
-                .attrs
-                .title
-                .as_deref()
-                .map(|title| format!("<p class=\"rd-docs-title\">{}</p>", escape(title)))
-                .unwrap_or_default();
-            format!(
-                "<div class=\"rd-docs-step {class}\" data-rocci-docs=\"step\">{verify}{title}<div class=\"rd-docs-body\">{body}</div></div>"
-            )
-        }
-        "figure" => {
-            let caption = docs
-                .attrs
-                .caption
-                .as_deref()
-                .map(|caption| {
-                    format!(
-                        "<figcaption class=\"rd-docs-caption\">{}</figcaption>",
-                        escape(caption)
-                    )
-                })
-                .unwrap_or_default();
-            let credit = docs
-                .attrs
-                .credit
-                .as_deref()
-                .map(|credit| format!("<p class=\"rd-docs-credit\">{}</p>", escape(credit)))
-                .unwrap_or_default();
-            format!(
-                "<figure class=\"{class}\" data-rocci-docs=\"figure\">{body}{caption}{credit}</figure>"
-            )
-        }
-        "definition" => format!(
-            "<dl class=\"{class}\" data-rocci-docs=\"definition\"><dt>{}</dt><dd>{body}</dd></dl>",
-            escape(docs.attrs.term.as_deref().unwrap_or(""))
-        ),
-        "compatibility" => {
-            format!("<div class=\"{class}\" data-rocci-docs=\"compatibility\">{body}</div>")
-        }
-        "example" => {
-            format!("<figure class=\"{class}\" data-rocci-docs=\"example\">{body}</figure>")
-        }
-        "badge" => format!(
-            "<p class=\"{class}\" data-rocci-docs=\"badge\"><span class=\"rd-docs-badge-label\">{}</span></p>",
-            escape(docs.attrs.label.as_deref().unwrap_or(""))
-        ),
-        "playground" => {
-            let doc_id = escape(docs.attrs.id.as_deref().unwrap_or("counter"));
-            format!(
-                "<div class=\"rd-docs-playground {class}\" data-rocci-docs=\"playground\" data-doc-id=\"{doc_id}\"><div id=\"playground-root\">{body}</div></div>"
-            )
-        }
-        "include" => body,
-        _ => format!(
-            "<section class=\"{class}\" data-rocci-docs=\"{}\">{body}</section>",
-            docs.kind
-        ),
-    }
+    docs.children.iter().map(render_node).collect::<String>()
 }
 
 fn aside_label(kind: &str) -> &'static str {
@@ -1826,15 +1695,6 @@ fn rewrite_urls(text: &str, map: &BTreeMap<String, String>) -> String {
         }
     }
     out
-}
-
-fn escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&#39;")
 }
 
 fn line_number(src: &str, offset: usize) -> u32 {
@@ -2315,16 +2175,18 @@ mod tests {
             "@docs figure {\n    caption: \"Architecture\"\n    credit: \"Rocci docs\"\n\n    @img {\n        src: \"diagram.png\"\n        alt: \"Diagram\"\n        width: \"400px\"\n        loading: \"lazy\"\n        decoding: \"async\"\n    }\n}\n",
         );
         assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
+        let (segments, _fragments) = plan_segments("fig", &docs.article, &Default::default());
+        let figure_seg = segments
+            .iter()
+            .find(|s| s.kind == "figure")
+            .expect("missing figure segment");
+        assert_eq!(figure_seg.caption, "Architecture");
+        assert_eq!(figure_seg.credit, "Rocci docs");
         let html = render_article(&docs.article);
-        assert!(html.contains("<figure"), "{html}");
-        assert!(html.contains("rd-docs-caption"), "{html}");
-        assert!(html.contains("Architecture"), "{html}");
-        assert!(html.contains("rd-docs-credit"), "{html}");
-        assert!(html.contains("Rocci docs"), "{html}");
+        assert!(html.contains("src=\"diagram.png\""), "{html}");
         assert!(html.contains("alt=\"Diagram\""), "{html}");
         assert!(html.contains("width=\"400px\""), "{html}");
         assert!(html.contains("loading=\"lazy\""), "{html}");
         assert!(html.contains("decoding=\"async\""), "{html}");
-        assert!(!html.contains("alt=\"Architecture\""), "{html}");
     }
 }
