@@ -60,22 +60,15 @@ import Layouts
                 </div>
             </header>
             <div class="site-container">
-                @if view.layout == "home" {
-                    <Layouts.Home view={view}>{content}</Layouts.Home>
-                } @else if view.layout == "product" {
-                    <Layouts.Product view={view}>{content}</Layouts.Product>
-                } @else if view.layout == "section" {
-                    <Layouts.Section view={view}>{content}</Layouts.Section>
-                } @else if view.layout == "news-index" {
-                    <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
-                } @else if view.layout == "news-post" {
-                    <Layouts.NewsPost view={view}>{content}</Layouts.NewsPost>
-                } @else if view.layout == "plain" {
-                    <Layouts.Plain view={view}>{content}</Layouts.Plain>
-                } @else if view.layout == "not-found" {
-                    <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
-                } @else {
-                    <Layouts.Docs view={view}>{content}</Layouts.Docs>
+                @match view.layout {
+                    "home" => <Layouts.Home view={view}>{content}</Layouts.Home>
+                    "product" => <Layouts.Product view={view}>{content}</Layouts.Product>
+                    "section" => <Layouts.Section view={view}>{content}</Layouts.Section>
+                    "news-index" => <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
+                    "news-post" => <Layouts.NewsPost view={view}>{content}</Layouts.NewsPost>
+                    "plain" => <Layouts.Plain view={view}>{content}</Layouts.Plain>
+                    "not-found" => <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
+                    _ => <Layouts.Docs view={view}>{content}</Layouts.Docs>
                 }
             </div>
             <footer class="site-footer">
