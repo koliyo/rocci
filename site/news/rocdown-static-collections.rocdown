@@ -1,0 +1,24 @@
+@page {
+    layout: "news-post",
+    published: "2026-08-19",
+    authors: ["Rocci Team"],
+    tags: ["feature", "collections"],
+    collection: "news",
+    summary: "Rocdown now supports typed static collections with deterministic date sorting and automated Atom feeds.",
+    meta: {
+        title: "Typed Static Collections in Rocdown",
+        description: "Explore how typed collections in Rocdown automate news indexes, recent post showcases, and Atom feed distribution.",
+    },
+}
+
+# Typed Static Collections in Rocdown
+
+We are delighted to introduce typed static collections in Rocdown!
+
+## What Collections Provide
+
+- **Deterministic Date Ordering**: Posts are sorted newest first, with robust tie-breaking on title and canonical route.
+- **Automated Feed Generation**: Full Atom 1.0 feeds are generated at `/news/feed.xml` with zero extra configuration.
+- **Zero-touch Indexing**: Adding a new `.rocdown` article automatically updates the news index, homepage recent highlights, and sitemap without touching any `.rocci` theme files.
+
+Read the [documentation](/docs/) to start using typed collections in your own projects!

@@ -84,6 +84,17 @@ pub struct ResourceView {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct CollectionItemView {
+    pub route: String,
+    pub title: String,
+    pub summary: String,
+    pub published: String,
+    pub updated: String,
+    pub authors: Vec<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct PageView {
     pub site: SiteView,
     pub lanes: Vec<LaneView>,
@@ -97,6 +108,7 @@ pub struct PageView {
     pub authors: Vec<String>,
     pub tags: Vec<String>,
     pub collection: String,
+    pub collection_items: Vec<CollectionItemView>,
     pub outline: Vec<OutlineView>,
     pub breadcrumbs: Vec<BreadcrumbView>,
     pub previous: NavItemView,

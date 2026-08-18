@@ -51,6 +51,7 @@ directory = "news"
 items = [
     "news/index",
     "news/introducing-rocci",
+    "news/rocdown-static-collections",
 ]
 
 [[nav]]
