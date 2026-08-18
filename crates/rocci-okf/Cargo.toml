@@ -15,9 +15,7 @@ clap = { workspace = true }
 notify = "8"
 okf = { workspace = true }
 rocci-cli = { workspace = true }
-rocci-core = { workspace = true }
 rocci-desktop = { workspace = true }
-rocci-rocdown = { workspace = true }
 rocci-ui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

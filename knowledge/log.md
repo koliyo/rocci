@@ -1,5 +1,14 @@
 # Knowledge log
 
+## 2026-08-18
+
+- Closed high-priority findings from the [Rocdown boundary refactor review](audits/rocdown-boundary-refactor-review.md):
+  - Removed unused `rocci-rocdown` and `rocci-core` dependencies from `rocci-okf` and deleted the `TEMPORARY_OKF_ROCDOWN_PRESENTATION` allowlist in `scripts/check-workspace-deps.py` (F-04).
+  - Pruned `rocci-ui` to strictly domain-neutral view records (`PageView`, `SiteView`, `LaneView`, `NavItemView`, `BreadcrumbView`, `OutlineView`, `ResourceView`) and string escaping; removed speculative renderers and OKF-specific tones, self-containing all OKF presentation inside `rocci-okf` (F-05).
+  - Renamed obsolete concept records `rocs-documentation-compiler.md` -> `rocdown-documentation-compiler.md` and `rocs-okf.md` -> `rocci-okf-app.md`, updated all citations, indexes, `PRIORITY_1_RECORDS` in `rocci-okf`, `system-overview.md` (14 workspace crates), and status records (F-06).
+  - Corrected active operational commands across `docs/examples/index.rocdown`, `AGENTS.md`, and agent skills to distinguish `rocci-cli` and `rocci-rocdown-cli`; rebased future playground plan and added archival banners to historical plans (F-07).
+  - Removed redundant `ROCDOWN_CONFIG_FILE` and `load_rocdown_config` aliases from `rocci-rocdown` (F-09).
+
 ## 2026-08-17
 
 - Corrected the Phase 8 completion claim for revision `aa9b032`: documentation, knowledge indexes, and dependency-script updates landed on that commit, but CI (`32070977528`) and Knowledge (`32070977526`) failed until follow-up `b353895`. Green GitHub runs on the fix commit (CI `32072225878`, Knowledge `32072226074`) satisfy the workflow exit gate; treat `aa9b032` as documentation delivery only, not phase closure. A phase must not be logged complete until the required GitHub workflows have succeeded on that revision.

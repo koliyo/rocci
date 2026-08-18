@@ -34,8 +34,7 @@ pub use catalog::{
     RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
 };
 pub use config::{
-    BuildConfig, CONFIG_FILE, NavConfig, ROCDOWN_CONFIG_FILE, SiteConfig, SiteMeta, load_config,
-    load_config_named, load_rocdown_config,
+    BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config, load_config_named,
 };
 pub use dev::{DevServer, run};
 pub use docs::{

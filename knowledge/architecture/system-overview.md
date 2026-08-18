@@ -34,7 +34,7 @@ sources:
 
 Rocci compiles `.rocci` templates to ordinary Roc HTML, keeps prose-first executable documents in `.rocdown`, compiles multi-page static documentation sites with `rocdown build`, and hosts applications in an embedded Tao/Wry window.[^readme]
 
-The workspace separates compiler, template, theme, runtime, desktop host, Rocdown document compiler, document CLI, portable OKF engine, OKF application, language server, highlighter, and shared UI responsibilities across 12 dedicated crates with enforced one-way dependencies.[^workspace]
+The workspace separates compiler, template, theme, runtime, desktop host, Rocdown document compiler, document CLI, language servers (generic and Rocdown composition), highlighter, portable OKF engine, OKF application, shared UI, and Datastar integration across 14 dedicated crates with enforced one-way dependencies.[^workspace]
 
 ## Boundaries
 
@@ -42,7 +42,7 @@ Rocdown owns static catalog, route, navigation, graph, artifact, and build plann
 
 Knowledge records follow the [static OKF boundary](/decisions/static-okf-boundary.md) and remain inert Markdown managed by the portable `okf` engine and `rocci-okf` application.
 
-Domain-neutral presentation components, view records, and base styling live in `rocci-ui`.
+Domain-neutral view records and presentation primitives live in `rocci-ui`.
 
 ## Not yet implemented
 

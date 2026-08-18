@@ -19,8 +19,8 @@ sources:
     author: process:cursor
     last_modified: 2026-08-17
   - id: current-generator
-    resource: ../architecture/rocs-documentation-compiler.md
-    title: Current Rocs documentation compiler
+    resource: ../architecture/rocdown-documentation-compiler.md
+    title: Rocdown documentation generator
     author: process:codex
     last_modified: 2026-08-17
   - id: workspace
