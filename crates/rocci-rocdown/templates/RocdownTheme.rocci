@@ -956,7 +956,7 @@ import Html
     }
 }
 
-@component SiteShell = |{ site, lanes, sidebar, route, title, description, outline, breadcrumbs, previous, next, resources }, content| {
+@component SiteShell = |{ site, lanes, sidebar, route, title, description, outline, breadcrumbs, previous, next, resources, layout, published, updated, authors, tags, collection }, content| {
     <html lang={site.language}>
         <head>
             <meta charset="utf-8" />
@@ -1044,58 +1044,66 @@ import Html
                     </details>
                 </div>
             </header>
-            <div class="site-grid">
-                <aside class="sidebar">
-                    <nav aria-label="Site navigation">
-                        <div class="nav-items">
-                            @for item in sidebar {
-                                <a
-                                    class={item.class_name}
-                                    href={item.href}
-                                    aria-current={if item.href == route { "page" } else { "false" }}
-                                >{item.title}</a>
-                            }
-                        </div>
-                    </nav>
-                </aside>
-                <main class="content-column" id="main-content">
-                    <nav class="breadcrumbs" aria-label="Breadcrumb">
-                        <ol>
-                            @for crumb in breadcrumbs {
-                                <li>
+            <div class={if layout == "plain" || layout == "home" || layout == "not-found" { "site-grid is-plain" } else { "site-grid" }}>
+                @if layout != "plain" && layout != "home" && layout != "not-found" {
+                    <aside class="sidebar">
+                        <nav aria-label="Site navigation">
+                            <div class="nav-items">
+                                @for item in sidebar {
                                     <a
-                                        class={if crumb.href == route { "crumb-current" } else { "" }}
-                                        href={crumb.href}
-                                        aria-current={if crumb.href == route { "page" } else { "false" }}
-                                    >{crumb.title}</a>
-                                </li>
-                            }
-                        </ol>
-                    </nav>
+                                        class={item.class_name}
+                                        href={item.href}
+                                        aria-current={if item.href == route { "page" } else { "false" }}
+                                    >{item.title}</a>
+                                }
+                            </div>
+                        </nav>
+                    </aside>
+                }
+                <main class="content-column" id="main-content">
+                    @if layout != "home" {
+                        <nav class="breadcrumbs" aria-label="Breadcrumb">
+                            <ol>
+                                @for crumb in breadcrumbs {
+                                    <li>
+                                        <a
+                                            class={if crumb.href == route { "crumb-current" } else { "" }}
+                                            href={crumb.href}
+                                            aria-current={if crumb.href == route { "page" } else { "false" }}
+                                        >{crumb.title}</a>
+                                    </li>
+                                }
+                            </ol>
+                        </nav>
+                    }
                     <article class="article">{content}</article>
-                    <nav class="journey" aria-label="Page">
-                        @if previous.href != "" {
-                            <a class="journey-prev" href={previous.href}>← {previous.title}</a>
-                        }
-                        @if next.href != "" {
-                            <a class="journey-next" href={next.href}>{next.title} →</a>
-                        }
-                    </nav>
+                    @if layout == "docs" {
+                        <nav class="journey" aria-label="Page">
+                            @if previous.href != "" {
+                                <a class="journey-prev" href={previous.href}>← {previous.title}</a>
+                            }
+                            @if next.href != "" {
+                                <a class="journey-next" href={next.href}>{next.title} →</a>
+                            }
+                        </nav>
+                    }
                     @if site.footer != "" {
                         <footer class="article-footer">{site.footer}</footer>
                     }
                 </main>
-                <aside class="outline" aria-label="On this page">
-                    <p class="outline-label">On this page</p>
-                    <div class="outline-items">
-                        @for heading in outline {
-                            <a
-                                class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
-                                href={"#${heading.id}"}
-                            >{heading.title}</a>
-                        }
-                    </div>
-                </aside>
+                @if layout != "plain" && layout != "home" && layout != "not-found" {
+                    <aside class="outline" aria-label="On this page">
+                        <p class="outline-label">On this page</p>
+                        <div class="outline-items">
+                            @for heading in outline {
+                                <a
+                                    class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
+                                    href={"#${heading.id}"}
+                                >{heading.title}</a>
+                            }
+                        </div>
+                    </aside>
+                }
             </div>
         </body>
     </html>

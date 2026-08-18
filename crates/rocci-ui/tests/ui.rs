@@ -31,6 +31,12 @@ fn test_view_constructors_and_serialization() {
         route: "/guide/".into(),
         title: "Guide".into(),
         description: "Getting started".into(),
+        layout: "docs".into(),
+        published: "2026-08-18".into(),
+        updated: "".into(),
+        authors: vec!["Nils".into()],
+        tags: vec!["guide".into()],
+        collection: "".into(),
         outline: vec![
             OutlineView::new("installation", "Installation", "2"),
             OutlineView::new("configuration", "Configuration", "3"),

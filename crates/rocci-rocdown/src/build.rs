@@ -171,8 +171,14 @@ struct StagedBuild {
 
 fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Result<StagedBuild> {
     let mut generated_roc_bytes = runtime::runtime_bytes();
-    generated_roc_bytes += plan.theme_roc.len();
-    generated_roc_bytes += plan.docs_roc.len();
+    for module in &plan.theme_modules {
+        generated_roc_bytes += module.roc.len();
+        fs::write(
+            workspace.join(format!("{}.roc", module.type_name)),
+            &module.roc,
+        )
+        .with_context(|| format!("failed to write {}.roc", module.type_name))?;
+    }
 
     let articles = workspace.join("articles");
     fs::create_dir_all(&articles).context("failed to create articles directory")?;
@@ -202,17 +208,13 @@ fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Resul
     generated_roc_bytes += pages_roc.len();
     fs::write(workspace.join("RocdownPages.roc"), &pages_roc)
         .context("failed to write RocdownPages.roc")?;
-    fs::write(workspace.join("RocdownTheme.roc"), &plan.theme_roc)
-        .context("failed to write RocdownTheme.roc")?;
-    fs::write(workspace.join("DocsComponents.roc"), &plan.docs_roc)
-        .context("failed to write DocsComponents.roc")?;
     let main = main_roc();
     generated_roc_bytes += main.len();
     fs::write(workspace.join("main.roc"), &main).context("failed to write main.roc")?;
 
     Ok(StagedBuild {
         generated_roc_bytes,
-        roc_hash: roc_source_hash(&pages_roc, &plan.theme_roc, &plan.docs_roc, &main),
+        roc_hash: roc_source_hash(&pages_roc, &plan.theme_modules, &main),
     })
 }
 
@@ -235,36 +237,32 @@ fn write_static_files(staging: &Path, files: &[crate::site::StaticFile]) -> Resu
 }
 
 fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
-    vec![
-        MappedModule {
-            type_name: "RocdownTheme".into(),
-            generated: plan.theme_roc.clone(),
-            source_name: "RocdownTheme.rocci".into(),
-            source_src: plan.theme_src.clone(),
-            segments: plan.theme_segments.clone(),
-        },
-        MappedModule {
-            type_name: "DocsComponents".into(),
-            generated: plan.docs_roc.clone(),
-            source_name: "DocsComponents.rocci".into(),
-            source_src: plan.docs_src.clone(),
-            segments: plan.docs_segments.clone(),
-        },
-    ]
+    plan.theme_modules
+        .iter()
+        .filter(|m| !m.segments.is_empty())
+        .map(|m| MappedModule {
+            type_name: m.type_name.clone(),
+            generated: m.roc.clone(),
+            source_name: m.source_name.clone(),
+            source_src: m.src.clone(),
+            segments: m.segments.clone(),
+        })
+        .collect()
 }
 
 pub(crate) fn roc_source_hash(
     pages_roc: &str,
-    theme_roc: &str,
-    docs_roc: &str,
+    theme_modules: &[crate::plan::CompiledThemeModule],
     main_roc: &str,
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(runtime::HTML.as_bytes());
     hasher.update(runtime::BUILD.as_bytes());
     hasher.update(pages_roc.as_bytes());
-    hasher.update(theme_roc.as_bytes());
-    hasher.update(docs_roc.as_bytes());
+    for m in theme_modules {
+        hasher.update(m.type_name.as_bytes());
+        hasher.update(m.roc.as_bytes());
+    }
     hasher.update(main_roc.as_bytes());
     hasher
         .finalize()

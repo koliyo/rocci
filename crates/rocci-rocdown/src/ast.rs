@@ -330,4 +330,10 @@ pub struct PageMeta {
     pub description: Option<String>,
     pub theme: Option<String>,
     pub color_scheme: Option<String>,
+    pub published: Option<String>,
+    pub updated: Option<String>,
+    pub authors: Vec<String>,
+    pub tags: Vec<String>,
+    pub collection: Option<String>,
+    pub summary: Option<String>,
 }
