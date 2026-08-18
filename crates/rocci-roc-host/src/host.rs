@@ -141,6 +141,10 @@ impl WasmHost {
             return Ok((cached_bin, false));
         }
 
+        if !workspace.join("platform").join("main.roc").exists() {
+            crate::platform::stage_wasm_platform_into(workspace)?;
+        }
+
         let wasm_file = workspace.join("components.wasm");
         let output = Command::new("roc")
             .arg("build")
@@ -155,14 +159,7 @@ impl WasmHost {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
-            let hint = if stderr.contains("does not support the wasm32 target")
-                || stdout.contains("does not support the wasm32 target")
-            {
-                "\n\nhint: The basic-cli platform only supports native compilation targets (x64mac, arm64mac, x64win, x64musl, arm64musl).\nWasm host (--host wasm) is planned for Phase 5 with a custom Roc wasm platform.\nPlease use '--host native' (or default '--host auto') instead."
-            } else {
-                ""
-            };
-            bail!("roc build --target=wasm32 failed:\n{stdout}{stderr}{hint}");
+            bail!("roc build --target=wasm32 failed:\n{stdout}{stderr}");
         }
 
         if !wasm_file.is_file() {
