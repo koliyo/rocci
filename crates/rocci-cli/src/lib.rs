@@ -15,3 +15,5 @@ pub mod runtime_assets;
 pub mod serve;
 pub mod style;
 pub mod view;
+
+pub use playground_html::render_file;
