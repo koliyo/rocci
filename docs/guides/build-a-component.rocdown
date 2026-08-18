@@ -99,13 +99,21 @@ expressions inside text and attributes.
 Markup is not valid inside an arbitrary Roc expression. If a branch returns
 markup, make the branch a Rocci directive or call a named rendering function.
 
-## Verify the component
+## Organize and verify components
+
+Save reusable UI components in a `components/` directory (for example, `components/StatusCard.rocci`).
+
+Inspect and preview the component with `rocci`:
 
 ```sh
-cargo run -p rocci-cli -- inspect --ast Status.rocci
-cargo run -p rocci-cli -- view Status.rocci --component StatusCard
+cargo run -p rocci-cli -- inspect --ast components/StatusCard.rocci
+cargo run -p rocci-cli -- view components/StatusCard.rocci --component StatusCard
 ```
 
-For every available component and fixture under a directory, use
-`rocci browse`. Continue with [server actions](/docs/guides/server-actions/) when the
-component needs to update state.
+To discover, test, and interactively preview every component and fixture in the directory, run the component browser:
+
+```sh
+cargo run -p rocci-cli -- browse components/
+```
+
+Continue with [server actions](/docs/guides/server-actions/) when the component needs to update state.
