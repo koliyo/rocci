@@ -12,11 +12,13 @@ path = "src/main.rs"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-notify = "8"
+notify = { workspace = true }
 okf = { workspace = true }
 rocci-cli = { workspace = true }
 rocci-desktop = { workspace = true }
 rocci-roc-host = { workspace = true, features = ["wasmtime"] }
+rocci-template = { workspace = true }
 rocci-ui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = "0.10"

@@ -1,0 +1,116 @@
+import Html
+
+@component StatGrid = |{ cards }| {
+    <div class="okf-stat-grid">
+        @for card in cards {
+            @if card.href != "" {
+                <a href={card.href} class={if card.is_action { "okf-stat-card is-action" } else { "okf-stat-card" }}>
+                    <div class="okf-stat-value">{card.value}</div>
+                    <div class="okf-stat-label">{card.label}</div>
+                </a>
+            }
+            @if card.href == "" {
+                <div class={if card.is_action { "okf-stat-card is-action" } else { "okf-stat-card" }}>
+                    <div class="okf-stat-value">{card.value}</div>
+                    <div class="okf-stat-label">{card.label}</div>
+                </div>
+            }
+        }
+    </div>
+}
+
+@component Priority1Section = |{ items }| {
+    <div class="okf-priority-1-section">
+        <h2 class="rd-header-2" id="priority-1-review-queue">Priority-1 Review Queue</h2>
+        <p class="rd-paragraph">The evidence-based human review gate for stabilizing Rocci's core architectural and decision records.</p>
+        <div class="okf-table-container">
+            <table class="okf-review-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Priority-1 Record</th>
+                        <th style="width: 27%;">Review Focus</th>
+                        <th style="width: 15%;">Lifecycle / Authority</th>
+                        <th style="width: 15%;">Trust & Verifier</th>
+                        <th style="width: 18%;">Required Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for item in items {
+                        <tr>
+                            <td>
+                                <a href={"/${item.id}/"} class="okf-concept-title-link"><strong>{item.title}</strong></a>
+                                <div class="okf-concept-id-sub"><code>{item.id}</code></div>
+                            </td>
+                            <td><span class="okf-focus-text">{item.focus}</span></td>
+                            <td>
+                                <span class={"okf-badge okf-status okf-status-${item.status}"}>{item.status}</span>
+                                <span class={"okf-badge okf-auth okf-auth-${item.authority}"}>{item.authority}</span>
+                            </td>
+                            <td>
+                                <span class={"okf-badge okf-trust okf-trust-${item.trust_slug}"}>{item.trust_label}</span>
+                                <div class="okf-verifier-sub"><code>{item.verifier}</code></div>
+                            </td>
+                            <td>
+                                <div class="okf-action-wrapper">
+                                    <span class={"okf-action-pill ${item.pill_class}"}>{item.action_label}</span>
+                                    <div class="okf-action-detail-text">{item.action_detail}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@component ReviewTable = |{ queue, total_concepts, action_count, draft_count, stable_count }| {
+    <div class="okf-all-concepts-section">
+        <h2 class="rd-header-2" id="all-concepts-queue">{"All Bundle Concepts (${total_concepts} Records)"}</h2>
+        <div class="okf-filter-bar">
+            <button type="button" class="okf-filter-btn is-active" data-filter="all">{"All (${total_concepts})"}</button>
+            <button type="button" class="okf-filter-btn" data-filter="action">{"Needs Action (${action_count})"}</button>
+            <button type="button" class="okf-filter-btn" data-filter="draft">{"Draft (${draft_count})"}</button>
+            <button type="button" class="okf-filter-btn" data-filter="stable">{"Stable (${stable_count})"}</button>
+            <input type="search" id="okf-search-input" class="okf-search-input" placeholder="Filter by concept, path, tag, or action..." aria-label="Search review queue" />
+        </div>
+        <div class="okf-table-container">
+            <table class="okf-review-table" id="okf-review-table">
+                <thead>
+                    <tr>
+                        <th style="width: 28%;">Concept</th>
+                        <th style="width: 14%;">Collection</th>
+                        <th style="width: 18%;">Lifecycle / Authority</th>
+                        <th style="width: 18%;">Trust & Verification</th>
+                        <th style="width: 22%;">Required Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for row in queue {
+                        <tr class="okf-row" data-status={row.status} data-action={row.action_str} data-search={row.search_haystack}>
+                            <td>
+                                <a href={"/${row.id}/"} class="okf-concept-title-link"><strong>{row.title}</strong></a>
+                                <div class="okf-concept-id-sub"><code>{row.id}</code></div>
+                            </td>
+                            <td><span class="okf-badge okf-type">{row.concept_type}</span></td>
+                            <td>
+                                <span class={"okf-badge okf-status okf-status-${row.status}"}>{row.status}</span>
+                                <span class={"okf-badge okf-auth okf-auth-${row.authority}"}>{row.authority}</span>
+                            </td>
+                            <td>
+                                <span class={"okf-badge okf-trust okf-trust-${row.trust_slug}"}>{row.trust_label}</span>
+                                <div class="okf-verifier-sub"><code>{row.verifier}</code></div>
+                            </td>
+                            <td>
+                                <div class="okf-action-wrapper">
+                                    <span class={"okf-action-pill ${row.pill_class}"}>{row.action_label}</span>
+                                    <div class="okf-action-detail-text">{row.action_detail}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

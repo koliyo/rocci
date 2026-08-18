@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
     classify_concept_action, external_url, published_href, slugify,
@@ -780,7 +780,504 @@ pub fn render_review_page(bundle: &Bundle) -> String {
     out
 }
 
+#[allow(dead_code)]
 pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
+    build_review_site_with_host(bundle, site, None)
+}
+
+const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst";
+
+pub struct CompiledOkfModule {
+    pub type_name: String,
+    pub source_name: String,
+    pub src: String,
+    pub roc: String,
+    pub segments: Vec<rocci_template::Segment>,
+}
+
+pub fn compile_okf_templates() -> Result<Vec<CompiledOkfModule>> {
+    let raw = [
+        ("PageOutline", crate::runtime::PAGE_OUTLINE),
+        ("ConceptMeta", crate::runtime::CONCEPT_META),
+        ("ReviewQueue", crate::runtime::REVIEW_QUEUE),
+        ("OkfTheme", crate::runtime::OKF_THEME),
+    ];
+
+    let mut out = Vec::new();
+    let lower_opts = rocci_template::LowerOptions::default();
+
+    for (type_name, src) in raw {
+        let source_file = rocci_template::SourceFile::new(type_name, src);
+        let compiled = rocci_template::compile(source_file, &lower_opts);
+        if compiled.has_errors() {
+            let diags: Vec<String> = compiled
+                .diagnostics
+                .iter()
+                .map(|d| rocci_template::format_diagnostic(source_file, d))
+                .collect();
+            bail!("failed to compile {type_name}.rocci:\n{}", diags.join("\n"));
+        }
+        out.push(CompiledOkfModule {
+            type_name: type_name.to_string(),
+            source_name: format!("{type_name}.rocci"),
+            src: src.to_string(),
+            roc: rocci_template::wrap_type_module(&compiled.roc, type_name),
+            segments: compiled.segments,
+        });
+    }
+
+    Ok(out)
+}
+
+fn format_roc_str(s: &str) -> String {
+    let escaped = s
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('$', "\\$");
+    format!("\"{escaped}\"")
+}
+
+fn format_roc_bool(b: bool) -> &'static str {
+    if b { "True" } else { "False" }
+}
+
+fn is_roc_available() -> bool {
+    std::process::Command::new("roc")
+        .arg("help")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn unique_temp(prefix: &str) -> Result<std::path::PathBuf> {
+    let id = std::process::id();
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let dir = std::env::temp_dir().join(format!("rocci-okf-{prefix}-{id}-{time}"));
+    fs::create_dir_all(&dir)
+        .with_context(|| format!("failed to create temp dir {}", dir.display()))?;
+    Ok(dir)
+}
+
+fn roc_source_hash(pages_roc: &str, modules: &[CompiledOkfModule], main_roc: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(crate::runtime::HTML_ROC.as_bytes());
+    hasher.update(crate::runtime::OKF_BUILD_ROC.as_bytes());
+    hasher.update(pages_roc.as_bytes());
+    for m in modules {
+        hasher.update(m.type_name.as_bytes());
+        hasher.update(m.roc.as_bytes());
+    }
+    hasher.update(main_roc.as_bytes());
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn okf_fingerprints(modules: &[CompiledOkfModule]) -> Vec<rocci_roc_host::InputFingerprint> {
+    let mut fps = Vec::new();
+    for module in modules {
+        fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+            &format!("{}.roc", module.type_name),
+            module.roc.as_bytes(),
+        ));
+    }
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "Html.roc",
+        crate::runtime::HTML_ROC.as_bytes(),
+    ));
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "OkfBuild.roc",
+        crate::runtime::OKF_BUILD_ROC.as_bytes(),
+    ));
+    fps
+}
+
+fn main_roc() -> String {
+    format!(
+        "\
+app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
+
+import OkfBuild
+
+main! = |_args| {{
+    OkfBuild.run!({{}})?
+    Ok({{}})
+}}
+"
+    )
+}
+
+fn generate_okf_pages_roc(bundle: &Bundle) -> Result<(String, Vec<(String, String)>, Vec<String>)> {
+    let mut pages_roc = String::from("OkfPages := [].{\n    pages = [\n");
+    let mut articles = Vec::new();
+    let mut output_paths = Vec::new();
+
+    for concept in &bundle.concepts {
+        let (stamped_article, headings) = stamp_and_collect_headings(&concept.article_html);
+        let article_rel = format!("articles/{}.html", concept.id.replace('/', "-"));
+        articles.push((article_rel.clone(), stamped_article));
+        let out_path = format!("{}/index.html", concept.id);
+        output_paths.push(out_path.clone());
+
+        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+        let status = okf::string_field(&concept.metadata, "status").unwrap_or("draft");
+        let authority = okf::string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+        let trust_tier = okf::search::concept_trust_tier(&concept.metadata);
+        let stale = okf::search::concept_is_stale(&concept.metadata);
+        let stale_after = okf::string_field(&concept.metadata, "stale_after").unwrap_or("");
+        let concept_type = okf::string_field(&concept.metadata, "type").unwrap_or("Concept");
+        let owners = okf::metadata_string_array(&concept.metadata, "owners");
+        let tags = okf::metadata_string_array(&concept.metadata, "tags");
+        let description = okf::string_field(&concept.metadata, "description").unwrap_or("");
+        let action = classify_concept_action(concept, &bundle.diagnostics);
+
+        let (trust_slug, trust_label) = match trust_tier {
+            TrustTier::HumanReviewed => ("human", "human-reviewed"),
+            TrustTier::Generated => ("generated", "generated"),
+            TrustTier::Unverified => ("unverified", "unverified"),
+        };
+        let verifier = okf::latest_human_verification(&concept.metadata)
+            .map(|(_, v)| v.to_string())
+            .unwrap_or_default();
+        let generated = concept
+            .metadata
+            .get("generated")
+            .and_then(Value::as_object)
+            .map(|g| {
+                let by = g.get("by").and_then(Value::as_str).unwrap_or("");
+                let at = g.get("at").and_then(Value::as_str).unwrap_or("");
+                if !by.is_empty() && !at.is_empty() {
+                    format!("{by} @ {at}")
+                } else {
+                    by.to_string()
+                }
+            })
+            .unwrap_or_default();
+
+        let sources_arr = concept.metadata.get("sources").and_then(Value::as_array);
+        let has_sources = sources_arr.is_some_and(|s| !s.is_empty());
+        let source_count = sources_arr
+            .map(|s| s.len().to_string())
+            .unwrap_or_else(|| "0".into());
+        let drift_diags: Vec<&Diagnostic> = bundle
+            .diagnostics
+            .iter()
+            .filter(|d| d.path == concept.path && d.code == "OKF4006")
+            .collect();
+        let drift_summary = if has_sources {
+            if !drift_diags.is_empty() {
+                format!("({} drifted)", drift_diags.len())
+            } else {
+                "(all clean)".to_string()
+            }
+        } else {
+            String::new()
+        };
+
+        let mut sources_roc = String::from("[\n");
+        if let Some(sources) = sources_arr {
+            for source in sources {
+                let s_id = source.get("id").and_then(Value::as_str).unwrap_or("-");
+                let s_res = source
+                    .get("resource")
+                    .and_then(Value::as_str)
+                    .unwrap_or("-");
+                let s_author = source.get("author").and_then(Value::as_str).unwrap_or("-");
+                let s_href = source_href(concept, s_res).unwrap_or_default();
+                let is_drifted = drift_diags
+                    .iter()
+                    .any(|d| d.message.contains(&format!("`{s_id}`")));
+                sources_roc.push_str(&format!(
+                    "                        {{ id: {}, resource: {}, href: {}, author: {}, is_drifted: {} }},\n",
+                    format_roc_str(s_id),
+                    format_roc_str(s_res),
+                    format_roc_str(&s_href),
+                    format_roc_str(s_author),
+                    format_roc_bool(is_drifted),
+                ));
+            }
+        }
+        sources_roc.push_str("                    ]");
+
+        let unknown_fields: Vec<(&String, &Value)> = concept
+            .metadata
+            .iter()
+            .filter(|(k, _)| !STANDARD_FIELDS.contains(&k.as_str()))
+            .collect();
+        let has_other = !unknown_fields.is_empty();
+        let other_count = unknown_fields.len().to_string();
+        let mut other_roc = String::from("[\n");
+        for (k, v) in &unknown_fields {
+            other_roc.push_str(&format!(
+                "                        {{ key: {}, val: {} }},\n",
+                format_roc_str(k),
+                format_roc_str(&compact_json_value(v)),
+            ));
+        }
+        other_roc.push_str("                    ]");
+
+        let mut tags_roc = String::from("[\n");
+        for tag in &tags {
+            tags_roc.push_str(&format!(
+                "                        {},\n",
+                format_roc_str(tag)
+            ));
+        }
+        tags_roc.push_str("                    ]");
+
+        let mut outline_roc = String::from("[\n");
+        for h in &headings {
+            outline_roc.push_str(&format!(
+                "                    {{ id: {}, title: {}, level: {} }},\n",
+                format_roc_str(&h.id),
+                format_roc_str(&h.text),
+                format_roc_str(&h.level.to_string()),
+            ));
+        }
+        outline_roc.push_str("                ]");
+
+        let has_prov = !owners.is_empty()
+            || !verifier.is_empty()
+            || !generated.is_empty()
+            || !stale_after.is_empty();
+
+        pages_roc.push_str(&format!(
+            "        {{\n            output_path: {},\n            article_path: {},\n            title: {},\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: True,\n                meta: {{\n                    concept_type: {},\n                    status: {},\n                    authority: {},\n                    trust_slug: {},\n                    trust_label: {},\n                    stale: {},\n                    stale_after: {},\n                    is_action_required: {},\n                    action_detail: {},\n                    description: {},\n                    has_provenance: {},\n                    owners: {},\n                    verifier: {},\n                    generated: {},\n                    has_sources: {},\n                    source_count: {},\n                    drift_summary: {},\n                    sources: {sources_roc},\n                    has_other_meta: {},\n                    other_meta_count: {},\n                    other_meta: {other_roc},\n                    has_tags: {},\n                    tags: {tags_roc},\n                }},\n            }},\n        }},\n",
+            format_roc_str(&out_path),
+            format_roc_str(&article_rel),
+            format_roc_str(title),
+            format_roc_bool(!headings.is_empty()),
+            format_roc_str(concept_type),
+            format_roc_str(status),
+            format_roc_str(authority),
+            format_roc_str(trust_slug),
+            format_roc_str(trust_label),
+            format_roc_bool(stale),
+            format_roc_str(stale_after),
+            format_roc_bool(action.is_action_required),
+            format_roc_str(&action.detail),
+            format_roc_str(description),
+            format_roc_bool(has_prov),
+            format_roc_str(&owners.join(", ")),
+            format_roc_str(&verifier),
+            format_roc_str(&generated),
+            format_roc_bool(has_sources),
+            format_roc_str(&source_count),
+            format_roc_str(&drift_summary),
+            format_roc_bool(has_other),
+            format_roc_str(&other_count),
+            format_roc_bool(!tags.is_empty()),
+        ));
+    }
+
+    if let Some(index) = bundle.indexes.iter().find(|i| i.path == "index.md") {
+        let (stamped, headings) = stamp_and_collect_headings(&format!(
+            "{}{}",
+            render_home_page_governance(bundle),
+            index.article_html
+        ));
+        let article_rel = "articles/index.html".to_string();
+        articles.push((article_rel.clone(), stamped));
+        output_paths.push("index.html".to_string());
+
+        let mut outline_roc = String::from("[\n");
+        for h in &headings {
+            outline_roc.push_str(&format!(
+                "                    {{ id: {}, title: {}, level: {} }},\n",
+                format_roc_str(&h.id),
+                format_roc_str(&h.text),
+                format_roc_str(&h.level.to_string()),
+            ));
+        }
+        outline_roc.push_str("                ]");
+
+        pages_roc.push_str(&format!(
+            "        {{\n            output_path: \"index.html\",\n            article_path: {},\n            title: \"Knowledge\",\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
+            format_roc_str(&article_rel),
+            format_roc_bool(!headings.is_empty()),
+        ));
+    }
+
+    for index in &bundle.indexes {
+        let Some(collection) = index.path.strip_suffix("/index.md") else {
+            continue;
+        };
+        let (stamped, headings) = stamp_and_collect_headings(&index.article_html);
+        let article_rel = format!("articles/{collection}-index.html");
+        articles.push((article_rel.clone(), stamped));
+        let out_path = format!("{collection}/index.html");
+        output_paths.push(out_path.clone());
+
+        let mut outline_roc = String::from("[\n");
+        for h in &headings {
+            outline_roc.push_str(&format!(
+                "                    {{ id: {}, title: {}, level: {} }},\n",
+                format_roc_str(&h.id),
+                format_roc_str(&h.text),
+                format_roc_str(&h.level.to_string()),
+            ));
+        }
+        outline_roc.push_str("                ]");
+
+        pages_roc.push_str(&format!(
+            "        {{\n            output_path: {},\n            article_path: {},\n            title: {},\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
+            format_roc_str(&out_path),
+            format_roc_str(&article_rel),
+            format_roc_str(collection),
+            format_roc_bool(!headings.is_empty()),
+        ));
+    }
+
+    let (stamped, headings) = stamp_and_collect_headings(&render_review_page(bundle));
+    let article_rel = "articles/review.html".to_string();
+    articles.push((article_rel.clone(), stamped));
+    output_paths.push("review/index.html".to_string());
+
+    let mut outline_roc = String::from("[\n");
+    for h in &headings {
+        outline_roc.push_str(&format!(
+            "                    {{ id: {}, title: {}, level: {} }},\n",
+            format_roc_str(&h.id),
+            format_roc_str(&h.text),
+            format_roc_str(&h.level.to_string()),
+        ));
+    }
+    outline_roc.push_str("                ]");
+
+    pages_roc.push_str(&format!(
+        "        {{\n            output_path: \"review/index.html\",\n            article_path: {},\n            title: \"Knowledge Governance & Review Queue\",\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
+        format_roc_str(&article_rel),
+        format_roc_bool(!headings.is_empty()),
+    ));
+
+    pages_roc.push_str("    ]\n}\n\nempty_meta = {\n    concept_type: \"\",\n    status: \"\",\n    authority: \"\",\n    trust_slug: \"\",\n    trust_label: \"\",\n    stale: False,\n    stale_after: \"\",\n    is_action_required: False,\n    action_detail: \"\",\n    description: \"\",\n    has_provenance: False,\n    owners: \"\",\n    verifier: \"\",\n    generated: \"\",\n    has_sources: False,\n    source_count: \"0\",\n    drift_summary: \"\",\n    sources: [],\n    has_other_meta: False,\n    other_meta_count: \"0\",\n    other_meta: [],\n    has_tags: False,\n    tags: [],\n}\n");
+
+    Ok((pages_roc, articles, output_paths))
+}
+
+fn invoke_roc_build(
+    workspace: &Path,
+    apply_bin: &Path,
+    maps: &[rocci_template::MappedModule],
+) -> Result<String> {
+    let output = std::process::Command::new("roc")
+        .arg("build")
+        .arg("main.roc")
+        .arg("--opt=dev")
+        .arg(format!("--output={}", apply_bin.display()))
+        .current_dir(workspace)
+        .output()
+        .context("failed to invoke roc build")?;
+    let combined = finish_roc_output(output, maps)?;
+    if !apply_bin.is_file() {
+        bail!("roc build did not write {}", apply_bin.display());
+    }
+    Ok(combined)
+}
+
+fn invoke_roc_wasm_build(
+    workspace: &Path,
+    wasm_file: &Path,
+    maps: &[rocci_template::MappedModule],
+) -> Result<String> {
+    let output = std::process::Command::new("roc")
+        .arg("build")
+        .arg("main.roc")
+        .arg("--target=wasm32")
+        .arg("--opt=dev")
+        .arg(format!("--output={}", wasm_file.display()))
+        .current_dir(workspace)
+        .output()
+        .context("failed to invoke roc build for wasm32")?;
+    let combined = finish_roc_output(output, maps)?;
+    if !wasm_file.is_file() {
+        bail!("roc build did not write {}", wasm_file.display());
+    }
+    Ok(combined)
+}
+
+fn invoke_wasm_apply(wasm_file: &Path, staging: &Path) -> Result<String> {
+    let host = rocci_roc_host::WasmHost::from_file(wasm_file)?;
+    host.run_wasi(staging)
+}
+
+fn invoke_apply(
+    apply_bin: &Path,
+    workspace: &Path,
+    staging: &Path,
+    maps: &[rocci_template::MappedModule],
+) -> Result<String> {
+    let output = std::process::Command::new(apply_bin)
+        .current_dir(workspace)
+        .env("OKF_STAGING", staging)
+        .output()
+        .context("failed to run okf applicator")?;
+    finish_roc_output(output, maps)
+}
+
+fn finish_roc_output(
+    output: std::process::Output,
+    maps: &[rocci_template::MappedModule],
+) -> Result<String> {
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let combined = if stdout.is_empty() {
+        stderr.clone()
+    } else if stderr.is_empty() {
+        stdout.clone()
+    } else {
+        format!("{stdout}{stderr}")
+    };
+    if output.status.success() {
+        return Ok(combined);
+    }
+    let mapped = rocci_template::remap_roc_output(&combined, maps);
+    for frame in mapped {
+        eprintln!("{}", frame.render_for_stderr());
+    }
+    let hint = if combined.contains("does not support the wasm32 target") {
+        "\n\nhint: The basic-cli platform only supports native compilation targets (x64mac, arm64mac, x64win, x64musl, arm64musl).\nWasm host (--host wasm) is planned for Phase 5 with a custom Roc wasm platform.\nPlease use '--host native' (or default '--host auto') instead."
+    } else {
+        ""
+    };
+    bail!(
+        "roc okf build failed{}{hint}",
+        if combined.trim().is_empty() {
+            String::new()
+        } else {
+            format!("\n{}", combined.trim_end())
+        }
+    );
+}
+
+fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if src_path.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            if let Some(parent) = dst_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
     fs::create_dir_all(site).with_context(|| format!("failed to create {}", site.display()))?;
 
     for concept in &bundle.concepts {
@@ -827,16 +1324,299 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
     )
     .context("failed to write knowledge review page")?;
 
+    let okf_static_dir = site.join("__rocci_okf");
+    fs::create_dir_all(&okf_static_dir)
+        .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
+    fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
+        .context("failed to write knowledge review stylesheet")?;
+
     Ok(())
 }
 
 pub fn build_review_site_with_host(
     bundle: &Bundle,
     site: &Path,
-    _host: Option<rocci_roc_host::HostChoice>,
+    host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<()> {
-    build_review_site(bundle, site)
+    let host_choice = host.unwrap_or(rocci_roc_host::HostChoice::Auto).resolve();
+    let is_wasm = host_choice == rocci_roc_host::HostChoice::Wasm;
+    let force_roc =
+        host.is_some() || std::env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1");
+
+    if !force_roc && !is_roc_available() && !is_wasm {
+        return build_review_site_pure_rust(bundle, site);
+    }
+
+    let modules = compile_okf_templates()?;
+    let (pages_roc, articles, output_paths) = generate_okf_pages_roc(bundle)?;
+
+    let workspace = unique_temp("ws")?;
+    let staging = unique_temp("stage")?;
+
+    crate::runtime::stage_into(&workspace)?;
+
+    for module in &modules {
+        fs::write(
+            workspace.join(format!("{}.roc", module.type_name)),
+            &module.roc,
+        )?;
+    }
+
+    let articles_dir = workspace.join("articles");
+    fs::create_dir_all(&articles_dir)?;
+    for (rel_path, html) in articles {
+        let dest = workspace.join(&rel_path);
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&dest, html)?;
+    }
+
+    for out_path in &output_paths {
+        if let Some(parent) = Path::new(out_path).parent()
+            && parent != Path::new("")
+        {
+            fs::create_dir_all(staging.join(parent))?;
+        }
+    }
+
+    fs::write(workspace.join("OkfPages.roc"), &pages_roc)?;
+    let main_code = main_roc();
+    fs::write(workspace.join("main.roc"), &main_code)?;
+
+    let roc_hash = roc_source_hash(&pages_roc, &modules, &main_code);
+    let cache = rocci_roc_host::TwoTierCache::default();
+    let target = if is_wasm {
+        "wasm32".to_string()
+    } else {
+        format!("native:{}", std::env::consts::ARCH)
+    };
+
+    let apply_bin = workspace.join(if is_wasm { "components.wasm" } else { "apply" });
+    let maps: Vec<rocci_template::MappedModule> = modules
+        .iter()
+        .map(|m| rocci_template::MappedModule {
+            type_name: m.type_name.clone(),
+            generated: m.roc.clone(),
+            source_name: m.source_name.clone(),
+            source_src: m.src.clone(),
+            segments: m.segments.clone(),
+        })
+        .collect();
+
+    let apply_path = if let Some(cached) = cache.lookup_renderer(&roc_hash, &target) {
+        eprintln!(
+            "rocci-okf: using cached {} renderer for {}",
+            if is_wasm { "wasm" } else { "native" },
+            &roc_hash[..8.min(roc_hash.len())]
+        );
+        cached
+    } else {
+        eprintln!(
+            "rocci-okf: compiling ({}) with roc",
+            if is_wasm { "wasm32" } else { "native" }
+        );
+        let roc_started = std::time::Instant::now();
+        let roc_output = if is_wasm {
+            invoke_roc_wasm_build(&workspace, &apply_bin, &maps)
+                .with_context(|| format!("workspace {}", workspace.display()))?
+        } else {
+            invoke_roc_build(&workspace, &apply_bin, &maps)
+                .with_context(|| format!("workspace {}", workspace.display()))?
+        };
+        let roc_ms = roc_started.elapsed().as_millis();
+        eprintln!("rocci-okf: roc finished in {roc_ms}ms");
+        if !roc_output.is_empty() {
+            eprint!("{roc_output}");
+        }
+        let bytes = fs::read(&apply_bin)?;
+        let fp = okf_fingerprints(&modules);
+        cache.store_renderer(&roc_hash, &target, &bytes, &fp)?
+    };
+
+    let roc_output = if is_wasm {
+        invoke_wasm_apply(&apply_path, &staging)?
+    } else {
+        invoke_apply(&apply_path, &workspace, &staging, &maps)?
+    };
+    if !roc_output.is_empty() {
+        eprint!("{roc_output}");
+    }
+
+    fs::create_dir_all(site).with_context(|| format!("failed to create {}", site.display()))?;
+    copy_dir_recursive(&staging, site)?;
+
+    let okf_static_dir = site.join("__rocci_okf");
+    fs::create_dir_all(&okf_static_dir)
+        .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
+    fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
+        .context("failed to write knowledge review stylesheet")?;
+
+    let _ = fs::remove_dir_all(&workspace);
+    let _ = fs::remove_dir_all(&staging);
+
+    Ok(())
 }
+
+pub const DEFAULT_CSS: &str = r#"
+:root {
+  color-scheme: dark;
+  --rd-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --rd-font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --rd-bg: #282c34;
+  --rd-fg: #abb2bf;
+  --rd-muted: #9da5b4;
+  --rd-border: #3e4451;
+  --rd-border-subtle: #21252b;
+  --rd-bg-subtle: #21252b;
+  --rd-primary: #61afef;
+  --rd-green: #98c379;
+  --rd-orange: #d19a66;
+  --rd-red: #e06c75;
+  --rd-purple: #c678dd;
+}
+html.rd-document, body {
+  font-family: var(--rd-font-sans);
+  background: var(--rd-bg);
+  color: var(--rd-fg);
+  margin: 0;
+  min-height: 100vh;
+  line-height: 1.65;
+}
+html.rd-document { scroll-behavior: smooth; }
+.rd-shell {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  align-items: start;
+  min-height: 100vh;
+}
+main {
+  box-sizing: border-box;
+  min-width: 0;
+  width: min(42rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2.5rem 0 4rem;
+}
+.rd-toc {
+  position: sticky;
+  top: var(--rocci-chrome-top, 0px);
+  box-sizing: border-box;
+  min-width: 0;
+  max-height: calc(100vh - var(--rocci-chrome-top, 0px));
+  padding: 2.15rem 1.2rem 2rem 1.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.rd-toc-label {
+  margin: 0 0 0.65rem;
+  color: var(--rd-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+.rd-toc-items {
+  display: grid;
+  gap: 0.45rem;
+  border-left: 1px solid var(--rd-border);
+}
+.rd-toc-link {
+  margin-left: -1px;
+  padding-left: 0.8rem;
+  border-left: 1px solid transparent;
+  color: var(--rd-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.rd-toc-link:hover {
+  border-color: var(--rd-primary);
+  color: var(--rd-fg);
+  text-decoration: none;
+}
+.rd-toc-link.rd-toc-level-3 { padding-left: 1.35rem; }
+.rd-toc:not(:has(.rd-toc-link)) { display: none; }
+@media (max-width: 48rem) {
+  .rd-shell { display: block; }
+  .rd-toc { display: none; }
+}
+@media print { .rd-toc { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html.rd-document { scroll-behavior: auto; }
+}
+h1, h2, h3, h4, h5, h6,
+.rd-header-1, .rd-header-2, .rd-header-3, .rd-header-4, .rd-header-5, .rd-header-6 {
+  color: var(--rd-fg);
+  font-weight: 700;
+  line-height: 1.25;
+  scroll-margin-top: calc(1.25rem + var(--rocci-chrome-top, 0px));
+}
+h1, .rd-header-1 { margin: 0 0 0.75rem; font-size: 2rem; letter-spacing: -0.03em; }
+h2, .rd-header-2 { margin: 2rem 0 0.6rem; font-size: 1.35rem; }
+h3, .rd-header-3 { margin: 1.5rem 0 0.5rem; font-size: 1.15rem; }
+p, .rd-paragraph { margin: 0 0 1rem; color: var(--rd-fg); }
+a { color: var(--rd-primary); text-decoration: none; }
+a:hover { color: var(--rd-fg); text-decoration: underline; }
+ul, ol { color: var(--rd-fg); }
+blockquote {
+  margin: 0 0 1rem;
+  padding: 0.2rem 0 0.2rem 1rem;
+  border-left: 3px solid var(--rd-primary);
+  color: var(--rd-muted);
+}
+pre {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.5rem;
+  background: var(--rd-bg-subtle);
+}
+code { font-family: var(--rd-font-mono); font-size: 0.9em; color: var(--rd-red); background: var(--rd-bg-subtle); padding: 0.2em 0.4em; border-radius: 4px; }
+pre code { color: var(--rd-fg); background: transparent; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 0 0 1.25rem; }
+th, td { padding: 0.4rem 0.6rem; border: 1px solid var(--rd-border); text-align: left; }
+th { background: var(--rd-bg-subtle); color: var(--rd-fg); }
+hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
+.okf-badge-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.okf-badge { font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 9999px; border: 1px solid var(--rd-border); font-weight: 500; }
+.okf-type { background: var(--rd-bg-subtle); }
+.okf-status-stable, .okf-trust-human, .pill-clean { background: rgba(152, 195, 121, 0.15); color: var(--rd-green); border-color: var(--rd-green); }
+.okf-status-draft, .okf-trust-generated, .pill-action { background: rgba(209, 154, 102, 0.15); color: var(--rd-orange); border-color: var(--rd-orange); }
+.okf-status-deprecated, .pill-error { background: rgba(224, 108, 117, 0.15); color: var(--rd-red); border-color: var(--rd-red); }
+.okf-auth-normative, .pill-info { background: rgba(97, 175, 239, 0.15); color: var(--rd-primary); border-color: var(--rd-primary); }
+.okf-auth-exploratory { background: rgba(198, 120, 221, 0.15); color: var(--rd-purple); border-color: var(--rd-purple); }
+.okf-auth-descriptive, .okf-trust-unverified { background: var(--rd-bg-subtle); color: var(--rd-muted); }
+.okf-alert-banner { display: flex; gap: 0.5rem; background: rgba(209, 154, 102, 0.12); border: 1px solid var(--rd-orange); padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; }
+.okf-concept-meta { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rd-border); }
+.okf-lead { color: var(--rd-muted); margin: 0 0 0.75rem; }
+.okf-provenance { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; padding: 0; margin: 0 0 0.75rem; font-size: 0.9rem; }
+.okf-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; background: var(--rd-bg-subtle); padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+.okf-meta-label { font-weight: 600; margin-right: 0.5rem; }
+.okf-sources-drawer, .okf-other-meta { margin: 0.5rem 0; }
+.okf-sources-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+.okf-sources-table th, .okf-sources-table td { padding: 0.4rem 0.5rem; border: 1px solid var(--rd-border); text-align: left; vertical-align: top; }
+.okf-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.okf-tag { font-size: 0.8rem; color: var(--rd-muted); }
+.okf-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.okf-stat-card { background: var(--rd-bg-subtle); border: 1px solid var(--rd-border); padding: 1rem; border-radius: 8px; text-align: center; }
+.okf-stat-value { font-size: 1.8rem; font-weight: bold; }
+.okf-stat-label { font-size: 0.85rem; color: var(--rd-muted); }
+.okf-stat-card.is-action .okf-stat-value { color: var(--rd-red); }
+.okf-review-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+.okf-review-table th, .okf-review-table td { padding: 0.75rem; border: 1px solid var(--rd-border); text-align: left; vertical-align: top; }
+.okf-review-table th { background: var(--rd-bg-subtle); }
+.okf-action-pill { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+.okf-action-detail-text { font-size: 0.8rem; color: var(--rd-muted); margin-top: 0.25rem; }
+.okf-filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+.okf-filter-btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); cursor: pointer; font-size: 0.85rem; }
+.okf-filter-btn.is-active { background: var(--rd-primary); color: #282c34; border-color: var(--rd-primary); }
+.okf-search-input { flex: 1; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); }
+.okf-cta-row { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0; }
+.okf-cta-btn { background: var(--rd-primary); color: #282c34; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 500; }
+.okf-cta-btn:hover { text-decoration: none; opacity: 0.9; }
+"#;
 
 const TOC_SCRIPT: &str = rocci_ui::TOC_SCRIPT;
 
@@ -1197,5 +1977,16 @@ mod tests {
         assert!(collection.contains("Architecture"));
         assert!(collection.contains("id=\"architecture\""));
         let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn okf_templates_compile_cleanly() {
+        let modules =
+            compile_okf_templates().expect("all OKF .rocci templates should compile cleanly");
+        assert_eq!(modules.len(), 4);
+        assert!(modules.iter().any(|m| m.type_name == "PageOutline"));
+        assert!(modules.iter().any(|m| m.type_name == "ConceptMeta"));
+        assert!(modules.iter().any(|m| m.type_name == "ReviewQueue"));
+        assert!(modules.iter().any(|m| m.type_name == "OkfTheme"));
     }
 }

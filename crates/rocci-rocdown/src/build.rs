@@ -469,16 +469,6 @@ main! = |_args| {{
     )
 }
 
-fn invoke_roc_main(workspace: &Path, staging: &Path, maps: &[MappedModule]) -> Result<String> {
-    let output = Command::new("roc")
-        .arg("main.roc")
-        .current_dir(workspace)
-        .env("ROCDOWN_STAGING", staging)
-        .output()
-        .context("failed to invoke roc")?;
-    finish_roc(output, maps)
-}
-
 fn invoke_roc_build(workspace: &Path, apply_bin: &Path, maps: &[MappedModule]) -> Result<String> {
     let output = Command::new("roc")
         .arg("build")
@@ -552,11 +542,13 @@ fn finish_roc(output: std::process::Output, maps: &[MappedModule]) -> Result<Str
     for frame in mapped {
         eprintln!("{}", frame.render_for_stderr());
     }
-    if !combined.trim().is_empty() {
-        eprintln!("{}", combined.trim_end());
-    }
+    let hint = if combined.contains("does not support the wasm32 target") {
+        "\n\nhint: The basic-cli platform only supports native compilation targets (x64mac, arm64mac, x64win, x64musl, arm64musl).\nWasm host (--host wasm) is planned for Phase 5 with a custom Roc wasm platform.\nPlease use '--host native' (or default '--host auto') instead."
+    } else {
+        ""
+    };
     bail!(
-        "roc rocdown build failed{}",
+        "roc rocdown build failed{}{hint}",
         if combined.trim().is_empty() {
             String::new()
         } else {

@@ -2885,6 +2885,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "notify",
  "rocci-core",
  "rocci-datastar",
  "rocci-desktop",
@@ -2968,9 +2969,11 @@ dependencies = [
  "rocci-cli",
  "rocci-desktop",
  "rocci-roc-host",
+ "rocci-template",
  "rocci-ui",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -3028,6 +3031,7 @@ dependencies = [
  "comrak",
  "lsp-types",
  "notify",
+ "rocci-cli",
  "rocci-core",
  "rocci-highlight",
  "rocci-lsp",
