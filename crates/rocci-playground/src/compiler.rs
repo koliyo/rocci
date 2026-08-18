@@ -118,21 +118,131 @@ fn compile_rocdown(request: &CompileRequest) -> CompileResponse {
     }
 }
 
-fn convert_spans(src: &str, spans: Vec<HighlightSpan>) -> Vec<PlaygroundHighlightSpan> {
+pub fn highlight_sexp(ast: &str) -> Vec<HighlightSpan> {
+    let mut spans = Vec::new();
+    let bytes = ast.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b == b'(' || b == b')' || b == b'[' || b == b']' {
+            spans.push(HighlightSpan::new(
+                rocci_template::Span::new(i, i + 1),
+                rocci_highlight::HighlightKind::Punctuation,
+                0,
+                10,
+            ));
+            i += 1;
+        } else if b == b'"' {
+            let start = i;
+            i += 1;
+            while i < bytes.len() {
+                if bytes[i] == b'\\' && i + 1 < bytes.len() {
+                    i += 2;
+                } else if bytes[i] == b'"' {
+                    i += 1;
+                    break;
+                } else {
+                    i += 1;
+                }
+            }
+            spans.push(HighlightSpan::new(
+                rocci_template::Span::new(start, i),
+                rocci_highlight::HighlightKind::String,
+                0,
+                20,
+            ));
+        } else if b.is_ascii_digit()
+            || (b == b'-' && i + 1 < bytes.len() && bytes[i + 1].is_ascii_digit())
+        {
+            let start = i;
+            i += 1;
+            while i < bytes.len() && (bytes[i].is_ascii_digit() || bytes[i] == b'.') {
+                i += 1;
+            }
+            spans.push(HighlightSpan::new(
+                rocci_template::Span::new(start, i),
+                rocci_highlight::HighlightKind::Number,
+                0,
+                20,
+            ));
+        } else if b == b':' {
+            let start = i;
+            i += 1;
+            while i < bytes.len()
+                && !bytes[i].is_ascii_whitespace()
+                && bytes[i] != b')'
+                && bytes[i] != b']'
+            {
+                i += 1;
+            }
+            spans.push(HighlightSpan::new(
+                rocci_template::Span::new(start, i),
+                rocci_highlight::HighlightKind::Property,
+                0,
+                20,
+            ));
+        } else if b.is_ascii_alphabetic() || b == b'_' {
+            let start = i;
+            while i < bytes.len()
+                && (bytes[i].is_ascii_alphanumeric() || bytes[i] == b'_' || bytes[i] == b'-')
+            {
+                i += 1;
+            }
+            let word = &ast[start..i];
+            let kind = if word == "true" || word == "false" || word == "null" {
+                rocci_highlight::HighlightKind::Keyword
+            } else if start > 0 && bytes[start - 1] == b'(' {
+                rocci_highlight::HighlightKind::Keyword
+            } else {
+                rocci_highlight::HighlightKind::Variable
+            };
+            spans.push(HighlightSpan::new(
+                rocci_template::Span::new(start, i),
+                kind,
+                0,
+                15,
+            ));
+        } else {
+            i += 1;
+        }
+    }
     spans
+}
+
+fn convert_spans(src: &str, spans: Vec<HighlightSpan>) -> Vec<PlaygroundHighlightSpan> {
+    let utf16_total = crate::utf16::byte_to_utf16_offset(src, src.len());
+    let mut converted: Vec<PlaygroundHighlightSpan> = spans
         .into_iter()
-        .map(|span| {
+        .filter_map(|span| {
             let start_byte = span.start();
             let end_byte = span.end();
+            if start_byte >= end_byte || start_byte >= src.len() {
+                return None;
+            }
             let (from, to) = byte_range_to_utf16(src, start_byte, end_byte);
-            PlaygroundHighlightSpan {
+            if from >= to || to > utf16_total {
+                return None;
+            }
+            Some(PlaygroundHighlightSpan {
                 from,
                 to,
                 kind: span.kind.css_class().to_string(),
                 modifiers: span.modifiers,
-            }
+            })
         })
-        .collect()
+        .collect();
+
+    converted.sort_by(|a, b| a.from.cmp(&b.from).then_with(|| b.to.cmp(&a.to)));
+
+    let mut result = Vec::new();
+    let mut prev_to = 0;
+    for span in converted {
+        if span.from >= prev_to {
+            prev_to = span.to;
+            result.push(span);
+        }
+    }
+    result
 }
 
 fn compute_highlights(
@@ -143,8 +253,7 @@ fn compute_highlights(
 ) -> PlaygroundHighlights {
     let source_spans = highlight(source_lang, source);
     let roc_spans = highlight(LanguageId::Roc, roc);
-    // Simple S-expression highlighting for AST if desired, or empty
-    let ast_spans = Vec::new();
+    let ast_spans = highlight_sexp(ast);
 
     PlaygroundHighlights {
         source: convert_spans(source, source_spans),
