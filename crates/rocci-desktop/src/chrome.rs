@@ -3,9 +3,13 @@ const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
 const PREVIEW_NAV_JS: &str = include_str!("../assets/preview-nav.js");
 
-pub fn initialization_script() -> String {
+pub fn initialization_script_with_inspector(inspector_url: Option<&str>) -> String {
+    let inspector = match inspector_url {
+        Some(url) => json_string(url),
+        None => "null".to_string(),
+    };
     format!(
-        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\n{PREVIEW_NAV_JS}",
+        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\n{PREVIEW_NAV_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
     )
@@ -44,7 +48,7 @@ mod tests {
 
     #[test]
     fn script_has_navigation_controls() {
-        let script = initialization_script();
+        let script = initialization_script_with_inspector(None);
         assert!(script.contains("window.ipc.postMessage"));
         assert!(script.contains("rocci-preview-nav"));
         assert!(script.contains("--rocci-chrome-top"));
@@ -55,7 +59,7 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_PREVIEW_NAV_HTML__"));
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_PREVIEW_NAV_CSS__"));
         assert!(PREVIEW_NAV_CSS.contains("flex-wrap: nowrap"));
-        for id in ["back", "forward", "home", "reload", "title", "path"] {
+        for id in ["back", "forward", "home", "reload", "title", "path", "dev"] {
             assert!(
                 PREVIEW_NAV_HTML.contains(&format!("id=\"{id}\"")),
                 "missing id {id}"
@@ -66,9 +70,26 @@ mod tests {
             "aria-label=\"Forward\"",
             "aria-label=\"Home\"",
             "aria-label=\"Reload\"",
+            "aria-label=\"Developer panel\"",
         ] {
             assert!(PREVIEW_NAV_HTML.contains(label), "missing {label}");
         }
+        assert!(PREVIEW_NAV_JS.contains("__ROCCI_INSPECTOR_URL__"));
+        assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
+        assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
+        assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev)"));
+        assert!(PREVIEW_NAV_JS.contains("--rocci-chrome-top: \" +\n    HEIGHT"));
+        assert!(!initialization_script_with_inspector(None).contains("http://127.0.0.1"));
+        let with_inspector =
+            initialization_script_with_inspector(Some("http://127.0.0.1:9/__rocci/dev"));
+        assert!(
+            with_inspector
+                .contains(r#"const __ROCCI_INSPECTOR_URL__ = "http://127.0.0.1:9/__rocci/dev""#)
+        );
+        assert!(
+            initialization_script_with_inspector(None)
+                .contains("const __ROCCI_INSPECTOR_URL__ = null")
+        );
     }
 
     #[test]

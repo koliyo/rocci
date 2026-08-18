@@ -42,6 +42,9 @@ cargo run -p rocci-cli -- render examples/counter/Counter.rocci --fragment
 # Inspect AST, component signatures, and source-map segments
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 
+# Preview the profiling panel fixture
+cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci --component MetricsPanel
+
 # Bundle an ad-hoc signed macOS application
 cargo run -p rocci-cli -- bundle --config rocci.toml
 
@@ -49,6 +52,11 @@ cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
 ```
+
+`templates/dev/MetricsPanel.rocci` is the preview-origin profiling inspector. Static
+dev servers serve it at `GET /__rocci/dev` from the current `ProfileSnapshot`;
+`rocci run` hosts the same panel on a sibling loopback port. Overlay chrome only
+adds a Dev button that loads that URL.
 
 ## Architectural Boundary
 

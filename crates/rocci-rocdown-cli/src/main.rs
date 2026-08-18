@@ -2,6 +2,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     sync::Arc,
+    time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
@@ -48,10 +49,10 @@ enum Commands {
         /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
-        /// Skip the embedded window; print the URL and keep serving.
+        /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
-        /// TCP port to listen on. Defaults to a free port with the embedded window,
+        /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
             long,
@@ -98,10 +99,10 @@ enum Commands {
         /// Source file to open (`.rocdown`, `.md`, `.markdown`, or `.rocci`).
         #[arg(default_value = "Guide.rocdown")]
         input: PathBuf,
-        /// Skip the embedded window; print the URL and keep serving.
+        /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
-        /// TCP port to listen on. Defaults to a free port with the embedded window,
+        /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
             long,
@@ -472,6 +473,7 @@ fn run_standalone_doc(
         .to_string();
 
     let compile_opts = theme.compile_options(Some(&path));
+    let parse_started = Instant::now();
     let plan = match rocci_rocdown::plan_standalone(&path, &compile_opts.theme)? {
         StandaloneReady::Failed(files) => {
             let failed_files: Vec<rocci_cli::error_page::FailedFile> = files
@@ -491,6 +493,9 @@ fn run_standalone_doc(
         }
         StandaloneReady::Ready(plan) => plan,
     };
+    let parse_ms = parse_started.elapsed().as_millis();
+    let mut profile = rocci_cli::profile::SpanRecorder::new();
+    profile.push("parse", parse_ms, None);
 
     let generic_plan = GenericAppPlan {
         primary_name: plan.primary_name,
@@ -517,6 +522,7 @@ fn run_standalone_doc(
         db_path: None,
         title,
         preview_path: None,
+        profile: profile.finish(),
     };
 
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)
@@ -540,6 +546,7 @@ fn run_site_dev(
         url: server.url.clone(),
         title: server.title.clone(),
         state_key: Some("rocdown".to_string()),
+        inspector_url: Some(server.inspector_url.clone()),
         ..rocci_desktop::PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));

@@ -3,9 +3,9 @@
 A `.rocci` template language, `.rocdown` content format, and desktop runtime.
 Author HTML components in `.rocci` or Markdown-first pages in `.rocdown`,
 compile them to ordinary [Roc](https://www.roc-lang.org/), and serve them over
-HTTP with Datastar. `rocci run` opens the app in an embedded
+HTTP with Datastar. `rocci run` opens the app in a
 [tao](https://github.com/tauri-apps/tao) / [wry](https://github.com/tauri-apps/wry)
-window.
+preview window.
 
 The workspace is organized into focused packages with strictly enforced one-way boundaries:
 - **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
@@ -40,9 +40,9 @@ an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
 on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
 authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
 runtime and a pinned Datastar JS file in `assets/` (downloaded into
-`~/.rocci/cache` on first use). The embedded window listens on a free local
+`~/.rocci/cache` on first use). The preview window listens on a free local
 TCP port and prints the URL so you (or an agent) can inspect the same HTTP
-server. Pass `--no-window` to serve on port 8000 without a window. Override
+server. Pass `--no-window` to serve on port 8000 without a preview window. Override
 the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
 
 On Linux, Wry requires WebKitGTK development packages. macOS and Windows use

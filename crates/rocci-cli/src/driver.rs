@@ -2,6 +2,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::Command,
+    time::Instant,
 };
 
 use anyhow::{Context, Result};
@@ -10,6 +11,7 @@ use rocci_template::{InitInfo, RouteInfo};
 use crate::datastar_asset;
 use crate::dispatch::{self, DispatchOptions, DispatchSource};
 use crate::error_page::{self, FailedFile, MappedModule};
+use crate::profile::{ProfileSnapshot, ProfileSpan};
 use crate::roc_module::wrap_type_module;
 use crate::runtime_assets;
 use crate::serve;
@@ -86,6 +88,7 @@ pub struct DriverOptions {
     pub db_path: Option<PathBuf>,
     pub title: String,
     pub preview_path: Option<String>,
+    pub profile: crate::profile::ProfileSnapshot,
 }
 
 pub fn execute_app_plan(
@@ -93,6 +96,7 @@ pub fn execute_app_plan(
     src_dir: &Path,
     options: &DriverOptions,
 ) -> Result<()> {
+    let write_started = Instant::now();
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create("run")?;
     runtime_assets::stage_into(&workspace.path)?;
@@ -153,6 +157,16 @@ pub fn execute_app_plan(
         app_dir: workspace.path.clone(),
         roc_file: PathBuf::from("main.roc"),
     };
+    let write_ms = write_started.elapsed().as_millis();
+    let mut profile = options.profile.clone();
+    profile.merge(ProfileSnapshot {
+        total_ms: write_ms,
+        spans: vec![ProfileSpan {
+            name: "write".into(),
+            duration_ms: write_ms,
+            note: None,
+        }],
+    });
     invoke_standalone(
         &resolved,
         &options.args,
@@ -165,6 +179,7 @@ pub fn execute_app_plan(
             .clone()
             .unwrap_or_else(|| preview_path(&plan.modules[0].routes)),
         &plan.maps(),
+        profile,
     )
 }
 
@@ -175,6 +190,7 @@ pub fn execute_resolved_entry(
     port: serve::PortArg,
     maps: &[MappedModule],
     title: Option<&str>,
+    mut profile: ProfileSnapshot,
 ) -> Result<()> {
     let default_title = window_title(resolved);
     let title = title.unwrap_or(&default_title);
@@ -182,14 +198,24 @@ pub fn execute_resolved_entry(
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
     let cmd = roc_command(&invocation, port);
+    let roc_started = Instant::now();
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
     match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
         serve::RocStart::Ready => {
+            let compile_ms = roc_started.elapsed().as_millis();
+            profile.merge(ProfileSnapshot {
+                total_ms: compile_ms,
+                spans: vec![ProfileSpan {
+                    name: "compile".into(),
+                    duration_ms: compile_ms,
+                    note: None,
+                }],
+            });
             println!(
                 "{}",
                 style::serving(&invocation.app_dir.display().to_string(), &url)
             );
-            serve::with_window(&mut child, &url, title, no_window)
+            serve::with_window_and_inspector(&mut child, &url, title, no_window, Some(profile))
         }
         serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
     }
@@ -276,6 +302,7 @@ pub fn invoke_standalone(
     title: &str,
     path: String,
     maps: &[MappedModule],
+    mut profile: ProfileSnapshot,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
@@ -284,11 +311,21 @@ pub fn invoke_standalone(
     if env::var_os("DB_PATH").is_none() {
         cmd.env("DB_PATH", db_path);
     }
+    let roc_started = Instant::now();
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
     match serve::wait_for_roc(&mut child, &mut tee, port, &path)? {
         serve::RocStart::Ready => {
+            let compile_ms = roc_started.elapsed().as_millis();
+            profile.merge(ProfileSnapshot {
+                total_ms: compile_ms,
+                spans: vec![ProfileSpan {
+                    name: "compile".into(),
+                    duration_ms: compile_ms,
+                    note: None,
+                }],
+            });
             println!("{}", style::serving(title, &url));
-            serve::with_window(&mut child, &url, title, no_window)
+            serve::with_window_and_inspector(&mut child, &url, title, no_window, Some(profile))
         }
         serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
     }

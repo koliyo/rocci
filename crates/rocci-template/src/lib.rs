@@ -44,6 +44,7 @@ pub use span::{PositionEncoding, SourceFile, Span};
 pub use validate::{validate, validate_template_items};
 
 use crate::parser::parse as parse_impl;
+use std::time::Instant;
 
 pub fn parse(source: SourceFile<'_>) -> ParseOutput {
     parse_impl(source)
@@ -64,6 +65,14 @@ pub struct CompileOutput {
     pub init: Option<InitInfo>,
     pub routes: Vec<RouteInfo>,
     pub document: Document,
+    pub timings: CompileTimings,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CompileTimings {
+    pub parse_ms: u128,
+    pub validate_ms: u128,
+    pub lower_ms: u128,
 }
 
 impl CompileOutput {
@@ -73,10 +82,16 @@ impl CompileOutput {
 }
 
 pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput {
+    let parse_started = Instant::now();
     let parsed = parse(source);
+    let parse_ms = parse_started.elapsed().as_millis();
     let mut diagnostics = parsed.diagnostics;
+    let validate_started = Instant::now();
     validate(source.src, &parsed.document, &mut diagnostics);
+    let validate_ms = validate_started.elapsed().as_millis();
+    let lower_started = Instant::now();
     let lowered = lower(source, &parsed.document, options);
+    let lower_ms = lower_started.elapsed().as_millis();
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,
@@ -88,6 +103,11 @@ pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput 
         routes: lowered.routes,
         document: parsed.document,
         diagnostics,
+        timings: CompileTimings {
+            parse_ms,
+            validate_ms,
+            lower_ms,
+        },
     }
 }
 

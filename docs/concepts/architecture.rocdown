@@ -29,11 +29,14 @@ layer owns one kind of transformation and hands explicit artifacts to the next.
         └───────────────────┬────────────────┘                            │
                             ▼                                             │
                       rocci-desktop ──────────────────────────────────────┘
-                   (Tao/Wry desktop host)
+                   (preview window host)
 ```
 
 The template and parsing crates do not invoke Roc, start a server, or open a window. Those
-effects belong to the CLI and host layers.
+effects belong to the CLI and host layers. The native shell those CLIs open is the
+**preview window**: preview chrome is the host-injected navigation overlay; the
+webview is the page surface inside it. A Dev control in that overlay can open a
+**dev panel** — a preview-origin Rocci inspector, not overlay HTML.
 
 That split follows Roc's own pure-application and effect-providing-platform
 model. Read [Why Roc fits Rocci](/docs/concepts/why-roc/) for the effect, capability,
@@ -45,7 +48,7 @@ hosting, and execution-mode rationale.
 | --- | --- |
 | `rocci-template` | Parse `.rocci`, lower template regions, preserve source maps |
 | `rocci-core` | Configuration (`rocci.toml`) and shared runtime contracts |
-| `rocci-desktop` | Native desktop window and webview runtime backed by Tao and Wry |
+| `rocci-desktop` | Native preview window and webview host backed by Tao and Wry |
 | `rocci-cli` | `rocci` CLI for `.rocci` applications, dev server, and macOS bundling |
 | `rocci-ui` | Domain-neutral view records, presentation components, and base design tokens |
 | `rocci-rocdown` | Parse `.rocdown`, build static catalog, render article HTML, and plan site output |
@@ -90,7 +93,7 @@ theme remains a real Rocci program.
 
 The runtime communicates over local HTTP. GET handlers produce documents;
 mutation handlers can produce Datastar SSE patches. This keeps the interface
-inspectable and gives the embedded webview and a normal browser the same backend.
+inspectable and gives the preview window and a normal browser the same backend.
 
 Read [the rendering model](/docs/concepts/rendering-model/) for the request and
 response semantics.

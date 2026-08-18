@@ -1,0 +1,143 @@
+import Html
+
+MetricsSpan : {
+    name : Str,
+    duration_ms : U64,
+    note : [Some Str, None],
+}
+
+@component MetricsPanel = |{ total_ms, spans }| {
+    <section class="metrics-panel">
+        <h1>Profiling</h1>
+        <p class="total">
+            <span class="value">{total_ms.to_str()}</span>
+            <span class="unit">ms total</span>
+        </p>
+        @if List.is_empty(spans) {
+            <p class="empty">No timing spans recorded.</p>
+        } @else {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Stage</th>
+                        <th>ms</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for span in spans {
+                        <tr>
+                            <td>{span.name}</td>
+                            <td class="ms">{span.duration_ms.to_str()}</td>
+                            <td>
+                                @match span.note {
+                                    Some(note) => <span class="note">{note}</span>
+                                    None => <span></span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
+}
+
+@component MetricsPage = |{ total_ms, spans }|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="color-scheme" content="light dark" />
+            <title>Profiling</title>
+        </head>
+        <body>
+            <MetricsPanel total_ms={total_ms} spans={spans} />
+        </body>
+    </html>
+
+@fixture{target: MetricsPanel}
+samplePanel = {
+    total_ms: 42,
+    spans: [
+        { name: "read", duration_ms: 1, note: None },
+        { name: "parse", duration_ms: 4, note: None },
+        { name: "compile", duration_ms: 37, note: Some("cached") },
+    ],
+}
+
+@fixture{target: MetricsPage}
+samplePage = {
+    total_ms: 42,
+    spans: [
+        { name: "read", duration_ms: 1, note: None },
+        { name: "parse", duration_ms: 4, note: None },
+        { name: "compile", duration_ms: 37, note: Some("cached") },
+    ],
+}
+
+@css {
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0;
+        min-height: 100%;
+        background: light-dark(#f7f7f8, #21252b);
+        color: light-dark(#18181b, #d7dae0);
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .metrics-panel {
+        padding: 16px 14px 20px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .metrics-panel h1 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: light-dark(#71717a, #9da5b4);
+    }
+    .total {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin: 0 0 14px;
+    }
+    .total .value {
+        font-size: 28px;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, monospace;
+    }
+    .total .unit,
+    .empty {
+        color: light-dark(#71717a, #9da5b4);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 6px 0;
+        text-align: left;
+        border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
+        vertical-align: top;
+    }
+    th {
+        font-size: 11px;
+        font-weight: 600;
+        color: light-dark(#71717a, #9da5b4);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    td.ms {
+        font-variant-numeric: tabular-nums;
+        font-family: ui-monospace, Menlo, monospace;
+        width: 4.5em;
+    }
+    .note {
+        font-size: 11px;
+        color: light-dark(#3b82f6, #61afef);
+    }
+}

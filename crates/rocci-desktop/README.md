@@ -11,7 +11,7 @@ Native windowing and webview host built on [tao](https://github.com/tauri-apps/t
 
 ## Preview chrome
 
-Host chrome is HTML, CSS, and JS under `assets/`. `preview-nav.html` is the markup, `preview-nav.css` is injected with `textContent` into the shadow tree, and `preview-nav.js` plus `reduced-motion.js` mount the custom element and talk to `window.ipc`. Rust only JSON-embeds those assets and pushes title, path, and history flags through `evaluate_script`.
+Host chrome is HTML, CSS, and JS under `assets/`. `preview-nav.html` is the markup, `preview-nav.css` is injected with `textContent` into the shadow tree, and `preview-nav.js` plus `reduced-motion.js` mount the custom element and talk to `window.ipc`. Rust only JSON-embeds those assets and pushes title, path, and history flags through `evaluate_script`. When `PreviewOptions.inspector_url` is set, the overlay shows a Dev control that toggles a host-owned iframe to that preview-origin panel.
 
 Do not author host chrome in `.rocci`. A template can snapshot markup, but it cannot own wry IPC, survive page loads, or update live state. Compiler-derived panels (parse timings, diagnostics, inspectors) belong in a preview-origin Rocci app that consumes host JSON, not in the initialization script overlay.
 

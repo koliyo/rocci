@@ -4,7 +4,7 @@ title: Rocci system overview
 description: Rocci separates template compilation, Markdown-first content, static documentation cataloging, runtime hosting, and desktop presentation.
 tags: [domain/rocci, domain/rocdown, domain/runtime, domain/desktop, concern/rendering]
 status: draft
-generated: { by: process:okf-migration, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-18T20:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -26,13 +26,18 @@ sources:
     title: Cargo workspace manifest
     author: process:git
     last_modified: 2026-08-17
+  - id: preview-window
+    resource: ../decisions/preview-window.md
+    title: Preview window naming decision
+    author: process:cursor
+    last_modified: 2026-08-18
 ---
 
 # Rocci system overview
 
 ## Current contract
 
-Rocci compiles `.rocci` templates to ordinary Roc HTML, keeps prose-first executable documents in `.rocdown`, compiles multi-page static documentation sites with `rocdown build`, and hosts applications in an embedded Tao/Wry window.[^readme]
+Rocci compiles `.rocci` templates to ordinary Roc HTML, keeps prose-first executable documents in `.rocdown`, compiles multi-page static documentation sites with `rocdown build`, and hosts applications in a Tao/Wry [preview window](/decisions/preview-window.md).[^readme]
 
 The workspace separates compiler, template, theme, runtime, desktop host, Rocdown document compiler, document CLI, language servers (generic and Rocdown composition), highlighter, portable OKF engine, OKF application, shared UI, and Datastar integration across 14 dedicated crates with enforced one-way dependencies.[^workspace]
 
@@ -44,6 +49,8 @@ Knowledge records follow the [static OKF boundary](/decisions/static-okf-boundar
 
 Domain-neutral view records and presentation primitives live in `rocci-ui`.
 
+The preview window is the native shell opened by `rocci run`, `rocdown run`, `rocci-okf run`, `rocci view`, and `rocci browse`. Preview chrome is the host-injected navigation overlay; the webview is the page surface; a Dev control can open a preview-origin inspector iframe. Those names are distinct from the overlay HTML itself.[^preview-window]
+
 ## Not yet implemented
 
 Dynamic Rocdown islands, production desktop signing and installers, and native capabilities beyond the current window/webview boundary remain planned work.[^roadmap]
@@ -51,3 +58,4 @@ Dynamic Rocdown islands, production desktop signing and installers, and native c
 [^readme]: Current repository overview and supported workflows.
 [^roadmap]: Current architectural direction and remaining limitations.
 [^workspace]: Current workspace membership and crate boundaries.
+[^preview-window]: Canonical names for the preview window, preview chrome, webview, and dev panel.

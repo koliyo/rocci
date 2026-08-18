@@ -67,6 +67,15 @@ fn compile_ok(src: &str) -> rocci_rocdown::CompileOutput {
     compile_ok_pages(src, Vec::new())
 }
 
+#[test]
+fn compile_output_includes_parse_and_lower_timings() {
+    let out = compile_ok("Hello from Rocdown.\n");
+    let _ = out.timings.parse_ms;
+    let _ = out.timings.lower_ms;
+    assert!(out.timings.parse_ms < 10_000);
+    assert!(out.timings.lower_ms < 10_000);
+}
+
 fn compile_err(src: &str) -> Vec<String> {
     compile_err_pages(src, Vec::new())
 }

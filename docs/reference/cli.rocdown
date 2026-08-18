@@ -67,12 +67,15 @@ Discover and interactively browse all `.rocci` components and fixtures in a dire
 cargo run -p rocci-cli -- run [ENTRY] [--port PORT] [--no-window] [--args...]
 ```
 
-Run the entry template or directory with live reload. The application server
-starts and opens a native desktop window by default.
+Run the entry template or directory. The application server starts and opens a
+preview window by default. Static site and knowledge review servers expose a
+Dev control that opens a profiling panel; `rocci run` serves that panel on a
+sibling loopback port so it is not injected into the authored app's routes.
+`--no-window` prints timings on stderr instead.
 
 | Option | Effect |
 | --- | --- |
-| `--no-window` | Serve without opening the embedded window |
+| `--no-window` | Serve without opening the preview window |
 | `--port PORT` | Override the listening port (defaults to a free port, or 8000 with `--no-window`) |
 | `--args...` | Extra arguments forwarded to the Roc binary |
 
@@ -110,13 +113,14 @@ cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--outp
 
 Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
 with live reload. The default root is the current directory. Preview output
-goes to a temp directory unless `--output` is set. `rocdown run` and
+goes to a temp directory unless `--output` is set. The preview window's Dev
+control opens a profiling panel at `/__rocci/dev`. `rocdown run` and
 `rocdown build` refuse OKF knowledge records and bundles and point to
 `rocci-okf run`.
 
 | Option | Effect |
 | --- | --- |
-| `--no-window` | Serve without opening the embedded window |
+| `--no-window` | Serve without opening the preview window |
 | `--port PORT` | Override the listening port |
 | `--output DIRECTORY` | Write preview files here instead of a temp directory |
 
@@ -203,7 +207,8 @@ cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-
 
 `PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
 the bundle-root `index.md`. A concept file opens the review site on that
-record.
+record. The preview window's Dev control opens a profiling panel at
+`/__rocci/dev`.
 
 ### Build static review artifacts
 

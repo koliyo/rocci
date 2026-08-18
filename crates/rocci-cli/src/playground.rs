@@ -528,6 +528,7 @@ pub fn run_playground_cli(
             height: 800.0,
             devtools: true,
             state_key: None,
+            inspector_url: None,
         })
         .context("failed to open playground desktop preview window")?;
 

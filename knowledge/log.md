@@ -2,6 +2,7 @@
 
 ## 2026-08-18
 
+- Added a draft [preview window naming decision](decisions/preview-window.md): the native Tao/Wry shell is the preview window, overlay navigation is preview chrome, and compiler-derived panels stay on the preview origin as Rocci that consumes host JSON.
 - Added draft [desktop host chrome versus Rocci inspector UI](research/desktop-host-chrome-and-inspector-ui.md) research: keep wry overlay navigation in HTML/CSS/JS, keep document/site chrome in Rocci, and author compiler-derived panels (parse timings, diagnostics) as preview-origin Rocci apps that consume host JSON. The record does not reverse the generation-pipeline chrome plan.
 - Added draft [repository-hosting research](research/repository-hosting-and-distributed-governance.md), comparing GitHub's current Rocci CI, release, contributor, and policy advantages with Tangled's self-hosted knots, spindles, and cross-server collaboration. The exploratory recommendation keeps GitHub canonical for the public launch, pilots Tangled as a first-class mirror, and makes any later canonical-host change depend on demonstrated reliability and governance evidence.
 - Added the draft [agent-model comparison for Rocci component-generation research](audits/agent-model-component-generation-comparison.md), recording the maintainer-supplied attribution of result A to Gemini 3.7 Flash and result B to Grok 4.6, the evidence-based 52/89 assessment, validation caveats, and the recommendation to use B as the stronger starting point while correcting its compiler-artifact and benchmark gaps.

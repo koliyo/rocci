@@ -79,6 +79,7 @@ pub const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/rele
 pub const STAGING_ENV: &str = "ROCDOWN_STAGING";
 
 use crate::parse::parse as parse_impl;
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct CompileOptions {
@@ -122,6 +123,13 @@ pub struct CompileOutput {
     pub headings: Vec<HeadingInfo>,
     pub links: Vec<LinkInfo>,
     pub theme: Option<ResolvedTheme>,
+    pub timings: CompileTimings,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CompileTimings {
+    pub parse_ms: u128,
+    pub lower_ms: u128,
 }
 
 impl CompileOutput {
@@ -151,7 +159,9 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
 }
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
+    let parse_started = Instant::now();
     let mut parsed = parse(source, options.raw_html);
+    let parse_ms = parse_started.elapsed().as_millis();
     if options.resolve_links {
         links::resolve_document(source, &mut parsed, options);
     }
@@ -159,6 +169,7 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         img::check_document_assets(source, &parsed.document, options, &mut parsed.diagnostics);
     }
     let mut diagnostics = parsed.diagnostics;
+    let lower_started = Instant::now();
     let lowered = lower::lower(
         source,
         &parsed.document,
@@ -166,6 +177,7 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         options,
         &mut diagnostics,
     );
+    let lower_ms = lower_started.elapsed().as_millis();
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,
@@ -181,5 +193,6 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         links: parsed.links,
         theme: lowered.theme,
         diagnostics,
+        timings: CompileTimings { parse_ms, lower_ms },
     }
 }

@@ -40,11 +40,11 @@ impl PortArg {
 
 #[derive(Args, Clone, Copy, Debug)]
 pub struct ServeOptions {
-    /// Skip the embedded window; print the URL and keep the Roc server.
+    /// Skip the preview window; print the URL and keep the Roc server.
     #[arg(long)]
     pub no_window: bool,
 
-    /// TCP port to listen on. Defaults to a free port with the embedded window,
+    /// TCP port to listen on. Defaults to a free port with the preview window,
     /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
     #[arg(
         long,
@@ -370,6 +370,16 @@ pub fn open_preview(url: &str, title: &str) -> Result<()> {
 }
 
 pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -> Result<()> {
+    with_window_and_inspector(child, url, title, no_window, None)
+}
+
+pub fn with_window_and_inspector(
+    child: &mut Child,
+    url: &str,
+    title: &str,
+    no_window: bool,
+    profile: Option<crate::profile::ProfileSnapshot>,
+) -> Result<()> {
     if no_window {
         let status = child.wait().context("roc server exited unexpectedly")?;
         if !status.success() {
@@ -378,7 +388,19 @@ pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -
         return Ok(());
     }
 
-    let preview_result = open_preview(url, title);
+    let inspector = match profile {
+        Some(snapshot) => Some(crate::inspector::InspectorServer::spawn(snapshot)?),
+        None => None,
+    };
+    let preview_result = preview(PreviewOptions {
+        url: url.to_string(),
+        title: title.to_string(),
+        inspector_url: inspector.as_ref().map(|server| server.url.clone()),
+        state_key: Some("rocci:view".to_string()),
+        ..PreviewOptions::default()
+    })
+    .map_err(|error| anyhow::anyhow!("{error}"));
+    drop(inspector);
     stop_child(child);
     preview_result
 }

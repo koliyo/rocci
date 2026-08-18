@@ -46,13 +46,20 @@ fn rebuild_site(
     output: &Path,
     profile: Profile,
     host: Option<rocci_roc_host::HostChoice>,
-) -> Result<()> {
-    let bundle = load(root, profile)?;
-    if bundle.has_errors() {
-        bail!("knowledge bundle has validation errors");
-    }
-    build_review_site_with_host(&bundle, output, host)?;
-    Ok(())
+) -> Result<Option<rocci_cli::profile::ProfileSnapshot>> {
+    let mut rec = rocci_cli::profile::SpanRecorder::new();
+    let bundle = rec.span("load", || {
+        let bundle = load(root, profile)?;
+        if bundle.has_errors() {
+            bail!("knowledge bundle has validation errors");
+        }
+        Ok(bundle)
+    })?;
+    let mut snapshot = rec.finish();
+    let mut built = build_review_site_with_host(&bundle, output, host)?;
+    snapshot.spans.append(&mut built.spans);
+    snapshot.total_ms += built.total_ms;
+    Ok(Some(snapshot))
 }
 
 fn knowledge_path_is_relevant(path: &Path, root: &Path) -> bool {

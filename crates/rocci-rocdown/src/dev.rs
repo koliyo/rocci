@@ -72,9 +72,37 @@ pub fn run_with_host(
 
     let session_root = root.clone();
     serve_static_site(config, move |out_dir| {
-        session.rebuild(&session_root, out_dir)?;
-        Ok(())
+        let report = session.rebuild(&session_root, out_dir)?;
+        Ok(Some(profile_from_report(&report)))
     })
+}
+
+fn profile_from_report(report: &crate::build::BuildReport) -> rocci_cli::profile::ProfileSnapshot {
+    let mut rec = rocci_cli::profile::SpanRecorder::new();
+    let compile_note = if report.recompiled {
+        None
+    } else {
+        Some("cached".into())
+    };
+    push_span(&mut rec, "load", report.load_ms, None);
+    push_span(&mut rec, "parse", report.plan_ms, None);
+    push_span(&mut rec, "generate", report.generate_ms, None);
+    rec.push("compile", report.compile_ms, compile_note);
+    push_span(&mut rec, "render", report.roc_ms, None);
+    push_span(&mut rec, "write", report.write_ms, None);
+    rec.finish()
+}
+
+fn push_span(
+    rec: &mut rocci_cli::profile::SpanRecorder,
+    name: &str,
+    duration_ms: u128,
+    note: Option<String>,
+) {
+    if duration_ms == 0 && note.is_none() {
+        return;
+    }
+    rec.push(name, duration_ms, note);
 }
 
 pub(crate) fn path_is_relevant(
@@ -155,5 +183,27 @@ mod tests {
             "assets",
             &none
         ));
+    }
+
+    #[test]
+    fn profile_from_report_omits_empty_spans_and_notes_cached_compile() {
+        let snapshot = profile_from_report(&crate::build::BuildReport {
+            generated_roc_bytes: 10,
+            load_ms: 2,
+            plan_ms: 0,
+            generate_ms: 3,
+            compile_ms: 0,
+            roc_ms: 4,
+            write_ms: 1,
+            recompiled: false,
+        });
+        let names: Vec<_> = snapshot
+            .spans
+            .iter()
+            .map(|span| span.name.as_str())
+            .collect();
+        assert_eq!(names, ["load", "generate", "compile", "render", "write"]);
+        assert_eq!(snapshot.spans[2].note.as_deref(), Some("cached"));
+        assert_eq!(snapshot.total_ms, 10);
     }
 }
