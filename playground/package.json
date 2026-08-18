@@ -1,0 +1,23 @@
+{
+  "name": "rocci-playground",
+  "version": "0.1.0",
+  "description": "Rocci and Rocdown client-side WASM playground application",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/language": "^6.11.1",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.2"
+  }
+}
