@@ -270,6 +270,16 @@ registered to the same handler so `rocdown run` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
 
+## Project themes
+
+A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
+site chrome and named layouts. Rocdown still compiles builtin `RocdownBase`
+(palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
+unless the project supplies those modules. Article HTML is an `Html` body
+parameter: write `@component Layout = |{ view }, content|` and `{content}` in
+the template body. Putting `content` in the props record wraps it in
+`Html.text` and escapes the article as text.
+
 ## CLI
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).

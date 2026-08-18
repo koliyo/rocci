@@ -632,6 +632,61 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn project_theme_renders_article_html_unescaped() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("theme-html-src");
+        fs::create_dir_all(root.join("theme")).unwrap();
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Welcome\n\nHello from Markdown.\n",
+        );
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <head>
+            <title>{view.title}</title>
+            <link rel="stylesheet" href={view.resources.stylesheet} />
+        </head>
+        <body>
+            <main id="main-content">{content}</main>
+        </body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        let output = temp_dir("theme-html-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("<h1 class=\"rd-header-1\""), "{html}");
+        assert!(!html.contains("&lt;h1"), "{html}");
+        assert!(
+            html.contains("<p class=\"rd-paragraph\">Hello from Markdown.</p>"),
+            "{html}"
+        );
+        let stylesheet = html
+            .split("href=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("stylesheet href");
+        let css_path = output.join(stylesheet.trim_start_matches('/'));
+        let css = fs::read_to_string(&css_path)
+            .unwrap_or_else(|_| panic!("missing stylesheet {}", css_path.display()));
+        assert!(css.contains("--canvas"), "{css}");
+        assert!(css.contains(".rd-header-1"), "{css}");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
     fn duplicate_routes_fail_in_catalog_and_preserve_output() {
         let root = temp_dir("dup-src");
         write_page(

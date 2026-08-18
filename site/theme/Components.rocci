@@ -62,14 +62,14 @@ import Html
         margin: 1.5rem 0;
     }
     .rd-card {
-        border: 1px solid var(--rd-color-border, #e2e8f0);
+        border: 1px solid var(--line);
         border-radius: 0.5rem;
         padding: 1.25rem;
-        background: var(--rd-color-bg-card, #ffffff);
+        background: var(--surface);
         transition: border-color 0.15s ease, transform 0.15s ease;
     }
     .rd-card:hover {
-        border-color: var(--rd-color-accent, #3b82f6);
+        border-color: var(--accent);
         transform: translateY(-1px);
     }
     .rd-card-link {
@@ -91,11 +91,11 @@ import Html
         font-size: 0.75rem;
         padding: 0.125rem 0.5rem;
         border-radius: 9999px;
-        background: var(--rd-color-bg-tag, #f1f5f9);
-        color: var(--rd-color-text-muted, #64748b);
+        background: var(--surface-raised);
+        color: var(--muted);
     }
     .rd-card-desc {
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
         font-size: 0.875rem;
         line-height: 1.4;
         margin: 0;
@@ -113,7 +113,7 @@ import Html
     }
     .rd-hero-subtitle {
         font-size: 1.25rem;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
         max-width: 42rem;
         margin: 0 auto 1.5rem;
     }
@@ -125,7 +125,7 @@ import Html
         text-decoration: none;
     }
     .rd-btn.primary {
-        background: var(--rd-color-accent, #2563eb);
+        background: var(--accent);
         color: #ffffff;
     }
     .rd-badge {

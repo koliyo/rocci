@@ -337,6 +337,7 @@ fn compile_single_module(
         source_file,
         &LowerOptions {
             embed_css: false,
+            scope_file_css: type_name != "RocdownBase",
             ..LowerOptions::default()
         },
     );
@@ -395,6 +396,11 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
         modules.push(module);
     }
 
+    if !modules.iter().any(|m| m.type_name == "RocdownBase") {
+        let base = compile_single_module("RocdownBase.rocci", "RocdownBase", runtime::BASE)?;
+        modules.insert(0, base);
+    }
+
     if !modules.iter().any(|m| m.type_name == "DocsComponents") {
         let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
         modules.push(docs);
@@ -423,9 +429,10 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
 }
 
 fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
+    let base = compile_single_module("RocdownBase.rocci", "RocdownBase", runtime::BASE)?;
     let theme = compile_single_module("RocdownTheme.rocci", "RocdownTheme", runtime::THEME)?;
     let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
-    Ok(vec![theme, docs])
+    Ok(vec![base, theme, docs])
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1503,6 +1510,81 @@ items = ["index", "guide"]
         assert!(type_names.contains(&"SiteShell"));
         assert!(type_names.contains(&"RocdownTheme"));
         assert!(type_names.contains(&"DocsComponents"));
+        assert!(type_names.contains(&"RocdownBase"));
+
+        let css = planned
+            .theme_modules
+            .iter()
+            .flat_map(|module| module.styles.iter())
+            .map(|style| style.css.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(css.contains("--canvas"), "{css}");
+        assert!(css.contains(".rd-header-1"), "{css}");
+        assert!(
+            !css.contains("data-rocci-css~=\"RocdownBase"),
+            "base article CSS must apply without a document stamp\n{css}"
+        );
+
+        let site_shell = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "SiteShell")
+            .unwrap();
+        assert!(
+            !site_shell.roc.contains("Html.text(content)"),
+            "{}",
+            site_shell.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn project_layout_article_slot_is_html_body_param() {
+        let root = temp("layout-body-param");
+        write_site(&root);
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Layouts
+
+@component SiteShell = |view, content| {
+    <html>
+        <body>
+            <Layouts.Home view={view}>{content}</Layouts.Home>
+        </body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/Layouts.rocci"),
+            r#"
+@component Home = |{ view }, content| {
+    <article class="article">{content}</article>
+}
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let layouts = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "Layouts")
+            .unwrap();
+        assert!(
+            !layouts.roc.contains("Html.text(content)"),
+            "{}",
+            layouts.roc
+        );
+        assert!(layouts.roc.contains("content"), "{}", layouts.roc);
 
         let _ = fs::remove_dir_all(root);
     }

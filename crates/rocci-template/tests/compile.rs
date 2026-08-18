@@ -936,6 +936,39 @@ fn embed_css_false_keeps_artifacts_without_style_element() {
 }
 
 #[test]
+fn unscoped_file_css_skips_scope_wrapper() {
+    let src = r#"
+@css {
+    :scope { --canvas: #111; }
+    .article .rd-header-1 { color: var(--canvas); }
+}
+
+base = {}
+"#;
+    let out = compile(
+        SourceFile::new("RocdownBase.rocci", src),
+        &LowerOptions {
+            embed_css: false,
+            scope_file_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert_eq!(out.styles.len(), 1);
+    assert!(
+        !out.styles[0].css.contains("@scope"),
+        "{}",
+        out.styles[0].css
+    );
+    assert!(
+        out.styles[0].css.contains("--canvas"),
+        "{}",
+        out.styles[0].css
+    );
+    assert!(!out.roc.contains("data-rocci-css"), "{}", out.roc);
+}
+
+#[test]
 fn isolates_component_css_and_does_not_stamp_child_calls() {
     let src = r#"
 @component Parent = |{}| {

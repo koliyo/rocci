@@ -6,44 +6,37 @@
     },
 }
 
-# Build fast, typed interfaces without giving up the web
+# Roc-native interfaces and Markdown-first documents
 
-Rocci connects the functional purity and compile-time guarantees of the Roc programming language with the universal reach of standard HTML, modern CSS, and lightweight desktop hosts.
+Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a small desktop host. This site is the working tree for public docs: add pages under `site/`, keep chrome in `site/theme/`, and preview with `rocdown run site`.
 
----
+@docs card-grid {
+    @docs link-card {
+        page: "docs/getting-started/overview"
+        title: "Getting started"
+        summary: "Install the CLI and learn the four layers."
+    }
 
-## Why Rocci?
+    @docs link-card {
+        page: "rocdown/index"
+        title: "Rocdown"
+        summary: "Markdown-first documents and static sites."
+    }
 
-### 🛡️ Type-Safe Pure Functions
-Every component is an ordinary, deterministic Roc function. Views are mathematical projections over state: no hidden lifecycle bugs, no unhandled edge cases, and zero runtime exceptions.
+    @docs link-card {
+        page: "news/index"
+        title: "News"
+        summary: "Announcements and project updates."
+    }
 
-### 📄 Markdown-First Technical Documents
-With Rocdown, write guides, articles, and API references in standard Markdown. Embed isolated Roc calculations, reactive snippets, and interactive components when needed without sacrificing static build performance.
+    @docs link-card {
+        page: "project/index"
+        title: "Project"
+        summary: "Status, roadmap, and how to contribute."
+    }
+}
 
-### 🖥️ Native Desktop Shells
-Package your interface as a lightweight, single-binary macOS or cross-platform application backed by Tao and Wry webviews. No heavyweight multi-hundred-megabyte runtimes.
-
-### 🌐 Open Web Foundation
-No proprietary UI abstractions or massive client bundles. Clean semantic HTML, standard CSS, and robust hypermedia updates powered by Datastar.
-
----
-
-## Explore by Path
-
-| Path | Description | Link |
-| --- | --- | --- |
-| **Start Here** | Learn the four architectural layers of Rocci and install the CLI | [Getting Started](/docs/getting-started/overview/) |
-| **Interactive Docs** | Discover Rocdown for technical documentation, blogs, and static sites | [Rocdown Overview](/rocdown/) |
-| **Tutorials & Guides** | Step-by-step guides for components, server actions, and desktop packaging | [Guides](/docs/guides/build-a-component/) |
-| **Architecture** | Understand Rocci's rendering model, state flow, and why Roc fits UI | [Concepts](/docs/concepts/architecture/) |
-| **Reference** | Syntax grammar, CLI flags, configuration schemas, and options | [API Reference](/docs/reference/rocci/) |
-| **Project & Roadmap** | Check implementation status, future milestones, and contributing | [Project Portal](/project/) |
-
----
-
-## Quick Example
-
-Here is how a counter component with scoped CSS looks in `.rocci`:
+## A component in `.rocci`
 
 ```roc
 import Html
@@ -51,29 +44,9 @@ import Html
 @component CounterCard = |{ count }| {
     <div class="counter-card">
         <h3>Counter: {Num.toStr(count)}</h3>
-        <div class="actions">
-            <button data-on-click="/increment">+1</button>
-            <button data-on-click="/reset">Reset</button>
-        </div>
+        <button data-on-click="/increment">+1</button>
     </div>
-}
-
-@css {
-    .counter-card {
-        padding: 1.5rem;
-        border: 1px solid var(--rd-color-border);
-        border-radius: 0.5rem;
-    }
 }
 ```
 
----
-
-## Join the Community & Contribute
-
-Rocci is actively evolving with open architecture discussions and public milestones.
-
-- [Browse Repository on GitHub](https://github.com/koliyo/rocci)
-- [Read the Roadmap](/project/roadmap/)
-- [Check Current Implementation Status](/project/status/)
-- [Contributing Guidelines](/project/contributing/)
+See [Quickstart](/docs/getting-started/quickstart/) to run this locally, or [Guides](/docs/guides/build-a-component/) for the next implementation steps.

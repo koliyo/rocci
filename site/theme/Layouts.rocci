@@ -1,6 +1,6 @@
 import Html
 
-@component Home = |{ view, content }| {
+@component Home = |{ view }, content| {
     <div class="layout-home">
         <main class="home-main" id="main-content">
             <article class="article">{content}</article>
@@ -28,7 +28,7 @@ import Html
     </div>
 }
 
-@component Product = |{ view, content }| {
+@component Product = |{ view }, content| {
     <div class="layout-product">
         <main class="product-main" id="main-content">
             <article class="article">{content}</article>
@@ -39,7 +39,7 @@ import Html
     </div>
 }
 
-@component Section = |{ view, content }| {
+@component Section = |{ view }, content| {
     <div class="layout-section">
         <main class="section-main" id="main-content">
             <nav class="breadcrumbs" aria-label="Breadcrumb">
@@ -60,7 +60,7 @@ import Html
     </div>
 }
 
-@component Docs = |{ view, content }| {
+@component Docs = |{ view }, content| {
     <div class="layout-docs">
         <aside class="sidebar">
             <nav aria-label="Documentation navigation">
@@ -116,7 +116,7 @@ import Html
     </div>
 }
 
-@component NewsIndex = |{ view, content }| {
+@component NewsIndex = |{ view }, content| {
     <div class="layout-news-index">
         <main class="news-main" id="main-content">
             <article class="article">{content}</article>
@@ -146,7 +146,7 @@ import Html
     </div>
 }
 
-@component NewsPost = |{ view, content }| {
+@component NewsPost = |{ view }, content| {
     <div class="layout-news-post">
         <main class="news-post-main" id="main-content">
             <header class="post-header">
@@ -162,7 +162,7 @@ import Html
     </div>
 }
 
-@component Plain = |{ view, content }| {
+@component Plain = |{ view }, content| {
     <div class="layout-plain">
         <main class="plain-main" id="main-content">
             <article class="article">{content}</article>
@@ -173,7 +173,7 @@ import Html
     </div>
 }
 
-@component NotFound = |{ view, content }| {
+@component NotFound = |{ view }, content| {
     <div class="layout-not-found">
         <main class="not-found-main" id="main-content">
             <article class="article">{content}</article>
@@ -233,16 +233,16 @@ import Html
         text-transform: uppercase;
         font-size: 0.75rem;
         letter-spacing: 0.05em;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
     }
     .outline-link {
         display: block;
         padding: 0.25rem 0;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
         text-decoration: none;
     }
     .outline-link:hover {
-        color: var(--rd-color-accent, #2563eb);
+        color: var(--accent);
     }
     .outline-link.level-3 {
         padding-left: 0.75rem;
@@ -262,10 +262,10 @@ import Html
     .breadcrumbs li+li::before {
         content: "/";
         margin-right: 0.5rem;
-        color: var(--rd-color-text-muted, #94a3b8);
+        color: var(--faint);
     }
     .breadcrumbs a {
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
         text-decoration: none;
     }
     .breadcrumbs a.crumb-current {
@@ -277,34 +277,34 @@ import Html
         justify-content: space-between;
         margin-top: 3rem;
         padding-top: 1.5rem;
-        border-top: 1px solid var(--rd-color-border, #e2e8f0);
+        border-top: 1px solid var(--line);
     }
     .journey a {
         text-decoration: none;
-        color: var(--rd-color-accent, #2563eb);
+        color: var(--accent);
         font-weight: 500;
     }
     .article-footer {
         margin-top: 2.5rem;
         font-size: 0.875rem;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
     }
     .post-date {
         font-size: 0.875rem;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
     }
     .post-footer {
         margin-top: 2rem;
     }
     .back-link {
         text-decoration: none;
-        color: var(--rd-color-accent, #2563eb);
+        color: var(--accent);
         font-weight: 500;
     }
     .home-recent-news, .collection-feed {
         margin-top: 3rem;
         padding-top: 2rem;
-        border-top: 1px solid var(--rd-color-border, #e2e8f0);
+        border-top: 1px solid var(--line);
     }
     .section-heading, .collection-feed-header {
         display: flex;
@@ -319,7 +319,7 @@ import Html
     }
     .section-more, .feed-link {
         font-size: 0.875rem;
-        color: var(--rd-color-accent, #2563eb);
+        color: var(--accent);
         text-decoration: none;
         font-weight: 500;
     }
@@ -329,10 +329,10 @@ import Html
         gap: 1.25rem;
     }
     .news-item {
-        border: 1px solid var(--rd-color-border, #e2e8f0);
+        border: 1px solid var(--line);
         border-radius: 0.5rem;
         padding: 1.25rem;
-        background: var(--rd-color-bg-card, #ffffff);
+        background: var(--surface);
     }
     .news-item-title {
         font-size: 1.125rem;
@@ -343,11 +343,11 @@ import Html
         color: inherit;
     }
     .news-item-title a:hover, .news-card-title a:hover {
-        color: var(--rd-color-accent, #2563eb);
+        color: var(--accent);
     }
     .news-item-summary, .news-card-summary {
         font-size: 0.875rem;
-        color: var(--rd-color-text-muted, #64748b);
+        color: var(--muted);
         margin: 0;
     }
     .news-list {
@@ -356,7 +356,7 @@ import Html
         gap: 1.5rem;
     }
     .news-card {
-        border-bottom: 1px solid var(--rd-color-border, #e2e8f0);
+        border-bottom: 1px solid var(--line);
         padding-bottom: 1.5rem;
     }
     .news-card-title {

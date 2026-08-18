@@ -61,21 +61,21 @@ import Layouts
             </header>
             <div class="site-container">
                 @if view.layout == "home" {
-                    <Layouts.Home view={view} content={content} />
+                    <Layouts.Home view={view}>{content}</Layouts.Home>
                 } @else if view.layout == "product" {
-                    <Layouts.Product view={view} content={content} />
+                    <Layouts.Product view={view}>{content}</Layouts.Product>
                 } @else if view.layout == "section" {
-                    <Layouts.Section view={view} content={content} />
+                    <Layouts.Section view={view}>{content}</Layouts.Section>
                 } @else if view.layout == "news-index" {
-                    <Layouts.NewsIndex view={view} content={content} />
+                    <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
                 } @else if view.layout == "news-post" {
-                    <Layouts.NewsPost view={view} content={content} />
+                    <Layouts.NewsPost view={view}>{content}</Layouts.NewsPost>
                 } @else if view.layout == "plain" {
-                    <Layouts.Plain view={view} content={content} />
+                    <Layouts.Plain view={view}>{content}</Layouts.Plain>
                 } @else if view.layout == "not-found" {
-                    <Layouts.NotFound view={view} content={content} />
+                    <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
                 } @else {
-                    <Layouts.Docs view={view} content={content} />
+                    <Layouts.Docs view={view}>{content}</Layouts.Docs>
                 }
             </div>
             <footer class="site-footer">
@@ -88,28 +88,11 @@ import Layouts
 }
 
 @css {
-    :root {
-        --rd-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-        --rd-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-        --rd-color-bg: light-dark(#ffffff, #0d1117);
-        --rd-color-text: light-dark(#1f2937, #f3f4f6);
-        --rd-color-text-muted: light-dark(#6b7280, #9ca3af);
-        --rd-color-border: light-dark(#e5e7eb, #374151);
-        --rd-color-accent: light-dark(#2563eb, #60a5fa);
-        --rd-color-bg-alt: light-dark(#f9fafb, #161b22);
-    }
-    body {
-        margin: 0;
-        font-family: var(--rd-font-body);
-        color: var(--rd-color-text);
-        background: var(--rd-color-bg);
-        line-height: 1.6;
-    }
     .skip-link {
         position: absolute;
         top: -3rem;
         left: 1rem;
-        background: var(--rd-color-accent);
+        background: var(--accent);
         color: #ffffff;
         padding: 0.5rem 1rem;
         border-radius: 0.25rem;
@@ -123,11 +106,14 @@ import Layouts
         position: sticky;
         top: 0;
         z-index: 50;
-        background: var(--rd-color-bg);
-        border-bottom: 1px solid var(--rd-color-border);
+        height: var(--header-height);
+        background: color-mix(in srgb, var(--canvas) 92%, transparent);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(14px);
     }
     .header-inner {
         max-width: 86rem;
+        height: 100%;
         margin: 0 auto;
         padding: 0.75rem 1rem;
         display: flex;
@@ -150,7 +136,7 @@ import Layouts
         width: 1.75rem;
         height: 1.75rem;
         border-radius: 0.375rem;
-        background: var(--rd-color-accent);
+        background: var(--accent);
         color: #ffffff;
         font-weight: 800;
         font-size: 1rem;
@@ -158,11 +144,11 @@ import Layouts
     .header-rule {
         width: 1px;
         height: 1.25rem;
-        background: var(--rd-color-border);
+        background: var(--line);
     }
     .header-subtitle {
         font-size: 0.875rem;
-        color: var(--rd-color-text-muted);
+        color: var(--muted);
     }
     .lanes {
         display: flex;
@@ -171,17 +157,18 @@ import Layouts
     }
     .lane-link {
         text-decoration: none;
-        color: var(--rd-color-text-muted);
+        color: var(--muted);
         font-size: 0.875rem;
         font-weight: 500;
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
     }
     .lane-link:hover, .lane-link.is-current {
-        color: var(--rd-color-text);
+        color: var(--ink);
     }
     .lane-link.is-current {
-        background: var(--rd-color-bg-alt);
+        background: var(--accent-soft);
+        color: var(--accent-strong);
     }
     .header-actions {
         display: flex;
@@ -189,14 +176,14 @@ import Layouts
     }
     .header-link {
         text-decoration: none;
-        color: var(--rd-color-text-muted);
+        color: var(--muted);
         font-size: 0.875rem;
     }
     .site-footer {
-        border-top: 1px solid var(--rd-color-border);
+        border-top: 1px solid var(--line);
         padding: 2rem 1rem;
         margin-top: 4rem;
-        background: var(--rd-color-bg-alt);
+        background: var(--surface);
     }
     .footer-inner {
         max-width: 86rem;
@@ -205,7 +192,7 @@ import Layouts
     }
     .footer-text {
         font-size: 0.875rem;
-        color: var(--rd-color-text-muted);
+        color: var(--muted);
         margin: 0;
     }
 }
