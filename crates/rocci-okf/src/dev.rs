@@ -49,23 +49,82 @@ const DEFAULT_CSS: &str = r#"
   --rd-red: #e06c75;
   --rd-purple: #c678dd;
 }
-html, body {
+html.rd-document, body {
   font-family: var(--rd-font-sans);
   background: var(--rd-bg);
   color: var(--rd-fg);
   margin: 0;
+  min-height: 100vh;
   line-height: 1.65;
 }
-body { padding: 2rem; }
-main.rd-document {
-  max-width: 960px;
+html.rd-document { scroll-behavior: smooth; }
+.rd-shell {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  align-items: start;
+  min-height: 100vh;
+}
+main {
+  box-sizing: border-box;
+  min-width: 0;
+  width: min(42rem, calc(100% - 2rem));
   margin: 0 auto;
+  padding: 2.5rem 0 4rem;
+}
+.rd-toc {
+  position: sticky;
+  top: var(--rocci-chrome-top, 0px);
+  box-sizing: border-box;
+  min-width: 0;
+  max-height: calc(100vh - var(--rocci-chrome-top, 0px));
+  padding: 2.15rem 1.2rem 2rem 1.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.rd-toc-label {
+  margin: 0 0 0.65rem;
+  color: var(--rd-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+.rd-toc-items {
+  display: grid;
+  gap: 0.45rem;
+  border-left: 1px solid var(--rd-border);
+}
+.rd-toc-link {
+  margin-left: -1px;
+  padding-left: 0.8rem;
+  border-left: 1px solid transparent;
+  color: var(--rd-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.rd-toc-link:hover {
+  border-color: var(--rd-primary);
+  color: var(--rd-fg);
+  text-decoration: none;
+}
+.rd-toc-link.rd-toc-level-3 { padding-left: 1.35rem; }
+.rd-toc:not(:has(.rd-toc-link)) { display: none; }
+@media (max-width: 48rem) {
+  .rd-shell { display: block; }
+  .rd-toc { display: none; }
+}
+@media print { .rd-toc { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html.rd-document { scroll-behavior: auto; }
 }
 h1, h2, h3, h4, h5, h6,
 .rd-header-1, .rd-header-2, .rd-header-3, .rd-header-4, .rd-header-5, .rd-header-6 {
   color: var(--rd-fg);
   font-weight: 700;
   line-height: 1.25;
+  scroll-margin-top: calc(1.25rem + var(--rocci-chrome-top, 0px));
 }
 h1, .rd-header-1 { margin: 0 0 0.75rem; font-size: 2rem; letter-spacing: -0.03em; }
 h2, .rd-header-2 { margin: 2rem 0 0.6rem; font-size: 1.35rem; }

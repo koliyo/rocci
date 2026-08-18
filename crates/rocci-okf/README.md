@@ -39,7 +39,8 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 ### Live Reload Review Server & Desktop Preview
 
-The review viewer uses a dark One Dark Pro palette.
+The review viewer uses a dark One Dark Pro palette. Pages with H2 or H3
+headings get a left “On this page” navigator, matching standalone Rocdown.
 
 ```sh
 # Run with desktop window
