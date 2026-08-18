@@ -4,6 +4,23 @@ import Html
     <div class="layout-home">
         <main class="home-main" id="main-content">
             <article class="article">{content}</article>
+            <section class="home-recent-news">
+                <div class="section-heading">
+                    <h2 class="section-title">Latest Updates</h2>
+                    <a class="section-more" href="/news/">View all news →</a>
+                </div>
+                <div class="news-grid">
+                    @for item in view.collection_items {
+                        <div class="news-item">
+                            <time class="news-date">{item.published}</time>
+                            <h3 class="news-item-title"><a href={item.route}>{item.title}</a></h3>
+                            @if item.summary != "" {
+                                <p class="news-item-summary">{item.summary}</p>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
             @if view.site.footer != "" {
                 <footer class="article-footer">{view.site.footer}</footer>
             }
@@ -103,6 +120,25 @@ import Html
     <div class="layout-news-index">
         <main class="news-main" id="main-content">
             <article class="article">{content}</article>
+            <div class="collection-feed">
+                <div class="collection-feed-header">
+                    <h2 class="feed-title">All Announcements</h2>
+                    <a class="feed-link" href="/news/feed.xml">RSS / Atom Feed ↗</a>
+                </div>
+                <div class="news-list">
+                    @for item in view.collection_items {
+                        <article class="news-card">
+                            <div class="news-card-meta">
+                                <time class="news-date">{item.published}</time>
+                            </div>
+                            <h2 class="news-card-title"><a href={item.route}>{item.title}</a></h2>
+                            @if item.summary != "" {
+                                <p class="news-card-summary">{item.summary}</p>
+                            }
+                        </article>
+                    }
+                </div>
+            </div>
             @if view.site.footer != "" {
                 <footer class="article-footer">{view.site.footer}</footer>
             }
@@ -264,5 +300,67 @@ import Html
         text-decoration: none;
         color: var(--rd-color-accent, #2563eb);
         font-weight: 500;
+    }
+    .home-recent-news, .collection-feed {
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--rd-color-border, #e2e8f0);
+    }
+    .section-heading, .collection-feed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 1.5rem;
+    }
+    .section-title, .feed-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .section-more, .feed-link {
+        font-size: 0.875rem;
+        color: var(--rd-color-accent, #2563eb);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .news-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+        gap: 1.25rem;
+    }
+    .news-item {
+        border: 1px solid var(--rd-color-border, #e2e8f0);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        background: var(--rd-color-bg-card, #ffffff);
+    }
+    .news-item-title {
+        font-size: 1.125rem;
+        margin: 0.25rem 0 0.5rem;
+    }
+    .news-item-title a, .news-card-title a {
+        text-decoration: none;
+        color: inherit;
+    }
+    .news-item-title a:hover, .news-card-title a:hover {
+        color: var(--rd-color-accent, #2563eb);
+    }
+    .news-item-summary, .news-card-summary {
+        font-size: 0.875rem;
+        color: var(--rd-color-text-muted, #64748b);
+        margin: 0;
+    }
+    .news-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .news-card {
+        border-bottom: 1px solid var(--rd-color-border, #e2e8f0);
+        padding-bottom: 1.5rem;
+    }
+    .news-card-title {
+        font-size: 1.35rem;
+        margin: 0.25rem 0 0.5rem;
     }
 }

@@ -29,6 +29,7 @@ import Layouts
                 <meta property="og:image" content={"${view.site.base_url}${view.site.social_image}"} />
                 <meta name="twitter:card" content="summary_large_image" />
             }
+            <link rel="alternate" type="application/atom+xml" title={"${view.site.title} News"} href="/news/feed.xml" />
         </head>
         <body>
             <a class="skip-link" href="#main-content">Skip to content</a>

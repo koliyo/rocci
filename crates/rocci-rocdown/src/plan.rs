@@ -17,7 +17,8 @@ pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 
 const HASH_LEN: usize = 16;
 
 pub use rocci_ui::{
-    BreadcrumbView, LaneView, NavItemView, OutlineView, PageView, ResourceView, SiteView,
+    BreadcrumbView, CollectionItemView, LaneView, NavItemView, OutlineView, PageView, ResourceView,
+    SiteView,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -201,8 +202,38 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         (None, None)
     };
 
+    let mut news_items: Vec<CollectionItemView> = published
+        .iter()
+        .filter(|page| {
+            page.collection == "news"
+                || (page.route.starts_with("/news/") && page.layout == "news-post")
+        })
+        .map(|page| CollectionItemView {
+            route: page.route.clone(),
+            title: page.title.clone(),
+            summary: page.description.clone(),
+            published: page.published.clone(),
+            updated: page.updated.clone(),
+            authors: page.authors.clone(),
+            tags: page.tags.clone(),
+        })
+        .collect();
+
+    news_items.sort_by(|a, b| {
+        b.published
+            .cmp(&a.published)
+            .then_with(|| a.title.cmp(&b.title))
+            .then_with(|| a.route.cmp(&b.route))
+    });
     let mut pages = Vec::new();
     for page in &published {
+        let collection_items = if page.layout == "news-index" {
+            news_items.clone()
+        } else if page.layout == "home" {
+            news_items.iter().take(3).cloned().collect()
+        } else {
+            Vec::new()
+        };
         pages.push(planned_page(
             page,
             &site_view,
@@ -213,6 +244,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
             playground_app_url.as_deref(),
             playground_css_url.as_deref(),
             &rewrite,
+            collection_items,
             false,
         ));
     }
@@ -238,7 +270,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     }
     redirects.sort_by(|a, b| a.output_path.cmp(&b.output_path));
 
-    let files = discovery_files(config, &published);
+    let files = discovery_files(config, &published, &news_items);
 
     Ok(BuildPlan {
         pages,
@@ -407,6 +439,7 @@ fn planned_page(
     playground_app: Option<&str>,
     playground_css: Option<&str>,
     rewrite: &BTreeMap<String, String>,
+    collection_items: Vec<CollectionItemView>,
     not_found: bool,
 ) -> PlannedPage {
     let current_id = if not_found {
@@ -495,6 +528,7 @@ fn planned_page(
             authors: page.authors.clone(),
             tags: page.tags.clone(),
             collection: page.collection.clone(),
+            collection_items,
             outline: page
                 .headings
                 .iter()
@@ -567,6 +601,7 @@ fn not_found_page(
             authors: Vec::new(),
             tags: Vec::new(),
             collection: String::new(),
+            collection_items: Vec::new(),
             outline: Vec::new(),
             breadcrumbs: Vec::new(),
             previous: NavItemView {
@@ -830,7 +865,11 @@ fn rewrite_urls(text: &str, map: &BTreeMap<String, String>) -> String {
     out
 }
 
-fn discovery_files(config: &SiteConfig, pages: &[ResolvedPage]) -> Vec<PlannedFile> {
+fn discovery_files(
+    config: &SiteConfig,
+    pages: &[ResolvedPage],
+    news_items: &[CollectionItemView],
+) -> Vec<PlannedFile> {
     let mut files = Vec::new();
     let mut llms = format!("# {}\n\n{}\n\n", config.site.title, config.site.description);
     for page in pages {
@@ -878,9 +917,93 @@ fn discovery_files(config: &SiteConfig, pages: &[ResolvedPage]) -> Vec<PlannedFi
                 config.site.base_url
             ),
         });
+        if !news_items.is_empty() {
+            files.push(PlannedFile {
+                kind: "feed",
+                route: "/news/feed.xml".into(),
+                output_path: "news/feed.xml".into(),
+                contents: atom_feed(config, news_items),
+            });
+        }
     }
     files.sort_by(|a, b| a.output_path.cmp(&b.output_path));
     files
+}
+
+fn atom_feed(config: &SiteConfig, news_items: &[CollectionItemView]) -> String {
+    let mut xml = String::from(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n",
+    );
+    xml.push_str(&format!(
+        "  <title>{} News</title>\n",
+        escape_xml(&config.site.title)
+    ));
+    let feed_url = format!("{}/news/feed.xml", config.site.base_url);
+    let site_news_url = format!("{}/news/", config.site.base_url);
+    xml.push_str(&format!(
+        "  <link href=\"{}\" rel=\"self\" />\n",
+        escape_xml(&feed_url)
+    ));
+    xml.push_str(&format!(
+        "  <link href=\"{}\" />\n",
+        escape_xml(&site_news_url)
+    ));
+    xml.push_str(&format!("  <id>{}</id>\n", escape_xml(&site_news_url)));
+
+    let latest_date = news_items
+        .first()
+        .map(|item| {
+            if !item.updated.is_empty() {
+                item.updated.as_str()
+            } else if !item.published.is_empty() {
+                item.published.as_str()
+            } else {
+                "2026-01-01"
+            }
+        })
+        .unwrap_or("2026-01-01");
+    xml.push_str(&format!("  <updated>{}T00:00:00Z</updated>\n", latest_date));
+
+    for item in news_items {
+        xml.push_str("  <entry>\n");
+        xml.push_str(&format!("    <title>{}</title>\n", escape_xml(&item.title)));
+        let entry_url = format!("{}{}", config.site.base_url, item.route);
+        xml.push_str(&format!(
+            "    <link href=\"{}\" />\n",
+            escape_xml(&entry_url)
+        ));
+        xml.push_str(&format!("    <id>{}</id>\n", escape_xml(&entry_url)));
+        let pub_date = if !item.published.is_empty() {
+            &item.published
+        } else {
+            "2026-01-01"
+        };
+        xml.push_str(&format!(
+            "    <published>{}T00:00:00Z</published>\n",
+            pub_date
+        ));
+        let upd_date = if !item.updated.is_empty() {
+            &item.updated
+        } else {
+            pub_date
+        };
+        xml.push_str(&format!("    <updated>{}T00:00:00Z</updated>\n", upd_date));
+        if !item.summary.is_empty() {
+            xml.push_str(&format!(
+                "    <summary>{}</summary>\n",
+                escape_xml(&item.summary)
+            ));
+        }
+        for author in &item.authors {
+            xml.push_str(&format!(
+                "    <author><name>{}</name></author>\n",
+                escape_xml(author)
+            ));
+        }
+        xml.push_str("  </entry>\n");
+    }
+    xml.push_str("</feed>\n");
+    xml
 }
 
 fn redirect_html(target: &str) -> String {
@@ -974,7 +1097,33 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         }
         out.push_str("                ],\n                collection: ");
         push_roc_string(&mut out, &page.view.collection);
-        out.push_str(",\n                outline: [\n");
+        out.push_str(",\n                collection_items: [\n");
+        for item in &page.view.collection_items {
+            out.push_str("                    {\n                        route: ");
+            push_roc_string(&mut out, &item.route);
+            out.push_str(",\n                        title: ");
+            push_roc_string(&mut out, &item.title);
+            out.push_str(",\n                        summary: ");
+            push_roc_string(&mut out, &item.summary);
+            out.push_str(",\n                        published: ");
+            push_roc_string(&mut out, &item.published);
+            out.push_str(",\n                        updated: ");
+            push_roc_string(&mut out, &item.updated);
+            out.push_str(",\n                        authors: [\n");
+            for author in &item.authors {
+                out.push_str("                            ");
+                push_roc_string(&mut out, author);
+                out.push_str(",\n");
+            }
+            out.push_str("                        ],\n                        tags: [\n");
+            for tag in &item.tags {
+                out.push_str("                            ");
+                push_roc_string(&mut out, tag);
+                out.push_str(",\n");
+            }
+            out.push_str("                        ]\n                    },\n");
+        }
+        out.push_str("                ],\n                outline: [\n");
         for heading in &page.view.outline {
             out.push_str("                    { id: ");
             push_roc_string(&mut out, &heading.id);
@@ -1426,6 +1575,69 @@ Content here.
         assert!(resolved.diagnostics.iter().any(
             |d| d.code == "RD2007" && d.message.contains("unknown layout `nonexistent_layout`")
         ));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn collection_sorting_and_feed_generation_in_plan() {
+        let root = temp("news-collection");
+        write_site(&root);
+        fs::create_dir_all(root.join("news")).unwrap();
+        fs::write(
+            root.join("news/index.rocdown"),
+            "@page {\n    layout: \"news-index\",\n}\n\n# News\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("news/older.rocdown"),
+            "@page {\n    layout: \"news-post\",\n    published: \"2026-08-10\",\n    collection: \"news\",\n    summary: \"Older post\",\n}\n\n# Older\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("news/newer.rocdown"),
+            "@page {\n    layout: \"news-post\",\n    published: \"2026-08-18\",\n    collection: \"news\",\n    summary: \"Newer post\",\n}\n\n# Newer\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("news/draft.rocdown"),
+            "@page {\n    draft: Bool.true,\n    layout: \"news-post\",\n    published: \"2026-08-20\",\n    collection: \"news\",\n}\n\n# Draft\n",
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+
+        let news_index = planned
+            .pages
+            .iter()
+            .find(|p| p.view.route == "/news/")
+            .unwrap();
+        assert_eq!(news_index.view.collection_items.len(), 2);
+        assert_eq!(news_index.view.collection_items[0].title, "Newer");
+        assert_eq!(news_index.view.collection_items[0].published, "2026-08-18");
+        assert_eq!(news_index.view.collection_items[1].title, "Older");
+        assert_eq!(news_index.view.collection_items[1].published, "2026-08-10");
+
+        let home = planned.pages.iter().find(|p| p.view.route == "/").unwrap();
+        assert_eq!(home.view.collection_items.len(), 2);
+        assert_eq!(home.view.collection_items[0].title, "Newer");
+
+        let feed = planned
+            .files
+            .iter()
+            .find(|f| f.output_path == "news/feed.xml")
+            .unwrap();
+        assert_eq!(feed.kind, "feed");
+        assert!(feed.contents.contains("<title>Newer</title>"));
+        assert!(feed.contents.contains("<title>Older</title>"));
+        assert!(!feed.contents.contains("Draft"));
+
+        let roc = planned.pages_roc();
+        assert!(roc.contains("collection_items: ["));
+        assert!(roc.contains("title: \"Newer\""));
 
         let _ = fs::remove_dir_all(root);
     }
