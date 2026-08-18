@@ -1,0 +1,106 @@
+import Html
+
+@component ConceptMeta = |{ meta }| {
+    <section class="okf-concept-meta" aria-label="Concept Metadata & Governance">
+        <div class="okf-badge-group">
+            <span class="okf-badge okf-type">{meta.concept_type}</span>
+            <span class={"okf-badge okf-status okf-status-${meta.status}"}>{meta.status}</span>
+            <span class={"okf-badge okf-auth okf-auth-${meta.authority}"}>{meta.authority}</span>
+            <span class={"okf-badge okf-trust okf-trust-${meta.trust_slug}"}>{meta.trust_label}</span>
+            @if meta.stale {
+                <span class="okf-badge okf-badge-stale">{"Stale (expired ${meta.stale_after})"}</span>
+            }
+        </div>
+
+        @if meta.is_action_required {
+            <div class="okf-alert-banner" role="alert">
+                <span class="okf-alert-icon" aria-hidden="true">{"⚠️"}</span>
+                <div class="okf-alert-content">
+                    <strong>{"Review Action Required: "}</strong>{meta.action_detail}
+                </div>
+            </div>
+        }
+
+        @if meta.description != "" {
+            <p class="okf-lead">{meta.description}</p>
+        }
+
+        @if meta.has_provenance {
+            <ul class="okf-provenance">
+                @if meta.owners != "" {
+                    <li><span class="okf-meta-label">Owners</span> <code>{meta.owners}</code></li>
+                }
+                @if meta.verifier != "" {
+                    <li><span class="okf-meta-label">Verified</span> <code>{meta.verifier}</code></li>
+                }
+                @if meta.verifier == "" {
+                    <li><span class="okf-meta-label">Verified</span> <em>Unverified</em></li>
+                }
+                @if meta.generated != "" {
+                    <li><span class="okf-meta-label">Generated</span> <code>{meta.generated}</code></li>
+                }
+                @if meta.stale_after != "" {
+                    <li><span class="okf-meta-label">Stale after</span> <code>{meta.stale_after}</code></li>
+                }
+            </ul>
+        }
+
+        @if meta.has_sources {
+            <details class="okf-sources-drawer">
+                <summary><strong>{"${meta.source_count} Cited Sources"}</strong> <span class="okf-sources-drift-note">{meta.drift_summary}</span></summary>
+                <table class="okf-sources-table">
+                    <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @for source in meta.sources {
+                            <tr>
+                                <td><code>{source.id}</code></td>
+                                <td>
+                                    @if source.href != "" {
+                                        <a href={source.href}><code>{source.resource}</code></a>
+                                    }
+                                    @if source.href == "" {
+                                        <code>{source.resource}</code>
+                                    }
+                                </td>
+                                <td>{source.author}</td>
+                                <td>
+                                    @if source.is_drifted {
+                                        <span class="okf-badge okf-status-draft">Modified since verification</span>
+                                    }
+                                    @if !source.is_drifted {
+                                        <span class="okf-badge okf-status-stable">Clean</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        }
+
+        @if meta.has_other_meta {
+            <details class="okf-other-meta">
+                <summary><strong>{"${meta.other_meta_count} other fields"}</strong></summary>
+                <table class="okf-sources-table">
+                    <thead><tr><th>Key</th><th>Value</th></tr></thead>
+                    <tbody>
+                        @for field in meta.other_meta {
+                            <tr>
+                                <td><code>{field.key}</code></td>
+                                <td><code>{field.val}</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        }
+
+        @if meta.has_tags {
+            <div class="okf-tags">
+                @for tag in meta.tags {
+                    <span class="okf-tag">{"#${tag}"}</span>
+                }
+            </div>
+        }
+    </section>
+}

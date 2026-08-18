@@ -30,7 +30,7 @@ enum Commands {
         /// Override output path (directory for site, file for single document).
         #[arg(short, long)]
         output: Option<PathBuf>,
-        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        /// Execution host runtime for evaluating templates (native [default], auto; wasm is planned).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
         #[command(flatten)]
@@ -44,7 +44,7 @@ enum Commands {
         /// Write preview output here instead of a temp directory (for site dev server).
         #[arg(short, long)]
         output: Option<PathBuf>,
-        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        /// Execution host runtime for evaluating templates (native [default], auto; wasm is planned).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
         /// Skip the embedded window; print the URL and keep serving.
@@ -119,9 +119,12 @@ enum CheckFormatArg {
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
 enum HostArg {
+    /// Pick host automatically (resolves to native).
     #[default]
     Auto,
+    /// Compile and run native host executable (requires roc on PATH).
     Native,
+    /// In-process Wasmtime host (planned for Phase 5; requires custom Roc wasm platform).
     Wasm,
 }
 

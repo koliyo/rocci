@@ -155,7 +155,14 @@ impl WasmHost {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
-            bail!("roc build --target=wasm32 failed:\n{stdout}{stderr}");
+            let hint = if stderr.contains("does not support the wasm32 target")
+                || stdout.contains("does not support the wasm32 target")
+            {
+                "\n\nhint: The basic-cli platform only supports native compilation targets (x64mac, arm64mac, x64win, x64musl, arm64musl).\nWasm host (--host wasm) is planned for Phase 5 with a custom Roc wasm platform.\nPlease use '--host native' (or default '--host auto') instead."
+            } else {
+                ""
+            };
+            bail!("roc build --target=wasm32 failed:\n{stdout}{stderr}{hint}");
         }
 
         if !wasm_file.is_file() {
@@ -306,5 +313,28 @@ impl WasmHost {
             output.push_str(&stderr);
         }
         Ok(output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_choice_parse_and_display() {
+        assert_eq!("native".parse::<HostChoice>().unwrap(), HostChoice::Native);
+        assert_eq!("wasm".parse::<HostChoice>().unwrap(), HostChoice::Wasm);
+        assert_eq!("auto".parse::<HostChoice>().unwrap(), HostChoice::Auto);
+        assert!("invalid".parse::<HostChoice>().is_err());
+
+        assert_eq!(HostChoice::Native.to_string(), "native");
+        assert_eq!(HostChoice::Wasm.to_string(), "wasm");
+        assert_eq!(HostChoice::Auto.to_string(), "auto");
+    }
+
+    #[test]
+    fn host_choice_resolve_defaults_to_auto() {
+        assert_eq!(HostChoice::Native.resolve(), HostChoice::Native);
+        assert_eq!(HostChoice::Wasm.resolve(), HostChoice::Wasm);
     }
 }

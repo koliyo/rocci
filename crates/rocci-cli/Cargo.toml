@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
+notify = { workspace = true }
 rocci-core = { workspace = true }
 rocci-datastar = { workspace = true, features = ["fetch"] }
 rocci-template = { workspace = true }

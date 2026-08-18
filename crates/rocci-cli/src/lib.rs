@@ -1,6 +1,7 @@
 pub mod browse;
 pub mod bundle;
 pub mod datastar_asset;
+pub mod dev_server;
 pub mod dispatch;
 pub mod driver;
 pub mod error_page;

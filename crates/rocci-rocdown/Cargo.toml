@@ -14,7 +14,8 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 comrak = { version = "0.54", default-features = false }
 lsp-types = { workspace = true }
-notify = "8"
+notify = { workspace = true }
+rocci-cli = { workspace = true }
 rocci-core = { workspace = true }
 rocci-highlight = { workspace = true }
 rocci-lsp = { workspace = true }

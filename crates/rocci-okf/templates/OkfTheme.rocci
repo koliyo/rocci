@@ -1,0 +1,24 @@
+import Html
+import PageOutline
+import ConceptMeta
+
+@component KnowledgeShell = |{ outline, has_outline, meta, has_meta }, body| {
+    <div class="rd-shell">
+        @if has_outline {
+            <aside class="rd-toc" aria-label="On this page">
+                <p class="rd-toc-label">Knowledge</p>
+                <div class="rd-toc-items" style="margin-bottom: 1.5rem; border-left: none;">
+                    <a class="rd-toc-link" href="/" style="padding-left: 0; font-weight: 600;">Home</a>
+                    <a class="rd-toc-link" href="/review/" style="padding-left: 0; font-weight: 600;">Governance & Review</a>
+                </div>
+                <PageOutline.pageOutline outline={outline} />
+            </aside>
+        }
+        <main>
+            @if has_meta {
+                <ConceptMeta.conceptMeta meta={meta} />
+            }
+            {body}
+        </main>
+    </div>
+}
