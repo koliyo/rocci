@@ -12,7 +12,7 @@ path = "src/lib.rs"
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true }
-comrak = "0.54"
+comrak = { version = "0.54", default-features = false }
 lsp-types = { workspace = true }
 notify = "8"
 rocci-core = { workspace = true }
