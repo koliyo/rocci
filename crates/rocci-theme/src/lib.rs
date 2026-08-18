@@ -14,4 +14,4 @@ pub use resolve::{
 };
 pub use scheme::ColorSchemePolicy;
 
-pub const TOC_SCRIPT: &str = include_str!("themes/toc.js");
+pub const TOC_SCRIPT: &str = rocci_ui::TOC_SCRIPT;

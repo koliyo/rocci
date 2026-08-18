@@ -1,0 +1,15 @@
+import Html
+
+@component PageOutline = |{ outline }| {
+    <aside class="outline" aria-label="On this page">
+        <p class="outline-label">On this page</p>
+        <div class="outline-items">
+            @for heading in outline {
+                <a
+                    class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
+                    href={"#${heading.id}"}
+                >{heading.title}</a>
+            }
+        </div>
+    </aside>
+}

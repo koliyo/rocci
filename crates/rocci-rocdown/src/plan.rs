@@ -401,6 +401,23 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
         modules.insert(0, base);
     }
 
+    if !modules.iter().any(|m| m.type_name == "Breadcrumbs") {
+        let breadcrumbs =
+            compile_single_module("Breadcrumbs.rocci", "Breadcrumbs", runtime::BREADCRUMBS)?;
+        modules.push(breadcrumbs);
+    }
+
+    if !modules.iter().any(|m| m.type_name == "NavList") {
+        let nav_list = compile_single_module("NavList.rocci", "NavList", runtime::NAV_LIST)?;
+        modules.push(nav_list);
+    }
+
+    if !modules.iter().any(|m| m.type_name == "PageOutline") {
+        let page_outline =
+            compile_single_module("PageOutline.rocci", "PageOutline", runtime::PAGE_OUTLINE)?;
+        modules.push(page_outline);
+    }
+
     if !modules.iter().any(|m| m.type_name == "DocsComponents") {
         let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
         modules.push(docs);
@@ -430,9 +447,14 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
 
 fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
     let base = compile_single_module("RocdownBase.rocci", "RocdownBase", runtime::BASE)?;
+    let breadcrumbs =
+        compile_single_module("Breadcrumbs.rocci", "Breadcrumbs", runtime::BREADCRUMBS)?;
+    let nav_list = compile_single_module("NavList.rocci", "NavList", runtime::NAV_LIST)?;
+    let page_outline =
+        compile_single_module("PageOutline.rocci", "PageOutline", runtime::PAGE_OUTLINE)?;
     let theme = compile_single_module("RocdownTheme.rocci", "RocdownTheme", runtime::THEME)?;
     let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
-    Ok(vec![base, theme, docs])
+    Ok(vec![base, breadcrumbs, nav_list, page_outline, theme, docs])
 }
 
 #[allow(clippy::too_many_arguments)]

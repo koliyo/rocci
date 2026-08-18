@@ -1,0 +1,15 @@
+import Html
+
+@component NavList = |{ items, route, aria_label }| {
+    <nav aria-label={aria_label}>
+        <div class="nav-items">
+            @for item in items {
+                <a
+                    class={item.class_name}
+                    href={item.href}
+                    aria-current={if item.href == route { "page" } else { "false" }}
+                >{item.title}</a>
+            }
+        </div>
+    </nav>
+}

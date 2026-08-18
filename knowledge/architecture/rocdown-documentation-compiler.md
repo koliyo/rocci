@@ -78,15 +78,15 @@ Rust renders Markdown runs into fragment files with source-derived text and attr
 
 ## Ownership boundaries
 
-Rust owns deterministic documentation-data transformations: discovery, identity, graph resolution, navigation, validation, article rendering, artifact planning, and host orchestration. Rocci owns visible site chrome (`RocdownTheme.rocci`). Authored Roc or Rocci islands will remain on the Roc compilation path when support lands.[^refactor-plan]
+Rust owns deterministic documentation-data transformations: discovery, identity, graph resolution, navigation, validation, article rendering, artifact planning, and host orchestration (`rocci-roc-host`). Rocci owns visible site chrome (`RocdownTheme.rocci`) composed from shared base primitives in `rocci-ui` (`PageOutline.rocci`, `NavList.rocci`, `Breadcrumbs.rocci`). Authored Roc or Rocci islands will remain on the Roc compilation path when support lands.[^refactor-plan]
 
 This architecture implements the [Rust-catalog/Rocci-shell decision](/decisions/rust-catalog-rocci-shell.md).
 
 ## Shipped state
 
-Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, inspection, watch/serve, live reload, and bounded `@docs` components (asides, steps, figures, cards, no-JS tabs, includes, and opt-in `rocdown test`) are implemented.[^refactor-plan][^rocdown-reference]
+Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, two-tier persistent renderer caching (`~/.rocci/cache`), native subprocess and Wasmtime execution hosts, inspection, watch/serve, live reload, and bounded `@docs` components (asides, steps, figures, cards, no-JS tabs, includes, and opt-in `rocdown test`) are implemented.[^refactor-plan][^rocdown-reference]
 
-The separated OKF path lives in `okf` and `rocci-okf`, validating and reviewing knowledge collections independently from documentation site builds.[^okf][^rocdown-reference]
+The separated OKF path lives in `okf` and `rocci-okf`, validating and reviewing knowledge collections independently from documentation site builds while sharing the base `toc.js` asset and `PageView` domain records.[^okf][^rocdown-reference]
 
 ## Not yet implemented
 

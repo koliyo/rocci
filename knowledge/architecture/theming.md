@@ -61,7 +61,9 @@ Standalone Rocdown resolves `paper`, `rocci`, `none`, a local theme name, or a C
 
 Standalone themes set `--rd-*` variables under `.rd-document`; shared chrome CSS maps those variables to stable Markdown classes. Built-ins are compiled into `rocci-theme`, while named local files are discovered under the user's theme directory.[^theme-readme][^theme-resolver]
 
-Multi-page documentation sites use `RocdownTheme.rocci`, which owns layout, navigation, article presentation, responsive behavior, and shell palette variables using structured `PageView` records from `rocci-ui`. Its extracted CSS is fingerprinted as a build asset.[^rocdown-theme][^ui-readme]
+Multi-page documentation sites use `RocdownTheme.rocci` (and custom site themes such as `Layouts.rocci`), which compose shared base chrome templates (`PageOutline.rocci`, `NavList.rocci`, `Breadcrumbs.rocci` in `rocci-ui/templates/chrome/`) and own layout, navigation, article presentation, responsive behavior, and shell palette variables using structured `PageView` records from `rocci-ui`. Its extracted CSS is fingerprinted as a build asset.[^rocdown-theme][^ui-readme]
+
+Standalone Rocdown and OKF share the base `toc.js` scroll script and `.rd-toc` class contract exposed from `rocci-ui`.[^theme-readme][^ui-readme]
 
 ## Boundaries
 

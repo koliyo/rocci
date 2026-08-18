@@ -30,6 +30,9 @@ enum Commands {
         output: Option<PathBuf>,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
+        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+        host: HostArg,
         /// Skip the embedded window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
@@ -87,6 +90,9 @@ enum Commands {
         output: PathBuf,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
+        /// Execution host runtime for evaluating templates (auto, native, wasm).
+        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+        host: HostArg,
     },
 }
 
@@ -94,6 +100,24 @@ enum Commands {
 enum CheckFormatArg {
     Terminal,
     Json,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, Default)]
+enum HostArg {
+    #[default]
+    Auto,
+    Native,
+    Wasm,
+}
+
+impl From<HostArg> for rocci_roc_host::HostChoice {
+    fn from(arg: HostArg) -> Self {
+        match arg {
+            HostArg::Auto => rocci_roc_host::HostChoice::Auto,
+            HostArg::Native => rocci_roc_host::HostChoice::Native,
+            HostArg::Wasm => rocci_roc_host::HostChoice::Wasm,
+        }
+    }
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -256,8 +280,10 @@ fn main() -> Result<()> {
             root,
             output,
             profile,
+            host,
         } => {
             let summary = okf::build(&root, &output, profile.into())?;
+            let _ = host;
             eprintln!(
                 "rocci-okf: built {} concepts and {} indexes into {}",
                 summary.concepts, summary.indexes, summary.output
@@ -268,6 +294,7 @@ fn main() -> Result<()> {
             path,
             output,
             profile,
+            host,
             no_window,
             port,
         } => {
@@ -279,6 +306,7 @@ fn main() -> Result<()> {
                 port,
                 profile.into(),
                 &target.open_path,
+                Some(host.into()),
             )?;
             eprintln!("rocci-okf: serving {} at {}", server.title, server.url);
             if no_window {

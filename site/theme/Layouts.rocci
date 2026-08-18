@@ -1,20 +1,7 @@
 import Html
-
-@component Breadcrumbs = |{ view }| {
-    <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <ol>
-            @for crumb in view.breadcrumbs {
-                <li>
-                    <a
-                        class={if crumb.href == view.route { "crumb-current" } else { "" }}
-                        href={crumb.href}
-                        aria-current={if crumb.href == view.route { "page" } else { "false" }}
-                    >{crumb.title}</a>
-                </li>
-            }
-        </ol>
-    </nav>
-}
+import Breadcrumbs
+import NavList
+import PageOutline
 
 @component ArticleFooter = |{ view }| {
     @if view.site.footer != "" {
@@ -60,7 +47,7 @@ import Html
 @component Section = |{ view }, content| {
     <div class="layout-section">
         <main class="section-main" id="main-content">
-            <Breadcrumbs view={view} />
+            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
             <article class="article">{content}</article>
         </main>
     </div>
@@ -69,20 +56,10 @@ import Html
 @component Docs = |{ view }, content| {
     <div class="layout-docs">
         <aside class="sidebar">
-            <nav aria-label="Documentation navigation">
-                <div class="nav-items">
-                    @for item in view.sidebar {
-                        <a
-                            class={item.class_name}
-                            href={item.href}
-                            aria-current={if item.href == view.route { "page" } else { "false" }}
-                        >{item.title}</a>
-                    }
-                </div>
-            </nav>
+            <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
         </aside>
         <main class="content-column" id="main-content">
-            <Breadcrumbs view={view} />
+            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
             <article class="article">{content}</article>
             <nav class="journey" aria-label="Page journey">
                 @if view.previous.href != "" {
@@ -94,17 +71,7 @@ import Html
             </nav>
             <ArticleFooter view={view} />
         </main>
-        <aside class="outline" aria-label="On this page">
-            <p class="outline-label">On this page</p>
-            <div class="outline-items">
-                @for heading in view.outline {
-                    <a
-                        class={if heading.level == "3" { "outline-link level-3" } else { "outline-link" }}
-                        href={"#${heading.id}"}
-                    >{heading.title}</a>
-                }
-            </div>
-        </aside>
+        <PageOutline.pageOutline outline={view.outline} />
     </div>
 }
 

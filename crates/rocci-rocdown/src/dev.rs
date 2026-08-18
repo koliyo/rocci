@@ -61,6 +61,15 @@ impl Drop for DevServer {
 }
 
 pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
+    run_with_host(root, output, port, None)
+}
+
+pub fn run_with_host(
+    root: &Path,
+    output: Option<&Path>,
+    port: u16,
+    host: Option<rocci_roc_host::HostChoice>,
+) -> Result<DevServer> {
     let root = absolute(root)?;
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
@@ -84,7 +93,8 @@ pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
     let has_build = Arc::new(AtomicBool::new(false));
     let stop = Arc::new(AtomicBool::new(false));
 
-    let mut session = BuildSession::create()?;
+    let host_choice = host.unwrap_or_default();
+    let mut session = BuildSession::create_with_host(host_choice)?;
     match session.rebuild(&root, &output) {
         Ok(_) => {
             has_build.store(true, Ordering::Relaxed);

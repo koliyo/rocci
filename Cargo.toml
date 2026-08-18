@@ -14,6 +14,7 @@ members = [
     "crates/okf",
     "crates/rocci-okf",
     "crates/rocci-ui",
+    "crates/rocci-roc-host",
     "crates/rocci-datastar",
     "crates/rocci-playground-spike",
     "crates/rocci-playground",
@@ -32,6 +33,7 @@ description = "A Datastar-first .rocci template language and desktop runtime bui
 okf = { path = "crates/okf" }
 rocci-okf = { path = "crates/rocci-okf" }
 rocci-ui = { path = "crates/rocci-ui" }
+rocci-roc-host = { path = "crates/rocci-roc-host" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }
 rocci-desktop = { path = "crates/rocci-desktop" }

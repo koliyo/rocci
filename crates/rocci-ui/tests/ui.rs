@@ -77,3 +77,21 @@ fn test_escape_html() {
         "&lt;script&gt;alert(&quot;hello&quot;) &amp; &#39;world&#39;&lt;/script&gt;"
     );
 }
+
+#[test]
+fn test_chrome_templates_compile() {
+    for (name, src) in [
+        ("Breadcrumbs.rocci", chrome::BREADCRUMBS),
+        ("NavList.rocci", chrome::NAV_LIST),
+        ("PageOutline.rocci", chrome::PAGE_OUTLINE),
+    ] {
+        let file = rocci_template::SourceFile::new(name, src);
+        let compiled = rocci_template::compile(file, &rocci_template::LowerOptions::default());
+        assert!(
+            !compiled.has_errors(),
+            "{name} compilation failed: {:?}",
+            compiled.diagnostics
+        );
+        assert!(!compiled.roc.is_empty(), "{name} produced empty Roc");
+    }
+}

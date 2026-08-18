@@ -23,6 +23,7 @@ BASE_ROCCI = {
     "rocci-lsp",
     "rocci-highlight",
     "rocci-ui",
+    "rocci-roc-host",
     "rocci-datastar",
 }
 

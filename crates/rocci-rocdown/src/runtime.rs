@@ -7,6 +7,9 @@ pub(crate) const BUILD: &str = include_str!("../runtime/RocdownBuild.roc");
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
 pub const BASE: &str = include_str!("../templates/RocdownBase.rocci");
 pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
+pub const BREADCRUMBS: &str = rocci_ui::chrome::BREADCRUMBS;
+pub const NAV_LIST: &str = rocci_ui::chrome::NAV_LIST;
+pub const PAGE_OUTLINE: &str = rocci_ui::chrome::PAGE_OUTLINE;
 
 pub static PLAYGROUND_APP_JS: &[u8] = include_bytes!("../../../playground/dist/app.js");
 pub static PLAYGROUND_WORKER_JS: &[u8] =

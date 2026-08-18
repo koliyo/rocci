@@ -21,6 +21,7 @@ rocci-lsp = { workspace = true }
 rocci-template = { workspace = true }
 rocci-theme = { workspace = true }
 rocci-ui = { workspace = true }
+rocci-roc-host = { workspace = true, features = ["wasmtime"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10"

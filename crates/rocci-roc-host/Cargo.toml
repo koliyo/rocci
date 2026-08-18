@@ -1,0 +1,27 @@
+[package]
+name = "rocci-roc-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Two-tier renderer cache and host runner (native subprocess and wasmtime) for compiled Rocci renderers"
+
+[lib]
+name = "rocci_roc_host"
+path = "src/lib.rs"
+
+[features]
+default = []
+wasmtime = ["dep:wasmtime", "dep:wasmtime-wasi"]
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+thiserror = { workspace = true }
+wasmtime = { version = "29", optional = true }
+wasmtime-wasi = { version = "29", optional = true }
+
+[dev-dependencies]
+wat = "1"
+

@@ -16,6 +16,7 @@ notify = "8"
 okf = { workspace = true }
 rocci-cli = { workspace = true }
 rocci-desktop = { workspace = true }
+rocci-roc-host = { workspace = true, features = ["wasmtime"] }
 rocci-ui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

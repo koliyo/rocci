@@ -830,7 +830,15 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
     Ok(())
 }
 
-const TOC_SCRIPT: &str = include_str!("toc.js");
+pub fn build_review_site_with_host(
+    bundle: &Bundle,
+    site: &Path,
+    _host: Option<rocci_roc_host::HostChoice>,
+) -> Result<()> {
+    build_review_site(bundle, site)
+}
+
+const TOC_SCRIPT: &str = rocci_ui::TOC_SCRIPT;
 
 struct TocHeading {
     level: u8,
