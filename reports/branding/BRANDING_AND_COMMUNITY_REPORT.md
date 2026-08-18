@@ -18,7 +18,7 @@ new migration work and equally uncertain alternatives.
 Use one public family:
 
 ```text
-Rocci — web and desktop interface tools for Roc
+Rocci — Composable authoring for applications and content
 ├── Rocci templates        .rocci components and pages
 ├── Rocdown                Rocci's Markdown-first document format
 ├── Rocci Docs             public product name for the Rocs generator
@@ -34,8 +34,8 @@ it is generic, difficult to search, and already strongly associated with other
 software and scientific products. Documentation should say “Rocci Docs” in
 prose and show `rocs build` only when naming the current command.
 
-Use **“Rocci — web and desktop interface tools for Roc”** as the consistent
-descriptor during the preview. A strong home-page headline is:
+Use **“Rocci — Composable authoring for applications and content”** as the
+consistent descriptor during the preview. A concrete supporting headline is:
 
 > Build web and desktop interfaces in Roc.
 
@@ -82,7 +82,8 @@ reflect that reality.
   plausible readings. The project should choose one and show it unobtrusively
   on the About page.
 - The name does not explain the product without a descriptor. Every early
-  mention should pair it with “web and desktop interface tools for Roc.”
+  mention should pair it with “Composable authoring for applications and
+  content.”
 - Search ownership is not clean. `rocci` is an active Python package for ROC
   confidence intervals; historical rOCCI cloud tooling and ROCI robotics work
   also appear for similar queries.
@@ -188,11 +189,11 @@ JavaScript. These are excellent foundations.
 
 ### Current gaps
 
-- The home title puts a long proposition before the name. Prefer **“Rocci — Web
-  and desktop interfaces for Roc.”**
-- The H1 should contain both the activity and language. “Build web and desktop
-  interfaces in Roc” serves humans and queries better than an anti-framework
-  slogan.
+- Use **“Rocci — Composable authoring for applications and content”** as the
+  home title and primary descriptor.
+- Supporting copy should name Roc and the concrete outcomes. “Build web and
+  desktop interfaces in Roc” serves humans and queries better than an
+  anti-framework slogan.
 - There is no `WebSite` structured-data declaration or alternate name.
   Google recommends one consistent, unique site name and supports
   `alternateName`. Because the site intentionally uses a strict CSP, choose
@@ -553,7 +554,8 @@ use.
 - Rocci is the public preview masterbrand.
 - Rocdown is an endorsed format: “Rocdown by Rocci.”
 - Rocs becomes “Rocci Docs” in public prose; current command names remain.
-- Use a clear Roc descriptor on every first mention.
+- Use the selected composable-authoring descriptor on every first mention, with
+  nearby supporting copy that identifies Roc and the concrete outcomes.
 - Keep the warm neutral/coral family and begin accessibility fixes.
 - Compare three zero-based vector routes: folded letter, non-letter modular
   symbol, and wordmark only. Treat the orange folded R as the current
@@ -599,9 +601,10 @@ legal, or user evidence:
 5. **Landing-page implementation test:** the exploratory dedicated layout now
    exists. Implement it only after a short first-impression test, then validate
    real content, links, performance, and accessibility in the Rocs shell.
-6. **Message testing:** announcement drafts now exist. Compare “web and desktop
-   interface tools for Roc,” “Roc-native interface toolkit,” and “server-driven
-   UI for Roc” against actual task comprehension rather than preference alone.
+6. **Message testing:** announcement drafts now exist. Test “Composable
+   authoring for applications and content” for task comprehension, then compare
+   supporting explanations such as “web and desktop interface tools for Roc,”
+   “Roc-native interface toolkit,” and “server-driven UI for Roc.”
 7. **Governance design:** revisit maintainership, asset ownership, funding, and
    a fiscal host after the preview produces real contributors.
 

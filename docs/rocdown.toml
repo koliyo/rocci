@@ -1,11 +1,11 @@
 [site]
 title = "Rocci"
-description = "Build Roc-native interfaces, Markdown-first documents, and small desktop apps without giving up the web platform."
+description = "Rocci — Composable authoring for applications and content"
 base_url = "https://rocci.dev"
 language = "en"
 repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
-subtitle = "Roc-native interface tools"
+subtitle = "Composable authoring for applications and content"
 footer = "Rocci is experimental software. Verify APIs against the current source before production use."
 
 [build]

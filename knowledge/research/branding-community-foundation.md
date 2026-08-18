@@ -4,7 +4,7 @@ title: Rocci branding and community foundation
 description: Exploratory naming, brand architecture, searchability, visual identity, and public-preview community research for Rocci.
 tags: [domain/rocci, domain/rocdown, domain/rocs, domain/design-system, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T10:35:05Z }
+generated: { by: process:codex, at: 2026-08-18T12:04:47Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -13,7 +13,7 @@ sources:
     resource: ../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
     title: Rocci branding and community foundation report
     author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: root-readme
     resource: ../../README.md
     title: Rocci workspace overview
@@ -23,7 +23,7 @@ sources:
     resource: ../../docs/rocdown.toml
     title: Rocdown documentation site configuration
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: site-theme
     resource: ../../crates/rocci-rocdown/templates/RocdownTheme.rocci
     title: Rocdown documentation shell
@@ -73,7 +73,7 @@ sources:
     resource: ../../reports/branding/COMMUNITY_LAUNCH_KIT.md
     title: Rocci public-preview community launch kit
     author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-18
   - id: landing-prototype
     resource: ../../reports/branding/LANDING_PAGE_PROTOTYPE.md
     title: Rocci landing-page prototype brief
@@ -119,10 +119,11 @@ Python package already uses `rocci`, and older rOCCI cloud tooling is indexed
 under a visually similar name.[^pypi-rocci][^rocci-cloud]
 
 The exploratory recommendation is to retain Rocci through a reversible preview,
-pair first mentions with **“web and desktop interface tools for Roc,”** and ask
-the community explicitly about pronunciation, recall, and perceived official
-status. The report's basic search screen found no fresh name with enough benefit
-to offset the existing domain, syntax, and migration cost.[^branding-report]
+pair first mentions with **“Composable authoring for applications and
+content,”** and ask the community explicitly about pronunciation, recall, and
+perceived official status. The report's basic search screen found no fresh name
+with enough benefit to offset the existing domain, syntax, and migration
+cost.[^branding-report]
 
 A 17 August 2026 exact-name snapshot found no crates.io or npm package record
 for Rocci but confirmed that PyPI is occupied and that GitHub's
@@ -151,9 +152,11 @@ site identity, favicon assets, consistent typography between site and social
 card, and intent-focused landing pages for Rocdown, Rocci Docs, and Datastar
 integration.[^site-config][^site-theme][^branding-report]
 
-Recommended preview language is positive and concrete: **“Build web and desktop
-interfaces in Roc.”** The current “without the framework tax” line is better
-treated as optional supporting copy than the primary explanation.[^branding-report]
+The selected preview descriptor is **“Rocci — Composable authoring for
+applications and content.”** Supporting copy should still explain concretely
+that Rocci builds web and desktop interfaces, documents, and sites in Roc. The
+current “without the framework tax” line is better treated as optional supporting
+copy than the primary explanation.[^branding-report]
 
 ## Visual direction
 
