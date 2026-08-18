@@ -200,7 +200,7 @@ cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-
 
 `PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
 the bundle-root `index.md`. A concept file opens the review site on that
-record.
+record. Pages with H2 or H3 headings get a left “On this page” navigator.
 
 ### Build static review artifacts
 

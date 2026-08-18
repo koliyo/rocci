@@ -1,10 +1,11 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
 use okf::{
     Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
-    classify_concept_action, external_url, resolve_bundle_path,
+    classify_concept_action, external_url, resolve_bundle_path, slugify,
 };
 pub use rocci_ui::escape;
 use serde_json::Value;
@@ -822,11 +823,181 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
     Ok(())
 }
 
+const TOC_SCRIPT: &str = include_str!("toc.js");
+
+struct TocHeading {
+    level: u8,
+    id: String,
+    text: String,
+}
+
 pub fn html_page(title: &str, article: &str) -> String {
+    let (article, headings) = stamp_and_collect_headings(article);
+    let body = if headings.is_empty() {
+        format!("<main>{article}</main>")
+    } else {
+        format!(
+            "<div class=\"rd-shell\">{}<main>{article}</main></div><script>{}</script>",
+            render_toc(&headings),
+            TOC_SCRIPT
+        )
+    };
     format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body><main class=\"rd-document\">{article}</main></body></html>\n",
+        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
         escape(title)
     )
+}
+
+fn render_toc(headings: &[TocHeading]) -> String {
+    let mut out = String::from(
+        "<nav class=\"rd-toc\" aria-label=\"On this page\"><p class=\"rd-toc-label\">On this page</p><div class=\"rd-toc-items\">",
+    );
+    for heading in headings {
+        let class = if heading.level == 3 {
+            "rd-toc-link rd-toc-level-3"
+        } else {
+            "rd-toc-link"
+        };
+        out.push_str(&format!(
+            "<a class=\"{class}\" href=\"#{}\">{}</a>",
+            escape(&heading.id),
+            escape(&heading.text)
+        ));
+    }
+    out.push_str("</div></nav>");
+    out
+}
+
+fn stamp_and_collect_headings(html: &str) -> (String, Vec<TocHeading>) {
+    let mut out = String::with_capacity(html.len() + 32);
+    let mut headings = Vec::new();
+    let mut used_ids = HashSet::new();
+    let mut i = 0;
+    while i < html.len() {
+        let before = i;
+        if let Some((consumed, fragment, heading)) = try_heading(html, i, &mut used_ids) {
+            out.push_str(&fragment);
+            if let Some(heading) = heading
+                && (2..=3).contains(&heading.level)
+            {
+                headings.push(heading);
+            }
+            i += consumed;
+        } else {
+            let ch = html[i..].chars().next().unwrap_or('\0');
+            out.push(ch);
+            i += ch.len_utf8();
+        }
+        if i <= before {
+            i += 1;
+        }
+    }
+    (out, headings)
+}
+
+fn try_heading(
+    html: &str,
+    i: usize,
+    used_ids: &mut HashSet<String>,
+) -> Option<(usize, String, Option<TocHeading>)> {
+    let rest = html.get(i..)?;
+    let bytes = rest.as_bytes();
+    if bytes.len() < 4 || bytes[0] != b'<' || bytes[1] != b'h' {
+        return None;
+    }
+    let level_byte = bytes[2];
+    if !(b'1'..=b'6').contains(&level_byte) {
+        return None;
+    }
+    let after = *bytes.get(3)?;
+    if after != b'>' && after != b'/' && !after.is_ascii_whitespace() {
+        return None;
+    }
+    let gt = rest.find('>')?;
+    let open = rest.get(..gt + 1)?;
+    let level = level_byte - b'0';
+    let close = format!("</h{level}>");
+    let inner_start = gt + 1;
+    let inner_html = rest.get(inner_start..)?;
+    let close_at = inner_html.find(&close)?;
+    let inner = &inner_html[..close_at];
+    let consumed = inner_start + close_at + close.len();
+    let text = unescape_text(&strip_tags(inner));
+    let id = match heading_id(open) {
+        Some(existing) => {
+            used_ids.insert(existing.clone());
+            existing
+        }
+        None => unique_heading_id(used_ids, &text),
+    };
+    let open_with_id = ensure_heading_id(open, &id);
+    let fragment = format!("{open_with_id}{inner}{close}");
+    let heading = TocHeading { level, id, text };
+    Some((consumed, fragment, Some(heading)))
+}
+
+fn heading_id(open: &str) -> Option<String> {
+    let lower = open.to_ascii_lowercase();
+    let key = "id=";
+    let pos = lower.find(key)?;
+    let rest = open.get(pos + key.len()..)?;
+    let quote = rest.chars().next()?;
+    if quote == '"' || quote == '\'' {
+        let end = rest[1..].find(quote)?;
+        Some(rest[1..1 + end].to_string())
+    } else {
+        let end = rest
+            .find(|ch: char| ch.is_ascii_whitespace() || ch == '>')
+            .unwrap_or(rest.len());
+        Some(rest[..end].to_string())
+    }
+}
+
+fn ensure_heading_id(open: &str, id: &str) -> String {
+    if heading_id(open).is_some() {
+        return open.to_string();
+    }
+    let mut tagged = open.to_string();
+    let insert_at = tagged.len().saturating_sub(1);
+    tagged.insert_str(insert_at, &format!(" id=\"{}\"", escape(id)));
+    tagged
+}
+
+fn unique_heading_id(used_ids: &mut HashSet<String>, text: &str) -> String {
+    let mut base = slugify(text);
+    if base.is_empty() {
+        base = "heading".into();
+    }
+    let mut id = base.clone();
+    let mut n = 1;
+    while used_ids.contains(&id) {
+        id = format!("{base}-{n}");
+        n += 1;
+    }
+    used_ids.insert(id.clone());
+    id
+}
+
+fn strip_tags(html: &str) -> String {
+    let mut out = String::new();
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => out.push(ch),
+            _ => {}
+        }
+    }
+    out
+}
+
+fn unescape_text(text: &str) -> String {
+    text.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
 }
 
 #[cfg(test)]
@@ -939,5 +1110,39 @@ mod tests {
         assert!(html.contains("name=\"color-scheme\""));
         assert!(html.contains("content=\"dark\""));
         assert!(html.contains("class=\"rd-document\""));
+        assert!(!html.contains("rd-toc"));
+        assert!(!html.contains("rd-shell"));
+    }
+
+    #[test]
+    fn html_page_emits_left_toc_for_h2_and_h3() {
+        let html = html_page(
+            "Plan",
+            "<h1>Title</h1><h2>Alpha</h2><p>x</p><h3>Beta</h3><h4>Gamma</h4>",
+        );
+        assert!(html.contains("class=\"rd-shell\""));
+        assert!(html.contains("class=\"rd-toc\""));
+        assert!(html.contains("On this page"));
+        assert!(html.contains("href=\"#alpha\""));
+        assert!(html.contains("href=\"#beta\""));
+        assert!(html.contains("rd-toc-level-3"));
+        assert!(html.contains("id=\"alpha\""));
+        assert!(html.contains("id=\"beta\""));
+        assert!(!html.contains("href=\"#title\""));
+        assert!(!html.contains("href=\"#gamma\""));
+        assert!(html.contains("__rdTocScroll"));
+        assert!(html.contains("rocci-preview-nav"));
+        assert!(html.contains("removeAttribute"));
+    }
+
+    #[test]
+    fn html_page_preserves_existing_heading_ids() {
+        let html = html_page(
+            "Review",
+            "<h2 class=\"rd-header-2\" id=\"all-concepts-queue\">All Bundle Concepts</h2>",
+        );
+        assert!(html.contains("href=\"#all-concepts-queue\""));
+        assert!(html.contains(">All Bundle Concepts</a>"));
+        assert_eq!(html.matches("id=\"all-concepts-queue\"").count(), 1);
     }
 }
