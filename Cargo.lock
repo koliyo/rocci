@@ -2928,9 +2928,6 @@ version = "0.1.0"
 dependencies = [
  "muda",
  "rocci-core",
- "rocci-roc-host",
- "rocci-template",
- "rocci-ui",
  "serde",
  "serde_json",
  "tao",

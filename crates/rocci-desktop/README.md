@@ -11,14 +11,12 @@ Native windowing and webview host built on [tao](https://github.com/tauri-apps/t
 
 ## Preview chrome
 
-Preview navigation markup is authored in `templates/PreviewNav.rocci`. Layout CSS lives in `assets/preview-nav.css` and is injected with `textContent` so quoted selectors are not HTML-escaped. `build.rs` hashes the Rocci file against `generated/preview_nav.sha256`. When the hash is stale and `roc` is on PATH, it regenerates `generated/preview_nav.html` and embeds the snapshot from `OUT_DIR`. When `roc` is missing, the committed fragment is used (`ROCCI_REQUIRE_ROC=1` fails the build instead). Webview host scripts live in `assets/reduced-motion.js` and `assets/preview-nav.js`. Manual regeneration:
+Host chrome is HTML, CSS, and JS under `assets/`. `preview-nav.html` is the markup, `preview-nav.css` is injected with `textContent` into the shadow tree, and `preview-nav.js` plus `reduced-motion.js` mount the custom element and talk to `window.ipc`. Rust only JSON-embeds those assets and pushes title, path, and history flags through `evaluate_script`.
 
-```sh
-cargo run -q -p rocci-cli -- render crates/rocci-desktop/templates/PreviewNav.rocci --fragment -o crates/rocci-desktop/generated/preview_nav.html
-```
+Do not author host chrome in `.rocci`. A template can snapshot markup, but it cannot own wry IPC, survive page loads, or update live state. Compiler-derived panels (parse timings, diagnostics, inspectors) belong in a preview-origin Rocci app that consumes host JSON, not in the initialization script overlay.
 
 ## Dependencies
 
 - Relies on `tao`, `wry`, and `muda` (native menus).
 - Consumes `rocci-core` for configuration types.
-- Zero *runtime* dependencies on `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Build-time snapshot regeneration uses `rocci-template` / `rocci-roc-host` only in `build.rs`. The library still embeds JS assets and HTML with `include_str!`.
+- Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`.

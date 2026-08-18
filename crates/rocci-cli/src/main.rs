@@ -406,7 +406,7 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocci",
             "render",
-            "PreviewNav.rocci",
+            "Card.rocci",
             "--fragment",
             "-o",
             "out.html",
@@ -418,7 +418,7 @@ mod tests {
                 fragment,
                 output,
             } => {
-                assert_eq!(input, PathBuf::from("PreviewNav.rocci"));
+                assert_eq!(input, PathBuf::from("Card.rocci"));
                 assert!(fragment);
                 assert_eq!(output.as_deref(), Some(Path::new("out.html")));
             }

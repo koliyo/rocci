@@ -1,4 +1,4 @@
-const PREVIEW_NAV_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/preview_nav.html"));
+const PREVIEW_NAV_HTML: &str = include_str!("../assets/preview-nav.html");
 const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
 const PREVIEW_NAV_JS: &str = include_str!("../assets/preview-nav.js");

@@ -499,42 +499,6 @@ helloTest = {}
     }
 
     #[test]
-    fn desktop_preview_nav_fragment_matches_committed() {
-        if skip_without_roc() {
-            return;
-        }
-        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let src_path = manifest.join("../rocci-desktop/templates/PreviewNav.rocci");
-        let expected_path = manifest.join("../rocci-desktop/generated/preview_nav.html");
-        let src = fs::read_to_string(&src_path).expect("PreviewNav.rocci");
-        let expected = fs::read_to_string(&expected_path).expect("preview_nav.html");
-        let out = compile(
-            SourceFile::new("PreviewNav.rocci", &src),
-            &LowerOptions::default(),
-        );
-        assert!(!out.has_errors(), "{:?}", out.diagnostics);
-        let html = render_html_fragment(
-            "PreviewNav.rocci",
-            &src,
-            &out.roc,
-            &out.segments,
-            &out.document,
-            &out.components,
-            &out.fixtures,
-            src_path.parent(),
-        )
-        .expect("preview nav fragment");
-        let mut actual = html;
-        if !actual.ends_with('\n') {
-            actual.push('\n');
-        }
-        assert_eq!(
-            actual, expected,
-            "preview_nav.html is stale; cargo build -p rocci-desktop regenerates it when roc is on PATH, or run:\n  cargo run -q -p rocci-cli -- render crates/rocci-desktop/templates/PreviewNav.rocci --fragment -o crates/rocci-desktop/generated/preview_nav.html"
-        );
-    }
-
-    #[test]
     fn snapshot_main_prints_render() {
         let main = generate_snapshot_main("Card", "Card.hello({ name: \"x\" })", true);
         assert!(main.contains("import pf.Stdout"));

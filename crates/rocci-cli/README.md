@@ -37,7 +37,7 @@ cargo run -p rocci-cli -- playground examples/rocdown/Guide.rocdown
 cargo run -p rocci-cli -- playground examples/counter/Counter.rocci --mode local
 
 # Snapshot a component to HTML (add --fragment to skip the html/body wrapper)
-cargo run -p rocci-cli -- render crates/rocci-desktop/templates/PreviewNav.rocci --fragment -o crates/rocci-desktop/generated/preview_nav.html
+cargo run -p rocci-cli -- render examples/counter/Counter.rocci --fragment
 
 # Inspect AST, component signatures, and source-map segments
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
