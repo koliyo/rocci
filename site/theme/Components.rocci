@@ -1,38 +1,34 @@
 import Html
 
+@component CardInner = |{ title, description, tag }| {
+    <>
+        <div class="rd-card-header">
+            <span class="rd-card-title">{title}</span>
+            @if tag != "" {
+                <span class="rd-card-tag">{tag}</span>
+            }
+        </div>
+        @if description != "" {
+            <p class="rd-card-desc">{description}</p>
+        }
+    </>
+}
+
 @component Card = |{ title, href ?? "", description ?? "", tag ?? "" }| {
     <div class="rd-card">
         @if href != "" {
             <a class="rd-card-link" href={href}>
-                <div class="rd-card-header">
-                    <span class="rd-card-title">{title}</span>
-                    @if tag != "" {
-                        <span class="rd-card-tag">{tag}</span>
-                    }
-                </div>
-                @if description != "" {
-                    <p class="rd-card-desc">{description}</p>
-                }
+                <CardInner title={title} description={description} tag={tag} />
             </a>
         } @else {
-            <div class="rd-card-inner">
-                <div class="rd-card-header">
-                    <span class="rd-card-title">{title}</span>
-                    @if tag != "" {
-                        <span class="rd-card-tag">{tag}</span>
-                    }
-                </div>
-                @if description != "" {
-                    <p class="rd-card-desc">{description}</p>
-                }
-            </div>
+            <CardInner title={title} description={description} tag={tag} />
         }
     </div>
 }
 
-@component CardGrid = |{}|, children {
+@component CardGrid = |{}, content| {
     <div class="rd-card-grid">
-        {children}
+        {content}
     </div>
 }
 
