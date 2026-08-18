@@ -1,18 +1,62 @@
 @page {
     layout: "plain",
     meta: {
-        title: "Frequently Asked Questions",
-        description: "Answers to common questions about Rocci, Rocdown, performance, dependencies, and integration.",
+        title: "Frequently Asked Questions · Rocci",
+        description: "Answers to common questions about Rocci, Rocdown, performance, Datastar integration, desktop apps, and comparisons with other frameworks.",
     },
 }
 
 # Frequently Asked Questions
 
+Find answers to common questions about Rocci's architecture, tooling, performance, and best practices.
+
+---
+
+## General & Concepts
+
 ### What is Rocci?
-Rocci is a set of focused tools for building interfaces and technical documents with the Roc programming language.
+Rocci is a developer toolchain designed for building user interfaces and documentation with the Roc programming language. It provides two complementary formats:
+1. **`.rocci` Templates**: Pure Roc modules with an embedded HTML grammar that lowers to pure functions returning type-safe virtual HTML representations.
+2. **`.rocdown` Documents**: Markdown files with explicit compiler directives for page metadata, code snippets, tabs, callouts, and interactive components.
 
-### How does Rocdown differ from standard Markdown?
-Rocdown is Markdown with explicit, compiler-checked structural declarations (`@page`, `@docs`, `@component`).
+### Is Rocci a client-side JavaScript framework?
+No. Rocci applications run as compiled native processes (or server backends) that output semantic HTML. Dynamic client interactions and live updates are driven by lightweight hypermedia protocols (such as [Datastar](https://data-star.dev)) or native desktop webviews (Tao/Wry), eliminating large single-page-app JavaScript runtimes.
 
-### Where should I start?
-Read the [overview](/docs/getting-started/overview/) and follow the [installation guide](/docs/getting-started/installation/).
+### How does Rocci compare to React, Vue, or Svelte?
+- **Purity & Reliability**: Roc has no `null`, no exceptions, no mutation, and full type inference. Views are pure deterministic mathematical functions of state.
+- **Payload & Simplicity**: While modern JS frameworks ship megabytes of client JavaScript, Rocci ships lightweight, semantic HTML with scoped CSS.
+- **Deterministic Builds**: Static documentation sites built with Rocdown compile in sub-second speeds and guarantee byte-identical outputs.
+
+---
+
+## Rocdown & Static Sites
+
+### What is the difference between `.rocci` and `.rocdown`?
+- Use **`.rocci`** when authoring application components, interactive views, or custom site shells where Roc logic and HTML structure are primary.
+- Use **`.rocdown`** when authoring prose, technical manuals, guides, tutorials, or blog posts where Markdown prose is primary.
+
+### How do custom themes work in Rocdown?
+Rocdown decouples documentation prose from site chrome. You place `.rocci` templates in your project's `theme/` directory (e.g. `SiteShell.rocci`, `Layouts.rocci`, `Components.rocci`). Rocdown compiles the theme once, resolves the content catalog in Rust, and renders the static site without type-checking Markdown prose in Roc.
+
+### Does Rocdown support RSS and Atom feeds?
+Yes! Rocdown supports typed static collections (such as `news`). When collection posts are present, Rocdown automatically generates an Atom 1.0 feed at `/news/feed.xml` with RFC 3339 timestamps and feed autodiscovery headers.
+
+---
+
+## Desktop & Runtime
+
+### Can I build desktop applications with Rocci?
+Yes. `rocci run` compiles your application and serves it inside a native window powered by [Tao](https://github.com/tauri-apps/tao) and [Wry](https://github.com/tauri-apps/wry). You can also package standalone macOS `.app` bundles with ad-hoc code signing.
+
+### What are the hardware and OS requirements?
+- **macOS**: Apple Silicon (M1/M2/M3/M4) and Intel (x86_64), macOS 12+.
+- **Linux & Windows**: Development bundles and static site generation are supported across all platforms; standalone native application packaging is currently expanding to Linux and Windows.
+
+---
+
+## Next Steps
+
+- [Read the Overview](/docs/getting-started/overview/)
+- [Follow the Quickstart](/docs/getting-started/quickstart/)
+- [Explore the Architecture Concepts](/docs/concepts/architecture/)
+- [Check Project Status & Roadmap](/project/status/)

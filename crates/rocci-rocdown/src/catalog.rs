@@ -498,6 +498,15 @@ fn resolve_ref(
     {
         return asset_edge(page, raw, path.strip_prefix('/').unwrap_or(path), files);
     }
+    if path == "/sitemap.xml"
+        || path == "/robots.txt"
+        || path == "/llms.txt"
+        || path == "/404.html"
+        || path.ends_with("/feed.xml")
+        || path == "/feed.xml"
+    {
+        return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
+    }
     if path.starts_with('/') {
         let route = with_trailing_slash(path);
         let Some(target) = by_route.get(route.as_str()) else {
