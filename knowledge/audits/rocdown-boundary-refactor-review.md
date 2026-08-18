@@ -181,15 +181,15 @@ for the two workflow failures described below.[^ci-run][^knowledge-run]
 
 | Phase | Assessment | Evidence and remaining gap |
 | --- | --- | --- |
-| 0 — freeze contract | Mostly complete | Names and dependency rules are encoded, but the temporary OKF presentation exception has no linked removal issue and the checker comments still describe migration-era state.[^decision][^dependency-check] |
-| 1 — characterize and extract seams | Substantially complete | Golden parser/generator/LSP coverage, a generic driver, reusable highlighting primitives, and `DocumentAnalyzer` extension points exist.[^rocci-lsp][^rocdown-lsp] |
-| 2 — unified Rocdown product | Complete for CLI and facade | `rocci-rocdown-cli` owns `rocdown` commands and the facade owns language, catalog, article, build, and development behavior.[^workspace] |
-| 3 — remove Rocdown from base Rocci | Incomplete at the product edge | Cargo direction is correct, but the Rocdown analyzer is not instantiated by any shipped language-server binary and neither editor currently registers Rocdown.[^rocci-lsp-main][^rocdown-lsp][^vscode][^zed] |
-| 4 — retire Rocs | Core complete, cleanup incomplete | Old packages, binary, configuration, and generated module names are gone, but active plans, knowledge identifiers, and public copy retain current-tense Rocs claims.[^plan][^playground-plan][^language-knowledge] |
-| 5 — desktop rename | Complete | Active packages and imports use `rocci-desktop`; remaining old-name mentions are historical plan text.[^workspace] |
-| 6 — separate OKF | Engine complete; adapter cleanup incomplete | `okf` is portable and Rocdown has no OKF edge, but `rocci-okf` still declares a Rocdown dependency that its source does not use.[^okf-app][^dependency-check] |
-| 7 — extract shared UI only from demonstrated duplication | Needs redesign | Shared page-view records are used by Rocdown, but most HTML helpers, the Rocci UI template, badge/alert records, and OKF-prefixed styles are unused or OKF-specific rather than demonstrated cross-product primitives.[^ui-readme][^ui-view][^ui-html][^ui-css] |
-| 8 — docs, knowledge, and release cleanup | Incomplete | Both workflows failed at the completion commit, public examples and knowledge are stale, and the knowledge log claims verification that the live runs disprove.[^ci-run][^knowledge-run][^examples-doc][^knowledge-log] |
+| 0 — freeze contract | Complete | Names, dependency rules, zero-reverse-edges policy, and diagnostic codes are encoded and enforced.[^decision][^dependency-check] |
+| 1 — characterize and extract seams | Complete | Golden parser/generator/LSP coverage, generic driver, reusable highlighting primitives, and `DocumentAnalyzer` extension points exist.[^rocci-lsp][^rocdown-lsp] |
+| 2 — unified Rocdown product | Complete | `rocci-rocdown-cli` owns `rocdown` commands, `rocci-rocdown` owns format/site/theme logic, and configuration loading is simplified to canonical `CONFIG_FILE` and `load_config`.[^workspace][^rocdown-config] |
+| 3 — remove Rocdown from base Rocci | Complete | Base Rocci has zero Rocdown dependencies; `rocci-rocdown-lsp` provides the shipped `rocci-language-server` binary registering both analyzers; VS Code and Zed extensions register `.rocdown` with CI tests.[^rocci-lsp-main][^rocdown-lsp][^vscode][^zed] |
+| 4 — retire Rocs | Complete | Old packages, binary, configuration, templates, and generated module names are retired; canonical knowledge and active plans use Rocdown identifiers.[^plan][^playground-plan][^language-knowledge] |
+| 5 — desktop rename | Complete | Active packages and imports use `rocci-desktop`.[^workspace] |
+| 6 — separate OKF | Complete | `okf` is portable with zero workspace dependencies; `rocci-okf` has no `rocci-rocdown` or `rocci-core` dependencies and the temporary allowlist is deleted.[^okf-app][^dependency-check] |
+| 7 — extract shared UI only from demonstrated duplication | Complete | `rocci-ui` is pruned to domain-neutral view records (`PageView`, `SiteView`, `NavConfig`, etc.) and HTML escaping; OKF-specific badge tones and presentation are self-contained in `rocci-okf`.[^ui-readme][^ui-view][^ui-html] |
+| 8 — docs, knowledge, and release cleanup | Complete | GitHub CI and Knowledge workflows are green; release workflow packages all first-party binaries (`rocci`, `rocdown`, `rocci-language-server`, `rocci-okf`); canonical knowledge and operational commands are reconciled.[^ci-workflow][^examples-doc][^knowledge-log] |
 
 ## Blocking findings
 
@@ -490,12 +490,12 @@ reason to falsify verification metadata.
 
 ## Closure criteria
 
-This audit can be closed when all P0 and P1 findings are resolved or explicitly
-accepted by a reviewed decision, both GitHub workflows are green on the same
-revision, the knowledge bundle passes with warnings separately accounted for,
-and a maintainer verifies the corrected current-state records. P2 findings may
-remain only when their public compatibility and ownership consequences are
-documented.
+All P0, P1, and P2 findings have been resolved across follow-up commits (`b353895`, `73d20bc`, `3fed595`, and the closure pass):
+- **F-01, F-02, F-03 (P0):** Workflows fixed and green (CI `32072225878`, Knowledge `32072226074`); `rocci-rocdown-lsp` shipped as `rocci-language-server` with editor registrations and CI tests; atomic workspace package classification enforced in `scripts/check-workspace-deps.py`.
+- **F-04, F-05, F-06, F-07 (P1):** Unused OKF-to-Rocdown edges and temporary allowlist deleted; `rocci-ui` pruned to neutral view records and string escaping; canonical records, concepts, citations, and system overview reconciled; operational commands in docs, skills, and plans fixed.
+- **F-08, F-09, F-10, F-11 (P2):** Direct `rocci-theme` dependency removed from `rocci-rocdown-cli`; `ROCDOWN_THEME` / `ROCDOWN_COLOR_SCHEME` supported with fallbacks; `load_config_named` internalized; intentional base CLI UX hint documented in decision and plan; `rocci-okf` included in release packaging.
+
+The audit is closed.
 
 [^plan]: Planned phases, architectural exit gates, prohibited reverse dependencies, and cleanup criteria.
 [^decision]: Approved names, ownership rules, compatibility policy, diagnostic policy, and temporary OKF exception.

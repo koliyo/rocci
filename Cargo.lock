@@ -2383,7 +2383,6 @@ dependencies = [
  "rocci-cli",
  "rocci-desktop",
  "rocci-rocdown",
- "rocci-theme",
  "serde",
  "serde_json",
  "toml",

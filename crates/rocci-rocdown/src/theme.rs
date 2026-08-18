@@ -10,12 +10,12 @@ use crate::links::index_pages_in_dir;
 pub struct ThemeArgs {
     /// Theme name (`paper`, `rocci`) or path to a CSS file / theme directory.
     /// Named themes are loaded from `~/.rocci/themes`.
-    #[arg(long, env = "ROCCI_THEME", value_name = "NAME|PATH")]
+    #[arg(long, env = "ROCDOWN_THEME", value_name = "NAME|PATH")]
     pub theme: Option<String>,
     /// Force `light`, `dark`, or `auto` (follows the OS). Overridden by `@page.color_scheme`.
     #[arg(
         long = "color-scheme",
-        env = "ROCCI_COLOR_SCHEME",
+        env = "ROCDOWN_COLOR_SCHEME",
         value_name = "SCHEME",
         value_parser = ["auto", "light", "dark"]
     )]
@@ -25,10 +25,12 @@ pub struct ThemeArgs {
 impl ThemeArgs {
     pub fn from_env() -> Self {
         Self {
-            theme: std::env::var("ROCCI_THEME")
+            theme: std::env::var("ROCDOWN_THEME")
+                .or_else(|_| std::env::var("ROCCI_THEME"))
                 .ok()
                 .filter(|value| !value.is_empty()),
-            color_scheme: std::env::var("ROCCI_COLOR_SCHEME")
+            color_scheme: std::env::var("ROCDOWN_COLOR_SCHEME")
+                .or_else(|_| std::env::var("ROCCI_COLOR_SCHEME"))
                 .ok()
                 .filter(|value| !value.is_empty()),
         }
@@ -40,8 +42,12 @@ impl ThemeArgs {
 }
 
 pub fn compile_options(input: Option<&Path>, args: &ThemeArgs) -> CompileOptions {
-    let env_theme = std::env::var("ROCCI_THEME").ok();
-    let env_scheme = std::env::var("ROCCI_COLOR_SCHEME").ok();
+    let env_theme = std::env::var("ROCDOWN_THEME")
+        .or_else(|_| std::env::var("ROCCI_THEME"))
+        .ok();
+    let env_scheme = std::env::var("ROCDOWN_COLOR_SCHEME")
+        .or_else(|_| std::env::var("ROCCI_COLOR_SCHEME"))
+        .ok();
     let theme = args
         .theme
         .clone()

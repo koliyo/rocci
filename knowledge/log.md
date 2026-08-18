@@ -2,6 +2,12 @@
 
 ## 2026-08-18
 
+- Closed all remaining findings from the [Rocdown boundary refactor review](audits/rocdown-boundary-refactor-review.md):
+  - Removed direct `rocci-theme` dependency from `rocci-rocdown-cli` (consumed via `rocci-rocdown`), supported `ROCDOWN_THEME` / `ROCDOWN_COLOR_SCHEME` with backward-compatible fallbacks, and documented `rocci-theme` role (F-08).
+  - Internalized `load_config_named` in `rocci-rocdown`, leaving `CONFIG_FILE` and `load_config` as the sole canonical configuration loader API (F-09).
+  - Documented the intentional base CLI UX error suggestion on `.rocdown` / `.md` inputs as an approved usability exception in the refactor decision and plan (F-10).
+  - Included `rocci-okf` binary in `.github/workflows/release.yml` release builds and staging archive packages (F-11).
+  - Reconciled decision and plan status, updated exit-gate assessment, and formally closed the review audit (F-06).
 - Closed high-priority findings from the [Rocdown boundary refactor review](audits/rocdown-boundary-refactor-review.md):
   - Removed unused `rocci-rocdown` and `rocci-core` dependencies from `rocci-okf` and deleted the `TEMPORARY_OKF_ROCDOWN_PRESENTATION` allowlist in `scripts/check-workspace-deps.py` (F-04).
   - Pruned `rocci-ui` to strictly domain-neutral view records (`PageView`, `SiteView`, `LaneView`, `NavItemView`, `BreadcrumbView`, `OutlineView`, `ResourceView`) and string escaping; removed speculative renderers and OKF-specific tones, self-containing all OKF presentation inside `rocci-okf` (F-05).

@@ -189,7 +189,7 @@ headings, and is hidden on narrow and print viewports by theme chrome. Clicks
 scroll the article quickly with a short animation. Theme
 `none` skips chrome, including the navigator. A custom `layout` replaces the
 default shell entirely. Document `@css` overrides the theme. Default theme
-comes from `rocdown run --theme`, `ROCCI_THEME`, then builtin `paper`.
+comes from `rocdown run --theme`, `ROCDOWN_THEME` (or `ROCCI_THEME`), then builtin `paper`.
 `@page.theme` wins for that file.
 
 Without `@page.route`, the synthesized GET path is `/`.

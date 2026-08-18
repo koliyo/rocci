@@ -33,9 +33,7 @@ pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
     RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
 };
-pub use config::{
-    BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config, load_config_named,
-};
+pub use config::{BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config};
 pub use dev::{DevServer, run};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,

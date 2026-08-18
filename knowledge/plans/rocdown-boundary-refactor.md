@@ -50,15 +50,17 @@ sources:
 
 ## Purpose and authority
 
-This plan implements the approved consolidated direction. Phase 0 names,
-compatibility, diagnostics, and the OKF exception are frozen. The plan remains
-exploratory because detailed package seams are not yet implemented, and it must
-not be cited as shipped behavior.[^boundary]
+This plan implemented the approved consolidated direction across Phases 0–8.
+All phases have landed and the remaining findings from the completion audit
+have been resolved. Base Rocci has zero reverse dependencies, Rocdown owns the
+document system and static generator, the portable `okf` engine and `rocci-okf`
+application are separated, and `rocci-rocdown-lsp` provides the composition
+language server.[^boundary]
 
-The migration optimizes for a continuously testable workspace. Product naming
-and dependency direction change first behind testable facades; destructive
-removal happens only after the replacement command, config, tooling, and OKF
-path pass parity gates. There is no published compatibility window.
+The migration followed a continuously testable sequence: product naming and
+dependency directions were changed behind testable facades; destructive removal
+happened after replacement commands, configuration, tooling, and OKF paths
+passed parity gates. There was no published compatibility window.
 
 ## Current coupling to unwind
 
