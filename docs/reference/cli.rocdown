@@ -82,6 +82,14 @@ cargo run -p rocci-cli -- bundle [--config rocci.toml]
 Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
 implemented yet.
 
+### Open in-browser playground
+
+```sh
+cargo run -p rocci-cli -- playground INPUT.rocci [--port PORT] [--no-window]
+```
+
+Launch the in-memory WebAssembly playground in a browser or native window for interactive live lowering of a `.rocci` template.
+
 ### Datastar asset management
 
 ```sh
@@ -155,6 +163,14 @@ files named by `expect`.
 cargo run -p rocci-rocdown-cli -- inspect ast FILE.rocdown
 cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
 ```
+
+### Open in-browser playground
+
+```sh
+cargo run -p rocci-rocdown-cli -- playground [FILE.rocdown|FILE.md] [--port PORT] [--no-window]
+```
+
+Launch the in-memory WebAssembly playground for interactive live lowering of a `.rocdown` or `.md` document.
 
 ---
 

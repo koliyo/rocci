@@ -99,6 +99,7 @@ handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
 | `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool` |
 | `include` | File or region include |
 | `example` | Display sample with optional `test` metadata |
+| `playground` | In-browser live WebAssembly compiler; `id` is an initial example ID |
 | `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |
 
 See [Write documentation components](/guides/docs-components/) for a working
