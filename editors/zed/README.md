@@ -14,14 +14,14 @@ Zed does not bundle the language server binary into the extension WASM. Build or
 
 From the rocci repository:
 
-1. `cargo build -p rocci-lsp`
+1. `cargo build -p rocci-rocdown-lsp`
 2. In Zed, run **zed: install dev extension** (from Command Palette) and choose `editors/zed`.
 
 The extension looks up the server in this order:
 
 1. `lsp.rocci-language-server.binary.path` in Zed settings
 2. `rocci-language-server` on `PATH`
-3. `{worktree}/target/debug/rocci-language-server` when the worktree is this repo (after `cargo build -p rocci-lsp`)
+3. `{worktree}/target/debug/rocci-language-server` when the worktree is this repo (after `cargo build -p rocci-rocdown-lsp`)
 
 Override the binary if needed:
 

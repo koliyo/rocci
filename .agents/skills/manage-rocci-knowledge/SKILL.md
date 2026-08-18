@@ -64,7 +64,9 @@ targeted record and source reads over loading the entire JSON catalog.
    to `draft`, and retain historical verification events. Never invent or
    advance a human verification event.
 7. Update the collection index when adding, moving, or removing a record.
-   Update `knowledge/log.md` for a meaningful bundle-level change.
+   Update `knowledge/log.md` for a meaningful bundle-level change. Do not log a
+   phase as complete until the required GitHub workflows (CI and Knowledge)
+   have succeeded on that revision; cite the run IDs in the log entry.
 8. Update public Rocdown documentation separately when the changed fact is also
    part of the public product contract.
 

@@ -26,7 +26,7 @@ From the repository root:
 
 1. Build the language server:
    ```sh
-   cargo build -p rocci-lsp
+   cargo build -p rocci-rocdown-lsp
    ```
 2. Press **F5** in VS Code (or run **Run Rocci Extension** from the Run & Debug panel).
 

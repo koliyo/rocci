@@ -31,6 +31,7 @@ ROCDOWN = {
     "rocci-rocdown",
     "rocci-theme",
     "rocci-rocdown-cli",
+    "rocci-rocdown-lsp",
 }
 
 OKF_ENGINE = {"okf"}
@@ -128,9 +129,12 @@ def main() -> int:
     errors: list[str] = []
     notes: list[str] = []
 
-    for name in sorted(packages):
-        if classify(name) is None:
-            errors.append(f"unclassified workspace package {name}")
+    classified = {name for members in CLASSES.values() for name in members}
+    package_names = set(packages)
+    for name in sorted(package_names - classified):
+        errors.append(f"unclassified workspace package {name}")
+    for name in sorted(classified - package_names):
+        errors.append(f"classified name is not a workspace package: {name}")
 
     edges = direct_workspace_edges(packages)
     edge_set = set(edges)

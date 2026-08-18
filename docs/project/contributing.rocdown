@@ -36,11 +36,18 @@ toolchain problem.
 | Runtime configuration | `rocci-core` |
 | CLI template build, run, preview, or bundle behavior | `rocci-cli` and `rocci-desktop` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
-| Editor language server and highlighting | `rocci-lsp` and `rocci-highlight` |
+| Editor language server and highlighting | `rocci-lsp` (generic core), `rocci-rocdown-lsp` (shipped `rocci-language-server`), and `rocci-highlight` |
 
 Do not interpret Rocci templates in Rust just to avoid compiling a theme. Do
 not encode static documentation prose as Roc constructors just to keep catalog
 logic in Roc.
+
+## Add a workspace crate
+
+When adding a member to the root `Cargo.toml`, classify it in the same change
+in `scripts/check-workspace-deps.py` under `BASE_ROCCI`, `ROCDOWN`,
+`OKF_ENGINE`, or `OKF_APP`. Unclassified members and stale classified names
+both fail the lint job.
 
 ## Inspect generated artifacts
 

@@ -1,5 +1,4 @@
 import * as fs from 'fs'
-import * as os from 'os'
 import * as path from 'path'
 import { runTests } from '@vscode/test-electron'
 
@@ -8,21 +7,17 @@ function findLocalVsCodeExecutable(): string | undefined {
     return process.env.VSCODE_PATH
   }
 
-  if (os.type() === 'Darwin') {
-    const defaultMacPath = '/Applications/Visual Studio Code.app/Contents/MacOS/Code'
-    if (fs.existsSync(defaultMacPath)) {
-      return defaultMacPath
-    }
-  }
-
   return undefined
 }
 
 async function main() {
   try {
+    // Cursor and other Electron hosts inherit this; leaving it set makes
+    // downloaded VS Code run as Node instead of launching the editor.
+    delete process.env.ELECTRON_RUN_AS_NODE
+
     const extensionDevelopmentPath = path.resolve(__dirname, '../../')
     const extensionTestsPath = path.resolve(__dirname, './suite/index')
-    const testWorkspace = path.resolve(__dirname, '../../../../test')
 
     process.env.VSCODE_DEBUG_MODE = '1'
 
@@ -32,10 +27,10 @@ async function main() {
     }
 
     await runTests({
-      vscodeExecutablePath: localExecutable,
+      ...(localExecutable ? { vscodeExecutablePath: localExecutable } : {}),
       extensionDevelopmentPath,
       extensionTestsPath,
-      launchArgs: [testWorkspace, '--disable-extensions']
+      launchArgs: ['--disable-extensions']
     })
   } catch (err) {
     console.error('Failed to run tests', err)
