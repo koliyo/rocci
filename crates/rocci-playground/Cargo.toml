@@ -1,0 +1,13 @@
+[package]
+name = "rocci-playground"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Target-neutral request/response playground facade and compiler dispatch for Rocci and Rocdown"
+
+[dependencies]
+rocci-template = { workspace = true }
+rocci-rocdown = { workspace = true }
+rocci-highlight = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
