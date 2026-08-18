@@ -1,7 +1,7 @@
 use rocci_highlight::*;
 
 #[test]
-fn golden_roc_highlight() {
+fn highlight_roc() {
     let src = "main = \\{} -> \"Hello World\"";
     let (lang, spans) = highlight_source("roc", src);
     assert_eq!(lang, LanguageId::Roc);
@@ -27,7 +27,7 @@ fn golden_roc_highlight() {
 }
 
 #[test]
-fn golden_css_highlight() {
+fn highlight_css() {
     let src = ".btn-primary { background: #e64b2f; padding: 0.5rem 1rem; }";
     let (lang, spans) = highlight_source("css", src);
     assert_eq!(lang, LanguageId::Css);
@@ -41,7 +41,7 @@ fn golden_css_highlight() {
 }
 
 #[test]
-fn golden_html_highlight() {
+fn highlight_html() {
     let src = "<div class=\"hero-section\"><h1 id=\"main-title\">Hello</h1></div>";
     let (lang, spans) = highlight_source("html", src);
     assert_eq!(lang, LanguageId::Html);
@@ -55,7 +55,7 @@ fn golden_html_highlight() {
 }
 
 #[test]
-fn golden_rocci_composite_highlight() {
+fn highlight_rocci_composite() {
     let src = r#"module [Card]
 
 @component Card = |{ title : Str, count : U64 }| {
@@ -103,7 +103,7 @@ fn golden_rocci_composite_highlight() {
 }
 
 #[test]
-fn golden_roc_qualified_module_identifiers() {
+fn highlight_roc_qualified_module_identifiers() {
     let src = r#"
 row = Sqlite.query!(
     {
@@ -178,7 +178,7 @@ item = Dict.get(items, "key")
 }
 
 #[test]
-fn golden_unknown_language_fallback() {
+fn highlight_unknown_language_fallback() {
     let src = "fn main() { println!(\"hello\"); }";
     let (lang, spans) = highlight_source("rust", src);
     assert_eq!(lang, LanguageId::Other("rust".to_string()));

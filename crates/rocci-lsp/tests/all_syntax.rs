@@ -32,7 +32,7 @@ fn initialize_server() -> LanguageServer {
 }
 
 #[test]
-fn golden_lsp_all_syntax_rocci() {
+fn test_lsp_all_syntax_rocci() {
     let mut server = initialize_server();
     let uri = test_uri();
 

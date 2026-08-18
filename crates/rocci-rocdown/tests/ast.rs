@@ -4,7 +4,7 @@ use rocci_rocdown::{
 };
 
 #[test]
-fn golden_all_syntax_ast() {
+fn test_all_syntax_ast() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let source = SourceFile::new("test/AllSyntax.rocdown", src);
     let parsed = parse(source, false);
@@ -20,7 +20,7 @@ fn golden_all_syntax_ast() {
 }
 
 #[test]
-fn golden_all_syntax_source_map_segments() {
+fn test_all_syntax_source_map_segments() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let source = SourceFile::new("test/AllSyntax.rocdown", src);
     let out = compile(source, &CompileOptions::default());
@@ -70,7 +70,7 @@ fn golden_all_syntax_source_map_segments() {
 }
 
 #[test]
-fn golden_all_syntax_routes_and_media() {
+fn test_all_syntax_routes_and_media() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let source = SourceFile::new("test/AllSyntax.rocdown", src);
     let out = compile(source, &CompileOptions::default());

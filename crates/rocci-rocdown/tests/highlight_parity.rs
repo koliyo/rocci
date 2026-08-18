@@ -3,7 +3,7 @@ use rocci_rocdown::{CompileOptions, SourceFile, compile, render_document};
 use rocci_template::PositionEncoding;
 
 #[test]
-fn golden_parity_roc_snippet_drives_lsp_and_rocdown_html() {
+fn parity_roc_snippet_drives_lsp_and_rocdown_html() {
     let snippet = "main = \\{} -> \"Hello World\"";
     let (lang, spans) = rocci_highlight::highlight_source("roc", snippet);
     assert_eq!(lang, LanguageId::Roc);
@@ -43,7 +43,7 @@ fn golden_parity_roc_snippet_drives_lsp_and_rocdown_html() {
 }
 
 #[test]
-fn golden_parity_composite_rocci_snippet() {
+fn parity_composite_rocci_snippet() {
     let snippet = r#"@component Card = |{ title }| {
     @css { .card { padding: 1rem; } }
     <div class="card">{title}</div>
@@ -71,7 +71,7 @@ fn golden_parity_composite_rocci_snippet() {
 }
 
 #[test]
-fn golden_parity_composite_rocdown_snippet() {
+fn parity_composite_rocdown_snippet() {
     let snippet = "# Header\n\n```roc\nx = 1\n```\n";
     let spans = rocci_rocdown::highlight_rocdown(snippet);
     assert!(!spans.is_empty());
