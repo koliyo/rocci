@@ -231,12 +231,15 @@ definitions and duplicate labels are errors. This is not an OKF `sources[].id`
 citation.
 
 **Page links:** `[[Foo]]`, `[text](Foo.rocdown)`, `[text](./Foo.rocdown)`,
-`[text](Foo)`, and reference links to those destinations resolve to the
-target file’s `@page.route` using sibling `.rocdown` files in the same
-directory. Same-page `#heading-id` is checked against this file’s heading
-ids. Absolute `/path/` destinations are checked against known page routes
-when a page index is present. `http(s):`, `mailto:`, and other schemes pass
-through. Unknown wiki / `.rocdown` targets are errors. Duplicate
+`[text](Foo)`, `[text](docs/Foo.md)`, and reference links to those destinations
+resolve to the target file’s `@page.route` when that file is in the page index.
+Standalone `rocdown run FILE` builds that index from sibling `.rocdown` files and
+from relative `.rocdown` / `.md` / `.markdown` links, including nested paths.
+Same-page `#heading-id` is checked against this file’s heading ids. Absolute
+`/path/` destinations are checked against known page routes when a page index is
+present; absolute `*.md` / `*.rocdown` paths suffix-match indexed files when
+possible and otherwise pass through. `http(s):`, `mailto:`, and other schemes
+pass through. Unknown wiki / `.rocdown` targets are errors. Duplicate
 `@page.route` values across siblings are errors.
 
 **Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
@@ -271,7 +274,7 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
-- `rocdown run FILE.rocdown`: Run a single interactive document.
+- `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to.
 - `rocdown run DIR`: Run/preview a documentation site with live reload.
 - `rocdown build DIR`: Build a static documentation site to `dist/`.
 - `rocdown check DIR`: Check catalog, routes, and links.
@@ -288,6 +291,7 @@ Datastar is imported only when a Rocci region uses a Datastar action.
   `@if` / `@for` / `@match` / `@let`, and document-root HTML islands
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
+  and standalone preview of nested relative `.md` / `.rocdown` document links
 - `@img` alt/decorative contract and `@docs figure` caption/credit
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,

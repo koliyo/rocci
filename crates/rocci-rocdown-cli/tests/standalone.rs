@@ -293,7 +293,7 @@ fn standalone_markdown_supports_custom_theme() {
 }
 
 #[test]
-fn linked_standalone_inputs_for_markdown_is_single_file() {
+fn linked_standalone_inputs_for_markdown_is_single_file_without_links() {
     let dir = temp_app("linked-md-inputs");
     let home = dir.join("Home.md");
     let about = dir.join("About.markdown");
@@ -311,6 +311,72 @@ fn linked_standalone_inputs_for_markdown_is_single_file() {
     assert_eq!(rocdown_inputs[0], guide.canonicalize().unwrap());
     assert!(rocdown_inputs.contains(&other_guide.canonicalize().unwrap()));
     assert!(!rocdown_inputs.contains(&home.canonicalize().unwrap()));
+    cleanup(&dir);
+}
+
+#[test]
+fn linked_standalone_inputs_follows_nested_markdown_links() {
+    let dir = temp_app("linked-md-nested");
+    let docs = dir.join("docs");
+    fs::create_dir_all(&docs).unwrap();
+    let plan = dir.join("Plan.md");
+    let about = docs.join("About.md");
+    let other = docs.join("Other.md");
+    fs::write(&plan, "# Plan\n\nSee [About](docs/About.md).\n").unwrap();
+    fs::write(
+        &about,
+        "# About\n\nBack to [Plan](../Plan.md) and [Other](Other.md).\n",
+    )
+    .unwrap();
+    fs::write(&other, "# Other\n").unwrap();
+
+    let inputs = linked_standalone_inputs(&plan).unwrap();
+    assert_eq!(inputs[0], plan.canonicalize().unwrap());
+    assert!(inputs.contains(&about.canonicalize().unwrap()));
+    assert!(inputs.contains(&other.canonicalize().unwrap()));
+    cleanup(&dir);
+}
+
+#[test]
+fn standalone_markdown_serves_linked_page_routes() {
+    let dir = temp_app("linked-md-routes");
+    let docs = dir.join("knowledge").join("decisions");
+    fs::create_dir_all(&docs).unwrap();
+    let plan = dir.join("Plan.md");
+    let decision = docs.join("boundary.md");
+    fs::write(
+        &plan,
+        "# Plan\n\nSee [boundary](knowledge/decisions/boundary.md).\n",
+    )
+    .unwrap();
+    fs::write(&decision, "# Boundary\n\nBack to [plan](../../Plan.md).\n").unwrap();
+
+    let ready = plan_ready(&plan);
+    assert_eq!(ready.primary_name, "Plan");
+    assert!(
+        ready
+            .modules
+            .iter()
+            .any(|module| module.type_name == "KnowledgeDecisionsBoundary"
+                || module.type_name == "Boundary")
+    );
+    let main = ready.main_roc();
+    assert_eq!(
+        dispatch_handler(&main, "GET", "/"),
+        "Plan.on_get_root!(context)"
+    );
+    assert_eq!(
+        dispatch_handler(&main, "GET", "/knowledge/decisions/boundary.md"),
+        "Boundary.on_get_knowledge_decisions_boundary_md!(context)"
+    );
+    let plan_roc = &ready.modules[0].roc;
+    assert!(plan_roc.contains("\"/knowledge/decisions/boundary.md\""));
+    let linked = ready
+        .modules
+        .iter()
+        .find(|module| module.type_name != "Plan")
+        .unwrap();
+    assert!(!linked.roc.contains("Plan.md"), "{}", linked.roc);
     cleanup(&dir);
 }
 

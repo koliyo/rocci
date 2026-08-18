@@ -85,6 +85,7 @@ pub struct CompileOptions {
     pub resolve_links: bool,
     pub resolve_includes: bool,
     pub check_assets: bool,
+    pub default_route: Option<String>,
 }
 
 impl Default for CompileOptions {
@@ -97,6 +98,7 @@ impl Default for CompileOptions {
             resolve_links: true,
             resolve_includes: true,
             check_assets: false,
+            default_route: None,
         }
     }
 }

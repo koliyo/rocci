@@ -11,6 +11,7 @@ use crate::parse::ParseOutput;
 pub struct PageRef {
     pub stem: String,
     pub file_name: String,
+    pub path: PathBuf,
     pub route: String,
     pub explicit_route: bool,
     pub heading_ids: Vec<String>,
@@ -38,6 +39,7 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
             .file_name()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_default(),
+        path: path.to_path_buf(),
         route,
         explicit_route: explicit_route.is_some(),
         heading_ids: parsed.headings.iter().map(|h| h.id.clone()).collect(),
@@ -86,7 +88,7 @@ pub fn resolve_document(
     let headings = parsed.headings.clone();
     for item in &mut parsed.document.items {
         if let Item::Markdown(node) = item {
-            resolve_md(node, &headings, options, &mut parsed.diagnostics);
+            resolve_md(node, source, &headings, options, &mut parsed.diagnostics);
         }
     }
     let mut resolved = Vec::new();
@@ -150,18 +152,19 @@ fn report_route_collisions(
 
 fn resolve_md(
     node: &mut MdNode,
+    source: SourceFile<'_>,
     headings: &[HeadingInfo],
     options: &CompileOptions,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     if let MdNode::Link { url, span, .. } = node {
-        match resolve_url(url, *span, headings, options) {
+        match resolve_url(url, *span, source, headings, options) {
             Ok(resolved) => *url = resolved,
             Err(diagnostic) => diagnostics.push(diagnostic),
         }
     }
     for child in node.children_mut() {
-        resolve_md(child, headings, options, diagnostics);
+        resolve_md(child, source, headings, options, diagnostics);
     }
 }
 
@@ -194,6 +197,7 @@ fn collect_link_urls(node: &MdNode, out: &mut Vec<(Span, String)>) {
 fn resolve_url(
     url: &str,
     span: Span,
+    source: SourceFile<'_>,
     headings: &[HeadingInfo],
     options: &CompileOptions,
 ) -> Result<String, Diagnostic> {
@@ -209,18 +213,86 @@ fn resolve_url(
         return Ok(decoded);
     }
     if path.starts_with('/') {
-        if !options.pages.is_empty() && !options.pages.iter().any(|page| page.route == path) {
-            return Err(Diagnostic::error(
-                span,
-                format!("unknown Rocdown route `{path}`"),
-            ));
-        }
-        return Ok(with_fragment(path, fragment));
+        return resolve_absolute(path, fragment, span, &decoded, options);
+    }
+    if let Some(page) = page_for_relative(source, path, options) {
+        return page_destination(page, fragment, span);
     }
     if let Some(stem) = page_stem(path) {
         return resolve_page(stem, fragment, span, options);
     }
     Ok(decoded)
+}
+
+fn resolve_absolute(
+    path: &str,
+    fragment: Option<&str>,
+    span: Span,
+    decoded: &str,
+    options: &CompileOptions,
+) -> Result<String, Diagnostic> {
+    if let Some(page) = options.pages.iter().find(|page| page.route == path) {
+        return page_destination(page, fragment, span);
+    }
+    if is_document_href(path) {
+        if let Some(page) = page_for_absolute_document(path, options) {
+            return page_destination(page, fragment, span);
+        }
+        return Ok(decoded.to_string());
+    }
+    if !options.pages.is_empty() {
+        return Err(Diagnostic::error(
+            span,
+            format!("unknown Rocdown route `{path}`"),
+        ));
+    }
+    Ok(with_fragment(path, fragment))
+}
+
+fn page_for_relative<'a>(
+    source: SourceFile<'_>,
+    url_path: &str,
+    options: &'a CompileOptions,
+) -> Option<&'a PageRef> {
+    let parent = Path::new(source.name).parent()?;
+    let candidate = normalize_join(parent, url_path);
+    options
+        .pages
+        .iter()
+        .find(|page| paths_eq(&page.path, &candidate))
+}
+
+fn page_for_absolute_document<'a>(path: &str, options: &'a CompileOptions) -> Option<&'a PageRef> {
+    let needle = path.trim_start_matches('/');
+    let mut matches = options.pages.iter().filter(|page| {
+        if page.path.as_os_str().is_empty() {
+            return false;
+        }
+        let page_path = unix_path(&page.path);
+        page_path == needle || page_path.ends_with(&format!("/{needle}"))
+    });
+    let first = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+    Some(first)
+}
+
+fn page_destination(
+    page: &PageRef,
+    fragment: Option<&str>,
+    span: Span,
+) -> Result<String, Diagnostic> {
+    if let Some(id) = fragment {
+        if !page.heading_ids.iter().any(|heading| heading == id) {
+            return Err(Diagnostic::error(
+                span,
+                format!("unknown heading `{id}` on page `{}`", page.stem),
+            ));
+        }
+        return Ok(with_fragment(&page.route, Some(id)));
+    }
+    Ok(page.route.clone())
 }
 
 fn same_page_heading(id: &str, span: Span, headings: &[HeadingInfo]) -> Result<String, Diagnostic> {
@@ -285,7 +357,7 @@ fn page_stem(path: &str) -> Option<&str> {
     Some(trimmed)
 }
 
-fn split_fragment(url: &str) -> (&str, Option<&str>) {
+pub(crate) fn split_fragment(url: &str) -> (&str, Option<&str>) {
     match url.split_once('#') {
         Some(("", fragment)) => ("", Some(fragment)),
         Some((path, fragment)) => (path, Some(fragment)),
@@ -293,11 +365,57 @@ fn split_fragment(url: &str) -> (&str, Option<&str>) {
     }
 }
 
-fn has_scheme(path: &str) -> bool {
+pub(crate) fn has_scheme(path: &str) -> bool {
     let Some((scheme, _)) = path.split_once(':') else {
         return false;
     };
     !scheme.is_empty() && scheme.chars().all(|ch| ch.is_ascii_alphabetic())
+}
+
+pub(crate) fn is_document_href(path: &str) -> bool {
+    let trimmed = path.split_once('?').map(|(path, _)| path).unwrap_or(path);
+    matches!(
+        Path::new(trimmed)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .as_deref(),
+        Some("rocdown" | "md" | "markdown")
+    )
+}
+
+pub(crate) fn normalize_join(base: &Path, rel: &str) -> PathBuf {
+    let rel = rel
+        .strip_prefix("./")
+        .or_else(|| rel.strip_prefix(".\\"))
+        .unwrap_or(rel);
+    normalize_components(base.join(rel))
+}
+
+pub(crate) fn normalize_components(path: PathBuf) -> PathBuf {
+    use std::path::Component;
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+fn paths_eq(left: &Path, right: &Path) -> bool {
+    if left.as_os_str().is_empty() {
+        return false;
+    }
+    left == right || unix_path(left) == unix_path(right)
+}
+
+fn unix_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn with_fragment(path: &str, fragment: Option<&str>) -> String {
@@ -307,7 +425,7 @@ fn with_fragment(path: &str, fragment: Option<&str>) -> String {
     }
 }
 
-fn percent_decode(input: &str) -> String {
+pub(crate) fn percent_decode(input: &str) -> String {
     let bytes = input.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;

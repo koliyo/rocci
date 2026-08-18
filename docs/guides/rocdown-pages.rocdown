@@ -74,10 +74,13 @@ Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
 
 ## Link pages
 
-Standalone sibling previews understand wiki links and Rocdown file links:
+Standalone previews understand wiki links, Rocdown file links, and nested
+relative Markdown links:
 
 ```markdown
 See [[Interactive]] or [the interactive guide](Interactive.rocdown).
+
+This plan follows [the product-boundary decision](knowledge/decisions/consolidate-rocdown-product-boundary.md).
 ```
 
 For a Rocdown site, stable absolute routes are the clearest current form:
@@ -88,10 +91,10 @@ Read the [Rocdown reference](/reference/rocdown/).
 
 ## Preview and publish
 
-Preview one page with its sibling routes:
+Preview one page and the documents it links to:
 
 ```sh
-cargo run -p rocci-cli -- run docs/guide.rocdown
+cargo run -p rocci-rocdown-cli -- run docs/guide.rocdown
 ```
 
 Standalone preview uses the default Paper (or selected) reading shell. Pages
