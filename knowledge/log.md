@@ -2,6 +2,8 @@
 
 ## 2026-08-18
 
+- Implemented phases 1–3 of the [CLI entry points plan](plans/cli-entry-points.md): file-aware `rocci-okf run`, boundary-safe `rocci` / `rocdown` hints that refuse OKF YAML dumps, and compact concept metadata in the OKF review viewer.
+- Added the draft [CLI entry points for Rocci, Rocdown, and OKF preview plan](plans/cli-entry-points.md), recommending that `rocci`, `rocdown`, and `rocci-okf` stay separate binaries; rejecting `rocci-okf-cli` and a plugin host; and proposing file-aware `rocci-okf run` plus boundary-safe hints so OKF YAML is not previewed as Rocdown prose.
 - Added the draft [rocci.dev site architecture and Rocdown evolution plan](plans/rocci-dev-site.md), proposing one static site and catalog for landing pages, documentation, news, FAQ, and project information; project-local Rocci shells and named layouts above Rust-owned catalog work; typed news collections as a later phase; and no separate `rocci-site` engine unless multiple sites demonstrate a distinct product boundary.
 - Closed all remaining findings from the [Rocdown boundary refactor review](audits/rocdown-boundary-refactor-review.md):
   - Removed direct `rocci-theme` dependency from `rocci-rocdown-cli` (consumed via `rocci-rocdown`), supported `ROCDOWN_THEME` / `ROCDOWN_COLOR_SCHEME` with backward-compatible fallbacks, and documented `rocci-theme` role (F-08).

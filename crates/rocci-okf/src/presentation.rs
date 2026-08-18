@@ -3,7 +3,8 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use okf::{
-    Bundle, Concept, ConceptAction, Diagnostic, Severity, TrustTier, classify_concept_action,
+    Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
+    classify_concept_action, external_url, resolve_bundle_path,
 };
 pub use rocci_ui::escape;
 use serde_json::Value;
@@ -111,7 +112,7 @@ pub const PRIORITY_1_RECORDS: &[(&str, &str)] = &[
     ),
 ];
 
-pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic]) -> String {
+pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
     let status = okf::string_field(&concept.metadata, "status").unwrap_or("draft");
     let authority = okf::string_field(&concept.metadata, "authority").unwrap_or("descriptive");
     let trust_tier = okf::search::concept_trust_tier(&concept.metadata);
@@ -120,8 +121,9 @@ pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic])
     let concept_type = okf::string_field(&concept.metadata, "type").unwrap_or("Concept");
     let owners = okf::metadata_string_array(&concept.metadata, "owners");
     let tags = okf::metadata_string_array(&concept.metadata, "tags");
+    let description = okf::string_field(&concept.metadata, "description").unwrap_or("");
 
-    let action = classify_concept_action(concept, bundle_diagnostics);
+    let action = classify_concept_action(concept, &bundle.diagnostics);
 
     let (trust_slug, trust_label) = match trust_tier {
         TrustTier::HumanReviewed => ("human", "human-reviewed"),
@@ -188,42 +190,59 @@ pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic])
         out.push_str("  </div>\n");
     }
 
-    out.push_str("  <div class=\"okf-meta-grid\">\n");
-    if !owners.is_empty() {
+    if !description.is_empty() {
         out.push_str(&format!(
-            "    <div><span class=\"okf-meta-label\">Owners:</span> <code>{}</code></div>\n",
+            "  <p class=\"okf-lead\">{}</p>\n",
+            escape(description)
+        ));
+    }
+
+    let mut provenance = Vec::new();
+    if !owners.is_empty() {
+        provenance.push(format!(
+            "<li><span class=\"okf-meta-label\">Owners</span> <code>{}</code></li>",
             escape(&owners.join(", "))
         ));
     }
     if let Some((_, verifier_str)) = latest_verification {
-        out.push_str(&format!(
-            "    <div><span class=\"okf-meta-label\">Verified:</span> <code>{}</code></div>\n",
+        provenance.push(format!(
+            "<li><span class=\"okf-meta-label\">Verified</span> <code>{}</code></li>",
             escape(verifier_str)
         ));
     } else {
-        out.push_str(
-            "    <div><span class=\"okf-meta-label\">Verified:</span> <em>Unverified</em></div>\n",
+        provenance.push(
+            "<li><span class=\"okf-meta-label\">Verified</span> <em>Unverified</em></li>"
+                .to_string(),
         );
     }
     if !generated_by.is_empty() {
-        out.push_str(&format!(
-            "    <div><span class=\"okf-meta-label\">Generated:</span> <code>{} @ {}</code></div>\n",
+        provenance.push(format!(
+            "<li><span class=\"okf-meta-label\">Generated</span> <code>{} @ {}</code></li>",
             escape(generated_by),
             escape(generated_at)
         ));
     }
     if !stale_after.is_empty() {
-        out.push_str(&format!(
-            "    <div><span class=\"okf-meta-label\">Stale after:</span> <code>{}</code></div>\n",
+        provenance.push(format!(
+            "<li><span class=\"okf-meta-label\">Stale after</span> <code>{}</code></li>",
             escape(stale_after)
         ));
     }
-    out.push_str("  </div>\n");
+    if !provenance.is_empty() {
+        out.push_str("  <ul class=\"okf-provenance\">\n");
+        for item in provenance {
+            out.push_str("    ");
+            out.push_str(&item);
+            out.push('\n');
+        }
+        out.push_str("  </ul>\n");
+    }
 
     if let Some(sources) = concept.metadata.get("sources").and_then(Value::as_array)
         && !sources.is_empty()
     {
-        let drift_diags: Vec<&Diagnostic> = bundle_diagnostics
+        let drift_diags: Vec<&Diagnostic> = bundle
+            .diagnostics
             .iter()
             .filter(|d| d.path == concept.path && d.code == "OKF4006")
             .collect();
@@ -258,11 +277,38 @@ pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic])
                 "<span class=\"okf-badge okf-status-stable\">Clean</span>"
             };
             out.push_str(&format!(
-                "        <tr><td><code>{}</code></td><td><code>{}</code></td><td>{}</td><td>{}</td></tr>\n",
+                "        <tr><td><code>{}</code></td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
                 escape(s_id),
-                escape(s_res),
+                source_resource_cell(concept, s_res, bundle),
                 escape(s_author),
                 status_badge
+            ));
+        }
+        out.push_str("      </tbody>\n");
+        out.push_str("    </table>\n");
+        out.push_str("  </details>\n");
+    }
+
+    let unknown: Vec<(&String, &Value)> = concept
+        .metadata
+        .iter()
+        .filter(|(key, _)| !STANDARD_FIELDS.contains(&key.as_str()))
+        .collect();
+    if !unknown.is_empty() {
+        out.push_str("  <details class=\"okf-other-meta\">\n");
+        out.push_str(&format!(
+            "    <summary><strong>{} other field{}</strong></summary>\n",
+            unknown.len(),
+            if unknown.len() == 1 { "" } else { "s" }
+        ));
+        out.push_str("    <table class=\"okf-sources-table\">\n");
+        out.push_str("      <thead><tr><th>Key</th><th>Value</th></tr></thead>\n");
+        out.push_str("      <tbody>\n");
+        for (key, value) in unknown {
+            out.push_str(&format!(
+                "        <tr><td><code>{}</code></td><td><code>{}</code></td></tr>\n",
+                escape(key),
+                escape(&compact_json_value(value))
             ));
         }
         out.push_str("      </tbody>\n");
@@ -283,6 +329,41 @@ pub fn render_concept_meta(concept: &Concept, bundle_diagnostics: &[Diagnostic])
 
     out.push_str("</section>\n\n");
     out
+}
+
+fn source_resource_cell(concept: &Concept, resource: &str, bundle: &Bundle) -> String {
+    let label = format!("<code>{}</code>", escape(resource));
+    match source_href(concept, resource, bundle) {
+        Some(href) if external_url(resource) => format!(
+            "<a href=\"{}\" rel=\"noopener noreferrer\">{}</a>",
+            escape(&href),
+            label
+        ),
+        Some(href) => format!("<a href=\"{}\">{}</a>", escape(&href), label),
+        None => label,
+    }
+}
+
+fn source_href(concept: &Concept, resource: &str, bundle: &Bundle) -> Option<String> {
+    if external_url(resource) {
+        return Some(resource.to_string());
+    }
+    let resolved = resolve_bundle_path(&concept.path, resource)?;
+    bundle
+        .concepts
+        .iter()
+        .find(|candidate| candidate.path == resolved)
+        .map(|candidate| format!("/{}/", candidate.id))
+}
+
+fn compact_json_value(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        Value::Number(number) => number.to_string(),
+        Value::Bool(flag) => flag.to_string(),
+        Value::Null => "null".into(),
+        other => serde_json::to_string(other).unwrap_or_else(|_| other.to_string()),
+    }
 }
 
 pub fn render_priority_1_queue(bundle: &Bundle) -> String {
@@ -713,7 +794,7 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
         let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-        let meta_header = render_concept_meta(concept, &bundle.diagnostics);
+        let meta_header = render_concept_meta(concept, bundle);
         let full_html = format!("{meta_header}{}", concept.article_html);
         fs::write(&destination, html_page(title, &full_html))
             .with_context(|| format!("failed to write {}", destination.display()))?;
@@ -746,4 +827,109 @@ pub fn html_page(title: &str, article: &str) -> String {
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body><main class=\"rd-document\">{article}</main></body></html>\n",
         escape(title)
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use okf::{SourceLocation, Span};
+    use serde_json::json;
+
+    fn concept_with(metadata: BTreeMap<String, Value>) -> Concept {
+        Concept {
+            id: "plans/example".into(),
+            path: "plans/example.md".into(),
+            metadata,
+            body_span: Span::new(0, 0),
+            body_location: SourceLocation {
+                start: 0,
+                end: 0,
+                line: 1,
+                column: 1,
+            },
+            headings: Vec::new(),
+            heading_sections: Vec::new(),
+            links: Vec::new(),
+            source_ids: BTreeSet::new(),
+            footnote_ids: BTreeSet::new(),
+            article_html: String::new(),
+        }
+    }
+
+    fn bundle_with(concepts: Vec<Concept>) -> Bundle {
+        Bundle {
+            root: std::path::PathBuf::from("knowledge"),
+            version: Some("0.2".into()),
+            concepts,
+            indexes: Vec::new(),
+            logs: Vec::new(),
+            graph: Vec::new(),
+            diagnostics: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn concept_meta_uses_badges_and_preserves_unknown_fields() {
+        let metadata: BTreeMap<String, Value> = serde_json::from_value(json!({
+            "type": "Implementation Plan",
+            "status": "draft",
+            "authority": "exploratory",
+            "description": "Choose CLI entry points.",
+            "custom_note": "preserved"
+        }))
+        .unwrap();
+        let concept = concept_with(metadata);
+        let html = render_concept_meta(&concept, &bundle_with(vec![concept.clone()]));
+        assert!(html.contains("okf-badge okf-type"));
+        assert!(html.contains("Implementation Plan"));
+        assert!(html.contains("okf-lead"));
+        assert!(html.contains("Choose CLI entry points."));
+        assert!(html.contains("okf-provenance"));
+        assert!(html.contains("1 other field"));
+        assert!(html.contains("custom_note"));
+        assert!(html.contains("preserved"));
+        assert!(!html.contains("okf-meta-grid"));
+    }
+
+    #[test]
+    fn cited_sources_link_to_bundle_concepts_and_external_urls() {
+        let sibling = Concept {
+            id: "plans/other".into(),
+            path: "plans/other.md".into(),
+            ..concept_with(BTreeMap::new())
+        };
+        let metadata: BTreeMap<String, Value> = serde_json::from_value(json!({
+            "type": "Implementation Plan",
+            "status": "draft",
+            "authority": "exploratory",
+            "sources": [
+                {
+                    "id": "other",
+                    "resource": "other.md",
+                    "author": "human:nils"
+                },
+                {
+                    "id": "readme",
+                    "resource": "../../README.md",
+                    "author": "human:nils"
+                },
+                {
+                    "id": "docs",
+                    "resource": "https://example.com/docs",
+                    "author": "organization:example"
+                }
+            ]
+        }))
+        .unwrap();
+        let concept = concept_with(metadata);
+        let html = render_concept_meta(&concept, &bundle_with(vec![concept.clone(), sibling]));
+        assert!(html.contains("<a href=\"/plans/other/\"><code>other.md</code></a>"));
+        assert!(html.contains(
+            "<a href=\"https://example.com/docs\" rel=\"noopener noreferrer\"><code>https://example.com/docs</code></a>"
+        ));
+        assert!(html.contains("<code>../../README.md</code>"));
+        assert!(!html.contains("href=\"../../README.md\""));
+    }
 }

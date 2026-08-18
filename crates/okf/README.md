@@ -22,3 +22,4 @@ Dependencies:
 - **Search & Chunking**: Semantic search indexing by metadata and headings with BM25/lexical matching.
 - **Retrieval Benchmarking**: Automated evaluation against test questions with hit rate and MRR metrics.
 - **Deterministic Build**: Emits `catalog.json`, `search.json`, `validation.json`, and `llms.txt`.
+- **Preview path resolution**: Resolves a bundle directory, root `index.md`, or concept `.md` file to a bundle root and open URL without depending on Rocci.

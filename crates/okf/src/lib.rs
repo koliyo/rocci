@@ -7,6 +7,7 @@ pub mod diagnostic;
 pub mod frontmatter;
 pub mod graph;
 pub mod markdown;
+pub mod preview;
 pub mod review;
 pub mod search;
 pub mod validate;
@@ -35,6 +36,7 @@ pub use graph::{resolve_bundle_path, resolve_graph, split_fragment};
 pub use markdown::{
     MarkdownOutput, footnote_labels, parse_markdown_body, reject_declarations, slugify,
 };
+pub use preview::{PreviewTarget, resolve_preview_path};
 pub use review::{ActionKind, ConceptAction, classify_concept_action};
 pub use search::{SearchChunk, matching_search_chunks, normalize_search_text, search_index};
 pub use validate::{

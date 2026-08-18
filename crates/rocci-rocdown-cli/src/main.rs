@@ -6,6 +6,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use rocci_cli::driver::{DriverOptions, GenericAppPlan, GenericModule};
+use rocci_cli::path_hint;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 use rocci_rocdown::{SourceFile, StandaloneReady, ThemeArgs, format_diagnostic};
 
@@ -145,6 +146,29 @@ fn is_document_file(path: &Path) -> bool {
             .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
 }
 
+fn refuse_okf_input(path: &Path, command_name: &str) -> Result<()> {
+    if path.is_dir() {
+        if path_hint::looks_like_okf_bundle(path) {
+            bail!(
+                "`rocdown {command_name}` does not preview OKF knowledge bundles; run `rocci-okf run {}`",
+                path.display()
+            );
+        }
+        return Ok(());
+    }
+    let is_markdown = path
+        .extension()
+        .is_some_and(|ext| ext == "md" || ext == "markdown");
+    if is_markdown && path_hint::looks_like_okf_file(path) {
+        bail!(
+            "`rocdown {command_name}` does not render OKF knowledge records; preview {} with `rocci-okf run {}`",
+            path.display(),
+            path.display()
+        );
+    }
+    Ok(())
+}
+
 fn try_main() -> Result<()> {
     match Cli::parse().command {
         Commands::Build {
@@ -153,6 +177,7 @@ fn try_main() -> Result<()> {
             theme,
         } => {
             if is_document_file(&path) {
+                refuse_okf_input(&path, "build")?;
                 build_single_doc(&path, output.as_deref(), &theme)
             } else if path.is_file() {
                 bail!(
@@ -160,6 +185,7 @@ fn try_main() -> Result<()> {
                     path.display()
                 );
             } else {
+                refuse_okf_input(&path, "build")?;
                 rocci_rocdown::build_configured(&path, output.as_deref())?;
                 Ok(())
             }
@@ -173,6 +199,7 @@ fn try_main() -> Result<()> {
             args,
         } => {
             if is_document_file(&path) {
+                refuse_okf_input(&path, "run")?;
                 run_standalone_doc(&path, &args, no_window, port, &theme)
             } else if path.is_file() {
                 bail!(
@@ -180,6 +207,7 @@ fn try_main() -> Result<()> {
                     path.display()
                 );
             } else {
+                refuse_okf_input(&path, "run")?;
                 run_site_dev(&path, output.as_deref(), no_window, port)
             }
         }
@@ -577,6 +605,36 @@ mod tests {
         let md_file = temp_dir.join("test.md");
         fs::write(&md_file, "# Doc").unwrap();
         assert!(ensure_document_file(&md_file, "build").is_ok());
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn refuse_okf_input_rejects_knowledge_records_and_bundles() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("rocdown-test-okf-{}", std::process::id()));
+        let _ = fs::create_dir_all(&temp_dir);
+        let concept = temp_dir.join("plan.md");
+        fs::write(
+            &concept,
+            "---\ntype: Implementation Plan\ntitle: Plan\nauthority: exploratory\n---\n\n# Plan\n",
+        )
+        .unwrap();
+        let err = refuse_okf_input(&concept, "run").unwrap_err().to_string();
+        assert!(err.contains("rocci-okf run"));
+
+        fs::write(
+            temp_dir.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        let err = refuse_okf_input(&temp_dir, "build")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("rocci-okf run"));
+
+        let ordinary = temp_dir.join("notes.md");
+        fs::write(&ordinary, "# Notes\n").unwrap();
+        assert!(refuse_okf_input(&ordinary, "run").is_ok());
         let _ = fs::remove_dir_all(&temp_dir);
     }
 }

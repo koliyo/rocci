@@ -107,7 +107,9 @@ cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--outp
 
 Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
 with live reload. The default root is the current directory. Preview output
-goes to a temp directory unless `--output` is set.
+goes to a temp directory unless `--output` is set. `rocdown run` and
+`rocdown build` refuse OKF knowledge records and bundles and point to
+`rocci-okf run`.
 
 | Option | Effect |
 | --- | --- |
@@ -123,7 +125,7 @@ cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY]
 
 The default root is the current directory. `ROOT` may be a documentation
 directory or a `.rocdown` file. `rocdown.toml` is optional. `--output` overrides
-`build.output`.
+`build.output`. OKF knowledge records are refused here as well.
 
 Local `@img` and Markdown image paths resolve against the source file. Missing
 local files fail the catalog (`RD2103`). Files under `build.assets` are
@@ -193,8 +195,12 @@ enforces passing thresholds.
 ### Live review preview server
 
 ```sh
-cargo run -p rocci-okf -- run [ROOT] [--profile base|rocci] [--port PORT] [--no-window]
+cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-window]
 ```
+
+`PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
+the bundle-root `index.md`. A concept file opens the review site on that
+record.
 
 ### Build static review artifacts
 

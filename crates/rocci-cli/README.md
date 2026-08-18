@@ -40,4 +40,4 @@ cargo run -p rocci-cli -- datastar update --app examples/datastar
 
 ## Architectural Boundary
 
-`rocci-cli` owns execution and orchestration for `.rocci` templates and Roc applications. It does not parse or execute `.rocdown` documents (which are owned by `rocci-rocdown-cli` / `rocdown`).
+`rocci-cli` owns execution and orchestration for `.rocci` templates and Roc applications. It does not parse or execute `.rocdown` documents (which are owned by `rocci-rocdown-cli` / `rocdown`) or OKF bundles. `rocci run` on an OKF-looking `.md` file or bundle directory hints at `rocci-okf run` by extension and leading-byte inspection only.

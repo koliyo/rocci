@@ -186,3 +186,43 @@ fn test_okf_rejects_declarations_and_raw_html() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn resolve_preview_path_opens_bundle_and_concept() {
+    let root = temp("preview");
+    fs::write(
+        root.join("index.md"),
+        "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+    )
+    .unwrap();
+    let plans = root.join("plans");
+    fs::create_dir(&plans).unwrap();
+    fs::write(plans.join("index.md"), "# Plans\n").unwrap();
+    fs::write(
+        plans.join("cli-entry-points.md"),
+        "---\ntype: Implementation Plan\ntitle: CLI\nauthority: exploratory\n---\n\n# CLI\n",
+    )
+    .unwrap();
+
+    let bundle = okf::resolve_preview_path(&root).unwrap();
+    assert_eq!(bundle.open_path, "/");
+    assert_eq!(bundle.root, fs::canonicalize(&root).unwrap());
+
+    let home = okf::resolve_preview_path(&root.join("index.md")).unwrap();
+    assert_eq!(home.open_path, "/");
+
+    let concept = okf::resolve_preview_path(&plans.join("cli-entry-points.md")).unwrap();
+    assert_eq!(concept.open_path, "/plans/cli-entry-points/");
+    assert_eq!(concept.root, fs::canonicalize(&root).unwrap());
+
+    let collection = okf::resolve_preview_path(&plans.join("index.md")).unwrap_err();
+    assert!(collection.to_string().contains("collection index"));
+
+    let outside = temp("preview-outside");
+    fs::write(outside.join("notes.md"), "# Notes\n").unwrap();
+    let missing = okf::resolve_preview_path(&outside.join("notes.md")).unwrap_err();
+    assert!(missing.to_string().contains("not inside an OKF bundle"));
+
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(outside);
+}
