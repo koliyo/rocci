@@ -3,13 +3,15 @@
 > [!NOTE]
 > **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`scripts/check-workspace-deps.py`) reflect the current post-split architecture.
 
-**Status:** in progress — Phase 0 complete
+**Status:** in progress — Phase 0 complete; desktop `--mode local` HTML snapshots are implemented
 
 **Date:** 2026-08-18
 
 **First delivery target:** `rocci playground Foo.rocci` or `rocdown playground Guide.rocdown` opens the shared
-playground in a desktop window, with all parsing, lowering, AST formatting, and
-syntax highlighting performed by browser-loaded WebAssembly.
+playground in a desktop window. Default `--mode wasm` performs parsing, lowering, AST formatting, and
+syntax highlighting in browser-loaded WebAssembly. `--mode local` compiles on the loopback host and can
+snapshot component HTML through native `roc` (`Html.render` of the first fixture or a defaultable component).
+The public site remains WASM-only; it cannot dynamically `roc build`.
 
 ## 1. Executive recommendation
 
@@ -26,13 +28,15 @@ The output selector has exactly these user-visible choices:
 
 - `roc` — generated Roc from the Rust/WASM lowerer;
 - `AST` — the existing LISPy `format_ast` representation;
-- `html` — an honest unavailable-state panel until a Roc runtime can execute
-  the generated module in WASM.
+- `html` — WASM mode shows an honest unavailable-state panel because the browser cannot dynamically compile generated Roc. Desktop `--mode local` snapshots `Html.render` output for a fixture or defaultable component.
 
-Do not compile on the native side and send results into the webview. The CLI
-may read the initial file, package a virtual workspace, and serve assets, but
-an edit must travel from the editor to a Web Worker and then to Rust/WASM.
-That keeps local webview behavior identical to the eventual public site.
+Default `--mode wasm` must not compile on the native side and send results into
+the webview. The CLI may read the initial file, package a virtual workspace, and
+serve assets, but an edit must travel from the editor to a Web Worker and then
+to Rust/WASM. That keeps local webview behavior identical to the public site.
+Desktop `--mode local` is the exception: edits `POST` to `/api/compile` on the
+loopback host, and successful `.rocci` compiles can include a static
+`Html.render` snapshot.
 
 Use a loopback HTTP origin for the local host rather than `file://` or a
 webview-only IPC compiler. It gives WASM, module workers, MIME types, CSP, caching,
@@ -353,7 +357,9 @@ PlaygroundBootstrap {
     selected_document: String,
     compiler_wasm_url: String,
     worker_url: String,
-    html_runtime: { available: false, reason: String },
+    mode: "wasm" | "local",
+    compile_url: String, // "/api/compile" in local mode, empty in wasm
+    html_runtime: { available: bool, reason: String },
 }
 ```
 
@@ -794,8 +800,9 @@ The current goal is complete when:
   `rocci-desktop` preview windows;
 - editing occurs in a highlighted code editor and triggers browser-WASM
   compilation without invoking Roc;
-- the right panel switches among `roc`, `AST`, and the truthful `html`
-  unavailable state;
+- the right panel switches among `roc`, `AST`, and HTML: WASM mode shows the
+  truthful unavailable state, while desktop `--mode local` can snapshot
+  `Html.render` output for a fixture or defaultable `.rocci` component;
 - diagnostics track the current edit and Unicode ranges correctly;
 - the same bundle is embedded on `rocci.dev` with canonical `.rocci` and
   `.rocdown` examples;

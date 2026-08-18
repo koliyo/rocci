@@ -27,6 +27,15 @@ cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component Counte
 # Browse all discovered components in an application directory
 cargo run -p rocci-cli -- browse examples/counter
 
+# Open the playground with a .rocci example (also accepts .rocdown / .md)
+cargo run -p rocci-cli -- playground examples/counter/Counter.rocci
+
+# Open a Rocdown document in the same playground
+cargo run -p rocci-cli -- playground examples/rocdown/Guide.rocdown
+
+# Local mode: native compile plus Html.render snapshots for .rocci
+cargo run -p rocci-cli -- playground examples/counter/Counter.rocci --mode local
+
 # Inspect AST, component signatures, and source-map segments
 cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 

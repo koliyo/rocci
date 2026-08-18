@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use rocci_core::Config;
 use rocci_template::{LowerOptions, SourceFile, compile, format_ast, format_diagnostic};
 
@@ -74,11 +74,14 @@ enum Commands {
         #[arg(default_value = ".")]
         roots: Vec<PathBuf>,
     },
-    /// Open an in-browser WASM playground to live edit and inspect a .rocci template.
+    /// Open a playground to live edit a `.rocci` template or `.rocdown` document.
     Playground {
         #[command(flatten)]
         serve: serve::ServeOptions,
-        /// .rocci template file to open in the playground.
+        /// Compiler host: `wasm` runs in the browser worker; `local` compiles natively and can snapshot HTML.
+        #[arg(long, value_enum, default_value_t = PlaygroundModeArg::Wasm)]
+        mode: PlaygroundModeArg,
+        /// Source file to open (`.rocci`, `.rocdown`, `.md`, or `.markdown`).
         input: PathBuf,
     },
     /// Manage the Datastar JS runtime for an app.
@@ -86,6 +89,22 @@ enum Commands {
         #[command(subcommand)]
         command: DatastarCmd,
     },
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum PlaygroundModeArg {
+    #[default]
+    Wasm,
+    Local,
+}
+
+impl From<PlaygroundModeArg> for rocci_cli::playground::PlaygroundMode {
+    fn from(mode: PlaygroundModeArg) -> Self {
+        match mode {
+            PlaygroundModeArg::Wasm => Self::Wasm,
+            PlaygroundModeArg::Local => Self::Local,
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -133,8 +152,19 @@ fn try_main() -> Result<()> {
             serve,
         } => view::view(&input, &component, &args, serve.no_window, serve.port),
         Commands::Browse { roots, serve } => browse::browse(&roots, serve.no_window, serve.port),
-        Commands::Playground { input, serve } => {
-            rocci_cli::playground::run_playground_cli(&input, serve, "rocci")
+        Commands::Playground { input, serve, mode } => {
+            let hook = match mode {
+                PlaygroundModeArg::Local => {
+                    let src_dir = input
+                        .parent()
+                        .filter(|parent| !parent.as_os_str().is_empty())
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|| env::current_dir().expect("current directory"));
+                    Some(rocci_cli::playground::rocci_local_compile_hook(src_dir))
+                }
+                PlaygroundModeArg::Wasm => None,
+            };
+            rocci_cli::playground::run_playground_cli(&input, serve, "rocci", mode.into(), hook)
         }
         Commands::Datastar { command } => match command {
             DatastarCmd::Update { app } => datastar_asset::update_app(&app),
@@ -354,6 +384,34 @@ mod tests {
     fn no_window_still_accepts_explicit_port() {
         let cli = Cli::try_parse_from(["rocci", "run", "--no-window", "--port", "auto"]).unwrap();
         assert_eq!(port_of(&cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn playground_mode_flag_defaults_to_wasm() {
+        let cli = Cli::try_parse_from(["rocci", "playground", "Foo.rocci"]).unwrap();
+        match cli.command {
+            Commands::Playground { mode, input, .. } => {
+                assert!(matches!(mode, PlaygroundModeArg::Wasm));
+                assert_eq!(input, PathBuf::from("Foo.rocci"));
+            }
+            _ => panic!("expected playground"),
+        }
+
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "playground",
+            "--mode",
+            "local",
+            "examples/rocdown/Guide.rocdown",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Playground { mode, input, .. } => {
+                assert!(matches!(mode, PlaygroundModeArg::Local));
+                assert_eq!(input, PathBuf::from("examples/rocdown/Guide.rocdown"));
+            }
+            _ => panic!("expected playground"),
+        }
     }
 
     #[test]

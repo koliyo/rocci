@@ -375,6 +375,30 @@ html, body {
   font-size: 11px;
 }
 
+.html-card-wrapper {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  flex-direction: column;
+}
+
+.html-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: #fff;
+}
+
+.html-preview iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+
 /* HTML Unavailable Card */
 .html-unavailable-card {
   display: flex;

@@ -2,7 +2,7 @@
 
 Target-neutral compiler core and data protocol for the Rocci in-browser WebAssembly playground.
 
-`rocci-playground` provides the platform-independent protocol, serialization types, and compiler dispatch logic that bridges `.rocci` templates and `.rocdown` documents to WebAssembly without requiring filesystem, network, or OS runtime dependencies.
+`rocci-playground` provides the platform-independent protocol, serialization types, and compiler dispatch logic that bridges `.rocci` templates and `.rocdown` documents to WebAssembly without requiring filesystem, network, or OS runtime dependencies. Desktop `--mode local` uses the same protocol over `POST /api/compile` from `rocci-cli` / `rocci-rocdown-cli`.
 
 ## Architecture & Responsibilities
 
