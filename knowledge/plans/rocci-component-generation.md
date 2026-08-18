@@ -426,12 +426,7 @@ Point host A at the native `apply` artifact.
 
 ### 5. Ship host B (Wasmtime)
 
-Add a tiny wasm platform around the same `render` function. Compile with
-`roc build --target wasm32`, store `components.wasm` under the matching
-`compile-hash`, and apply through Wasmtime. Seed CI with a first-party
-chrome wasm so `rocdown` / `rocci-okf` release builds can run host B
-without a local `roc` for that program. Measure native vs wasm apply; do
-not delete host A.
+Added a minimal relocatable wasm platform in `rocci-roc-host` (`platform/main.roc`, `platform/host.c`, `platform/targets/wasm32/host.o`) around pure `render_all` evaluation. Compiles with `roc build --target wasm32`, stores `components.wasm` under the matching `compile-hash`, and evaluates in-process through Wasmtime. Both `rocci-rocdown` and `rocci-okf` support `--host wasm` and `--host native` seamlessly.
 
 ### 6. Decide whether OKF gets a Rocci renderer
 

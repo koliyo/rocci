@@ -31,7 +31,7 @@ enum Commands {
         output: Option<PathBuf>,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
-        /// Execution host runtime for evaluating templates (native [default], auto; wasm is planned).
+        /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
         /// Skip the embedded window; print the URL and keep serving.
@@ -91,7 +91,7 @@ enum Commands {
         output: PathBuf,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
-        /// Execution host runtime for evaluating templates (native [default], auto; wasm is planned).
+        /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
     },
@@ -105,12 +105,12 @@ enum CheckFormatArg {
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
 enum HostArg {
-    /// Pick host automatically (resolves to native).
+    /// Pick host automatically (native on dev, wasm when requested or embedded).
     #[default]
     Auto,
     /// Compile and run native host executable (requires roc on PATH).
     Native,
-    /// In-process Wasmtime host (planned for Phase 5; requires custom Roc wasm platform).
+    /// In-process Wasmtime host.
     Wasm,
 }
 

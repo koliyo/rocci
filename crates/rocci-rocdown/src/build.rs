@@ -75,11 +75,10 @@ fn build_loaded_with_host(
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
     runtime::stage_into(&workspace)?;
-    let staged = write_plan_files(&workspace, &staging, &plan)?;
+    let is_wasm = host.resolve() == rocci_roc_host::HostChoice::Wasm;
+    let staged = write_plan_files(&workspace, &staging, &plan, is_wasm)?;
     let maps = theme_maps(&plan);
     let cache = rocci_roc_host::TwoTierCache::default();
-    let host = host.resolve();
-    let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
 
     let target = if is_wasm {
         "wasm32".to_string()
@@ -195,10 +194,10 @@ impl BuildSession {
     ) -> Result<BuildReport> {
         let plan = prepare_plan(loaded)?;
         let staging = unique_temp("stage")?;
-        let staged = write_plan_files(&self.workspace, &staging, &plan)?;
+        let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
+        let staged = write_plan_files(&self.workspace, &staging, &plan, is_wasm)?;
         let maps = theme_maps(&plan);
         let cache = rocci_roc_host::TwoTierCache::default();
-        let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
         let target = if is_wasm {
             "wasm32".to_string()
         } else {
@@ -294,7 +293,12 @@ struct StagedBuild {
     roc_hash: String,
 }
 
-fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Result<StagedBuild> {
+fn write_plan_files(
+    workspace: &Path,
+    staging: &Path,
+    plan: &BuildPlan,
+    is_wasm: bool,
+) -> Result<StagedBuild> {
     let mut generated_roc_bytes = runtime::runtime_bytes();
     for module in &plan.theme_modules {
         generated_roc_bytes += module.roc.len();
@@ -329,11 +333,15 @@ fn write_plan_files(workspace: &Path, staging: &Path, plan: &BuildPlan) -> Resul
         }
     }
 
+    if is_wasm {
+        rocci_roc_host::stage_wasm_platform_into(workspace)?;
+    }
+
     let pages_roc = plan.pages_roc();
     generated_roc_bytes += pages_roc.len();
     fs::write(workspace.join("RocdownPages.roc"), &pages_roc)
         .context("failed to write RocdownPages.roc")?;
-    let main = main_roc();
+    let main = main_roc(is_wasm);
     generated_roc_bytes += main.len();
     fs::write(workspace.join("main.roc"), &main).context("failed to write main.roc")?;
 
@@ -454,19 +462,39 @@ pub(crate) fn discover_in(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-fn main_roc() -> String {
-    format!(
-        "\
+fn main_roc(is_wasm: bool) -> String {
+    if is_wasm {
+        format!(
+            "\
+app [main!] {{ pf: platform \"platform/main.roc\" }}
+
+import RocdownBuild
+import RocdownPages
+
+main! : {{}} => [Ok({{}}), Err([Exit(I32)])]
+main! = |{{}}| {{
+    _ = RocdownBuild.render_all(RocdownPages.pages)
+    res : [Ok({{}}), Err([Exit(I32)])]
+    res = Ok({{}})
+    res
+}}
+"
+        )
+    } else {
+        format!(
+            "\
 app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
 
 import RocdownBuild
+import RocdownPages
 
 main! = |_args| {{
-    RocdownBuild.run!({{}})?
+    _ = RocdownBuild.render_all(RocdownPages.pages)
     Ok({{}})
 }}
 "
-    )
+        )
+    }
 }
 
 fn invoke_roc_build(workspace: &Path, apply_bin: &Path, maps: &[MappedModule]) -> Result<String> {
@@ -494,7 +522,6 @@ fn invoke_roc_wasm_build(
         .arg("build")
         .arg("main.roc")
         .arg("--target=wasm32")
-        .arg("--opt=dev")
         .arg(format!("--output={}", wasm_file.display()))
         .current_dir(workspace)
         .output()
@@ -950,6 +977,27 @@ import Html
             fs::read_to_string(output.join("keep.txt")).unwrap(),
             "preserve me"
         );
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn wasm_host_build() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("wasm-host-src");
+        write_page(
+            &root,
+            "index.rocdown",
+            "@page { route: \"/\", meta: { title: \"Wasm Test\" } }\n\n# Wasm Documentation\nThis was rendered via Wasm host.\n",
+        );
+        let output = temp_dir("wasm-host-out");
+        let _report = build_with_host(&root, &output, rocci_roc_host::HostChoice::Wasm).unwrap();
+        assert!(output.join("index.html").is_file());
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("Wasm Documentation"));
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }

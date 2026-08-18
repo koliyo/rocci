@@ -1,6 +1,7 @@
 /target
 .DS_Store
 .zig-cache
+.worktrees
 dist
 
 # Editor extensions & playground
