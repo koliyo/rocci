@@ -1,5 +1,6 @@
 # Research
 
+* [Desktop host chrome versus Rocci inspector UI](desktop-host-chrome-and-inspector-ui.md) - Split wry overlay chrome (HTML/CSS/JS) from preview-origin Rocci panels for compiler metrics and similar richer UI.
 * [Branding and community foundation](branding-community-foundation.md) - Exploratory masterbrand, naming, SEO, visual-identity, and public-preview community research.
 * [Repository hosting for Rocci's distributed governance](repository-hosting-and-distributed-governance.md) - GitHub and Tangled comparison for public launch, contributor workflow, infrastructure ownership, and future shared authority.
 * [Rocci components in the generation pipeline](rocci-components-in-generation.md) - Evidence for moving demonstrated HTML chrome into Rocci, native subprocess versus Wasmtime hosts, two-tier renderer caching, and glue as a later native host.
