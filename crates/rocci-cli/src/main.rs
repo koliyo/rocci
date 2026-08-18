@@ -74,6 +74,13 @@ enum Commands {
         #[arg(default_value = ".")]
         roots: Vec<PathBuf>,
     },
+    /// Open an in-browser WASM playground to live edit and inspect a .rocci template.
+    Playground {
+        #[command(flatten)]
+        serve: serve::ServeOptions,
+        /// .rocci template file to open in the playground.
+        input: PathBuf,
+    },
     /// Manage the Datastar JS runtime for an app.
     Datastar {
         #[command(subcommand)]
@@ -126,6 +133,9 @@ fn try_main() -> Result<()> {
             serve,
         } => view::view(&input, &component, &args, serve.no_window, serve.port),
         Commands::Browse { roots, serve } => browse::browse(&roots, serve.no_window, serve.port),
+        Commands::Playground { input, serve } => {
+            rocci_cli::playground::run_playground_cli(&input, serve, "rocci")
+        }
         Commands::Datastar { command } => match command {
             DatastarCmd::Update { app } => datastar_asset::update_app(&app),
             DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),

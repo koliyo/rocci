@@ -83,6 +83,26 @@ enum Commands {
         #[command(subcommand)]
         target: InspectTarget,
     },
+    /// Open an in-browser WASM playground to live edit and inspect a .rocdown or .md document.
+    Playground {
+        /// .rocdown, .md, or .markdown document to open in the playground.
+        #[arg(default_value = "Guide.rocdown")]
+        input: PathBuf,
+        /// Skip the embedded window; print the URL and keep serving.
+        #[arg(long)]
+        no_window: bool,
+        /// TCP port to listen on. Defaults to a free port with the embedded window,
+        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+        #[arg(
+            long,
+            default_value = "auto",
+            default_value_if("no_window", "true", "8000"),
+            value_name = "PORT",
+            value_parser = parse_port_arg,
+            env = "ROC_BASIC_WEBSERVER_PORT"
+        )]
+        port: PortArg,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -293,6 +313,14 @@ fn try_main() -> Result<()> {
             InspectTarget::Ast { input, theme } => inspect_ast(&input, &theme),
             InspectTarget::Roc { input, theme } => inspect_roc(&input, &theme),
         },
+        Commands::Playground {
+            input,
+            no_window,
+            port,
+        } => {
+            let serve = rocci_cli::serve::ServeOptions { no_window, port };
+            rocci_cli::playground::run_playground_cli(&input, serve, "rocdown")
+        }
     }
 }
 
