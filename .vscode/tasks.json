@@ -4,7 +4,7 @@
     {
       "label": "build-rocci-lsp",
       "type": "shell",
-      "command": "cargo build -p rocci-lsp",
+      "command": "cargo build -p rocci-rocdown-lsp",
       "group": "build",
       "problemMatcher": ["$rustc"]
     },

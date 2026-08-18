@@ -3,15 +3,11 @@ name = "rocci-lsp"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Language server for .rocci templates and .rocdown documents"
+description = "Generic language-server core and Rocci analyzer for .rocci templates"
 
 [lib]
 name = "rocci_lsp"
 path = "src/lib.rs"
-
-[[bin]]
-name = "rocci-language-server"
-path = "src/main.rs"
 
 [dependencies]
 lsp-server = { workspace = true }

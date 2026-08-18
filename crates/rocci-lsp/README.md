@@ -1,18 +1,23 @@
 # `rocci-lsp`
 
-The language server for `.rocci` template modules and `.rocdown` documents, providing rich Language Server Protocol (LSP) intelligence to editor clients including Visual Studio Code and Zed.
+Generic language-server core and the `RocciAnalyzer` for `.rocci` templates.
+This crate is a library. The shipped `rocci-language-server` binary lives in
+`rocci-rocdown-lsp`, which composes this analyzer with `RocdownAnalyzer`.
 
 ---
 
 ## Architecture Overview
 
-`rocci-lsp` analyzes `.rocci` and `.rocdown` source documents, builds a typed **Region Graph**, drives in-process Tree-sitter parsers for embedded languages, and merges all syntactic tokens into a unified, non-overlapping semantic token stream in authored source coordinates.
+`rocci-lsp` stores open documents, recompiles after full-text open or change
+notifications, and lets a `DocumentAnalyzer` supply diagnostics, symbols,
+hover, completion, definition, and semantic tokens. `RocciAnalyzer` is the
+built-in `.rocci` implementation. Rocdown analysis stays in `rocci-rocdown`.
 
 ```text
-Source Document (.rocci / .rocdown)
+Source Document (.rocci)
         │
         ▼
-Host Parser & AST Validation (rocci-template / rocci-rocdown)
+Host Parser & AST Validation (rocci-template)
         │
         ├── Push Diagnostics & Document Outline / Symbols
         │
@@ -36,7 +41,7 @@ Typed Region Graph (RegionTree)
 ## Key Capabilities
 
 1. **Boundary Authority**:
-   - `rocci-template` and `rocci-rocdown` are the sole authority for syntax boundaries.
+   - `rocci-template` is the sole authority for `.rocci` syntax boundaries.
    - Distinct `RegionPurpose` separates `Executable` islands from `DisplayOnly` code fences so display code examples never alter execution semantics.
 
 2. **In-Process Embedded Highlighting**:

@@ -2,13 +2,13 @@ use std::error::Error;
 
 use lsp_server::{Connection, Message};
 use lsp_types::InitializeParams;
-use rocci_lsp::LanguageServer;
+use rocci_rocdown_lsp::composed_server;
 
 fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let (connection, io_threads) = Connection::stdio();
     let (id, params) = connection.initialize_start()?;
     let params: InitializeParams = serde_json::from_value(params)?;
-    let mut server = LanguageServer::new();
+    let mut server = composed_server();
     let result = server.initialize(params);
     connection.initialize_finish(id, serde_json::to_value(result)?)?;
 

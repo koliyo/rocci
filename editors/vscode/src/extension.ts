@@ -73,7 +73,7 @@ function traceFromConfig(): Trace {
 async function startClient(context: ExtensionContext) {
   const serverPath = resolveServerPath(context)
   if (!serverPath) {
-    const message = 'rocci-language-server not found. Build it with `cargo build -p rocci-lsp` or set rocci.lsp.serverPath.'
+    const message = 'rocci-language-server not found. Build it with `cargo build -p rocci-rocdown-lsp` or set rocci.lsp.serverPath.'
     wrappedOutput.appendLine(message)
     await window.showErrorMessage(message)
     return
@@ -95,12 +95,15 @@ async function startClient(context: ExtensionContext) {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { language: 'rocci' },
-      { pattern: '**/*.rocci' }
+      { pattern: '**/*.rocci' },
+      { language: 'rocdown' },
+      { pattern: '**/*.rocdown' }
     ],
     synchronize: {
       configurationSection: 'rocci',
       fileEvents: [
-        workspace.createFileSystemWatcher('**/*.rocci')
+        workspace.createFileSystemWatcher('**/*.rocci'),
+        workspace.createFileSystemWatcher('**/*.rocdown')
       ]
     },
     outputChannel: wrappedOutput,

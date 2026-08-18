@@ -2392,6 +2392,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocci-rocdown-lsp"
+version = "0.1.0"
+dependencies = [
+ "lsp-server",
+ "lsp-types",
+ "rocci-lsp",
+ "rocci-rocdown",
+ "serde_json",
+]
+
+[[package]]
 name = "rocci-template"
 version = "0.1.0"
 dependencies = [

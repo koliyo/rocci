@@ -26,7 +26,7 @@
 | Knowledge review CLI, desktop preview, and bundle tools | `crates/rocci-okf` |
 | Shared UI primitives, view records, and component templates | `crates/rocci-ui` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
-| Editor behavior | `crates/rocci-lsp`, `editors/vscode`, or `editors/zed` |
+| Editor behavior | `crates/rocci-lsp`, `crates/rocci-rocdown-lsp`, `editors/vscode`, or `editors/zed` |
 
 - Preserve the boundary where Rocdown owns static catalog and article work in
   Rust while the Rocdown theme owns the visible documentation shell.
@@ -49,6 +49,9 @@
   owning crate README. Mark planned behavior as planned.
 - Treat `dist/` and other generated output as derived artifacts, not sources of
   truth.
+- When adding a workspace member in the root `Cargo.toml`, classify it in the
+  same change in `scripts/check-workspace-deps.py` under the matching
+  `CLASSES` set. CI runs that checker in the lint job.
 
 ## Validate proportionally
 

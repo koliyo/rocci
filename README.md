@@ -11,7 +11,7 @@ The workspace is organized into focused packages with strictly enforced one-way 
 - **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
 - **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).
 - **Open Knowledge Format:** `okf` (portable, UI-neutral knowledge engine), `rocci-okf` (`rocci-okf` application binary and review server).
-- **Tooling:** `rocci-lsp` (language server for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
+- **Tooling:** `rocci-lsp` (generic language-server core and Rocci analyzer), `rocci-rocdown-lsp` (shipped `rocci-language-server` for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
 
 ## Run an example
 

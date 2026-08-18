@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-cargo build -p rocci-lsp --release
+cargo build -p rocci-rocdown-lsp --release
 
 DIST="$ROOT/editors/vscode/dist"
 rm -rf "$DIST"

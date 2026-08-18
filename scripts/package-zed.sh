@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 echo "Building Rocci language server release binary..."
-cargo build -p rocci-lsp --release
+cargo build -p rocci-rocdown-lsp --release
 
 echo "Building Zed WASM extension..."
 cd "$ROOT/editors/zed"

@@ -4,7 +4,7 @@ title: Rocdown product-boundary refactor
 description: Phased migration that removes Rocdown from base Rocci, consolidates the Rocdown format and static generator, retires Rocs, and separates portable OKF behavior.
 tags: [domain/rocci, domain/rocdown, concern/architecture, concern/migration, concern/tooling, integration/okf]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-17T22:15:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -304,7 +304,9 @@ moving domain behavior into it.
 Exit gate: dependency rules are mechanically enforced; public documentation
 matches commands and packages; the knowledge bundle distinguishes shipped,
 approved, proposed, and historical states; the workspace and both product
-vertical slices pass.
+vertical slices pass. A phase cannot be logged as complete until the required
+GitHub CI and Knowledge workflows have succeeded on the declaring revision;
+cite those run IDs in the knowledge log.
 
 ## Cross-phase validation matrix
 
