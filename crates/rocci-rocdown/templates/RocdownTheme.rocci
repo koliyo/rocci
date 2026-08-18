@@ -2,32 +2,32 @@ import Html
 
 @css {
     :scope {
-        --canvas: #faf9f6;
-        --surface: #ffffff;
-        --surface-raised: #fffdf9;
-        --ink: #201e1c;
-        --muted: #6d6862;
-        --faint: #918a82;
-        --line: #e7e2dc;
-        --line-strong: #d7d0c7;
-        --accent: #e64b2f;
-        --accent-strong: #b92f19;
-        --accent-soft: #fff0e9;
-        --code: #282522;
-        --code-ink: #f8f3ed;
-        --syntax-keyword: #ff765a;
-        --syntax-string: #2dd4bf;
-        --syntax-comment: #9c948c;
-        --syntax-type: #60a5fa;
-        --syntax-function: #a78bfa;
-        --syntax-variable: #f8f3ed;
-        --syntax-property: #f472b6;
-        --syntax-operator: #d7d0c7;
-        --syntax-number: #fbbf24;
-        --syntax-tag: #ff765a;
-        --syntax-punctuation: #a8a29e;
+        --canvas: #282c34;
+        --surface: #21252b;
+        --surface-raised: #2c313c;
+        --ink: #abb2bf;
+        --muted: #9da5b4;
+        --faint: #7f848e;
+        --line: #3e4451;
+        --line-strong: #4b5263;
+        --accent: #61afef;
+        --accent-strong: #61afef;
+        --accent-soft: #2c313c;
+        --code: #21252b;
+        --code-ink: #abb2bf;
+        --syntax-keyword: #c678dd;
+        --syntax-string: #98c379;
+        --syntax-comment: #7f848e;
+        --syntax-type: #e5c07b;
+        --syntax-function: #61afef;
+        --syntax-variable: #e06c75;
+        --syntax-property: #d19a66;
+        --syntax-operator: #56b6c2;
+        --syntax-number: #d19a66;
+        --syntax-tag: #e06c75;
+        --syntax-punctuation: #abb2bf;
         --header-height: 4.25rem;
-        color-scheme: light dark;
+        color-scheme: dark light;
         background: var(--canvas);
         color: var(--ink);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -251,7 +251,7 @@ import Html
     .article .rd-blockquote {
         margin: 1.4rem 0;
         padding: 1rem 1.15rem;
-        border: 1px solid #f3c9b9;
+        border: 1px solid var(--line);
         border-left: .25rem solid var(--accent);
         border-radius: .2rem .65rem .65rem .2rem;
         background: var(--accent-soft);
@@ -263,7 +263,7 @@ import Html
         border: 1px solid var(--line);
         border-radius: .35rem;
         background: var(--surface-raised);
-        color: #a52d1a;
+        color: var(--syntax-variable);
         font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
         font-size: .87em;
     }
@@ -271,7 +271,7 @@ import Html
         margin: 1.35rem 0;
         padding: 1.1rem 1.2rem;
         overflow-x: auto;
-        border: 1px solid #3b3733;
+        border: 1px solid var(--line);
         border-radius: .72rem;
         background: var(--code);
         box-shadow: 0 .7rem 2rem rgba(50, 35, 25, .08);
@@ -481,24 +481,24 @@ import Html
         border: 1px solid var(--line-strong);
     }
     .okf-status-stable {
-        background: color-mix(in srgb, #10b981 14%, var(--surface));
-        color: #059669;
-        border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
+        background: color-mix(in srgb, #98c379 16%, var(--surface));
+        color: #98c379;
+        border: 1px solid color-mix(in srgb, #98c379 40%, transparent);
     }
     .okf-status-draft {
-        background: color-mix(in srgb, #f59e0b 14%, var(--surface));
-        color: #d97706;
-        border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+        background: color-mix(in srgb, #d19a66 16%, var(--surface));
+        color: #d19a66;
+        border: 1px solid color-mix(in srgb, #d19a66 40%, transparent);
     }
     .okf-status-deprecated {
-        background: color-mix(in srgb, #ef4444 14%, var(--surface));
-        color: #dc2626;
-        border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+        background: color-mix(in srgb, #e06c75 16%, var(--surface));
+        color: #e06c75;
+        border: 1px solid color-mix(in srgb, #e06c75 40%, transparent);
     }
     .okf-auth-normative {
-        background: color-mix(in srgb, #6366f1 14%, var(--surface));
-        color: #4f46e5;
-        border: 1px solid color-mix(in srgb, #6366f1 35%, transparent);
+        background: color-mix(in srgb, #61afef 16%, var(--surface));
+        color: #61afef;
+        border: 1px solid color-mix(in srgb, #61afef 40%, transparent);
     }
     .okf-auth-descriptive {
         background: var(--surface-raised);
@@ -506,19 +506,19 @@ import Html
         border: 1px solid var(--line);
     }
     .okf-auth-exploratory {
-        background: color-mix(in srgb, #8b5cf6 14%, var(--surface));
-        color: #7c3aed;
-        border: 1px solid color-mix(in srgb, #8b5cf6 35%, transparent);
+        background: color-mix(in srgb, #c678dd 16%, var(--surface));
+        color: #c678dd;
+        border: 1px solid color-mix(in srgb, #c678dd 40%, transparent);
     }
     .okf-trust-human {
-        background: color-mix(in srgb, #10b981 12%, var(--surface));
-        color: #059669;
-        border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+        background: color-mix(in srgb, #98c379 14%, var(--surface));
+        color: #98c379;
+        border: 1px solid color-mix(in srgb, #98c379 35%, transparent);
     }
     .okf-trust-generated {
-        background: color-mix(in srgb, #f59e0b 12%, var(--surface));
-        color: #b45309;
-        border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+        background: color-mix(in srgb, #d19a66 14%, var(--surface));
+        color: #d19a66;
+        border: 1px solid color-mix(in srgb, #d19a66 35%, transparent);
     }
     .okf-trust-unverified {
         background: var(--surface-raised);
@@ -526,9 +526,9 @@ import Html
         border: 1px dashed var(--line-strong);
     }
     .okf-badge-stale {
-        background: color-mix(in srgb, #dc2626 12%, var(--surface));
-        color: #b91c1c;
-        border: 1px solid color-mix(in srgb, #dc2626 30%, transparent);
+        background: color-mix(in srgb, #e06c75 14%, var(--surface));
+        color: #e06c75;
+        border: 1px solid color-mix(in srgb, #e06c75 35%, transparent);
     }
 
     .okf-alert-banner {
@@ -538,9 +538,9 @@ import Html
         margin: .85rem 0;
         padding: .75rem .95rem;
         border-radius: .45rem;
-        background: color-mix(in srgb, #f59e0b 12%, var(--surface));
-        border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
-        border-left: .28rem solid #f59e0b;
+        background: color-mix(in srgb, #d19a66 12%, var(--surface));
+        border: 1px solid color-mix(in srgb, #d19a66 45%, transparent);
+        border-left: .28rem solid #d19a66;
         color: var(--ink);
         font-size: .86rem;
         line-height: 1.5;
@@ -661,7 +661,7 @@ import Html
         letter-spacing: .06em;
     }
     .okf-stat-card.is-action .okf-stat-value {
-        color: #d97706;
+        color: #d19a66;
     }
 
     .okf-filter-bar {
@@ -778,19 +778,19 @@ import Html
         letter-spacing: -.01em;
     }
     .okf-action-pill.pill-action {
-        background: color-mix(in srgb, #f59e0b 16%, var(--surface));
-        color: #b45309;
-        border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
+        background: color-mix(in srgb, #d19a66 16%, var(--surface));
+        color: #d19a66;
+        border: 1px solid color-mix(in srgb, #d19a66 45%, transparent);
     }
     .okf-action-pill.pill-clean {
-        background: color-mix(in srgb, #10b981 16%, var(--surface));
-        color: #059669;
-        border: 1px solid color-mix(in srgb, #10b981 45%, transparent);
+        background: color-mix(in srgb, #98c379 16%, var(--surface));
+        color: #98c379;
+        border: 1px solid color-mix(in srgb, #98c379 45%, transparent);
     }
     .okf-action-pill.pill-error {
-        background: color-mix(in srgb, #ef4444 16%, var(--surface));
-        color: #dc2626;
-        border: 1px solid color-mix(in srgb, #ef4444 45%, transparent);
+        background: color-mix(in srgb, #e06c75 16%, var(--surface));
+        color: #e06c75;
+        border: 1px solid color-mix(in srgb, #e06c75 45%, transparent);
     }
     .okf-action-pill.pill-info {
         background: var(--surface-raised);
@@ -869,41 +869,39 @@ import Html
         margin: 0 .3rem;
     }
 
-    @media (prefers-color-scheme: dark) {
+    @media (prefers-color-scheme: light) {
         :scope {
-            --canvas: #191817;
-            --surface: #22201e;
-            --surface-raised: #282522;
-            --ink: #f3eee8;
-            --muted: #b8b0a8;
-            --faint: #8c847c;
-            --line: #383431;
-            --line-strong: #4a4540;
-            --accent: #ff765a;
-            --accent-strong: #ff987f;
-            --accent-soft: #35231f;
-            --code: #11100f;
-            --code-ink: #f6ede5;
-            --syntax-keyword: #ff8c73;
-            --syntax-string: #5eead4;
-            --syntax-comment: #8c847c;
-            --syntax-type: #93c5fd;
-            --syntax-function: #c4b5fd;
-            --syntax-variable: #f6ede5;
-            --syntax-property: #f472b6;
-            --syntax-operator: #d6d3d1;
-            --syntax-number: #fde047;
-            --syntax-tag: #ff8c73;
-            --syntax-punctuation: #a8a29e;
+            --canvas: #fafafa;
+            --surface: #ffffff;
+            --surface-raised: #f0f0f1;
+            --ink: #383a42;
+            --muted: #696c77;
+            --faint: #a0a1a7;
+            --line: #e5e5e6;
+            --line-strong: #d0d0d1;
+            --accent: #4078f2;
+            --accent-strong: #4078f2;
+            --accent-soft: #eef2fb;
+            --code: #f0f0f1;
+            --code-ink: #383a42;
+            --syntax-keyword: #a626a4;
+            --syntax-string: #50a14f;
+            --syntax-comment: #a0a1a7;
+            --syntax-type: #c18401;
+            --syntax-function: #4078f2;
+            --syntax-variable: #e45649;
+            --syntax-property: #986801;
+            --syntax-operator: #0184bc;
+            --syntax-number: #986801;
+            --syntax-tag: #e45649;
+            --syntax-punctuation: #383a42;
         }
-        .article .rd-blockquote { border-color: #5b352c; }
-        .article .rd-code { color: #ff9a84; }
-        .okf-status-stable, .okf-trust-human, .okf-action-pill.pill-clean { color: #34d399; }
-        .okf-status-draft, .okf-trust-generated, .okf-action-pill.pill-action, .okf-stat-card.is-action .okf-stat-value { color: #fbbf24; }
-        .okf-status-deprecated, .okf-action-pill.pill-error { color: #f87171; }
-        .okf-auth-normative { color: #818cf8; }
-        .okf-auth-exploratory { color: #a78bfa; }
-        .okf-alert-banner { border-left-color: #fbbf24; }
+        .okf-status-stable, .okf-trust-human, .okf-action-pill.pill-clean { color: #50a14f; }
+        .okf-status-draft, .okf-trust-generated, .okf-action-pill.pill-action, .okf-stat-card.is-action .okf-stat-value { color: #986801; }
+        .okf-status-deprecated, .okf-action-pill.pill-error { color: #e45649; }
+        .okf-auth-normative { color: #4078f2; }
+        .okf-auth-exploratory { color: #a626a4; }
+        .okf-alert-banner { border-left-color: #986801; }
     }
 
     @media print {
@@ -963,7 +961,7 @@ import Html
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <meta name="color-scheme" content="light dark" />
+            <meta name="color-scheme" content="dark light" />
             <meta http-equiv="Content-Security-Policy" content={resources.csp} />
             <title>{title} · {site.title}</title>
             <link rel="stylesheet" href={resources.stylesheet} />

@@ -126,7 +126,7 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 | `layout` | Statically resolvable Roc value path |
 | `draft` | `Bool.true` or `Bool.false` |
 | `theme` | Built-in ID, local theme ID, `none`, or CSS file path |
-| `color_scheme` | `auto`, `light`, or `dark` |
+| `color_scheme` | `auto`, `light`, or `dark`. Default `paper` uses One Light / One Dark Pro |
 | `meta` | Roc record; title and description are statically extracted |
 
 ## Markdown profile

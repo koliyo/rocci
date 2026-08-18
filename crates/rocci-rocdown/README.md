@@ -175,7 +175,7 @@ At most one per file. Unknown top-level fields are errors. Extracted controls:
 | `layout` | statically resolvable Roc path, called as `Layout({ meta, content })` |
 | `draft` | `Bool.true` or `Bool.false` |
 | `theme` | compile-time string; `paper` (default), `rocci`, `none`, a name in `~/.rocci/themes`, or a CSS file path |
-| `color_scheme` | `"auto"` (OS light/dark), `"light"`, or `"dark"` |
+| `color_scheme` | `"auto"` (OS light/dark), `"light"`, or `"dark"`. The default `paper` palette is One Light / One Dark Pro. |
 | `meta` | arbitrary Roc record; `title` is copied onto the default document `<title>` |
 
 Without `layout`, the compiler emits a minimal `<html>` document: charset,

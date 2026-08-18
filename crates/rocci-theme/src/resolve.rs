@@ -272,6 +272,8 @@ mod tests {
         assert_eq!(theme.id, PAPER_ID);
         assert!(!theme.css.is_empty());
         assert!(theme.css.contains("--rd-color-bg:"));
+        assert!(theme.css.contains("#282c34"));
+        assert!(theme.css.contains("#61afef"));
         assert!(theme.css.contains("light-dark("));
         assert!(theme.css.contains(".rd-header-1"));
         assert!(theme.css.contains(".rd-shell"));
