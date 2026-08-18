@@ -33,6 +33,7 @@ ROCDOWN = {
     "rocci-rocdown-lsp",
     "rocci-playground-spike",
     "rocci-playground",
+    "rocci-playground-wasm",
 }
 
 OKF_ENGINE = {"okf"}

@@ -17,6 +17,7 @@ members = [
     "crates/rocci-datastar",
     "crates/rocci-playground-spike",
     "crates/rocci-playground",
+    "crates/rocci-playground-wasm",
 ]
 exclude = ["editors/zed"]
 default-members = ["crates/rocci-cli"]
@@ -40,6 +41,7 @@ rocci-rocdown = { path = "crates/rocci-rocdown" }
 rocci-rocdown-cli = { path = "crates/rocci-rocdown-cli" }
 rocci-rocdown-lsp = { path = "crates/rocci-rocdown-lsp" }
 rocci-playground = { path = "crates/rocci-playground" }
+rocci-playground-wasm = { path = "crates/rocci-playground-wasm" }
 rocci-theme = { path = "crates/rocci-theme" }
 rocci-highlight = { path = "crates/rocci-highlight" }
 rocci-lsp = { path = "crates/rocci-lsp" }

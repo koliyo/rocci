@@ -2192,6 +2192,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocci-playground-wasm"
+version = "0.1.0"
+dependencies = [
+ "rocci-playground",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "rocci-rocdown"
 version = "0.1.0"
 dependencies = [

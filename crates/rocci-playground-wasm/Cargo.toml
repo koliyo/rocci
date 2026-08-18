@@ -1,0 +1,15 @@
+[package]
+name = "rocci-playground-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WASM adapter and JS/C-ABI exports for Rocci and Rocdown playground compilation"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rocci-playground = { workspace = true }
+wasm-bindgen = "0.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
