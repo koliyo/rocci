@@ -105,9 +105,84 @@ pub fn resolve_bundle_path(source_path: &str, raw: &str) -> Option<String> {
     Some(path)
 }
 
+pub fn published_href(source_path: &str, raw: &str) -> Option<String> {
+    if external_url(raw) || raw.starts_with('#') {
+        return None;
+    }
+    let (path, fragment) = split_fragment(raw);
+    if path.is_empty() {
+        return None;
+    }
+    let resolved = resolve_bundle_path(source_path, path)?;
+    let route = published_route(&resolved)?;
+    Some(match fragment {
+        Some(fragment) if !fragment.is_empty() => format!("{route}#{fragment}"),
+        _ => route,
+    })
+}
+
+fn published_route(resolved: &str) -> Option<String> {
+    if resolved.is_empty() {
+        return Some("/".into());
+    }
+    if resolved.ends_with('/') {
+        return Some(format!("/{resolved}"));
+    }
+    let stem = resolved.strip_suffix(".md")?;
+    if stem.is_empty() || stem == "index" {
+        return Some("/".into());
+    }
+    if let Some(collection) = stem.strip_suffix("/index") {
+        return Some(format!("/{collection}/"));
+    }
+    Some(format!("/{stem}/"))
+}
+
 pub fn split_fragment(url: &str) -> (&str, Option<&str>) {
     match url.split_once('#') {
         Some((path, fragment)) => (path, Some(fragment)),
         None => (url, None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn published_href_maps_bundle_markdown_to_site_routes() {
+        assert_eq!(
+            published_href("plans/example.md", "/decisions/foo.md"),
+            Some("/decisions/foo/".into())
+        );
+        assert_eq!(
+            published_href("plans/example.md", "../decisions/foo.md"),
+            Some("/decisions/foo/".into())
+        );
+        assert_eq!(
+            published_href("index.md", "architecture/"),
+            Some("/architecture/".into())
+        );
+        assert_eq!(
+            published_href("index.md", "/architecture/index.md"),
+            Some("/architecture/".into())
+        );
+        assert_eq!(
+            published_href("plans/example.md", "/index.md"),
+            Some("/".into())
+        );
+        assert_eq!(
+            published_href("plans/example.md", "/decisions/foo.md#context"),
+            Some("/decisions/foo/#context".into())
+        );
+    }
+
+    #[test]
+    fn published_href_leaves_non_markdown_and_escapes_unchanged() {
+        assert_eq!(published_href("index.md", "https://example.com/docs"), None);
+        assert_eq!(published_href("plans/example.md", "#heading"), None);
+        assert_eq!(published_href("plans/example.md", "../../README.md"), None);
+        assert_eq!(published_href("index.md", "migration-matrix.tsv"), None);
+        assert_eq!(published_href("index.md", "/assets/diagram.png"), None);
     }
 }

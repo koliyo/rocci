@@ -226,3 +226,84 @@ fn resolve_preview_path_opens_bundle_and_concept() {
     let _ = fs::remove_dir_all(root);
     let _ = fs::remove_dir_all(outside);
 }
+
+#[test]
+fn article_html_rewrites_bundle_root_links() {
+    let root = temp("rewrite-links");
+    fs::write(
+        root.join("index.md"),
+        "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n\n* [Architecture](architecture/)\n",
+    )
+    .unwrap();
+    let architecture = root.join("architecture");
+    fs::create_dir(&architecture).unwrap();
+    fs::write(architecture.join("index.md"), "# Architecture\n").unwrap();
+    fs::write(
+        architecture.join("overview.md"),
+        valid_rocci_concept(
+            "Overview",
+            "",
+            "See the [decision](/decisions/choice.md#context) and [relative](../decisions/choice.md).\n\nThe [matrix](../migration-matrix.tsv) stays a file link.\n",
+        ),
+    )
+    .unwrap();
+    let decisions = root.join("decisions");
+    fs::create_dir(&decisions).unwrap();
+    fs::write(decisions.join("index.md"), "# Decisions\n").unwrap();
+    fs::write(
+        decisions.join("choice.md"),
+        valid_rocci_concept("Choice", "", "## Context\n\nAccepted.\n"),
+    )
+    .unwrap();
+    fs::write(root.join("migration-matrix.tsv"), "id\tpath\n").unwrap();
+
+    let bundle = load(&root, Profile::Rocci).expect("load bundle");
+    let overview = bundle
+        .concepts
+        .iter()
+        .find(|concept| concept.id == "architecture/overview")
+        .expect("overview concept");
+    assert!(
+        overview
+            .links
+            .iter()
+            .any(|link| link.url == "/decisions/choice.md#context"),
+        "authored bundle-root href should stay on concept.links"
+    );
+    assert!(
+        overview
+            .links
+            .iter()
+            .any(|link| link.url == "../decisions/choice.md"),
+        "authored relative href should stay on concept.links"
+    );
+    assert!(
+        overview
+            .article_html
+            .contains("href=\"/decisions/choice/#context\"")
+    );
+    assert!(
+        overview
+            .article_html
+            .contains("href=\"/decisions/choice/\"")
+    );
+    assert!(
+        !overview
+            .article_html
+            .contains("href=\"/decisions/choice.md")
+    );
+    assert!(
+        overview
+            .article_html
+            .contains("href=\"../migration-matrix.tsv\"")
+    );
+
+    let home = bundle
+        .indexes
+        .iter()
+        .find(|index| index.path == "index.md")
+        .expect("root index");
+    assert!(home.article_html.contains("href=\"/architecture/\""));
+
+    let _ = fs::remove_dir_all(root);
+}

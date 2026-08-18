@@ -18,7 +18,7 @@ Dependencies:
 ## Core Features
 
 - **Multi-Profile Validation**: `Profile::Base` (portable OKF specification) and `Profile::Rocci` (strict evidence, verification, and owners).
-- **Graph Resolution**: Strict and fuzzy concept ID matching, fragment checking, and directed edge construction.
+- **Graph Resolution**: Strict and fuzzy concept ID matching, fragment checking, and directed edge construction. Authored `/path.md` links are bundle-root; `article_html` rewrites in-bundle Markdown hrefs to published `/{id}/` routes while `concept.links` keep the source URLs.
 - **Search & Chunking**: Semantic search indexing by metadata and headings with BM25/lexical matching.
 - **Retrieval Benchmarking**: Automated evaluation against test questions with hit rate and MRR metrics.
 - **Deterministic Build**: Emits `catalog.json`, `search.json`, `validation.json`, and `llms.txt`.

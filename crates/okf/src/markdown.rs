@@ -6,6 +6,7 @@ use comrak::{Arena, Options, parse_document};
 use crate::ast::{Heading, HeadingSection, Link, Span};
 use crate::diagnostic::Diagnostic;
 use crate::frontmatter::{lines_with_offsets, location};
+use crate::graph::published_href;
 
 pub struct MarkdownOutput {
     pub headings: Vec<Heading>,
@@ -53,6 +54,7 @@ pub fn parse_markdown_body(
     };
 
     walker.walk(root);
+    rewrite_article_links(root, relative);
 
     // Extract heading sections for search indexing
     let mut heading_sections = Vec::new();
@@ -170,6 +172,20 @@ impl<'a> MarkdownWalker<'a> {
         for child in node.children() {
             self.walk(child);
         }
+    }
+}
+
+fn rewrite_article_links<'a>(node: &'a AstNode<'a>, source_path: &str) {
+    {
+        let mut data = node.data.borrow_mut();
+        if let NodeValue::Link(link) = &mut data.value
+            && let Some(href) = published_href(source_path, &link.url)
+        {
+            link.url = href;
+        }
+    }
+    for child in node.children() {
+        rewrite_article_links(child, source_path);
     }
 }
 

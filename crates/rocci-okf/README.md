@@ -41,6 +41,9 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 The review viewer uses a dark One Dark Pro palette. Pages with H2 or H3
 headings get a left “On this page” navigator, matching standalone Rocdown.
+Authored knowledge links such as `/decisions/foo.md` are bundle-root paths;
+the review site publishes them at `/decisions/foo/` and writes collection
+indexes such as `/architecture/`.
 
 ```sh
 # Run with desktop window

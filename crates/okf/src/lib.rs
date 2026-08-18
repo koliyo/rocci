@@ -32,7 +32,7 @@ pub use diagnostic::{Diagnostic, Severity, SourceLocation};
 pub use frontmatter::{
     Frontmatter, lines_with_offsets, location, parse_yaml_mapping, split_frontmatter,
 };
-pub use graph::{resolve_bundle_path, resolve_graph, split_fragment};
+pub use graph::{published_href, resolve_bundle_path, resolve_graph, split_fragment};
 pub use markdown::{
     MarkdownOutput, footnote_labels, parse_markdown_body, reject_declarations, slugify,
 };
