@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use rocci_cli::driver::GenericAppPlan;
 use rocci_cli::error_page;
-use rocci_rocdown::{StandaloneReady, ThemeArgs, linked_standalone_inputs, plan_standalone};
+use rocci_rocdown::{
+    StandaloneReady, ThemeArgs, ThemeOptions, linked_standalone_inputs, plan_standalone,
+};
 
 fn temp_app(name: &str) -> PathBuf {
     let dir = env::temp_dir().join(format!("rocdown-run-{}-{}", name, std::process::id()));
@@ -18,7 +20,7 @@ fn cleanup(dir: &Path) {
 }
 
 fn plan_ready(path: &Path) -> GenericAppPlan {
-    match plan_standalone(path, &rocci_theme::ThemeOptions::default()).unwrap() {
+    match plan_standalone(path, &ThemeOptions::default()).unwrap() {
         StandaloneReady::Ready(plan) => GenericAppPlan {
             primary_name: plan.primary_name,
             modules: plan
@@ -210,8 +212,7 @@ fn errors_parse_example_builds_error_page() {
         .join("../../examples/errors/parse/Broken.rocdown")
         .canonicalize()
         .unwrap();
-    let StandaloneReady::Failed(files) =
-        plan_standalone(&path, &rocci_theme::ThemeOptions::default()).unwrap()
+    let StandaloneReady::Failed(files) = plan_standalone(&path, &ThemeOptions::default()).unwrap()
     else {
         panic!("expected template failure");
     };
@@ -318,8 +319,7 @@ fn standalone_compile_failure_builds_error_page() {
     let dir = temp_app("compile-fail");
     let path = dir.join("Broken.rocdown");
     fs::write(&path, "@page {\n").unwrap();
-    let StandaloneReady::Failed(files) =
-        plan_standalone(&path, &rocci_theme::ThemeOptions::default()).unwrap()
+    let StandaloneReady::Failed(files) = plan_standalone(&path, &ThemeOptions::default()).unwrap()
     else {
         cleanup(&dir);
         panic!("expected template failure");

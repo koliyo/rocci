@@ -100,7 +100,7 @@ pub fn load_config(root: &Path) -> Result<SiteConfig> {
     load_config_named(root, CONFIG_FILE)
 }
 
-pub fn load_config_named(root: &Path, filename: &str) -> Result<SiteConfig> {
+fn load_config_named(root: &Path, filename: &str) -> Result<SiteConfig> {
     let path = root.join(filename);
     if !path.exists() {
         return Ok(SiteConfig::default());

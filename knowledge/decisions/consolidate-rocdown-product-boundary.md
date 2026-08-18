@@ -64,12 +64,12 @@ sources:
 
 ## Status
 
-The maintainer approved this replacement direction on 2026-08-17 and froze the
-remaining Phase 0 names, compatibility, diagnostic-code, and OKF-exception
-choices the same day. The record remains `draft` pending evidence review; the
-architecture is not yet implemented. The current repository still exposes
-Rocdown through base Rocci commands and tooling and exposes the static
-generator as Rocs.[^current-system][^workspace]
+The maintainer approved this replacement direction on 2026-08-17 and the
+architecture has been implemented across the workspace. Rocdown owns its document
+format, static generator, CLI, theme resolver, and document tooling; base Rocci
+has zero Rocdown or OKF package dependencies; the portable `okf` engine and
+`rocci-okf` application are independent; and `rocci-rocdown-lsp` provides the
+product language-server binary composing both analyzers.[^current-system][^workspace]
 
 ## Context
 
@@ -163,11 +163,16 @@ series.[^refactor-plan]
    domain-neutral Rocci components and view data. Rocdown and OKF navigation,
    routing, graph, lifecycle, and validation rules remain with their domains.
 
-These rules reverse the current base-tooling dependencies recorded by the
-workspace, where `rocci-cli`, `rocci-highlight`, and `rocci-lsp` directly
-consume `rocci-rocdown`.[^workspace] Direct workspace edges are checked by
-`scripts/check-workspace-deps.py`; today's reverse edges are allowlisted until
-Phase 3 removes them.[^architecture-check]
+These rules reverse the previous base-tooling dependencies. Direct workspace
+edges are checked mechanically by `scripts/check-workspace-deps.py` with zero
+allowlisted reverse edges.[^architecture-check]
+
+7. As a purely user-facing convenience, `rocci run` emits a helpful diagnostic
+   hint when given a `.rocdown` or `.md` file, pointing the author to
+   `rocdown run`. This operates solely via string inspection on the file extension
+   at the CLI boundary without importing Rocdown packages, ASTs, or runtime types.
+8. `rocci-theme` is an internal theme resolver crate within the Rocdown boundary,
+   consumed directly by `rocci-rocdown` and accessed via the Rocdown facade.
 
 ## Diagnostic codes
 
