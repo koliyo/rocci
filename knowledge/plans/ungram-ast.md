@@ -4,7 +4,7 @@ title: Ungrammar AST codegen for Rocci and Rocdown
 description: "Phased delivery of ungrammar as the tree spec for both languages, a shared generator of owned AST structs, and CI drift checks. Scanners and parsers stay hand-written."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T14:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T14:30:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -284,6 +284,10 @@ Keep `impl` methods, `ParsedParams`, and `parse_component_params` in
 **Done when:** template parsers, lowerers, and inspect tests use generated
 types with no public API rename. `rocci-template` still has no
 `rocci-rocdown` or `ungrammar` dependency.[^template-lib][^language-dev][^product-boundary]
+
+**Status:** implemented on `ungram-ast-implementation` (`ast.generated.rs`
+plus hand-written helpers in `ast.rs`). Not CI-complete. Rocdown cutover
+is Phase 4.
 
 ### Phase 4 — Cut over Rocdown non-`MdNode` nodes
 

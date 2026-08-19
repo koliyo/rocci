@@ -10,9 +10,7 @@ pub struct Document {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ModuleItem {
-    Roc {
-        span: Span,
-    },
+    Roc { span: Span },
     Component(ComponentDecl),
     Fixture(FixtureDecl),
     Css(CssDecl),
@@ -204,17 +202,9 @@ pub struct Attr {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AttrValue {
-    Static {
-        span: Span,
-        value: String,
-    },
-    Expr {
-        expr: Span,
-    },
-    Action {
-        name: Ident,
-        args: Span,
-    },
+    Static { span: Span, value: String },
+    Expr { expr: Span },
+    Action { name: Ident, args: Span },
     Boolean,
 }
 
