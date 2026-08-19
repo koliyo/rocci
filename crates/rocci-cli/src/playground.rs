@@ -530,6 +530,7 @@ pub fn run_playground_cli(
             state_key: None,
             inspector_url: None,
             source_root: None,
+            ..PreviewOptions::default()
         })
         .context("failed to open playground desktop preview window")?;
 

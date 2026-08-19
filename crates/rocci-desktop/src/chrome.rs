@@ -17,6 +17,8 @@ pub const FIND_PREV_SCRIPT: &str =
     "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.prev()";
 pub const FIND_USE_SELECTION_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.useSelection()";
 pub const GOTO_OPEN_SCRIPT: &str = "window.__rocciGoto&&window.__rocciGoto.open()||window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
+pub const PICKER_OPEN_SCRIPT: &str =
+    "window.__rocciBrowser&&window.__rocciBrowser.open&&window.__rocciBrowser.open()";
 pub const SELECT_ALL_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.selectAll&&window.__rocciPreviewNav.selectAll()||document.execCommand(\"selectAll\")";
 
 pub fn reveal_label() -> &'static str {
@@ -32,6 +34,13 @@ pub fn reveal_label() -> &'static str {
     {
         "Show in Files"
     }
+}
+
+pub fn set_inspector_script(url: &str) -> String {
+    format!(
+        "window.__rocciPreviewNav&&window.__rocciPreviewNav.setInspectorUrl&&window.__rocciPreviewNav.setInspectorUrl({})",
+        json_string(url)
+    )
 }
 
 pub fn initialization_script(inspector_url: Option<&str>, has_source_root: bool) -> String {
@@ -214,6 +223,9 @@ mod tests {
         assert!(FIND_OPEN_SCRIPT.contains("find.open"));
         assert!(GOTO_OPEN_SCRIPT.contains("goto.open"));
         assert!(SELECT_ALL_SCRIPT.contains("selectAll"));
+        assert!(PICKER_OPEN_SCRIPT.contains("__rocciBrowser"));
+        assert!(set_inspector_script("http://127.0.0.1:9/inspect").contains("setInspectorUrl"));
+        assert!(PREVIEW_NAV_JS.contains("setInspectorUrl"));
     }
 
     #[test]

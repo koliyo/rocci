@@ -10,6 +10,7 @@ use rocci_browser::{Host, OpenRequest, Opened, Paths, Registry};
 use serde_json::json;
 
 mod tui;
+mod window;
 
 #[derive(Parser)]
 #[command(
@@ -18,7 +19,7 @@ mod tui;
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -57,7 +58,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let paths = Paths::from_env()?;
     match cli.command {
-        Commands::Add { path, id } => {
+        None => window::run()?,
+        Some(Commands::Add { path, id }) => {
             let canonical = fs::canonicalize(&path)
                 .with_context(|| format!("cannot resolve {}", path.display()))?;
             let id = id.unwrap_or_else(|| {
@@ -72,7 +74,7 @@ fn main() -> Result<()> {
             registry.save(&paths)?;
             println!("added {id} -> {}", canonical.display());
         }
-        Commands::Remove { query } => {
+        Some(Commands::Remove { query }) => {
             let mut registry = Registry::load(&paths)?;
             if !registry.remove(&query) {
                 bail!("no project matched {query}");
@@ -80,7 +82,7 @@ fn main() -> Result<()> {
             registry.save(&paths)?;
             println!("removed {query}");
         }
-        Commands::List => {
+        Some(Commands::List) => {
             let mut host = Host::connect(paths)?;
             print_warnings(&host.warnings);
             let registry = host.registry()?;
@@ -106,12 +108,12 @@ fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Open {
+        Some(Commands::Open {
             query,
             document,
             no_window,
             json,
-        } => {
+        }) => {
             let mut host = Host::connect(paths)?;
             print_warnings(&host.warnings);
             let opened = host.open(OpenRequest {
@@ -121,7 +123,7 @@ fn main() -> Result<()> {
             emit_open(&opened, no_window, json)?;
             keep_serving(&mut host, no_window)?;
         }
-        Commands::Tui { no_window, json } => {
+        Some(Commands::Tui { no_window, json }) => {
             let mut host = Host::connect(paths)?;
             print_warnings(&host.warnings);
             if tui::run(&mut host, no_window, json)?.is_some() {
@@ -156,7 +158,9 @@ fn emit_open(opened: &Opened, _no_window: bool, json: bool) -> Result<()> {
 fn keep_serving(host: &mut Host, no_window: bool) -> Result<()> {
     let _ = host;
     if !no_window {
-        eprintln!("preview window is not available yet; serving until stdin closes");
+        eprintln!(
+            "pass --no-window to print a URL; rocci-browser with no args opens the preview window"
+        );
     }
     if std::io::stdin().is_terminal() {
         std::thread::park();

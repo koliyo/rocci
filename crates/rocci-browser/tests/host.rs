@@ -232,6 +232,10 @@ fn crate_src_does_not_name_other_products() {
     }
 }
 
+#[test]
+#[ignore = "opens a display; session switching is covered by SessionTable unit tests"]
+fn graphical_two_opens_require_a_display() {}
+
 fn visit_rs(dir: &Path, files: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();

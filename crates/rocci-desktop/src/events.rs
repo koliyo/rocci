@@ -21,6 +21,16 @@ pub enum PreviewEvent {
     CopySource(String),
     Loaded(String),
     Title(String),
+    Navigate {
+        url: String,
+        title: String,
+        inspector_url: Option<String>,
+    },
+    Evaluate(String),
+}
+
+pub trait PreviewSink: Send + Sync {
+    fn send(&self, event: PreviewEvent);
 }
 
 pub fn map_window_event(event: &tao::event::WindowEvent) -> Option<WindowEvent> {
