@@ -17,6 +17,8 @@ pub enum ShellEvent {
 #[derive(Debug)]
 pub enum PreviewEvent {
     Command(NavCommand),
+    Reveal(String),
+    CopySource(String),
     Loaded(String),
     Title(String),
 }

@@ -33,6 +33,19 @@
     <div class="title" id="title"></div>
   </div>
   <div class="controls trailing">
+    <div class="more">
+      <button type="button" id="more" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" hidden>
+        <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <circle cx="3.5" cy="8" r="1.15" fill="currentColor" />
+          <circle cx="8" cy="8" r="1.15" fill="currentColor" />
+          <circle cx="12.5" cy="8" r="1.15" fill="currentColor" />
+        </svg>
+      </button>
+      <div class="more-menu" id="more-menu" role="menu" hidden>
+        <button type="button" class="menu-item" id="reveal" role="menuitem">Reveal in Finder</button>
+        <button type="button" class="menu-item" id="copy-source" role="menuitem">Copy original document</button>
+      </div>
+    </div>
     <button type="button" id="dev" aria-label="Developer panel" aria-pressed="false" hidden>
       <svg class="icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
         <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M3 12h3M3 8h6M3 4h10" />

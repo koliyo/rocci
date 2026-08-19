@@ -19,20 +19,38 @@ pub const FIND_PREV_SCRIPT: &str =
 pub const FIND_USE_SELECTION_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.useSelection()";
 pub const GOTO_OPEN_SCRIPT: &str =
     "window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
+pub const SELECT_ALL_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.selectAll&&window.__rocciPreviewNav.selectAll()||document.execCommand(\"selectAll\")";
 
-pub fn initialization_script_with_inspector(inspector_url: Option<&str>) -> String {
+pub fn reveal_label() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "Reveal in Finder"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "Show in Explorer"
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        "Show in Files"
+    }
+}
+
+pub fn initialization_script(inspector_url: Option<&str>, has_source_root: bool) -> String {
     let inspector = match inspector_url {
         Some(url) => json_string(url),
         None => "null".to_string(),
     };
     format!(
-        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_PREVIEW_GOTO_HTML__ = {};\nconst __ROCCI_PREVIEW_GOTO_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
+        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_PREVIEW_GOTO_HTML__ = {};\nconst __ROCCI_PREVIEW_GOTO_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
         json_string(PREVIEW_FIND_HTML.trim_end()),
         json_string(PREVIEW_FIND_CSS.trim_end()),
         json_string(PREVIEW_GOTO_HTML.trim_end()),
         json_string(PREVIEW_GOTO_CSS.trim_end()),
+        if has_source_root { "true" } else { "false" },
+        json_string(reveal_label()),
     )
 }
 
@@ -69,7 +87,7 @@ mod tests {
 
     #[test]
     fn script_has_navigation_controls() {
-        let script = initialization_script_with_inspector(None);
+        let script = initialization_script(None, false);
         assert!(script.contains("window.ipc.postMessage"));
         assert!(script.contains("rocci-preview-nav"));
         assert!(script.contains("--rocci-chrome-top"));
@@ -80,7 +98,18 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_PREVIEW_NAV_HTML__"));
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_PREVIEW_NAV_CSS__"));
         assert!(PREVIEW_NAV_CSS.contains("flex-wrap: nowrap"));
-        for id in ["back", "forward", "home", "reload", "title", "path", "dev"] {
+        for id in [
+            "back",
+            "forward",
+            "home",
+            "reload",
+            "title",
+            "path",
+            "dev",
+            "more",
+            "reveal",
+            "copy-source",
+        ] {
             assert!(
                 PREVIEW_NAV_HTML.contains(&format!("id=\"{id}\"")),
                 "missing id {id}"
@@ -92,30 +121,42 @@ mod tests {
             "aria-label=\"Home\"",
             "aria-label=\"Reload\"",
             "aria-label=\"Developer panel\"",
+            "aria-label=\"More actions\"",
         ] {
             assert!(PREVIEW_NAV_HTML.contains(label), "missing {label}");
         }
+        assert!(PREVIEW_NAV_HTML.contains("Copy original document"));
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_INSPECTOR_URL__"));
+        assert!(PREVIEW_NAV_JS.contains("__ROCCI_HAS_SOURCE_ROOT__"));
+        assert!(PREVIEW_NAV_JS.contains("__ROCCI_REVEAL_LABEL__"));
+        assert!(PREVIEW_NAV_JS.contains("copy-source:"));
+        assert!(PREVIEW_NAV_JS.contains("reveal:"));
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
         assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
         assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev)"));
-        assert!(PREVIEW_NAV_JS.contains("--rocci-chrome-top: \" +\n    HEIGHT"));
-        assert!(!initialization_script_with_inspector(None).contains("http://127.0.0.1"));
-        let with_inspector =
-            initialization_script_with_inspector(Some("http://127.0.0.1:9/__rocci/dev"));
+        assert!(PREVIEW_NAV_JS.contains("overflow: visible"));
+        assert!(PREVIEW_NAV_CSS.contains("overflow: visible"));
+        assert!(!initialization_script(None, false).contains("http://127.0.0.1"));
+        assert!(
+            initialization_script(None, false).contains("const __ROCCI_HAS_SOURCE_ROOT__ = false")
+        );
+        assert!(
+            initialization_script(None, true).contains("const __ROCCI_HAS_SOURCE_ROOT__ = true")
+        );
+        assert!(initialization_script(None, true).contains(reveal_label()));
+        let with_inspector = initialization_script(Some("http://127.0.0.1:9/__rocci/dev"), false);
         assert!(
             with_inspector
                 .contains(r#"const __ROCCI_INSPECTOR_URL__ = "http://127.0.0.1:9/__rocci/dev""#)
         );
         assert!(
-            initialization_script_with_inspector(None)
-                .contains("const __ROCCI_INSPECTOR_URL__ = null")
+            initialization_script(None, false).contains("const __ROCCI_INSPECTOR_URL__ = null")
         );
     }
 
     #[test]
     fn script_has_find_and_goto_overlays() {
-        let script = initialization_script_with_inspector(None);
+        let script = initialization_script(None, false);
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_HTML__"));
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_CSS__"));
         assert!(script.contains("const __ROCCI_PREVIEW_GOTO_HTML__"));
@@ -131,9 +172,18 @@ mod tests {
         assert!(PREVIEW_FIND_JS.contains("useSelection"));
         assert!(PREVIEW_GOTO_JS.contains("/pages.json"));
         assert!(PREVIEW_GOTO_JS.contains("/catalog.json"));
+        assert!(PREVIEW_GOTO_JS.contains("loadCatalog"));
+        assert!(PREVIEW_KEYS_JS.contains("closeMore"));
         assert!(PREVIEW_KEYS_JS.contains("preventDefault"));
+        assert!(PREVIEW_KEYS_JS.contains("selectAll"));
+        assert!(PREVIEW_KEYS_JS.contains("key === \"a\""));
+        assert!(
+            PREVIEW_KEYS_JS.contains("[data-rd-select-root], article.rd-article, article.article")
+        );
+        assert!(!PREVIEW_NAV_HTML.contains("copy-mode"));
         assert!(FIND_OPEN_SCRIPT.contains("find.open"));
         assert!(GOTO_OPEN_SCRIPT.contains("goto.open"));
+        assert!(SELECT_ALL_SCRIPT.contains("selectAll"));
     }
 
     #[test]

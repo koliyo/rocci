@@ -173,6 +173,7 @@ import PageOutline
         height: calc(100vh - var(--header-height));
         padding: 2.15rem 1.5rem 2rem 1.2rem;
         overflow-y: auto;
+        user-select: none;
     }
     .outline-label {
         margin: 0 0 .65rem;
@@ -298,6 +299,7 @@ import PageOutline
         border-radius: .68rem;
         background: var(--surface);
         box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .02);
+        user-select: none;
     }
     .okf-badge-group {
         display: flex;
@@ -862,7 +864,7 @@ import PageOutline
                     @if layout != "home" {
                         <Breadcrumbs.breadcrumbs breadcrumbs={breadcrumbs} route={route} />
                     }
-                    <article class="article">{content}</article>
+                    <article class="article" data-rd-select-root>{content}</article>
                     @if layout == "collection" {
                         <div class="collection-items">
                             @for item in collection_items {
