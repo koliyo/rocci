@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Generalized Rocdown block model
-description: "Exploratory research for a uniform Rocdown article-block AST. Decision: :name with [params] and {{ }} bodies. Draft AST ungram in crates/rocci-rocdown. Not shipped."
+description: "Exploratory research for a uniform Rocdown article-block AST. Decision: :name with [params] and {{ }} bodies. Source spelling later shipped; renderer override is a follow-on."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -129,6 +129,11 @@ sources:
     title: Generalized Rocdown block model implementation plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: renderer-research
+    resource: rocdown-block-renderers.md
+    title: Custom Rocdown block schemas and renderers
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: ungram-research
     resource: ungram-ast.md
     title: Ungrammar as AST spec for Rocci and Rocdown
@@ -158,7 +163,13 @@ Sub-questions:
 6. Article blocks do **not** share single `@`. Prefix is **`:`** (not `::`,
    not `!`).
 
-This is not yet a language change. Do not treat sketches as shipped syntax.
+The decided spelling (`:name[params]`, `{{ }}` / `:end.kind`) is now the
+public Rocdown contract in `crates/rocci-rocdown`. This record remains
+exploratory historical research for *why* that spelling won. Schema versus
+renderer, site overrides, and constrained children as a reusable interface
+are a follow-on: [custom block schemas and renderers](rocdown-block-renderers.md).[^renderer-research]
+Do not treat the sketches under `knowledge/research/syntax/` as the shipped
+reference; use `test/AllSyntax.rocdown` and the crate README.
 
 ## Topic background
 
@@ -896,3 +907,4 @@ namespace or inline decorations in the first syntax.
 [^exploration-brief]: Maintainer framing: AST then Rocci renderers, params versus content, dynamic types, ungram.
 [^impl-plan]: Phased delivery plan for the decided spelling and uniform article tree; exploratory, not shipped.
 [^ungram-research]: Both-language ungram as tree spec; generate owned structs; no scanner codegen.
+[^renderer-research]: Follow-on: schema versus renderer, child constraints as data, site pack overrides.

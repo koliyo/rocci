@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Added draft [custom Rocdown block schemas and renderers](research/rocdown-block-renderers.md) research and [implementation plan](plans/rocdown-block-renderers.md): treat shipped `:kind` as a Rocci function interface with constrained children; site theme packs override painters (HTML structure, not only CSS); builtin defaults stay; missing custom painters debug in preview and error on build. Exploratory; no phase started.
 - Added draft [rocci-browser research](research/rocci-browser.md): a fourth, product-blind host (CLI plus desktop) that registers project directories, fuzzy-picks a target, Enter opens the directory and Tab drills into adapter-supplied documents, then `load_url`s existing `run --no-window` origins. Out-of-process adapters, not plugins on `rocci`/`rocdown`; does not reverse the CLI entry-points plan. Exploratory; no implementation plan.
 - Documented the cheap `@rocci.dev` mailbox path in [Tangled hosting](plans/tangled-hosting.md) Phase 0: restore registrar DNS if NS is still `registrant-verification.com`, then Cloudflare Email Routing (free inbound) to `oss@rocci.dev`. No Google Workspace. On 2026-08-19 the domain had no MX.
 - Recorded how to register a dedicated Tangled/AT account: bare `rocci` is not a valid handle; prefer `rocci.dev` (DNS TXT on `_atproto.rocci.dev`) after signing up at tangled.org/signup as `rocci.tngl.sh`. `rocci.bsky.social` is an unrelated existing account. See [Tangled hosting plan](plans/tangled-hosting.md) Phase 0.

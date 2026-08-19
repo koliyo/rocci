@@ -4,7 +4,7 @@ title: Generalized Rocdown block model
 description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. No @docs compatibility window."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -12,6 +12,11 @@ sources:
   - id: research
     resource: ../research/generalized-rocdown-block-model.md
     title: Generalized Rocdown block model research
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: renderer-plan
+    resource: rocdown-block-renderers.md
+    title: Custom Rocdown block schemas and renderers plan
     author: process:cursor
     last_modified: 2026-08-19
   - id: syntax-recommended
@@ -180,6 +185,11 @@ research](/research/generalized-rocdown-block-model.md). It is exploratory
 until a human reviewer accepts a scope. It does not describe shipped
 behavior. Architecture records and crate READMEs remain the current
 contract.[^research][^rocdown-readme][^format-arch]
+
+The `:name[params]` spelling later landed on main. Renderer override,
+generic child policy, and site `[blocks]` config are a follow-on:
+[custom block schemas and renderers](rocdown-block-renderers.md).[^renderer-plan] Do not
+start that work from this record.
 
 Do not start a phase until the user asks to implement it. Use the
 `rocci-language-dev` skill for grammar, scanning, parsing, AST, validation,
@@ -724,3 +734,4 @@ workflows (CI and Knowledge) have succeeded on that revision.
 [^language-dev]: Grammar/parser/lowering workflow, monotonic scanners, AllSyntax inspect.
 [^rocci-author]: Authoring skill; wrong until the syntax exists, then used to rewrite pages.
 [^ungram-plan]: Shared generator of owned AST structs from Rocci and Rocdown ungrams; scanners stay hand-written.
+[^renderer-plan]: Follow-on plan for schema/renderer split and site pack overrides.
