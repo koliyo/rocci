@@ -786,7 +786,7 @@ mod tests {
             let mut chars = spec.component.chars();
             let first = chars.next().unwrap();
             let roc_name: String = first.to_lowercase().chain(chars).collect();
-            let call = format!("DocsComponents.{roc_name}");
+            let call = format!("BlockPainters.{roc_name}");
             assert!(
                 src.contains(&call),
                 "RocdownBuild.roc missing `{call}` for kind `{}`",
