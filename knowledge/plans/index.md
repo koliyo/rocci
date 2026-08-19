@@ -1,5 +1,6 @@
 # Plans
 
+* [OKF load-performance improvements](okf-load-performance.md) - Phased reduction of `okf::load` latency: split load spans, batch git provenance, preview-without-provenance, watch parse cache, optional bounded concept preview. Exploratory; no phase started.
 * [Hybrid Rocdown islands for CDN-static sites](hybrid-rocdown-islands.md) - Phased delivery of CDN-static HTML with dynamic Rocci components backed by a rocci/rocdown island service. Article widgets out of scope. Exploratory; not shipped.
 * [Generalized Rocdown block model](generalized-rocdown-block-model.md) - Phased delivery of uniform article `BlockCall` nodes, `:name[params]` spelling, a closed builtin registry, and per-kind Rocci renderers. Exploratory; not shipped.
 * [Full Rocci and Rocdown language tooling](language-server.md) - Proposed region-aware editor tooling with shared token spans and product-owned server composition under the boundary refactor.
