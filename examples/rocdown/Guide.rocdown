@@ -50,7 +50,7 @@ Rocdown is a content-first format. Email us at docs@example.com or mention
 
 <FeatureCount count={feature_count} />
 
-See also [[Interactive]] and the [interactive guide](Interactive.rocdown).
+See also [[Blocks]], [[Interactive]], and the [interactive guide](Interactive.rocdown).
 
 ## Displayed code
 

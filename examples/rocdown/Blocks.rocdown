@@ -1,0 +1,59 @@
+@page {
+    route: "/guides/rocdown-blocks/",
+    draft: Bool.false,
+    theme: "rocci",
+    color_scheme: "light",
+    meta: {
+        title: "Rocdown blocks",
+        description: "Line, section, and :end article blocks beside Markdown",
+    },
+}
+
+# Rocdown blocks
+
+Ordinary prose stays Markdown. A line-start `:note` is a block; a colon in a
+sentence is not. See also [[Guide]] and [[Interactive]].
+
+Content is the rest of the line, a `{{ }}` section, or a matching `:end.kind`.
+
+:note Do not paste raw HTML into Markdown. Use a block when the page needs structure beyond CommonMark.
+
+:caution[title: "Removed spelling"] Leftover `@docs caution` is a removal error. Write `:caution` instead.
+
+:tip Line-scope still works when the body fits on one line.
+
+:note[title: "Static pages"] {{
+    Rocdown accepts these blocks next to Markdown and `@page`.
+
+    `@render`, `@roc`, and other islands still require `rocdown run` / `rocci run`.
+}}
+
+## Procedures and alternatives
+
+:steps
+    :step[title: "Write a block"] Start a document-root line with `:` and the kind name.
+    :step[title: "Prefer the rest of the line"] One-line content does not need braces.
+    :step[title: "Wrap nested document"] {{
+        Use `{{ ... }}` when the body has paragraphs, fences, or nested blocks.
+    }}
+:end.steps
+
+:tabs[group: "os", kind: "platform"]
+    :tab[id: "mac", label: "macOS"] Mac panel.
+    :tab[id: "linux", label: "Linux"] Linux panel.
+:end.tabs
+
+## Figures, labels, and extra structure
+
+:figure[caption: "A banana", credit: "Rocci fixtures"] {{
+    :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+}}
+
+:badge[label: "preview", tone: "preview"]
+
+:details[summary: "What stays in the document"] {{
+    Every tab panel and disclosure body is in the HTML. Print and browsers
+    with scripts disabled still show the content.
+}}
+
+:definition[term: "Article block"] A `:kind[params]` node with optional Markdown or nested blocks as its body.

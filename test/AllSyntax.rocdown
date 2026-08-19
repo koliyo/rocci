@@ -69,13 +69,22 @@ answer = 42
     Ready => <Hello name="ready" />
 }
 
-:img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+:figure[caption: "A banana", credit: "Rocci fixtures"] {{
+    :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+}}
 
 :note Don't do this.
 
 :note[title: "Watch"] {{
 Nested section body.
 }}
+
+:details[summary: "More"] Nested details body.
+
+:steps
+    :step[title: "One"] First step.
+    :step[title: "Two"] Second step.
+:end.steps
 
 :tabs[group: "os", kind: "platform"]
     :tab[id: "mac", label: "macOS"] Mac panel.
