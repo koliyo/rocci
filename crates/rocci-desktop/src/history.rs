@@ -108,6 +108,11 @@ impl NavHistory {
         self.intent = Intent::Home;
     }
 
+    pub fn reset_origin(&mut self, url: impl Into<String>) {
+        *self = Self::new(url);
+        self.intent = Intent::Home;
+    }
+
     pub fn commit(&mut self, url: &str) {
         let url = normalize_url(url);
         if url.is_empty() || url == "about:blank" {
@@ -266,6 +271,19 @@ mod tests {
         history.request_back();
         history.commit(GUIDE);
         assert_eq!(history.current(), Some(GUIDE));
+    }
+
+    #[test]
+    fn reset_origin_starts_a_new_home() {
+        let mut history = NavHistory::new(GUIDE);
+        history.commit(GUIDE);
+        history.commit(INTERACTIVE);
+        history.reset_origin(ABOUT);
+        history.commit(ABOUT);
+        assert!(!history.can_back());
+        assert!(!history.can_forward());
+        assert_eq!(history.home(), ABOUT);
+        assert_eq!(history.current(), Some(ABOUT));
     }
 
     #[test]

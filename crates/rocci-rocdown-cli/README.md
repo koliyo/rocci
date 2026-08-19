@@ -52,6 +52,9 @@ cargo run -p rocci-rocdown-cli -- playground examples/counter/Counter.rocci
 
 # Local mode: native parse/lower; Rocdown HTML snapshots are not available yet
 cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown --mode local
+
+# Speak the rocci-browser adapter protocol on stdio (probe / listDocuments / open)
+cargo run -p rocci-rocdown-cli -- browser-adapter
 ```
 
 ## Architectural Boundary

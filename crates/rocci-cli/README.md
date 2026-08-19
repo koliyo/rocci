@@ -57,6 +57,9 @@ cargo run -p rocci-cli -- bundle --config rocci.toml
 # Pin or update Datastar JavaScript assets
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
+
+# Speak the rocci-browser adapter protocol on stdio (probe / listDocuments / open)
+cargo run -p rocci-cli -- browser-adapter
 ```
 
 `templates/dev/MetricsPanel.rocci` is the preview-origin Dev inspector. It has

@@ -459,6 +459,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         inspector_url: None,
         source_root: None,
         live_reload: true,
+        ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     let _ = child.kill();

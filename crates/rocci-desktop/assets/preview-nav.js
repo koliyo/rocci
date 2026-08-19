@@ -14,7 +14,7 @@
   const DOCKS = { right: true, bottom: true };
   const DEFAULT_RIGHT = "28rem";
   const DEFAULT_BOTTOM = "36vh";
-  const inspectorUrl =
+  let inspectorUrl =
     typeof __ROCCI_INSPECTOR_URL__ === "string" ? __ROCCI_INSPECTOR_URL__ : null;
   const hasSourceRoot = __ROCCI_HAS_SOURCE_ROOT__ === true;
   const revealLabel =
@@ -432,6 +432,15 @@
   }
 
   window.__rocciPreviewNav = {
+    setInspectorUrl(url) {
+      inspectorUrl = typeof url === "string" && url ? url : null;
+      if (dev) {
+        dev.hidden = !inspectorUrl;
+      }
+      if (inspectorUrl && panel && panel.classList.contains("open")) {
+        syncFrame(routeOf(window.location.href));
+      }
+    },
     update(next) {
       if (typeof next.title === "string") {
         title.textContent = next.title;

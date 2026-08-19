@@ -24,6 +24,7 @@ rocci-roc-host = { workspace = true }
 rocci-ui = { workspace = true }
 rocci-template = { workspace = true }
 rocci-desktop = { workspace = true }
+rocci-browser = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10"
