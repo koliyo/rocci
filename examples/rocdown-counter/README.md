@@ -27,7 +27,8 @@ cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window
 This serves the CDN tree and proxies `/actions/` on one origin
 ([http://127.0.0.1:8000](http://127.0.0.1:8000) by default). Omit `--no-window`
 to open an embedded preview. Override the port with `--port` or
-`ROC_BASIC_WEBSERVER_PORT`.
+`ROC_BASIC_WEBSERVER_PORT`. Generated island `main.roc` binds `127.0.0.1` unless
+`ROC_BASIC_WEBSERVER_HOST` is set (use `0.0.0.0` behind Docker Compose).
 
 Preview SQLite state is ephemeral (`islands.db` in the staging workspace).
 Handler and content edits reload; durable production state uses
@@ -113,6 +114,34 @@ A sibling `[http].service` `.rocci` app is an alternative to colocated `@on`.
 `rocdown serve-islands` runs that file with `rocci run` instead of generating
 a dispatcher. The app must return island fragments, not a full HTML document,
 and must not rely on GET `/` (the CDN owns page GET).
+
+## Local Docker
+
+Same-origin two-image layout: Caddy serves the CDN tree and reverse-proxies
+`/actions/` plus `/health` to `serve-islands`. Images are defined in
+[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile). From the
+repository root:
+
+```sh
+docker compose -f examples/rocdown-counter/docker-compose.yml up --build
+```
+
+Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
+[/about/](http://127.0.0.1:8080/about/) (static). SQLite state is the
+`counter-db` volume (`DB_PATH=/var/lib/rocci/counter.db`). The islands
+container sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so Caddy can reach it.
+
+Smoke through Caddy, not the island port:
+
+```sh
+curl -s http://127.0.0.1:8080/health
+curl -s -X POST http://127.0.0.1:8080/actions/counter/increment
+curl -s http://127.0.0.1:8080/about/ | grep -E '<script>|datastar' || true
+```
+
+First boot may spend a minute compiling generated `main.roc`. Image build
+needs Docker with BuildKit and network access for the pinned Roc nightly and
+crates.io.
 
 ## Smoke checks
 

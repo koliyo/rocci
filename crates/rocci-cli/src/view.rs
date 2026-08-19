@@ -379,7 +379,7 @@ init! = || {{
     }})
     config =
         Server.default_config
-        .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
+        .with_listen({{ host: listen_host!({{}}), port: listen_port!({{}}) }})
         .with_file_roots([assets])
         .with_native_routes({{
             files: [
@@ -422,6 +422,7 @@ html_ok = |body|
         "GET", "/", "view",
     )]));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
 }
 
@@ -634,6 +635,8 @@ mod tests {
         assert!(main.contains("/assets/datastar.js"));
         assert!(main.contains("with_listen"));
         assert!(main.contains("ROC_BASIC_WEBSERVER_PORT"));
+        assert!(main.contains("ROC_BASIC_WEBSERVER_HOST"));
+        assert!(main.contains("host: listen_host!({})"));
 
         let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false);
         assert!(page.contains("import pf.Path"));

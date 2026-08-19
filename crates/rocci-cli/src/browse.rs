@@ -1621,7 +1621,7 @@ init! = || {{
     }})
     config =
         Server.default_config
-        .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
+        .with_listen({{ host: listen_host!({{}}), port: listen_port!({{}}) }})
         .with_file_roots([assets])
         .with_native_routes({{
             files: [
@@ -1751,6 +1751,7 @@ html_ok = |body|
     );
     out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
 }
 
