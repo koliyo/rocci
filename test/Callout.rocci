@@ -1,0 +1,20 @@
+import Html
+
+@css {
+    .rd-callout {
+        margin: 1.25rem 0;
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--line);
+        border-left-width: 0.35rem;
+        border-radius: 0.55rem;
+        background: var(--surface);
+    }
+    .rd-callout-warn { border-left-color: #b7791f; }
+    .rd-callout-info { border-left-color: var(--accent); }
+}
+
+@component Callout = |{ tone }, content| {
+    <aside class={"rd-callout rd-callout-${tone}"} data-rocci-docs="callout">
+        {content}
+    </aside>
+}

@@ -83,6 +83,9 @@ pub fn collect_rocdown(
             Item::Context(context) => collect_context(src, collector, context),
             Item::Init(init) => collect_init(src, collector, init),
             Item::On(on) => collect_on(src, collector, on),
+            Item::Use(used) => {
+                collect_keyword(src, collector, used.span, used.path_span.start, "@use");
+            }
             Item::Template(item) => {
                 collect_items(src, collector, std::slice::from_ref(item));
             }
@@ -462,6 +465,16 @@ fn collect_rocdown_items(
                         20,
                     );
                 }
+            }
+            Item::Use(used) => {
+                builder.add(
+                    LanguageId::Rocdown,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    used.span,
+                    Some(parent_id),
+                    10,
+                );
             }
             Item::Template(item) => {
                 collect_template_item_regions(builder, std::slice::from_ref(item), parent_id);

@@ -426,3 +426,120 @@ fn block_level_markdown_image_becomes_img_block() {
         other => panic!("expected string src, got {other:?}"),
     }
 }
+
+fn temp_use_dir(name: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "rocdown-use-{}-{}-{}",
+        name,
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn write_callout(dir: &std::path::Path) {
+    std::fs::write(
+        dir.join("Callout.rocci"),
+        include_str!("../../../test/Callout.rocci"),
+    )
+    .unwrap();
+}
+
+#[test]
+fn use_maps_exported_component_to_article_kind() {
+    let dir = temp_use_dir("ok");
+    write_callout(&dir);
+    let path = dir.join("Page.rocdown");
+    let src = "@use \"./Callout.rocci\"\n\n:callout[tone: \"warn\"] Be careful.\n";
+    std::fs::write(&path, src).unwrap();
+    let parsed = parse(SourceFile::new(&path.to_string_lossy(), src), false);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(use ./Callout.rocci)"), "{ast}");
+    assert!(ast.contains("(block callout)"), "{ast}");
+    let out = compile(
+        SourceFile::new(&path.to_string_lossy(), src),
+        &CompileOptions::default(),
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    assert!(
+        out.roc.contains("callout("),
+        "imported kind should call the component:\n{}",
+        out.roc
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn unknown_callout_without_use_remains_an_error() {
+    let src = ":callout[tone: \"warn\"] Be careful.\n";
+    let parsed = parse_src(src);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("unknown article kind `:callout`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn use_missing_file_is_a_diagnostic() {
+    let dir = temp_use_dir("missing");
+    let path = dir.join("Page.rocdown");
+    let src = "@use \"./Missing.rocci\"\n\n:callout Hi.\n";
+    std::fs::write(&path, src).unwrap();
+    let parsed = parse(SourceFile::new(&path.to_string_lossy(), src), false);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter().any(|msg| msg.contains("does not exist")),
+        "{errs:?}"
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("unknown article kind `:callout`")),
+        "{errs:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn use_without_component_export_is_a_diagnostic() {
+    let dir = temp_use_dir("css-only");
+    std::fs::write(
+        dir.join("Empty.rocci"),
+        "import Html\n\n@css { .x { color: red; } }\n",
+    )
+    .unwrap();
+    let path = dir.join("Page.rocdown");
+    let src = "@use \"./Empty.rocci\"\n\n:callout Hi.\n";
+    std::fs::write(&path, src).unwrap();
+    let parsed = parse(SourceFile::new(&path.to_string_lossy(), src), false);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("does not export an `@component`")),
+        "{errs:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn use_is_a_reserved_module_name() {
+    let src = ":use Hello.\n";
+    let parsed = parse_src(src);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`:use` collides with a reserved module name")),
+        "{errs:?}"
+    );
+}

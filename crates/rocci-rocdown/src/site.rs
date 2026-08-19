@@ -170,7 +170,21 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 );
             }
         }
-        if compiled.has_errors() {
+        let has_use = compiled
+            .document
+            .items
+            .iter()
+            .any(|item| matches!(item, Item::Use(_)));
+        if has_use {
+            diagnostics.push(CatalogDiagnostic::error(
+                "RD2301",
+                &relative_name,
+                format!(
+                    "{relative_name} contains `@use`; custom static blocks belong in the compiled theme"
+                ),
+            ));
+        }
+        if compiled.has_errors() || has_use {
             continue;
         }
         if compiled.roc.contains("import Datastar") {
@@ -794,6 +808,29 @@ mod tests {
         let rendered = report.render(CheckFormat::Terminal).unwrap();
         assert!(
             rendered.contains("unknown article kind `:widget`"),
+            "{rendered}"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_rejects_use_for_static_sites() {
+        let root = temp("use-static");
+        fs::write(
+            root.join("Callout.rocci"),
+            include_str!("../../../test/Callout.rocci"),
+        )
+        .unwrap();
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n@use \"./Callout.rocci\"\n\n:callout[tone: \"warn\"] Be careful.\n",
+        )
+        .unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors());
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(
+            rendered.contains("custom static blocks belong in the compiled theme"),
             "{rendered}"
         );
         let _ = fs::remove_dir_all(root);

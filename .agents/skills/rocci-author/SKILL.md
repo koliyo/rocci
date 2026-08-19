@@ -33,9 +33,10 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 
 Static `rocdown build` currently accepts Markdown, `@page`, and `:kind` article
 blocks. Dynamic
-`@roc`, `@render`, Rocci components, file `@css`, handlers, and custom layouts
+`@roc`, `@render`, Rocci components, file `@css`, handlers, `@use`, and custom layouts
 work with `rocci run` / standalone `rocdown run`, and are rejected by the static
-site pipeline until island splicing lands.
+site pipeline until island splicing lands. Custom static kinds belong in the
+compiled theme.
 
 ## Project and directory conventions
 
@@ -95,6 +96,8 @@ site pipeline until island splicing lands.
 - `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,
   `include`, …). Nested blocks are legal; `@page` / `@roc` / handlers inside a
   block body are errors. Leftover `@docs` / `@img` is a removal error.
+  Interactive `rocdown run` may `@use "./Callout.rocci"` to import extra kinds
+  (`Callout` → `:callout`). Static `rocdown build` / `check` reject `@use`.
 - `:img` requires `alt` or `decorative: Bool.true`, not both with a non-empty
   alt. Local `src` is relative to the source file.
 - Names `rocci_meta`, `rocci_content`, and `rocci_page` are reserved.

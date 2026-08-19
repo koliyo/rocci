@@ -8,7 +8,7 @@ use rocci_template::{
 
 use crate::ast::{
     BlockCall, BlockContent, BraceSection, BracketRecord, Document, EndMarker, EndSection, Item,
-    LineContent, MdNode, PageDecl, ParamField, ParamValue, RenderDecl, RocDecl,
+    LineContent, MdNode, PageDecl, ParamField, ParamValue, RenderDecl, RocDecl, UseDecl,
 };
 use crate::markdown::{self, BlockOrHole};
 use crate::params;
@@ -57,7 +57,14 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         items,
         span: Span::new(0, source.src.len()),
     };
-    validate_colon_tree(source.src, &document.items, None, &mut diagnostics);
+    let imported = crate::imports::imported_kind_names(source, &document, &mut diagnostics);
+    validate_colon_tree(
+        source.src,
+        &document.items,
+        None,
+        &imported,
+        &mut diagnostics,
+    );
     validate_footnotes(source.src, &document, &mut diagnostics);
 
     let mut headings = converted.headings;
@@ -586,27 +593,48 @@ fn validate_colon_tree(
     src: &str,
     items: &[Item],
     parent: Option<&str>,
+    imported: &HashSet<String>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     for item in items {
+        if let Item::Use(decl) = item
+            && parent.is_some()
+        {
+            diagnostics.push(Diagnostic::error(
+                decl.span,
+                "`@use` is only valid at document root, not inside an article block",
+            ));
+            continue;
+        }
         let Item::Block(call) = item else {
             continue;
         };
         if !call.is_colon(src) {
             continue;
         }
-        validate_colon_call(call, parent, diagnostics);
+        validate_colon_call(call, parent, imported, diagnostics);
         if let Some(content) = call.content_span()
             && !content.is_empty()
         {
             let nested = parse_fragment(SourceFile::new("fragment", src), content, false);
             diagnostics.extend(nested.diagnostics);
-            validate_colon_tree(src, &nested.document.items, Some(&call.name), diagnostics);
+            validate_colon_tree(
+                src,
+                &nested.document.items,
+                Some(&call.name),
+                imported,
+                diagnostics,
+            );
         }
     }
 }
 
-fn validate_colon_call(call: &BlockCall, parent: Option<&str>, diagnostics: &mut Vec<Diagnostic>) {
+fn validate_colon_call(
+    call: &BlockCall,
+    parent: Option<&str>,
+    imported: &HashSet<String>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
     if crate::registry::module_collision(&call.name) {
         diagnostics.push(Diagnostic::error(
             call.name_span,
@@ -615,6 +643,9 @@ fn validate_colon_call(call: &BlockCall, parent: Option<&str>, diagnostics: &mut
                 call.name
             ),
         ));
+        return;
+    }
+    if imported.contains(&call.name) {
         return;
     }
     let Some(spec) = crate::registry::lookup(&call.name) else {
@@ -693,6 +724,14 @@ fn fill_at_decl(
             let expr = inner_span(src, decl.at);
             Item::Render(RenderDecl {
                 expr,
+                span: Span::new(decl.at, decl.end),
+            })
+        }
+        Reserved::Use => {
+            let (path, path_span) = crate::imports::parse_use_path(src, decl.at, decl.end);
+            Item::Use(UseDecl {
+                path,
+                path_span,
                 span: Span::new(decl.at, decl.end),
             })
         }

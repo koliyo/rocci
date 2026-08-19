@@ -12,6 +12,7 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
             Item::Context(_) => return Err("@context"),
             Item::Init(_) => return Err("@init"),
             Item::On(_) => return Err("@on"),
+            Item::Use(_) => return Err("@use"),
             Item::Template(_) => return Err("Rocci template"),
         }
     }
@@ -544,6 +545,19 @@ Text in rocdown.
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert_eq!(is_static_document(&out.document), Err("@render"));
+    }
+
+    #[test]
+    fn rejects_use_imports() {
+        let src = "# Hi\n\n@use \"./Callout.rocci\"\n";
+        let out = compile(
+            SourceFile::new("island.rocdown", src),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        assert_eq!(is_static_document(&out.document), Err("@use"));
     }
 
     #[test]

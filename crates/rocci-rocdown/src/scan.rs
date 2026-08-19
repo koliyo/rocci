@@ -14,6 +14,7 @@ pub enum Reserved {
     Context,
     Init,
     On,
+    Use,
     If,
     For,
     Match,
@@ -32,6 +33,7 @@ impl Reserved {
             "context" => Self::Context,
             "init" => Self::Init,
             "on" => Self::On,
+            "use" => Self::Use,
             "if" => Self::If,
             "for" => Self::For,
             "match" => Self::Match,
@@ -51,6 +53,7 @@ impl Reserved {
             Self::Context => "context",
             Self::Init => "init",
             Self::On => "on",
+            Self::Use => "use",
             Self::If => "if",
             Self::For => "for",
             Self::Match => "match",
@@ -239,6 +242,8 @@ fn try_scan_decl(
     } else if kind.is_template() {
         let parsed = parse_template_item_from(src, at)?;
         (parsed.end, parsed.diagnostics)
+    } else if kind == Reserved::Use {
+        skip_use_path(src, at)
     } else {
         skip_brace_block(src, at, kind)
     };
@@ -630,6 +635,10 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }
+        Reserved::Use => {
+            cur.skip_trivia();
+            cur.peek() == Some('"')
+        }
         Reserved::If | Reserved::Match => header_has_body_brace(src, after_name),
         Reserved::For => header_matches_for(src, after_name),
         Reserved::Let => header_matches_let(src, after_name),
@@ -698,6 +707,36 @@ fn header_matches_let(src: &str, after_name: usize) -> bool {
     }
     cur.skip_spaces_tabs();
     cur.peek() == Some('=')
+}
+
+fn skip_use_path(src: &str, at: usize) -> (usize, Vec<Diagnostic>) {
+    let mut diagnostics = Vec::new();
+    let mut cur = Cursor::at(src, at);
+    cur.eat('@');
+    cur.scan_ident();
+    cur.skip_trivia();
+    if cur.peek() != Some('"') {
+        diagnostics.push(Diagnostic::error(
+            Span::point(cur.pos),
+            "expected a string path after `@use`",
+        ));
+        if !cur.is_eof() {
+            cur.bump();
+        }
+        return (cur.pos, diagnostics);
+    }
+    let start = cur.pos;
+    cur.skip_string();
+    if cur.pos <= start || src.as_bytes().get(cur.pos.saturating_sub(1)) != Some(&b'"') {
+        diagnostics.push(Diagnostic::error(
+            Span::new(start, cur.pos),
+            "unterminated `@use` path; expected `\"`",
+        ));
+        if cur.pos == start && !cur.is_eof() {
+            cur.bump();
+        }
+    }
+    (cur.pos, diagnostics)
 }
 
 fn skip_brace_block(src: &str, at: usize, kind: Reserved) -> (usize, Vec<Diagnostic>) {
