@@ -1,0 +1,52 @@
+# Maps Rocdown.Markdown.ungram productions onto shipped MdNode.
+# Extra analysis payloads live on variants via [inline], not as tree children.
+
+[meta]
+ungram = "Rocdown.Markdown.ungram"
+uses = ["rocci_template::Span"]
+
+[generated]
+MdNode = "rocci_rocdown::MdNode"
+
+[inline]
+Heading = "MdNode::Heading { level: u8, id: String, children: Vec<MdNode>, span: Span }"
+Paragraph = "MdNode::Paragraph { children: Vec<MdNode>, span: Span }"
+BlockQuote = "MdNode::BlockQuote { children: Vec<MdNode>, span: Span }"
+List = "MdNode::List { ordered: bool, start: u64, children: Vec<MdNode>, span: Span }"
+Item = "MdNode::Item { children: Vec<MdNode>, span: Span }"
+TaskItem = "MdNode::TaskItem { checked: bool, children: Vec<MdNode>, span: Span }"
+CodeBlock = "MdNode::CodeBlock { info: String, literal: String, span: Span }"
+ThematicBreak = "MdNode::ThematicBreak { span: Span }"
+Table = "MdNode::Table { children: Vec<MdNode>, span: Span }"
+TableRow = "MdNode::TableRow { header: bool, children: Vec<MdNode>, span: Span }"
+TableCell = "MdNode::TableCell { children: Vec<MdNode>, span: Span }"
+Text = "MdNode::Text { value: String, span: Span }"
+SoftBreak = "MdNode::SoftBreak { span: Span }"
+LineBreak = "MdNode::LineBreak { span: Span }"
+Code = "MdNode::Code { value: String, span: Span }"
+Emph = "MdNode::Emph { children: Vec<MdNode>, span: Span }"
+Strong = "MdNode::Strong { children: Vec<MdNode>, span: Span }"
+Strikethrough = "MdNode::Strikethrough { children: Vec<MdNode>, span: Span }"
+FootnoteDefinition = "MdNode::FootnoteDefinition { name: String, total_references: u32, children: Vec<MdNode>, span: Span }"
+FootnoteReference = "MdNode::FootnoteReference { name: String, reference_number: u32, index: u32, span: Span }"
+Link = "MdNode::Link { url: String, title: String, children: Vec<MdNode>, span: Span }"
+Image = "MdNode::Image { url: String, title: String, alt: String, span: Span }"
+RawHtml = "MdNode::RawHtml { html: String, span: Span }"
+
+[inspect.fallback]
+MdNode = "md"
+
+[inspect.overlay]
+MdNode = "write_md"
+
+[inspect.tags]
+Heading = "h"
+Paragraph = "p"
+Text = "text"
+Code = "code"
+CodeBlock = "fence"
+Link = "a"
+List = "ul"
+Item = "li"
+Emph = "em"
+Strong = "strong"

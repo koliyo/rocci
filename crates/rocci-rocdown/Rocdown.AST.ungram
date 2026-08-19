@@ -83,7 +83,7 @@ TemplateItem = 'rocci-template-item'
 /// Opaque `{ ... }` whose insides are Roc or CSS, not nested Rocdown.
 BracePayload = '{' '}'
 
-/// opaque → rocci_rocdown::MdNode (Comrak). Do not generate in v1.
+/// opaque → generated `MdNode` from Rocdown.Markdown.ungram (Comrak projection).
 MdNode = 'md-node'
 
 /// Uniform article node. Sugar headings/images lower to this too.

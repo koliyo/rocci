@@ -1,26 +1,16 @@
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, MatchDirective, ModuleItem, OnDecl,
-    TemplateBlock, TemplateItem,
+    FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation, LetDirective,
+    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, TextNode,
 };
 use crate::span::Span;
+
+// Inspect heads live in Rocci.AST.toml [inspect]. This file owns Writer and atom policy.
 
 pub fn format_ast(src: &str, document: &Document) -> String {
     let mut out = String::new();
     let mut w = Writer::new(&mut out);
-    w.open("module", &[]);
-    for item in &document.items {
-        match item {
-            ModuleItem::Roc { span } => write_roc(&mut w, span.of(src)),
-            ModuleItem::Component(component) => write_component(&mut w, src, component),
-            ModuleItem::Fixture(fixture) => write_fixture(&mut w, src, fixture),
-            ModuleItem::Css(css) => write_css(&mut w, src, css),
-            ModuleItem::Context(context) => write_context(&mut w, src, context),
-            ModuleItem::Init(init) => write_init(&mut w, src, init),
-            ModuleItem::On(on) => write_on(&mut w, src, on),
-        }
-    }
-    w.close();
+    write_document(&mut w, src, document);
     if !out.ends_with('\n') {
         out.push('\n');
     }
@@ -79,6 +69,10 @@ impl<'a> Writer<'a> {
     }
 }
 
+fn write_roc_region(w: &mut Writer<'_>, src: &str, span: &Span) {
+    write_roc(w, span.of(src));
+}
+
 fn write_roc(w: &mut Writer<'_>, text: &str) {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -103,7 +97,7 @@ fn write_roc(w: &mut Writer<'_>, text: &str) {
 fn write_component(w: &mut Writer<'_>, src: &str, component: &ComponentDecl) {
     w.open("component", &[atom(&component.name.name)]);
     w.leaf("params", &[atom(component.params.of(src).trim())]);
-    write_block(w, src, &component.body);
+    write_template_block(w, src, &component.body);
     w.close();
 }
 
@@ -119,25 +113,16 @@ fn write_fixture(w: &mut Writer<'_>, src: &str, fixture: &FixtureDecl) {
     w.close();
 }
 
-fn write_block(w: &mut Writer<'_>, src: &str, block: &TemplateBlock) {
-    for item in &block.items {
-        write_item(w, src, item);
-    }
+fn write_text(w: &mut Writer<'_>, _src: &str, text: &TextNode) {
+    w.leaf("text", &[string_atom(&text.value)]);
 }
 
-fn write_item(w: &mut Writer<'_>, src: &str, item: &TemplateItem) {
-    match item {
-        TemplateItem::Element(el) => write_element(w, src, el),
-        TemplateItem::ComponentCall(call) => write_call(w, src, call),
-        TemplateItem::Fragment(frag) => write_fragment(w, src, frag),
-        TemplateItem::Text(text) => w.leaf("text", &[string_atom(&text.value)]),
-        TemplateItem::Interpolation(interp) => w.leaf("interp", &[roc_atom(src, interp.expr)]),
-        TemplateItem::If(dir) => write_if(w, src, dir),
-        TemplateItem::For(dir) => write_for(w, src, dir),
-        TemplateItem::Match(dir) => write_match(w, src, dir),
-        TemplateItem::Let(dir) => w.leaf("let", &[atom(&dir.binder.name), roc_atom(src, dir.expr)]),
-        TemplateItem::Css(css) => write_css(w, src, css),
-    }
+fn write_interp(w: &mut Writer<'_>, src: &str, interp: &Interpolation) {
+    w.leaf("interp", &[roc_atom(src, interp.expr)]);
+}
+
+fn write_let(w: &mut Writer<'_>, src: &str, dir: &LetDirective) {
+    w.leaf("let", &[atom(&dir.binder.name), roc_atom(src, dir.expr)]);
 }
 
 fn write_css(w: &mut Writer<'_>, src: &str, css: &CssDecl) {
@@ -179,7 +164,7 @@ fn write_element(w: &mut Writer<'_>, src: &str, el: &Element) {
     w.open("element", &head);
     write_attrs(w, src, &el.attrs);
     for child in &el.children {
-        write_item(w, src, child);
+        write_template_item(w, src, child);
     }
     w.close();
 }
@@ -197,7 +182,7 @@ fn write_call(w: &mut Writer<'_>, src: &str, call: &ComponentCall) {
     w.open("call", &head);
     write_attrs(w, src, &call.attrs);
     for child in children {
-        write_item(w, src, child);
+        write_template_item(w, src, child);
     }
     w.close();
 }
@@ -209,7 +194,7 @@ fn write_fragment(w: &mut Writer<'_>, src: &str, frag: &Fragment) {
     }
     w.open("fragment", &[]);
     for child in &frag.children {
-        write_item(w, src, child);
+        write_template_item(w, src, child);
     }
     w.close();
 }
@@ -240,15 +225,15 @@ fn write_attrs(w: &mut Writer<'_>, src: &str, attrs: &[Attr]) {
 
 fn write_if(w: &mut Writer<'_>, src: &str, dir: &IfDirective) {
     w.open("if", &[roc_atom(src, dir.condition)]);
-    write_block(w, src, &dir.then_body);
+    write_template_block(w, src, &dir.then_body);
     for (cond, body) in &dir.else_ifs {
         w.open("else-if", &[roc_atom(src, *cond)]);
-        write_block(w, src, body);
+        write_template_block(w, src, body);
         w.close();
     }
     if let Some(body) = &dir.else_body {
         w.open("else", &[]);
-        write_block(w, src, body);
+        write_template_block(w, src, body);
         w.close();
     }
     w.close();
@@ -259,7 +244,7 @@ fn write_for(w: &mut Writer<'_>, src: &str, dir: &ForDirective) {
         "for",
         &[atom(&dir.binder.name), roc_atom(src, dir.collection)],
     );
-    write_block(w, src, &dir.body);
+    write_template_block(w, src, &dir.body);
     w.close();
 }
 
@@ -267,7 +252,7 @@ fn write_match(w: &mut Writer<'_>, src: &str, dir: &MatchDirective) {
     w.open("match", &[roc_atom(src, dir.scrutinee)]);
     for arm in &dir.arms {
         w.open("arm", &[roc_atom(src, arm.pattern)]);
-        write_item(w, src, &arm.value);
+        write_template_item(w, src, &arm.value);
         w.close();
     }
     w.close();
@@ -323,3 +308,5 @@ fn string_atom(text: &str) -> String {
     out.push('"');
     out
 }
+
+include!("pprint.generated.rs");

@@ -4,7 +4,7 @@ title: Ungram follow-on backends after owned-struct codegen
 description: "After v1 AST struct codegen: freeze inspect tags and generate exhaustive format_ast walkers, add NodeKind coverage for highlighters, generate MdNode from a second Markdown ungram, and emit a public tree appendix. Do not generate SyntaxKind, highlighters, scanners, or a CST."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T18:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -361,6 +361,8 @@ Each phase is one mergeable change. Do not start one until asked.
 
 ### Phase 1 — Freeze the inspect tag contract
 
+**Status:** complete.
+
 **Bound:** document every inspect head the printers emit today, map it
 to an ungram production (or to an explicit omit / fallback), and fail
 `--check` when a **generated** production has no inspect mapping. Do not
@@ -392,6 +394,8 @@ added to the ungram without an inspect mapping.
 
 ### Phase 2 — Generate exhaustive `format_ast` walkers
 
+**Status:** complete.
+
 **Bound:** emit committed `pprint.generated.rs` (or `mod` inside
 `pprint.rs`) with match walkers. Keep `format_ast` as the public
 function. Keep `Writer`, quoting, Rocci multiline `(roc …)`, Rocdown
@@ -421,9 +425,9 @@ function. Keep `Writer`, quoting, Rocci multiline `(roc …)`, Rocdown
 impossible (exhaustiveness), new ungram nodes fail `--check` until they
 have an inspect tag, and AllSyntax inspect text is unchanged.
 
-**Status:** not started.
-
 ### Phase 3 — `NodeKind` and highlighter coverage
+
+**Status:** complete.
 
 **Bound:** generate a crate-private `NodeKind` enum for **generated**
 productions (and Markdown productions once Phase 4 exists). Add a
@@ -449,6 +453,8 @@ collector branch fails a sub-second test. rust-analyzer `SyntaxKind`
 remains out of tree.
 
 ### Phase 4 — `Rocdown.Markdown.ungram` generates `MdNode`
+
+**Status:** complete.
 
 **Bound:** add `crates/rocci-rocdown/Rocdown.Markdown.ungram` plus
 sidecar. Generate `MdNode` into `md.generated.rs` (keep helpers
@@ -484,6 +490,8 @@ the runtime tree” problem.[^block-plan][^rocdown-ungram]
 and `--check` covers both Rocdown ungrams.
 
 ### Phase 5 — Public tree appendix
+
+**Status:** complete.
 
 **Bound:** generate committed appendix pages under `docs/reference/`
 that list production name, inspect tag, and classification (generated /

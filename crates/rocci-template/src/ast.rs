@@ -4,6 +4,12 @@ use crate::span::Span;
 mod ast_generated;
 pub use ast_generated::*;
 
+#[path = "node_kind.generated.rs"]
+#[allow(dead_code)]
+mod node_kind;
+#[cfg(test)]
+pub(crate) use node_kind::NodeKind;
+
 impl TemplateItem {
     pub fn is_let(&self) -> bool {
         matches!(self, Self::Let(_))
@@ -236,4 +242,47 @@ fn ident_from_param(part: &str) -> Option<String> {
         .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
         .collect::<String>();
     if ident.is_empty() { None } else { Some(ident) }
+}
+
+#[cfg(test)]
+mod node_kind_highlight {
+    use super::NodeKind;
+
+    fn host_paints(kind: NodeKind) -> bool {
+        match kind {
+            NodeKind::Document
+            | NodeKind::ModuleItem
+            | NodeKind::ComponentDecl
+            | NodeKind::FixtureDecl
+            | NodeKind::CssDecl
+            | NodeKind::ContextDecl
+            | NodeKind::InitDecl
+            | NodeKind::OnDecl
+            | NodeKind::TemplateBlock
+            | NodeKind::TemplateItem
+            | NodeKind::Element
+            | NodeKind::ComponentCall
+            | NodeKind::ComponentPath
+            | NodeKind::Fragment
+            | NodeKind::IfDirective
+            | NodeKind::ForDirective
+            | NodeKind::MatchDirective
+            | NodeKind::MatchArm
+            | NodeKind::LetDirective
+            | NodeKind::Attr
+            | NodeKind::AttrValue => true,
+            NodeKind::Ident | NodeKind::Interpolation | NodeKind::TextNode => false,
+        }
+    }
+
+    #[test]
+    fn every_kind_is_painted_or_omitted() {
+        for &kind in NodeKind::ALL {
+            assert_eq!(
+                host_paints(kind),
+                !kind.highlight_omitted(),
+                "{kind:?} must be painted by the host collector or listed in [highlight.omit]"
+            );
+        }
+    }
 }

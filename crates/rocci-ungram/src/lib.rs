@@ -3,20 +3,29 @@
 //! This crate does not generate scanners or parsers. Language crates must not
 //! depend on it at runtime.
 
+mod appendix;
 mod dialect;
 mod emit;
+mod emit_kind;
+mod emit_pprint;
+mod inspect;
 mod paths;
 mod sidecar;
 
 use std::path::{Path, PathBuf};
 
 pub use dialect::Error;
+pub use inspect::format_inspect_mapping;
 pub use paths::{
-    ROCCI_GENERATED, ROCCI_TOML, ROCCI_UNGRAM, ROCDOWN_GENERATED, ROCDOWN_TOML, ROCDOWN_UNGRAM,
+    ROCCI_GENERATED, ROCCI_NODE_KIND, ROCCI_PPRINT, ROCCI_TOML, ROCCI_TREE_APPENDIX, ROCCI_UNGRAM,
+    ROCDOWN_GENERATED, ROCDOWN_MARKDOWN_TOML, ROCDOWN_MARKDOWN_UNGRAM, ROCDOWN_MD_GENERATED,
+    ROCDOWN_NODE_KIND, ROCDOWN_PPRINT, ROCDOWN_TOML, ROCDOWN_TREE_APPENDIX, ROCDOWN_UNGRAM,
 };
 
 use dialect::lower;
 use emit::emit;
+use emit_kind::emit_node_kind;
+use emit_pprint::emit_pprint;
 use sidecar::Sidecar;
 
 pub fn generate_source(ungram: &str, sidecar_toml: &str) -> Result<String, Error> {
@@ -48,27 +57,47 @@ pub struct LanguageSpec {
     pub ungram: &'static str,
     pub sidecar: &'static str,
     pub output: &'static str,
+    pub pprint: &'static str,
+    pub node_kind: &'static str,
 }
 
-pub const LANGUAGES: [LanguageSpec; 2] = [
+pub const LANGUAGES: [LanguageSpec; 3] = [
     LanguageSpec {
         ungram: ROCCI_UNGRAM,
         sidecar: ROCCI_TOML,
         output: ROCCI_GENERATED,
+        pprint: ROCCI_PPRINT,
+        node_kind: ROCCI_NODE_KIND,
     },
     LanguageSpec {
         ungram: ROCDOWN_UNGRAM,
         sidecar: ROCDOWN_TOML,
         output: ROCDOWN_GENERATED,
+        pprint: ROCDOWN_PPRINT,
+        node_kind: ROCDOWN_NODE_KIND,
+    },
+    LanguageSpec {
+        ungram: ROCDOWN_MARKDOWN_UNGRAM,
+        sidecar: ROCDOWN_MARKDOWN_TOML,
+        output: ROCDOWN_MD_GENERATED,
+        pprint: "",
+        node_kind: "",
     },
 ];
 
 pub fn generate_languages(root: &Path) -> Result<Vec<(PathBuf, String)>, Error> {
     let mut out = Vec::new();
     for lang in LANGUAGES {
-        let source = generate_file(root, lang.ungram, lang.sidecar)?;
-        out.push((root.join(lang.output), source));
+        let (ast, pprint, kind) = generate_pair(root, lang.ungram, lang.sidecar)?;
+        out.push((root.join(lang.output), ast));
+        if !lang.pprint.is_empty() {
+            out.push((root.join(lang.pprint), pprint));
+        }
+        if !lang.node_kind.is_empty() {
+            out.push((root.join(lang.node_kind), kind));
+        }
     }
+    out.extend(appendix::generate_appendices(root)?);
     Ok(out)
 }
 
@@ -101,8 +130,18 @@ pub fn check_languages(root: &Path) -> Result<(), Error> {
     }
 }
 
-fn generate_file(root: &Path, ungram_path: &str, sidecar_path: &str) -> Result<String, Error> {
+fn generate_pair(
+    root: &Path,
+    ungram_path: &str,
+    sidecar_path: &str,
+) -> Result<(String, String, String), Error> {
     let ungram = std::fs::read_to_string(root.join(ungram_path))?;
-    let sidecar = std::fs::read_to_string(root.join(sidecar_path))?;
-    generate_source(&ungram, &sidecar)
+    let sidecar_toml = std::fs::read_to_string(root.join(sidecar_path))?;
+    let sidecar = Sidecar::parse(&sidecar_toml)?;
+    let ir = lower(&ungram, &sidecar)?;
+    Ok((
+        emit(&ir),
+        emit_pprint(&ir, &sidecar),
+        emit_node_kind(&ir, &sidecar),
+    ))
 }

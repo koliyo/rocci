@@ -71,10 +71,12 @@ scripts.
    AST or diagnostic outcome, generated Roc, and source-map behavior relevant
    to the change.
 2. When the syntax introduces a new semantic shape, edit the language ungram
-   and sidecar first (`Rocci.AST.ungram` / `Rocdown.AST.ungram` and the sibling
-   `*.AST.toml`), then `cargo run -q -p rocci-ungram -- generate`. Do not
-   hand-edit `ast.generated.rs`. Then add parser branches. Avoid encoding new
-   syntax as unrelated existing nodes.
+   and sidecar first (`Rocci.AST.ungram` / `Rocdown.AST.ungram` /
+   `Rocdown.Markdown.ungram` and the sibling `*.toml`, including an `[inspect]`
+   tag, omit, or fallback for each new generated production), then
+   `cargo run -q -p rocci-ungram -- generate`. Do not hand-edit
+   `ast.generated.rs`, `md.generated.rs`, or `docs/reference/*-tree.rocdown`. Then add parser branches. Avoid
+   encoding new syntax as unrelated existing nodes.
 3. Update scanning and parsing boundary cases together. Test the accepted form,
    malformed near-misses, nesting restrictions, indentation, and literal or
    fenced forms that must remain inert.
@@ -82,8 +84,9 @@ scripts.
    valid but semantically forbidden.
 5. Update lowering and source-map emission together. Inspect generated Roc for
    both valid and recovery paths.
-6. Update `format_ast` output when the AST changes so `inspect --ast` remains a
-   useful debugging contract.
+6. Add or update the sidecar inspect tag (or omit / fallback) when a new node
+   should appear in `inspect --ast`. Keep atom layout and truncation in
+   `pprint.rs`; do not invent a tag that is not in `[inspect]`.
 7. Update `test/AllSyntax.rocci` or `test/AllSyntax.rocdown` and the matching
    generated fixture only when the feature belongs in the comprehensive syntax
    example. Review generated fixture changes rather than accepting them blindly.

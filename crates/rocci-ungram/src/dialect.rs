@@ -131,6 +131,7 @@ pub fn lower(ungram: &str, sidecar: &Sidecar) -> Result<Ir, Error> {
         items.push(lower_node(&grammar, sidecar, node)?);
     }
     box_cycles(&mut items);
+    crate::inspect::check_inspect(&names, sidecar)?;
     Ok(Ir {
         uses: sidecar.uses.clone(),
         span_method: sidecar.span_method.clone(),
@@ -286,7 +287,8 @@ fn lower_variant(
 
 fn parse_inline_variant(variant_name: &str, inline: &str) -> Result<Variant, Error> {
     let inline = inline.trim();
-    if let Some((_, rhs)) = inline.split_once(':')
+    if !inline.contains('{')
+        && let Some((_, rhs)) = inline.split_once(':')
         && rhs.contains('<')
     {
         return Err(Error::Dialect(format!(

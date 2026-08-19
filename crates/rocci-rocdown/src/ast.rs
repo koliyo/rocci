@@ -1,8 +1,18 @@
 use rocci_template::Span;
 
+#[path = "md.generated.rs"]
+mod md_generated;
+pub use md_generated::MdNode;
+
 #[path = "ast.generated.rs"]
 mod ast_generated;
 pub use ast_generated::*;
+
+#[path = "node_kind.generated.rs"]
+#[allow(dead_code)]
+mod node_kind;
+#[cfg(test)]
+pub(crate) use node_kind::NodeKind;
 
 impl BlockCall {
     pub fn content_span(&self) -> Option<Span> {
@@ -47,143 +57,7 @@ impl BlockContent {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MdNode {
-    Heading {
-        level: u8,
-        id: String,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Paragraph {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    BlockQuote {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    List {
-        ordered: bool,
-        start: u64,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Item {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    TaskItem {
-        checked: bool,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    CodeBlock {
-        info: String,
-        literal: String,
-        span: Span,
-    },
-    ThematicBreak {
-        span: Span,
-    },
-    Table {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    TableRow {
-        header: bool,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    TableCell {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Text {
-        value: String,
-        span: Span,
-    },
-    SoftBreak {
-        span: Span,
-    },
-    LineBreak {
-        span: Span,
-    },
-    Code {
-        value: String,
-        span: Span,
-    },
-    Emph {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Strong {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Strikethrough {
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    FootnoteDefinition {
-        name: String,
-        total_references: u32,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    FootnoteReference {
-        name: String,
-        reference_number: u32,
-        index: u32,
-        span: Span,
-    },
-    Link {
-        url: String,
-        title: String,
-        children: Vec<MdNode>,
-        span: Span,
-    },
-    Image {
-        url: String,
-        title: String,
-        alt: String,
-        span: Span,
-    },
-    RawHtml {
-        html: String,
-        span: Span,
-    },
-}
-
 impl MdNode {
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Heading { span, .. }
-            | Self::Paragraph { span, .. }
-            | Self::BlockQuote { span, .. }
-            | Self::List { span, .. }
-            | Self::Item { span, .. }
-            | Self::TaskItem { span, .. }
-            | Self::CodeBlock { span, .. }
-            | Self::ThematicBreak { span }
-            | Self::Table { span, .. }
-            | Self::TableRow { span, .. }
-            | Self::TableCell { span, .. }
-            | Self::Text { span, .. }
-            | Self::SoftBreak { span }
-            | Self::LineBreak { span }
-            | Self::Code { span, .. }
-            | Self::Emph { span, .. }
-            | Self::Strong { span, .. }
-            | Self::Strikethrough { span, .. }
-            | Self::FootnoteDefinition { span, .. }
-            | Self::FootnoteReference { span, .. }
-            | Self::Link { span, .. }
-            | Self::Image { span, .. }
-            | Self::RawHtml { span, .. } => *span,
-        }
-    }
-
     pub fn children(&self) -> &[MdNode] {
         match self {
             Self::Heading { children, .. }
@@ -306,4 +180,41 @@ pub struct PageMeta {
     pub tags: Vec<String>,
     pub collection: Option<String>,
     pub summary: Option<String>,
+}
+
+#[cfg(test)]
+mod node_kind_highlight {
+    use super::NodeKind;
+
+    fn host_paints(kind: NodeKind) -> bool {
+        match kind {
+            NodeKind::Document
+            | NodeKind::Item
+            | NodeKind::PageDecl
+            | NodeKind::RocDecl
+            | NodeKind::RenderDecl
+            | NodeKind::UseDecl
+            | NodeKind::BlockCall
+            | NodeKind::BlockContent
+            | NodeKind::EndMarker => true,
+            NodeKind::ParamField
+            | NodeKind::ParamValue
+            | NodeKind::BracketRecord
+            | NodeKind::BracketList
+            | NodeKind::LineContent
+            | NodeKind::BraceSection
+            | NodeKind::EndSection => false,
+        }
+    }
+
+    #[test]
+    fn every_kind_is_painted_or_omitted() {
+        for &kind in NodeKind::ALL {
+            assert_eq!(
+                host_paints(kind),
+                !kind.highlight_omitted(),
+                "{kind:?} must be painted by the host collector or listed in [highlight.omit]"
+            );
+        }
+    }
 }

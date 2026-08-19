@@ -104,3 +104,67 @@ TemplateItem = true
 
 [out_of_tree]
 ParsedParams = "derived from ParamList text; not a node"
+
+# Inspect heads emitted by format_ast. Tags that are not the production name
+# must be listed here. pprint.rs owns Writer and atom policy, not these names.
+[inspect.tags]
+Document = "module"
+RocRegion = "roc"
+ComponentDecl = "component"
+ParamList = "params"
+FixtureDecl = "fixture"
+CssDecl = "css"
+ContextDecl = "context"
+InitDecl = "init"
+OnDecl = "on"
+Element = "element"
+ComponentCall = "call"
+Fragment = "fragment"
+TextNode = "text"
+Interpolation = "interp"
+Attr = "attr"
+IfDirective = "if"
+ElseIf = "else-if"
+ForDirective = "for"
+MatchDirective = "match"
+MatchArm = "arm"
+LetDirective = "let"
+
+[inspect.overlay]
+RocRegion = "write_roc_region"
+ComponentDecl = "write_component"
+FixtureDecl = "write_fixture"
+CssDecl = "write_css"
+ContextDecl = "write_context"
+InitDecl = "write_init"
+OnDecl = "write_on"
+Element = "write_element"
+ComponentCall = "write_call"
+Fragment = "write_fragment"
+TextNode = "write_text"
+Interpolation = "write_interp"
+Attr = "write_attr"
+AttrValue = "write_attr"
+IfDirective = "write_if"
+ElseIf = "write_if"
+ForDirective = "write_for"
+MatchDirective = "write_match"
+MatchArm = "write_match"
+LetDirective = "write_let"
+
+[inspect.omit]
+ModuleItem = "enum wrapper; variants print their own heads"
+TemplateBlock = "items printed without a wrapper tag"
+TemplateItem = "enum wrapper; variants print their own heads"
+ComponentPath = "flattened onto call atoms"
+AttrValue = "flattened onto attr"
+Static = "printed as attr"
+Expr = "printed as attr"
+Action = "printed as attr"
+Boolean = "printed as attr"
+Ident = "atom; no inspect head"
+
+[highlight.omit]
+Ident = "atom; painted through parent spans"
+Interpolation = "opaque RocExpr span"
+TextNode = "plain text; not a host keyword"

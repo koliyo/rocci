@@ -1,6 +1,6 @@
 use std::{fs, path::Path, time::Instant};
 
-use rocci_ungram::{check_languages, find_workspace_root, generate_source};
+use rocci_ungram::{check_languages, find_workspace_root, format_inspect_mapping, generate_source};
 
 fn fixture(name: &str) -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -17,6 +17,10 @@ fn snapshot_path(name: &str) -> std::path::PathBuf {
 
 fn assert_snapshot(name: &str, actual: &str) {
     let path = snapshot_path(name);
+    if std::env::var("UPDATE_SNAPSHOTS").is_ok() {
+        fs::write(&path, actual).unwrap();
+        return;
+    }
     let expected = fs::read_to_string(&path).unwrap_or_default();
     assert_eq!(
         expected,
@@ -76,6 +80,21 @@ fn parses_and_snapshots_language_ungrams() {
     assert!(!rocci.contains("fn parse"));
     assert!(!rocdown.contains("struct MdNode"));
     assert!(!rocdown.contains("struct ComponentDecl"));
+    let md = generate_source(
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_MARKDOWN_UNGRAM)).unwrap(),
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_MARKDOWN_TOML)).unwrap(),
+    )
+    .unwrap();
+    assert!(md.contains("pub enum MdNode"));
+    assert!(md.contains("Heading {"));
+    assert!(!md.contains("fn parse"));
+    let committed_md = fs::read_to_string(root.join(rocci_ungram::ROCDOWN_MD_GENERATED)).unwrap();
+    assert_eq!(
+        committed_md,
+        md,
+        "committed {} is stale",
+        rocci_ungram::ROCDOWN_MD_GENERATED
+    );
     let committed_rocci = fs::read_to_string(root.join(rocci_ungram::ROCCI_GENERATED)).unwrap();
     assert_eq!(
         committed_rocci,
@@ -90,12 +109,61 @@ fn parses_and_snapshots_language_ungrams() {
         "committed {} is stale",
         rocci_ungram::ROCDOWN_GENERATED
     );
+    let rocci_pprint = fs::read_to_string(root.join(rocci_ungram::ROCCI_PPRINT)).unwrap();
+    let rocdown_pprint = fs::read_to_string(root.join(rocci_ungram::ROCDOWN_PPRINT)).unwrap();
+    assert!(rocci_pprint.contains("fn write_module_item"));
+    assert!(rocci_pprint.contains("match item"));
+    assert!(rocdown_pprint.contains("fn write_item"));
+    assert!(rocdown_pprint.contains("Item::Markdown"));
+    let rocci_tree = fs::read_to_string(root.join(rocci_ungram::ROCCI_TREE_APPENDIX)).unwrap();
+    let rocdown_tree = fs::read_to_string(root.join(rocci_ungram::ROCDOWN_TREE_APPENDIX)).unwrap();
+    assert!(rocci_tree.contains("| `Document` | `module` | generated |"));
+    assert!(rocdown_tree.contains("| `Document` | `rocdown` | generated |"));
+    assert!(rocdown_tree.contains("| `Heading` | `h` | inline |"));
+    assert!(rocdown_tree.contains("Markdown projection"));
 }
 
 #[test]
 fn check_matches_committed_snapshots() {
     let root = find_workspace_root(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
     check_languages(&root).unwrap();
+}
+
+#[test]
+fn snapshots_inspect_mappings() {
+    let root = find_workspace_root(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let rocci = format_inspect_mapping(
+        &fs::read_to_string(root.join(rocci_ungram::ROCCI_UNGRAM)).unwrap(),
+        &fs::read_to_string(root.join(rocci_ungram::ROCCI_TOML)).unwrap(),
+    )
+    .unwrap();
+    let rocdown = format_inspect_mapping(
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_UNGRAM)).unwrap(),
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_TOML)).unwrap(),
+    )
+    .unwrap();
+    assert_snapshot("rocci.inspect.txt", &rocci);
+    assert_snapshot("rocdown.inspect.txt", &rocdown);
+    let markdown = format_inspect_mapping(
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_MARKDOWN_UNGRAM)).unwrap(),
+        &fs::read_to_string(root.join(rocci_ungram::ROCDOWN_MARKDOWN_TOML)).unwrap(),
+    )
+    .unwrap();
+    assert_snapshot("markdown.inspect.txt", &markdown);
+}
+
+#[test]
+fn rejects_generated_production_without_inspect_mapping() {
+    let err = generate_source(
+        "Foo = 'foo'\n",
+        "[generated]\nFoo = \"Foo\"\n[leaves]\nFoo = \"Span\"\n",
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        err.contains("no inspect tag, omit, or fallback") && err.contains("Foo"),
+        "{err}"
+    );
 }
 
 #[test]

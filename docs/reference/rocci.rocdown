@@ -128,4 +128,6 @@ component registry, or markup embedded in arbitrary Roc expressions.
 
 The developer tree spec for owned AST nodes is
 `crates/rocci-template/Rocci.AST.ungram`. It generates Rust types; it does not
-generate the scanner or replace this language reference.
+generate the scanner or replace this language reference. Production names,
+inspect tags, and sidecar classification are listed in the
+[Rocci tree appendix](/docs/reference/rocci-tree/).
