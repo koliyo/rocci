@@ -1,0 +1,48 @@
+---
+description: Structured phased execution protocol for multi-step implementation plans
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Phased Execution Protocol (/goal mode)
+
+When executing an implementation plan referenced in the chat:
+
+## 1. Single-Phase Scope Enforcement
+
+- Work strictly on **ONE phase at a time**.
+- Read the entire referenced plan file first to understand the context, dependencies, and boundaries.
+- Treat non-goals, constraints, and phase boundaries as hard invariants.
+
+## 2. Phase Execution Cycle
+
+For the target phase, you must execute strictly in this order:
+
+### Step A: Micro-Planning
+
+Before creating or modifying any files:
+
+1. Identify the exact files to create, edit, or delete.
+2. Outline the concrete code changes and type signatures.
+3. List the test assertions and validation commands specified in the phase's **Exit** criteria.
+4. Output this micro-plan to the user.
+
+### Step B: Implementation & Self-Correction
+
+1. Apply the minimal necessary diffs matching the micro-plan.
+2. Maintain all invariants from the plan's `Constraints that do not move` section.
+3. Do not jump ahead into subsequent phase boundaries.
+
+### Step C: Verification & Exit Gate
+
+1. Run the phase validation commands using terminal tools (e.g., `cargo test -p <crate>`, `cargo fmt --check`).
+2. If tests or validation fail, fix issues within the phase scope.
+3. Verify all explicit **Exit** criteria are satisfied.
+
+## 3. Hand-off & Advance
+
+- Once the phase exit criteria are green, report:
+  - Summary of changes made.
+  - Test command execution results.
+  - Confirmation that the phase exit criteria are met.
+- Stop and wait for user confirmation before starting the next phase, unless explicitly told to run fully autonomously.
