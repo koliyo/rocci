@@ -7,7 +7,7 @@
 * [Hybrid Rocdown islands for CDN-static sites](hybrid-rocdown-islands.md) - Phases 1–8 are on the hybrid branch (BlockCall rebase plus dual apply: widget forest and island splice); phases 9–10 remain. Exploratory; not shipped.
 * [Generalized Rocdown block model](generalized-rocdown-block-model.md) - Phased delivery of uniform article `BlockCall` nodes, `:name[params]` spelling, a closed builtin registry, and per-kind Rocci renderers. Exploratory; not shipped.
 * [Full Rocci and Rocdown language tooling](language-server.md) - Proposed region-aware editor tooling with shared token spans and product-owned server composition under the boundary refactor.
-* [Public-preview branding and community](public-preview-community.md) - Reversible launch gate, Roc and Datastar feedback sequence, and evidence-based naming and identity decisions.
+* [Public-preview branding and community](public-preview-community.md) - Near-term public open-source intent, reversible launch gate, Roc and Datastar feedback sequence, and evidence-based naming and identity decisions.
 * [rocci.dev site architecture and Rocdown evolution](rocci-dev-site.md) - Proposed site structure, Rocdown/Rocci authoring split, named layouts, collections, and the decision boundary for a possible `rocci-site` profile.
 * [Standalone Rocci OKF review and query application](rocci-okf-app.md) - Portable `okf` engine extraction and a `rocci-okf` application for evidence review and authenticated retrieval.
 * [Rocdown product-boundary refactor](rocdown-boundary-refactor.md) - Phased consolidation of the Rocdown format and static generator, removal from base Rocci, Rocs retirement, and OKF separation.
@@ -16,5 +16,6 @@
 * [Mobile chrome for OKF, Rocdown, and rocci.dev](mobile-chrome.md) - No-JS details menus, OKF nav split from TOC, rocci.dev menu restore, table overflow. Exploratory; Phases 1–3 and 5–6 implemented; Phase 4 skipped; not CI-complete.
 * [Cmd-K fuzzy navigation for OKF, Rocdown, and rocci.dev](fuzzy-navigation.md) - Shared `goto.js` palette in preview and hosted trees, History-API HTML swap. Implemented in this revision; not CI-complete.
 * [Preview inspector source views](inspector-source-views.md) - Extend the preview Dev panel with a dropdown for original source, AST, generated Roc, and generated HTML. Exploratory; no phase started.
+* [Tangled hosting and devops with a GitHub macOS mirror](tangled-hosting.md) - Tangled as canonical git, review, and Linux CI before the near-term public open-source clone; GitHub as a fast-forward mirror that supplies `macos-latest` runners. Exploratory; no phase started.
 
 Other implementation-plan concepts have not yet been migrated. Priority-2 plan migration remains scheduled after the Phase 2 priority-1 corpus.
