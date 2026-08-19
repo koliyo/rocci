@@ -50,6 +50,11 @@ indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
 backed by `/pages.json` and `/catalog.json` in the review tree; same-origin
 links swap already-rendered HTML without a full reload.
 
+Default `run` uses the cached Rocci renderer when `roc` is on PATH. If `roc`
+is missing, preview writes the Rust knowledge shell unless you pass
+`--host native` or set `ROCCI_REQUIRE_ROC=1`. `--host native` is the explicit
+compile path; `--host wasm` selects the in-process Wasmtime host.
+
 ```sh
 # Run with desktop window. Rocci schema is on; git provenance is off.
 cargo run -p rocci-okf -- run knowledge
