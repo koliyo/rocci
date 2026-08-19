@@ -584,6 +584,7 @@ fn run_standalone_doc(
         title,
         preview_path: None,
         profile: profile.finish(),
+        inspect_pages: plan.inspect_pages,
         state_key: Some("rocdown".to_string()),
     };
 

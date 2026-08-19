@@ -6,7 +6,7 @@ MetricsSpan : {
     note : [Some Str, None],
 }
 
-@component MetricsPanel = |{ total_ms, spans }| {
+@component MetricsPanel = |{ total_ms, spans, route, path, view, body, available, reason }| {
     <section class="metrics-panel">
         <h1>Profiling</h1>
         <p class="total">
@@ -40,10 +40,48 @@ MetricsSpan : {
                 </tbody>
             </table>
         }
+        <form class="source-form" method="get" action="/__rocci/dev">
+            <input type="hidden" name="route" value={route} />
+            <label class="view-label">
+                View
+                <select name="view" onchange="this.form.submit()">
+                    @if view == "source" {
+                        <option value="source" selected="">Original source</option>
+                    } @else {
+                        <option value="source">Original source</option>
+                    }
+                    @if view == "ast" {
+                        <option value="ast" selected="">AST</option>
+                    } @else {
+                        <option value="ast">AST</option>
+                    }
+                    @if view == "roc" {
+                        <option value="roc" selected="">Generated Roc</option>
+                    } @else {
+                        <option value="roc">Generated Roc</option>
+                    }
+                    @if view == "html" {
+                        <option value="html" selected="">Generated HTML</option>
+                    } @else {
+                        <option value="html">Generated HTML</option>
+                    }
+                </select>
+            </label>
+            <noscript>
+                <button type="submit">Show</button>
+            </noscript>
+        </form>
+        <p class="file-path">{path}</p>
+        @if available {
+            <pre><code>{body}</code></pre>
+        } @else {
+            <p class="unavailable">{reason}</p>
+            <pre><code></code></pre>
+        }
     </section>
 }
 
-@component MetricsPage = |{ total_ms, spans }|
+@component MetricsPage = |{ total_ms, spans, route, path, view, body, available, reason }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -52,7 +90,16 @@ MetricsSpan : {
             <title>Profiling</title>
         </head>
         <body>
-            <MetricsPanel total_ms={total_ms} spans={spans} />
+            <MetricsPanel
+                total_ms={total_ms}
+                spans={spans}
+                route={route}
+                path={path}
+                view={view}
+                body={body}
+                available={available}
+                reason={reason}
+            />
         </body>
     </html>
 
@@ -64,6 +111,12 @@ samplePanel = {
         { name: "parse", duration_ms: 4, note: None },
         { name: "compile", duration_ms: 37, note: Some("cached") },
     ],
+    route: "/",
+    path: "App.rocci",
+    view: "source",
+    body: "<div class=\"x\">ok</div>",
+    available: Bool.true,
+    reason: "",
 }
 
 @fixture{target: MetricsPage}
@@ -74,6 +127,12 @@ samplePage = {
         { name: "parse", duration_ms: 4, note: None },
         { name: "compile", duration_ms: 37, note: Some("cached") },
     ],
+    route: "/",
+    path: "App.rocci",
+    view: "source",
+    body: "<div class=\"x\">ok</div>",
+    available: Bool.true,
+    reason: "",
 }
 
 @css {
@@ -139,5 +198,58 @@ samplePage = {
     .note {
         font-size: 11px;
         color: light-dark(#3b82f6, #61afef);
+    }
+    .source-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 18px 0 8px;
+    }
+    .view-label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: light-dark(#71717a, #9da5b4);
+    }
+    .view-label select {
+        font: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+        color: inherit;
+        background: light-dark(#fff, #2c313c);
+        border: 1px solid light-dark(#d4d4d8, #3e4451);
+        border-radius: 4px;
+        padding: 4px 8px;
+    }
+    .file-path {
+        margin: 0 0 8px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 11px;
+        color: light-dark(#71717a, #9da5b4);
+        word-break: break-all;
+    }
+    .unavailable {
+        margin: 0 0 8px;
+        color: light-dark(#b45309, #e5c07b);
+    }
+    pre {
+        margin: 0;
+        padding: 10px 12px;
+        overflow-x: auto;
+        background: light-dark(#ececee, #15181e);
+        border-radius: 6px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        white-space: pre;
+    }
+    pre code {
+        font: inherit;
     }
 }

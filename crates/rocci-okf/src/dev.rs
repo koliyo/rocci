@@ -4,8 +4,10 @@ use anyhow::{Context, Result, bail};
 use okf::{LoadOptions, LoadTimings, Profile};
 pub use rocci_cli::dev_server::DevServer;
 use rocci_cli::dev_server::{StaticDevServerConfig, serve_static_site};
+use rocci_cli::inspect::InspectSnapshot;
 use rocci_cli::profile::{ProfileSnapshot, ProfileSpan};
 
+use crate::inspect;
 use crate::presentation::build_review_site_with_host;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -58,7 +60,7 @@ pub fn run_knowledge(
             eprintln!("rocci-okf: failed to save parse cache: {error:#}");
         }
         if let Some(snapshot) = snapshot.as_ref() {
-            emit_profile_report(profile_report, snapshot);
+            emit_profile_report(profile_report, &snapshot.profile);
         }
         Ok(snapshot)
     })
@@ -84,7 +86,7 @@ fn rebuild_site(
     provenance: bool,
     host: Option<rocci_roc_host::HostChoice>,
     cache: &mut okf::ParseCache,
-) -> Result<Option<rocci_cli::profile::ProfileSnapshot>> {
+) -> Result<Option<InspectSnapshot>> {
     let load_started = Instant::now();
     let loaded = okf::load_with_cache(
         root,
@@ -99,7 +101,12 @@ fn rebuild_site(
     let mut built = build_review_site_with_host(&loaded.bundle, output, host)?;
     snapshot.spans.append(&mut built.spans);
     snapshot.total_ms += built.total_ms;
-    Ok(Some(snapshot))
+    Ok(Some(inspect::from_bundle(
+        root,
+        &loaded.bundle,
+        output,
+        snapshot,
+    )))
 }
 
 fn load_profile_snapshot(load_ms: u128, timings: &LoadTimings) -> ProfileSnapshot {

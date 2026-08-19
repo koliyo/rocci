@@ -6,6 +6,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicU16, Ordering},
     },
+    time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
@@ -15,6 +16,8 @@ use rocci_cli::driver::RunningApp;
 
 use crate::build::{BuildSession, absolute};
 use crate::config::load_config;
+use crate::inspect_snapshot::snapshot_from_loaded;
+use crate::site::load_site;
 
 pub fn run(root: &Path, output: Option<&Path>, port: u16) -> Result<DevServer> {
     run_with_host(root, output, port, None)
@@ -99,9 +102,17 @@ pub fn run_with_host_at(
 
     let session_root = root.clone();
     serve_static_site(config, move |out_dir| {
-        let report = session.rebuild(&session_root, out_dir)?;
+        let load_started = Instant::now();
+        let loaded = load_site(&session_root)?;
+        let load_ms = load_started.elapsed().as_millis();
+        let mut report = session.rebuild_loaded(&loaded, out_dir)?;
+        report.load_ms = load_ms;
         sync_island_backend(&session_root, &backend, &backend_port);
-        Ok(Some(profile_from_report(&report)))
+        Ok(Some(snapshot_from_loaded(
+            &loaded,
+            out_dir,
+            profile_from_report(&report),
+        )))
     })
 }
 

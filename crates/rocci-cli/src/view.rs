@@ -43,6 +43,7 @@ pub fn view(
     let source = SourceFile::new(&name, &src);
     let compiled = compile(source, &LowerOptions::default());
     let has_errors = compiled.has_errors();
+    let inspect_page = crate::inspect::InspectPage::from_rocci_compile("/", &name, &src, &compiled);
     let wrap_in_shell = !component_is_html_document(&compiled.document, component);
     let roc = compiled.roc;
     let diagnostics = compiled.diagnostics;
@@ -127,7 +128,21 @@ pub fn view(
                 "{}",
                 style::viewing(&format!("{} from {}", info.name, input.display()), &url)
             );
-            serve::with_window(&mut child, &url, &title, no_window)
+            let mut inspect = crate::inspect::InspectSnapshot::with_pages(
+                crate::profile::ProfileSnapshot::default(),
+                vec![inspect_page],
+            );
+            if !no_window {
+                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
+            }
+            serve::with_window_and_inspector(
+                &mut child,
+                &url,
+                &title,
+                no_window,
+                Some(inspect),
+                None,
+            )
         }
         serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(

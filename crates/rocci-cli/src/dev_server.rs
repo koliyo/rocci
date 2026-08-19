@@ -16,6 +16,7 @@ use anyhow::{Context, Result};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rocci_desktop::{PreviewOptions, preview};
 
+use crate::inspect::InspectSnapshot;
 use crate::inspector;
 use crate::profile::ProfileSnapshot;
 
@@ -74,7 +75,7 @@ impl Drop for DevServer {
 pub struct ReloadHub {
     waiters: Mutex<Vec<mpsc::Sender<u64>>>,
     generation: AtomicU64,
-    profile: Mutex<Option<ProfileSnapshot>>,
+    inspect: Mutex<Option<InspectSnapshot>>,
 }
 
 impl ReloadHub {
@@ -82,7 +83,7 @@ impl ReloadHub {
         Self {
             waiters: Mutex::new(Vec::new()),
             generation: AtomicU64::new(0),
-            profile: Mutex::new(None),
+            inspect: Mutex::new(None),
         }
     }
 
@@ -103,15 +104,19 @@ impl ReloadHub {
             .retain(|tx| tx.send(generation).is_ok());
     }
 
-    pub fn set_profile(&self, snapshot: Option<ProfileSnapshot>) {
-        *self.profile.lock().unwrap_or_else(|err| err.into_inner()) = snapshot;
+    pub fn set_inspect(&self, snapshot: Option<InspectSnapshot>) {
+        *self.inspect.lock().unwrap_or_else(|err| err.into_inner()) = snapshot;
     }
 
-    pub fn profile(&self) -> Option<ProfileSnapshot> {
-        self.profile
+    pub fn inspect(&self) -> Option<InspectSnapshot> {
+        self.inspect
             .lock()
             .unwrap_or_else(|err| err.into_inner())
             .clone()
+    }
+
+    pub fn profile(&self) -> Option<ProfileSnapshot> {
+        self.inspect().map(|snapshot| snapshot.profile)
     }
 }
 
@@ -135,7 +140,7 @@ pub struct StaticDevServerConfig {
 
 pub fn serve_static_site<F>(config: StaticDevServerConfig, mut rebuild: F) -> Result<DevServer>
 where
-    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     let (output, owns_output) = match config.output {
         Some(path) => {
@@ -172,7 +177,7 @@ where
     match rebuild(&output) {
         Ok(snapshot) => {
             has_build.store(true, Ordering::Relaxed);
-            hub.set_profile(snapshot);
+            hub.set_inspect(snapshot);
         }
         Err(err) => {
             eprintln!("{}: {err:#}", config.log_prefix);
@@ -275,7 +280,7 @@ pub fn preview_static_site<F>(
     rebuild: F,
 ) -> Result<()>
 where
-    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     let prefix = config.log_prefix.clone();
     let title = config.title.clone();
@@ -314,7 +319,7 @@ fn watch_loop<F>(
     log_prefix: String,
     ctl: WatchCtl,
 ) where
-    F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
+    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     loop {
         if ctl.stop.load(Ordering::Relaxed) {
@@ -342,7 +347,7 @@ fn watch_loop<F>(
         match rebuild(&output) {
             Ok(snapshot) => {
                 ctl.has_build.store(true, Ordering::Relaxed);
-                ctl.hub.set_profile(snapshot);
+                ctl.hub.set_inspect(snapshot);
                 *ctl.last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
                 ctl.hub.broadcast();
             }
@@ -480,8 +485,18 @@ fn handle_client(
                 body.as_bytes(),
             )
         }
+        ServeTarget::Inspect => {
+            let (status, body) = crate::inspect::inspect_json(hub.inspect().as_ref(), path);
+            write_response(
+                &mut stream,
+                status,
+                "application/json; charset=utf-8",
+                false,
+                body.as_bytes(),
+            )
+        }
         ServeTarget::Dev => {
-            let html = inspector::render_panel_html(hub.profile().as_ref());
+            let html = inspector::render_panel_html(hub.inspect().as_ref(), path);
             let body = inject_live_reload(&html);
             write_response(
                 &mut stream,
@@ -606,6 +621,7 @@ pub enum ServeTarget {
     ReloadJs,
     Events,
     Profile,
+    Inspect,
     Dev,
     Redirect(String),
     File { relative: String },
@@ -627,6 +643,10 @@ pub fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
     if path == "/__rocci/profile" || path == "/__rocdown/profile" || path == "/__rocci_okf/profile"
     {
         return ServeTarget::Profile;
+    }
+    if path == "/__rocci/inspect" || path == "/__rocdown/inspect" || path == "/__rocci_okf/inspect"
+    {
+        return ServeTarget::Inspect;
     }
     if path == "/__rocci/dev" || path == "/__rocdown/dev" || path == "/__rocci_okf/dev" {
         return ServeTarget::Dev;
@@ -903,6 +923,18 @@ mod tests {
             resolve_request(&temp, "/__rocci_okf/profile"),
             ServeTarget::Profile
         );
+        assert_eq!(
+            resolve_request(&temp, "/__rocci/inspect"),
+            ServeTarget::Inspect
+        );
+        assert_eq!(
+            resolve_request(&temp, "/__rocdown/inspect?route=/"),
+            ServeTarget::Inspect
+        );
+        assert_eq!(
+            resolve_request(&temp, "/__rocci_okf/inspect"),
+            ServeTarget::Inspect
+        );
         assert_eq!(resolve_request(&temp, "/__rocci/dev"), ServeTarget::Dev);
         assert_eq!(resolve_request(&temp, "/__rocdown/dev"), ServeTarget::Dev);
         assert_eq!(
@@ -1065,6 +1097,80 @@ mod tests {
 
         drop(server);
         let _ = backend.join();
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn static_server_serves_inspect_json_after_rebuild() {
+        use crate::inspect::{InspectCapabilities, InspectPage, InspectSnapshot, ViewCapability};
+        use crate::profile::ProfileSnapshot;
+        use std::process::Command;
+
+        let output = std::env::temp_dir().join(format!(
+            "rocci-inspect-out-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        let port = crate::serve::free_port().unwrap();
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "inspect".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: None,
+                on_stop: None,
+            },
+            |out| {
+                fs::write(out.join("index.html"), "<h1>home</h1>").unwrap();
+                Ok(Some(InspectSnapshot {
+                    pages: vec![InspectPage {
+                        route: "/".into(),
+                        path: "index.rocdown".into(),
+                        language: "rocdown".into(),
+                        source: "<p>source & \"quotes\"</p>".into(),
+                        ast: "(Document)".into(),
+                        roc: "module [] {}".into(),
+                        html: "<h1>home</h1>".into(),
+                        capabilities: InspectCapabilities {
+                            source: ViewCapability::available(),
+                            ast: ViewCapability::available(),
+                            roc: ViewCapability::available(),
+                            html: ViewCapability::available(),
+                        },
+                    }],
+                    profile: ProfileSnapshot {
+                        total_ms: 2,
+                        spans: Vec::new(),
+                    },
+                }))
+            },
+        )
+        .unwrap();
+
+        let url = format!("http://127.0.0.1:{port}/__rocci/inspect?route=/");
+        let curl = Command::new("curl")
+            .args(["-sS", "-w", "\n%{http_code}", &url])
+            .output()
+            .expect("curl");
+        assert!(curl.status.success(), "curl failed: {curl:?}");
+        let stdout = String::from_utf8_lossy(&curl.stdout);
+        let (body, status) = stdout.rsplit_once('\n').unwrap_or((&stdout, ""));
+        assert_eq!(status.trim(), "200", "{stdout}");
+        let value: serde_json::Value = serde_json::from_str(body).unwrap();
+        assert_eq!(value["path"], "index.rocdown");
+        assert_eq!(value["source"], "<p>source & \"quotes\"</p>");
+        assert_eq!(value["html"], "<h1>home</h1>");
+        assert_eq!(value["profile"]["total_ms"], 2);
+
+        drop(server);
         let _ = fs::remove_dir_all(&output);
     }
 }

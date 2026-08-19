@@ -227,6 +227,7 @@ pub fn serve_islands(root: &Path, no_window: bool, port: PortArg) -> Result<()> 
         title,
         preview_path: Some("/health".to_string()),
         profile: rocci_cli::profile::SpanRecorder::new().finish(),
+        inspect_pages: Vec::new(),
         state_key: Some("rocdown-islands".to_string()),
     };
     driver::execute_app_plan(&app, &src_dir, &options)

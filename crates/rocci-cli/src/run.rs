@@ -41,6 +41,7 @@ pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) 
         &compiled.maps,
         None,
         compiled.profile,
+        compiled.inspect_pages,
     )
 }
 
@@ -173,12 +174,12 @@ fn run_standalone(
         .unwrap_or("rocci")
         .to_string();
     let plan = match plan_standalone(&path)? {
-        (StandaloneReady::Failed(files), _) => {
+        (StandaloneReady::Failed(files), _, _) => {
             return driver::serve_template_errors(&files, port, no_window, &title);
         }
-        (StandaloneReady::Ready(plan), profile) => (plan, profile),
+        (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
-    let (plan, profile) = plan;
+    let (plan, profile, inspect_pages) = plan;
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
@@ -187,6 +188,7 @@ fn run_standalone(
         title,
         preview_path: None,
         profile,
+        inspect_pages,
         state_key: None,
     };
     driver::execute_app_plan(&plan, &src_dir, &options)
@@ -197,10 +199,17 @@ enum StandaloneReady {
     Failed(Vec<FailedFile>),
 }
 
-fn plan_standalone(primary: &Path) -> Result<(StandaloneReady, crate::profile::ProfileSnapshot)> {
+fn plan_standalone(
+    primary: &Path,
+) -> Result<(
+    StandaloneReady,
+    crate::profile::ProfileSnapshot,
+    Vec<crate::inspect::InspectPage>,
+)> {
     let mut rec = crate::profile::SpanRecorder::new();
     let mut modules = Vec::new();
     let mut failures = Vec::new();
+    let mut inspect_pages = Vec::new();
     let primary = primary
         .canonicalize()
         .unwrap_or_else(|_| primary.to_path_buf());
@@ -226,6 +235,7 @@ fn plan_standalone(primary: &Path) -> Result<(StandaloneReady, crate::profile::P
             });
             continue;
         }
+        inspect_pages.push(compiled.inspect);
         let type_name = type_name_from_path(&input);
         modules.push(GenericModule {
             type_name: type_name.clone(),
@@ -245,7 +255,7 @@ fn plan_standalone(primary: &Path) -> Result<(StandaloneReady, crate::profile::P
     }
     let profile = rec.finish();
     if !failures.is_empty() {
-        return Ok((StandaloneReady::Failed(failures), profile));
+        return Ok((StandaloneReady::Failed(failures), profile, inspect_pages));
     }
     Ok((
         StandaloneReady::Ready(GenericAppPlan {
@@ -256,6 +266,7 @@ fn plan_standalone(primary: &Path) -> Result<(StandaloneReady, crate::profile::P
             ),
         }),
         profile,
+        inspect_pages,
     ))
 }
 
@@ -299,12 +310,14 @@ struct CompiledApp {
     failures: Vec<FailedFile>,
     maps: Vec<MappedModule>,
     profile: crate::profile::ProfileSnapshot,
+    inspect_pages: Vec<crate::inspect::InspectPage>,
 }
 
 fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
     let mut rec = crate::profile::SpanRecorder::new();
     let mut failures = Vec::new();
     let mut maps = Vec::new();
+    let mut inspect_pages = Vec::new();
     for input in discover_rocci(app_dir)? {
         let src = rec.span("read", || {
             fs::read_to_string(&input)
@@ -326,6 +339,9 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
             });
             continue;
         }
+        if inspect_pages.is_empty() {
+            inspect_pages.push(compiled.inspect);
+        }
         let type_name = type_name_from_path(&input);
         let output = generated_module_path(&input);
         rec.span("write", || {
@@ -344,6 +360,7 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
         failures,
         maps,
         profile: rec.finish(),
+        inspect_pages,
     })
 }
 
@@ -357,6 +374,7 @@ struct CompiledSource {
     segments: Vec<Segment>,
     local_assets: Vec<String>,
     timings: rocci_template::CompileTimings,
+    inspect: crate::inspect::InspectPage,
 }
 
 fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
@@ -366,6 +384,8 @@ fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
         eprintln!("{}", format_diagnostic(source, diagnostic));
     }
     let failed = compiled.has_errors();
+    let route = crate::driver::preview_path(&compiled.routes);
+    let inspect = crate::inspect::InspectPage::from_rocci_compile(&route, name, src, &compiled);
     Ok(CompiledSource {
         roc: compiled.roc,
         state_type: compiled.state_type,
@@ -376,6 +396,7 @@ fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
         segments: compiled.segments,
         local_assets: Vec::new(),
         timings: compiled.timings,
+        inspect,
     })
 }
 
