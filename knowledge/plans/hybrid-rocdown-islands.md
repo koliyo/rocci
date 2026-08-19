@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Hybrid Rocdown islands for CDN-static sites
-description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Article documentation widgets are out of scope. Exploratory; not shipped."
+description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phases 1–6 exist on a branch against the pre-block-model AST; rebase onto main's :name[params] forest is required before merge. Exploratory; not shipped."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T10:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T13:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -149,6 +149,16 @@ sources:
     title: Public Rocdown language reference
     author: process:git
     last_modified: 2026-08-18
+  - id: counter-example
+    resource: ../../examples/rocdown-counter/index.rocdown
+    title: Hybrid SQLite counter site page
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: hybrid-guide
+    resource: ../../docs/guides/hybrid-sites.rocdown
+    title: Hybrid CDN plus island-service operator guide
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Hybrid Rocdown islands for CDN-static sites
@@ -160,9 +170,16 @@ research](/research/hybrid-rocdown-islands.md). It is exploratory until a
 human reviewer accepts a scope. It does not describe shipped
 behavior.[^research][^rocdown-readme][^compiler-arch]
 
-Do not start a phase until the user asks. Do not implement article
-documentation widgets (`@docs`, `:note`, playground-as-widget) here;
-that is the [block model plan](/plans/generalized-rocdown-block-model.md).[^block-plan][^language-dev]
+Do not start a phase until the user asks. Phases 1–6 are implemented on
+branch `hybrid-rocdown-islands-implementation` against the pre-block-model
+AST (`Item::Docs` / `Item::Img`, blob apply). They are **not** mergeable
+onto current `main` as-is. The [block model](/plans/generalized-rocdown-block-model.md)
+`:name[params]` spelling and `PlannedNode` widget forest have landed on
+`main`; hybrid must consume that pipeline rather than reimplement
+widgets.[^block-plan][^language-dev]
+
+Do not start Phase 7 until the user asks. Do not put islands inside
+article-block bodies in v1.
 
 ## Goal
 
@@ -192,15 +209,19 @@ v1 uses existing `@component`, document-root tags, `@render`, `@css`,
 | OKF Markdown-only | No components in `knowledge/**/*.md` |
 | Visible handlers | A component without `@on` / Datastar actions is CDN-only |
 | Per-page Datastar | Only hybrid pages get Datastar.js and a loosened CSP |
-| Ignore article widgets | Do not restore or extend `@docs` painting in these phases |
+| Consume shipped widgets | Static pages keep main's `:name` / `DocsComponents` forest. Do not flatten `docs/` to a Markdown blob |
 
-The generation host evaluates initial island Html. The block-model plan
-must not block these phases.[^generation-plan][^block-plan][^catalog-shell][^pure-render][^server-owned][^markdown-first]
+The generation host evaluates initial island Html. Block-model **syntax**
+no longer blocks hybrid; the **apply architecture** on main does, until
+Phase 8 restores the forest for `static` pages.[^generation-plan][^block-plan][^catalog-shell][^pure-render][^server-owned][^markdown-first]
 
 ## Non-goals (all phases)
 
-- `@docs` / `:name` article widgets, `DocsComponents` forest, playground
-  widget assets
+- Reimplementing `:name` article widgets or the `DocsComponents` forest
+  (already on `main`)
+- Live Rocci hosts inside `:note` / other block bodies (v1)
+- `@use` custom kinds on `rocdown build` / `rocdown check`
+- Playground widget assets as island Datastar
 - `@island` grammar or `*.client.js` custom-element runtime
 - Compiling Markdown to Roc for `rocdown build`
 - Compiling Roc to JavaScript
@@ -248,10 +269,20 @@ full hybrid publish accepts `live` and emits the service.
 
 ### Composition
 
-Rust concatenates Markdown HTML and build-time island Html into **one
-article blob**. The theme `content` slot includes that blob through the
-trusted unescaped-html bridge. Do not walk a documentation-widget
-segment forest. Do not put prose in `RocdownPages.roc`.[^roc-build-runtime][^compiler-arch]
+This clause changed after the block-model cutover on `main` (plan
+revision).
+
+- **`static` pages:** keep main's `PlannedNode` forest. Apply walks
+  fragments plus per-kind `DocsComponents.*` Rocci widgets. Do not
+  collapse `docs/` to a single Markdown blob.
+- **`hydrate` / `live` pages:** splice build-time island Html into the
+  article in document order (placeholder nodes or a single pre-spliced
+  `HtmlFile` segment). The theme `content` slot still uses the trusted
+  unescaped-html bridge for those fragments. Do not put prose in
+  `RocdownPages.roc`.[^roc-build-runtime][^compiler-arch][^block-plan]
+
+Phases 1–6 on the hybrid branch used blob-only apply and stubbed widget
+painting. That must not land on current `main`.
 
 ### Service program
 
@@ -281,18 +312,23 @@ entries in v1.
 | Concern | Owner |
 | --- | --- |
 | `static` / `hydrate` / `live` | `article.rs`, `site.rs` |
-| Article blob stitch | Markdown renderer + island evaluator |
+| `Item::Block` / `:name[params]` | `scan.rs`, `parse.rs`, `ast.rs`, `registry.rs` |
+| Widget forest (`static`) | `docs.rs` `PlannedNode`, `runtime/RocdownBuild.roc`, `DocsComponents.rocci` |
+| Island placeholder / splice | `docs.rs` (`ArticleNode::Island`), `islands.rs`, `build.rs` |
 | Theme content, CSP, Datastar script | `RocdownTheme.rocci`, `plan.rs`, `ResourceView` |
 | Island Roc extract | beside `lower.rs` |
 | Island service binary | `rocci-rocdown-cli` / `rocci-cli` |
 | Datastar.js hash | planner + `datastar_asset` cache |
 | Initial island Html | `rocci-roc-host` |
-| Public contract | crate README, `docs/reference/rocdown.rocdown`, `docs/reference/rocdown-site.rocdown` |
+| Preview-as-site + island proxy | `dev.rs` |
+| Public contract | crate README, `docs/reference/rocdown.rocdown`, `docs/reference/rocdown-site.rocdown`, `docs/guides/hybrid-sites.rocdown` |
 | Knowledge architecture | **after** a phase ships |
 
 ## Delivery phases
 
-Each phase is one mergeable change.
+Each phase is one mergeable change. Phases 1–6 below are **done on the
+hybrid branch** and describe the pre-block-model implementation. Do not
+merge them onto current `main`. Continue at Phase 7.
 
 ### Phase 1 — Theme content slot for a single article blob
 
@@ -440,11 +476,94 @@ updated in a follow-up after this phase.
 **Exit:** `cargo test -p rocci-rocdown` and `cargo test -p
 rocci-rocdown-cli`. `rocci-okf check knowledge --profile rocci`.
 
+### Phase 7 — Rebase onto `BlockCall` / `:name[params]`
+
+**Bound:** hybrid logic compiles against current `main`'s AST. No new
+product behavior.
+
+**Does:**
+
+- Rebase `hybrid-rocdown-islands-implementation` onto `main`.
+- Replace `Item::Docs` / `Item::Img` with `Item::Block`. Keep
+  `ArticleNode::Island` for root `@render` / templates.
+- Port `classify_document` / `PageKind` over main's `is_static_document`
+  (`Item::Block` is static; `@use` stays a site-build error).
+- Make `cargo test -p rocci-rocdown` compile. Widget and colon-syntax
+  tests from `main` must still parse.
+
+**Does not:** change island splice semantics, drop the widget forest, or
+allow `@use` on `rocdown build`.
+
+**Exit:** the branch builds. `rocdown check docs` passes. Hybrid
+classifier tests compile against `Item::Block`.
+
+### Phase 8 — Dual apply: widget forest plus island splice
+
+**Bound:** `docs/` keeps Rocci widget chrome. Hydrate/live pages still
+splice islands at build time.
+
+**Does:**
+
+- Restore main's `PlannedNode` forest and `render_forest!` for `static`
+  pages (`RocdownBuild.roc`, `plan.rs`).
+- After catalog resolve, splice evaluated island Html into hydrate/live
+  articles (placeholder in the forest, or one pre-spliced `HtmlFile`
+  segment for those pages only).
+- Keep Datastar / `live_csp` / `serve-islands` / `--cdn-only` from
+  Phases 4–5.
+
+**Does not:** flatten all pages to a Markdown blob; put `@render` inside
+`:note` bodies; compile Markdown to Roc.
+
+**Exit:** `rocdown build docs` still paints `:note` / `:tabs`.
+`examples/rocdown-hybrid` and `examples/rocdown-counter` build as
+hydrate/live. Neighboring static pages have no Datastar.js.
+
+### Phase 9 — Preview-as-site plus one-origin islands
+
+**Bound:** combine main's file-under-site preview with hybrid's island
+proxy. No new island capabilities.
+
+**Does:**
+
+- Keep `run_with_host_at` / persist-HTML-without-prior-build from
+  `main`.
+- Keep hybrid `dev.rs` island backend on the same origin for `rocdown
+  run DIR`.
+- Audit `keep_island_route` against preview-as-site routes so GET `/`
+  stays CDN-owned.
+
+**Does not:** serve Markdown from the island process.
+
+**Exit:** `rocdown run docs` previews the site. `rocdown run
+examples/rocdown-counter` proxies `/actions/` on that origin.
+
+### Phase 10 — Re-prove examples and public contract
+
+**Bound:** catch-up after rebase. No new capabilities.
+
+**Does:**
+
+- Green `cargo test -p rocci-rocdown` and `cargo test -p rocci-rocdown-cli`
+  including colon-syntax and island tests.
+- `rocdown check docs` and `rocdown build docs`.
+- Confirm `examples/rocdown-counter` and
+  `docs/guides/hybrid-sites.rocdown` still match the dual-apply
+  contract.[^counter-example][^hybrid-guide]
+- Align `docs/reference/rocdown.rocdown` so site builds describe
+  `static` / `hydrate` / `live` on top of `:name[params]`.
+
+**Does not:** start `@island` or islands-inside-widgets.
+
+**Exit:** the validation commands below. Knowledge architecture/status
+remain a follow-up after CI on that revision.
+
 ## Suggested merge order
 
-1 → 2 → 3 → 4 → 5 → 6. Phase 3 (`hydrate`) is useful without a service.
-Phase 4 is the goal of this plan. Do not wait on `:name` / `@docs`
-cutover or `@island` grammar.
+Do **not** merge 1 → 6 onto current `main`. Rebase first: **7 → 8 → 9 →
+10**. Phase 8 is the goal after the block-model cutover. Phase 3
+(`hydrate`) remains useful without a service once it sits on the forest
+apply path.
 
 ## Validation
 
@@ -475,7 +594,10 @@ that revision.
 - First-class `@island` in `rocci-template`.[^client-islands]
 - Live island GET refresh (re-fetch host Html from the service).
 - Island Html in catalog outlines and in-page links.
-- Article-widget bodies that contain Rocci hosts (after block model).[^block-plan]
+- `@render` / Rocci hosts inside `:note` and other article-block
+  bodies.[^block-plan]
+- `@use` imported components as hydrate-page article kinds (static
+  `rocdown build` stays a closed registry).
 - CORS/cookie details for cross-origin CDN + service.
 - Vendor cache-header adapters.
 
@@ -490,6 +612,10 @@ that revision.
    pre-render initial Html.)
 4. Cross-origin Datastar: are action URLs absolute to `service_origin`,
    or relative with a `<base>` / meta? Absolute is simpler for CDN HTML.
+5. Hydrate/live apply: island nodes inside the `PlannedNode` forest
+   versus one pre-spliced `HtmlFile` per hybrid page? Forest-preserving
+   placeholders keep `:note` beside `@render` on the same page; a single
+   blob is simpler and matches Phases 1–6.
 
 [^research]: CDN plus island service; article widgets out of scope.
 [^rocdown-readme]: Standalone vs site; declarations; Datastar when actions exist.
@@ -498,7 +624,7 @@ that revision.
 [^plan-rs]: Default CSP and hashed assets.
 [^build-rs]: Apply and atomic commit.
 [^lowerer]: Standalone splice for `rocdown run FILE`.
-[^roc-build-runtime]: Empty content slot today.
+[^roc-build-runtime]: Apply runtime; hybrid branch is blob-only, main is widget forest.
 [^theme-rocci]: CSP and script injection.
 [^view-rs]: `ResourceView` fields.
 [^wasm-host]: Staging preopen.
@@ -514,8 +640,10 @@ that revision.
 [^server-owned]: Service owns durable state.
 [^compiler-arch]: Trusted HTML bridge.
 [^format-arch]: `@island` unimplemented.
-[^block-plan]: Article widgets; parallel track.
+[^block-plan]: Article widgets; `:name[params]` and forest apply on main.
 [^generation-plan]: Host for initial island Html.
 [^site-plan]: Site reading stays a static catalog.
 [^language-dev]: Language-skill boundary.
 [^rocdown-reference]: Update after behavior ships.
+[^counter-example]: SQLite-backed live page on the hybrid branch.
+[^hybrid-guide]: Two-artifact deploy runbook on the hybrid branch.
