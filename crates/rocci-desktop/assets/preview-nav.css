@@ -103,6 +103,11 @@ button:disabled {
   opacity: 0.32;
 }
 
+button[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.12);
+  background: light-dark(rgba(24, 24, 27, 0.12), rgba(255, 255, 255, 0.12));
+}
+
 .icon {
   display: block;
 }

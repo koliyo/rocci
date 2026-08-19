@@ -4,6 +4,7 @@
   }
   const HEIGHT = "48px";
   const STORAGE_KEY = "rocci-dev-panel";
+  const LIVE_RELOAD_KEY = "rocci-live-reload";
   const VIEW_KEY = "rocci-dev-view";
   const TAB_KEY = "rocci-dev-tab";
   const DOCK_KEY = "rocci-dev-dock";
@@ -43,6 +44,33 @@
   forward.addEventListener("click", () => send("forward"));
   shadow.getElementById("home").addEventListener("click", () => send("home"));
   shadow.getElementById("reload").addEventListener("click", () => send("reload"));
+  const liveReload = shadow.getElementById("live-reload");
+  const liveReloadOn = () => {
+    try {
+      return sessionStorage.getItem(LIVE_RELOAD_KEY) !== "0";
+    } catch (err) {
+      return true;
+    }
+  };
+  const syncLiveReloadButton = () => {
+    if (liveReload) {
+      liveReload.setAttribute("aria-pressed", liveReloadOn() ? "true" : "false");
+    }
+  };
+  if (liveReload) {
+    syncLiveReloadButton();
+    liveReload.addEventListener("click", () => {
+      const next = !liveReloadOn();
+      if (window.__rocciLiveReload && typeof window.__rocciLiveReload.set === "function") {
+        window.__rocciLiveReload.set(next);
+      } else {
+        try {
+          sessionStorage.setItem(LIVE_RELOAD_KEY, next ? "1" : "0");
+        } catch (err) {}
+      }
+      syncLiveReloadButton();
+    });
+  }
   const routeOf = (value) => {
     try {
       const url = new URL(value, window.location.href);

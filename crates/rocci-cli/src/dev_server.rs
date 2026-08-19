@@ -26,14 +26,48 @@ const DEBOUNCE: Duration = Duration::from_millis(200);
 pub type PathFilter = Arc<dyn Fn(&Path) -> bool + Send + Sync>;
 
 const RELOAD_JS: &str = r#"(function () {
+  if (window.__rocciLiveReload) {
+    return;
+  }
+  var KEY = "rocci-live-reload";
+  var es = null;
+  var dirty = false;
+  function enabled() {
+    try {
+      return sessionStorage.getItem(KEY) !== "0";
+    } catch (err) {
+      return true;
+    }
+  }
+  function setEnabled(on) {
+    try {
+      sessionStorage.setItem(KEY, on ? "1" : "0");
+    } catch (err) {}
+    if (on && dirty) {
+      location.reload();
+    }
+  }
   function connect() {
-    var es = new EventSource("/__rocci/events");
-    es.addEventListener("reload", function () { location.reload(); });
+    if (es) {
+      return;
+    }
+    es = new EventSource("/__rocci/events");
+    es.addEventListener("reload", function () {
+      if (enabled()) {
+        location.reload();
+      } else {
+        dirty = true;
+      }
+    });
     es.onerror = function () {
-      es.close();
+      if (es) {
+        es.close();
+      }
+      es = null;
       setTimeout(connect, 1000);
     };
   }
+  window.__rocciLiveReload = { enabled: enabled, set: setEnabled };
   connect();
 })();
 "#;
@@ -982,6 +1016,17 @@ mod tests {
         assert!(injected.contains("script-src 'self'"));
         assert!(injected.contains("connect-src 'self'"));
         assert!(!injected.contains("script-src 'none'"));
+    }
+
+    #[test]
+    fn reload_js_honors_live_reload_storage() {
+        assert!(RELOAD_JS.contains("window.__rocciLiveReload"));
+        assert!(RELOAD_JS.contains("rocci-live-reload"));
+        assert!(RELOAD_JS.contains("sessionStorage.getItem(KEY) !== \"0\""));
+        assert!(RELOAD_JS.contains("if (enabled())"));
+        assert!(RELOAD_JS.contains("dirty = true"));
+        assert!(RELOAD_JS.contains("if (on && dirty)"));
+        assert!(RELOAD_JS.contains("if (window.__rocciLiveReload)"));
     }
 
     #[test]
