@@ -81,6 +81,7 @@ fn apply_macos_dock_icon() {
     unsafe {
         app.setApplicationIconImage(Some(&image));
     }
+    app.dockTile().display();
 }
 
 #[cfg(test)]

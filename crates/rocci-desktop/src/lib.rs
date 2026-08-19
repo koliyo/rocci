@@ -57,7 +57,6 @@ pub fn run(mut options: RunOptions) -> Result<()> {
     }
 
     let event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
-    crate::icon::apply_host_icon();
 
     let native_menu = menu::NativeMenu::install(
         event_loop.create_proxy(),
@@ -103,7 +102,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
         let _runtime = &runtime;
 
         match event {
-            Event::NewEvents(StartCause::Init) => {}
+            Event::NewEvents(StartCause::Init) => crate::icon::apply_host_icon(),
             Event::WindowEvent {
                 window_id: tao_id,
                 event,
