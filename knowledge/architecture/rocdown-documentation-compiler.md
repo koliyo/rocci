@@ -4,7 +4,7 @@ title: Rocdown documentation generator
 description: Rocdown resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -40,17 +40,17 @@ sources:
     resource: ../../crates/rocci-rocdown/runtime/RocdownBuild.roc
     title: Rocdown generated-page assembly runtime
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-19
   - id: plan
     resource: ../../crates/rocci-rocdown/src/plan.rs
     title: Rocdown build planner
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-19
   - id: rocdown-reference
     resource: ../../docs/reference/rocdown-site.rocdown
     title: Published Rocdown site reference
-    author: human:nils
-    last_modified: 2026-08-17
+    author: process:git
+    last_modified: 2026-08-19
   - id: okf
     resource: ../../crates/rocci-okf/README.md
     title: OKF knowledge application
@@ -74,7 +74,7 @@ The build plan owns output paths, hashed assets and theme CSS, URL rewriting, re
 
 Rocdown compiles source with raw Markdown HTML disabled and accepts only Markdown, page metadata, and `:kind` article blocks in its static feature gate. A document-root HTML tag has already become a Rocci `Template` item by that point, so Rocdown rejects it with the other Roc/Rocci islands rather than treating it as static raw HTML. The same restriction applies inside article-block bodies and included Rocdown.[^site][^article][^docs]
 
-Rust renders Markdown runs into fragment files with source-derived text and attribute values escaped, while `:kind` structure is carried as typed scalar segment records for Rocci rendering. The Roc build runtime reads those already-rendered fragment files and uses `Html.dangerously_include_unescaped_html` to re-enter the Roc `Html` type before composing them with documentation components and the theme. This is an internal trusted-artifact bridge, not an author-facing raw-HTML feature; its safety depends on preserving escaping in every Rust renderer before the bridge.[^article][^docs][^build-runtime]
+Rust renders Markdown runs into fragment files with source-derived text and attribute values escaped, while `:kind` structure is carried as typed scalar segment records for Rocci rendering. The Roc build runtime reads those already-rendered fragment files and uses `Html.dangerously_include_unescaped_html` to re-enter the Roc `Html` type before composing them with documentation components and the theme. Widget painters resolve through a generated `BlockPainters` module (site pack, then `DocsComponents`, then a debug placeholder when allowed). Parent structure kinds still receive concatenated Html after child records are built. This is an internal trusted-artifact bridge, not an author-facing raw-HTML feature; its safety depends on preserving escaping in every Rust renderer before the bridge.[^article][^docs][^build-runtime][^plan][^rocdown-reference]
 
 ## Ownership boundaries
 
@@ -84,7 +84,7 @@ This architecture implements the [Rust-catalog/Rocci-shell decision](/decisions/
 
 ## Shipped state
 
-Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, two-tier persistent renderer caching (`~/.rocci/cache`), native subprocess and Wasmtime execution hosts, inspection, watch/serve, live reload, and bounded `:kind` article blocks (asides, steps, figures, cards, no-JS tabs, includes, and opt-in `rocdown test`) are implemented.[^refactor-plan][^rocdown-reference]
+Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, two-tier persistent renderer caching (`~/.rocci/cache`), native subprocess and Wasmtime execution hosts, inspection, watch/serve, live reload, and bounded `:kind` article blocks (asides, steps, figures, cards, no-JS tabs, includes, opt-in `rocdown test`, and site block-pack painter overlay) are implemented.[^refactor-plan][^rocdown-reference]
 
 The separated OKF path lives in `okf` and `rocci-okf`, validating and reviewing knowledge collections independently from documentation site builds while sharing the base `toc.js` asset and `PageView` domain records.[^okf][^rocdown-reference]
 
