@@ -473,8 +473,7 @@ pub fn heading_level(name: &str) -> Option<u8> {
 }
 
 pub fn parent_allowed(spec: &KindSpec, parent_kind: Option<&str>) -> bool {
-    spec.parents.is_empty()
-        || parent_kind.is_some_and(|parent| spec.parents.iter().any(|want| *want == parent))
+    spec.parents.is_empty() || parent_kind.is_some_and(|parent| spec.parents.contains(&parent))
 }
 
 pub fn module_collision(name: &str) -> bool {
@@ -497,11 +496,13 @@ pub fn module_collision(name: &str) -> bool {
     )
 }
 
-pub fn widget_kinds() -> impl Iterator<Item = &'static KindSpec> {
+#[cfg(test)]
+fn widget_kinds() -> impl Iterator<Item = &'static KindSpec> {
     KINDS.iter().filter(|kind| kind.paints_as_widget())
 }
 
-pub fn article_node_type_roc() -> String {
+#[cfg(test)]
+fn article_node_type_roc() -> String {
     let mut out = String::from("ArticleNode : [\n    HtmlFile({ path : Str }),\n");
     for spec in widget_kinds() {
         out.push_str("    ");

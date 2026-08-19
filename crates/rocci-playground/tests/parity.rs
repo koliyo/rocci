@@ -48,7 +48,11 @@ fn test_rocdown_valid_compilation() {
     assert_eq!(resp.language, Language::Rocdown);
     assert!(!resp.has_errors);
     assert!(resp.roc.contains("Guide"));
-    assert!(resp.ast.contains("(h 1 guide"));
+    assert!(
+        resp.ast.contains("(block h1 line id guide"),
+        "ast: {}",
+        resp.ast
+    );
 }
 
 #[test]

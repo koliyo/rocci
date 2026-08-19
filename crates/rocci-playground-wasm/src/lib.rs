@@ -75,6 +75,9 @@ pub extern "C" fn playground_alloc(len: usize) -> *mut u8 {
     ptr
 }
 
+/// # Safety
+/// `ptr` must be null or come from `playground_alloc` with the same `len`, and
+/// no other alias may use the allocation after this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn playground_dealloc(ptr: *mut u8, len: usize) {
     if !ptr.is_null() && len > 0 {
@@ -84,6 +87,9 @@ pub unsafe extern "C" fn playground_dealloc(ptr: *mut u8, len: usize) {
     }
 }
 
+/// # Safety
+/// `ptr` must point to `len` readable bytes that stay valid for the duration
+/// of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn playground_compile_raw(ptr: *const u8, len: usize) -> u64 {
     let slice = unsafe { std::slice::from_raw_parts(ptr, len) };

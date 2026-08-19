@@ -237,14 +237,10 @@ pub fn load_with_cache(
         }
         if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
             let document = capture_cached(
-                &concepts,
-                &indexes,
-                &logs,
-                &diagnostics,
-                concepts_before,
-                indexes_before,
-                logs_before,
-                diagnostics_before,
+                &concepts[concepts_before..],
+                &indexes[indexes_before..],
+                &logs[logs_before..],
+                &diagnostics[diagnostics_before..],
             );
             cache.insert(relative, fingerprint, document);
         }
@@ -426,25 +422,21 @@ fn capture_cached(
     indexes: &[Index],
     logs: &[Log],
     diagnostics: &[Diagnostic],
-    concepts_before: usize,
-    indexes_before: usize,
-    logs_before: usize,
-    diagnostics_before: usize,
 ) -> CachedDocument {
-    let diagnostics = diagnostics[diagnostics_before..].to_vec();
-    if concepts.len() > concepts_before {
+    let diagnostics = diagnostics.to_vec();
+    if let Some(concept) = concepts.first() {
         CachedDocument::Concept {
-            concept: concepts[concepts_before].clone(),
+            concept: concept.clone(),
             diagnostics,
         }
-    } else if indexes.len() > indexes_before {
+    } else if let Some(index) = indexes.first() {
         CachedDocument::Index {
-            index: indexes[indexes_before].clone(),
+            index: index.clone(),
             diagnostics,
         }
-    } else if logs.len() > logs_before {
+    } else if let Some(log) = logs.first() {
         CachedDocument::Log {
-            log: logs[logs_before].clone(),
+            log: log.clone(),
             diagnostics,
         }
     } else {

@@ -205,7 +205,10 @@ for job in $jobs_to_run; do
   echo "${BOLD}==> ${job}${RESET}"
   job_start=$SECONDS
   set +e
-  run_named_job "$job"
+  (
+    set -euo pipefail
+    run_named_job "$job"
+  )
   status=$?
   set -e
   elapsed=$((SECONDS - job_start))

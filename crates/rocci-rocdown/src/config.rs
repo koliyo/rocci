@@ -150,13 +150,13 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
     if config.build.output.trim().is_empty() {
         bail!("build.output must not be empty in {}", path.display());
     }
-    if let Some(theme) = &config.build.theme {
-        if theme.trim().is_empty() || theme.contains('\0') || Path::new(theme).is_absolute() {
-            bail!(
-                "build.theme `{theme}` must be a relative path in {}",
-                path.display()
-            );
-        }
+    if let Some(theme) = &config.build.theme
+        && (theme.trim().is_empty() || theme.contains('\0') || Path::new(theme).is_absolute())
+    {
+        bail!(
+            "build.theme `{theme}` must be a relative path in {}",
+            path.display()
+        );
     }
     for (index, mount) in config.mounts.iter().enumerate() {
         if mount.source.trim().is_empty()

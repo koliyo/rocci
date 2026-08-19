@@ -1,4 +1,7 @@
-use rocci_cli::playground::{PLAYGROUND_CSP, PlaygroundMode, start_playground_server};
+use rocci_cli::playground::{
+    APP_JS, COMPILER_WASM, PLAYGROUND_CSP, PlaygroundMode, STYLES_CSS, WORKER_JS,
+    start_playground_server,
+};
 use rocci_cli::serve::free_port;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -83,22 +86,22 @@ fn test_playground_loopback_server_routes_and_headers() {
     assert_eq!(status, 200);
     assert!(headers.contains("Content-Type: application/javascript; charset=utf-8"));
     assert!(headers.contains("Cache-Control: public, max-age=31536000, immutable"));
-    assert!(!body.is_empty());
+    assert_eq!(body, APP_JS);
 
     let (status, headers, body) = send_raw_get(port, "/compiler-worker.js");
     assert_eq!(status, 200);
     assert!(headers.contains("Content-Type: application/javascript; charset=utf-8"));
-    assert!(!body.is_empty());
+    assert_eq!(body, WORKER_JS);
 
     let (status, headers, body) = send_raw_get(port, "/styles.css");
     assert_eq!(status, 200);
     assert!(headers.contains("Content-Type: text/css; charset=utf-8"));
-    assert!(!body.is_empty());
+    assert_eq!(body, STYLES_CSS);
 
     let (status, headers, body) = send_raw_get(port, "/compiler.wasm");
     assert_eq!(status, 200);
     assert!(headers.contains("Content-Type: application/wasm"));
-    assert!(!body.is_empty());
+    assert_eq!(body, COMPILER_WASM);
 
     let (status, headers, body) = send_raw_get(port, "/api/session");
     assert_eq!(status, 200);

@@ -82,6 +82,9 @@ pub extern "C" fn spike_alloc(len: usize) -> *mut u8 {
     ptr
 }
 
+/// # Safety
+/// `ptr` must be null or come from `spike_alloc` with the same `len`, and no
+/// other alias may use the allocation after this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn spike_dealloc(ptr: *mut u8, len: usize) {
     if !ptr.is_null() && len > 0 {
@@ -108,11 +111,17 @@ unsafe fn run_raw_compile(
     ((out_ptr as u64) << 32) | (out_len as u64)
 }
 
+/// # Safety
+/// `ptr` must point to `len` readable bytes that stay valid for the duration
+/// of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn compile_rocci_raw(ptr: *const u8, len: usize) -> u64 {
     unsafe { run_raw_compile(ptr, len, compile_rocci) }
 }
 
+/// # Safety
+/// `ptr` must point to `len` readable bytes that stay valid for the duration
+/// of the call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn compile_rocdown_raw(ptr: *const u8, len: usize) -> u64 {
     unsafe { run_raw_compile(ptr, len, compile_rocdown) }
@@ -155,6 +164,10 @@ mod tests {
         assert_eq!(res.language, "rocdown");
         assert!(!res.has_errors, "diagnostics: {:?}", res.diagnostics);
         assert!(res.roc.contains("Welcome"), "roc: {}", res.roc);
-        assert!(res.ast.contains("(h 1 welcome"), "ast: {}", res.ast);
+        assert!(
+            res.ast.contains("(block h1 line id welcome"),
+            "ast: {}",
+            res.ast
+        );
     }
 }

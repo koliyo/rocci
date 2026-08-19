@@ -21,6 +21,8 @@ use crate::profile::ProfileSnapshot;
 
 const DEBOUNCE: Duration = Duration::from_millis(200);
 
+pub type PathFilter = Arc<dyn Fn(&Path) -> bool + Send + Sync>;
+
 const RELOAD_JS: &str = r#"(function () {
   function connect() {
     var es = new EventSource("/__rocci/events");
@@ -121,7 +123,7 @@ pub struct StaticDevServerConfig {
     pub open_path: String,
     pub output: Option<PathBuf>,
     pub watch_paths: Vec<PathBuf>,
-    pub custom_filter: Option<Arc<dyn Fn(&Path) -> bool + Send + Sync>>,
+    pub custom_filter: Option<PathFilter>,
     pub log_prefix: String,
 }
 
@@ -236,10 +238,12 @@ where
             watch_output,
             custom_filter,
             log_prefix,
-            watch_hub,
-            watch_error,
-            watch_has_build,
-            watch_stop,
+            WatchCtl {
+                hub: watch_hub,
+                last_error: watch_error,
+                has_build: watch_has_build,
+                stop: watch_stop,
+            },
         );
     });
 
@@ -286,21 +290,25 @@ where
     result
 }
 
-fn watch_loop<F>(
-    rx: mpsc::Receiver<notify::Result<notify::Event>>,
-    mut rebuild: F,
-    output: PathBuf,
-    custom_filter: Option<Arc<dyn Fn(&Path) -> bool + Send + Sync>>,
-    log_prefix: String,
+struct WatchCtl {
     hub: Arc<ReloadHub>,
     last_error: Arc<Mutex<Option<String>>>,
     has_build: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
+}
+
+fn watch_loop<F>(
+    rx: mpsc::Receiver<notify::Result<notify::Event>>,
+    mut rebuild: F,
+    output: PathBuf,
+    custom_filter: Option<PathFilter>,
+    log_prefix: String,
+    ctl: WatchCtl,
 ) where
     F: FnMut(&Path) -> Result<Option<ProfileSnapshot>> + Send + 'static,
 {
     loop {
-        if stop.load(Ordering::Relaxed) {
+        if ctl.stop.load(Ordering::Relaxed) {
             break;
         }
         let event = match rx.recv_timeout(DEBOUNCE) {
@@ -324,15 +332,16 @@ fn watch_loop<F>(
         }
         match rebuild(&output) {
             Ok(snapshot) => {
-                has_build.store(true, Ordering::Relaxed);
-                hub.set_profile(snapshot);
-                *last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
-                hub.broadcast();
+                ctl.has_build.store(true, Ordering::Relaxed);
+                ctl.hub.set_profile(snapshot);
+                *ctl.last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
+                ctl.hub.broadcast();
             }
             Err(err) => {
                 eprintln!("{log_prefix}: {err:#}");
-                *last_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("{err:#}"));
-                hub.broadcast();
+                *ctl.last_error.lock().unwrap_or_else(|e| e.into_inner()) =
+                    Some(format!("{err:#}"));
+                ctl.hub.broadcast();
             }
         }
     }

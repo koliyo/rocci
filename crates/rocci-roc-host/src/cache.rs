@@ -36,10 +36,6 @@ impl TwoTierCache {
         Self { root }
     }
 
-    pub fn default() -> Self {
-        Self::new(Self::default_dir())
-    }
-
     pub fn roc_dir(&self, gen_hash: &str) -> PathBuf {
         self.root.join("roc").join(gen_hash)
     }
@@ -47,7 +43,15 @@ impl TwoTierCache {
     pub fn renderer_dir(&self, compile_hash: &str) -> PathBuf {
         self.root.join("renderers").join(compile_hash)
     }
+}
 
+impl Default for TwoTierCache {
+    fn default() -> Self {
+        Self::new(Self::default_dir())
+    }
+}
+
+impl TwoTierCache {
     pub fn lookup_roc(&self, gen_hash: &str) -> Option<CachedRoc> {
         let dir = self.roc_dir(gen_hash);
         let manifest_path = dir.join("manifest.json");
