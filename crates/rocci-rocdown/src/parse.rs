@@ -1,10 +1,15 @@
 use comrak::{Arena, Options, parse_document};
 use rocci_template::{
-    Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from, parse_template_item_from,
+    Cursor, Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from,
+    parse_template_item_from,
 };
 
-use crate::ast::{DocsDecl, Document, ImgDecl, Item, MdNode, PageDecl, RenderDecl, RocDecl};
+use crate::ast::{
+    BlockCall, BlockContent, BraceSection, DocsDecl, Document, EndMarker, EndSection, ImgDecl,
+    Item, LineContent, MdNode, PageDecl, RenderDecl, RocDecl,
+};
 use crate::markdown::{self, BlockOrHole};
+use crate::params;
 use crate::scan::{
     self, Reserved, ScannedDecl, ScannedKind, docs_inner_span, docs_kind_span, inner_span,
 };
@@ -36,8 +41,10 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         match block {
             BlockOrHole::Block(node) => items.push(Item::Markdown(node)),
             BlockOrHole::Hole(index) => {
-                if let Some(decl) = scanned.get(index) {
-                    items.push(fill_decl(source.src, decl, &mut diagnostics));
+                if let Some(decl) = scanned.get(index)
+                    && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
+                {
+                    items.push(item);
                 }
             }
         }
@@ -47,6 +54,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         items: crate::docs::normalize_blocks(source.src, items),
         span: Span::new(0, source.src.len()),
     };
+    validate_colon_tree(source.src, &document.items, None, &mut diagnostics);
     validate_footnotes(source.src, &document, &mut diagnostics);
 
     ParseOutput {
@@ -120,8 +128,10 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
         match block {
             BlockOrHole::Block(node) => items.push(Item::Markdown(node)),
             BlockOrHole::Hole(index) => {
-                if let Some(decl) = scanned.get(index) {
-                    items.push(fill_decl(source.src, decl, &mut diagnostics));
+                if let Some(decl) = scanned.get(index)
+                    && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
+                {
+                    items.push(item);
                 }
             }
         }
@@ -274,20 +284,218 @@ fn scan_source_footnote_refs(src: &str) -> Vec<(String, Span)> {
     refs
 }
 
-fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> Item {
+fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> Option<Item> {
     match decl.kind {
         ScannedKind::Html => match parse_template_item_from(src, decl.at) {
             Some(parsed) => {
                 diagnostics.extend(parsed.diagnostics);
-                Item::Template(parsed.item)
+                Some(Item::Template(parsed.item))
             }
-            None => Item::Roc(RocDecl {
+            None => Some(Item::Roc(RocDecl {
                 body: Span::new(decl.at, decl.end),
                 span: Span::new(decl.at, decl.end),
-            }),
+            })),
         },
-        ScannedKind::At(kind) => fill_at_decl(src, decl, kind, diagnostics),
+        ScannedKind::At(kind) => Some(fill_at_decl(src, decl, kind, diagnostics)),
+        ScannedKind::Colon => parse_colon_call(src, decl, diagnostics),
+        ScannedKind::ColonEnd => None,
     }
+}
+
+fn parse_colon_call(
+    src: &str,
+    decl: &ScannedDecl,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<Item> {
+    let mut cur = Cursor::at(src, decl.at);
+    if !cur.eat(':') {
+        return None;
+    }
+    let Some(name_span) = cur.scan_tag_name() else {
+        diagnostics.push(Diagnostic::error(
+            Span::point(cur.pos),
+            "expected a block kind after `:`",
+        ));
+        return None;
+    };
+    let name = name_span.of(src).to_string();
+    let (params, after_params) = params::parse_article_params(src, cur.pos, diagnostics);
+    cur.pos = after_params;
+    cur.skip_spaces_tabs();
+    let content = if cur.starts_with("{{") {
+        let inner_start = cur.pos + 2;
+        let close = decl.end;
+        let inner_end = if src.get(close.saturating_sub(2)..close) == Some("}}") {
+            close - 2
+        } else {
+            close
+        };
+        Some(BlockContent::Brace(BraceSection {
+            span: rocci_template::trim_span(src, Span::new(inner_start, inner_end)),
+        }))
+    } else if line_has_non_ws(src, cur.pos) {
+        let end = line_end_at(src, cur.pos);
+        Some(BlockContent::Line(LineContent {
+            span: rocci_template::trim_span(src, Span::new(cur.pos, end)),
+        }))
+    } else if let Some(marker) = end_marker_at(src, decl.end) {
+        let body_start = next_line_at(src, decl.at);
+        let body_end = marker_line_start(src, decl.end);
+        Some(BlockContent::End(EndSection {
+            span: rocci_template::trim_span(src, Span::new(body_start, body_end)),
+            marker,
+        }))
+    } else {
+        None
+    };
+    Some(Item::Block(BlockCall {
+        name,
+        name_span,
+        params,
+        content,
+        span: Span::new(decl.at, decl.end),
+    }))
+}
+
+fn line_has_non_ws(src: &str, pos: usize) -> bool {
+    let rest = src.get(pos..).unwrap_or("");
+    let line = rest.split('\n').next().unwrap_or(rest);
+    line.chars().any(|ch| !ch.is_whitespace())
+}
+
+fn line_end_at(src: &str, pos: usize) -> usize {
+    match src.get(pos..).and_then(|rest| rest.find('\n')) {
+        Some(i) => pos + i,
+        None => src.len(),
+    }
+}
+
+fn next_line_at(src: &str, pos: usize) -> usize {
+    match src.get(pos..).and_then(|rest| rest.find('\n')) {
+        Some(i) => pos + i + 1,
+        None => src.len(),
+    }
+}
+
+fn marker_line_start(src: &str, end: usize) -> usize {
+    src.get(..end)
+        .and_then(|head| head.rfind('\n'))
+        .map(|i| i + 1)
+        .unwrap_or(0)
+        .min(end)
+}
+
+fn end_marker_at(src: &str, end: usize) -> Option<EndMarker> {
+    let start = marker_line_start(src, end);
+    let mut at = start;
+    while at < end && matches!(src.as_bytes().get(at), Some(b' ' | b'\t')) {
+        at += 1;
+    }
+    let mut cur = Cursor::at(src, at);
+    if !cur.eat(':') {
+        return None;
+    }
+    let Some(end_span) = cur.scan_tag_name() else {
+        return None;
+    };
+    if end_span.of(src) != "end" {
+        return None;
+    }
+    cur.skip_spaces_tabs();
+    if !cur.eat('.') {
+        return None;
+    }
+    let kind_span = cur.scan_tag_name()?;
+    Some(EndMarker {
+        name: kind_span.of(src).to_string(),
+        span: Span::new(at, kind_span.end as usize),
+    })
+}
+
+fn validate_colon_tree(
+    src: &str,
+    items: &[Item],
+    parent: Option<&str>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for item in items {
+        let Item::Block(call) = item else {
+            continue;
+        };
+        if !call.is_colon(src) {
+            continue;
+        }
+        validate_colon_call(call, parent, diagnostics);
+        if let Some(content) = call.content_span()
+            && !content.is_empty()
+        {
+            let nested = parse_fragment(SourceFile::new("fragment", src), content, false);
+            diagnostics.extend(nested.diagnostics);
+            validate_colon_tree(src, &nested.document.items, Some(&call.name), diagnostics);
+        }
+    }
+}
+
+fn validate_colon_call(call: &BlockCall, parent: Option<&str>, diagnostics: &mut Vec<Diagnostic>) {
+    if crate::registry::module_collision(&call.name) {
+        diagnostics.push(Diagnostic::error(
+            call.name_span,
+            format!(
+                "`:{}` collides with a reserved module name; article blocks cannot use `@` names",
+                call.name
+            ),
+        ));
+        return;
+    }
+    let Some(spec) = crate::registry::lookup(&call.name) else {
+        diagnostics.push(Diagnostic::error(
+            call.name_span,
+            format!("unknown article kind `:{}`", call.name),
+        ));
+        return;
+    };
+    if !spec.authorable {
+        diagnostics.push(Diagnostic::error(
+            call.name_span,
+            format!("`:{}` is not an authorable article kind", call.name),
+        ));
+        return;
+    }
+    if !crate::registry::parent_allowed(spec, parent) {
+        diagnostics.push(Diagnostic::error(
+            call.name_span,
+            format!(
+                "`:{}` is only valid inside `:{}`",
+                spec.name, spec.parents[0]
+            ),
+        ));
+    }
+    let check_required = spec.parents.is_empty() || crate::registry::parent_allowed(spec, parent);
+    if check_required {
+        for field in spec.required_fields {
+            if !colon_has_field(call, field) {
+                diagnostics.push(Diagnostic::error(
+                    call.name_span,
+                    format!("`:{}` requires `{field}`", spec.name),
+                ));
+            }
+        }
+        for group in spec.required_one_of {
+            if !group.iter().any(|field| colon_has_field(call, field)) {
+                let joined = group.join("` or `");
+                diagnostics.push(Diagnostic::error(
+                    call.name_span,
+                    format!("`:{}` requires `{joined}`", spec.name),
+                ));
+            }
+        }
+    }
+}
+
+fn colon_has_field(call: &BlockCall, field: &str) -> bool {
+    call.params
+        .as_ref()
+        .is_some_and(|params| params.fields.iter().any(|item| item.name == field))
 }
 
 fn fill_at_decl(

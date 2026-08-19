@@ -786,7 +786,7 @@ fn nodes_from_items(
     for item in items {
         match item {
             Item::Markdown(node) => nodes.push(ArticleNode::Markdown(node.clone())),
-            Item::Block(call) if call.is_legacy_img(ctx.source.src) => {
+            Item::Block(call) if call.name == "img" => {
                 nodes.push(image_from_call(ctx, call));
             }
             Item::Block(call) => {
@@ -878,6 +878,9 @@ fn docs_node(
         return None;
     }
     if !registry::is_docs_kind(&call.name) {
+        if call.is_colon(ctx.source.src) {
+            return None;
+        }
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2401",
             ctx.source_path,

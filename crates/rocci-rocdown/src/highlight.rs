@@ -143,7 +143,19 @@ pub fn collect_docs(src: &str, collector: &mut Vec<HighlightSpan>, docs: &DocsDe
 }
 
 fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &BlockCall) {
-    collect_keyword(src, collector, call.span, call.name_span.start, "@docs");
+    if call.is_colon(src) {
+        let colon_start = (call.name_span.start as usize).saturating_sub(1);
+        if src.as_bytes().get(colon_start) == Some(&b':') {
+            collector.push(HighlightSpan::new(
+                Span::new(colon_start, call.name_span.end as usize),
+                HighlightKind::Keyword,
+                0,
+                55,
+            ));
+        }
+    } else {
+        collect_keyword(src, collector, call.span, call.name_span.start, "@docs");
+    }
     collector.push(HighlightSpan::new(
         call.name_span,
         HighlightKind::Type,

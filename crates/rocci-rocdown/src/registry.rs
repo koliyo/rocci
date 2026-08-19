@@ -362,6 +362,25 @@ pub fn parent_allowed(spec: &KindSpec, parent_kind: Option<&str>) -> bool {
         || parent_kind.is_some_and(|parent| spec.parents.iter().any(|want| *want == parent))
 }
 
+pub fn module_collision(name: &str) -> bool {
+    matches!(
+        name,
+        "page"
+            | "roc"
+            | "render"
+            | "component"
+            | "fixture"
+            | "css"
+            | "context"
+            | "init"
+            | "on"
+            | "if"
+            | "for"
+            | "match"
+            | "let"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
