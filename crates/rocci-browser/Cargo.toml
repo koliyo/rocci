@@ -1,0 +1,23 @@
+[package]
+name = "rocci-browser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Product-blind project browser: registry, two-stage picker, and adapter host"
+
+[lib]
+name = "rocci_browser"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rocci-browser"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+crossterm = "0.28"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }

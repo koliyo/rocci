@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Implemented Phase 1 of the [rocci-browser plan](plans/rocci-browser.md): `crates/rocci-browser` host (protocol, discovery, registry, `goto.js` scoring, fixture adapter, `add`/`remove`/`list`/`open`/`tui`). Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Added draft [rocci-browser implementation plan](plans/rocci-browser.md) from the research recommendation (option D): product-blind host, newline-delimited JSON-RPC adapters, registry, two-stage picker (Enter/Tab, Cmd-P vs Cmd-K), five delivery phases after a contract freeze. Complements one-shot `run` preview; does not add plugins on `rocci` or `rocdown`. Exploratory; Phase 0 freeze only; Phases 1–5 wait on fourth-CLI and adapter-shape gates.
 - Added draft [live reload follow-ons](plans/live-reload-follow-ons.md) after the preview-bar toggle: native View menu check item, shared `--no-live-reload` CLI flag, and a `--no-window` browser pause. Exploratory; no phase started.
 - Added draft [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md): three phases after the local Docker same-origin counter demo (headless CLI without WebKit, precompiled island binary without `roc` at runtime, cross-origin CORS and cookies). Exploratory; no phase started.

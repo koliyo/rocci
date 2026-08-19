@@ -1,0 +1,62 @@
+# rocci-browser
+
+Product-blind project browser: a registry of directories, a two-stage fuzzy
+picker, and out-of-process adapters.
+
+The host never sniffs file formats. Adapters on `PATH` claim paths, list
+documents, and `open` an HTTP origin. Direct product `run` commands keep their
+one-shot preview windows.
+
+## Commands
+
+```sh
+cargo run -q -p rocci-browser -- add ./my-project
+cargo run -q -p rocci-browser -- list
+cargo run -q -p rocci-browser -- open my-project --no-window --json
+cargo run -q -p rocci-browser -- open my-project --document about --no-window --json
+cargo run -q -p rocci-browser -- tui --no-window --json
+cargo run -q -p rocci-browser -- remove my-project
+```
+
+`open --no-window --json` prints `{ "url", "title" }` and keeps the adapter
+origin up until stdin closes (or the process is signaled).
+
+TUI keys: type to filter, Enter opens a target home, Tab lists adapter
+documents then Enter opens one, Shift-Tab / Escape returns to targets.
+
+## Registry and plugins
+
+| Override | Browser directory |
+| --- | --- |
+| `ROCCI_BROWSER_DIR` | that directory |
+| `ROCCI_HOME` | `$ROCCI_HOME/.rocci/browser` |
+| default | `$HOME/.rocci/browser` |
+
+Files: `projects.json` and `plugins/*.toml`. Window geometry stays in the
+existing `state/windows.json` key `browser` once a preview window exists.
+
+Plugin discovery order: `plugins/*.toml`, then repo-local `.rocci/browser.toml`
+`[[plugin]]` rows, then `ROCCI_BROWSER_PLUGINS` (`id=bin` or executable names).
+A missing binary is a warning next to the plugin id.
+
+Illustrative manifest:
+
+```toml
+id = "fixture"
+bin = "python3"
+argv = ["-u", "crates/rocci-browser/tests/fixtures/adapter.py"]
+```
+
+`bin` is looked up on `PATH`. During workspace development, put `target/debug`
+on `PATH` (or pass absolute bins in tests).
+
+## Protocol
+
+Newline-delimited JSON-RPC 2.0, `protocolVersion` `1`. Methods: `initialize`,
+`probe`, `listDocuments`, `open`, `shutdown`. The host sends `initialize`
+first. Unknown methods are ignored.
+
+## Tests
+
+`cargo test -p rocci-browser` uses the fixture adapter under
+`tests/fixtures/`. It does not start product CLIs or compile other formats.
