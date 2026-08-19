@@ -11,6 +11,7 @@ Executable name: `rocdown`
 ```sh
 # Run a single interactive .rocdown or ordinary .md document with live reload.
 # Relative links to other documents are compiled and served as extra routes.
+# Compile failures print rustc-style frames on stderr unless `--quiet`.
 # OKF knowledge records are refused with a pointer to `rocci-okf run`.
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
 

@@ -1,4 +1,4 @@
-use rocci_template::{Diagnostic, DiagnosticFrame, SourceFile};
+use rocci_template::{Diagnostic, DiagnosticFrame, SourceFile, format_diagnostic};
 
 pub use rocci_template::{MappedModule, remap_roc_output};
 
@@ -172,6 +172,28 @@ pub fn render_handler_overlay(method: &str, path: &str, handler: &str, error: &s
         handler = html_escape(handler),
         error = html_escape(error),
     )
+}
+
+pub fn format_template_errors(files: &[FailedFile]) -> String {
+    let mut out = String::new();
+    for file in files {
+        let source = SourceFile::new(&file.name, &file.src);
+        for diagnostic in &file.diagnostics {
+            if !out.is_empty() {
+                out.push('\n');
+            }
+            out.push_str(&format_diagnostic(source, diagnostic));
+            out.push('\n');
+        }
+    }
+    out
+}
+
+pub fn eprint_template_errors(files: &[FailedFile]) {
+    let text = format_template_errors(files);
+    if !text.is_empty() {
+        eprint!("{text}");
+    }
 }
 
 pub fn render_template_errors(files: &[FailedFile]) -> String {
@@ -559,6 +581,21 @@ mod tests {
         assert!(html.contains("Page.rocci"));
         assert!(html.contains("@component"));
         assert!(html.contains("^^^^^^^^^^"));
+    }
+
+    #[test]
+    fn template_errors_format_rustc_style_frames() {
+        let src = "@component Broken\n";
+        let diagnostic = Diagnostic::error(Span::new(0, 10), "expected `=` after component name");
+        let text = format_template_errors(&[FailedFile {
+            name: "Page.rocci".into(),
+            src: src.into(),
+            diagnostics: vec![diagnostic],
+        }]);
+        assert!(text.contains("error: expected `=` after component name"));
+        assert!(text.contains(" --> Page.rocci:1:1"));
+        assert!(text.contains("@component"));
+        assert!(text.contains("^^^^^^^^^^"));
     }
 
     #[test]
