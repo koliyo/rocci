@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Extended preview-window inspector
-description: "Code-backed DX investigation of the shipped Dev panel (profiling plus source views) and a browser-inspired recommendation for docking, tabs, scroll, and a runtime console. App-level Rocci logging is out of scope."
+description: "Code-backed DX investigation of the shipped Dev inspector. Dock/tabs/console shells landed; Source still does not scroll, overlay dock chrome covers tabs, and several OKF routes have no snapshot. Repair plan: investigate and repair the preview inspector."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -119,6 +119,11 @@ sources:
     title: Extended preview-window inspector implementation plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: repair-plan
+    resource: ../plans/preview-inspector-repair.md
+    title: Investigate and repair the preview inspector
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Extended preview-window inspector
@@ -137,7 +142,10 @@ host-originated messages (compile, watch, serve, rebuild, preview errors)
 plus, in a later phase, the inspected page's JavaScript `console.*`. It is
 not a product logger.
 
-Implementation plan: [Extended preview-window inspector](../plans/preview-inspector.md).[^inspector-plan]
+Implementation plan for remaining work: [Investigate and repair the
+preview inspector](../plans/preview-inspector-repair.md). The original
+[extended inspector](../plans/preview-inspector.md) specification is
+historical relative to the shells already in tree.[^repair-plan][^inspector-plan]
 
 ## Shipped baseline
 
@@ -145,7 +153,10 @@ The [source-views plan](../plans/inspector-source-views.md) is no longer
 "not started". Commit `feat(preview): show source, AST, Roc, and HTML in
 the Dev inspector` (2026-08-19) landed the inspect snapshot, JSON, panel
 dropdown, overlay `?route=` / `?view=` sync, and per-product artifact
-fill. Profiling and source still share one scrolling document.[^source-plan][^inspector-rs][^inspect-rs][^metrics-panel][^preview-nav-js][^cli-readme][^rocdown-inspect]
+fill. Tabs later split Performance / Source / Console, but the Source
+code pane still does not scroll (scoped `.inspector-panel` rules miss the
+scope root). Runtime findings and the remaining matrix are in the
+[repair plan](../plans/preview-inspector-repair.md).[^source-plan][^inspector-rs][^inspect-rs][^metrics-panel][^preview-nav-js][^cli-readme][^rocdown-inspect][^repair-plan]
 
 | Surface | Shipped behavior |
 | --- | --- |
@@ -408,8 +419,11 @@ needed.
 ## Relationship to existing records
 
 - [Source-views plan](../plans/inspector-source-views.md): artifact JSON
-  and dropdown **shipped**; remaining Phase 0 gates (tabs vs stacked
-  profiling, width/handle, HTML capture, highlight) move here.
+  and dropdown **shipped**.
+- [Repair plan](../plans/preview-inspector-repair.md): investigation
+  matrix, scroll, dock chrome, OKF routes, highlighting.
+- [Extended inspector plan](../plans/preview-inspector.md): original
+  dock/tabs/console specification; shells are in tree.
 - [Chrome vs inspector research](desktop-host-chrome-and-inspector-ui.md):
   unchanged. Dock is overlay; tabs and tool bodies are preview-origin.
 - [Preview-window naming](../decisions/preview-window.md): keep **dev
@@ -459,4 +473,5 @@ JSON.
 [^okf-inspect]: OKF pages: source and HTML only; AST/Roc unavailable.
 [^rocdown-inspect]: Rocdown pages fill source, AST, Roc, and built HTML.
 [^desktop-cargo]: wry 0.55 with `devtools`.
-[^inspector-plan]: Follow-on implementation plan for dock, tabs, DX, console.
+[^inspector-plan]: Original dock/tabs/console specification.
+[^repair-plan]: Investigate-and-repair plan; includes 2026-08-19 findings.
