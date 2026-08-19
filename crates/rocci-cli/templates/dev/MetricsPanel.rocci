@@ -6,8 +6,28 @@ MetricsSpan : {
     note : [Some Str, None],
 }
 
-@component MetricsPanel = |{ total_ms, spans, route, tab, path, view, body, available, reason }| {
-    <section class="metrics-panel">
+@component InspectorTabs = |{ tab }| {
+    <nav class="inspector-tabs" role="tablist">
+        @if tab == "performance" {
+            <a role="tab" aria-selected="true" href="/__rocci/dev?tab=performance">Performance</a>
+        } @else {
+            <a role="tab" aria-selected="false" href="/__rocci/dev?tab=performance">Performance</a>
+        }
+        @if tab == "source" {
+            <a role="tab" aria-selected="true" href="/__rocci/dev?tab=source">Source</a>
+        } @else {
+            <a role="tab" aria-selected="false" href="/__rocci/dev?tab=source">Source</a>
+        }
+        @if tab == "console" {
+            <a role="tab" aria-selected="true" href="/__rocci/dev?tab=console">Console</a>
+        } @else {
+            <a role="tab" aria-selected="false" href="/__rocci/dev?tab=console">Console</a>
+        }
+    </nav>
+}
+
+@component PerformanceBody = |{ total_ms, spans }| {
+    <div class="inspector-body tab-performance">
         <h1>Profiling</h1>
         <p class="total">
             <span class="value">{total_ms.to_str()}</span>
@@ -40,10 +60,15 @@ MetricsSpan : {
                 </tbody>
             </table>
         }
+    </div>
+}
+
+@component SourceBody = |{ route, path, view, body, available, reason }| {
+    <div class="inspector-body tab-source">
         <div class="source-chrome">
             <form class="source-form" method="get" action="/__rocci/dev">
                 <input type="hidden" name="route" value={route} />
-                <input type="hidden" name="tab" value={tab} />
+                <input type="hidden" name="tab" value="source" />
                 <label class="view-label">
                     View
                     <select name="view" onchange="this.form.submit()">
@@ -83,6 +108,31 @@ MetricsSpan : {
                 <pre><code>{body}</code></pre>
             }
         </div>
+    </div>
+}
+
+@component ConsoleBody = |{}| {
+    <div class="inspector-body tab-console">
+        <p class="console-placeholder">Runtime log stream is not attached yet.</p>
+    </div>
+}
+
+@component MetricsPanel = |{ total_ms, spans, route, tab, path, view, body, available, reason }| {
+    <section class="inspector-panel">
+        <InspectorTabs tab={tab} />
+        @match tab {
+            "source" =>
+                <SourceBody
+                    route={route}
+                    path={path}
+                    view={view}
+                    body={body}
+                    available={available}
+                    reason={reason}
+                />
+            "console" => <ConsoleBody />
+            _ => <PerformanceBody total_ms={total_ms} spans={spans} />
+        }
     </section>
 }
 
@@ -92,7 +142,7 @@ MetricsSpan : {
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <meta name="color-scheme" content="light dark" />
-            <title>Profiling</title>
+            <title>Inspector</title>
         </head>
         <body>
             <MetricsPanel
@@ -153,24 +203,49 @@ samplePage = {
         color: light-dark(#18181b, #d7dae0);
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    .metrics-panel {
+    .inspector-panel {
         box-sizing: border-box;
         height: 100%;
         min-height: 0;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        padding: 16px 14px 20px;
         font-size: 13px;
         line-height: 1.4;
     }
-    .source-chrome {
+    .inspector-tabs {
         flex: 0 0 auto;
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
+        padding: 0 8px;
     }
-    .metrics-panel > h1,
-    .metrics-panel > .total,
-    .metrics-panel > .empty,
-    .metrics-panel > table {
+    .inspector-tabs a {
+        padding: 10px 12px;
+        text-decoration: none;
+        color: light-dark(#71717a, #9da5b4);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        border-bottom: 2px solid transparent;
+    }
+    .inspector-tabs a[aria-selected="true"] {
+        color: inherit;
+        border-bottom-color: light-dark(#3b82f6, #61afef);
+    }
+    .inspector-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 16px 14px 20px;
+    }
+    .inspector-body.tab-performance,
+    .inspector-body.tab-console {
+        overflow: auto;
+    }
+    .source-chrome {
         flex: 0 0 auto;
     }
     .code-pane {
@@ -178,7 +253,7 @@ samplePage = {
         min-height: 0;
         overflow: auto;
     }
-    .metrics-panel h1 {
+    .inspector-body h1 {
         margin: 0 0 8px;
         font-size: 13px;
         font-weight: 650;
@@ -199,8 +274,12 @@ samplePage = {
         font-family: ui-monospace, Menlo, monospace;
     }
     .total .unit,
-    .empty {
+    .empty,
+    .console-placeholder {
         color: light-dark(#71717a, #9da5b4);
+    }
+    .console-placeholder {
+        margin: 0;
     }
     table {
         width: 100%;
@@ -233,7 +312,7 @@ samplePage = {
         flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        margin: 18px 0 8px;
+        margin: 0 0 8px;
     }
     .view-label {
         display: flex;
