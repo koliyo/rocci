@@ -19,6 +19,13 @@ pub const FIND_USE_SELECTION_SCRIPT: &str = "window.__rocciPreviewNav&&window.__
 pub const GOTO_OPEN_SCRIPT: &str = "window.__rocciGoto&&window.__rocciGoto.open()||window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
 pub const SELECT_ALL_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.selectAll&&window.__rocciPreviewNav.selectAll()||document.execCommand(\"selectAll\")";
 
+pub fn live_reload_set_script(enabled: bool) -> String {
+    let on = if enabled { "true" } else { "false" };
+    format!(
+        "window.__rocciLiveReload&&window.__rocciLiveReload.set({on});window.__rocciPreviewNav&&window.__rocciPreviewNav.syncLiveReload&&window.__rocciPreviewNav.syncLiveReload()"
+    )
+}
+
 pub fn reveal_label() -> &'static str {
     #[cfg(target_os = "macos")]
     {
@@ -130,6 +137,11 @@ mod tests {
         assert!(PREVIEW_NAV_HTML.contains("aria-pressed=\"true\""));
         assert!(PREVIEW_NAV_JS.contains("rocci-live-reload"));
         assert!(PREVIEW_NAV_JS.contains("__rocciLiveReload"));
+        assert!(PREVIEW_NAV_JS.contains("syncLiveReload"));
+        assert!(PREVIEW_NAV_JS.contains("live-reload:"));
+        assert!(live_reload_set_script(true).contains("set(true)"));
+        assert!(live_reload_set_script(false).contains("set(false)"));
+        assert!(live_reload_set_script(false).contains("syncLiveReload"));
         assert!(PREVIEW_NAV_CSS.contains("aria-pressed=\"true\""));
         assert!(PREVIEW_NAV_JS.contains("copy-source:"));
         assert!(PREVIEW_NAV_JS.contains("reveal:"));

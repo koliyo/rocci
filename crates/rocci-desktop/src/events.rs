@@ -19,6 +19,7 @@ pub enum PreviewEvent {
     Command(NavCommand),
     Reveal(String),
     CopySource(String),
+    LiveReload(bool),
     Loaded(String),
     Title(String),
 }

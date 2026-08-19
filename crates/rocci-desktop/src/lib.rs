@@ -326,6 +326,8 @@ impl Shell {
                     self.select_all_focused();
                 } else if self.reload && menu::is(&menu_event, menu::RELOAD_ID) {
                     self.reload_focused();
+                } else if self.reload && menu::is(&menu_event, menu::LIVE_RELOAD_ID) {
+                    self.set_focused_live_reload();
                 } else if self.devtools && menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {
                     self.toggle_inspector();
                 }
@@ -339,6 +341,15 @@ impl Shell {
             && let Err(error) = window.webview.reload()
         {
             tracing::error!(%error, "failed to reload webview");
+        }
+    }
+
+    fn set_focused_live_reload(&self) {
+        let script = chrome::live_reload_set_script(self.menu.live_reload_checked());
+        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
+            && let Err(error) = window.webview.evaluate_script(&script)
+        {
+            tracing::error!(%error, "failed to set live reload in webview");
         }
     }
 
