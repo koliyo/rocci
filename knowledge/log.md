@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Implemented Phase 4 of the [rocci-browser plan](plans/rocci-browser.md): repo-local `.rocci/browser.toml` (plugin and project rows as data), union with the user registry, and `rocci browser-adapter`. Host source still does not name product targets. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of the [rocci-browser plan](plans/rocci-browser.md): `rocdown browser-adapter` and `rocci-okf browser-adapter` probe/list/open via existing `run --no-window`, without Roc compile on probe/list. Product `run` still opens today's preview window. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 2 of the [rocci-browser plan](plans/rocci-browser.md): persistent preview window, host picker overlay (Cmd-P), session table, and `load_url` without exiting `preview()`. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 1 of the [rocci-browser plan](plans/rocci-browser.md): `crates/rocci-browser` host (protocol, discovery, registry, `goto.js` scoring, fixture adapter, `add`/`remove`/`list`/`open`/`tui`). Not logged complete until CI and Knowledge workflows succeed on this revision.

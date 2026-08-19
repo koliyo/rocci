@@ -15,15 +15,34 @@ pub struct PluginSpec {
     pub argv: Vec<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RepoProject {
+    pub id: String,
+    pub path: String,
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
-struct RepoLocalFile {
+pub struct RepoLocalFile {
     #[serde(default)]
-    plugin: Vec<PluginSpec>,
+    pub plugin: Vec<PluginSpec>,
+    #[serde(default)]
+    pub project: Vec<RepoProject>,
 }
 
 pub fn load_plugin_manifest(path: &Path) -> Result<PluginSpec> {
     let raw = fs::read_to_string(path)?;
     toml::from_str(&raw).map_err(|error| crate::Error::message(error))
+}
+
+pub fn load_repo_local(paths: &Paths) -> Result<Option<RepoLocalFile>> {
+    let repo_local = paths.repo_local_path();
+    if !repo_local.is_file() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&repo_local)?;
+    let parsed = toml::from_str::<RepoLocalFile>(&raw)
+        .map_err(|error| crate::Error::message(format!("{}: {error}", repo_local.display())))?;
+    Ok(Some(parsed))
 }
 
 pub fn discover_plugins(paths: &Paths) -> Result<(Vec<PluginSpec>, Vec<String>)> {
@@ -45,19 +64,14 @@ pub fn discover_plugins(paths: &Paths) -> Result<(Vec<PluginSpec>, Vec<String>)>
         }
     }
 
-    let repo_local = paths.repo_local_path();
-    if repo_local.is_file() {
-        match fs::read_to_string(&repo_local) {
-            Ok(raw) => match toml::from_str::<RepoLocalFile>(&raw) {
-                Ok(parsed) => {
-                    for spec in parsed.plugin {
-                        upsert(&mut plugins, spec);
-                    }
-                }
-                Err(error) => warnings.push(format!("{}: {error}", repo_local.display())),
-            },
-            Err(error) => warnings.push(format!("{}: {error}", repo_local.display())),
+    match load_repo_local(paths) {
+        Ok(Some(parsed)) => {
+            for spec in parsed.plugin {
+                upsert(&mut plugins, spec);
+            }
         }
+        Ok(None) => {}
+        Err(error) => warnings.push(error.to_string()),
     }
 
     if let Some(env_spec) = &paths.plugins_env {
@@ -92,10 +106,17 @@ fn upsert(plugins: &mut Vec<PluginSpec>, spec: PluginSpec) {
     }
 }
 
-pub fn resolve_bin(bin: &str) -> Option<PathBuf> {
+pub fn resolve_bin(bin: &str, relative_to: Option<&Path>) -> Option<PathBuf> {
     let path = Path::new(bin);
-    if path.is_absolute() || bin.contains('/') || bin.contains('\\') {
+    if path.is_absolute() {
         return path.exists().then(|| path.to_path_buf());
+    }
+    if bin.contains('/') || bin.contains('\\') {
+        let candidate = match relative_to {
+            Some(root) => root.join(path),
+            None => path.to_path_buf(),
+        };
+        return candidate.is_file().then_some(candidate);
     }
     let path_var = std::env::var_os("PATH")?;
     std::env::split_paths(&path_var).find_map(|dir| {
