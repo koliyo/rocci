@@ -19,6 +19,12 @@ import Layouts
                 <link rel="canonical" href={view.resources.canonical} />
                 <meta property="og:url" content={view.resources.canonical} />
             }
+            @if view.resources.module_script != "" {
+                <script type="module" src={view.resources.module_script}></script>
+            }
+            @if view.resources.chrome_script != "" {
+                <script src={view.resources.chrome_script} defer></script>
+            }
             <meta property="og:type" content="website" />
             <meta property="og:title" content={view.title} />
             <meta property="og:site_name" content={view.site.title} />
@@ -53,6 +59,7 @@ import Layouts
                         }
                     </nav>
                     <div class="header-actions">
+                        <button type="button" class="goto-open" data-rocci-goto-open aria-label="Go to page">Go to</button>
                         @if view.site.repository != "" {
                             <a class="header-link" href={view.site.repository}>Source ↗</a>
                         }
@@ -171,6 +178,24 @@ import Layouts
         text-decoration: none;
         color: var(--muted);
         font-size: 0.875rem;
+    }
+    .goto-open {
+        margin-right: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        padding: 0.25rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 0.375rem;
+        background: var(--surface);
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+    .goto-open:hover {
+        color: var(--ink);
     }
     .site-footer {
         border-top: 1px solid var(--line);

@@ -80,8 +80,10 @@ cargo run -p rocci-rocdown-cli -- test docs --update
 `rocdown test` runs declared `test` argument lists with cwd at the content root, a
 timeout, no extra environment, and no shell expansion. `--update` rewrites
 golden files. Failures are diagnostics (`RD2603`); `dist/` is not written.
-Fenced code is never executed. Default CSP stays `script-src 'none'`; tab
-panels are stacked sections, not a JavaScript tablist.
+Fenced code is never executed. Default CSP allows the hashed Cmd/Ctrl-K
+palette (`script-src 'self'; connect-src 'self'`) and still forbids
+`unsafe-eval` and `unsafe-inline`. Tab panels are stacked sections, not a
+JavaScript tablist.
 
 ## Site fields
 
@@ -99,7 +101,8 @@ panels are stacked sections, not a JavaScript tablist.
 
 `base_url` must use HTTP or HTTPS. A trailing slash is normalized away.
 Empty `subtitle` and `footer` omit those chrome pieces. Leave `csp` empty to use
-the default policy: no scripts, no `unsafe-eval` or `unsafe-inline`, styles and
+the default policy: hashed `goto.js` from `'self'`, fetches of `pages.json` and
+same-origin HTML from `'self'`, no `unsafe-eval` or `unsafe-inline`, styles and
 images from `'self'`. `live` pages override that page's CSP so Datastar can load
 and connect to the island service.
 
@@ -135,9 +138,10 @@ buttons with no service.
 A hybrid site emits:
 
 1. **CDN tree** — page HTML, hashed `/assets/` files, discovery files. `static`
-   and `hydrate` pages stay `script-src 'none'`. `live` pages include hashed
-   Datastar.js and a loosened CSP (`connect-src` is `'self'` or
-   `http.service_origin`).
+   and `hydrate` pages include hashed `goto.js` (Cmd/Ctrl-K) with
+   `script-src 'self'; connect-src 'self'`. They do not include Datastar.
+   `live` pages include hashed Datastar.js and a loosened CSP (`connect-src`
+   is `'self'` or `http.service_origin`).
 2. **Island service** — `rocdown serve-islands DIR` for colocated `@on`
    handlers, or `rocci run` on `[http].service`. The CDN file is a snapshot; the
    service owns durable state.
@@ -147,10 +151,11 @@ tree; do not serve Markdown from it.
 
 ### Cache advice
 
-Hashed `/assets/*` files (theme CSS, images, Datastar.js) are content-addressed
+Hashed `/assets/*` files (theme CSS, images, Datastar.js, `goto.js`) are content-addressed
 and can be cached indefinitely. HTML documents, `pages.json`, `islands.json`,
 `llms.txt`, `sitemap.xml`, and `robots.txt` should be revalidated: they name the
-current hashes and service routes. Do not treat `pages.json` as full-text search.
+current hashes and service routes. `pages.json` is the page list used by Cmd/Ctrl-K
+fuzzy navigation; it is not full-text site search.
 
 ## Build fields
 
@@ -217,9 +222,12 @@ with `rocdown run` uses the standalone left navigator instead; see
 In addition to page HTML, a configured build emits hashed `/assets/` files, a
 themed `404.html`, alias redirect HTML, `llms.txt`, and `pages.json`. When
 `base_url` is set, it also emits `sitemap.xml` and `robots.txt`. `pages.json`
-is the page list used by preview go-to-file; it is not full-text site search.
-Each entry includes `kind` (`static`, `hydrate`, or `live`) and `datastar`
-when Datastar.js was emitted for that page.
+is the page list used by Cmd/Ctrl-K go-to-page (preview and hosted); it is not
+full-text site search. Same-origin in-page links swap already-rendered HTML
+unless the target is `live` or otherwise needs a full load. Each entry includes
+`kind` (`static`, `hydrate`, or `live`) and `datastar` when Datastar.js was
+emitted for that page. Custom `SiteShell` themes should render
+`view.resources.chrome_script` so the palette ships.
 
 Sites with `live` pages also emit `islands.json`: `service_origin`, the live
 page ids and routes, and the mutation routes the island service serves.

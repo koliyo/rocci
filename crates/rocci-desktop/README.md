@@ -12,14 +12,14 @@ Native windowing and webview host built on [tao](https://github.com/tauri-apps/t
 
 ## Preview chrome
 
-Host chrome is HTML, CSS, and JS under `assets/`. `preview-nav.html` is the markup, `preview-nav.css` is injected with `textContent` into the shadow tree, and `preview-nav.js` plus `reduced-motion.js` mount the custom element and talk to `window.ipc`. Find-in-page and go-to-file overlays (`preview-find.*`, `preview-goto.*`, `preview-keys.js`) mount as sibling custom elements. Rust only JSON-embeds those assets and pushes title, path, and history flags through `evaluate_script`. Native Edit/View menu items call the same overlay methods via `evaluate_script`. When `PreviewOptions.inspector_url` is set, the overlay shows a Dev control that toggles a host-owned iframe to that preview-origin panel.
+Host chrome is HTML, CSS, and JS under `assets/`. `preview-nav.html` is the markup, `preview-nav.css` is injected with `textContent` into the shadow tree, and `preview-nav.js` plus `reduced-motion.js` mount the custom element and talk to `window.ipc`. Find-in-page (`preview-find.*`, `preview-keys.js`) mounts as a sibling custom element. Go to File embeds the shared `rocci-ui` `goto.js` palette (`window.__rocciGoto`) and aliases it onto `window.__rocciPreviewNav.goto` for native menus. If the loaded site already mounted `__rocciGoto`, the host does not create a second palette. Rust JSON-embeds host assets and pushes title, path, and history flags through `evaluate_script`. Native Edit/View menu items call the same overlay methods via `evaluate_script`. When `PreviewOptions.inspector_url` is set, the overlay shows a Dev control that toggles a host-owned iframe to that preview-origin panel.
 
 Preview keyboard shortcuts (Command on macOS, Control elsewhere):
 
 - **Find** (`F`): open the current-document find overlay; uses the selection when one exists
 - **Use Selection for Find** (`E`): set the find query from the selection without forcing the overlay open
 - **Find Next** / **Find Previous** (`G` / `Shift-G`): move between matches and wrap at the ends
-- **Go to File** (`K`): fuzzy-jump to a document from `/pages.json`, `/catalog.json`, or site nav links
+- **Go to File** (`K`): fuzzy-jump to a document from `/pages.json`, `/catalog.json`, or site nav links. Hosted Rocdown, rocci.dev, and OKF review pages use the same palette and swap already-rendered HTML in-place except for `live` / Datastar pages.
 - **Select All** (`A`): select the document article when the page marks a select root (`data-rd-select-root`, `article.rd-article`, or `article.article`); otherwise the whole page. Find and Go to File fields keep field-level Select All. Copy uses the live selection.
 
 When `PreviewOptions.source_root` is set (OKF and Rocdown preview), a trailing **More** (`...`) menu can reveal the original source file and copy its contents. Reveal uses the platform file manager: Finder on macOS, Explorer on Windows, and Files on Linux.
@@ -29,5 +29,5 @@ Do not author host chrome in `.rocci`. A template can snapshot markup, but it ca
 ## Dependencies
 
 - Relies on `tao`, `wry`, and `muda` (native menus).
-- Consumes `rocci-core` for configuration types.
+- Consumes `rocci-core` for configuration types and `rocci-ui` for the shared go-to-page script.
 - Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`; the host icon is embedded with `include_bytes!`.

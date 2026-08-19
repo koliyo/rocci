@@ -344,7 +344,8 @@ above.
   those article blocks keep a page `static` and apply through the widget forest.
   `hydrate` pages splice pure Rocci components into CDN HTML at build time.
   `live` pages splice initial island Html, hash Datastar.js, and loosen
-  per-page CSP. `rocdown serve-islands DIR` compiles colocated `@on` handlers
+  per-page CSP. Every site page also hashes `goto.js` (Cmd/Ctrl-K fuzzy
+  navigation) with `script-src 'self'; connect-src 'self'`. `rocdown serve-islands DIR` compiles colocated `@on` handlers
   into one island HTTP service. Hybrid builds emit `pages.json` kinds,
   `islands.json` service routes, and a publish report. `--cdn-only` refuses
   `live` pages so a CDN publish cannot ship dead actions. `rocdown run DIR`

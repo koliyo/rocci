@@ -2932,6 +2932,7 @@ dependencies = [
  "objc2-foundation",
  "png",
  "rocci-core",
+ "rocci-ui",
  "serde",
  "serde_json",
  "tao",

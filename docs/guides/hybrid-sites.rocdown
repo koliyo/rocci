@@ -12,9 +12,10 @@
 
 A hybrid Rocdown site is two artifacts:
 
-1. **CDN tree** — HTML documents, hashed CSS/images, discovery files. Pages
-   without handlers stay free of JavaScript. `live` pages include initial
-   island HTML and Datastar.js pointed at the island service.
+1. **CDN tree** — HTML documents, hashed CSS/images, discovery files, and the
+   Cmd/Ctrl-K palette (`goto.js`). Pages without handlers do not include
+   Datastar. `live` pages include initial island HTML and Datastar.js pointed
+   at the island service.
 2. **Island service** — `rocdown serve-islands` (colocated `@on`) or `rocci run`
    on `[http].service`. Mutation handlers return Datastar patches. The CDN file
    is a snapshot; the service owns durable state.
@@ -52,8 +53,8 @@ HTML. Increment and reset POST `/actions/counter/increment` and
 opening the CDN file always shows the build-time snapshot until a mutation
 runs.
 
-`about.rocdown` is `static`. Built `about/index.html` has no `<script>` and
-`script-src 'none'`.
+`about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
+and `script-src 'self'`; it does not include Datastar.
 
 Do not set `[http].service` to `examples/counter/Counter.rocci`. That file is
 a full-page app; GET `/` is not an island route. A sibling `.rocci` service is

@@ -14,7 +14,7 @@ use crate::config::SiteConfig;
 use crate::runtime;
 use crate::service::{IslandRoute, island_routes, live_csp};
 
-pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
 const HASH_LEN: usize = 16;
 
@@ -192,6 +192,9 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     }
     let stylesheet = hashed_asset("theme.css", theme_css.as_bytes());
     assets.push(stylesheet.clone());
+    let goto_asset = hashed_asset("goto.js", rocci_ui::GOTO_SCRIPT.as_bytes());
+    let chrome_script_url = goto_asset.hashed_url.clone();
+    assets.push(goto_asset);
     assets.sort_by(|a, b| a.output_path.cmp(&b.output_path));
 
     let rewrite = rewrite_map(&assets);
@@ -312,6 +315,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
             config.sidebar_tree,
             &stylesheet_url,
             &csp,
+            &chrome_script_url,
             playground_app_url.as_deref(),
             playground_css_url.as_deref(),
             datastar_url.as_deref(),
@@ -327,6 +331,7 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         config.sidebar_tree,
         &stylesheet_url,
         &csp,
+        &chrome_script_url,
     ));
     pages.sort_by(|a, b| a.output_path.cmp(&b.output_path));
 
@@ -544,6 +549,7 @@ fn planned_page(
     sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
+    chrome_script: &str,
     playground_app: Option<&str>,
     playground_css: Option<&str>,
     datastar_url: Option<&str>,
@@ -652,6 +658,7 @@ fn planned_page(
                 csp: page_csp,
                 canonical,
                 module_script,
+                chrome_script: chrome_script.to_string(),
                 playground_css: playground_css_val,
             },
         },
@@ -664,6 +671,7 @@ fn not_found_page(
     sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
+    chrome_script: &str,
 ) -> PlannedPage {
     let home = navigation
         .iter()
@@ -710,6 +718,7 @@ fn not_found_page(
                 csp: csp.to_string(),
                 canonical: String::new(),
                 module_script: String::new(),
+                chrome_script: chrome_script.to_string(),
                 playground_css: String::new(),
             },
         },
@@ -1341,6 +1350,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.resources.canonical);
         out.push_str(",\n                    module_script: ");
         push_roc_string(&mut out, &page.view.resources.module_script);
+        out.push_str(",\n                    chrome_script: ");
+        push_roc_string(&mut out, &page.view.resources.chrome_script);
         out.push_str(",\n                    playground_css: ");
         push_roc_string(&mut out, &page.view.resources.playground_css);
         out.push_str("\n                }\n            }\n        },\n");
@@ -1483,7 +1494,7 @@ items = ["index", "guide"]
     fn default_csp_is_strict_and_stable() {
         assert_eq!(
             DEFAULT_CSP,
-            "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+            "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
         );
         assert!(!DEFAULT_CSP.contains("unsafe-eval"));
         assert!(!DEFAULT_CSP.contains("unsafe-inline"));
@@ -1823,6 +1834,7 @@ FeatureCount = |_| {
             widgets.fragments
         );
         assert!(widgets.view.resources.module_script.is_empty());
+        assert!(widgets.view.resources.chrome_script.contains("goto."));
         let _ = fs::remove_dir_all(root);
     }
 

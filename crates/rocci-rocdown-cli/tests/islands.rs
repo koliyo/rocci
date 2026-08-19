@@ -148,19 +148,18 @@ fn hybrid_cdn_html_and_island_post_morph() {
 
     let about = fs::read_to_string(output.join("about/index.html")).unwrap();
     assert!(about.contains("static CDN HTML"), "{about}");
-    assert!(!about.to_ascii_lowercase().contains("<script"), "{about}");
+    assert!(about.contains("<script"), "{about}");
+    assert!(about.contains("goto."), "{about}");
     assert!(!about.contains("/assets/datastar"), "{about}");
+    assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
 
     let widgets = fs::read_to_string(output.join("widgets/index.html")).unwrap();
     assert!(widgets.contains("3 core ideas"), "{widgets}");
     assert!(
-        widgets.contains("script-src 'none'") || widgets.contains("script-src &#39;none&#39;"),
+        widgets.contains("script-src 'self'") || widgets.contains("script-src &#39;self&#39;"),
         "{widgets}"
     );
-    assert!(
-        !widgets.to_ascii_lowercase().contains("<script"),
-        "hydrate pages must not emit a script tag\n{widgets}"
-    );
+    assert!(widgets.contains("goto."), "{widgets}");
     assert!(!widgets.contains("datastar"), "{widgets}");
 
     let pair = fs::read_to_string(output.join("pair/index.html")).unwrap();

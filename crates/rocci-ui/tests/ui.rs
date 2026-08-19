@@ -61,6 +61,7 @@ fn test_view_constructors_and_serialization() {
             csp: "default-src 'self'".into(),
             canonical: "https://rocci.dev/guide/".into(),
             module_script: String::new(),
+            chrome_script: "/assets/goto.js".into(),
             playground_css: String::new(),
         },
     };
@@ -68,6 +69,16 @@ fn test_view_constructors_and_serialization() {
     let json = serde_json::to_string(&page).unwrap();
     let deserialized: PageView = serde_json::from_str(&json).unwrap();
     assert_eq!(page, deserialized);
+}
+
+#[test]
+fn goto_script_is_self_contained() {
+    assert!(GOTO_SCRIPT.contains("window.__rocciGoto"));
+    assert!(GOTO_SCRIPT.contains("/pages.json"));
+    assert!(GOTO_SCRIPT.contains("/catalog.json"));
+    assert!(GOTO_SCRIPT.contains("history.pushState"));
+    assert!(GOTO_SCRIPT.contains("rocci-goto"));
+    assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
 }
 
 #[test]

@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Implemented [Cmd-K fuzzy navigation](plans/fuzzy-navigation.md): shared `goto.js` palette for OKF review, Rocdown, rocci.dev, and desktop preview; hosted pages swap already-rendered HTML via the History API. Not logged complete until CI and Knowledge workflows succeed on this revision.
+
 - Added the draft [ungram follow-on backends plan](plans/ungram-follow-ons.md): after v1 owned-struct codegen, freeze inspect tags and generate exhaustive `format_ast` walkers, add `NodeKind` highlighter coverage, generate `MdNode` from `Rocdown.Markdown.ungram`, and emit a public tree appendix. Do not generate rust-analyzer `SyntaxKind`, highlight collectors, scanners, or a CST. Exploratory; no phase started.
 - Added the draft [preview inspector source views plan](plans/inspector-source-views.md): keep profiling in the preview-origin Dev panel, add a no-JS dropdown for original source, `format_ast`, generated Roc, and generated HTML, and bind the iframe to the current route via `?route=`. Overlay chrome only syncs the iframe URL and width. Exploratory; no phase started.
 - Added draft [mobile chrome research](research/mobile-chrome.md) and [implementation plan](plans/mobile-chrome.md): default Rocdown theme already ships a no-JS `<details>` menu; rocci.dev hides the docs sidebar at `48rem` without replacement; OKF nests Home/Review inside `.rd-toc`, which phone CSS discards. Six phases from contract freeze through OKF structure, site menu, theme hardening, optional shared `MobileNav`, standalone TOC, and fixtures. Exploratory; no phase started.
