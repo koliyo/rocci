@@ -112,8 +112,33 @@ MetricsSpan : {
 }
 
 @component ConsoleBody = |{}| {
-    <div class="inspector-body tab-console">
-        <p class="console-placeholder">Runtime log stream is not attached yet.</p>
+    <div class="inspector-body tab-console" data-logs-root="/__rocci">
+        <div class="console-toolbar">
+            <div class="console-filters" role="group" aria-label="Log level">
+                <button type="button" data-level="debug" aria-pressed="true">debug</button>
+                <button type="button" data-level="info" aria-pressed="true">info</button>
+                <button type="button" data-level="warn" aria-pressed="true">warn</button>
+                <button type="button" data-level="error" aria-pressed="true">error</button>
+            </div>
+            <button type="button" class="console-clear">Clear</button>
+        </div>
+        <div class="console-log" id="console-log">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Level</th>
+                        <th>Source</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="console-empty">
+                        <td colspan="4">No runtime messages yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 }
 
@@ -280,6 +305,44 @@ samplePage = {
     }
     .console-placeholder {
         margin: 0;
+    }
+    .console-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+        margin: 0 0 10px;
+    }
+    .console-filters {
+        display: flex;
+        gap: 4px;
+    }
+    .console-toolbar button {
+        font: inherit;
+        font-size: 11px;
+        padding: 3px 8px;
+        border: 1px solid light-dark(#d4d4d8, #3e4451);
+        border-radius: 4px;
+        background: light-dark(#fff, #2c313c);
+        color: inherit;
+        cursor: pointer;
+        text-transform: lowercase;
+    }
+    .console-toolbar button[aria-pressed="false"] {
+        opacity: 0.45;
+    }
+    .console-log {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+    }
+    .console-log table {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px;
+    }
+    .console-empty td {
+        color: light-dark(#71717a, #9da5b4);
     }
     table {
         width: 100%;

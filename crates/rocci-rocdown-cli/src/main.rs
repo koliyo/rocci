@@ -602,7 +602,11 @@ fn run_site_dev(
     let port = port.resolve()?;
     let open_path = open_path.unwrap_or("/");
     let server = rocci_rocdown::run_with_host_at(root, output, port, Some(host), open_path)?;
-    eprintln!("rocdown: serving {} at {}", server.title, server.url);
+    rocci_cli::logs::tee(
+        &server.logs,
+        rocci_cli::logs::LogLevel::Info,
+        format!("rocdown: serving {} at {}", server.title, server.url),
+    );
     if no_window {
         server.wait();
         return Ok(());

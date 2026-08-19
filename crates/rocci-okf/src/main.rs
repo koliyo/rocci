@@ -342,7 +342,11 @@ fn main() -> Result<()> {
                 Some(host.into()),
                 profile_report.into(),
             )?;
-            eprintln!("rocci-okf: serving {} at {}", server.title, server.url);
+            rocci_cli::logs::tee(
+                &server.logs,
+                rocci_cli::logs::LogLevel::Info,
+                format!("rocci-okf: serving {} at {}", server.title, server.url),
+            );
             if no_window {
                 server.wait();
                 return Ok(());

@@ -7,6 +7,7 @@ pub mod driver;
 pub mod error_page;
 pub mod inspect;
 pub mod inspector;
+pub mod logs;
 pub mod path_hint;
 pub mod playground;
 pub(crate) mod playground_compile;
