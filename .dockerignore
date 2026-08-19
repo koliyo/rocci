@@ -1,5 +1,5 @@
 # Keep the Compose build context small. This file is used when the context
-# is the repository root (see examples/rocdown-counter/docker-compose.yml).
+# is the repository root (see docker/compose.yml).
 .git
 .worktrees
 target
