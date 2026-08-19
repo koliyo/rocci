@@ -317,6 +317,117 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
     drop(child);
 }
 
+#[test]
+fn docs_run_previews_the_site() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let root = repo_root().join("docs");
+    let bin = rocdown_bin();
+    let port = rocci_cli::serve::free_port().unwrap();
+    let mut child = Command::new(&bin)
+        .args([
+            "run",
+            root.to_str().unwrap(),
+            "--no-window",
+            "--port",
+            &port.to_string(),
+        ])
+        .current_dir(repo_root())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    wait_for_preview(port, &mut child, "Documentation Portal");
+    let child = KillOnDrop(child);
+
+    let home = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(
+        !home.contains("no built site yet"),
+        "persist-HTML preview must serve index.html:\n{home}"
+    );
+    assert!(home.contains("Documentation Portal"), "{home}");
+    assert!(
+        !home.contains("/assets/datastar") && !home.to_ascii_lowercase().contains("datastar.js"),
+        "docs must stay static:\n{home}"
+    );
+
+    let guide = http_exchange(
+        port,
+        &format!(
+            "GET /guides/docs-components/ HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(guide.contains("Write documentation components"), "{guide}");
+    assert!(
+        guide.contains("Static pages"),
+        "widget forest must still paint :note:\n{guide}"
+    );
+    drop(child);
+}
+
+#[test]
+fn counter_run_proxies_actions_on_one_origin() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let root = repo_root().join("examples/rocdown-counter");
+    let bin = rocdown_bin();
+    let port = rocci_cli::serve::free_port().unwrap();
+    let mut child = Command::new(&bin)
+        .args([
+            "run",
+            root.to_str().unwrap(),
+            "--no-window",
+            "--port",
+            &port.to_string(),
+        ])
+        .current_dir(repo_root())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    wait_for_preview(port, &mut child, "Shared count");
+    let child = KillOnDrop(child);
+
+    let home = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(home.contains("Prose stays Markdown."), "{home}");
+    assert!(home.contains("Shared count"), "{home}");
+    assert!(home.contains("Increment"), "{home}");
+    assert!(home.contains("datastar"), "{home}");
+    assert!(
+        !home.contains("no built site yet"),
+        "GET / must stay CDN-owned:\n{home}"
+    );
+
+    let about = http_exchange(
+        port,
+        &format!("GET /about/ HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(about.contains("static CDN HTML"), "{about}");
+    assert!(!about.contains("/assets/datastar"), "{about}");
+
+    let increment = http_exchange(
+        port,
+        &format!(
+            "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        increment.contains("counter") && (increment.contains(">1<") || increment.contains(">1</")),
+        "same-origin preview must proxy island POST:\n{increment}"
+    );
+    drop(child);
+}
+
 fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
     let start = Instant::now();
     loop {
