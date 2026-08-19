@@ -99,6 +99,7 @@ mod tests {
             "forward",
             "home",
             "reload",
+            "live-reload",
             "title",
             "path",
             "dev",
@@ -116,6 +117,7 @@ mod tests {
             "aria-label=\"Forward\"",
             "aria-label=\"Home\"",
             "aria-label=\"Reload\"",
+            "aria-label=\"Live reload\"",
             "aria-label=\"Developer panel\"",
             "aria-label=\"More actions\"",
         ] {
@@ -125,6 +127,10 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_INSPECTOR_URL__"));
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_HAS_SOURCE_ROOT__"));
         assert!(PREVIEW_NAV_JS.contains("__ROCCI_REVEAL_LABEL__"));
+        assert!(PREVIEW_NAV_HTML.contains("aria-pressed=\"true\""));
+        assert!(PREVIEW_NAV_JS.contains("rocci-live-reload"));
+        assert!(PREVIEW_NAV_JS.contains("__rocciLiveReload"));
+        assert!(PREVIEW_NAV_CSS.contains("aria-pressed=\"true\""));
         assert!(PREVIEW_NAV_JS.contains("copy-source:"));
         assert!(PREVIEW_NAV_JS.contains("reveal:"));
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
