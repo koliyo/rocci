@@ -298,20 +298,20 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
 fn site_page_paths(site: &ResolvedSite) -> HashSet<String> {
     let mut paths = HashSet::new();
     for page in &site.pages {
-        paths.insert(page.route.clone());
+        paths.insert(crate::catalog::with_trailing_slash(&page.route));
         for alias in &page.aliases {
-            paths.insert(alias.clone());
+            paths.insert(crate::catalog::with_trailing_slash(alias));
         }
     }
     paths
 }
 
 fn keep_island_route(route: &RouteInfo, page_paths: &HashSet<String>) -> bool {
-    if route.method == "GET" {
-        route.path != "/" && !page_paths.contains(&route.path)
-    } else {
-        true
+    if route.method != "GET" {
+        return true;
     }
+    let normalized = crate::catalog::with_trailing_slash(&route.path);
+    normalized != "/" && !page_paths.contains(&normalized)
 }
 
 #[cfg(test)]
@@ -363,6 +363,36 @@ mod tests {
             out.contains("@post(&#39;http://127.0.0.1:9000/actions/x&#39;)"),
             "{out}"
         );
+    }
+
+    #[test]
+    fn keep_island_route_drops_cdn_gets_and_keeps_actions() {
+        let mut pages = HashSet::new();
+        pages.insert("/".into());
+        pages.insert("/guides/docs-components/".into());
+        pages.insert("/about/".into());
+        let get = |path: &str| RouteInfo {
+            method: "GET".into(),
+            path: path.into(),
+            fn_name: "on_get".into(),
+            span: rocci_template::Span::new(0, 0),
+        };
+        let post = |path: &str| RouteInfo {
+            method: "POST".into(),
+            path: path.into(),
+            fn_name: "on_post".into(),
+            span: rocci_template::Span::new(0, 0),
+        };
+        assert!(!keep_island_route(&get("/"), &pages));
+        assert!(!keep_island_route(&get("/guides/docs-components"), &pages));
+        assert!(!keep_island_route(&get("/guides/docs-components/"), &pages));
+        assert!(!keep_island_route(&get("/about"), &pages));
+        assert!(keep_island_route(&get("/health"), &pages));
+        assert!(keep_island_route(
+            &post("/actions/counter/increment"),
+            &pages
+        ));
+        assert!(keep_island_route(&post("/"), &pages));
     }
 
     #[test]
@@ -430,6 +460,68 @@ RevealTip = |{ open }| {
             "{main}"
         );
         assert!(!main.contains("(\"GET\", \"/\") =>"), "{main}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn plan_drops_preview_as_site_gets() {
+        let root = temp("preview-gets");
+        fs::create_dir_all(root.join("guides")).unwrap();
+        fs::write(
+            root.join("index.rocdown"),
+            r#"
+@page { route: "/", meta: { title: "Live" } }
+
+@on:post("/actions/counter/increment") = |_| {
+    Html.text("1")
+}
+
+# Home
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("guides/docs-components.rocdown"),
+            "# Components\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("live.rocdown"),
+            r#"
+@page { route: "/live", meta: { title: "Also live" } }
+
+@on:post("/actions/live/ping") = |_| {
+    Html.text("ok")
+}
+
+# Live
+"#,
+        )
+        .unwrap();
+        let plan = plan_island_service(&root).unwrap();
+        let paths: Vec<_> = plan
+            .modules
+            .iter()
+            .flat_map(|module| module.routes.iter())
+            .map(|route| (route.method.as_str(), route.path.as_str()))
+            .collect();
+        assert!(
+            paths.contains(&("POST", "/actions/counter/increment")),
+            "{paths:?}"
+        );
+        assert!(paths.contains(&("POST", "/actions/live/ping")), "{paths:?}");
+        assert!(
+            !paths.iter().any(|(method, path)| *method == "GET"
+                && (*path == "/"
+                    || *path == "/live"
+                    || *path == "/live/"
+                    || *path == "/guides/docs-components/")),
+            "{paths:?}"
+        );
+        let main = plan.into_app_plan().main_roc();
+        assert!(!main.contains("(\"GET\", \"/\") =>"), "{main}");
+        assert!(!main.contains("(\"GET\", \"/live\") =>"), "{main}");
+        assert!(!main.contains("(\"GET\", \"/live/\") =>"), "{main}");
         let _ = fs::remove_dir_all(root);
     }
 

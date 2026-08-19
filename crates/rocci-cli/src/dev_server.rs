@@ -540,14 +540,21 @@ fn is_preview_internal(path: &str) -> bool {
         || path.starts_with("/__rocci_okf")
 }
 
+fn is_cdn_owned_get(path: &str) -> bool {
+    path == "/" || path == "/index.html"
+}
+
 pub(crate) fn should_proxy(method: &str, path: &str, target: &ServeTarget, backend: u16) -> bool {
     if backend == 0 || is_preview_internal(path) {
         return false;
     }
-    if method != "GET" && method != "HEAD" {
-        return true;
+    if method == "GET" || method == "HEAD" {
+        if is_cdn_owned_get(path) {
+            return false;
+        }
+        return matches!(target, ServeTarget::NotFound);
     }
-    matches!(target, ServeTarget::NotFound)
+    true
 }
 
 fn remaining_body(initial: &[u8]) -> usize {
@@ -942,6 +949,14 @@ mod tests {
     #[test]
     fn should_proxy_posts_and_missing_gets_to_backend() {
         assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 0));
+        assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 9000));
+        assert!(!should_proxy("HEAD", "/", &ServeTarget::NotFound, 9000));
+        assert!(!should_proxy(
+            "GET",
+            "/index.html",
+            &ServeTarget::NotFound,
+            9000
+        ));
         assert!(should_proxy("GET", "/health", &ServeTarget::NotFound, 9000));
         assert!(should_proxy(
             "POST",
