@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,8 @@ pub struct SiteConfig {
     pub examples: ExamplesConfig,
     #[serde(default)]
     pub http: HttpConfig,
+    #[serde(default)]
+    pub blocks: BlocksConfig,
     #[serde(skip)]
     pub sidebar_tree: bool,
 }
@@ -122,6 +124,15 @@ pub struct HttpConfig {
     pub service: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct BlocksConfig {
+    pub pack: Option<String>,
+    pub debug: bool,
+    #[serde(rename = "override")]
+    pub override_map: BTreeMap<String, String>,
+}
+
 pub fn load_config(root: &Path) -> Result<SiteConfig> {
     load_config_named(root, CONFIG_FILE)
 }
@@ -172,6 +183,29 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
             "build.theme `{theme}` must be a relative path in {}",
             path.display()
         );
+    }
+    if let Some(pack) = &config.blocks.pack
+        && (pack.trim().is_empty() || pack.contains('\0') || Path::new(pack).is_absolute())
+    {
+        bail!(
+            "blocks.pack `{pack}` must be a relative path in {}",
+            path.display()
+        );
+    }
+    for (kind, component) in &config.blocks.override_map {
+        let valid = crate::registry::lookup(kind).is_some_and(|spec| spec.paints_as_widget());
+        if !valid {
+            bail!(
+                "blocks.override unknown kind `{kind}` in {}",
+                path.display()
+            );
+        }
+        if component.trim().is_empty() {
+            bail!(
+                "blocks.override `{kind}` must name a component in {}",
+                path.display()
+            );
+        }
     }
     for (index, mount) in config.mounts.iter().enumerate() {
         if mount.source.trim().is_empty()
@@ -455,6 +489,81 @@ layout = "invalid_layout"
         fs::write(root.join(CONFIG_FILE), "[site]\ntitel = \"typo\"\n").unwrap();
         let err = load_config(&root).unwrap_err().to_string();
         assert!(err.contains("failed to parse"), "{err}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_blocks_pack_debug_and_override() {
+        let root = temp("blocks");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+pack = "theme/widgets"
+debug = true
+
+[blocks.override]
+note = "Callout"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.blocks.pack.as_deref(), Some("theme/widgets"));
+        assert!(config.blocks.debug);
+        assert_eq!(
+            config.blocks.override_map.get("note").map(String::as_str),
+            Some("Callout")
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_unknown_blocks_keys_and_override_kinds() {
+        let root = temp("blocks-unknown");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+painters = "theme/Blocks.rocci"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("failed to parse"), "{err}");
+
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks.override]
+notee = "Note"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("unknown kind `notee`"), "{err}");
+
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+pack = "/absolute/pack"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must be a relative path"), "{err}");
         let _ = fs::remove_dir_all(root);
     }
 

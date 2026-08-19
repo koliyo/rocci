@@ -286,7 +286,12 @@ the documentation layout. The builtin `RocdownTheme` already ships that menu.
 Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
-component (`Note`, `Tabs`, `Figure`, …). Static apply data is a tagged union of
+component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
+`theme/blocks/*.rocci`) overlays those painters by matching `@component` names.
+`[blocks] pack` in `rocdown.toml` selects a different pack path;
+`[blocks.override]` remaps a kind to a pack component. See
+[Rocdown site configuration](../../docs/reference/rocdown-site.rocdown). Static
+apply data is a tagged union of
 per-kind props plus fragment paths; widget bodies stay in HTML files and are
 passed as the extra content argument. There is no flattened optional-field bag
 and no `Render` kind matcher. Article HTML is
