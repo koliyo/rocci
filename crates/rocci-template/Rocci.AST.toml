@@ -3,6 +3,7 @@
 
 [meta]
 ungram = "Rocci.AST.ungram"
+uses = ["crate::span::Span"]
 
 # Emit a struct or enum matching `rust`.
 [generated]
@@ -86,6 +87,20 @@ Static = "Static"
 Expr = "Expr"
 Action = "Action"
 Boolean = "Boolean"
+
+[add_fields]
+"Element.self_closing" = "bool"
+"ComponentPath.roc_name" = "String"
+
+[wrap]
+"ComponentCall.children" = "Option"
+"MatchArm.value" = "Box"
+
+[flatten]
+"OnDecl.path" = "path:String, path_span:Span"
+
+[span_method]
+TemplateItem = true
 
 [out_of_tree]
 ParsedParams = "derived from ParamList text; not a node"

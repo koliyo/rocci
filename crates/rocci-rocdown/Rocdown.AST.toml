@@ -3,6 +3,9 @@
 
 [meta]
 ungram = "Rocdown.AST.ungram"
+uses = [
+    "rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem}",
+]
 
 # Emit a struct or enum matching `rust`.
 [generated]
@@ -63,6 +66,7 @@ Ident = "{ name: String, span: Span }"
 StringLit = "{ value: String, span: Span }"
 BoolLit = "{ value: bool, span: Span }"
 NumberLit = "{ value: String, span: Span }"
+LineContent = "Span"
 
 [item_variants]
 MdNode = "Markdown"
@@ -98,6 +102,24 @@ BracketList = "List"
 "LineContent.inlines" = "not stored; LineContent is an opaque span"
 "BraceSection.blocks" = "not stored; nested items reparsed via parse_fragment"
 "EndSection.blocks" = "not stored; nested items reparsed via parse_fragment"
+
+[block_content_variants]
+LineContent = "Line"
+BraceSection = "Brace"
+EndSection = "End"
+
+[flatten]
+"BlockCall.name" = "name:String, name_span:Span"
+"ParamField.name" = "name:String, name_span:Span"
+"UseDecl.path" = "path:String, path_span:Span"
+"EndMarker.name" = "name:String"
+
+[omit_span]
+ParamField = true
+
+[span_method]
+TemplateItem = true
+MdNode = true
 
 [out_of_tree]
 PageMeta = "analysis type; not a parse node"

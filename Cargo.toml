@@ -5,6 +5,7 @@ members = [
     "crates/rocci-desktop",
     "crates/rocci-cli",
     "crates/rocci-template",
+    "crates/rocci-ungram",
     "crates/rocci-rocdown",
     "crates/rocci-theme",
     "crates/rocci-highlight",
@@ -39,6 +40,7 @@ rocci-core = { path = "crates/rocci-core" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
 rocci-template = { path = "crates/rocci-template" }
+rocci-ungram = { path = "crates/rocci-ungram" }
 rocci-rocdown = { path = "crates/rocci-rocdown" }
 rocci-rocdown-cli = { path = "crates/rocci-rocdown-cli" }
 rocci-rocdown-lsp = { path = "crates/rocci-rocdown-lsp" }

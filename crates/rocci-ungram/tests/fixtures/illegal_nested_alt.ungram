@@ -1,0 +1,4 @@
+Item = Foo | (Bar | Baz)
+Foo = 'foo'
+Bar = 'bar'
+Baz = 'baz'
