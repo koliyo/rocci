@@ -57,3 +57,11 @@ query = "browser behavior unimplemented"
 expected_concepts = ["decisions/client-behavior-islands"]
 expected_status = "draft"
 expected_authority = "exploratory"
+
+[[questions]]
+id = "hybrid-cdn-islands"
+question = "How can Rocdown mix static CDN HTML with dynamic Rocci components on a live service?"
+query = "hybrid islands CDN static service Datastar"
+expected_concepts = ["research/hybrid-rocdown-islands"]
+expected_status = "draft"
+expected_authority = "exploratory"

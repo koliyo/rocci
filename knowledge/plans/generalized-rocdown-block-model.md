@@ -662,6 +662,9 @@ workflows (CI and Knowledge) have succeeded on that revision.
 - Reclassify `include` / `example` as `@include` / `@example` if the
   tooling-versus-document split is still wanted after the prefix drop.
 - HTML islands / theme component calls inside static block bodies.
+- Per-page `@component` / `@roc` on static `rocdown build` (owned by the
+  [hybrid Rocdown islands plan](hybrid-rocdown-islands.md), not this
+  spelling plan).
 - Generate AST types (and later syntax kinds) from the ungram; CI fails on
   drift.
 - Rename `rd-docs-*` / `data-rocci-docs` once painting is fully component-
