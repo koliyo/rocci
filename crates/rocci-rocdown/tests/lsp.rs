@@ -11,6 +11,7 @@ use rocci_rocdown::RocdownAnalyzer;
 
 const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
 const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
+const BLOCKS_ROCDOWN: &str = include_str!("../../../examples/rocdown/Blocks.rocdown");
 
 use std::path::PathBuf;
 
@@ -152,6 +153,69 @@ fn test_rocdown_lsp_all_syntax() {
         }
         _ => panic!("expected full tokens"),
     }
+}
+
+#[test]
+fn blocks_example_begin_end_children_are_nested() {
+    let mut server = initialize_server();
+    let uri: Uri = "file:///Blocks.rocdown".parse().expect("blocks uri");
+    let published = server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: BLOCKS_ROCDOWN.to_string(),
+            },
+        })
+        .expect("should publish diagnostics");
+
+    let errors: Vec<&str> = published
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == Some(DiagnosticSeverity::ERROR))
+        .map(|d| d.message.as_str())
+        .collect();
+    assert!(
+        errors.iter().all(|msg| {
+            !msg.contains("`:step` is only valid inside `:steps`")
+                && !msg.contains("`:tab` is only valid inside `:tabs`")
+                && !msg.contains("`:tabs` requires `group`")
+                && !msg.contains("`:tabs` requires `kind`")
+        }),
+        "begin/end children should keep their parent: {errors:?}"
+    );
+    assert!(
+        published
+            .diagnostics
+            .iter()
+            .all(|d| d.source.as_deref() == Some("rocdown")),
+        "rocdown diagnostics should be sourced as rocdown: {:?}",
+        published.diagnostics
+    );
+
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: TextDocumentIdentifier { uri },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("document symbols");
+    let DocumentSymbolResponse::Nested(syms) = symbols else {
+        panic!("expected nested symbols");
+    };
+    let steps = syms.iter().find(|s| s.name == ":steps").expect(":steps");
+    let steps_children = steps.children.as_deref().unwrap_or(&[]);
+    assert!(
+        steps_children.iter().any(|s| s.name == ":step"),
+        "missing nested :step under :steps: {steps_children:?}"
+    );
+    let tabs = syms.iter().find(|s| s.name == ":tabs").expect(":tabs");
+    let tabs_children = tabs.children.as_deref().unwrap_or(&[]);
+    assert!(
+        tabs_children.iter().any(|s| s.name == ":tab"),
+        "missing nested :tab under :tabs: {tabs_children:?}"
+    );
 }
 
 #[test]

@@ -124,10 +124,14 @@ pub struct RocciAnalyzer;
 
 impl DocumentAnalyzer for RocciAnalyzer {
     fn can_analyze(&self, uri: &Uri, language_id: Option<&str>) -> bool {
+        let path = uri.path().as_str();
+        if path.ends_with(".rocdown") || path.ends_with(".md") || path.ends_with(".markdown") {
+            return false;
+        }
         match language_id {
             Some("rocci") => true,
             Some(_) => false,
-            None => uri.path().as_str().ends_with(".rocci"),
+            None => path.ends_with(".rocci"),
         }
     }
 

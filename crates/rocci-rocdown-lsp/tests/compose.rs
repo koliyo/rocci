@@ -54,3 +54,14 @@ fn composition_server_analyzes_rocci_and_rocdown() {
     open(&mut server, "file:///x.rocci", "rocci", ROCCI);
     open(&mut server, "file:///x.rocdown", "rocdown", ROCDOWN);
 }
+
+#[test]
+fn rocdown_uri_uses_rocdown_analyzer_even_with_rocci_language_id() {
+    let mut server = initialize_server();
+    open(
+        &mut server,
+        "file:///Nested.rocdown",
+        "rocci",
+        ":steps.begin\n    :step[title: \"One\"] First.\n:steps.end\n",
+    );
+}
