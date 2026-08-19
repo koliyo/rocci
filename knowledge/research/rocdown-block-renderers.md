@@ -4,7 +4,7 @@ title: Custom Rocdown block schemas and renderers
 description: "Exploratory research: treat :kind as a Rocci function interface with named params and constrained children, then let a site-selected renderer paint Html. Syntax is shipped; schema/renderer split and site overrides are not."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring, concern/theming]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -66,7 +66,12 @@ sources:
     last_modified: 2026-08-19
   - id: template-ast
     resource: ../../crates/rocci-template/src/ast.rs
-    title: Component param-default extraction
+    title: Component param-default and inline type extraction
+    author: process:git
+    last_modified: 2026-08-19
+  - id: template-parser
+    resource: ../../crates/rocci-template/src/parser.rs
+    title: Opaque Roc spans between recognized @ declarations
     author: process:git
     last_modified: 2026-08-19
   - id: site-ref
@@ -216,16 +221,28 @@ config. The [implementation plan](../plans/rocdown-block-renderers.md) is
 exploratory until a human accepts a scope. Architecture records describe
 today's format and generator, not this overlay.[^impl-plan][^format-arch]
 
+`@docs` is not part of this design. It was a short-lived experimental
+family name and is **removed**. Line-start `@docs` is only a removal
+diagnostic. Article widgets are `:kind[params]`. Do not use `@docs` as a
+synonym, compatibility story, or implementation analogy.
+
 ## For a later agent
 
 - **Authority:** exploratory. Crate READMEs and architecture records describe
   shipped behavior; this record does not.
-- **Shipped already:** `:name[params]` article blocks, the closed Rust
+- **Shipped already:** `:name[params]` article blocks, line / `{{ }}` /
+  `:kind.begin` ... `:kind.end` (not mixed), the closed Rust
   `KindSpec` registry, per-kind `DocsComponents` painters, `@use` on
   `rocdown run`, parent-kind rules for `tab` / `step`.[^registry][^docs-rocci][^imports-rs]
 - **Not shipped:** schema/renderer split, site-level renderer override,
   custom static kinds in the theme, structured child lists into Rocci,
   `@block` / export tables, a debug painter.
+- **Do not discuss `@docs`.** Removed experiment. Current blocks are
+  `:kind`.
+- **Examples:** [Worked examples](#worked-examples) in this record.
+  v1 schema comes from `@component` headers, not named Roc structs.
+  Named structs do not require Roc introspection; they also do not give
+  the catalog fields without a restricted type scan or `@block`.
 - **Do not implement** unless the user asks. Follow
   [the plan](../plans/rocdown-block-renderers.md).
 - **Keep:** Markdown-first islands, pure `@component` render, Rust catalog /
@@ -256,7 +273,8 @@ document. CSS variables on `.rd-docs-note` are not that capability.[^docs-rocci]
 ### Syntax and registry
 
 A line-start `:kind` is an article `BlockCall`. Params are a bracket record.
-Content is line-scope, `{{ }}`, or `:end.kind`. Kinds are data in
+Content is line-scope, `{{ }}`, or `:kind.begin` ... `:kind.end`. A call uses
+one delimiter, not both. Kinds are data in
 `registry.rs`, not parser keywords. Unknown `:foo` is a diagnostic. `@use
 "./Callout.rocci"` on interactive `rocdown run` maps each exported
 `@component Callout` to `:callout` by PascalCase-to-kebab. Builtin name
@@ -333,8 +351,8 @@ interface. HTML comes only from a renderer. Swapping `:note` from an
 `<aside>` to a `<details>` is a renderer change, not a document or CSS
 change.[^pure-render][^catalog-shell]
 
-That is already how `@docs` *wanted* to work, and how `KindSpec.component`
-hints, except three things are fused:
+That is already how `KindSpec.component` hints, except three things are
+fused:
 
 1. Schema lives in Rust; painters live in Rocci; the dispatcher in
    `RocdownBuild.roc` hard-codes both.
@@ -603,6 +621,253 @@ a site pack that adds `:callout` extends it.[^build-runtime][^registry][^generat
 
 Do not interpret templates in Rust to avoid compiling the theme.[^catalog-shell]
 
+## Worked examples
+
+These sketches are not shipped. They show the recommended pack convention
+(Phase 3–6 of the plan), then a parent/child kind, then an override, then
+what `@block` would add later. Document spelling is already
+`:name[params]`.[^impl-plan][^all-syntax]
+
+### New fragment kind (`:callout`)
+
+A site adds a kind that does not exist in the builtin registry. The pack
+is compiled once with the theme. Pages stay Markdown plus `:callout`.
+
+`theme/blocks/Callout.rocci`:
+
+```rocci
+import Html
+
+@css {
+    .callout {
+        margin: 1.25rem 0;
+        padding: 0.85rem 1rem;
+        border-left: 0.35rem solid var(--line);
+    }
+    .callout-warn { border-left-color: #b7791f; }
+}
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside class={"callout callout-${tone}"} data-rocci-block="callout">
+        {content}
+    </aside>
+```
+
+`guides/install.rocdown`:
+
+```text
+:callout[tone: "warn"] Don't paste raw HTML into Markdown.
+
+:callout {{
+    Nested Markdown, fences, and other article blocks are the body.
+}}
+```
+
+What the toolchain infers without a new decorator:
+
+| From | Inference |
+| --- | --- |
+| file in `theme/blocks/` + `@component Callout` | kind `:callout`, renderer `Callout` |
+| first param `|{ tone ?? "note" }` | optional `tone`, default `"note"` |
+| extra param `content` | fragment child mode (`Html`) |
+| no `accepts` metadata | Markdown plus nested blocks allowed |
+
+`rocdown check` validates `tone` as a known field and paints through
+`Callout`. Another site without this pack still errors on
+`:callout`.[^imports-rs][^template-ast][^template-readme]
+
+### New parent/child kinds (`:callouts` / `:callout`)
+
+Same pack, two components. The parent needs structured children, like
+`:tabs` / `:tab`.
+
+```rocci
+@component Callouts = |{}, items|
+    <div class="callout-group" data-rocci-block="callouts">
+        @for item in items {
+            {item.content}
+        }
+    </div>
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside class={"callout callout-${tone}"} data-rocci-block="callout">
+        {content}
+    </aside>
+```
+
+```text
+:callouts.begin
+    :callout[tone: "warn"] First warning.
+    :callout[tone: "note"] Second note.
+:callouts.end
+```
+
+The extra argument on `Callouts` is a list, not concatenated `Html`. The
+planner paints each `:callout` through `Callout`, then passes
+`items : List { tone : Str, content : Html }` (field names from the child
+schema). `Callouts` may ignore `tone` and only wrap, or build a table of
+tones from `item.tone`. A stray paragraph between children is an error
+once `accepts: ["callout"]` is declared.[^build-runtime][^registry]
+
+v1 pack convention cannot declare `accepts` from the component signature
+alone: `items` is just a name. Until `@block` (or an explicit child
+annotation), custom parent kinds would default to "any children" unless
+the pack uses a small sidecar or a later decorator. Builtin `:tabs`
+already has that policy in Rust.[^docs-rs]
+
+### Override a builtin (`:note`)
+
+Documents do not change. The site replaces the element tree.
+
+`theme/Blocks.rocci`:
+
+```rocci
+import Html
+import DocsComponents
+
+@component Note = |{ title }, content| {
+    <details class="site-note">
+        <summary>
+            @if title != "" {
+                {title}
+            } @else {
+                Note
+            }
+        </summary>
+        {content}
+    </details>
+}
+
+@component Tip = |{ title }, content|
+    <DocsComponents.Tip title={title}>{content}</DocsComponents.Tip>
+```
+
+`:note Don't do this.` now renders `<details>`, not `<aside>`. `:tip`
+wraps the builtin. Omitted kinds (`Caution`, `Tabs`, …) stay
+`DocsComponents`. Optional `rocdown.toml`:
+
+```toml
+[build]
+theme = "theme"
+
+[blocks]
+pack = "theme/Blocks.rocci"
+```
+
+### Interactive one-off (`@use`)
+
+Unchanged from today, and still static-build illegal. A single
+`.rocdown` file under `rocdown run` may `@use "./Callout.rocci"` and
+write `:callout`. Every `@component` in that module becomes a kind, so
+do not put helpers in the same file until `@block` exists.[^imports-rs][^callout-fixture][^rocdown-readme]
+
+### What `@block` would add later
+
+Only needed when the pack mixes helpers with kinds, renames, or must
+declare child policy next to the renderer:
+
+```rocci
+@component Label = |{ text }|
+    <span class="label">{text}</span>
+
+@block(as: "callouts", accepts: [callout], accepts_markdown: Bool.false)
+Callouts = |{}, items|
+    <div class="callout-group">{/* … */}</div>
+
+@block Callout = |{ tone ?? "note" }, content|
+    <aside class={"callout callout-${tone}"}>{content}</aside>
+```
+
+`Label` stays private. `Callouts` is `:callouts`, not `:label`. This is
+Phase 8, not v1.[^impl-plan]
+
+## Named Roc structs as the interface
+
+The user question: can the block interface be an ordinary Roc record
+type, and if so does that require Roc introspection or a Roc AST?
+
+A named type is a good *renderer* contract. It is a weak *catalog schema
+source* with today's Rocci and Roc toolchain.
+
+### What already exists
+
+`parse_component_params` already reads the component parameter list as a
+tiny record language: field names, optional `Type` annotations, and `??`
+defaults. That is a Rocci helper on the `@component` header, not the Roc
+compiler.[^template-ast][^template-readme]
+
+```rocci
+@component Callout = |{ tone : Str ?? "note" }, content|
+```
+
+already yields `tone`, type `Str`, default `"note"`, extra body
+`content`. That is enough to fill a `KindSpec` row for a new kind.
+
+Ordinary Roc *between* declarations is an opaque span
+(`ModuleItem::Roc`). The template parser does not build a Roc type AST.
+Those bytes are copied into generated Roc unchanged.[^template-parser]
+
+### If the interface is a named alias
+
+```roc
+Callout : {
+    tone : Str,
+}
+
+@component Callout = |callout: Callout, content|
+    <aside class={"callout callout-${callout.tone}"}>{content}</aside>
+```
+
+Roc type-checks `callout.tone` when the theme compiles. The catalog, at
+`rocdown check` time, only sees a first parameter named `callout` with
+type *name* `Callout`. It does not see `tone` unless something else
+resolves that alias. `??` defaults also cannot live on the type: Roc
+nightly has no optional record fields, and `??` is a Rocci pattern
+extension stripped before Roc sees it.[^template-readme][^template-ast]
+
+Destructuring that names the alias does not exist as
+`|{ tone }: Callout|` in the current component header parser's record
+path; the header is either an inline `{ fields }` or a single typed
+name.
+
+### Introspection versus looking at Roc
+
+| Approach | Gets field names for `:callout[tone:]`? | `rocdown check` without Roc? | Verdict |
+| --- | --- | --- | --- |
+| Roc **runtime introspection** | No. Compiled Roc does not expose unused type aliases as a schema API. Glue exchanges *values* of a compiled app, not a type catalog. | No | Reject. Not a Roc feature we can call. |
+| **Embed / query the Roc compiler** for types | In principle. There is no supported "compiler crate from Rust" API; Roc is a Zig `roc` binary. | No | Reject. Already out of scope for generation hosts. |
+| **Full Roc AST** in `rocci-template` | Yes, if we parse all of Roc. | Yes | Reject. Rocci copies Roc; it does not reimplement the language. |
+| **Restricted record-type scanner** on opaque spans (`Name : { field : Type, ... }`) | Yes, for that subset. | Yes | Possible later. Same family as `parse_component_params`, not Roc compiler AST. Misses aliases, ability types, imports from other modules. |
+| **Inline component params** (`|{ tone ?? "note" }, content\|`) | Yes, today. | Yes | **v1 schema source.** |
+| Named struct **plus** inline params (`Callout : { tone : Str }` next to `|{ tone ?? "note" }, content\|`) | Schema from the header; struct is documentation and a typecheck aid if the renderer uses `callout: Callout` | Yes | Nice style; do not *require* the alias for extraction. |
+
+So: expressing the interface as a Roc struct does **not** give the
+catalog a schema for free. It would require either Roc compiler
+integration (unavailable, and it would make `check` need Roc) or a
+small Rocci-owned record-type parser on opaque spans. It does **not**
+require Roc introspection, because that does not exist in a form we can
+use.[^generation-research][^catalog-shell]
+
+Child constraints remain outside the struct. `items : List Callout` does
+not say "no Markdown between children" and does not name the article
+kind `:callout`. `accepts` stays data (registry / `@block`).[^docs-rs]
+
+### Recommendation
+
+Keep the **author-visible** interface as the Rocci header the renderer
+already has:
+
+```rocci
+@component Callout = |{ tone ?? "note" }, content|
+```
+
+Optionally also write a Roc alias for humans and for Roc typechecking of
+helpers. Do not make that alias the schema source in v1. If a later
+phase wants `Callout : { tone : Str }` to *drive* the catalog, implement
+a restricted record-type scan in `rocci-template` (or `@block`
+metadata), not `roc glue`, not compiler embedding, not runtime
+reflection.
+
 ## Related technologies
 
 The useful split in the wild is almost always **schema / transform /
@@ -722,15 +987,18 @@ stays out of Rocdown v1.[^block-research]
 | OKF Markdown-only | No `:note` in `knowledge/**/*.md` |
 | Hybrid islands | `static` pages keep the widget forest; block renderers are not Datastar islands |
 
-Source spelling does not change. `@docs` stays gone.[^markdown-first][^pure-render][^catalog-shell][^generation-research][^theming-arch][^block-research]
+Source spelling does not change. Article blocks are `:kind` only.
+`@docs` is a removed experiment; do not revive it or use it as a design
+alias.[^markdown-first][^pure-render][^catalog-shell][^generation-research][^theming-arch][^block-research]
 
 ## Recommended architecture
 
 Freeze these answers unless a plan revision says otherwise:
 
 1. **Split schema and renderer.** Schema is `KindSpec` (builtins) plus
-   extracted rows from the site block pack (custom). Renderer is a Rocci
-   `@component` whose props and extra argument match the schema.
+   rows extracted from pack `@component` headers (`parse_component_params`).
+   Renderer is that component. A named Roc struct is optional
+   documentation, not the v1 schema source.
 2. **Two child modes:** fragment `Html` vs typed `List` of child records.
    `:tabs` / `:steps` / `:card-grid` use typed lists.
 3. **Child policy is data** (`accepts`, `requires`, `forbids`,
@@ -756,6 +1024,8 @@ Freeze these answers unless a plan revision says otherwise:
 - Interpreting templates in Rust
 - Changing OKF authoring
 - Requiring Roc traits / typeclass `implements Block`
+- Roc runtime introspection, `roc glue` type catalogs, or embedding the
+  Roc compiler to discover block fields
 - Making CSS-variable themes a substitute for renderer override
 
 ## Open questions
@@ -784,6 +1054,9 @@ Freeze these answers unless a plan revision says otherwise:
 6. **Should `child_kinds` exclusive-reject Markdown in `:tabs`?** Today
    extra Markdown is skipped when collecting tabs. Leaning: yes, error;
    authors should not leave stray paragraphs between `:tab` children.
+7. **Named Roc struct as schema later?** Only with a restricted
+   record-type scanner or `@block` metadata. Do not wait on Roc
+   introspection. Leaning: not v1.
 
 ## Recommended next experiments
 
@@ -804,8 +1077,9 @@ with `rocdown build docs` still green on un-overridden kinds.[^impl-plan]
 [^lower-rs]: Standalone conservative HTML for article blocks beside the theme path.
 [^docs-rocci]: Per-kind `@component` painters; `Tabs` takes opaque `content`; `rd-docs-*` classes.
 [^build-runtime]: Hand-written `match` and `render_children!` concatenating Html before parent calls.
-[^template-readme]: Props record plus extra body parameter; `??` defaults stripped for Roc nightly; no magic children.
-[^template-ast]: `param_defaults` captured from `??` for call-site filling.
+[^template-readme]: Props record plus extra body parameter; `??` defaults stripped for Roc nightly; no optional Roc record fields; no magic children.
+[^template-ast]: `param_defaults`, `param_types`, and body param names from the component header.
+[^template-parser]: Ordinary Roc between `@` declarations is an opaque span copied into generated Roc.
 [^site-ref]: `build.theme` is chrome; no renderer map.
 [^docs-guide]: Public `:name[params]` widgets; tabs currently stacked sections without `tablist`.
 [^all-syntax]: Shipped colon examples including `:tabs` / `:tab`.

@@ -636,7 +636,7 @@ Do not start a phase until asked.[^ungram-plan][^follow-ons]
 [^template-parser]: Recursive descent; top-level Roc regions are opaque spans between declarations.
 [^template-readme]: File shape, reserved `@` declarations, ordinary Roc copied through; `format_ast` is the inspect tree.
 [^rocdown-readme]: Markdown-first islands, reserved `@` names, `:kind` article blocks, HTML islands; README is the shipped contract.
-[^rocdown-scan]: Document-root `@` / `:` / `<` classification and reserved-name table; `@docs` is a removal diagnostic.
+[^rocdown-scan]: Document-root `@` / `:` / `<` classification and reserved-name table; leftover experimental tokens are a removal diagnostic.
 [^rocdown-markdown]: Comrak conversion, heading ids, and hole punching around declarations.
 [^rocdown-pprint]: Hand-written S-expression inspect for Rocdown items and block calls.
 [^template-pprint]: Hand-written S-expression inspect for Rocci modules.

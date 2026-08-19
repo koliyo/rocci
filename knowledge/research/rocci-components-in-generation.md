@@ -4,7 +4,7 @@ title: Rocci components inside the content generation pipeline
 description: Evidence for replacing Rust-authored HTML chrome with Rocci components, including native subprocess versus Wasmtime hosts, two-tier generated-Roc and compiled-artifact caching, and native glue as a later host.
 tags: [domain/rocci, domain/rocdown, domain/rocci-okf, integration/roc, concern/rendering, concern/performance, concern/architecture, concern/caching]
 status: draft
-generated: { by: process:cursor, at: 2026-08-18T13:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
 stale_after: 2026-11-18
 authority: exploratory
 owners: [human:nils]
@@ -163,7 +163,7 @@ Rocdown already splits work along three lines:
 
 1. Rust owns discovery, identity, routing, navigation, validation, Markdown
    article HTML, artifact planning, and host orchestration.[^catalog-shell][^generator]
-2. Rocci owns visible site chrome (`RocdownTheme.rocci`) and `@docs` widget
+2. Rocci owns visible site chrome (`RocdownTheme.rocci`) and `:kind` widget
    markup (`DocsComponents.rocci`), compiled once per build and applied to
    structured `PageView` records plus typed segment records.[^theme-rocci][^docs-rocci][^ui-readme]
 3. The Roc build runtime re-enters `Html` from trusted fragment files with
@@ -197,7 +197,7 @@ those fragments to Roc as files. This is the part the catalog-shell decision
 rejected moving into Roc: prose must not become generated Roc modules, and
 catalog checks must not require Roc.[^docs-rs][^catalog-shell]
 
-### Structured `@docs` wrappers
+### Structured article-block wrappers
 
 Site builds already paint asides, steps, tabs, cards, and related widgets in
 `DocsComponents.rocci`. A parallel Rust renderer in `docs.rs::render_docs`
@@ -383,7 +383,7 @@ Demonstrated copies today:
   a third Rocci outline in documentation shells.[^standalone-lower][^okf-presentation][^theme-rocci][^okf-toc-js][^theme-toc-js]
 - Documentation site chrome: `RocdownTheme.rocci` versus `site/theme/Layouts.rocci`
   both loop `view.sidebar`, `view.breadcrumbs`, and `view.outline`.[^theme-rocci][^site-layouts]
-- `@docs` wrappers: `DocsComponents.rocci` versus `docs.rs::render_docs`.[^docs-rocci][^docs-rs]
+- `:kind` wrappers: `DocsComponents.rocci` versus `docs.rs::render_docs`.[^docs-rocci][^docs-rs]
 
 Not demonstrated, and easy to over-extract:
 
@@ -438,8 +438,8 @@ glue documented as future potential.
 [^ui-view]: Shipped `PageView` fields; no OKF concept or review records.
 [^build-rs]: `Command::new("roc")`, watch-mode hash, and applicator reuse.
 [^build-runtime]: Segment forest composed in Roc from fragment files and docs records.
-[^docs-rs]: Rust Markdown and `@docs` HTML, plus `plan_segments` for the Rocci path.
-[^docs-rocci]: Rocci-authored `@docs` widgets used by the site applicator.
+[^docs-rs]: Rust Markdown and article-block HTML, plus `plan_segments` for the Rocci path.
+[^docs-rocci]: Rocci-authored `:kind` widgets used by the site applicator.
 [^theme-rocci]: Site shell, sidebar, breadcrumbs, and outline in Rocci.
 [^site-layouts]: Parallel site-theme layout components over the same `PageView`.
 [^okf-presentation]: Rust `html_page`, `render_toc`, and OKF-local `StatCardView`.
