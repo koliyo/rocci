@@ -28,7 +28,10 @@ mod site;
 pub mod standalone;
 pub mod theme;
 
-pub use article::{PageClass, PageKind, classify_document, render_document, roc_imports_datastar};
+pub use article::{
+    PageClass, PageKind, classify_document, is_static_document, render_document,
+    roc_imports_datastar,
+};
 pub use ast::{
     BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
     EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,

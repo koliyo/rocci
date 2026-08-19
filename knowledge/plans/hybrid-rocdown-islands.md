@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Hybrid Rocdown islands for CDN-static sites
-description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phases 1–6 exist on a branch against the pre-block-model AST; rebase onto main's :name[params] forest is required before merge. Exploratory; not shipped."
+description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phase 7 rebased the hybrid branch onto main's :name[params] / BlockCall AST; phases 8–10 remain. Exploratory; not shipped."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T13:40:00Z }
+generated: { by: process:cursor, at: 2026-08-19T15:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -171,15 +171,10 @@ human reviewer accepts a scope. It does not describe shipped
 behavior.[^research][^rocdown-readme][^compiler-arch]
 
 Do not start a phase until the user asks. Phases 1–6 are implemented on
-branch `hybrid-rocdown-islands-implementation` against the pre-block-model
-AST (`Item::Docs` / `Item::Img`, blob apply). They are **not** mergeable
-onto current `main` as-is. The [block model](/plans/generalized-rocdown-block-model.md)
-`:name[params]` spelling and `PlannedNode` widget forest have landed on
-`main`; hybrid must consume that pipeline rather than reimplement
-widgets.[^block-plan][^language-dev]
-
-Do not start Phase 7 until the user asks. Do not put islands inside
-article-block bodies in v1.
+branch `hybrid-rocdown-islands-implementation`. Phase 7 rebased that branch
+onto `main`'s `Item::Block` / `:name[params]` AST. Do not start Phase 8
+until the user asks. Do not put islands inside article-block bodies in
+v1.[^block-plan][^language-dev]
 
 ## Goal
 
@@ -327,8 +322,8 @@ entries in v1.
 ## Delivery phases
 
 Each phase is one mergeable change. Phases 1–6 below are **done on the
-hybrid branch** and describe the pre-block-model implementation. Do not
-merge them onto current `main`. Continue at Phase 7.
+hybrid branch** against the pre-block-model AST. Phase 7 rebased them onto
+`main`. Continue at Phase 8.
 
 ### Phase 1 — Theme content slot for a single article blob
 

@@ -458,6 +458,7 @@ pub fn lower_islands(
         at_line_start: true,
         css_stamp,
         field_defaults,
+        imported_kinds: HashMap::new(),
         theme: None,
         diagnostics,
         resolve_includes: options.resolve_includes,

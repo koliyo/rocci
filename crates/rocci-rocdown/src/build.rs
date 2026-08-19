@@ -686,6 +686,11 @@ fn apply_html(
 ) -> Result<String> {
     if is_wasm {
         let wasm_out = invoke_wasm_apply(compiled, workspace, staging)?;
+        fs::write(
+            workspace.join("RocdownBuild.roc"),
+            runtime::build_roc(false),
+        )
+        .context("failed to write native RocdownBuild.roc")?;
         fs::write(workspace.join("main.roc"), main_roc(false))
             .context("failed to write native apply main.roc")?;
         let native_bin = workspace.join("apply");
