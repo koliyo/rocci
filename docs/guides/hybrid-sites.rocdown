@@ -30,9 +30,13 @@ reference (`service_origin`, `--cdn-only`, `islands.json`).
 
 | Kind | Meaning | Datastar |
 | --- | --- | --- |
-| `static` | Markdown / `@page` / `@docs` | No |
+| `static` | Markdown / `@page` / `:name[params]` | No |
 | `hydrate` | Pure Rocci spliced at build | No |
 | `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Yes |
+
+Apply keeps the `:note` / `:tabs` widget forest on `static` pages. The counter
+home page splices island Html; `/about/` has no Datastar. `@render` is not
+legal inside a `:note` body.
 
 `rocdown check` accepts all three. Default `rocdown build` accepts `live` and
 emits `islands.json`. `rocdown build --cdn-only` errors (`RD2302`) when any
