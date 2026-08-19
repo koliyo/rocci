@@ -1,0 +1,17 @@
+[generated]
+Document = "Document"
+Item = "Item"
+Block = "Block"
+Node = "Node"
+Ident = "Ident"
+
+[inline]
+Leaf = "Item::Leaf { span }"
+
+[leaves]
+Leaf = "Span"
+Ident = "{ name: String, span: Span }"
+
+[item_variants]
+Block = "Block"
+Leaf = "Leaf"

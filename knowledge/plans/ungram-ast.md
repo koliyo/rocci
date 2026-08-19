@@ -4,7 +4,7 @@ title: Ungrammar AST codegen for Rocci and Rocdown
 description: "Phased delivery of ungrammar as the tree spec for both languages, a shared generator of owned AST structs, and CI drift checks. Scanners and parsers stay hand-written."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:10:00Z }
+generated: { by: process:cursor, at: 2026-08-19T14:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -264,6 +264,9 @@ crate as base-rocci.
 **Done when:** `cargo test -p rocci-ungram` is sub-second and snapshots
 the would-be `ast.generated.rs` text. Language crates still compile their
 hand-written `ast.rs`.[^workspace-deps][^cargo-workspace][^ungrammar-crate]
+
+**Status:** implemented on `ungram-ast-implementation` (`rocci-ungram`
+generate/check + snapshots). Not CI-complete. Language cutover is Phase 3.
 
 ### Phase 3 — Cut over `rocci-template`
 

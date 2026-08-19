@@ -1,0 +1,6 @@
+[generated]
+Item = "Item"
+Foo = "Foo"
+
+[leaves]
+Foo = "Span"

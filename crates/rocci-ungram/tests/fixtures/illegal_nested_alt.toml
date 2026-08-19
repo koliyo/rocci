@@ -1,0 +1,10 @@
+[generated]
+Item = "Item"
+Foo = "Foo"
+Bar = "Bar"
+Baz = "Baz"
+
+[leaves]
+Foo = "Span"
+Bar = "Span"
+Baz = "Span"

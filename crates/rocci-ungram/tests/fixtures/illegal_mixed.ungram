@@ -1,0 +1,2 @@
+Item = Foo | 'bar'
+Foo = 'foo'

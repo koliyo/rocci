@@ -1,0 +1,20 @@
+// Mini fixture for owned-struct lowering.
+
+Document =
+  items:Item*
+
+Item =
+  Block
+| Leaf
+
+Block =
+  'block'
+  name:Ident
+  child:Node?
+
+Node =
+  inner:Node
+
+Leaf = 'leaf'
+
+Ident = 'ident'
