@@ -7,9 +7,7 @@ use serde::Serialize;
 
 use crate::{CompileOptions, Document, Item, MdNode, compile};
 
-use crate::article::{
-    PageClass, PageKind, classify_document, render_document, roc_imports_datastar,
-};
+use crate::article::{PageKind, classify_document, render_document, roc_imports_datastar};
 use crate::catalog::{
     self, CatalogDiagnostic, Edge, NavSection, PageHeading, ResolveOptions, ResolvedPage,
     ResolvedSite, RouteHint, Severity, SourcePage,
@@ -240,9 +238,6 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             continue;
         }
         let class = classify_document(&compiled.document, roc_imports_datastar(&compiled.roc));
-        if let Some(diagnostic) = page_kind_diagnostic(&relative_name, class) {
-            diagnostics.push(diagnostic);
-        }
         const VALID_LAYOUTS: &[&str] = &[
             "home",
             "product",
@@ -717,20 +712,6 @@ fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
     Ok(roots)
 }
 
-fn page_kind_diagnostic(path: &str, class: PageClass) -> Option<CatalogDiagnostic> {
-    match class.kind {
-        PageKind::Static | PageKind::Hydrate => None,
-        PageKind::Live => Some(CatalogDiagnostic::error(
-            "RD2302",
-            path,
-            format!(
-                "{path} is a live page ({}); site builds cannot include handlers or Datastar yet",
-                class.reason
-            ),
-        )),
-    }
-}
-
 fn collect_image_urls(document: &Document) -> Vec<String> {
     let mut urls = Vec::new();
     for item in &document.items {
@@ -1014,7 +995,7 @@ mod tests {
     }
 
     #[test]
-    fn check_diagnoses_live_pages() {
+    fn check_accepts_live_pages() {
         let root = temp("live");
         fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
         fs::write(
@@ -1023,11 +1004,13 @@ mod tests {
         )
         .unwrap();
         let report = check(&root).unwrap();
-        assert!(report.has_errors());
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
         let rendered = report.render(CheckFormat::Terminal).unwrap();
-        assert!(rendered.contains("RD2302"), "{rendered}");
-        assert!(rendered.contains("live"), "{rendered}");
-        assert!(rendered.contains("@on"), "{rendered}");
+        assert!(!rendered.contains("RD2302"), "{rendered}");
         let catalog = inspect(&root, InspectKind::Catalog, None).unwrap();
         assert!(catalog.contains("\"kind\": \"live\""), "{catalog}");
         let resolved = resolve_loaded(&load_site(&root).unwrap());

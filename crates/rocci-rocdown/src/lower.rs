@@ -477,12 +477,17 @@ pub fn lower_islands(
         emitter.emit("import Html\n");
     }
     let mut template_roc = lowered_rocci.roc;
+    let mut has_datastar = false;
     if template_roc.starts_with("import Datastar\n") {
+        has_datastar = true;
         template_roc = template_roc
             .strip_prefix("import Datastar\n")
             .unwrap_or(&template_roc)
             .trim_start_matches('\n')
             .to_string();
+    }
+    if has_datastar {
+        emitter.emit("import Datastar\n");
     }
     for span in &imports {
         let text = span.of(source.src).trim_end();
@@ -493,7 +498,7 @@ pub fn lower_islands(
             }
         }
     }
-    if injected_html || !imports.is_empty() {
+    if injected_html || !imports.is_empty() || has_datastar {
         emitter.emit("\n");
     }
     for span in &rest {

@@ -117,6 +117,11 @@ fn render_islands(
     let workspace = unique_temp("islands")?;
     fs::write(workspace.join("Html.roc"), crate::runtime::HTML)
         .with_context(|| format!("failed to write {}/Html.roc", workspace.display()))?;
+    let uses_datastar = crate::roc_imports_datastar(roc);
+    if uses_datastar {
+        fs::write(workspace.join("Datastar.roc"), crate::runtime::DATASTAR)
+            .with_context(|| format!("failed to write {}/Datastar.roc", workspace.display()))?;
+    }
     if let Some(src_dir) = source_path.parent() {
         rocci_cli::driver::copy_sibling_roc(src_dir, &workspace, &type_name)?;
     }
@@ -126,13 +131,18 @@ fn render_islands(
     let main = island_main(&type_name);
     fs::write(workspace.join("main.roc"), &main).context("failed to write island main.roc")?;
 
+    let type_file = format!("{type_name}.roc");
+    let mut generated = vec![
+        (type_file.as_str(), wrapped.as_bytes()),
+        ("main.roc", main.as_bytes()),
+    ];
+    if uses_datastar {
+        generated.push(("Datastar.roc", crate::runtime::DATASTAR.as_bytes()));
+    }
     let gen_hash = compute_gen_hash(
         env!("CARGO_PKG_VERSION"),
         "rocdown-islands",
-        &[
-            (&format!("{type_name}.roc"), wrapped.as_bytes()),
-            ("main.roc", main.as_bytes()),
-        ],
+        &generated,
         &[("Html.roc", crate::runtime::HTML.as_bytes())],
     );
     let compile_hash = compute_compile_hash(
@@ -143,11 +153,17 @@ fn render_islands(
         BASIC_CLI_PLATFORM,
         env!("CARGO_PKG_VERSION"),
     );
-    let fingerprints = [
+    let mut fingerprints = vec![
         InputFingerprint::from_bytes(&format!("{type_name}.roc"), wrapped.as_bytes()),
         InputFingerprint::from_bytes("main.roc", main.as_bytes()),
         InputFingerprint::from_bytes("Html.roc", crate::runtime::HTML.as_bytes()),
     ];
+    if uses_datastar {
+        fingerprints.push(InputFingerprint::from_bytes(
+            "Datastar.roc",
+            crate::runtime::DATASTAR.as_bytes(),
+        ));
+    }
 
     let host = NativeHost::default();
     let (apply_bin, _) = host

@@ -8,9 +8,11 @@ use rocci_template::{
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use crate::article::PageKind;
 use crate::catalog::{self, NavLink, NavSection, PageHeading, ResolvedPage, ResolvedSite};
 use crate::config::SiteConfig;
 use crate::runtime;
+use crate::service::live_csp;
 
 pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
@@ -220,6 +222,17 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         (None, None)
     };
 
+    let has_live = published.iter().any(|page| page.kind == PageKind::Live);
+    let datastar_url = if has_live {
+        let bytes = datastar_js_bytes()?;
+        let asset = hashed_asset("datastar.js", &bytes);
+        let url = asset.hashed_url.clone();
+        assets.push(asset);
+        Some(url)
+    } else {
+        None
+    };
+
     let mut news_items: Vec<CollectionItemView> = published
         .iter()
         .filter(|page| {
@@ -261,6 +274,8 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
             &csp,
             playground_app_url.as_deref(),
             playground_css_url.as_deref(),
+            datastar_url.as_deref(),
+            &config.http.service_origin,
             &rewrite,
             collection_items,
             false,
@@ -485,6 +500,8 @@ fn planned_page(
     csp: &str,
     playground_app: Option<&str>,
     playground_css: Option<&str>,
+    datastar_url: Option<&str>,
+    service_origin: &str,
     rewrite: &BTreeMap<String, String>,
     collection_items: Vec<CollectionItemView>,
     not_found: bool,
@@ -533,6 +550,12 @@ fn planned_page(
             "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'".to_string(),
             playground_app.unwrap_or_default().to_string(),
             playground_css.unwrap_or_default().to_string(),
+        )
+    } else if !not_found && page.kind == PageKind::Live {
+        (
+            live_csp(service_origin),
+            datastar_url.unwrap_or_default().to_string(),
+            String::new(),
         )
     } else {
         (csp.to_string(), String::new(), String::new())
@@ -800,6 +823,12 @@ fn collect_asset_files(
         }
     }
     Ok(())
+}
+
+fn datastar_js_bytes() -> Result<Vec<u8>> {
+    let path =
+        rocci_cli::datastar_asset::ensure_cached(rocci_cli::datastar_asset::DEFAULT_VERSION)?;
+    std::fs::read(&path).with_context(|| format!("failed to read {}", path.display()))
 }
 
 fn hashed_asset(relative: &str, bytes: &[u8]) -> PlannedAsset {

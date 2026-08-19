@@ -313,13 +313,16 @@ fn prepare_plan(loaded: &LoadedSite) -> Result<BuildPlan> {
     if result.has_errors() {
         bail!("{}", result.error_summary());
     }
-    splice_hydrate_islands(loaded, &mut result.site)?;
+    splice_islands(loaded, &mut result.site)?;
     plan::plan(&loaded.root, &loaded.config, &result.site)
 }
 
-fn splice_hydrate_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Result<()> {
+fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Result<()> {
     for page in &mut site.pages {
-        if page.kind != crate::article::PageKind::Hydrate {
+        if !matches!(
+            page.kind,
+            crate::article::PageKind::Hydrate | crate::article::PageKind::Live
+        ) {
             continue;
         }
         let path = loaded.root.join(&page.source_path);
@@ -330,6 +333,12 @@ fn splice_hydrate_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite)
             .with_context(|| format!("failed to evaluate islands in {}", page.source_path))?;
         page.article_html = crate::islands::fill_placeholders(&page.article_html, &evaluated.html)
             .with_context(|| format!("failed to splice islands into {}", page.source_path))?;
+        if page.kind == crate::article::PageKind::Live {
+            page.article_html = crate::service::prefix_action_urls(
+                &page.article_html,
+                &loaded.config.http.service_origin,
+            );
+        }
         if page.island_css.is_empty() {
             page.island_css = evaluated.css;
         }
@@ -1109,19 +1118,108 @@ After the island.
     }
 
     #[test]
-    fn live_pages_are_rejected_without_a_service() {
+    fn live_pages_splice_component_html_and_stage_datastar() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
         let root = temp_dir("live-src");
         write_page(
             &root,
             "index.rocdown",
-            "# Home\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+            r#"
+@page {
+    route: "/",
+    meta: { title: "Live" },
+}
+
+@component
+RevealTip = |{ open }| {
+    <div id="reveal-tip">
+        @if open {
+            <p>Hide tip</p>
+        } @else {
+            <>
+                <p>This block is closed until the server sends the open markup.</p>
+                <button type="button" data-on:click=@post("/actions/reveal/show")>
+                    Show tip
+                </button>
+            </>
+        }
+    </div>
+}
+
+@on:post("/actions/reveal/show") = |_| {
+    revealTip({ open: True })
+}
+
+# Live
+
+Prose stays Markdown.
+
+@render {
+    revealTip({ open: False })
+}
+"#,
+        );
+        write_page(
+            &root,
+            "about.rocdown",
+            r#"
+@page {
+    route: "/about/",
+    meta: { title: "About" },
+}
+
+# About
+
+Static neighbor.
+"#,
         );
         let output = temp_dir("live-out");
-        let err = build(&root, &output).unwrap_err();
-        let message = format!("{err:#}");
-        assert!(message.contains("@on"), "{message}");
-        assert!(message.contains("live"), "{message}");
-        assert!(message.contains("RD2302"), "{message}");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("<h1 class=\"rd-header-1\""), "{html}");
+        assert!(html.contains("Live"), "{html}");
+        assert!(html.contains("Prose stays Markdown."), "{html}");
+        assert!(
+            html.contains("id=\"reveal-tip\"") || html.contains("id=&#34;reveal-tip&#34;"),
+            "{html}"
+        );
+        assert!(html.contains("Show tip"), "{html}");
+        assert!(html.contains("<script"), "{html}");
+        assert!(
+            html.contains("/assets/datastar.") || html.contains("datastar."),
+            "{html}"
+        );
+        assert!(
+            html.contains("script-src 'self'") || html.contains("script-src &#39;self&#39;"),
+            "{html}"
+        );
+        assert!(
+            html.contains("unsafe-eval") || html.contains("unsafe-eval"),
+            "{html}"
+        );
+        assert!(
+            html.contains("connect-src 'self'") || html.contains("connect-src &#39;self&#39;"),
+            "{html}"
+        );
+        assert!(
+            !html.contains("script-src 'none'") && !html.contains("script-src &#39;none&#39;"),
+            "{html}"
+        );
+
+        let about = fs::read_to_string(output.join("about/index.html")).unwrap();
+        assert!(about.contains("Static neighbor."), "{about}");
+        assert!(
+            about.contains("script-src 'none'") || about.contains("script-src &#39;none&#39;"),
+            "{about}"
+        );
+        assert!(
+            !about.to_ascii_lowercase().contains("<script"),
+            "static neighbor must not emit a script tag\n{about}"
+        );
+        assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }

@@ -26,6 +26,9 @@ cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window]
 # Build a static documentation site to dist/
 cargo run -p rocci-rocdown-cli -- build docs [--output dist]
 
+# Start the island HTTP service for live pages (colocated @on handlers)
+cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-hybrid [--port 8000] [--no-window]
+
 # Check documentation catalog, routes, links, includes, and assets without compiling Roc
 cargo run -p rocci-rocdown-cli -- check docs [--format terminal|json]
 

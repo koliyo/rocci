@@ -3,6 +3,7 @@ use std::{fs, path::Path};
 use anyhow::{Context, Result};
 
 pub const HTML: &str = include_str!("../runtime/Html.roc");
+pub(crate) const DATASTAR: &str = include_str!("../runtime/Datastar.roc");
 pub(crate) const BUILD: &str = include_str!("../runtime/RocdownBuild.roc");
 pub(crate) const BUILD_WASM: &str = include_str!("../runtime/RocdownBuild.wasm.roc");
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
@@ -66,6 +67,8 @@ mod tests {
         assert!(html.contains("Html := [].{"));
         assert!(!html.contains("import pf.Html"));
         assert!(!dir.join("Datastar.roc").exists());
+        assert!(!DATASTAR.contains("import pf."));
+        assert!(DATASTAR.contains("post ="));
         assert!(dir.join("RocdownBuild.roc").is_file());
         assert!(!dir.join("RocdownModel.roc").exists());
         assert!(!dir.join("RocdownRoute.roc").exists());

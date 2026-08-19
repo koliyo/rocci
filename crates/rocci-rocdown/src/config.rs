@@ -18,6 +18,8 @@ pub struct SiteConfig {
     pub snippets: SnippetsConfig,
     #[serde(default)]
     pub examples: ExamplesConfig,
+    #[serde(default)]
+    pub http: HttpConfig,
     #[serde(skip)]
     pub sidebar_tree: bool,
 }
@@ -113,6 +115,13 @@ impl Default for ExamplesConfig {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct HttpConfig {
+    pub service_origin: String,
+    pub service: String,
+}
+
 pub fn load_config(root: &Path) -> Result<SiteConfig> {
     load_config_named(root, CONFIG_FILE)
 }
@@ -128,6 +137,12 @@ fn load_config_named(root: &Path, filename: &str) -> Result<SiteConfig> {
         toml::from_str(&source).with_context(|| format!("failed to parse {}", path.display()))?;
     validate(&config, &path)?;
     config.site.base_url = config.site.base_url.trim_end_matches('/').to_string();
+    config.http.service_origin = config
+        .http
+        .service_origin
+        .trim()
+        .trim_end_matches('/')
+        .to_string();
     Ok(config)
 }
 
@@ -237,6 +252,28 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 "snippets.roots[{}] `{}` must be a relative path in {}",
                 index + 1,
                 root,
+                path.display()
+            );
+        }
+    }
+    if !config.http.service_origin.is_empty()
+        && !(config.http.service_origin.starts_with("https://")
+            || config.http.service_origin.starts_with("http://"))
+    {
+        bail!(
+            "http.service_origin must start with http:// or https:// in {}",
+            path.display()
+        );
+    }
+    if !config.http.service.is_empty() {
+        let service = config.http.service.trim();
+        if service.is_empty()
+            || service.contains('\0')
+            || Path::new(service).is_absolute()
+            || !service.ends_with(".rocci")
+        {
+            bail!(
+                "http.service `{service}` must be a relative .rocci path in {}",
                 path.display()
             );
         }
@@ -418,6 +455,46 @@ layout = "invalid_layout"
         fs::write(root.join(CONFIG_FILE), "[site]\ntitel = \"typo\"\n").unwrap();
         let err = load_config(&root).unwrap_err().to_string();
         assert!(err.contains("failed to parse"), "{err}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_http_service_origin_and_sibling_service() {
+        let root = temp("http");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[http]
+service_origin = "https://islands.example.com/"
+service = "theme/Islands.rocci"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.http.service_origin, "https://islands.example.com");
+        assert_eq!(config.http.service, "theme/Islands.rocci");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_invalid_http_service_origin() {
+        let root = temp("http-bad");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[http]
+service_origin = "islands.example.com"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("http.service_origin"), "{err}");
         let _ = fs::remove_dir_all(root);
     }
 }

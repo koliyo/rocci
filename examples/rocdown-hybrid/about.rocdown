@@ -1,0 +1,11 @@
+@page {
+    route: "/about/",
+    meta: {
+        title: "About",
+        description: "A neighboring static page",
+    },
+}
+
+# About
+
+This page is static CDN HTML with no client script.
