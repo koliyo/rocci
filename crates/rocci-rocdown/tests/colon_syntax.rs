@@ -370,6 +370,38 @@ fn parent_child_and_required_fields_use_the_registry() {
 }
 
 #[test]
+fn tabs_reject_markdown_and_non_tab_children() {
+    let stray = "\
+:tabs.begin[group: \"os\", kind: \"platform\"]
+    A stray paragraph.
+
+    :tab[id: \"mac\", label: \"macOS\"] Hello.
+:tabs.end
+";
+    let parsed = parse_src(stray);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`:tabs` cannot contain Markdown")),
+        "{errs:?}"
+    );
+
+    let nested = "\
+:tabs.begin[group: \"os\", kind: \"platform\"]
+    :note Nested aside.
+    :tab[id: \"mac\", label: \"macOS\"] Hello.
+:tabs.end
+";
+    let parsed = parse_src(nested);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`:tabs` cannot contain `:note`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
 fn colon_note_does_not_crash_highlight_or_compile() {
     let src = ":note Hello from colon syntax.\n";
     let _ = highlight_rocdown(src);

@@ -342,7 +342,9 @@ not a substitute for the syntax above.
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
   and standalone preview of nested relative `.md` / `.rocdown` document links
-- `:kind[params]` article blocks and `:img` alt/decorative contract and `:figure` caption/credit
+- `:kind[params]` article blocks and `:img` alt/decorative contract and `:figure` caption/credit.
+  Child policy is registry data: `:tabs` / `:card-grid` exclusive children,
+  asides forbid `:tabs`, and `:steps` / `:figure` keep named predicates
 - `@use "./Module.rocci"` on interactive `rocdown run` (exported `@component` names become article kinds)
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
