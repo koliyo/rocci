@@ -7,7 +7,11 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use tao::{dpi::LogicalPosition, event_loop::EventLoopWindowTarget, window::Window};
+use tao::{
+    dpi::{LogicalPosition, LogicalSize},
+    event_loop::EventLoopWindowTarget,
+    window::Window,
+};
 
 /// Saved geometry and layout state for a native window.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -119,6 +123,17 @@ pub fn save_window_state(key: &str, state: WindowState) {
     }
 }
 
+/// Capture live window geometry and persist it when the size is still usable.
+pub fn persist_window_state(key: &str, window: &Window) {
+    let Some(state) = capture_window_state(window) else {
+        return;
+    };
+    if state.width < 100.0 || state.height < 100.0 {
+        return;
+    }
+    save_window_state(key, state);
+}
+
 /// Check whether the given logical coordinates place at least a usable portion of the window
 /// (e.g. its title bar / top-left area) on one of the currently available monitors.
 pub fn is_position_visible<T>(
@@ -162,10 +177,8 @@ pub fn capture_window_state(window: &Window) -> Option<WindowState> {
     }
     let is_maximized = window.is_maximized();
     let physical_pos = window.outer_position().ok()?;
-    let physical_size = window.inner_size();
-
     let logical_pos = physical_pos.to_logical::<f64>(scale);
-    let logical_size = physical_size.to_logical::<f64>(scale);
+    let logical_size = content_logical_size(window, scale)?;
 
     Some(WindowState {
         x: logical_pos.x,
@@ -174,6 +187,40 @@ pub fn capture_window_state(window: &Window) -> Option<WindowState> {
         height: logical_size.height,
         is_maximized,
     })
+}
+
+fn content_logical_size(window: &Window, scale: f64) -> Option<LogicalSize<f64>> {
+    let outer = window.outer_size().to_logical::<f64>(scale);
+    match (window.outer_position(), window.inner_position()) {
+        (Ok(outer_pos), Ok(inner_pos)) => Some(content_size_from_frame(
+            outer,
+            outer_pos.to_logical(scale),
+            inner_pos.to_logical(scale),
+        )),
+        _ => {
+            let inner = window.inner_size().to_logical::<f64>(scale);
+            if inner.width >= 1.0 && inner.height >= 1.0 {
+                Some(inner)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+pub(crate) fn content_size_from_frame(
+    outer: LogicalSize<f64>,
+    outer_pos: LogicalPosition<f64>,
+    inner_pos: LogicalPosition<f64>,
+) -> LogicalSize<f64> {
+    let chrome_left = (inner_pos.x - outer_pos.x).max(0.0);
+    let chrome_top = (inner_pos.y - outer_pos.y).max(0.0);
+    let chrome_right = chrome_left;
+    let chrome_bottom = chrome_left;
+    LogicalSize::new(
+        (outer.width - chrome_left - chrome_right).max(1.0),
+        (outer.height - chrome_top - chrome_bottom).max(1.0),
+    )
 }
 
 #[cfg(test)]
@@ -277,5 +324,25 @@ mod tests {
         let state = WindowState::new(123.5, 456.7, 800.0, 600.0, true);
         assert_eq!(state.position(), LogicalPosition::new(123.5, 456.7));
         assert!(state.is_maximized);
+    }
+
+    #[test]
+    fn content_size_from_frame_subtracts_title_bar() {
+        let size = content_size_from_frame(
+            LogicalSize::new(1200.0, 828.0),
+            LogicalPosition::new(80.0, 40.0),
+            LogicalPosition::new(80.0, 68.0),
+        );
+        assert_eq!(size, LogicalSize::new(1200.0, 800.0));
+    }
+
+    #[test]
+    fn content_size_from_frame_subtracts_side_chrome() {
+        let size = content_size_from_frame(
+            LogicalSize::new(816.0, 639.0),
+            LogicalPosition::new(10.0, 20.0),
+            LogicalPosition::new(18.0, 51.0),
+        );
+        assert_eq!(size, LogicalSize::new(800.0, 600.0));
     }
 }

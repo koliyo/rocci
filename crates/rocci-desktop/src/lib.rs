@@ -132,9 +132,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
             Event::LoopDestroyed => {
                 for (id, live) in &shell.windows {
                     let state_key = format!("{}:{}", shell.config.app.identifier, id.as_str());
-                    if let Some(state) = state::capture_window_state(&live.window) {
-                        state::save_window_state(&state_key, state);
-                    }
+                    state::persist_window_state(&state_key, &live.window);
                 }
                 shell.hooks.emit(&AppEvent::Exited);
                 if let Some(on_exit) = shell.hooks.on_exit.take() {
@@ -246,6 +244,12 @@ impl Shell {
             {
                 self.close_window(id, control_flow);
             }
+            tao::event::WindowEvent::Moved(_) | tao::event::WindowEvent::Resized(_) => {
+                if let Some(live) = self.windows.get(&id) {
+                    let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
+                    state::persist_window_state(&state_key, &live.window);
+                }
+            }
             tao::event::WindowEvent::ModifiersChanged(modifiers) => {
                 self.modifiers = modifiers;
             }
@@ -260,9 +264,7 @@ impl Shell {
     fn close_window(&mut self, id: WindowId, control_flow: &mut ControlFlow) {
         if let Some(live) = self.windows.remove(&id) {
             let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
-            if let Some(state) = state::capture_window_state(&live.window) {
-                state::save_window_state(&state_key, state);
-            }
+            state::persist_window_state(&state_key, &live.window);
             self.tao_ids.remove(&live.window.id());
             self.backend.detach_window(&id);
             if self.focused.as_ref() == Some(&id) {
@@ -307,6 +309,14 @@ impl Shell {
                 self.hooks.emit(&AppEvent::Menu { id: id.clone() });
                 if menu::is(&menu_event, menu::NEW_WINDOW_ID) {
                     self.handle_user_event(event_loop, control_flow, ShellEvent::NewWindow);
+                } else if menu::is(&menu_event, menu::QUIT_ID) {
+                    let ids: Vec<WindowId> = self.windows.keys().cloned().collect();
+                    for id in ids {
+                        self.close_window(id, control_flow);
+                    }
+                    self.hooks.emit(&AppEvent::ExitRequested);
+                    self.backend.shutdown();
+                    *control_flow = ControlFlow::Exit;
                 } else if menu::is(&menu_event, menu::CLOSE_WINDOW_ID) {
                     if let Some(id) = self.focused.clone() {
                         self.close_window(id, control_flow);

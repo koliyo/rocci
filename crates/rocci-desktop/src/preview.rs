@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use rocci_core::{Result, WindowConfig, WindowId};
 use tao::{
     event::{Event, WindowEvent},
@@ -143,6 +145,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut modifiers = ModifiersState::empty();
     let save_key = state_key.clone();
     let source_root = options.source_root.clone();
+    let mut last_persist = Instant::now() - Duration::from_secs(1);
     event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         let _keep = &menu;
@@ -151,10 +154,17 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                if let Some(state) = crate::state::capture_window_state(&live.window) {
-                    crate::state::save_window_state(&save_key, state);
-                }
+                crate::state::persist_window_state(&save_key, &live.window);
                 *control_flow = ControlFlow::Exit;
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Moved(_) | WindowEvent::Resized(_),
+                ..
+            } => {
+                if last_persist.elapsed() >= Duration::from_millis(250) {
+                    crate::state::persist_window_state(&save_key, &live.window);
+                    last_persist = Instant::now();
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::ModifiersChanged(next),
@@ -164,16 +174,14 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } if events::is_close_key_event(&event, modifiers) => {
-                if let Some(state) = crate::state::capture_window_state(&live.window) {
-                    crate::state::save_window_state(&save_key, state);
-                }
+                crate::state::persist_window_state(&save_key, &live.window);
                 *control_flow = ControlFlow::Exit;
             }
             Event::UserEvent(ShellEvent::Menu(menu_event)) => {
-                if menu::is(&menu_event, menu::CLOSE_WINDOW_ID) {
-                    if let Some(state) = crate::state::capture_window_state(&live.window) {
-                        crate::state::save_window_state(&save_key, state);
-                    }
+                if menu::is(&menu_event, menu::CLOSE_WINDOW_ID)
+                    || menu::is(&menu_event, menu::QUIT_ID)
+                {
+                    crate::state::persist_window_state(&save_key, &live.window);
                     *control_flow = ControlFlow::Exit;
                 } else if menu::is(&menu_event, menu::BACK_ID) {
                     apply_command(&live, &mut history, NavCommand::Back);
@@ -225,9 +233,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         }
     });
 
-    if let Some(state) = crate::state::capture_window_state(&live.window) {
-        crate::state::save_window_state(&state_key, state);
-    }
+    crate::state::persist_window_state(&state_key, &live.window);
     Ok(())
 }
 

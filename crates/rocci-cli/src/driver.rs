@@ -89,6 +89,7 @@ pub struct DriverOptions {
     pub title: String,
     pub preview_path: Option<String>,
     pub profile: crate::profile::ProfileSnapshot,
+    pub state_key: Option<String>,
 }
 
 pub fn execute_app_plan(
@@ -180,6 +181,7 @@ pub fn execute_app_plan(
             .unwrap_or_else(|| preview_path(&plan.modules[0].routes)),
         &plan.maps(),
         profile,
+        options.state_key.clone(),
     )
 }
 
@@ -215,7 +217,14 @@ pub fn execute_resolved_entry(
                 "{}",
                 style::serving(&invocation.app_dir.display().to_string(), &url)
             );
-            serve::with_window_and_inspector(&mut child, &url, title, no_window, Some(profile))
+            serve::with_window_and_inspector(
+                &mut child,
+                &url,
+                title,
+                no_window,
+                Some(profile),
+                None,
+            )
         }
         serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
     }
@@ -303,6 +312,7 @@ pub fn invoke_standalone(
     path: String,
     maps: &[MappedModule],
     mut profile: ProfileSnapshot,
+    state_key: Option<String>,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
@@ -325,7 +335,14 @@ pub fn invoke_standalone(
                 }],
             });
             println!("{}", style::serving(title, &url));
-            serve::with_window_and_inspector(&mut child, &url, title, no_window, Some(profile))
+            serve::with_window_and_inspector(
+                &mut child,
+                &url,
+                title,
+                no_window,
+                Some(profile),
+                state_key,
+            )
         }
         serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
     }

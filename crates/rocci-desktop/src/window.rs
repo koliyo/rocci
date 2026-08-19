@@ -74,10 +74,29 @@ impl LiveWindow {
             .build(&window)
             .map_err(|error| Error::message(format!("failed to create webview {id}: {error}")))?;
 
+        apply_geometry(&window, template, position, maximized);
+
         Ok(Self {
             window,
             webview,
             context: Some(context),
         })
+    }
+}
+
+fn apply_geometry(
+    window: &Window,
+    template: &WindowConfig,
+    position: Option<LogicalPosition<f64>>,
+    maximized: bool,
+) {
+    if !maximized {
+        window.set_inner_size(LogicalSize::new(template.width, template.height));
+    }
+    if let Some(pos) = position {
+        window.set_outer_position(pos);
+    }
+    if maximized {
+        window.set_maximized(true);
     }
 }
