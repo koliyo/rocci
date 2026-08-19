@@ -26,8 +26,9 @@ pub mod theme;
 
 pub use article::render_document;
 pub use ast::{
-    DocsDecl, Document, HeadingInfo, ImgDecl, Item, LinkInfo, MdNode, PageDecl, PageMeta,
-    RenderDecl, RocDecl,
+    BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, DocsDecl, Document,
+    EndMarker, EndSection, HeadingInfo, ImgDecl, Item, LineContent, LinkInfo, MdNode, PageDecl,
+    PageMeta, ParamField, ParamValue, RenderDecl, RocDecl,
 };
 pub use build::{
     BuildReport, BuildSession, build, build_configured, build_configured_with_host,

@@ -30,7 +30,7 @@
   (if)
   (for item)
   (match)
-  (img src: "./img/yammi_banana.png" alt: "A ba…)
+  (block img)
   (p
     (text @if this is escaped))
   (p

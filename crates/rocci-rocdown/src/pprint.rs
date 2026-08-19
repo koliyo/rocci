@@ -22,6 +22,7 @@ pub fn format_ast(src: &str, document: &Document) -> String {
             Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
             Item::Docs(docs) => w.leaf("docs", std::slice::from_ref(&docs.kind)),
             Item::Img(img) => w.leaf("img", &[atom(img.body.of(src).trim())]),
+            Item::Block(call) => w.leaf("block", std::slice::from_ref(&call.name)),
             Item::Template(item) => match item {
                 TemplateItem::If(_) => w.leaf("if", &[]),
                 TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),

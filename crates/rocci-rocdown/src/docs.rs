@@ -8,7 +8,10 @@ use rocci_template::{Cursor, SourceFile, Span, is_ident_start};
 use serde::Serialize;
 
 use crate::article::{render_md, render_static_image};
-use crate::ast::{DocsDecl, Document, Item, MdNode};
+use crate::ast::{
+    BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, DocsDecl, Document, ImgDecl,
+    Item, MdNode, ParamField, ParamValue,
+};
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 use crate::img::{StaticImage, extract_img_fields};
 use crate::page::{bool_literal, skip_value, string_list, string_literal};
@@ -79,6 +82,185 @@ pub fn field_bool(src: &str, field: &DocsField) -> Option<bool> {
 
 pub fn field_strings(src: &str, field: &DocsField) -> Option<Vec<String>> {
     string_list(src, field.value)
+}
+
+pub fn normalize_blocks(src: &str, items: Vec<Item>) -> Vec<Item> {
+    items
+        .into_iter()
+        .map(|item| match item {
+            Item::Docs(decl) => Item::Block(block_from_docs_decl(src, decl)),
+            Item::Img(img) => Item::Block(block_from_img_decl(src, img)),
+            other => other,
+        })
+        .collect()
+}
+
+pub fn block_from_docs_decl(src: &str, decl: DocsDecl) -> BlockCall {
+    let (fields, content) = split_docs_body(src, decl.body);
+    BlockCall {
+        name: decl.kind,
+        name_span: decl.kind_span,
+        params: bracket_record_from_fields(src, fields),
+        content: brace_content(content),
+        span: decl.span,
+    }
+}
+
+pub fn block_from_img_decl(src: &str, img: ImgDecl) -> BlockCall {
+    let (fields, _content) = split_docs_body(src, img.body);
+    BlockCall {
+        name: "img".to_string(),
+        name_span: img_name_span(src, img.span),
+        params: Some(BracketRecord {
+            fields: fields
+                .into_iter()
+                .map(|field| ParamField {
+                    name: field.name,
+                    name_span: field.name_span,
+                    value: param_value_from_span(src, field.value),
+                })
+                .collect(),
+            span: img.body,
+        }),
+        content: None,
+        span: img.span,
+    }
+}
+
+pub fn docs_fields_from_params(params: Option<&BracketRecord>) -> Vec<DocsField> {
+    let Some(record) = params else {
+        return Vec::new();
+    };
+    record
+        .fields
+        .iter()
+        .map(|field| DocsField {
+            name: field.name.clone(),
+            name_span: field.name_span,
+            value: field.value.span(),
+        })
+        .collect()
+}
+
+fn brace_content(span: Span) -> Option<BlockContent> {
+    if span.is_empty() {
+        None
+    } else {
+        Some(BlockContent::Brace(BraceSection { span }))
+    }
+}
+
+fn img_name_span(src: &str, span: Span) -> Span {
+    let mut cur = Cursor::at(src, span.start as usize);
+    cur.eat('@');
+    cur.scan_ident()
+        .unwrap_or_else(|| Span::point(span.start as usize))
+}
+
+fn bracket_record_from_fields(src: &str, fields: Vec<DocsField>) -> Option<BracketRecord> {
+    if fields.is_empty() {
+        return None;
+    }
+    let start = fields[0].name_span.start;
+    let end = fields.last().map(|field| field.value.end).unwrap_or(start);
+    Some(BracketRecord {
+        fields: fields
+            .into_iter()
+            .map(|field| ParamField {
+                name: field.name,
+                name_span: field.name_span,
+                value: param_value_from_span(src, field.value),
+            })
+            .collect(),
+        span: Span::new(start as usize, end as usize),
+    })
+}
+
+fn param_value_from_span(src: &str, span: Span) -> ParamValue {
+    if let Some(value) = string_literal(src, span) {
+        return ParamValue::StringLit { value, span };
+    }
+    if let Some(value) = bool_literal(src, span) {
+        return ParamValue::BoolLit { value, span };
+    }
+    if let Some(items) = param_string_list(src, span) {
+        return ParamValue::List(BracketList { items, span });
+    }
+    let text = span.of(src).trim();
+    if is_number_lit(text) {
+        ParamValue::NumberLit {
+            value: text.to_string(),
+            span,
+        }
+    } else {
+        ParamValue::Ident {
+            name: text.to_string(),
+            span,
+        }
+    }
+}
+
+fn param_string_list(src: &str, span: Span) -> Option<Vec<ParamValue>> {
+    let text = span.of(src).trim();
+    if !text.starts_with('[') || !text.ends_with(']') {
+        return None;
+    }
+    let mut cur = Cursor::at(src, span.start as usize);
+    let end = span.end as usize;
+    cur.skip_trivia();
+    if !cur.eat('[') {
+        return None;
+    }
+    let mut items = Vec::new();
+    loop {
+        cur.skip_trivia();
+        if cur.pos >= end {
+            return None;
+        }
+        if cur.peek() == Some(']') {
+            cur.bump();
+            break;
+        }
+        if cur.peek() == Some(',') {
+            cur.bump();
+            continue;
+        }
+        if cur.peek() != Some('"') {
+            return None;
+        }
+        let value_start = cur.pos;
+        cur.skip_string();
+        let value_span = Span::new(value_start, cur.pos.min(end));
+        let value = string_literal(src, value_span)?;
+        items.push(ParamValue::StringLit {
+            value,
+            span: value_span,
+        });
+        cur.skip_trivia();
+        if cur.peek() == Some(',') {
+            cur.bump();
+        }
+    }
+    Some(items)
+}
+
+fn is_number_lit(text: &str) -> bool {
+    let mut chars = text.chars().peekable();
+    if chars.peek() == Some(&'-') {
+        chars.next();
+    }
+    let mut saw_digit = false;
+    let mut saw_dot = false;
+    for ch in chars {
+        if ch.is_ascii_digit() {
+            saw_digit = true;
+        } else if ch == '.' && !saw_dot {
+            saw_dot = true;
+        } else {
+            return false;
+        }
+    }
+    saw_digit
 }
 
 pub fn include_path_error(path: &str) -> Option<String> {
@@ -184,7 +366,7 @@ pub struct PageDocs {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArticleNode {
     Markdown(MdNode),
-    Docs(DocsNode),
+    Block(DocsNode),
     Image(StaticImage),
 }
 
@@ -320,7 +502,7 @@ pub fn collect_kinds(nodes: &[ArticleNode]) -> Vec<String> {
 
 fn walk_kinds(nodes: &[ArticleNode], kinds: &mut Vec<String>) {
     for node in nodes {
-        if let ArticleNode::Docs(docs) = node {
+        if let ArticleNode::Block(docs) = node {
             kinds.push(docs.kind.clone());
             walk_kinds(&docs.children, kinds);
         }
@@ -364,7 +546,7 @@ fn collect_headings_in(
                     );
                 }
             }
-            ArticleNode::Docs(docs) => {
+            ArticleNode::Block(docs) => {
                 let tab = in_tab || docs.kind == "tab";
                 let tree = in_tree || docs.kind == "file-tree";
                 collect_headings_in(&docs.children, tab, tree, headings);
@@ -418,7 +600,7 @@ fn walk_links(nodes: &[ArticleNode], urls: &mut Vec<String>, images: bool) {
             ArticleNode::Markdown(md) => walk_md_links(md, urls, images),
             ArticleNode::Image(image) if images => urls.push(image.src.clone()),
             ArticleNode::Image(_) => {}
-            ArticleNode::Docs(docs) => {
+            ArticleNode::Block(docs) => {
                 if let Some(href) = &docs.attrs.href
                     && !images
                 {
@@ -502,7 +684,7 @@ fn rewrite_nodes(nodes: &mut [ArticleNode], map: &BTreeMap<String, String>) {
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => rewrite_md(md, map),
-            ArticleNode::Docs(docs) => {
+            ArticleNode::Block(docs) => {
                 if let Some(href) = &docs.attrs.href
                     && let Some(rewritten) = map.get(href)
                 {
@@ -528,7 +710,7 @@ fn rewrite_md(node: &mut MdNode, map: &BTreeMap<String, String>) {
 
 fn fill_cards_in(nodes: &mut [ArticleNode], lookup: &BTreeMap<String, (String, String, String)>) {
     for node in nodes {
-        if let ArticleNode::Docs(docs) = node {
+        if let ArticleNode::Block(docs) = node {
             if docs.kind == "link-card"
                 && let Some(id) = &docs.attrs.page
                 && let Some((route, title, description)) = lookup.get(id)
@@ -573,7 +755,7 @@ fn validate_link_cards(
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) {
     for node in nodes {
-        if let ArticleNode::Docs(docs) = node {
+        if let ArticleNode::Block(docs) = node {
             if docs.kind == "link-card"
                 && let Some(page) = &docs.attrs.page
                 && !ids.contains(page.as_str())
@@ -604,33 +786,23 @@ fn nodes_from_items(
     for item in items {
         match item {
             Item::Markdown(node) => nodes.push(ArticleNode::Markdown(node.clone())),
+            Item::Block(call) if call.is_legacy_img(ctx.source.src) => {
+                nodes.push(image_from_call(ctx, call));
+            }
+            Item::Block(call) => {
+                if let Some(node) = docs_node(ctx, call, parent_kind) {
+                    nodes.push(ArticleNode::Block(node));
+                }
+            }
             Item::Docs(decl) => {
-                if let Some(node) = docs_node(ctx, decl, parent_kind) {
-                    nodes.push(ArticleNode::Docs(node));
+                let call = block_from_docs_decl(ctx.source.src, decl.clone());
+                if let Some(node) = docs_node(ctx, &call, parent_kind) {
+                    nodes.push(ArticleNode::Block(node));
                 }
             }
             Item::Img(img) => {
-                let mut diags = Vec::new();
-                let fields = extract_img_fields(ctx.source.src, img.body, &mut diags);
-                for diagnostic in diags {
-                    ctx.diagnostics.push(CatalogDiagnostic {
-                        code: if diagnostic.is_error() {
-                            "RD1001"
-                        } else {
-                            "RD1002"
-                        },
-                        severity: if diagnostic.is_error() {
-                            Severity::Error
-                        } else {
-                            Severity::Warning
-                        },
-                        path: ctx.source_path.to_string(),
-                        message: diagnostic.message,
-                    });
-                }
-                nodes.push(ArticleNode::Image(StaticImage::from_fields(
-                    &fields, img.span,
-                )));
+                let call = block_from_img_decl(ctx.source.src, img.clone());
+                nodes.push(image_from_call(ctx, &call));
             }
             Item::Page(_) if parent_kind.is_some() => illegal(ctx, item, "page"),
             Item::Page(_) => {}
@@ -659,15 +831,45 @@ fn illegal(ctx: &mut BuildCtx<'_>, item: &Item, kind: &str) {
     ));
 }
 
+fn image_from_call(ctx: &mut BuildCtx<'_>, call: &BlockCall) -> ArticleNode {
+    let mut diags = Vec::new();
+    let body = call
+        .params
+        .as_ref()
+        .map(|params| params.span)
+        .unwrap_or(call.span);
+    let fields = extract_img_fields(ctx.source.src, body, &mut diags);
+    for diagnostic in diags {
+        ctx.diagnostics.push(CatalogDiagnostic {
+            code: if diagnostic.is_error() {
+                "RD1001"
+            } else {
+                "RD1002"
+            },
+            severity: if diagnostic.is_error() {
+                Severity::Error
+            } else {
+                Severity::Warning
+            },
+            path: ctx.source_path.to_string(),
+            message: diagnostic.message,
+        });
+    }
+    ArticleNode::Image(StaticImage::from_fields(&fields, call.span))
+}
+
 fn docs_node(
     ctx: &mut BuildCtx<'_>,
-    decl: &DocsDecl,
+    call: &BlockCall,
     parent_kind: Option<&str>,
 ) -> Option<DocsNode> {
-    let line = line_number(ctx.source.src, decl.span.start as usize);
-    let (fields, content) = split_docs_body(ctx.source.src, decl.body);
+    let line = line_number(ctx.source.src, call.span.start as usize);
+    let fields = docs_fields_from_params(call.params.as_ref());
+    let content = call
+        .content_span()
+        .unwrap_or_else(|| Span::point(call.span.end as usize));
     let attrs = parse_attrs(ctx.source.src, &fields);
-    if registry::is_reserved(&decl.kind) {
+    if registry::is_reserved(&call.name) {
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2406",
             ctx.source_path,
@@ -675,16 +877,16 @@ fn docs_node(
         ));
         return None;
     }
-    if !registry::is_docs_kind(&decl.kind) {
+    if !registry::is_docs_kind(&call.name) {
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2401",
             ctx.source_path,
-            format!("line {line}: unknown `@docs` kind `{}`", decl.kind),
+            format!("line {line}: unknown `@docs` kind `{}`", call.name),
         ));
         return None;
     }
-    if decl.kind == "include" {
-        return include_node(ctx, decl, attrs, line);
+    if call.name == "include" {
+        return include_node(ctx, call.span, attrs, line);
     }
     let parsed = parse_fragment(ctx.source, content, false);
     for diagnostic in parsed.diagnostics {
@@ -704,9 +906,9 @@ fn docs_node(
             message: format!("line {line}: {}", diagnostic.message),
         });
     }
-    let children = nodes_from_items(ctx, &parsed.document.items, Some(&decl.kind));
+    let children = nodes_from_items(ctx, &parsed.document.items, Some(&call.name));
     let node = DocsNode {
-        kind: decl.kind.clone(),
+        kind: call.name.clone(),
         attrs,
         children,
         origin: None,
@@ -798,7 +1000,7 @@ fn attr_some(attrs: &DocsAttrs, field: &str) -> bool {
 fn has_docs_child(node: &DocsNode, kind: &str) -> bool {
     node.children
         .iter()
-        .any(|child| matches!(child, ArticleNode::Docs(docs) if docs.kind == kind))
+        .any(|child| matches!(child, ArticleNode::Block(docs) if docs.kind == kind))
 }
 
 fn kind_error(ctx: &mut BuildCtx<'_>, spec: &KindSpec, line: u32, message: String) {
@@ -900,7 +1102,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 )
             });
             let extra = node.children.iter().any(|child| match child {
-                ArticleNode::Docs(docs) => docs.kind != "step",
+                ArticleNode::Block(docs) => docs.kind != "step",
                 ArticleNode::Markdown(MdNode::List { ordered: true, .. }) => false,
                 ArticleNode::Markdown(_) | ArticleNode::Image(_) => true,
             });
@@ -992,7 +1194,7 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
         .children
         .iter()
         .filter_map(|child| match child {
-            ArticleNode::Docs(docs) if docs.kind == "tab" => Some(docs),
+            ArticleNode::Block(docs) if docs.kind == "tab" => Some(docs),
             _ => None,
         })
         .collect();
@@ -1110,7 +1312,7 @@ fn count_images(nodes: &[ArticleNode]) -> usize {
                 .filter(|child| matches!(child, MdNode::Image { .. }))
                 .count(),
             ArticleNode::Markdown(MdNode::Image { .. }) | ArticleNode::Image(_) => 1,
-            ArticleNode::Docs(docs) => count_images(&docs.children),
+            ArticleNode::Block(docs) => count_images(&docs.children),
             _ => 0,
         })
         .sum()
@@ -1119,7 +1321,7 @@ fn count_images(nodes: &[ArticleNode]) -> usize {
 fn contains_table(nodes: &[ArticleNode]) -> bool {
     nodes.iter().any(|node| match node {
         ArticleNode::Markdown(MdNode::Table { .. }) => true,
-        ArticleNode::Docs(docs) => contains_table(&docs.children),
+        ArticleNode::Block(docs) => contains_table(&docs.children),
         _ => false,
     })
 }
@@ -1127,7 +1329,7 @@ fn contains_table(nodes: &[ArticleNode]) -> bool {
 fn contains_code(nodes: &[ArticleNode]) -> bool {
     nodes.iter().any(|node| match node {
         ArticleNode::Markdown(MdNode::CodeBlock { .. }) => true,
-        ArticleNode::Docs(docs) => contains_code(&docs.children),
+        ArticleNode::Block(docs) => contains_code(&docs.children),
         _ => false,
     })
 }
@@ -1136,14 +1338,14 @@ fn only_caption(nodes: &[ArticleNode]) -> bool {
     nodes.iter().all(|node| match node {
         ArticleNode::Markdown(MdNode::Paragraph { .. }) => true,
         ArticleNode::Markdown(MdNode::CodeBlock { .. }) => false,
-        ArticleNode::Docs(_) => false,
+        ArticleNode::Block(_) => false,
         _ => true,
     })
 }
 
 fn include_node(
     ctx: &mut BuildCtx<'_>,
-    decl: &DocsDecl,
+    span: Span,
     attrs: DocsAttrs,
     line: u32,
 ) -> Option<DocsNode> {
@@ -1273,7 +1475,7 @@ fn include_node(
     let code = ArticleNode::Markdown(MdNode::CodeBlock {
         info: language,
         literal: excerpt,
-        span: decl.body,
+        span,
     });
     Some(DocsNode {
         kind: "include".into(),
@@ -1398,7 +1600,7 @@ pub fn render_article(nodes: &[ArticleNode]) -> String {
 fn render_node(node: &ArticleNode) -> String {
     match node {
         ArticleNode::Markdown(md) => render_md(md),
-        ArticleNode::Docs(docs) => render_docs(docs),
+        ArticleNode::Block(docs) => render_docs(docs),
         ArticleNode::Image(image) => render_static_image(image),
     }
 }
@@ -1426,7 +1628,7 @@ pub fn markdown_fragment(nodes: &[ArticleNode]) -> String {
                 out.push_str(&md_to_markdown(md));
                 out.push('\n');
             }
-            ArticleNode::Docs(docs) => out.push_str(&docs_to_markdown(docs)),
+            ArticleNode::Block(docs) => out.push_str(&docs_to_markdown(docs)),
             ArticleNode::Image(image) => {
                 out.push_str(&format!("![{}]({})", image.alt, image.src));
                 out.push('\n');
@@ -1464,7 +1666,7 @@ fn docs_to_markdown(docs: &DocsNode) -> String {
                 .children
                 .iter()
                 .filter_map(|child| match child {
-                    ArticleNode::Docs(step) if step.kind == "step" => Some(step),
+                    ArticleNode::Block(step) if step.kind == "step" => Some(step),
                     _ => None,
                 })
                 .collect();
@@ -1513,7 +1715,7 @@ fn docs_to_markdown(docs: &DocsNode) -> String {
             .children
             .iter()
             .filter_map(|child| match child {
-                ArticleNode::Docs(tab) if tab.kind == "tab" => Some(format!(
+                ArticleNode::Block(tab) if tab.kind == "tab" => Some(format!(
                     "### {}\n\n{}\n",
                     tab.attrs.label.as_deref().unwrap_or(""),
                     markdown_fragment(&tab.children).trim()
@@ -1636,7 +1838,7 @@ fn plan_nodes(
                 files.push((path.clone(), html));
                 segments.push(html_segment(path));
             }
-            ArticleNode::Docs(docs) => {
+            ArticleNode::Block(docs) => {
                 flush(&mut markdown, files, counter, &mut segments);
                 segments.push(docs_segment(article_name, docs, rewrite, files, counter));
             }

@@ -20,6 +20,102 @@ fn test_all_syntax_ast() {
 }
 
 #[test]
+fn docs_and_img_normalize_to_block_calls() {
+    let src = "\
+@docs note {
+    title: \"Watch\"
+
+    Nested.
+
+    @docs tip {
+        Inner.
+    }
+}
+
+@img {
+    src: \"./x.png\"
+    alt: \"x\"
+}
+";
+    let parsed = parse(SourceFile::new("test.rocdown", src), false);
+    assert!(
+        !parsed.diagnostics.iter().any(Diagnostic::is_error),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(block note)"), "{ast}");
+    assert!(ast.contains("(block img)"), "{ast}");
+    assert!(
+        !ast.contains("(docs "),
+        "inspect should show block tags, not docs: {ast}"
+    );
+    let names: Vec<_> = parsed
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            rocci_rocdown::Item::Block(call) => Some(call.name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(names, ["note", "img"]);
+    let note = parsed
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            rocci_rocdown::Item::Block(call) if call.name == "note" => Some(call),
+            _ => None,
+        })
+        .unwrap();
+    assert!(note.params.is_some());
+    let nested = rocci_rocdown::parse_fragment(
+        SourceFile::new("test.rocdown", src),
+        note.content_span().expect("note content"),
+        false,
+    );
+    assert!(nested.document.items.iter().any(|item| matches!(
+        item,
+        rocci_rocdown::Item::Block(call) if call.name == "tip"
+    )));
+}
+
+#[test]
+fn ungram_article_call_productions_exist_as_rust_types() {
+    let ungram = include_str!("../Rocdown.AST.ungram");
+    for name in [
+        "BlockCall",
+        "BracketRecord",
+        "ParamField",
+        "ParamValue",
+        "BlockContent",
+        "LineContent",
+        "BraceSection",
+        "EndSection",
+        "EndMarker",
+    ] {
+        assert!(
+            ungram.lines().any(|line| {
+                let line = line.trim();
+                line.starts_with(&format!("{name} =")) || line.starts_with(&format!("{name}="))
+            }),
+            "missing ungram production {name}"
+        );
+    }
+    let _ = std::any::type_name::<rocci_rocdown::BlockCall>();
+    let _ = std::any::type_name::<rocci_rocdown::BracketRecord>();
+    let _ = std::any::type_name::<rocci_rocdown::BracketList>();
+    let _ = std::any::type_name::<rocci_rocdown::ParamField>();
+    let _ = std::any::type_name::<rocci_rocdown::ParamValue>();
+    let _ = std::any::type_name::<rocci_rocdown::BlockContent>();
+    let _ = std::any::type_name::<rocci_rocdown::LineContent>();
+    let _ = std::any::type_name::<rocci_rocdown::BraceSection>();
+    let _ = std::any::type_name::<rocci_rocdown::EndSection>();
+    let _ = std::any::type_name::<rocci_rocdown::EndMarker>();
+}
+
+#[test]
 fn test_all_syntax_source_map_segments() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let source = SourceFile::new("test/AllSyntax.rocdown", src);

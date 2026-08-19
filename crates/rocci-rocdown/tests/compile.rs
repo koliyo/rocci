@@ -1146,15 +1146,15 @@ fn docs_note_is_parsed_and_lowered() {
 ";
     let out = compile_ok(src);
     assert!(
-        out.document
-            .items
-            .iter()
-            .any(|item| matches!(item, rocci_rocdown::Item::Docs(docs) if docs.kind == "note")),
+        out.document.items.iter().any(|item| matches!(
+            item,
+            rocci_rocdown::Item::Block(call) if call.name == "note"
+        )),
         "{:?}",
         out.document.items
     );
     let ast = format_ast(src, &out.document);
-    assert!(ast.contains("(docs note)"), "{ast}");
+    assert!(ast.contains("(block note)"), "{ast}");
     assert!(out.roc.contains("data-rocci-docs"));
     assert!(out.roc.contains("rd-docs-note"));
     assert!(out.roc.contains("Deprecation"));
@@ -1178,7 +1178,7 @@ fn kebab_docs_kinds_are_parsed() {
         .items
         .iter()
         .filter_map(|item| match item {
-            rocci_rocdown::Item::Docs(docs) => Some(docs.kind.as_str()),
+            rocci_rocdown::Item::Block(call) => Some(call.name.as_str()),
             _ => None,
         })
         .collect();
@@ -1204,7 +1204,7 @@ fn nested_docs_and_escaped_docs_are_distinct() {
         .items
         .iter()
         .filter_map(|item| match item {
-            rocci_rocdown::Item::Docs(docs) => Some(docs.kind.as_str()),
+            rocci_rocdown::Item::Block(call) => Some(call.name.as_str()),
             _ => None,
         })
         .collect();
@@ -1215,19 +1215,16 @@ fn nested_docs_and_escaped_docs_are_distinct() {
             .items
             .iter()
             .find_map(|item| match item {
-                rocci_rocdown::Item::Docs(docs) => Some(docs.body),
+                rocci_rocdown::Item::Block(call) => call.content_span(),
                 _ => None,
             })
             .unwrap(),
         false,
     );
-    assert!(
-        nested
-            .document
-            .items
-            .iter()
-            .any(|item| matches!(item, rocci_rocdown::Item::Docs(docs) if docs.kind == "step"))
-    );
+    assert!(nested.document.items.iter().any(|item| matches!(
+        item,
+        rocci_rocdown::Item::Block(call) if call.name == "step"
+    )));
     assert!(out.roc.contains("@docs note { not a directive }"));
 }
 
@@ -1280,12 +1277,10 @@ fn img_with_src_and_width_is_parsed_and_lowered() {
 }
 ";
     let out = compile_ok(src);
-    assert!(
-        out.document
-            .items
-            .iter()
-            .any(|item| matches!(item, rocci_rocdown::Item::Img(_)))
-    );
+    assert!(out.document.items.iter().any(|item| matches!(
+        item,
+        rocci_rocdown::Item::Block(call) if call.name == "img"
+    )));
     assert!(out.roc.contains("Html.void_element("));
     assert!(out.roc.contains("\"img\""));
     assert!(out.roc.contains("\"rd-image\""));
@@ -1384,12 +1379,10 @@ fn escaped_img_and_img_in_fences_are_inert() {
   }
 ";
     let out = compile_ok(src);
-    assert!(
-        !out.document
-            .items
-            .iter()
-            .any(|item| matches!(item, rocci_rocdown::Item::Img(_)))
-    );
+    assert!(!out.document.items.iter().any(|item| matches!(
+        item,
+        rocci_rocdown::Item::Block(call) if call.name == "img"
+    )));
     assert!(out.roc.contains("@img {"));
     assert!(out.roc.contains("not-an-img"));
 }

@@ -371,9 +371,14 @@ pub fn collect_local_media(source: SourceFile<'_>, document: &Document) -> Vec<(
 fn collect_media_in(source: SourceFile<'_>, document: &Document, urls: &mut Vec<(String, Span)>) {
     for item in &document.items {
         match item {
-            Item::Img(img) => {
+            Item::Block(call) if call.is_legacy_img(source.src) => {
                 let mut diags = Vec::new();
-                let fields = extract_img_fields(source.src, img.body, &mut diags);
+                let body = call
+                    .params
+                    .as_ref()
+                    .map(|params| params.span)
+                    .unwrap_or(call.span);
+                let fields = extract_img_fields(source.src, body, &mut diags);
                 if let Some((src, span)) = fields.src
                     && !is_remote_asset(&src)
                 {
@@ -387,6 +392,21 @@ fn collect_media_in(source: SourceFile<'_>, document: &Document, urls: &mut Vec<
                     urls.push((url.clone(), *span));
                 }
             }),
+            Item::Block(call) => {
+                if let Some(content) = call.content_span() {
+                    let parsed = parse_fragment(source, content, false);
+                    collect_media_in(source, &parsed.document, urls);
+                }
+            }
+            Item::Img(img) => {
+                let mut diags = Vec::new();
+                let fields = extract_img_fields(source.src, img.body, &mut diags);
+                if let Some((src, span)) = fields.src
+                    && !is_remote_asset(&src)
+                {
+                    urls.push((src, span));
+                }
+            }
             Item::Docs(docs) => {
                 let (_, content) = split_docs_body(source.src, docs.body);
                 let parsed = parse_fragment(source, content, false);

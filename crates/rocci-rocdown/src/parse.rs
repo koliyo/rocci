@@ -44,7 +44,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     }
 
     let document = Document {
-        items,
+        items: crate::docs::normalize_blocks(source.src, items),
         span: Span::new(0, source.src.len()),
     };
     validate_footnotes(source.src, &document, &mut diagnostics);
@@ -128,7 +128,10 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     }
 
     ParseOutput {
-        document: Document { items, span: body },
+        document: Document {
+            items: crate::docs::normalize_blocks(source.src, items),
+            span: body,
+        },
         diagnostics,
         headings: converted.headings,
         links: converted.links,

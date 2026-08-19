@@ -7,7 +7,7 @@ use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, Regi
 use rocci_highlight::token::{HighlightKind, HighlightSpan, resolve_and_sort_spans};
 use rocci_template::{Cursor, SourceFile, Span};
 
-use crate::ast::{DocsDecl, Document, HeadingInfo, ImgDecl, Item, MdNode};
+use crate::ast::{BlockCall, DocsDecl, Document, HeadingInfo, ImgDecl, Item, MdNode};
 
 pub fn highlight_rocdown(source: &str) -> Vec<HighlightSpan> {
     let sf = SourceFile::new("snippet.rocdown", source);
@@ -78,14 +78,33 @@ pub fn collect_rocdown(
             Item::Img(img) => {
                 collect_img(src, collector, img);
             }
+            Item::Block(call) if call.is_legacy_img(src) => {
+                collect_img_block(src, collector, call);
+            }
+            Item::Block(call) => {
+                collect_docs_block(src, collector, call);
+            }
         }
     }
 }
 
 pub fn collect_img(src: &str, collector: &mut Vec<HighlightSpan>, img: &ImgDecl) {
-    collect_keyword(src, collector, img.span, img.body.start, "@img");
-    let mut cur = Cursor::at(src, img.body.start as usize);
-    let end = img.body.end as usize;
+    collect_img_body(src, collector, img.span, img.body);
+}
+
+fn collect_img_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &BlockCall) {
+    let body = call
+        .params
+        .as_ref()
+        .map(|params| params.span)
+        .unwrap_or(call.span);
+    collect_img_body(src, collector, call.span, body);
+}
+
+fn collect_img_body(src: &str, collector: &mut Vec<HighlightSpan>, span: Span, body: Span) {
+    collect_keyword(src, collector, span, body.start, "@img");
+    let mut cur = Cursor::at(src, body.start as usize);
+    let end = body.end as usize;
     while cur.pos < end && !cur.is_eof() {
         cur.skip_trivia();
         if cur.pos >= end {
@@ -119,14 +138,19 @@ pub fn collect_img(src: &str, collector: &mut Vec<HighlightSpan>, img: &ImgDecl)
 }
 
 pub fn collect_docs(src: &str, collector: &mut Vec<HighlightSpan>, docs: &DocsDecl) {
-    collect_keyword(src, collector, docs.span, docs.kind_span.start, "@docs");
+    let call = crate::docs::block_from_docs_decl(src, docs.clone());
+    collect_docs_block(src, collector, &call);
+}
+
+fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &BlockCall) {
+    collect_keyword(src, collector, call.span, call.name_span.start, "@docs");
     collector.push(HighlightSpan::new(
-        docs.kind_span,
+        call.name_span,
         HighlightKind::Type,
         0,
         55,
     ));
-    let (fields, content) = crate::split_docs_body(src, docs.body);
+    let fields = crate::docs::docs_fields_from_params(call.params.as_ref());
     for field in fields {
         collector.push(HighlightSpan::new(
             field.name_span,
@@ -155,7 +179,10 @@ pub fn collect_docs(src: &str, collector: &mut Vec<HighlightSpan>, docs: &DocsDe
             ));
         }
     }
-    if !content.is_empty() && (content.start as usize) < src.len() {
+    if let Some(content) = call.content_span()
+        && !content.is_empty()
+        && (content.start as usize) < src.len()
+    {
         let source = SourceFile::new("docs", src);
         let parsed = crate::parse_fragment(source, content, false);
         collect_rocdown(src, collector, &parsed.document, &parsed.headings);
@@ -501,6 +528,34 @@ fn collect_rocdown_items(
                     Some(parent_id),
                     10,
                 );
+            }
+            Item::Block(call) if call.is_legacy_img(text) => {
+                builder.add(
+                    LanguageId::Markdown,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    call.span,
+                    Some(parent_id),
+                    10,
+                );
+            }
+            Item::Block(call) => {
+                let docs_id = builder.add(
+                    LanguageId::Markdown,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    call.span,
+                    Some(parent_id),
+                    10,
+                );
+                if let Some(content) = call.content_span()
+                    && !content.is_empty()
+                    && (content.start as usize) < text.len()
+                {
+                    let source = SourceFile::new("docs", text);
+                    let parsed = crate::parse_fragment(source, content, false);
+                    collect_rocdown_items(builder, text, &parsed.document.items, docs_id);
+                }
             }
         }
     }
