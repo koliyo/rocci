@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use rocci_rocdown::{
     CompileOptions, MarkdownBodyOptions, MdNode, OriginKind, PageRef, SourceFile, Span, compile,
-    format_ast, index_pages_in_dir, parse_markdown_body,
+    compile_islands, format_ast, index_pages_in_dir, parse_markdown_body,
 };
 use rocci_template::LowerOptions;
 use rocci_theme::ThemeOptions;
@@ -1024,6 +1024,42 @@ Hello = |{ name }| {
     assert!(out.roc.contains("{ name: \"Ada\" }"));
     assert!(out.roc.contains("\"div\""));
     assert!(out.roc.contains("\"callout\""));
+}
+
+#[test]
+fn island_lowering_keeps_markdown_off_the_roc_path() {
+    let src = r#"
+@roc {
+feature_count = 3.I64
+}
+
+@component
+FeatureCount = |{ count }| {
+    <p class="feature-count">{count.to_str()} core ideas</p>
+}
+
+# Rocdown
+
+<FeatureCount count={feature_count} />
+"#;
+    let out = compile_islands(
+        SourceFile::new("guide.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("rocci_islands"));
+    assert!(out.roc.contains("featureCount("));
+    assert!(out.roc.contains("feature_count"));
+    assert!(!out.roc.contains("rd-header-1"), "{}", out.roc);
+    assert!(!out.roc.contains("rocci_content"), "{}", out.roc);
 }
 
 #[test]

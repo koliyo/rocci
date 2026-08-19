@@ -7,7 +7,9 @@ use serde::Serialize;
 
 use crate::{CompileOptions, Document, Item, MdNode, compile};
 
-use crate::article::{PageClass, PageKind, classify_document, render_document};
+use crate::article::{
+    PageClass, PageKind, classify_document, render_document, roc_imports_datastar,
+};
 use crate::catalog::{
     self, CatalogDiagnostic, Edge, NavSection, PageHeading, ResolveOptions, ResolvedPage,
     ResolvedSite, RouteHint, Severity, SourcePage,
@@ -237,7 +239,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         if compiled.has_errors() || has_use {
             continue;
         }
-        let class = classify_document(&compiled.document, compiled.roc.contains("import Datastar"));
+        let class = classify_document(&compiled.document, roc_imports_datastar(&compiled.roc));
         if let Some(diagnostic) = page_kind_diagnostic(&relative_name, class) {
             diagnostics.push(diagnostic);
         }
@@ -386,6 +388,18 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         } else {
             docs::render_article(&page_docs.article)
         };
+        let island_css = compiled
+            .styles
+            .iter()
+            .filter(|style| {
+                matches!(
+                    style.kind,
+                    rocci_template::StyleKind::File | rocci_template::StyleKind::Component
+                )
+            })
+            .map(|style| style.css.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
         sources.push(SourcePage {
             id: page_id,
             id_explicit,
@@ -405,6 +419,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             outgoing_links,
             image_urls,
             article_html,
+            island_css,
             kind: class.kind,
             docs: page_docs,
         });
@@ -704,15 +719,7 @@ fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
 
 fn page_kind_diagnostic(path: &str, class: PageClass) -> Option<CatalogDiagnostic> {
     match class.kind {
-        PageKind::Static => None,
-        PageKind::Hydrate => Some(CatalogDiagnostic::error(
-            "RD2301",
-            path,
-            format!(
-                "{path} is a hydrate page ({}); site builds cannot splice Rocci components yet",
-                class.reason
-            ),
-        )),
+        PageKind::Static | PageKind::Hydrate => None,
         PageKind::Live => Some(CatalogDiagnostic::error(
             "RD2302",
             path,
@@ -916,7 +923,7 @@ mod tests {
     }
 
     #[test]
-    fn check_diagnoses_hydrate_pages() {
+    fn check_accepts_hydrate_pages() {
         let root = temp("hydrate");
         fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
         fs::write(
@@ -925,11 +932,13 @@ mod tests {
         )
         .unwrap();
         let report = check(&root).unwrap();
-        assert!(report.has_errors());
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
         let rendered = report.render(CheckFormat::Terminal).unwrap();
-        assert!(rendered.contains("RD2301"), "{rendered}");
-        assert!(rendered.contains("hydrate"), "{rendered}");
-        assert!(rendered.contains("@render"), "{rendered}");
+        assert!(!rendered.contains("RD2301"), "{rendered}");
         assert!(!rendered.contains("RD2302"), "{rendered}");
         let catalog = inspect(&root, InspectKind::Catalog, None).unwrap();
         assert!(catalog.contains("\"kind\": \"hydrate\""), "{catalog}");
@@ -941,6 +950,11 @@ mod tests {
             .find(|page| page.id == "widget")
             .unwrap();
         assert_eq!(widget.kind, PageKind::Hydrate);
+        assert!(
+            widget.article_html.contains(crate::islands::PLACEHOLDER),
+            "{}",
+            widget.article_html
+        );
         let _ = fs::remove_dir_all(root);
     }
 

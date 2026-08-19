@@ -138,12 +138,21 @@ impl BuildPlan {
 pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<BuildPlan> {
     let theme_modules = compile_theme_modules(root, config)?;
     let mut assets = hash_site_assets(root, config)?;
-    let theme_css = theme_modules
+    let mut theme_css = theme_modules
         .iter()
         .flat_map(|m| m.styles.iter())
         .map(|style| style.css.as_str())
         .collect::<Vec<_>>()
         .join("\n");
+    for page in &site.pages {
+        if page.island_css.is_empty() {
+            continue;
+        }
+        if !theme_css.is_empty() {
+            theme_css.push('\n');
+        }
+        theme_css.push_str(&page.island_css);
+    }
     let stylesheet = hashed_asset("theme.css", theme_css.as_bytes());
     assets.push(stylesheet.clone());
     assets.sort_by(|a, b| a.output_path.cmp(&b.output_path));

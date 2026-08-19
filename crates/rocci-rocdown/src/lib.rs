@@ -10,6 +10,7 @@ mod docs;
 pub mod highlight;
 mod img;
 mod imports;
+mod islands;
 mod links;
 mod lower;
 pub mod lsp;
@@ -26,7 +27,7 @@ mod site;
 pub mod standalone;
 pub mod theme;
 
-pub use article::{PageClass, PageKind, classify_document, render_document};
+pub use article::{PageClass, PageKind, classify_document, render_document, roc_imports_datastar};
 pub use ast::{
     BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
     EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,
@@ -182,6 +183,33 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         options,
         &mut diagnostics,
     );
+    let lower_ms = lower_started.elapsed().as_millis();
+    CompileOutput {
+        roc: lowered.roc,
+        segments: lowered.segments,
+        components: lowered.components,
+        fixtures: lowered.fixtures,
+        styles: lowered.styles,
+        state_type: lowered.state_type,
+        init: lowered.init,
+        routes: lowered.routes,
+        document: parsed.document,
+        page_meta: lowered.page_meta,
+        headings: parsed.headings,
+        links: parsed.links,
+        theme: lowered.theme,
+        diagnostics,
+        timings: CompileTimings { parse_ms, lower_ms },
+    }
+}
+
+pub fn compile_islands(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
+    let parse_started = Instant::now();
+    let parsed = parse(source, options.raw_html);
+    let parse_ms = parse_started.elapsed().as_millis();
+    let mut diagnostics = parsed.diagnostics;
+    let lower_started = Instant::now();
+    let lowered = lower::lower_islands(source, &parsed.document, options, &mut diagnostics);
     let lower_ms = lower_started.elapsed().as_millis();
     CompileOutput {
         roc: lowered.roc,

@@ -75,6 +75,10 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
     Ok(())
 }
 
+pub fn roc_imports_datastar(roc: &str) -> bool {
+    roc.lines().any(|line| line.trim() == "import Datastar")
+}
+
 pub fn render_document(document: &Document) -> String {
     let mut parts = Vec::new();
     let mut footnotes = Vec::new();
@@ -683,7 +687,10 @@ Text in rocdown.
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert_eq!(is_static_document(&out.document), Err("@render"));
-        assert_eq!(classify_document(&out.document, false).kind, PageKind::Hydrate);
+        assert_eq!(
+            classify_document(&out.document, false).kind,
+            PageKind::Hydrate
+        );
     }
 
     #[test]
@@ -697,6 +704,26 @@ Text in rocdown.
             },
         );
         assert_eq!(is_static_document(&out.document), Err("@use"));
+    }
+
+    #[test]
+    fn markdown_mentioning_datastar_is_not_an_import() {
+        let out = compile(
+            SourceFile::new(
+                "page.rocdown",
+                "Pages with `import Datastar` stay documentation.\n",
+            ),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        assert!(out.roc.contains("import Datastar"), "{}", out.roc);
+        assert!(!roc_imports_datastar(&out.roc), "{}", out.roc);
+        assert_eq!(
+            classify_document(&out.document, roc_imports_datastar(&out.roc)).kind,
+            PageKind::Static
+        );
     }
 
     #[test]

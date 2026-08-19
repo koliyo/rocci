@@ -102,6 +102,12 @@ fn inspect_catalog_and_graph() {
         .iter()
         .any(|p| p["id"] == "index");
     assert!(has_index);
+    for page in catalog.as_array().unwrap() {
+        assert_eq!(
+            page["kind"], "static",
+            "docs/ must remain static, got {page}"
+        );
+    }
 
     let output = Command::new(&bin)
         .arg("inspect")
