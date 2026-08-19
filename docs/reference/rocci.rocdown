@@ -125,3 +125,7 @@ state, `@init` creates it, and `@on` defines route handlers.
 
 Rocci does not provide arbitrary JSX, dynamic tags, prop spreading, a runtime
 component registry, or markup embedded in arbitrary Roc expressions.
+
+The developer tree spec for owned AST nodes is
+`crates/rocci-template/Rocci.AST.ungram`. It generates Rust types; it does not
+generate the scanner or replace this language reference.

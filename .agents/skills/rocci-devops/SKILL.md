@@ -15,7 +15,7 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
    work.
 2. Understand the repository's GitHub Actions workflows in `.github/workflows/`:
    - `ci.yml`: Main validation pipeline running on every push/PR:
-     - `lint`: Rust formatting (`cargo fmt`) and clippy checks (`cargo clippy -D warnings`) on `ubuntu-latest`.
+     - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), and clippy (`cargo clippy -D warnings`) on `ubuntu-latest`.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest`.
      - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest`.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check.
@@ -87,7 +87,7 @@ Categorize the root cause by examining the failing job and log output:
 
 | Job | Common failure modes | Reproduction & fix strategy |
 |---|---|---|
-| `lint` | Unformatted code, clippy warnings | Run `cargo fmt --all -- --check` and `cargo clippy --workspace --all-targets -- -D warnings`. Fix warnings or format with `cargo fmt --all`. |
+| `lint` | Unformatted code, clippy warnings, stale `ast.generated.rs` | Run `python3 scripts/check-workspace-deps.py`, `cargo run -q -p rocci-ungram -- check`, `cargo fmt --all -- --check`, and `cargo clippy --workspace --all-targets -- -D warnings`. Regenerate AST with `cargo run -q -p rocci-ungram -- generate` if `--check` fails. |
 | `test` (macOS / Ubuntu) | Logic regressions, platform differences, socket permissions, timing/budget assertions | Run `cargo test -p CRATE` for the failing test. Ensure timing assertions account for unoptimized debug mode on shared CI VMs (`cfg!(debug_assertions)`). Ensure stress/fuzz iterations scale appropriately in debug mode. |
 | `fixtures-and-docs` | AST snapshot drift, broken markdown links, missing frontmatter | Inspect syntax with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci` and `cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown` (and `test/EmbeddedLanguages.rocdown`). Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs`. |
 | `editors` | TypeScript/ESLint errors, VS Code packaging issues, Zed Wasm build errors | Run `npm --prefix editors/vscode ci && npm --prefix editors/vscode run lint && npm --prefix editors/vscode run compile` and `cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1`. |

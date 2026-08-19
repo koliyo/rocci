@@ -131,6 +131,7 @@ job_lint() {
   require_cmd cargo
   ensure_rust_components
   python3 scripts/check-workspace-deps.py
+  cargo run -q -p rocci-ungram -- check
   cargo fmt --all -- --check
   cargo clippy --workspace --all-targets -- -D warnings
 }

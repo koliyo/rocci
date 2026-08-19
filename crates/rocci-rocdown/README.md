@@ -307,6 +307,17 @@ while building as part of `rocdown build site`.
 - `rocdown test DIR`: Run documented `:example` tests.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
 
+## Tree spec
+
+The owned parse-tree shape lives in [`Rocdown.AST.ungram`](Rocdown.AST.ungram).
+`cargo run -q -p rocci-ungram -- generate` writes
+[`src/ast.generated.rs`](src/ast.generated.rs). The generator emits article and
+module node types only; it does not produce the scanner or parser. Markdown
+blocks stay hand-written `MdNode`. `cargo run -q -p rocci-ungram -- check` fails
+when the committed generated file is stale. This README remains the language
+contract; the ungram is the developer tree spec, not a substitute for the syntax
+above.
+
 ## Implemented vs deferred
 
 **In this crate**

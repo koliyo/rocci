@@ -16,14 +16,18 @@ scripts.
    unrelated changes, especially modified language documentation and fixtures.
 2. Read `crates/rocci-template/README.md` for `.rocci` behavior and
    `crates/rocci-rocdown/README.md` for `.rocdown` behavior.
-3. Read the relevant existing tests before editing implementation code:
+3. Read `crates/rocci-template/Rocci.AST.ungram` or
+   `crates/rocci-rocdown/Rocdown.AST.ungram` for the owned tree spec. Those
+   files generate `src/ast.generated.rs`; they do not generate the scanner or
+   parser.
+4. Read the relevant existing tests before editing implementation code:
    `crates/rocci-template/tests/compile.rs` or
    `crates/rocci-rocdown/tests/compile.rs`.
-4. Consult `knowledge/architecture/rocdown-format.md` and the applicable
+5. Consult `knowledge/architecture/rocdown-format.md` and the applicable
    decision record when semantics or language boundaries may change. Invoke
    `$manage-rocci-knowledge` as well if the task requires editing canonical
    knowledge.
-5. State whether the change is implemented behavior, an approved direction,
+6. State whether the change is implemented behavior, an approved direction,
    or an experiment. Do not present deferred syntax as shipped.
 
 ## Choose the owning layer
@@ -66,8 +70,11 @@ scripts.
 1. Add or update a focused regression test that demonstrates the source input,
    AST or diagnostic outcome, generated Roc, and source-map behavior relevant
    to the change.
-2. Update the AST before adding parser branches when the syntax introduces a
-   new semantic shape. Avoid encoding new syntax as unrelated existing nodes.
+2. When the syntax introduces a new semantic shape, edit the language ungram
+   and sidecar first (`Rocci.AST.ungram` / `Rocdown.AST.ungram` and the sibling
+   `*.AST.toml`), then `cargo run -q -p rocci-ungram -- generate`. Do not
+   hand-edit `ast.generated.rs`. Then add parser branches. Avoid encoding new
+   syntax as unrelated existing nodes.
 3. Update scanning and parsing boundary cases together. Test the accepted form,
    malformed near-misses, nesting restrictions, indentation, and literal or
    fenced forms that must remain inert.
@@ -110,6 +117,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 Also run:
 
 ```sh
+cargo run -q -p rocci-ungram -- check
 cargo fmt --all -- --check
 ```
 

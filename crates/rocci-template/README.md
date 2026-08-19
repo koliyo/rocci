@@ -479,6 +479,16 @@ See [`../../test/AllSyntax.rocci`](../../test/AllSyntax.rocci) and the matching
 [`tests/fixtures/all_syntax.roc`](tests/fixtures/all_syntax.roc) for a complete
 example.
 
+## Tree spec
+
+The owned parse-tree shape lives in [`Rocci.AST.ungram`](Rocci.AST.ungram).
+`cargo run -q -p rocci-ungram -- generate` writes
+[`src/ast.generated.rs`](src/ast.generated.rs). The generator emits node types
+only; it does not produce the scanner or parser. Those stay hand-written in this
+crate. `cargo run -q -p rocci-ungram -- check` fails when the committed generated
+file is stale. This README remains the language contract; the ungram is the
+developer tree spec, not a substitute for the syntax above.
+
 ## AST dump
 
 `format_ast` (and the `ast` command) prints the parse tree as indented

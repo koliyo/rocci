@@ -206,3 +206,8 @@ automatic navigator.
 Rocdown site builds currently accept the static Markdown tree plus `@page` and article blocks.
 They reject dynamic Roc, Rocci templates, `@css`, handlers, `@use`, and custom layouts until the
 island splice path is implemented. Draft pages are excluded from production builds.
+
+The developer tree spec for owned article and module AST nodes is
+`crates/rocci-rocdown/Rocdown.AST.ungram`. It generates Rust types; it does not
+generate the scanner or replace this language reference. Markdown remains
+`MdNode` until a later tree change.
