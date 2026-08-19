@@ -17,6 +17,7 @@ mod page;
 mod parse;
 mod plan;
 mod pprint;
+mod registry;
 mod runtime;
 mod scan;
 mod site;

@@ -13,6 +13,7 @@ use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPag
 use crate::img::{StaticImage, extract_img_fields};
 use crate::page::{bool_literal, skip_value, string_list, string_literal};
 use crate::parse::parse_fragment;
+use crate::registry::{self, KindFamily, KindSpec};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocsField {
@@ -170,10 +171,6 @@ pub fn resolve_include_path(from_file: &str, path: &str) -> Result<PathBuf, Stri
     }
     Ok(out)
 }
-
-const ASIDES: &[&str] = &["note", "tip", "caution", "danger", "deprecated"];
-const TAB_KINDS: &[&str] = &["language", "platform", "tool"];
-const BADGE_TONES: &[&str] = &["stable", "beta", "preview", "deprecated", "removed"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PageDocs {
@@ -670,7 +667,7 @@ fn docs_node(
     let line = line_number(ctx.source.src, decl.span.start as usize);
     let (fields, content) = split_docs_body(ctx.source.src, decl.body);
     let attrs = parse_attrs(ctx.source.src, &fields);
-    if decl.kind == "api-operation" {
+    if registry::is_reserved(&decl.kind) {
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2406",
             ctx.source_path,
@@ -678,7 +675,7 @@ fn docs_node(
         ));
         return None;
     }
-    if !known_kind(&decl.kind) {
+    if !registry::is_docs_kind(&decl.kind) {
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2401",
             ctx.source_path,
@@ -720,28 +717,6 @@ fn docs_node(
         push_example(ctx, &node);
     }
     Some(node)
-}
-
-fn known_kind(kind: &str) -> bool {
-    ASIDES.contains(&kind)
-        || matches!(
-            kind,
-            "details"
-                | "steps"
-                | "step"
-                | "figure"
-                | "definition"
-                | "badge"
-                | "compatibility"
-                | "card-grid"
-                | "link-card"
-                | "file-tree"
-                | "tabs"
-                | "tab"
-                | "example"
-                | "include"
-                | "playground"
-        )
 }
 
 fn parse_attrs(src: &str, fields: &[DocsField]) -> DocsAttrs {
@@ -788,6 +763,118 @@ fn split_argv(value: &str) -> Vec<String> {
     value.split_whitespace().map(str::to_string).collect()
 }
 
+fn attr_nonempty(attrs: &DocsAttrs, field: &str) -> bool {
+    let value = match field {
+        "title" => attrs.title.as_deref(),
+        "summary" => attrs.summary.as_deref(),
+        "label" => attrs.label.as_deref(),
+        "term" => attrs.term.as_deref(),
+        "alt" => attrs.alt.as_deref(),
+        "caption" => attrs.caption.as_deref(),
+        "credit" => attrs.credit.as_deref(),
+        "tone" => attrs.tone.as_deref(),
+        "page" => attrs.page.as_deref(),
+        "href" => attrs.href.as_deref(),
+        "group" => attrs.group.as_deref(),
+        "kind" => attrs.tab_kind.as_deref(),
+        "id" => attrs.id.as_deref(),
+        "path" => attrs.path.as_deref(),
+        "region" => attrs.region.as_deref(),
+        "language" => attrs.language.as_deref(),
+        "expect" => attrs.expect.as_deref(),
+        _ => None,
+    };
+    value.is_some_and(|value| !value.is_empty())
+}
+
+fn attr_some(attrs: &DocsAttrs, field: &str) -> bool {
+    match field {
+        "page" => attrs.page.is_some(),
+        "href" => attrs.href.is_some(),
+        other => attr_nonempty(attrs, other),
+    }
+}
+
+fn has_docs_child(node: &DocsNode, kind: &str) -> bool {
+    node.children
+        .iter()
+        .any(|child| matches!(child, ArticleNode::Docs(docs) if docs.kind == kind))
+}
+
+fn kind_error(ctx: &mut BuildCtx<'_>, spec: &KindSpec, line: u32, message: String) {
+    ctx.diagnostics.push(CatalogDiagnostic::error(
+        spec.diagnostic_code,
+        ctx.source_path,
+        format!("line {line}: {message}"),
+    ));
+}
+
+fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&str>) {
+    let Some(spec) = registry::lookup(&node.kind) else {
+        return;
+    };
+    let line = node.line;
+    if !registry::parent_allowed(spec, parent_kind) {
+        let parent = spec.parents[0];
+        kind_error(
+            ctx,
+            spec,
+            line,
+            format!(
+                "`@docs {}` is only valid inside `@docs {parent}`",
+                spec.name
+            ),
+        );
+    }
+    let check_required = spec.parents.is_empty() || registry::parent_allowed(spec, parent_kind);
+    if check_required && spec.diagnostic_code == "RD2402" {
+        for field in spec.required_fields {
+            if !attr_nonempty(&node.attrs, field) {
+                kind_error(
+                    ctx,
+                    spec,
+                    line,
+                    format!("`@docs {}` requires `{field}`", spec.name),
+                );
+            }
+        }
+        for group in spec.required_one_of {
+            if !group.iter().any(|field| attr_some(&node.attrs, field)) {
+                let joined = group.join("` or `");
+                kind_error(
+                    ctx,
+                    spec,
+                    line,
+                    format!("`@docs {}` requires `{joined}`", spec.name),
+                );
+            }
+        }
+    }
+    if spec.family == KindFamily::Aside
+        && spec
+            .forbidden_children
+            .iter()
+            .any(|kind| has_docs_child(node, kind))
+    {
+        malformed(ctx, line, "asides cannot contain tabs");
+    }
+    if spec.diagnostic_code == "RD2402" {
+        for child_kind in spec.required_child_kinds {
+            if !has_docs_child(node, child_kind) {
+                kind_error(
+                    ctx,
+                    spec,
+                    line,
+                    format!(
+                        "`@docs {}` requires `@docs {child_kind}` children",
+                        spec.name
+                    ),
+                );
+            }
+        }
+    }
+}
+
 fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&str>) {
     let path = ctx.source_path;
     let line = node.line;
@@ -802,26 +889,10 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
             ),
         ));
     }
+    validate_registry_shape(ctx, node, parent_kind);
     match node.kind.as_str() {
-        kind if ASIDES.contains(&kind) => {
-            if node
-                .children
-                .iter()
-                .any(|child| matches!(child, ArticleNode::Docs(docs) if docs.kind == "tabs"))
-            {
-                malformed(ctx, line, "asides cannot contain tabs");
-            }
-        }
-        "details" => {
-            if node.attrs.summary.as_deref().unwrap_or("").is_empty() {
-                malformed(ctx, line, "`@docs details` requires `summary`");
-            }
-        }
         "steps" => {
-            let has_step = node
-                .children
-                .iter()
-                .any(|child| matches!(child, ArticleNode::Docs(docs) if docs.kind == "step"));
+            let has_step = has_docs_child(node, "step");
             let has_list = node.children.iter().any(|child| {
                 matches!(
                     child,
@@ -849,11 +920,6 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 malformed(ctx, line, "`@docs steps` requires steps");
             }
         }
-        "step" => {
-            if parent_kind != Some("steps") {
-                malformed(ctx, line, "`@docs step` is only valid inside `@docs steps`");
-            }
-        }
         "figure" => {
             let images = count_images(&node.children);
             if images != 1 {
@@ -864,17 +930,9 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 );
             }
         }
-        "definition" => {
-            if node.attrs.term.as_deref().unwrap_or("").is_empty() {
-                malformed(ctx, line, "`@docs definition` requires `term`");
-            }
-        }
         "badge" => {
-            if node.attrs.label.as_deref().unwrap_or("").is_empty() {
-                malformed(ctx, line, "`@docs badge` requires `label`");
-            }
             if let Some(tone) = &node.attrs.tone
-                && !BADGE_TONES.contains(&tone.as_str())
+                && !registry::BADGE_TONE_VALUES.contains(&tone.as_str())
             {
                 malformed(ctx, line, &format!("invalid badge tone `{tone}`"));
             }
@@ -882,24 +940,6 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
         "compatibility" => {
             if !contains_table(&node.children) {
                 malformed(ctx, line, "`@docs compatibility` body must be a table");
-            }
-        }
-        "link-card" => {
-            if node.attrs.page.is_none() && node.attrs.href.is_none() {
-                malformed(ctx, line, "`@docs link-card` requires `page` or `href`");
-            }
-        }
-        "card-grid" => {
-            if !node
-                .children
-                .iter()
-                .any(|child| matches!(child, ArticleNode::Docs(docs) if docs.kind == "link-card"))
-            {
-                malformed(
-                    ctx,
-                    line,
-                    "`@docs card-grid` requires `@docs link-card` children",
-                );
             }
         }
         "file-tree" => {
@@ -916,87 +956,86 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 );
             }
         }
-        "tabs" => {
-            if node.attrs.group.as_deref().unwrap_or("").is_empty() {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2405",
-                    path,
-                    format!("line {line}: `@docs tabs` requires `group`"),
-                ));
-            }
-            let Some(kind) = node.attrs.tab_kind.as_deref() else {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2405",
-                    path,
-                    format!("line {line}: `@docs tabs` requires `kind`"),
-                ));
-                return;
-            };
-            if !TAB_KINDS.contains(&kind) {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2405",
-                    path,
-                    format!("line {line}: `@docs tabs` kind must be language, platform, or tool"),
-                ));
-            }
-            let tabs: Vec<_> = node
-                .children
-                .iter()
-                .filter_map(|child| match child {
-                    ArticleNode::Docs(docs) if docs.kind == "tab" => Some(docs),
-                    _ => None,
-                })
-                .collect();
-            if tabs.is_empty() {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2405",
-                    path,
-                    format!("line {line}: `@docs tabs` requires `@docs tab` children"),
-                ));
-            }
-            let mut seen = BTreeSet::new();
-            for tab in tabs {
-                let id = tab.attrs.id.as_deref().unwrap_or("");
-                if id.is_empty() {
-                    ctx.diagnostics.push(CatalogDiagnostic::error(
-                        "RD2405",
-                        path,
-                        format!("line {}: `@docs tab` requires `id`", tab.line),
-                    ));
-                } else if !seen.insert(id) {
-                    ctx.diagnostics.push(CatalogDiagnostic::error(
-                        "RD2405",
-                        path,
-                        format!("line {}: duplicate tab id `{id}`", tab.line),
-                    ));
-                }
-                if tab.attrs.label.as_deref().unwrap_or("").is_empty() {
-                    ctx.diagnostics.push(CatalogDiagnostic::error(
-                        "RD2405",
-                        path,
-                        format!("line {}: `@docs tab` requires `label`", tab.line),
-                    ));
-                }
-                if tab.children.is_empty() {
-                    ctx.diagnostics.push(CatalogDiagnostic::error(
-                        "RD2405",
-                        path,
-                        format!("line {}: `@docs tab` cannot be empty", tab.line),
-                    ));
-                }
-            }
-        }
-        "tab" => {
-            if parent_kind != Some("tabs") {
-                ctx.diagnostics.push(CatalogDiagnostic::error(
-                    "RD2405",
-                    path,
-                    format!("line {line}: `@docs tab` is only valid inside `@docs tabs`"),
-                ));
-            }
-        }
+        "tabs" => validate_tabs(ctx, node),
         "example" => validate_example(ctx, node),
         _ => {}
+    }
+}
+
+fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
+    let Some(spec) = registry::lookup("tabs") else {
+        return;
+    };
+    let tab_spec = registry::lookup("tab");
+    let path = ctx.source_path;
+    let line = node.line;
+    for field in spec.required_fields {
+        if *field == "kind" {
+            continue;
+        }
+        if !attr_nonempty(&node.attrs, field) {
+            kind_error(ctx, spec, line, format!("`@docs tabs` requires `{field}`"));
+        }
+    }
+    let Some(kind) = node.attrs.tab_kind.as_deref() else {
+        kind_error(ctx, spec, line, "`@docs tabs` requires `kind`".to_string());
+        return;
+    };
+    if !registry::TAB_KIND_VALUES.contains(&kind) {
+        ctx.diagnostics.push(CatalogDiagnostic::error(
+            "RD2405",
+            path,
+            format!("line {line}: `@docs tabs` kind must be language, platform, or tool"),
+        ));
+    }
+    let tabs: Vec<_> = node
+        .children
+        .iter()
+        .filter_map(|child| match child {
+            ArticleNode::Docs(docs) if docs.kind == "tab" => Some(docs),
+            _ => None,
+        })
+        .collect();
+    if tabs.is_empty() {
+        kind_error(
+            ctx,
+            spec,
+            line,
+            "`@docs tabs` requires `@docs tab` children".to_string(),
+        );
+    }
+    let mut seen = BTreeSet::new();
+    for tab in tabs {
+        if let Some(tab_spec) = tab_spec {
+            for field in tab_spec.required_fields {
+                if !attr_nonempty(&tab.attrs, field) {
+                    kind_error(
+                        ctx,
+                        tab_spec,
+                        tab.line,
+                        format!("`@docs tab` requires `{field}`"),
+                    );
+                    continue;
+                }
+                if *field == "id" {
+                    let id = tab.attrs.id.as_deref().unwrap_or("");
+                    if !seen.insert(id) {
+                        ctx.diagnostics.push(CatalogDiagnostic::error(
+                            "RD2405",
+                            path,
+                            format!("line {}: duplicate tab id `{id}`", tab.line),
+                        ));
+                    }
+                }
+            }
+        }
+        if tab.children.is_empty() {
+            ctx.diagnostics.push(CatalogDiagnostic::error(
+                "RD2405",
+                path,
+                format!("line {}: `@docs tab` cannot be empty", tab.line),
+            ));
+        }
     }
 }
 
@@ -1407,7 +1446,7 @@ pub fn search_text(nodes: &[ArticleNode]) -> String {
 fn docs_to_markdown(docs: &DocsNode) -> String {
     let inner = markdown_fragment(&docs.children);
     match docs.kind.as_str() {
-        kind if ASIDES.contains(&kind) => {
+        kind if registry::is_aside(kind) => {
             let label = docs
                 .attrs
                 .title
@@ -1912,6 +1951,44 @@ mod tests {
             diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.code == "RD2401")
+        );
+    }
+
+    #[test]
+    fn sugar_heading_kind_is_still_unknown_docs() {
+        let (_docs, diagnostics) = load("@docs h2 {\n    Title\n}\n");
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "RD2401")
+        );
+    }
+
+    #[test]
+    fn details_requires_summary_from_registry() {
+        let (_docs, diagnostics) = load("@docs details {\n    Body\n}\n");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "RD2402"
+                    && diagnostic
+                        .message
+                        .contains("`@docs details` requires `summary`")
+            }),
+            "{diagnostics:?}"
+        );
+    }
+
+    #[test]
+    fn step_requires_steps_parent_from_registry() {
+        let (_docs, diagnostics) = load("@docs step {\n    title: \"One\"\n\n    Do it.\n}\n");
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "RD2402"
+                    && diagnostic
+                        .message
+                        .contains("`@docs step` is only valid inside `@docs steps`")
+            }),
+            "{diagnostics:?}"
         );
     }
 
