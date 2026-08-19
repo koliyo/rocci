@@ -32,7 +32,7 @@
   const nextBtn = shadow.getElementById("next");
   const highlightSheet = document.createElement("style");
   highlightSheet.textContent =
-    "::highlight(rocci-find){background-color:#ffe08a;color:inherit}::highlight(rocci-find-current){background-color:#f5a623;color:#18181b}@media (prefers-color-scheme:dark){::highlight(rocci-find){background-color:#8a6d1b;color:inherit}::highlight(rocci-find-current){background-color:#d19a66;color:#1e1e1e}}mark.rocci-find-mark{background:#ffe08a;color:inherit;padding:0}mark.rocci-find-mark.current{background:#f5a623;color:#18181b}rocci-preview-find{display:none;position:fixed;top:var(--rocci-chrome-top,48px);right:12px;z-index:2147483646}rocci-preview-find.open{display:block}";
+    "::highlight(rocci-find){background-color:#ffe08a;color:inherit}::highlight(rocci-find-current){background-color:#f5a623;color:#18181b}@media (prefers-color-scheme:dark){::highlight(rocci-find){background-color:#8a6d1b;color:inherit}::highlight(rocci-find-current){background-color:#d19a66;color:#1e1e1e}}mark.rocci-find-mark{background:#ffe08a;color:inherit;padding:0}mark.rocci-find-mark.current{background:#f5a623;color:#18181b}rocci-preview-find{display:none;position:fixed;top:var(--rocci-chrome-top,48px);right:calc(var(--rocci-chrome-right, 0px) + 12px);z-index:2147483646}rocci-preview-find.open{display:block}";
   let query = "";
   let matches = [];
   let index = 0;
