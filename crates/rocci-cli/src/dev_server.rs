@@ -550,13 +550,12 @@ fn handle_client(
                 path,
                 &hub.logs.snapshot(),
             );
-            let body = inject_live_reload(&html);
             write_response(
                 &mut stream,
                 200,
                 "text/html; charset=utf-8",
                 true,
-                body.as_bytes(),
+                html.as_bytes(),
             )
         }
         ServeTarget::Redirect(location) => write_redirect(&mut stream, &location),
@@ -1269,6 +1268,28 @@ mod tests {
         assert_eq!(value["source"], "<p>source & \"quotes\"</p>");
         assert_eq!(value["html"], "<h1>home</h1>");
         assert_eq!(value["profile"]["total_ms"], 2);
+
+        let dev_url = format!("http://127.0.0.1:{port}/__rocci/dev?tab=console");
+        let dev = Command::new("curl")
+            .args(["-sS", "-w", "\n%{http_code}", &dev_url])
+            .output()
+            .expect("curl");
+        let dev_out = String::from_utf8_lossy(&dev.stdout);
+        let (dev_body, dev_status) = dev_out.rsplit_once('\n').unwrap_or((&dev_out, ""));
+        assert_eq!(dev_status.trim(), "200", "{dev_out}");
+        assert!(dev_body.contains("role=\"tablist\""));
+        assert!(!dev_body.contains("/__rocci/reload.js"));
+
+        let logs_url = format!("http://127.0.0.1:{port}/__rocci/logs");
+        let logs = Command::new("curl")
+            .args(["-sS", "-w", "\n%{http_code}", &logs_url])
+            .output()
+            .expect("curl");
+        let logs_out = String::from_utf8_lossy(&logs.stdout);
+        let (logs_body, logs_status) = logs_out.rsplit_once('\n').unwrap_or((&logs_out, ""));
+        assert_eq!(logs_status.trim(), "200", "{logs_out}");
+        let logs_json: serde_json::Value = serde_json::from_str(logs_body).unwrap();
+        assert!(logs_json.is_array());
 
         drop(server);
         let _ = fs::remove_dir_all(&output);

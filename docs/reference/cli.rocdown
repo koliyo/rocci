@@ -71,8 +71,9 @@ Run the entry template or directory. The application server starts and opens a
 preview window by default. The preview overlay supports current-document find
 (`Cmd/Ctrl-F`, `E` for selection, `G` / `Shift-G` to move, wrapping at the
 ends) and go-to-file (`Cmd/Ctrl-K`). Static site and knowledge review servers
-expose a Dev control that opens a panel with profiling and source views
-(original source, AST, generated Roc, generated HTML); `rocci run` serves that
+expose a Dev control that docks an inspector with Performance, Source, and
+Console tabs (original source, AST, generated Roc, generated HTML, plus
+runtime session logs); `rocci run` serves that
 panel on a sibling loopback port so it is not injected into the authored app's
 routes. `--no-window` prints timings on stderr instead.
 
@@ -128,8 +129,9 @@ same way as `rocdown run docs`. A file with no ancestor config stays a
 standalone document. Preview output
 goes to a temp directory unless `--output` is set. The preview window supports
 current-document find and `Cmd/Ctrl-K` jump-to-page using `/pages.json`. The
-Dev control opens a panel at `/__rocci/dev` with profiling and source views
-for the current route (`?route=` and `?view=`). `rocdown run` and
+Dev control opens a panel at `/__rocci/dev` with Performance, Source, and
+Console tabs for the current route (`?tab=`, `?route=`, and `?view=`). Console
+shows runtime session messages, not an app log API. `rocdown run` and
 `rocdown build` refuse OKF knowledge records and bundles and point to
 `rocci-okf run`.
 
@@ -247,7 +249,8 @@ cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-
 the bundle-root `index.md`. A concept file opens the review site on that
 record. The preview window supports current-document find and `Cmd/Ctrl-K`
 jump-to-record using `/catalog.json`. The Dev control opens a panel at
-`/__rocci/dev` with profiling and source views for the current route.
+`/__rocci/dev` with Performance, Source, and Console tabs for the current
+route. Unavailable OKF AST and Roc views show a reason on the Source tab.
 
 ### Build static review artifacts
 
