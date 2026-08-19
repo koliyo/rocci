@@ -1,0 +1,146 @@
+@page {
+    route: "/",
+    meta: {
+        title: "Hybrid counter",
+        description: "CDN HTML with a SQLite-backed island service",
+    },
+}
+
+@roc {
+import pf.Env
+import pf.Path
+import pf.Sqlite
+}
+
+@context { db : Sqlite.Db }
+
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./counter.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR IGNORE INTO counter (id, value) VALUES (1, 0)",
+            params: {},
+        },
+    )?
+    { db: db }
+}
+
+@on:post("/actions/counter/increment") = |{ db }| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
+            params: {},
+        },
+    )?
+    row : { value : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    counterCard({ count: row.value })
+}
+
+@on:post("/actions/counter/reset") = |{ db }| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = 0 WHERE id = 1",
+            params: {},
+        },
+    )?
+    counterCard({ count: 0.I64 })
+}
+
+@component
+CounterCard = |{ count }| {
+    @css {
+        .counter-card {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--rd-color-border);
+            border-radius: 16px;
+            background: var(--rd-color-surface);
+        }
+        .counter-card p {
+            margin: 0 0 0.35rem;
+            color: var(--rd-color-accent);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .counter-card output {
+            display: block;
+            color: var(--rd-color-text);
+            font-family: ui-monospace, monospace;
+            font-size: 4rem;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.04em;
+        }
+        .counter-card .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        .counter-card button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--rd-color-accent);
+            color: var(--rd-color-bg);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .counter-card button.secondary {
+            border: 1px solid var(--rd-color-border);
+            background: transparent;
+            color: var(--rd-color-muted);
+        }
+    }
+    <section id="counter" class="counter-card">
+        <p>Shared count</p>
+        <output>{count.to_str()}</output>
+        <div class="actions">
+            <button type="button" data-on:click=@post("/actions/counter/increment")>
+                Increment
+            </button>
+            <button class="secondary" type="button" data-on:click=@post("/actions/counter/reset")>
+                Reset
+            </button>
+        </div>
+    </section>
+}
+
+# Hybrid counter
+
+Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
+time (`count` is `0` in that snapshot). Increment and reset POST to the island
+service, which owns the SQLite file and returns a Datastar morph of
+`#counter`.
+
+See [About](/about/) for a neighboring page that stays static.
+
+@render {
+    counterCard({ count: 0.I64 })
+}

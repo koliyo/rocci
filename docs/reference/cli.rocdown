@@ -183,6 +183,22 @@ cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
 `inspect artifacts` reports page kinds, Datastar emission, island service
 routes, and the planned output tree.
 
+### Serve island actions
+
+```sh
+cargo run -p rocci-rocdown-cli -- serve-islands [ROOT] [--port PORT] [--no-window]
+```
+
+Start the island HTTP service for `live` pages by itself. Colocated `@on`
+handlers compile into one dispatcher. A sibling `[http].service` `.rocci` app
+is run with `rocci run` instead. The process serves `/health` and mutation
+routes; it does not serve Markdown or the CDN HTML tree. Use this beside a
+published `rocdown build` output. Local preview that needs both artifacts on
+one origin is `rocdown run DIR`.
+
+See [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) for the
+two-artifact deploy.
+
 ---
 
 ## Rocci OKF CLI

@@ -24,6 +24,8 @@ runtime boundary that is easy to inspect in source.
 | `snake` | A larger standalone Rocci app | `rocci run examples/snake` |
 | `datastar` | Search, edit, todos, tabs, and validation patterns | `rocci run examples/datastar` |
 | `rocdown-site` | Two-page static documentation fixture | `rocdown build examples/rocdown-site --output dist` |
+| `rocdown-counter` | Hybrid CDN page plus SQLite island service | `rocdown run examples/rocdown-counter` |
+| `rocdown-hybrid` | Page-kind fixture (`static` / `hydrate` / `live`) | `rocdown run examples/rocdown-hybrid` |
 
 When working from source, prefix `rocci` with
 `cargo run -q -p rocci-cli --` and `rocdown` with
@@ -34,6 +36,10 @@ When working from source, prefix `rocci` with
 Read `examples/counter/Counter.rocci` when learning the complete standalone
 flow. It creates SQLite state, serves a document, and returns the same
 `CounterCard` component after increment and reset actions.
+
+`examples/rocdown-counter` is the hybrid form of that card: Markdown on a CDN
+page, colocated `@on:post` handlers, and `rocdown serve-islands` for SQLite.
+See [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/).
 
 ## Datastar gallery
 
@@ -54,3 +60,4 @@ source-map behavior.
 - [Server actions](/docs/guides/server-actions/) explains the counter and gallery request flow.
 - [Rocdown pages](/docs/guides/rocdown-pages/) explains the document examples.
 - [Write documentation components](/docs/guides/docs-components/) shows live article blocks.
+- [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) explains CDN plus island-service deploy.
