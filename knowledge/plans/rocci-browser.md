@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T22:30:00Z }
+generated: { by: process:cursor, at: 2026-08-19T23:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -662,9 +662,9 @@ Not in Phases 0–5:
 
 | Gate | Work |
 | --- | --- |
-| 3 | Product `run` defaults to `--no-window` when a browser session exists |
-| 4 | Author picker UI in Rocci instead of host HTML |
-| 5 | Native folder dialogs or a third-party plugin marketplace |
+| 3 | Product `run` defaults to `--no-window` when a browser session exists ([plan](browser-run-no-window.md)) |
+| 4 | Author picker UI in Rocci instead of host HTML ([plan](browser-picker-in-rocci.md)) |
+| 5 | Native folder dialogs or a third-party plugin marketplace ([plan](browser-folder-dialogs-and-plugins.md)) |
 | 6 | Built-in `site` / `docs` / `knowledge` in host source (forbidden; belongs in the repo-local file) |
 | — | Multi-window (one native window per target) |
 | — | Content-Length LSP framing, dlopen/Wasm adapters |
