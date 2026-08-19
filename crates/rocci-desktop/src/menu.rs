@@ -70,7 +70,7 @@ impl NativeMenu {
                 &PredefinedMenuItem::separator(),
                 &MenuItem::with_id(
                     QUIT_ID,
-                    &format!("Quit {}", config.app_name),
+                    format!("Quit {}", config.app_name),
                     true,
                     Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
                 ),

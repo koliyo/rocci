@@ -39,10 +39,11 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let mut items = Vec::new();
     for block in converted.blocks {
         match block {
-            BlockOrHole::Block(node) => match map_md_block_to_item(source.src, node) {
-                Some(item) => items.push(item),
-                None => {}
-            },
+            BlockOrHole::Block(node) => {
+                if let Some(item) = map_md_block_to_item(source.src, node) {
+                    items.push(item);
+                }
+            }
             BlockOrHole::Hole(index) => {
                 if let Some(decl) = scanned.get(index)
                     && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
@@ -175,10 +176,11 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     let mut items = Vec::new();
     for block in converted.blocks {
         match block {
-            BlockOrHole::Block(node) => match map_md_block_to_item(source.src, node) {
-                Some(item) => items.push(item),
-                None => {}
-            },
+            BlockOrHole::Block(node) => {
+                if let Some(item) = map_md_block_to_item(source.src, node) {
+                    items.push(item);
+                }
+            }
             BlockOrHole::Hole(index) => {
                 if let Some(decl) = scanned.get(index)
                     && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
@@ -254,59 +256,58 @@ fn map_md_block_to_item(src: &str, node: MdNode) -> Option<Item> {
             }))
         }
         MdNode::Paragraph { children, span } => {
-            if children.len() == 1 {
-                if let MdNode::Image {
+            if children.len() == 1
+                && let MdNode::Image {
                     url,
                     alt,
                     title,
                     span: image_span,
                 } = &children[0]
-                {
-                    let mut fields = vec![ParamField {
-                        name: "src".to_string(),
+            {
+                let mut fields = vec![ParamField {
+                    name: "src".to_string(),
+                    name_span: *image_span,
+                    value: ParamValue::StringLit {
+                        value: url.clone(),
+                        span: *image_span,
+                    },
+                }];
+                if !title.is_empty() {
+                    fields.push(ParamField {
+                        name: "title".to_string(),
                         name_span: *image_span,
                         value: ParamValue::StringLit {
-                            value: url.clone(),
+                            value: title.clone(),
                             span: *image_span,
                         },
-                    }];
-                    if !title.is_empty() {
-                        fields.push(ParamField {
-                            name: "title".to_string(),
-                            name_span: *image_span,
-                            value: ParamValue::StringLit {
-                                value: title.clone(),
-                                span: *image_span,
-                            },
-                        });
-                    }
-                    if alt.is_empty() {
-                        fields.push(ParamField {
-                            name: "decorative".to_string(),
-                            name_span: *image_span,
-                            value: ParamValue::BoolLit {
-                                value: true,
-                                span: *image_span,
-                            },
-                        });
-                    } else {
-                        fields.push(ParamField {
-                            name: "alt".to_string(),
-                            name_span: *image_span,
-                            value: ParamValue::StringLit {
-                                value: alt.clone(),
-                                span: *image_span,
-                            },
-                        });
-                    }
-                    return Some(Item::Block(BlockCall {
-                        name: "img".to_string(),
-                        name_span: span,
-                        params: Some(BracketRecord { fields, span }),
-                        content: None,
-                        span,
-                    }));
+                    });
                 }
+                if alt.is_empty() {
+                    fields.push(ParamField {
+                        name: "decorative".to_string(),
+                        name_span: *image_span,
+                        value: ParamValue::BoolLit {
+                            value: true,
+                            span: *image_span,
+                        },
+                    });
+                } else {
+                    fields.push(ParamField {
+                        name: "alt".to_string(),
+                        name_span: *image_span,
+                        value: ParamValue::StringLit {
+                            value: alt.clone(),
+                            span: *image_span,
+                        },
+                    });
+                }
+                return Some(Item::Block(BlockCall {
+                    name: "img".to_string(),
+                    name_span: span,
+                    params: Some(BracketRecord { fields, span }),
+                    content: None,
+                    span,
+                }));
             }
             Some(Item::Markdown(MdNode::Paragraph { children, span }))
         }
@@ -581,9 +582,7 @@ fn end_marker_at(src: &str, end: usize) -> Option<EndMarker> {
     if !cur.eat(':') {
         return None;
     }
-    let Some(end_span) = cur.scan_tag_name() else {
-        return None;
-    };
+    let end_span = cur.scan_tag_name()?;
     if end_span.of(src) != "end" {
         return None;
     }

@@ -70,10 +70,6 @@ impl NativeHost {
         Self { cache }
     }
 
-    pub fn default() -> Self {
-        Self::new(TwoTierCache::default())
-    }
-
     pub fn compile_or_cached(
         &self,
         workspace: &Path,
@@ -119,6 +115,12 @@ impl NativeHost {
             .env("ROCDOWN_STAGING", staging)
             .output()
             .with_context(|| format!("failed to run {}", apply_bin.display()))
+    }
+}
+
+impl Default for NativeHost {
+    fn default() -> Self {
+        Self::new(TwoTierCache::default())
     }
 }
 

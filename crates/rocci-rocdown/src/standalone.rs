@@ -331,9 +331,7 @@ fn resolve_document_target(from: &Path, href: &str) -> Option<PathBuf> {
     if href.starts_with('/') {
         return resolve_absolute_document(from, href);
     }
-    let Some(parent) = from.parent() else {
-        return None;
-    };
+    let parent = from.parent()?;
     if is_document_href(href) {
         let candidate = normalize_join(parent, href);
         return existing_document(&candidate);

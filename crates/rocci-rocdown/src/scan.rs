@@ -273,9 +273,7 @@ fn try_scan_colon(
     if src.as_bytes().get(at) == Some(&b'\\') && src.as_bytes().get(at + 1) == Some(&b':') {
         return None;
     }
-    let Some(header) = colon_header_at(src, at) else {
-        return None;
-    };
+    let header = colon_header_at(src, at)?;
     if header.name == "end" {
         if header.end_kind.is_none() {
             diagnostics.push(Diagnostic::error(
@@ -285,10 +283,7 @@ fn try_scan_colon(
         } else {
             diagnostics.push(Diagnostic::error(
                 header.name_span,
-                format!(
-                    "unmatched `:end.{}`",
-                    header.end_kind.as_deref().unwrap_or("")
-                ),
+                format!("unmatched `:end.{}`", header.end_kind.unwrap_or("")),
             ));
         }
         return Some(ScannedDecl {
@@ -343,19 +338,17 @@ fn colon_header_at(src: &str, at: usize) -> Option<ColonHeader<'_>> {
     {
         return None;
     }
-    let Some(name_span) = cur.scan_tag_name() else {
-        return None;
-    };
+    let name_span = cur.scan_tag_name()?;
     let name = name_span.of(src);
     let mut end_kind = None;
     let mut after_name = cur.pos;
     if name == "end" {
         cur.skip_spaces_tabs();
-        if cur.eat('.') {
-            if let Some(kind_span) = cur.scan_tag_name() {
-                end_kind = Some(kind_span.of(src));
-                after_name = cur.pos;
-            }
+        if cur.eat('.')
+            && let Some(kind_span) = cur.scan_tag_name()
+        {
+            end_kind = Some(kind_span.of(src));
+            after_name = cur.pos;
         }
     }
     Some(ColonHeader {

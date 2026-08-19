@@ -16,6 +16,7 @@ pub enum ProfileReportMode {
     Json,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_knowledge(
     root: &Path,
     output: Option<&Path>,

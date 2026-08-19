@@ -905,22 +905,21 @@ fn okf_fingerprints(modules: &[CompiledOkfModule]) -> Vec<rocci_roc_host::InputF
 
 fn main_roc(is_wasm: bool) -> String {
     if is_wasm {
-        format!(
-            "\
-app [main!] {{ pf: platform \"platform/main.roc\" }}
+        "\
+app [main!] { pf: platform \"platform/main.roc\" }
 
 import OkfBuild
 import OkfPages
 
-main! : {{}} => [Ok({{}}), Err([Exit(I32)])]
-main! = |{{}}| {{
+main! : {} => [Ok({}), Err([Exit(I32)])]
+main! = |{}| {
     _ = OkfBuild.render_all(OkfPages.pages)
-    res : [Ok({{}}), Err([Exit(I32)])]
-    res = Ok({{}})
+    res : [Ok({}), Err([Exit(I32)])]
+    res = Ok({})
     res
-}}
+}
 "
-        )
+        .to_string()
     } else {
         format!(
             "\
@@ -938,7 +937,9 @@ main! = |_args| {{
     }
 }
 
-fn generate_okf_pages_roc(bundle: &Bundle) -> Result<(String, Vec<(String, String)>, Vec<String>)> {
+type GeneratedOkfPages = (String, Vec<(String, String)>, Vec<String>);
+
+fn generate_okf_pages_roc(bundle: &Bundle) -> Result<GeneratedOkfPages> {
     let mut pages_roc = String::from(
         "OkfPages := [].{\n    empty_sources = List.drop_first([ { id : \"\", resource : \"\", href : \"\", author : \"\", is_drifted : False } ], 1)\n\n    empty_other_meta = List.drop_first([ { key : \"\", val : \"\" } ], 1)\n\n    empty_tags = List.drop_first([ \"\" ], 1)\n\n    empty_outline = List.drop_first([ { id : \"\", title : \"\", level : \"\" } ], 1)\n\n    empty_meta = {\n        concept_type: \"\",\n        status: \"\",\n        authority: \"\",\n        trust_slug: \"\",\n        trust_label: \"\",\n        stale: False,\n        stale_after: \"\",\n        is_action_required: False,\n        action_detail: \"\",\n        description: \"\",\n        has_provenance: False,\n        owners: \"\",\n        verifier: \"\",\n        generated: \"\",\n        has_sources: False,\n        source_count: \"0\",\n        drift_summary: \"\",\n        sources: empty_sources,\n        has_other_meta: False,\n        other_meta_count: \"0\",\n        other_meta: empty_other_meta,\n        has_tags: False,\n        tags: empty_tags,\n    }\n\n    pages = [\n",
     );

@@ -144,10 +144,9 @@ fn pipe_stdin(program: &str, args: &[&str], text: &str) -> std::io::Result<()> {
     if status.success() {
         Ok(())
     } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("{program} exited with {status}"),
-        ))
+        Err(std::io::Error::other(format!(
+            "{program} exited with {status}"
+        )))
     }
 }
 

@@ -78,6 +78,7 @@ fn can_render_with_defaults(component: &ComponentInfo) -> bool {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render_html_snapshot(
     filename: &str,
     source: &str,
@@ -93,6 +94,7 @@ pub fn render_html_snapshot(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn render_html_fragment(
     filename: &str,
     source: &str,
@@ -108,6 +110,7 @@ pub fn render_html_fragment(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_html(
     filename: &str,
     source: &str,

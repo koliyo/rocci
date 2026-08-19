@@ -200,9 +200,11 @@ pub fn highlight_sexp(ast: &str) -> Vec<HighlightSpan> {
                 i += 1;
             }
             let word = &ast[start..i];
-            let kind = if word == "true" || word == "false" || word == "null" {
-                rocci_highlight::HighlightKind::Keyword
-            } else if start > 0 && bytes[start - 1] == b'(' {
+            let kind = if word == "true"
+                || word == "false"
+                || word == "null"
+                || (start > 0 && bytes[start - 1] == b'(')
+            {
                 rocci_highlight::HighlightKind::Keyword
             } else {
                 rocci_highlight::HighlightKind::Variable

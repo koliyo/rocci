@@ -20,7 +20,7 @@ pub fn looks_like_okf_markdown(source: &str) -> bool {
     if keys.is_empty() {
         return false;
     }
-    (keys.iter().any(|key| *key == "type") && keys.iter().any(|key| *key == "authority"))
+    (keys.contains(&"type") && keys.contains(&"authority"))
         || keys.iter().all(|key| *key == "okf_version")
 }
 

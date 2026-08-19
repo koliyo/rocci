@@ -14,13 +14,19 @@ echo "Manifest and language configs present; Rocci and Rocdown are attached."
 
 echo "=== 2. Building rocci-language-server ==="
 cargo build -p rocci-rocdown-lsp
-test -f "$ROOT/target/debug/rocci-language-server" || { echo "Missing rocci-language-server binary"; exit 1; }
-echo "rocci-language-server built: $ROOT/target/debug/rocci-language-server"
+LS_TARGET="${CARGO_TARGET_DIR:-$ROOT/target}"
+test -f "$LS_TARGET/debug/rocci-language-server" \
+  || { echo "Missing rocci-language-server binary"; exit 1; }
+echo "rocci-language-server built: $LS_TARGET/debug/rocci-language-server"
 
 echo "=== 3. Building Zed WASM Extension ==="
 cd "$ROOT/editors/zed"
 cargo build --target wasm32-wasip2 --release
-WASM="$ROOT/editors/zed/target/wasm32-wasip2/release/rocci.wasm"
+if [ -n "${CARGO_TARGET_DIR:-}" ]; then
+  WASM="$CARGO_TARGET_DIR/wasm32-wasip2/release/rocci.wasm"
+else
+  WASM="$ROOT/editors/zed/target/wasm32-wasip2/release/rocci.wasm"
+fi
 test -f "$WASM" || { echo "WASM build failed; missing $WASM"; exit 1; }
 echo "Zed extension compiled successfully: $WASM ($(du -h "$WASM" | cut -f1))"
 
