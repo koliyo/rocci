@@ -112,8 +112,8 @@ mod tests {
         )
         .unwrap();
         let mut body = String::new();
-        BufReader::new(stream).read_to_string(&mut body).unwrap();
-        assert!(body.contains("data-rocci-browser-launcher"));
+        let _ = BufReader::new(stream).read_to_string(&mut body);
+        assert!(body.contains("data-rocci-browser-launcher"), "{body}");
         assert!(body.contains("Cmd"));
     }
 

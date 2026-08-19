@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use anyhow::Result;
-use rocci_browser::{Host, Opened, Paths, Session, SessionTable, overlay, spawn_launcher};
+use rocci_browser::{
+    Document, Host, Opened, Paths, Session, SessionTable, Target, overlay, spawn_launcher,
+    url_on_origin,
+};
 use rocci_desktop::{PreviewEvent, PreviewOptions, PreviewSink};
 use serde::Deserialize;
 use serde_json::json;
@@ -124,6 +127,24 @@ fn handle_ipc(
             Err(_) => return,
         };
         thread::spawn(move || {
+            let warm = {
+                let table = sessions.lock().unwrap();
+                table.reusable(&request.adapter_id, &request.root).cloned()
+            };
+            if let Some(warm) = warm {
+                let documents = host
+                    .lock()
+                    .unwrap()
+                    .list_documents(&request.adapter_id, &request.root)
+                    .unwrap_or_default();
+                let opened = opened_from_warm(&warm, request.document.as_deref(), &documents);
+                sessions
+                    .lock()
+                    .unwrap()
+                    .record(Session::from_opened(&opened));
+                sink.send(navigate_event(&opened));
+                return;
+            }
             let mut host = host.lock().unwrap();
             match host.open_target(
                 &request.adapter_id,
@@ -144,6 +165,38 @@ fn handle_ipc(
                 ))),
             }
         });
+    }
+}
+
+fn opened_from_warm(warm: &Session, document: Option<&str>, documents: &[Document]) -> Opened {
+    let path = match document {
+        None => "/",
+        Some(id) => documents
+            .iter()
+            .find(|row| row.id == id)
+            .and_then(|row| row.route.as_deref())
+            .unwrap_or(id),
+    };
+    let title = document
+        .and_then(|id| {
+            documents
+                .iter()
+                .find(|row| row.id == id)
+                .map(|row| row.title.clone())
+        })
+        .unwrap_or_else(|| warm.title.clone());
+    Opened {
+        url: url_on_origin(&warm.origin, path),
+        title,
+        inspector_url: warm.inspector_url.clone(),
+        target: Target {
+            id: Default::default(),
+            path: warm.root.clone(),
+            adapter_id: warm.adapter_id.clone(),
+            label: warm.title.clone(),
+            detail: None,
+        },
+        document: document.map(str::to_string),
     }
 }
 
@@ -181,6 +234,39 @@ mod tests {
             } => {
                 assert_eq!(url, opened.url);
                 assert_eq!(inspector_url, opened.inspector_url);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn warm_open_keeps_inspector_url() {
+        let opened = Opened {
+            url: "http://127.0.0.1:9/".into(),
+            title: "Hello".into(),
+            inspector_url: Some("http://127.0.0.1:9/inspect".into()),
+            target: Target {
+                id: "fixture".into(),
+                path: "/tmp/fixture".into(),
+                adapter_id: "fixture".into(),
+                label: "Fixture".into(),
+                detail: None,
+            },
+            document: None,
+        };
+        let warm = Session::from_opened(&opened);
+        let documents = vec![Document {
+            id: "about".into(),
+            title: "About".into(),
+            path: "about".into(),
+            route: Some("/about".into()),
+        }];
+        let next = opened_from_warm(&warm, Some("about"), &documents);
+        assert_eq!(next.url, "http://127.0.0.1:9/about");
+        assert_eq!(next.inspector_url, warm.inspector_url);
+        match navigate_event(&next) {
+            PreviewEvent::Navigate { inspector_url, .. } => {
+                assert_eq!(inspector_url.as_deref(), Some("http://127.0.0.1:9/inspect"));
             }
             other => panic!("{other:?}"),
         }

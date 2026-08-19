@@ -30,6 +30,7 @@ items = [
     "guides/hybrid-sites",
     "guides/docs-components",
     "guides/desktop-app",
+    "guides/rocci-browser",
 ]
 
 [[nav]]
