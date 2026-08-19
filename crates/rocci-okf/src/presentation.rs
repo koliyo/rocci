@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
@@ -848,12 +849,14 @@ fn is_roc_available() -> bool {
 }
 
 fn unique_temp(prefix: &str) -> Result<std::path::PathBuf> {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
     let id = std::process::id();
     let time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos())
         .unwrap_or(0);
-    let dir = std::env::temp_dir().join(format!("rocci-okf-{prefix}-{id}-{time}"));
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("rocci-okf-{prefix}-{id}-{time}-{n}"));
     fs::create_dir_all(&dir)
         .with_context(|| format!("failed to create temp dir {}", dir.display()))?;
     Ok(dir)
@@ -969,6 +972,7 @@ main! = |{}| {
             "\
 app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
 
+import pf.Env
 import pf.Path
 import OkfBuild
 
@@ -988,10 +992,37 @@ load_all! = |records| {{
     }}
 }}
 
+ensure_parent! = |dest| {{
+    parts = Str.split_on(dest, \"/\")
+    len = List.len(parts)
+    if len <= 1 {{
+        Ok({{}})
+    }} else {{
+        parent = Str.join_with(List.drop_last(parts, 1), \"/\")
+        Path.utf8(parent).create_all!()?
+        Ok({{}})
+    }}
+}}
+
+write_page! = |staging, item| {{
+    dest = \"${{staging}}/${{item.output_path}}\"
+    ensure_parent!(dest)?
+    Path.utf8(dest).write_utf8!(OkfBuild.render_page(item))?
+    Ok({{}})
+}}
+
+write_all! = |staging, pages| {{
+    for page in pages {{
+        write_page!(staging, page)?
+    }}
+    Ok({{}})
+}}
+
 main! = |_args| {{
+    staging = Env.var_str!(\"OKF_STAGING\")?
     json = Path.utf8(\"okf-pages.json\").read_utf8!()?
     pages = load_all!(OkfBuild.parse_pages(json))?
-    _ = OkfBuild.render_all(pages)
+    write_all!(staging, pages)?
     Ok({{}})
 }}
 "
@@ -2614,5 +2645,55 @@ mod tests {
         let hash2 = renderer_compile_hash(&changed, &main_code, false);
         assert!(cache.lookup_renderer(&hash2, &target).is_none());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn native_host_writes_rocci_knowledge_shell() {
+        if !is_roc_available() {
+            return;
+        }
+        let site = unique_temp("site-native-shell").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "overview".into();
+        overview.path = "overview.md".into();
+        overview.article_html =
+            "<h1>System Overview</h1>\n<h2>Architecture</h2>\n<p>Body.</p>".into();
+        let bundle = bundle_with(vec![overview]);
+        let snapshot =
+            build_review_site_with_host(&bundle, &site, Some(rocci_roc_host::HostChoice::Native))
+                .unwrap();
+        assert!(
+            snapshot.spans.iter().any(|span| span.name == "render"),
+            "apply still runs"
+        );
+        let html = fs::read_to_string(site.join("overview").join("index.html")).unwrap();
+        assert!(html.contains("class=\"outline-label\""));
+        assert!(html.contains("On this page"));
+        assert!(html.contains("href=\"/\""));
+        assert!(html.contains("Home"));
+        assert!(html.contains("href=\"/review/\""));
+        assert!(html.contains("Governance"));
+        assert!(html.contains("<aside class=\"rd-toc\""));
+        assert!(html.contains("System Overview"));
+        assert!(!html.contains("<nav class=\"rd-toc\""));
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn rust_only_path_still_builds_without_host() {
+        let site = unique_temp("site-rust-only").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "overview".into();
+        overview.path = "overview.md".into();
+        overview.article_html =
+            "<h1>System Overview</h1>\n<h2>Architecture</h2>\n<p>Body.</p>".into();
+        let bundle = bundle_with(vec![overview]);
+        build_review_site_pure_rust(&bundle, &site).unwrap();
+        let html = fs::read_to_string(site.join("overview").join("index.html")).unwrap();
+        assert!(html.contains("System Overview"));
+        assert!(html.contains("href=\"/\""));
+        assert!(html.contains("Home"));
+        assert!(html.contains("<nav class=\"rd-toc\""));
+        let _ = fs::remove_dir_all(&site);
     }
 }
