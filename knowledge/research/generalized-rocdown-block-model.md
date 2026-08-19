@@ -4,7 +4,7 @@ title: Generalized Rocdown block model
 description: "Exploratory research for a uniform Rocdown article-block AST. Decision: :name with [params] and {{ }} bodies. Draft AST ungram in crates/rocci-rocdown. Not shipped."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T08:25:00Z }
+generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -127,6 +127,11 @@ sources:
   - id: impl-plan
     resource: ../plans/generalized-rocdown-block-model.md
     title: Generalized Rocdown block model implementation plan
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: ungram-research
+    resource: ungram-ast.md
+    title: Ungrammar as AST spec for Rocci and Rocdown
     author: process:cursor
     last_modified: 2026-08-19
 ---
@@ -835,7 +840,9 @@ Params are `BracketRecord` only. Content is `LineContent`, `BraceSection`
 recognition; Rocdown still owns document-root scanning.
 
 A second ungram for `rocci-template` is optional and separate. The shipped
-`ast.rs` `Item` / `DocsDecl` tree is not this draft.
+`ast.rs` `Item` / `DocsDecl` tree is not this draft. Whether to embrace
+ungram for **both** languages, and to generate owned structs, is covered
+by the later [ungram AST research](ungram-ast.md).[^ungram-research]
 
 ## Recommended next experiments
 
@@ -861,6 +868,8 @@ namespace or inline decorations in the first syntax.
 - Does a heading renderer own `id` generation, or does Rust still compute
   heading ids for links and the outline before render?
 - If ungram becomes canonical, who fails CI when it drifts from `ast.rs`?
+  Follow-on: [ungram AST research](ungram-ast.md) recommends
+  `rocci-ungram --check` on committed generated structs.
 
 [^rocdown-readme]: Shipped file shape, reserved names, unknown-`@name` prose rule, `@docs` / `@if` bodies, and static versus deferred features.
 [^ast]: `Item`, `DocsDecl`, and `MdNode` as separate article and module shapes.
@@ -886,3 +895,4 @@ namespace or inline decorations in the first syntax.
 [^rocdown-ungram]: Draft document AST ungram; generate node types, not the scanner.
 [^exploration-brief]: Maintainer framing: AST then Rocci renderers, params versus content, dynamic types, ungram.
 [^impl-plan]: Phased delivery plan for the decided spelling and uniform article tree; exploratory, not shipped.
+[^ungram-research]: Both-language ungram as tree spec; generate owned structs; no scanner codegen.
