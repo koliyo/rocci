@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Added draft follow-on plans for rocci-browser gates 3–5: [product run skips preview](plans/browser-run-no-window.md), [picker as a host-owned Rocci origin](plans/browser-picker-in-rocci.md), and [folder dialogs plus a later adapter index](plans/browser-folder-dialogs-and-plugins.md). Exploratory; no phase started; human gates still required.
 - Implemented Phase 5 of the [rocci-browser plan](plans/rocci-browser.md): warm session reuse with a 30s grace-stop, Dev iframe bound to the session inspector URL, root README plus a public docs page (Cmd-P vs Cmd-K, registry, `rocci browse` unrelated; desktop packaging planned). Product `run` still opens a one-shot preview. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 4 of the [rocci-browser plan](plans/rocci-browser.md): repo-local `.rocci/browser.toml` (plugin and project rows as data), union with the user registry, and `rocci browser-adapter`. Host source still does not name product targets. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of the [rocci-browser plan](plans/rocci-browser.md): `rocdown browser-adapter` and `rocci-okf browser-adapter` probe/list/open via existing `run --no-window`, without Roc compile on probe/list. Product `run` still opens today's preview window. Not logged complete until CI and Knowledge workflows succeed on this revision.
