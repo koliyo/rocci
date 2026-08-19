@@ -43,7 +43,9 @@ The review viewer uses a dark One Dark Pro palette. Pages with H2 or H3
 headings get a left “On this page” navigator, matching standalone Rocdown.
 Authored knowledge links such as `/decisions/foo.md` are bundle-root paths;
 the review site publishes them at `/decisions/foo/` and writes collection
-indexes such as `/architecture/`.
+indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
+backed by `/pages.json` and `/catalog.json` in the review tree; same-origin
+links swap already-rendered HTML without a full reload.
 
 ```sh
 # Run with desktop window. Rocci schema is on; git provenance is off.

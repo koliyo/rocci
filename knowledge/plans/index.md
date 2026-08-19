@@ -14,6 +14,7 @@
 * [CLI entry points for Rocci, Rocdown, and OKF preview](cli-entry-points.md) - Keep the three product CLIs, reject a plugin host, and make `rocci-okf run` the file-aware OKF viewer.
 * [First-party Rocci chrome library and generation host](rocci-component-generation.md) - Extract demonstrated outline/nav/breadcrumb chrome into base Rocci, host Roc through a cached native subprocess and Wasmtime, and persist both generated Roc and compiled artifacts.
 * [Mobile chrome for OKF, Rocdown, and rocci.dev](mobile-chrome.md) - No-JS details menus, OKF nav split from TOC, rocci.dev menu restore, table overflow. Exploratory; no phase started.
+* [Cmd-K fuzzy navigation for OKF, Rocdown, and rocci.dev](fuzzy-navigation.md) - Shared `goto.js` palette in preview and hosted trees, History-API HTML swap. Implemented in this revision; not CI-complete.
 * [Preview inspector source views](inspector-source-views.md) - Extend the preview Dev panel with a dropdown for original source, AST, generated Roc, and generated HTML. Exploratory; no phase started.
 
 Other implementation-plan concepts have not yet been migrated. Priority-2 plan migration remains scheduled after the Phase 2 priority-1 corpus.

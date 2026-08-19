@@ -5,11 +5,12 @@ use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use okf::{
-    Bundle, Concept, ConceptAction, Diagnostic, STANDARD_FIELDS, Severity, TrustTier,
-    classify_concept_action, external_url, published_href, slugify,
+    Bundle, Concept, ConceptAction, ConceptInspect, Diagnostic, STANDARD_FIELDS, Severity,
+    TrustTier, classify_concept_action, external_url, published_href, slugify,
 };
 use rocci_cli::profile::{ProfileSnapshot, SpanRecorder};
 pub use rocci_ui::escape;
+use serde::Serialize;
 use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -1342,6 +1343,87 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
+fn write_site_chrome(bundle: &Bundle, site: &Path) -> Result<()> {
+    let okf_static_dir = site.join("__rocci_okf");
+    fs::create_dir_all(&okf_static_dir)
+        .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
+    fs::write(okf_static_dir.join("goto.js"), rocci_ui::GOTO_SCRIPT)
+        .context("failed to write knowledge goto script")?;
+
+    let catalog = bundle
+        .concepts
+        .iter()
+        .map(ConceptInspect::from)
+        .collect::<Vec<_>>();
+    fs::write(
+        site.join("catalog.json"),
+        format!("{}\n", serde_json::to_string_pretty(&catalog)?),
+    )
+    .context("failed to write knowledge catalog")?;
+
+    fs::write(
+        site.join("pages.json"),
+        format!("{}\n", serde_json::to_string_pretty(&nav_pages(bundle))?),
+    )
+    .context("failed to write knowledge page index")?;
+    Ok(())
+}
+
+#[derive(Serialize)]
+struct NavPage {
+    title: String,
+    route: String,
+    path: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    description: String,
+}
+
+fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
+    let mut pages = Vec::new();
+    pages.push(NavPage {
+        title: "Knowledge".into(),
+        route: "/".into(),
+        path: "index.md".into(),
+        description: String::new(),
+    });
+    pages.push(NavPage {
+        title: "Governance & Review".into(),
+        route: "/review/".into(),
+        path: "review".into(),
+        description: String::new(),
+    });
+    for concept in &bundle.concepts {
+        let id = concept.id.trim_matches('/');
+        pages.push(NavPage {
+            title: okf::string_field(&concept.metadata, "title")
+                .unwrap_or(&concept.id)
+                .to_string(),
+            route: format!("/{id}/"),
+            path: concept.path.clone(),
+            description: okf::string_field(&concept.metadata, "description")
+                .unwrap_or("")
+                .to_string(),
+        });
+    }
+    for index in &bundle.indexes {
+        let Some(collection) = index.path.strip_suffix("/index.md") else {
+            continue;
+        };
+        pages.push(NavPage {
+            title: collection.to_string(),
+            route: format!("/{collection}/"),
+            path: index.path.clone(),
+            description: String::new(),
+        });
+    }
+    pages.sort_by(|left, right| {
+        left.route
+            .cmp(&right.route)
+            .then(left.path.cmp(&right.path))
+    });
+    pages
+}
+
 #[allow(dead_code)]
 pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
     fs::create_dir_all(site).with_context(|| format!("failed to create {}", site.display()))?;
@@ -1398,6 +1480,7 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
     fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
         .context("failed to write knowledge review stylesheet")?;
+    write_site_chrome(bundle, site)?;
 
     Ok(())
 }
@@ -1586,6 +1669,7 @@ pub fn build_review_site_with_host(
             .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
         fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
             .context("failed to write knowledge review stylesheet")?;
+        write_site_chrome(bundle, site)?;
 
         let _ = fs::remove_dir_all(&workspace);
         let _ = fs::remove_dir_all(&staging);
@@ -1784,7 +1868,7 @@ pub fn html_page(title: &str, article: &str) -> String {
         )
     };
     format!(
-        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
+        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
         escape(title)
     )
 }
@@ -2051,6 +2135,7 @@ mod tests {
         assert!(html.contains("name=\"color-scheme\""));
         assert!(html.contains("content=\"dark\""));
         assert!(html.contains("class=\"rd-document\""));
+        assert!(html.contains("/__rocci_okf/goto.js"));
         assert!(!html.contains("rd-toc"));
         assert!(!html.contains("rd-shell"));
     }
@@ -2140,8 +2225,12 @@ mod tests {
 
         build_review_site(&bundle, &site).unwrap();
         assert!(site.join("architecture").join("index.html").is_file());
+        assert!(site.join("catalog.json").is_file());
+        assert!(site.join("pages.json").is_file());
+        assert!(site.join("__rocci_okf").join("goto.js").is_file());
         let home = fs::read_to_string(site.join("index.html")).unwrap();
         assert!(home.contains("href=\"/architecture/\""));
+        assert!(home.contains("/__rocci_okf/goto.js"));
         let collection = fs::read_to_string(site.join("architecture").join("index.html")).unwrap();
         assert!(collection.contains("Architecture"));
         assert!(collection.contains("id=\"architecture\""));
@@ -2167,6 +2256,7 @@ mod tests {
         assert!(html.contains("System Overview"));
         assert!(html.contains("okf-concept-meta"));
         assert!(html.contains("class=\"rd-article\""));
+        assert!(html.contains("/__rocci_okf/goto.js"));
         let meta = html.find("okf-concept-meta").unwrap();
         let article = html.find("class=\"rd-article\"").unwrap();
         assert!(meta < article);

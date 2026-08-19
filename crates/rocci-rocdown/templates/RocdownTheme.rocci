@@ -98,6 +98,21 @@ import PageOutline
         text-decoration: none;
     }
     .header-link:hover { border-color: var(--line-strong); color: var(--ink); }
+    .goto-open {
+        display: inline-flex;
+        min-height: 2.25rem;
+        align-items: center;
+        padding: .35rem .72rem;
+        border: 1px solid var(--line);
+        border-radius: .55rem;
+        background: var(--surface);
+        color: var(--muted);
+        font: inherit;
+        font-size: .82rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+    .goto-open:hover { border-color: var(--line-strong); color: var(--ink); }
 
     .site-grid {
         width: min(100%, 94rem);
@@ -762,6 +777,9 @@ import PageOutline
             @if resources.module_script != "" {
                 <script type="module" src={resources.module_script}></script>
             }
+            @if resources.chrome_script != "" {
+                <script src={resources.chrome_script} defer></script>
+            }
             @if description != "" {
                 <meta name="description" content={description} />
             } @else if site.description != "" {
@@ -819,6 +837,7 @@ import PageOutline
                         }
                     </nav>
                     <div class="header-actions">
+                        <button type="button" class="goto-open" data-rocci-goto-open aria-label="Go to page">Go to</button>
                         @if site.repository != "" {
                             <a class="header-link" href={site.repository}>Source ↗</a>
                         }

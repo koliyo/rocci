@@ -966,6 +966,30 @@ pub(crate) mod tests {
         unique_temp(name).unwrap()
     }
 
+    fn assert_goto_chrome(html: &str) {
+        let lower = html.to_ascii_lowercase();
+        assert!(
+            lower.contains("<script") && html.contains("goto."),
+            "expected hashed goto chrome script\n{html}"
+        );
+        assert!(
+            html.contains("script-src 'self'") || html.contains("script-src &#39;self&#39;"),
+            "{html}"
+        );
+        assert!(
+            html.contains("connect-src 'self'") || html.contains("connect-src &#39;self&#39;"),
+            "{html}"
+        );
+        assert!(
+            !html.contains("script-src 'none'") && !html.contains("script-src &#39;none&#39;"),
+            "{html}"
+        );
+        assert!(
+            !html.contains("/assets/datastar") && !html.contains("datastar.js"),
+            "{html}"
+        );
+    }
+
     fn write_page(dir: &Path, name: &str, body: &str) {
         fs::write(dir.join(name), body).unwrap();
     }
@@ -1029,7 +1053,7 @@ pub(crate) mod tests {
         for html in [&index, &guide] {
             assert!(html.contains("rel=\"stylesheet\""));
             assert!(html.contains("Content-Security-Policy"));
-            assert!(!html.contains("<script"));
+            assert_goto_chrome(html);
             let style_idx = html.find("<style");
             if let Some(idx) = style_idx {
                 let window = &html[idx..idx.saturating_add(80).min(html.len())];
@@ -1080,8 +1104,7 @@ pub(crate) mod tests {
         assert!(html.contains("Linux panel"), "{html}");
         assert!(html.contains("fn hello()"), "{html}");
         assert!(!html.contains("role=\"tablist\""), "{html}");
-        assert!(!html.contains("<script"), "{html}");
-        assert!(html.contains("script-src 'none'") || html.contains("script-src &#39;none&#39;"));
+        assert_goto_chrome(&html);
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }
@@ -1173,23 +1196,11 @@ Static neighbor.
         assert!(home.contains("data-rocci-docs=\"note\""), "{home}");
         assert!(home.contains("data-rocci-docs=\"tabs\""), "{home}");
         assert!(home.contains("Mac panel"), "{home}");
-        assert!(
-            !home.to_ascii_lowercase().contains("<script"),
-            "static widget page must not emit a script tag\n{home}"
-        );
-        assert!(!home.to_ascii_lowercase().contains("datastar"), "{home}");
+        assert_goto_chrome(&home);
 
         let widgets = fs::read_to_string(output.join("widgets/index.html")).unwrap();
         assert!(widgets.contains("3 core ideas"), "{widgets}");
-        assert!(
-            widgets.contains("script-src 'none'") || widgets.contains("script-src &#39;none&#39;"),
-            "{widgets}"
-        );
-        assert!(
-            !widgets.to_ascii_lowercase().contains("<script"),
-            "hydrate page must not emit a script tag\n{widgets}"
-        );
-        assert!(!widgets.contains("datastar"), "{widgets}");
+        assert_goto_chrome(&widgets);
 
         let live = fs::read_to_string(output.join("live/index.html")).unwrap();
         assert!(live.contains("reveal-tip"), "{live}");
@@ -1200,11 +1211,7 @@ Static neighbor.
 
         let about = fs::read_to_string(output.join("about/index.html")).unwrap();
         assert!(about.contains("Static neighbor."), "{about}");
-        assert!(
-            !about.to_ascii_lowercase().contains("<script"),
-            "static neighbor must not emit a script tag\n{about}"
-        );
-        assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
+        assert_goto_chrome(&about);
         let pages: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(output.join("pages.json")).unwrap()).unwrap();
         let kind = |route: &str| {
@@ -1418,15 +1425,7 @@ After the island.
         assert!(html.contains("docs@example.com"), "{html}");
         assert!(html.contains("3 core ideas"), "{html}");
         assert!(html.contains("After the island."), "{html}");
-        assert!(
-            html.contains("script-src 'none'") || html.contains("script-src &#39;none&#39;"),
-            "{html}"
-        );
-        assert!(
-            !html.to_ascii_lowercase().contains("<script"),
-            "hydrate pages must not emit a script tag\n{html}"
-        );
-        assert!(!html.contains("datastar"), "{html}");
+        assert_goto_chrome(&html);
         let stylesheet = html
             .split("href=\"")
             .nth(1)
@@ -1551,15 +1550,7 @@ Static neighbor.
 
         let about = fs::read_to_string(output.join("about/index.html")).unwrap();
         assert!(about.contains("Static neighbor."), "{about}");
-        assert!(
-            about.contains("script-src 'none'") || about.contains("script-src &#39;none&#39;"),
-            "{about}"
-        );
-        assert!(
-            !about.to_ascii_lowercase().contains("<script"),
-            "static neighbor must not emit a script tag\n{about}"
-        );
-        assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
+        assert_goto_chrome(&about);
         let pages: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(output.join("pages.json")).unwrap()).unwrap();
         let live = pages
@@ -1647,10 +1638,7 @@ Static neighbor.
         );
         let about = fs::read_to_string(output.join("about/index.html")).unwrap();
         assert!(about.contains("static CDN HTML"), "{about}");
-        assert!(
-            !about.to_ascii_lowercase().contains("<script"),
-            "counter neighbor must not emit a script tag\n{about}"
-        );
+        assert_goto_chrome(&about);
         assert!(
             !about.contains("/assets/datastar") && !about.contains("datastar.js"),
             "{about}"

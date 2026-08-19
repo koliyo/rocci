@@ -3,8 +3,7 @@ const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
 const PREVIEW_FIND_HTML: &str = include_str!("../assets/preview-find.html");
 const PREVIEW_FIND_CSS: &str = include_str!("../assets/preview-find.css");
 const PREVIEW_FIND_JS: &str = include_str!("../assets/preview-find.js");
-const PREVIEW_GOTO_HTML: &str = include_str!("../assets/preview-goto.html");
-const PREVIEW_GOTO_CSS: &str = include_str!("../assets/preview-goto.css");
+const GOTO_JS: &str = rocci_ui::GOTO_SCRIPT;
 const PREVIEW_GOTO_JS: &str = include_str!("../assets/preview-goto.js");
 const PREVIEW_KEYS_JS: &str = include_str!("../assets/preview-keys.js");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
@@ -17,8 +16,7 @@ pub const FIND_NEXT_SCRIPT: &str =
 pub const FIND_PREV_SCRIPT: &str =
     "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.prev()";
 pub const FIND_USE_SELECTION_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.useSelection()";
-pub const GOTO_OPEN_SCRIPT: &str =
-    "window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
+pub const GOTO_OPEN_SCRIPT: &str = "window.__rocciGoto&&window.__rocciGoto.open()||window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
 pub const SELECT_ALL_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.selectAll&&window.__rocciPreviewNav.selectAll()||document.execCommand(\"selectAll\")";
 
 pub fn reveal_label() -> &'static str {
@@ -42,13 +40,11 @@ pub fn initialization_script(inspector_url: Option<&str>, has_source_root: bool)
         None => "null".to_string(),
     };
     format!(
-        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_PREVIEW_GOTO_HTML__ = {};\nconst __ROCCI_PREVIEW_GOTO_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
+        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{GOTO_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
         json_string(PREVIEW_FIND_HTML.trim_end()),
         json_string(PREVIEW_FIND_CSS.trim_end()),
-        json_string(PREVIEW_GOTO_HTML.trim_end()),
-        json_string(PREVIEW_GOTO_CSS.trim_end()),
         if has_source_root { "true" } else { "false" },
         json_string(reveal_label()),
     )
@@ -159,20 +155,21 @@ mod tests {
         let script = initialization_script(None, false);
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_HTML__"));
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_CSS__"));
-        assert!(script.contains("const __ROCCI_PREVIEW_GOTO_HTML__"));
-        assert!(script.contains("const __ROCCI_PREVIEW_GOTO_CSS__"));
         assert!(script.contains("rocci-preview-find"));
-        assert!(script.contains("rocci-preview-goto"));
+        assert!(script.contains("rocci-goto"));
+        assert!(script.contains("window.__rocciGoto"));
         assert!(script.contains("window.__rocciPreviewNav.find"));
         assert!(script.contains("window.__rocciPreviewNav.goto"));
         assert!(PREVIEW_FIND_HTML.contains("id=\"query\""));
         assert!(PREVIEW_FIND_HTML.contains("aria-label=\"Find in page\""));
-        assert!(PREVIEW_GOTO_HTML.contains("aria-label=\"Go to file\""));
+        assert!(GOTO_JS.contains("aria-label=\"Go to page\""));
         assert!(PREVIEW_FIND_JS.contains("__rocciPreviewNav.find"));
         assert!(PREVIEW_FIND_JS.contains("useSelection"));
-        assert!(PREVIEW_GOTO_JS.contains("/pages.json"));
-        assert!(PREVIEW_GOTO_JS.contains("/catalog.json"));
-        assert!(PREVIEW_GOTO_JS.contains("loadCatalog"));
+        assert!(GOTO_JS.contains("/pages.json"));
+        assert!(GOTO_JS.contains("/catalog.json"));
+        assert!(GOTO_JS.contains("loadCatalog"));
+        assert!(GOTO_JS.contains("history.pushState"));
+        assert!(PREVIEW_GOTO_JS.contains("__rocciGoto"));
         assert!(PREVIEW_KEYS_JS.contains("closeMore"));
         assert!(PREVIEW_KEYS_JS.contains("preventDefault"));
         assert!(PREVIEW_KEYS_JS.contains("selectAll"));

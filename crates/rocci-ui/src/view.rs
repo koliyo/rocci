@@ -80,6 +80,8 @@ pub struct ResourceView {
     #[serde(default)]
     pub module_script: String,
     #[serde(default)]
+    pub chrome_script: String,
+    #[serde(default)]
     pub playground_css: String,
 }
 
