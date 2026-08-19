@@ -10,6 +10,7 @@
 ## 2026-08-19
 
 - Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.
+- Recorded Phase 1 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): wry/WKWebView matrix for `docs/`, OKF `knowledge/`, windowed `rocci run` Counter, and standalone `Guide.rocdown`. F1–F6 confirmed (WebKit does not apply scoped `.inspector-panel` to the scope root; right-dock R/B cover Performance). Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Added draft [investigate and repair the preview inspector](plans/preview-inspector-repair.md): Phase 1 finishes the wry/product matrix; later phases fix Source scroll (`@scope` vs panel root), overlay R/B covering tabs, theme `100vh` inset, missing OKF `/plans/` and `/review/` snapshots, and `tok-*` highlighting. Includes 2026-08-19 `--no-window` findings (Rocdown `docs/` and OKF `knowledge/`). Points the extended inspector and source-views plans at this remaining work.
 
 - Revised [landed Rocdown block renderers compared with related systems](research/rocdown-block-renderers-comparison.md) with authoring DX, the three-actor authorable surface (static document, interactive document, theme pack), expressability versus Markdoc/MDX/Nuxt/Gutenberg, and eight stack-consistency fractures (`@use` vs pack, flatten-before-parent, sugar vs widget, dual paint paths).
