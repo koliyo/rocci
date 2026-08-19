@@ -120,22 +120,10 @@ pub struct ParamField {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParamValue {
-    StringLit {
-        value: String,
-        span: Span,
-    },
-    BoolLit {
-        value: bool,
-        span: Span,
-    },
-    NumberLit {
-        value: String,
-        span: Span,
-    },
-    Ident {
-        name: String,
-        span: Span,
-    },
+    StringLit { value: String, span: Span },
+    BoolLit { value: bool, span: Span },
+    NumberLit { value: String, span: Span },
+    Ident { name: String, span: Span },
     Record(BracketRecord),
     List(BracketList),
 }

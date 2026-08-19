@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 pub use dialect::Error;
 pub use paths::{
-    ROCCI_SNAPSHOT, ROCCI_TOML, ROCCI_UNGRAM, ROCDOWN_SNAPSHOT, ROCDOWN_TOML, ROCDOWN_UNGRAM,
+    ROCCI_GENERATED, ROCCI_TOML, ROCCI_UNGRAM, ROCDOWN_SNAPSHOT, ROCDOWN_TOML, ROCDOWN_UNGRAM,
 };
 
 use dialect::lower;
@@ -47,19 +47,19 @@ pub fn find_workspace_root(start: &Path) -> Result<PathBuf, Error> {
 pub struct LanguageSpec {
     pub ungram: &'static str,
     pub sidecar: &'static str,
-    pub snapshot: &'static str,
+    pub output: &'static str,
 }
 
 pub const LANGUAGES: [LanguageSpec; 2] = [
     LanguageSpec {
         ungram: ROCCI_UNGRAM,
         sidecar: ROCCI_TOML,
-        snapshot: ROCCI_SNAPSHOT,
+        output: ROCCI_GENERATED,
     },
     LanguageSpec {
         ungram: ROCDOWN_UNGRAM,
         sidecar: ROCDOWN_TOML,
-        snapshot: ROCDOWN_SNAPSHOT,
+        output: ROCDOWN_SNAPSHOT,
     },
 ];
 
@@ -67,7 +67,7 @@ pub fn generate_languages(root: &Path) -> Result<Vec<(PathBuf, String)>, Error> 
     let mut out = Vec::new();
     for lang in LANGUAGES {
         let source = generate_file(root, lang.ungram, lang.sidecar)?;
-        out.push((root.join(lang.snapshot), source));
+        out.push((root.join(lang.output), source));
     }
     Ok(out)
 }

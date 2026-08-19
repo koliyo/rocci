@@ -1,108 +1,10 @@
 use crate::span::Span;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Document {
-    pub items: Vec<ModuleItem>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ModuleItem {
-    Roc { span: Span },
-    Component(ComponentDecl),
-    Fixture(FixtureDecl),
-    Css(CssDecl),
-    Context(ContextDecl),
-    Init(InitDecl),
-    On(OnDecl),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ContextDecl {
-    pub ty: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct InitDecl {
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct OnDecl {
-    pub method: Ident,
-    pub path: String,
-    pub path_span: Span,
-    pub params: Option<Span>,
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentDecl {
-    pub name: Ident,
-    pub params: Span,
-    pub body: TemplateBlock,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FixtureDecl {
-    pub name: Ident,
-    pub target: ComponentPath,
-    pub value: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CssDecl {
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Ident {
-    pub span: Span,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TemplateBlock {
-    pub items: Vec<TemplateItem>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TemplateItem {
-    Element(Element),
-    ComponentCall(ComponentCall),
-    Fragment(Fragment),
-    Text(TextNode),
-    Interpolation(Interpolation),
-    If(IfDirective),
-    For(ForDirective),
-    Match(MatchDirective),
-    Let(LetDirective),
-    Css(CssDecl),
-}
+#[path = "ast.generated.rs"]
+mod ast_generated;
+pub use ast_generated::*;
 
 impl TemplateItem {
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Element(item) => item.span,
-            Self::ComponentCall(item) => item.span,
-            Self::Fragment(item) => item.span,
-            Self::Text(item) => item.span,
-            Self::Interpolation(item) => item.span,
-            Self::If(item) => item.span,
-            Self::For(item) => item.span,
-            Self::Match(item) => item.span,
-            Self::Let(item) => item.span,
-            Self::Css(item) => item.span,
-        }
-    }
-
     pub fn is_let(&self) -> bool {
         matches!(self, Self::Let(_))
     }
@@ -110,30 +12,6 @@ impl TemplateItem {
     pub fn is_preamble(&self) -> bool {
         matches!(self, Self::Let(_) | Self::Css(_))
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Element {
-    pub name: Ident,
-    pub attrs: Vec<Attr>,
-    pub children: Vec<TemplateItem>,
-    pub self_closing: bool,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentCall {
-    pub path: ComponentPath,
-    pub attrs: Vec<Attr>,
-    pub children: Option<Vec<TemplateItem>>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComponentPath {
-    pub parts: Vec<Ident>,
-    pub roc_name: String,
-    pub span: Span,
 }
 
 impl ComponentPath {
@@ -144,77 +22,6 @@ impl ComponentPath {
             .collect::<Vec<_>>()
             .join(".")
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Fragment {
-    pub children: Vec<TemplateItem>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TextNode {
-    pub span: Span,
-    pub value: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Interpolation {
-    pub expr: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Attr {
-    pub name: Ident,
-    pub value: AttrValue,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AttrValue {
-    Static { span: Span, value: String },
-    Expr { expr: Span },
-    Action { name: Ident, args: Span },
-    Boolean,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct IfDirective {
-    pub condition: Span,
-    pub then_body: TemplateBlock,
-    pub else_ifs: Vec<(Span, TemplateBlock)>,
-    pub else_body: Option<TemplateBlock>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ForDirective {
-    pub binder: Ident,
-    pub collection: Span,
-    pub body: TemplateBlock,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MatchDirective {
-    pub scrutinee: Span,
-    pub arms: Vec<MatchArm>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MatchArm {
-    pub pattern: Span,
-    pub value: Box<TemplateItem>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LetDirective {
-    pub binder: Ident,
-    pub expr: Span,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

@@ -94,15 +94,16 @@ fn emit_enum(out: &mut String, name: &str, variants: &[Variant]) {
             Variant::Struct { name, fields } => {
                 out.push_str("    ");
                 out.push_str(name);
-                out.push_str(" {\n");
-                for field in fields {
-                    out.push_str("        ");
+                out.push_str(" { ");
+                for (i, field) in fields.iter().enumerate() {
+                    if i > 0 {
+                        out.push_str(", ");
+                    }
                     out.push_str(&field.name);
                     out.push_str(": ");
                     out.push_str(&field.ty.to_string());
-                    out.push_str(",\n");
                 }
-                out.push_str("    },\n");
+                out.push_str(" },\n");
             }
         }
     }

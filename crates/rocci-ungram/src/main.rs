@@ -16,12 +16,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Write snapshot AST Rust for both language ungrams.
+    /// Write generated AST Rust for both language ungrams.
     Generate {
         #[arg(long)]
         root: Option<PathBuf>,
     },
-    /// Fail if snapshot AST Rust is stale.
+    /// Fail if generated AST Rust is stale.
     Check {
         #[arg(long)]
         root: Option<PathBuf>,
@@ -50,7 +50,7 @@ fn run() -> Result<()> {
         Commands::Check { root } => {
             let root = workspace_root(root)?;
             check_languages(&root)?;
-            println!("ok: AST snapshots are current");
+            println!("ok: generated AST is current");
             Ok(())
         }
     }

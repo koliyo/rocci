@@ -9,9 +9,7 @@ pub struct Document {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Item {
     Block(Block),
-    Leaf {
-        span: Span,
-    },
+    Leaf { span: Span },
 }
 
 impl Item {
