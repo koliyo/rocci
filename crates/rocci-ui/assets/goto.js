@@ -28,7 +28,7 @@
   const emptyEl = shadow.getElementById("empty");
   const hostSheet = document.createElement("style");
   hostSheet.textContent =
-    "rocci-goto{display:none;position:fixed;inset:0;z-index:2147483646}rocci-goto.open{display:block}";
+    "rocci-goto{display:none;position:fixed;top:0;left:0;right:var(--rocci-chrome-right,0px);bottom:var(--rocci-chrome-bottom,0px);z-index:2147483646}rocci-goto.open{display:block}";
 
   let catalog = null;
   let catalogPromise = null;

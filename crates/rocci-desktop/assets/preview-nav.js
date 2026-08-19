@@ -6,8 +6,13 @@
   const STORAGE_KEY = "rocci-dev-panel";
   const VIEW_KEY = "rocci-dev-view";
   const TAB_KEY = "rocci-dev-tab";
+  const DOCK_KEY = "rocci-dev-dock";
+  const DOCK_SIZE_KEY = "rocci-dev-dock-size";
   const VIEWS = { source: true, ast: true, roc: true, html: true };
   const TABS = { performance: true, source: true, console: true };
+  const DOCKS = { right: true, bottom: true };
+  const DEFAULT_RIGHT = "28rem";
+  const DEFAULT_BOTTOM = "36vh";
   const inspectorUrl =
     typeof __ROCCI_INSPECTOR_URL__ === "string" ? __ROCCI_INSPECTOR_URL__ : null;
   const hasSourceRoot = __ROCCI_HAS_SOURCE_ROOT__ === true;
@@ -52,6 +57,9 @@
   };
   let panel = null;
   let frame = null;
+  let splitter = null;
+  let dockRightBtn = null;
+  let dockBottomBtn = null;
   const panelOpen = () => {
     try {
       return sessionStorage.getItem(STORAGE_KEY) === "1";
@@ -141,6 +149,80 @@
   };
   let lastTuple = null;
   let receivedInspectorMessage = false;
+  const storedDock = () => {
+    try {
+      const value = sessionStorage.getItem(DOCK_KEY);
+      if (value && DOCKS[value]) {
+        return value;
+      }
+    } catch (err) {}
+    return "right";
+  };
+  const setStoredDock = (value) => {
+    if (!DOCKS[value]) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(DOCK_KEY, value);
+    } catch (err) {}
+  };
+  const storedSizes = () => {
+    const sizes = { right: DEFAULT_RIGHT, bottom: DEFAULT_BOTTOM };
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem(DOCK_SIZE_KEY) || "null");
+      if (parsed && typeof parsed.right === "string" && parsed.right) {
+        sizes.right = parsed.right;
+      }
+      if (parsed && typeof parsed.bottom === "string" && parsed.bottom) {
+        sizes.bottom = parsed.bottom;
+      }
+    } catch (err) {}
+    return sizes;
+  };
+  const setStoredSize = (side, value) => {
+    const sizes = storedSizes();
+    sizes[side] = value;
+    try {
+      sessionStorage.setItem(DOCK_SIZE_KEY, JSON.stringify(sizes));
+    } catch (err) {}
+  };
+  const remPx = () => {
+    const size = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return size > 0 ? size : 16;
+  };
+  const clampRight = (px) => Math.min(window.innerWidth * 0.8, Math.max(remPx() * 20, px));
+  const clampBottom = (px) => Math.min(window.innerHeight * 0.8, Math.max(remPx() * 8, px));
+  const applyDock = () => {
+    const open = !!(panel && panel.classList.contains("open"));
+    const side = storedDock();
+    const sizes = storedSizes();
+    const root = document.documentElement;
+    if (panel) {
+      panel.classList.toggle("dock-right", side === "right");
+      panel.classList.toggle("dock-bottom", side === "bottom");
+    }
+    if (splitter) {
+      splitter.setAttribute("aria-orientation", side === "right" ? "vertical" : "horizontal");
+    }
+    if (dockRightBtn) {
+      dockRightBtn.setAttribute("aria-pressed", side === "right" ? "true" : "false");
+    }
+    if (dockBottomBtn) {
+      dockBottomBtn.setAttribute("aria-pressed", side === "bottom" ? "true" : "false");
+    }
+    if (!open) {
+      root.style.setProperty("--rocci-chrome-right", "0px");
+      root.style.setProperty("--rocci-chrome-bottom", "0px");
+      return;
+    }
+    if (side === "right") {
+      root.style.setProperty("--rocci-chrome-right", sizes.right);
+      root.style.setProperty("--rocci-chrome-bottom", "0px");
+    } else {
+      root.style.setProperty("--rocci-chrome-right", "0px");
+      root.style.setProperty("--rocci-chrome-bottom", sizes.bottom);
+    }
+  };
   const assignFrame = (tuple, includeView) => {
     lastTuple = tuple;
     frame.src = inspectorHref(tuple, includeView);
@@ -165,6 +247,7 @@
     if (dev) {
       dev.setAttribute("aria-pressed", open ? "true" : "false");
     }
+    applyDock();
     if (open) {
       syncFrame(routeOf(window.location.href));
     }
@@ -172,6 +255,55 @@
   if (inspectorUrl && dev) {
     dev.hidden = false;
     panel = document.createElement("rocci-preview-dev");
+    panel.classList.add("dock-right");
+    splitter = document.createElement("div");
+    splitter.className = "rocci-dev-splitter";
+    splitter.setAttribute("role", "separator");
+    splitter.setAttribute("aria-orientation", "vertical");
+    const docks = document.createElement("div");
+    docks.className = "rocci-dev-docks";
+    dockRightBtn = document.createElement("button");
+    dockRightBtn.type = "button";
+    dockRightBtn.setAttribute("aria-label", "Dock right");
+    dockRightBtn.textContent = "R";
+    dockBottomBtn = document.createElement("button");
+    dockBottomBtn.type = "button";
+    dockBottomBtn.setAttribute("aria-label", "Dock bottom");
+    dockBottomBtn.textContent = "B";
+    docks.append(dockRightBtn, dockBottomBtn);
+    dockRightBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setStoredDock("right");
+      applyDock();
+    });
+    dockBottomBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setStoredDock("bottom");
+      applyDock();
+    });
+    splitter.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      splitter.setPointerCapture(event.pointerId);
+      const side = storedDock();
+      const move = (ev) => {
+        if (side === "right") {
+          setStoredSize("right", Math.round(clampRight(window.innerWidth - ev.clientX)) + "px");
+        } else {
+          setStoredSize("bottom", Math.round(clampBottom(window.innerHeight - ev.clientY)) + "px");
+        }
+        applyDock();
+      };
+      const up = (ev) => {
+        splitter.releasePointerCapture(ev.pointerId);
+        splitter.removeEventListener("pointermove", move);
+        splitter.removeEventListener("pointerup", up);
+      };
+      splitter.addEventListener("pointermove", move);
+      splitter.addEventListener("pointerup", up);
+    });
     frame = document.createElement("iframe");
     frame.title = "Developer panel";
     window.addEventListener("message", (event) => {
@@ -199,7 +331,7 @@
       }
     });
     assignFrame(inspectorTuple(routeOf(window.location.href)), true);
-    panel.append(frame);
+    panel.append(docks, splitter, frame);
     dev.addEventListener("click", () => setPanelOpen(!panel.classList.contains("open")));
   }
 
@@ -307,10 +439,8 @@
   spacer.textContent =
     "html { --rocci-chrome-top: " +
     HEIGHT +
-    "; padding-top: " +
+    "; --rocci-chrome-right: 0px; --rocci-chrome-bottom: 0px; padding-top: var(--rocci-chrome-top) !important; padding-right: var(--rocci-chrome-right) !important; padding-bottom: var(--rocci-chrome-bottom) !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; width: 100%; min-width: 100%; height: " +
     HEIGHT +
-    " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; width: 100%; min-width: 100%; height: " +
-    HEIGHT +
-    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: 28rem; max-width: 100%; z-index: 2147483646; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); background: #21252b; background: light-dark(#f7f7f8, #21252b); box-sizing: border-box; } rocci-preview-dev.open { display: block; } rocci-preview-dev iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }";
+    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; z-index: 2147483646; box-sizing: border-box; background: #21252b; background: light-dark(#f7f7f8, #21252b); } rocci-preview-dev.open { display: block; } rocci-preview-dev.dock-right { top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: var(--rocci-chrome-right, 28rem); max-width: 80vw; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev.dock-bottom { left: 0; right: 0; bottom: 0; height: var(--rocci-chrome-bottom, 36vh); max-height: 80vh; border-top: 1px solid #3e4451; border-top-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; } rocci-preview-dev .rocci-dev-splitter { position: absolute; z-index: 1; touch-action: none; } rocci-preview-dev.dock-right .rocci-dev-splitter { top: 0; bottom: 0; left: 0; width: 6px; cursor: ew-resize; } rocci-preview-dev.dock-bottom .rocci-dev-splitter { top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; } rocci-preview-dev .rocci-dev-docks { position: absolute; z-index: 2; display: flex; gap: 2px; padding: 4px; } rocci-preview-dev.dock-right .rocci-dev-docks { top: 0; left: 8px; } rocci-preview-dev.dock-bottom .rocci-dev-docks { top: 8px; right: 8px; } rocci-preview-dev .rocci-dev-docks button { box-sizing: border-box; width: 24px; height: 24px; padding: 0; border: 1px solid #3e4451; border-radius: 4px; background: light-dark(#ffffff, #2c313c); color: inherit; cursor: pointer; font-size: 11px; } rocci-goto { right: var(--rocci-chrome-right, 0px); bottom: var(--rocci-chrome-bottom, 0px); }";
   document.documentElement.appendChild(spacer);
 })();
