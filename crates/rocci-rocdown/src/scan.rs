@@ -274,18 +274,44 @@ fn try_scan_colon(
         return None;
     }
     let header = colon_header_at(src, at)?;
+    if let Some(kind) = header.removed_end_kind {
+        diagnostics.push(Diagnostic::error(
+            header.name_span,
+            format!("`:end.{kind}` was removed; write `:{kind}.end`"),
+        ));
+        return Some(ScannedDecl {
+            kind: ScannedKind::ColonEnd,
+            line_start,
+            at: header.at,
+            end: line_end(src, line_start),
+        });
+    }
     if header.name == "end" {
-        if header.end_kind.is_none() {
-            diagnostics.push(Diagnostic::error(
-                header.name_span,
-                "`:end` requires a kind, such as `:end.tabs`",
-            ));
-        } else {
-            diagnostics.push(Diagnostic::error(
-                header.name_span,
-                format!("unmatched `:end.{}`", header.end_kind.unwrap_or("")),
-            ));
-        }
+        diagnostics.push(Diagnostic::error(
+            header.name_span,
+            "`:end` was removed; write `:kind.end`",
+        ));
+        return Some(ScannedDecl {
+            kind: ScannedKind::ColonEnd,
+            line_start,
+            at: header.at,
+            end: line_end(src, line_start),
+        });
+    }
+    if let Some(suffix) = header.unknown_suffix {
+        diagnostics.push(Diagnostic::error(
+            header.name_span,
+            format!(
+                "unknown `:{}.{suffix}`; use `:{}.begin` or `:{}.end`",
+                header.name, header.name, header.name
+            ),
+        ));
+    }
+    if header.suffix == Some(ColonSuffix::End) {
+        diagnostics.push(Diagnostic::error(
+            header.name_span,
+            format!("unmatched `:{}.end`", header.name),
+        ));
         return Some(ScannedDecl {
             kind: ScannedKind::ColonEnd,
             line_start,
@@ -301,12 +327,42 @@ fn try_scan_colon(
 
     let mut cur = Cursor::at(src, pos);
     cur.skip_spaces_tabs();
+    let began = header.suffix == Some(ColonSuffix::Begin);
     let end = if cur.starts_with("{{") {
+        if began {
+            diagnostics.push(Diagnostic::error(
+                header.name_span,
+                format!(
+                    "`:{0}.begin` cannot mix with a double-brace body; write `:{0}.begin` ... `:{0}.end` or use double braces without `.begin`",
+                    header.name
+                ),
+            ));
+        }
         skip_article_section(src, cur.pos, diagnostics)
     } else if line_has_content(src, cur.pos) {
+        if began {
+            diagnostics.push(Diagnostic::error(
+                header.name_span,
+                format!(
+                    "`:{0}.begin` cannot take line-scope content; write `:{0}.begin` ... `:{0}.end` or drop `.begin` for a one-line body",
+                    header.name
+                ),
+            ));
+        }
         line_end(src, cur.pos)
-    } else if let Some(close) = find_end_closer(src, next_line(src, header.at), header.name) {
-        close
+    } else if began {
+        if let Some(close) = find_end_closer(src, next_line(src, header.at), header.name) {
+            close
+        } else {
+            diagnostics.push(Diagnostic::error(
+                header.name_span,
+                format!(
+                    "unclosed `:{}.begin`; expected `:{}.end`",
+                    header.name, header.name
+                ),
+            ));
+            cur.pos.max(header.after_name)
+        }
     } else {
         cur.pos.max(header.after_name)
     };
@@ -319,12 +375,20 @@ fn try_scan_colon(
     })
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ColonSuffix {
+    Begin,
+    End,
+}
+
 struct ColonHeader<'a> {
     at: usize,
     name: &'a str,
     name_span: Span,
     after_name: usize,
-    end_kind: Option<&'a str>,
+    suffix: Option<ColonSuffix>,
+    unknown_suffix: Option<&'a str>,
+    removed_end_kind: Option<&'a str>,
 }
 
 fn colon_header_at(src: &str, at: usize) -> Option<ColonHeader<'_>> {
@@ -340,15 +404,20 @@ fn colon_header_at(src: &str, at: usize) -> Option<ColonHeader<'_>> {
     }
     let name_span = cur.scan_tag_name()?;
     let name = name_span.of(src);
-    let mut end_kind = None;
+    let mut suffix = None;
+    let mut unknown_suffix = None;
+    let mut removed_end_kind = None;
     let mut after_name = cur.pos;
-    if name == "end" {
-        cur.skip_spaces_tabs();
-        if cur.eat('.')
-            && let Some(kind_span) = cur.scan_tag_name()
-        {
-            end_kind = Some(kind_span.of(src));
+    if cur.peek() == Some('.') {
+        cur.bump();
+        if let Some(suffix_span) = cur.scan_tag_name() {
             after_name = cur.pos;
+            match suffix_span.of(src) {
+                "begin" => suffix = Some(ColonSuffix::Begin),
+                "end" => suffix = Some(ColonSuffix::End),
+                other if name == "end" => removed_end_kind = Some(other),
+                other => unknown_suffix = Some(other),
+            }
         }
     }
     Some(ColonHeader {
@@ -356,7 +425,9 @@ fn colon_header_at(src: &str, at: usize) -> Option<ColonHeader<'_>> {
         name,
         name_span,
         after_name,
-        end_kind,
+        suffix,
+        unknown_suffix,
+        removed_end_kind,
     })
 }
 
@@ -504,14 +575,12 @@ fn find_end_closer(src: &str, start: usize, kind: &str) -> Option<usize> {
         }
 
         if let Some(header) = line_colon_header(src, pos) {
-            if header.name == "end" {
-                if header.end_kind == Some(kind) {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some(line_end_at);
-                    }
+            if header.suffix == Some(ColonSuffix::End) && header.name == kind {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(line_end_at);
                 }
-            } else if header.name == kind && colon_opens_end_section(src, &header) {
+            } else if header.suffix == Some(ColonSuffix::Begin) && header.name == kind {
                 depth += 1;
             }
         }
@@ -526,16 +595,6 @@ fn line_colon_header(src: &str, line_start: usize) -> Option<ColonHeader<'_>> {
         at += 1;
     }
     colon_header_at(src, at)
-}
-
-fn colon_opens_end_section(src: &str, header: &ColonHeader<'_>) -> bool {
-    if header.name == "end" {
-        return false;
-    }
-    let (after_params, _) = skip_optional_params(src, header.after_name);
-    let mut cur = Cursor::at(src, after_params);
-    cur.skip_spaces_tabs();
-    !cur.starts_with("{{") && !line_has_content(src, cur.pos)
 }
 
 fn line_has_content(src: &str, pos: usize) -> bool {

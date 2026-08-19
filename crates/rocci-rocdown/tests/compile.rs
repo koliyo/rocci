@@ -1255,9 +1255,9 @@ fn kebab_docs_kinds_are_parsed() {
 #[test]
 fn nested_docs_and_escaped_docs_are_distinct() {
     let src = "\
-:steps
+:steps.begin
     :step[title: \"Install\"] Run the installer.
-:end.steps
+:steps.end
 
 \\@docs note { not a directive }
 ";

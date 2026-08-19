@@ -70,7 +70,8 @@ serves them beside the page route; static site builds hash files under `build.as
 ## Article blocks
 
 Article blocks use `:kind` at document root. Params are in `[]`. Content is
-the rest of the line, a `{{ }}` section, or a matching `:end.kind`. Kinds such
+the rest of the line, a `{{ }}` section, or `:kind.begin` ... `:kind.end`.
+Do not mix `.begin` with double braces on the same call. Kinds such
 as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 `@docs` / `@img` is a removal error. Rocdown types the body; standalone
 `rocdown run` paints a conservative preview.
@@ -79,6 +80,11 @@ as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 :note[title: "Deprecation"] {{
     This API will be removed in 0.4. See [Routing](/docs/reference/rocdown-site/).
 }}
+
+:tabs.begin[group: "install", kind: "tool"]
+    :tab[id: "cli", label: "CLI"] Check the catalog.
+    :tab[id: "test", label: "Examples"] Run declared examples.
+:tabs.end
 ````
 
 Nested article blocks are legal in the body. `@page`, `@roc`, `@render`,

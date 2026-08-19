@@ -123,20 +123,21 @@ BlockContent =
 /// Rest of the line after `:name` / `:name[params]`. Opaque span.
 LineContent = 'line-content'
 
-/// Nested document hole. `{{` / `}}` is the usual fence.
+/// Nested document hole. `:name[params] {{ ... }}`. Cannot mix with EndSection.
 BraceSection =
   '{{'
   '}}'
 
-/// Named closer hole. Follows the article prefix: `:end.tabs`.
+/// Named closer hole. Opened with `:name.begin`; closed with `:name.end`.
+/// Cannot mix with BraceSection on the same call.
 EndSection =
   marker:EndMarker
 
 EndMarker =
   ':'
-  'end'
-  '.'
   name:Ident
+  '.'
+  'end'
 
 Ident = 'ident'
 StringLit = 'string'

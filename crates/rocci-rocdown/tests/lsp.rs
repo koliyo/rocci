@@ -207,10 +207,10 @@ const COLON_BLOCKS: &str = "\
 Nested.
 }}
 
-:tabs[group: \"os\", kind: \"platform\"]
+:tabs.begin[group: \"os\", kind: \"platform\"]
     :tab[id: \"mac\", label: \"macOS\"] Mac panel.
     :tab[id: \"linux\", label: \"Linux\"] Linux panel.
-:end.tabs
+:tabs.end
 
 :img[src: \"./x.png\", alt: \"x\"]
 ";
@@ -425,7 +425,7 @@ fn hover_and_symbols_use_colon_kind_names() {
 fn goto_end_marker_jumps_to_opener() {
     let mut server = initialize_server();
     let uri = open_colon(&mut server);
-    let end_at = COLON_BLOCKS.find(":end.tabs").expect("end marker") + 1;
+    let end_at = COLON_BLOCKS.find(":tabs.end").expect("end marker") + 1;
     let (line, character) = line_col(COLON_BLOCKS, end_at);
     let response = server
         .goto_definition(GotoDefinitionParams {
@@ -437,7 +437,7 @@ fn goto_end_marker_jumps_to_opener() {
     let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
         panic!("expected scalar location");
     };
-    let tabs_at = COLON_BLOCKS.find(":tabs[").expect("tabs opener") + 1;
+    let tabs_at = COLON_BLOCKS.find(":tabs.begin[").expect("tabs opener") + 1;
     let (want_line, want_character) = line_col(COLON_BLOCKS, tabs_at);
     assert_eq!(location.range.start.line, want_line);
     assert_eq!(location.range.start.character, want_character);

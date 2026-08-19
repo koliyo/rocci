@@ -5,7 +5,7 @@
     color_scheme: "light",
     meta: {
         title: "Rocdown blocks",
-        description: "Line, section, and :end article blocks beside Markdown",
+        description: "Line, section, and begin/end article blocks beside Markdown",
     },
 }
 
@@ -14,7 +14,8 @@
 Ordinary prose stays Markdown. A line-start `:note` is a block; a colon in a
 sentence is not. See also [[Guide]] and [[Interactive]].
 
-Content is the rest of the line, a `{{ }}` section, or a matching `:end.kind`.
+Content is the rest of the line, a `{{ }}` section, or `:kind.begin` ... `:kind.end`.
+Do not mix `.begin` with double braces on the same call.
 
 :note Do not paste raw HTML into Markdown. Use a block when the page needs structure beyond CommonMark.
 
@@ -30,18 +31,18 @@ Content is the rest of the line, a `{{ }}` section, or a matching `:end.kind`.
 
 ## Procedures and alternatives
 
-:steps
+:steps.begin
     :step[title: "Write a block"] Start a document-root line with `:` and the kind name.
     :step[title: "Prefer the rest of the line"] One-line content does not need braces.
     :step[title: "Wrap nested document"] {{
         Use `{{ ... }}` when the body has paragraphs, fences, or nested blocks.
     }}
-:end.steps
+:steps.end
 
-:tabs[group: "os", kind: "platform"]
+:tabs.begin[group: "os", kind: "platform"]
     :tab[id: "mac", label: "macOS"] Mac panel.
     :tab[id: "linux", label: "Linux"] Linux panel.
-:end.tabs
+:tabs.end
 
 ## Narrow viewport overflow
 

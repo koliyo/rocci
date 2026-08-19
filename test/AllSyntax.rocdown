@@ -81,15 +81,15 @@ Nested section body.
 
 :details[summary: "More"] Nested details body.
 
-:steps
+:steps.begin
     :step[title: "One"] First step.
     :step[title: "Two"] Second step.
-:end.steps
+:steps.end
 
-:tabs[group: "os", kind: "platform"]
+:tabs.begin[group: "os", kind: "platform"]
     :tab[id: "mac", label: "macOS"] Mac panel.
     :tab[id: "linux", label: "Linux"] Linux panel.
-:end.tabs
+:tabs.end
 
 \@if this is escaped
 

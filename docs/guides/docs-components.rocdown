@@ -29,18 +29,19 @@ paints the HTML. Fenced code stays display-only.
 
 ## Walk through a procedure
 
-:steps
+:steps.begin
     :step[title: "Author the block"] {{
         Start a document-root line with `:`, then the kind. Params go in `[]`.
-        Content is the rest of the line, `{{ }}`, or `:end.kind`. Nested blocks
-        are allowed. Write `\@docs` only when quoting the removed spelling.
+        Content is the rest of the line, `{{ }}`, or `:kind.begin` ...
+        `:kind.end`. Nested blocks are allowed. Do not mix `.begin` with
+        double braces on the same call.
     }}
 
     :step[title: "Include source from disk", verify: Bool.true] {{
         Point `:include` at a file under the content root. Prefer a named
         region over line numbers.
     }}
-:end.steps
+:steps.end
 
 :include[path: "snippets/hello.rs", region: "hello", language: "rust"]
 
@@ -50,7 +51,7 @@ Every tab panel is in the document. Print, forced-colors, and browsers with
 scripts disabled show all panels. There is no `tablist` role until a hashed
 script exists.
 
-:tabs[group: "install", kind: "tool"]
+:tabs.begin[group: "install", kind: "tool"]
     :tab[id: "cli", label: "CLI"] {{
         Check the catalog without compiling Roc:
 
@@ -66,14 +67,14 @@ script exists.
         cargo run -p rocci-rocdown-cli -- test site
         ```
     }}
-:end.tabs
+:tabs.end
 
 ## Link related pages
 
-:card-grid
+:card-grid.begin
     :link-card[page: "reference/rocdown"]
     :link-card[page: "reference/rocdown-site"]
-:end.card-grid
+:card-grid.end
 
 ## Caption an image
 

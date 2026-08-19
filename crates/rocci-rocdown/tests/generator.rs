@@ -12,7 +12,7 @@ fn test_article_html_components() {
 
 :note[title: "Important"] This is a callout note.
 
-:tabs[group: "languages", kind: "language"]
+:tabs.begin[group: "languages", kind: "language"]
     :tab[id: "roc", label: "Roc"] {{
         ```roc
         main = "Hello"
@@ -23,7 +23,7 @@ fn test_article_html_components() {
         fn main() {}
         ```
     }}
-:end.tabs
+:tabs.end
 
 :details[summary: "Click to expand", open: Bool.true] Hidden content revealed.
 
