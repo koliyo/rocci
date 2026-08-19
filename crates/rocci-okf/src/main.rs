@@ -37,6 +37,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Emit rebuild profiling to stderr in terminal or JSON form.
+        #[arg(long, value_enum, default_value_t = ProfileReportArg::Off)]
+        profile_report: ProfileReportArg,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -101,6 +104,24 @@ enum Commands {
 enum CheckFormatArg {
     Terminal,
     Json,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, Default)]
+enum ProfileReportArg {
+    #[default]
+    Off,
+    Terminal,
+    Json,
+}
+
+impl From<ProfileReportArg> for dev::ProfileReportMode {
+    fn from(value: ProfileReportArg) -> Self {
+        match value {
+            ProfileReportArg::Off => dev::ProfileReportMode::Off,
+            ProfileReportArg::Terminal => dev::ProfileReportMode::Terminal,
+            ProfileReportArg::Json => dev::ProfileReportMode::Json,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
@@ -300,6 +321,7 @@ fn main() -> Result<()> {
             profile,
             host,
             no_window,
+            profile_report,
             port,
         } => {
             let target = okf::resolve_preview_path(&path)?;
@@ -311,6 +333,7 @@ fn main() -> Result<()> {
                 profile.into(),
                 &target.open_path,
                 Some(host.into()),
+                profile_report.into(),
             )?;
             eprintln!("rocci-okf: serving {} at {}", server.title, server.url);
             if no_window {

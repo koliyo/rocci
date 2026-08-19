@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Added the draft [rocci-okf headless load-performance audit](audits/rocci-okf-headless-load-performance.md), implemented `rocci-okf run --profile-report {off,terminal,json}` for CLI-only rebuild timing, and measured cached bundle-preview rebuilds at 8718ms total / 8560ms load for `--profile rocci` versus 5276ms total / 5142ms load for `--profile base`, pointing to `okf::load` and Rocci-profile provenance validation as the main latency target.
 - Added draft [generalized Rocdown block model implementation plan](plans/generalized-rocdown-block-model.md): nine bounded phases from a closed Rust registry and per-kind Rocci components through dual-parse `:name[params]`, sugar unification, public `@docs` cutover, typed props, `@use`, and LSP. Exploratory; no phase started.
 - Added draft [generalized Rocdown block model](research/generalized-rocdown-block-model.md) research: article blocks distinct from `@`; decided spelling `:name[params]` with `{{ }}` / `:end`; draft AST ungram at `crates/rocci-rocdown/Rocdown.AST.ungram` (nodes, not scanner). Syntax sketches under `knowledge/research/syntax/`.
 
