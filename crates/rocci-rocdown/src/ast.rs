@@ -23,6 +23,7 @@ pub enum Item {
     Template(TemplateItem),
     Docs(DocsDecl),
     Img(ImgDecl),
+    Block(BlockCall),
 }
 
 impl Item {
@@ -41,6 +42,7 @@ impl Item {
             Self::Template(item) => item.span(),
             Self::Docs(item) => item.span,
             Self::Img(item) => item.span,
+            Self::Block(item) => item.span,
         }
     }
 }
@@ -74,6 +76,131 @@ pub struct DocsDecl {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImgDecl {
     pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlockCall {
+    pub name: String,
+    pub name_span: Span,
+    pub params: Option<BracketRecord>,
+    pub content: Option<BlockContent>,
+    pub span: Span,
+}
+
+impl BlockCall {
+    pub fn content_span(&self) -> Option<Span> {
+        self.content.as_ref().map(BlockContent::span)
+    }
+
+    pub fn is_legacy_img(&self, src: &str) -> bool {
+        self.name == "img"
+            && self
+                .span
+                .of(src)
+                .trim_start_matches([' ', '\t'])
+                .starts_with("@img")
+    }
+
+    pub fn payload_span(&self) -> Span {
+        let start = self
+            .params
+            .as_ref()
+            .map(|params| params.span.start)
+            .or_else(|| self.content.as_ref().map(|content| content.span().start))
+            .unwrap_or(self.span.end);
+        let end = self
+            .content
+            .as_ref()
+            .map(|content| content.span().end)
+            .or_else(|| self.params.as_ref().map(|params| params.span.end))
+            .unwrap_or(self.span.end);
+        if start > end {
+            Span::point(self.span.end as usize)
+        } else {
+            Span::new(start as usize, end as usize)
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BracketRecord {
+    pub fields: Vec<ParamField>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BracketList {
+    pub items: Vec<ParamValue>,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParamField {
+    pub name: String,
+    pub name_span: Span,
+    pub value: ParamValue,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParamValue {
+    StringLit { value: String, span: Span },
+    BoolLit { value: bool, span: Span },
+    NumberLit { value: String, span: Span },
+    Ident { name: String, span: Span },
+    Record(BracketRecord),
+    List(BracketList),
+}
+
+impl ParamValue {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::StringLit { span, .. }
+            | Self::BoolLit { span, .. }
+            | Self::NumberLit { span, .. }
+            | Self::Ident { span, .. } => *span,
+            Self::Record(record) => record.span,
+            Self::List(list) => list.span,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BlockContent {
+    Line(LineContent),
+    Brace(BraceSection),
+    End(EndSection),
+}
+
+impl BlockContent {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Line(content) => content.span,
+            Self::Brace(section) => section.span,
+            Self::End(section) => section.span,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LineContent {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BraceSection {
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EndSection {
+    pub span: Span,
+    pub marker: EndMarker,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EndMarker {
+    pub name: String,
     pub span: Span,
 }
 

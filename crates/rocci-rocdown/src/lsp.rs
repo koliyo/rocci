@@ -16,7 +16,7 @@ use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
-use crate::ast::{DocsDecl, Document, HeadingInfo, ImgDecl, Item, PageDecl, PageMeta};
+use crate::ast::{BlockCall, Document, HeadingInfo, Item, PageDecl, PageMeta};
 use crate::highlight::{extract_rocdown_regions, highlight_rocdown_document};
 use crate::{
     CompileOptions, CompileOutput, discovered_ids, index_pages_in_dir, page_ref_from_source,
@@ -262,8 +262,18 @@ pub fn document_symbols(
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::On(on) => on_symbol(source, on, encoding),
             Item::Template(item) => template_symbol(source, text, item, encoding),
-            Item::Docs(docs) => docs_symbol(source, docs, encoding),
-            Item::Img(img) => img_symbol(source, img, encoding),
+            Item::Docs(docs) => {
+                let call = crate::docs::block_from_docs_decl(source.src, docs.clone());
+                docs_symbol(source, &call, encoding)
+            }
+            Item::Img(img) => {
+                let call = crate::docs::block_from_img_decl(source.src, img.clone());
+                img_symbol(source, &call, encoding)
+            }
+            Item::Block(call) if call.is_legacy_img(source.src) => {
+                img_symbol(source, call, encoding)
+            }
+            Item::Block(call) => docs_symbol(source, call, encoding),
         };
         symbols.push((item.span().start, symbol));
     }
@@ -291,17 +301,15 @@ pub fn hover(
     }) {
         return Some(page_hover(source, page, compiled, encoding));
     }
-    if let Some(docs) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Docs(docs) if docs.span.contains(offset) => Some(docs),
+    if let Some(call) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Block(call) if call.span.contains(offset) => Some(call),
         _ => None,
     }) {
-        return Some(docs_hover(source, docs, encoding));
-    }
-    if let Some(img) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Img(img) if img.span.contains(offset) => Some(img),
-        _ => None,
-    }) {
-        return Some(img_hover(source, img, encoding));
+        return Some(if call.is_legacy_img(source.src) {
+            img_hover(source, call, encoding)
+        } else {
+            docs_hover(source, call, encoding)
+        });
     }
     compiled.headings.iter().find_map(|heading| {
         if !heading.span.contains(offset) {
@@ -347,17 +355,15 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     }) {
         return page_completion(text, page, offset, compiled);
     }
-    if let Some(docs) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Docs(docs) if docs.span.contains(offset as u32) => Some(docs),
+    if let Some(call) = compiled.document.items.iter().find_map(|item| match item {
+        Item::Block(call) if call.span.contains(offset as u32) => Some(call),
         _ => None,
     }) {
-        return docs_completion(text, docs, offset);
-    }
-    if let Some(img) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Img(img) if img.span.contains(offset as u32) => Some(img),
-        _ => None,
-    }) {
-        return img_completion(text, img, offset);
+        return if call.is_legacy_img(text) {
+            img_completion(text, call, offset)
+        } else {
+            docs_completion(text, call, offset)
+        };
     }
     if let Some(prefix) = root_declaration_prefix(text, offset) {
         return CompletionResponse::Array(
@@ -646,9 +652,9 @@ fn keyword_selection(src: &str, span: Span, keyword: &str) -> Span {
     }
 }
 
-fn docs_hover(source: SourceFile<'_>, docs: &DocsDecl, encoding: PositionEncoding) -> Hover {
-    let (fields, _) = crate::split_docs_body(source.src, docs.body);
-    let mut value = format!("```rocdown\n@docs {}\n```\n", docs.kind);
+fn docs_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncoding) -> Hover {
+    let fields = crate::docs::docs_fields_from_params(call.params.as_ref());
+    let mut value = format!("```rocdown\n@docs {}\n```\n", call.name);
     for field in fields {
         value.push_str(&format!(
             "\n- **{}**: `{}`",
@@ -661,17 +667,18 @@ fn docs_hover(source: SourceFile<'_>, docs: &DocsDecl, encoding: PositionEncodin
             kind: MarkupKind::Markdown,
             value,
         }),
-        range: Some(lsp_range(source, docs.span, encoding)),
+        range: Some(lsp_range(source, call.span, encoding)),
     }
 }
 
-fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResponse {
-    let body = docs.body.of(text);
+fn docs_completion(text: &str, call: &BlockCall, offset: usize) -> CompletionResponse {
+    let body_span = call.payload_span();
+    let body = body_span.of(text);
     let rel = offset
-        .saturating_sub(docs.body.start as usize)
+        .saturating_sub(body_span.start as usize)
         .min(body.len());
     let prefix = field_prefix(&body[..rel]);
-    if docs.kind == "tabs"
+    if call.name == "tabs"
         && let Some(value) = after_field(&body[..rel], "kind")
     {
         let items = ["language", "platform", "tool"]
@@ -689,7 +696,7 @@ fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResp
             .collect();
         return CompletionResponse::Array(items);
     }
-    let fields: &[&str] = match docs.kind.as_str() {
+    let fields: &[&str] = match call.name.as_str() {
         "include" => &["path", "region", "language", "start_line", "end_line"],
         "tabs" => &["group", "kind"],
         "tab" => &["id", "label"],
@@ -708,7 +715,7 @@ fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResp
             completion_item(
                 field,
                 CompletionItemKind::FIELD,
-                Some(format!("@docs {}", docs.kind)),
+                Some(format!("@docs {}", call.name)),
             )
         })
         .collect();
@@ -717,21 +724,24 @@ fn docs_completion(text: &str, docs: &DocsDecl, offset: usize) -> CompletionResp
 
 fn docs_symbol(
     source: SourceFile<'_>,
-    docs: &DocsDecl,
+    call: &BlockCall,
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
-    let (fields, content) = crate::split_docs_body(source.src, docs.body);
+    let fields = crate::docs::docs_fields_from_params(call.params.as_ref());
     let title = fields
         .iter()
         .find(|field| field.name == "title" || field.name == "label" || field.name == "summary")
         .and_then(|field| crate::field_string(source.src, field));
-    let mut detail = format!("@docs {}", docs.kind);
+    let mut detail = format!("@docs {}", call.name);
     if let Some(title) = title {
         detail.push_str(" · ");
         detail.push_str(&title);
     }
     let mut children = Vec::new();
-    if !content.is_empty() && (content.start as usize) < source.src.len() {
+    if let Some(content) = call.content_span()
+        && !content.is_empty()
+        && (content.start as usize) < source.src.len()
+    {
         let parsed = crate::parse_fragment(source, content, false);
         for heading in &parsed.headings {
             children.push((
@@ -748,7 +758,9 @@ fn docs_symbol(
             ));
         }
         for item in &parsed.document.items {
-            if let Item::Docs(nested) = item {
+            if let Item::Block(nested) = item
+                && !nested.is_legacy_img(source.src)
+            {
                 children.push((nested.span.start, docs_symbol(source, nested, encoding)));
             }
         }
@@ -761,36 +773,50 @@ fn docs_symbol(
     };
 
     DocumentSymbol {
-        name: format!("@docs {}", docs.kind),
+        name: format!("@docs {}", call.name),
         detail: Some(detail),
         kind: SymbolKind::STRUCT,
         tags: None,
         #[allow(deprecated)]
         deprecated: None,
-        range: lsp_range(source, docs.span, encoding),
-        selection_range: lsp_range(source, docs.kind_span, encoding),
+        range: lsp_range(source, call.span, encoding),
+        selection_range: lsp_range(source, call.name_span, encoding),
         children,
     }
 }
 
-fn img_symbol(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> DocumentSymbol {
+fn img_symbol(
+    source: SourceFile<'_>,
+    call: &BlockCall,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
     let mut diags = Vec::new();
-    let fields = crate::extract_img_fields(source.src, img.body, &mut diags);
+    let body = call
+        .params
+        .as_ref()
+        .map(|params| params.span)
+        .unwrap_or(call.span);
+    let fields = crate::extract_img_fields(source.src, body, &mut diags);
     let detail = fields.src.as_ref().map(|(s, _)| s.clone());
     named_symbol(
         "@img",
         detail,
         SymbolKind::OBJECT,
         source,
-        img.span,
-        img.span,
+        call.span,
+        call.span,
         encoding,
     )
 }
 
-fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) -> Hover {
+fn img_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncoding) -> Hover {
     let mut diags = Vec::new();
-    let fields = crate::extract_img_fields(source.src, img.body, &mut diags);
+    let body = call
+        .params
+        .as_ref()
+        .map(|params| params.span)
+        .unwrap_or(call.span);
+    let fields = crate::extract_img_fields(source.src, body, &mut diags);
     let mut doc = String::from("```rocdown\n@img\n```\n\nNative Rocdown image element.\n");
     if let Some((src, _)) = &fields.src {
         doc.push_str(&format!("\n- **src**: `{src}`"));
@@ -812,7 +838,7 @@ fn img_hover(source: SourceFile<'_>, img: &ImgDecl, encoding: PositionEncoding) 
             kind: MarkupKind::Markdown,
             value: doc,
         }),
-        range: Some(lsp_range(source, img.span, encoding)),
+        range: Some(lsp_range(source, call.span, encoding)),
     }
 }
 
@@ -828,7 +854,7 @@ const IMG_FIELDS: &[&str] = &[
     "decorative",
 ];
 
-fn img_completion(_text: &str, _img: &ImgDecl, _offset: usize) -> CompletionResponse {
+fn img_completion(_text: &str, _call: &BlockCall, _offset: usize) -> CompletionResponse {
     CompletionResponse::Array(
         IMG_FIELDS
             .iter()

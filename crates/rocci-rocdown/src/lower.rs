@@ -8,9 +8,10 @@ use rocci_template::{
 };
 
 use crate::CompileOptions;
-use crate::ast::{DocsDecl, Document, HeadingInfo, ImgDecl, Item, MdNode, PageMeta, RenderDecl};
+use crate::ast::{BlockCall, Document, HeadingInfo, Item, MdNode, PageMeta, RenderDecl};
 use crate::docs::{
-    extract_lines, extract_region, field_bool, field_string, resolve_include_path, split_docs_body,
+    docs_fields_from_params, extract_lines, extract_region, field_bool, field_string,
+    resolve_include_path,
 };
 use crate::page::{extract_page, imports_html, roc_binding_names, split_roc_body};
 use crate::parse_fragment;
@@ -464,8 +465,10 @@ impl<'a> Emitter<'a> {
             self.push_indent();
             match node {
                 ContentPiece::Markdown(md) => self.lower_md(md),
-                ContentPiece::Docs(docs) => self.lower_docs(docs),
-                ContentPiece::Img(img) => self.lower_img(img),
+                ContentPiece::Block(call) if call.is_legacy_img(self.source.src) => {
+                    self.lower_img(call)
+                }
+                ContentPiece::Block(call) => self.lower_docs(call),
                 ContentPiece::Render(render) => {
                     let expr = render.expr.of(self.source.src).trim();
                     self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
@@ -693,9 +696,12 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    fn lower_docs(&mut self, docs: &DocsDecl) {
+    fn lower_docs(&mut self, call: &BlockCall) {
         let src = self.source.src;
-        let (fields, content) = split_docs_body(src, docs.body);
+        let fields = docs_fields_from_params(call.params.as_ref());
+        let content = call
+            .content_span()
+            .unwrap_or_else(|| Span::point(call.span.end as usize));
         let title = fields
             .iter()
             .find(|field| field.name == "title")
@@ -726,8 +732,8 @@ impl<'a> Emitter<'a> {
             .find(|field| field.name == "credit")
             .and_then(|field| field_string(src, field))
             .unwrap_or_default();
-        if docs.kind == "include" {
-            self.lower_docs_include(docs, &fields);
+        if call.name == "include" {
+            self.lower_docs_include(call, &fields);
             return;
         }
         let parsed = parse_fragment(self.source, content, false);
@@ -740,8 +746,8 @@ impl<'a> Emitter<'a> {
                 ));
             }
         }
-        let class = format!("rd-docs-{} rd-docs-block", docs.kind);
-        let tag = match docs.kind.as_str() {
+        let class = format!("rd-docs-{} rd-docs-block", call.name);
+        let tag = match call.name.as_str() {
             "note" | "tip" | "caution" | "danger" | "deprecated" => "aside",
             "details" => "details",
             "figure" => "figure",
@@ -750,7 +756,7 @@ impl<'a> Emitter<'a> {
             | "compatibility" | "definition" | "example" => "section",
             _ => "div",
         };
-        let label_text = match docs.kind.as_str() {
+        let label_text = match call.name.as_str() {
             "note" => "Note",
             "tip" => "Tip",
             "caution" => "Caution",
@@ -761,18 +767,18 @@ impl<'a> Emitter<'a> {
         self.emit_html(".element(\n");
         self.indent += 1;
         self.push_indent();
-        self.emit_string(tag, docs.span, OriginKind::MarkdownStructure);
+        self.emit_string(tag, call.span, OriginKind::MarkdownStructure);
         self.emit(",\n");
         self.push_indent();
         let mut attrs = vec![
             ("class", class.as_str()),
-            ("data-rocci-docs", docs.kind.as_str()),
+            ("data-rocci-docs", call.name.as_str()),
         ];
-        let aria = if docs.kind == "deprecated" {
+        let aria = if call.name == "deprecated" {
             "Deprecated"
-        } else if docs.kind == "file-tree" {
+        } else if call.name == "file-tree" {
             "File tree"
-        } else if docs.kind == "tab" && !label.is_empty() {
+        } else if call.name == "tab" && !label.is_empty() {
             label.as_str()
         } else {
             ""
@@ -780,48 +786,48 @@ impl<'a> Emitter<'a> {
         if !aria.is_empty() {
             attrs.push(("aria-label", aria));
         }
-        if docs.kind == "details" && open {
+        if call.name == "details" && open {
             attrs.push(("open", "open"));
         }
-        self.emit_attrs(&attrs, docs.span);
+        self.emit_attrs(&attrs, call.span);
         self.emit(",\n");
         self.push_indent();
         self.emit("[\n");
         self.indent += 1;
-        if docs.kind == "details" {
+        if call.name == "details" {
             self.push_indent();
-            self.emit_text_element("summary", "rd-docs-summary", &summary, docs.span);
+            self.emit_text_element("summary", "rd-docs-summary", &summary, call.span);
             self.emit(",\n");
         } else if !label_text.is_empty() {
             self.push_indent();
-            self.emit_text_element("p", "rd-docs-label", label_text, docs.span);
+            self.emit_text_element("p", "rd-docs-label", label_text, call.span);
             self.emit(",\n");
         }
-        if !title.is_empty() && docs.kind != "details" {
+        if !title.is_empty() && call.name != "details" {
             self.push_indent();
-            self.emit_text_element("p", "rd-docs-title", &title, docs.span);
+            self.emit_text_element("p", "rd-docs-title", &title, call.span);
             self.emit(",\n");
         }
-        if docs.kind == "badge" {
+        if call.name == "badge" {
             self.push_indent();
             self.emit_text_element(
                 "span",
                 "rd-docs-badge-label",
                 if label.is_empty() { &title } else { &label },
-                docs.span,
+                call.span,
             );
             self.emit(",\n");
         }
         self.lower_docs_items(&parsed.document.items);
-        if docs.kind == "figure" {
+        if call.name == "figure" {
             if !caption.is_empty() {
                 self.push_indent();
-                self.emit_text_element("figcaption", "rd-docs-caption", &caption, docs.span);
+                self.emit_text_element("figcaption", "rd-docs-caption", &caption, call.span);
                 self.emit(",\n");
             }
             if !credit.is_empty() {
                 self.push_indent();
-                self.emit_text_element("p", "rd-docs-credit", &credit, docs.span);
+                self.emit_text_element("p", "rd-docs-credit", &credit, call.span);
                 self.emit(",\n");
             }
         }
@@ -841,33 +847,39 @@ impl<'a> Emitter<'a> {
                     self.lower_md(node);
                     self.emit(",\n");
                 }
-                Item::Docs(nested) => {
+                Item::Block(nested) if nested.is_legacy_img(self.source.src) => {
+                    self.push_indent();
+                    self.lower_img(nested);
+                    self.emit(",\n");
+                }
+                Item::Block(nested) => {
                     self.push_indent();
                     self.lower_docs(nested);
                     self.emit(",\n");
                 }
-                Item::Img(img) => {
-                    self.push_indent();
-                    self.lower_img(img);
-                    self.emit(",\n");
-                }
+                Item::Docs(_) | Item::Img(_) => {}
                 _ => {}
             }
         }
     }
 
-    fn lower_img(&mut self, img: &ImgDecl) {
-        let fields = crate::img::extract_img_fields(self.source.src, img.body, self.diagnostics);
-        let image = crate::img::StaticImage::from_fields(&fields, img.span);
+    fn lower_img(&mut self, call: &BlockCall) {
+        let body = call
+            .params
+            .as_ref()
+            .map(|params| params.span)
+            .unwrap_or(call.span);
+        let fields = crate::img::extract_img_fields(self.source.src, body, self.diagnostics);
+        let image = crate::img::StaticImage::from_fields(&fields, call.span);
         let attrs = image.html_attrs();
 
         self.emit_html(".void_element(\n");
         self.indent += 1;
         self.push_indent();
-        self.emit_string("img", img.span, OriginKind::MarkdownStructure);
+        self.emit_string("img", call.span, OriginKind::MarkdownStructure);
         self.emit(",\n");
         self.push_indent();
-        self.emit_img_attrs(&attrs, img.span);
+        self.emit_img_attrs(&attrs, call.span);
         self.emit(",\n");
         self.indent -= 1;
         self.push_indent();
@@ -902,7 +914,7 @@ impl<'a> Emitter<'a> {
         self.emit("]");
     }
 
-    fn lower_docs_include(&mut self, docs: &DocsDecl, fields: &[crate::docs::DocsField]) {
+    fn lower_docs_include(&mut self, call: &BlockCall, fields: &[crate::docs::DocsField]) {
         if !self.resolve_includes {
             self.emit_html(".empty");
             return;
@@ -933,7 +945,7 @@ impl<'a> Emitter<'a> {
         let resolved = match resolve_include_path(self.source.name, &path) {
             Ok(path) => path,
             Err(err) => {
-                self.diagnostics.push(Diagnostic::error(docs.span, err));
+                self.diagnostics.push(Diagnostic::error(call.span, err));
                 self.emit_html(".empty");
                 return;
             }
@@ -942,7 +954,7 @@ impl<'a> Emitter<'a> {
             Ok(contents) => contents,
             Err(_) => {
                 self.diagnostics.push(Diagnostic::error(
-                    docs.span,
+                    call.span,
                     format!("could not read include `{}`", resolved.display()),
                 ));
                 self.emit_html(".empty");
@@ -953,7 +965,7 @@ impl<'a> Emitter<'a> {
             match extract_region(&contents, region) {
                 Ok((excerpt, _, _)) => excerpt,
                 Err(err) => {
-                    self.diagnostics.push(Diagnostic::error(docs.span, err));
+                    self.diagnostics.push(Diagnostic::error(call.span, err));
                     self.emit_html(".empty");
                     return;
                 }
@@ -962,7 +974,7 @@ impl<'a> Emitter<'a> {
             match extract_lines(&contents, start, end) {
                 Ok((excerpt, _, _)) => excerpt,
                 Err(err) => {
-                    self.diagnostics.push(Diagnostic::error(docs.span, err));
+                    self.diagnostics.push(Diagnostic::error(call.span, err));
                     self.emit_html(".empty");
                     return;
                 }
@@ -1008,7 +1020,7 @@ impl<'a> Emitter<'a> {
         self.lower_md(&MdNode::CodeBlock {
             info,
             literal: excerpt,
-            span: docs.span,
+            span: call.span,
         });
     }
 
@@ -1954,8 +1966,7 @@ impl<'a> Emitter<'a> {
 
 enum ContentPiece<'a> {
     Markdown(&'a MdNode),
-    Docs(&'a DocsDecl),
-    Img(&'a ImgDecl),
+    Block(&'a BlockCall),
     Render(&'a RenderDecl),
     Template(&'a TemplateItem),
 }
@@ -1971,8 +1982,7 @@ fn group_content(document: &Document) -> Vec<ContentGroup<'_>> {
     for item in &document.items {
         match item {
             Item::Markdown(node) => current.push(ContentPiece::Markdown(node)),
-            Item::Docs(docs) => current.push(ContentPiece::Docs(docs)),
-            Item::Img(img) => current.push(ContentPiece::Img(img)),
+            Item::Block(call) => current.push(ContentPiece::Block(call)),
             Item::Render(render) => current.push(ContentPiece::Render(render)),
             Item::Template(TemplateItem::Let(_)) => {}
             Item::Template(item) if matches!(item, TemplateItem::For(_)) => {
@@ -2000,7 +2010,7 @@ fn document_has_footnotes(document: &Document) -> bool {
 
 fn illegal_docs_item(item: &Item) -> Option<&'static str> {
     match item {
-        Item::Markdown(_) | Item::Docs(_) | Item::Img(_) => None,
+        Item::Markdown(_) | Item::Docs(_) | Item::Img(_) | Item::Block(_) => None,
         Item::Page(_) => Some("page"),
         Item::Roc(_) => Some("roc"),
         Item::Render(_) => Some("render"),
