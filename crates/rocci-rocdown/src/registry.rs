@@ -384,6 +384,34 @@ mod tests {
     }
 
     #[test]
+    fn authorable_docs_kinds_have_named_components() {
+        let src = fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/templates/DocsComponents.rocci"
+        ))
+        .expect("DocsComponents.rocci");
+        for kind in KINDS {
+            if !kind.authorable || kind.family == KindFamily::Sugar {
+                continue;
+            }
+            let needle = format!("@component {}", kind.component);
+            assert!(
+                src.contains(&needle),
+                "DocsComponents.rocci missing painter `{needle}` for kind `{}`",
+                kind.name
+            );
+        }
+        assert!(
+            src.contains("@component Render"),
+            "thin Render adapter should remain until typed props land"
+        );
+        assert!(
+            !src.contains("@component DocsAside"),
+            "DocsAside should not remain as the public aside painter"
+        );
+    }
+
+    #[test]
     fn api_operation_is_reserved_and_not_authorable() {
         let spec = lookup("api-operation").expect("api-operation row");
         assert_eq!(spec.family, KindFamily::Reserved);

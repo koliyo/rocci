@@ -84,106 +84,172 @@ import Html
     }
 }
 
-@component DocsAside = |{ kind, label, title, aria }, body| {
-    @match aria {
-        "" =>
-            <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind}>
-                <p class="rd-docs-label">{label}</p>
-                @if title != "" {
-                    <p class="rd-docs-title">{title}</p>
-                }
-                <div class="rd-docs-body">{body}</div>
-            </aside>
-        _ =>
-            <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind} aria-label={aria}>
-                <p class="rd-docs-label">{label}</p>
-                @if title != "" {
-                    <p class="rd-docs-title">{title}</p>
-                }
-                <div class="rd-docs-body">{body}</div>
-            </aside>
+@component Aside = |{ kind, label, title, aria }, content| {
+    @if aria == "" {
+        <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind}>
+            <p class="rd-docs-label">{label}</p>
+            @if title != "" {
+                <p class="rd-docs-title">{title}</p>
+            }
+            <div class="rd-docs-body">{content}</div>
+        </aside>
+    } @else {
+        <aside class={"rd-docs-aside rd-docs-block rd-docs-${kind}"} data-rocci-docs={kind} aria-label={aria}>
+            <p class="rd-docs-label">{label}</p>
+            @if title != "" {
+                <p class="rd-docs-title">{title}</p>
+            }
+            <div class="rd-docs-body">{content}</div>
+        </aside>
     }
 }
+
+@component Note = |{ title }, content|
+    <Aside kind="note" label="Note" title={title} aria="">{content}</Aside>
+
+@component Tip = |{ title }, content|
+    <Aside kind="tip" label="Tip" title={title} aria="">{content}</Aside>
+
+@component Caution = |{ title }, content|
+    <Aside kind="caution" label="Caution" title={title} aria="">{content}</Aside>
+
+@component Danger = |{ title }, content|
+    <Aside kind="danger" label="Danger" title={title} aria="">{content}</Aside>
+
+@component Deprecated = |{ title }, content|
+    <Aside kind="deprecated" label="Deprecated" title={title} aria="Deprecated">{content}</Aside>
+
+@component Details = |{ summary, open }, content| {
+    @if open {
+        <details class="rd-docs-details rd-docs-block" data-rocci-docs="details" open="open">
+            <summary class="rd-docs-summary">{summary}</summary>
+            <div class="rd-docs-body">{content}</div>
+        </details>
+    } @else {
+        <details class="rd-docs-details rd-docs-block" data-rocci-docs="details">
+            <summary class="rd-docs-summary">{summary}</summary>
+            <div class="rd-docs-body">{content}</div>
+        </details>
+    }
+}
+
+@component Steps = |{}, content|
+    <div class="rd-docs-steps rd-docs-block" data-rocci-docs="steps">{content}</div>
+
+@component Step = |{ title, verify }, content| {
+    <div class="rd-docs-step" data-rocci-docs="step">
+        @if verify {
+            <p class="rd-docs-verify">Verify</p>
+        }
+        @if title != "" {
+            <p class="rd-docs-title">{title}</p>
+        }
+        <div class="rd-docs-body">{content}</div>
+    </div>
+}
+
+@component Figure = |{ caption, credit }, content| {
+    <figure class="rd-docs-figure rd-docs-block" data-rocci-docs="figure">
+        {content}
+        @if caption != "" {
+            <figcaption class="rd-docs-caption">{caption}</figcaption>
+        }
+        @if credit != "" {
+            <p class="rd-docs-credit">{credit}</p>
+        }
+    </figure>
+}
+
+@component Definition = |{ title }, content|
+    <dl class="rd-docs-definition rd-docs-block" data-rocci-docs="definition">
+        <dt>{title}</dt>
+        <dd>{content}</dd>
+    </dl>
+
+@component Tabs = |{}, content|
+    <div class="rd-docs-tabs rd-docs-block" data-rocci-docs="tabs">{content}</div>
+
+@component Tab = |{ label }, content|
+    <section class="rd-docs-tab" data-rocci-docs="tab" aria-label={label}>
+        <h3 class="rd-docs-tab-label">{label}</h3>
+        {content}
+    </section>
+
+@component LinkCard = |{ href, title, summary }| {
+    <a class="rd-docs-card rd-docs-block" data-rocci-docs="link-card" href={href}>
+        <span class="rd-docs-card-title">{title}</span>
+        @if summary != "" {
+            <span class="rd-docs-card-summary">{summary}</span>
+        }
+    </a>
+}
+
+@component CardGrid = |{}, content|
+    <div class="rd-docs-card-grid rd-docs-block" data-rocci-docs="card-grid">{content}</div>
+
+@component FileTree = |{}, content|
+    <div class="rd-docs-tree rd-docs-block" data-rocci-docs="file-tree" aria-label="File tree">{content}</div>
+
+@component Badge = |{ label }|
+    <p class="rd-docs-badge rd-docs-block" data-rocci-docs="badge">
+        <span class="rd-docs-badge-label">{label}</span>
+    </p>
+
+@component Compatibility = |{ caption }, content| {
+    <div class="rd-docs-compatibility rd-docs-block" data-rocci-docs="compatibility">
+        @if caption != "" {
+            <p class="rd-docs-caption">{caption}</p>
+        }
+        {content}
+    </div>
+}
+
+@component Example = |{}, content|
+    <figure class="rd-docs-example rd-docs-block" data-rocci-docs="example">{content}</figure>
+
+@component Include = |{}, content|
+    <>{content}</>
 
 @component Render = |segment, body| {
     @match segment.kind {
         "note" =>
-            <DocsAside kind="note" label="Note" title={segment.title} aria="">{body}</DocsAside>
+            <Note title={segment.title}>{body}</Note>
         "tip" =>
-            <DocsAside kind="tip" label="Tip" title={segment.title} aria="">{body}</DocsAside>
+            <Tip title={segment.title}>{body}</Tip>
         "caution" =>
-            <DocsAside kind="caution" label="Caution" title={segment.title} aria="">{body}</DocsAside>
+            <Caution title={segment.title}>{body}</Caution>
         "danger" =>
-            <DocsAside kind="danger" label="Danger" title={segment.title} aria="">{body}</DocsAside>
+            <Danger title={segment.title}>{body}</Danger>
         "deprecated" =>
-            <DocsAside kind="deprecated" label="Deprecated" title={segment.title} aria="Deprecated">{body}</DocsAside>
+            <Deprecated title={segment.title}>{body}</Deprecated>
         "details" =>
-            @match segment.open {
-                True =>
-                    <details class="rd-docs-details rd-docs-block" data-rocci-docs="details" open="open">
-                        <summary class="rd-docs-summary">{segment.summary}</summary>
-                        <div class="rd-docs-body">{body}</div>
-                    </details>
-                False =>
-                    <details class="rd-docs-details rd-docs-block" data-rocci-docs="details">
-                        <summary class="rd-docs-summary">{segment.summary}</summary>
-                        <div class="rd-docs-body">{body}</div>
-                    </details>
-            }
-        "steps" => <div class="rd-docs-steps rd-docs-block" data-rocci-docs="steps">{body}</div>
+            <Details summary={segment.summary} open={segment.open}>{body}</Details>
+        "steps" =>
+            <Steps>{body}</Steps>
         "step" =>
-            <div class="rd-docs-step" data-rocci-docs="step">
-                @if segment.verify {
-                    <p class="rd-docs-verify">Verify</p>
-                }
-                @if segment.title != "" {
-                    <p class="rd-docs-title">{segment.title}</p>
-                }
-                <div class="rd-docs-body">{body}</div>
-            </div>
+            <Step title={segment.title} verify={segment.verify}>{body}</Step>
         "figure" =>
-            <figure class="rd-docs-figure rd-docs-block" data-rocci-docs="figure">
-                {body}
-                @if segment.caption != "" {
-                    <figcaption class="rd-docs-caption">{segment.caption}</figcaption>
-                }
-                @if segment.credit != "" {
-                    <p class="rd-docs-credit">{segment.credit}</p>
-                }
-            </figure>
+            <Figure caption={segment.caption} credit={segment.credit}>{body}</Figure>
         "definition" =>
-            <dl class="rd-docs-definition rd-docs-block" data-rocci-docs="definition">
-                <dt>{segment.title}</dt>
-                <dd>{body}</dd>
-            </dl>
-        "tabs" => <div class="rd-docs-tabs rd-docs-block" data-rocci-docs="tabs">{body}</div>
+            <Definition title={segment.title}>{body}</Definition>
+        "tabs" =>
+            <Tabs>{body}</Tabs>
         "tab" =>
-            <section class="rd-docs-tab" data-rocci-docs="tab" aria-label={segment.label}>
-                <h3 class="rd-docs-tab-label">{segment.label}</h3>
-                {body}
-            </section>
+            <Tab label={segment.label}>{body}</Tab>
         "link-card" =>
-            <a class="rd-docs-card rd-docs-block" data-rocci-docs="link-card" href={segment.href}>
-                <span class="rd-docs-card-title">{segment.title}</span>
-                @if segment.summary != "" {
-                    <span class="rd-docs-card-summary">{segment.summary}</span>
-                }
-            </a>
-        "card-grid" => <div class="rd-docs-card-grid rd-docs-block" data-rocci-docs="card-grid">{body}</div>
-        "file-tree" => <div class="rd-docs-tree rd-docs-block" data-rocci-docs="file-tree" aria-label="File tree">{body}</div>
+            <LinkCard href={segment.href} title={segment.title} summary={segment.summary} />
+        "card-grid" =>
+            <CardGrid>{body}</CardGrid>
+        "file-tree" =>
+            <FileTree>{body}</FileTree>
         "badge" =>
-            <p class="rd-docs-badge rd-docs-block" data-rocci-docs="badge">
-                <span class="rd-docs-badge-label">{segment.label}</span>
-            </p>
+            <Badge label={segment.label} />
         "compatibility" =>
-            <div class="rd-docs-compatibility rd-docs-block" data-rocci-docs="compatibility">
-                @if segment.caption != "" {
-                    <p class="rd-docs-caption">{segment.caption}</p>
-                }
-                {body}
-            </div>
-        "example" => <figure class="rd-docs-example rd-docs-block" data-rocci-docs="example">{body}</figure>
-        "include" => <>{body}</>
+            <Compatibility caption={segment.caption}>{body}</Compatibility>
+        "example" =>
+            <Example>{body}</Example>
+        "include" =>
+            <Include>{body}</Include>
         _ => <section class="rd-docs-block" data-rocci-docs={segment.kind}>{body}</section>
     }
 }

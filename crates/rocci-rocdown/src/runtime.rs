@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 
 pub const HTML: &str = include_str!("../runtime/Html.roc");
 pub(crate) const BUILD: &str = include_str!("../runtime/RocdownBuild.roc");
+pub(crate) const BUILD_WASM: &str = include_str!("../runtime/RocdownBuild.wasm.roc");
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
 pub const BASE: &str = include_str!("../templates/RocdownBase.rocci");
 pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
@@ -40,6 +41,10 @@ pub fn stage_into(dir: &Path) -> Result<()> {
     fs::write(dir.join("RocdownBuild.roc"), BUILD)
         .with_context(|| format!("failed to write {}/RocdownBuild.roc", dir.display()))?;
     Ok(())
+}
+
+pub fn build_roc(is_wasm: bool) -> &'static str {
+    if is_wasm { BUILD_WASM } else { BUILD }
 }
 
 pub fn runtime_bytes() -> usize {

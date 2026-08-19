@@ -275,7 +275,9 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
 site chrome and named layouts. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
-unless the project supplies those modules. Article HTML is an `Html` body
+unless the project supplies those modules. Each `@docs` kind has a named Rocci
+component (`Note`, `Tabs`, `Figure`, …); a thin `Render` adapter still dispatches
+from planned segment records. Article HTML is an `Html` body
 parameter: write `@component Layout = |{ view }, content|` and `{content}` in
 the template body. Putting `content` in the props record wraps it in
 `Html.text` and escapes the article as text.

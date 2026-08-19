@@ -119,7 +119,7 @@ fn build_loaded_with_host(
                 eprint!("{roc_output}");
             }
             let bytes = fs::read(&apply_bin)?;
-            let fp = staged_fingerprints(&plan);
+            let fp = staged_fingerprints(&plan, is_wasm);
             let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
             (stored, true, roc_ms)
         };
@@ -259,7 +259,7 @@ impl BuildSession {
                 }
                 self.roc_hash = Some(staged.roc_hash.clone());
                 let bytes = fs::read(&self.apply_bin)?;
-                let fp = staged_fingerprints(&plan);
+                let fp = staged_fingerprints(&plan, is_wasm);
                 let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
                 recompiled = true;
                 stored
@@ -327,7 +327,10 @@ fn write_plan_files(
     plan: &BuildPlan,
     is_wasm: bool,
 ) -> Result<StagedBuild> {
-    let mut generated_roc_bytes = runtime::runtime_bytes();
+    let build_roc = runtime::build_roc(is_wasm);
+    fs::write(workspace.join("RocdownBuild.roc"), build_roc)
+        .context("failed to write RocdownBuild.roc")?;
+    let mut generated_roc_bytes = runtime::HTML.len() + build_roc.len();
     for module in &plan.theme_modules {
         generated_roc_bytes += module.roc.len();
         fs::write(
@@ -375,7 +378,7 @@ fn write_plan_files(
 
     Ok(StagedBuild {
         generated_roc_bytes,
-        roc_hash: roc_source_hash(&pages_roc, &plan.theme_modules, &main),
+        roc_hash: roc_source_hash(&pages_roc, &plan.theme_modules, &main, build_roc),
     })
 }
 
@@ -411,7 +414,7 @@ fn theme_maps(plan: &BuildPlan) -> Vec<MappedModule> {
         .collect()
 }
 
-fn staged_fingerprints(plan: &BuildPlan) -> Vec<rocci_roc_host::InputFingerprint> {
+fn staged_fingerprints(plan: &BuildPlan, is_wasm: bool) -> Vec<rocci_roc_host::InputFingerprint> {
     let mut fps = Vec::new();
     for module in &plan.theme_modules {
         fps.push(rocci_roc_host::InputFingerprint::from_bytes(
@@ -425,7 +428,7 @@ fn staged_fingerprints(plan: &BuildPlan) -> Vec<rocci_roc_host::InputFingerprint
     ));
     fps.push(rocci_roc_host::InputFingerprint::from_bytes(
         "RocdownBuild.roc",
-        runtime::BUILD.as_bytes(),
+        runtime::build_roc(is_wasm).as_bytes(),
     ));
     fps
 }
@@ -434,10 +437,11 @@ pub(crate) fn roc_source_hash(
     pages_roc: &str,
     theme_modules: &[crate::plan::CompiledThemeModule],
     main_roc: &str,
+    build_roc: &str,
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(runtime::HTML.as_bytes());
-    hasher.update(runtime::BUILD.as_bytes());
+    hasher.update(build_roc.as_bytes());
     hasher.update(pages_roc.as_bytes());
     for m in theme_modules {
         hasher.update(m.type_name.as_bytes());
@@ -519,10 +523,9 @@ main! = |{{}}| {{
 app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
 
 import RocdownBuild
-import RocdownPages
 
 main! = |_args| {{
-    _ = RocdownBuild.render_all(RocdownPages.pages)
+    RocdownBuild.run!({{}})?
     Ok({{}})
 }}
 "
@@ -639,6 +642,22 @@ fn write_planned_outputs(staging: &Path, plan: &BuildPlan) -> Result<()> {
     for file in &plan.files {
         fs::write(staging.join(&file.output_path), &file.contents)
             .with_context(|| format!("failed to write {}", file.output_path))?;
+    }
+    for page in &plan.pages {
+        let dest = staging.join(&page.output_path);
+        if dest.exists() {
+            continue;
+        }
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        let html = if page.article_html.contains("<!DOCTYPE") {
+            page.article_html.clone()
+        } else {
+            format!("<!DOCTYPE html>\n{}", page.article_html)
+        };
+        fs::write(&dest, html).with_context(|| format!("failed to write {}", page.output_path))?;
     }
     Ok(())
 }
