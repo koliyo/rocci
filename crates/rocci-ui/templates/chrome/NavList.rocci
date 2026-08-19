@@ -1,5 +1,13 @@
 import Html
 
+@css {
+    .nav-items { display: grid; }
+    .nav-link {
+        display: block;
+        text-decoration: none;
+    }
+}
+
 @component NavList = |{ items, route, aria_label }| {
     <nav aria-label={aria_label}>
         <div class="nav-items">
