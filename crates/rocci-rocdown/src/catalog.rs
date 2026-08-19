@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::Serialize;
 
+use crate::article::PageKind;
 use crate::config::NavConfig;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -84,6 +85,7 @@ pub struct SourcePage {
     pub outgoing_links: Vec<String>,
     pub image_urls: Vec<String>,
     pub article_html: String,
+    pub kind: PageKind,
     pub docs: crate::docs::PageDocs,
 }
 
@@ -105,6 +107,7 @@ pub struct NavLink {
 pub struct ResolvedPage {
     pub id: String,
     pub source_path: String,
+    pub kind: PageKind,
     pub title: String,
     pub description: String,
     pub layout: String,
@@ -265,6 +268,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
         resolved.push(ResolvedPage {
             id: page.id.clone(),
             source_path: page.source_path.clone(),
+            kind: page.kind,
             title: page.title.clone(),
             description: page.description.clone(),
             layout: page.layout.clone(),
@@ -979,6 +983,7 @@ mod tests {
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
             article_html: String::new(),
+            kind: crate::article::PageKind::Static,
             docs: crate::docs::PageDocs::default(),
         }
     }
@@ -1002,6 +1007,24 @@ mod tests {
         assert_eq!(result.site.pages[0].output_path, "guide/index.html");
         assert_eq!(result.site.pages[1].route, "/");
         assert_eq!(result.site.pages[1].output_path, "index.html");
+        assert_eq!(result.site.pages[0].kind, crate::article::PageKind::Static);
+    }
+
+    #[test]
+    fn copies_page_kind_onto_resolved_pages() {
+        let mut hydrate = page("widget", "widget.rocdown", RouteHint::Derived, "Widget");
+        hydrate.kind = crate::article::PageKind::Hydrate;
+        let mut live = page("counter", "counter.rocdown", RouteHint::Derived, "Counter");
+        live.kind = crate::article::PageKind::Live;
+        let result = resolved(&[hydrate, live]);
+        let by_id: std::collections::BTreeMap<_, _> = result
+            .site
+            .pages
+            .iter()
+            .map(|page| (page.id.as_str(), page.kind))
+            .collect();
+        assert_eq!(by_id["widget"], crate::article::PageKind::Hydrate);
+        assert_eq!(by_id["counter"], crate::article::PageKind::Live);
     }
 
     #[test]

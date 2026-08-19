@@ -26,7 +26,7 @@ mod site;
 pub mod standalone;
 pub mod theme;
 
-pub use article::render_document;
+pub use article::{PageClass, PageKind, classify_document, render_document};
 pub use ast::{
     BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
     EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,
