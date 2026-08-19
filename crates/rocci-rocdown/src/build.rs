@@ -148,7 +148,7 @@ fn build_loaded_with_host(
         };
 
     let roc_started = Instant::now();
-    let roc_output = apply_html(&workspace, &staging, &maps, is_wasm, &apply_path)
+    let roc_output = apply_html(&workspace, &staging, &maps, is_wasm, &apply_path, &plan)
         .with_context(|| format!("workspace {}", workspace.display()))?;
     let roc_ms = roc_started.elapsed().as_millis();
     if !roc_output.is_empty() {
@@ -290,7 +290,7 @@ impl BuildSession {
             };
 
         let roc_started = Instant::now();
-        let roc_output = apply_html(&self.workspace, &staging, &maps, is_wasm, &apply_bin)
+        let roc_output = apply_html(&self.workspace, &staging, &maps, is_wasm, &apply_bin, &plan)
             .with_context(|| format!("workspace {}", self.workspace.display()))?;
         let roc_ms = roc_started.elapsed().as_millis();
         if !roc_output.is_empty() {
@@ -512,7 +512,10 @@ fn staged_fingerprints(plan: &BuildPlan, is_wasm: bool) -> Vec<rocci_roc_host::I
 }
 
 fn staged_build_roc(plan: &BuildPlan, is_wasm: bool) -> String {
-    runtime::build_roc(is_wasm).replace("        # rocci-pack-kind-arms\n", &plan.pack_render_arms)
+    runtime::build_roc(is_wasm).replace(
+        "        # rocci-widget-kind-arms\n",
+        &plan.widget_render_arms,
+    )
 }
 
 pub(crate) fn roc_source_hash(
@@ -691,12 +694,13 @@ fn apply_html(
     maps: &[MappedModule],
     is_wasm: bool,
     compiled: &Path,
+    plan: &BuildPlan,
 ) -> Result<String> {
     if is_wasm {
         let wasm_out = invoke_wasm_apply(compiled, workspace, staging)?;
         fs::write(
             workspace.join("RocdownBuild.roc"),
-            runtime::build_roc(false),
+            staged_build_roc(plan, false),
         )
         .context("failed to write native RocdownBuild.roc")?;
         fs::write(workspace.join("main.roc"), main_roc(false))

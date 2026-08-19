@@ -987,7 +987,7 @@ mod tests {
     }
 
     #[test]
-    fn rocdown_build_calls_each_widget_component() {
+    fn rocdown_build_keeps_io_wrapper_not_a_kind_table() {
         let src = include_str!("../runtime/RocdownBuild.roc");
         assert!(
             !src.contains("DocsComponents.render"),
@@ -995,22 +995,15 @@ mod tests {
         );
         assert!(src.contains("child_count"), "{src}");
         assert!(src.contains("HtmlFile"), "{src}");
-        for spec in widget_kinds() {
-            let mut chars = spec.component.chars();
-            let first = chars.next().unwrap();
-            let roc_name: String = first.to_lowercase().chain(chars).collect();
-            let call = format!("BlockPainters.{roc_name}");
-            assert!(
-                src.contains(&call),
-                "RocdownBuild.roc missing `{call}` for kind `{}`",
-                spec.name
-            );
-            assert!(
-                src.contains(spec.component),
-                "RocdownBuild.roc missing tag `{}`",
-                spec.component
-            );
-        }
+        assert!(src.contains("render_forest!"), "{src}");
+        assert!(
+            src.contains("# rocci-widget-kind-arms"),
+            "kind arms are generated at plan time"
+        );
+        assert!(
+            !src.contains("Note(seg)"),
+            "adding a widget kind must not edit RocdownBuild.roc match arms"
+        );
     }
 
     fn pack_component(
