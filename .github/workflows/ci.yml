@@ -16,13 +16,17 @@ permissions:
 jobs:
   lint:
     name: Code Formatting & Lints
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Check workspace dependency direction
         run: python3 scripts/check-workspace-deps.py
       - name: Check code formatting
@@ -55,11 +59,15 @@ jobs:
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Inspect AST syntax fixtures
         run: |
           cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
