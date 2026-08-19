@@ -291,7 +291,9 @@ component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
 `[blocks] pack` in `rocdown.toml` selects a different pack path;
 `[blocks.override]` remaps a kind to a pack component. Known kinds without a
 painter fail `rocdown build` / `check` unless `[blocks] debug = true`; preview
-paints a `data-rocci-block-debug` placeholder. See
+paints a `data-rocci-block-debug` placeholder. A pack component that does not
+match a builtin painter is a custom static kind (`Callout` → `:callout`);
+helpers must not live in the pack. See
 [Rocdown site configuration](../../docs/reference/rocdown-site.rocdown). Static
 apply data is a tagged union of
 per-kind props plus fragment paths; widget bodies stay in HTML files and are

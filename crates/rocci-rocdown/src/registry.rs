@@ -3,6 +3,9 @@
 //! Kind names are data, not parser keywords. Unknown article kinds, parent/child
 //! placement, and simple required-field diagnostics are driven from this table.
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 const LINK_CARD_TARGET: &[&str] = &["page", "href"];
 
 pub const TAB_KIND_VALUES: &[&str] = &["language", "platform", "tool"];
@@ -106,6 +109,9 @@ impl KindSpec {
     }
 
     pub fn paint_content(self) -> bool {
+        if let Some(paint) = pack_paint(self.name) {
+            return paint.has_body;
+        }
         self.paints_as_widget() && !matches!(self.name, "badge" | "link-card")
     }
 
@@ -121,7 +127,9 @@ impl KindSpec {
             "badge" => BADGE,
             "link-card" => LINK_CARD,
             "compatibility" => CAPTION,
-            _ => &[],
+            _ => pack_paint(self.name)
+                .map(|paint| paint.fields)
+                .unwrap_or(&[]),
         }
     }
 
@@ -481,8 +489,213 @@ const fn sugar(name: &'static str, component: &'static str) -> KindSpec {
     }
 }
 
+thread_local! {
+    static PACK_KINDS: RefCell<Vec<&'static KindSpec>> = const { RefCell::new(Vec::new()) };
+    static PACK_PAINT: RefCell<HashMap<&'static str, PackPaint>> = RefCell::new(HashMap::new());
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PackPaint {
+    fields: &'static [PaintField],
+    has_body: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InferredKind {
+    pub spec: &'static KindSpec,
+    paint: PackPaint,
+}
+
+fn pack_paint(name: &str) -> Option<PackPaint> {
+    PACK_PAINT.with(|slot| slot.borrow().get(name).copied())
+}
+
+fn leak_str(value: String) -> &'static str {
+    Box::leak(value.into_boxed_str())
+}
+
+fn leak_str_slice(values: Vec<String>) -> &'static [&'static str] {
+    let leaked: Vec<&'static str> = values.into_iter().map(leak_str).collect();
+    Box::leak(leaked.into_boxed_slice())
+}
+
+fn leak_paint_fields(fields: Vec<PaintField>) -> &'static [PaintField] {
+    Box::leak(fields.into_boxed_slice())
+}
+
+pub fn pascal_to_kebab(name: &str) -> String {
+    let mut out = String::new();
+    for (index, ch) in name.chars().enumerate() {
+        if ch.is_uppercase() {
+            if index > 0 {
+                out.push('-');
+            }
+            out.extend(ch.to_lowercase());
+        } else {
+            out.push(ch);
+        }
+    }
+    out
+}
+
+pub fn infer_pack_kinds(
+    components: &[rocci_template::ComponentInfo],
+) -> anyhow::Result<Vec<InferredKind>> {
+    let mut inferred = Vec::new();
+    for component in components {
+        let pascal = rocci_template::camel_to_pascal(&component.name);
+        if KINDS.iter().any(|spec| spec.component == pascal) {
+            continue;
+        }
+        let kebab = pascal_to_kebab(&pascal);
+        if module_collision(&kebab) {
+            anyhow::bail!(
+                "block pack component `{pascal}` collides with reserved name `{kebab}`; helpers must not live in the block pack"
+            );
+        }
+        if KINDS.iter().any(|spec| spec.name == kebab) {
+            anyhow::bail!("block pack component `{pascal}` collides with builtin kind `{kebab}`");
+        }
+        inferred.push(leak_inferred_kind(pascal, kebab, component));
+    }
+    Ok(inferred)
+}
+
+fn leak_inferred_kind(
+    pascal: String,
+    kebab: String,
+    component: &rocci_template::ComponentInfo,
+) -> InferredKind {
+    let body: std::collections::HashSet<&str> =
+        component.body_params.iter().map(String::as_str).collect();
+    let optional: std::collections::HashSet<&str> = component
+        .optional_params
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let record_fields: Vec<&str> = component
+        .param_names
+        .iter()
+        .map(String::as_str)
+        .filter(|name| !body.contains(name))
+        .collect();
+    let required: Vec<String> = record_fields
+        .iter()
+        .filter(|name| !optional.contains(*name))
+        .map(|name| (*name).to_string())
+        .collect();
+    let optionals: Vec<String> = record_fields
+        .iter()
+        .filter(|name| optional.contains(*name))
+        .map(|name| (*name).to_string())
+        .collect();
+    let paint_fields: Vec<PaintField> = record_fields
+        .iter()
+        .map(|name| {
+            let ty = component
+                .param_types
+                .iter()
+                .find(|(field, _)| field == name)
+                .map(|(_, ty)| ty.as_str());
+            let leaked = leak_str((*name).to_string());
+            if ty == Some("Bool") {
+                PaintField {
+                    prop: leaked,
+                    attr: leaked,
+                    ty: PaintType::Bool,
+                }
+            } else {
+                PaintField {
+                    prop: leaked,
+                    attr: leaked,
+                    ty: PaintType::Str,
+                }
+            }
+        })
+        .collect();
+    let has_body = !component.body_params.is_empty();
+    let spec = KindSpec {
+        name: leak_str(kebab),
+        component: leak_str(pascal),
+        family: KindFamily::Structure,
+        authorable: true,
+        diagnostic_code: "RD2402",
+        required_fields: leak_str_slice(required),
+        optional_fields: leak_str_slice(optionals),
+        parents: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
+        required_one_of: &[],
+    };
+    InferredKind {
+        spec: Box::leak(Box::new(spec)),
+        paint: PackPaint {
+            fields: leak_paint_fields(paint_fields),
+            has_body,
+        },
+    }
+}
+
 pub fn lookup(name: &str) -> Option<&'static KindSpec> {
-    KINDS.iter().find(|kind| kind.name == name)
+    KINDS.iter().find(|kind| kind.name == name).or_else(|| {
+        PACK_KINDS.with(|slot| slot.borrow().iter().copied().find(|kind| kind.name == name))
+    })
+}
+
+pub fn pack_kinds() -> Vec<&'static KindSpec> {
+    PACK_KINDS.with(|slot| slot.borrow().clone())
+}
+
+pub fn widget_specs() -> Vec<&'static KindSpec> {
+    let mut specs: Vec<&'static KindSpec> = KINDS
+        .iter()
+        .filter(|kind| kind.paints_as_widget())
+        .collect();
+    for spec in pack_kinds() {
+        if spec.paints_as_widget() && specs.iter().all(|existing| existing.name != spec.name) {
+            specs.push(spec);
+        }
+    }
+    specs
+}
+
+#[allow(dead_code)]
+pub fn with_pack_kinds<T>(kinds: &[InferredKind], f: impl FnOnce() -> T) -> T {
+    let _guard = install_pack_kinds(kinds);
+    f()
+}
+
+pub fn install_pack_kinds(kinds: &[InferredKind]) -> PackKindGuard {
+    let specs: Vec<&'static KindSpec> = kinds.iter().map(|kind| kind.spec).collect();
+    let paint: HashMap<&'static str, PackPaint> = kinds
+        .iter()
+        .map(|kind| (kind.spec.name, kind.paint))
+        .collect();
+    let previous_kinds = PACK_KINDS.with(|slot| slot.replace(specs));
+    let previous_paint = PACK_PAINT.with(|slot| slot.replace(paint));
+    PackKindGuard {
+        previous_kinds,
+        previous_paint,
+    }
+}
+
+pub struct PackKindGuard {
+    previous_kinds: Vec<&'static KindSpec>,
+    previous_paint: HashMap<&'static str, PackPaint>,
+}
+
+impl Drop for PackKindGuard {
+    fn drop(&mut self) {
+        PACK_KINDS.with(|slot| {
+            slot.replace(std::mem::take(&mut self.previous_kinds));
+        });
+        PACK_PAINT.with(|slot| {
+            slot.replace(std::mem::take(&mut self.previous_paint));
+        });
+    }
 }
 
 pub fn authorable_kinds() -> impl Iterator<Item = &'static KindSpec> {
@@ -798,5 +1011,74 @@ mod tests {
                 spec.component
             );
         }
+    }
+
+    fn pack_component(
+        name: &str,
+        params: &[&str],
+        optionals: &[&str],
+        body: &[&str],
+        types: &[(&str, &str)],
+    ) -> rocci_template::ComponentInfo {
+        rocci_template::ComponentInfo {
+            name: name.to_string(),
+            body_params: body.iter().map(|value| (*value).to_string()).collect(),
+            param_names: params.iter().map(|value| (*value).to_string()).collect(),
+            optional_params: optionals.iter().map(|value| (*value).to_string()).collect(),
+            param_defaults: Vec::new(),
+            param_types: types
+                .iter()
+                .map(|(field, ty)| ((*field).to_string(), (*ty).to_string()))
+                .collect(),
+            first_param_is_record: true,
+            span: rocci_template::Span::point(0),
+        }
+    }
+
+    #[test]
+    fn infer_pack_kinds_adds_callout_and_skips_builtin_note() {
+        let kinds = infer_pack_kinds(&[
+            pack_component("note", &["title", "content"], &[], &["content"], &[]),
+            pack_component(
+                "callout",
+                &["tone", "content"],
+                &["tone"],
+                &["content"],
+                &[("tone", "Str")],
+            ),
+        ])
+        .unwrap();
+        assert_eq!(kinds.len(), 1);
+        assert_eq!(kinds[0].spec.name, "callout");
+        assert_eq!(kinds[0].spec.component, "Callout");
+        assert!(kinds[0].spec.authorable);
+        assert!(kinds[0].spec.accepts_markdown);
+        assert!(kinds[0].spec.accepts.is_empty());
+        with_pack_kinds(&kinds, || {
+            let spec = lookup("callout").expect("pack kind");
+            assert!(spec.paints_as_widget());
+            assert!(spec.paint_content());
+            assert_eq!(spec.paint_fields()[0].prop, "tone");
+            assert_eq!(spec.optional_fields, &["tone"]);
+        });
+        assert!(lookup("callout").is_none());
+    }
+
+    #[test]
+    fn infer_pack_kinds_rejects_reserved_module_names() {
+        let err = infer_pack_kinds(&[pack_component(
+            "page",
+            &["title", "content"],
+            &[],
+            &["content"],
+            &[],
+        )])
+        .unwrap_err()
+        .to_string();
+        assert!(err.contains("reserved name `page`"), "{err}");
+        assert!(
+            err.contains("helpers must not live in the block pack"),
+            "{err}"
+        );
     }
 }

@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
@@ -104,6 +104,7 @@ pub struct CompiledThemeModule {
     pub segments: Vec<Segment>,
     pub styles: Vec<rocci_template::StyleArtifact>,
     pub components: Vec<String>,
+    pub component_infos: Vec<rocci_template::ComponentInfo>,
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +119,7 @@ pub struct BuildPlan {
     pub datastar: bool,
     pub service_origin: String,
     pub service_routes: Vec<IslandRoute>,
+    pub pack_render_arms: String,
 }
 
 impl BuildPlan {
@@ -182,7 +184,7 @@ pub fn plan_preview(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Re
 }
 
 pub(crate) fn validate_theme_painters(root: &Path, config: &SiteConfig) -> Result<()> {
-    compile_theme_modules(root, config, false)?;
+    compile_theme_with_painters(root, config, false)?;
     Ok(())
 }
 
@@ -192,7 +194,8 @@ fn plan_with_preview(
     site: &ResolvedSite,
     preview: bool,
 ) -> Result<BuildPlan> {
-    let theme_modules = compile_theme_modules(root, config, preview)?;
+    let (theme_modules, inferred) = compile_theme_with_painters(root, config, preview)?;
+    let _guard = crate::registry::install_pack_kinds(&inferred);
     let mut assets = hash_site_assets(root, config)?;
     let mut theme_css = theme_modules
         .iter()
@@ -382,14 +385,79 @@ fn plan_with_preview(
         datastar: has_live,
         service_origin,
         service_routes,
+        pack_render_arms: pack_kind_render_arms(),
     })
+}
+
+fn compile_theme_with_painters(
+    root: &Path,
+    config: &SiteConfig,
+    preview: bool,
+) -> Result<(Vec<CompiledThemeModule>, Vec<crate::registry::InferredKind>)> {
+    let (mut modules, pack_names) = compile_theme_modules(root, config)?;
+    let inferred = inferred_kinds_from_pack(&modules, &pack_names)?;
+    let allow_debug = preview || config.blocks.debug;
+    let _guard = crate::registry::install_pack_kinds(&inferred);
+    modules.push(block_painters_module(
+        &modules,
+        &pack_names,
+        &config.blocks.override_map,
+        allow_debug,
+    )?);
+    Ok((modules, inferred))
+}
+
+fn inferred_kinds_from_pack(
+    modules: &[CompiledThemeModule],
+    pack_names: &[String],
+) -> Result<Vec<crate::registry::InferredKind>> {
+    let infos: Vec<_> = modules
+        .iter()
+        .filter(|module| pack_names.contains(&module.type_name))
+        .flat_map(|module| module.component_infos.iter().cloned())
+        .collect();
+    crate::registry::infer_pack_kinds(&infos)
+}
+
+pub(crate) fn site_has_block_pack(root: &Path, config: &SiteConfig) -> bool {
+    if config.blocks.pack.is_some() {
+        return true;
+    }
+    let Some(theme_dir) = theme_dir_for_pack(root, config) else {
+        return false;
+    };
+    theme_dir.join("Blocks.rocci").is_file() || theme_dir.join("blocks").is_dir()
+}
+
+fn theme_dir_for_pack(root: &Path, config: &SiteConfig) -> Option<PathBuf> {
+    if let Some(theme) = &config.build.theme {
+        let path = root.join(theme);
+        if path.is_dir() {
+            return Some(path);
+        }
+        if path.is_file() {
+            return path.parent().map(Path::to_path_buf);
+        }
+        return None;
+    }
+    let theme_dir = root.join("theme");
+    theme_dir.is_dir().then_some(theme_dir)
+}
+
+pub(crate) fn infer_site_pack_kinds(
+    root: &Path,
+    config: &SiteConfig,
+) -> Result<Vec<crate::registry::InferredKind>> {
+    let mut modules = Vec::new();
+    let theme_dir = theme_dir_for_pack(root, config);
+    let pack_names = compile_block_pack(root, theme_dir.as_deref(), config, &mut modules)?;
+    inferred_kinds_from_pack(&modules, &pack_names)
 }
 
 fn compile_theme_modules(
     root: &Path,
     config: &SiteConfig,
-    preview: bool,
-) -> Result<Vec<CompiledThemeModule>> {
+) -> Result<(Vec<CompiledThemeModule>, Vec<String>)> {
     let target = if let Some(theme) = &config.build.theme {
         let p = root.join(theme);
         if !p.exists() {
@@ -424,25 +492,11 @@ fn compile_theme_modules(
         };
         let mut modules = compile_project_theme(root, &target)?;
         let pack_names = compile_block_pack(root, Some(&theme_dir), config, &mut modules)?;
-        let allow_debug = preview || config.blocks.debug;
-        modules.push(block_painters_module(
-            &modules,
-            &pack_names,
-            &config.blocks.override_map,
-            allow_debug,
-        )?);
-        Ok(modules)
+        Ok((modules, pack_names))
     } else {
         let mut modules = compile_builtin_theme()?;
         let pack_names = compile_block_pack(root, None, config, &mut modules)?;
-        let allow_debug = preview || config.blocks.debug;
-        modules.push(block_painters_module(
-            &modules,
-            &pack_names,
-            &config.blocks.override_map,
-            allow_debug,
-        )?);
-        Ok(modules)
+        Ok((modules, pack_names))
     }
 }
 
@@ -492,6 +546,7 @@ fn compile_single_module(
             .iter()
             .map(|component| component.name.clone())
             .collect(),
+        component_infos: compiled.components.clone(),
     })
 }
 
@@ -574,6 +629,7 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
                 segments: Vec::new(),
                 styles: Vec::new(),
                 components: Vec::new(),
+                component_infos: Vec::new(),
             });
         } else {
             bail!(
@@ -622,6 +678,10 @@ fn compile_block_pack(
     let Some(theme_dir) = theme_dir else {
         return Ok(Vec::new());
     };
+    let blocks_file = theme_dir.join("Blocks.rocci");
+    if blocks_file.is_file() {
+        return Ok(vec![ensure_theme_module(root, &blocks_file, modules)?]);
+    }
     let pack_dir = theme_dir.join("blocks");
     if !pack_dir.is_dir() {
         return Ok(Vec::new());
@@ -694,6 +754,48 @@ fn roc_fn_name(component: &str) -> String {
     let mut chars = component.chars();
     let first = chars.next().unwrap();
     first.to_lowercase().chain(chars).collect()
+}
+
+fn pack_kind_render_arms() -> String {
+    let mut out = String::new();
+    for spec in crate::registry::pack_kinds() {
+        if !spec.paints_as_widget() {
+            continue;
+        }
+        if crate::registry::KINDS
+            .iter()
+            .any(|kind| kind.name == spec.name)
+        {
+            continue;
+        }
+        let painter = roc_fn_name(spec.component);
+        let fields = spec.paint_fields();
+        let props: Vec<String> = fields
+            .iter()
+            .map(|field| format!("{}: seg.{}", field.prop, field.prop))
+            .collect();
+        let record = if props.is_empty() {
+            "{}".to_string()
+        } else {
+            format!("{{ {} }}", props.join(", "))
+        };
+        out.push_str("        ");
+        out.push_str(spec.component);
+        if spec.paint_content() {
+            out.push_str("(seg) => {\n            (body, after) = render_children!(segments, index + 1, seg.child_count)?\n            Ok((BlockPainters.");
+            out.push_str(&painter);
+            out.push_str("(");
+            out.push_str(&record);
+            out.push_str(", body), after))\n        }\n");
+        } else {
+            out.push_str("(seg) =>\n            Ok((BlockPainters.");
+            out.push_str(&painter);
+            out.push_str("(");
+            out.push_str(&record);
+            out.push_str("), index + 1))\n");
+        }
+    }
+    out
 }
 
 fn module_exports_component(module: &CompiledThemeModule, component: &str) -> bool {
@@ -807,8 +909,8 @@ fn block_painters_module(
     let mut bindings = Vec::new();
     let mut uses_debug = false;
     let mut uses_html = false;
-    for spec in crate::registry::KINDS
-        .iter()
+    for spec in crate::registry::widget_specs()
+        .into_iter()
         .copied()
         .filter(|spec| spec.paints_as_widget())
     {
@@ -903,6 +1005,7 @@ fn block_painters_module(
         segments: Vec::new(),
         styles: Vec::new(),
         components: Vec::new(),
+        component_infos: Vec::new(),
     })
 }
 
@@ -1765,7 +1868,8 @@ fn push_node(out: &mut String, node: &crate::docs::PlannedNode) {
             out.push_str(&widget.component);
             out.push_str("({ ");
             let spec = crate::registry::lookup(&widget.kind);
-            let paint_content = spec.is_some_and(|kind| kind.paint_content());
+            let paint_content =
+                widget.paint_content || spec.is_some_and(|kind| kind.paint_content());
             for (index, prop) in widget.props.iter().enumerate() {
                 if index > 0 {
                     out.push_str(", ");
@@ -2465,6 +2569,86 @@ note = "Callout"
                 .contains("note = |props, content|\n        Blocks.callout(props, content)"),
             "{}",
             painters.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn pack_custom_kind_is_planned_and_dispatched() {
+        let root = temp("pack-custom-callout");
+        write_site(&root);
+        write_shell(&root);
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside data-test-callout data-tone={tone}>{content}</aside>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n:callout[tone: \"warn\"] {{\n    Watch this.\n}}\n",
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let roc = planned.pages_roc();
+        assert!(roc.contains("Callout({"), "{roc}");
+        assert!(roc.contains("tone: \"warn\""), "{roc}");
+        assert!(
+            planned
+                .pack_render_arms
+                .contains("BlockPainters.callout({ tone: seg.tone }, body)"),
+            "{}",
+            planned.pack_render_arms
+        );
+        let painters = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters.roc.contains("callout = |props, content|"),
+            "{}",
+            painters.roc
+        );
+        assert!(
+            painters.roc.contains("Blocks.callout(props, content)"),
+            "{}",
+            painters.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn pack_reserved_helper_name_fails_site_load() {
+        let root = temp("pack-reserved-page");
+        write_site(&root);
+        write_shell(&root);
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Page = |{ title }, content|
+    <div>{content}</div>
+"#,
+        )
+        .unwrap();
+
+        let err = load_site(&root).unwrap_err().to_string();
+        assert!(
+            err.contains("reserved name")
+                && err.contains("helpers must not live in the block pack"),
+            "{err}"
         );
 
         let _ = fs::remove_dir_all(root);

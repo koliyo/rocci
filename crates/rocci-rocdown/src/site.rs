@@ -178,6 +178,13 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         bail!("no .rocdown files in {}", root.display());
     }
 
+    let pack_kinds = if crate::plan::site_has_block_pack(&root, &config) {
+        crate::plan::infer_site_pack_kinds(&root, &config)?
+    } else {
+        Vec::new()
+    };
+    let _pack_guard = crate::registry::install_pack_kinds(&pack_kinds);
+
     let files = collect_files(&root, &config)?;
     let snippet_roots = snippet_roots(&root, &config)?;
     let mut sources = Vec::new();
