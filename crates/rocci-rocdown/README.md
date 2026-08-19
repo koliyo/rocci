@@ -340,14 +340,16 @@ above.
 - Static site generation (`build`, `check`, `test`, `run`), content catalog,
   curated navigation, and hashed asset pipeline
 - Site page kinds `static` / `hydrate` / `live` recorded on the catalog and
-  `rocdown inspect catalog`. `hydrate` pages splice pure Rocci components into
-  CDN HTML at build time. `live` pages splice initial island Html, hash
-  Datastar.js, and loosen per-page CSP. `rocdown serve-islands DIR` compiles
-  colocated `@on` handlers into one island HTTP service. Hybrid builds emit
-  `pages.json` kinds, `islands.json` service routes, and a publish report.
-  `--cdn-only` refuses `live` pages so a CDN publish cannot ship dead actions.
-  `rocdown run DIR` previews both artifacts on one local origin and reloads
-  after content or handler edits.
+  `rocdown inspect catalog`. Classification sits on top of `:name[params]`:
+  those article blocks keep a page `static` and apply through the widget forest.
+  `hydrate` pages splice pure Rocci components into CDN HTML at build time.
+  `live` pages splice initial island Html, hash Datastar.js, and loosen
+  per-page CSP. `rocdown serve-islands DIR` compiles colocated `@on` handlers
+  into one island HTTP service. Hybrid builds emit `pages.json` kinds,
+  `islands.json` service routes, and a publish report. `--cdn-only` refuses
+  `live` pages so a CDN publish cannot ship dead actions. `rocdown run DIR`
+  previews both artifacts on one local origin and reloads after content or
+  handler edits.
 
 **Not implemented / Deferred**
 

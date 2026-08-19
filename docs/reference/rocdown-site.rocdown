@@ -121,7 +121,7 @@ Each published page is one of:
 
 | Kind | Meaning | CDN | Datastar |
 | --- | --- | --- | --- |
-| `static` | Markdown / `@page` / `@docs` only | HTML and hashed assets | No |
+| `static` | Markdown / `@page` / `:name[params]` only | Widget forest HTML and hashed assets | No |
 | `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) | Initial island HTML spliced at build | No |
 | `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
 

@@ -204,17 +204,23 @@ automatic navigator.
 
 ## Static documentation site support
 
-Rocdown site builds accept the static Markdown tree plus `@page` and article
-blocks (`:note`, `:tabs`, and the other builtin kinds). They pre-render
-`hydrate` pages (`@component`, `@render`, document-root tags, `@css`, `@roc`)
-into CDN HTML. `@use` stays a site-build error. Pages with `@on` / `@context` /
-`@init` or `import Datastar` are `live`: the CDN file includes initial island
-HTML and Datastar.js. `rocdown run DIR` serves that CDN tree and proxies the
-generated island service on the same local origin. `rocdown serve-islands` runs
-the mutation service by itself for a two-artifact deploy. See
-[Rocdown site configuration](/docs/reference/rocdown-site/) for the two-artifact
-publish, `service_origin`, and `--cdn-only`. Draft pages are excluded from
-production builds.
+Site builds classify each published page as `static`, `hydrate`, or `live` on
+top of `:name[params]` article blocks. Blocks such as `:note` and `:tabs` stay
+on the Markdown-first path; they do not make a page hydrate or live.
+
+| Kind | What the page may contain | CDN apply | Datastar |
+| --- | --- | --- | --- |
+| `static` | Markdown, `@page`, `:name[params]` | Widget forest (`DocsComponents`) | No |
+| `hydrate` | plus `@component`, `@render`, document-root tags, `@css`, `@roc` | Island Html spliced at build | No |
+| `live` | plus `@on` / `@context` / `@init` or `import Datastar` | Same splice plus Datastar.js | Yes |
+
+`@use` stays a site-build error. `@render`, handlers, and HTML islands inside a
+`:note` (or other article-block) body are errors. `docs/` is a `static` catalog.
+`rocdown run DIR` serves the CDN tree and, for `live` pages, proxies the island
+service on the same local origin. `rocdown serve-islands` runs the mutation
+service by itself. See [Rocdown site configuration](/docs/reference/rocdown-site/)
+for the two-artifact publish, `service_origin`, and `--cdn-only`. Draft pages
+are excluded from production builds.
 
 The developer tree spec for owned article and module AST nodes is
 `crates/rocci-rocdown/Rocdown.AST.ungram`. It generates Rust types; it does not
