@@ -111,5 +111,31 @@ optional labels around that image.
     ```
 }}
 
+## Replace painters or add a site kind
+
+A site `theme/Blocks.rocci` (or `theme/blocks/*.rocci`) overlays builtin painters
+by exporting the same `@component` names. A new PascalCase export becomes a
+custom static kind (`Callout` → `:callout`). Helpers must not live in that pack.
+`@use` stays interactive-only; static `rocdown build` does not honor it. See
+[Rocdown site configuration](/docs/reference/rocdown-site/).
+
+```rocci
+import Html
+
+@component Note = |{ title }, content|
+    <section data-callout data-title={title}>{content}</section>
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside data-tone={tone}>{content}</aside>
+```
+
+```rocdown
+:note[title: "Watch"] Body still uses `:note`.
+
+:callout[tone: "warn"] {{
+    Custom kinds work only on sites that compile that pack.
+}}
+```
+
 `api-operation` is reserved for generated API reference and is rejected until
 that work ships.

@@ -32,11 +32,12 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 > Store reusable UI components in `components/` rather than a monolithic `templates/` directory. Rocci files are type-safe, compiled Roc modules with `@component`, scoped `@css`, and `@fixture` metadata—not passive string templates. The internal `crates/*/templates/` directories are reserved for static assets embedded in Rust compiler binaries via `include_str!`.
 
 Static `rocdown build` currently accepts Markdown, `@page`, and `:kind` article
-blocks. Dynamic
-`@roc`, `@render`, Rocci components, file `@css`, handlers, `@use`, and custom layouts
-work with `rocci run` / standalone `rocdown run`, and are rejected by the static
-site pipeline until island splicing lands. Custom static kinds belong in the
-compiled theme.
+blocks. Custom static kinds belong in `theme/Blocks.rocci` or `[blocks] pack`
+(PascalCase `Callout` → `:callout`). Helpers must not live in that pack.
+`@use` is interactive-only (`rocci run` / standalone `rocdown run`) and is
+rejected by the static site pipeline. Dynamic `@roc`, `@render`, Rocci
+components, file `@css`, handlers, and custom layouts work the same interactive
+path until island splicing lands.
 
 ## Project and directory conventions
 
