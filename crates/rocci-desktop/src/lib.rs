@@ -3,6 +3,7 @@
 mod chrome;
 mod events;
 mod history;
+mod icon;
 mod menu;
 mod preview;
 mod source;
@@ -56,6 +57,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
     }
 
     let event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
+    crate::icon::apply_host_icon();
 
     let native_menu = menu::NativeMenu::install(
         event_loop.create_proxy(),
