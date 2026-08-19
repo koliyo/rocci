@@ -31,6 +31,56 @@ pub struct StaticFile {
     pub output_path: String,
 }
 
+pub fn find_site_root(path: &Path) -> Option<PathBuf> {
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(path)
+    };
+    let mut dir = if path.is_dir() {
+        path
+    } else {
+        path.parent()?.to_path_buf()
+    };
+    loop {
+        if dir.join(crate::config::CONFIG_FILE).is_file() {
+            return Some(dir);
+        }
+        dir = dir.parent()?.to_path_buf();
+    }
+}
+
+pub fn site_preview_route(root: &Path, file: &Path) -> String {
+    let file = if file.is_absolute() {
+        file.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(file))
+            .unwrap_or_else(|_| file.to_path_buf())
+    };
+    let src = std::fs::read_to_string(&file).unwrap_or_default();
+    let page = crate::page_ref_from_source(&file, &src);
+    if page.explicit_route {
+        return catalog::with_trailing_slash(&page.route);
+    }
+    let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let file = std::fs::canonicalize(&file).unwrap_or(file);
+    let rel = file
+        .strip_prefix(&root)
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| {
+            file.file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_default()
+        });
+    let id = rel
+        .strip_suffix(".rocdown")
+        .or_else(|| rel.strip_suffix(".markdown"))
+        .or_else(|| rel.strip_suffix(".md"))
+        .unwrap_or(&rel);
+    catalog::derived_route(id)
+}
+
 pub fn content_root(path: &Path) -> Result<PathBuf> {
     let path = if path.is_absolute() {
         path.to_path_buf()
@@ -834,5 +884,78 @@ mod tests {
             "{rendered}"
         );
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn find_site_root_walks_to_rocdown_toml() {
+        let root = temp("site-root");
+        fs::create_dir_all(root.join("guides")).unwrap();
+        fs::write(
+            root.join(crate::config::CONFIG_FILE),
+            "[site]\ntitle = \"Demo\"\n",
+        )
+        .unwrap();
+        fs::write(root.join("guides/page.rocdown"), "# Page\n").unwrap();
+        let found = find_site_root(&root.join("guides/page.rocdown")).unwrap();
+        assert_eq!(
+            fs::canonicalize(&found).unwrap(),
+            fs::canonicalize(&root).unwrap()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn find_site_root_is_none_without_toml() {
+        let root = temp("no-toml");
+        fs::write(root.join("Guide.rocdown"), "# Guide\n").unwrap();
+        assert_eq!(find_site_root(&root.join("Guide.rocdown")), None);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn site_preview_route_uses_derived_path() {
+        let root = temp("preview-derived");
+        fs::create_dir_all(root.join("guides")).unwrap();
+        fs::write(
+            root.join("guides/docs-components.rocdown"),
+            "@page {\n    aliases: [\"/guides/docs-components/\"],\n}\n\n# Components\n",
+        )
+        .unwrap();
+        assert_eq!(
+            site_preview_route(&root, &root.join("guides/docs-components.rocdown")),
+            "/guides/docs-components/"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn site_preview_route_honors_explicit_route() {
+        let root = temp("preview-explicit");
+        fs::write(
+            root.join("page.rocdown"),
+            "@page {\n    route: \"/custom-page/\",\n}\n\n# Custom\n",
+        )
+        .unwrap();
+        assert_eq!(
+            site_preview_route(&root, &root.join("page.rocdown")),
+            "/custom-page/"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn docs_guide_previews_at_derived_site_route() {
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let file = manifest.join("../../docs/guides/docs-components.rocdown");
+        let expected = manifest.join("../../docs");
+        let found = find_site_root(&file).expect("docs/rocdown.toml");
+        assert_eq!(
+            fs::canonicalize(&found).unwrap(),
+            fs::canonicalize(&expected).unwrap()
+        );
+        assert_eq!(
+            site_preview_route(&found, &file),
+            "/guides/docs-components/"
+        );
     }
 }

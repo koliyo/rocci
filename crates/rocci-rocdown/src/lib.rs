@@ -41,7 +41,7 @@ pub use catalog::{
     RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
 };
 pub use config::{BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config};
-pub use dev::{DevServer, run, run_with_host};
+pub use dev::{DevServer, run, run_with_host, run_with_host_at};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
     PageDocs, PlannedNode, PlannedProp, PlannedWidget, extract_lines, extract_region, field_bool,
@@ -61,7 +61,8 @@ pub use pprint::format_ast;
 pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use site::{
-    CheckFormat, CheckReport, InspectKind, check, inspect, load_site, resolve_loaded, test_examples,
+    CheckFormat, CheckReport, InspectKind, check, find_site_root, inspect, load_site,
+    resolve_loaded, site_preview_route, test_examples,
 };
 pub use standalone::{
     StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,

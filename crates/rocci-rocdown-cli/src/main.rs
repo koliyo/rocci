@@ -40,7 +40,8 @@ enum Commands {
     },
     /// Run an interactive document or serve a documentation site with live reload.
     Run {
-        /// Site root directory or single .rocdown file.
+        /// Site root directory, or a .rocdown file. A file inside a site
+        /// (ancestor `rocdown.toml`) previews that site at the page route.
         #[arg(default_value = ".")]
         path: PathBuf,
         /// Write preview output here instead of a temp directory (for site dev server).
@@ -307,7 +308,19 @@ fn try_main() -> Result<()> {
         } => {
             if is_document_file(&path) {
                 refuse_okf_input(&path, "run")?;
-                run_standalone_doc(&path, &args, no_window, quiet, port, &theme)
+                if let Some(site_root) = rocci_rocdown::find_site_root(&path) {
+                    let route = rocci_rocdown::site_preview_route(&site_root, &path);
+                    run_site_dev(
+                        &site_root,
+                        output.as_deref(),
+                        no_window,
+                        port,
+                        host.into(),
+                        Some(&route),
+                    )
+                } else {
+                    run_standalone_doc(&path, &args, no_window, quiet, port, &theme)
+                }
             } else if path.is_file() {
                 bail!(
                     "unsupported file extension for `rocdown run`: {}; expected a .rocdown, .md, or .markdown file",
@@ -315,7 +328,7 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "run")?;
-                run_site_dev(&path, output.as_deref(), no_window, port, host.into())
+                run_site_dev(&path, output.as_deref(), no_window, port, host.into(), None)
             }
         }
         Commands::Check { root, format } => {
@@ -543,9 +556,11 @@ fn run_site_dev(
     no_window: bool,
     port: PortArg,
     host: rocci_rocdown::HostChoice,
+    open_path: Option<&str>,
 ) -> Result<()> {
     let port = port.resolve()?;
-    let server = rocci_rocdown::run_with_host(root, output, port, Some(host))?;
+    let open_path = open_path.unwrap_or("/");
+    let server = rocci_rocdown::run_with_host_at(root, output, port, Some(host), open_path)?;
     eprintln!("rocdown: serving {} at {}", server.title, server.url);
     if no_window {
         server.wait();

@@ -109,12 +109,18 @@ Pin or update the Datastar JavaScript runtime asset in an application directory.
 # Run a single interactive document
 cargo run -p rocci-rocdown-cli -- run report.rocdown
 
+# Preview a page that lives inside a documentation site
+cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
+
 # Run a documentation site directory with live reload
 cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
 ```
 
 Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
-with live reload. The default root is the current directory. Preview output
+with live reload. The default root is the current directory. A `.rocdown` file
+under an ancestor `rocdown.toml` uses that site root and opens the page route,
+so includes and `/docs/...` links resolve the same way as `rocdown run docs`.
+A file with no ancestor config stays a standalone document. Preview output
 goes to a temp directory unless `--output` is set. The preview window supports
 current-document find and `Cmd/Ctrl-K` jump-to-page using `/pages.json`. The
 Dev control opens a profiling panel at `/__rocci/dev`. `rocdown run` and
