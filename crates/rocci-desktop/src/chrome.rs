@@ -1,7 +1,24 @@
 const PREVIEW_NAV_HTML: &str = include_str!("../assets/preview-nav.html");
 const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
+const PREVIEW_FIND_HTML: &str = include_str!("../assets/preview-find.html");
+const PREVIEW_FIND_CSS: &str = include_str!("../assets/preview-find.css");
+const PREVIEW_FIND_JS: &str = include_str!("../assets/preview-find.js");
+const PREVIEW_GOTO_HTML: &str = include_str!("../assets/preview-goto.html");
+const PREVIEW_GOTO_CSS: &str = include_str!("../assets/preview-goto.css");
+const PREVIEW_GOTO_JS: &str = include_str!("../assets/preview-goto.js");
+const PREVIEW_KEYS_JS: &str = include_str!("../assets/preview-keys.js");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
 const PREVIEW_NAV_JS: &str = include_str!("../assets/preview-nav.js");
+
+pub const FIND_OPEN_SCRIPT: &str =
+    "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.open()";
+pub const FIND_NEXT_SCRIPT: &str =
+    "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.next()";
+pub const FIND_PREV_SCRIPT: &str =
+    "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.prev()";
+pub const FIND_USE_SELECTION_SCRIPT: &str = "window.__rocciPreviewNav&&window.__rocciPreviewNav.find&&window.__rocciPreviewNav.find.useSelection()";
+pub const GOTO_OPEN_SCRIPT: &str =
+    "window.__rocciPreviewNav&&window.__rocciPreviewNav.goto&&window.__rocciPreviewNav.goto.open()";
 
 pub fn initialization_script_with_inspector(inspector_url: Option<&str>) -> String {
     let inspector = match inspector_url {
@@ -9,9 +26,13 @@ pub fn initialization_script_with_inspector(inspector_url: Option<&str>) -> Stri
         None => "null".to_string(),
     };
     format!(
-        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\n{PREVIEW_NAV_JS}",
+        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_PREVIEW_GOTO_HTML__ = {};\nconst __ROCCI_PREVIEW_GOTO_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
+        json_string(PREVIEW_FIND_HTML.trim_end()),
+        json_string(PREVIEW_FIND_CSS.trim_end()),
+        json_string(PREVIEW_GOTO_HTML.trim_end()),
+        json_string(PREVIEW_GOTO_CSS.trim_end()),
     )
 }
 
@@ -90,6 +111,29 @@ mod tests {
             initialization_script_with_inspector(None)
                 .contains("const __ROCCI_INSPECTOR_URL__ = null")
         );
+    }
+
+    #[test]
+    fn script_has_find_and_goto_overlays() {
+        let script = initialization_script_with_inspector(None);
+        assert!(script.contains("const __ROCCI_PREVIEW_FIND_HTML__"));
+        assert!(script.contains("const __ROCCI_PREVIEW_FIND_CSS__"));
+        assert!(script.contains("const __ROCCI_PREVIEW_GOTO_HTML__"));
+        assert!(script.contains("const __ROCCI_PREVIEW_GOTO_CSS__"));
+        assert!(script.contains("rocci-preview-find"));
+        assert!(script.contains("rocci-preview-goto"));
+        assert!(script.contains("window.__rocciPreviewNav.find"));
+        assert!(script.contains("window.__rocciPreviewNav.goto"));
+        assert!(PREVIEW_FIND_HTML.contains("id=\"query\""));
+        assert!(PREVIEW_FIND_HTML.contains("aria-label=\"Find in page\""));
+        assert!(PREVIEW_GOTO_HTML.contains("aria-label=\"Go to file\""));
+        assert!(PREVIEW_FIND_JS.contains("__rocciPreviewNav.find"));
+        assert!(PREVIEW_FIND_JS.contains("useSelection"));
+        assert!(PREVIEW_GOTO_JS.contains("/pages.json"));
+        assert!(PREVIEW_GOTO_JS.contains("/catalog.json"));
+        assert!(PREVIEW_KEYS_JS.contains("preventDefault"));
+        assert!(FIND_OPEN_SCRIPT.contains("find.open"));
+        assert!(GOTO_OPEN_SCRIPT.contains("goto.open"));
     }
 
     #[test]

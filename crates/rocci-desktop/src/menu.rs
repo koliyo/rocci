@@ -12,9 +12,14 @@ use crate::ShellEvent;
 
 pub const NEW_WINDOW_ID: &str = "file.new-window";
 pub const CLOSE_WINDOW_ID: &str = "file.close-window";
+pub const FIND_ID: &str = "edit.find";
+pub const FIND_NEXT_ID: &str = "edit.find-next";
+pub const FIND_PREVIOUS_ID: &str = "edit.find-previous";
+pub const USE_SELECTION_ID: &str = "edit.use-selection-for-find";
 pub const BACK_ID: &str = "view.back";
 pub const FORWARD_ID: &str = "view.forward";
 pub const HOME_ID: &str = "view.home";
+pub const GO_TO_FILE_ID: &str = "view.go-to-file";
 pub const RELOAD_ID: &str = "view.reload";
 pub const WEB_INSPECTOR_ID: &str = "view.web-inspector";
 
@@ -23,6 +28,7 @@ pub struct MenuConfig<'a> {
     pub version: Option<&'a str>,
     pub new_window: bool,
     pub navigation: bool,
+    pub search: bool,
     pub reload: bool,
     pub devtools: bool,
 }
@@ -96,6 +102,39 @@ impl NativeMenu {
             &PredefinedMenuItem::select_all(None),
         ])
         .map_err(menu_error)?;
+        if config.search {
+            edit.append_items(&[
+                &PredefinedMenuItem::separator(),
+                &MenuItem::with_id(
+                    FIND_ID,
+                    "Find…",
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyF)),
+                ),
+                &MenuItem::with_id(
+                    FIND_NEXT_ID,
+                    "Find Next",
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyG)),
+                ),
+                &MenuItem::with_id(
+                    FIND_PREVIOUS_ID,
+                    "Find Previous",
+                    true,
+                    Some(Accelerator::new(
+                        Some(CMD_OR_CTRL | Modifiers::SHIFT),
+                        Code::KeyG,
+                    )),
+                ),
+                &MenuItem::with_id(
+                    USE_SELECTION_ID,
+                    "Use Selection for Find",
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyE)),
+                ),
+            ])
+            .map_err(menu_error)?;
+        }
         menu.append(&edit).map_err(menu_error)?;
 
         let view = Submenu::new("View", true);
@@ -117,6 +156,17 @@ impl NativeMenu {
                 &PredefinedMenuItem::separator(),
             ])
             .map_err(menu_error)?;
+        }
+        if config.search {
+            view.append(&MenuItem::with_id(
+                GO_TO_FILE_ID,
+                "Go to File…",
+                true,
+                Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyK)),
+            ))
+            .map_err(menu_error)?;
+            view.append(&PredefinedMenuItem::separator())
+                .map_err(menu_error)?;
         }
         if config.reload {
             view.append(&MenuItem::with_id(
@@ -210,6 +260,9 @@ pub fn view_action_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
     if config.navigation {
         ids.extend([BACK_ID, FORWARD_ID, HOME_ID]);
     }
+    if config.search {
+        ids.push(GO_TO_FILE_ID);
+    }
     if config.reload {
         ids.push(RELOAD_ID);
     }
@@ -217,6 +270,15 @@ pub fn view_action_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
         ids.push(WEB_INSPECTOR_ID);
     }
     ids
+}
+
+#[cfg(test)]
+pub fn edit_search_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
+    if config.search {
+        vec![FIND_ID, FIND_NEXT_ID, FIND_PREVIOUS_ID, USE_SELECTION_ID]
+    } else {
+        Vec::new()
+    }
 }
 
 fn menu_error(error: impl std::fmt::Display) -> rocci_core::Error {
@@ -227,12 +289,13 @@ fn menu_error(error: impl std::fmt::Display) -> rocci_core::Error {
 mod tests {
     use super::*;
 
-    fn config(navigation: bool, reload: bool, devtools: bool) -> MenuConfig<'static> {
+    fn config(navigation: bool, reload: bool, devtools: bool, search: bool) -> MenuConfig<'static> {
         MenuConfig {
             app_name: "rocci",
             version: None,
             new_window: false,
             navigation,
+            search,
             reload,
             devtools,
         }
@@ -241,16 +304,32 @@ mod tests {
     #[test]
     fn preview_view_menu_includes_navigation() {
         assert_eq!(
-            view_action_ids(&config(true, true, true)),
-            vec![BACK_ID, FORWARD_ID, HOME_ID, RELOAD_ID, WEB_INSPECTOR_ID]
+            view_action_ids(&config(true, true, true, true)),
+            vec![
+                BACK_ID,
+                FORWARD_ID,
+                HOME_ID,
+                GO_TO_FILE_ID,
+                RELOAD_ID,
+                WEB_INSPECTOR_ID
+            ]
         );
     }
 
     #[test]
     fn bundled_shell_view_menu_omits_navigation() {
         assert_eq!(
-            view_action_ids(&config(false, true, true)),
+            view_action_ids(&config(false, true, true, false)),
             vec![RELOAD_ID, WEB_INSPECTOR_ID]
         );
+    }
+
+    #[test]
+    fn preview_edit_menu_includes_find() {
+        assert_eq!(
+            edit_search_ids(&config(true, true, true, true)),
+            vec![FIND_ID, FIND_NEXT_ID, FIND_PREVIOUS_ID, USE_SELECTION_ID]
+        );
+        assert!(edit_search_ids(&config(false, true, true, false)).is_empty());
     }
 }

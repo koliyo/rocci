@@ -1,0 +1,96 @@
+:host {
+  all: initial;
+  color-scheme: inherit;
+  display: block;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #d7dae0;
+  color: light-dark(#18181b, #d7dae0);
+}
+
+.bar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 280px;
+  max-width: min(420px, calc(100vw - 24px));
+  padding: 6px 8px;
+  border: 1px solid #3e4451;
+  border-color: light-dark(#e4e4e7, #3e4451);
+  border-radius: 10px;
+  background: #21252b;
+  background: light-dark(#f7f7f8, #21252b);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid #3e4451;
+  border-color: light-dark(#d4d4d8, #3e4451);
+  border-radius: 6px;
+  background: #282c34;
+  background: light-dark(#ffffff, #282c34);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+input:focus {
+  outline: 2px solid #61afef;
+  outline: 2px solid light-dark(#3b82f6, #61afef);
+  outline-offset: 0;
+}
+
+.count {
+  flex: 0 0 auto;
+  min-width: 4.5em;
+  color: #9da5b4;
+  color: light-dark(#71717a, #9da5b4);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+button {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  background: light-dark(rgba(24, 24, 27, 0.07), rgba(255, 255, 255, 0.08));
+}
+
+button:focus-visible {
+  outline: 2px solid #61afef;
+  outline: 2px solid light-dark(#3b82f6, #61afef);
+  outline-offset: 1px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.32;
+}
+
+.icon {
+  display: block;
+}

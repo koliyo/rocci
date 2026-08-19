@@ -117,6 +117,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             version: None,
             new_window: false,
             navigation: true,
+            search: true,
             reload: true,
             devtools: options.devtools,
         },
@@ -173,6 +174,16 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     } else {
                         live.webview.open_devtools();
                     }
+                } else if menu::is(&menu_event, menu::FIND_ID) {
+                    apply_overlay(&live, chrome::FIND_OPEN_SCRIPT);
+                } else if menu::is(&menu_event, menu::FIND_NEXT_ID) {
+                    apply_overlay(&live, chrome::FIND_NEXT_SCRIPT);
+                } else if menu::is(&menu_event, menu::FIND_PREVIOUS_ID) {
+                    apply_overlay(&live, chrome::FIND_PREV_SCRIPT);
+                } else if menu::is(&menu_event, menu::USE_SELECTION_ID) {
+                    apply_overlay(&live, chrome::FIND_USE_SELECTION_SCRIPT);
+                } else if menu::is(&menu_event, menu::GO_TO_FILE_ID) {
+                    apply_overlay(&live, chrome::GOTO_OPEN_SCRIPT);
                 }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Command(command))) => {
@@ -221,6 +232,12 @@ fn apply_command(live: &LiveWindow, history: &mut NavHistory, command: NavComman
     };
     if let Err(error) = result {
         tracing::error!(%error, ?command, "failed to apply preview navigation");
+    }
+}
+
+fn apply_overlay(live: &LiveWindow, script: &str) {
+    if let Err(error) = live.webview.evaluate_script(script) {
+        tracing::error!(%error, "failed to apply preview overlay action");
     }
 }
 

@@ -504,6 +504,7 @@ fn resolve_ref(
     if path == "/sitemap.xml"
         || path == "/robots.txt"
         || path == "/llms.txt"
+        || path == "/pages.json"
         || path == "/404.html"
         || path.ends_with("/feed.xml")
         || path == "/feed.xml"

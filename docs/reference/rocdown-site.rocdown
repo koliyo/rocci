@@ -164,8 +164,9 @@ with `rocdown run` uses the standalone left navigator instead; see
 ## Generated artifacts
 
 In addition to page HTML, a configured build emits hashed `/assets/` files, a
-themed `404.html`, alias redirect HTML, and `llms.txt`. When `base_url` is set,
-it also emits `sitemap.xml` and `robots.txt`.
+themed `404.html`, alias redirect HTML, `llms.txt`, and `pages.json`. When
+`base_url` is set, it also emits `sitemap.xml` and `robots.txt`. `pages.json`
+is the page list used by preview go-to-file; it is not full-text site search.
 
 `rocdown inspect artifacts` lists the planned output tree, including hashed asset
 paths, without invoking Roc.
