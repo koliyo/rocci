@@ -1514,7 +1514,7 @@ items = ["index", "guide"]
         write_site(&root);
         fs::write(
             root.join("index.rocdown"),
-            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    First body.\n}\n",
+            "# Home\n\n:note[title: \"Watch\"] First body.\n",
         )
         .unwrap();
         let loaded = load_site(&root).unwrap();
@@ -1524,7 +1524,7 @@ items = ["index", "guide"]
         let first_roc = first.pages_roc();
         fs::write(
             root.join("index.rocdown"),
-            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    Second body, still a note.\n}\n",
+            "# Home\n\n:note[title: \"Watch\"] Second body, still a note.\n",
         )
         .unwrap();
         let loaded = load_site(&root).unwrap();
@@ -1533,7 +1533,7 @@ items = ["index", "guide"]
         assert_eq!(first_roc, second.pages_roc());
         fs::write(
             root.join("index.rocdown"),
-            "# Home\n\n@docs note {\n    title: \"Changed\"\n\n    Second body, still a note.\n}\n",
+            "# Home\n\n:note[title: \"Changed\"] Second body, still a note.\n",
         )
         .unwrap();
         let loaded = load_site(&root).unwrap();

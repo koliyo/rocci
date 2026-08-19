@@ -69,11 +69,7 @@ answer = 42
     Ready => <Hello name="ready" />
 }
 
-@img {
-    src: "./img/yammi_banana.png"
-    alt: "A banana"
-    width: "50px"
-}
+:img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
 
 \@if this is escaped
 

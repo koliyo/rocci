@@ -63,13 +63,13 @@ timeout_ms = 30000
 allow_network = false
 ```
 
-`@docs include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
+`:include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
 code literal. Named regions use `docs-region: NAME` / `docs-region-end: NAME`
 markers. Line ranges emit warning `RD2504`. Cycles are `RD2505`. Included files
 are watch inputs for `rocdown run`.
 
 `rocdown check` validates components and includes without Roc. Untested
-`@docs example` records warn (`RD2601`). Example commands never run during
+`:example` records warn (`RD2601`). Example commands never run during
 `rocdown build` or `rocdown check`.
 
 ```sh
@@ -106,7 +106,7 @@ images from `'self'`.
 
 `output` is resolved relative to the content root unless `--output` overrides
 it. `assets` names a directory whose files are content-hashed into `/assets/`
-in the published tree (`og.png` becomes `og.<hash>.png`). Markdown and `@img`
+in the published tree (`og.png` becomes `og.<hash>.png`). Markdown and `:img`
 URLs under that tree are rewritten whether they are authored as
 `/assets/foo.png` or `assets/foo.png`. `social_image` is rewritten the same way.
 

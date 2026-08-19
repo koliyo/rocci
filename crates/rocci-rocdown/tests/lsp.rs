@@ -92,7 +92,7 @@ fn test_rocdown_lsp_all_syntax() {
                 syms.iter().any(|s| s.name == "Hello"),
                 "missing component Hello symbol"
             );
-            assert!(syms.iter().any(|s| s.name == "@img"), "missing @img symbol");
+            assert!(syms.iter().any(|s| s.name == ":img"), "missing :img symbol");
         }
         DocumentSymbolResponse::Flat(_) => panic!("expected nested symbols"),
     }
@@ -158,6 +158,6 @@ fn test_rocdown_lsp_embedded_languages() {
     let DocumentSymbolResponse::Nested(syms) = symbols else {
         panic!("expected nested symbols");
     };
-    assert!(syms.iter().any(|s| s.name == "@docs note"));
-    assert!(syms.iter().any(|s| s.name == "@docs tabs"));
+    assert!(syms.iter().any(|s| s.name == ":note"));
+    assert!(syms.iter().any(|s| s.name == ":tabs"));
 }

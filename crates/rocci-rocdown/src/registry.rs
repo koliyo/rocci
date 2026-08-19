@@ -1,6 +1,6 @@
 //! Closed v1 article-block kind schema.
 //!
-//! Kind names are data, not parser keywords. Unknown `@docs` kinds, parent/child
+//! Kind names are data, not parser keywords. Unknown article kinds, parent/child
 //! placement, and simple required-field diagnostics are driven from this table.
 
 const LINK_CARD_TARGET: &[&str] = &["page", "href"];

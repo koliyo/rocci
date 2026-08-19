@@ -10,39 +10,18 @@
 
 Rocdown is the document language and static-site compiler. Write pages in Markdown, declare metadata with `@page`, and keep presentation in `.rocci` layouts. Rust owns the catalog; Rocci owns the visible shell.
 
-@docs note {
-    title: "Static pages stay Markdown-first"
-
-    Ordinary `.rocdown` site pages cannot include `@roc` or `@component` islands yet. Use `@docs` components and Markdown here; put chrome in `site/theme/`.
-}
+:note[title: "Static pages stay Markdown-first"] {{
+    Ordinary `.rocdown` site pages cannot include `@roc` or `@component` islands yet. Use article blocks such as `:note` and Markdown here; put chrome in `site/theme/`.
+}}
 
 ## What to author next
 
-@docs card-grid {
-    @docs link-card {
-        page: "docs/guides/rocdown-pages"
-        title: "Rocdown pages"
-        summary: "Declarations, islands, and page links."
-    }
-
-    @docs link-card {
-        page: "docs/guides/docs-components"
-        title: "Docs components"
-        summary: "Notes, tabs, figures, and includes."
-    }
-
-    @docs link-card {
-        page: "docs/reference/rocdown-site"
-        title: "Site configuration"
-        summary: "rocdown.toml, navigation, and assets."
-    }
-
-    @docs link-card {
-        page: "docs/reference/cli"
-        title: "CLI"
-        summary: "check, build, run, and inspect."
-    }
-}
+:card-grid
+    :link-card[page: "docs/guides/rocdown-pages", title: "Rocdown pages", summary: "Declarations, islands, and page links."]
+    :link-card[page: "docs/guides/docs-components", title: "Docs components", summary: "Notes, tabs, figures, and includes."]
+    :link-card[page: "docs/reference/rocdown-site", title: "Site configuration", summary: "rocdown.toml, navigation, and assets."]
+    :link-card[page: "docs/reference/cli", title: "CLI", summary: "check, build, run, and inspect."]
+:end.card-grid
 
 ## Page metadata
 

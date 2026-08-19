@@ -4,17 +4,14 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-use rocci_template::{Cursor, SourceFile, Span, is_ident_start};
+use rocci_template::{SourceFile, Span};
 use serde::Serialize;
 
 use crate::article::{render_md, render_static_image};
-use crate::ast::{
-    BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, DocsDecl, Document, ImgDecl,
-    Item, MdNode, ParamField, ParamValue,
-};
+use crate::ast::{BlockCall, BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 use crate::img::{StaticImage, img_fields_from_params};
-use crate::page::{bool_literal, skip_value, string_list, string_literal};
+use crate::page::{bool_literal, string_list, string_literal};
 use crate::parse::parse_fragment;
 use crate::registry::{self, KindFamily, KindSpec};
 
@@ -23,53 +20,6 @@ pub struct DocsField {
     pub name: String,
     pub name_span: Span,
     pub value: Span,
-}
-
-pub fn split_docs_body(src: &str, body: Span) -> (Vec<DocsField>, Span) {
-    let mut cur = Cursor::at(src, body.start as usize);
-    let end = body.end as usize;
-    let mut fields = Vec::new();
-    loop {
-        cur.skip_trivia();
-        if cur.pos >= end {
-            return (fields, Span::new(end, end));
-        }
-        if cur.peek() == Some(',') {
-            cur.bump();
-            continue;
-        }
-        let checkpoint = cur.pos;
-        let Some(name_span) = cur.scan_ident() else {
-            return (fields, remainder(src, checkpoint, end));
-        };
-        if !name_span.of(src).chars().next().is_some_and(is_ident_start) {
-            return (fields, remainder(src, checkpoint, end));
-        }
-        cur.skip_trivia();
-        if !cur.eat(':') {
-            return (fields, remainder(src, checkpoint, end));
-        }
-        cur.skip_trivia();
-        let value_start = cur.pos;
-        skip_value(&mut cur, end);
-        if cur.pos == value_start {
-            return (fields, remainder(src, checkpoint, end));
-        }
-        let name = name_span.of(src).to_string();
-        fields.push(DocsField {
-            name,
-            name_span,
-            value: Span::new(value_start, cur.pos.min(end)),
-        });
-        cur.skip_trivia();
-        if cur.peek() == Some(',') {
-            cur.bump();
-        }
-    }
-}
-
-fn remainder(src: &str, start: usize, end: usize) -> Span {
-    rocci_template::trim_span(src, Span::new(start, end))
 }
 
 pub fn field_string(src: &str, field: &DocsField) -> Option<String> {
@@ -82,49 +32,6 @@ pub fn field_bool(src: &str, field: &DocsField) -> Option<bool> {
 
 pub fn field_strings(src: &str, field: &DocsField) -> Option<Vec<String>> {
     string_list(src, field.value)
-}
-
-pub fn normalize_blocks(src: &str, items: Vec<Item>) -> Vec<Item> {
-    items
-        .into_iter()
-        .map(|item| match item {
-            Item::Docs(decl) => Item::Block(block_from_docs_decl(src, decl)),
-            Item::Img(img) => Item::Block(block_from_img_decl(src, img)),
-            other => other,
-        })
-        .collect()
-}
-
-pub fn block_from_docs_decl(src: &str, decl: DocsDecl) -> BlockCall {
-    let (fields, content) = split_docs_body(src, decl.body);
-    BlockCall {
-        name: decl.kind,
-        name_span: decl.kind_span,
-        params: bracket_record_from_fields(src, fields),
-        content: brace_content(content),
-        span: decl.span,
-    }
-}
-
-pub fn block_from_img_decl(src: &str, img: ImgDecl) -> BlockCall {
-    let (fields, _content) = split_docs_body(src, img.body);
-    BlockCall {
-        name: "img".to_string(),
-        name_span: img_name_span(src, img.span),
-        params: Some(BracketRecord {
-            fields: fields
-                .into_iter()
-                .map(|field| ParamField {
-                    name: field.name,
-                    name_span: field.name_span,
-                    value: param_value_from_span(src, field.value),
-                })
-                .collect(),
-            span: img.body,
-        }),
-        content: None,
-        span: img.span,
-    }
 }
 
 pub fn docs_fields_from_params(params: Option<&BracketRecord>) -> Vec<DocsField> {
@@ -140,127 +47,6 @@ pub fn docs_fields_from_params(params: Option<&BracketRecord>) -> Vec<DocsField>
             value: field.value.span(),
         })
         .collect()
-}
-
-fn brace_content(span: Span) -> Option<BlockContent> {
-    if span.is_empty() {
-        None
-    } else {
-        Some(BlockContent::Brace(BraceSection { span }))
-    }
-}
-
-fn img_name_span(src: &str, span: Span) -> Span {
-    let mut cur = Cursor::at(src, span.start as usize);
-    cur.eat('@');
-    cur.scan_ident()
-        .unwrap_or_else(|| Span::point(span.start as usize))
-}
-
-fn bracket_record_from_fields(src: &str, fields: Vec<DocsField>) -> Option<BracketRecord> {
-    if fields.is_empty() {
-        return None;
-    }
-    let start = fields[0].name_span.start;
-    let end = fields.last().map(|field| field.value.end).unwrap_or(start);
-    Some(BracketRecord {
-        fields: fields
-            .into_iter()
-            .map(|field| ParamField {
-                name: field.name,
-                name_span: field.name_span,
-                value: param_value_from_span(src, field.value),
-            })
-            .collect(),
-        span: Span::new(start as usize, end as usize),
-    })
-}
-
-fn param_value_from_span(src: &str, span: Span) -> ParamValue {
-    if let Some(value) = string_literal(src, span) {
-        return ParamValue::StringLit { value, span };
-    }
-    if let Some(value) = bool_literal(src, span) {
-        return ParamValue::BoolLit { value, span };
-    }
-    if let Some(items) = param_string_list(src, span) {
-        return ParamValue::List(BracketList { items, span });
-    }
-    let text = span.of(src).trim();
-    if is_number_lit(text) {
-        ParamValue::NumberLit {
-            value: text.to_string(),
-            span,
-        }
-    } else {
-        ParamValue::Ident {
-            name: text.to_string(),
-            span,
-        }
-    }
-}
-
-fn param_string_list(src: &str, span: Span) -> Option<Vec<ParamValue>> {
-    let text = span.of(src).trim();
-    if !text.starts_with('[') || !text.ends_with(']') {
-        return None;
-    }
-    let mut cur = Cursor::at(src, span.start as usize);
-    let end = span.end as usize;
-    cur.skip_trivia();
-    if !cur.eat('[') {
-        return None;
-    }
-    let mut items = Vec::new();
-    loop {
-        cur.skip_trivia();
-        if cur.pos >= end {
-            return None;
-        }
-        if cur.peek() == Some(']') {
-            cur.bump();
-            break;
-        }
-        if cur.peek() == Some(',') {
-            cur.bump();
-            continue;
-        }
-        if cur.peek() != Some('"') {
-            return None;
-        }
-        let value_start = cur.pos;
-        cur.skip_string();
-        let value_span = Span::new(value_start, cur.pos.min(end));
-        let value = string_literal(src, value_span)?;
-        items.push(ParamValue::StringLit {
-            value,
-            span: value_span,
-        });
-        cur.skip_trivia();
-        if cur.peek() == Some(',') {
-            cur.bump();
-        }
-    }
-    Some(items)
-}
-
-fn is_number_lit(text: &str) -> bool {
-    let mut chars = text.chars().peekable();
-    if chars.peek() == Some(&'-') {
-        chars.next();
-    }
-    let mut saw_digit = false;
-    let mut saw_dot = false;
-    for ch in chars {
-        if ch.is_ascii_digit() {
-            saw_digit = true;
-        } else if ch == '.' && !saw_dot {
-            saw_dot = true;
-        } else {
-            return false;
-        }
-    }
-    saw_digit
 }
 
 pub fn include_path_error(path: &str) -> Option<String> {
@@ -813,7 +599,7 @@ fn validate_link_cards(
                     "RD2101",
                     path,
                     format!(
-                        "line {}: `@docs link-card` targets unknown page `{page}`",
+                        "line {}: `:link-card` targets unknown page `{page}`",
                         docs.line
                     ),
                 ));
@@ -843,16 +629,6 @@ fn nodes_from_items(
                     nodes.push(ArticleNode::Block(node));
                 }
             }
-            Item::Docs(decl) => {
-                let call = block_from_docs_decl(ctx.source.src, decl.clone());
-                if let Some(node) = docs_node(ctx, &call, parent_kind) {
-                    nodes.push(ArticleNode::Block(node));
-                }
-            }
-            Item::Img(img) => {
-                let call = block_from_img_decl(ctx.source.src, img.clone());
-                nodes.push(image_from_call(ctx, &call));
-            }
             Item::Page(_) if parent_kind.is_some() => illegal(ctx, item, "page"),
             Item::Page(_) => {}
             Item::Roc(_) => illegal(ctx, item, "roc"),
@@ -874,7 +650,7 @@ fn illegal(ctx: &mut BuildCtx<'_>, item: &Item, kind: &str) {
         "RD2403",
         ctx.source_path,
         format!(
-            "line {}: `@{kind}` is not allowed inside `@docs`",
+            "line {}: `@{kind}` is not allowed inside an article block",
             line_number(ctx.source.src, item.span().start as usize)
         ),
     ));
@@ -992,7 +768,9 @@ fn docs_node(
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2406",
             ctx.source_path,
-            format!("line {line}: `@docs api-operation` is reserved for generated API reference (Phase 6)"),
+            format!(
+                "line {line}: `:api-operation` is reserved for generated API reference (Phase 6)"
+            ),
         ));
         return None;
     }
@@ -1003,7 +781,7 @@ fn docs_node(
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2401",
             ctx.source_path,
-            format!("line {line}: unknown `@docs` kind `{}`", call.name),
+            format!("line {line}: unknown article kind `{}`", call.name),
         ));
         return None;
     }
@@ -1144,10 +922,7 @@ fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind:
             ctx,
             spec,
             line,
-            format!(
-                "`@docs {}` is only valid inside `@docs {parent}`",
-                spec.name
-            ),
+            format!("`:{}` is only valid inside `:{parent}`", spec.name),
         );
     }
     let check_required = spec.parents.is_empty() || registry::parent_allowed(spec, parent_kind);
@@ -1158,7 +933,7 @@ fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind:
                     ctx,
                     spec,
                     line,
-                    format!("`@docs {}` requires `{field}`", spec.name),
+                    format!("`:{}` requires `{field}`", spec.name),
                 );
             }
         }
@@ -1169,7 +944,7 @@ fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind:
                     ctx,
                     spec,
                     line,
-                    format!("`@docs {}` requires `{joined}`", spec.name),
+                    format!("`:{}` requires `{joined}`", spec.name),
                 );
             }
         }
@@ -1189,10 +964,7 @@ fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind:
                     ctx,
                     spec,
                     line,
-                    format!(
-                        "`@docs {}` requires `@docs {child_kind}` children",
-                        spec.name
-                    ),
+                    format!("`:{}` requires `:{child_kind}` children", spec.name),
                 );
             }
         }
@@ -1207,7 +979,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
             "RD2402",
             path,
             format!(
-                "line {line}: unknown `@docs {}` field `{}`",
+                "line {line}: unknown `:{}` field `{}`",
                 node.kind,
                 node.attrs.unknown.join(", ")
             ),
@@ -1229,29 +1001,21 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 ArticleNode::Markdown(_) | ArticleNode::Image(_) => true,
             });
             if has_step && has_list {
-                malformed(
-                    ctx,
-                    line,
-                    "`@docs steps` cannot mix a list with `@docs step`",
-                );
+                malformed(ctx, line, "`:steps` cannot mix a list with `:step`");
             } else if extra {
                 malformed(
                     ctx,
                     line,
-                    "`@docs steps` body must be an ordered list or `@docs step` children",
+                    "`:steps` body must be an ordered list or `:step` children",
                 );
             } else if !has_step && !has_list {
-                malformed(ctx, line, "`@docs steps` requires steps");
+                malformed(ctx, line, "`:steps` requires steps");
             }
         }
         "figure" => {
             let images = count_images(&node.children);
             if images != 1 {
-                malformed(
-                    ctx,
-                    line,
-                    "`@docs figure` body must contain exactly one image",
-                );
+                malformed(ctx, line, "`:figure` body must contain exactly one image");
             }
         }
         "badge" => {
@@ -1263,7 +1027,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
         }
         "compatibility" => {
             if !contains_table(&node.children) {
-                malformed(ctx, line, "`@docs compatibility` body must be a table");
+                malformed(ctx, line, "`:compatibility` body must be a table");
             }
         }
         "file-tree" => {
@@ -1273,11 +1037,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                     ArticleNode::Markdown(MdNode::List { ordered: false, .. })
                 )
             }) {
-                malformed(
-                    ctx,
-                    line,
-                    "`@docs file-tree` body must be an unordered list",
-                );
+                malformed(ctx, line, "`:file-tree` body must be an unordered list");
             }
         }
         "tabs" => validate_tabs(ctx, node),
@@ -1298,18 +1058,18 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
             continue;
         }
         if !attr_nonempty(&node.attrs, field) {
-            kind_error(ctx, spec, line, format!("`@docs tabs` requires `{field}`"));
+            kind_error(ctx, spec, line, format!("`:tabs` requires `{field}`"));
         }
     }
     let Some(kind) = node.attrs.tab_kind.as_deref() else {
-        kind_error(ctx, spec, line, "`@docs tabs` requires `kind`".to_string());
+        kind_error(ctx, spec, line, "`:tabs` requires `kind`".to_string());
         return;
     };
     if !registry::TAB_KIND_VALUES.contains(&kind) {
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2405",
             path,
-            format!("line {line}: `@docs tabs` kind must be language, platform, or tool"),
+            format!("line {line}: `:tabs` kind must be language, platform, or tool"),
         ));
     }
     let tabs: Vec<_> = node
@@ -1325,7 +1085,7 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
             ctx,
             spec,
             line,
-            "`@docs tabs` requires `@docs tab` children".to_string(),
+            "`:tabs` requires `:tab` children".to_string(),
         );
     }
     let mut seen = BTreeSet::new();
@@ -1337,7 +1097,7 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
                         ctx,
                         tab_spec,
                         tab.line,
-                        format!("`@docs tab` requires `{field}`"),
+                        format!("`:tab` requires `{field}`"),
                     );
                     continue;
                 }
@@ -1357,7 +1117,7 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
             ctx.diagnostics.push(CatalogDiagnostic::error(
                 "RD2405",
                 path,
-                format!("line {}: `@docs tab` cannot be empty", tab.line),
+                format!("line {}: `:tab` cannot be empty", tab.line),
             ));
         }
     }
@@ -1370,7 +1130,7 @@ fn validate_example(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
         malformed(
             ctx,
             node.line,
-            "`@docs example` cannot combine `path` with a code body unless the body is a caption",
+            "`:example` cannot combine `path` with a code body unless the body is a caption",
         );
     }
     if !node.attrs.test.is_empty() {
@@ -1405,7 +1165,7 @@ fn validate_example(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
         ctx.diagnostics.push(CatalogDiagnostic::warning(
             "RD2601",
             ctx.source_path,
-            format!("line {}: untested `@docs example`", node.line),
+            format!("line {}: untested `:example`", node.line),
         ));
     }
 }
@@ -1475,7 +1235,7 @@ fn include_node(
         ctx.diagnostics.push(CatalogDiagnostic::error(
             "RD2501",
             ctx.source_path,
-            format!("line {line}: `@docs include` requires `path`"),
+            format!("line {line}: `:include` requires `path`"),
         ));
         return None;
     };
@@ -2252,14 +2012,18 @@ mod tests {
     use super::*;
     use crate::{CompileOptions, compile};
 
-    fn load(src: &str) -> (PageDocs, Vec<CatalogDiagnostic>) {
-        let compiled = compile(
+    fn compile_src(src: &str) -> crate::CompileOutput {
+        compile(
             SourceFile::new("guide.rocdown", src),
             &CompileOptions {
                 resolve_links: false,
                 ..CompileOptions::default()
             },
-        );
+        )
+    }
+
+    fn load(src: &str) -> (PageDocs, Vec<CatalogDiagnostic>) {
+        let compiled = compile_src(src);
         assert!(!compiled.has_errors(), "{:?}", compiled.diagnostics);
         let mut diagnostics = Vec::new();
         let docs = load_page_docs(
@@ -2277,9 +2041,8 @@ mod tests {
 
     #[test]
     fn note_projects_markdown_and_search() {
-        let (docs, diagnostics) = load(
-            "# Guide\n\n@docs note {\n    title: \"Watch\"\n\n    See the [next](/next/).\n}\n",
-        );
+        let (docs, diagnostics) =
+            load("# Guide\n\n:note[title: \"Watch\"] {{\n    See the [next](/next/).\n}}\n");
         assert!(
             !diagnostics.iter().any(CatalogDiagnostic::is_error),
             "{diagnostics:?}"
@@ -2292,66 +2055,81 @@ mod tests {
 
     #[test]
     fn unknown_kind_is_rd2401() {
-        let (_docs, diagnostics) = load("@docs widget {\n    Hi\n}\n");
+        let compiled = compile_src(":widget Hi\n");
         assert!(
-            diagnostics
+            compiled
+                .diagnostics
                 .iter()
-                .any(|diagnostic| diagnostic.code == "RD2401")
+                .any(|diagnostic| diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("unknown article kind `:widget`")),
+            "{:?}",
+            compiled.diagnostics
         );
     }
 
     #[test]
-    fn sugar_heading_kind_is_still_unknown_docs() {
-        let (_docs, diagnostics) = load("@docs h2 {\n    Title\n}\n");
+    fn authored_h2_is_a_valid_sugar_kind() {
+        let (docs, diagnostics) = load(":h2 Title\n");
         assert!(
-            diagnostics
+            !diagnostics.iter().any(CatalogDiagnostic::is_error),
+            "{diagnostics:?}"
+        );
+        assert!(
+            collect_headings(&docs.article)
                 .iter()
-                .any(|diagnostic| diagnostic.code == "RD2401")
+                .any(|heading| heading.text == "Title")
         );
     }
 
     #[test]
     fn details_requires_summary_from_registry() {
-        let (_docs, diagnostics) = load("@docs details {\n    Body\n}\n");
+        let compiled = compile_src(":details Body\n");
         assert!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.code == "RD2402"
-                    && diagnostic
-                        .message
-                        .contains("`@docs details` requires `summary`")
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic.message.contains("`:details` requires `summary`")
             }),
-            "{diagnostics:?}"
+            "{:?}",
+            compiled.diagnostics
         );
     }
 
     #[test]
     fn step_requires_steps_parent_from_registry() {
-        let (_docs, diagnostics) = load("@docs step {\n    title: \"One\"\n\n    Do it.\n}\n");
+        let compiled = compile_src(":step[title: \"One\"] Do it.\n");
         assert!(
-            diagnostics.iter().any(|diagnostic| {
-                diagnostic.code == "RD2402"
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
                     && diagnostic
                         .message
-                        .contains("`@docs step` is only valid inside `@docs steps`")
+                        .contains("`:step` is only valid inside `:steps`")
             }),
-            "{diagnostics:?}"
+            "{:?}",
+            compiled.diagnostics
         );
     }
 
     #[test]
     fn api_operation_is_rd2406() {
-        let (_docs, diagnostics) = load("@docs api-operation {\n    id: \"get\"\n}\n");
+        let compiled = compile_src(":api-operation[id: \"get\"]\n");
         assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == "RD2406")
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("`:api-operation` is not an authorable article kind")
+            }),
+            "{:?}",
+            compiled.diagnostics
         );
     }
 
     #[test]
     fn untested_example_warns() {
         let (_docs, diagnostics) =
-            load("@docs example {\n    language: \"sh\"\n\n    ```sh\n    echo hi\n    ```\n}\n");
+            load(":example[language: \"sh\"] {{\n    ```sh\n    echo hi\n    ```\n}}\n");
         assert!(
             diagnostics
                 .iter()
@@ -2363,7 +2141,7 @@ mod tests {
     #[test]
     fn tabs_project_all_panels_and_omit_outline_headings() {
         let (docs, diagnostics) = load(
-            "# Guide\n\n@docs tabs {\n    group: \"os\"\n    kind: \"platform\"\n\n    @docs tab {\n        id: \"mac\"\n        label: \"macOS\"\n\n        ## Inside\n\n        Mac panel.\n    }\n    @docs tab {\n        id: \"linux\"\n        label: \"Linux\"\n\n        Linux panel.\n    }\n}\n",
+            "# Guide\n\n:tabs[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] {{\n        ## Inside\n\n        Mac panel.\n    }}\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:end.tabs\n",
         );
         assert!(
             !diagnostics.iter().any(CatalogDiagnostic::is_error),
@@ -2402,7 +2180,7 @@ mod tests {
 
     #[test]
     fn figure_with_markdown_image_does_not_require_figure_alt() {
-        let (_docs, diagnostics) = load("@docs figure {\n    ![x](/x.png)\n}\n");
+        let (_docs, diagnostics) = load(":figure {{\n    ![x](/x.png)\n}}\n");
         assert!(
             !diagnostics.iter().any(CatalogDiagnostic::is_error),
             "{diagnostics:?}"
@@ -2411,8 +2189,7 @@ mod tests {
 
     #[test]
     fn figure_level_alt_is_unknown() {
-        let (_docs, diagnostics) =
-            load("@docs figure {\n    alt: \"Diagram\"\n\n    ![x](/x.png)\n}\n");
+        let (_docs, diagnostics) = load(":figure[alt: \"Diagram\"] {{\n    ![x](/x.png)\n}}\n");
         assert!(
             diagnostics.iter().any(|diagnostic| {
                 diagnostic.code == "RD2402" && diagnostic.message.contains("unknown")
@@ -2432,7 +2209,7 @@ mod tests {
             "// docs-region: install\nfn install() {}\n// docs-region-end: install\nfn other() {}\n",
         )
         .unwrap();
-        let src = "@docs include {\n    path: \"snippet.rs\"\n    region: \"install\"\n}\n";
+        let src = ":include[path: \"snippet.rs\", region: \"install\"]\n";
         let compiled = compile(
             SourceFile::new("guide.rocdown", src),
             &CompileOptions {
@@ -2460,7 +2237,7 @@ mod tests {
         assert!(!markdown.contains("fn other()"), "{markdown}");
         assert!(markdown.contains("Source: snippet.rs"), "{markdown}");
 
-        let ranged = "@docs include {\n    path: \"snippet.rs\"\n    start: 1\n    end: 2\n}\n";
+        let ranged = ":include[path: \"snippet.rs\", start: 1, end: 2]\n";
         let compiled = compile(
             SourceFile::new("guide.rocdown", ranged),
             &CompileOptions {
@@ -2492,16 +2269,8 @@ mod tests {
         let root = std::env::temp_dir().join(format!("rocdown-docs-cycle-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
-        std::fs::write(
-            root.join("a.rocdown"),
-            "@docs include {\n    path: \"b.rocdown\"\n}\n",
-        )
-        .unwrap();
-        std::fs::write(
-            root.join("b.rocdown"),
-            "@docs include {\n    path: \"a.rocdown\"\n}\n",
-        )
-        .unwrap();
+        std::fs::write(root.join("a.rocdown"), ":include[path: \"b.rocdown\"]\n").unwrap();
+        std::fs::write(root.join("b.rocdown"), ":include[path: \"a.rocdown\"]\n").unwrap();
         let src = std::fs::read_to_string(root.join("a.rocdown")).unwrap();
         let compiled = compile(
             SourceFile::new("a.rocdown", &src),
@@ -2560,9 +2329,8 @@ mod tests {
 
     #[test]
     fn body_only_docs_edit_keeps_segment_paths() {
-        let first = load("# Guide\n\n@docs note {\n    title: \"Watch\"\n\n    First.\n}\n").0;
-        let second =
-            load("# Guide\n\n@docs note {\n    title: \"Watch\"\n\n    Second paragraph.\n}\n").0;
+        let first = load("# Guide\n\n:note[title: \"Watch\"] First.\n").0;
+        let second = load("# Guide\n\n:note[title: \"Watch\"] Second paragraph.\n").0;
         let rewrite = BTreeMap::new();
         let (first_segs, first_files) = plan_segments("Page", &first.article, &rewrite);
         let (second_segs, second_files) = plan_segments("Page", &second.article, &rewrite);
@@ -2598,7 +2366,7 @@ mod tests {
     #[test]
     fn img_decl_preserves_all_fields() {
         let (docs, diags) = load(
-            "# Guide\n\n@img {\n    src: \"img/banner.png\"\n    alt: \"Banner\"\n    title: \"Hero\"\n    width: \"300px\"\n    height: \"120px\"\n    class: \"hero\"\n    loading: \"lazy\"\n    decoding: \"async\"\n}\n",
+            "# Guide\n\n:img[src: \"img/banner.png\", alt: \"Banner\", title: \"Hero\", width: \"300px\", height: \"120px\", class: \"hero\", loading: \"lazy\", decoding: \"async\"]\n",
         );
         assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
         assert_eq!(collect_images(&docs.article), vec!["img/banner.png"]);
@@ -2616,7 +2384,7 @@ mod tests {
     #[test]
     fn figure_preserves_caption_credit_and_nested_img_fields() {
         let (docs, diags) = load(
-            "@docs figure {\n    caption: \"Architecture\"\n    credit: \"Rocci docs\"\n\n    @img {\n        src: \"diagram.png\"\n        alt: \"Diagram\"\n        width: \"400px\"\n        loading: \"lazy\"\n        decoding: \"async\"\n    }\n}\n",
+            ":figure[caption: \"Architecture\", credit: \"Rocci docs\"] {{\n    :img[src: \"diagram.png\", alt: \"Diagram\", width: \"400px\", loading: \"lazy\", decoding: \"async\"]\n}}\n",
         );
         assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
         let (segments, _fragments) = plan_segments("fig", &docs.article, &Default::default());

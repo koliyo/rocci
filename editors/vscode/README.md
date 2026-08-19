@@ -9,7 +9,7 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **Document Symbols & Outline**: Outline view and breadcrumbs for components, handlers, fixtures, styles, page metadata, and Rocdown headings.
 - **Diagnostics & Error Recovery**: Push diagnostics for parser syntax errors with parser recovery that preserves partial highlighting on incomplete documents.
 - **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
-- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@on`, `@page`, `@roc`, `@docs`), HTML elements, and components; hover documentation for template elements.
+- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@on`, `@page`, `@roc`, `:note`), HTML elements, and components; hover documentation for template elements.
 
 ## Configuration
 

@@ -68,7 +68,7 @@ published = "2026-08-16"
 Document-root component tags and directives are explicit islands in the
 Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
 
-> The current static Rocdown site pipeline accepts Markdown, `@page`, and `@docs`.
+> The current static Rocdown site pipeline accepts Markdown, `@page`, and article blocks.
 > Dynamic `@roc`, `@render`, Rocci components, file CSS, and handlers work in
 > `rocci run` but are rejected by `rocdown build` until island splicing lands.
 >

@@ -53,7 +53,7 @@ fn syntax_v2_fixture_parses_colon_blocks() {
 }
 
 #[test]
-fn docs_note_still_parses_beside_colon_note() {
+fn leftover_docs_and_img_are_removal_errors() {
     let src = "\
 @docs note {
     title: \"Legacy\"
@@ -61,15 +61,26 @@ fn docs_note_still_parses_beside_colon_note() {
     Still works.
 }
 
+@img {
+    src: \"x.png\"
+    alt: \"x\"
+}
+
 :note Also a note.
 ";
     let parsed = parse_src(src);
+    let errs = error_messages(&parsed);
     assert!(
-        error_messages(&parsed).is_empty(),
-        "{:?}",
-        parsed.diagnostics
+        errs.iter()
+            .any(|msg| msg.contains("`@docs` was removed") && msg.contains(":note")),
+        "{errs:?}"
     );
-    assert_eq!(block_names(&parsed), ["note", "note"]);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`@img` was removed") && msg.contains(":img[")),
+        "{errs:?}"
+    );
+    assert_eq!(block_names(&parsed), ["note"]);
 }
 
 #[test]

@@ -18,8 +18,6 @@ pub enum Reserved {
     For,
     Match,
     Let,
-    Docs,
-    Img,
 }
 
 impl Reserved {
@@ -38,8 +36,6 @@ impl Reserved {
             "for" => Self::For,
             "match" => Self::Match,
             "let" => Self::Let,
-            "docs" => Self::Docs,
-            "img" => Self::Img,
             _ => return None,
         })
     }
@@ -59,8 +55,6 @@ impl Reserved {
             Self::For => "for",
             Self::Match => "match",
             Self::Let => "let",
-            Self::Docs => "docs",
-            Self::Img => "img",
         }
     }
 
@@ -82,6 +76,7 @@ pub enum ScannedKind {
     Html,
     Colon,
     ColonEnd,
+    RemovedAt,
 }
 
 #[derive(Clone, Debug)]
@@ -210,7 +205,30 @@ fn try_scan_decl(
     while name_end < src.len() && is_ident_continue(bytes[name_end] as char) {
         name_end += 1;
     }
-    let kind = Reserved::from_name(&src[name_start..name_end])?;
+    let name = &src[name_start..name_end];
+    if name == "docs" || name == "img" {
+        let line_end = src[line_start..]
+            .find('\n')
+            .map(|i| line_start + i)
+            .unwrap_or(src.len());
+        diagnostics.push(Diagnostic::error(
+            Span::new(at, name_end),
+            if name == "docs" {
+                "`@docs` was removed; write `:note` (or another builtin kind) instead of `@docs <kind> { ... }`"
+                    .to_string()
+            } else {
+                "`@img` was removed; write `:img[src: \"...\", alt: \"...\"]` instead of `@img { ... }`"
+                    .to_string()
+            },
+        ));
+        return Some(ScannedDecl {
+            kind: ScannedKind::RemovedAt,
+            line_start,
+            at,
+            end: line_end.max(name_end),
+        });
+    }
+    let kind = Reserved::from_name(name)?;
     if !header_matches(src, name_end, kind) {
         return None;
     }
@@ -608,20 +626,7 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             matches!(cur.peek(), Some('{')) || cur.peek().is_some_and(is_ident_start)
         }
-        Reserved::Page
-        | Reserved::Roc
-        | Reserved::Render
-        | Reserved::Css
-        | Reserved::Init
-        | Reserved::Img => {
-            cur.skip_trivia();
-            cur.peek() == Some('{')
-        }
-        Reserved::Docs => {
-            cur.skip_trivia();
-            if cur.scan_tag_name().is_none() {
-                return false;
-            }
+        Reserved::Page | Reserved::Roc | Reserved::Render | Reserved::Css | Reserved::Init => {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }
@@ -701,10 +706,6 @@ fn skip_brace_block(src: &str, at: usize, kind: Reserved) -> (usize, Vec<Diagnos
     cur.eat('@');
     cur.scan_ident();
     cur.skip_trivia();
-    if kind == Reserved::Docs {
-        cur.scan_tag_name();
-        cur.skip_trivia();
-    }
     if cur.peek() != Some('{') {
         diagnostics.push(Diagnostic::error(
             Span::point(cur.pos),
@@ -796,30 +797,14 @@ fn looks_like_list_marker(stripped: &str) -> bool {
 }
 
 pub fn inner_span(src: &str, at: usize) -> Span {
-    brace_inner_span(src, at, false)
+    brace_inner_span(src, at)
 }
 
-pub fn docs_kind_span(src: &str, at: usize) -> Span {
+fn brace_inner_span(src: &str, at: usize) -> Span {
     let mut cur = Cursor::at(src, at);
     cur.eat('@');
     cur.scan_ident();
     cur.skip_trivia();
-    cur.scan_tag_name().unwrap_or_else(|| Span::point(cur.pos))
-}
-
-pub fn docs_inner_span(src: &str, at: usize) -> Span {
-    brace_inner_span(src, at, true)
-}
-
-fn brace_inner_span(src: &str, at: usize, skip_kind: bool) -> Span {
-    let mut cur = Cursor::at(src, at);
-    cur.eat('@');
-    cur.scan_ident();
-    cur.skip_trivia();
-    if skip_kind {
-        cur.scan_tag_name();
-        cur.skip_trivia();
-    }
     if cur.peek() != Some('{') {
         return Span::point(cur.pos);
     }

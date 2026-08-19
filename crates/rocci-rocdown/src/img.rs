@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use rocci_template::{Cursor, Diagnostic, Span};
 
 use crate::ast::{BracketRecord, Document, Item, MdNode, ParamValue};
-use crate::docs::split_docs_body;
 use crate::page::{bool_literal, skip_value, string_literal};
 use crate::parse::parse_fragment;
 use crate::{CompileOptions, SourceFile};
@@ -188,7 +187,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
         let Some(name_span) = cur.scan_ident() else {
             diagnostics.push(Diagnostic::error(
                 Span::point(cur.pos),
-                "expected a field name in `@img`",
+                "expected a field name in `:img`",
             ));
             break;
         };
@@ -197,7 +196,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
         if !cur.eat(':') {
             diagnostics.push(Diagnostic::error(
                 name_span,
-                format!("expected `:` after `@img` field `{name}`"),
+                format!("expected `:` after `:img` field `{name}`"),
             ));
             break;
         }
@@ -210,7 +209,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
             diagnostics.push(Diagnostic::error(
                 name_span,
                 format!(
-                    "unknown field `{name}` in `@img`; expected one of {}",
+                    "unknown field `{name}` in `:img`; expected one of {}",
                     ALLOWED_FIELDS.join(", ")
                 ),
             ));
@@ -293,7 +292,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
     if fields.src.is_none() {
         diagnostics.push(Diagnostic::error(
             body,
-            "missing required field `src` in `@img`",
+            "missing required field `src` in `:img`",
         ));
     }
 
@@ -307,13 +306,13 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
         if alt.is_some_and(|value| !value.is_empty()) {
             diagnostics.push(Diagnostic::error(
                 fields.alt.as_ref().map(|(_, span)| *span).unwrap_or(body),
-                "decorative `@img` must not set a non-empty `alt`",
+                "decorative `:img` must not set a non-empty `alt`",
             ));
         }
     } else if alt.is_none() || alt.is_some_and(str::is_empty) {
         diagnostics.push(Diagnostic::error(
             fields.alt.as_ref().map(|(_, span)| *span).unwrap_or(body),
-            "`@img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
+            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
         ));
     }
 
@@ -336,7 +335,7 @@ pub fn img_fields_from_params(
     let Some(params) = params else {
         diagnostics.push(Diagnostic::error(
             body_span,
-            "missing required field `src` in `@img`",
+            "missing required field `src` in `:img`",
         ));
         return fields;
     };
@@ -347,7 +346,7 @@ pub fn img_fields_from_params(
             diagnostics.push(Diagnostic::error(
                 field.name_span,
                 format!(
-                    "unknown field `{name}` in `@img`; expected one of {}",
+                    "unknown field `{name}` in `:img`; expected one of {}",
                     ALLOWED_FIELDS.join(", ")
                 ),
             ));
@@ -439,7 +438,7 @@ pub fn img_fields_from_params(
     if fields.src.is_none() {
         diagnostics.push(Diagnostic::error(
             body_span,
-            "missing required field `src` in `@img`",
+            "missing required field `src` in `:img`",
         ));
     }
 
@@ -456,7 +455,7 @@ pub fn img_fields_from_params(
                     .as_ref()
                     .map(|(_, span)| *span)
                     .unwrap_or(body_span),
-                "decorative `@img` must not set a non-empty `alt`",
+                "decorative `:img` must not set a non-empty `alt`",
             ));
         }
     } else if fields.alt.as_ref().is_none_or(|(alt, _)| alt.is_empty()) {
@@ -466,7 +465,7 @@ pub fn img_fields_from_params(
                 .as_ref()
                 .map(|(_, span)| *span)
                 .unwrap_or(body_span),
-            "`@img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
+            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
         ));
     }
 
@@ -547,20 +546,6 @@ fn collect_media_in(source: SourceFile<'_>, document: &Document, urls: &mut Vec<
                     let parsed = parse_fragment(source, content, false);
                     collect_media_in(source, &parsed.document, urls);
                 }
-            }
-            Item::Img(img) => {
-                let mut diags = Vec::new();
-                let fields = extract_img_fields(source.src, img.body, &mut diags);
-                if let Some((src, span)) = fields.src
-                    && !is_remote_asset(&src)
-                {
-                    urls.push((src, span));
-                }
-            }
-            Item::Docs(docs) => {
-                let (_, content) = split_docs_body(source.src, docs.body);
-                let parsed = parse_fragment(source, content, false);
-                collect_media_in(source, &parsed.document, urls);
             }
             _ => {}
         }

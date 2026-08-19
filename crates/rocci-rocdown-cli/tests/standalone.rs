@@ -141,10 +141,7 @@ fn standalone_mounts_document_relative_images() {
         r#"
 @page { route: "/page/" }
 
-@img {
-    src: "./img/dot.png"
-    alt: "Dot"
-}
+:img[src: "./img/dot.png", alt: "Dot"]
 "#,
     )
     .unwrap();

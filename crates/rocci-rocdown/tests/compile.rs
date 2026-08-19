@@ -1138,11 +1138,9 @@ fn docs_note_is_parsed_and_lowered() {
     let src = "\
 # Guide
 
-@docs note {
-    title: \"Deprecation\"
-
+:note[title: \"Deprecation\"] {{
     Do not use `foo` in production.
-}
+}}
 ";
     let out = compile_ok(src);
     assert!(
@@ -1163,14 +1161,7 @@ fn docs_note_is_parsed_and_lowered() {
 #[test]
 fn kebab_docs_kinds_are_parsed() {
     let src = "\
-@docs link-card {
-    href: \"/guide/\"
-    title: \"Guide\"
-}
-
-@docs api-operation {
-    id: \"get\"
-}
+:link-card[href: \"/guide/\", title: \"Guide\"]
 ";
     let out = compile_ok(src);
     let kinds: Vec<_> = out
@@ -1182,19 +1173,22 @@ fn kebab_docs_kinds_are_parsed() {
             _ => None,
         })
         .collect();
-    assert_eq!(kinds, ["link-card", "api-operation"]);
+    assert_eq!(kinds, ["link-card"]);
+
+    let errs = compile_err(":api-operation[id: \"get\"]\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`:api-operation` is not an authorable article kind")),
+        "{errs:?}"
+    );
 }
 
 #[test]
 fn nested_docs_and_escaped_docs_are_distinct() {
     let src = "\
-@docs steps {
-    @docs step {
-        title: \"Install\"
-
-        Run the installer.
-    }
-}
+:steps
+    :step[title: \"Install\"] Run the installer.
+:end.steps
 
 \\@docs note { not a directive }
 ";
@@ -1231,16 +1225,16 @@ fn nested_docs_and_escaped_docs_are_distinct() {
 #[test]
 fn render_inside_docs_is_an_error() {
     let src = "\
-@docs note {
+:note {{
     @render {
         Html.text(\"nope\")
     }
-}
+}}
 ";
     let errs = compile_err(src);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("`@render` is not allowed inside `@docs`")),
+            .any(|msg| msg.contains("`@render` is not allowed inside an article block")),
         "{errs:?}"
     );
 }
@@ -1270,11 +1264,7 @@ fn img_with_src_and_width_is_parsed_and_lowered() {
     let src = "\
 # Image Demo
 
-@img {
-    src: \"img/yammi_banana.png\"
-    alt: \"A banana\"
-    width: \"50px\"
-}
+:img[src: \"img/yammi_banana.png\", alt: \"A banana\", width: \"50px\"]
 ";
     let out = compile_ok(src);
     assert!(out.document.items.iter().any(|item| matches!(
@@ -1291,16 +1281,7 @@ fn img_with_src_and_width_is_parsed_and_lowered() {
 #[test]
 fn img_with_all_optional_fields() {
     let src = "\
-@img {
-    src: \"img/banana.png\",
-    alt: \"A tasty banana\",
-    title: \"Yummy banana\",
-    width: \"100px\",
-    height: \"80px\",
-    class: \"hero-img\",
-    loading: \"lazy\",
-    decoding: \"async\",
-}
+:img[src: \"img/banana.png\", alt: \"A tasty banana\", title: \"Yummy banana\", width: \"100px\", height: \"80px\", class: \"hero-img\", loading: \"lazy\", decoding: \"async\"]
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("rd-image hero-img"));
@@ -1316,10 +1297,7 @@ fn img_with_all_optional_fields() {
 #[test]
 fn img_without_explicit_sizing_is_valid() {
     let src = "\
-@img {
-    src: \"img/simple.png\",
-    alt: \"Simple image\"
-}
+:img[src: \"img/simple.png\", alt: \"Simple image\"]
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("\"rd-image\""));
@@ -1331,14 +1309,12 @@ fn img_without_explicit_sizing_is_valid() {
 #[test]
 fn img_missing_src_is_an_error() {
     let src = "\
-@img {
-    width: \"50px\"
-}
+:img[width: \"50px\"]
 ";
     let errs = compile_err(src);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("missing required field `src` in `@img`")),
+            .any(|msg| msg.contains("missing required field `src` in `:img`")),
         "{errs:?}"
     );
 }
@@ -1346,16 +1322,12 @@ fn img_missing_src_is_an_error() {
 #[test]
 fn img_unknown_field_is_an_error() {
     let src = "\
-@img {
-    src: \"img/banana.png\",
-    alt: \"A tasty banana\",
-    bad_field: \"value\"
-}
+:img[src: \"img/banana.png\", alt: \"A tasty banana\", bad_field: \"value\"]
 ";
     let errs = compile_err(src);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("unknown field `bad_field` in `@img`")),
+            .any(|msg| msg.contains("unknown field `bad_field` in `:img`")),
         "{errs:?}"
     );
 }
@@ -1390,16 +1362,9 @@ fn escaped_img_and_img_in_fences_are_inert() {
 #[test]
 fn img_nested_inside_docs_component() {
     let src = "\
-@docs figure {
-    caption: \"Architecture\"
-    credit: \"Rocci docs\"
-
-    @img {
-        src: \"diagram.png\"
-        alt: \"Diagram\"
-        width: \"400px\"
-    }
-}
+:figure[caption: \"Architecture\", credit: \"Rocci docs\"] {{
+    :img[src: \"diagram.png\", alt: \"Diagram\", width: \"400px\"]
+}}
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("rd-docs-figure"));
@@ -1414,14 +1379,12 @@ fn img_nested_inside_docs_component() {
 #[test]
 fn img_missing_alt_is_an_error() {
     let src = "\
-@img {
-    src: \"img/simple.png\"
-}
+:img[src: \"img/simple.png\"]
 ";
     let errs = compile_err(src);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("`@img` requires `alt` for meaningful images")),
+            .any(|msg| msg.contains("`:img` requires `alt` for meaningful images")),
         "{errs:?}"
     );
 }
@@ -1429,10 +1392,7 @@ fn img_missing_alt_is_an_error() {
 #[test]
 fn img_decorative_emits_empty_alt() {
     let src = "\
-@img {
-    src: \"img/divider.png\"
-    decorative: Bool.true
-}
+:img[src: \"img/divider.png\", decorative: Bool.true]
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("\"img/divider.png\""));
@@ -1442,16 +1402,12 @@ fn img_decorative_emits_empty_alt() {
 #[test]
 fn img_decorative_rejects_nonempty_alt() {
     let src = "\
-@img {
-    src: \"img/divider.png\"
-    alt: \"Divider\"
-    decorative: Bool.true
-}
+:img[src: \"img/divider.png\", alt: \"Divider\", decorative: Bool.true]
 ";
     let errs = compile_err(src);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("decorative `@img` must not set a non-empty `alt`")),
+            .any(|msg| msg.contains("decorative `:img` must not set a non-empty `alt`")),
         "{errs:?}"
     );
 }
@@ -1459,12 +1415,7 @@ fn img_decorative_rejects_nonempty_alt() {
 #[test]
 fn img_invalid_loading_and_decoding_are_errors() {
     let src = "\
-@img {
-    src: \"img/simple.png\"
-    alt: \"Simple\"
-    loading: \"whenever\"
-    decoding: \"fast\"
-}
+:img[src: \"img/simple.png\", alt: \"Simple\", loading: \"whenever\", decoding: \"fast\"]
 ";
     let errs = compile_err(src);
     assert!(
@@ -1542,10 +1493,7 @@ Claim.[^note]
 #[test]
 fn missing_local_asset_is_diagnosed_when_enabled() {
     let src = "\
-@img {
-    src: \"missing-file.png\"
-    alt: \"Missing\"
-}
+:img[src: \"missing-file.png\", alt: \"Missing\"]
 ";
     let out = compile_with(
         src,
@@ -1573,10 +1521,7 @@ fn dotted_relative_img_resolves_against_source_dir() {
     fs::create_dir_all(dir.join("img")).unwrap();
     fs::write(dir.join("img/dot.png"), b"png").unwrap();
     let src = "\
-@img {
-    src: \"./img/dot.png\"
-    alt: \"Dot\"
-}
+:img[src: \"./img/dot.png\", alt: \"Dot\"]
 ";
     let out = compile_with(
         src,
@@ -1605,10 +1550,7 @@ fn dotted_relative_img_resolves_against_source_dir() {
 #[test]
 fn parent_relative_img_is_rejected_when_checking_assets() {
     let src = "\
-@img {
-    src: \"../secret.png\"
-    alt: \"Secret\"
-}
+:img[src: \"../secret.png\", alt: \"Secret\"]
 ";
     let out = compile_with(
         src,

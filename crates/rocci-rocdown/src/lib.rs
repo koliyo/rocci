@@ -27,9 +27,9 @@ pub mod theme;
 
 pub use article::render_document;
 pub use ast::{
-    BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, DocsDecl, Document,
-    EndMarker, EndSection, HeadingInfo, ImgDecl, Item, LineContent, LinkInfo, MdNode, PageDecl,
-    PageMeta, ParamField, ParamValue, RenderDecl, RocDecl,
+    BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
+    EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,
+    ParamValue, RenderDecl, RocDecl,
 };
 pub use build::{
     BuildReport, BuildSession, build, build_configured, build_configured_with_host,
@@ -45,7 +45,7 @@ pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
     PageDocs, PlannedSegment, extract_lines, extract_region, field_bool, field_string,
     field_strings, include_path_error, load_page_docs, markdown_fragment, plan_segments,
-    render_article, resolve_include_path, run_examples, search_text, split_docs_body,
+    render_article, resolve_include_path, run_examples, search_text,
 };
 pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{

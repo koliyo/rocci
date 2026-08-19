@@ -10,52 +10,28 @@ use rocci_rocdown::{
 fn test_article_html_components() {
     let doc_src = r#"# Components Guide
 
-@docs note {
-    title: "Important"
-    This is a callout note.
-}
+:note[title: "Important"] This is a callout note.
 
-@docs tabs {
-    group: "languages"
-    kind: "language"
-    @docs tab {
-        id: "roc"
-        label: "Roc"
+:tabs[group: "languages", kind: "language"]
+    :tab[id: "roc", label: "Roc"] {{
         ```roc
         main = "Hello"
         ```
-    }
-    @docs tab {
-        id: "rust"
-        label: "Rust"
+    }}
+    :tab[id: "rust", label: "Rust"] {{
         ```rust
         fn main() {}
         ```
-    }
-}
+    }}
+:end.tabs
 
-@docs details {
-    summary: "Click to expand"
-    open: Bool.true
-    Hidden content revealed.
-}
+:details[summary: "Click to expand", open: Bool.true] Hidden content revealed.
 
-@docs badge {
-    label: "Beta"
-    tone: "beta"
-}
+:badge[label: "Beta", tone: "beta"]
 
-@docs link-card {
-    page: "/guides/install/"
-    title: "Installation"
-}
+:link-card[page: "/guides/install/", title: "Installation"]
 
-@img {
-    src: "/media/logo.png"
-    alt: "Rocci Logo"
-    width: "100"
-    height: "100"
-}
+:img[src: "/media/logo.png", alt: "Rocci Logo", width: "100", height: "100"]
 
 Footnote reference.[^first]
 

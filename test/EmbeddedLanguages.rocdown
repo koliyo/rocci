@@ -80,67 +80,40 @@ Inline code looks like `Num.toStr(42)`. You can also visit [External Link](https
 
 ## Section 2: Documentation Components {#sec-docs}
 
-@docs note {
-    title: "Important Usage Note",
-    open: Bool.true
-
+:note[title: "Important Usage Note", open: Bool.true] {{
 This is the content of the note. It supports *Markdown* and `inline code`.
-}
+}}
 
-@docs tabs {
-    group: "platform",
-    kind: "platform"
-
-    @docs tab {
-        id: "mac",
-        label: "macOS 🍎"
-
+:tabs[group: "platform", kind: "platform"]
+    :tab[id: "mac", label: "macOS 🍎"] {{
 Run on macOS:
 
 ```sh
 cargo run -- mac
 ```
-    }
-
-    @docs tab {
-        id: "linux",
-        label: "Linux 🐧"
-
+    }}
+    :tab[id: "linux", label: "Linux 🐧"] {{
 Run on Linux:
 
 ```sh
 cargo run -- linux
 ```
-    }
-}
+    }}
+:end.tabs
 
-@docs include {
-    path: "AllSyntax.rocci",
-    language: "rocci"
-}
+:include[path: "AllSyntax.rocci", language: "rocci"]
 
-@docs example {
-    name: "counter-test",
-    command: "cargo test",
-    language: "roc"
-
+:example[name: "counter-test", command: "cargo test", language: "roc"] {{
 ```roc
 counter = 42
 ```
-}
+}}
 
-@docs link-card {
-    page: "/guides/getting-started/",
-    title: "Getting Started 🚀",
-    description: "Learn how to build applications with Rocci."
-}
+:link-card[page: "/guides/getting-started/", title: "Getting Started 🚀", description: "Learn how to build applications with Rocci."]
 
-@docs details {
-    summary: "Advanced Details 🔍",
-    open: Bool.false
-
+:details[summary: "Advanced Details 🔍", open: Bool.false] {{
 Here is collapsible markdown content that stays hidden until expanded.
-}
+}}
 
 ## Section 3: Display-Only Code Fences {#sec-fences}
 
