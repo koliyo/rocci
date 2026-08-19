@@ -4,7 +4,7 @@ title: Custom Rocdown block schemas and renderers
 description: "Phased delivery of a schema/renderer split for :kind blocks: generic child policy, structured parent children, theme block-pack overrides, optional debug painter, and site config. No document spelling change."
 tags: [domain/rocdown, domain/rocci, concern/rendering, concern/architecture, concern/theming, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -150,17 +150,19 @@ theme/Blocks.rocci  @component Note  # site renderer overlay
 | Rust catalog / Rocci shell | Validation without Roc; one theme compile per build; no interpreting `.rocci` in Rust[^catalog-shell] |
 | OKF Markdown-only | No `:note` in `knowledge/**/*.md` |
 | Page chrome vs widgets | `SiteShell` / layouts stay chrome; block packs stay article widgets |
-| No `@docs` alias | Spelling stays `:kind` |
 
 ## Non-goals (all phases)
 
-- Changing `:name[params]` / `{{ }}` / `:end.kind`
+- Changing `:name[params]` / line-scope / `{{ }}` XOR `:kind.begin` ... `:kind.end`
 - Inline decorations, named slots, MDX-in-prose
 - Per-page `@component` on static `rocdown build`
 - Generating the scanner from ungram
 - Roc traits / `implements Block`
 - Requiring CSS class stability (`rd-docs-*`) on overrides
 - `@block` grammar in Phase 1–4 (follow-on Phase 8)
+- Reviving `@docs` or any family-name alias for article blocks. That
+  spelling was a short-lived experiment; it is removed. Article widgets
+  are `:kind` only.
 
 ## V1 contract
 
@@ -171,7 +173,9 @@ These answers freeze the research open questions for delivery.[^research]
 A kind has one schema row (params, child policy, defaults) and one bound
 renderer name. Builtin rows stay in `registry.rs`. Site packs may override
 the renderer name and, for new kinds only, add schema rows inferred from
-the component signature plus explicit child metadata when present.[^registry]
+the `@component` header (`parse_component_params`: names, `??` defaults,
+extra body param). Named Roc type aliases are optional documentation; they
+are not the v1 schema source and do not require Roc introspection.[^registry][^research]
 
 ### Child modes
 
@@ -355,9 +359,12 @@ docs` green.
 
 **Does:**
 
-- Infer schema from component params (required vs `??` defaults vs
-  extra body parameter). Child policy defaults to fragment + any
-  children until Phase 8 metadata exists.
+- Infer schema from `@component` headers via `parse_component_params`
+  (required vs `??` defaults vs extra body parameter). Do not parse
+  named Roc type aliases, invoke Roc, or use glue/introspection.
+  Child policy defaults to fragment + any children until Phase 8
+  metadata exists. Worked sketches:
+  [research examples](../research/rocdown-block-renderers.md#worked-examples).
 - Merge into the site registry; other sites without the pack still
   error on `:callout`.
 - Generated dispatcher includes the new arm.
@@ -470,6 +477,8 @@ workflows succeed on that revision.
    exist, or stays stacked until a JS follow-on.
 3. Whether `[blocks.override]` is needed besides filename convention in
    v1.
+4. Whether a later phase should scan `Name : { field : Type }` opaque
+   Roc spans for schema. Frozen as no for v1.
 
 [^research]: Exploratory schema/renderer split, child modes, pack overlay, debug policy.
 [^block-research]: Syntax and uniform BlockCall; not renderer override.

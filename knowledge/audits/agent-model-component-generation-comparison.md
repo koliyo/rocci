@@ -91,7 +91,7 @@ Size did not contribute directly to the score.[^result-a][^result-b]
 ## Why result B is stronger
 
 B models the shipped pipeline before proposing change. It distinguishes Rust
-Markdown rendering, duplicated `@docs` wrappers, reusable documentation
+Markdown rendering, duplicated article-block wrappers, reusable documentation
 chrome, and product-specific OKF governance instead of treating all Rust HTML
 as one migration opportunity.[^result-b][^generator]
 

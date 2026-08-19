@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -73,7 +73,7 @@ sources:
 
 The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
 
-Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include a bounded `@docs` family: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan]
+Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include bounded `:kind` article blocks: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan]
 
 Tree-sitter highlighting library `rocci-highlight` provides token spans for LSP and documentation rendering parity.[^rocdown-compiler]
 
@@ -83,7 +83,7 @@ Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark 
 
 ## Missing
 
-Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `@docs api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
+Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `:api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
 
 The editor adapters and host-language LSP with Rocdown composition exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
 

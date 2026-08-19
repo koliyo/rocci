@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Generalized Rocdown block model
-description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. No @docs compatibility window."
+description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. Source spelling shipped as :kind; this plan is historical for that cutover."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -56,7 +56,7 @@ sources:
     last_modified: 2026-08-17
   - id: docs-rs
     resource: ../../crates/rocci-rocdown/src/docs.rs
-    title: Typed @docs projection, validation, and PlannedSegment
+    title: Typed article-block projection, validation, and PlannedSegment
     author: process:git
     last_modified: 2026-08-18
   - id: markdown-rs
@@ -189,7 +189,8 @@ contract.[^research][^rocdown-readme][^format-arch]
 The `:name[params]` spelling later landed on main. Renderer override,
 generic child policy, and site `[blocks]` config are a follow-on:
 [custom block schemas and renderers](rocdown-block-renderers.md).[^renderer-plan] Do not
-start that work from this record.
+start that work from this record. Current article widgets are `:kind` only.
+Do not revive the removed experimental family or use it as a design analogy.
 
 Do not start a phase until the user asks to implement it. Use the
 `rocci-language-dev` skill for grammar, scanning, parsing, AST, validation,
@@ -205,13 +206,15 @@ Markdown sugar and explicit calls share renderers:[^research][^syntax-recommende
 :note Don't do this.
 :h2[id: "install"] Installing
 :note[title: "Watch"] {{ nested Rocdown }}
-:tabs[group: "os"] ... :end.tabs
+:tabs.begin[group: "os"] ...
+:tabs.end
 ```
 
 Each article node has a kind, optional params, and optional content. A Rocci
 component of shape `|{ props }, content| -> Html` paints it. Kinds are a
-closed builtin registry in v1, not parser keywords. `@docs` and mixed
-`{ fields + markdown }` go away with no alias and no rewrite window.[^research][^pure-render][^docs-rs]
+closed builtin registry in v1, not parser keywords. The removed
+experimental family and mixed `{ fields + markdown }` go away with no alias
+and no rewrite window.[^research][^pure-render][^docs-rs]
 
 ## Constraints that do not move
 
@@ -235,7 +238,7 @@ second consumer.[^generation-plan][^docs-rocci]
 
 ## Non-goals (all phases)
 
-- `@docs` / `@img` aliases, dual public syntax, or a rewrite window
+- Family-name aliases, dual public syntax, or a rewrite window
 - Inline decorations (`:note` mid-paragraph)
 - Vue `::name` … `::`, `:::note`, `%…%`, indentation as a closer, or `(params)`
 - Moving `@page` / `@component` to brackets
@@ -246,8 +249,9 @@ second consumer.[^generation-plan][^docs-rocci]
 - Markdown-conditional blocks (`:if` over Rocdown)
 - Changing OKF authoring or the portable `okf` crate
 
-A **removal diagnostic** for leftover `@docs` / `@img` is allowed. Parsing the
-old mixed brace body is not.
+A **removal diagnostic** for leftover experimental tokens is allowed.
+Parsing the old mixed brace body is not. See
+[Rocdown format](/architecture/rocdown-format.md).
 
 ## V1 contract
 
@@ -256,9 +260,9 @@ is a plan revision, not a silent phase tweak.[^research]
 
 ### Source spelling
 
-Prefix `:`. Params in `[]`. Content is line-scope, `{{ }}`, or `:end.kind`.
+Prefix `:`. Params in `[]`. Content is line-scope, `{{ }}`, or `:kind.begin` ... `:kind.end`. A call uses one delimiter, not both.
 No space between `:` and the kind. Kinds are kebab-case tag names (same
-`scan_tag_name` rules as today's `@docs` kinds).[^syntax-recommended][^lexer]
+`scan_tag_name` rules as today's builtin kinds).[^syntax-recommended][^lexer]
 
 `@use` stays `@`. Module reserved names keep winning on `@`. A line-start
 `:page` is not a page declaration; it is an illegal article kind that
@@ -322,7 +326,7 @@ needs a drift test that production names exist on the Rust AST.[^rocdown-ungram]
 
 | Concern | Owner | Notes |
 | --- | --- | --- |
-| Line-start `:ident`, `[params]`, `{{ }}`, `:end.kind` | `crates/rocci-rocdown/src/scan.rs` | Reuse existing `fence_open` / `is_fence_close`; do not call `skip_balanced_braces` for article bodies |
+| Line-start `:ident`, `[params]`, `{{ }}`, `:kind.begin` / `:kind.end` | `crates/rocci-rocdown/src/scan.rs` | Reuse existing `fence_open` / `is_fence_close`; do not call `skip_balanced_braces` for article bodies |
 | Parse `BlockCall`, fragment re-entry | `parse.rs` | `parse_fragment` already re-scans a span |
 | `Item` vs article `Block` | `ast.rs` | Module items stay `@`; article nodes become `Block` / `BlockCall` |
 | Kind schema, parent/child rules | new `registry.rs` (or module in `docs.rs`) | Data, not scattered `match` arms |
@@ -341,14 +345,15 @@ needs a drift test that production names exist on the Rust AST.[^rocdown-ungram]
 (strings and `#` comments, not Markdown fences). Article content must not
 use it.[^lexer][^scanner]
 
-## Current pipeline (what phases replace)
+## Historical starting state (what phases replaced)
 
-Today a `.rocdown` file is `Item` = Markdown + module decls + `@docs` +
-`@img`. `@docs` is one reserved family with a mixed brace body.
-`split_docs_body` peels `ident:` fields until the remainder looks like
-Markdown. Kinds are hardcoded in `validate_model`, again in `DocsAttrs` /
-`PlannedSegment`, and again in `DocsComponents.Render`'s `@match
-segment.kind`. Brace skip does not understand fences.[^ast][^docs-rs][^docs-rocci][^scanner][^compiler-arch]
+Before the cutover a `.rocdown` file was `Item` = Markdown + module decls +
+experimental article widgets + native image decls. The experimental family
+used a mixed brace body. `split_docs_body` peeled `ident:` fields until the
+remainder looked like Markdown. Kinds were hardcoded in `validate_model`,
+again in `DocsAttrs` / `PlannedSegment`, and again in
+`DocsComponents.Render`'s `@match segment.kind`. Brace skip did not
+understand fences.[^ast][^docs-rs][^docs-rocci][^scanner][^compiler-arch]
 
 The interesting replacement is: parse a document tree, render each
 `BlockCall` by calling a registry component with real props plus already
@@ -359,6 +364,9 @@ catalog, Roc emission, theme, LSP, and `docs/` in one diff.
 
 Each phase is one mergeable change. Later phases may assume earlier ones
 have merged. Dual-parse is internal only; the public cutover is Phase 6.
+Phases 1–6 are a delivery diary of the `:kind` cutover. They mention the
+removed experimental family only as the starting state they replaced. Do
+not resume that spelling. Current source is `:kind`.
 
 ### Phase 1 — Closed builtin registry in Rust
 
@@ -386,7 +394,8 @@ row plus (still later) a component, not a new parser keyword.
 ### Phase 2 — Per-kind Rocci components
 
 **Bound:** replace the closed `@match segment.kind` painter with one
-component per kind. Authors still write `@docs`.[^docs-rocci][^planner]
+component per kind. Authors still used the then-current experimental
+spelling.[^docs-rocci][^planner]
 
 **Does:**
 
@@ -410,8 +419,8 @@ source of truth. Catalog checks still do not require Roc.
 ### Phase 3 — Internal `BlockCall` tree
 
 **Bound:** introduce the ungram article nodes beside today's `Item`, and
-normalize `@docs` / `@img` into `BlockCall` after parse. Authors still
-write `@docs`.[^rocdown-ungram][^ast][^docs-rs]
+normalize experimental article decls into `BlockCall` after parse. Authors
+still used the then-current experimental spelling.[^rocdown-ungram][^ast][^docs-rs]
 
 **Does:**
 
@@ -433,13 +442,13 @@ write `@docs`.[^rocdown-ungram][^ast][^docs-rs]
 **Does not:** scan `:ident`, drop `Item::Docs`, unify headings, or generate
 code from the ungram.
 
-**Exit:** existing `@docs` fixtures produce `BlockCall` internally with
+**Exit:** existing experimental-family fixtures produce `BlockCall` internally with
 unchanged catalog diagnostics and site HTML. `inspect ast` remains useful.
 
 ### Phase 4 — New syntax, dual-parse
 
-**Bound:** scan and parse the decided spelling; keep `@docs` / `@img`
-working. This is the first language change.[^syntax-recommended][^scanner][^parser][^language-dev]
+**Bound:** scan and parse the decided spelling; keep the experimental
+family working. This is the first language change.[^syntax-recommended][^scanner][^parser][^language-dev]
 
 **Does:**
 
@@ -451,7 +460,8 @@ working. This is the first language change.[^syntax-recommended][^scanner][^pars
   - line content: rest of line after optional `[params]`; newline is the
     fence
   - section: `{{` … fence-aware `}}`
-  - named closer: body until line-start `:end.kind` (kind must match;
+  - named closer: body until line-start `:kind.end` (kind must match;
+    opener is `:kind.begin`)
     nested same-kind uses a stack)
 - `:` plus ident is **not** a block when a space follows the colon
   (`: definition` stays Markdown).
@@ -475,13 +485,13 @@ working. This is the first language change.[^syntax-recommended][^scanner][^pars
 - Tests at the parser boundary (no server, no Roc):
   - copy or slim `syntax_v2_recommended.rocdown` into `test/`
   - stray `{` / `}` inside a fenced body
-  - nested tabs with `:end.tabs`
+  - nested tabs with `:tabs.end`
   - unclosed `{{`, mismatched `:end.foo`, `:end` inside a fence
   - line-scope versus following paragraph
   - `: note` and mid-paragraph `:note` remain Markdown
-  - `@docs note { … }` still parses
+  - the experimental family still parses
 
-**Does not:** delete `@docs`, rewrite `docs/`, change LSP beyond not
+**Does not:** delete the experimental family, rewrite `docs/`, change LSP beyond not
 crashing on `:note` holes, or open `@use`.
 
 **Exit:**
@@ -530,14 +540,16 @@ publish two spellings. No alias.[^research][^rocdown-reference][^docs-guide]
 
 - Remove `docs` and `img` from `Reserved`. Stop parsing mixed `{ fields +
   markdown }` bodies.
-- If line-start `@docs` or `@img` is seen, emit a removal error that names
-  the new spelling (`:note`, `:img[...]`). Do not parse the old body.
+- If line-start leftover experimental tokens are seen, emit a removal
+  error that names the new spelling (`:note`, `:img[...]`). Do not parse
+  the old body. The exact leftover tokens are documented in
+  [Rocdown format](/architecture/rocdown-format.md).
 - Rewrite in-repo documents that use the old forms, including
   `docs/guides/docs-components.rocdown`, `docs/reference/rocdown.rocdown`,
   `test/AllSyntax.rocdown`, `test/EmbeddedLanguages.rocdown`, site pages,
   examples, and report fixtures. Leave `knowledge/**/*.md` inert.
 - Update `crates/rocci-rocdown/README.md`, highlight keywords, LSP hover /
-  symbols / completions so they speak `:kind` not `@docs kind`, and
+  symbols / completions so they speak `:kind` not the experimental family, and
   diagnostic strings in `docs.rs` / `lower.rs` / `site.rs`.[^lsp][^highlight][^lowerer][^all-syntax]
 - Update `.agents/skills/rocci-author` idioms for the new spelling.
 - Mark planned leftover mentions in historical reports as historical; do
@@ -556,7 +568,7 @@ cargo run -q -p rocci-rocdown-cli -- check docs
 cargo run -q -p rocci-rocdown-cli -- build docs
 ```
 
-No in-tree authoring `.rocdown` still uses `@docs` / `@img`. Public
+No in-tree authoring `.rocdown` still uses the experimental family. Public
 reference describes `:name[params]`. Then update
 `knowledge/architecture/rocdown-format.md` and status records in a
 knowledge follow-up so architecture stays descriptive of shipped
@@ -618,13 +630,13 @@ Phase 6 already prevents crashes and keyword highlighting.
 **Does:**
 
 - Completions for builtin kinds and, inside `[ ]`, registry field names.
-- Hover and document symbols on `:tabs` / `:tab` (replace `@docs tabs`
-  strings).
-- `:end.kind` matching highlights / jump if cheap.
+- Hover and document symbols on `:tabs` / `:tab` (replace leftover
+  experimental-family strings).
+- `:kind.end` matching highlights / jump if cheap.
 - `format_ast` shows params and which content scope was used (`line`,
   `section`, `end`).
 - `test/AllSyntax.rocdown` covers line-scope, `[params]`, `{{ }}`,
-  `:end.kind`, and `:img`.
+  `:kind.begin` / `:kind.end`, and `:img`.
 
 **Does not:** Tree-sitter grammar, inline decorations, or a second LSP
 architecture.
@@ -696,35 +708,35 @@ workflows (CI and Knowledge) have succeeded on that revision.
    custom-kind source?
 2. Is a `BracketList` versus `BracketRecord` lookahead (`ident` then `:`)
    enough, or do lists need a different wrapper?
-3. Should leftover `@docs` be a hard error (this plan) or silent Markdown
+3. Should leftover experimental tokens be a hard error (this plan) or silent Markdown
    under the existing unknown-`@name` rule? Hard error is the
    recommendation so old files do not render as prose.
 4. Do tab-internal headings belong in the page outline? Preserve current
    behavior until product says otherwise.
 
-[^research]: Exploratory decisions: `:name[params]`, no `@docs` alias, registry kinds, ungram for nodes not scanner.
+[^research]: Exploratory decisions: `:name[params]`, no family-name alias, registry kinds, ungram for nodes not scanner.
 [^syntax-recommended]: Decided samples for line-scope, brackets, `{{ }}`, `@use`.
-[^syntax-variations]: `:end.kind`, rejected mixed `{ }`, historical prefixes.
+[^syntax-variations]: `:kind.begin` / `:kind.end`, rejected mixed `{ }`, historical prefixes.
 [^rocdown-ungram]: Draft `BlockCall` / `BracketRecord` / `LineContent` / `BraceSection` / `EndSection`.
-[^rocdown-readme]: Shipped reserved names, unknown-`@name` prose, static versus deferred features, `@docs` family.
+[^rocdown-readme]: Shipped reserved names, unknown-`@name` prose, static versus deferred features, `:kind` article blocks.
 [^ast]: Current `Item` sum: Markdown, module decls, `DocsDecl`, `ImgDecl`.
-[^scanner]: Document-root `@` recognition, `@docs` requiring `{`, `skip_balanced_braces`, existing fence helpers.
+[^scanner]: Document-root `@` / `:` recognition, `skip_balanced_braces`, existing fence helpers.
 [^parser]: `parse_fragment` / `scan_range` for nested docs bodies.
 [^docs-rs]: `split_docs_body`, `DocsAttrs`, `validate_model`, `PlannedSegment`, include/example execution.
 [^markdown-rs]: Comrak conversion and `assign_heading_id` / `slugify`.
 [^article-rs]: Rust Markdown HTML for sugar nodes.
-[^lowerer]: Standalone `@docs` lowering after the field/content split.
+[^lowerer]: Standalone article-block lowering after the field/content split.
 [^planner]: Flattened segment records emitted into generated Roc.
 [^pprint]: `format_ast` inspect tags for `docs` / `img` / Markdown.
-[^lsp]: Hover, symbols, and completions keyed on `@docs`.
-[^highlight]: Token spans for `@docs`.
+[^lsp]: Hover, symbols, and completions keyed on article `:kind`.
+[^highlight]: Token spans for article `:kind`.
 [^docs-rocci]: Single `Render` matcher on `segment.kind`.
 [^template-readme]: Props record plus extra body parameter; no magic `children`.
 [^lexer]: `skip_balanced_braces` skips strings and `#` comments, not Markdown fences; `scan_tag_name` allows kebab-case.
 [^compile-tests]: Compiler contract tests independent of a server.
 [^all-syntax]: Canonical inspect fixture for syntax changes.
-[^rocdown-reference]: Public `@docs` family contract.
-[^docs-guide]: Author-facing `@docs` examples in `docs/`.
+[^rocdown-reference]: Public `:kind` article-block contract.
+[^docs-guide]: Author-facing `:kind` examples in `docs/`.
 [^format-arch]: Descriptive format boundary; update after behavior ships.
 [^compiler-arch]: Static article tree, fragments, and Rocci painting from scalar segments.
 [^markdown-first]: Mode changes only at visible document-root declarations or root HTML islands.

@@ -4,7 +4,7 @@ title: Full Rocci and Rocdown language tooling
 description: Build region-aware Rocci and Rocdown language tooling for VS Code and Zed and reuse language-neutral token spans for static Rocdown code highlighting.
 tags: [domain/rocci, domain/rocdown, domain/rocs, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T19:29:13Z }
+generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -158,7 +158,7 @@ LSP, editor, Node process, or authored code to highlight a site.[^rocdown-compil
 
 ### 0. Compatibility baseline
 
-Repair the `@docs` LSP regression, freeze current behavior with fixtures, and
+Repair the article-block LSP regression, freeze current behavior with fixtures, and
 verify both clients attach to the current server. Exit when `cargo test -p
 rocci-lsp` passes and editor prerequisites are reproducible.[^tooling-architecture]
 
@@ -177,7 +177,7 @@ Inject the shared token service at the current Rocs `MdNode::CodeBlock`
 renderer, which moves into Rocdown under the approved boundary. Preserve
 the existing escaped `<pre><code>` fallback and emit only allowlisted semantic
 classes around escaped source slices. Cover ordinary fences, non-Rocdown
-`@docs include`, fences nested in `@docs example`, unknown languages,
+`:include`, fences nested in `:example`, unknown languages,
 malformed snippets, and hostile HTML text.[^rocs-article][^rocs-docs]
 
 Start with Roc, HTML, CSS, and composite Rocci/Rocdown snippets. Add shell,
@@ -261,7 +261,7 @@ public theme API. These gates do not block the common semantic-token and static
 HTML demonstrators.[^detailed-plan]
 
 [^detailed-plan]: Detailed baseline, alternatives, region/projection architecture, demonstrator tasks, feature roadmap, risks, and evidence.
-[^tooling-architecture]: Current shipped surface, client boundary, embedded-range gap, and `@docs` build regression.
+[^tooling-architecture]: Current shipped surface, client boundary, embedded-range gap, and article-block build regression.
 [^rocdown-boundary]: Implemented Markdown-first and explicit executable-region contract.
 [^source-map]: Current generated/source span and origin representation that requires richer bidirectional policies.
 [^zed-roc]: Editor-specific bundle whose grammar/query assets are reusable but whose manifest and launcher are not.
