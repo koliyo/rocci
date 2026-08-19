@@ -2,7 +2,7 @@ import pf.Env
 import pf.Path
 import Html
 import RocdownTheme
-import DocsComponents
+import BlockPainters
 import RocdownPages
 
 render_tree! = |segments, index| {
@@ -13,78 +13,78 @@ render_tree! = |segments, index| {
         }
         Note(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.note({ title: seg.title }, body), after))
+            Ok((BlockPainters.note({ title: seg.title }, body), after))
         }
         Tip(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.tip({ title: seg.title }, body), after))
+            Ok((BlockPainters.tip({ title: seg.title }, body), after))
         }
         Caution(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.caution({ title: seg.title }, body), after))
+            Ok((BlockPainters.caution({ title: seg.title }, body), after))
         }
         Danger(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.danger({ title: seg.title }, body), after))
+            Ok((BlockPainters.danger({ title: seg.title }, body), after))
         }
         Deprecated(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.deprecated({ title: seg.title }, body), after))
+            Ok((BlockPainters.deprecated({ title: seg.title }, body), after))
         }
         Details(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.details({ summary: seg.summary, open: seg.open }, body), after))
+            Ok((BlockPainters.details({ summary: seg.summary, open: seg.open }, body), after))
         }
         Steps(seg) => {
             (items, after) = render_step_items!(segments, index + 1, seg.child_count)?
             body = html_from_records(items)
-            Ok((DocsComponents.steps({}, body), after))
+            Ok((BlockPainters.steps({}, body), after))
         }
         Step(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.step({ title: seg.title, verify: seg.verify }, body), after))
+            Ok((BlockPainters.step({ title: seg.title, verify: seg.verify }, body), after))
         }
         Figure(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.figure({ caption: seg.caption, credit: seg.credit }, body), after))
+            Ok((BlockPainters.figure({ caption: seg.caption, credit: seg.credit }, body), after))
         }
         Definition(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.definition({ title: seg.title }, body), after))
+            Ok((BlockPainters.definition({ title: seg.title }, body), after))
         }
         Tabs(seg) => {
             (items, after) = render_tab_items!(segments, index + 1, seg.child_count)?
             body = html_from_records(items)
-            Ok((DocsComponents.tabs({ group: seg.group, kind: seg.kind }, body), after))
+            Ok((BlockPainters.tabs({ group: seg.group, kind: seg.kind }, body), after))
         }
         Tab(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.tab({ id: seg.id, label: seg.label }, body), after))
+            Ok((BlockPainters.tab({ id: seg.id, label: seg.label }, body), after))
         }
         Badge(seg) =>
-            Ok((DocsComponents.badge({ label: seg.label }), index + 1))
+            Ok((BlockPainters.badge({ label: seg.label }), index + 1))
         LinkCard(seg) =>
-            Ok((DocsComponents.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }), index + 1))
+            Ok((BlockPainters.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }), index + 1))
         CardGrid(seg) => {
             (items, after) = render_card_items!(segments, index + 1, seg.child_count)?
             body = html_from_records(items)
-            Ok((DocsComponents.cardGrid({}, body), after))
+            Ok((BlockPainters.cardGrid({}, body), after))
         }
         FileTree(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.fileTree({}, body), after))
+            Ok((BlockPainters.fileTree({}, body), after))
         }
         Compatibility(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.compatibility({ caption: seg.caption }, body), after))
+            Ok((BlockPainters.compatibility({ caption: seg.caption }, body), after))
         }
         Example(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.example({}, body), after))
+            Ok((BlockPainters.example({}, body), after))
         }
         Include(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.include({}, body), after))
+            Ok((BlockPainters.include({}, body), after))
         }
     }
 }
@@ -111,7 +111,7 @@ render_tab_items! = |segments, index, remaining|
                 item = {
                     id: seg.id,
                     label: seg.label,
-                    content: DocsComponents.tab({ id: seg.id, label: seg.label }, body),
+                    content: BlockPainters.tab({ id: seg.id, label: seg.label }, body),
                 }
                 (rest, end) = render_tab_items!(segments, after, remaining - 1)?
                 Ok((List.prepend(rest, item), end))
@@ -135,7 +135,7 @@ render_step_items! = |segments, index, remaining|
                 item = {
                     title: seg.title,
                     verify: seg.verify,
-                    content: DocsComponents.step({ title: seg.title, verify: seg.verify }, body),
+                    content: BlockPainters.step({ title: seg.title, verify: seg.verify }, body),
                 }
                 (rest, end) = render_step_items!(segments, after, remaining - 1)?
                 Ok((List.prepend(rest, item), end))
@@ -159,7 +159,7 @@ render_card_items! = |segments, index, remaining|
                     href: seg.href,
                     title: seg.title,
                     summary: seg.summary,
-                    content: DocsComponents.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }),
+                    content: BlockPainters.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }),
                 }
                 (rest, end) = render_card_items!(segments, index + 1, remaining - 1)?
                 Ok((List.prepend(rest, item), end))

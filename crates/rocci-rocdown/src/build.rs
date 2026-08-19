@@ -1110,6 +1110,55 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn block_pack_overrides_note_html() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("block-pack-src");
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <head>
+            <title>{view.title}</title>
+        </head>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Note = |{ title }, content|
+    <section data-test-note data-title={title}>{content}</section>
+"#,
+        )
+        .unwrap();
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n",
+        );
+        let output = temp_dir("block-pack-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("data-test-note"), "{html}");
+        assert!(html.contains("data-title=\"Watch\""), "{html}");
+        assert!(!html.contains("data-rocci-docs=\"note\""), "{html}");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
     fn dual_apply_paints_widgets_and_splices_islands() {
         if skip_without_roc() {
             return;

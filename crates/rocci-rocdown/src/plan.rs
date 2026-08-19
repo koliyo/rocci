@@ -103,6 +103,7 @@ pub struct CompiledThemeModule {
     pub roc: String,
     pub segments: Vec<Segment>,
     pub styles: Vec<rocci_template::StyleArtifact>,
+    pub components: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -394,9 +395,19 @@ fn compile_theme_modules(root: &Path, config: &SiteConfig) -> Result<Vec<Compile
     };
 
     if let Some(target) = target {
-        compile_project_theme(root, &target)
+        let theme_dir = if target.is_dir() {
+            target.clone()
+        } else {
+            target.parent().unwrap_or(root).to_path_buf()
+        };
+        let mut modules = compile_project_theme(root, &target)?;
+        compile_block_pack(root, Some(&theme_dir), &mut modules)?;
+        modules.push(block_painters_module(&modules));
+        Ok(modules)
     } else {
-        compile_builtin_theme()
+        let mut modules = compile_builtin_theme()?;
+        modules.push(block_painters_module(&modules));
+        Ok(modules)
     }
 }
 
@@ -441,6 +452,11 @@ fn compile_single_module(
         roc: wrap_type_module(&compiled.roc, type_name),
         segments: compiled.segments,
         styles: compiled.styles,
+        components: compiled
+            .components
+            .iter()
+            .map(|component| component.name.clone())
+            .collect(),
     })
 }
 
@@ -517,6 +533,7 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
                 roc: synth_roc.to_string(),
                 segments: Vec::new(),
                 styles: Vec::new(),
+                components: Vec::new(),
             });
         } else {
             bail!(
@@ -539,6 +556,118 @@ fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
     let theme = compile_single_module("RocdownTheme.rocci", "RocdownTheme", runtime::THEME)?;
     let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
     Ok(vec![base, breadcrumbs, nav_list, page_outline, theme, docs])
+}
+
+fn compile_block_pack(
+    root: &Path,
+    theme_dir: Option<&Path>,
+    modules: &mut Vec<CompiledThemeModule>,
+) -> Result<()> {
+    if modules.iter().any(|module| module.type_name == "Blocks") {
+        return Ok(());
+    }
+    let Some(theme_dir) = theme_dir else {
+        return Ok(());
+    };
+    let pack_dir = theme_dir.join("blocks");
+    if !pack_dir.is_dir() {
+        return Ok(());
+    }
+    let mut files = Vec::new();
+    for entry in std::fs::read_dir(&pack_dir)
+        .with_context(|| format!("failed to read {}", pack_dir.display()))?
+    {
+        let path = entry?.path();
+        if path.is_file() && path.extension().is_some_and(|ext| ext == "rocci") {
+            files.push(path);
+        }
+    }
+    files.sort();
+    for file in files {
+        let type_name = rocci_template::type_name_from_path(&file);
+        let src = std::fs::read_to_string(&file)
+            .with_context(|| format!("failed to read {}", file.display()))?;
+        let rel_name = file
+            .strip_prefix(root)
+            .unwrap_or(&file)
+            .to_string_lossy()
+            .replace('\\', "/");
+        modules.push(compile_single_module(&rel_name, &type_name, &src)?);
+    }
+    Ok(())
+}
+
+fn is_block_pack_module(module: &CompiledThemeModule) -> bool {
+    module.type_name == "Blocks"
+        || module.source_name.contains("/blocks/")
+        || module.source_name.starts_with("blocks/")
+}
+
+fn roc_fn_name(component: &str) -> String {
+    let mut chars = component.chars();
+    let first = chars.next().unwrap();
+    first.to_lowercase().chain(chars).collect()
+}
+
+fn block_painters_module(modules: &[CompiledThemeModule]) -> CompiledThemeModule {
+    let mut by_component = BTreeMap::new();
+    for module in modules {
+        if !is_block_pack_module(module) {
+            continue;
+        }
+        for name in &module.components {
+            by_component.insert(name.clone(), module.type_name.clone());
+        }
+    }
+    let mut imports = vec!["DocsComponents".to_string()];
+    for module in by_component.values() {
+        if !imports.contains(module) {
+            imports.push(module.clone());
+        }
+    }
+    let mut roc = String::new();
+    for import in &imports {
+        roc.push_str("import ");
+        roc.push_str(import);
+        roc.push('\n');
+    }
+    roc.push_str("\nBlockPainters := [].{\n");
+    for spec in crate::registry::KINDS
+        .iter()
+        .filter(|spec| spec.paints_as_widget())
+    {
+        let fn_name = roc_fn_name(spec.component);
+        let source = by_component
+            .get(&fn_name)
+            .or_else(|| by_component.get(spec.component))
+            .map(String::as_str)
+            .unwrap_or("DocsComponents");
+        roc.push_str("    ");
+        roc.push_str(&fn_name);
+        if spec.paint_content() {
+            roc.push_str(" = |props, content|\n        ");
+            roc.push_str(source);
+            roc.push('.');
+            roc.push_str(&fn_name);
+            roc.push_str("(props, content)\n");
+        } else {
+            roc.push_str(" = |props|\n        ");
+            roc.push_str(source);
+            roc.push('.');
+            roc.push_str(&fn_name);
+            roc.push_str("(props)\n");
+        }
+    }
+    roc.push_str("}\n");
+    CompiledThemeModule {
+        type_name: "BlockPainters".to_string(),
+        source_name: "BlockPainters.roc".to_string(),
+        src: roc.clone(),
+        roc,
+        segments: Vec::new(),
+        styles: Vec::new(),
+        components: Vec::new(),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1898,6 +2027,7 @@ FeatureCount = |_| {
         assert!(type_names.contains(&"SiteShell"));
         assert!(type_names.contains(&"RocdownTheme"));
         assert!(type_names.contains(&"DocsComponents"));
+        assert!(type_names.contains(&"BlockPainters"));
         assert!(type_names.contains(&"RocdownBase"));
 
         let css = planned
@@ -1923,6 +2053,58 @@ FeatureCount = |_| {
             !site_shell.roc.contains("Html.text(content)"),
             "{}",
             site_shell.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn block_pack_binds_note_to_pack_module() {
+        let root = temp("block-pack-overlay");
+        write_site(&root);
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Note = |{ title }, content|
+    <section data-test-note data-title={title}>{content}</section>
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let painters = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters.roc.contains("Blocks.note(props, content)"),
+            "{}",
+            painters.roc
+        );
+        assert!(
+            painters.roc.contains("DocsComponents.tip(props, content)"),
+            "{}",
+            painters.roc
         );
 
         let _ = fs::remove_dir_all(root);
