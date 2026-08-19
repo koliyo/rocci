@@ -105,6 +105,18 @@ render_forest! = |segments, index|
         }
     }
 
+ensure_parent! = |dest| {
+    parts = Str.split_on(dest, "/")
+    len = List.len(parts)
+    if len <= 1 {
+        Ok({})
+    } else {
+        parent = Str.join_with(List.drop_last(parts, 1), "/")
+        Path.utf8(parent).create_all!()?
+        Ok({})
+    }
+}
+
 write_page! = |staging, item| {
     content = render_forest!(item.segments, 0)?
     html = Html.render_document(
@@ -113,18 +125,18 @@ write_page! = |staging, item| {
             content,
         ),
     )
-    Path.utf8("${staging}/${item.output_path}").write_utf8!(html)?
+    dest = "${staging}/${item.output_path}"
+    ensure_parent!(dest)?
+    Path.utf8(dest).write_utf8!(html)?
     Ok({})
 }
 
-write_all! = |staging, pages|
-    match pages {
-        [] => Ok({})
-        [page, .. as rest] => {
-            write_page!(staging, page)?
-            write_all!(staging, rest)
-        }
+write_all! = |staging, pages| {
+    for page in pages {
+        write_page!(staging, page)?
     }
+    Ok({})
+}
 
 RocdownBuild := [].{
     run! = |{}| {

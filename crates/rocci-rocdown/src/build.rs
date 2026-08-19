@@ -135,10 +135,14 @@ fn build_loaded_with_host(
     if !roc_output.is_empty() {
         eprint!("{roc_output}");
     }
+    if !is_wasm {
+        ensure_apply_wrote_pages(&staging, &plan)?;
+    }
 
     let write_started = Instant::now();
     write_planned_outputs(&staging, &plan)?;
     write_static_files(&staging, &loaded.static_files)?;
+    ensure_apply_wrote_pages(&staging, &plan)?;
     commit_output(&staging, output)?;
     let write_ms = write_started.elapsed().as_millis();
     let _ = fs::remove_dir_all(&workspace);
@@ -276,10 +280,14 @@ impl BuildSession {
         if !roc_output.is_empty() {
             eprint!("{roc_output}");
         }
+        if !is_wasm {
+            ensure_apply_wrote_pages(&staging, &plan)?;
+        }
 
         let write_started = Instant::now();
         write_planned_outputs(&staging, &plan)?;
         write_static_files(&staging, &loaded.static_files)?;
+        ensure_apply_wrote_pages(&staging, &plan)?;
         commit_output(&staging, output)?;
         let write_ms = write_started.elapsed().as_millis();
         self.snippet_paths = plan.snippet_paths.clone();
@@ -501,21 +509,17 @@ pub(crate) fn discover_in(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
 
 fn main_roc(is_wasm: bool) -> String {
     if is_wasm {
-        format!(
+        String::from(
             "\
-app [main!] {{ pf: platform \"platform/main.roc\" }}
+app [main!] { pf: platform \"platform/main.roc\" }
 
-import RocdownBuild
-import RocdownPages
-
-main! : {{}} => [Ok({{}}), Err([Exit(I32)])]
-main! = |{{}}| {{
-    _ = RocdownBuild.render_all(RocdownPages.pages)
-    res : [Ok({{}}), Err([Exit(I32)])]
-    res = Ok({{}})
+main! : {} => [Ok({}), Err([Exit(I32)])]
+main! = |{}| {
+    res : [Ok({}), Err([Exit(I32)])]
+    res = Ok({})
     res
-}}
-"
+}
+",
         )
     } else {
         format!(
@@ -662,6 +666,27 @@ fn write_planned_outputs(staging: &Path, plan: &BuildPlan) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn ensure_apply_wrote_pages(staging: &Path, plan: &BuildPlan) -> Result<()> {
+    ensure_page_files(
+        staging,
+        plan.pages.iter().map(|page| page.output_path.as_str()),
+    )
+}
+
+fn ensure_page_files<'a>(
+    staging: &Path,
+    output_paths: impl IntoIterator<Item = &'a str>,
+) -> Result<()> {
+    let missing: Vec<&str> = output_paths
+        .into_iter()
+        .filter(|path| !staging.join(path).is_file())
+        .collect();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    bail!("apply did not write page HTML: {}", missing.join(", "))
+}
+
 pub(crate) fn commit_output(staging: &Path, output: &Path) -> Result<()> {
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)
@@ -787,6 +812,20 @@ pub(crate) mod tests {
         }
         walk(dir, Path::new(""), &mut files);
         files
+    }
+
+    #[test]
+    fn ensure_page_files_errors_when_html_is_missing() {
+        let staging = temp_dir("missing-html");
+        fs::write(staging.join("index.html"), "<!DOCTYPE html>").unwrap();
+        let err = ensure_page_files(&staging, ["index.html", "404.html", "guide/index.html"])
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("apply did not write page HTML"), "{err}");
+        assert!(err.contains("404.html"), "{err}");
+        assert!(err.contains("guide/index.html"), "{err}");
+        assert!(!err.contains("index.html,"), "{err}");
+        let _ = fs::remove_dir_all(&staging);
     }
 
     #[test]
