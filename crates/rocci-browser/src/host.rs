@@ -41,9 +41,10 @@ pub struct Host {
 impl Host {
     pub fn connect(paths: Paths) -> Result<Self> {
         let (specs, mut warnings) = discover_plugins(&paths)?;
+        let relative_to = paths.repo_root();
         let mut adapters = Vec::new();
         for spec in specs {
-            match spawn_plugin(spec, &mut warnings) {
+            match spawn_plugin(spec, &mut warnings, &relative_to) {
                 Some(client) => adapters.push(client),
                 None => {}
             }
@@ -60,14 +61,14 @@ impl Host {
     }
 
     pub fn add_project(&self, id: String, path: String) -> Result<Registry> {
-        let mut registry = Registry::load(&self.paths)?;
+        let mut registry = Registry::load_user(&self.paths)?;
         registry.add(id, path);
         registry.save(&self.paths)?;
         Ok(registry)
     }
 
     pub fn remove_project(&self, query: &str) -> Result<bool> {
-        let mut registry = Registry::load(&self.paths)?;
+        let mut registry = Registry::load_user(&self.paths)?;
         let removed = registry.remove(query);
         registry.save(&self.paths)?;
         Ok(removed)
@@ -173,8 +174,12 @@ impl Drop for Host {
     }
 }
 
-fn spawn_plugin(spec: PluginSpec, warnings: &mut Vec<String>) -> Option<AdapterClient> {
-    let Some(bin) = resolve_bin(&spec.bin) else {
+fn spawn_plugin(
+    spec: PluginSpec,
+    warnings: &mut Vec<String>,
+    relative_to: &std::path::Path,
+) -> Option<AdapterClient> {
+    let Some(bin) = resolve_bin(&spec.bin, Some(relative_to)) else {
         warnings.push(format!("missing plugin binary {} ({})", spec.id, spec.bin));
         return None;
     };

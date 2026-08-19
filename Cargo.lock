@@ -2925,6 +2925,7 @@ dependencies = [
  "anyhow",
  "clap",
  "notify",
+ "rocci-browser",
  "rocci-core",
  "rocci-datastar",
  "rocci-desktop",

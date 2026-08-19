@@ -18,6 +18,9 @@ mod window;
     about = "Product-blind project browser: register directories, fuzzy-pick a target, open via adapters"
 )]
 struct Cli {
+    /// Directory that contains `.rocci/browser.toml` (defaults to the current directory).
+    #[arg(long, global = true)]
+    root: Option<PathBuf>,
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -56,9 +59,9 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let paths = Paths::from_env()?;
+    let paths = paths_from_cli(cli.root)?;
     match cli.command {
-        None => window::run()?,
+        None => window::run(paths)?,
         Some(Commands::Add { path, id }) => {
             let canonical = fs::canonicalize(&path)
                 .with_context(|| format!("cannot resolve {}", path.display()))?;
@@ -69,13 +72,13 @@ fn main() -> Result<()> {
                     .unwrap_or("target")
                     .to_string()
             });
-            let mut registry = Registry::load(&paths)?;
+            let mut registry = Registry::load_user(&paths)?;
             registry.add(id.clone(), canonical.display().to_string());
             registry.save(&paths)?;
             println!("added {id} -> {}", canonical.display());
         }
         Some(Commands::Remove { query }) => {
-            let mut registry = Registry::load(&paths)?;
+            let mut registry = Registry::load_user(&paths)?;
             if !registry.remove(&query) {
                 bail!("no project matched {query}");
             }
@@ -132,6 +135,15 @@ fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn paths_from_cli(root: Option<PathBuf>) -> Result<Paths> {
+    let mut paths = Paths::from_env()?;
+    if let Some(root) = root {
+        paths.cwd = fs::canonicalize(&root)
+            .with_context(|| format!("cannot resolve --root {}", root.display()))?;
+    }
+    Ok(paths)
 }
 
 fn print_warnings(warnings: &[String]) {

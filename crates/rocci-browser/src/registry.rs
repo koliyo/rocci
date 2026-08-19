@@ -1,9 +1,10 @@
-use std::fs;
+use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     Result,
+    discovery::load_repo_local,
     paths::{Paths, ensure_dir},
 };
 
@@ -20,7 +21,7 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn load(paths: &Paths) -> Result<Self> {
+    pub fn load_user(paths: &Paths) -> Result<Self> {
         ensure_dir(&paths.browser_dir)?;
         let file = paths.projects_path();
         if !file.exists() {
@@ -28,6 +29,23 @@ impl Registry {
         }
         let raw = fs::read_to_string(file)?;
         Ok(serde_json::from_str(&raw)?)
+    }
+
+    pub fn load(paths: &Paths) -> Result<Self> {
+        let mut registry = Self::load_user(paths)?;
+        if let Some(local) = load_repo_local(paths)? {
+            let root = paths.repo_root();
+            for project in local.project {
+                let path = Path::new(&project.path);
+                let resolved = if path.is_absolute() {
+                    project.path
+                } else {
+                    root.join(path).display().to_string()
+                };
+                registry.add(project.id, resolved);
+            }
+        }
+        Ok(registry)
     }
 
     pub fn save(&self, paths: &Paths) -> Result<()> {
@@ -67,9 +85,10 @@ mod tests {
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
+        fs::create_dir_all(&dir).unwrap();
         Paths {
-            browser_dir: dir,
-            cwd: std::env::temp_dir(),
+            browser_dir: dir.join("browser"),
+            cwd: dir,
             plugins_env: None,
         }
     }
@@ -80,10 +99,26 @@ mod tests {
         let mut registry = Registry::default();
         registry.add("fixture".into(), "/tmp/fixture".into());
         registry.save(&paths).unwrap();
-        let loaded = Registry::load(&paths).unwrap();
+        let loaded = Registry::load_user(&paths).unwrap();
         assert_eq!(loaded.projects[0].id, "fixture");
         assert!(registry.remove("fixture"));
         registry.save(&paths).unwrap();
-        assert!(Registry::load(&paths).unwrap().projects.is_empty());
+        assert!(Registry::load_user(&paths).unwrap().projects.is_empty());
+    }
+
+    #[test]
+    fn unions_repo_local_projects_without_writing_them() {
+        let paths = temp_paths();
+        fs::create_dir_all(paths.cwd.join(".rocci")).unwrap();
+        fs::write(
+            paths.cwd.join(".rocci").join("browser.toml"),
+            "[[project]]\nid = \"alpha\"\npath = \"apps/alpha\"\n",
+        )
+        .unwrap();
+        let loaded = Registry::load(&paths).unwrap();
+        assert_eq!(loaded.projects.len(), 1);
+        assert_eq!(loaded.projects[0].id, "alpha");
+        assert!(loaded.projects[0].path.ends_with("apps/alpha"));
+        assert!(Registry::load_user(&paths).unwrap().projects.is_empty());
     }
 }

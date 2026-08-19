@@ -7,8 +7,7 @@ use rocci_desktop::{PreviewEvent, PreviewOptions, PreviewSink};
 use serde::Deserialize;
 use serde_json::json;
 
-pub fn run() -> Result<()> {
-    let paths = Paths::from_env()?;
+pub fn run(paths: Paths) -> Result<()> {
     let host = Host::connect(paths)?;
     let launcher = spawn_launcher()?;
     let host = Arc::new(Mutex::new(host));

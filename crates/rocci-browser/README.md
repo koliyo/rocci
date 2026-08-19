@@ -18,6 +18,10 @@ cargo run -q -p rocci-browser -- tui --no-window --json
 cargo run -q -p rocci-browser -- remove my-project
 ```
 
+`--root` selects the directory that contains `.rocci/browser.toml` (defaults to
+the current working directory). That file is data: plugin rows and project ids
+live there, not in host source.
+
 `open --no-window --json` prints `{ "url", "title" }` and keeps the adapter
 origin up until stdin closes (or the process is signaled).
 
@@ -42,7 +46,13 @@ existing `state/windows.json` key `browser` once a preview window exists.
 
 Plugin discovery order: `plugins/*.toml`, then repo-local `.rocci/browser.toml`
 `[[plugin]]` rows, then `ROCCI_BROWSER_PLUGINS` (`id=bin` or executable names).
-A missing binary is a warning next to the plugin id.
+Repo-local `[[project]]` rows are unioned with `projects.json`; relative paths
+and plugin bins that contain a slash resolve against the directory that owns
+`.rocci/`. A missing binary is a warning next to the plugin id.
+
+During workspace development, `cargo build -p rocci-browser -p rocci-cli -p
+rocci-rocdown-cli -p rocci-okf` then either put `target/debug` on `PATH` or
+keep relative `target/debug/<bin>` plugin rows in `.rocci/browser.toml`.
 
 Illustrative manifest:
 

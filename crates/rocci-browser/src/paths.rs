@@ -34,6 +34,10 @@ impl Paths {
     pub fn repo_local_path(&self) -> PathBuf {
         self.cwd.join(".rocci").join("browser.toml")
     }
+
+    pub fn repo_root(&self) -> PathBuf {
+        self.cwd.clone()
+    }
 }
 
 pub fn browser_dir() -> Result<PathBuf> {
