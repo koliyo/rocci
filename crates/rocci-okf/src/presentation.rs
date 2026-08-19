@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
@@ -795,6 +796,7 @@ pub fn build_review_site(bundle: &Bundle, site: &Path) -> Result<()> {
 
 const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst";
 
+#[derive(Clone)]
 pub struct CompiledOkfModule {
     pub type_name: String,
     pub source_name: String,
@@ -837,20 +839,6 @@ pub fn compile_okf_templates() -> Result<Vec<CompiledOkfModule>> {
     Ok(out)
 }
 
-fn format_roc_str(s: &str) -> String {
-    let escaped = s
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('$', "\\$")
-        .replace('\r', "\\r")
-        .replace('\n', "\\n");
-    format!("\"{escaped}\"")
-}
-
-fn format_roc_bool(b: bool) -> &'static str {
-    if b { "True" } else { "False" }
-}
-
 fn is_roc_available() -> bool {
     std::process::Command::new("roc")
         .arg("help")
@@ -871,25 +859,73 @@ fn unique_temp(prefix: &str) -> Result<std::path::PathBuf> {
     Ok(dir)
 }
 
-fn roc_source_hash(pages_roc: &str, modules: &[CompiledOkfModule], main_roc: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(crate::runtime::HTML_ROC.as_bytes());
-    hasher.update(crate::runtime::OKF_BUILD_ROC.as_bytes());
-    hasher.update(pages_roc.as_bytes());
-    for m in modules {
-        hasher.update(m.type_name.as_bytes());
-        hasher.update(m.roc.as_bytes());
-    }
-    hasher.update(main_roc.as_bytes());
-    hasher
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
+fn roc_version() -> String {
+    static VERSION: OnceLock<String> = OnceLock::new();
+    VERSION
+        .get_or_init(|| {
+            std::process::Command::new("roc")
+                .arg("version")
+                .output()
+                .ok()
+                .and_then(|output| String::from_utf8(output.stdout).ok())
+                .map(|text| text.trim().to_string())
+                .filter(|text| !text.is_empty())
+                .unwrap_or_else(|| "roc-unknown".into())
+        })
+        .clone()
 }
 
-fn okf_fingerprints(modules: &[CompiledOkfModule]) -> Vec<rocci_roc_host::InputFingerprint> {
+fn renderer_compile_hash(modules: &[CompiledOkfModule], main_code: &str, is_wasm: bool) -> String {
+    let mut named: Vec<(String, Vec<u8>)> = Vec::new();
+    for module in modules {
+        named.push((
+            format!("{}.roc", module.type_name),
+            module.roc.as_bytes().to_vec(),
+        ));
+    }
+    named.push((
+        "Html.roc".into(),
+        crate::runtime::HTML_ROC.as_bytes().to_vec(),
+    ));
+    named.push((
+        "OkfBuild.roc".into(),
+        crate::runtime::OKF_BUILD_ROC.as_bytes().to_vec(),
+    ));
+    named.push(("main.roc".into(), main_code.as_bytes().to_vec()));
+    let module_refs: Vec<(&str, &[u8])> = named
+        .iter()
+        .map(|(name, bytes)| (name.as_str(), bytes.as_slice()))
+        .collect();
+    let gen_hash = rocci_roc_host::compute_gen_hash(
+        env!("CARGO_PKG_VERSION"),
+        "okf-preview",
+        &module_refs,
+        &[],
+    );
+    let target = if is_wasm {
+        "wasm32".to_string()
+    } else {
+        format!("native:{}", std::env::consts::ARCH)
+    };
+    let platform = if is_wasm {
+        "rocci-roc-host-wasm32"
+    } else {
+        BASIC_CLI_PLATFORM
+    };
+    rocci_roc_host::compute_compile_hash(
+        &gen_hash,
+        &roc_version(),
+        &target,
+        "dev",
+        platform,
+        env!("CARGO_PKG_VERSION"),
+    )
+}
+
+fn okf_fingerprints(
+    modules: &[CompiledOkfModule],
+    main_code: &str,
+) -> Vec<rocci_roc_host::InputFingerprint> {
     let mut fps = Vec::new();
     for module in modules {
         fps.push(rocci_roc_host::InputFingerprint::from_bytes(
@@ -905,6 +941,10 @@ fn okf_fingerprints(modules: &[CompiledOkfModule]) -> Vec<rocci_roc_host::InputF
         "OkfBuild.roc",
         crate::runtime::OKF_BUILD_ROC.as_bytes(),
     ));
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "main.roc",
+        main_code.as_bytes(),
+    ));
     fps
 }
 
@@ -914,11 +954,10 @@ fn main_roc(is_wasm: bool) -> String {
 app [main!] { pf: platform \"platform/main.roc\" }
 
 import OkfBuild
-import OkfPages
 
 main! : {} => [Ok({}), Err([Exit(I32)])]
 main! = |{}| {
-    _ = OkfBuild.render_all(OkfPages.pages)
+    _ = OkfBuild.parse_pages(\"{}\")
     res : [Ok({}), Err([Exit(I32)])]
     res = Ok({})
     res
@@ -930,11 +969,29 @@ main! = |{}| {
             "\
 app [main!] {{ pf: platform \"{BASIC_CLI_PLATFORM}\" }}
 
+import pf.Path
 import OkfBuild
-import OkfPages
+
+load_one! = |record| {{
+    html = Path.utf8(record.article_path).read_utf8!()?
+    Ok(OkfBuild.with_article(record, html))
+}}
+
+load_all! = |records| {{
+    match List.get(records, 0) {{
+        Err(_) => Ok([])
+        Ok(first) => {{
+            page = load_one!(first)?
+            rest = load_all!(List.drop_first(records, 1))?
+            Ok(List.concat([page], rest))
+        }}
+    }}
+}}
 
 main! = |_args| {{
-    _ = OkfBuild.render_all(OkfPages.pages)
+    json = Path.utf8(\"okf-pages.json\").read_utf8!()?
+    pages = load_all!(OkfBuild.parse_pages(json))?
+    _ = OkfBuild.render_all(pages)
     Ok({{}})
 }}
 "
@@ -942,82 +999,190 @@ main! = |_args| {{
     }
 }
 
-type GeneratedOkfPages = (String, Vec<(String, String)>, Vec<String>);
+#[derive(Debug, Serialize)]
+struct OkfPagesFile {
+    pages: Vec<OkfPageRecord>,
+}
 
-fn generate_okf_pages_roc(bundle: &Bundle) -> Result<GeneratedOkfPages> {
-    let mut pages_roc = String::from(
-        "OkfPages := [].{\n    empty_sources = List.drop_first([ { id : \"\", resource : \"\", href : \"\", author : \"\", is_drifted : False } ], 1)\n\n    empty_other_meta = List.drop_first([ { key : \"\", val : \"\" } ], 1)\n\n    empty_tags = List.drop_first([ \"\" ], 1)\n\n    empty_outline = List.drop_first([ { id : \"\", title : \"\", level : \"\" } ], 1)\n\n    empty_meta = {\n        concept_type: \"\",\n        status: \"\",\n        authority: \"\",\n        trust_slug: \"\",\n        trust_label: \"\",\n        stale: False,\n        stale_after: \"\",\n        is_action_required: False,\n        action_detail: \"\",\n        description: \"\",\n        has_provenance: False,\n        owners: \"\",\n        verifier: \"\",\n        generated: \"\",\n        has_sources: False,\n        source_count: \"0\",\n        drift_summary: \"\",\n        sources: empty_sources,\n        has_other_meta: False,\n        other_meta_count: \"0\",\n        other_meta: empty_other_meta,\n        has_tags: False,\n        tags: empty_tags,\n    }\n\n    pages = [\n",
-    );
-    let mut articles = Vec::new();
-    let mut output_paths = Vec::new();
+#[derive(Debug, Serialize)]
+struct OkfPageRecord {
+    output_path: String,
+    article_path: String,
+    title: String,
+    has_outline: bool,
+    outline: Vec<OkfOutlineItem>,
+    has_meta: bool,
+    meta: OkfPageMeta,
+}
 
-    for concept in &bundle.concepts {
-        let (stamped_article, headings) = stamp_and_collect_headings(&concept.article_html);
-        let article_rel = format!("articles/{}.html", concept.id.replace('/', "-"));
-        articles.push((article_rel.clone(), stamped_article.clone()));
-        let out_path = format!("{}/index.html", concept.id);
-        output_paths.push(out_path.clone());
+#[derive(Debug, Serialize)]
+struct OkfOutlineItem {
+    id: String,
+    title: String,
+    level: String,
+}
 
-        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-        let status = okf::string_field(&concept.metadata, "status").unwrap_or("draft");
-        let authority = okf::string_field(&concept.metadata, "authority").unwrap_or("descriptive");
-        let trust_tier = okf::search::concept_trust_tier(&concept.metadata);
-        let stale = okf::search::concept_is_stale(&concept.metadata);
-        let stale_after = okf::string_field(&concept.metadata, "stale_after").unwrap_or("");
-        let concept_type = okf::string_field(&concept.metadata, "type").unwrap_or("Concept");
-        let owners = okf::metadata_string_array(&concept.metadata, "owners");
-        let tags = okf::metadata_string_array(&concept.metadata, "tags");
-        let description = okf::string_field(&concept.metadata, "description").unwrap_or("");
-        let action = classify_concept_action(concept, &bundle.diagnostics);
+#[derive(Debug, Serialize)]
+struct OkfPageMeta {
+    concept_type: String,
+    status: String,
+    authority: String,
+    trust_slug: String,
+    trust_label: String,
+    stale: bool,
+    stale_after: String,
+    is_action_required: bool,
+    action_detail: String,
+    description: String,
+    has_provenance: bool,
+    owners: String,
+    verifier: String,
+    generated: String,
+    has_sources: bool,
+    source_count: String,
+    drift_summary: String,
+    sources: Vec<OkfSourceItem>,
+    has_other_meta: bool,
+    other_meta_count: String,
+    other_meta: Vec<OkfOtherMeta>,
+    has_tags: bool,
+    tags: Vec<String>,
+}
 
-        let (trust_slug, trust_label) = match trust_tier {
-            TrustTier::HumanReviewed => ("human", "human-reviewed"),
-            TrustTier::Generated => ("generated", "generated"),
-            TrustTier::Unverified => ("unverified", "unverified"),
-        };
-        let verifier = okf::latest_human_verification(&concept.metadata)
-            .map(|(_, v)| v.to_string())
-            .unwrap_or_default();
-        let generated = concept
-            .metadata
-            .get("generated")
-            .and_then(Value::as_object)
-            .map(|g| {
-                let by = g.get("by").and_then(Value::as_str).unwrap_or("");
-                let at = g.get("at").and_then(Value::as_str).unwrap_or("");
-                if !by.is_empty() && !at.is_empty() {
-                    format!("{by} @ {at}")
-                } else {
-                    by.to_string()
-                }
-            })
-            .unwrap_or_default();
+#[derive(Debug, Serialize)]
+struct OkfSourceItem {
+    id: String,
+    resource: String,
+    href: String,
+    author: String,
+    is_drifted: bool,
+}
 
-        let sources_arr = concept.metadata.get("sources").and_then(Value::as_array);
-        let has_sources = sources_arr.is_some_and(|s| !s.is_empty());
-        let source_count = sources_arr
-            .map(|s| s.len().to_string())
-            .unwrap_or_else(|| "0".into());
-        let drift_diags: Vec<&Diagnostic> = bundle
-            .diagnostics
-            .iter()
-            .filter(|d| d.path == concept.path && d.code == "OKF4006")
-            .collect();
-        let drift_summary = if has_sources {
-            if !drift_diags.is_empty() {
-                format!("({} drifted)", drift_diags.len())
+#[derive(Debug, Serialize)]
+struct OkfOtherMeta {
+    key: String,
+    val: String,
+}
+
+struct GeneratedOkfPages {
+    json: String,
+    articles: Vec<(String, String)>,
+    output_paths: Vec<String>,
+}
+
+fn empty_page_meta() -> OkfPageMeta {
+    OkfPageMeta {
+        concept_type: String::new(),
+        status: String::new(),
+        authority: String::new(),
+        trust_slug: String::new(),
+        trust_label: String::new(),
+        stale: false,
+        stale_after: String::new(),
+        is_action_required: false,
+        action_detail: String::new(),
+        description: String::new(),
+        has_provenance: false,
+        owners: String::new(),
+        verifier: String::new(),
+        generated: String::new(),
+        has_sources: false,
+        source_count: "0".into(),
+        drift_summary: String::new(),
+        sources: Vec::new(),
+        has_other_meta: false,
+        other_meta_count: "0".into(),
+        other_meta: Vec::new(),
+        has_tags: false,
+        tags: Vec::new(),
+    }
+}
+
+fn outline_items(headings: &[TocHeading]) -> Vec<OkfOutlineItem> {
+    headings
+        .iter()
+        .map(|heading| OkfOutlineItem {
+            id: heading.id.clone(),
+            title: heading.text.clone(),
+            level: heading.level.to_string(),
+        })
+        .collect()
+}
+
+fn page_record(
+    output_path: String,
+    article_path: String,
+    title: String,
+    headings: &[TocHeading],
+    meta: Option<OkfPageMeta>,
+) -> OkfPageRecord {
+    OkfPageRecord {
+        output_path,
+        article_path,
+        title,
+        has_outline: !headings.is_empty(),
+        outline: outline_items(headings),
+        has_meta: meta.is_some(),
+        meta: meta.unwrap_or_else(empty_page_meta),
+    }
+}
+
+fn concept_page_meta(concept: &Concept, bundle: &Bundle) -> OkfPageMeta {
+    let status = okf::string_field(&concept.metadata, "status").unwrap_or("draft");
+    let authority = okf::string_field(&concept.metadata, "authority").unwrap_or("descriptive");
+    let trust_tier = okf::search::concept_trust_tier(&concept.metadata);
+    let stale = okf::search::concept_is_stale(&concept.metadata);
+    let stale_after = okf::string_field(&concept.metadata, "stale_after").unwrap_or("");
+    let concept_type = okf::string_field(&concept.metadata, "type").unwrap_or("Concept");
+    let owners = okf::metadata_string_array(&concept.metadata, "owners");
+    let tags = okf::metadata_string_array(&concept.metadata, "tags");
+    let description = okf::string_field(&concept.metadata, "description").unwrap_or("");
+    let action = classify_concept_action(concept, &bundle.diagnostics);
+    let (trust_slug, trust_label) = match trust_tier {
+        TrustTier::HumanReviewed => ("human", "human-reviewed"),
+        TrustTier::Generated => ("generated", "generated"),
+        TrustTier::Unverified => ("unverified", "unverified"),
+    };
+    let verifier = okf::latest_human_verification(&concept.metadata)
+        .map(|(_, v)| v.to_string())
+        .unwrap_or_default();
+    let generated = concept
+        .metadata
+        .get("generated")
+        .and_then(Value::as_object)
+        .map(|g| {
+            let by = g.get("by").and_then(Value::as_str).unwrap_or("");
+            let at = g.get("at").and_then(Value::as_str).unwrap_or("");
+            if !by.is_empty() && !at.is_empty() {
+                format!("{by} @ {at}")
             } else {
-                "(all clean)".to_string()
+                by.to_string()
             }
+        })
+        .unwrap_or_default();
+    let sources_arr = concept.metadata.get("sources").and_then(Value::as_array);
+    let has_sources = sources_arr.is_some_and(|s| !s.is_empty());
+    let source_count = sources_arr
+        .map(|s| s.len().to_string())
+        .unwrap_or_else(|| "0".into());
+    let drift_diags: Vec<&Diagnostic> = bundle
+        .diagnostics
+        .iter()
+        .filter(|d| d.path == concept.path && d.code == "OKF4006")
+        .collect();
+    let drift_summary = if has_sources {
+        if !drift_diags.is_empty() {
+            format!("({} drifted)", drift_diags.len())
         } else {
-            String::new()
-        };
-
-        let sources_roc = if let Some(sources) = sources_arr
-            && !sources.is_empty()
-        {
-            let mut s_roc = String::from("[\n");
-            for source in sources {
+            "(all clean)".to_string()
+        }
+    } else {
+        String::new()
+    };
+    let sources = if let Some(sources) = sources_arr {
+        sources
+            .iter()
+            .map(|source| {
                 let s_id = source.get("id").and_then(Value::as_str).unwrap_or("-");
                 let s_res = source
                     .get("resource")
@@ -1028,105 +1193,79 @@ fn generate_okf_pages_roc(bundle: &Bundle) -> Result<GeneratedOkfPages> {
                 let is_drifted = drift_diags
                     .iter()
                     .any(|d| d.message.contains(&format!("`{s_id}`")));
-                s_roc.push_str(&format!(
-                    "                        {{ id: {}, resource: {}, href: {}, author: {}, is_drifted: {} }},\n",
-                    format_roc_str(s_id),
-                    format_roc_str(s_res),
-                    format_roc_str(&s_href),
-                    format_roc_str(s_author),
-                    format_roc_bool(is_drifted),
-                ));
-            }
-            s_roc.push_str("                    ]");
-            s_roc
-        } else {
-            "empty_sources".to_string()
-        };
+                OkfSourceItem {
+                    id: s_id.to_string(),
+                    resource: s_res.to_string(),
+                    href: s_href,
+                    author: s_author.to_string(),
+                    is_drifted,
+                }
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let unknown_fields: Vec<(&String, &Value)> = concept
+        .metadata
+        .iter()
+        .filter(|(k, _)| !STANDARD_FIELDS.contains(&k.as_str()))
+        .collect();
+    let other_meta = unknown_fields
+        .iter()
+        .map(|(k, v)| OkfOtherMeta {
+            key: (*k).clone(),
+            val: compact_json_value(v),
+        })
+        .collect();
+    let has_prov = !owners.is_empty()
+        || !verifier.is_empty()
+        || !generated.is_empty()
+        || !stale_after.is_empty();
+    OkfPageMeta {
+        concept_type: concept_type.to_string(),
+        status: status.to_string(),
+        authority: authority.to_string(),
+        trust_slug: trust_slug.to_string(),
+        trust_label: trust_label.to_string(),
+        stale,
+        stale_after: stale_after.to_string(),
+        is_action_required: action.is_action_required,
+        action_detail: action.detail,
+        description: description.to_string(),
+        has_provenance: has_prov,
+        owners: owners.join(", "),
+        verifier,
+        generated,
+        has_sources,
+        source_count,
+        drift_summary,
+        sources,
+        has_other_meta: !unknown_fields.is_empty(),
+        other_meta_count: unknown_fields.len().to_string(),
+        other_meta,
+        has_tags: !tags.is_empty(),
+        tags,
+    }
+}
 
-        let unknown_fields: Vec<(&String, &Value)> = concept
-            .metadata
-            .iter()
-            .filter(|(k, _)| !STANDARD_FIELDS.contains(&k.as_str()))
-            .collect();
-        let has_other = !unknown_fields.is_empty();
-        let other_count = unknown_fields.len().to_string();
-        let other_roc = if !unknown_fields.is_empty() {
-            let mut o_roc = String::from("[\n");
-            for (k, v) in &unknown_fields {
-                o_roc.push_str(&format!(
-                    "                        {{ key: {}, val: {} }},\n",
-                    format_roc_str(k),
-                    format_roc_str(&compact_json_value(v)),
-                ));
-            }
-            o_roc.push_str("                    ]");
-            o_roc
-        } else {
-            "empty_other_meta".to_string()
-        };
+fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
+    let mut pages = Vec::new();
+    let mut articles = Vec::new();
+    let mut output_paths = Vec::new();
 
-        let tags_roc = if !tags.is_empty() {
-            let mut t_roc = String::from("[\n");
-            for tag in &tags {
-                t_roc.push_str(&format!(
-                    "                        {},\n",
-                    format_roc_str(tag)
-                ));
-            }
-            t_roc.push_str("                    ]");
-            t_roc
-        } else {
-            "empty_tags".to_string()
-        };
-
-        let outline_roc = if !headings.is_empty() {
-            let mut h_roc = String::from("[\n");
-            for h in &headings {
-                h_roc.push_str(&format!(
-                    "                    {{ id: {}, title: {}, level: {} }},\n",
-                    format_roc_str(&h.id),
-                    format_roc_str(&h.text),
-                    format_roc_str(&h.level.to_string()),
-                ));
-            }
-            h_roc.push_str("                ]");
-            h_roc
-        } else {
-            "empty_outline".to_string()
-        };
-
-        let has_prov = !owners.is_empty()
-            || !verifier.is_empty()
-            || !generated.is_empty()
-            || !stale_after.is_empty();
-
-        pages_roc.push_str(&format!(
-            "        {{\n            output_path: {},\n            article_path: {},\n            article_html: {},\n            title: {},\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: True,\n                meta: {{\n                    concept_type: {},\n                    status: {},\n                    authority: {},\n                    trust_slug: {},\n                    trust_label: {},\n                    stale: {},\n                    stale_after: {},\n                    is_action_required: {},\n                    action_detail: {},\n                    description: {},\n                    has_provenance: {},\n                    owners: {},\n                    verifier: {},\n                    generated: {},\n                    has_sources: {},\n                    source_count: {},\n                    drift_summary: {},\n                    sources: {sources_roc},\n                    has_other_meta: {},\n                    other_meta_count: {},\n                    other_meta: {other_roc},\n                    has_tags: {},\n                    tags: {tags_roc},\n                }},\n            }},\n        }},\n",
-            format_roc_str(&out_path),
-            format_roc_str(&article_rel),
-            format_roc_str(&stamped_article),
-            format_roc_str(title),
-            format_roc_bool(!headings.is_empty()),
-            format_roc_str(concept_type),
-            format_roc_str(status),
-            format_roc_str(authority),
-            format_roc_str(trust_slug),
-            format_roc_str(trust_label),
-            format_roc_bool(stale),
-            format_roc_str(stale_after),
-            format_roc_bool(action.is_action_required),
-            format_roc_str(&action.detail),
-            format_roc_str(description),
-            format_roc_bool(has_prov),
-            format_roc_str(&owners.join(", ")),
-            format_roc_str(&verifier),
-            format_roc_str(&generated),
-            format_roc_bool(has_sources),
-            format_roc_str(&source_count),
-            format_roc_str(&drift_summary),
-            format_roc_bool(has_other),
-            format_roc_str(&other_count),
-            format_roc_bool(!tags.is_empty()),
+    for concept in &bundle.concepts {
+        let (stamped_article, headings) = stamp_and_collect_headings(&concept.article_html);
+        let article_rel = format!("articles/{}.html", concept.id.replace('/', "-"));
+        articles.push((article_rel.clone(), stamped_article));
+        let out_path = format!("{}/index.html", concept.id);
+        output_paths.push(out_path.clone());
+        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+        pages.push(page_record(
+            out_path,
+            article_rel,
+            title.to_string(),
+            &headings,
+            Some(concept_page_meta(concept, bundle)),
         ));
     }
 
@@ -1137,30 +1276,14 @@ fn generate_okf_pages_roc(bundle: &Bundle) -> Result<GeneratedOkfPages> {
             index.article_html
         ));
         let article_rel = "articles/index.html".to_string();
-        articles.push((article_rel.clone(), stamped.clone()));
+        articles.push((article_rel.clone(), stamped));
         output_paths.push("index.html".to_string());
-
-        let outline_roc = if !headings.is_empty() {
-            let mut h_roc = String::from("[\n");
-            for h in &headings {
-                h_roc.push_str(&format!(
-                    "                    {{ id: {}, title: {}, level: {} }},\n",
-                    format_roc_str(&h.id),
-                    format_roc_str(&h.text),
-                    format_roc_str(&h.level.to_string()),
-                ));
-            }
-            h_roc.push_str("                ]");
-            h_roc
-        } else {
-            "empty_outline".to_string()
-        };
-
-        pages_roc.push_str(&format!(
-            "        {{\n            output_path: \"index.html\",\n            article_path: {},\n            article_html: {},\n            title: \"Knowledge\",\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
-            format_roc_str(&article_rel),
-            format_roc_str(&stamped),
-            format_roc_bool(!headings.is_empty()),
+        pages.push(page_record(
+            "index.html".into(),
+            article_rel,
+            "Knowledge".into(),
+            &headings,
+            None,
         ));
     }
 
@@ -1170,67 +1293,37 @@ fn generate_okf_pages_roc(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         };
         let (stamped, headings) = stamp_and_collect_headings(&index.article_html);
         let article_rel = format!("articles/{collection}-index.html");
-        articles.push((article_rel.clone(), stamped.clone()));
+        articles.push((article_rel.clone(), stamped));
         let out_path = format!("{collection}/index.html");
         output_paths.push(out_path.clone());
-
-        let outline_roc = if !headings.is_empty() {
-            let mut h_roc = String::from("[\n");
-            for h in &headings {
-                h_roc.push_str(&format!(
-                    "                    {{ id: {}, title: {}, level: {} }},\n",
-                    format_roc_str(&h.id),
-                    format_roc_str(&h.text),
-                    format_roc_str(&h.level.to_string()),
-                ));
-            }
-            h_roc.push_str("                ]");
-            h_roc
-        } else {
-            "empty_outline".to_string()
-        };
-
-        pages_roc.push_str(&format!(
-            "        {{\n            output_path: {},\n            article_path: {},\n            article_html: {},\n            title: {},\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
-            format_roc_str(&out_path),
-            format_roc_str(&article_rel),
-            format_roc_str(&stamped),
-            format_roc_str(collection),
-            format_roc_bool(!headings.is_empty()),
+        pages.push(page_record(
+            out_path,
+            article_rel,
+            collection.to_string(),
+            &headings,
+            None,
         ));
     }
 
     let (stamped, headings) = stamp_and_collect_headings(&render_review_page(bundle));
     let article_rel = "articles/review.html".to_string();
-    articles.push((article_rel.clone(), stamped.clone()));
+    articles.push((article_rel.clone(), stamped));
     output_paths.push("review/index.html".to_string());
-
-    let outline_roc = if !headings.is_empty() {
-        let mut h_roc = String::from("[\n");
-        for h in &headings {
-            h_roc.push_str(&format!(
-                "                    {{ id: {}, title: {}, level: {} }},\n",
-                format_roc_str(&h.id),
-                format_roc_str(&h.text),
-                format_roc_str(&h.level.to_string()),
-            ));
-        }
-        h_roc.push_str("                ]");
-        h_roc
-    } else {
-        "empty_outline".to_string()
-    };
-
-    pages_roc.push_str(&format!(
-        "        {{\n            output_path: \"review/index.html\",\n            article_path: {},\n            article_html: {},\n            title: \"Knowledge Governance & Review Queue\",\n            view: {{\n                has_outline: {},\n                outline: {outline_roc},\n                has_meta: False,\n                meta: empty_meta,\n            }},\n        }},\n",
-        format_roc_str(&article_rel),
-        format_roc_str(&stamped),
-        format_roc_bool(!headings.is_empty()),
+    pages.push(page_record(
+        "review/index.html".into(),
+        article_rel,
+        "Knowledge Governance & Review Queue".into(),
+        &headings,
+        None,
     ));
 
-    pages_roc.push_str("    ]\n}\n");
-
-    Ok((pages_roc, articles, output_paths))
+    let json = serde_json::to_string(&OkfPagesFile { pages })
+        .context("failed to serialize OKF page records")?;
+    Ok(GeneratedOkfPages {
+        json,
+        articles,
+        output_paths,
+    })
 }
 
 fn invoke_roc_build(
@@ -1506,8 +1599,7 @@ pub fn build_review_site_with_host(
     }
 
     let modules = rec.span("compile templates", compile_okf_templates)?;
-    let (pages_roc, articles, output_paths) =
-        rec.span("generate", || generate_okf_pages_roc(bundle))?;
+    let generated = rec.span("generate", || generate_okf_page_data(bundle))?;
 
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
@@ -1523,15 +1615,15 @@ pub fn build_review_site_with_host(
 
     let articles_dir = workspace.join("articles");
     fs::create_dir_all(&articles_dir)?;
-    for (rel_path, html) in articles {
-        let dest = workspace.join(&rel_path);
+    for (rel_path, html) in &generated.articles {
+        let dest = workspace.join(rel_path);
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }
         fs::write(&dest, html)?;
     }
 
-    for out_path in &output_paths {
+    for out_path in &generated.output_paths {
         if let Some(parent) = Path::new(out_path).parent()
             && parent != Path::new("")
         {
@@ -1543,11 +1635,11 @@ pub fn build_review_site_with_host(
         rocci_roc_host::stage_wasm_platform_into(&workspace)?;
     }
 
-    fs::write(workspace.join("OkfPages.roc"), &pages_roc)?;
+    fs::write(workspace.join("okf-pages.json"), &generated.json)?;
     let main_code = main_roc(is_wasm);
     fs::write(workspace.join("main.roc"), &main_code)?;
 
-    let roc_hash = roc_source_hash(&pages_roc, &modules, &main_code);
+    let roc_hash = renderer_compile_hash(&modules, &main_code, is_wasm);
     let cache = rocci_roc_host::TwoTierCache::default();
     let target = if is_wasm {
         "wasm32".to_string()
@@ -1598,7 +1690,7 @@ pub fn build_review_site_with_host(
                 eprint!("{roc_output}");
             }
             let bytes = fs::read(&apply_bin)?;
-            let fp = okf_fingerprints(&modules);
+            let fp = okf_fingerprints(&modules, &main_code);
             cache.store_renderer(&roc_hash, &target, &bytes, &fp)
         })?
     };
@@ -2446,5 +2538,81 @@ mod tests {
             .unwrap();
         assert!(review_queue.src.contains("okf-table-container"));
         assert!(review_queue.src.contains("okf-filter-bar"));
+    }
+
+    fn two_concept_bundle(second_body: &str) -> Bundle {
+        let mut first = concept_with(BTreeMap::new());
+        first.id = "plans/alpha".into();
+        first.path = "plans/alpha.md".into();
+        first.article_html = "<p>first body</p>".into();
+        let mut second = concept_with(BTreeMap::new());
+        second.id = "plans/beta".into();
+        second.path = "plans/beta.md".into();
+        second.article_html = second_body.into();
+        bundle_with(vec![first, second])
+    }
+
+    #[test]
+    fn renderer_hash_ignores_markdown_body() {
+        let modules = compile_okf_templates().unwrap();
+        let main_code = main_roc(false);
+        let hash = renderer_compile_hash(&modules, &main_code, false);
+        let gen_a =
+            generate_okf_page_data(&two_concept_bundle("<p>UNIQUE_BODY_SENTENCE_aaa</p>")).unwrap();
+        let gen_b =
+            generate_okf_page_data(&two_concept_bundle("<p>UNIQUE_BODY_SENTENCE_bbb</p>")).unwrap();
+        assert_eq!(gen_a.json, gen_b.json);
+        assert!(gen_a.json.contains("plans/beta"));
+        assert!(!gen_a.json.contains("UNIQUE_BODY_SENTENCE_aaa"));
+        assert!(
+            gen_a
+                .articles
+                .iter()
+                .any(|(_, html)| html.contains("UNIQUE_BODY_SENTENCE_aaa"))
+        );
+        assert!(
+            gen_b
+                .articles
+                .iter()
+                .any(|(_, html)| html.contains("UNIQUE_BODY_SENTENCE_bbb"))
+        );
+        assert_eq!(hash, renderer_compile_hash(&modules, &main_code, false));
+        assert!(!crate::runtime::OKF_BUILD_ROC.contains("UNIQUE_BODY_SENTENCE_aaa"));
+        assert!(!main_code.contains("UNIQUE_BODY_SENTENCE_aaa"));
+        assert!(!main_roc(false).contains("article_html:"));
+    }
+
+    #[test]
+    fn renderer_hash_changes_when_template_roc_changes() {
+        let modules = compile_okf_templates().unwrap();
+        let main_code = main_roc(false);
+        let hash = renderer_compile_hash(&modules, &main_code, false);
+        let mut changed = modules.clone();
+        changed[0].roc.push_str("\n# template-change\n");
+        let hash2 = renderer_compile_hash(&changed, &main_code, false);
+        assert_ne!(hash, hash2);
+    }
+
+    #[test]
+    fn lookup_renderer_hits_when_only_markdown_changes() {
+        let modules = compile_okf_templates().unwrap();
+        let main_code = main_roc(false);
+        let hash = renderer_compile_hash(&modules, &main_code, false);
+        let dir = unique_temp("cache").unwrap();
+        let cache = rocci_roc_host::TwoTierCache::new(dir.clone());
+        let target = format!("native:{}", std::env::consts::ARCH);
+        let fp = okf_fingerprints(&modules, &main_code);
+        cache
+            .store_renderer(&hash, &target, b"dummy-apply", &fp)
+            .unwrap();
+        assert!(cache.lookup_renderer(&hash, &target).is_some());
+        let _ = generate_okf_page_data(&two_concept_bundle("<p>changed body</p>")).unwrap();
+        assert_eq!(hash, renderer_compile_hash(&modules, &main_code, false));
+        assert!(cache.lookup_renderer(&hash, &target).is_some());
+        let mut changed = modules.clone();
+        changed[0].roc.push_str("\n");
+        let hash2 = renderer_compile_hash(&changed, &main_code, false);
+        assert!(cache.lookup_renderer(&hash2, &target).is_none());
+        let _ = fs::remove_dir_all(&dir);
     }
 }
