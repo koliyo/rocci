@@ -266,7 +266,11 @@ cargo run -p rocci-okf -- build [ROOT] [--output DIRECTORY] [--profile base|rocc
 [Project browser](/docs/guides/rocci-browser/) for Cmd-P versus Cmd-K, the
 registry file, and that `rocci browse` is the component gallery.
 
+This repo's `.rocci/browser.toml` execs `target/debug` product CLIs with
+`browser-adapter`. Build those binaries before the host:
+
 ```sh
+cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
 cargo run -q -p rocci-browser
 cargo run -q -p rocci-browser -- add ./my-project
 cargo run -q -p rocci-browser -- open TARGET [--document ID] [--no-window] [--json]
