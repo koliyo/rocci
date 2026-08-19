@@ -9,6 +9,7 @@ pub(crate) const BUILD_WASM: &str = include_str!("../runtime/RocdownBuild.wasm.r
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
 pub const BASE: &str = include_str!("../templates/RocdownBase.rocci");
 pub const DOCS: &str = include_str!("../templates/DocsComponents.rocci");
+pub const BLOCK_DEBUG: &str = include_str!("../templates/BlockDebug.rocci");
 pub const BREADCRUMBS: &str = rocci_ui::chrome::BREADCRUMBS;
 pub const NAV_LIST: &str = rocci_ui::chrome::NAV_LIST;
 pub const PAGE_OUTLINE: &str = rocci_ui::chrome::PAGE_OUTLINE;

@@ -1,0 +1,8 @@
+import Html
+
+@component Debug = |{ kind, params }, content|
+    <section data-rocci-block-debug data-kind={kind}>
+        <p>{kind}</p>
+        <pre>{params}</pre>
+        <div>{content}</div>
+    </section>

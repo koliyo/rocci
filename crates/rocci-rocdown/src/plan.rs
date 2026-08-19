@@ -174,7 +174,25 @@ impl BuildPlan {
 }
 
 pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<BuildPlan> {
-    let theme_modules = compile_theme_modules(root, config)?;
+    plan_with_preview(root, config, site, false)
+}
+
+pub fn plan_preview(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<BuildPlan> {
+    plan_with_preview(root, config, site, true)
+}
+
+pub(crate) fn validate_theme_painters(root: &Path, config: &SiteConfig) -> Result<()> {
+    compile_theme_modules(root, config, false)?;
+    Ok(())
+}
+
+fn plan_with_preview(
+    root: &Path,
+    config: &SiteConfig,
+    site: &ResolvedSite,
+    preview: bool,
+) -> Result<BuildPlan> {
+    let theme_modules = compile_theme_modules(root, config, preview)?;
     let mut assets = hash_site_assets(root, config)?;
     let mut theme_css = theme_modules
         .iter()
@@ -367,7 +385,11 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     })
 }
 
-fn compile_theme_modules(root: &Path, config: &SiteConfig) -> Result<Vec<CompiledThemeModule>> {
+fn compile_theme_modules(
+    root: &Path,
+    config: &SiteConfig,
+    preview: bool,
+) -> Result<Vec<CompiledThemeModule>> {
     let target = if let Some(theme) = &config.build.theme {
         let p = root.join(theme);
         if !p.exists() {
@@ -402,19 +424,23 @@ fn compile_theme_modules(root: &Path, config: &SiteConfig) -> Result<Vec<Compile
         };
         let mut modules = compile_project_theme(root, &target)?;
         let pack_names = compile_block_pack(root, Some(&theme_dir), config, &mut modules)?;
+        let allow_debug = preview || config.blocks.debug;
         modules.push(block_painters_module(
             &modules,
             &pack_names,
             &config.blocks.override_map,
+            allow_debug,
         )?);
         Ok(modules)
     } else {
         let mut modules = compile_builtin_theme()?;
         let pack_names = compile_block_pack(root, None, config, &mut modules)?;
+        let allow_debug = preview || config.blocks.debug;
         modules.push(block_painters_module(
             &modules,
             &pack_names,
             &config.blocks.override_map,
+            allow_debug,
         )?);
         Ok(modules)
     }
@@ -532,6 +558,11 @@ fn compile_project_theme(root: &Path, target: &Path) -> Result<Vec<CompiledTheme
         modules.push(docs);
     }
 
+    if !modules.iter().any(|m| m.type_name == "BlockDebug") {
+        let debug = compile_single_module("BlockDebug.rocci", "BlockDebug", runtime::BLOCK_DEBUG)?;
+        modules.push(debug);
+    }
+
     if !modules.iter().any(|m| m.type_name == "RocdownTheme") {
         if modules.iter().any(|m| m.type_name == "SiteShell") {
             let synth_roc = "import Html\nimport SiteShell\n\nRocdownTheme := [].{\n    siteShell = |view, content|\n        SiteShell.siteShell(view, content)\n}\n";
@@ -564,7 +595,16 @@ fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
         compile_single_module("PageOutline.rocci", "PageOutline", runtime::PAGE_OUTLINE)?;
     let theme = compile_single_module("RocdownTheme.rocci", "RocdownTheme", runtime::THEME)?;
     let docs = compile_single_module("DocsComponents.rocci", "DocsComponents", runtime::DOCS)?;
-    Ok(vec![base, breadcrumbs, nav_list, page_outline, theme, docs])
+    let debug = compile_single_module("BlockDebug.rocci", "BlockDebug", runtime::BLOCK_DEBUG)?;
+    Ok(vec![
+        base,
+        breadcrumbs,
+        nav_list,
+        page_outline,
+        theme,
+        docs,
+        debug,
+    ])
 }
 
 fn compile_block_pack(
@@ -680,10 +720,73 @@ fn lookup_painter_source<'a>(
     None
 }
 
+fn debug_params_roc(spec: crate::registry::KindSpec) -> String {
+    let fields = spec.paint_fields();
+    if fields.is_empty() {
+        return "\"\"".to_string();
+    }
+    let parts: Vec<String> = fields
+        .iter()
+        .map(|field| match field.ty {
+            crate::registry::PaintType::Str => field.prop.to_string(),
+            crate::registry::PaintType::Bool => {
+                format!("(if {} {{ \"true\" }} else {{ \"false\" }})", field.prop)
+            }
+        })
+        .collect();
+    if parts.len() == 1 {
+        parts.into_iter().next().unwrap()
+    } else {
+        format!("Str.join_with([{}], \"\\n\")", parts.join(", "))
+    }
+}
+
+fn props_pattern(spec: crate::registry::KindSpec) -> String {
+    let fields = spec.paint_fields();
+    if fields.is_empty() {
+        "{}".to_string()
+    } else {
+        format!(
+            "{{ {} }}",
+            fields
+                .iter()
+                .map(|field| field.prop)
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+fn emit_debug_painter(roc: &mut String, spec: crate::registry::KindSpec) {
+    let painter = roc_fn_name(spec.component);
+    let props = props_pattern(spec);
+    let params = debug_params_roc(spec);
+    roc.push_str("    ");
+    roc.push_str(&painter);
+    if spec.paint_content() {
+        roc.push_str(" = |");
+        roc.push_str(&props);
+        roc.push_str(", content|\n        BlockDebug.debug({ kind: \"");
+        roc.push_str(spec.name);
+        roc.push_str("\", params: ");
+        roc.push_str(&params);
+        roc.push_str(" }, content)\n");
+    } else {
+        roc.push_str(" = |");
+        roc.push_str(&props);
+        roc.push_str("|\n        BlockDebug.debug({ kind: \"");
+        roc.push_str(spec.name);
+        roc.push_str("\", params: ");
+        roc.push_str(&params);
+        roc.push_str(" }, Html.empty)\n");
+    }
+}
+
 fn block_painters_module(
     modules: &[CompiledThemeModule],
     pack_names: &[String],
     overrides: &BTreeMap<String, String>,
+    allow_debug: bool,
 ) -> Result<CompiledThemeModule> {
     let pack_modules: Vec<&CompiledThemeModule> = modules
         .iter()
@@ -692,9 +795,21 @@ fn block_painters_module(
     let docs = modules
         .iter()
         .find(|module| module.type_name == "DocsComponents");
-    let mut bindings: Vec<(String, String, String, bool)> = Vec::new();
+    enum Binding {
+        Component {
+            painter: String,
+            source: String,
+            callee: String,
+            paint_content: bool,
+        },
+        Debug(crate::registry::KindSpec),
+    }
+    let mut bindings = Vec::new();
+    let mut uses_debug = false;
+    let mut uses_html = false;
     for spec in crate::registry::KINDS
         .iter()
+        .copied()
         .filter(|spec| spec.paints_as_widget())
     {
         let painter = roc_fn_name(spec.component);
@@ -703,21 +818,45 @@ fn block_painters_module(
             None => (spec.component, false),
         };
         let callee = roc_fn_name(paint_as);
-        let source = match lookup_painter_source(paint_as, &pack_modules, docs) {
-            Some(source) => source.to_string(),
+        match lookup_painter_source(paint_as, &pack_modules, docs) {
+            Some(source) => bindings.push(Binding::Component {
+                painter,
+                source: source.to_string(),
+                callee,
+                paint_content: spec.paint_content(),
+            }),
             None if required => {
                 bail!(
                     "blocks.override `{}` names unknown component `{paint_as}`",
                     spec.name
                 );
             }
-            None => "DocsComponents".to_string(),
-        };
-        bindings.push((painter, source, callee, spec.paint_content()));
+            None if allow_debug => {
+                uses_debug = true;
+                if !spec.paint_content() {
+                    uses_html = true;
+                }
+                bindings.push(Binding::Debug(spec));
+            }
+            None => {
+                bail!(
+                    "no renderer bound for kind `{}`; set [blocks] debug = true to paint a debug placeholder",
+                    spec.name
+                );
+            }
+        }
     }
     let mut imports = vec!["DocsComponents".to_string()];
-    for (_, source, _, _) in &bindings {
-        if !imports.contains(source) {
+    if uses_debug {
+        imports.push("BlockDebug".to_string());
+    }
+    if uses_html {
+        imports.push("Html".to_string());
+    }
+    for binding in &bindings {
+        if let Binding::Component { source, .. } = binding
+            && !imports.contains(source)
+        {
             imports.push(source.clone());
         }
     }
@@ -728,21 +867,31 @@ fn block_painters_module(
         roc.push('\n');
     }
     roc.push_str("\nBlockPainters := [].{\n");
-    for (painter, source, callee, paint_content) in &bindings {
-        roc.push_str("    ");
-        roc.push_str(painter);
-        if *paint_content {
-            roc.push_str(" = |props, content|\n        ");
-            roc.push_str(source);
-            roc.push('.');
-            roc.push_str(callee);
-            roc.push_str("(props, content)\n");
-        } else {
-            roc.push_str(" = |props|\n        ");
-            roc.push_str(source);
-            roc.push('.');
-            roc.push_str(callee);
-            roc.push_str("(props)\n");
+    for binding in &bindings {
+        match binding {
+            Binding::Component {
+                painter,
+                source,
+                callee,
+                paint_content,
+            } => {
+                roc.push_str("    ");
+                roc.push_str(painter);
+                if *paint_content {
+                    roc.push_str(" = |props, content|\n        ");
+                    roc.push_str(source);
+                    roc.push('.');
+                    roc.push_str(callee);
+                    roc.push_str("(props, content)\n");
+                } else {
+                    roc.push_str(" = |props|\n        ");
+                    roc.push_str(source);
+                    roc.push('.');
+                    roc.push_str(callee);
+                    roc.push_str("(props)\n");
+                }
+            }
+            Binding::Debug(spec) => emit_debug_painter(&mut roc, *spec),
         }
     }
     roc.push_str("}\n");
@@ -2345,6 +2494,94 @@ note = "Missing"
             .unwrap_err()
             .to_string();
         assert!(err.contains("unknown component `Missing`"), "{err}");
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn write_incomplete_docs(root: &Path) {
+        write_shell(root);
+        fs::write(
+            root.join("theme/DocsComponents.rocci"),
+            r#"
+import Html
+
+@component Tip = |{ title }, content|
+    <p data-stub-tip data-title={title}>{content}</p>
+"#,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn missing_painter_errors_unless_debug_or_preview() {
+        let root = temp("missing-painter");
+        write_site(&root);
+        write_incomplete_docs(&root);
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let err = plan(&loaded.root, &loaded.config, &resolved.site)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("no renderer bound for kind `note`"), "{err}");
+
+        let preview = plan_preview(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let painters = preview
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters.roc.contains("BlockDebug.debug({ kind: \"note\""),
+            "{}",
+            painters.roc
+        );
+        assert!(
+            painters.roc.contains("data-rocci-block-debug")
+                || preview
+                    .theme_modules
+                    .iter()
+                    .any(|module| module.type_name == "BlockDebug"
+                        && (module.src.contains("data-rocci-block-debug")
+                            || module.roc.contains("data-rocci-block-debug"))),
+            "debug component missing data-rocci-block-debug"
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn missing_painter_binds_debug_when_flag_set() {
+        let root = temp("missing-painter-debug");
+        write_site(&root);
+        write_incomplete_docs(&root);
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+debug = true
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let painters = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters.roc.contains("BlockDebug.debug({ kind: \"note\""),
+            "{}",
+            painters.roc
+        );
 
         let _ = fs::remove_dir_all(root);
     }

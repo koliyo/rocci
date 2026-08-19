@@ -202,8 +202,10 @@ note = "Callout"
 - `pack`: optional path, relative to the content root, to a `.rocci` file or a
   directory of `.rocci` files. When set, it replaces the `theme/Blocks.rocci` /
   `theme/blocks/` convention.
-- `debug`: reserved for preview of kinds that have a schema but no painter.
-  Unused by `rocdown build` and `rocdown check` until that fallback ships.
+- `debug`: when `true`, `rocdown build` and `rocdown check` paint a first-party
+  debug placeholder (`data-rocci-block-debug`) for kinds that have a schema but
+  no renderer. `rocdown run` always uses that placeholder in preview. Unknown
+  kinds stay errors.
 - `[blocks.override]`: maps a builtin widget kind (`note`) to a pack or
   `DocsComponents` component name (`Callout`). Unknown kinds fail config load.
   Unknown component names fail theme compile.

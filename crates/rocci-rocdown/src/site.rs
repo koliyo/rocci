@@ -480,9 +480,20 @@ impl CheckReport {
 pub fn check(root: &Path) -> Result<CheckReport> {
     let loaded = load_site(root)?;
     let result = resolve_loaded(&loaded);
-    Ok(CheckReport {
-        diagnostics: result.diagnostics,
-    })
+    let mut diagnostics = result.diagnostics;
+    if !diagnostics.iter().any(CatalogDiagnostic::is_error)
+        && let Err(err) = crate::plan::validate_theme_painters(&loaded.root, &loaded.config)
+    {
+        let message = err.to_string();
+        if message.contains("no renderer bound") {
+            diagnostics.push(CatalogDiagnostic::error(
+                "RD2701",
+                crate::config::CONFIG_FILE,
+                message,
+            ));
+        }
+    }
+    Ok(CheckReport { diagnostics })
 }
 
 pub fn cdn_only_live_errors(site: &ResolvedSite) -> Vec<CatalogDiagnostic> {
@@ -874,6 +885,60 @@ mod tests {
         assert!(report.has_errors());
         let rendered = report.render(CheckFormat::Terminal).unwrap();
         assert!(rendered.contains("p050.rocdown"), "{rendered}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_reports_missing_block_renderer() {
+        let root = temp("missing-renderer");
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/DocsComponents.rocci"),
+            r#"
+import Html
+
+@component Tip = |{ title }, content|
+    <p data-title={title}>{content}</p>
+"#,
+        )
+        .unwrap();
+        fs::write(root.join("index.rocdown"), "# Home\n\nHello.\n").unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors());
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(rendered.contains("RD2701"), "{rendered}");
+        assert!(rendered.contains("no renderer bound"), "{rendered}");
+
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Documentation"
+
+[blocks]
+debug = true
+"#,
+        )
+        .unwrap();
+        let report = check(&root).unwrap();
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
         let _ = fs::remove_dir_all(root);
     }
 
