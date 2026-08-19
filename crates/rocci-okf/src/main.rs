@@ -131,22 +131,20 @@ impl From<ProfileReportArg> for dev::ProfileReportMode {
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
 enum HostArg {
-    /// Pick host automatically (native on dev, wasm when requested or embedded).
+    /// Use Roc when it is on PATH; otherwise the Rust knowledge shell.
     #[default]
     Auto,
-    /// Compile and run native host executable (requires roc on PATH).
+    /// Require the native Roc applicator (`roc` must be on PATH).
     Native,
     /// In-process Wasmtime host.
     Wasm,
 }
 
-impl From<HostArg> for rocci_roc_host::HostChoice {
-    fn from(arg: HostArg) -> Self {
-        match arg {
-            HostArg::Auto => rocci_roc_host::HostChoice::Auto,
-            HostArg::Native => rocci_roc_host::HostChoice::Native,
-            HostArg::Wasm => rocci_roc_host::HostChoice::Wasm,
-        }
+fn preview_host(host: HostArg) -> Option<rocci_roc_host::HostChoice> {
+    match host {
+        HostArg::Auto => None,
+        HostArg::Native => Some(rocci_roc_host::HostChoice::Native),
+        HostArg::Wasm => Some(rocci_roc_host::HostChoice::Wasm),
     }
 }
 
@@ -339,7 +337,7 @@ fn main() -> Result<()> {
                 profile.into(),
                 provenance,
                 &target.open_path,
-                Some(host.into()),
+                preview_host(host),
                 profile_report.into(),
             )?;
             rocci_cli::logs::tee(
@@ -364,5 +362,23 @@ fn main() -> Result<()> {
             drop(server);
             result
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn auto_preview_host_does_not_force_roc() {
+        assert!(preview_host(HostArg::Auto).is_none());
+        assert_eq!(
+            preview_host(HostArg::Native),
+            Some(rocci_roc_host::HostChoice::Native)
+        );
+        assert_eq!(
+            preview_host(HostArg::Wasm),
+            Some(rocci_roc_host::HostChoice::Wasm)
+        );
     }
 }

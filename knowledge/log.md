@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Implemented Phase 6 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): default `run` no longer forces Roc; missing `roc` uses the Rust shell unless `--host native` or `ROCCI_REQUIRE_ROC=1`. Recorded a debug [results snapshot](status/okf-compile-render-cost.md). Phases 4–5 skipped. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): watch rebuilds keep the cached apply path in session state and mark `render` as `reuse` when the compile hash is unchanged. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 2 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): native apply writes `OkfTheme.knowledgeShell` HTML to `OKF_STAGING`; Rust `html_page` remains only when apply omitted a path. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 1 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): `okf-pages.json` plus article files carry page identity; `compute_gen_hash` / `compute_compile_hash` key the renderer without bundle Markdown. Apply still discards HTML. Not logged complete until CI and Knowledge workflows succeed on this revision.

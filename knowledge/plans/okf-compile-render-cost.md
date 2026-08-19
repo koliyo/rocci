@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: OKF preview compile and render cost
-description: Phased reduction of `rocci-okf run` Roc compile and apply cost after load-performance work. Stop baking page HTML into the renderer hash, write Rocci chrome from apply, and keep compile off the Markdown-edit path. Phases 1–3 are in this tree.
+description: Phased reduction of `rocci-okf run` Roc compile and apply cost after load-performance work. Phases 1–3 and 6 are in this tree; Phases 4–5 skipped.
 tags: [domain/okf, domain/rocci-okf, integration/roc, concern/performance, concern/rendering, concern/caching, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:05:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -34,6 +34,11 @@ sources:
     title: OKF load-performance improvement results
     author: process:cursor
     last_modified: 2026-08-19
+  - id: results-status
+    resource: ../status/okf-compile-render-cost.md
+    title: OKF preview compile and render cost results
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: preview-audit
     resource: ../audits/hybrid-rocdown-islands-preview-performance.md
     title: hybrid-rocdown-islands preview performance audit
@@ -46,7 +51,7 @@ sources:
     last_modified: 2026-08-19
   - id: okf-build
     resource: ../../crates/rocci-okf/runtime/OkfBuild.roc
-    title: OKF apply runtime that maps pages to HTML strings
+    title: OKF apply runtime that reads page JSON and writes HTML
     author: process:git
     last_modified: 2026-08-18
   - id: okf-theme
@@ -125,9 +130,9 @@ for default preview. Remaining first-open and save cost is `compile` plus
 path. It does not reopen provenance, parse caching, or bounded concept-path
 loading.[^load-plan][^load-status][^presentation]
 
-Phases 1–3 are in this tree: page identity is outside the renderer hash, native
-apply writes `OkfTheme.knowledgeShell` HTML, and watch keeps the cached apply
-path across ticks. Phases 4–6 are not started. Exploratory; not CI-complete. Measured numbers in the companion [research
+Phases 1–3 and 6 are in this tree. Phases 4–5 were gated and skipped on this
+revision (see the [results snapshot](../status/okf-compile-render-cost.md)).
+Exploratory; not CI-complete. Measured numbers in the companion [research
 record](../research/okf-compile-render-cost.md) are machine-local, not a
 latency SLA.[^research]
 
@@ -289,6 +294,12 @@ the 300–600ms first-run class, while Phase 1 `compile` 0 still holds.
 
 ### Phase 4 — Dirty-page apply, only if render is still large
 
+**Status:** Skipped. After Phase 3, same-process session reuse reports `compile`
+0 (`cached`) and `render` note `reuse`. New-process first apply of a cached
+debug binary is still hundreds of milliseconds (page-in); that is not the
+watch-edit gate. Reopen if a later watch remeasure stays in the first-run
+class.[^results-status]
+
 **Gate:** After Phase 3, re-run the measurement command on a one-file watch
 edit. Start this phase only if `render` remains hundreds of milliseconds on a
 warm cached binary, not ~30ms.
@@ -305,6 +316,9 @@ fixture of several concepts with one file touched.
 
 ### Phase 5 — Optional Rocdown pages-out-of-hash
 
+**Status:** Skipped. Optional and owned by `rocci-rocdown`; this cut does not
+change `RocdownPages.roc`.[^results-status]
+
 **Gate:** Only if Rocdown watch still recompiles on ordinary article edits
 after OKF Phases 1–3. Measure `rocdown` / `rocci-rocdown` separately; do not
 assume OKF numbers.[^rocdown-build][^generation-research]
@@ -316,6 +330,10 @@ for article bodies.
 **Out of bound:** Changing Rocdown grammar or the catalog/shell split.
 
 ### Phase 6 — CLI honesty and recorded baseline
+
+**Status:** In this tree. Default `run` host auto does not force Roc.
+Missing `roc` uses `build_review_site_pure_rust` unless `--host native` or
+`ROCCI_REQUIRE_ROC=1`. Baseline: [results snapshot](../status/okf-compile-render-cost.md).
 
 **Bound:** `run` must not set `force_roc` merely because `HostArg::Auto` is
 always `Some`. Missing `roc` uses `build_review_site_pure_rust` unless
@@ -367,6 +385,7 @@ preview path.
 2. After Phase 3, is Phase 4 unnecessary on this repository’s current size?
 3. Is Rocdown Phase 5 in this plan or a follow-up owned by `rocci-rocdown`?
 
+[^results-status]: Debug isolated-cache first open compile 1036ms / render 1010ms; warm cached compile 0 / first-apply render 758ms; Phase 4–5 skipped.
 [^research]: After load-performance work, watch body edits still pay ~0.5s compile and ~0.5s first apply; apply HTML is discarded; served chrome is Rust; durable fix is externalize page data then write Roc HTML.
 [^generation-research]: Compiled `~/.rocci` programs pay off only when page data is passed in at apply time; compiling per save is the costly mistake.
 [^generation-plan]: Two-tier gen-hash and compile-hash; native subprocess plus Wasmtime; glue later.
