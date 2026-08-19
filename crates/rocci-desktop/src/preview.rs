@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use rocci_core::{Result, WindowConfig, WindowId};
 use tao::{
-    event::{Event, WindowEvent},
+    event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder},
     keyboard::ModifiersState,
     platform::run_return::EventLoopExtRunReturn,
@@ -47,7 +47,6 @@ impl Default for PreviewOptions {
 
 pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
-    crate::icon::apply_host_icon();
     let proxy = event_loop.create_proxy();
     let id = WindowId::new("preview");
     let state_key = options
@@ -151,6 +150,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         *control_flow = ControlFlow::Wait;
         let _keep = &menu;
         match event {
+            Event::NewEvents(StartCause::Init) => crate::icon::apply_host_icon(),
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
