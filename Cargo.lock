@@ -3013,6 +3013,7 @@ dependencies = [
  "clap",
  "notify",
  "okf",
+ "rocci-browser",
  "rocci-cli",
  "rocci-desktop",
  "rocci-roc-host",
@@ -3098,6 +3099,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "rocci-browser",
  "rocci-cli",
  "rocci-desktop",
  "rocci-playground",

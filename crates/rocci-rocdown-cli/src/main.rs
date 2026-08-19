@@ -12,6 +12,8 @@ use rocci_cli::path_hint;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 use rocci_rocdown::{SourceFile, StandaloneReady, ThemeArgs, format_diagnostic};
 
+mod browser;
+
 #[derive(Parser)]
 #[command(
     name = "rocdown",
@@ -77,6 +79,8 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Speak the rocci-browser adapter protocol on stdio.
+    BrowserAdapter,
     /// Start the island HTTP service for live pages in a documentation site.
     ServeIslands {
         /// Site root directory.
@@ -466,6 +470,7 @@ fn try_main() -> Result<()> {
             };
             rocci_cli::playground::run_playground_cli(&input, serve, "rocdown", mode.into(), hook)
         }
+        Commands::BrowserAdapter => browser::run(),
     }
 }
 
@@ -870,6 +875,12 @@ mod tests {
             }
             _ => panic!("expected inspect roc"),
         }
+    }
+
+    #[test]
+    fn browser_adapter_parses() {
+        let cli = Cli::try_parse_from(["rocdown", "browser-adapter"]).unwrap();
+        assert!(matches!(cli.command, Commands::BrowserAdapter));
     }
 
     #[test]

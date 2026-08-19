@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:30:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -175,7 +175,7 @@ explicit request to implement from Phase 1. Architecture records and the three
 product CLIs remain the current one-shot preview contract until later
 phases.[^research][^system-overview][^root-readme]
 
-Phase 0 is this freeze. Phases 1–2 are implemented in this revision; they are
+Phase 0 is this freeze. Phases 1–3 are implemented in this revision; they are
 not logged complete until required GitHub workflows succeed.
 
 This plan does **not** reverse the CLI-entry-points recommendation that `rocci`
@@ -703,8 +703,8 @@ track for the research recommendation, not an approved schedule.
 
 ## Status
 
-Exploratory; Phase 0 freeze plus Phases 1–2 in this revision. Not CI-complete.
-Phases 3–5 remain.
+Exploratory; Phase 0 freeze plus Phases 1–3 in this revision. Not CI-complete.
+Phases 4–5 remain.
 
 [^research]: Recommended split: product-blind host, stdio adapters, registry, two-stage picker.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.
