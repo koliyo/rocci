@@ -120,6 +120,68 @@ fn inspect_catalog_and_graph() {
 }
 
 #[test]
+fn inspect_artifacts_docs_is_static() {
+    let root = repo_root();
+    let bin = rocdown_bin();
+
+    let output = Command::new(&bin)
+        .arg("inspect")
+        .arg("artifacts")
+        .arg(root.join("docs"))
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let report: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(report["datastar"], false);
+    assert!(report["service_routes"].as_array().unwrap().is_empty());
+    for page in report["pages"].as_array().unwrap() {
+        assert_eq!(page["kind"], "static", "{page}");
+        assert_eq!(page["datastar"], false);
+    }
+    let artifacts = report["artifacts"].as_array().unwrap();
+    assert!(
+        artifacts
+            .iter()
+            .any(|item| item["output_path"] == "pages.json")
+    );
+    assert!(
+        !artifacts
+            .iter()
+            .any(|item| item["output_path"] == "islands.json")
+    );
+}
+
+#[test]
+fn build_cdn_only_errors_on_live_hybrid_fixture() {
+    let root = repo_root();
+    let bin = rocdown_bin();
+    let hybrid = root.join("examples/rocdown-hybrid");
+    let output = temp_dir("cdn-only");
+    fs::write(output.join("keep.txt"), "preserve me").unwrap();
+
+    let result = Command::new(&bin)
+        .args(["build", hybrid.to_str().unwrap(), "--cdn-only", "--output"])
+        .arg(&output)
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(stderr.contains("RD2302"), "{stderr}");
+    assert_eq!(
+        fs::read_to_string(output.join("keep.txt")).unwrap(),
+        "preserve me"
+    );
+    let _ = fs::remove_dir_all(&output);
+}
+
+#[test]
 fn inspect_ast_and_roc_on_syntax_fixture() {
     let root = repo_root();
     let bin = rocdown_bin();

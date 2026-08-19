@@ -303,10 +303,11 @@ while building as part of `rocdown build site`.
 - `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
 - `rocdown run DIR`: Run/preview a documentation site with live reload.
 - `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar).
-- `rocdown build DIR`: Build a static documentation site to `dist/`.
+- `rocdown build DIR`: Build a static documentation site to `dist/`. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown check DIR`: Check catalog, routes, and links.
 - `rocdown test DIR`: Run documented `:example` tests.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
+- `rocdown inspect artifacts DIR`: Inspect the publish report (page kinds, Datastar, service routes, planned files).
 
 ## Tree spec
 
@@ -341,13 +342,14 @@ above.
   `rocdown inspect catalog`. `hydrate` pages splice pure Rocci components into
   CDN HTML at build time. `live` pages splice initial island Html, hash
   Datastar.js, and loosen per-page CSP. `rocdown serve-islands DIR` compiles
-  colocated `@on` handlers into one island HTTP service.
+  colocated `@on` handlers into one island HTTP service. Hybrid builds emit
+  `pages.json` kinds, `islands.json` service routes, and a publish report.
+  `--cdn-only` refuses `live` pages so a CDN publish cannot ship dead actions.
 
 **Not implemented / Deferred**
 
 - `@island` and client JS dynamic island splicing
 - Combined `rocdown run DIR` preview of CDN files plus the island service
-- CDN-only publish flag that errors on `live` pages
 - Project default layouts and layout packages
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens

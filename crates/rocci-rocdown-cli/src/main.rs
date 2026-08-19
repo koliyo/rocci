@@ -35,6 +35,9 @@ enum Commands {
         /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
+        /// Error if the site has `live` pages (CDN-only publish with no island service).
+        #[arg(long)]
+        cdn_only: bool,
         #[command(flatten)]
         theme: ThemeArgs,
     },
@@ -296,10 +299,14 @@ fn try_main() -> Result<()> {
             path,
             output,
             host,
+            cdn_only,
             theme,
         } => {
             if is_document_file(&path) {
                 refuse_okf_input(&path, "build")?;
+                if cdn_only {
+                    bail!("`--cdn-only` applies to site builds, not a single .rocdown file");
+                }
                 build_single_doc(&path, output.as_deref(), &theme)
             } else if path.is_file() {
                 bail!(
@@ -308,11 +315,15 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "build")?;
-                rocci_rocdown::build_configured_with_host(
+                let report = rocci_rocdown::build_configured_with_options(
                     &path,
                     output.as_deref(),
-                    Some(host.into()),
+                    rocci_rocdown::BuildOptions {
+                        host: Some(host.into()),
+                        cdn_only,
+                    },
                 )?;
+                print!("{}", report.render_publish());
                 Ok(())
             }
         }
@@ -691,11 +702,23 @@ mod tests {
     fn build_parses_path_and_output() {
         let cli = Cli::try_parse_from(["rocdown", "build", "docs", "--output", "dist"]).unwrap();
         match cli.command {
-            Commands::Build { path, output, .. } => {
+            Commands::Build {
+                path,
+                output,
+                cdn_only,
+                ..
+            } => {
                 assert_eq!(path, PathBuf::from("docs"));
                 assert_eq!(output, Some(PathBuf::from("dist")));
+                assert!(!cdn_only);
             }
             _ => panic!("expected build"),
+        }
+
+        let cli = Cli::try_parse_from(["rocdown", "build", "docs", "--cdn-only"]).unwrap();
+        match cli.command {
+            Commands::Build { cdn_only, .. } => assert!(cdn_only),
+            _ => panic!("expected build --cdn-only"),
         }
     }
 

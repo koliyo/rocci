@@ -206,6 +206,10 @@ mod tests {
             roc_ms: 4,
             write_ms: 1,
             recompiled: false,
+            pages: Vec::new(),
+            datastar: false,
+            service_origin: String::new(),
+            service_routes: Vec::new(),
         });
         let names: Vec<_> = snapshot
             .spans

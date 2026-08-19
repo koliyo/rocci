@@ -20,7 +20,7 @@ static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub fn build(root: &Path, output: &Path) -> Result<BuildReport> {
     let loaded = load_site(root)?;
-    build_loaded(&loaded, &absolute(output)?)
+    build_loaded(&loaded, &absolute(output)?, false)
 }
 
 pub fn build_with_host(
@@ -29,7 +29,7 @@ pub fn build_with_host(
     host: rocci_roc_host::HostChoice,
 ) -> Result<BuildReport> {
     let loaded = load_site(root)?;
-    build_loaded_with_host(&loaded, &absolute(output)?, host)
+    build_loaded_with_host(&loaded, &absolute(output)?, host, false)
 }
 
 pub fn build_configured(root: &Path, output_override: Option<&Path>) -> Result<BuildReport> {
@@ -41,16 +41,38 @@ pub fn build_configured_with_host(
     output_override: Option<&Path>,
     host_override: Option<rocci_roc_host::HostChoice>,
 ) -> Result<BuildReport> {
+    build_configured_with_options(
+        root,
+        output_override,
+        BuildOptions {
+            host: host_override,
+            cdn_only: false,
+        },
+    )
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct BuildOptions {
+    pub host: Option<rocci_roc_host::HostChoice>,
+    pub cdn_only: bool,
+}
+
+pub fn build_configured_with_options(
+    root: &Path,
+    output_override: Option<&Path>,
+    options: BuildOptions,
+) -> Result<BuildReport> {
     let loaded = load_site(root)?;
     let output = match output_override {
         Some(output) => absolute(output)?,
         None => loaded.root.join(&loaded.config.build.output),
     };
-    let host = host_override
+    let host = options
+        .host
         .or(loaded.config.build.host)
         .unwrap_or_default()
         .resolve();
-    build_loaded_with_host(&loaded, &output, host)
+    build_loaded_with_host(&loaded, &output, host, options.cdn_only)
 }
 
 pub(crate) fn absolute(path: &Path) -> Result<PathBuf> {
@@ -61,18 +83,19 @@ pub(crate) fn absolute(path: &Path) -> Result<PathBuf> {
     }
 }
 
-fn build_loaded(loaded: &LoadedSite, output: &Path) -> Result<BuildReport> {
+fn build_loaded(loaded: &LoadedSite, output: &Path, cdn_only: bool) -> Result<BuildReport> {
     let host = loaded.config.build.host.unwrap_or_default().resolve();
-    build_loaded_with_host(loaded, output, host)
+    build_loaded_with_host(loaded, output, host, cdn_only)
 }
 
 fn build_loaded_with_host(
     loaded: &LoadedSite,
     output: &Path,
     host: rocci_roc_host::HostChoice,
+    cdn_only: bool,
 ) -> Result<BuildReport> {
     let plan_started = Instant::now();
-    let plan = prepare_plan(loaded)?;
+    let plan = prepare_plan(loaded, cdn_only)?;
     let plan_ms = plan_started.elapsed().as_millis();
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
@@ -143,16 +166,17 @@ fn build_loaded_with_host(
     let write_ms = write_started.elapsed().as_millis();
     let _ = fs::remove_dir_all(&workspace);
 
-    Ok(BuildReport {
-        generated_roc_bytes: staged.generated_roc_bytes,
-        load_ms: 0,
+    Ok(report_from_plan(
+        &plan,
+        staged.generated_roc_bytes,
+        0,
         plan_ms,
         generate_ms,
         compile_ms,
         roc_ms,
         write_ms,
         recompiled,
-    })
+    ))
 }
 
 pub struct BuildSession {
@@ -208,7 +232,7 @@ impl BuildSession {
         host: rocci_roc_host::HostChoice,
     ) -> Result<BuildReport> {
         let plan_started = Instant::now();
-        let plan = prepare_plan(loaded)?;
+        let plan = prepare_plan(loaded, false)?;
         let plan_ms = plan_started.elapsed().as_millis();
         let staging = unique_temp("stage")?;
         let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
@@ -284,16 +308,17 @@ impl BuildSession {
         let write_ms = write_started.elapsed().as_millis();
         self.snippet_paths = plan.snippet_paths.clone();
 
-        Ok(BuildReport {
-            generated_roc_bytes: staged.generated_roc_bytes,
-            load_ms: 0,
+        Ok(report_from_plan(
+            &plan,
+            staged.generated_roc_bytes,
+            0,
             plan_ms,
             generate_ms,
             compile_ms,
             roc_ms,
             write_ms,
             recompiled,
-        })
+        ))
     }
 }
 
@@ -303,7 +328,7 @@ impl Drop for BuildSession {
     }
 }
 
-fn prepare_plan(loaded: &LoadedSite) -> Result<BuildPlan> {
+fn prepare_plan(loaded: &LoadedSite, cdn_only: bool) -> Result<BuildPlan> {
     let mut result = resolve_loaded(loaded);
     for diagnostic in &result.diagnostics {
         if diagnostic.severity == catalog::Severity::Warning {
@@ -312,6 +337,22 @@ fn prepare_plan(loaded: &LoadedSite) -> Result<BuildPlan> {
     }
     if result.has_errors() {
         bail!("{}", result.error_summary());
+    }
+    if cdn_only {
+        let live_errors = crate::site::cdn_only_live_errors(&result.site);
+        if !live_errors.is_empty() {
+            for diagnostic in &live_errors {
+                eprintln!("{diagnostic}");
+            }
+            bail!(
+                "{}",
+                live_errors
+                    .iter()
+                    .map(|diagnostic| diagnostic.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+        }
     }
     splice_islands(loaded, &mut result.site)?;
     plan::plan(&loaded.root, &loaded.config, &result.site)
@@ -498,6 +539,80 @@ pub struct BuildReport {
     pub roc_ms: u128,
     pub write_ms: u128,
     pub recompiled: bool,
+    pub pages: Vec<plan::PublishPage>,
+    pub datastar: bool,
+    pub service_origin: String,
+    pub service_routes: Vec<crate::service::IslandRoute>,
+}
+
+impl BuildReport {
+    pub fn render_publish(&self) -> String {
+        let mut static_n = 0;
+        let mut hydrate_n = 0;
+        let mut live_n = 0;
+        for page in &self.pages {
+            match page.kind {
+                crate::article::PageKind::Static => static_n += 1,
+                crate::article::PageKind::Hydrate => hydrate_n += 1,
+                crate::article::PageKind::Live => live_n += 1,
+            }
+        }
+        let mut out = format!(
+            "published {} pages ({} static, {} hydrate, {} live)\n",
+            self.pages.len(),
+            static_n,
+            hydrate_n,
+            live_n
+        );
+        out.push_str(&format!(
+            "datastar: {}\n",
+            if self.datastar { "yes" } else { "no" }
+        ));
+        if self.datastar || !self.service_routes.is_empty() {
+            let origin = if self.service_origin.is_empty() {
+                "(same-origin)"
+            } else {
+                self.service_origin.as_str()
+            };
+            out.push_str(&format!("service origin: {origin}\n"));
+            if self.service_routes.is_empty() {
+                out.push_str("service routes: (none)\n");
+            } else {
+                out.push_str("service routes:\n");
+                for route in &self.service_routes {
+                    out.push_str(&format!("  {} {}\n", route.method, route.path));
+                }
+            }
+        }
+        out
+    }
+}
+
+fn report_from_plan(
+    plan: &BuildPlan,
+    generated_roc_bytes: usize,
+    load_ms: u128,
+    plan_ms: u128,
+    generate_ms: u128,
+    compile_ms: u128,
+    roc_ms: u128,
+    write_ms: u128,
+    recompiled: bool,
+) -> BuildReport {
+    BuildReport {
+        generated_roc_bytes,
+        load_ms,
+        plan_ms,
+        generate_ms,
+        compile_ms,
+        roc_ms,
+        write_ms,
+        recompiled,
+        pages: plan.publish_pages.clone(),
+        datastar: plan.datastar,
+        service_origin: plan.service_origin.clone(),
+        service_routes: plan.service_routes.clone(),
+    }
 }
 
 pub fn discover_rocdown(root: &Path) -> Result<Vec<PathBuf>> {
@@ -1050,6 +1165,70 @@ import Html
     }
 
     #[test]
+    fn cdn_only_rejects_live_pages_and_preserves_output() {
+        let root = temp_dir("cdn-only-src");
+        write_page(
+            &root,
+            "index.rocdown",
+            "@page { route: \"/\", meta: { title: \"Live\" } }\n\n@on:post(\"/actions/x\") = |_| {\n    Html.text(\"x\")\n}\n\n# Live\n",
+        );
+        let output = temp_dir("cdn-only-out");
+        fs::write(output.join("keep.txt"), "preserve me").unwrap();
+        let err = build_configured_with_options(
+            &root,
+            Some(&output),
+            BuildOptions {
+                host: None,
+                cdn_only: true,
+            },
+        )
+        .unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("RD2302"), "{message}");
+        assert!(message.contains("CDN-only"), "{message}");
+        assert_eq!(
+            fs::read_to_string(output.join("keep.txt")).unwrap(),
+            "preserve me"
+        );
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn cdn_only_allows_static_pages() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("cdn-only-static-src");
+        write_page(
+            &root,
+            "index.rocdown",
+            "@page { route: \"/\", meta: { title: \"Home\" } }\n\n# Home\n",
+        );
+        let output = temp_dir("cdn-only-static-out");
+        let report = build_configured_with_options(
+            &root,
+            Some(&output),
+            BuildOptions {
+                host: None,
+                cdn_only: true,
+            },
+        )
+        .unwrap();
+        assert!(!report.datastar);
+        assert!(report.service_routes.is_empty());
+        assert!(output.join("index.html").is_file());
+        assert!(!output.join("islands.json").is_file());
+        let pages: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(output.join("pages.json")).unwrap()).unwrap();
+        assert_eq!(pages[0]["kind"], "static");
+        assert!(pages[0].get("datastar").is_none());
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
     fn hydrate_pages_splice_component_html_without_scripts() {
         if skip_without_roc() {
             return;
@@ -1177,7 +1356,24 @@ Static neighbor.
 "#,
         );
         let output = temp_dir("live-out");
-        build(&root, &output).unwrap();
+        let report = build(&root, &output).unwrap();
+        assert!(report.datastar);
+        assert!(
+            report
+                .pages
+                .iter()
+                .any(|page| page.kind == crate::article::PageKind::Live && page.datastar),
+            "{:?}",
+            report.pages
+        );
+        assert!(
+            report
+                .service_routes
+                .iter()
+                .any(|route| route.method == "POST" && route.path == "/actions/reveal/show"),
+            "{:?}",
+            report.service_routes
+        );
         let html = fs::read_to_string(output.join("index.html")).unwrap();
         assert!(html.contains("<h1 class=\"rd-header-1\""), "{html}");
         assert!(html.contains("Live"), "{html}");
@@ -1220,8 +1416,54 @@ Static neighbor.
             "static neighbor must not emit a script tag\n{about}"
         );
         assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
+        let pages: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(output.join("pages.json")).unwrap()).unwrap();
+        let live = pages
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|page| page["route"] == "/")
+            .unwrap();
+        assert_eq!(live["kind"], "live");
+        assert_eq!(live["datastar"], true);
+        let about_entry = pages
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|page| page["route"] == "/about/")
+            .unwrap();
+        assert_eq!(about_entry["kind"], "static");
+        assert!(about_entry.get("datastar").is_none());
+        let islands: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(output.join("islands.json")).unwrap())
+                .unwrap();
+        assert_eq!(islands["service_origin"], "");
+        assert!(
+            islands["routes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|route| route["method"] == "POST" && route["path"] == "/actions/reveal/show"),
+            "{islands}"
+        );
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn repeat_hybrid_build_is_byte_identical() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-hybrid");
+        let first = temp_dir("hybrid-det-a");
+        let second = temp_dir("hybrid-det-b");
+        build(&root, &first).unwrap();
+        build(&root, &second).unwrap();
+        assert_eq!(collect_files(&first), collect_files(&second));
+        let _ = fs::remove_dir_all(&first);
+        let _ = fs::remove_dir_all(&second);
     }
 
     #[test]

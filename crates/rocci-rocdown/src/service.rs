@@ -6,6 +6,7 @@ use anyhow::{Context, Result, bail};
 use rocci_cli::driver::{self, DriverOptions, GenericAppPlan, GenericModule};
 use rocci_cli::serve::PortArg;
 use rocci_template::{RouteInfo, SourceFile, type_name_from_path};
+use serde::Serialize;
 
 use crate::article::PageKind;
 use crate::catalog::ResolvedSite;
@@ -14,6 +15,12 @@ use crate::standalone::StandaloneModule;
 use crate::{CompileOptions, compile};
 
 const ACTION_METHODS: &[&str] = &["get", "post", "put", "patch", "delete"];
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct IslandRoute {
+    pub method: String,
+    pub path: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct IslandServicePlan {
@@ -81,6 +88,25 @@ pub fn plan_island_service(root: &Path) -> Result<IslandServicePlan> {
     plan_island_service_from(&loaded, &result.site)
 }
 
+pub fn island_routes(root: &Path, site: &ResolvedSite) -> Result<Vec<IslandRoute>> {
+    let modules = compile_live_modules(root, site)?;
+    let mut routes: Vec<IslandRoute> = modules
+        .into_iter()
+        .flat_map(|module| module.routes)
+        .map(|route| IslandRoute {
+            method: route.method,
+            path: route.path,
+        })
+        .collect();
+    routes.sort_by(|left, right| {
+        left.method
+            .cmp(&right.method)
+            .then_with(|| left.path.cmp(&right.path))
+    });
+    routes.dedup();
+    Ok(routes)
+}
+
 pub fn plan_island_service_from(
     loaded: &LoadedSite,
     site: &ResolvedSite,
@@ -92,64 +118,9 @@ pub fn plan_island_service_from(
         );
     }
 
-    let mut live: Vec<_> = site
-        .pages
-        .iter()
-        .filter(|page| !page.draft && page.kind == PageKind::Live)
-        .collect();
-    live.sort_by(|a, b| a.source_path.cmp(&b.source_path));
-    if live.is_empty() {
+    let mut modules = compile_live_modules(&loaded.root, site)?;
+    if modules.is_empty() {
         bail!("no live pages to serve; add `@on` handlers or configure [http].service");
-    }
-
-    let page_paths = site_page_paths(site);
-    let mut modules = Vec::new();
-    for page in &live {
-        let path = loaded.root.join(&page.source_path);
-        let src = fs::read_to_string(&path)
-            .with_context(|| format!("failed to read {}", path.display()))?;
-        let source_name = path.display().to_string();
-        let compiled = compile(
-            SourceFile::new(&source_name, &src),
-            &CompileOptions {
-                check_assets: false,
-                ..CompileOptions::default()
-            },
-        );
-        if compiled.has_errors() {
-            let messages: Vec<_> = compiled
-                .diagnostics
-                .iter()
-                .filter(|diagnostic| diagnostic.is_error())
-                .map(|diagnostic| diagnostic.message.as_str())
-                .collect();
-            bail!(
-                "failed to compile island service from {}: {}",
-                page.source_path,
-                messages.join("; ")
-            );
-        }
-        let routes: Vec<RouteInfo> = compiled
-            .routes
-            .into_iter()
-            .filter(|route| keep_island_route(route, &page_paths))
-            .collect();
-        let type_name = type_name_from_path(&path);
-        modules.push(StandaloneModule {
-            type_name: type_name.clone(),
-            roc: compiled.roc.clone(),
-            state_type: compiled.state_type,
-            init: compiled.init,
-            routes,
-            mapped: rocci_template::MappedModule {
-                type_name,
-                generated: compiled.roc,
-                source_name,
-                source_src: src,
-                segments: compiled.segments,
-            },
-            local_assets: Vec::new(),
-        });
     }
 
     let mut seen = HashSet::new();
@@ -232,6 +203,69 @@ pub fn serve_islands(root: &Path, no_window: bool, port: PortArg) -> Result<()> 
         state_key: Some("rocdown-islands".to_string()),
     };
     driver::execute_app_plan(&app, &src_dir, &options)
+}
+
+fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<StandaloneModule>> {
+    let mut live: Vec<_> = site
+        .pages
+        .iter()
+        .filter(|page| !page.draft && page.kind == PageKind::Live)
+        .collect();
+    live.sort_by(|a, b| a.source_path.cmp(&b.source_path));
+    if live.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let page_paths = site_page_paths(site);
+    let mut modules = Vec::new();
+    for page in &live {
+        let path = root.join(&page.source_path);
+        let src = fs::read_to_string(&path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let source_name = path.display().to_string();
+        let compiled = compile(
+            SourceFile::new(&source_name, &src),
+            &CompileOptions {
+                check_assets: false,
+                ..CompileOptions::default()
+            },
+        );
+        if compiled.has_errors() {
+            let messages: Vec<_> = compiled
+                .diagnostics
+                .iter()
+                .filter(|diagnostic| diagnostic.is_error())
+                .map(|diagnostic| diagnostic.message.as_str())
+                .collect();
+            bail!(
+                "failed to compile island service from {}: {}",
+                page.source_path,
+                messages.join("; ")
+            );
+        }
+        let routes: Vec<RouteInfo> = compiled
+            .routes
+            .into_iter()
+            .filter(|route| keep_island_route(route, &page_paths))
+            .collect();
+        let type_name = type_name_from_path(&path);
+        modules.push(StandaloneModule {
+            type_name: type_name.clone(),
+            roc: compiled.roc.clone(),
+            state_type: compiled.state_type,
+            init: compiled.init,
+            routes,
+            mapped: rocci_template::MappedModule {
+                type_name,
+                generated: compiled.roc,
+                source_name,
+                source_src: src,
+                segments: compiled.segments,
+            },
+            local_assets: Vec::new(),
+        });
+    }
+    Ok(modules)
 }
 
 fn site_page_paths(site: &ResolvedSite) -> HashSet<String> {
@@ -336,6 +370,14 @@ RevealTip = |{ open }| {
         )
         .unwrap();
         let plan = plan_island_service(&root).unwrap();
+        let routes =
+            island_routes(&root, &resolve_loaded(&load_site(&root).unwrap()).site).unwrap();
+        assert!(
+            routes
+                .iter()
+                .any(|route| route.method == "POST" && route.path == "/actions/reveal/show"),
+            "{routes:?}"
+        );
         assert_eq!(plan.modules.len(), 1);
         let paths: Vec<_> = plan.modules[0]
             .routes

@@ -12,7 +12,7 @@ use crate::article::PageKind;
 use crate::catalog::{self, NavLink, NavSection, PageHeading, ResolvedPage, ResolvedSite};
 use crate::config::SiteConfig;
 use crate::runtime;
-use crate::service::live_csp;
+use crate::service::{IslandRoute, island_routes, live_csp};
 
 pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
@@ -63,8 +63,29 @@ struct PageIndexEntry<'a> {
     title: &'a str,
     route: &'a str,
     path: &'a str,
+    kind: PageKind,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    datastar: bool,
     #[serde(skip_serializing_if = "str::is_empty")]
     description: &'a str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PublishPage {
+    pub id: String,
+    pub route: String,
+    pub kind: PageKind,
+    pub datastar: bool,
+    pub output_path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PublishReport {
+    pub pages: Vec<PublishPage>,
+    pub datastar: bool,
+    pub service_origin: String,
+    pub service_routes: Vec<IslandRoute>,
+    pub artifacts: Vec<ArtifactInspect>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -92,6 +113,10 @@ pub struct BuildPlan {
     pub files: Vec<PlannedFile>,
     pub theme_modules: Vec<CompiledThemeModule>,
     pub snippet_paths: std::collections::BTreeSet<String>,
+    pub publish_pages: Vec<PublishPage>,
+    pub datastar: bool,
+    pub service_origin: String,
+    pub service_routes: Vec<IslandRoute>,
 }
 
 impl BuildPlan {
@@ -130,6 +155,16 @@ impl BuildPlan {
             });
         }
         items
+    }
+
+    pub fn publish_report(&self) -> PublishReport {
+        PublishReport {
+            pages: self.publish_pages.clone(),
+            datastar: self.datastar,
+            service_origin: self.service_origin.clone(),
+            service_routes: self.service_routes.clone(),
+            artifacts: self.artifacts(),
+        }
     }
 
     pub fn pages_roc(&self) -> String {
@@ -232,6 +267,11 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     } else {
         None
     };
+    let service_routes = if has_live {
+        island_routes(root, site)?
+    } else {
+        Vec::new()
+    };
 
     let mut news_items: Vec<CollectionItemView> = published
         .iter()
@@ -303,7 +343,9 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
     }
     redirects.sort_by(|a, b| a.output_path.cmp(&b.output_path));
 
-    let files = discovery_files(config, &published, &news_items);
+    let files = discovery_files(config, &published, &news_items, &service_routes);
+    let publish_pages = publish_pages(&published);
+    let service_origin = config.http.service_origin.clone();
 
     Ok(BuildPlan {
         pages,
@@ -312,6 +354,10 @@ pub fn plan(root: &Path, config: &SiteConfig, site: &ResolvedSite) -> Result<Bui
         files,
         theme_modules,
         snippet_paths: site.snippet_paths.clone(),
+        publish_pages,
+        datastar: has_live,
+        service_origin,
+        service_routes,
     })
 }
 
@@ -909,6 +955,7 @@ fn discovery_files(
     config: &SiteConfig,
     pages: &[ResolvedPage],
     news_items: &[CollectionItemView],
+    service_routes: &[IslandRoute],
 ) -> Vec<PlannedFile> {
     let mut files = Vec::new();
     let mut llms = format!("# {}\n\n{}\n\n", config.site.title, config.site.description);
@@ -935,6 +982,14 @@ fn discovery_files(
         output_path: "pages.json".into(),
         contents: pages_json(pages),
     });
+    if pages.iter().any(|page| page.kind == PageKind::Live) {
+        files.push(PlannedFile {
+            kind: "islands",
+            route: "/islands.json".into(),
+            output_path: "islands.json".into(),
+            contents: islands_json(&config.http.service_origin, pages, service_routes),
+        });
+    }
     if !config.site.base_url.is_empty() {
         let mut sitemap = String::from(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n",
@@ -983,6 +1038,8 @@ fn pages_json(pages: &[ResolvedPage]) -> String {
             title: &page.title,
             route: &page.route,
             path: &page.source_path,
+            kind: page.kind,
+            datastar: page.kind == PageKind::Live,
             description: &page.description,
         })
         .collect();
@@ -991,6 +1048,59 @@ fn pages_json(pages: &[ResolvedPage]) -> String {
         Ok(json) => format!("{json}\n"),
         Err(_) => "[]\n".into(),
     }
+}
+
+fn islands_json(service_origin: &str, pages: &[ResolvedPage], routes: &[IslandRoute]) -> String {
+    #[derive(Serialize)]
+    struct IslandsPage<'a> {
+        id: &'a str,
+        route: &'a str,
+        kind: PageKind,
+    }
+    #[derive(Serialize)]
+    struct IslandsFile<'a> {
+        service_origin: &'a str,
+        pages: Vec<IslandsPage<'a>>,
+        routes: &'a [IslandRoute],
+    }
+    let mut island_pages: Vec<IslandsPage<'_>> = pages
+        .iter()
+        .filter(|page| page.kind == PageKind::Live)
+        .map(|page| IslandsPage {
+            id: &page.id,
+            route: &page.route,
+            kind: page.kind,
+        })
+        .collect();
+    island_pages.sort_by(|left, right| left.route.cmp(right.route).then(left.id.cmp(right.id)));
+    let file = IslandsFile {
+        service_origin,
+        pages: island_pages,
+        routes,
+    };
+    match serde_json::to_string_pretty(&file) {
+        Ok(json) => format!("{json}\n"),
+        Err(_) => "{\n  \"service_origin\": \"\",\n  \"pages\": [],\n  \"routes\": []\n}\n".into(),
+    }
+}
+
+fn publish_pages(pages: &[ResolvedPage]) -> Vec<PublishPage> {
+    let mut entries: Vec<PublishPage> = pages
+        .iter()
+        .map(|page| PublishPage {
+            id: page.id.clone(),
+            route: page.route.clone(),
+            kind: page.kind,
+            datastar: page.kind == PageKind::Live,
+            output_path: page.output_path.clone(),
+        })
+        .collect();
+    entries.sort_by(|left, right| {
+        left.route
+            .cmp(&right.route)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    entries
 }
 
 fn atom_feed(config: &SiteConfig, news_items: &[CollectionItemView]) -> String {
@@ -1430,13 +1540,9 @@ items = ["index", "guide"]
             .unwrap();
         assert_eq!(pages_json.route, "/pages.json");
         let listed: serde_json::Value = serde_json::from_str(&pages_json.contents).unwrap();
-        assert!(
-            listed
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|page| { page["route"] == "/guide/" && page["title"] == "Guide" })
-        );
+        assert!(listed.as_array().unwrap().iter().any(|page| {
+            page["route"] == "/guide/" && page["title"] == "Guide" && page["kind"] == "static"
+        }));
         assert!(artifacts.iter().any(|item| item.output_path == "404.html"));
         assert!(
             artifacts
@@ -1473,6 +1579,33 @@ items = ["index", "guide"]
         assert!(json.contains("404.html"), "{json}");
         assert!(json.contains("old-guide/index.html"), "{json}");
         assert!(json.contains("theme."), "{json}");
+        let report: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(report["datastar"], false);
+        assert!(report["service_routes"].as_array().unwrap().is_empty());
+        assert!(
+            report["pages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|page| page["kind"] == "static" && page["route"] == "/"),
+            "{json}"
+        );
+        assert!(
+            report["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["output_path"] == "pages.json"),
+            "{json}"
+        );
+        assert!(
+            !report["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["output_path"] == "islands.json"),
+            "{json}"
+        );
         let _ = fs::remove_dir_all(root);
     }
 

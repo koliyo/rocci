@@ -35,8 +35,8 @@ pub use ast::{
     ParamValue, RenderDecl, RocDecl, UseDecl,
 };
 pub use build::{
-    BuildReport, BuildSession, build, build_configured, build_configured_with_host,
-    build_with_host, discover_rocdown,
+    BuildOptions, BuildReport, BuildSession, build, build_configured, build_configured_with_host,
+    build_configured_with_options, build_with_host, discover_rocdown,
 };
 pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
@@ -60,16 +60,17 @@ pub use img::{
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
-pub use plan::{BuildPlan, DEFAULT_CSP, plan};
+pub use plan::{BuildPlan, DEFAULT_CSP, PublishPage, PublishReport, plan};
 pub use pprint::format_ast;
 pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use service::{
-    IslandServicePlan, live_csp, plan_island_service, prefix_action_urls, serve_islands,
+    IslandRoute, IslandServicePlan, island_routes, live_csp, plan_island_service,
+    prefix_action_urls, serve_islands,
 };
 pub use site::{
-    CheckFormat, CheckReport, InspectKind, check, find_site_root, inspect, load_site,
-    resolve_loaded, site_preview_route, test_examples,
+    CheckFormat, CheckReport, InspectKind, cdn_only_live_errors, check, find_site_root, inspect,
+    load_site, resolve_loaded, site_preview_route, test_examples,
 };
 pub use standalone::{
     StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
