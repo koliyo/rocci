@@ -44,6 +44,10 @@ pub struct ServeOptions {
     #[arg(long)]
     pub no_window: bool,
 
+    /// Pause automatic page refresh. Watch and rebuild still run.
+    #[arg(long)]
+    pub no_live_reload: bool,
+
     /// TCP port to listen on. Defaults to a free port with the preview window,
     /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
     #[arg(
@@ -55,6 +59,21 @@ pub struct ServeOptions {
         env = "ROC_BASIC_WEBSERVER_PORT"
     )]
     pub port: PortArg,
+}
+
+impl ServeOptions {
+    pub fn live_reload(self) -> bool {
+        !self.no_live_reload
+    }
+}
+
+pub fn note_live_reload_paused(live_reload: bool) {
+    if !live_reload {
+        eprintln!(
+            "{}",
+            crate::style::note("live reload paused; watch/rebuild still runs")
+        );
+    }
 }
 
 pub fn parse_port_arg(value: &str) -> Result<PortArg, String> {
@@ -307,7 +326,14 @@ fn probe_http(port: u16, path: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn serve_html(port: u16, status: u16, html: &str, title: &str, no_window: bool) -> Result<()> {
+pub fn serve_html(
+    port: u16,
+    status: u16,
+    html: &str,
+    title: &str,
+    no_window: bool,
+    live_reload: bool,
+) -> Result<()> {
     let url = format!("http://127.0.0.1:{port}/");
     let html = html.to_string();
     let stop = Arc::new(AtomicBool::new(false));
@@ -334,11 +360,12 @@ pub fn serve_html(port: u16, status: u16, html: &str, title: &str, no_window: bo
     });
 
     println!("{}", style::serving(title, &url));
+    note_live_reload_paused(live_reload);
     if no_window {
         let _ = thread.join();
         return Ok(());
     }
-    let preview = open_preview(&url, title);
+    let preview = open_preview(&url, title, live_reload);
     stop.store(true, Ordering::Relaxed);
     let _ = thread.join();
     preview
@@ -363,18 +390,25 @@ fn write_html_response(mut stream: TcpStream, status: u16, html: &str) -> io::Re
     Ok(())
 }
 
-pub fn open_preview(url: &str, title: &str) -> Result<()> {
+pub fn open_preview(url: &str, title: &str, live_reload: bool) -> Result<()> {
     preview(PreviewOptions {
         url: url.to_string(),
         title: title.to_string(),
         state_key: Some("rocci:view".to_string()),
+        live_reload,
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"))
 }
 
-pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -> Result<()> {
-    with_window_and_inspector(child, url, title, no_window, None, None)
+pub fn with_window(
+    child: &mut Child,
+    url: &str,
+    title: &str,
+    no_window: bool,
+    live_reload: bool,
+) -> Result<()> {
+    with_window_and_inspector(child, url, title, no_window, live_reload, None, None)
 }
 
 pub fn with_window_and_inspector(
@@ -382,9 +416,11 @@ pub fn with_window_and_inspector(
     url: &str,
     title: &str,
     no_window: bool,
+    live_reload: bool,
     inspect: Option<crate::inspect::InspectSnapshot>,
     state_key: Option<String>,
 ) -> Result<()> {
+    note_live_reload_paused(live_reload);
     if no_window {
         let status = child.wait().context("roc server exited unexpectedly")?;
         if !status.success() {
@@ -402,6 +438,7 @@ pub fn with_window_and_inspector(
         title: title.to_string(),
         inspector_url: inspector.as_ref().map(|server| server.url.clone()),
         state_key: Some(state_key.unwrap_or_else(|| "rocci:view".to_string())),
+        live_reload,
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
@@ -477,6 +514,7 @@ mod tests {
         }
         let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
         assert!(!cli.serve.no_window);
+        assert!(!cli.serve.no_live_reload);
         assert_eq!(cli.serve.port, PortArg::Auto);
     }
 
@@ -488,6 +526,13 @@ mod tests {
         let cli = ServeCli::try_parse_from(["rocci", "--no-window"]).unwrap();
         assert!(cli.serve.no_window);
         assert_eq!(cli.serve.port, PortArg::Exact(8000));
+    }
+
+    #[test]
+    fn clap_accepts_no_live_reload() {
+        let cli = ServeCli::try_parse_from(["rocci", "--no-live-reload"]).unwrap();
+        assert!(cli.serve.no_live_reload);
+        assert!(!cli.serve.live_reload());
     }
 
     #[test]

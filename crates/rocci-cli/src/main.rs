@@ -152,7 +152,13 @@ fn try_main() -> Result<()> {
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config } => bundle::bundle(&config),
         Commands::Build { input, output } => build_module(&input, output.as_deref()),
-        Commands::Run { file, args, serve } => run::run(&file, &args, serve.no_window, serve.port),
+        Commands::Run { file, args, serve } => run::run(
+            &file,
+            &args,
+            serve.no_window,
+            serve.port,
+            serve.live_reload(),
+        ),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
         Commands::Render {
@@ -165,8 +171,17 @@ fn try_main() -> Result<()> {
             component,
             args,
             serve,
-        } => view::view(&input, &component, &args, serve.no_window, serve.port),
-        Commands::Browse { roots, serve } => browse::browse(&roots, serve.no_window, serve.port),
+        } => view::view(
+            &input,
+            &component,
+            &args,
+            serve.no_window,
+            serve.port,
+            serve.live_reload(),
+        ),
+        Commands::Browse { roots, serve } => {
+            browse::browse(&roots, serve.no_window, serve.port, serve.live_reload())
+        }
         Commands::Playground { input, serve, mode } => {
             let hook = match mode {
                 PlaygroundModeArg::Local => {
@@ -322,6 +337,15 @@ mod tests {
         }
     }
 
+    fn no_live_reload_of(cli: &Cli) -> bool {
+        match &cli.command {
+            Commands::Run { serve, .. }
+            | Commands::View { serve, .. }
+            | Commands::Browse { serve, .. } => serve.no_live_reload,
+            _ => panic!("expected a hosting command"),
+        }
+    }
+
     #[test]
     fn hosting_commands_accept_port_auto() {
         for args in [
@@ -399,6 +423,20 @@ mod tests {
     fn no_window_still_accepts_explicit_port() {
         let cli = Cli::try_parse_from(["rocci", "run", "--no-window", "--port", "auto"]).unwrap();
         assert_eq!(port_of(&cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn hosting_commands_accept_no_live_reload() {
+        for args in [
+            ["rocci", "run", "--no-live-reload"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--no-live-reload"].as_slice(),
+            ["rocci", "browse", "--no-live-reload"].as_slice(),
+        ] {
+            assert!(no_live_reload_of(&Cli::try_parse_from(args).unwrap()));
+        }
+        assert!(!no_live_reload_of(
+            &Cli::try_parse_from(["rocci", "run"]).unwrap()
+        ));
     }
 
     #[test]

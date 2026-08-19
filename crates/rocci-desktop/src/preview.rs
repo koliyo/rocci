@@ -27,6 +27,7 @@ pub struct PreviewOptions {
     pub state_key: Option<String>,
     pub inspector_url: Option<String>,
     pub source_root: Option<std::path::PathBuf>,
+    pub live_reload: bool,
 }
 
 impl Default for PreviewOptions {
@@ -41,6 +42,7 @@ impl Default for PreviewOptions {
             state_key: None,
             inspector_url: None,
             source_root: None,
+            live_reload: true,
         }
     }
 }
@@ -96,6 +98,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             initialization_script: Some(chrome::initialization_script(
                 options.inspector_url.as_deref(),
                 options.source_root.is_some(),
+                options.live_reload,
             )),
             ipc_handler: Some(Box::new(move |request| {
                 match IpcMessage::parse(request.body()) {
@@ -139,6 +142,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             navigation: true,
             search: true,
             reload: true,
+            live_reload_on: options.live_reload,
             devtools: options.devtools,
         },
     )?;

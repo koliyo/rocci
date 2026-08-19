@@ -514,6 +514,7 @@ pub fn run_playground_cli(
         input.display()
     );
 
+    crate::serve::note_live_reload_paused(serve.live_reload());
     if serve.no_window {
         eprintln!("Serving at {} (press Ctrl+C to stop)...", server.url);
         while server.is_running() {
@@ -530,6 +531,7 @@ pub fn run_playground_cli(
             state_key: None,
             inspector_url: None,
             source_root: None,
+            live_reload: serve.live_reload(),
         })
         .context("failed to open playground desktop preview window")?;
 

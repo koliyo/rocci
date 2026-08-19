@@ -67,6 +67,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
             navigation: false,
             search: false,
             reload: options.reload,
+            live_reload_on: true,
             devtools: options.devtools,
         },
     )?;

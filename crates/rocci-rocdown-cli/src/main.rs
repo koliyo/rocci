@@ -57,6 +57,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Pause automatic page refresh. Watch and rebuild still run.
+        #[arg(long)]
+        no_live_reload: bool,
         /// Do not print compile diagnostics on stderr; the error page still serves.
         #[arg(long)]
         quiet: bool,
@@ -333,11 +336,13 @@ fn try_main() -> Result<()> {
             output,
             host,
             no_window,
+            no_live_reload,
             quiet,
             port,
             theme,
             args,
         } => {
+            let live_reload = !no_live_reload;
             if is_document_file(&path) {
                 refuse_okf_input(&path, "run")?;
                 if let Some(site_root) = rocci_rocdown::find_site_root(&path) {
@@ -346,12 +351,13 @@ fn try_main() -> Result<()> {
                         &site_root,
                         output.as_deref(),
                         no_window,
+                        live_reload,
                         port,
                         host.into(),
                         Some(&route),
                     )
                 } else {
-                    run_standalone_doc(&path, &args, no_window, quiet, port, &theme)
+                    run_standalone_doc(&path, &args, no_window, live_reload, quiet, port, &theme)
                 }
             } else if path.is_file() {
                 bail!(
@@ -360,7 +366,15 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "run")?;
-                run_site_dev(&path, output.as_deref(), no_window, port, host.into(), None)
+                run_site_dev(
+                    &path,
+                    output.as_deref(),
+                    no_window,
+                    live_reload,
+                    port,
+                    host.into(),
+                    None,
+                )
             }
         }
         Commands::ServeIslands {
@@ -459,7 +473,11 @@ fn try_main() -> Result<()> {
             port,
             mode,
         } => {
-            let serve = rocci_cli::serve::ServeOptions { no_window, port };
+            let serve = rocci_cli::serve::ServeOptions {
+                no_window,
+                no_live_reload: false,
+                port,
+            };
             let hook = match mode {
                 PlaygroundModeArg::Local => Some(rocdown_local_compile_hook()),
                 PlaygroundModeArg::Wasm => None,
@@ -510,6 +528,7 @@ fn run_standalone_doc(
     file: &Path,
     args: &[String],
     no_window: bool,
+    live_reload: bool,
     quiet: bool,
     port: PortArg,
     theme: &ThemeArgs,
@@ -549,6 +568,7 @@ fn run_standalone_doc(
                 &failed_files,
                 port,
                 no_window,
+                live_reload,
                 &title,
             );
         }
@@ -579,6 +599,7 @@ fn run_standalone_doc(
     let driver_options = DriverOptions {
         args: args.to_vec(),
         no_window,
+        live_reload,
         port,
         db_path: None,
         title,
@@ -595,6 +616,7 @@ fn run_site_dev(
     root: &Path,
     output: Option<&Path>,
     no_window: bool,
+    live_reload: bool,
     port: PortArg,
     host: rocci_rocdown::HostChoice,
     open_path: Option<&str>,
@@ -607,6 +629,7 @@ fn run_site_dev(
         rocci_cli::logs::LogLevel::Info,
         format!("rocdown: serving {} at {}", server.title, server.url),
     );
+    rocci_cli::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();
         return Ok(());
@@ -618,6 +641,7 @@ fn run_site_dev(
         state_key: Some("rocdown".to_string()),
         inspector_url: Some(server.inspector_url.clone()),
         source_root: Some(source_root),
+        live_reload,
         ..rocci_desktop::PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
@@ -743,6 +767,7 @@ mod tests {
             Commands::Run {
                 path,
                 no_window,
+                no_live_reload,
                 quiet,
                 port,
                 ..
@@ -751,8 +776,15 @@ mod tests {
                 assert!(no_window);
                 assert!(!quiet);
                 assert_eq!(port, PortArg::Exact(8000));
+                assert!(!no_live_reload);
             }
             _ => panic!("expected run"),
+        }
+
+        let paused = Cli::try_parse_from(["rocdown", "run", "docs", "--no-live-reload"]).unwrap();
+        match paused.command {
+            Commands::Run { no_live_reload, .. } => assert!(no_live_reload),
+            _ => panic!("expected run --no-live-reload"),
         }
 
         let cli = Cli::try_parse_from([

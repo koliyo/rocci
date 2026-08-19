@@ -27,6 +27,7 @@ pub fn view(
     raw_args: &[String],
     no_window: bool,
     port: serve::PortArg,
+    live_reload: bool,
 ) -> Result<()> {
     if !input.is_file() {
         bail!("no such file: {}", input.display());
@@ -61,7 +62,7 @@ pub fn view(
         }]);
         let title = format!("rocci view · {component}");
         let port = port.resolve()?;
-        return serve::serve_html(port, 500, &html, &title, no_window);
+        return serve::serve_html(port, 500, &html, &title, no_window, live_reload);
     }
 
     let info = find_component(&components, component).with_context(|| {
@@ -140,6 +141,7 @@ pub fn view(
                 &url,
                 &title,
                 no_window,
+                live_reload,
                 Some(inspect),
                 None,
             )
@@ -155,7 +157,7 @@ pub fn view(
                     segments,
                 }],
             );
-            serve::serve_html(port, 500, &html, &title, no_window)
+            serve::serve_html(port, 500, &html, &title, no_window, live_reload)
         }
     }
 }
@@ -652,7 +654,7 @@ mod tests {
         let _ = fs::create_dir_all(&temp_dir);
         let md_file = temp_dir.join("test.md");
         fs::write(&md_file, "# Hello").unwrap();
-        let err = view(&md_file, "main", &[], true, serve::PortArg::Auto)
+        let err = view(&md_file, "main", &[], true, serve::PortArg::Auto, true)
             .unwrap_err()
             .to_string();
         assert!(err.contains("unsupported file extension for `rocci view`"));

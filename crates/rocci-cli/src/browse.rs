@@ -34,7 +34,12 @@ const RESERVED_ROC: &[&str] = &[
     "Browser.roc",
 ];
 
-pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Result<()> {
+pub fn browse(
+    roots: &[PathBuf],
+    no_window: bool,
+    port: serve::PortArg,
+    live_reload: bool,
+) -> Result<()> {
     let files = discover_rocci_files(roots)?;
     if files.is_empty() {
         bail!("no .rocci files found");
@@ -106,7 +111,7 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
         serve::RocStart::Ready => {}
         serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(&output, &[]);
-            return serve::serve_html(port, 500, &html, "rocci browse", no_window);
+            return serve::serve_html(port, 500, &html, "rocci browse", no_window, live_reload);
         }
     }
 
@@ -118,7 +123,7 @@ pub fn browse(roots: &[PathBuf], no_window: bool, port: serve::PortArg) -> Resul
             &url
         )
     );
-    serve::with_window(&mut child, &url, "rocci browse", no_window)
+    serve::with_window(&mut child, &url, "rocci browse", no_window, live_reload)
 }
 
 pub(crate) fn discover_rocci_files(roots: &[PathBuf]) -> Result<Vec<PathBuf>> {
