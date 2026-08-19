@@ -21,11 +21,14 @@ command surface.
 
 ## Run it
 
-From a workspace checkout, build the host and the product CLIs, then either put
-`target/debug` on `PATH` or keep the relative plugin rows in
-`.rocci/browser.toml`:
+`.rocci/browser.toml` in this repo points at `target/debug/rocdown`,
+`target/debug/rocci-okf`, and `target/debug/rocci` with
+`browser-adapter`. Build all four packages; `cargo run -p rocci-browser` does
+not rebuild the plugins. A stale binary prints `unrecognized subcommand
+'browser-adapter'`.
 
 ```sh
+cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
 cargo run -q -p rocci-browser
 cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json
 ```

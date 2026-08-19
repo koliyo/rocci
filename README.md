@@ -129,6 +129,7 @@ rank and fails when the checked-in threshold is missed.
 ### Project browser
 
 ```sh
+cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
 cargo run -q -p rocci-browser
 cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json
 ```

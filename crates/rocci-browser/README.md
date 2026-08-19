@@ -7,6 +7,25 @@ The host never sniffs file formats. Adapters on `PATH` claim paths, list
 documents, and `open` an HTTP origin. Direct product `run` commands keep their
 one-shot preview windows.
 
+## Build
+
+The host binary is not enough. This workspace's `.rocci/browser.toml` execs
+`target/debug/rocdown`, `target/debug/rocci-okf`, and `target/debug/rocci` with
+`argv = ["browser-adapter"]`. `cargo run -p rocci-browser` does not rebuild
+those plugins.
+
+```sh
+cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
+```
+
+A stale plugin prints `unrecognized subcommand 'browser-adapter'` and
+`adapter … closed stdout during initialize`. The host still opens targets that
+a remaining up-to-date adapter claims. Rebuild any plugin whose `browser-adapter`
+command is missing.
+
+Installed `~/.local/bin` copies are unused while plugin `bin` paths contain a
+slash: those resolve against the directory that owns `.rocci/`, not `PATH`.
+
 ## Commands
 
 ```sh
@@ -52,11 +71,8 @@ Plugin discovery order: `plugins/*.toml`, then repo-local `.rocci/browser.toml`
 `[[plugin]]` rows, then `ROCCI_BROWSER_PLUGINS` (`id=bin` or executable names).
 Repo-local `[[project]]` rows are unioned with `projects.json`; relative paths
 and plugin bins that contain a slash resolve against the directory that owns
-`.rocci/`. A missing binary is a warning next to the plugin id.
-
-During workspace development, `cargo build -p rocci-browser -p rocci-cli -p
-rocci-rocdown-cli -p rocci-okf` then either put `target/debug` on `PATH` or
-keep relative `target/debug/<bin>` plugin rows in `.rocci/browser.toml`.
+`.rocci/`. A missing binary is a warning next to the plugin id. See [Build](#build) for
+the four-package command this repo's plugin rows expect.
 
 Illustrative manifest:
 
@@ -66,8 +82,7 @@ bin = "python3"
 argv = ["-u", "crates/rocci-browser/tests/fixtures/adapter.py"]
 ```
 
-`bin` is looked up on `PATH`. During workspace development, put `target/debug`
-on `PATH` (or pass absolute bins in tests). First-party product CLIs expose a
+`bin` without a slash is looked up on `PATH`. First-party product CLIs expose a
 `browser-adapter` stdio command; plugin rows pass that as `argv`. Direct
 product `run` still opens a one-shot preview window.
 
