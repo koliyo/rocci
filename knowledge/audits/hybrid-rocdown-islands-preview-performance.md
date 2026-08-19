@@ -1,14 +1,19 @@
 ---
 type: Audit
 title: hybrid-rocdown-islands preview performance audit
-description: Profiled `rocci-okf run knowledge/plans/hybrid-rocdown-islands.md` with the new headless rebuild profiler and traced perceived slowness to full-bundle `okf::load`, especially Rocci-profile source provenance checks.
+description: Profiled `rocci-okf run knowledge/plans/hybrid-rocdown-islands.md`; after load-performance Phases 1–4, release first-open `load` is 290ms and watch rebuilds reuse unchanged parses.
 tags: [domain/okf, domain/rocci, concern/performance, concern/tooling, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T11:25:00Z }
+generated: { by: process:cursor, at: 2026-08-19T12:15:00Z }
 stale_after: 2026-11-19
 authority: descriptive
 owners: [human:nils]
 sources:
+  - id: results-status
+    resource: ../status/okf-load-performance.md
+    title: OKF load-performance improvement results
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: okf-main
     resource: ../../crates/rocci-okf/src/main.rs
     title: rocci-okf CLI run entry and profile-report flag
@@ -26,7 +31,7 @@ sources:
     last_modified: 2026-08-18
   - id: okf-load
     resource: ../../crates/okf/src/lib.rs
-    title: OKF bundle load path
+    title: OKF bundle load path with discover/parse/graph/provenance timings
     author: process:git
     last_modified: 2026-08-19
   - id: okf-validate
@@ -137,6 +142,63 @@ render work on this machine.
 Nearly all of the Rocci-profile overhead sits inside `okf::load`, not in later
 preview stages.[^okf-load]
 
+## Phase 1 load sub-spans (2026-08-19 follow-up)
+
+After splitting the opaque `load` span, the same headless profiler lists
+`discover`, `parse`, `graph`, and `provenance` beside the wall-clock `load`
+span. `--profile base` omits `provenance`.[^okf-dev][^okf-load]
+
+Command:
+
+```text
+cargo run -q -p rocci-okf -- run knowledge/plans/okf-load-performance.md \
+  --no-window --port auto --profile-report json
+```
+
+### Debug `--profile rocci` (cold renderer)
+
+```json
+{"total_ms":11529,"spans":[{"name":"load","duration_ms":9963},{"name":"discover","duration_ms":0},{"name":"parse","duration_ms":5897},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":4065},{"name":"compile templates","duration_ms":4},{"name":"generate","duration_ms":53},{"name":"compile","duration_ms":1003},{"name":"render","duration_ms":397},{"name":"write","duration_ms":109}]}
+```
+
+### Debug `--profile base` (cold renderer)
+
+```json
+{"total_ms":8124,"spans":[{"name":"load","duration_ms":6380},{"name":"discover","duration_ms":1},{"name":"parse","duration_ms":6379},{"name":"graph","duration_ms":0},{"name":"compile templates","duration_ms":4},{"name":"generate","duration_ms":46},{"name":"compile","duration_ms":1035},{"name":"render","duration_ms":407},{"name":"write","duration_ms":252}]}
+```
+
+The Rocci-versus-base `load` gap is the `provenance` span (~4065ms here). Parse
+stays in the same 6s-class bucket under both profiles; `discover` and `graph`
+are sub-millisecond and round to 0–1ms in the snapshot. Debug
+`check knowledge` wall time on this revision was 13.62s rocci versus 8.48s
+base, consistent with a multi-second provenance tax on top of parse.[^okf-load]
+[^okf-validate]
+
+## Post-change baseline (Phases 1–4)
+
+The dated before/after summary is
+[OKF load-performance improvement results](../status/okf-load-performance.md).[^results-status]
+
+The same headless command on this revision, after load-performance work:[^okf-dev]
+[^okf-load]
+
+### Release first-open (default `run`, no `--provenance`)
+
+```json
+{"total_ms":357,"spans":[{"name":"load","duration_ms":290},{"name":"discover","duration_ms":1},{"name":"parse","duration_ms":289,"note":"cache_hit=0 miss=53"},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":0},{"name":"compile templates","duration_ms":0},{"name":"generate","duration_ms":7},{"name":"compile","duration_ms":0,"note":"cached"},{"name":"render","duration_ms":30},{"name":"write","duration_ms":30}]}
+```
+
+### Debug watch rebuild after one Markdown change
+
+```json
+{"total_ms":177,"spans":[{"name":"load","duration_ms":5},{"name":"discover","duration_ms":1},{"name":"parse","duration_ms":4,"note":"cache_hit=52 miss=1"},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":0},{"name":"compile templates","duration_ms":6},{"name":"generate","duration_ms":53},{"name":"compile","duration_ms":0,"note":"cached"},{"name":"render","duration_ms":29},{"name":"write","duration_ms":84}]}
+```
+
+Release `check knowledge --profile rocci` is 0.40s versus 0.27s for `--profile
+base`. Default `run` keeps Rocci schema and skips git provenance; pass
+`--provenance` to turn it back on. Bounded concept-path loading was not
+started because release first-open `load` is 290ms.
+
 ## Findings
 
 1. **Perceived slowness is dominated by `load`.** On the cached concept-path
@@ -193,27 +255,25 @@ The follow-up implementation plan is
 [OKF load-performance improvements](../plans/okf-load-performance.md). These
 items remain the audit's evidence-backed order of attack:
 
-1. **Add sub-spans inside `okf::load`.** Split Markdown parse, graph resolve,
-   and provenance validation so future reports do not collapse ~10s into one
-   opaque `load` bucket.[^okf-load][^headless-audit]
+1. **Add sub-spans inside `okf::load`.** Implemented: JSON reports now split
+   `discover`, `parse`, `graph`, and `provenance`. The remaining Rocci-versus-base
+   gap is provenance, not parse.[^okf-load][^headless-audit]
 
-2. **Batch or cache git provenance lookups.** Reuse repository-root discovery
-   and memoize `(repository, relative_path)` git results within a process.
-   [^okf-validate][^headless-audit]
+2. **Batch or cache git provenance lookups.** Implemented: one dirty-status dump
+   and one batched `git log` over unique paths.[^okf-validate][^headless-audit]
 
-3. **Offer a bounded concept preview path.** If single-record latency matters,
-   investigate loading only the target concept plus required indexes for
-   navigation, rather than the full bundle on every rebuild.[^okf-preview]
-   [^okf-load]
+3. **Bounded concept preview.** Gated off after a 290ms release first-open
+   `load`.[^okf-preview][^okf-load]
 
-4. **Document the fast local workflow.** For draft plan authoring, prefer
-   `rocci-okf run … --profile base --profile-report terminal` when provenance
-   warnings are not the subject under review.[^okf-main]
+4. **Fast local workflow.** Default `rocci-okf run` uses Rocci schema without
+   git provenance. `check --profile rocci` stays strict. `--profile base` is
+   portable OKF, not the supported fast-preview path.[^okf-main]
 
 [^okf-main]: `Run` accepts `--profile-report` and forwards it to the headless rebuild path.
+[^results-status]: Dated Status snapshot of machine-local before/after timings after Phases 1–4.
 [^okf-dev]: `rebuild_site` records a top-level `load` span around `okf::load`, then appends generator spans; successful rebuilds emit the combined snapshot.
 [^okf-preview]: `resolve_preview_path` returns the bundle root plus a concept open path; it does not narrow bundle loading.
 [^okf-load]: `okf::load` discovers every Markdown file, parses concepts, resolves the graph, and runs Rocci-only lifecycle and source validation.
-[^okf-validate]: `validate_lifecycle_and_sources` iterates concept sources and invokes git subprocesses for tracked, dirty, and untracked relative paths.
+[^okf-validate]: `validate_lifecycle_and_sources` iterates concept sources and now batches git status and log over unique relative paths.
 [^headless-audit]: Prior bundle-level audit with the same profiler, showing the same load-dominated breakdown and Rocci-versus-base gap.
 [^target-plan]: The hybrid islands plan cites 28 relative sources across crates, docs, decisions, and sibling knowledge records.

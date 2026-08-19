@@ -45,6 +45,26 @@ pub enum Profile {
     Rocci,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LoadOptions {
+    pub profile: Profile,
+    pub provenance: bool,
+}
+
+impl LoadOptions {
+    pub fn new(profile: Profile) -> Self {
+        Self {
+            profile,
+            provenance: profile == Profile::Rocci,
+        }
+    }
+
+    pub fn with_provenance(mut self, provenance: bool) -> Self {
+        self.provenance = provenance;
+        self
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TrustTier {

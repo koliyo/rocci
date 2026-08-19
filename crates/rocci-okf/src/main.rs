@@ -37,6 +37,10 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Run git provenance checks (OKF4006/4007/4008) during preview.
+        /// Off by default; `check --profile rocci` still runs them.
+        #[arg(long)]
+        provenance: bool,
         /// Emit rebuild profiling to stderr in terminal or JSON form.
         #[arg(long, value_enum, default_value_t = ProfileReportArg::Off)]
         profile_report: ProfileReportArg,
@@ -321,6 +325,7 @@ fn main() -> Result<()> {
             profile,
             host,
             no_window,
+            provenance,
             profile_report,
             port,
         } => {
@@ -331,6 +336,7 @@ fn main() -> Result<()> {
                 output.as_deref(),
                 port,
                 profile.into(),
+                provenance,
                 &target.open_path,
                 Some(host.into()),
                 profile_report.into(),

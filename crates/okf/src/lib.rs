@@ -12,8 +12,10 @@ pub mod review;
 pub mod search;
 pub mod validate;
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant, UNIX_EPOCH};
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
@@ -23,7 +25,7 @@ pub use artifact::{
 };
 pub use ast::{
     BuildSummary, Bundle, CheckReport, Concept, Edge, Heading, HeadingSection, Index, InspectKind,
-    KnowledgeFilter, Link, Log, Profile, Span, TrustTier,
+    KnowledgeFilter, Link, LoadOptions, Log, Profile, Span, TrustTier,
 };
 pub use benchmark::{
     RetrievalBenchmark, RetrievalQuestion, RetrievalQuestionResult, RetrievalReport, run_benchmark,
@@ -43,9 +45,94 @@ pub use validate::{
     PROFILE_TYPES, STANDARD_FIELDS, collect_source_ids, current_utc_date, external_url,
     filesystem_modified_at, git_last_modified, git_path_dirty, git_repository_root, is_date,
     latest_human_verification, metadata_string_array, parse_timestamp, repository_source_path,
-    string_field, validate_lifecycle_and_sources, validate_metadata, validate_optional_string,
-    validate_unique_ids,
+    string_field, validate_lifecycle_and_sources, validate_lifecycle_and_sources_with,
+    validate_metadata, validate_optional_string, validate_unique_ids,
 };
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LoadTimings {
+    pub discover: Duration,
+    pub parse: Duration,
+    pub graph: Duration,
+    pub provenance: Option<Duration>,
+    pub parse_cache_hits: u32,
+    pub parse_cache_misses: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FileFingerprint {
+    modified_secs: u64,
+    modified_nanos: u32,
+    len: u64,
+}
+
+#[derive(Clone, Debug)]
+enum CachedDocument {
+    Concept {
+        concept: Concept,
+        diagnostics: Vec<Diagnostic>,
+    },
+    Index {
+        index: Index,
+        diagnostics: Vec<Diagnostic>,
+    },
+    Log {
+        log: Log,
+        diagnostics: Vec<Diagnostic>,
+    },
+    Diagnostics(Vec<Diagnostic>),
+}
+
+#[derive(Clone, Debug)]
+struct CacheEntry {
+    fingerprint: FileFingerprint,
+    document: CachedDocument,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ParseCache {
+    profile: Option<Profile>,
+    entries: BTreeMap<String, CacheEntry>,
+}
+
+impl ParseCache {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn begin(&mut self, profile: Profile) {
+        if self.profile != Some(profile) {
+            self.entries.clear();
+            self.profile = Some(profile);
+        }
+    }
+
+    fn get(&self, relative: &str, fingerprint: FileFingerprint) -> Option<&CachedDocument> {
+        self.entries
+            .get(relative)
+            .and_then(|entry| (entry.fingerprint == fingerprint).then_some(&entry.document))
+    }
+
+    fn insert(&mut self, relative: String, fingerprint: FileFingerprint, document: CachedDocument) {
+        self.entries.insert(
+            relative,
+            CacheEntry {
+                fingerprint,
+                document,
+            },
+        );
+    }
+
+    fn retain_paths(&mut self, live: &BTreeSet<String>) {
+        self.entries.retain(|path, _| live.contains(path));
+    }
+}
+
+#[derive(Debug)]
+pub struct LoadResult {
+    pub bundle: Bundle,
+    pub timings: LoadTimings,
+}
 
 pub fn check(root: &Path, profile: Profile) -> Result<CheckReport> {
     let bundle = load(root, profile)?;
@@ -55,21 +142,65 @@ pub fn check(root: &Path, profile: Profile) -> Result<CheckReport> {
 }
 
 pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
+    Ok(load_timed(root, LoadOptions::new(profile))?.bundle)
+}
+
+pub fn load_timed(root: &Path, options: LoadOptions) -> Result<LoadResult> {
+    load_with_cache(root, options, None)
+}
+
+pub fn load_with_cache(
+    root: &Path,
+    options: LoadOptions,
+    mut cache: Option<&mut ParseCache>,
+) -> Result<LoadResult> {
     let root = absolute(root)?;
     if !root.is_dir() {
         bail!("knowledge bundle {} is not a directory", root.display());
     }
+
+    let discover_started = Instant::now();
     let mut paths = Vec::new();
     discover_markdown(&root, &mut paths)?;
     paths.sort();
+    let discover = discover_started.elapsed();
 
+    let parse_started = Instant::now();
     let mut concepts = Vec::new();
     let mut indexes = Vec::new();
     let mut logs = Vec::new();
     let mut diagnostics = Vec::new();
+    let mut parse_cache_hits = 0;
+    let mut parse_cache_misses = 0;
+    let mut live_paths = BTreeSet::new();
+    if let Some(cache) = cache.as_mut() {
+        cache.begin(options.profile);
+    }
 
     for path in paths {
         let relative = relative_path(&root, &path);
+        live_paths.insert(relative.clone());
+        let fingerprint = file_fingerprint(&path);
+        if let Some(document) = cache
+            .as_ref()
+            .and_then(|cache| fingerprint.and_then(|fingerprint| cache.get(&relative, fingerprint)))
+            .cloned()
+        {
+            apply_cached(
+                &document,
+                &mut concepts,
+                &mut indexes,
+                &mut logs,
+                &mut diagnostics,
+            );
+            parse_cache_hits += 1;
+            continue;
+        }
+        parse_cache_misses += 1;
+        let diagnostics_before = diagnostics.len();
+        let concepts_before = concepts.len();
+        let indexes_before = indexes.len();
+        let logs_before = logs.len();
         let bytes =
             fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?;
         let source = match String::from_utf8(bytes) {
@@ -77,10 +208,17 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
             Err(_) => {
                 diagnostics.push(Diagnostic::error(
                     "OKF1001",
-                    relative,
+                    relative.clone(),
                     None,
                     "document is not valid UTF-8",
                 ));
+                if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
+                    cache.insert(
+                        relative,
+                        fingerprint,
+                        CachedDocument::Diagnostics(diagnostics[diagnostics_before..].to_vec()),
+                    );
+                }
                 continue;
             }
         };
@@ -89,18 +227,53 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
                 parse_index(&root, &relative, &source, &mut indexes, &mut diagnostics)
             }
             Some("log.md") => parse_log(&relative, &source, &mut logs, &mut diagnostics),
-            _ => parse_concept(&relative, &source, profile, &mut concepts, &mut diagnostics),
+            _ => parse_concept(
+                &relative,
+                &source,
+                options.profile,
+                &mut concepts,
+                &mut diagnostics,
+            ),
         }
+        if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
+            let document = capture_cached(
+                &concepts,
+                &indexes,
+                &logs,
+                &diagnostics,
+                concepts_before,
+                indexes_before,
+                logs_before,
+                diagnostics_before,
+            );
+            cache.insert(relative, fingerprint, document);
+        }
+    }
+    if let Some(cache) = cache.as_mut() {
+        cache.retain_paths(&live_paths);
     }
 
     concepts.sort_by(|a, b| a.id.cmp(&b.id));
     indexes.sort_by(|a, b| a.path.cmp(&b.path));
     logs.sort_by(|a, b| a.path.cmp(&b.path));
     validate_unique_ids(&concepts, &mut diagnostics);
+    let parse = parse_started.elapsed();
+
+    let graph_started = Instant::now();
     let graph = resolve_graph(&concepts, &indexes, &mut diagnostics);
-    if profile == Profile::Rocci {
-        validate_lifecycle_and_sources(&root, &concepts, &mut diagnostics);
-    }
+    let graph_duration = graph_started.elapsed();
+
+    let provenance = if options.provenance {
+        let provenance_started = Instant::now();
+        validate_lifecycle_and_sources_with(&root, &concepts, &mut diagnostics, true);
+        Some(provenance_started.elapsed())
+    } else if options.profile == Profile::Rocci {
+        validate_lifecycle_and_sources_with(&root, &concepts, &mut diagnostics, false);
+        Some(Duration::ZERO)
+    } else {
+        None
+    };
+
     diagnostics.sort_by(|a, b| {
         (&a.path, a.location.as_ref().map(|span| span.start), a.code).cmp(&(
             &b.path,
@@ -113,14 +286,24 @@ pub fn load(root: &Path, profile: Profile) -> Result<Bundle> {
         .find(|index| index.path == "index.md")
         .and_then(|index| index.version.clone());
 
-    Ok(Bundle {
-        root,
-        version,
-        concepts,
-        indexes,
-        logs,
-        graph,
-        diagnostics,
+    Ok(LoadResult {
+        bundle: Bundle {
+            root,
+            version,
+            concepts,
+            indexes,
+            logs,
+            graph,
+            diagnostics,
+        },
+        timings: LoadTimings {
+            discover,
+            parse,
+            graph: graph_duration,
+            provenance,
+            parse_cache_hits,
+            parse_cache_misses,
+        },
     })
 }
 
@@ -193,6 +376,80 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
         bail!("knowledge bundle has validation errors");
     }
     build_artifacts(&bundle, output)
+}
+
+fn file_fingerprint(path: &Path) -> Option<FileFingerprint> {
+    let meta = fs::metadata(path).ok()?;
+    let modified = meta.modified().ok()?.duration_since(UNIX_EPOCH).ok()?;
+    Some(FileFingerprint {
+        modified_secs: modified.as_secs(),
+        modified_nanos: modified.subsec_nanos(),
+        len: meta.len(),
+    })
+}
+
+fn apply_cached(
+    document: &CachedDocument,
+    concepts: &mut Vec<Concept>,
+    indexes: &mut Vec<Index>,
+    logs: &mut Vec<Log>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    match document {
+        CachedDocument::Concept {
+            concept,
+            diagnostics: cached,
+        } => {
+            concepts.push(concept.clone());
+            diagnostics.extend(cached.iter().cloned());
+        }
+        CachedDocument::Index {
+            index,
+            diagnostics: cached,
+        } => {
+            indexes.push(index.clone());
+            diagnostics.extend(cached.iter().cloned());
+        }
+        CachedDocument::Log {
+            log,
+            diagnostics: cached,
+        } => {
+            logs.push(log.clone());
+            diagnostics.extend(cached.iter().cloned());
+        }
+        CachedDocument::Diagnostics(cached) => diagnostics.extend(cached.iter().cloned()),
+    }
+}
+
+fn capture_cached(
+    concepts: &[Concept],
+    indexes: &[Index],
+    logs: &[Log],
+    diagnostics: &[Diagnostic],
+    concepts_before: usize,
+    indexes_before: usize,
+    logs_before: usize,
+    diagnostics_before: usize,
+) -> CachedDocument {
+    let diagnostics = diagnostics[diagnostics_before..].to_vec();
+    if concepts.len() > concepts_before {
+        CachedDocument::Concept {
+            concept: concepts[concepts_before].clone(),
+            diagnostics,
+        }
+    } else if indexes.len() > indexes_before {
+        CachedDocument::Index {
+            index: indexes[indexes_before].clone(),
+            diagnostics,
+        }
+    } else if logs.len() > logs_before {
+        CachedDocument::Log {
+            log: logs[logs_before].clone(),
+            diagnostics,
+        }
+    } else {
+        CachedDocument::Diagnostics(diagnostics)
+    }
 }
 
 fn parse_concept(

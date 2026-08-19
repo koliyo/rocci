@@ -46,15 +46,22 @@ the review site publishes them at `/decisions/foo/` and writes collection
 indexes such as `/architecture/`.
 
 ```sh
-# Run with desktop window
+# Run with desktop window. Rocci schema is on; git provenance is off.
 cargo run -p rocci-okf -- run knowledge
 
 # Open a concept inside the enclosing bundle
 cargo run -p rocci-okf -- run knowledge/plans/cli-entry-points.md
 
+# Turn git provenance (OKF4006/4007/4008) back on for preview
+cargo run -p rocci-okf -- run knowledge --provenance
+
 # Run headless (prints server URL)
 cargo run -p rocci-okf -- run knowledge --no-window --port 8000
 ```
+
+`--profile base` is portable OKF, not the fast Rocci preview path. Use default
+`run` (Rocci schema, no git provenance) for local authoring, and
+`check --profile rocci` when reviewing or in CI.
 
 ### Build Artifacts & Review Site
 
