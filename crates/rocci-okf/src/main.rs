@@ -36,6 +36,7 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
         /// Skip the preview window; print the URL and keep serving.
+        /// Open that URL with `?reload=0` to pause automatic page refresh.
         #[arg(long)]
         no_window: bool,
         /// Pause automatic page refresh. Watch and rebuild still run.
@@ -403,5 +404,24 @@ mod tests {
             Commands::Run { no_live_reload, .. } => assert!(!no_live_reload),
             _ => panic!("expected run"),
         }
+    }
+
+    #[test]
+    fn no_window_help_mentions_reload_query() {
+        use clap::CommandFactory;
+        let cmd = Cli::command();
+        let run = cmd.find_subcommand("run").expect("run");
+        let arg = run
+            .get_arguments()
+            .find(|arg| arg.get_long() == Some("no-window"))
+            .expect("no-window");
+        let help = format!(
+            "{}{}",
+            arg.get_help().map(|h| h.to_string()).unwrap_or_default(),
+            arg.get_long_help()
+                .map(|h| h.to_string())
+                .unwrap_or_default()
+        );
+        assert!(help.contains("?reload=0"), "{help}");
     }
 }

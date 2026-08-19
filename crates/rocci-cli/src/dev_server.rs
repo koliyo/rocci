@@ -32,6 +32,13 @@ const RELOAD_JS: &str = r#"(function () {
   var KEY = "rocci-live-reload";
   var es = null;
   var dirty = false;
+  function seedFromQuery() {
+    try {
+      if (new URLSearchParams(window.location.search).get("reload") === "0") {
+        sessionStorage.setItem(KEY, "0");
+      }
+    } catch (err) {}
+  }
   function enabled() {
     try {
       return sessionStorage.getItem(KEY) !== "0";
@@ -68,6 +75,7 @@ const RELOAD_JS: &str = r#"(function () {
     };
   }
   window.__rocciLiveReload = { enabled: enabled, set: setEnabled };
+  seedFromQuery();
   connect();
 })();
 "#;
@@ -1030,6 +1038,10 @@ mod tests {
         assert!(RELOAD_JS.contains("dirty = true"));
         assert!(RELOAD_JS.contains("if (on && dirty)"));
         assert!(RELOAD_JS.contains("if (window.__rocciLiveReload)"));
+        assert!(RELOAD_JS.contains("URLSearchParams"));
+        assert!(RELOAD_JS.contains("get(\"reload\") === \"0\""));
+        assert!(RELOAD_JS.contains("seedFromQuery"));
+        assert!(RELOAD_JS.contains("location.reload()"));
     }
 
     #[test]
