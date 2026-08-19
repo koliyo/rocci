@@ -14,8 +14,8 @@ mod registry;
 mod session;
 
 pub use adapter::{
-    AdapterHandler, documents_from_pages_json, extract_http_url, inspector_url_for, serve_stdio,
-    spawn_run_no_window,
+    AdapterHandler, RunSessions, documents_from_pages_json, extract_http_url, inspector_url_for,
+    origin_from_url, serve_stdio, spawn_run_no_window, url_on_origin,
 };
 pub use client::AdapterClient;
 pub use discovery::{PluginSpec, discover_plugins, load_plugin_manifest};
@@ -29,7 +29,7 @@ pub use protocol::{
     ProbeResult,
 };
 pub use registry::{Project, Registry};
-pub use session::{Session, SessionTable};
+pub use session::{SESSION_GRACE, Session, SessionTable};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

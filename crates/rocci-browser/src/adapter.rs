@@ -117,6 +117,154 @@ pub fn inspector_url_for(origin: &str) -> String {
     format!("{}/__rocci/dev", origin.trim_end_matches('/'))
 }
 
+pub fn origin_from_url(url: &str) -> String {
+    let Some(start) = url.find("http://").or_else(|| url.find("https://")) else {
+        return url.trim_end_matches('/').to_string();
+    };
+    let rest = &url[start..];
+    let scheme_end = rest.find("://").map(|index| index + 3).unwrap_or(0);
+    match rest[scheme_end..].find('/') {
+        Some(index) => rest[..scheme_end + index].to_string(),
+        None => rest.trim_end_matches('/').to_string(),
+    }
+}
+
+pub fn url_on_origin(origin: &str, path: &str) -> String {
+    let origin = origin.trim_end_matches('/');
+    if path.is_empty() || path == "/" {
+        format!("{origin}/")
+    } else if path.starts_with('/') {
+        format!("{origin}{path}")
+    } else {
+        format!("{origin}/{path}")
+    }
+}
+
+pub const RUN_SESSION_GRACE: Duration = Duration::from_secs(30);
+
+struct ActiveRun {
+    key: String,
+    child: Child,
+    origin: String,
+    inspector_url: String,
+    retired_at: Option<Instant>,
+}
+
+pub struct RunSessions {
+    sessions: Vec<ActiveRun>,
+    current: Option<String>,
+    grace: Duration,
+}
+
+impl Default for RunSessions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RunSessions {
+    pub fn new() -> Self {
+        Self {
+            sessions: Vec::new(),
+            current: None,
+            grace: RUN_SESSION_GRACE,
+        }
+    }
+
+    pub fn open(
+        &mut self,
+        key: &str,
+        bin: &str,
+        args: &[String],
+        title: String,
+        path: &str,
+    ) -> Result<OpenResult> {
+        self.reap();
+        if let Some(index) = self.alive_index(key) {
+            self.sessions[index].retired_at = None;
+            self.current = Some(key.to_string());
+            let session = &self.sessions[index];
+            return Ok(OpenResult {
+                url: url_on_origin(&session.origin, path),
+                title,
+                inspector_url: Some(session.inspector_url.clone()),
+            });
+        }
+        let (child, opened) = spawn_run_no_window(bin, args)?;
+        let origin = origin_from_url(&opened.url);
+        let inspector = opened
+            .inspector_url
+            .clone()
+            .unwrap_or_else(|| inspector_url_for(&origin));
+        if let Some(previous) = self.current.take() {
+            if previous != key
+                && let Some(index) = self
+                    .sessions
+                    .iter()
+                    .position(|session| session.key == previous)
+            {
+                self.sessions[index].retired_at = Some(Instant::now());
+            }
+        }
+        self.sessions.push(ActiveRun {
+            key: key.to_string(),
+            child,
+            origin: origin.clone(),
+            inspector_url: inspector.clone(),
+            retired_at: None,
+        });
+        self.current = Some(key.to_string());
+        Ok(OpenResult {
+            url: url_on_origin(&origin, path),
+            title,
+            inspector_url: Some(inspector),
+        })
+    }
+
+    pub fn shutdown(&mut self) {
+        for session in &mut self.sessions {
+            let _ = session.child.kill();
+            let _ = session.child.wait();
+        }
+        self.sessions.clear();
+        self.current = None;
+    }
+
+    fn alive_index(&mut self, key: &str) -> Option<usize> {
+        let index = self
+            .sessions
+            .iter()
+            .position(|session| session.key == key)?;
+        match self.sessions[index].child.try_wait() {
+            Ok(None) => Some(index),
+            _ => {
+                self.sessions.remove(index);
+                None
+            }
+        }
+    }
+
+    fn reap(&mut self) {
+        let now = Instant::now();
+        let grace = self.grace;
+        let current = self.current.clone();
+        self.sessions.retain_mut(|session| {
+            if current.as_deref() == Some(session.key.as_str()) {
+                return true;
+            }
+            let Some(retired_at) = session.retired_at else {
+                return true;
+            };
+            if now.duration_since(retired_at) < grace {
+                return true;
+            }
+            let _ = session.child.kill();
+            let _ = session.child.wait();
+            false
+        });
+    }
+}
+
 pub fn spawn_run_no_window(bin: &str, args: &[String]) -> Result<(Child, OpenResult)> {
     let mut child = Command::new(bin)
         .args(args)
@@ -284,5 +432,37 @@ mod tests {
         let docs = documents_from_pages_json(raw).unwrap();
         assert_eq!(docs[0].id, "index.md");
         assert_eq!(docs[0].route.as_deref(), Some("/"));
+    }
+
+    #[test]
+    fn origin_and_path_join() {
+        assert_eq!(
+            origin_from_url("http://127.0.0.1:8123/guides/"),
+            "http://127.0.0.1:8123"
+        );
+        assert_eq!(
+            url_on_origin("http://127.0.0.1:8123", "/about"),
+            "http://127.0.0.1:8123/about"
+        );
+    }
+
+    #[test]
+    fn run_sessions_reuse_the_same_origin() {
+        let script = concat!(
+            "import sys, time\n",
+            "print('Serving stub at http://127.0.0.1:59998/', file=sys.stderr, flush=True)\n",
+            "time.sleep(30)\n",
+        );
+        let args = vec!["-u".into(), "-c".into(), script.into()];
+        let mut sessions = RunSessions::new();
+        let first = sessions
+            .open("root", "python3", &args, "one".into(), "/")
+            .unwrap();
+        let second = sessions
+            .open("root", "python3", &args, "two".into(), "/about")
+            .unwrap();
+        assert_eq!(first.url, "http://127.0.0.1:59998/");
+        assert_eq!(second.url, "http://127.0.0.1:59998/about");
+        sessions.shutdown();
     }
 }

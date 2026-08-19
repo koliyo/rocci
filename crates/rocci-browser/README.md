@@ -33,6 +33,10 @@ Go to File. Overlay back/home/reload still apply to the visible origin.
 TUI keys: type to filter, Enter opens a target home, Tab lists adapter
 documents then Enter opens one, Shift-Tab / Escape returns to targets.
 
+Switching targets reuses a still-warm adapter origin for the same root. The
+previous child is grace-stopped after about 30s. The Dev iframe follows the
+session inspector URL.
+
 ## Registry and plugins
 
 | Override | Browser directory |

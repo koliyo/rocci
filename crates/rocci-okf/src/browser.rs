@@ -1,27 +1,26 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::Child,
 };
 
 use anyhow::Result;
 use okf::{parse_yaml_mapping, resolve_preview_path, split_frontmatter};
 use rocci_browser::{
     AdapterHandler, Document, ListDocumentsResult, OpenParams, OpenResult, ProbeResult,
-    serve_stdio, spawn_run_no_window,
+    RunSessions, serve_stdio,
 };
 
 pub fn run() -> Result<()> {
     serve_stdio(OkfAdapter {
         bin: env::current_exe()?,
-        children: Vec::new(),
+        sessions: RunSessions::new(),
     })
     .map_err(|error| anyhow::anyhow!("{error}"))
 }
 
 struct OkfAdapter {
     bin: PathBuf,
-    children: Vec<Child>,
+    sessions: RunSessions,
 }
 
 impl AdapterHandler for OkfAdapter {
@@ -65,19 +64,37 @@ impl AdapterHandler for OkfAdapter {
     }
 
     fn open(&mut self, params: OpenParams) -> rocci_browser::Result<OpenResult> {
-        let args = run_args(Path::new(&params.root), params.document.as_deref());
-        let (child, opened) = spawn_run_no_window(&self.bin.display().to_string(), &args)?;
-        self.children.push(child);
-        Ok(opened)
+        let path = self.document_path(&params.root, params.document.as_deref());
+        let args = run_args(Path::new(&params.root), None);
+        let title = params
+            .document
+            .clone()
+            .unwrap_or_else(|| label_for(Path::new(&params.root)));
+        self.sessions.open(
+            &params.root,
+            &self.bin.display().to_string(),
+            &args,
+            title,
+            &path,
+        )
     }
 
     fn shutdown(&mut self) -> rocci_browser::Result<()> {
-        for child in &mut self.children {
-            let _ = child.kill();
-            let _ = child.wait();
-        }
-        self.children.clear();
+        self.sessions.shutdown();
         Ok(())
+    }
+}
+
+impl OkfAdapter {
+    fn document_path(&mut self, root: &str, document: Option<&str>) -> String {
+        let Some(document) = document else {
+            return "/".into();
+        };
+        self.list_documents(root)
+            .ok()
+            .and_then(|listed| listed.documents.into_iter().find(|row| row.id == document))
+            .and_then(|row| row.route)
+            .unwrap_or_else(|| format!("/{document}/"))
     }
 }
 
@@ -198,7 +215,7 @@ mod tests {
         let dir = temp();
         let mut adapter = OkfAdapter {
             bin: PathBuf::from("rocci-okf"),
-            children: Vec::new(),
+            sessions: RunSessions::new(),
         };
         assert!(!adapter.probe(&dir.display().to_string()).unwrap().claimed);
         fs::write(

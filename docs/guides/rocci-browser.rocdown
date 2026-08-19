@@ -1,0 +1,60 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/rocci-browser/"],
+
+    meta: {
+        title: "Project browser",
+        description: "Register directories, fuzzy-pick a target, and keep one preview window across product origins.",
+    },
+}
+
+# Project browser
+
+`rocci-browser` is a fourth CLI: a product-blind host that registers project
+directories, fuzzy-picks a **target**, and `load_url`s whatever HTTP origin an
+adapter opened. It does not replace `rocci`, `rocdown`, or `rocci-okf`. Direct
+`run` on those binaries still opens today's one-shot preview window.
+
+:note[title: "Not `rocci browse`"] `rocci browse` is the component gallery over
+`.rocci` files. `rocci-browser` is a project launcher. They share a word, not a
+command surface.
+
+## Run it
+
+From a workspace checkout, build the host and the product CLIs, then either put
+`target/debug` on `PATH` or keep the relative plugin rows in
+`.rocci/browser.toml`:
+
+```sh
+cargo run -q -p rocci-browser
+cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json
+```
+
+`--root` selects the directory that contains `.rocci/browser.toml`. With no
+arguments, the host opens one persistent preview window.
+
+## Keys
+
+| Shortcut | What it does |
+| --- | --- |
+| **Cmd/Ctrl-P** | Host picker: filter registered targets. Enter opens the target home. Tab lists adapter documents, then Enter opens one. |
+| **Cmd/Ctrl-K** | In-page Go to File (`goto.js`) on the visible origin. The host does not steal this. |
+| **Cmd/Ctrl-F** | Find in the current preview page. |
+
+The Dev panel iframe follows the current session's inspector URL. The host does
+not parse inspect JSON.
+
+## Registry
+
+User projects live in `projects.json` under `ROCCI_BROWSER_DIR`, `$ROCCI_HOME/.rocci/browser`,
+or `~/.rocci/browser`. Repo-local `.rocci/browser.toml` can add `[[plugin]]`
+and `[[project]]` rows as data. The host does not hardcode target ids.
+
+Switching targets reuses a still-warm server for the same root instead of
+rebuilding on every hop. The previous child is grace-stopped after about 30s.
+
+## Packaging
+
+A signed `.app` for `rocci-browser` is **planned**. v1 is
+`cargo run -p rocci-browser`. Product `rocci bundle` still packages a Roc app
+gallery, not this host.
