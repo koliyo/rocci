@@ -59,6 +59,7 @@
   };
   if (liveReload) {
     syncLiveReloadButton();
+    send("live-reload:" + (liveReloadOn() ? "1" : "0"));
     liveReload.addEventListener("click", () => {
       const next = !liveReloadOn();
       if (window.__rocciLiveReload && typeof window.__rocciLiveReload.set === "function") {
@@ -69,6 +70,7 @@
         } catch (err) {}
       }
       syncLiveReloadButton();
+      send("live-reload:" + (next ? "1" : "0"));
     });
   }
   const routeOf = (value) => {
@@ -449,6 +451,7 @@
       closeMenu();
     },
     closeMore: closeMenu,
+    syncLiveReload: syncLiveReloadButton,
   };
   const mount = () => {
     if (!host.isConnected && document.documentElement) {

@@ -1,7 +1,7 @@
 #[cfg(target_os = "macos")]
 use muda::AboutMetadata;
 use muda::{
-    Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu,
+    CheckMenuItem, Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem, Submenu,
     accelerator::{Accelerator, CMD_OR_CTRL, Code, Modifiers},
 };
 use rocci_core::{Error, Result};
@@ -23,6 +23,7 @@ pub const FORWARD_ID: &str = "view.forward";
 pub const HOME_ID: &str = "view.home";
 pub const GO_TO_FILE_ID: &str = "view.go-to-file";
 pub const RELOAD_ID: &str = "view.reload";
+pub const LIVE_RELOAD_ID: &str = "view.live-reload";
 pub const WEB_INSPECTOR_ID: &str = "view.web-inspector";
 
 pub struct MenuConfig<'a> {
@@ -38,6 +39,7 @@ pub struct MenuConfig<'a> {
 pub struct NativeMenu {
     #[allow(dead_code)]
     menu: Menu,
+    live_reload: Option<CheckMenuItem>,
 }
 
 impl NativeMenu {
@@ -180,7 +182,7 @@ impl NativeMenu {
             view.append(&PredefinedMenuItem::separator())
                 .map_err(menu_error)?;
         }
-        if config.reload {
+        let live_reload = if config.reload {
             view.append(&MenuItem::with_id(
                 RELOAD_ID,
                 "Reload",
@@ -188,7 +190,12 @@ impl NativeMenu {
                 Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyR)),
             ))
             .map_err(menu_error)?;
-        }
+            let item = CheckMenuItem::with_id(LIVE_RELOAD_ID, "Live Reload", true, true, None);
+            view.append(&item).map_err(menu_error)?;
+            Some(item)
+        } else {
+            None
+        };
         if config.devtools {
             view.append(&MenuItem::with_id(
                 WEB_INSPECTOR_ID,
@@ -224,7 +231,20 @@ impl NativeMenu {
             help.set_as_help_menu_for_nsapp();
         }
 
-        Ok(Self { menu })
+        Ok(Self { menu, live_reload })
+    }
+
+    pub fn live_reload_checked(&self) -> bool {
+        self.live_reload
+            .as_ref()
+            .map(CheckMenuItem::is_checked)
+            .unwrap_or(true)
+    }
+
+    pub fn set_live_reload_checked(&self, checked: bool) {
+        if let Some(item) = &self.live_reload {
+            item.set_checked(checked);
+        }
     }
 
     pub fn attach(&self, window: &Window) -> Result<()> {
@@ -276,7 +296,7 @@ pub fn view_action_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
         ids.push(GO_TO_FILE_ID);
     }
     if config.reload {
-        ids.push(RELOAD_ID);
+        ids.extend([RELOAD_ID, LIVE_RELOAD_ID]);
     }
     if config.devtools {
         ids.push(WEB_INSPECTOR_ID);
@@ -323,7 +343,8 @@ mod tests {
                 HOME_ID,
                 GO_TO_FILE_ID,
                 RELOAD_ID,
-                WEB_INSPECTOR_ID
+                LIVE_RELOAD_ID,
+                WEB_INSPECTOR_ID,
             ]
         );
     }
@@ -332,7 +353,7 @@ mod tests {
     fn bundled_shell_view_menu_omits_navigation() {
         assert_eq!(
             view_action_ids(&config(false, true, true, false)),
-            vec![RELOAD_ID, WEB_INSPECTOR_ID]
+            vec![RELOAD_ID, LIVE_RELOAD_ID, WEB_INSPECTOR_ID]
         );
     }
 
@@ -348,5 +369,12 @@ mod tests {
     #[test]
     fn edit_menu_includes_select_all() {
         assert_eq!(SELECT_ALL_ID, "edit.select-all");
+    }
+
+    #[test]
+    fn live_reload_check_item_tracks_reload_config() {
+        assert_eq!(LIVE_RELOAD_ID, "view.live-reload");
+        assert!(view_action_ids(&config(true, true, false, false)).contains(&LIVE_RELOAD_ID));
+        assert!(!view_action_ids(&config(true, false, false, false)).contains(&LIVE_RELOAD_ID));
     }
 }

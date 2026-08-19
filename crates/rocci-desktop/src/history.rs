@@ -11,6 +11,7 @@ pub enum IpcMessage {
     Nav(NavCommand),
     Reveal(String),
     CopySource(String),
+    LiveReload(bool),
 }
 
 impl NavCommand {
@@ -33,6 +34,9 @@ impl IpcMessage {
         }
         if let Some(path) = message.strip_prefix("copy-source:") {
             return Some(Self::CopySource(path.to_string()));
+        }
+        if let Some(value) = message.strip_prefix("live-reload:") {
+            return Some(Self::LiveReload(value == "1"));
         }
         NavCommand::parse(message).map(Self::Nav)
     }
@@ -194,6 +198,14 @@ mod tests {
         assert_eq!(
             IpcMessage::parse("copy-source:guides/rocdown.rocdown"),
             Some(IpcMessage::CopySource("guides/rocdown.rocdown".into()))
+        );
+        assert_eq!(
+            IpcMessage::parse("live-reload:0"),
+            Some(IpcMessage::LiveReload(false))
+        );
+        assert_eq!(
+            IpcMessage::parse("live-reload:1"),
+            Some(IpcMessage::LiveReload(true))
         );
         assert_eq!(
             IpcMessage::parse("home"),

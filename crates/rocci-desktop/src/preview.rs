@@ -111,6 +111,10 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::CopySource(path)));
                     }
+                    Some(IpcMessage::LiveReload(enabled)) => {
+                        let _ = ipc_proxy
+                            .send_event(ShellEvent::Preview(PreviewEvent::LiveReload(enabled)));
+                    }
                     None => {}
                 }
             })),
@@ -192,6 +196,11 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     apply_command(&live, &mut history, NavCommand::Home);
                 } else if menu::is(&menu_event, menu::RELOAD_ID) {
                     apply_command(&live, &mut history, NavCommand::Reload);
+                } else if menu::is(&menu_event, menu::LIVE_RELOAD_ID) {
+                    apply_overlay(
+                        &live,
+                        &chrome::live_reload_set_script(menu.live_reload_checked()),
+                    );
                 } else if menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {
                     if live.webview.is_devtools_open() {
                         live.webview.close_devtools();
@@ -220,6 +229,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::CopySource(spec))) => {
                 apply_source(&source_root, &spec, SourceAction::Copy);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::LiveReload(enabled))) => {
+                menu.set_live_reload_checked(enabled);
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);
