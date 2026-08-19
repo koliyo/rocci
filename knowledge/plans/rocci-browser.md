@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T23:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -170,13 +170,13 @@ sources:
 ## Purpose and authority
 
 This is the implementation plan for the [rocci-browser
-research](../research/rocci-browser.md). It is exploratory until a human
-reviewer accepts the fourth-CLI and out-of-process-adapter gates. It does not
-describe shipped behavior. Architecture records, crate READMEs, and the three
-product CLIs remain the current contract.[^research][^system-overview][^root-readme]
+research](../research/rocci-browser.md). Gates 1–2 were accepted with an
+explicit request to implement from Phase 1. Architecture records and the three
+product CLIs remain the current one-shot preview contract until later
+phases.[^research][^system-overview][^root-readme]
 
-Do not start Phase 1 until those gates are accepted and the user asks. Phase 0
-is this freeze.
+Phase 0 is this freeze. Phases 1–5 are implemented in this revision; they are
+not logged complete until required GitHub workflows succeed.
 
 This plan does **not** reverse the CLI-entry-points recommendation that `rocci`
 and `rocdown` must not grow a plugin lifecycle for first-party format
@@ -662,9 +662,9 @@ Not in Phases 0–5:
 
 | Gate | Work |
 | --- | --- |
-| 3 | Product `run` defaults to `--no-window` when a browser session exists |
-| 4 | Author picker UI in Rocci instead of host HTML |
-| 5 | Native folder dialogs or a third-party plugin marketplace |
+| 3 | Product `run` defaults to `--no-window` when a browser session exists ([plan](browser-run-no-window.md)) |
+| 4 | Author picker UI in Rocci instead of host HTML ([plan](browser-picker-in-rocci.md)) |
+| 5 | Native folder dialogs or a third-party plugin marketplace ([plan](browser-folder-dialogs-and-plugins.md)) |
 | 6 | Built-in `site` / `docs` / `knowledge` in host source (forbidden; belongs in the repo-local file) |
 | — | Multi-window (one native window per target) |
 | — | Content-Length LSP framing, dlopen/Wasm adapters |
@@ -703,8 +703,7 @@ track for the research recommendation, not an approved schedule.
 
 ## Status
 
-Exploratory; no phase started. Phase 0 is this freeze. Implementation waits on
-gates 1–2 and an explicit request.
+Exploratory; Phase 0 freeze plus Phases 1–5 in this revision. Not CI-complete.
 
 [^research]: Recommended split: product-blind host, stdio adapters, registry, two-stage picker.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.

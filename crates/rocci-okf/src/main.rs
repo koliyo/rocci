@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use okf::InspectKind;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 
+mod browser;
 mod dev;
 mod inspect;
 mod presentation;
@@ -107,6 +108,8 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
     },
+    /// Speak the rocci-browser adapter protocol on stdio.
+    BrowserAdapter,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -370,6 +373,7 @@ fn main() -> Result<()> {
             drop(server);
             result
         }
+        Commands::BrowserAdapter => browser::run(),
     }
 }
 
@@ -377,6 +381,12 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
     use clap::Parser;
+
+    #[test]
+    fn browser_adapter_parses() {
+        let cli = Cli::try_parse_from(["rocci-okf", "browser-adapter"]).unwrap();
+        assert!(matches!(cli.command, Commands::BrowserAdapter));
+    }
 
     #[test]
     fn auto_preview_host_does_not_force_roc() {

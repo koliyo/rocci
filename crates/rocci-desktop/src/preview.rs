@@ -1,9 +1,12 @@
-use std::time::{Duration, Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use rocci_core::{Result, WindowConfig, WindowId};
 use tao::{
     event::{Event, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoopBuilder},
+    event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
     keyboard::ModifiersState,
     platform::run_return::EventLoopExtRunReturn,
 };
@@ -11,7 +14,7 @@ use wry::{PageLoadEvent, WebContext};
 
 use crate::{
     chrome,
-    events::{self, PreviewEvent, ShellEvent},
+    events::{self, PreviewEvent, PreviewSink, ShellEvent},
     history::{IpcMessage, NavCommand, NavHistory},
     menu::{self, MenuConfig},
     source, web_context_dir,
@@ -28,6 +31,9 @@ pub struct PreviewOptions {
     pub inspector_url: Option<String>,
     pub source_root: Option<std::path::PathBuf>,
     pub live_reload: bool,
+    pub extra_initialization_script: Option<String>,
+    pub on_ipc: Option<Arc<dyn Fn(&str, Arc<dyn PreviewSink>) + Send + Sync>>,
+    pub picker: bool,
 }
 
 impl Default for PreviewOptions {
@@ -43,7 +49,18 @@ impl Default for PreviewOptions {
             inspector_url: None,
             source_root: None,
             live_reload: true,
+            extra_initialization_script: None,
+            on_ipc: None,
+            picker: false,
         }
+    }
+}
+
+struct ProxySink(EventLoopProxy<ShellEvent>);
+
+impl PreviewSink for ProxySink {
+    fn send(&self, event: PreviewEvent) {
+        let _ = self.0.send_event(ShellEvent::Preview(event));
     }
 }
 
@@ -87,6 +104,17 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let ipc_proxy = proxy.clone();
     let load_proxy = proxy.clone();
     let title_proxy = proxy.clone();
+    let host_ipc = options.on_ipc.clone();
+    let host_sink: Arc<dyn PreviewSink> = Arc::new(ProxySink(proxy.clone()));
+    let mut init_script = chrome::initialization_script(
+        options.inspector_url.as_deref(),
+        options.source_root.is_some(),
+        options.live_reload,
+    );
+    if let Some(extra) = &options.extra_initialization_script {
+        init_script.push('\n');
+        init_script.push_str(extra);
+    }
     let live = LiveWindow::create(
         &event_loop,
         &template,
@@ -95,11 +123,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         context,
         options.devtools,
         WebViewHooks {
-            initialization_script: Some(chrome::initialization_script(
-                options.inspector_url.as_deref(),
-                options.source_root.is_some(),
-                options.live_reload,
-            )),
+            initialization_script: Some(init_script),
             ipc_handler: Some(Box::new(move |request| {
                 match IpcMessage::parse(request.body()) {
                     Some(IpcMessage::Nav(command)) => {
@@ -118,7 +142,11 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::LiveReload(enabled)));
                     }
-                    None => {}
+                    None => {
+                        if let Some(handler) = &host_ipc {
+                            handler(request.body(), host_sink.clone());
+                        }
+                    }
                 }
             })),
             on_page_load: Some(Box::new(move |event, url| {
@@ -144,6 +172,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             reload: true,
             live_reload_on: options.live_reload,
             devtools: options.devtools,
+            picker: options.picker,
         },
     )?;
     menu.attach(&live.window)?;
@@ -221,6 +250,8 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     apply_overlay(&live, chrome::FIND_USE_SELECTION_SCRIPT);
                 } else if menu::is(&menu_event, menu::GO_TO_FILE_ID) {
                     apply_overlay(&live, chrome::GOTO_OPEN_SCRIPT);
+                } else if menu::is(&menu_event, menu::OPEN_PICKER_ID) {
+                    apply_overlay(&live, chrome::PICKER_OPEN_SCRIPT);
                 } else if menu::is(&menu_event, menu::SELECT_ALL_ID) {
                     apply_overlay(&live, chrome::SELECT_ALL_SCRIPT);
                 }
@@ -245,6 +276,24 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 live.window.set_title(&next);
                 title = next;
                 sync_chrome(&live, &history, &title);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Navigate {
+                url,
+                title: next_title,
+                inspector_url,
+            })) => {
+                history.reset_origin(&url);
+                if let Err(error) = live.webview.load_url(&url) {
+                    tracing::error!(%error, "failed to load preview origin");
+                }
+                live.window.set_title(&next_title);
+                title = next_title;
+                if let Some(inspector) = inspector_url {
+                    apply_overlay(&live, &chrome::set_inspector_script(&inspector));
+                }
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Evaluate(script))) => {
+                apply_overlay(&live, &script);
             }
             _ => {}
         }

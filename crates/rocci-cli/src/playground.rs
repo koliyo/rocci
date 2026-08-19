@@ -532,6 +532,7 @@ pub fn run_playground_cli(
             inspector_url: None,
             source_root: None,
             live_reload: serve.live_reload(),
+            ..PreviewOptions::default()
         })
         .context("failed to open playground desktop preview window")?;
 
