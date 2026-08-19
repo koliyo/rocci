@@ -476,6 +476,23 @@ pub fn check(root: &Path) -> Result<CheckReport> {
     })
 }
 
+pub fn cdn_only_live_errors(site: &ResolvedSite) -> Vec<CatalogDiagnostic> {
+    site.pages
+        .iter()
+        .filter(|page| !page.draft && page.kind == PageKind::Live)
+        .map(|page| {
+            CatalogDiagnostic::error(
+                "RD2302",
+                &page.source_path,
+                format!(
+                    "CDN-only publish forbids live page `{}`; deploy the island service or remove `@on` / Datastar",
+                    page.id
+                ),
+            )
+        })
+        .collect()
+}
+
 pub fn test_examples(root: &Path, update: bool) -> Result<CheckReport> {
     let loaded = load_site(root)?;
     let result = resolve_loaded(&loaded);
@@ -518,7 +535,7 @@ pub fn inspect(root: &Path, kind: InspectKind, target: Option<&str>) -> Result<S
         InspectKind::Artifacts => {
             let result = resolve_loaded(&loaded);
             let planned = crate::plan::plan(&loaded.root, &loaded.config, &result.site)?;
-            Ok(serde_json::to_string_pretty(&planned.artifacts())?)
+            Ok(serde_json::to_string_pretty(&planned.publish_report())?)
         }
         _ => {
             let result = resolve_loaded(&loaded);
@@ -594,6 +611,8 @@ struct CatalogInspect<'a> {
     aliases: &'a [String],
     title: &'a str,
     kind: PageKind,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    datastar: bool,
     draft: bool,
     unlisted: bool,
 }
@@ -606,6 +625,7 @@ impl<'a> From<&'a ResolvedPage> for CatalogInspect<'a> {
             aliases: &page.aliases,
             title: &page.title,
             kind: page.kind,
+            datastar: page.kind == PageKind::Live,
             draft: page.draft,
             unlisted: page.unlisted,
         }
@@ -1028,6 +1048,23 @@ mod tests {
             .find(|page| page.id == "index")
             .unwrap();
         assert_eq!(home.kind, PageKind::Static);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn cdn_only_lists_live_pages_as_rd2302() {
+        let root = temp("cdn-only");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("counter.rocdown"),
+            "# Counter\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+        )
+        .unwrap();
+        let resolved = resolve_loaded(&load_site(&root).unwrap());
+        let errors = cdn_only_live_errors(&resolved.site);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "RD2302");
+        assert!(errors[0].message.contains("`counter`"), "{:?}", errors[0]);
         let _ = fs::remove_dir_all(root);
     }
 }

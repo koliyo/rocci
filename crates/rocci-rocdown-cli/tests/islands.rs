@@ -127,6 +127,10 @@ fn hybrid_cdn_html_and_island_post_morph() {
         String::from_utf8_lossy(&build.stderr),
         String::from_utf8_lossy(&build.stdout)
     );
+    let summary = String::from_utf8_lossy(&build.stdout);
+    assert!(summary.contains("live"), "{summary}");
+    assert!(summary.contains("datastar: yes"), "{summary}");
+    assert!(summary.contains("POST /actions/reveal/show"), "{summary}");
 
     let index = fs::read_to_string(output.join("index.html")).unwrap();
     assert!(index.contains("Prose stays Markdown."), "{index}");
@@ -139,6 +143,16 @@ fn hybrid_cdn_html_and_island_post_morph() {
     assert!(about.contains("static CDN HTML"), "{about}");
     assert!(!about.to_ascii_lowercase().contains("<script"), "{about}");
     assert!(!about.contains("/assets/datastar"), "{about}");
+    let islands: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(output.join("islands.json")).unwrap()).unwrap();
+    assert!(
+        islands["routes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|route| route["method"] == "POST" && route["path"] == "/actions/reveal/show"),
+        "{islands}"
+    );
     let _ = fs::remove_dir_all(&output);
 
     let port = rocci_cli::serve::free_port().unwrap();

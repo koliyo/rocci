@@ -207,8 +207,11 @@ Rocdown site builds accept the static Markdown tree plus `@page` and article
 blocks (`:note`, `:tabs`, and the other builtin kinds). They pre-render
 `hydrate` pages (`@component`, `@render`, document-root tags, `@css`, `@roc`)
 into CDN HTML. `@use` stays a site-build error. Pages with `@on` / `@context` /
-`@init` or `import Datastar` are `live` and are still rejected until the island
-service ships. Draft pages are excluded from production builds.
+`@init` or `import Datastar` are `live`: the CDN file includes initial island
+HTML and Datastar.js, and `rocdown serve-islands` runs the mutation service. See
+[Rocdown site configuration](/docs/reference/rocdown-site/) for the two-artifact
+publish, `service_origin`, and `--cdn-only`. Draft pages are excluded from
+production builds.
 
 The developer tree spec for owned article and module AST nodes is
 `crates/rocci-rocdown/Rocdown.AST.ungram`. It generates Rust types; it does not

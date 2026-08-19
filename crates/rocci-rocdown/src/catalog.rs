@@ -513,6 +513,7 @@ fn resolve_ref(
         || path == "/robots.txt"
         || path == "/llms.txt"
         || path == "/pages.json"
+        || path == "/islands.json"
         || path == "/404.html"
         || path.ends_with("/feed.xml")
         || path == "/feed.xml"

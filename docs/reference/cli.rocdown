@@ -136,12 +136,16 @@ Dev control opens a profiling panel at `/__rocci/dev`. `rocdown run` and
 ### Build documentation
 
 ```sh
-cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY]
+cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY] [--cdn-only]
 ```
 
 The default root is the current directory. `ROOT` may be a documentation
 directory or a `.rocdown` file. `rocdown.toml` is optional. `--output` overrides
-`build.output`. OKF knowledge records are refused here as well.
+`build.output`. OKF knowledge records are refused here as well. `--cdn-only`
+errors (`RD2302`) when any published page is `live`, so a CDN-only publish cannot
+ship Datastar actions without the island service. Default hybrid build accepts
+`live` pages and prints page kinds, whether Datastar was emitted, and service
+routes.
 
 Local `:img` and Markdown image paths resolve against the source file. Missing
 local files fail the catalog (`RD2103`). Files under `build.assets` are
@@ -171,6 +175,9 @@ files named by `expect`.
 cargo run -p rocci-rocdown-cli -- inspect ast FILE.rocdown
 cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
 ```
+
+`inspect artifacts` reports page kinds, Datastar emission, island service
+routes, and the planned output tree.
 
 ---
 

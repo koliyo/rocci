@@ -100,7 +100,57 @@ panels are stacked sections, not a JavaScript tablist.
 `base_url` must use HTTP or HTTPS. A trailing slash is normalized away.
 Empty `subtitle` and `footer` omit those chrome pieces. Leave `csp` empty to use
 the default policy: no scripts, no `unsafe-eval` or `unsafe-inline`, styles and
-images from `'self'`.
+images from `'self'`. `live` pages override that page's CSP so Datastar can load
+and connect to the island service.
+
+## HTTP fields
+
+Optional `[http]` configures the island service used by `live` pages.
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `service_origin` | Empty | Absolute origin for Datastar `connect-src` and `@post` URLs. Empty means same-origin (the operator reverse-proxies `/actions/` to the service). |
+| `service` | Empty | Sibling `.rocci` app to run instead of the generated island dispatcher. |
+
+`service_origin` must be empty or start with `http://` or `https://`. A trailing
+slash is normalized away.
+
+## Page kinds
+
+Each published page is one of:
+
+| Kind | Meaning | CDN | Datastar |
+| --- | --- | --- | --- |
+| `static` | Markdown / `@page` / `@docs` only | HTML and hashed assets | No |
+| `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) | Initial island HTML spliced at build | No |
+| `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
+
+`rocdown check` accepts all three. Default `rocdown build` accepts `live` and
+emits the island service manifest. `rocdown build --cdn-only` errors with
+`RD2302` when any published page is `live`, so a CDN publish cannot ship action
+buttons with no service.
+
+## Two-artifact publish
+
+A hybrid site emits:
+
+1. **CDN tree** — page HTML, hashed `/assets/` files, discovery files. `static`
+   and `hydrate` pages stay `script-src 'none'`. `live` pages include hashed
+   Datastar.js and a loosened CSP (`connect-src` is `'self'` or
+   `http.service_origin`).
+2. **Island service** — `rocdown serve-islands DIR` for colocated `@on`
+   handlers, or `rocci run` on `[http].service`. The CDN file is a snapshot; the
+   service owns durable state.
+
+A site with no `live` pages emits only (1). Start the service beside the static
+tree; do not serve Markdown from it.
+
+### Cache advice
+
+Hashed `/assets/*` files (theme CSS, images, Datastar.js) are content-addressed
+and can be cached indefinitely. HTML documents, `pages.json`, `islands.json`,
+`llms.txt`, `sitemap.xml`, and `robots.txt` should be revalidated: they name the
+current hashes and service routes. Do not treat `pages.json` as full-text search.
 
 ## Build fields
 
@@ -115,7 +165,8 @@ Local image paths resolve against the source file directory. Missing files fail
 emitted routes after catalog resolve, so a passing check implies a usable href.
 
 Rocdown writes into a staging directory and atomically replaces the output only
-after a successful build.
+after a successful build. A failed build leaves the previous output tree in
+place. Rebuilding with unchanged inputs produces byte-identical files.
 
 The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
 from every page, including sites with a project-local `theme/`. Project chrome
@@ -167,15 +218,25 @@ In addition to page HTML, a configured build emits hashed `/assets/` files, a
 themed `404.html`, alias redirect HTML, `llms.txt`, and `pages.json`. When
 `base_url` is set, it also emits `sitemap.xml` and `robots.txt`. `pages.json`
 is the page list used by preview go-to-file; it is not full-text site search.
+Each entry includes `kind` (`static`, `hydrate`, or `live`) and `datastar`
+when Datastar.js was emitted for that page.
 
-`rocdown inspect artifacts` lists the planned output tree, including hashed asset
-paths, without invoking Roc.
+Sites with `live` pages also emit `islands.json`: `service_origin`, the live
+page ids and routes, and the mutation routes the island service serves.
+
+`rocdown inspect artifacts` prints the publish report without invoking Roc:
+page kinds, whether Datastar was emitted, service origin and routes, and the
+planned output tree including hashed asset paths.
 
 Build this site's content from the repository root with:
 
 ```sh
 cargo run -p rocci-rocdown-cli -- build docs
 ```
+
+`docs/` is a `static` catalog. Hybrid fixtures such as
+`examples/rocdown-hybrid` emit CDN HTML plus `islands.json`; pass `--cdn-only`
+only when the publish has no island service.
 
 Preview with watch and live reload:
 
