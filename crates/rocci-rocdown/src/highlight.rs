@@ -27,6 +27,20 @@ pub fn highlight_rocdown_document(
     resolve_and_sort_spans(source, &raw_tokens)
 }
 
+fn is_atx_heading_sugar(src: &str, call: &BlockCall) -> bool {
+    crate::registry::heading_level(&call.name).is_some()
+        && !call.is_colon(src)
+        && src
+            .get(call.span.start as usize..)
+            .unwrap_or("")
+            .trim_start_matches([' ', '\t'])
+            .starts_with('#')
+}
+
+fn is_markdown_image_sugar(src: &str, call: &BlockCall) -> bool {
+    call.name == "img" && !call.is_colon(src) && !call.is_legacy_img(src)
+}
+
 pub fn collect_rocdown(
     src: &str,
     collector: &mut Vec<HighlightSpan>,
@@ -78,6 +92,8 @@ pub fn collect_rocdown(
             Item::Img(img) => {
                 collect_img(src, collector, img);
             }
+            Item::Block(call) if is_atx_heading_sugar(src, call) => {}
+            Item::Block(call) if is_markdown_image_sugar(src, call) => {}
             Item::Block(call) if call.is_legacy_img(src) => {
                 collect_img_block(src, collector, call);
             }
@@ -541,6 +557,8 @@ fn collect_rocdown_items(
                     10,
                 );
             }
+            Item::Block(call) if is_atx_heading_sugar(text, call) => {}
+            Item::Block(call) if is_markdown_image_sugar(text, call) => {}
             Item::Block(call) if call.is_legacy_img(text) => {
                 builder.add(
                     LanguageId::Markdown,

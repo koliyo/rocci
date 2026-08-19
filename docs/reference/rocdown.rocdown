@@ -41,7 +41,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 
 ## `@img` native images
 
-Use `@img` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand.
+Use `@img` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph that is only a Markdown image, and ATX headings, parse as the same internal `img` / `h1`–`h6` blocks as `:img` and `:h2`. Explicit `:h2[id: "install"]` keeps that id in the outline.
 
 Local `src` paths, including `./img/photo.png`, resolve against the source file
 directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /

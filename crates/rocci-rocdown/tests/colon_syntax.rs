@@ -340,3 +340,78 @@ fn img_bracket_params_parse() {
         .collect();
     assert_eq!(names, ["src", "alt"]);
 }
+
+#[test]
+fn atx_heading_inspects_as_block_h2() {
+    let src = "# Title\n\n## Install\n";
+    let parsed = parse_src(src);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(block h1)"), "{ast}");
+    assert!(ast.contains("(block h2)"), "{ast}");
+    assert!(!ast.contains("(h 1"), "{ast}");
+    assert!(!ast.contains("(h 2"), "{ast}");
+    let ids: Vec<_> = parsed.headings.iter().map(|h| h.id.as_str()).collect();
+    assert_eq!(ids, ["title", "install"]);
+}
+
+#[test]
+fn explicit_heading_id_wins_over_slug() {
+    let src = "\
+## Install
+
+:h2[id: \"from-source\"] Building from source
+";
+    let parsed = parse_src(src);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(block h2)"), "{ast}");
+    let ids: Vec<_> = parsed.headings.iter().map(|h| h.id.as_str()).collect();
+    assert_eq!(ids, ["install", "from-source"]);
+    let texts: Vec<_> = parsed.headings.iter().map(|h| h.text.as_str()).collect();
+    assert_eq!(texts, ["Install", "Building from source"]);
+}
+
+#[test]
+fn block_level_markdown_image_becomes_img_block() {
+    let src = "See ![inline](a.png) here.\n\n![Hero](hero.png)\n";
+    let parsed = parse_src(src);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(block img)"), "{ast}");
+    assert!(ast.contains("(p"), "{ast}");
+    let imgs: Vec<_> = parsed
+        .document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            rocci_rocdown::Item::Block(call) if call.name == "img" => Some(call),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(imgs.len(), 1);
+    let src_field = imgs[0]
+        .params
+        .as_ref()
+        .unwrap()
+        .fields
+        .iter()
+        .find(|field| field.name == "src")
+        .unwrap();
+    match &src_field.value {
+        rocci_rocdown::ParamValue::StringLit { value, .. } => assert_eq!(value, "hero.png"),
+        other => panic!("expected string src, got {other:?}"),
+    }
+}

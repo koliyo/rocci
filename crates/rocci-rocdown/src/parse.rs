@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use comrak::{Arena, Options, parse_document};
 use rocci_template::{
     Cursor, Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from,
@@ -5,8 +7,9 @@ use rocci_template::{
 };
 
 use crate::ast::{
-    BlockCall, BlockContent, BraceSection, DocsDecl, Document, EndMarker, EndSection, ImgDecl,
-    Item, LineContent, MdNode, PageDecl, RenderDecl, RocDecl,
+    BlockCall, BlockContent, BraceSection, BracketRecord, DocsDecl, Document, EndMarker,
+    EndSection, ImgDecl, Item, LineContent, MdNode, PageDecl, ParamField, ParamValue, RenderDecl,
+    RocDecl,
 };
 use crate::markdown::{self, BlockOrHole};
 use crate::params;
@@ -39,7 +42,10 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let mut items = Vec::new();
     for block in converted.blocks {
         match block {
-            BlockOrHole::Block(node) => items.push(Item::Markdown(node)),
+            BlockOrHole::Block(node) => match map_md_block_to_item(source.src, node) {
+                Some(item) => items.push(item),
+                None => {}
+            },
             BlockOrHole::Hole(index) => {
                 if let Some(decl) = scanned.get(index)
                     && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
@@ -57,10 +63,40 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     validate_colon_tree(source.src, &document.items, None, &mut diagnostics);
     validate_footnotes(source.src, &document, &mut diagnostics);
 
+    let mut headings = converted.headings;
+    let mut seen = headings
+        .iter()
+        .map(|h| (h.level, h.id.clone()))
+        .collect::<HashSet<_>>();
+    for item in &document.items {
+        let Item::Block(call) = item else {
+            continue;
+        };
+        if !call.is_colon(source.src) {
+            continue;
+        }
+        let Some(level) = crate::registry::heading_level(&call.name) else {
+            continue;
+        };
+        let Some(id) = heading_id_from_params(call) else {
+            continue;
+        };
+        if !seen.insert((level, id.clone())) {
+            continue;
+        }
+        let text = heading_text_from_call(source, call);
+        headings.push(crate::ast::HeadingInfo {
+            level,
+            id,
+            text,
+            span: call.span,
+        });
+    }
+
     ParseOutput {
         document,
         diagnostics,
-        headings: converted.headings,
+        headings,
         links: converted.links,
     }
 }
@@ -87,7 +123,7 @@ pub fn parse_markdown_body(
         .blocks
         .into_iter()
         .filter_map(|block| match block {
-            BlockOrHole::Block(node) => Some(Item::Markdown(node)),
+            BlockOrHole::Block(node) => map_md_block_to_item(source.src, node),
             BlockOrHole::Hole(_) => None,
         })
         .collect();
@@ -126,7 +162,10 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     let mut items = Vec::new();
     for block in converted.blocks {
         match block {
-            BlockOrHole::Block(node) => items.push(Item::Markdown(node)),
+            BlockOrHole::Block(node) => match map_md_block_to_item(source.src, node) {
+                Some(item) => items.push(item),
+                None => {}
+            },
             BlockOrHole::Hole(index) => {
                 if let Some(decl) = scanned.get(index)
                     && let Some(item) = fill_decl(source.src, decl, &mut diagnostics)
@@ -146,6 +185,143 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
         headings: converted.headings,
         links: converted.links,
     }
+}
+
+fn heading_id_from_params(call: &BlockCall) -> Option<String> {
+    let params = call.params.as_ref()?;
+    params
+        .fields
+        .iter()
+        .find(|field| field.name == "id")
+        .and_then(|field| match &field.value {
+            ParamValue::StringLit { value, .. } => Some(value.clone()),
+            ParamValue::Ident { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+}
+
+fn map_md_block_to_item(src: &str, node: MdNode) -> Option<Item> {
+    match node {
+        MdNode::Heading {
+            level,
+            id,
+            children,
+            span,
+            ..
+        } => {
+            let content_span = if children.is_empty() {
+                rocci_template::trim_span(src, Span::new(span.end as usize, span.end as usize))
+            } else {
+                let start = children
+                    .iter()
+                    .map(|child| child.span().start as usize)
+                    .min()
+                    .unwrap_or(span.start as usize);
+                let end = children
+                    .iter()
+                    .map(|child| child.span().end as usize)
+                    .max()
+                    .unwrap_or(span.end as usize);
+                rocci_template::trim_span(src, Span::new(start, end))
+            };
+            let params = Some(BracketRecord {
+                fields: vec![ParamField {
+                    name: "id".to_string(),
+                    name_span: span,
+                    value: ParamValue::StringLit {
+                        value: id,
+                        span: content_span,
+                    },
+                }],
+                span,
+            });
+            Some(Item::Block(BlockCall {
+                name: format!("h{level}"),
+                name_span: span,
+                params,
+                content: Some(BlockContent::Line(LineContent { span: content_span })),
+                span,
+            }))
+        }
+        MdNode::Paragraph { children, span } => {
+            if children.len() == 1 {
+                if let MdNode::Image {
+                    url,
+                    alt,
+                    title,
+                    span: image_span,
+                } = &children[0]
+                {
+                    let mut fields = vec![ParamField {
+                        name: "src".to_string(),
+                        name_span: *image_span,
+                        value: ParamValue::StringLit {
+                            value: url.clone(),
+                            span: *image_span,
+                        },
+                    }];
+                    if !title.is_empty() {
+                        fields.push(ParamField {
+                            name: "title".to_string(),
+                            name_span: *image_span,
+                            value: ParamValue::StringLit {
+                                value: title.clone(),
+                                span: *image_span,
+                            },
+                        });
+                    }
+                    if alt.is_empty() {
+                        fields.push(ParamField {
+                            name: "decorative".to_string(),
+                            name_span: *image_span,
+                            value: ParamValue::BoolLit {
+                                value: true,
+                                span: *image_span,
+                            },
+                        });
+                    } else {
+                        fields.push(ParamField {
+                            name: "alt".to_string(),
+                            name_span: *image_span,
+                            value: ParamValue::StringLit {
+                                value: alt.clone(),
+                                span: *image_span,
+                            },
+                        });
+                    }
+                    return Some(Item::Block(BlockCall {
+                        name: "img".to_string(),
+                        name_span: span,
+                        params: Some(BracketRecord { fields, span }),
+                        content: None,
+                        span,
+                    }));
+                }
+            }
+            Some(Item::Markdown(MdNode::Paragraph { children, span }))
+        }
+        other => Some(Item::Markdown(other)),
+    }
+}
+
+fn heading_text_from_call(source: SourceFile<'_>, call: &BlockCall) -> String {
+    let content = call
+        .content_span()
+        .unwrap_or_else(|| Span::point(call.span.end as usize));
+    if content.is_empty() {
+        return String::new();
+    }
+    let parsed = parse_fragment(source, content, false);
+    let mut parts = Vec::new();
+    for item in parsed.document.items {
+        if let Item::Markdown(md) = item {
+            let text = md.text_content();
+            if !text.is_empty() {
+                parts.push(text);
+            }
+        }
+    }
+    parts.join(" ").trim().to_string()
 }
 
 fn markdown_options(footnotes: bool, wikilinks: bool) -> Options<'static> {

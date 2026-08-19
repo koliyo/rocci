@@ -306,6 +306,14 @@ pub(crate) fn render_static_image(image: &crate::StaticImage) -> String {
     void_element("img", &attrs)
 }
 
+pub(crate) fn render_heading(tag: &str, class: &str, id: &str, children: &[String]) -> String {
+    element(
+        tag,
+        &[attribute("class", class), attribute("id", id)],
+        children,
+    )
+}
+
 fn render_all(children: &[MdNode]) -> Vec<String> {
     children.iter().map(render_md).collect()
 }
@@ -401,11 +409,14 @@ fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::docs::{IncludeOptions, load_page_docs, render_article};
     use crate::{CompileOptions, SourceFile, compile};
+    use std::path::Path;
 
     fn html(src: &str) -> String {
+        let source = SourceFile::new("test.rocdown", src);
         let out = compile(
-            SourceFile::new("test.rocdown", src),
+            source,
             &CompileOptions {
                 resolve_links: false,
                 ..CompileOptions::default()
@@ -413,7 +424,19 @@ mod tests {
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(is_static_document(&out.document).is_ok());
-        render_document(&out.document)
+        let mut diagnostics = Vec::new();
+        let docs = load_page_docs(
+            source,
+            &out.document,
+            "test.rocdown",
+            IncludeOptions {
+                root: Path::new("."),
+                snippet_roots: &[],
+            },
+            &mut diagnostics,
+        );
+        assert!(!diagnostics.iter().any(|d| d.is_error()), "{diagnostics:?}");
+        render_article(&docs.article)
     }
 
     #[test]
