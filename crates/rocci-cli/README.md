@@ -21,6 +21,9 @@ cargo run -p rocci-cli -- run examples/counter/Counter.rocci
 # Pause automatic page refresh (watch/rebuild still runs)
 cargo run -p rocci-cli -- run examples/counter/Counter.rocci --no-live-reload
 
+# Headless serve: append `?reload=0` to the printed URL to pause auto-refresh
+cargo run -p rocci-cli -- run examples/counter/Counter.rocci --no-window
+
 # Run an authored Roc application directory
 cargo run -p rocci-cli -- run examples/datastar
 

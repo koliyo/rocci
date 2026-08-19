@@ -41,6 +41,7 @@ impl PortArg {
 #[derive(Args, Clone, Copy, Debug)]
 pub struct ServeOptions {
     /// Skip the preview window; print the URL and keep the Roc server.
+    /// Open that URL with `?reload=0` to pause automatic page refresh.
     #[arg(long)]
     pub no_window: bool,
 
@@ -72,6 +73,10 @@ pub fn note_live_reload_paused(live_reload: bool) {
         eprintln!(
             "{}",
             crate::style::note("live reload paused; watch/rebuild still runs")
+        );
+        eprintln!(
+            "{}",
+            crate::style::note("in a browser, open the URL with ?reload=0")
         );
     }
 }
@@ -545,6 +550,24 @@ mod tests {
     fn clap_accepts_numeric_port() {
         let cli = ServeCli::try_parse_from(["rocci", "--port", "9001"]).unwrap();
         assert_eq!(cli.serve.port, PortArg::Exact(9001));
+    }
+
+    #[test]
+    fn no_window_help_mentions_reload_query() {
+        use clap::CommandFactory;
+        let cmd = ServeCli::command();
+        let arg = cmd
+            .get_arguments()
+            .find(|arg| arg.get_long() == Some("no-window"))
+            .expect("no-window");
+        let help = format!(
+            "{}{}",
+            arg.get_help().map(|h| h.to_string()).unwrap_or_default(),
+            arg.get_long_help()
+                .map(|h| h.to_string())
+                .unwrap_or_default()
+        );
+        assert!(help.contains("?reload=0"), "{help}");
     }
 
     #[test]

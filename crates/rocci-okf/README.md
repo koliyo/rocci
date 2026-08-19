@@ -65,7 +65,7 @@ cargo run -p rocci-okf -- run knowledge/plans/cli-entry-points.md
 # Turn git provenance (OKF4006/4007/4008) back on for preview
 cargo run -p rocci-okf -- run knowledge --provenance
 
-# Run headless (prints server URL)
+# Run headless (prints server URL). Append `?reload=0` to pause auto-refresh.
 cargo run -p rocci-okf -- run knowledge --no-window --port 8000
 
 # Pause automatic page refresh (watch/rebuild still runs)
