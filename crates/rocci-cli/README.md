@@ -18,6 +18,9 @@ cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 # Run a standalone template application with live reload and embedded preview
 cargo run -p rocci-cli -- run examples/counter/Counter.rocci
 
+# Pause automatic page refresh (watch/rebuild still runs)
+cargo run -p rocci-cli -- run examples/counter/Counter.rocci --no-live-reload
+
 # Run an authored Roc application directory
 cargo run -p rocci-cli -- run examples/datastar
 

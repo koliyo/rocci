@@ -320,6 +320,7 @@ where
 pub fn preview_static_site<F>(
     config: StaticDevServerConfig,
     no_window: bool,
+    live_reload: bool,
     state_key: Option<String>,
     rebuild: F,
 ) -> Result<()>
@@ -334,6 +335,7 @@ where
         LogLevel::Info,
         format!("{prefix}: serving {title} at {}", server.url),
     );
+    crate::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();
         return Ok(());
@@ -345,6 +347,7 @@ where
         width: 1200.0,
         height: 800.0,
         inspector_url: Some(server.inspector_url.clone()),
+        live_reload,
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));

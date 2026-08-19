@@ -17,9 +17,15 @@ use crate::runtime_assets;
 use crate::serve;
 use crate::style;
 
-pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) -> Result<()> {
+pub fn run(
+    file: &Path,
+    args: &[String],
+    no_window: bool,
+    port: serve::PortArg,
+    live_reload: bool,
+) -> Result<()> {
     if is_standalone_file(file) {
-        return run_standalone(file, args, no_window, port);
+        return run_standalone(file, args, no_window, port, live_reload);
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
@@ -30,6 +36,7 @@ pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) 
             &compiled.failures,
             port,
             no_window,
+            live_reload,
             &driver::window_title(&resolved),
         );
     }
@@ -37,6 +44,7 @@ pub fn run(file: &Path, args: &[String], no_window: bool, port: serve::PortArg) 
         &resolved,
         args,
         no_window,
+        live_reload,
         port,
         &compiled.maps,
         None,
@@ -153,6 +161,7 @@ fn run_standalone(
     args: &[String],
     no_window: bool,
     port: serve::PortArg,
+    live_reload: bool,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -175,7 +184,7 @@ fn run_standalone(
         .to_string();
     let plan = match plan_standalone(&path)? {
         (StandaloneReady::Failed(files), _, _) => {
-            return driver::serve_template_errors(&files, port, no_window, &title);
+            return driver::serve_template_errors(&files, port, no_window, live_reload, &title);
         }
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
@@ -183,6 +192,7 @@ fn run_standalone(
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
+        live_reload,
         port,
         db_path: None,
         title,
@@ -448,6 +458,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         state_key: Some(state_key),
         inspector_url: None,
         source_root: None,
+        live_reload: true,
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     let _ = child.kill();

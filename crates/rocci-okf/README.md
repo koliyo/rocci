@@ -67,6 +67,9 @@ cargo run -p rocci-okf -- run knowledge --provenance
 
 # Run headless (prints server URL)
 cargo run -p rocci-okf -- run knowledge --no-window --port 8000
+
+# Pause automatic page refresh (watch/rebuild still runs)
+cargo run -p rocci-okf -- run knowledge --no-live-reload
 ```
 
 `--profile base` is portable OKF, not the fast Rocci preview path. Use default

@@ -38,6 +38,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Pause automatic page refresh. Watch and rebuild still run.
+        #[arg(long)]
+        no_live_reload: bool,
         /// Run git provenance checks (OKF4006/4007/4008) during preview.
         /// Off by default; `check --profile rocci` still runs them.
         #[arg(long)]
@@ -324,10 +327,12 @@ fn main() -> Result<()> {
             profile,
             host,
             no_window,
+            no_live_reload,
             provenance,
             profile_report,
             port,
         } => {
+            let live_reload = !no_live_reload;
             let target = okf::resolve_preview_path(&path)?;
             let port = port.resolve()?;
             let server = dev::run_knowledge(
@@ -345,6 +350,7 @@ fn main() -> Result<()> {
                 rocci_cli::logs::LogLevel::Info,
                 format!("rocci-okf: serving {} at {}", server.title, server.url),
             );
+            rocci_cli::serve::note_live_reload_paused(live_reload);
             if no_window {
                 server.wait();
                 return Ok(());
@@ -356,6 +362,7 @@ fn main() -> Result<()> {
                 width: 1200.0,
                 height: 800.0,
                 inspector_url: Some(server.inspector_url.clone()),
+                live_reload,
                 ..rocci_desktop::PreviewOptions::default()
             })
             .map_err(|error| anyhow::anyhow!("{error}"));
@@ -368,6 +375,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::Parser;
 
     #[test]
     fn auto_preview_host_does_not_force_roc() {
@@ -380,5 +388,20 @@ mod tests {
             preview_host(HostArg::Wasm),
             Some(rocci_roc_host::HostChoice::Wasm)
         );
+    }
+
+    #[test]
+    fn run_accepts_no_live_reload() {
+        let cli =
+            Cli::try_parse_from(["rocci-okf", "run", "knowledge", "--no-live-reload"]).unwrap();
+        match cli.command {
+            Commands::Run { no_live_reload, .. } => assert!(no_live_reload),
+            _ => panic!("expected run"),
+        }
+        let cli = Cli::try_parse_from(["rocci-okf", "run", "knowledge"]).unwrap();
+        match cli.command {
+            Commands::Run { no_live_reload, .. } => assert!(!no_live_reload),
+            _ => panic!("expected run"),
+        }
     }
 }

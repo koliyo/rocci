@@ -33,6 +33,7 @@ pub struct MenuConfig<'a> {
     pub navigation: bool,
     pub search: bool,
     pub reload: bool,
+    pub live_reload_on: bool,
     pub devtools: bool,
 }
 
@@ -190,7 +191,13 @@ impl NativeMenu {
                 Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyR)),
             ))
             .map_err(menu_error)?;
-            let item = CheckMenuItem::with_id(LIVE_RELOAD_ID, "Live Reload", true, true, None);
+            let item = CheckMenuItem::with_id(
+                LIVE_RELOAD_ID,
+                "Live Reload",
+                true,
+                config.live_reload_on,
+                None,
+            );
             view.append(&item).map_err(menu_error)?;
             Some(item)
         } else {
@@ -329,6 +336,7 @@ mod tests {
             navigation,
             search,
             reload,
+            live_reload_on: true,
             devtools,
         }
     }

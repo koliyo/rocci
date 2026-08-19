@@ -22,7 +22,7 @@ cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
 
 # Run/preview a documentation site directory with watch and live reload.
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.
-cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window] [--no-live-reload]
 cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- run examples/rocdown-counter [--port 8000] [--no-window]
 

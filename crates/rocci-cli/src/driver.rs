@@ -110,6 +110,7 @@ pub struct ResolvedEntry {
 pub struct DriverOptions {
     pub args: Vec<String>,
     pub no_window: bool,
+    pub live_reload: bool,
     pub port: serve::PortArg,
     pub db_path: Option<PathBuf>,
     pub title: String,
@@ -147,6 +148,7 @@ pub fn execute_app_plan(
         &resolved,
         &options.args,
         options.no_window,
+        options.live_reload,
         options.port,
         db_path,
         &options.title,
@@ -248,6 +250,7 @@ pub fn execute_resolved_entry(
     resolved: &ResolvedEntry,
     args: &[String],
     no_window: bool,
+    live_reload: bool,
     port: serve::PortArg,
     maps: &[MappedModule],
     title: Option<&str>,
@@ -286,11 +289,14 @@ pub fn execute_resolved_entry(
                 &url,
                 title,
                 no_window,
+                live_reload,
                 Some(inspect),
                 None,
             )
         }
-        serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
+        serve::RocStart::Failed(output) => {
+            serve_roc_failure(&output, maps, port, no_window, live_reload, title)
+        }
     }
 }
 
@@ -312,11 +318,12 @@ pub fn serve_template_errors(
     files: &[FailedFile],
     port: serve::PortArg,
     no_window: bool,
+    live_reload: bool,
     title: &str,
 ) -> Result<()> {
     let html = error_page::render_template_errors(files);
     let port = port.resolve()?;
-    serve::serve_html(port, 500, &html, title, no_window)
+    serve::serve_html(port, 500, &html, title, no_window, live_reload)
 }
 
 pub fn serve_roc_failure(
@@ -324,10 +331,11 @@ pub fn serve_roc_failure(
     maps: &[MappedModule],
     port: u16,
     no_window: bool,
+    live_reload: bool,
     title: &str,
 ) -> Result<()> {
     let html = error_page::render_roc_compile_error(output, maps);
-    serve::serve_html(port, 500, &html, title, no_window)
+    serve::serve_html(port, 500, &html, title, no_window, live_reload)
 }
 
 pub fn window_title(resolved: &ResolvedEntry) -> String {
@@ -370,6 +378,7 @@ pub fn invoke_standalone(
     resolved: &ResolvedEntry,
     args: &[String],
     no_window: bool,
+    live_reload: bool,
     port: serve::PortArg,
     db_path: &Path,
     title: &str,
@@ -409,11 +418,14 @@ pub fn invoke_standalone(
                 &url,
                 title,
                 no_window,
+                live_reload,
                 Some(inspect),
                 state_key,
             )
         }
-        serve::RocStart::Failed(output) => serve_roc_failure(&output, maps, port, no_window, title),
+        serve::RocStart::Failed(output) => {
+            serve_roc_failure(&output, maps, port, no_window, live_reload, title)
+        }
     }
 }
 

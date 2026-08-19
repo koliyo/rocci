@@ -41,13 +41,22 @@ pub fn reveal_label() -> &'static str {
     }
 }
 
-pub fn initialization_script(inspector_url: Option<&str>, has_source_root: bool) -> String {
+pub fn initialization_script(
+    inspector_url: Option<&str>,
+    has_source_root: bool,
+    live_reload: bool,
+) -> String {
     let inspector = match inspector_url {
         Some(url) => json_string(url),
         None => "null".to_string(),
     };
+    let seed = if live_reload {
+        String::new()
+    } else {
+        "try{if(sessionStorage.getItem(\"rocci-live-reload\")===null)sessionStorage.setItem(\"rocci-live-reload\",\"0\")}catch(e){}\n".to_string()
+    };
     format!(
-        "{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{GOTO_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
+        "{seed}{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{GOTO_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
         json_string(PREVIEW_FIND_HTML.trim_end()),
@@ -90,7 +99,7 @@ mod tests {
 
     #[test]
     fn script_has_navigation_controls() {
-        let script = initialization_script(None, false);
+        let script = initialization_script(None, false, true);
         assert!(script.contains("window.ipc.postMessage"));
         assert!(script.contains("rocci-preview-nav"));
         assert!(script.contains("--rocci-chrome-top"));
@@ -142,6 +151,13 @@ mod tests {
         assert!(live_reload_set_script(true).contains("set(true)"));
         assert!(live_reload_set_script(false).contains("set(false)"));
         assert!(live_reload_set_script(false).contains("syncLiveReload"));
+        let paused = initialization_script(None, false, false);
+        assert!(paused.contains("sessionStorage.setItem(\"rocci-live-reload\",\"0\")"));
+        assert!(paused.contains("sessionStorage.getItem(\"rocci-live-reload\")===null"));
+        assert!(
+            !initialization_script(None, false, true)
+                .contains("sessionStorage.setItem(\"rocci-live-reload\",\"0\")")
+        );
         assert!(PREVIEW_NAV_CSS.contains("aria-pressed=\"true\""));
         assert!(PREVIEW_NAV_JS.contains("copy-source:"));
         assert!(PREVIEW_NAV_JS.contains("reveal:"));
@@ -174,21 +190,25 @@ mod tests {
         assert!(!PREVIEW_NAV_HTML.contains("Original source"));
         assert!(PREVIEW_NAV_JS.contains("overflow: visible"));
         assert!(PREVIEW_NAV_CSS.contains("overflow: visible"));
-        assert!(!initialization_script(None, false).contains("http://127.0.0.1"));
+        assert!(!initialization_script(None, false, true).contains("http://127.0.0.1"));
         assert!(
-            initialization_script(None, false).contains("const __ROCCI_HAS_SOURCE_ROOT__ = false")
+            initialization_script(None, false, true)
+                .contains("const __ROCCI_HAS_SOURCE_ROOT__ = false")
         );
         assert!(
-            initialization_script(None, true).contains("const __ROCCI_HAS_SOURCE_ROOT__ = true")
+            initialization_script(None, true, true)
+                .contains("const __ROCCI_HAS_SOURCE_ROOT__ = true")
         );
-        assert!(initialization_script(None, true).contains(reveal_label()));
-        let with_inspector = initialization_script(Some("http://127.0.0.1:9/__rocci/dev"), false);
+        assert!(initialization_script(None, true, true).contains(reveal_label()));
+        let with_inspector =
+            initialization_script(Some("http://127.0.0.1:9/__rocci/dev"), false, true);
         assert!(
             with_inspector
                 .contains(r#"const __ROCCI_INSPECTOR_URL__ = "http://127.0.0.1:9/__rocci/dev""#)
         );
         assert!(
-            initialization_script(None, false).contains("const __ROCCI_INSPECTOR_URL__ = null")
+            initialization_script(None, false, true)
+                .contains("const __ROCCI_INSPECTOR_URL__ = null")
         );
         let cargo = include_str!("../Cargo.toml");
         assert!(!cargo.contains("rocci-template"));
@@ -197,7 +217,7 @@ mod tests {
 
     #[test]
     fn script_has_find_and_goto_overlays() {
-        let script = initialization_script(None, false);
+        let script = initialization_script(None, false, true);
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_HTML__"));
         assert!(script.contains("const __ROCCI_PREVIEW_FIND_CSS__"));
         assert!(script.contains("rocci-preview-find"));
