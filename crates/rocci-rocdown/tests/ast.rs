@@ -87,6 +87,7 @@ fn ungram_article_call_productions_exist_as_rust_types() {
     for name in [
         "BlockCall",
         "BracketRecord",
+        "BracketList",
         "ParamField",
         "ParamValue",
         "BlockContent",

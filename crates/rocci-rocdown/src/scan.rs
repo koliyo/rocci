@@ -80,6 +80,8 @@ impl Reserved {
 pub enum ScannedKind {
     At(Reserved),
     Html,
+    Colon,
+    ColonEnd,
 }
 
 #[derive(Clone, Debug)]
@@ -159,6 +161,13 @@ pub fn scan(src: &str, diagnostics: &mut Vec<Diagnostic>) -> Vec<ScannedDecl> {
             quote_tight = false;
             continue;
         }
+        if let Some(decl) = try_scan_colon(src, line_start, diagnostics) {
+            pos = decl.end.max(next);
+            decls.push(decl);
+            list_tight = false;
+            quote_tight = false;
+            continue;
+        }
         if let Some(decl) = try_scan_html(src, line_start, diagnostics) {
             pos = decl.end.max(next);
             decls.push(decl);
@@ -227,6 +236,310 @@ fn try_scan_decl(
         at,
         end,
     })
+}
+
+fn try_scan_colon(
+    src: &str,
+    line_start: usize,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<ScannedDecl> {
+    let mut at = line_start;
+    while at < src.len() && matches!(src.as_bytes().get(at), Some(b' ' | b'\t')) {
+        at += 1;
+    }
+    if src.as_bytes().get(at) == Some(&b'\\') && src.as_bytes().get(at + 1) == Some(&b':') {
+        return None;
+    }
+    let Some(header) = colon_header_at(src, at) else {
+        return None;
+    };
+    if header.name == "end" {
+        if header.end_kind.is_none() {
+            diagnostics.push(Diagnostic::error(
+                header.name_span,
+                "`:end` requires a kind, such as `:end.tabs`",
+            ));
+        } else {
+            diagnostics.push(Diagnostic::error(
+                header.name_span,
+                format!(
+                    "unmatched `:end.{}`",
+                    header.end_kind.as_deref().unwrap_or("")
+                ),
+            ));
+        }
+        return Some(ScannedDecl {
+            kind: ScannedKind::ColonEnd,
+            line_start,
+            at: header.at,
+            end: line_end(src, line_start),
+        });
+    }
+
+    let mut pos = header.after_name;
+    let (after_params, mut extra) = skip_optional_params(src, pos);
+    diagnostics.append(&mut extra);
+    pos = after_params;
+
+    let mut cur = Cursor::at(src, pos);
+    cur.skip_spaces_tabs();
+    let end = if cur.starts_with("{{") {
+        skip_article_section(src, cur.pos, diagnostics)
+    } else if line_has_content(src, cur.pos) {
+        line_end(src, cur.pos)
+    } else if let Some(close) = find_end_closer(src, next_line(src, header.at), header.name) {
+        close
+    } else {
+        cur.pos.max(header.after_name)
+    };
+
+    Some(ScannedDecl {
+        kind: ScannedKind::Colon,
+        line_start,
+        at: header.at,
+        end,
+    })
+}
+
+struct ColonHeader<'a> {
+    at: usize,
+    name: &'a str,
+    name_span: Span,
+    after_name: usize,
+    end_kind: Option<&'a str>,
+}
+
+fn colon_header_at(src: &str, at: usize) -> Option<ColonHeader<'_>> {
+    if src.as_bytes().get(at) != Some(&b':') {
+        return None;
+    }
+    let mut cur = Cursor::at(src, at + 1);
+    if cur
+        .peek()
+        .is_some_and(|ch| ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
+    {
+        return None;
+    }
+    let Some(name_span) = cur.scan_tag_name() else {
+        return None;
+    };
+    let name = name_span.of(src);
+    let mut end_kind = None;
+    let mut after_name = cur.pos;
+    if name == "end" {
+        cur.skip_spaces_tabs();
+        if cur.eat('.') {
+            if let Some(kind_span) = cur.scan_tag_name() {
+                end_kind = Some(kind_span.of(src));
+                after_name = cur.pos;
+            }
+        }
+    }
+    Some(ColonHeader {
+        at,
+        name,
+        name_span,
+        after_name,
+        end_kind,
+    })
+}
+
+fn skip_optional_params(src: &str, start: usize) -> (usize, Vec<Diagnostic>) {
+    let mut cur = Cursor::at(src, start);
+    cur.skip_spaces_tabs();
+    if cur.peek() != Some('[') {
+        return (start, Vec::new());
+    }
+    skip_bracket_params(src, cur.pos)
+}
+
+fn skip_bracket_params(src: &str, start: usize) -> (usize, Vec<Diagnostic>) {
+    let mut cur = Cursor::at(src, start);
+    let mut diagnostics = Vec::new();
+    if !cur.eat('[') {
+        return (start, diagnostics);
+    }
+    let open = start;
+    let mut depth = 1;
+    while !cur.is_eof() && depth > 0 {
+        let before = cur.pos;
+        match cur.peek() {
+            Some('"') => cur.skip_string(),
+            Some('[') => {
+                cur.bump();
+                depth += 1;
+            }
+            Some(']') => {
+                cur.bump();
+                depth -= 1;
+            }
+            Some(_) => {
+                cur.bump();
+            }
+            None => break,
+        }
+        if cur.pos <= before {
+            cur.bump();
+        }
+    }
+    if depth > 0 {
+        diagnostics.push(Diagnostic::error(
+            Span::new(open, cur.pos),
+            "unterminated `[` params; expected `]`",
+        ));
+        if cur.pos <= open {
+            cur.bump();
+        }
+    }
+    (cur.pos, diagnostics)
+}
+
+pub(crate) fn skip_article_section(
+    src: &str,
+    start: usize,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> usize {
+    if !src.get(start..).is_some_and(|rest| rest.starts_with("{{")) {
+        return start;
+    }
+    let open = start;
+    let mut pos = start + 2;
+    let mut depth = 1;
+    let mut fence: Option<(u8, usize)> = None;
+    while pos < src.len() && depth > 0 {
+        let before = pos;
+        let nl = src[pos..].find('\n').map(|i| pos + i);
+        let line_end = nl.unwrap_or(src.len());
+        let line = &src[pos..line_end];
+        let next = nl.map(|i| i + 1).unwrap_or(src.len());
+
+        if let Some((ch, n)) = fence {
+            if is_fence_close(line, ch, n) {
+                fence = None;
+            }
+            pos = next.max(before + 1);
+            continue;
+        }
+
+        let stripped = skip_0_3_spaces(line);
+        if let Some(open_fence) = fence_open(stripped) {
+            fence = Some(open_fence);
+            pos = next.max(before + 1);
+            continue;
+        }
+
+        let mut i = 0;
+        let bytes = line.as_bytes();
+        while i < bytes.len() && depth > 0 {
+            if bytes[i] == b'{' && bytes.get(i + 1) == Some(&b'{') {
+                depth += 1;
+                i += 2;
+                continue;
+            }
+            if bytes[i] == b'}' && bytes.get(i + 1) == Some(&b'}') {
+                depth -= 1;
+                i += 2;
+                continue;
+            }
+            i += 1;
+        }
+        if depth == 0 {
+            pos += i;
+            break;
+        }
+        pos = next.max(before + 1);
+    }
+    if depth > 0 {
+        diagnostics.push(Diagnostic::error(
+            Span::new(open, pos),
+            "unterminated `{{` section; expected `}}`",
+        ));
+        if pos <= open {
+            pos = (open + 1).min(src.len());
+        }
+    }
+    pos
+}
+
+fn find_end_closer(src: &str, start: usize, kind: &str) -> Option<usize> {
+    let mut pos = start;
+    let mut depth = 1;
+    let mut fence: Option<(u8, usize)> = None;
+    while pos < src.len() && depth > 0 {
+        let before = pos;
+        let nl = src[pos..].find('\n').map(|i| pos + i);
+        let line_end_at = nl.unwrap_or(src.len());
+        let line = &src[pos..line_end_at];
+        let next = nl.map(|i| i + 1).unwrap_or(src.len());
+
+        if let Some((ch, n)) = fence {
+            if is_fence_close(line, ch, n) {
+                fence = None;
+            }
+            pos = next.max(before + 1);
+            continue;
+        }
+
+        let stripped = skip_0_3_spaces(line);
+        if let Some(open_fence) = fence_open(stripped) {
+            fence = Some(open_fence);
+            pos = next.max(before + 1);
+            continue;
+        }
+
+        if let Some(header) = line_colon_header(src, pos) {
+            if header.name == "end" {
+                if header.end_kind == Some(kind) {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(line_end_at);
+                    }
+                }
+            } else if header.name == kind && colon_opens_end_section(src, &header) {
+                depth += 1;
+            }
+        }
+        pos = next.max(before + 1);
+    }
+    None
+}
+
+fn line_colon_header(src: &str, line_start: usize) -> Option<ColonHeader<'_>> {
+    let mut at = line_start;
+    while at < src.len() && matches!(src.as_bytes().get(at), Some(b' ' | b'\t')) {
+        at += 1;
+    }
+    colon_header_at(src, at)
+}
+
+fn colon_opens_end_section(src: &str, header: &ColonHeader<'_>) -> bool {
+    if header.name == "end" {
+        return false;
+    }
+    let (after_params, _) = skip_optional_params(src, header.after_name);
+    let mut cur = Cursor::at(src, after_params);
+    cur.skip_spaces_tabs();
+    !cur.starts_with("{{") && !line_has_content(src, cur.pos)
+}
+
+fn line_has_content(src: &str, pos: usize) -> bool {
+    let rest = src.get(pos..).unwrap_or("");
+    let line = rest.split('\n').next().unwrap_or(rest);
+    line.chars().any(|ch| !ch.is_whitespace())
+}
+
+fn line_end(src: &str, pos: usize) -> usize {
+    match src[pos.min(src.len())..].find('\n') {
+        Some(i) => pos + i,
+        None => src.len(),
+    }
+}
+
+fn next_line(src: &str, pos: usize) -> usize {
+    match src[pos.min(src.len())..].find('\n') {
+        Some(i) => pos + i + 1,
+        None => src.len(),
+    }
 }
 
 fn try_scan_html(
@@ -578,6 +891,15 @@ pub fn scan_range(
             quote_tight = false;
             continue;
         }
+        if let Some(decl) = try_scan_colon(src, line_start, diagnostics) {
+            pos = decl.end.max(next).min(end);
+            if decl.at < end {
+                decls.push(decl);
+            }
+            list_tight = false;
+            quote_tight = false;
+            continue;
+        }
         if let Some(decl) = try_scan_html(src, line_start, diagnostics) {
             pos = decl.end.max(next).min(end);
             if decl.at < end {
@@ -595,4 +917,37 @@ pub fn scan_range(
     }
 
     decls
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rocci_template::Diagnostic;
+
+    #[test]
+    fn skip_article_section_ignores_braces_inside_fences() {
+        let src = "{{ \n```roc\npair = { a: 1, b: 2 }\n```\n}}\n";
+        let mut diagnostics = Vec::new();
+        let end = skip_article_section(src, 0, &mut diagnostics);
+        assert!(
+            diagnostics.iter().all(|d| !Diagnostic::is_error(d)),
+            "{diagnostics:?}"
+        );
+        assert!(src[..end].ends_with("}}"));
+    }
+
+    #[test]
+    fn skip_article_section_advances_on_unclosed_input() {
+        let src = "{{ still open";
+        let mut diagnostics = Vec::new();
+        let end = skip_article_section(src, 0, &mut diagnostics);
+        assert!(end > 0);
+        assert_eq!(end, src.len());
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| d.message.contains("unterminated `{{`")),
+            "{diagnostics:?}"
+        );
+    }
 }

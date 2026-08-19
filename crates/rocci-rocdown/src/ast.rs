@@ -102,6 +102,13 @@ impl BlockCall {
                 .starts_with("@img")
     }
 
+    pub fn is_colon(&self, src: &str) -> bool {
+        self.span
+            .of(src)
+            .trim_start_matches([' ', '\t'])
+            .starts_with(':')
+    }
+
     pub fn payload_span(&self) -> Span {
         let start = self
             .params

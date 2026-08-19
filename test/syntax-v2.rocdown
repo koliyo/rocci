@@ -1,0 +1,77 @@
+@page {
+    route: "/guides/syntax-v2/",
+    meta: {
+        title: "Rocdown blocks",
+        description: "v2 spelling: : prefix, bracket params, {{ }} bodies",
+    },
+}
+
+# Rocdown blocks
+
+Ordinary prose stays Markdown. Email docs@example.com or mention @roclang.
+A line-start `:note` is a block; a colon in a sentence is not. `@page` stays Roc.
+
+:note Do not paste raw HTML into Markdown. Use a block when the page needs structure beyond CommonMark.
+
+:h2 Installing
+
+Markdown `#` / `##` is the usual heading. `:h2` is the same node when you want
+an explicit block, including optional params:
+
+:h2[id: "from-source"] Building from source
+
+Check the catalog without compiling Roc:
+
+```sh
+cargo run -p rocci-rocdown-cli -- check site
+```
+
+:caution[title: "Unstable"] This spelling is research-only. The shipped parser still wants `@docs caution`.
+
+:note[title: "Static pages"] {{
+    Rocdown accepts these blocks next to Markdown and `@page`.
+
+    `@render`, `@roc`, and other islands still require `rocdown run` / `rocci run`.
+}}
+
+:steps {{
+    :step[title: "Write a block"] Start a document-root line with `:` and the kind name.
+    :step[title: "Prefer the rest of the line"] One-line content does not need braces. Headings already work this way.
+    :step[title: "Wrap nested document"] {{
+        Use `{{ ... }}` when the body has paragraphs, fences, or nested blocks.
+
+        :tip Line-scope still works inside a wrapped body.
+    }}
+}}
+
+:tabs[group: "install", kind: "tool"] {{
+    :tab[id: "cli", label: "CLI"] {{
+        ```sh
+        cargo run -p rocci-rocdown-cli -- check site
+        ```
+    }}
+    :tab[id: "test", label: "Examples"] {{
+        ```sh
+        cargo run -p rocci-rocdown-cli -- test site
+        ```
+    }}
+}}
+
+:tabs[group: "languages", kind: "language"]
+    :tab[id: "roc", label: "Roc"] {{
+        Roc tab. A `}` in this fence must not close the tab:
+
+        ```roc
+        pair = { a: 1, b: 2 }
+        ```
+    }}
+    :tab[id: "rust", label: "Rust"] {{
+        Rust tab.
+    }}
+:end.tabs
+
+:figure[caption: "A banana", credit: "Rocci fixtures"] {{
+    :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+}}
+
+:badge[label: "preview", tone: "preview"]

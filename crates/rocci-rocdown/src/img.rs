@@ -171,13 +171,17 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
     let mut fields = ImgFields::default();
     let mut cur = Cursor::at(src, body.start as usize);
     let end = body.end as usize;
+    cur.skip_trivia();
+    if cur.peek() == Some('[') {
+        cur.bump();
+    }
 
     while cur.pos < end && !cur.is_eof() {
         cur.skip_trivia();
         if cur.pos >= end {
             break;
         }
-        if cur.peek() == Some(',') {
+        if matches!(cur.peek(), Some(',' | ']')) {
             cur.bump();
             continue;
         }

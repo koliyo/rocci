@@ -14,6 +14,7 @@ mod lower;
 pub mod lsp;
 mod markdown;
 mod page;
+mod params;
 mod parse;
 mod plan;
 mod pprint;
