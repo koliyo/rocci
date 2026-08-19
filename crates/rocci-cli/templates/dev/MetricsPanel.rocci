@@ -6,7 +6,7 @@ MetricsSpan : {
     note : [Some Str, None],
 }
 
-@component MetricsPanel = |{ total_ms, spans, route, path, view, body, available, reason }| {
+@component MetricsPanel = |{ total_ms, spans, route, tab, path, view, body, available, reason }| {
     <section class="metrics-panel">
         <h1>Profiling</h1>
         <p class="total">
@@ -40,48 +40,53 @@ MetricsSpan : {
                 </tbody>
             </table>
         }
-        <form class="source-form" method="get" action="/__rocci/dev">
-            <input type="hidden" name="route" value={route} />
-            <label class="view-label">
-                View
-                <select name="view" onchange="this.form.submit()">
-                    @if view == "source" {
-                        <option value="source" selected="">Original source</option>
-                    } @else {
-                        <option value="source">Original source</option>
-                    }
-                    @if view == "ast" {
-                        <option value="ast" selected="">AST</option>
-                    } @else {
-                        <option value="ast">AST</option>
-                    }
-                    @if view == "roc" {
-                        <option value="roc" selected="">Generated Roc</option>
-                    } @else {
-                        <option value="roc">Generated Roc</option>
-                    }
-                    @if view == "html" {
-                        <option value="html" selected="">Generated HTML</option>
-                    } @else {
-                        <option value="html">Generated HTML</option>
-                    }
-                </select>
-            </label>
-            <noscript>
-                <button type="submit">Show</button>
-            </noscript>
-        </form>
-        <p class="file-path">{path}</p>
-        @if available {
-            <pre><code>{body}</code></pre>
-        } @else {
-            <p class="unavailable">{reason}</p>
-            <pre><code></code></pre>
-        }
+        <div class="source-chrome">
+            <form class="source-form" method="get" action="/__rocci/dev">
+                <input type="hidden" name="route" value={route} />
+                <input type="hidden" name="tab" value={tab} />
+                <label class="view-label">
+                    View
+                    <select name="view" onchange="this.form.submit()">
+                        @if view == "source" {
+                            <option value="source" selected="">Original source</option>
+                        } @else {
+                            <option value="source">Original source</option>
+                        }
+                        @if view == "ast" {
+                            <option value="ast" selected="">AST</option>
+                        } @else {
+                            <option value="ast">AST</option>
+                        }
+                        @if view == "roc" {
+                            <option value="roc" selected="">Generated Roc</option>
+                        } @else {
+                            <option value="roc">Generated Roc</option>
+                        }
+                        @if view == "html" {
+                            <option value="html" selected="">Generated HTML</option>
+                        } @else {
+                            <option value="html">Generated HTML</option>
+                        }
+                    </select>
+                </label>
+                <noscript>
+                    <button type="submit">Show</button>
+                </noscript>
+            </form>
+            <p class="file-path">{path}</p>
+            @if !available {
+                <p class="unavailable">{reason}</p>
+            }
+        </div>
+        <div class="code-pane">
+            @if available {
+                <pre><code>{body}</code></pre>
+            }
+        </div>
     </section>
 }
 
-@component MetricsPage = |{ total_ms, spans, route, path, view, body, available, reason }|
+@component MetricsPage = |{ total_ms, spans, route, tab, path, view, body, available, reason }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -94,6 +99,7 @@ MetricsSpan : {
                 total_ms={total_ms}
                 spans={spans}
                 route={route}
+                tab={tab}
                 path={path}
                 view={view}
                 body={body}
@@ -112,6 +118,7 @@ samplePanel = {
         { name: "compile", duration_ms: 37, note: Some("cached") },
     ],
     route: "/",
+    tab: "performance",
     path: "App.rocci",
     view: "source",
     body: "<div class=\"x\">ok</div>",
@@ -128,6 +135,7 @@ samplePage = {
         { name: "compile", duration_ms: 37, note: Some("cached") },
     ],
     route: "/",
+    tab: "performance",
     path: "App.rocci",
     view: "source",
     body: "<div class=\"x\">ok</div>",
@@ -139,15 +147,36 @@ samplePage = {
     * { box-sizing: border-box; }
     html, body {
         margin: 0;
-        min-height: 100%;
+        height: 100%;
+        overflow: hidden;
         background: light-dark(#f7f7f8, #21252b);
         color: light-dark(#18181b, #d7dae0);
         font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     }
     .metrics-panel {
+        box-sizing: border-box;
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
         padding: 16px 14px 20px;
         font-size: 13px;
         line-height: 1.4;
+    }
+    .source-chrome {
+        flex: 0 0 auto;
+    }
+    .metrics-panel > h1,
+    .metrics-panel > .total,
+    .metrics-panel > .empty,
+    .metrics-panel > table {
+        flex: 0 0 auto;
+    }
+    .code-pane {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
     }
     .metrics-panel h1 {
         margin: 0 0 8px;
@@ -241,7 +270,7 @@ samplePage = {
     pre {
         margin: 0;
         padding: 10px 12px;
-        overflow-x: auto;
+        overflow: visible;
         background: light-dark(#ececee, #15181e);
         border-radius: 6px;
         font-family: ui-monospace, Menlo, Consolas, monospace;

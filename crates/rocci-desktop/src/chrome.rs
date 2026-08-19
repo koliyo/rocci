@@ -130,9 +130,15 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
         assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
         assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev)"));
-        assert!(PREVIEW_NAV_JS.contains("searchParams.set(\"route\""));
-        assert!(PREVIEW_NAV_JS.contains("searchParams.set(\"view\""));
+        assert!(PREVIEW_NAV_JS.contains("params.set(\"tab\""));
+        assert!(PREVIEW_NAV_JS.contains("params.set(\"route\""));
+        assert!(PREVIEW_NAV_JS.contains("params.set(\"view\""));
         assert!(PREVIEW_NAV_JS.contains("rocci-dev-view"));
+        assert!(PREVIEW_NAV_JS.contains("rocci-dev-tab"));
+        assert!(PREVIEW_NAV_JS.contains("addEventListener(\"message\""));
+        assert!(PREVIEW_NAV_JS.contains("rocci-inspector"));
+        assert!(PREVIEW_NAV_JS.contains("tuplesEqual"));
+        assert!(!PREVIEW_NAV_JS.contains("frame.src !== next"));
         assert!(PREVIEW_NAV_JS.contains("width: 28rem"));
         assert!(!PREVIEW_NAV_JS.contains("width: 320px"));
         assert!(!PREVIEW_NAV_HTML.contains("<select"));
