@@ -165,10 +165,10 @@ fn fenced_braces_inside_section_are_opaque() {
 #[test]
 fn nested_tabs_with_named_closer() {
     let src = "\
-:tabs[group: \"os\", kind: \"tool\"]
+:tabs.begin[group: \"os\", kind: \"tool\"]
     :tab[id: \"mac\", label: \"macOS\"] Hello mac.
     :tab[id: \"win\", label: \"Windows\"] Hello win.
-:end.tabs
+:tabs.end
 ";
     let parsed = parse_src(src);
     assert!(
@@ -218,15 +218,16 @@ fn unclosed_section_is_an_error() {
 #[test]
 fn mismatched_end_kind_is_an_error() {
     let src = "\
-:tabs[group: \"os\", kind: \"tool\"]
+:tabs.begin[group: \"os\", kind: \"tool\"]
     :tab[id: \"mac\", label: \"macOS\"] Hello.
-:end.foo
+:foo.end
 ";
     let parsed = parse_src(src);
     let errs = error_messages(&parsed);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains(":end.foo") || msg.contains("unmatched")),
+            .any(|msg| msg.contains("unclosed `:tabs.begin`")
+                || msg.contains("unmatched `:foo.end`")),
         "{errs:?}"
     );
 }
@@ -236,7 +237,7 @@ fn end_inside_fence_is_not_a_closer() {
     let src = "\
 :note {{
     ```text
-    :end.note
+    :note.end
     ```
 }}
 ";
@@ -256,20 +257,74 @@ fn end_inside_fence_is_not_a_closer() {
             _ => None,
         })
         .unwrap();
-    assert!(note.content_span().unwrap().of(src).contains(":end.note"));
+    assert!(note.content_span().unwrap().of(src).contains(":note.end"));
 }
 
 #[test]
-fn bare_end_is_an_error_and_not_a_block() {
+fn leftover_end_dot_kind_is_a_removal_error() {
+    let src = ":end.tabs\n";
+    let parsed = parse_src(src);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`:end.tabs` was removed") && msg.contains("`:tabs.end`")),
+        "{errs:?}"
+    );
+    assert!(block_names(&parsed).is_empty());
+}
+
+#[test]
+fn leftover_bare_end_is_a_removal_error() {
     let src = ":end\n";
     let parsed = parse_src(src);
     let errs = error_messages(&parsed);
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("`:end` requires a kind")),
+            .any(|msg| msg.contains("`:end` was removed") && msg.contains("`:kind.end`")),
         "{errs:?}"
     );
     assert!(block_names(&parsed).is_empty());
+}
+
+#[test]
+fn begin_cannot_mix_with_double_braces() {
+    let src = "\
+:tabs.begin[group: \"os\", kind: \"tool\"] {{
+    :tab[id: \"mac\", label: \"macOS\"] Hello.
+}}
+";
+    let parsed = parse_src(src);
+    let errs = error_messages(&parsed);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("cannot mix with a double-brace body")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn brace_form_does_not_use_named_closer() {
+    let src = "\
+:tabs[group: \"os\", kind: \"tool\"] {{
+    :tab[id: \"mac\", label: \"macOS\"] Hello.
+}}
+";
+    let parsed = parse_src(src);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let tabs = parsed
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            rocci_rocdown::Item::Block(call) if call.name == "tabs" => Some(call),
+            _ => None,
+        })
+        .unwrap();
+    assert!(matches!(tabs.content, Some(BlockContent::Brace(_))));
 }
 
 #[test]
@@ -436,10 +491,10 @@ fn format_ast_shows_params_and_content_scope() {
 Nested section body.
 }}
 
-:tabs[group: \"os\", kind: \"platform\"]
+:tabs.begin[group: \"os\", kind: \"platform\"]
     :tab[id: \"mac\", label: \"macOS\"] Mac panel.
     :tab[id: \"linux\", label: \"Linux\"] Linux panel.
-:end.tabs
+:tabs.end
 
 :img[src: \"./x.png\", alt: \"x\"]
 ";
@@ -463,9 +518,9 @@ Nested section body.
 #[test]
 fn end_marker_is_highlighted() {
     let src = "\
-:tabs[group: \"os\", kind: \"platform\"]
+:tabs.begin[group: \"os\", kind: \"platform\"]
     :tab[id: \"a\", label: \"A\"] A.
-:end.tabs
+:tabs.end
 ";
     let spans = highlight_rocdown(src);
     let closer: Vec<_> = spans
@@ -474,7 +529,7 @@ fn end_marker_is_highlighted() {
         .collect();
     assert!(
         closer.iter().any(|(text, kind)| {
-            *text == ":end.tabs" && *kind == rocci_highlight::HighlightKind::Keyword
+            *text == ":tabs.end" && *kind == rocci_highlight::HighlightKind::Keyword
         }),
         "{closer:?}"
     );

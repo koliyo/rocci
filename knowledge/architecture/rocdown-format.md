@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -57,11 +57,15 @@ sources:
 
 ## Current contract
 
-A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, rendered Roc expressions, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, the `@docs` documentation-component family, `@img`, and document-root HTML islands.[^rocdown-readme][^parser]
+A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, rendered Roc expressions, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, line-start `:kind` article blocks (`:note`, `:img`, `:tabs`, …), and document-root HTML islands.[^rocdown-readme][^parser]
+
+Article blocks use `:kind[params]`. Content is line-scope, a `{{ }}` section, or `:kind.begin` ... `:kind.end`. A call uses one delimiter, not both. Line-start `:end.kind` is a removal diagnostic naming `:kind.end`.[^rocdown-readme][^parser]
+
+Article widgets have no family prefix. A short-lived experimental `@docs` / `@img` family is **removed** and is not a live syntax, alias, compatibility window, or design analogy. Line-start `@docs` and `@img` remain only as removal diagnostics that name `:note` and `:img[...]`.[^rocdown-readme][^parser]
 
 Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, footnotes, and Rocdown page-link forms. Raw inline HTML is disabled by default. Ordinary compilation and the OKF adapter share footnote parsing; OKF still validates keyed `sources[].id` separately.[^rocdown-readme][^parser][^compiler-tests]
 
-`@img` requires `alt` unless `decorative: Bool.true`. Nested `@img` inside `@docs figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
+`:img` requires `alt` unless `decorative: Bool.true`. Nested `:img` inside `:figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
 
 The standalone compiler lowers documents to ordinary Roc exports for metadata, content, and the page shell. It does not type-check Roc or run the server itself.[^rocdown-readme]
 
@@ -81,7 +85,7 @@ This is the implemented form of the [Markdown-first explicit-islands decision](/
 
 ## Not yet implemented
 
-`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions (admonitions, definition lists, math, automatic TOC) are not part of ordinary Rocdown today. `@docs api-operation` is parsed and rejected by Rocdown until generated API reference ships. Multi-page static generation and hashed assets are owned by Rocdown (`rocci-rocdown`); standalone preview copies local images without hashing.[^rocdown-readme]
+`@island`, a formatter, content collections, near-miss directive warnings, and several proposed Markdown extensions (admonitions, definition lists, math, automatic TOC) are not part of ordinary Rocdown today. `:api-operation` is a reserved article kind that Rocdown rejects until generated API reference ships. Multi-page static generation and hashed assets are owned by Rocdown (`rocci-rocdown`); standalone preview copies local images without hashing.[^rocdown-readme]
 
 ## Evidence policy
 

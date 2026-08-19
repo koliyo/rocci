@@ -10,12 +10,12 @@
 
 Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a small desktop host. This site is the working tree for public docs: add pages under `site/`, keep chrome in `site/theme/`, and preview with `rocdown run site`.
 
-:card-grid
+:card-grid.begin
     :link-card[page: "docs/getting-started/overview", title: "Getting started", summary: "Install the CLI and learn the four layers."]
     :link-card[page: "rocdown/index", title: "Rocdown", summary: "Markdown-first documents and static sites."]
     :link-card[page: "news/index", title: "News", summary: "Announcements and project updates."]
     :link-card[page: "project/index", title: "Project", summary: "Status, roadmap, and how to contribute."]
-:end.card-grid
+:card-grid.end
 
 ## A component in `.rocci`
 

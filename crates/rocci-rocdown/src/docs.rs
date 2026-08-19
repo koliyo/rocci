@@ -2197,7 +2197,7 @@ mod tests {
     #[test]
     fn tabs_project_all_panels_and_omit_outline_headings() {
         let (docs, diagnostics) = load(
-            "# Guide\n\n:tabs[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] {{\n        ## Inside\n\n        Mac panel.\n    }}\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:end.tabs\n",
+            "# Guide\n\n:tabs.begin[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] {{\n        ## Inside\n\n        Mac panel.\n    }}\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:tabs.end\n",
         );
         assert!(
             !diagnostics.iter().any(CatalogDiagnostic::is_error),

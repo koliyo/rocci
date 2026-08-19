@@ -57,7 +57,7 @@ cargo run -p rocci-rocdown-cli -- check site
     }}
 }}
 
-:tabs[group: "languages", kind: "language"]
+:tabs.begin[group: "languages", kind: "language"]
     :tab[id: "roc", label: "Roc"] {{
         Roc tab. A `}` in this fence must not close the tab:
 
@@ -68,7 +68,7 @@ cargo run -p rocci-rocdown-cli -- check site
     :tab[id: "rust", label: "Rust"] {{
         Rust tab.
     }}
-:end.tabs
+:tabs.end
 
 :figure[caption: "A banana", credit: "Rocci fixtures"] {{
     :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]

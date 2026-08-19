@@ -77,21 +77,21 @@ Rejected mixed form (today's `@docs` body): params and Markdown in one `{ }`.
 
 ## Alternative: named closer for long or brace-heavy bodies
 
-The closer follows the article prefix (`:end`). It is not `@end` and not a
-`%` fence.
+The closer is `:kind.end`. Open with `:kind.begin`. It is not `@end`, not
+`:end.kind`, and not a `%` fence.
 
-:tabs[group: "languages", kind: "language"]
+:tabs.begin[group: "languages", kind: "language"]
     :tab[id: "roc", label: "Roc"]
         Roc tab. Closing is a line-start marker, not a brace count.
 
         ```roc
         pair = { a: 1, b: 2 }
         ```
-    :end.tab
+    :tab.end
     :tab[id: "rust", label: "Rust"]
         Rust tab.
-    :end.tab
-:end.tabs
+    :tab.end
+:tabs.end
 
 ## Not recommended: single `{ }` mixing fields and nested `{{ }}`
 

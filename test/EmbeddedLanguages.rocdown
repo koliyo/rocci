@@ -84,7 +84,7 @@ Inline code looks like `Num.toStr(42)`. You can also visit [External Link](https
 This is the content of the note. It supports *Markdown* and `inline code`.
 }}
 
-:tabs[group: "platform", kind: "platform"]
+:tabs.begin[group: "platform", kind: "platform"]
     :tab[id: "mac", label: "macOS 🍎"] {{
 Run on macOS:
 
@@ -99,7 +99,7 @@ Run on Linux:
 cargo run -- linux
 ```
     }}
-:end.tabs
+:tabs.end
 
 :include[path: "AllSyntax.rocci", language: "rocci"]
 

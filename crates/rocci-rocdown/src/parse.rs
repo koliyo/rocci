@@ -498,14 +498,21 @@ fn parse_colon_call(
     if !cur.eat(':') {
         return None;
     }
-    let Some(name_span) = cur.scan_tag_name() else {
-        diagnostics.push(Diagnostic::error(
-            Span::point(cur.pos),
-            "expected a block kind after `:`",
-        ));
-        return None;
+    let name_span = {
+        let Some(span) = cur.scan_tag_name() else {
+            diagnostics.push(Diagnostic::error(
+                Span::point(cur.pos),
+                "expected a block kind after `:`",
+            ));
+            return None;
+        };
+        span
     };
     let name = name_span.of(src).to_string();
+    if cur.peek() == Some('.') {
+        cur.bump();
+        let _suffix = cur.scan_tag_name();
+    }
     let (params, after_params) = params::parse_article_params(src, cur.pos, diagnostics);
     cur.pos = after_params;
     cur.skip_spaces_tabs();
@@ -521,7 +528,7 @@ fn parse_colon_call(
             span: rocci_template::trim_span(src, Span::new(inner_start, inner_end)),
         }))
     } else if line_has_non_ws(src, cur.pos) {
-        let end = line_end_at(src, cur.pos);
+        let end = line_end_at(src, decl.at.max(cur.pos));
         Some(BlockContent::Line(LineContent {
             span: rocci_template::trim_span(src, Span::new(cur.pos, end)),
         }))
@@ -582,18 +589,17 @@ fn end_marker_at(src: &str, end: usize) -> Option<EndMarker> {
     if !cur.eat(':') {
         return None;
     }
-    let end_span = cur.scan_tag_name()?;
-    if end_span.of(src) != "end" {
-        return None;
-    }
-    cur.skip_spaces_tabs();
+    let kind_span = cur.scan_tag_name()?;
     if !cur.eat('.') {
         return None;
     }
-    let kind_span = cur.scan_tag_name()?;
+    let end_word = cur.scan_tag_name()?;
+    if end_word.of(src) != "end" {
+        return None;
+    }
     Some(EndMarker {
         name: kind_span.of(src).to_string(),
-        span: Span::new(at, kind_span.end as usize),
+        span: Span::new(at, end_word.end as usize),
     })
 }
 

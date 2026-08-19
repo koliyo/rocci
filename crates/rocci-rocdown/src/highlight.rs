@@ -153,11 +153,14 @@ fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &Bloc
             55,
         ));
         let marker = section.marker.span.of(src);
-        if let Some(dot) = marker.rfind('.') {
-            let kind_start = section.marker.span.start as usize + dot + 1;
-            if kind_start < section.marker.span.end as usize {
+        if let Some(rest) = marker.strip_prefix(':')
+            && let Some(dot) = rest.find('.')
+        {
+            let kind_start = section.marker.span.start as usize + 1;
+            let kind_end = kind_start + dot;
+            if kind_end <= section.marker.span.end as usize {
                 collector.push(HighlightSpan::new(
-                    Span::new(kind_start, section.marker.span.end as usize),
+                    Span::new(kind_start, kind_end),
                     HighlightKind::Type,
                     0,
                     56,
