@@ -38,7 +38,7 @@ InitDecl = "rocci_template::InitDecl"
 OnDecl = "rocci_template::OnDecl"
 TemplateItem = "rocci_template::TemplateItem"
 
-# Hand-written in this crate. Do not generate in v1.
+# Generated from Rocdown.Markdown.ungram into md.generated.rs. Opaque to this document ungram.
 [opaque]
 MdNode = "rocci_rocdown::MdNode"
 
@@ -127,3 +127,79 @@ MdNode = true
 PageMeta = "analysis type; not a parse node"
 HeadingInfo = "analysis type; not a parse node"
 LinkInfo = "analysis type; not a parse node"
+
+# Inspect heads emitted by format_ast. Tags that are not the production name
+# must be listed here. pprint.rs owns Writer, truncation, and nested reparse.
+[inspect.tags]
+Document = "rocdown"
+PageDecl = "page"
+RocDecl = "roc"
+RenderDecl = "render"
+ComponentDecl = "component"
+FixtureDecl = "fixture"
+CssDecl = "css"
+ContextDecl = "context"
+InitDecl = "init"
+OnDecl = "on"
+UseDecl = "use"
+BlockCall = "block"
+"TemplateItem.If" = "if"
+"TemplateItem.For" = "for"
+"TemplateItem.Match" = "match"
+"TemplateItem.Let" = "let"
+"TemplateItem.ComponentCall" = "call"
+"TemplateItem.Element" = "element"
+"TemplateItem.Fragment" = "fragment"
+"MdNode.Heading" = "h"
+"MdNode.Paragraph" = "p"
+"MdNode.Text" = "text"
+"MdNode.Code" = "code"
+"MdNode.CodeBlock" = "fence"
+"MdNode.Link" = "a"
+# Ordered lists print `ol`; unordered print `ul`. Overlay chooses the head.
+"MdNode.List" = "ul"
+"MdNode.Item" = "li"
+"MdNode.Emph" = "em"
+"MdNode.Strong" = "strong"
+
+[inspect.omit]
+Item = "enum wrapper; variants print their own heads"
+BracketRecord = "flattened onto block param atoms"
+BracketList = "flattened onto param atoms"
+ParamField = "flattened onto block param atoms"
+ParamValue = "flattened onto block param atoms"
+BlockContent = "scope name is an atom; nested items are reparsed"
+LineContent = "opaque span; nested items are reparsed"
+BraceSection = "nested items are reparsed; no inspect head"
+EndSection = "nested items are reparsed; no inspect head"
+EndMarker = "flattened onto EndSection"
+
+[inspect.fallback]
+MdNode = "md"
+TemplateItem = "template"
+
+[inspect.overlay]
+MdNode = "write_md"
+PageDecl = "write_page"
+RocDecl = "write_roc_decl"
+RenderDecl = "write_render"
+ComponentDecl = "write_component_leaf"
+FixtureDecl = "write_fixture_leaf"
+CssDecl = "write_css_leaf"
+ContextDecl = "write_context_leaf"
+InitDecl = "write_init_leaf"
+OnDecl = "write_on_leaf"
+UseDecl = "write_use"
+TemplateItem = "write_template_island"
+BlockCall = "write_block"
+ParamValue = "write_block"
+BlockContent = "write_block"
+
+[highlight.omit]
+ParamField = "param-tree internal; painted via BlockCall fields"
+ParamValue = "param-tree internal"
+BracketRecord = "param-tree internal"
+BracketList = "param-tree internal"
+LineContent = "opaque nested-item hole"
+BraceSection = "opaque nested-item hole"
+EndSection = "marker painted as EndMarker"

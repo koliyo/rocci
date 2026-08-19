@@ -1,0 +1,37 @@
+# production	kind	value
+Action	omit	printed as attr
+Attr	tag	attr
+AttrValue	omit	flattened onto attr
+Boolean	omit	printed as attr
+ComponentCall	tag	call
+ComponentDecl	tag	component
+ComponentPath	omit	flattened onto call atoms
+ContextDecl	tag	context
+CssDecl	tag	css
+CssPayload	leaf	—
+Document	tag	module
+Element	tag	element
+ElseIf	tag	else-if
+Expr	omit	printed as attr
+FixtureDecl	tag	fixture
+ForDirective	tag	for
+Fragment	tag	fragment
+Ident	omit	atom; no inspect head
+IfDirective	tag	if
+InitDecl	tag	init
+Interpolation	tag	interp
+LetDirective	tag	let
+MatchArm	tag	arm
+MatchDirective	tag	match
+ModuleItem	omit	enum wrapper; variants print their own heads
+OnDecl	tag	on
+ParamList	tag	params
+RocExpr	leaf	—
+RocPattern	leaf	—
+RocRegion	tag	roc
+RocType	leaf	—
+Static	omit	printed as attr
+StringLit	leaf	—
+TemplateBlock	omit	items printed without a wrapper tag
+TemplateItem	omit	enum wrapper; variants print their own heads
+TextNode	tag	text

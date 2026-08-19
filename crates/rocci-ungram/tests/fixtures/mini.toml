@@ -15,3 +15,13 @@ Ident = "{ name: String, span: Span }"
 [item_variants]
 Block = "Block"
 Leaf = "Leaf"
+
+[inspect.tags]
+Document = "module"
+Block = "block"
+
+[inspect.omit]
+Item = "enum wrapper; variants print their own heads"
+Node = "recursive payload; no inspect head"
+Ident = "atom; no inspect head"
+Leaf = "printed as a roc-style leaf in language printers; mini has no pprint"

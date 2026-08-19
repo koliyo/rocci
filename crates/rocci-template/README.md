@@ -483,11 +483,15 @@ example.
 
 The owned parse-tree shape lives in [`Rocci.AST.ungram`](Rocci.AST.ungram).
 `cargo run -q -p rocci-ungram -- generate` writes
-[`src/ast.generated.rs`](src/ast.generated.rs). The generator emits node types
-only; it does not produce the scanner or parser. Those stay hand-written in this
-crate. `cargo run -q -p rocci-ungram -- check` fails when the committed generated
-file is stale. This README remains the language contract; the ungram is the
-developer tree spec, not a substitute for the syntax above.
+[`src/ast.generated.rs`](src/ast.generated.rs) and exhaustive inspect walkers in
+[`src/pprint.generated.rs`](src/pprint.generated.rs). The generator emits node types
+and `format_ast` matches only; it does not produce the scanner or parser. Those stay
+hand-written in this crate. `pprint.rs` owns `Writer` and atom policy. `cargo run -q -p rocci-ungram -- check` fails when the committed generated
+file is stale or a generated production has no inspect mapping. Inspect tags live
+in [`Rocci.AST.toml`](Rocci.AST.toml) and the public
+[`docs/reference/rocci-tree.rocdown`](../../docs/reference/rocci-tree.rocdown)
+appendix. This README remains the language contract;
+the ungram is the developer tree spec, not a substitute for the syntax above.
 
 ## AST dump
 

@@ -1,0 +1,61 @@
+# production	kind	value
+Block	doc_only	—
+BlockCall	tag	block
+BlockContent	omit	scope name is an atom; nested items are reparsed
+BlockQuote	doc_only	—
+BoolLit	leaf	—
+BracePayload	leaf	—
+BraceSection	omit	nested items are reparsed; no inspect head
+BracketList	omit	flattened onto param atoms
+BracketRecord	omit	flattened onto block param atoms
+CodeBlock	doc_only	—
+ComponentDecl	tag	component
+ContextDecl	tag	context
+CssDecl	tag	css
+Document	tag	rocdown
+EndMarker	omit	flattened onto EndSection
+EndSection	omit	nested items are reparsed; no inspect head
+FixtureDecl	tag	fixture
+HtmlIsland	doc_only	—
+Ident	leaf	—
+InitDecl	tag	init
+Inline	doc_only	—
+Item	omit	enum wrapper; variants print their own heads
+LineContent	omit	opaque span; nested items are reparsed
+List	doc_only	—
+ListItem	doc_only	—
+MdNode	fallback	md
+MdNode.Code	tag	code
+MdNode.CodeBlock	tag	fence
+MdNode.Emph	tag	em
+MdNode.Heading	tag	h
+MdNode.Item	tag	li
+MdNode.Link	tag	a
+MdNode.List	tag	ul
+MdNode.Paragraph	tag	p
+MdNode.Strong	tag	strong
+MdNode.Text	tag	text
+ModuleItem	doc_only	—
+NumberLit	leaf	—
+OnDecl	tag	on
+PageDecl	tag	page
+Paragraph	doc_only	—
+ParamField	omit	flattened onto block param atoms
+ParamValue	omit	flattened onto block param atoms
+RenderDecl	tag	render
+RocDecl	tag	roc
+StringLit	leaf	—
+Table	doc_only	—
+TableCell	doc_only	—
+TableRow	doc_only	—
+TemplateItem	fallback	template
+TemplateItem.ComponentCall	tag	call
+TemplateItem.Element	tag	element
+TemplateItem.For	tag	for
+TemplateItem.Fragment	tag	fragment
+TemplateItem.If	tag	if
+TemplateItem.Let	tag	let
+TemplateItem.Match	tag	match
+TemplateSplice	doc_only	—
+ThematicBreak	doc_only	—
+UseDecl	tag	use

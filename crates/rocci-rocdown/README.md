@@ -319,12 +319,17 @@ while building as part of `rocdown build site`.
 
 The owned parse-tree shape lives in [`Rocdown.AST.ungram`](Rocdown.AST.ungram).
 `cargo run -q -p rocci-ungram -- generate` writes
-[`src/ast.generated.rs`](src/ast.generated.rs). The generator emits article and
-module node types only; it does not produce the scanner or parser. Markdown
-blocks stay hand-written `MdNode`. `cargo run -q -p rocci-ungram -- check` fails
-when the committed generated file is stale. This README remains the language
-contract; the ungram is the developer tree spec, not a substitute for the syntax
-above.
+[`src/ast.generated.rs`](src/ast.generated.rs) and exhaustive inspect walkers in
+[`src/pprint.generated.rs`](src/pprint.generated.rs). The generator emits article and
+module node types plus `format_ast` matches; it does not produce the scanner or parser. Markdown
+blocks are generated `MdNode` from [`Rocdown.Markdown.ungram`](Rocdown.Markdown.ungram). `cargo run -q -p rocci-ungram -- check` fails
+when the committed generated file is stale or a generated production has no
+inspect mapping. Inspect tags live in [`Rocdown.AST.toml`](Rocdown.AST.toml)
+and the public
+[`docs/reference/rocdown-tree.rocdown`](../../docs/reference/rocdown-tree.rocdown)
+appendix.
+This README remains the language contract; the ungram is the developer tree spec,
+not a substitute for the syntax above.
 
 ## Implemented vs deferred
 

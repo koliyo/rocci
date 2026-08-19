@@ -50,7 +50,7 @@ fn run() -> Result<()> {
         Commands::Check { root } => {
             let root = workspace_root(root)?;
             check_languages(&root)?;
-            println!("ok: generated AST is current");
+            println!("ok: generated AST, inspect walkers, and tree appendices are current");
             Ok(())
         }
     }

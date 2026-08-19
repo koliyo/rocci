@@ -17,6 +17,21 @@ pub struct Sidecar {
     pub omit_span: BTreeSet<String>,
     pub span_method: BTreeSet<String>,
     pub variants: BTreeMap<String, BTreeMap<String, String>>,
+    pub inspect: InspectSpec,
+    pub highlight: HighlightSpec,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct HighlightSpec {
+    pub omit: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct InspectSpec {
+    pub tags: BTreeMap<String, String>,
+    pub omit: BTreeMap<String, String>,
+    pub fallback: BTreeMap<String, String>,
+    pub overlay: BTreeMap<String, String>,
 }
 
 impl Sidecar {
@@ -41,6 +56,8 @@ impl Sidecar {
             omit_span: BTreeSet::new(),
             span_method: BTreeSet::new(),
             variants: BTreeMap::new(),
+            inspect: InspectSpec::default(),
+            highlight: HighlightSpec::default(),
         };
 
         if let Some(meta) = table.get("meta").and_then(|v| v.as_table()) {
@@ -57,6 +74,8 @@ impl Sidecar {
         sidecar.flatten = string_map(table.get("flatten"))?;
         sidecar.omit_span = bool_or_key_set(table.get("omit_span"))?;
         sidecar.span_method = bool_or_key_set(table.get("span_method"))?;
+        sidecar.inspect = InspectSpec::parse(table.get("inspect"))?;
+        sidecar.highlight = HighlightSpec::parse(table.get("highlight"))?;
 
         for (key, value) in table {
             if let Some(stem) = key.strip_suffix("_variants") {
@@ -94,6 +113,57 @@ impl Sidecar {
             return path.rsplit("::").next().unwrap_or(path).to_string();
         }
         production.to_string()
+    }
+}
+
+impl InspectSpec {
+    fn parse(value: Option<&toml::Value>) -> Result<Self, Error> {
+        let Some(value) = value else {
+            return Ok(Self::default());
+        };
+        let table = value
+            .as_table()
+            .ok_or_else(|| Error::Dialect("[inspect] must be a TOML table".into()))?;
+        for key in table.keys() {
+            if !matches!(key.as_str(), "tags" | "omit" | "fallback" | "overlay") {
+                return Err(Error::Dialect(format!(
+                    "unknown [inspect] table {key}; expected tags, omit, fallback, or overlay"
+                )));
+            }
+        }
+        Ok(Self {
+            tags: string_map(table.get("tags"))?,
+            omit: string_map(table.get("omit"))?,
+            fallback: string_map(table.get("fallback"))?,
+            overlay: string_map(table.get("overlay"))?,
+        })
+    }
+
+    pub fn covers(&self, production: &str) -> bool {
+        self.tags.contains_key(production)
+            || self.omit.contains_key(production)
+            || self.fallback.contains_key(production)
+    }
+}
+
+impl HighlightSpec {
+    fn parse(value: Option<&toml::Value>) -> Result<Self, Error> {
+        let Some(value) = value else {
+            return Ok(Self::default());
+        };
+        let table = value
+            .as_table()
+            .ok_or_else(|| Error::Dialect("[highlight] must be a TOML table".into()))?;
+        for key in table.keys() {
+            if key.as_str() != "omit" {
+                return Err(Error::Dialect(format!(
+                    "unknown [highlight] table {key}; expected omit"
+                )));
+            }
+        }
+        Ok(Self {
+            omit: string_map(table.get("omit"))?,
+        })
     }
 }
 

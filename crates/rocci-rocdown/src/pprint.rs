@@ -1,50 +1,77 @@
-use rocci_template::TemplateItem;
+use rocci_template::{
+    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, TemplateItem,
+};
 
-use crate::ast::{BlockCall, Document, Item, MdNode, ParamValue};
+use crate::ast::{
+    BlockCall, Document, Item, MdNode, PageDecl, ParamValue, RenderDecl, RocDecl, UseDecl,
+};
 use crate::parse::nested_items;
+
+// Inspect heads live in Rocdown.AST.toml [inspect]. This file owns Writer, 40-character
+// truncation, nested parse_fragment, and leftover MdNode fallback.
 
 pub fn format_ast(src: &str, document: &Document) -> String {
     let mut out = String::new();
     let mut w = Writer::new(&mut out);
-    w.open("rocdown", &[]);
-    for item in &document.items {
-        write_item(&mut w, src, item);
-    }
-    w.close();
+    write_document(&mut w, src, document);
     if !out.ends_with('\n') {
         out.push('\n');
     }
     out
 }
 
-fn write_item(w: &mut Writer<'_>, src: &str, item: &Item) {
+fn write_page(w: &mut Writer<'_>, src: &str, page: &PageDecl) {
+    w.leaf("page", &[atom(page.body.of(src).trim())]);
+}
+
+fn write_roc_decl(w: &mut Writer<'_>, src: &str, roc: &RocDecl) {
+    w.leaf("roc", &[atom(roc.body.of(src).trim())]);
+}
+
+fn write_render(w: &mut Writer<'_>, src: &str, render: &RenderDecl) {
+    w.leaf("render", &[atom(render.expr.of(src).trim())]);
+}
+
+fn write_component_leaf(w: &mut Writer<'_>, _src: &str, component: &ComponentDecl) {
+    w.leaf("component", std::slice::from_ref(&component.name.name));
+}
+
+fn write_fixture_leaf(w: &mut Writer<'_>, _src: &str, fixture: &FixtureDecl) {
+    w.leaf("fixture", std::slice::from_ref(&fixture.name.name));
+}
+
+fn write_css_leaf(w: &mut Writer<'_>, _src: &str, _css: &CssDecl) {
+    w.leaf("css", &[]);
+}
+
+fn write_context_leaf(w: &mut Writer<'_>, _src: &str, _context: &ContextDecl) {
+    w.leaf("context", &[]);
+}
+
+fn write_init_leaf(w: &mut Writer<'_>, _src: &str, _init: &InitDecl) {
+    w.leaf("init", &[]);
+}
+
+fn write_on_leaf(w: &mut Writer<'_>, _src: &str, on: &OnDecl) {
+    w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]);
+}
+
+fn write_use(w: &mut Writer<'_>, _src: &str, used: &UseDecl) {
+    w.leaf("use", std::slice::from_ref(&used.path));
+}
+
+fn write_template_island(w: &mut Writer<'_>, _src: &str, item: &TemplateItem) {
     match item {
-        Item::Markdown(node) => write_md(w, node),
-        Item::Page(page) => w.leaf("page", &[atom(page.body.of(src).trim())]),
-        Item::Roc(roc) => w.leaf("roc", &[atom(roc.body.of(src).trim())]),
-        Item::Render(render) => w.leaf("render", &[atom(render.expr.of(src).trim())]),
-        Item::Component(component) => {
-            w.leaf("component", std::slice::from_ref(&component.name.name));
+        TemplateItem::If(_) => w.leaf("if", &[]),
+        TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),
+        TemplateItem::Match(_) => w.leaf("match", &[]),
+        TemplateItem::Let(dir) => w.leaf("let", std::slice::from_ref(&dir.binder.name)),
+        TemplateItem::ComponentCall(call) => {
+            w.leaf("call", std::slice::from_ref(&call.path.roc_name))
         }
-        Item::Fixture(fixture) => w.leaf("fixture", std::slice::from_ref(&fixture.name.name)),
-        Item::Css(_) => w.leaf("css", &[]),
-        Item::Context(_) => w.leaf("context", &[]),
-        Item::Init(_) => w.leaf("init", &[]),
-        Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
-        Item::Use(used) => w.leaf("use", std::slice::from_ref(&used.path)),
-        Item::Block(call) => write_block(w, src, call),
-        Item::Template(item) => match item {
-            TemplateItem::If(_) => w.leaf("if", &[]),
-            TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),
-            TemplateItem::Match(_) => w.leaf("match", &[]),
-            TemplateItem::Let(dir) => w.leaf("let", std::slice::from_ref(&dir.binder.name)),
-            TemplateItem::ComponentCall(call) => {
-                w.leaf("call", std::slice::from_ref(&call.path.roc_name))
-            }
-            TemplateItem::Element(el) => w.leaf("element", std::slice::from_ref(&el.name.name)),
-            TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
-            _ => w.leaf("template", &[]),
-        },
+        TemplateItem::Element(el) => w.leaf("element", std::slice::from_ref(&el.name.name)),
+        TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
+        _ => w.leaf("template", &[]),
     }
 }
 
@@ -88,7 +115,7 @@ fn param_display(src: &str, value: &ParamValue) -> String {
     }
 }
 
-fn write_md(w: &mut Writer<'_>, node: &MdNode) {
+fn write_md(w: &mut Writer<'_>, src: &str, node: &MdNode) {
     match node {
         MdNode::Heading {
             level,
@@ -98,26 +125,23 @@ fn write_md(w: &mut Writer<'_>, node: &MdNode) {
         } => {
             w.open("h", &[level.to_string(), id.clone()]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
         MdNode::Paragraph { children, .. } => {
             w.open("p", &[]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
         MdNode::Text { value, .. } => w.leaf("text", &[atom(value)]),
         MdNode::Code { value, .. } => w.leaf("code", &[atom(value)]),
-        MdNode::CodeBlock { info, literal, .. } => {
-            w.leaf("fence", &[info.clone(), atom(literal)]);
-        }
         MdNode::Link { url, children, .. } => {
             w.open("a", &[atom(url)]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
@@ -126,30 +150,33 @@ fn write_md(w: &mut Writer<'_>, node: &MdNode) {
         } => {
             w.open(if *ordered { "ol" } else { "ul" }, &[]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
         MdNode::Item { children, .. } => {
             w.open("li", &[]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
         MdNode::Emph { children, .. } => {
             w.open("em", &[]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
         }
         MdNode::Strong { children, .. } => {
             w.open("strong", &[]);
             for child in children {
-                write_md(w, child);
+                write_md(w, src, child);
             }
             w.close();
+        }
+        MdNode::CodeBlock { info, literal, .. } => {
+            w.leaf("fence", &[info.clone(), atom(literal)]);
         }
         _ => w.leaf("md", &[]),
     }
@@ -210,3 +237,5 @@ impl<'a> Writer<'a> {
         }
     }
 }
+
+include!("pprint.generated.rs");

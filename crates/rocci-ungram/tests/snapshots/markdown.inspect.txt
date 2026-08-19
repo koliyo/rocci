@@ -1,0 +1,25 @@
+# production	kind	value
+BlockQuote	inline	—
+Code	tag	code
+CodeBlock	tag	fence
+Emph	tag	em
+FootnoteDefinition	inline	—
+FootnoteReference	inline	—
+Heading	tag	h
+Image	inline	—
+Item	tag	li
+LineBreak	inline	—
+Link	tag	a
+List	tag	ul
+MdNode	fallback	md
+Paragraph	tag	p
+RawHtml	inline	—
+SoftBreak	inline	—
+Strikethrough	inline	—
+Strong	tag	strong
+Table	inline	—
+TableCell	inline	—
+TableRow	inline	—
+TaskItem	inline	—
+Text	tag	text
+ThematicBreak	inline	—

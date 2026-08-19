@@ -73,6 +73,10 @@ fn emit_enum(out: &mut String, name: &str, variants: &[Variant]) {
     out.push_str("pub enum ");
     out.push_str(name);
     out.push_str(" {\n");
+    let multiline_structs = variants.iter().any(|variant| match variant {
+        Variant::Struct { name, fields } => struct_variant_oneline(name, fields).len() > 80,
+        _ => false,
+    });
     for variant in variants {
         match variant {
             Variant::Unit { name } => {
@@ -88,22 +92,35 @@ fn emit_enum(out: &mut String, name: &str, variants: &[Variant]) {
                 out.push_str("),\n");
             }
             Variant::Struct { name, fields } => {
-                out.push_str("    ");
-                out.push_str(name);
-                out.push_str(" { ");
-                for (i, field) in fields.iter().enumerate() {
-                    if i > 0 {
-                        out.push_str(", ");
+                if multiline_structs {
+                    out.push_str("    ");
+                    out.push_str(name);
+                    out.push_str(" {\n");
+                    for field in fields {
+                        out.push_str("        ");
+                        out.push_str(&field.name);
+                        out.push_str(": ");
+                        out.push_str(&field.ty.to_string());
+                        out.push_str(",\n");
                     }
-                    out.push_str(&field.name);
-                    out.push_str(": ");
-                    out.push_str(&field.ty.to_string());
+                    out.push_str("    },\n");
+                } else {
+                    out.push_str(&struct_variant_oneline(name, fields));
+                    out.push('\n');
                 }
-                out.push_str(" },\n");
             }
         }
     }
     out.push_str("}\n");
+}
+
+fn struct_variant_oneline(name: &str, fields: &[crate::dialect::Field]) -> String {
+    let inner = fields
+        .iter()
+        .map(|field| format!("{}: {}", field.name, field.ty))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("    {name} {{ {inner} }},")
 }
 
 fn span_impl(

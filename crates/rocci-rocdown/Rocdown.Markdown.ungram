@@ -1,0 +1,54 @@
+// Rocdown Markdown projection AST.
+//
+// Tree spec for MdNode in crates/rocci-rocdown/src/md.generated.rs.
+// Comrak remains the recognizer. This file does not generate a scanner.
+// Analysis types (HeadingInfo, LinkInfo) stay out of this tree.
+
+MdNode =
+  Heading
+| Paragraph
+| BlockQuote
+| List
+| Item
+| TaskItem
+| CodeBlock
+| ThematicBreak
+| Table
+| TableRow
+| TableCell
+| Text
+| SoftBreak
+| LineBreak
+| Code
+| Emph
+| Strong
+| Strikethrough
+| FootnoteDefinition
+| FootnoteReference
+| Link
+| Image
+| RawHtml
+
+Heading = children:MdNode*
+Paragraph = children:MdNode*
+BlockQuote = children:MdNode*
+List = children:MdNode*
+Item = children:MdNode*
+TaskItem = children:MdNode*
+CodeBlock = 'code-block'
+ThematicBreak = 'thematic-break'
+Table = children:MdNode*
+TableRow = children:MdNode*
+TableCell = children:MdNode*
+Text = 'text'
+SoftBreak = 'soft-break'
+LineBreak = 'line-break'
+Code = 'code'
+Emph = children:MdNode*
+Strong = children:MdNode*
+Strikethrough = children:MdNode*
+FootnoteDefinition = children:MdNode*
+FootnoteReference = 'footnote-ref'
+Link = children:MdNode*
+Image = 'image'
+RawHtml = 'raw-html'

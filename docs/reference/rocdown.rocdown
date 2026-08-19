@@ -228,4 +228,6 @@ are excluded from production builds.
 The developer tree spec for owned article and module AST nodes is
 `crates/rocci-rocdown/Rocdown.AST.ungram`. It generates Rust types; it does not
 generate the scanner or replace this language reference. Markdown remains
-`MdNode` until a later tree change.
+`MdNode` until a later tree change. Production names, inspect tags, and sidecar
+classification are listed in the
+[Rocdown tree appendix](/docs/reference/rocdown-tree/).
