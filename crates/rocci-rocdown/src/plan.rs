@@ -119,7 +119,7 @@ pub struct BuildPlan {
     pub datastar: bool,
     pub service_origin: String,
     pub service_routes: Vec<IslandRoute>,
-    pub pack_render_arms: String,
+    pub widget_render_arms: String,
 }
 
 impl BuildPlan {
@@ -385,7 +385,7 @@ fn plan_with_preview(
         datastar: has_live,
         service_origin,
         service_routes,
-        pack_render_arms: pack_kind_render_arms(),
+        widget_render_arms: widget_kind_render_arms(),
     })
 }
 
@@ -756,46 +756,52 @@ fn roc_fn_name(component: &str) -> String {
     first.to_lowercase().chain(chars).collect()
 }
 
-fn pack_kind_render_arms() -> String {
+fn widget_kind_render_arms() -> String {
     let mut out = String::new();
-    for spec in crate::registry::pack_kinds() {
+    for spec in crate::registry::widget_specs() {
         if !spec.paints_as_widget() {
             continue;
         }
-        if crate::registry::KINDS
-            .iter()
-            .any(|kind| kind.name == spec.name)
-        {
-            continue;
-        }
-        let painter = roc_fn_name(spec.component);
-        let fields = spec.paint_fields();
-        let props: Vec<String> = fields
-            .iter()
-            .map(|field| format!("{}: seg.{}", field.prop, field.prop))
-            .collect();
-        let record = if props.is_empty() {
-            "{}".to_string()
-        } else {
-            format!("{{ {} }}", props.join(", "))
-        };
-        out.push_str("        ");
-        out.push_str(spec.component);
-        if spec.paint_content() {
-            out.push_str("(seg) => {\n            (body, after) = render_children!(segments, index + 1, seg.child_count)?\n            Ok((BlockPainters.");
-            out.push_str(&painter);
-            out.push_str("(");
-            out.push_str(&record);
-            out.push_str(", body), after))\n        }\n");
-        } else {
-            out.push_str("(seg) =>\n            Ok((BlockPainters.");
-            out.push_str(&painter);
-            out.push_str("(");
-            out.push_str(&record);
-            out.push_str("), index + 1))\n");
-        }
+        out.push_str(&widget_kind_render_arm(*spec));
     }
     out
+}
+
+fn widget_kind_render_arm(spec: crate::registry::KindSpec) -> String {
+    let painter = roc_fn_name(spec.component);
+    let record = paint_record(spec);
+    match spec.name {
+        "tabs" => format!(
+            "        Tabs(seg) => {{\n            (items, after) = render_tab_items!(segments, index + 1, seg.child_count)?\n            body = html_from_records(items)\n            Ok((BlockPainters.tabs({record}, body), after))\n        }}\n"
+        ),
+        "steps" => format!(
+            "        Steps(seg) => {{\n            (items, after) = render_step_items!(segments, index + 1, seg.child_count)?\n            body = html_from_records(items)\n            Ok((BlockPainters.steps({record}, body), after))\n        }}\n"
+        ),
+        "card-grid" => format!(
+            "        CardGrid(seg) => {{\n            (items, after) = render_card_items!(segments, index + 1, seg.child_count)?\n            body = html_from_records(items)\n            Ok((BlockPainters.cardGrid({record}, body), after))\n        }}\n"
+        ),
+        _ if spec.paint_content() => format!(
+            "        {}(seg) => {{\n            (body, after) = render_children!(segments, index + 1, seg.child_count)?\n            Ok((BlockPainters.{painter}({record}, body), after))\n        }}\n",
+            spec.component
+        ),
+        _ => format!(
+            "        {}(seg) =>\n            Ok((BlockPainters.{painter}({record}), index + 1))\n",
+            spec.component
+        ),
+    }
+}
+
+fn paint_record(spec: crate::registry::KindSpec) -> String {
+    let props: Vec<String> = spec
+        .paint_fields()
+        .iter()
+        .map(|field| format!("{}: seg.{}", field.prop, field.prop))
+        .collect();
+    if props.is_empty() {
+        "{}".to_string()
+    } else {
+        format!("{{ {} }}", props.join(", "))
+    }
 }
 
 fn module_exports_component(module: &CompiledThemeModule, component: &str) -> bool {
@@ -2450,6 +2456,37 @@ import Html
         let _ = fs::remove_dir_all(root);
     }
 
+    #[test]
+    fn generated_dispatcher_covers_widget_kinds_without_editing_runtime() {
+        let arms = widget_kind_render_arms();
+        for spec in crate::registry::KINDS
+            .iter()
+            .filter(|kind| kind.paints_as_widget())
+        {
+            let painter = roc_fn_name(spec.component);
+            assert!(
+                arms.contains(&format!("{}(seg)", spec.component)),
+                "generated dispatcher missing tag `{}`: {arms}",
+                spec.component
+            );
+            assert!(
+                arms.contains(&format!("BlockPainters.{painter}")),
+                "generated dispatcher missing `{painter}`: {arms}"
+            );
+        }
+        let src = include_str!("../runtime/RocdownBuild.roc");
+        assert!(
+            src.contains("# rocci-widget-kind-arms"),
+            "runtime dispatcher should splice generated arms"
+        );
+        assert!(
+            !src.contains("Note(seg)"),
+            "builtin widget arms should not be handwritten in RocdownBuild.roc"
+        );
+        assert!(src.contains("render_forest!"), "{src}");
+        assert!(src.contains("HtmlFile"), "{src}");
+    }
+
     fn write_shell(root: &Path) {
         fs::create_dir_all(root.join("theme")).unwrap();
         fs::write(
@@ -2604,10 +2641,17 @@ import Html
         assert!(roc.contains("tone: \"warn\""), "{roc}");
         assert!(
             planned
-                .pack_render_arms
+                .widget_render_arms
                 .contains("BlockPainters.callout({ tone: seg.tone }, body)"),
             "{}",
-            planned.pack_render_arms
+            planned.widget_render_arms
+        );
+        assert!(
+            planned
+                .widget_render_arms
+                .contains("BlockPainters.note({ title: seg.title }, body)"),
+            "{}",
+            planned.widget_render_arms
         );
         let painters = planned
             .theme_modules
