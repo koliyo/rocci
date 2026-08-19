@@ -1,8 +1,17 @@
-use std::{collections::BTreeSet, fs, path::Path, sync::Arc};
+use std::{
+    collections::BTreeSet,
+    fs,
+    path::Path,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU16, Ordering},
+    },
+};
 
 use anyhow::{Context, Result, bail};
 pub use rocci_cli::dev_server::DevServer;
 use rocci_cli::dev_server::{StaticDevServerConfig, serve_static_site};
+use rocci_cli::driver::RunningApp;
 
 use crate::build::{BuildSession, absolute};
 use crate::config::load_config;
@@ -70,6 +79,10 @@ pub fn run_with_host_at(
         path_is_relevant(path, &filter_root, &filter_assets, &snippet_paths)
     });
 
+    let backend_port = Arc::new(AtomicU16::new(0));
+    let backend = Arc::new(Mutex::new(None::<RunningApp>));
+    let backend_slot = backend.clone();
+
     let config = StaticDevServerConfig {
         title,
         port,
@@ -78,13 +91,61 @@ pub fn run_with_host_at(
         watch_paths,
         custom_filter: Some(custom_filter),
         log_prefix: "rocdown".into(),
+        backend_port: Some(backend_port.clone()),
+        on_stop: Some(Arc::new(move || {
+            *backend_slot.lock().unwrap_or_else(|err| err.into_inner()) = None;
+        })),
     };
 
     let session_root = root.clone();
     serve_static_site(config, move |out_dir| {
         let report = session.rebuild(&session_root, out_dir)?;
+        sync_island_backend(&session_root, &backend, &backend_port);
         Ok(Some(profile_from_report(&report)))
     })
+}
+
+fn sync_island_backend(root: &Path, backend: &Mutex<Option<RunningApp>>, advertised: &AtomicU16) {
+    match crate::service::generated_island_plan(root) {
+        Ok(None) => {
+            *backend.lock().unwrap_or_else(|err| err.into_inner()) = None;
+            advertised.store(0, Ordering::Relaxed);
+        }
+        Ok(Some(plan)) => {
+            let app = plan.into_app_plan();
+            let fingerprint = app.fingerprint();
+            let mut slot = backend.lock().unwrap_or_else(|err| err.into_inner());
+            if slot
+                .as_ref()
+                .is_some_and(|running| running.fingerprint == fingerprint)
+            {
+                return;
+            }
+            let port = match slot.as_ref() {
+                Some(running) => running.port,
+                None => match rocci_cli::serve::free_port() {
+                    Ok(port) => port,
+                    Err(err) => {
+                        eprintln!("rocdown: island service port: {err:#}");
+                        return;
+                    }
+                },
+            };
+            advertised.store(0, Ordering::Relaxed);
+            *slot = None;
+            match rocci_cli::driver::spawn_app_plan(&app, root, port) {
+                Ok(running) => {
+                    advertised.store(running.port, Ordering::Relaxed);
+                    eprintln!("rocdown: island actions available on this origin");
+                    *slot = Some(running);
+                }
+                Err(err) => {
+                    eprintln!("rocdown: island service: {err:#}");
+                }
+            }
+        }
+        Err(err) => eprintln!("rocdown: island service: {err:#}"),
+    }
 }
 
 fn profile_from_report(report: &crate::build::BuildReport) -> rocci_cli::profile::ProfileSnapshot {

@@ -61,6 +61,13 @@ struct KillOnDrop(Child);
 
 impl Drop for KillOnDrop {
     fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            unsafe extern "C" {
+                fn kill(pid: i32, sig: i32) -> i32;
+            }
+            let _ = unsafe { kill(-(self.0.id() as i32), 9) };
+        }
         let _ = self.0.kill();
         let _ = self.0.wait();
     }
@@ -143,6 +150,25 @@ fn hybrid_cdn_html_and_island_post_morph() {
     assert!(about.contains("static CDN HTML"), "{about}");
     assert!(!about.to_ascii_lowercase().contains("<script"), "{about}");
     assert!(!about.contains("/assets/datastar"), "{about}");
+
+    let widgets = fs::read_to_string(output.join("widgets/index.html")).unwrap();
+    assert!(widgets.contains("3 core ideas"), "{widgets}");
+    assert!(
+        widgets.contains("script-src 'none'") || widgets.contains("script-src &#39;none&#39;"),
+        "{widgets}"
+    );
+    assert!(
+        !widgets.to_ascii_lowercase().contains("<script"),
+        "hydrate pages must not emit a script tag\n{widgets}"
+    );
+    assert!(!widgets.contains("datastar"), "{widgets}");
+
+    let pair = fs::read_to_string(output.join("pair/index.html")).unwrap();
+    assert!(pair.contains("id=\"slot-alpha\""), "{pair}");
+    assert!(pair.contains("id=\"slot-beta\""), "{pair}");
+    assert!(pair.contains("Open alpha"), "{pair}");
+    assert!(pair.contains("Open beta"), "{pair}");
+    assert!(pair.contains("datastar"), "{pair}");
     let islands: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(output.join("islands.json")).unwrap()).unwrap();
     assert!(
@@ -182,5 +208,137 @@ fn hybrid_cdn_html_and_island_post_morph() {
         response.contains("Hide tip"),
         "POST should morph the host to the open markup:\n{response}"
     );
+
+    let alpha = http_exchange(
+        port,
+        &format!(
+            "POST /actions/alpha/show HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        alpha.contains("id=\"slot-alpha\"") || alpha.contains("id='slot-alpha'"),
+        "alpha patch must target slot-alpha:\n{alpha}"
+    );
+    assert!(alpha.contains("Alpha open"), "{alpha}");
+    assert!(
+        !alpha.contains("slot-beta"),
+        "alpha patch must not include slot-beta:\n{alpha}"
+    );
+
+    let beta = http_exchange(
+        port,
+        &format!(
+            "POST /actions/beta/show HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        beta.contains("id=\"slot-beta\"") || beta.contains("id='slot-beta'"),
+        "beta patch must target slot-beta:\n{beta}"
+    );
+    assert!(beta.contains("Beta open"), "{beta}");
+    assert!(
+        !beta.contains("slot-alpha"),
+        "beta patch must not include slot-alpha:\n{beta}"
+    );
     drop(child);
+}
+
+#[test]
+fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let root = repo_root().join("examples/rocdown-hybrid");
+    let bin = rocdown_bin();
+    let port = rocci_cli::serve::free_port().unwrap();
+    let mut child = Command::new(&bin)
+        .args([
+            "run",
+            root.to_str().unwrap(),
+            "--no-window",
+            "--port",
+            &port.to_string(),
+        ])
+        .current_dir(repo_root())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    wait_for_preview(port, &mut child, "Show tip");
+    let child = KillOnDrop(child);
+
+    let home = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(home.contains("Prose stays Markdown."), "{home}");
+    assert!(home.contains("Show tip"), "{home}");
+    assert!(home.contains("datastar"), "{home}");
+
+    let widgets = http_exchange(
+        port,
+        &format!("GET /widgets/ HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(widgets.contains("3 core ideas"), "{widgets}");
+    assert!(
+        !widgets.contains("/assets/datastar") && !widgets.contains("datastar.js"),
+        "hydrate preview must not load Datastar:\n{widgets}"
+    );
+
+    let about = http_exchange(
+        port,
+        &format!("GET /about/ HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(about.contains("static CDN HTML"), "{about}");
+    assert!(!about.contains("/assets/datastar"), "{about}");
+
+    let response = http_exchange(
+        port,
+        &format!(
+            "POST /actions/reveal/show HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        response.contains("Hide tip"),
+        "same-origin preview must proxy island POST:\n{response}"
+    );
+
+    let alpha = http_exchange(
+        port,
+        &format!(
+            "POST /actions/alpha/show HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        alpha.contains("slot-alpha") && !alpha.contains("slot-beta"),
+        "{alpha}"
+    );
+    drop(child);
+}
+
+fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
+    let start = Instant::now();
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            panic!("preview server exited before ready ({status})");
+        }
+        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+            let req =
+                format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+            if stream.write_all(req.as_bytes()).is_ok() {
+                let mut body = Vec::new();
+                let _ = stream.read_to_end(&mut body);
+                let text = String::from_utf8_lossy(&body);
+                if text.contains(needle) {
+                    return;
+                }
+            }
+        }
+        if start.elapsed() > Duration::from_secs(180) {
+            panic!("timed out waiting for preview on port {port}");
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
 }

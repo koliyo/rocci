@@ -136,7 +136,8 @@ Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 `@component` bodies are the same Rocci HTML grammar: interpolation, `@if`,
 `@for`, `@match`, `@let`, and component-local `@css`.
 
-`@island` is reserved in the design and is **not** parsed yet.
+`@island` is reserved in the design and is **not** parsed yet. v1 hybrid sites
+use existing `@component` / `@on` hosts; they do not add `@island` grammar.
 
 ### `:img`
 
@@ -301,8 +302,8 @@ while building as part of `rocdown build site`.
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
 - `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
-- `rocdown run DIR`: Run/preview a documentation site with live reload.
-- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar).
+- `rocdown run DIR`: Run/preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
+- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
 - `rocdown build DIR`: Build a static documentation site to `dist/`. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown check DIR`: Check catalog, routes, and links.
 - `rocdown test DIR`: Run documented `:example` tests.
@@ -345,11 +346,12 @@ above.
   colocated `@on` handlers into one island HTTP service. Hybrid builds emit
   `pages.json` kinds, `islands.json` service routes, and a publish report.
   `--cdn-only` refuses `live` pages so a CDN publish cannot ship dead actions.
+  `rocdown run DIR` previews both artifacts on one local origin and reloads
+  after content or handler edits.
 
 **Not implemented / Deferred**
 
 - `@island` and client JS dynamic island splicing
-- Combined `rocdown run DIR` preview of CDN files plus the island service
 - Project default layouts and layout packages
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens

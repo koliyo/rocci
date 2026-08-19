@@ -1,0 +1,53 @@
+@page {
+    route: "/pair/",
+    meta: {
+        title: "Pair",
+        description: "Two island instances with distinct host ids",
+    },
+}
+
+@component
+AlphaSlot = |{ open }| {
+    <div id="slot-alpha">
+        @if open {
+            <p>Alpha open</p>
+        } @else {
+            <button type="button" data-on:click=@post("/actions/alpha/show")>
+                Open alpha
+            </button>
+        }
+    </div>
+}
+
+@component
+BetaSlot = |{ open }| {
+    <div id="slot-beta">
+        @if open {
+            <p>Beta open</p>
+        } @else {
+            <button type="button" data-on:click=@post("/actions/beta/show")>
+                Open beta
+            </button>
+        }
+    </div>
+}
+
+@on:post("/actions/alpha/show") = |_| {
+    alphaSlot({ open: True })
+}
+
+@on:post("/actions/beta/show") = |_| {
+    betaSlot({ open: True })
+}
+
+# Pair
+
+Two hosts. Each mutation returns only its own element id.
+
+@render {
+    alphaSlot({ open: False })
+}
+
+@render {
+    betaSlot({ open: False })
+}

@@ -242,12 +242,15 @@ Preview with watch and live reload:
 
 ```sh
 cargo run -p rocci-rocdown-cli -- run docs
+cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid
 ```
 
 `rocdown run` writes to a temp directory by default so it does not replace
 `build.output`. Pass `--output` to keep the preview files. `--no-window` serves
-in the browser only. Static content reloads after a successful rebuild; dynamic
-islands are not part of this preview path.
+in the browser only. Static content reloads after a successful rebuild. Hybrid
+sites with colocated `@on` proxy the island service on the same origin, and
+handler edits restart that service. A sibling `[http].service` app is still
+started with `rocdown serve-islands` or `rocci run`.
 
 ## Open Knowledge Format (OKF)
 

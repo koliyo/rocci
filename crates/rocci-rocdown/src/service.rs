@@ -80,12 +80,39 @@ pub fn prefix_action_urls(html: &str, service_origin: &str) -> String {
 }
 
 pub fn plan_island_service(root: &Path) -> Result<IslandServicePlan> {
+    match generated_island_plan(root)? {
+        Some(plan) => Ok(plan),
+        None => {
+            let loaded = load_site(root)?;
+            if !loaded.config.http.service.is_empty() {
+                bail!(
+                    "site uses [http].service `{}`; run that .rocci app instead of a generated island service",
+                    loaded.config.http.service
+                );
+            }
+            bail!("no live pages to serve; add `@on` handlers or configure [http].service")
+        }
+    }
+}
+
+pub fn generated_island_plan(root: &Path) -> Result<Option<IslandServicePlan>> {
     let loaded = load_site(root)?;
+    if !loaded.config.http.service.is_empty() {
+        return Ok(None);
+    }
     let result = resolve_loaded(&loaded);
     if result.has_errors() {
         bail!("{}", result.error_summary());
     }
-    plan_island_service_from(&loaded, &result.site)
+    if !result
+        .site
+        .pages
+        .iter()
+        .any(|page| !page.draft && page.kind == PageKind::Live)
+    {
+        return Ok(None);
+    }
+    Ok(Some(plan_island_service_from(&loaded, &result.site)?))
 }
 
 pub fn island_routes(root: &Path, site: &ResolvedSite) -> Result<Vec<IslandRoute>> {
@@ -404,5 +431,46 @@ RevealTip = |{ open }| {
         );
         assert!(!main.contains("(\"GET\", \"/\") =>"), "{main}");
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn generated_plan_skips_static_and_sibling_service_sites() {
+        let root = temp("static-plan");
+        fs::write(
+            root.join("index.rocdown"),
+            r#"
+@page { route: "/", meta: { title: "Static" } }
+
+# Hello
+"#,
+        )
+        .unwrap();
+        assert!(generated_island_plan(&root).unwrap().is_none());
+        let _ = fs::remove_dir_all(&root);
+
+        let sibling = temp("sibling-plan");
+        fs::write(
+            sibling.join("rocdown.toml"),
+            "[site]\ntitle = \"Sibling\"\n[http]\nservice = \"Islands.rocci\"\n",
+        )
+        .unwrap();
+        fs::write(
+            sibling.join("index.rocdown"),
+            r#"
+@page { route: "/", meta: { title: "Live" } }
+
+# Hello
+"#,
+        )
+        .unwrap();
+        fs::write(
+            sibling.join("Islands.rocci"),
+            "@on:post(\"/x\") = |_| <p>x</p>\n",
+        )
+        .unwrap();
+        assert!(generated_island_plan(&sibling).unwrap().is_none());
+        let err = plan_island_service(&sibling).unwrap_err().to_string();
+        assert!(err.contains("[http].service"), "{err}");
+        let _ = fs::remove_dir_all(sibling);
     }
 }

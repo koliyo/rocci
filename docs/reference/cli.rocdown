@@ -117,10 +117,14 @@ cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--outp
 ```
 
 Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
-with live reload. The default root is the current directory. A `.rocdown` file
-under an ancestor `rocdown.toml` uses that site root and opens the page route,
-so includes and `/docs/...` links resolve the same way as `rocdown run docs`.
-A file with no ancestor config stays a standalone document. Preview output
+with live reload. Hybrid sites with colocated `@on` handlers also start the
+generated island service and proxy `/actions/` on this same origin so Datastar
+posts work locally. Sibling `[http].service` apps still run with
+`rocdown serve-islands` or `rocci run`. The default root is the current
+directory. A `.rocdown` file under an ancestor `rocdown.toml` uses that site
+root and opens the page route, so includes and `/docs/...` links resolve the
+same way as `rocdown run docs`. A file with no ancestor config stays a
+standalone document. Preview output
 goes to a temp directory unless `--output` is set. The preview window supports
 current-document find and `Cmd/Ctrl-K` jump-to-page using `/pages.json`. The
 Dev control opens a profiling panel at `/__rocci/dev`. `rocdown run` and
