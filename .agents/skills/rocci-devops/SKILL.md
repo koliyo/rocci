@@ -15,9 +15,9 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
    work.
 2. Understand the repository's GitHub Actions workflows in `.github/workflows/`:
    - `ci.yml`: Main validation pipeline running on every push/PR:
-     - `lint`: Rust formatting (`cargo fmt`) and clippy checks (`cargo clippy -D warnings`).
+     - `lint`: Rust formatting (`cargo fmt`) and clippy checks (`cargo clippy -D warnings`) on `ubuntu-latest`.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest`.
-     - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`).
+     - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest`.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check.
    - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs.
    - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation.
