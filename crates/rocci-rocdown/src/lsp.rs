@@ -695,7 +695,7 @@ fn kind_completion(prefix: &str, parent: Option<String>) -> CompletionResponse {
     CompletionResponse::Array(
         crate::registry::authorable_kinds()
             .filter(|spec| spec.name.starts_with(prefix))
-            .filter(|spec| crate::registry::parent_allowed(spec, parent))
+            .filter(|spec| crate::registry::child_completion_allowed(spec, parent))
             .map(|spec| {
                 completion_item(
                     spec.name,

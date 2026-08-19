@@ -72,6 +72,13 @@ const LINK_CARD: &[PaintField] = &[
 const CAPTION: &[PaintField] = &[PaintField::str("caption")];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildPredicate {
+    None,
+    StepsXorList,
+    FigureOneImage,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KindSpec {
     pub name: &'static str,
     pub component: &'static str,
@@ -81,9 +88,11 @@ pub struct KindSpec {
     pub required_fields: &'static [&'static str],
     pub optional_fields: &'static [&'static str],
     pub parents: &'static [&'static str],
-    pub child_kinds: &'static [&'static str],
-    pub required_child_kinds: &'static [&'static str],
-    pub forbidden_children: &'static [&'static str],
+    pub accepts: &'static [&'static str],
+    pub accepts_markdown: bool,
+    pub requires: &'static [&'static str],
+    pub forbids: &'static [&'static str],
+    pub child_predicate: ChildPredicate,
     pub required_one_of: &'static [&'static [&'static str]],
 }
 
@@ -120,6 +129,14 @@ impl KindSpec {
             .copied()
             .chain(self.optional_fields.iter().copied())
     }
+
+    pub fn accepts_block_child(self, child: &str) -> bool {
+        !self.forbids.contains(&child) && (self.accepts.is_empty() || self.accepts.contains(&child))
+    }
+
+    pub fn rejects_markdown(self) -> bool {
+        !self.accepts_markdown && self.child_predicate == ChildPredicate::None
+    }
 }
 
 pub const KINDS: &[KindSpec] = &[
@@ -137,9 +154,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["summary"],
         optional_fields: &["open"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -151,9 +170,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &[],
         parents: &[],
-        child_kinds: &["step"],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &["step"],
+        accepts_markdown: false,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::StepsXorList,
         required_one_of: &[],
     },
     KindSpec {
@@ -165,9 +186,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["title", "verify"],
         parents: &["steps"],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -179,9 +202,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["caption", "credit"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::FigureOneImage,
         required_one_of: &[],
     },
     KindSpec {
@@ -193,9 +218,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["term"],
         optional_fields: &[],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -207,9 +234,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["group", "kind"],
         optional_fields: &[],
         parents: &[],
-        child_kinds: &["tab"],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &["tab"],
+        accepts_markdown: false,
+        requires: &["tab"],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -221,9 +250,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["id", "label"],
         optional_fields: &[],
         parents: &["tabs"],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -235,9 +266,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["label"],
         optional_fields: &["tone"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -249,9 +282,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["title", "summary", "page", "href"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[LINK_CARD_TARGET],
     },
     KindSpec {
@@ -263,9 +298,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &[],
         parents: &[],
-        child_kinds: &["link-card"],
-        required_child_kinds: &["link-card"],
-        forbidden_children: &[],
+        accepts: &["link-card"],
+        accepts_markdown: false,
+        requires: &["link-card"],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -277,9 +314,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &[],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -291,9 +330,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["caption"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -305,9 +346,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &["path"],
         optional_fields: &["region", "start", "end"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -326,9 +369,11 @@ pub const KINDS: &[KindSpec] = &[
             "region",
         ],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -340,9 +385,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["id"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     sugar("h1", "H1"),
@@ -369,9 +416,11 @@ pub const KINDS: &[KindSpec] = &[
             "decoding",
         ],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
     KindSpec {
@@ -383,9 +432,11 @@ pub const KINDS: &[KindSpec] = &[
         required_fields: &[],
         optional_fields: &["id"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     },
 ];
@@ -400,9 +451,11 @@ const fn aside(name: &'static str, component: &'static str) -> KindSpec {
         required_fields: &[],
         optional_fields: &["title"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &["tabs"],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &["tabs"],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     }
 }
@@ -417,9 +470,11 @@ const fn sugar(name: &'static str, component: &'static str) -> KindSpec {
         required_fields: &[],
         optional_fields: &["id"],
         parents: &[],
-        child_kinds: &[],
-        required_child_kinds: &[],
-        forbidden_children: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &[],
+        child_predicate: ChildPredicate::None,
         required_one_of: &[],
     }
 }
@@ -474,6 +529,16 @@ pub fn heading_level(name: &str) -> Option<u8> {
 
 pub fn parent_allowed(spec: &KindSpec, parent_kind: Option<&str>) -> bool {
     spec.parents.is_empty() || parent_kind.is_some_and(|parent| spec.parents.contains(&parent))
+}
+
+pub fn child_completion_allowed(spec: &KindSpec, parent_kind: Option<&str>) -> bool {
+    if !parent_allowed(spec, parent_kind) {
+        return false;
+    }
+    match parent_kind.and_then(lookup) {
+        Some(parent) => parent.accepts_block_child(spec.name),
+        None => true,
+    }
 }
 
 pub fn module_collision(name: &str) -> bool {
@@ -616,6 +681,48 @@ mod tests {
             assert_eq!(spec.family, KindFamily::Sugar);
             assert!(!is_docs_kind(name));
         }
+    }
+
+    #[test]
+    fn child_policy_is_data_on_the_spec() {
+        let tabs = lookup("tabs").unwrap();
+        assert_eq!(tabs.accepts, &["tab"]);
+        assert!(!tabs.accepts_markdown);
+        assert_eq!(tabs.requires, &["tab"]);
+        assert!(tabs.rejects_markdown());
+        assert!(tabs.accepts_block_child("tab"));
+        assert!(!tabs.accepts_block_child("note"));
+
+        let grid = lookup("card-grid").unwrap();
+        assert_eq!(grid.accepts, &["link-card"]);
+        assert_eq!(grid.requires, &["link-card"]);
+        assert!(!grid.accepts_markdown);
+        assert!(grid.accepts_block_child("link-card"));
+        assert!(!grid.accepts_block_child("note"));
+
+        let note = lookup("note").unwrap();
+        assert_eq!(note.forbids, &["tabs"]);
+        assert!(note.accepts_markdown);
+        assert!(!note.accepts_block_child("tabs"));
+        assert!(note.accepts_block_child("details"));
+
+        let steps = lookup("steps").unwrap();
+        assert_eq!(steps.child_predicate, ChildPredicate::StepsXorList);
+        assert_eq!(steps.accepts, &["step"]);
+        assert!(!steps.rejects_markdown());
+
+        let figure = lookup("figure").unwrap();
+        assert_eq!(figure.child_predicate, ChildPredicate::FigureOneImage);
+        assert!(figure.accepts_markdown);
+
+        let tab = lookup("tab").unwrap();
+        assert!(child_completion_allowed(tab, Some("tabs")));
+        assert!(!child_completion_allowed(tab, None));
+        let note_spec = lookup("note").unwrap();
+        assert!(!child_completion_allowed(note_spec, Some("tabs")));
+        assert!(child_completion_allowed(note_spec, None));
+        let tabs_spec = lookup("tabs").unwrap();
+        assert!(!child_completion_allowed(tabs_spec, Some("note")));
     }
 
     #[test]

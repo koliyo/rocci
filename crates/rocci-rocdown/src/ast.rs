@@ -119,6 +119,10 @@ impl MdNode {
         }
     }
 
+    pub fn is_whitespace_only_paragraph(&self) -> bool {
+        matches!(self, Self::Paragraph { .. }) && self.text_content().trim().is_empty()
+    }
+
     pub fn children_mut(&mut self) -> &mut [MdNode] {
         match self {
             Self::Heading { children, .. }

@@ -610,6 +610,11 @@ fn validate_colon_tree(
     imported: &HashSet<String>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if let Some(parent_name) = parent
+        && let Some(spec) = crate::registry::lookup(parent_name)
+    {
+        validate_colon_children(src, items, spec, diagnostics);
+    }
     for item in items {
         if let Item::Use(decl) = item
             && parent.is_some()
@@ -703,6 +708,33 @@ fn validate_colon_call(
                     format!("`:{}` requires `{joined}`", spec.name),
                 ));
             }
+        }
+    }
+}
+
+fn validate_colon_children(
+    src: &str,
+    items: &[Item],
+    spec: &crate::registry::KindSpec,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    for item in items {
+        match item {
+            Item::Block(call) if call.is_colon(src) => {
+                if !spec.accepts_block_child(&call.name) {
+                    diagnostics.push(Diagnostic::error(
+                        call.name_span,
+                        format!("`:{}` cannot contain `:{}`", spec.name, call.name),
+                    ));
+                }
+            }
+            Item::Markdown(md) if spec.rejects_markdown() && !md.is_whitespace_only_paragraph() => {
+                diagnostics.push(Diagnostic::error(
+                    md.span(),
+                    format!("`:{}` cannot contain Markdown", spec.name),
+                ));
+            }
+            _ => {}
         }
     }
 }

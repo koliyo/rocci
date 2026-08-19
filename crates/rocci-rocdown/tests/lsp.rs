@@ -387,6 +387,51 @@ fn completes_builtin_kinds_and_registry_fields() {
 }
 
 #[test]
+fn kind_completion_inside_tabs_prefers_accepts() {
+    let mut server = initialize_server();
+    let uri = open_colon(&mut server);
+    let src = "\
+:tabs.begin[group: \"os\", kind: \"platform\"]
+    :
+    :tab[id: \"mac\", label: \"macOS\"] Hello.
+:tabs.end
+";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 6,
+                text: src.to_string(),
+            },
+        })
+        .expect("open tabs body");
+    let offset = src.find("    :\n").expect("inner colon") + 5;
+    let (line, character) = line_col(src, offset);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("tabs child completion")
+    else {
+        panic!("expected completion array");
+    };
+    let labels = labels(&items);
+    assert!(labels.contains(&"tab"), "{labels:?}");
+    assert!(
+        !labels.contains(&"note"),
+        "tabs completions should prefer accepts kinds: {labels:?}"
+    );
+    assert!(
+        !labels.contains(&"tabs"),
+        "tabs completions should not offer nested tabs: {labels:?}"
+    );
+}
+
+#[test]
 fn hover_and_symbols_use_colon_kind_names() {
     let mut server = initialize_server();
     let uri = open_colon(&mut server);

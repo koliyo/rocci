@@ -87,7 +87,13 @@ as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 :tabs.end
 ````
 
-Nested article blocks are legal in the body. `@page`, `@roc`, `@render`,
+Nested article blocks are legal in the body unless the parent kind's child
+policy forbids them. `:tabs` accepts only `:tab` children (Markdown and other
+blocks are errors). `:card-grid` accepts only `:link-card`. Asides cannot
+contain `:tabs`. `:steps` is still an ordered Markdown list or `:step`
+children, not both. `:figure` still requires exactly one image.
+
+`@page`, `@roc`, `@render`,
 `@component`, handlers, and HTML islands inside a block body are errors.
 A colon with a following space (`: definition`) stays Markdown.
 
@@ -107,7 +113,7 @@ kinds belong in the compiled theme.
 | `compatibility` | Table of supported combinations |
 | `card-grid` / `link-card` | Related-page cards; `page` is a stable page id |
 | `file-tree` | Nested unordered list |
-| `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool` |
+| `tabs` / `tab` | No-JS stacked panels; `kind` is `language`, `platform`, or `tool`; body is `:tab` children only |
 | `include` | File or region include |
 | `example` | Display sample with optional `test` metadata |
 | `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |

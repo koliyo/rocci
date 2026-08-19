@@ -49,7 +49,8 @@ paints the HTML. Fenced code stays display-only.
 
 Every tab panel is in the document. Print, forced-colors, and browsers with
 scripts disabled show all panels. There is no `tablist` role until a hashed
-script exists.
+script exists. `:tabs` bodies may contain only `:tab` children; stray
+Markdown or other blocks are errors.
 
 :tabs.begin[group: "install", kind: "tool"]
     :tab[id: "cli", label: "CLI"] {{

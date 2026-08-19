@@ -13,7 +13,7 @@ use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPag
 use crate::img::{StaticImage, img_fields_from_params};
 use crate::page::{bool_literal, string_list, string_literal};
 use crate::parse::parse_fragment;
-use crate::registry::{self, KindFamily, KindSpec, PaintType};
+use crate::registry::{self, ChildPredicate, KindSpec, PaintType};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocsField {
@@ -992,26 +992,7 @@ fn validate_registry_shape(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind:
             }
         }
     }
-    if spec.family == KindFamily::Aside
-        && spec
-            .forbidden_children
-            .iter()
-            .any(|kind| has_docs_child(node, kind))
-    {
-        malformed(ctx, line, "asides cannot contain tabs");
-    }
-    if spec.diagnostic_code == "RD2402" {
-        for child_kind in spec.required_child_kinds {
-            if !has_docs_child(node, child_kind) {
-                kind_error(
-                    ctx,
-                    spec,
-                    line,
-                    format!("`:{}` requires `:{child_kind}` children", spec.name),
-                );
-            }
-        }
-    }
+    validate_children(ctx, node, spec);
 }
 
 fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&str>) {
@@ -1030,37 +1011,6 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
     }
     validate_registry_shape(ctx, node, parent_kind);
     match node.kind.as_str() {
-        "steps" => {
-            let has_step = has_docs_child(node, "step");
-            let has_list = node.children.iter().any(|child| {
-                matches!(
-                    child,
-                    ArticleNode::Markdown(MdNode::List { ordered: true, .. })
-                )
-            });
-            let extra = node.children.iter().any(|child| match child {
-                ArticleNode::Block(docs) => docs.kind != "step",
-                ArticleNode::Markdown(MdNode::List { ordered: true, .. }) => false,
-                ArticleNode::Markdown(_) | ArticleNode::Image(_) | ArticleNode::Island => true,
-            });
-            if has_step && has_list {
-                malformed(ctx, line, "`:steps` cannot mix a list with `:step`");
-            } else if extra {
-                malformed(
-                    ctx,
-                    line,
-                    "`:steps` body must be an ordered list or `:step` children",
-                );
-            } else if !has_step && !has_list {
-                malformed(ctx, line, "`:steps` requires steps");
-            }
-        }
-        "figure" => {
-            let images = count_images(&node.children);
-            if images != 1 {
-                malformed(ctx, line, "`:figure` body must contain exactly one image");
-            }
-        }
         "badge" => {
             if let Some(tone) = &node.attrs.tone
                 && !registry::BADGE_TONE_VALUES.contains(&tone.as_str())
@@ -1086,6 +1036,109 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
         "tabs" => validate_tabs(ctx, node),
         "example" => validate_example(ctx, node),
         _ => {}
+    }
+}
+
+fn validate_children(ctx: &mut BuildCtx<'_>, node: &DocsNode, spec: &KindSpec) {
+    let line = node.line;
+    for kind in spec.forbids {
+        if has_docs_child(node, kind) {
+            malformed(
+                ctx,
+                line,
+                &format!("`:{}` cannot contain `:{kind}`", spec.name),
+            );
+        }
+    }
+    match spec.child_predicate {
+        ChildPredicate::StepsXorList => validate_steps_xor_list(ctx, node),
+        ChildPredicate::FigureOneImage => {
+            if count_images(&node.children) != 1 {
+                malformed(ctx, line, "`:figure` body must contain exactly one image");
+            }
+        }
+        ChildPredicate::None => validate_accepted_children(ctx, node, spec),
+    }
+    for child_kind in spec.requires {
+        if !has_docs_child(node, child_kind) {
+            kind_error(
+                ctx,
+                spec,
+                line,
+                format!("`:{}` requires `:{child_kind}` children", spec.name),
+            );
+        }
+    }
+}
+
+fn validate_accepted_children(ctx: &mut BuildCtx<'_>, node: &DocsNode, spec: &KindSpec) {
+    for child in &node.children {
+        match child {
+            ArticleNode::Block(docs) => {
+                if !spec.accepts_block_child(&docs.kind) {
+                    malformed(
+                        ctx,
+                        docs.line,
+                        &format!("`:{}` cannot contain `:{}`", spec.name, docs.kind),
+                    );
+                }
+            }
+            ArticleNode::Markdown(md) => {
+                if spec.rejects_markdown() && !md.is_whitespace_only_paragraph() {
+                    malformed(
+                        ctx,
+                        node.line,
+                        &format!("`:{}` cannot contain Markdown", spec.name),
+                    );
+                }
+            }
+            ArticleNode::Image(_) => {
+                if !spec.accepts_block_child("img") {
+                    malformed(
+                        ctx,
+                        node.line,
+                        &format!("`:{}` cannot contain `:img`", spec.name),
+                    );
+                }
+            }
+            ArticleNode::Island => {
+                if spec.rejects_markdown() || !spec.accepts.is_empty() {
+                    malformed(
+                        ctx,
+                        node.line,
+                        &format!("`:{}` cannot contain an island", spec.name),
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn validate_steps_xor_list(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
+    let line = node.line;
+    let has_step = has_docs_child(node, "step");
+    let has_list = node.children.iter().any(|child| {
+        matches!(
+            child,
+            ArticleNode::Markdown(MdNode::List { ordered: true, .. })
+        )
+    });
+    let extra = node.children.iter().any(|child| match child {
+        ArticleNode::Block(docs) => docs.kind != "step",
+        ArticleNode::Markdown(MdNode::List { ordered: true, .. }) => false,
+        ArticleNode::Markdown(md) => !md.is_whitespace_only_paragraph(),
+        ArticleNode::Image(_) | ArticleNode::Island => true,
+    });
+    if has_step && has_list {
+        malformed(ctx, line, "`:steps` cannot mix a list with `:step`");
+    } else if extra {
+        malformed(
+            ctx,
+            line,
+            "`:steps` body must be an ordered list or `:step` children",
+        );
+    } else if !has_step && !has_list {
+        malformed(ctx, line, "`:steps` requires steps");
     }
 }
 
@@ -1123,14 +1176,6 @@ fn validate_tabs(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
             _ => None,
         })
         .collect();
-    if tabs.is_empty() {
-        kind_error(
-            ctx,
-            spec,
-            line,
-            "`:tabs` requires `:tab` children".to_string(),
-        );
-    }
     let mut seen = BTreeSet::new();
     for tab in tabs {
         if let Some(tab_spec) = tab_spec {
@@ -2161,6 +2206,83 @@ mod tests {
                     && diagnostic
                         .message
                         .contains("`:step` is only valid inside `:steps`")
+            }),
+            "{:?}",
+            compiled.diagnostics
+        );
+    }
+
+    #[test]
+    fn tabs_reject_stray_markdown_from_child_policy() {
+        let compiled = compile_src(
+            ":tabs.begin[group: \"os\", kind: \"platform\"]\n    A stray paragraph.\n    :tab[id: \"mac\", label: \"macOS\"] Hello.\n:tabs.end\n",
+        );
+        assert!(
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("`:tabs` cannot contain Markdown")
+            }),
+            "{:?}",
+            compiled.diagnostics
+        );
+    }
+
+    #[test]
+    fn aside_forbids_tabs_from_child_policy() {
+        let compiled = compile_src(
+            ":note.begin\n    :tabs.begin[group: \"os\", kind: \"platform\"]\n        :tab[id: \"mac\", label: \"macOS\"] Hello.\n    :tabs.end\n:note.end\n",
+        );
+        assert!(
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("`:note` cannot contain `:tabs`")
+            }),
+            "{:?}",
+            compiled.diagnostics
+        );
+    }
+
+    #[test]
+    fn card_grid_requires_link_card_from_child_policy() {
+        let compiled = compile_src(":card-grid.begin\n:card-grid.end\n");
+        assert!(!compiled.has_errors(), "{:?}", compiled.diagnostics);
+        let mut diagnostics = Vec::new();
+        let _docs = load_page_docs(
+            SourceFile::new("guide.rocdown", ":card-grid.begin\n:card-grid.end\n"),
+            &compiled.document,
+            "guide.rocdown",
+            IncludeOptions {
+                root: Path::new("."),
+                snippet_roots: &[],
+            },
+            &mut diagnostics,
+        );
+        assert!(
+            diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("`:card-grid` requires `:link-card` children")
+            }),
+            "{diagnostics:?}"
+        );
+    }
+
+    #[test]
+    fn card_grid_rejects_non_card_children() {
+        let compiled = compile_src(
+            ":card-grid.begin\n    :note Aside.\n    :link-card[href: \"https://example.com\"]\n:card-grid.end\n",
+        );
+        assert!(
+            compiled.diagnostics.iter().any(|diagnostic| {
+                diagnostic.is_error()
+                    && diagnostic
+                        .message
+                        .contains("`:card-grid` cannot contain `:note`")
             }),
             "{:?}",
             compiled.diagnostics
