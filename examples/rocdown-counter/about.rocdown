@@ -1,5 +1,6 @@
 @page {
     route: "/about/",
+    layout: "docs",
     meta: {
         title: "About",
         description: "A neighboring static page with no island service",

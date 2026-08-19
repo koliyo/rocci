@@ -1,5 +1,6 @@
 @page {
     route: "/",
+    layout: "docs",
     meta: {
         title: "Hybrid counter",
         description: "CDN HTML with a SQLite-backed island service",
@@ -72,14 +73,14 @@ import pf.Sqlite
 @component
 CounterCard = |{ count }| {
     @css {
-        .counter-card {
+        section {
             margin: 1.25rem 0 0;
             padding: 1.15rem 1.25rem;
             border: 1px solid var(--rd-color-border);
             border-radius: 16px;
             background: var(--rd-color-surface);
         }
-        .counter-card p {
+        p {
             margin: 0 0 0.35rem;
             color: var(--rd-color-accent);
             font-size: 0.75rem;
@@ -87,7 +88,7 @@ CounterCard = |{ count }| {
             letter-spacing: 0.12em;
             text-transform: uppercase;
         }
-        .counter-card output {
+        output {
             display: block;
             color: var(--rd-color-text);
             font-family: ui-monospace, monospace;
@@ -96,12 +97,12 @@ CounterCard = |{ count }| {
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.04em;
         }
-        .counter-card .actions {
+        .actions {
             display: flex;
             gap: 0.75rem;
             margin-top: 1.25rem;
         }
-        .counter-card button {
+        button {
             appearance: none;
             border: 0;
             border-radius: 10px;
@@ -112,7 +113,7 @@ CounterCard = |{ count }| {
             font-weight: 700;
             cursor: pointer;
         }
-        .counter-card button.secondary {
+        button.secondary {
             border: 1px solid var(--rd-color-border);
             background: transparent;
             color: var(--rd-color-muted);

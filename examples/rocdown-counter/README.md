@@ -18,23 +18,11 @@ For page-kind coverage without SQLite, see
 
 ## Preview
 
-From the repository root, with `roc` and `cargo` on `PATH`:
+Debug this example on the host with `roc` and `cargo` on `PATH`. Do not start
+Docker until the steps below are green. Compose is only for Caddy `try_files`,
+published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and container path stamps.
 
-```sh
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window
-```
-
-This serves the CDN tree and proxies `/actions/` on one origin
-([http://127.0.0.1:8000](http://127.0.0.1:8000) by default). Omit `--no-window`
-to open an embedded preview. Override the port with `--port` or
-`ROC_BASIC_WEBSERVER_PORT`. Generated island `main.roc` binds `127.0.0.1` unless
-`ROC_BASIC_WEBSERVER_HOST` is set (use `0.0.0.0` behind Docker Compose).
-
-Preview SQLite state is ephemeral (`islands.db` in the staging workspace).
-Handler and content edits reload; durable production state uses
-`serve-islands` and `DB_PATH` below.
-
-Inspect the publish plan without Roc:
+### Catalog without Roc
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
@@ -42,6 +30,51 @@ cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
 
 Expect `index` as `live` with Datastar, `about` as `static`, and
 `POST /actions/counter/increment` plus `POST /actions/counter/reset`.
+
+### Snapshot HTML and CSS
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
+grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown-counter/dist/index.html
+grep -l 'border-radius: 16px' examples/rocdown-counter/dist/assets/*.css
+```
+
+No island process. Home HTML should include `rd-document`, `#counter`, and a
+hashed stylesheet. The island CSS file should include the card radius.
+
+### Interactive same-origin
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window \
+  --output /tmp/rocdown-counter-preview
+```
+
+Serves the CDN tree and proxies `/actions/` on one origin
+([http://127.0.0.1:8000](http://127.0.0.1:8000) by default). Logs
+`rocdown: preview files at …`. `--output` keeps that tree after stop; without
+it the files live in a temp directory that is deleted when the process exits.
+Omit `--no-window` to open an embedded preview. Override the port with
+`--port` or `ROC_BASIC_WEBSERVER_PORT`. Generated island `main.roc` binds
+`127.0.0.1` unless `ROC_BASIC_WEBSERVER_HOST` is set.
+
+Preview SQLite state is ephemeral (`islands.db` in the staging workspace).
+Handler and content edits reload; durable production state uses
+`serve-islands` and `DB_PATH` below.
+
+Smoke on 8000:
+
+```sh
+curl -sf http://127.0.0.1:8000/health
+curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
+curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
+```
+
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment, and
+confirm `#counter output` morphs. Dev inspector:
+[http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev).
+While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
+`dist/` above.
 
 ## Build the CDN tree
 
@@ -117,6 +150,10 @@ and must not rely on GET `/` (the CDN owns page GET).
 
 ## Local Docker
 
+Use Compose after the host `run` loop above is green. It is the check for
+Caddy `try_files` vs hashed assets, published 8001, `0.0.0.0` bind, and
+container `COPY` path stamps — not the day-to-day increment/CSS loop.
+
 Same-origin two-image layout: Caddy serves the CDN tree and reverse-proxies
 `/actions/` plus `/health` to `serve-islands`. Images are defined in
 [`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile). From the
@@ -127,14 +164,16 @@ docker compose -f examples/rocdown-counter/docker-compose.yml up --build
 ```
 
 Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
-[/about/](http://127.0.0.1:8080/about/) (static). SQLite state is the
+[/about/](http://127.0.0.1:8080/about/) (static). That origin is the same-origin
+demo: Caddy serves the CDN tree and proxies `/actions/` plus `/health`. The
+islands process is also published at [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
+for direct smoke curls; the browser should stay on 8080. SQLite state is the
 `counter-db` volume (`DB_PATH=/var/lib/rocci/counter.db`). The islands
 container sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so Caddy can reach it.
 
-Smoke through Caddy, not the island port:
-
 ```sh
 curl -s http://127.0.0.1:8080/health
+curl -s http://127.0.0.1:8001/health
 curl -s -X POST http://127.0.0.1:8080/actions/counter/increment
 curl -s http://127.0.0.1:8080/about/ | grep -E '<script>|datastar' || true
 ```

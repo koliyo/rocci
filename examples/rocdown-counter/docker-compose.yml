@@ -10,8 +10,8 @@ services:
       DB_PATH: /var/lib/rocci/counter.db
     volumes:
       - counter-db:/var/lib/rocci
-    expose:
-      - "8001"
+    ports:
+      - "8001:8001"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8001/health"]
       interval: 5s

@@ -776,6 +776,7 @@ mod tests {
                 no_live_reload,
                 quiet,
                 port,
+                output,
                 ..
             } => {
                 assert_eq!(path, PathBuf::from("examples/rocdown/Guide.rocdown"));
@@ -783,8 +784,25 @@ mod tests {
                 assert!(!quiet);
                 assert_eq!(port, PortArg::Exact(8000));
                 assert!(!no_live_reload);
+                assert_eq!(output, None);
             }
             _ => panic!("expected run"),
+        }
+
+        let kept = Cli::try_parse_from([
+            "rocdown",
+            "run",
+            "examples/rocdown-counter",
+            "--no-window",
+            "--output",
+            "/tmp/rocdown-counter-preview",
+        ])
+        .unwrap();
+        match kept.command {
+            Commands::Run { output, .. } => {
+                assert_eq!(output, Some(PathBuf::from("/tmp/rocdown-counter-preview")));
+            }
+            _ => panic!("expected run --output"),
         }
 
         let paused = Cli::try_parse_from(["rocdown", "run", "docs", "--no-live-reload"]).unwrap();

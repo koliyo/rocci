@@ -397,6 +397,27 @@ fn page_layout_and_route_are_emitted() {
 }
 
 #[test]
+fn site_chrome_layout_is_not_emitted_as_a_roc_call() {
+    let src = r#"
+@page {
+    route: "/",
+    layout: "docs",
+    meta: { title: "Counter" },
+}
+
+@on:post("/actions/x") = |_| {
+    <p>ok</p>
+}
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.page_meta.layout.as_deref(), Some("docs"));
+    assert!(!out.roc.contains("docs({ meta:"), "{}", out.roc);
+    assert!(out.roc.contains("rocci_content"), "{}", out.roc);
+}
+
+#[test]
 fn page_theme_and_color_scheme_are_extracted() {
     let src = r#"
 @page {

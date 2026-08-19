@@ -23,6 +23,20 @@ const CONTENT_NAME: &str = "rocci_content";
 const PAGE_NAME: &str = "rocci_page";
 const ISLANDS_NAME: &str = "rocci_islands";
 
+fn is_site_chrome_layout(layout: &str) -> bool {
+    matches!(
+        layout,
+        "home"
+            | "product"
+            | "section"
+            | "docs"
+            | "news-index"
+            | "news-post"
+            | "plain"
+            | "not-found"
+    )
+}
+
 pub struct Lowered {
     pub roc: String,
     pub segments: Vec<Segment>,
@@ -268,7 +282,9 @@ pub fn lower(
     emitter.emit(" = |{}| {\n");
     emitter.indent += 1;
     emitter.push_indent();
-    if let Some(layout) = &page_meta.layout {
+    if let Some(layout) = &page_meta.layout
+        && !is_site_chrome_layout(layout)
+    {
         emitter.emit(layout);
         emitter.emit("({ meta: rocci_meta, content: rocci_content({}) })\n");
     } else {
