@@ -4,7 +4,7 @@ title: Ungrammar as AST spec for Rocci and Rocdown
 description: "Exploratory research: keep hand-written scanners and parsers; use ungrammar as the tree spec for both languages and generate owned AST structs. Not shipped."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T16:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -92,6 +92,11 @@ sources:
   - id: ungram-plan
     resource: ../plans/ungram-ast.md
     title: Ungrammar AST codegen implementation plan
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: follow-ons
+    resource: ../plans/ungram-follow-ons.md
+    title: Ungram follow-on backends after owned-struct codegen
     author: process:cursor
     last_modified: 2026-08-19
   - id: format-arch
@@ -607,18 +612,20 @@ duplicates lowering rules. Worse than one base-rocci CLI.
    `Paragraph` / `List` nodes? Owned by the block-model tree, not this
    codegen.
 4. Is `format_ast` generation wanted once inspect tags stabilize, or is
-   the S-expression a hand-written facade forever?
+   the S-expression a hand-written facade forever? Delivery answer is in
+   the [follow-on plan](../plans/ungram-follow-ons.md): generate the
+   walker; keep tags, atoms, and truncation as a facade.[^follow-ons]
 5. Should public reference pages (`docs/reference/rocci.rocdown`,
    `docs/reference/rocdown.rocdown`) cite the ungrams as the tree
-   appendix, or keep them developer-only?
+   appendix, or keep them developer-only? Delivery answer: generated
+   name/tag appendix pages, not a raw ungram paste.[^follow-ons]
 
 ## Recommended next work
 
-Phased delivery is in the [ungram AST implementation
-plan](../plans/ungram-ast.md). Sequence: freeze the dialect and both
-ungrams against the *shipped* trees → generator crate with snapshot
-tests → cut over `rocci-template` → cut over Rocdown non-`MdNode`
-nodes → CI `--check`. Do not start a phase until asked.[^ungram-plan]
+Phased v1 delivery is in the [ungram AST implementation
+plan](../plans/ungram-ast.md). Follow-ons after owned-struct codegen are
+in the [ungram follow-on backends plan](../plans/ungram-follow-ons.md).
+Do not start a phase until asked.[^ungram-plan][^follow-ons]
 
 [^ungram-intro]: Ungrammar describes concrete syntax trees, not the language of strings; pair it with a hand-written parser; do not generate the parser.
 [^ungrammar-crate]: `ungrammar` 1.16.1 parses the DSL; producing a parser is an explicit non-goal.
@@ -637,6 +644,7 @@ nodes → CI `--check`. Do not start a phase until asked.[^ungram-plan]
 [^block-research]: Ungram as AST spec not scanner; Rocci ungram optional; Bravo cited as inspiration; open question on CI drift.
 [^block-plan]: v1 hand-writes matching types; generating node types is a follow-on; do not generate the scanner.
 [^ungram-plan]: Phased owned-struct codegen; exploratory until a phase is requested.
+[^follow-ons]: Inspect exhaustiveness first; NodeKind not SyntaxKind; Markdown ungram generates MdNode; CST deferred.
 [^format-arch]: Descriptive Rocdown format boundary; architecture stays the shipped contract.
 [^language-tooling]: LSP consumes compiler trees and token spans; no CST layer today.
 [^language-dev]: Parser and lowering tests stay server-free; scanners must terminate; inspect AST is part of the language-dev loop.
