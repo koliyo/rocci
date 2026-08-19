@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 pub use dialect::Error;
 pub use paths::{
-    ROCCI_GENERATED, ROCCI_TOML, ROCCI_UNGRAM, ROCDOWN_SNAPSHOT, ROCDOWN_TOML, ROCDOWN_UNGRAM,
+    ROCCI_GENERATED, ROCCI_TOML, ROCCI_UNGRAM, ROCDOWN_GENERATED, ROCDOWN_TOML, ROCDOWN_UNGRAM,
 };
 
 use dialect::lower;
@@ -59,7 +59,7 @@ pub const LANGUAGES: [LanguageSpec; 2] = [
     LanguageSpec {
         ungram: ROCDOWN_UNGRAM,
         sidecar: ROCDOWN_TOML,
-        output: ROCDOWN_SNAPSHOT,
+        output: ROCDOWN_GENERATED,
     },
 ];
 

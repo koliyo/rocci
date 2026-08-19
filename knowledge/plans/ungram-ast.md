@@ -307,6 +307,10 @@ and still produces `Item::Markdown(MdNode)` for Comrak blocks.
 Inspect fixtures do not change unless a field was already drifting
 (treat unexpected inspect diffs as a bug).[^rocdown-lib][^ast-test][^rocdown-ast]
 
+**Status:** implemented on `ungram-ast-implementation` (`ast.generated.rs`
+plus hand-written `MdNode`, analysis types, and `BlockCall` helpers).
+Not CI-complete. CI `--check` is Phase 5.
+
 ### Phase 5 — CI `--check` and docs
 
 **Bound:** wire `rocci-ungram --check` into the lint or test job; mention

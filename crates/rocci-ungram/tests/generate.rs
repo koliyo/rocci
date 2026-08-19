@@ -76,14 +76,20 @@ fn parses_and_snapshots_language_ungrams() {
     assert!(!rocci.contains("fn parse"));
     assert!(!rocdown.contains("struct MdNode"));
     assert!(!rocdown.contains("struct ComponentDecl"));
-    let committed = fs::read_to_string(root.join(rocci_ungram::ROCCI_GENERATED)).unwrap();
+    let committed_rocci = fs::read_to_string(root.join(rocci_ungram::ROCCI_GENERATED)).unwrap();
     assert_eq!(
-        committed,
+        committed_rocci,
         rocci,
         "committed {} is stale",
         rocci_ungram::ROCCI_GENERATED
     );
-    assert_snapshot("rocdown_ast.generated.rs", &rocdown);
+    let committed_rocdown = fs::read_to_string(root.join(rocci_ungram::ROCDOWN_GENERATED)).unwrap();
+    assert_eq!(
+        committed_rocdown,
+        rocdown,
+        "committed {} is stale",
+        rocci_ungram::ROCDOWN_GENERATED
+    );
 }
 
 #[test]
