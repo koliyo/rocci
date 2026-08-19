@@ -1,5 +1,10 @@
 # Knowledge log
 
+## 2026-08-19
+
+- Added draft [generalized Rocdown block model implementation plan](plans/generalized-rocdown-block-model.md): nine bounded phases from a closed Rust registry and per-kind Rocci components through dual-parse `:name[params]`, sugar unification, public `@docs` cutover, typed props, `@use`, and LSP. Exploratory; no phase started.
+- Added draft [generalized Rocdown block model](research/generalized-rocdown-block-model.md) research: article blocks distinct from `@`; decided spelling `:name[params]` with `{{ }}` / `:end`; draft AST ungram at `crates/rocci-rocdown/Rocdown.AST.ungram` (nodes, not scanner). Syntax sketches under `knowledge/research/syntax/`.
+
 ## 2026-08-18
 
 - Added a draft [preview window naming decision](decisions/preview-window.md): the native Tao/Wry shell is the preview window, overlay navigation is preview chrome, and compiler-derived panels stay on the preview origin as Rocci that consumes host JSON.
