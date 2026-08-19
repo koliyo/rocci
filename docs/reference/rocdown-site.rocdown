@@ -183,6 +183,31 @@ named `content` is escaped as text.
 content root. When omitted, Rocdown uses `theme/` if it contains `.rocci`
 files, otherwise the builtin documentation shell.
 
+## Article block packs
+
+`theme/Blocks.rocci`, or `theme/blocks/*.rocci` when that file is absent, can
+replace builtin article-block painters (`Note`, `Tabs`, …) by exporting the
+same `@component` names. Packs may `import DocsComponents` and wrap a builtin.
+`[blocks]` in `rocdown.toml` selects a pack path and optional kind remaps:
+
+```toml
+[blocks]
+pack = "theme/widgets"
+debug = false
+
+[blocks.override]
+note = "Callout"
+```
+
+- `pack`: optional path, relative to the content root, to a `.rocci` file or a
+  directory of `.rocci` files. When set, it replaces the `theme/Blocks.rocci` /
+  `theme/blocks/` convention.
+- `debug`: reserved for preview of kinds that have a schema but no painter.
+  Unused by `rocdown build` and `rocdown check` until that fallback ships.
+- `[blocks.override]`: maps a builtin widget kind (`note`) to a pack or
+  `DocsComponents` component name (`Callout`). Unknown kinds fail config load.
+  Unknown component names fail theme compile.
+
 ## Composable content mounts
 
 Sites can mount external documentation catalogs or content trees using `[[mount]]` tables in `rocdown.toml`. This allows maintaining standalone documentation at repository root (`docs/`) while mounting it into a full website (`site/`):

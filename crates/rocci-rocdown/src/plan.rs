@@ -401,12 +401,21 @@ fn compile_theme_modules(root: &Path, config: &SiteConfig) -> Result<Vec<Compile
             target.parent().unwrap_or(root).to_path_buf()
         };
         let mut modules = compile_project_theme(root, &target)?;
-        compile_block_pack(root, Some(&theme_dir), &mut modules)?;
-        modules.push(block_painters_module(&modules));
+        let pack_names = compile_block_pack(root, Some(&theme_dir), config, &mut modules)?;
+        modules.push(block_painters_module(
+            &modules,
+            &pack_names,
+            &config.blocks.override_map,
+        )?);
         Ok(modules)
     } else {
         let mut modules = compile_builtin_theme()?;
-        modules.push(block_painters_module(&modules));
+        let pack_names = compile_block_pack(root, None, config, &mut modules)?;
+        modules.push(block_painters_module(
+            &modules,
+            &pack_names,
+            &config.blocks.override_map,
+        )?);
         Ok(modules)
     }
 }
@@ -561,21 +570,52 @@ fn compile_builtin_theme() -> Result<Vec<CompiledThemeModule>> {
 fn compile_block_pack(
     root: &Path,
     theme_dir: Option<&Path>,
+    config: &SiteConfig,
     modules: &mut Vec<CompiledThemeModule>,
-) -> Result<()> {
+) -> Result<Vec<String>> {
+    if let Some(pack) = &config.blocks.pack {
+        return compile_pack_path(root, pack, modules);
+    }
     if modules.iter().any(|module| module.type_name == "Blocks") {
-        return Ok(());
+        return Ok(vec!["Blocks".to_string()]);
     }
     let Some(theme_dir) = theme_dir else {
-        return Ok(());
+        return Ok(Vec::new());
     };
     let pack_dir = theme_dir.join("blocks");
     if !pack_dir.is_dir() {
-        return Ok(());
+        return Ok(Vec::new());
     }
+    compile_pack_dir(root, &pack_dir, modules)
+}
+
+fn compile_pack_path(
+    root: &Path,
+    pack: &str,
+    modules: &mut Vec<CompiledThemeModule>,
+) -> Result<Vec<String>> {
+    let path = root.join(pack);
+    if !path.exists() {
+        bail!("blocks.pack `{pack}` does not exist in {}", root.display());
+    }
+    if path.is_dir() {
+        return compile_pack_dir(root, &path, modules);
+    }
+    if path.extension().is_some_and(|ext| ext == "rocci") {
+        Ok(vec![ensure_theme_module(root, &path, modules)?])
+    } else {
+        bail!("blocks.pack `{pack}` must be a .rocci file or directory of .rocci files");
+    }
+}
+
+fn compile_pack_dir(
+    root: &Path,
+    dir: &Path,
+    modules: &mut Vec<CompiledThemeModule>,
+) -> Result<Vec<String>> {
     let mut files = Vec::new();
-    for entry in std::fs::read_dir(&pack_dir)
-        .with_context(|| format!("failed to read {}", pack_dir.display()))?
+    for entry in
+        std::fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))?
     {
         let path = entry?.path();
         if path.is_file() && path.extension().is_some_and(|ext| ext == "rocci") {
@@ -583,24 +623,31 @@ fn compile_block_pack(
         }
     }
     files.sort();
+    let mut names = Vec::new();
     for file in files {
-        let type_name = rocci_template::type_name_from_path(&file);
-        let src = std::fs::read_to_string(&file)
-            .with_context(|| format!("failed to read {}", file.display()))?;
-        let rel_name = file
-            .strip_prefix(root)
-            .unwrap_or(&file)
-            .to_string_lossy()
-            .replace('\\', "/");
-        modules.push(compile_single_module(&rel_name, &type_name, &src)?);
+        names.push(ensure_theme_module(root, &file, modules)?);
     }
-    Ok(())
+    Ok(names)
 }
 
-fn is_block_pack_module(module: &CompiledThemeModule) -> bool {
-    module.type_name == "Blocks"
-        || module.source_name.contains("/blocks/")
-        || module.source_name.starts_with("blocks/")
+fn ensure_theme_module(
+    root: &Path,
+    file: &Path,
+    modules: &mut Vec<CompiledThemeModule>,
+) -> Result<String> {
+    let type_name = rocci_template::type_name_from_path(file);
+    let rel_name = file
+        .strip_prefix(root)
+        .unwrap_or(file)
+        .to_string_lossy()
+        .replace('\\', "/");
+    if let Some(existing) = modules.iter().find(|module| module.source_name == rel_name) {
+        return Ok(existing.type_name.clone());
+    }
+    let src = std::fs::read_to_string(file)
+        .with_context(|| format!("failed to read {}", file.display()))?;
+    modules.push(compile_single_module(&rel_name, &type_name, &src)?);
+    Ok(type_name)
 }
 
 fn roc_fn_name(component: &str) -> String {
@@ -609,20 +656,69 @@ fn roc_fn_name(component: &str) -> String {
     first.to_lowercase().chain(chars).collect()
 }
 
-fn block_painters_module(modules: &[CompiledThemeModule]) -> CompiledThemeModule {
-    let mut by_component = BTreeMap::new();
-    for module in modules {
-        if !is_block_pack_module(module) {
-            continue;
-        }
-        for name in &module.components {
-            by_component.insert(name.clone(), module.type_name.clone());
+fn module_exports_component(module: &CompiledThemeModule, component: &str) -> bool {
+    let key = roc_fn_name(component);
+    module
+        .components
+        .iter()
+        .any(|name| name == component || roc_fn_name(name) == key)
+}
+
+fn lookup_painter_source<'a>(
+    component: &str,
+    pack_modules: &[&'a CompiledThemeModule],
+    docs: Option<&'a CompiledThemeModule>,
+) -> Option<&'a str> {
+    for module in pack_modules {
+        if module_exports_component(module, component) {
+            return Some(module.type_name.as_str());
         }
     }
+    if docs.is_some_and(|module| module_exports_component(module, component)) {
+        return Some("DocsComponents");
+    }
+    None
+}
+
+fn block_painters_module(
+    modules: &[CompiledThemeModule],
+    pack_names: &[String],
+    overrides: &BTreeMap<String, String>,
+) -> Result<CompiledThemeModule> {
+    let pack_modules: Vec<&CompiledThemeModule> = modules
+        .iter()
+        .filter(|module| pack_names.contains(&module.type_name))
+        .collect();
+    let docs = modules
+        .iter()
+        .find(|module| module.type_name == "DocsComponents");
+    let mut bindings: Vec<(String, String, String, bool)> = Vec::new();
+    for spec in crate::registry::KINDS
+        .iter()
+        .filter(|spec| spec.paints_as_widget())
+    {
+        let painter = roc_fn_name(spec.component);
+        let (paint_as, required) = match overrides.get(spec.name) {
+            Some(component) => (component.as_str(), true),
+            None => (spec.component, false),
+        };
+        let callee = roc_fn_name(paint_as);
+        let source = match lookup_painter_source(paint_as, &pack_modules, docs) {
+            Some(source) => source.to_string(),
+            None if required => {
+                bail!(
+                    "blocks.override `{}` names unknown component `{paint_as}`",
+                    spec.name
+                );
+            }
+            None => "DocsComponents".to_string(),
+        };
+        bindings.push((painter, source, callee, spec.paint_content()));
+    }
     let mut imports = vec!["DocsComponents".to_string()];
-    for module in by_component.values() {
-        if !imports.contains(module) {
-            imports.push(module.clone());
+    for (_, source, _, _) in &bindings {
+        if !imports.contains(source) {
+            imports.push(source.clone());
         }
     }
     let mut roc = String::new();
@@ -632,34 +728,25 @@ fn block_painters_module(modules: &[CompiledThemeModule]) -> CompiledThemeModule
         roc.push('\n');
     }
     roc.push_str("\nBlockPainters := [].{\n");
-    for spec in crate::registry::KINDS
-        .iter()
-        .filter(|spec| spec.paints_as_widget())
-    {
-        let fn_name = roc_fn_name(spec.component);
-        let source = by_component
-            .get(&fn_name)
-            .or_else(|| by_component.get(spec.component))
-            .map(String::as_str)
-            .unwrap_or("DocsComponents");
+    for (painter, source, callee, paint_content) in &bindings {
         roc.push_str("    ");
-        roc.push_str(&fn_name);
-        if spec.paint_content() {
+        roc.push_str(painter);
+        if *paint_content {
             roc.push_str(" = |props, content|\n        ");
             roc.push_str(source);
             roc.push('.');
-            roc.push_str(&fn_name);
+            roc.push_str(callee);
             roc.push_str("(props, content)\n");
         } else {
             roc.push_str(" = |props|\n        ");
             roc.push_str(source);
             roc.push('.');
-            roc.push_str(&fn_name);
+            roc.push_str(callee);
             roc.push_str("(props)\n");
         }
     }
     roc.push_str("}\n");
-    CompiledThemeModule {
+    Ok(CompiledThemeModule {
         type_name: "BlockPainters".to_string(),
         source_name: "BlockPainters.roc".to_string(),
         src: roc.clone(),
@@ -667,7 +754,7 @@ fn block_painters_module(modules: &[CompiledThemeModule]) -> CompiledThemeModule
         segments: Vec::new(),
         styles: Vec::new(),
         components: Vec::new(),
-    }
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2106,6 +2193,158 @@ import Html
             "{}",
             painters.roc
         );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn write_shell(root: &Path) {
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn blocks_pack_path_replaces_theme_blocks_convention() {
+        let root = temp("blocks-pack-path");
+        write_site(&root);
+        write_shell(&root);
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Note = |{ title }, content|
+    <section data-convention-note>{content}</section>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/AltPack.rocci"),
+            r#"
+import Html
+
+@component Note = |{ title }, content|
+    <section data-pack-note>{content}</section>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+pack = "theme/AltPack.rocci"
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let painters = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters.roc.contains("AltPack.note(props, content)"),
+            "{}",
+            painters.roc
+        );
+        assert!(
+            !painters.roc.contains("Blocks.note(props, content)"),
+            "{}",
+            painters.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn blocks_override_remaps_kind_to_pack_component() {
+        let root = temp("blocks-override");
+        write_site(&root);
+        write_shell(&root);
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Callout = |{ title }, content|
+    <section data-callout data-title={title}>{content}</section>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks.override]
+note = "Callout"
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let painters = planned
+            .theme_modules
+            .iter()
+            .find(|module| module.type_name == "BlockPainters")
+            .unwrap();
+        assert!(
+            painters
+                .roc
+                .contains("note = |props, content|\n        Blocks.callout(props, content)"),
+            "{}",
+            painters.roc
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn blocks_override_unknown_component_fails_theme_compile() {
+        let root = temp("blocks-override-missing");
+        write_site(&root);
+        write_shell(&root);
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks.override]
+note = "Missing"
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let err = plan(&loaded.root, &loaded.config, &resolved.site)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unknown component `Missing`"), "{err}");
 
         let _ = fs::remove_dir_all(root);
     }
