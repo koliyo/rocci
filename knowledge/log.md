@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Added draft [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md): three phases after the local Docker same-origin counter demo (headless CLI without WebKit, precompiled island binary without `roc` at runtime, cross-origin CORS and cookies). Exploratory; no phase started.
 - Shipped `:kind.begin` ... `:kind.end` as the named-closer form, keeping `{{ }}` as the other nested-body delimiter. A call uses one, not both. Leftover `:end.kind` is a removal diagnostic. See [Rocdown format](architecture/rocdown-format.md).
 - Clarified that `@docs` was a short-lived experiment with no place in current design: live architecture, status, and current research describe `:kind` only. [Rocdown format](architecture/rocdown-format.md) records leftover `@docs` / `@img` solely as removal diagnostics naming `:note` / `:img[...]`. Historical block-model records keep pre-cutover rationale without treating that family as a live design surface.
 - Added draft [extended preview-window inspector](research/preview-inspector.md) research and [implementation plan](plans/preview-inspector.md): the shipped Dev panel already has profiling plus a source/AST/Roc/HTML dropdown, but overlay `iframe.src` clobber, `@scope`d CSS, and a right-side cover make it unusable. Plan: fix Source DX, true dock right/bottom, tabs for Performance/Source/Console, runtime log hub; app-level Rocci logging out of scope. Exploratory; no phase started. Marks [source-views](plans/inspector-source-views.md) artifact work as shipped and remaining UX as superseded.

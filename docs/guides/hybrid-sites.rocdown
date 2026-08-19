@@ -120,6 +120,21 @@ example.com {
 3. Run `rocdown serve-islands` with a persistent `DB_PATH`.
 4. Point the reverse proxy at that process for `/actions/` and `/health`.
 
+## Local Docker
+
+The counter example ships a two-image Compose file: Ubuntu runs
+`rocdown serve-islands`; official Caddy serves `dist/` and proxies island
+routes on one origin. From the repository root:
+
+```sh
+docker compose -f examples/rocdown-counter/docker-compose.yml up --build
+```
+
+Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/). The islands process
+listens on `0.0.0.0` via `ROC_BASIC_WEBSERVER_HOST` so the Caddy container can
+reach it. Commands and smoke curls are in
+`examples/rocdown-counter/README.md`.
+
 ## Cross-origin service
 
 Set an absolute origin and rebuild so action URLs and CSP match:

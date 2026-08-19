@@ -427,6 +427,19 @@ listen_port! = |_| {
 }
 "#;
 
+/// Bind host for generated `with_listen`. Defaults to loopback. Set
+/// `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so another container can reverse-proxy.
+pub const ROC_LISTEN_HOST_HELPER: &str = r#"
+listen_host! : {} => Str
+listen_host! = |_| {
+    match Env.var_str!("ROC_BASIC_WEBSERVER_HOST") {
+        Ok("") => "127.0.0.1"
+        Ok(value) => value
+        Err(_) => "127.0.0.1"
+    }
+}
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -589,6 +602,13 @@ mod tests {
         });
         probe_http(port, "/").unwrap();
         server.join().unwrap();
+    }
+
+    #[test]
+    fn listen_helpers_read_port_and_host_env() {
+        assert!(ROC_LISTEN_PORT_HELPER.contains("ROC_BASIC_WEBSERVER_PORT"));
+        assert!(ROC_LISTEN_HOST_HELPER.contains("ROC_BASIC_WEBSERVER_HOST"));
+        assert!(ROC_LISTEN_HOST_HELPER.contains("127.0.0.1"));
     }
 
     #[test]

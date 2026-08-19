@@ -4,7 +4,7 @@ title: Hybrid Rocdown islands for CDN-static sites
 description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phases 1–10 are on the hybrid branch (dual apply, preview-as-site, one-origin islands, public contract on :name[params]). Exploratory; not shipped."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:30:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -157,6 +157,11 @@ sources:
   - id: hybrid-guide
     resource: ../../docs/guides/hybrid-sites.rocdown
     title: Hybrid CDN plus island-service operator guide
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: hosting-follow-ons
+    resource: hybrid-island-hosting-follow-ons.md
+    title: Hybrid island hosting follow-ons
     author: process:cursor
     last_modified: 2026-08-19
 ---
@@ -594,7 +599,9 @@ that revision.
   bodies.[^block-plan]
 - `@use` imported components as hydrate-page article kinds (static
   `rocdown build` stays a closed registry).
-- CORS/cookie details for cross-origin CDN + service.
+- CORS/cookie details for cross-origin CDN + service; WebKit-free
+  `--no-window` binaries; precompiled island binary without `roc` at
+  runtime.[^hosting-follow-ons]
 - Vendor cache-header adapters.
 
 ## Open questions that would still change the plan
@@ -643,3 +650,4 @@ that revision.
 [^rocdown-reference]: Update after behavior ships.
 [^counter-example]: SQLite-backed live page on the hybrid branch.
 [^hybrid-guide]: Two-artifact deploy runbook on the hybrid branch.
+[^hosting-follow-ons]: Docker same-origin demo first; WebKit-free CLI, precompiled islands, and CORS later.

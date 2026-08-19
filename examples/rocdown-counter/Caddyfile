@@ -1,0 +1,20 @@
+:80 {
+	handle /actions/* {
+		reverse_proxy islands:8001
+	}
+	handle /health {
+		reverse_proxy islands:8001
+	}
+	@hashed path /assets/*
+	handle @hashed {
+		root * /srv
+		file_server
+		header Cache-Control "public, max-age=31536000, immutable"
+	}
+	handle {
+		root * /srv
+		try_files {path} {path}/index.html
+		file_server
+		header Cache-Control "no-cache"
+	}
+}

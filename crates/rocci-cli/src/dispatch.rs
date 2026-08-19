@@ -202,7 +202,7 @@ init! = || {{
     context = {context_init}
 {file_root_bindings}    config =
         Server.default_config
-        .with_listen({{ host: "127.0.0.1", port: listen_port!({{}}) }})
+        .with_listen({{ host: listen_host!({{}}), port: listen_port!({{}}) }})
         .with_file_roots([{file_roots_list}])
         .with_native_routes({{
             files: [
@@ -254,6 +254,7 @@ patch_html! = |node| {{
     );
     out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
 }
 
@@ -428,6 +429,8 @@ mod tests {
         assert!(main.contains("(\"GET\", \"/health\")"));
         assert!(main.contains("Datastar.patch_elements"));
         assert!(main.contains("ROC_BASIC_WEBSERVER_PORT"));
+        assert!(main.contains("ROC_BASIC_WEBSERVER_HOST"));
+        assert!(main.contains("host: listen_host!({})"));
         assert!(!main.contains("on_get_root!!"));
     }
 

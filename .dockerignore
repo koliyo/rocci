@@ -1,0 +1,21 @@
+# Keep the Compose build context small. This file is used when the context
+# is the repository root (see examples/rocdown-counter/docker-compose.yml).
+.git
+.worktrees
+target
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite3
+editors/vscode/node_modules
+editors/vscode/out
+editors/vscode/dist
+editors/zed/target
+playground/node_modules
+knowledge
+archive
+docs
+*.md
+!README.md
+!examples/**/README.md
+!crates/**/README.md
