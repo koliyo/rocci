@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Added the draft [deferred OKF compile and render follow-ons plan](plans/okf-compile-render-follow-ons.md): keep embedded page Roc in the compile hash (reject research option B), skip-roc as an explicit host not the default product (option A), and wasm apply-to-disk without embedding the Roc compiler or waiting on `basic-cli` `wasm32`. Exploratory; no phase started.
 - Implemented Phase 6 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): default `run` no longer forces Roc; missing `roc` uses the Rust shell unless `--host native` or `ROCCI_REQUIRE_ROC=1`. Recorded a debug [results snapshot](status/okf-compile-render-cost.md). Phases 4–5 skipped. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): watch rebuilds keep the cached apply path in session state and mark `render` as `reuse` when the compile hash is unchanged. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 2 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): native apply writes `OkfTheme.knowledgeShell` HTML to `OKF_STAGING`; Rust `html_page` remains only when apply omitted a path. Not logged complete until CI and Knowledge workflows succeed on this revision.

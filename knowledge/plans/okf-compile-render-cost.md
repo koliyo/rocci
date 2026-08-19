@@ -4,7 +4,7 @@ title: OKF preview compile and render cost
 description: Phased reduction of `rocci-okf run` Roc compile and apply cost after load-performance work. Phases 1–3 and 6 are in this tree; Phases 4–5 skipped.
 tags: [domain/okf, domain/rocci-okf, integration/roc, concern/performance, concern/rendering, concern/caching, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:15:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:30:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -114,6 +114,11 @@ sources:
     title: CLI entry points for Rocci, Rocdown, and OKF preview
     author: process:cursor
     last_modified: 2026-08-18
+  - id: follow-ons
+    resource: okf-compile-render-follow-ons.md
+    title: Deferred OKF compile and render follow-ons
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # OKF preview compile and render cost
@@ -182,6 +187,9 @@ the catalog/shell decision already recorded for OKF review.[^engine-readme]
 [^static-okf][^catalog-shell][^cli-plan][^deps-check]
 
 ## Non-goals
+
+The first three are deferred to
+[compile/render follow-ons](okf-compile-render-follow-ons.md).[^follow-ons]
 
 - Hashing `OkfPages.roc` out of the cache key while it still embeds page data
   (research option B). That is only safe while apply output is ignored.
@@ -406,3 +414,4 @@ preview path.
 [^static-okf]: Canonical knowledge remains inert Markdown.
 [^deps-check]: Workspace dependency direction is mechanical; `okf` must not grow a CLI or host edge.
 [^cli-plan]: OKF preview stays on `rocci-okf`.
+[^follow-ons]: Option B stays a hash invariant; skip-roc is opt-in not default; wasm apply-to-disk uses the custom platform, not an embedded compiler.
