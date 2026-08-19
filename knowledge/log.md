@@ -2,6 +2,7 @@
 
 ## 2026-08-19
 
+- Implemented Phase 2 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): native apply writes `OkfTheme.knowledgeShell` HTML to `OKF_STAGING`; Rust `html_page` remains only when apply omitted a path. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 1 of the [OKF preview compile and render cost plan](plans/okf-compile-render-cost.md): `okf-pages.json` plus article files carry page identity; `compute_gen_hash` / `compute_compile_hash` key the renderer without bundle Markdown. Apply still discards HTML. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Added draft [rocci-browser implementation plan](plans/rocci-browser.md) from the research recommendation (option D): product-blind host, newline-delimited JSON-RPC adapters, registry, two-stage picker (Enter/Tab, Cmd-P vs Cmd-K), five delivery phases after a contract freeze. Complements one-shot `run` preview; does not add plugins on `rocci` or `rocdown`. Exploratory; Phase 0 freeze only; Phases 1–5 wait on fourth-CLI and adapter-shape gates.
 - Added draft [live reload follow-ons](plans/live-reload-follow-ons.md) after the preview-bar toggle: native View menu check item, shared `--no-live-reload` CLI flag, and a `--no-window` browser pause. Exploratory; no phase started.

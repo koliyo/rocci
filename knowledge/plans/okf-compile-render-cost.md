@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: OKF preview compile and render cost
-description: Phased reduction of `rocci-okf run` Roc compile and apply cost after load-performance work. Stop baking page HTML into the renderer hash, write Rocci chrome from apply, and keep compile off the Markdown-edit path. Phase 1 is in this tree.
+description: Phased reduction of `rocci-okf run` Roc compile and apply cost after load-performance work. Stop baking page HTML into the renderer hash, write Rocci chrome from apply, and keep compile off the Markdown-edit path. Phases 1–2 are in this tree.
 tags: [domain/okf, domain/rocci-okf, integration/roc, concern/performance, concern/rendering, concern/caching, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:55:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -125,10 +125,9 @@ for default preview. Remaining first-open and save cost is `compile` plus
 path. It does not reopen provenance, parse caching, or bounded concept-path
 loading.[^load-plan][^load-status][^presentation]
 
-Phase 1 is in this tree: generated Roc in the compile hash is templates,
-`Html.roc`, `OkfBuild.roc`, and `main.roc`; page identity lives in
-`okf-pages.json` and article files. Phases 2–6 are not started. Exploratory;
-not CI-complete. Measured numbers in the companion [research
+Phases 1–2 are in this tree: page identity is outside the renderer hash, and
+native apply writes `OkfTheme.knowledgeShell` HTML to staging. Phases 3–6 are
+not started. Exploratory; not CI-complete. Measured numbers in the companion [research
 record](../research/okf-compile-render-cost.md) are machine-local, not a
 latency SLA.[^research]
 
