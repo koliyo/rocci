@@ -124,6 +124,9 @@ future audits or CI-oriented perf checks.[^okf-main][^okf-dev][^cli-plan]
 
 ## Recommended next steps
 
+The follow-up implementation plan is
+[OKF load-performance improvements](../plans/okf-load-performance.md).
+
 1. Add finer profiling inside `okf::load`, especially around Markdown/body
    parsing versus lifecycle/provenance validation, so `load` stops being one
    large opaque bucket.[^okf-load]
