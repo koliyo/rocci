@@ -3,7 +3,7 @@ name: rocci-author
 description: >-
   Write idiomatic `.rocci` templates, `.rocdown` pages, and ordinary Roc used
   from those files. Use when authoring or reviewing Rocci components, Rocdown
-  documents, documentation-site themes, `@page`/`@docs`/`@img` markup, server
+  documents, documentation-site themes, `@page` / `:note` / `:img` markup, server
   handlers, Datastar actions, fixtures, scoped CSS, or Roc helpers in template
   modules. Prefer match over chained if/else. Do not use for changing Rocci or
   Rocdown grammar, parsers, lowering, or diagnostics — that is rocci-language-dev.
@@ -23,7 +23,7 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 | Need | File & Location | Notes |
 | --- | --- | --- |
 | Reusable UI widgets & design primitives | `components/*.rocci` | Composable `@component` declarations, scoped `@css`, and `@fixture` |
-| Markdown-first page or docs | `docs/*.rocdown` or `*.rocdown` | Prose is Markdown; `@` only at document root |
+| Markdown-first page or docs | `docs/*.rocdown` or `*.rocdown` | Prose is Markdown; `@` and `:` only at document root |
 | Site chrome / document layouts | `theme/*.rocci` or `layouts/*.rocci` | Article is a **body parameter**, not a prop (`|{ view }, content|`) |
 | Standalone HTTP apps / route modules | `pages/*.rocci` or root `*.rocci` | App state (`@context`, `@init`), routes (`@on`), and full-page HTML |
 | Shared Roc helpers / domain modules | `*.roc` | Import from `.rocci`; ordinary Roc functions/types without template grammar |
@@ -31,7 +31,8 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 > [!NOTE]
 > Store reusable UI components in `components/` rather than a monolithic `templates/` directory. Rocci files are type-safe, compiled Roc modules with `@component`, scoped `@css`, and `@fixture` metadata—not passive string templates. The internal `crates/*/templates/` directories are reserved for static assets embedded in Rust compiler binaries via `include_str!`.
 
-Static `rocdown build` currently accepts Markdown, `@page`, and `@docs`. Dynamic
+Static `rocdown build` currently accepts Markdown, `@page`, and `:kind` article
+blocks. Dynamic
 `@roc`, `@render`, Rocci components, file `@css`, handlers, and custom layouts
 work with `rocci run` / standalone `rocdown run`, and are rejected by the static
 site pipeline until island splicing lands.
@@ -87,14 +88,14 @@ site pipeline until island splicing lands.
   literal example outside a fence.
 - Fenced code is always display-only, even when the language is `roc`,
   `rocci`, or `rocdown`.
-- Raw HTML in Markdown is disabled. Use Markdown, `@docs`, `@img`, a
+- Raw HTML in Markdown is disabled. Use Markdown, `:note`, `:img`, a
   document-root `<Tag />`, or `@render { htmlExpr }`.
 - `@page` is at most once. Docs sites usually omit `route` and let the catalog
   derive it. Use `Bool.true` / `Bool.false` in page metadata.
-- `@docs <kind> { ... }` is one family (`note`, `steps`, `tabs`, `include`,
-  …). Nested `@docs` are legal; `@page` / `@roc` / handlers inside a docs body
-  are errors.
-- `@img` requires `alt` or `decorative: Bool.true`, not both with a non-empty
+- `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,
+  `include`, …). Nested blocks are legal; `@page` / `@roc` / handlers inside a
+  block body are errors. Leftover `@docs` / `@img` is a removal error.
+- `:img` requires `alt` or `decorative: Bool.true`, not both with a non-empty
   alt. Local `src` is relative to the source file.
 - Names `rocci_meta`, `rocci_content`, and `rocci_page` are reserved.
 

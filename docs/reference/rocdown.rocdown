@@ -34,14 +34,14 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@context`, `@init`, `@on` | Declare a standalone server app |
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
-| `@docs <kind> { ... }` | Bounded documentation component; see below |
-| `@img { ... }` | Native image element; `alt` or `decorative` required; see below |
+| `:kind[params]` | Article block; see below |
+| `:img[src: "...", alt: "..."]` | Native image element; `alt` or `decorative` required; see below |
 
 `@island` is reserved in the design but not parsed yet.
 
-## `@img` native images
+## `:img` native images
 
-Use `@img` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph that is only a Markdown image, and ATX headings, parse as the same internal `img` / `h1`–`h6` blocks as `:img` and `:h2`. Explicit `:h2[id: "install"]` keeps that id in the outline.
+Use `:img[...]` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph that is only a Markdown image, and ATX headings, parse as the same internal `img` / `h1`–`h6` blocks as `:img` and `:h2`. Explicit `:h2[id: "install"]` keeps that id in the outline.
 
 Local `src` paths, including `./img/photo.png`, resolve against the source file
 directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /
@@ -50,13 +50,7 @@ Rocdown catalog checks. Standalone preview copies those files without hashing an
 serves them beside the page route; static site builds hash files under `build.assets`.
 
 ````rocdown
-@img {
-    src: "./img/yammi_banana.png",
-    alt: "A delicious banana",
-    width: "50px",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "./img/yammi_banana.png", alt: "A delicious banana", width: "50px", loading: "lazy", decoding: "async"]
 ````
 
 | Field | Requirement | Meaning |
@@ -71,29 +65,30 @@ serves them beside the page route; static site builds hash files under `build.as
 | `loading` | Optional | `"lazy"` or `"eager"` |
 | `decoding` | Optional | `"async"`, `"auto"`, or `"sync"` |
 
-## `@docs` components
+## Article blocks
 
-`@docs` is one reserved family. Kinds such as `note` or `tabs` are not
-top-level `@` names. The parser stores the kind identifier and brace body.
-Rocdown types the body; standalone `rocdown run` paints a conservative preview.
+Article blocks use `:kind` at document root. Params are in `[]`. Content is
+the rest of the line, a `{{ }}` section, or a matching `:end.kind`. Kinds such
+as `note` or `tabs` are registry names, not reserved `@` names. Line-start
+`@docs` / `@img` is a removal error. Rocdown types the body; standalone
+`rocdown run` paints a conservative preview.
 
 ````rocdown
-@docs note {
-    title: "Deprecation"
-
+:note[title: "Deprecation"] {{
     This API will be removed in 0.4. See [Routing](/docs/reference/rocdown-site/).
-}
+}}
 ````
 
-Nested `@docs` are legal in the body. `@page`, `@roc`, `@render`, `@component`,
-handlers, and HTML islands inside a docs body are errors. `\@docs` stays prose.
+Nested article blocks are legal in the body. `@page`, `@roc`, `@render`,
+`@component`, handlers, and HTML islands inside a block body are errors.
+A colon with a following space (`: definition`) stays Markdown.
 
 | Kind | Role |
 | --- | --- |
 | `note`, `tip`, `caution`, `danger`, `deprecated` | Labeled asides |
 | `details` | Disclosure with required `summary` |
 | `steps` / `step` | Ordered procedure; `step` only inside `steps` |
-| `figure` | Exactly one image; nested `@img.alt` owns accessibility; `caption` and `credit` optional; figure-level `alt` is unknown |
+| `figure` | Exactly one image; nested `:img` alt owns accessibility; `caption` and `credit` optional; figure-level `alt` is unknown |
 | `definition` | Local term and definition |
 | `badge` | Block status label |
 | `compatibility` | Table of supported combinations |
@@ -202,6 +197,6 @@ automatic navigator.
 
 ## Static documentation site support
 
-Rocdown site builds currently accept the static Markdown tree plus `@page` and `@docs`.
+Rocdown site builds currently accept the static Markdown tree plus `@page` and article blocks.
 They reject dynamic Roc, Rocci templates, `@css`, handlers, and custom layouts until the
 island splice path is implemented. Draft pages are excluded from production builds.

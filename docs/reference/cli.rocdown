@@ -137,7 +137,7 @@ The default root is the current directory. `ROOT` may be a documentation
 directory or a `.rocdown` file. `rocdown.toml` is optional. `--output` overrides
 `build.output`. OKF knowledge records are refused here as well.
 
-Local `@img` and Markdown image paths resolve against the source file. Missing
+Local `:img` and Markdown image paths resolve against the source file. Missing
 local files fail the catalog (`RD2103`). Files under `build.assets` are
 content-hashed whether the authored URL is `/assets/foo.png` or `assets/foo.png`.
 
@@ -147,7 +147,7 @@ content-hashed whether the authored URL is `/assets/foo.png` or `assets/foo.png`
 cargo run -p rocci-rocdown-cli -- check [ROOT] [--format terminal|json]
 ```
 
-Validate the catalog, including `@docs` content models, includes, page links,
+Validate the catalog, including article-block content models, includes, page links,
 and local assets, without compiling Roc or writing output.
 
 ### Test documented examples
@@ -156,7 +156,7 @@ and local assets, without compiling Roc or writing output.
 cargo run -p rocci-rocdown-cli -- test [ROOT] [--update] [--format terminal|json]
 ```
 
-Run `@docs example` commands that declare `test`. `--update` rewrites golden
+Run `:example` commands that declare `test`. `--update` rewrites golden
 files named by `expect`.
 
 ### Inspect Rocdown AST and planned artifacts

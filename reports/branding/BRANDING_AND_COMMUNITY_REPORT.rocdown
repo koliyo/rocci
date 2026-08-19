@@ -364,12 +364,7 @@ original constrained probes; the next four deliberately reset the brief.
 
 ### A. Folded R — maintainer-preferred candidate
 
-@img {
-    src: "assets/rocci-logo-folded-r.png",
-    alt: "Exploratory Rocci logo sheet showing an orange folded lowercase R.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-folded-r.png", alt: "Exploratory Rocci logo sheet showing an orange folded lowercase R.", loading: "lazy", decoding: "async"]
 
 The folded lowercase “r” is compact and memorable, and the maintainer likes the
 orange direction. Those are valid reasons to keep testing it. It must not be
@@ -379,12 +374,7 @@ one color from a blank canvas, then test whether it reads as an “r,” survive
 
 ### B. Page wing
 
-@img {
-    src: "assets/rocci-logo-page-wing.png",
-    alt: "Exploratory Rocci logo sheet combining a page, wing, and code marks.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-page-wing.png", alt: "Exploratory Rocci logo sheet combining a page, wing, and code marks.", loading: "lazy", decoding: "async"]
 
 The page/wing idea connects Rocdown and code, but the current concept has too
 many parts for 16px use and begins to look like an illustration. Keep it as a
@@ -392,12 +382,7 @@ Rocdown or documentation motif, not the primary mark.
 
 ### C. Connected tags
 
-@img {
-    src: "assets/rocci-logo-connected-tags.png",
-    alt: "Exploratory Rocci logo sheet showing three connected angular tags.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-connected-tags.png", alt: "Exploratory Rocci logo sheet showing three connected angular tags.", loading: "lazy", decoding: "async"]
 
 The three chevrons express multiple inputs converging on one boundary and use
 violet as a Roc reference. The silhouette is generic and risks resembling
@@ -406,12 +391,7 @@ diagram motif than as a logo.
 
 ### D. Open aperture — unconstrained probe
 
-@img {
-    src: "assets/rocci-logo-open-aperture.png",
-    alt: "Exploratory Rocci logo sheet showing an open coral aperture symbol.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-open-aperture.png", alt: "Exploratory Rocci logo sheet showing an open coral aperture symbol.", loading: "lazy", decoding: "async"]
 
 This fresh direction does not depend on a letter or the Roc logo. Its strong
 negative-space center suggests an interface or opening, but the rotating-blade
@@ -420,12 +400,7 @@ advance this exact form.
 
 ### E. Modular commons — strongest non-letter candidate
 
-@img {
-    src: "assets/rocci-logo-modular-commons.png",
-    alt: "Exploratory Rocci logo sheet showing four modular shapes around an open center.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-modular-commons.png", alt: "Exploratory Rocci logo sheet showing four modular shapes around an open center.", loading: "lazy", decoding: "async"]
 
 Four cooperating pieces around an open center express composition, contribution,
 and shared infrastructure without relying on an `r`. It is friendly and holds
@@ -435,12 +410,7 @@ with fewer, more ownable shapes.
 
 ### F. Signal bridge — unconstrained probe
 
-@img {
-    src: "assets/rocci-logo-signal-bridge.png",
-    alt: "Exploratory Rocci logo sheet showing a coral signal crossing a dark boundary.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-signal-bridge.png", alt: "Exploratory Rocci logo sheet showing a coral signal crossing a dark boundary.", loading: "lazy", decoding: "async"]
 
 The boundary-crossing story is relevant, but the generated form is too literal,
 too detailed at small sizes, and can read as networking or infrastructure
@@ -448,12 +418,7 @@ software. Do not advance this exact form.
 
 ### G. Wordmark only — no-symbol control
 
-@img {
-    src: "assets/rocci-logo-wordmark-only.png",
-    alt: "Exploratory Rocci wordmark sheet without a separate symbol.",
-    loading: "lazy",
-    decoding: "async",
-}
+:img[src: "assets/rocci-logo-wordmark-only.png", alt: "Exploratory Rocci wordmark sheet without a separate symbol.", loading: "lazy", decoding: "async"]
 
 A custom wordmark is the necessary control case: Rocci may not need a separate
 emblem. The generated lettering is clear and developer-friendly, but its

@@ -12,7 +12,7 @@ In Rocci projects, structure directories according to the semantic role of each 
 | **`components/`** | Reusable UI widgets and design primitives | `Button.rocci`, `StatusCard.rocci`, `NavList.rocci` | `@component`, `@fixture`, scoped `@css` |
 | **`theme/`** or **`layouts/`** | Document frames, site chrome, and responsive shells | `SiteShell.rocci`, `Layouts.rocci`, `RocdownTheme.rocci` | `@component Layout = \|{ view }, content\|`, global CSS tokens |
 | **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `Todos.rocci`, `Edit.rocci` | `@context`, `@init`, `@on:get`, `@on:post` |
-| **`docs/`** | Documentation pages and guides | `overview.rocdown`, `quickstart.rocdown` | Markdown, `@page`, `@docs`, `@img` |
+| **`docs/`** | Documentation pages and guides | `overview.rocdown`, `quickstart.rocdown` | Markdown, `@page`, `:note`, `:img` |
 
 ### Why `components/` instead of `templates/`
 
@@ -150,7 +150,7 @@ Do not copy `test/AllSyntax.rocci` identifiers such as `List.isEmpty` or
 `Num.toStr`. Current examples and the pinned nightly use `List.is_empty`,
 `count.to_str()`, `Str.split_on`, `I64.from_str`.
 
-Booleans: `Bool.true` / `Bool.false` in `@page` and `@docs` fields; `True` /
+Booleans: `Bool.true` / `Bool.false` in `@page` and `:kind[params]`; `True` /
 `False` (or `Bool.true`) in Roc expressions. Typed integers: `3.I64`.
 
 ## Markup vs Roc expressions
@@ -232,17 +232,15 @@ Ordinary paragraph. Fenced code is never executed:
 answer = 42
 ```
 
-@docs note {
-    title: "Static sites"
-
-    `rocdown build` accepts `@page` and `@docs` beside Markdown.
-}
+:note[title: "Static sites"] {{
+    `rocdown build` accepts `@page` and `:note` beside Markdown.
+}}
 ````
 
 - Document-root `<Byline date={published} />` is an HTML island, not raw HTML.
 - `@render { expr }` splices one `Html` value into the Markdown stream.
 - Links: `[[Page]]`, `[label](Page.rocdown)`, or stable `/route/` on sites.
-- `@docs include` should prefer a named region over line numbers.
+- `:include` should prefer a named region over line numbers.
 - Knowledge records stay inert Markdown. Do not add Rocdown declarations there.
 
 ## Server handlers and purity

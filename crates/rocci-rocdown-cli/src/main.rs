@@ -76,7 +76,7 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
         format: CheckFormatArg,
     },
-    /// Run declared `@docs example` commands. Never part of `rocdown build`.
+    /// Run declared `:example` commands. Never part of `rocdown build`.
     Test {
         #[arg(default_value = ".")]
         root: PathBuf,

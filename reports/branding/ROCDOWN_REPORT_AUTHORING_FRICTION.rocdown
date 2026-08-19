@@ -23,14 +23,16 @@ build.
 It distinguishes shipped behavior from recommendations. It does not approve
 new syntax or change Rocdown's Markdown-first boundary.
 
-@docs note {
-    title: "Bottom line"
+The `@docs` / `@img` spellings in this report are historical (17 August 2026).
+The public language is now `:name[params]`; leftover `@docs` / `@img` are
+removal errors.
 
+:note[title: "Bottom line"] {{
     Rocdown is already a strong source format for the prose layer of a report.
     The friction is concentrated at the document-product layer: figures,
     citations, report metadata, asset portability, print/export, and semantic
     parity between standalone Rocdown and Rocs.
-}
+}}
 
 ## Executive assessment
 

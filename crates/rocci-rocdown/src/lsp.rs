@@ -32,8 +32,6 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "context",
     "init",
     "on",
-    "docs",
-    "img",
     "if",
     "for",
     "match",
@@ -262,17 +260,7 @@ pub fn document_symbols(
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::On(on) => on_symbol(source, on, encoding),
             Item::Template(item) => template_symbol(source, text, item, encoding),
-            Item::Docs(docs) => {
-                let call = crate::docs::block_from_docs_decl(source.src, docs.clone());
-                docs_symbol(source, &call, encoding)
-            }
-            Item::Img(img) => {
-                let call = crate::docs::block_from_img_decl(source.src, img.clone());
-                img_symbol(source, &call, encoding)
-            }
-            Item::Block(call) if call.is_legacy_img(source.src) => {
-                img_symbol(source, call, encoding)
-            }
+            Item::Block(call) if call.name == "img" => img_symbol(source, call, encoding),
             Item::Block(call) => docs_symbol(source, call, encoding),
         };
         symbols.push((item.span().start, symbol));
@@ -305,7 +293,7 @@ pub fn hover(
         Item::Block(call) if call.span.contains(offset) => Some(call),
         _ => None,
     }) {
-        return Some(if call.is_legacy_img(source.src) {
+        return Some(if call.name == "img" {
             img_hover(source, call, encoding)
         } else {
             docs_hover(source, call, encoding)
@@ -359,7 +347,7 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
         Item::Block(call) if call.span.contains(offset as u32) => Some(call),
         _ => None,
     }) {
-        return if call.is_legacy_img(text) {
+        return if call.name == "img" {
             img_completion(text, call, offset)
         } else {
             docs_completion(text, call, offset)
@@ -654,7 +642,7 @@ fn keyword_selection(src: &str, span: Span, keyword: &str) -> Span {
 
 fn docs_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncoding) -> Hover {
     let fields = crate::docs::docs_fields_from_params(call.params.as_ref());
-    let mut value = format!("```rocdown\n@docs {}\n```\n", call.name);
+    let mut value = format!("```rocdown\n:{}\n```\n", call.name);
     for field in fields {
         value.push_str(&format!(
             "\n- **{}**: `{}`",
@@ -715,7 +703,7 @@ fn docs_completion(text: &str, call: &BlockCall, offset: usize) -> CompletionRes
             completion_item(
                 field,
                 CompletionItemKind::FIELD,
-                Some(format!("@docs {}", call.name)),
+                Some(format!(":{}", call.name)),
             )
         })
         .collect();
@@ -732,7 +720,7 @@ fn docs_symbol(
         .iter()
         .find(|field| field.name == "title" || field.name == "label" || field.name == "summary")
         .and_then(|field| crate::field_string(source.src, field));
-    let mut detail = format!("@docs {}", call.name);
+    let mut detail = format!(":{}", call.name);
     if let Some(title) = title {
         detail.push_str(" · ");
         detail.push_str(&title);
@@ -758,9 +746,7 @@ fn docs_symbol(
             ));
         }
         for item in &parsed.document.items {
-            if let Item::Block(nested) = item
-                && !nested.is_legacy_img(source.src)
-            {
+            if let Item::Block(nested) = item {
                 children.push((nested.span.start, docs_symbol(source, nested, encoding)));
             }
         }
@@ -773,7 +759,7 @@ fn docs_symbol(
     };
 
     DocumentSymbol {
-        name: format!("@docs {}", call.name),
+        name: format!(":{}", call.name),
         detail: Some(detail),
         kind: SymbolKind::STRUCT,
         tags: None,
@@ -799,7 +785,7 @@ fn img_symbol(
     let fields = crate::extract_img_fields(source.src, body, &mut diags);
     let detail = fields.src.as_ref().map(|(s, _)| s.clone());
     named_symbol(
-        "@img",
+        ":img",
         detail,
         SymbolKind::OBJECT,
         source,
@@ -817,7 +803,9 @@ fn img_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncodin
         .map(|params| params.span)
         .unwrap_or(call.span);
     let fields = crate::extract_img_fields(source.src, body, &mut diags);
-    let mut doc = String::from("```rocdown\n@img\n```\n\nNative Rocdown image element.\n");
+    let mut doc = String::from(
+        "```rocdown\n:img[src: \"...\", alt: \"...\"]\n```\n\nNative Rocdown image element.\n",
+    );
     if let Some((src, _)) = &fields.src {
         doc.push_str(&format!("\n- **src**: `{src}`"));
     }

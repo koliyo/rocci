@@ -788,15 +788,14 @@ mod tests {
     #[test]
     fn check_reports_unknown_docs_kind() {
         let root = temp("docs-kind");
-        fs::write(
-            root.join("index.rocdown"),
-            "# Home\n\n@docs widget {\n    Hi\n}\n",
-        )
-        .unwrap();
+        fs::write(root.join("index.rocdown"), "# Home\n\n:widget Hi\n").unwrap();
         let report = check(&root).unwrap();
         assert!(report.has_errors());
         let rendered = report.render(CheckFormat::Terminal).unwrap();
-        assert!(rendered.contains("RD2401"), "{rendered}");
+        assert!(
+            rendered.contains("unknown article kind `:widget`"),
+            "{rendered}"
+        );
         let _ = fs::remove_dir_all(root);
     }
 }

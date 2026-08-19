@@ -849,7 +849,7 @@ pub(crate) mod tests {
         write_page(
             &root,
             "index.rocdown",
-            "# Home\n\n@docs note {\n    title: \"Watch\"\n\n    Read this.\n}\n\n@docs tabs {\n    group: \"os\"\n    kind: \"platform\"\n\n    @docs tab {\n        id: \"mac\"\n        label: \"macOS\"\n\n        Mac panel.\n    }\n    @docs tab {\n        id: \"linux\"\n        label: \"Linux\"\n\n        Linux panel.\n    }\n}\n\n@docs include {\n    path: \"snippet.rs\"\n    region: \"hello\"\n}\n",
+            "# Home\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n\n:tabs[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] Mac panel.\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:end.tabs\n\n:include[path: \"snippet.rs\", region: \"hello\"]\n",
         );
         let output = temp_dir("docs-out");
         build(&root, &output).unwrap();

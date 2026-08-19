@@ -26,19 +26,21 @@ what the compiler actually does.
 
 ## File shape
 
-A file is a sequence of Markdown blocks, `@` declarations, and document-root
-HTML islands:
+A file is a sequence of Markdown blocks, `@` declarations, line-start `:kind`
+article blocks, and document-root HTML islands:
 
 ```text
-Document            := (MarkdownBlock | RocdownDeclaration | HtmlIsland)* EOF
+Document            := (MarkdownBlock | RocdownDeclaration | ArticleBlock | HtmlIsland)* EOF
 RocdownDeclaration  := Indent "@" Reserved ...
+ArticleBlock        := Indent ":" Kind [ "[" Params "]" ] Content
 HtmlIsland          := Indent "<" Tag ...
 Indent              := (" " | "\t")*
 ```
 
 Reserved names: `page`, `roc`, `render`, `component`, `fixture`, `css`,
-`context`, `init`, `on`, `if`, `for`, `match`, `let`, `docs`, `img`. Unknown `@name` stays
-Markdown. `\@roc` is escaped prose; the backslash is dropped in rendered text.
+`context`, `init`, `on`, `if`, `for`, `match`, `let`. Unknown `@name` stays
+Markdown. Line-start `@docs` / `@img` is a removal error naming `:note` /
+`:img[...]`. `\@roc` is escaped prose; the backslash is dropped in rendered text.
 
 Declarations are recognized only when all of these hold:
 
@@ -108,8 +110,8 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
-| `@docs <kind> { ... }` | brace body | documentation component; kind is an identifier (kebab-case allowed); Rocdown types the body |
-| `@img { ... }` | image fields | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
+| `:kind[params]` | line, `{{ }}`, or `:end.kind` | article block; kinds are a closed builtin registry |
+| `:img[src: "...", alt: "..."]` | params | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
 `@if`, `@for`, `@match`, and `@let` at document root use Rocci HTML template
@@ -135,18 +137,14 @@ Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 
 `@island` is reserved in the design and is **not** parsed yet.
 
-### `@img`
+### `:img`
 
 Native image declaration. Lowers to `Html.void_element("img", ...)` with standard
 `.rd-image` class and compile-time field extraction. Explicit sizing is optional.
 `alt` is required unless the image is purely decorative.
 
 ```rocdown
-@img {
-    src: "./img/yammi_banana.png"
-    alt: "A banana"
-    width: "50px"
-}
+:img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
 ```
 
 | Field | Requirement | Rule |
@@ -166,8 +164,8 @@ whose only child is a Markdown image, and ATX headings (`#` through `######`),
 parse as the same internal `img` / `h1`–`h6` block kinds as `:img` and `:h2`.
 Heading ids still come from the existing slug algorithm unless
 `:h2[id: "install"]` sets one. Inline images in mixed paragraphs stay Markdown.
-Nested `@img`
-inside `@docs figure` owns accessibility text; figure `caption` and `credit`
+Nested `:img`
+inside `:figure` owns accessibility text; figure `caption` and `credit`
 do not substitute for `alt`. Local `src` paths, including `./img/photo.png`, resolve against the source file directory. `http(s):`, `mailto:`, and `data:` pass through. `rocdown run` diagnoses missing files, copies them into the preview workspace without hashing, and serves them next to the page route. Static site builds (`rocdown build`) hash files under `build.assets`.
 
 ### `@page`
@@ -280,7 +278,7 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
 site chrome and named layouts. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
-unless the project supplies those modules. Each `@docs` kind has a named Rocci
+unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …); a thin `Render` adapter still dispatches
 from planned segment records. Article HTML is an `Html` body
 parameter: write `@component Layout = |{ view }, content|` and `{content}` in
@@ -302,7 +300,7 @@ while building as part of `rocdown build site`.
 - `rocdown run DIR`: Run/preview a documentation site with live reload.
 - `rocdown build DIR`: Build a static documentation site to `dist/`.
 - `rocdown check DIR`: Check catalog, routes, and links.
-- `rocdown test DIR`: Run documented `@docs example` tests.
+- `rocdown test DIR`: Run documented `:example` tests.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
 
 ## Implemented vs deferred
@@ -316,7 +314,7 @@ while building as part of `rocdown build site`.
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
   and standalone preview of nested relative `.md` / `.rocdown` document links
-- `@img` alt/decorative contract and `@docs figure` caption/credit
+- `:img` alt/decorative contract and `:figure` caption/credit
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)

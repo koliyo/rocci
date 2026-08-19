@@ -745,7 +745,7 @@ impl<'a> Emitter<'a> {
             if let Some(kind) = illegal_docs_item(item) {
                 self.diagnostics.push(Diagnostic::error(
                     item.span(),
-                    format!("`@{kind}` is not allowed inside `@docs`"),
+                    format!("`@{kind}` is not allowed inside an article block"),
                 ));
             }
         }
@@ -865,7 +865,6 @@ impl<'a> Emitter<'a> {
                     self.lower_docs(nested);
                     self.emit(",\n");
                 }
-                Item::Docs(_) | Item::Img(_) => {}
                 _ => {}
             }
         }
@@ -1025,7 +1024,7 @@ impl<'a> Emitter<'a> {
                 if let Some(kind) = illegal_docs_item(item) {
                     self.diagnostics.push(Diagnostic::error(
                         item.span(),
-                        format!("`@{kind}` is not allowed inside `@docs include`"),
+                        format!("`@{kind}` is not allowed inside `:include`"),
                     ));
                 }
             }
@@ -2039,7 +2038,7 @@ fn document_has_footnotes(document: &Document) -> bool {
 
 fn illegal_docs_item(item: &Item) -> Option<&'static str> {
     match item {
-        Item::Markdown(_) | Item::Docs(_) | Item::Img(_) | Item::Block(_) => None,
+        Item::Markdown(_) | Item::Block(_) => None,
         Item::Page(_) => Some("page"),
         Item::Roc(_) => Some("roc"),
         Item::Render(_) => Some("render"),

@@ -73,7 +73,7 @@ development libraries are the most common missing prerequisite.
 The current static pipeline rejects `@roc`, `@render`, `@component`, `@css`,
 server declarations, document-root templates, and custom layouts.
 
-Keep the static documentation page to Markdown plus `@page` and `@docs`, or run the
+Keep the static documentation page to Markdown plus `@page` and article blocks, or run the
 interactive document with `rocdown run` until static island splicing is implemented.
 
 ## A Rocdown navigation item is unknown

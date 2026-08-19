@@ -26,7 +26,7 @@ Check the catalog without compiling Roc:
 cargo run -p rocci-rocdown-cli -- check site
 ```
 
-:caution[title: "Unstable"] This spelling is research-only. The shipped parser still wants `@docs caution`.
+:caution[title: "Unstable"] Leftover `@docs caution` is a removal error. Write `:caution` instead.
 
 :note[title: "Static pages"] {{
     Rocdown accepts these blocks next to Markdown and `@page`.

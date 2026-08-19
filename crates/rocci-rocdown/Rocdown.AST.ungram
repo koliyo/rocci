@@ -10,7 +10,7 @@
 //   :note[title: "Watch"] {{ nested Rocdown }}
 //   :tabs[group: "os"] ... :end.tabs
 // Module / Rocci islands stay `@page { }`, `@component`, `@use`.
-// This is not the shipped `Item` / `DocsDecl` tree in ast.rs.
+// This is not a second scanner; it matches the shipped `Item` / `BlockCall` tree.
 
 /// A `.rocdown` file.
 Document =

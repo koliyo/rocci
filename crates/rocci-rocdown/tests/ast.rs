@@ -20,22 +20,15 @@ fn test_all_syntax_ast() {
 }
 
 #[test]
-fn docs_and_img_normalize_to_block_calls() {
+fn colon_note_and_img_are_block_calls() {
     let src = "\
-@docs note {
-    title: \"Watch\"
-
+:note[title: \"Watch\"] {{
     Nested.
 
-    @docs tip {
-        Inner.
-    }
-}
+    :tip Inner.
+}}
 
-@img {
-    src: \"./x.png\"
-    alt: \"x\"
-}
+:img[src: \"./x.png\", alt: \"x\"]
 ";
     let parsed = parse(SourceFile::new("test.rocdown", src), false);
     assert!(

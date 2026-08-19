@@ -7,15 +7,12 @@ use rocci_template::{
 };
 
 use crate::ast::{
-    BlockCall, BlockContent, BraceSection, BracketRecord, DocsDecl, Document, EndMarker,
-    EndSection, ImgDecl, Item, LineContent, MdNode, PageDecl, ParamField, ParamValue, RenderDecl,
-    RocDecl,
+    BlockCall, BlockContent, BraceSection, BracketRecord, Document, EndMarker, EndSection, Item,
+    LineContent, MdNode, PageDecl, ParamField, ParamValue, RenderDecl, RocDecl,
 };
 use crate::markdown::{self, BlockOrHole};
 use crate::params;
-use crate::scan::{
-    self, Reserved, ScannedDecl, ScannedKind, docs_inner_span, docs_kind_span, inner_span,
-};
+use crate::scan::{self, Reserved, ScannedDecl, ScannedKind, inner_span};
 
 pub struct ParseOutput {
     pub document: Document,
@@ -57,7 +54,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     }
 
     let document = Document {
-        items: crate::docs::normalize_blocks(source.src, items),
+        items,
         span: Span::new(0, source.src.len()),
     };
     validate_colon_tree(source.src, &document.items, None, &mut diagnostics);
@@ -177,10 +174,7 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     }
 
     ParseOutput {
-        document: Document {
-            items: crate::docs::normalize_blocks(source.src, items),
-            span: body,
-        },
+        document: Document { items, span: body },
         diagnostics,
         headings: converted.headings,
         links: converted.links,
@@ -474,7 +468,7 @@ fn fill_decl(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -
         },
         ScannedKind::At(kind) => Some(fill_at_decl(src, decl, kind, diagnostics)),
         ScannedKind::Colon => parse_colon_call(src, decl, diagnostics),
-        ScannedKind::ColonEnd => None,
+        ScannedKind::ColonEnd | ScannedKind::RemovedAt => None,
     }
 }
 
@@ -699,22 +693,6 @@ fn fill_at_decl(
             let expr = inner_span(src, decl.at);
             Item::Render(RenderDecl {
                 expr,
-                span: Span::new(decl.at, decl.end),
-            })
-        }
-        Reserved::Docs => {
-            let kind_span = docs_kind_span(src, decl.at);
-            Item::Docs(DocsDecl {
-                kind: kind_span.of(src).to_string(),
-                kind_span,
-                body: docs_inner_span(src, decl.at),
-                span: Span::new(decl.at, decl.end),
-            })
-        }
-        Reserved::Img => {
-            let body = inner_span(src, decl.at);
-            Item::Img(ImgDecl {
-                body,
                 span: Span::new(decl.at, decl.end),
             })
         }

@@ -21,8 +21,6 @@ pub enum Item {
     Init(InitDecl),
     On(OnDecl),
     Template(TemplateItem),
-    Docs(DocsDecl),
-    Img(ImgDecl),
     Block(BlockCall),
 }
 
@@ -40,8 +38,6 @@ impl Item {
             Self::Init(item) => item.span,
             Self::On(item) => item.span,
             Self::Template(item) => item.span(),
-            Self::Docs(item) => item.span,
-            Self::Img(item) => item.span,
             Self::Block(item) => item.span,
         }
     }
@@ -66,20 +62,6 @@ pub struct RenderDecl {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DocsDecl {
-    pub kind: String,
-    pub kind_span: Span,
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ImgDecl {
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockCall {
     pub name: String,
     pub name_span: Span,
@@ -91,15 +73,6 @@ pub struct BlockCall {
 impl BlockCall {
     pub fn content_span(&self) -> Option<Span> {
         self.content.as_ref().map(BlockContent::span)
-    }
-
-    pub fn is_legacy_img(&self, src: &str) -> bool {
-        self.name == "img"
-            && self
-                .span
-                .of(src)
-                .trim_start_matches([' ', '\t'])
-                .starts_with("@img")
     }
 
     pub fn is_colon(&self, src: &str) -> bool {

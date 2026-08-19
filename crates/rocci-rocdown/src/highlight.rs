@@ -5,9 +5,9 @@ use rocci_highlight::composite::{
 use rocci_highlight::language::LanguageId;
 use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, RegionTree};
 use rocci_highlight::token::{HighlightKind, HighlightSpan, resolve_and_sort_spans};
-use rocci_template::{Cursor, SourceFile, Span};
+use rocci_template::{SourceFile, Span};
 
-use crate::ast::{BlockCall, DocsDecl, Document, HeadingInfo, ImgDecl, Item, MdNode};
+use crate::ast::{BlockCall, Document, HeadingInfo, Item, MdNode};
 
 pub fn highlight_rocdown(source: &str) -> Vec<HighlightSpan> {
     let sf = SourceFile::new("snippet.rocdown", source);
@@ -38,7 +38,7 @@ fn is_atx_heading_sugar(src: &str, call: &BlockCall) -> bool {
 }
 
 fn is_markdown_image_sugar(src: &str, call: &BlockCall) -> bool {
-    call.name == "img" && !call.is_colon(src) && !call.is_legacy_img(src)
+    call.name == "img" && !call.is_colon(src)
 }
 
 pub fn collect_rocdown(
@@ -86,76 +86,13 @@ pub fn collect_rocdown(
             Item::Template(item) => {
                 collect_items(src, collector, std::slice::from_ref(item));
             }
-            Item::Docs(docs) => {
-                collect_docs(src, collector, docs);
-            }
-            Item::Img(img) => {
-                collect_img(src, collector, img);
-            }
             Item::Block(call) if is_atx_heading_sugar(src, call) => {}
             Item::Block(call) if is_markdown_image_sugar(src, call) => {}
-            Item::Block(call) if call.is_legacy_img(src) => {
-                collect_img_block(src, collector, call);
-            }
             Item::Block(call) => {
                 collect_docs_block(src, collector, call);
             }
         }
     }
-}
-
-pub fn collect_img(src: &str, collector: &mut Vec<HighlightSpan>, img: &ImgDecl) {
-    collect_img_body(src, collector, img.span, img.body);
-}
-
-fn collect_img_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &BlockCall) {
-    let body = call
-        .params
-        .as_ref()
-        .map(|params| params.span)
-        .unwrap_or(call.span);
-    collect_img_body(src, collector, call.span, body);
-}
-
-fn collect_img_body(src: &str, collector: &mut Vec<HighlightSpan>, span: Span, body: Span) {
-    collect_keyword(src, collector, span, body.start, "@img");
-    let mut cur = Cursor::at(src, body.start as usize);
-    let end = body.end as usize;
-    while cur.pos < end && !cur.is_eof() {
-        cur.skip_trivia();
-        if cur.pos >= end {
-            break;
-        }
-        if cur.peek() == Some(',') {
-            cur.bump();
-            continue;
-        }
-        let Some(name_span) = cur.scan_ident() else {
-            break;
-        };
-        collector.push(HighlightSpan::new(
-            name_span,
-            HighlightKind::Property,
-            0,
-            50,
-        ));
-        cur.skip_trivia();
-        if !cur.eat(':') {
-            break;
-        }
-        cur.skip_trivia();
-        let value_start = cur.pos;
-        if cur.peek() == Some('"') {
-            cur.skip_string();
-            let value_span = Span::new(value_start, cur.pos.min(end));
-            collector.push(HighlightSpan::new(value_span, HighlightKind::String, 0, 50));
-        }
-    }
-}
-
-pub fn collect_docs(src: &str, collector: &mut Vec<HighlightSpan>, docs: &DocsDecl) {
-    let call = crate::docs::block_from_docs_decl(src, docs.clone());
-    collect_docs_block(src, collector, &call);
 }
 
 fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &BlockCall) {
@@ -169,8 +106,6 @@ fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &Bloc
                 55,
             ));
         }
-    } else {
-        collect_keyword(src, collector, call.span, call.name_span.start, "@docs");
     }
     collector.push(HighlightSpan::new(
         call.name_span,
@@ -531,44 +466,8 @@ fn collect_rocdown_items(
             Item::Template(item) => {
                 collect_template_item_regions(builder, std::slice::from_ref(item), parent_id);
             }
-            Item::Docs(docs) => {
-                let docs_id = builder.add(
-                    LanguageId::Markdown,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    docs.span,
-                    Some(parent_id),
-                    10,
-                );
-                let (_fields, content) = crate::split_docs_body(text, docs.body);
-                if !content.is_empty() && (content.start as usize) < text.len() {
-                    let source = SourceFile::new("docs", text);
-                    let parsed = crate::parse_fragment(source, content, false);
-                    collect_rocdown_items(builder, text, &parsed.document.items, docs_id);
-                }
-            }
-            Item::Img(img) => {
-                builder.add(
-                    LanguageId::Markdown,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    img.span,
-                    Some(parent_id),
-                    10,
-                );
-            }
             Item::Block(call) if is_atx_heading_sugar(text, call) => {}
             Item::Block(call) if is_markdown_image_sugar(text, call) => {}
-            Item::Block(call) if call.is_legacy_img(text) => {
-                builder.add(
-                    LanguageId::Markdown,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    call.span,
-                    Some(parent_id),
-                    10,
-                );
-            }
             Item::Block(call) => {
                 let docs_id = builder.add(
                     LanguageId::Markdown,
