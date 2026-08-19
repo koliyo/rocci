@@ -71,6 +71,17 @@ answer = 42
 
 :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
 
+:note Don't do this.
+
+:note[title: "Watch"] {{
+Nested section body.
+}}
+
+:tabs[group: "os", kind: "platform"]
+    :tab[id: "mac", label: "macOS"] Mac panel.
+    :tab[id: "linux", label: "Linux"] Linux panel.
+:end.tabs
+
 \@if this is escaped
 
 More markdown after.[^note]

@@ -113,6 +113,13 @@ impl KindSpec {
             _ => &[],
         }
     }
+
+    pub fn completion_fields(self) -> impl Iterator<Item = &'static str> {
+        self.required_fields
+            .iter()
+            .copied()
+            .chain(self.optional_fields.iter().copied())
+    }
 }
 
 pub const KINDS: &[KindSpec] = &[
@@ -419,6 +426,27 @@ const fn sugar(name: &'static str, component: &'static str) -> KindSpec {
 
 pub fn lookup(name: &str) -> Option<&'static KindSpec> {
     KINDS.iter().find(|kind| kind.name == name)
+}
+
+pub fn authorable_kinds() -> impl Iterator<Item = &'static KindSpec> {
+    KINDS.iter().filter(|kind| kind.authorable)
+}
+
+pub fn field_enum_values(kind: &str, field: &str) -> Option<&'static [&'static str]> {
+    match (kind, field) {
+        ("tabs", "kind") => Some(TAB_KIND_VALUES),
+        ("badge", "tone") => Some(BADGE_TONE_VALUES),
+        _ => None,
+    }
+}
+
+pub fn is_bool_field(kind: &str, field: &str) -> bool {
+    matches!(field, "open" | "verify" | "decorative" | "allow_network")
+        || lookup(kind).is_some_and(|spec| {
+            spec.paint_fields()
+                .iter()
+                .any(|paint| paint.attr == field && paint.ty == PaintType::Bool)
+        })
 }
 
 pub fn is_aside(name: &str) -> bool {

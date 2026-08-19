@@ -7,7 +7,7 @@ use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, Regi
 use rocci_highlight::token::{HighlightKind, HighlightSpan, resolve_and_sort_spans};
 use rocci_template::{SourceFile, Span};
 
-use crate::ast::{BlockCall, Document, HeadingInfo, Item, MdNode};
+use crate::ast::{BlockCall, BlockContent, Document, HeadingInfo, Item, MdNode};
 
 pub fn highlight_rocdown(source: &str) -> Vec<HighlightSpan> {
     let sf = SourceFile::new("snippet.rocdown", source);
@@ -143,6 +143,26 @@ fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &Bloc
                 0,
                 50,
             ));
+        }
+    }
+    if let Some(BlockContent::End(section)) = &call.content {
+        collector.push(HighlightSpan::new(
+            section.marker.span,
+            HighlightKind::Keyword,
+            0,
+            55,
+        ));
+        let marker = section.marker.span.of(src);
+        if let Some(dot) = marker.rfind('.') {
+            let kind_start = section.marker.span.start as usize + dot + 1;
+            if kind_start < section.marker.span.end as usize {
+                collector.push(HighlightSpan::new(
+                    Span::new(kind_start, section.marker.span.end as usize),
+                    HighlightKind::Type,
+                    0,
+                    56,
+                ));
+            }
         }
     }
     if let Some(content) = call.content_span()

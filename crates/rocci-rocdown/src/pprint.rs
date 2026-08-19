@@ -1,46 +1,91 @@
 use rocci_template::TemplateItem;
 
-use crate::ast::{Document, Item, MdNode};
+use crate::ast::{BlockCall, Document, Item, MdNode, ParamValue};
+use crate::parse::nested_items;
 
 pub fn format_ast(src: &str, document: &Document) -> String {
     let mut out = String::new();
     let mut w = Writer::new(&mut out);
     w.open("rocdown", &[]);
     for item in &document.items {
-        match item {
-            Item::Markdown(node) => write_md(&mut w, node),
-            Item::Page(page) => w.leaf("page", &[atom(page.body.of(src).trim())]),
-            Item::Roc(roc) => w.leaf("roc", &[atom(roc.body.of(src).trim())]),
-            Item::Render(render) => w.leaf("render", &[atom(render.expr.of(src).trim())]),
-            Item::Component(component) => {
-                w.leaf("component", std::slice::from_ref(&component.name.name));
-            }
-            Item::Fixture(fixture) => w.leaf("fixture", std::slice::from_ref(&fixture.name.name)),
-            Item::Css(_) => w.leaf("css", &[]),
-            Item::Context(_) => w.leaf("context", &[]),
-            Item::Init(_) => w.leaf("init", &[]),
-            Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
-            Item::Use(used) => w.leaf("use", std::slice::from_ref(&used.path)),
-            Item::Block(call) => w.leaf("block", std::slice::from_ref(&call.name)),
-            Item::Template(item) => match item {
-                TemplateItem::If(_) => w.leaf("if", &[]),
-                TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),
-                TemplateItem::Match(_) => w.leaf("match", &[]),
-                TemplateItem::Let(dir) => w.leaf("let", std::slice::from_ref(&dir.binder.name)),
-                TemplateItem::ComponentCall(call) => {
-                    w.leaf("call", std::slice::from_ref(&call.path.roc_name))
-                }
-                TemplateItem::Element(el) => w.leaf("element", std::slice::from_ref(&el.name.name)),
-                TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
-                _ => w.leaf("template", &[]),
-            },
-        }
+        write_item(&mut w, src, item);
     }
     w.close();
     if !out.ends_with('\n') {
         out.push('\n');
     }
     out
+}
+
+fn write_item(w: &mut Writer<'_>, src: &str, item: &Item) {
+    match item {
+        Item::Markdown(node) => write_md(w, node),
+        Item::Page(page) => w.leaf("page", &[atom(page.body.of(src).trim())]),
+        Item::Roc(roc) => w.leaf("roc", &[atom(roc.body.of(src).trim())]),
+        Item::Render(render) => w.leaf("render", &[atom(render.expr.of(src).trim())]),
+        Item::Component(component) => {
+            w.leaf("component", std::slice::from_ref(&component.name.name));
+        }
+        Item::Fixture(fixture) => w.leaf("fixture", std::slice::from_ref(&fixture.name.name)),
+        Item::Css(_) => w.leaf("css", &[]),
+        Item::Context(_) => w.leaf("context", &[]),
+        Item::Init(_) => w.leaf("init", &[]),
+        Item::On(on) => w.leaf("on", &[format!("{}:{}", on.method.name, on.path)]),
+        Item::Use(used) => w.leaf("use", std::slice::from_ref(&used.path)),
+        Item::Block(call) => write_block(w, src, call),
+        Item::Template(item) => match item {
+            TemplateItem::If(_) => w.leaf("if", &[]),
+            TemplateItem::For(dir) => w.leaf("for", std::slice::from_ref(&dir.binder.name)),
+            TemplateItem::Match(_) => w.leaf("match", &[]),
+            TemplateItem::Let(dir) => w.leaf("let", std::slice::from_ref(&dir.binder.name)),
+            TemplateItem::ComponentCall(call) => {
+                w.leaf("call", std::slice::from_ref(&call.path.roc_name))
+            }
+            TemplateItem::Element(el) => w.leaf("element", std::slice::from_ref(&el.name.name)),
+            TemplateItem::Fragment(_) => w.leaf("fragment", &[]),
+            _ => w.leaf("template", &[]),
+        },
+    }
+}
+
+fn write_block(w: &mut Writer<'_>, src: &str, call: &BlockCall) {
+    let mut atoms = vec![call.name.clone()];
+    if let Some(content) = &call.content {
+        atoms.push(content.scope_name().to_string());
+    }
+    if let Some(params) = &call.params {
+        for field in &params.fields {
+            atoms.push(field.name.clone());
+            atoms.push(atom(&param_display(src, &field.value)));
+        }
+    }
+    let children = nested_items(src, call);
+    if children.is_empty() {
+        w.leaf("block", &atoms);
+        return;
+    }
+    w.open("block", &atoms);
+    for child in &children {
+        write_item(w, src, child);
+    }
+    w.close();
+}
+
+fn param_display(src: &str, value: &ParamValue) -> String {
+    match value {
+        ParamValue::StringLit { value, .. } => value.clone(),
+        ParamValue::BoolLit { value, .. } => {
+            if *value {
+                "true".into()
+            } else {
+                "false".into()
+            }
+        }
+        ParamValue::NumberLit { value, .. } => value.clone(),
+        ParamValue::Ident { name, .. } => name.clone(),
+        ParamValue::Record(record) => record.span.of(src).to_string(),
+        ParamValue::List(list) => list.span.of(src).to_string(),
+    }
 }
 
 fn write_md(w: &mut Writer<'_>, node: &MdNode) {

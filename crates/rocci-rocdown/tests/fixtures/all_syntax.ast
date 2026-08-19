@@ -4,7 +4,9 @@
   (css)
   (component Hello)
   (fixture helloSample)
-  (block h1)
+  (block h1 line id all-syntax
+    (p
+      (text All syntax)))
   (p
     (text Email)
     (a mailto:docs@example.com
@@ -29,7 +31,20 @@
   (if)
   (for item)
   (match)
-  (block img)
+  (block img src ./img/yammi_banana.png alt A banana width 50px)
+  (block note line
+    (p
+      (text Don't do this.)))
+  (block note section title Watch
+    (p
+      (text Nested section body.)))
+  (block tabs end group os kind platform
+    (block tab line id mac label macOS
+      (p
+        (text Mac panel.)))
+    (block tab line id linux label Linux
+      (p
+        (text Linux panel.))))
   (p
     (text @if this is escaped))
   (p

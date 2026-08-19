@@ -1152,7 +1152,7 @@ fn docs_note_is_parsed_and_lowered() {
         out.document.items
     );
     let ast = format_ast(src, &out.document);
-    assert!(ast.contains("(block note)"), "{ast}");
+    assert!(ast.contains("(block note"), "{ast}");
     assert!(out.roc.contains("data-rocci-docs"));
     assert!(out.roc.contains("rd-docs-note"));
     assert!(out.roc.contains("Deprecation"));

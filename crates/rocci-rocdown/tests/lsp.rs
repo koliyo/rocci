@@ -1,6 +1,7 @@
 use lsp_types::{
-    ClientCapabilities, DiagnosticSeverity, DidOpenTextDocumentParams, DocumentSymbolParams,
-    DocumentSymbolResponse, GeneralClientCapabilities, HoverParams, InitializeParams,
+    ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
+    DidOpenTextDocumentParams, DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse,
+    GeneralClientCapabilities, GotoDefinitionParams, HoverParams, InitializeParams,
     PartialResultParams, Position, PositionEncodingKind, SemanticTokensParams,
     TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
     WorkDoneProgressParams,
@@ -93,6 +94,20 @@ fn test_rocdown_lsp_all_syntax() {
                 "missing component Hello symbol"
             );
             assert!(syms.iter().any(|s| s.name == ":img"), "missing :img symbol");
+            assert!(
+                syms.iter().any(|s| s.name == ":note"),
+                "missing :note symbol"
+            );
+            assert!(
+                syms.iter().any(|s| s.name == ":tabs"),
+                "missing :tabs symbol"
+            );
+            let tabs = syms.iter().find(|s| s.name == ":tabs").unwrap();
+            let tabs_children = tabs.children.as_deref().unwrap_or(&[]);
+            assert!(
+                tabs_children.iter().any(|s| s.name == ":tab"),
+                "missing nested :tab symbol"
+            );
         }
         DocumentSymbolResponse::Flat(_) => panic!("expected nested symbols"),
     }
@@ -160,4 +175,253 @@ fn test_rocdown_lsp_embedded_languages() {
     };
     assert!(syms.iter().any(|s| s.name == ":note"));
     assert!(syms.iter().any(|s| s.name == ":tabs"));
+    let tabs = syms.iter().find(|s| s.name == ":tabs").unwrap();
+    let children = tabs.children.as_deref().unwrap_or(&[]);
+    assert!(
+        children.iter().any(|s| s.name == ":tab"),
+        "expected nested :tab under :tabs"
+    );
+}
+
+const COLON_BLOCKS: &str = "\
+:note Don't do this.
+
+:note[title: \"Watch\"] {{
+Nested.
+}}
+
+:tabs[group: \"os\", kind: \"platform\"]
+    :tab[id: \"mac\", label: \"macOS\"] Mac panel.
+    :tab[id: \"linux\", label: \"Linux\"] Linux panel.
+:end.tabs
+
+:img[src: \"./x.png\", alt: \"x\"]
+";
+
+fn colon_uri() -> Uri {
+    "file:///ColonBlocks.rocdown".parse().expect("colon uri")
+}
+
+fn line_col(src: &str, offset: usize) -> (u32, u32) {
+    let mut line = 0u32;
+    let mut last_nl = 0usize;
+    for (idx, ch) in src[..offset].char_indices() {
+        if ch == '\n' {
+            line += 1;
+            last_nl = idx + 1;
+        }
+    }
+    (line, (offset - last_nl) as u32)
+}
+
+fn position_params(uri: &Uri, line: u32, character: u32) -> TextDocumentPositionParams {
+    TextDocumentPositionParams {
+        text_document: TextDocumentIdentifier { uri: uri.clone() },
+        position: Position::new(line, character),
+    }
+}
+
+fn open_colon(server: &mut LanguageServer) -> Uri {
+    let uri = colon_uri();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: COLON_BLOCKS.to_string(),
+            },
+        })
+        .expect("open colon blocks");
+    uri
+}
+
+fn labels(items: &[lsp_types::CompletionItem]) -> Vec<&str> {
+    items.iter().map(|item| item.label.as_str()).collect()
+}
+
+fn find_symbol<'a>(syms: &'a [DocumentSymbol], name: &str) -> Option<&'a DocumentSymbol> {
+    for symbol in syms {
+        if symbol.name == name {
+            return Some(symbol);
+        }
+        if let Some(children) = &symbol.children
+            && let Some(found) = find_symbol(children, name)
+        {
+            return Some(found);
+        }
+    }
+    None
+}
+
+#[test]
+fn completes_builtin_kinds_and_registry_fields() {
+    let mut server = initialize_server();
+    let uri = open_colon(&mut server);
+
+    let kind_src = ":no";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 2,
+                text: kind_src.to_string(),
+            },
+        })
+        .expect("open kind prefix");
+    let (line, character) = line_col(kind_src, kind_src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("kind completion")
+    else {
+        panic!("expected completion array");
+    };
+    let kind_labels = labels(&items);
+    assert!(kind_labels.contains(&"note"), "{kind_labels:?}");
+
+    let root_src = ":";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 3,
+                text: root_src.to_string(),
+            },
+        })
+        .expect("open kind root");
+    let (line, character) = line_col(root_src, root_src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("root kind completion")
+    else {
+        panic!("expected completion array");
+    };
+    let root_labels = labels(&items);
+    assert!(root_labels.contains(&"img"), "{root_labels:?}");
+    assert!(root_labels.contains(&"note"), "{root_labels:?}");
+    assert!(
+        !root_labels.contains(&"tab"),
+        "root completions should not offer child-only kinds: {root_labels:?}"
+    );
+
+    let field_src = ":note[ti";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 3,
+                text: field_src.to_string(),
+            },
+        })
+        .expect("open field prefix");
+    let (line, character) = line_col(field_src, field_src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("field completion")
+    else {
+        panic!("expected completion array");
+    };
+    let field_labels = labels(&items);
+    assert!(field_labels.contains(&"title"), "{field_labels:?}");
+
+    let kind_value_src = ":tabs[group: \"os\", kind: \"pla\"";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 5,
+                text: kind_value_src.to_string(),
+            },
+        })
+        .expect("open kind value");
+    let (line, character) = line_col(kind_value_src, kind_value_src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("enum completion")
+    else {
+        panic!("expected completion array");
+    };
+    let value_labels = labels(&items);
+    assert!(value_labels.contains(&"platform"), "{value_labels:?}");
+}
+
+#[test]
+fn hover_and_symbols_use_colon_kind_names() {
+    let mut server = initialize_server();
+    let uri = open_colon(&mut server);
+
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("symbols");
+    let DocumentSymbolResponse::Nested(syms) = symbols else {
+        panic!("expected nested symbols");
+    };
+    assert!(find_symbol(&syms, ":tabs").is_some());
+    assert!(find_symbol(&syms, ":tab").is_some());
+    assert!(find_symbol(&syms, ":note").is_some());
+    assert!(find_symbol(&syms, ":img").is_some());
+
+    let tab_at = COLON_BLOCKS.find(":tab[id: \"mac\"").expect("tab") + 1;
+    let (line, character) = line_col(COLON_BLOCKS, tab_at);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("tab hover");
+    let lsp_types::HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains(":tab"), "{}", markup.value);
+    assert!(markup.value.contains("macOS"), "{}", markup.value);
+}
+
+#[test]
+fn goto_end_marker_jumps_to_opener() {
+    let mut server = initialize_server();
+    let uri = open_colon(&mut server);
+    let end_at = COLON_BLOCKS.find(":end.tabs").expect("end marker") + 1;
+    let (line, character) = line_col(COLON_BLOCKS, end_at);
+    let response = server
+        .goto_definition(GotoDefinitionParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("goto end marker");
+    let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
+        panic!("expected scalar location");
+    };
+    let tabs_at = COLON_BLOCKS.find(":tabs[").expect("tabs opener") + 1;
+    let (want_line, want_character) = line_col(COLON_BLOCKS, tabs_at);
+    assert_eq!(location.range.start.line, want_line);
+    assert_eq!(location.range.start.character, want_character);
 }

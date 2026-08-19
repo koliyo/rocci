@@ -36,13 +36,13 @@ fn syntax_v2_fixture_parses_colon_blocks() {
     assert!(errs.is_empty(), "{errs:?}");
     let ast = format_ast(src, &parsed.document);
     for needle in [
-        "(block note)",
-        "(block h2)",
-        "(block caution)",
-        "(block steps)",
-        "(block tabs)",
-        "(block figure)",
-        "(block badge)",
+        "(block note",
+        "(block h2",
+        "(block caution",
+        "(block steps",
+        "(block tabs",
+        "(block figure",
+        "(block badge",
     ] {
         assert!(ast.contains(needle), "missing {needle} in {ast}");
     }
@@ -97,7 +97,7 @@ This is a paragraph.
         parsed.diagnostics
     );
     let ast = format_ast(src, &parsed.document);
-    assert!(ast.contains("(block note)"), "{ast}");
+    assert!(ast.contains("(block note line"), "{ast}");
     assert!(ast.contains("(p"), "{ast}");
     assert!(ast.contains("This is a paragraph"), "{ast}");
     let note = parsed
@@ -362,8 +362,8 @@ fn atx_heading_inspects_as_block_h2() {
         parsed.diagnostics
     );
     let ast = format_ast(src, &parsed.document);
-    assert!(ast.contains("(block h1)"), "{ast}");
-    assert!(ast.contains("(block h2)"), "{ast}");
+    assert!(ast.contains("(block h1 line"), "{ast}");
+    assert!(ast.contains("(block h2 line"), "{ast}");
     assert!(!ast.contains("(h 1"), "{ast}");
     assert!(!ast.contains("(h 2"), "{ast}");
     let ids: Vec<_> = parsed.headings.iter().map(|h| h.id.as_str()).collect();
@@ -384,7 +384,7 @@ fn explicit_heading_id_wins_over_slug() {
         parsed.diagnostics
     );
     let ast = format_ast(src, &parsed.document);
-    assert!(ast.contains("(block h2)"), "{ast}");
+    assert!(ast.contains("(block h2"), "{ast}");
     let ids: Vec<_> = parsed.headings.iter().map(|h| h.id.as_str()).collect();
     assert_eq!(ids, ["install", "from-source"]);
     let texts: Vec<_> = parsed.headings.iter().map(|h| h.text.as_str()).collect();
@@ -401,7 +401,7 @@ fn block_level_markdown_image_becomes_img_block() {
         parsed.diagnostics
     );
     let ast = format_ast(src, &parsed.document);
-    assert!(ast.contains("(block img)"), "{ast}");
+    assert!(ast.contains("(block img"), "{ast}");
     assert!(ast.contains("(p"), "{ast}");
     let imgs: Vec<_> = parsed
         .document
@@ -425,6 +425,59 @@ fn block_level_markdown_image_becomes_img_block() {
         rocci_rocdown::ParamValue::StringLit { value, .. } => assert_eq!(value, "hero.png"),
         other => panic!("expected string src, got {other:?}"),
     }
+}
+
+#[test]
+fn format_ast_shows_params_and_content_scope() {
+    let src = "\
+:note Don't do this.
+
+:note[title: \"Watch\"] {{
+Nested section body.
+}}
+
+:tabs[group: \"os\", kind: \"platform\"]
+    :tab[id: \"mac\", label: \"macOS\"] Mac panel.
+    :tab[id: \"linux\", label: \"Linux\"] Linux panel.
+:end.tabs
+
+:img[src: \"./x.png\", alt: \"x\"]
+";
+    let parsed = parse_src(src);
+    assert!(
+        error_messages(&parsed).is_empty(),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let ast = format_ast(src, &parsed.document);
+    assert!(ast.contains("(block note line"), "{ast}");
+    assert!(ast.contains("(block note section title Watch"), "{ast}");
+    assert!(
+        ast.contains("(block tabs end group os kind platform"),
+        "{ast}"
+    );
+    assert!(ast.contains("(block tab line id mac label macOS"), "{ast}");
+    assert!(ast.contains("(block img src ./x.png alt x)"), "{ast}");
+}
+
+#[test]
+fn end_marker_is_highlighted() {
+    let src = "\
+:tabs[group: \"os\", kind: \"platform\"]
+    :tab[id: \"a\", label: \"A\"] A.
+:end.tabs
+";
+    let spans = highlight_rocdown(src);
+    let closer: Vec<_> = spans
+        .iter()
+        .map(|span| (span.span.of(src), span.kind))
+        .collect();
+    assert!(
+        closer.iter().any(|(text, kind)| {
+            *text == ":end.tabs" && *kind == rocci_highlight::HighlightKind::Keyword
+        }),
+        "{closer:?}"
+    );
 }
 
 fn temp_use_dir(name: &str) -> std::path::PathBuf {
@@ -465,7 +518,7 @@ fn use_maps_exported_component_to_article_kind() {
     );
     let ast = format_ast(src, &parsed.document);
     assert!(ast.contains("(use ./Callout.rocci)"), "{ast}");
-    assert!(ast.contains("(block callout)"), "{ast}");
+    assert!(ast.contains("(block callout"), "{ast}");
     let out = compile(
         SourceFile::new(&path.to_string_lossy(), src),
         &CompileOptions::default(),

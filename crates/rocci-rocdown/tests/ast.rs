@@ -37,8 +37,8 @@ fn colon_note_and_img_are_block_calls() {
         parsed.diagnostics
     );
     let ast = format_ast(src, &parsed.document);
-    assert!(ast.contains("(block note)"), "{ast}");
-    assert!(ast.contains("(block img)"), "{ast}");
+    assert!(ast.contains("(block note"), "{ast}");
+    assert!(ast.contains("(block img"), "{ast}");
     assert!(
         !ast.contains("(docs "),
         "inspect should show block tags, not docs: {ast}"
