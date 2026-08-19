@@ -88,6 +88,7 @@ fn ungram_article_call_productions_exist_as_rust_types() {
         "BraceSection",
         "EndSection",
         "EndMarker",
+        "UseDecl",
     ] {
         assert!(
             ungram.lines().any(|line| {
@@ -107,6 +108,7 @@ fn ungram_article_call_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<rocci_rocdown::BraceSection>();
     let _ = std::any::type_name::<rocci_rocdown::EndSection>();
     let _ = std::any::type_name::<rocci_rocdown::EndMarker>();
+    let _ = std::any::type_name::<rocci_rocdown::UseDecl>();
 }
 
 #[test]

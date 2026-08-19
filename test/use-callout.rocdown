@@ -1,0 +1,13 @@
+@page {
+    route: "/guides/use-callout/",
+    meta: {
+        title: "Imported article blocks",
+        description: "@use maps Callout to :callout for interactive documents",
+    },
+}
+
+# Imported article blocks
+
+@use "./Callout.rocci"
+
+:callout[tone: "warn"] Don't copy install commands from untrusted pages.

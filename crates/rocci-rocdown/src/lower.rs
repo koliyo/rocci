@@ -112,22 +112,37 @@ pub fn lower(
         lower_opts.color_scheme_attr = theme.policy.html_attr().map(str::to_string);
     }
     let lowered_rocci = rocci_template::lower(source, &rocci_doc, &lower_opts);
+    let used_modules = crate::imports::compile_modules(source, document, &lower_opts, diagnostics);
 
     let css_stamp = if lowered_rocci
         .styles
         .iter()
         .any(|style| matches!(style.kind, rocci_template::StyleKind::File))
-    {
+        || used_modules.iter().any(|module| {
+            module
+                .styles
+                .iter()
+                .any(|style| matches!(style.kind, rocci_template::StyleKind::File))
+        }) {
         Some(file_scope_id(source.name))
     } else {
         None
     };
 
-    let field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
+    let mut field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
         .components
         .iter()
         .map(|component| (component.name.clone(), component.param_defaults.clone()))
         .collect();
+    let mut imported_kinds = HashMap::new();
+    for module in &used_modules {
+        for (name, defaults) in &module.defaults {
+            field_defaults.insert(name.clone(), defaults.clone());
+        }
+        for kind in &module.kinds {
+            imported_kinds.insert(kind.kind.clone(), kind.clone());
+        }
+    }
     let page_datastar = document.items.iter().any(|item| match item {
         Item::Template(template) => template_items_have_action(std::slice::from_ref(template)),
         _ => false,
@@ -143,6 +158,7 @@ pub fn lower(
         at_line_start: true,
         css_stamp,
         field_defaults,
+        imported_kinds,
         theme: resolved_theme.clone(),
         diagnostics,
         resolve_includes: options.resolve_includes,
@@ -170,6 +186,9 @@ pub fn lower(
             .unwrap_or(&template_roc)
             .trim_start_matches('\n')
             .to_string();
+    }
+    if used_modules.iter().any(|module| module.has_datastar) {
+        has_datastar = true;
     }
     if has_datastar || page_datastar {
         emitter.emit("import Datastar\n");
@@ -209,6 +228,16 @@ pub fn lower(
             segment.generated.end += template_start as u32;
             emitter.segments.push(segment);
         }
+    }
+    for module in &used_modules {
+        if module.roc.trim().is_empty() {
+            continue;
+        }
+        emitter.emit(module.roc.trim_start());
+        if !emitter.roc.ends_with('\n') {
+            emitter.emit("\n");
+        }
+        emitter.emit("\n");
     }
 
     emitter.emit(META_NAME);
@@ -299,6 +328,9 @@ pub fn lower(
 
     let segments = emitter.segments;
     let mut styles = lowered_rocci.styles;
+    for module in used_modules {
+        styles.extend(module.styles);
+    }
     if let Some(theme) = resolved_theme.as_ref().filter(|theme| !theme.is_none()) {
         styles.insert(
             0,
@@ -335,6 +367,7 @@ struct Emitter<'a> {
     at_line_start: bool,
     css_stamp: Option<String>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
+    imported_kinds: HashMap<String, crate::imports::ImportedKind>,
     theme: Option<rocci_theme::ResolvedTheme>,
     diagnostics: &'a mut Vec<Diagnostic>,
     resolve_includes: bool,
@@ -700,6 +733,10 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_docs(&mut self, call: &BlockCall) {
+        if let Some(imported) = self.imported_kinds.get(&call.name).cloned() {
+            self.lower_imported_block(call, &imported);
+            return;
+        }
         let src = self.source.src;
         let fields = docs_fields_from_params(call.params.as_ref());
         let content = call
@@ -845,6 +882,126 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit(")");
+    }
+
+    fn lower_imported_block(&mut self, call: &BlockCall, imported: &crate::imports::ImportedKind) {
+        let content = call
+            .content_span()
+            .unwrap_or_else(|| Span::point(call.span.end as usize));
+        let parsed = parse_fragment(self.source, content, false);
+        self.diagnostics.extend(parsed.diagnostics);
+        for item in &parsed.document.items {
+            if let Some(kind) = illegal_docs_item(item) {
+                self.diagnostics.push(Diagnostic::error(
+                    item.span(),
+                    format!("`@{kind}` is not allowed inside an article block"),
+                ));
+            }
+        }
+        self.emit(&imported.roc_name);
+        self.emit("(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_imported_props(call, &imported.roc_name);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_html(".fragment([\n");
+        self.indent += 1;
+        self.lower_docs_items(&parsed.document.items);
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("]),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn emit_imported_props(&mut self, call: &BlockCall, roc_name: &str) {
+        let fields = call
+            .params
+            .as_ref()
+            .map(|record| record.fields.as_slice())
+            .unwrap_or(&[]);
+        let missing_defaults: Vec<(String, String)> = self
+            .field_defaults
+            .get(roc_name)
+            .into_iter()
+            .flatten()
+            .filter(|(name, _)| !fields.iter().any(|field| field.name == *name))
+            .cloned()
+            .collect();
+        if fields.is_empty() && missing_defaults.is_empty() {
+            self.emit("{}");
+            return;
+        }
+        self.emit("{ ");
+        let mut first = true;
+        for field in fields {
+            if !first {
+                self.emit(", ");
+            }
+            first = false;
+            self.emit(&field.name);
+            self.emit(": ");
+            self.emit_param_value(&field.value);
+        }
+        for (name, default) in missing_defaults {
+            if !first {
+                self.emit(", ");
+            }
+            first = false;
+            self.emit(&name);
+            self.emit(": ");
+            self.emit(&default);
+        }
+        self.emit(" }");
+    }
+
+    fn emit_param_value(&mut self, value: &ParamValue) {
+        match value {
+            ParamValue::StringLit { value, span } => {
+                self.emit_string(value, *span, OriginKind::StaticMarkup);
+            }
+            ParamValue::BoolLit { value, span } => {
+                self.emit_mapped(
+                    if *value { "True" } else { "False" },
+                    *span,
+                    OriginKind::StaticMarkup,
+                );
+            }
+            ParamValue::NumberLit { value, span } => {
+                self.emit_mapped(value, *span, OriginKind::StaticMarkup);
+            }
+            ParamValue::Ident { name, span } => {
+                self.emit_string(name, *span, OriginKind::StaticMarkup);
+            }
+            ParamValue::Record(record) => {
+                if record.fields.is_empty() {
+                    self.emit("{}");
+                    return;
+                }
+                self.emit("{ ");
+                for (index, field) in record.fields.iter().enumerate() {
+                    if index > 0 {
+                        self.emit(", ");
+                    }
+                    self.emit(&field.name);
+                    self.emit(": ");
+                    self.emit_param_value(&field.value);
+                }
+                self.emit(" }");
+            }
+            ParamValue::List(list) => {
+                self.emit("[");
+                for (index, item) in list.items.iter().enumerate() {
+                    if index > 0 {
+                        self.emit(", ");
+                    }
+                    self.emit_param_value(item);
+                }
+                self.emit("]");
+            }
+        }
     }
 
     fn lower_docs_items(&mut self, items: &[Item]) {
@@ -2053,6 +2210,7 @@ fn illegal_docs_item(item: &Item) -> Option<&'static str> {
         Item::Context(_) => Some("context"),
         Item::Init(_) => Some("init"),
         Item::On(_) => Some("on"),
+        Item::Use(_) => Some("use"),
         Item::Template(_) => Some("template"),
     }
 }

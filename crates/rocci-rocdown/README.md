@@ -38,7 +38,7 @@ Indent              := (" " | "\t")*
 ```
 
 Reserved names: `page`, `roc`, `render`, `component`, `fixture`, `css`,
-`context`, `init`, `on`, `if`, `for`, `match`, `let`. Unknown `@name` stays
+`context`, `init`, `on`, `if`, `for`, `match`, `let`, `use`. Unknown `@name` stays
 Markdown. Line-start `@docs` / `@img` is a removal error naming `:note` /
 `:img[...]`. `\@roc` is escaped prose; the backslash is dropped in rendered text.
 
@@ -110,7 +110,8 @@ See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
 | `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
-| `:kind[params]` | line, `{{ }}`, or `:end.kind` | article block; kinds are a closed builtin registry |
+| `@use "./Module.rocci"` | path string | interactive only: import `@component` exports as article kinds (`Callout` → `:callout`) |
+| `:kind[params]` | line, `{{ }}`, or `:end.kind` | article block; kinds are a closed builtin registry, plus `@use` on `rocdown run` |
 | `:img[src: "...", alt: "..."]` | params | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
@@ -317,7 +318,8 @@ while building as part of `rocdown build site`.
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
 - Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
   and standalone preview of nested relative `.md` / `.rocdown` document links
-- `:img` alt/decorative contract and `:figure` caption/credit
+- `:kind[params]` article blocks and `:img` alt/decorative contract and `:figure` caption/credit
+- `@use "./Module.rocci"` on interactive `rocdown run` (exported `@component` names become article kinds)
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
@@ -331,3 +333,5 @@ while building as part of `rocdown build site`.
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens
 - Near-miss warnings for typos such as `@componnent`
+- `@use` on static `rocdown build` / `check` (custom static kinds belong in the compiled theme)
+- Qualified `@use` names when two modules export the same kind

@@ -667,6 +667,8 @@ fn nodes_from_items(
             Item::Context(_) => illegal(ctx, item, "context"),
             Item::Init(_) => illegal(ctx, item, "init"),
             Item::On(_) => illegal(ctx, item, "on"),
+            Item::Use(_) if parent_kind.is_some() => illegal(ctx, item, "use"),
+            Item::Use(_) => {}
             Item::Template(_) => illegal(ctx, item, "template"),
         }
     }

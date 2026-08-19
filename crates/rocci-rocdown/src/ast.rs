@@ -20,6 +20,7 @@ pub enum Item {
     Context(ContextDecl),
     Init(InitDecl),
     On(OnDecl),
+    Use(UseDecl),
     Template(TemplateItem),
     Block(BlockCall),
 }
@@ -37,6 +38,7 @@ impl Item {
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
             Self::On(item) => item.span,
+            Self::Use(item) => item.span,
             Self::Template(item) => item.span(),
             Self::Block(item) => item.span,
         }
@@ -58,6 +60,13 @@ pub struct RocDecl {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderDecl {
     pub expr: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UseDecl {
+    pub path: String,
+    pub path_span: Span,
     pub span: Span,
 }
 

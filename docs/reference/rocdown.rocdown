@@ -33,6 +33,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@css { ... }` | Add file-scoped CSS |
 | `@context`, `@init`, `@on` | Declare a standalone server app |
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
+| `@use "./Module.rocci"` | Interactive only: import `@component` exports as `:kind` article blocks |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
 | `:kind[params]` | Article block; see below |
 | `:img[src: "...", alt: "..."]` | Native image element; `alt` or `decorative` required; see below |
@@ -82,6 +83,11 @@ as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 Nested article blocks are legal in the body. `@page`, `@roc`, `@render`,
 `@component`, handlers, and HTML islands inside a block body are errors.
 A colon with a following space (`: definition`) stays Markdown.
+
+`@use "./Callout.rocci"` on `rocdown run` maps each exported `@component` to an
+article kind (`Callout` → `:callout`). Unknown `:callout` without `@use` is an
+error. Static `rocdown build` and `rocdown check` reject `@use`; custom static
+kinds belong in the compiled theme.
 
 | Kind | Role |
 | --- | --- |
@@ -198,5 +204,5 @@ automatic navigator.
 ## Static documentation site support
 
 Rocdown site builds currently accept the static Markdown tree plus `@page` and article blocks.
-They reject dynamic Roc, Rocci templates, `@css`, handlers, and custom layouts until the
+They reject dynamic Roc, Rocci templates, `@css`, handlers, `@use`, and custom layouts until the
 island splice path is implemented. Draft pages are excluded from production builds.

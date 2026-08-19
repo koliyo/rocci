@@ -461,6 +461,7 @@ pub fn module_collision(name: &str) -> bool {
             | "context"
             | "init"
             | "on"
+            | "use"
             | "if"
             | "for"
             | "match"

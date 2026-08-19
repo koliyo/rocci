@@ -9,6 +9,7 @@ mod dev;
 mod docs;
 pub mod highlight;
 mod img;
+mod imports;
 mod links;
 mod lower;
 pub mod lsp;
@@ -29,7 +30,7 @@ pub use article::render_document;
 pub use ast::{
     BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
     EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,
-    ParamValue, RenderDecl, RocDecl,
+    ParamValue, RenderDecl, RocDecl, UseDecl,
 };
 pub use build::{
     BuildReport, BuildSession, build, build_configured, build_configured_with_host,

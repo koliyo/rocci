@@ -400,3 +400,44 @@ fn standalone_compile_failure_builds_error_page() {
     assert!(html.contains("error"));
     cleanup(&dir);
 }
+
+#[test]
+fn use_callout_example_plans_for_interactive_run() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../test/use-callout.rocdown");
+    let plan = plan_ready(&path);
+    assert!(
+        plan.modules[0].roc.contains("callout("),
+        "interactive @use should lower to the imported component:\n{}",
+        plan.modules[0].roc
+    );
+}
+
+#[test]
+fn syntax_v2_recommended_use_example_plans() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let dir = temp_app("syntax-v2-use");
+    fs::create_dir_all(dir.join("img")).unwrap();
+    fs::copy(
+        root.join("knowledge/research/syntax/syntax_v2_recommended.rocdown"),
+        dir.join("syntax_v2_recommended.rocdown"),
+    )
+    .unwrap();
+    fs::copy(
+        root.join("knowledge/research/syntax/Callout.rocci"),
+        dir.join("Callout.rocci"),
+    )
+    .unwrap();
+    fs::copy(
+        root.join("test/img/yammi_banana.png"),
+        dir.join("img/yammi_banana.png"),
+    )
+    .unwrap();
+    let path = dir.join("syntax_v2_recommended.rocdown");
+    let plan = plan_ready(&path);
+    assert!(
+        plan.modules[0].roc.contains("callout("),
+        "the @use example should lower under rocdown run:\n{}",
+        plan.modules[0].roc
+    );
+    cleanup(&dir);
+}
