@@ -523,6 +523,7 @@ fn run_standalone_doc(
         title,
         preview_path: None,
         profile: profile.finish(),
+        state_key: Some("rocdown".to_string()),
     };
 
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)

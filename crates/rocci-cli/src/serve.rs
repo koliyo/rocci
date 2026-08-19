@@ -370,7 +370,7 @@ pub fn open_preview(url: &str, title: &str) -> Result<()> {
 }
 
 pub fn with_window(child: &mut Child, url: &str, title: &str, no_window: bool) -> Result<()> {
-    with_window_and_inspector(child, url, title, no_window, None)
+    with_window_and_inspector(child, url, title, no_window, None, None)
 }
 
 pub fn with_window_and_inspector(
@@ -379,6 +379,7 @@ pub fn with_window_and_inspector(
     title: &str,
     no_window: bool,
     profile: Option<crate::profile::ProfileSnapshot>,
+    state_key: Option<String>,
 ) -> Result<()> {
     if no_window {
         let status = child.wait().context("roc server exited unexpectedly")?;
@@ -396,7 +397,7 @@ pub fn with_window_and_inspector(
         url: url.to_string(),
         title: title.to_string(),
         inspector_url: inspector.as_ref().map(|server| server.url.clone()),
-        state_key: Some("rocci:view".to_string()),
+        state_key: Some(state_key.unwrap_or_else(|| "rocci:view".to_string())),
         ..PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));

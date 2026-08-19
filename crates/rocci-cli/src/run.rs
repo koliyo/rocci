@@ -187,6 +187,7 @@ fn run_standalone(
         title,
         preview_path: None,
         profile,
+        state_key: None,
     };
     driver::execute_app_plan(&plan, &src_dir, &options)
 }

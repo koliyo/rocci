@@ -10,6 +10,7 @@ use tao::window::Window;
 
 use crate::ShellEvent;
 
+pub const QUIT_ID: &str = "app.quit";
 pub const NEW_WINDOW_ID: &str = "file.new-window";
 pub const CLOSE_WINDOW_ID: &str = "file.close-window";
 pub const FIND_ID: &str = "edit.find";
@@ -67,7 +68,12 @@ impl NativeMenu {
                 &PredefinedMenuItem::hide_others(None),
                 &PredefinedMenuItem::show_all(None),
                 &PredefinedMenuItem::separator(),
-                &PredefinedMenuItem::quit(Some(&format!("Quit {}", config.app_name))),
+                &MenuItem::with_id(
+                    QUIT_ID,
+                    &format!("Quit {}", config.app_name),
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
+                ),
             ])
             .map_err(menu_error)?;
             menu.append(&app).map_err(menu_error)?;
