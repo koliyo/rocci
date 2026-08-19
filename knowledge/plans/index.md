@@ -16,7 +16,8 @@
 * [First-party Rocci chrome library and generation host](rocci-component-generation.md) - Extract demonstrated outline/nav/breadcrumb chrome into base Rocci, host Roc through a cached native subprocess and Wasmtime, and persist both generated Roc and compiled artifacts.
 * [Mobile chrome for OKF, Rocdown, and rocci.dev](mobile-chrome.md) - No-JS details menus, OKF nav split from TOC, rocci.dev menu restore, table overflow. Exploratory; Phases 1–3 and 5–6 implemented; Phase 4 skipped; not CI-complete.
 * [Cmd-K fuzzy navigation for OKF, Rocdown, and rocci.dev](fuzzy-navigation.md) - Shared `goto.js` palette in preview and hosted trees, History-API HTML swap. Implemented in this revision; not CI-complete.
-* [Preview inspector source views](inspector-source-views.md) - Extend the preview Dev panel with a dropdown for original source, AST, generated Roc, and generated HTML. Exploratory; no phase started.
+* [Preview inspector source views](inspector-source-views.md) - Inspect JSON and a Dev-panel dropdown for original source, AST, generated Roc, and generated HTML. Artifact fill shipped; remaining UX is the [extended inspector](preview-inspector.md) plan.
+* [Extended preview-window inspector](preview-inspector.md) - Dock right or bottom, tabs for Performance / Source / Console, fix source-view DX and scroll, runtime log console. App-level Rocci logging out of scope. Exploratory; no phase started.
 * [Tangled hosting and devops with a GitHub macOS mirror](tangled-hosting.md) - Tangled as canonical git, review, and Linux CI before the near-term public open-source clone; GitHub as a fast-forward mirror that supplies `macos-latest` runners. Exploratory; no phase started.
 
 Other implementation-plan concepts have not yet been migrated. Priority-2 plan migration remains scheduled after the Phase 2 priority-1 corpus.
