@@ -4,7 +4,7 @@ title: Hybrid Rocdown islands for CDN-static sites
 description: Exploratory research for static CDN HTML that embeds dynamic Rocci components backed by a rocci or rocdown HTTP service. Article documentation widgets are out of scope. Not shipped.
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T10:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -145,8 +145,8 @@ sources:
     author: process:okf-phase-6
     last_modified: 2026-08-17
   - id: block-plan
-    resource: ../plans/generalized-rocdown-block-model.md
-    title: Generalized Rocdown block model implementation plan
+    resource: ../plans/rocdown-block-renderers.md
+    title: Custom Rocdown block schemas and renderers plan
     author: process:cursor
     last_modified: 2026-08-19
   - id: generation-plan
@@ -186,9 +186,9 @@ Sub-questions:
 5. What does current code already reject (`RD2301`, no Datastar on site
    builds) versus what standalone `rocdown run FILE` already does?
 
-Article documentation widgets (`@docs`, future `:note`) are **out of
-scope**. They belong to the [generalized block model
-plan](/plans/generalized-rocdown-block-model.md). This record must not
+Article `:kind` widgets (`:note`, `:tabs`, …) are **out of
+scope**. They belong to the [block renderer
+plan](/plans/rocdown-block-renderers.md). This record must not
 design around them.[^block-plan]
 
 This is not shipped. Crate READMEs and architecture records remain the
@@ -201,8 +201,8 @@ current contract.[^rocdown-readme][^compiler-arch]
 - **Do not implement** a phase until the user asks. The
   [implementation plan](/plans/hybrid-rocdown-islands.md) owns
   slices.[^impl-plan]
-- **Do not** extend, restore, or depend on `@docs` / `DocsComponents`
-  / playground-as-widget work. Ignore that family here.[^block-plan]
+- **Do not** wait on or redesign article `:kind` widgets here. That is
+  the [block renderer plan](/plans/rocdown-block-renderers.md).[^block-plan]
 - **Do not** add `@island` grammar unless a phase explicitly consumes the
   [client-behavior island decision](/decisions/client-behavior-islands.md).
   v1 uses existing `@component`, document-root tags, and `@on`.[^client-islands][^rocdown-readme]
@@ -357,7 +357,7 @@ acceptance test 11).[^format-report]
 | Whole site as a Datastar app | One origin | Defeats CDN static reading | Reject[^site-plan] |
 | Edge SSR at the CDN | Always fresh | Request-time Roc | Out of scope |
 | CDN HTML + island service + per-page Datastar | Matches hybrid axes and server-owned state | Origin/CSP/CORS work | **Recommended** |
-| Wait for `@docs` / `:note` cutover | One syntax story | Blocks unrelated live components | Reject; parallel track[^block-plan] |
+| Wait for article-widget renderer work | One syntax story | Blocks unrelated live components | Reject; parallel track[^block-plan] |
 | `@island` JS first | Browser-only widgets | Not how Rocci actions work | Follow-on[^client-islands] |
 
 ## Recommendation
@@ -398,9 +398,8 @@ OKF Markdown-only, no Rocket bundle.[^markdown-first][^pure-render][^server-owne
 
 ## Relationship to other work
 
-- [Generalized block model](/plans/generalized-rocdown-block-model.md)
-  owns article-block spelling. This plan must not wait on it and must
-  not paint `@docs`.[^block-plan]
+- [Custom block schemas and renderers](/plans/rocdown-block-renderers.md)
+  owns article-block paint. This plan must not wait on it.[^block-plan]
 - [Client-behavior islands](/decisions/client-behavior-islands.md) owns
   browser custom elements. Not required to back Rocci components with a
   service.[^client-islands]

@@ -4,7 +4,7 @@ title: Rocdown long-form report authoring friction
 description: Evidence and recommendations from using Rocdown and Rocs to author and publish the Rocci branding and community report.
 tags: [domain/rocdown, domain/rocs, concern/authoring, concern/rendering, concern/publication, concern/accessibility]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T11:55:01Z }
+generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -83,7 +83,7 @@ Rocdown source target during catalog validation but emitted the `.rocdown` href
 unchanged instead of the generated page route.[^evaluation-report]
 
 Image semantics are also split among Markdown image shorthand, the native
-`@img` declaration, and `@docs figure`. The figure component requires a
+`:img` declaration, and `:figure`. The figure component requires a
 figure-level alt field while rendering the nested image's own alt, which can
 allow validation and emitted accessibility semantics to disagree.[^rocs-docs]
 

@@ -4,7 +4,7 @@ title: Generalized Rocdown block model
 description: "Exploratory research for a uniform Rocdown article-block AST. Decision: :name with [params] and {{ }} bodies. Source spelling later shipped; renderer override is a follow-on."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -31,7 +31,7 @@ sources:
     last_modified: 2026-08-17
   - id: docs-rs
     resource: ../../crates/rocci-rocdown/src/docs.rs
-    title: Typed @docs projection and field/content split
+    title: Typed article-block projection and field/content split
     author: process:git
     last_modified: 2026-08-18
   - id: article-rs
@@ -157,13 +157,13 @@ Sub-questions:
    are not both `{ }`?
 3. Should one-line bodies use **line scope**, like ATX headings?
 4. Can block kinds be a **registry** (`:note` as a builtin, `:foo` from an
-   import) instead of parser keywords, including dropping `@docs`?
+   import) instead of parser keywords?
 5. Article-block params use **brackets**. `@page` keeps `{ }`. Delimiter
    inconsistency across language modes is accepted.
 6. Article blocks do **not** share single `@`. Prefix is **`:`** (not `::`,
    not `!`).
 
-The decided spelling (`:name[params]`, `{{ }}` / `:end.kind`) is now the
+The decided spelling (`:name[params]`, `{{ }}` or `:name.begin` / `:name.end`) is now the
 public Rocdown contract in `crates/rocci-rocdown`. This record remains
 exploratory historical research for *why* that spelling won. Schema versus
 renderer, site overrides, and constrained children as a reusable interface
@@ -171,12 +171,18 @@ are a follow-on: [custom block schemas and renderers](rocdown-block-renderers.md
 Do not treat the sketches under `knowledge/research/syntax/` as the shipped
 reference; use `test/AllSyntax.rocdown` and the crate README.
 
+A short-lived experimental article-widget family predates this cutover. It
+is **removed**. Current widgets are `:kind` only. Later agents must not
+revive that family, treat it as a compatibility window, or use it as a
+design analogy. Passages below that reconstruct the old spelling are
+pre-cutover rationale only.
+
 ## Topic background
 
 Rocdown started as Markdown plus explicit `@` islands. Documentation widgets
-were added later as a separate `@docs <kind>` family when the document
+were added later as a separate experimental family when the document
 language and the documentation generator were different products. Rocdown now
-owns both. `@docs note` is leftover namespacing, and the brace body fuses Roc
+owns both. That family was leftover namespacing, and the brace body fused Roc
 fields with remainder Markdown. The scanner's brace skip does not understand
 fences. Kinds are hardcoded in the parser, in Rust validation, and again in
 `DocsComponents.Render`.[^rocdown-readme][^docs-rs][^docs-rocci][^compiler-arch]
@@ -206,9 +212,10 @@ Human DX is the acceptance test. There is no compatibility window.
   `bravo/Bravo.AST.ungram`.
 - **Keep:** Markdown-first islands, pure `@component` render, Rust catalog /
   Rocci shell, OKF Markdown-only.
-- **May break:** `@docs` prefix, mixed `{ fields + markdown }`,
-  unknown-`@name`-stays-Markdown, article blocks using `:` and `[params]`
-  instead of `@docs`.
+- **Do not use the removed experimental family name in new work.** Current
+  article blocks are `:kind[params]`. This record's pre-cutover passages
+  are rationale only. The live contract is
+  [Rocdown format](../architecture/rocdown-format.md).
 - **Owning crates if implemented later:** `rocci-rocdown` (scan, parse, docs,
   lower), `rocci-template` only if Rocci grammar must change, public
   `docs/reference/rocdown.rocdown`.
@@ -219,8 +226,8 @@ Human DX is the acceptance test. There is no compatibility window.
 
 This is exploratory language research, not shipped behavior. The current
 parser is evidence of today's contract, not a constraint on the next one.
-There is no compatibility window: `@docs`, mixed `{ fields + markdown }`, and
-other current spellings may disappear if a clearer source form wins. Human
+There is no compatibility window: mixed `{ fields + markdown }` and other
+pre-cutover spellings may disappear if a clearer source form wins. Human
 authoring DX is the test, especially line-scoped content, which Markdown
 headings already have.[^rocdown-readme][^format-arch][^exploration-brief][^syntax-recommended]
 
@@ -232,45 +239,52 @@ Sample documents for the decided spelling (`:name[params]`) and wrapping
 variants live under `knowledge/research/syntax/` and do not parse
 yet.[^syntax-recommended][^syntax-variations]
 
-## Current contract
+## Historical snapshot (before `:kind`)
 
-A `.rocdown` file is a sequence of Markdown blocks, reserved `@` declarations,
-and document-root HTML islands. Reserved names today are `page`, `roc`,
-`render`, `component`, `fixture`, `css`, `context`, `init`, `on`, `if`, `for`,
-`match`, `let`, `docs`, and `img`. Unknown `@name` stays Markdown. Recognition
-is document-root and header-shaped; inline `@`, email, lists, quotes, and
-fences do not switch modes.[^rocdown-readme][^scanner][^markdown-first]
+This section reconstructs the experimental article-widget family that
+`:name[params]` replaced. It is **not** the current contract. Current
+spelling is in the [format architecture](../architecture/rocdown-format.md)
+and `crates/rocci-rocdown/README.md`.
 
-The parse tree is not a uniform block list. `Item` is a sum of Markdown, module
-declarations, template splices, `@docs`, and `@img`. Markdown is Comrak-derived
-`MdNode`. `@docs` stores a kind string plus one brace body. Static sites then
-rebuild a second tree (`ArticleNode`: Markdown, `DocsNode`, or image) and type
-`@docs` fields in Rust.[^ast][^docs-rs][^compiler-arch]
+A `.rocdown` file was a sequence of Markdown blocks, reserved `@`
+declarations, and document-root HTML islands. Reserved names included
+`page`, `roc`, `render`, `component`, `fixture`, `css`, `context`, `init`,
+`on`, `if`, `for`, `match`, `let`, plus the experimental article-widget
+and image names. Unknown `@name` stayed Markdown. Recognition was
+document-root and header-shaped; inline `@`, email, lists, quotes, and
+fences did not switch modes.[^rocdown-readme][^scanner][^markdown-first]
 
-`@docs` is one reserved family. Kinds such as `note` or `tabs` are not
-top-level `@` names. The body is a single `{ ... }` that mixes leading
-`name: value` fields with remainder Markdown. Nested `@docs` are legal;
-`@page`, `@roc`, `@render`, `@component`, handlers, and HTML islands inside a
-docs body are errors.[^rocdown-reference][^docs-rs]
+The parse tree was not a uniform block list. `Item` was a sum of Markdown,
+module declarations, template splices, and the experimental article family.
+Markdown was Comrak-derived `MdNode`. The experimental family stored a kind
+string plus one brace body. Static sites then rebuilt a second tree
+(`ArticleNode`: Markdown, `DocsNode`, or image) and typed fields in
+Rust.[^ast][^docs-rs][^compiler-arch]
 
-Brace matching uses `skip_balanced_braces`, which understands Roc strings and
-`#` comments but not Markdown fences. A fence containing an unmatched `{` or
-`}` can close or swallow a `@docs` body. Field/content splitting is also
-heuristic: `split_docs_body` consumes `ident:` values until the remainder no
-longer looks like a field.[^scanner][^lexer][^docs-rs]
+Kinds such as `note` or `tabs` were not top-level `@` names. The body was a
+single `{ ... }` that mixed leading `name: value` fields with remainder
+Markdown. Nested widgets were legal; `@page`, `@roc`, `@render`,
+`@component`, handlers, and HTML islands inside a widget body were
+errors.[^rocdown-reference][^docs-rs]
 
-Rendering is split. Standalone lowering emits `Html.element` for both Markdown
-and a conservative `@docs` preview. Static builds render Markdown in Rust and
-pass flattened `PlannedSegment` records plus already-rendered body HTML into
-one Rocci `Render` matcher keyed on `segment.kind`.[^article-rs][^lowerer][^docs-rocci][^compiler-arch]
+Brace matching used `skip_balanced_braces`, which understands Roc strings
+and `#` comments but not Markdown fences. A fence containing an unmatched
+`{` or `}` could close or swallow a widget body. Field/content splitting
+was also heuristic: `split_docs_body` consumed `ident:` values until the
+remainder no longer looked like a field.[^scanner][^lexer][^docs-rs]
 
-Rocci already has the render shape this research wants. A component takes a
-props record and optional extra body parameters; paired tags pass nested markup
-as that body. There is no magic `children` field.[^template-readme][^pure-render]
+Rendering was split. Standalone lowering emitted `Html.element` for both
+Markdown and a conservative widget preview. Static builds rendered Markdown
+in Rust and passed flattened `PlannedSegment` records plus already-rendered
+body HTML into one Rocci `Render` matcher keyed on `segment.kind`.[^article-rs][^lowerer][^docs-rocci][^compiler-arch]
 
-`@end` is not part of shipped `@docs`. Include excerpts use comment markers
-(`docs-region` / `docs-region-end`) inside the included file. Named `:end.tab`
-sketches live in the variations file.[^docs-rs][^syntax-variations]
+Rocci already had the render shape this research wanted. A component takes a
+props record and optional extra body parameters; paired tags pass nested
+markup as that body. There is no magic `children` field.[^template-readme][^pure-render]
+
+`@end` was not part of that experimental family. Include excerpts used
+comment markers (`docs-region` / `docs-region-end`) inside the included
+file. Named `:end.tab` sketches lived in the variations file.[^docs-rs][^syntax-variations]
 
 ## The interesting idea
 
@@ -290,8 +304,8 @@ Markdown remains the convenient authoring form. `# Heading` and
 parser keyword; it would be a builtin (or imported) block type that happens
 to be in the default registry.[^exploration-brief]
 
-That is already how `@docs` wants to work, except the current pipeline
-hard-codes kinds in Rust (`DocsAttrs`, parent/child rules) and again in
+That is already how the article pipeline wanted to work, except the pipeline
+hard-coded kinds in Rust (`DocsAttrs`, parent/child rules) and again in
 `DocsComponents.Render`'s `@match segment.kind`. A generalized model replaces
 that closed matcher with a registry from kind to component, and replaces the
 flattened segment bag with the component's actual props plus rendered
@@ -300,18 +314,21 @@ content.[^docs-rs][^docs-rocci][^generation-research]
 Keep module-level declarations out of this protocol. `@page`, `@roc`,
 `@component`, `@fixture`, `@css`, `@context`, `@init`, and `@on` declare the
 file, not article nodes. The generalization is about what appears in the
-article tree: Markdown sugar, `::img` / `!img`, today's `@docs` kinds spelled
-as direct names with a distinct prefix, custom blocks, and perhaps
+article tree: Markdown sugar, image blocks, builtin kinds spelled as direct
+names with a distinct prefix, custom blocks, and perhaps
 `@render`.[^ast][^rocdown-readme]
 
-## Drop the `@docs` prefix
+## Historical: why there is no family prefix
 
-`@docs` exists because Rocdown-the-language and the documentation generator
-were separate products. The family namespaced generator widgets (`note`,
-`tabs`, `include`, `example`, `api-operation`) so they would not look like
-core language. Rocdown now owns both the document format and the static
-generator. The extra prefix is a leftover product boundary, not a language
-need.[^rocdown-readme][^compiler-arch][^rocdown-reference]
+Article widgets are `:note`, not a namespaced family. This section is why.
+Do not treat it as a live migration task.
+
+The experimental family existed because Rocdown-the-language and the
+documentation generator were separate products. It namespaced generator
+widgets (`note`, `tabs`, `include`, `example`, `api-operation`) so they
+would not look like core language. Rocdown now owns both the document
+format and the static generator. The extra prefix was a leftover product
+boundary, not a language need.[^rocdown-readme][^compiler-arch][^rocdown-reference]
 
 The intended spelling is the kind as a top-level block name with prefix `:`
 (not `@`, not `::`, not `!`):
@@ -324,9 +341,9 @@ The intended spelling is the kind as a top-level block name with prefix `:`
 }}
 ```
 
-not `@docs note { ... }` and not `@note`. Nested forms follow the same rule
-(`:tabs` / `:tab`). Shipped `@img` already has a top-level name and moves
-to the article prefix. `@docs` goes away. No alias, no rewrite
+not a namespaced `@` family and not `@note`. Nested forms follow the same
+rule (`:tabs` / `:tab`). The native image declaration already had a
+top-level name and moved to `:img`. No alias, no rewrite
 window.[^rocdown-readme][^syntax-recommended]
 
 Kinds are not new reserved keywords. They are names in the builtin block
@@ -335,7 +352,8 @@ names (`page`, `roc`, `component`, …) stay reserved and win when they
 collide.[^scanner][^exploration-brief]
 
 The family also mixed general document blocks with generator-only features.
-Direct names make that mix visible instead of hiding it under `@docs`:
+Direct names make that mix visible instead of hiding it under a namespace
+word:
 
 | Today's kind | Likely role after the prefix drop |
 | --- | --- |
@@ -360,12 +378,12 @@ nested document in one `{ }`.[^syntax-recommended][^syntax-variations][^explorat
 | None | `:img[src: "...", alt: "..."]` | Props only |
 | Line | `:h2 Installing` / `:note Don't do this.` | Body fits on the rest of the line |
 | Section | `:note[title: "Watch"] {{ ... }}` | Nested Markdown, fences, or child blocks |
-| End marker | `:tabs ... :end.tabs` | Long or brace-heavy bodies |
+| End marker | `:tabs.begin ... :tabs.end` | Long or brace-heavy bodies |
 
 Line scope is the human default for one-line bodies, for the same reason
 Markdown headings are `# Title` rather than `# {{ Title }}`. Section wrap is
-for nested document. `:end.kind` is the fallback when `{{ }}`
-would fight the body (named closer follows the article prefix, not `@end`).
+for nested document. `:kind.begin` ... `:kind.end` is the fallback when `{{ }}`
+would fight the body. A call uses one delimiter, not both.
 Indentation is not a closer.[^syntax-variations][^bravo-ungram]
 
 `# Heading` remains the usual heading. `:h2 Title` is the same AST node.
@@ -412,7 +430,7 @@ component's props record. They must not be parsed as Rocdown.
 pages possibly HTML islands. It becomes the extra `content` argument, as in
 `|{ title }, content|`, not a string field named `content`.[^template-readme][^exploration-brief]
 
-Today's `@docs note { title: "Watch"\n\n markdown }` is a fusion of both. The
+The pre-cutover `note { title: "Watch"\n\n markdown }` form fused both. The
 maintainer sketches separate them:[^syntax-recommended][^exploration-brief]
 
 ```text
@@ -427,11 +445,11 @@ wrapped body for Html. A params-only article block remains valid (`:img`,
 `:badge`). A content-only form remains valid for blocks with no props. That
 does not by itself decide `@page`.[^syntax-variations][^rocdown-readme]
 
-`<Button>` inside content is not legal in shipped `@docs` bodies. Allowing it
-means block content is a Rocdown fragment (`parse_fragment` already re-scans a
-span) with a looser gate than today's static `@docs` rule. Static pages can
-still forbid document-local `@component` / `@on` while allowing theme-registered
-blocks and Markdown.[^parser][^docs-rs][^rocdown-readme]
+`<Button>` inside content is not legal in shipped static widget bodies.
+Allowing it means block content is a Rocdown fragment (`parse_fragment`
+already re-scans a span) with a looser gate than today's static-page rule.
+Static pages can still forbid document-local `@component` / `@on` while
+allowing theme-registered blocks and Markdown.[^parser][^docs-rs][^rocdown-readme]
 
 ## What fencing is
 
@@ -456,7 +474,7 @@ These are all fences, with different closer rules:
 | --- | --- | --- | --- |
 | Line | `:note ` | End of line | N/A (no nested lines) |
 | Balanced `{{ }}` | `{{` | matching `}}` | Fragile unless fence-aware |
-| Named closer | `:tabs` | `:end.tabs` at line start | Safe if scanning skips code fences |
+| Named closer | `:tabs.begin` | `:tabs.end` at line start | Safe if scanning skips code fences |
 | Markdown ` ``` ` | info line | same-length fence | Opaque (good) |
 
 Prefix and fence are independent. `:` is the sigil. Nested document still
@@ -470,8 +488,8 @@ needs one of the fences above:
 
 Vue-family MDC also uses `::` as a *closer* (`::alert` … `::`). That pairing
 is not a candidate here: it teaches a second fence, nested homogeneous `::`
-is a stack, and Rocdown already has `{{ }}` / named `:end` / line-scope. A
-named closer (`:end.tab`) is more verbose and more precise when several
+is a stack, and Rocdown already has `{{ }}` / named `:kind.end` / line-scope. A
+named closer (`:tab.end`) is more verbose and more precise when several
 blocks are open. `%` is not a closer either.[^syntax-variations][^syntax-recommended]
 
 Fencing is not optional for nested document. The design choice is *which*
@@ -488,14 +506,14 @@ code, and nested blocks as Roc.
 | --- | --- | --- |
 | Single `{ }` (current) | Familiar; matches `@page` / `@roc` / Rocci `@if` | Fence-unaware brace skip; field/content fusion; `}` in prose/code is a close |
 | Double `{{ }}` | Visually distinct from params; rarer in Markdown | Still brace-based; `}}` in code can collide; not the Rocci `@if` body |
-| `:end.kind` | Line-start, follows the article prefix | Verbose; needs matching kind |
+| `:kind.begin` / `:kind.end` | Line-start pair; kind on both markers | Verbose; must not mix with `{{ }}` |
 | Vue `::name` … `::` | Line-start pair; familiar from MDC | Not used: prefix and fence would be the same token |
 | `@end.kind` / `%…%` | Reuses `@` or a second punctuated fence | Not used: `@` is the language island; `%` is not a fence |
 | Fence-aware `{ }` | Keeps one-brace look | More scanner complexity; still mixes params unless fields move out |
 | Indentation | No closer token | Hostile to Markdown lists, fences, and copy-paste |
 
 Decided default for **article blocks**: **params in `[]`**, **line content
-when the body is one line**, **`{{ }}` or `:end.kind` for nested document**.
+when the body is one line**, **`{{ }}` or `:kind.begin` ... `:kind.end` for nested document**.
 Prefix is `:`. Do not use indent as a closer. Do not keep today's mixed
 `{ title: "...", markdown }` body. Do not close blocks with `::`, `:::`, or
 `%`. Do not use `(params)`.[^syntax-recommended][^syntax-variations][^scanner]
@@ -516,7 +534,7 @@ making `@if` Markdown.[^rocdown-readme][^exploration-brief]
 ## Delimiter classes
 
 A `.rocdown` file already mixes languages. Forcing one wrapper for every `@`
-form is how `@docs { title, markdown }` went wrong. Three classes are more
+form is how mixing params and Markdown in one `{ }` went wrong. Three classes are more
 honest than one pretty delimiter:[^rocdown-readme][^template-readme]
 
 | Class | Examples | Payload | Wrapper |
@@ -579,9 +597,9 @@ Do not copy that form. `{ }` is already Roc in this file.
 Module Roc and Rocci already share a single `@` and are consistent with each
 other: `@page { }`, `@roc { }`, `@component Name = |params|`, `@if cond { }`.
 Article blocks are the third class. They **do not use single `@`**. A distinct
-prefix keeps notes out of the language-island namespace. `@docs` tried that
-with a family name; a lighter sigil does the job without the leftover
-word.[^rocdown-readme][^template-readme][^rocdown-reference][^syntax-variations]
+prefix keeps notes out of the language-island namespace. The experimental
+family tried that with a leftover namespace word; a lighter sigil does the
+job without it.[^rocdown-readme][^template-readme][^rocdown-reference][^syntax-variations]
 
 The decided prefix is **`:`**. Nested document uses `{{ }}`, line-scope, or
 `:end`. Not Vue's closer `::`, not `:::`, not `%`. `::` and `!` remain
@@ -716,7 +734,7 @@ Hard no, because the scanner or the eye already owns them:
 | --- | --- |
 | `@note` | Same sigil as `@if` / `@page` |
 | `@@note` | Doubled `@`; looks like a typo; Bravo decorator |
-| `@docs note` / `@block note` | Rejected namespace word |
+| namespaced `@` family / `@block note` | Rejected namespace word |
 | `#note` | Looks like a broken ATX heading |
 | `>note` | CommonMark blockquote (`>` needs no space) |
 | `[note]` / `[NOTE]` | Link definitions `[note]: url`; AsciiDoc |
@@ -736,7 +754,7 @@ Quiet leftovers that are parsable but weak: `;note` (easy to miss), `~note`
 (shifted; strikethrough `~~`), `=note` (Setext / wiki heading noise).
 
 Do not use `<Note>` for article blocks. Document-root `<Tag>` is already a
-Rocci island. Do not revive `@docs` as the separator.
+Rocci island. Do not revive a family-name prefix as the separator.
 
 ### Decision
 
@@ -744,7 +762,7 @@ Rocci island. Do not revive `@docs` as the separator.
 today's single `@`. `@use` stays `@`.
 
 **Prefix: `:note`.** Not `::`, not `!`, not `@`. Params: `[title: "Watch"]`.
-Content: line-scope, `{{ }}`, or `:end.kind`.
+Content: line-scope, `{{ }}`, or `:kind.begin` ... `:kind.end`.
 
 Do not put `@page` in parens or brackets, and do not make `@component` look
 like a note.[^syntax-variations][^syntax-recommended][^rocdown-ungram]
@@ -774,7 +792,7 @@ uniform block renderer.[^syntax-recommended][^article-rs]
 
 ## Dynamic block types and imports
 
-Today the parser knows `@docs`, then Rust knows which kinds exist, then Rocci
+Today the parser knows article `:kind`, then Rust knows which kinds exist, then Rocci
 matches those kinds again. Custom `@foo` cannot appear without a language
 change.[^scanner][^docs-rs][^docs-rocci]
 
@@ -782,8 +800,8 @@ A registry inverts that:
 
 1. Builtin / theme modules export Rocci components (`Note`, `Tabs`, `Heading`).
 2. The Rocdown parser accepts `:ident` at document root (and inside block
-   content) when the header matches a block shape. Today's `@docs note` is
-   just `:note` in that registry.
+   content) when the header matches a block shape. A pre-cutover namespaced
+   `note` is just `:note` in that registry.
 3. Resolution maps the source name to a component (`note` / `link-card` →
    `Note` / `LinkCard`).
 4. Unknown shaped `:foo` is a diagnostic, not silent Markdown, once the name is
@@ -831,8 +849,8 @@ validation. What can move is article *painting*.[^catalog-shell][^generation-res
 
 OKF stays Markdown-only.
 
-Source compatibility does not. `@docs`, unknown-`@name`-stays-Markdown, and the
-mixed brace body may all change.
+Source compatibility does not. The removed experimental family,
+unknown-`@name`-stays-Markdown, and the mixed brace body may all change.
 
 ## Ungrammar as a grammar reference
 
@@ -847,7 +865,7 @@ The tree distinguishes module items (`@page`, `@roc`, `@use`, Rocci decls)
 from article `BlockCall` nodes (`:note[title: "Watch"] {{ ... }}`). Markdown
 `# Installing` and `:h2 Installing` are the same `BlockCall` (name `h2`).
 Params are `BracketRecord` only. Content is `LineContent`, `BraceSection`
-(`{{ }}`), or `EndSection` (`:end.kind`). Comrak still owns sugar
+(`{{ }}`), or `EndSection` (`:kind.begin` / `:kind.end`). Comrak still owns sugar
 recognition; Rocdown still owns document-root scanning.
 
 A second ungram for `rocci-template` is optional and separate. The shipped
@@ -864,13 +882,13 @@ Rust heading ids, no ungram scanner codegen) and sequences registry →
 per-kind Rocci components → internal `BlockCall` → dual-parse → sugar →
 cutover → typed props → `@use` → LSP.[^impl-plan]
 
-Do not keep `@docs` as an alias. Do not ship `:foo` as an open executable
+Do not keep a family-name alias. Do not ship `:foo` as an open executable
 namespace or inline decorations in the first syntax.
 
 ## Open questions
 
 - Prefix and params decided: `:note[title: "x"] {{ ... }}`. Remaining: which
-  `@docs` kinds stay in the builtin registry vs theme-only / tooling-only.
+  builtin kinds stay in the registry vs theme-only / tooling-only.
 - Are bracket props a Roc record literal subset, or a smaller param language?
 - May block content on static pages include HTML islands that call
   theme-registered components, or only Markdown plus nested blocks?
@@ -882,13 +900,13 @@ namespace or inline decorations in the first syntax.
   Follow-on: [ungram AST research](ungram-ast.md) recommends
   `rocci-ungram --check` on committed generated structs.
 
-[^rocdown-readme]: Shipped file shape, reserved names, unknown-`@name` prose rule, `@docs` / `@if` bodies, and static versus deferred features.
+[^rocdown-readme]: Shipped file shape, reserved names, unknown-`@name` prose rule, article `:kind` / `@if` bodies, and static versus deferred features.
 [^ast]: `Item`, `DocsDecl`, and `MdNode` as separate article and module shapes.
-[^scanner]: Document-root recognition, reserved-name table, `@docs` header requiring `{`, and brace-block skipping.
-[^parser]: Fragment re-parse used for `@docs` bodies (`parse_fragment` / `scan_range`).
-[^docs-rs]: Field/content split, typed kinds, nested `@docs`, illegal template items, and include region comments.
+[^scanner]: Document-root recognition, reserved-name table, and brace-block skipping.
+[^parser]: Fragment re-parse used for article-block bodies (`parse_fragment` / `scan_range`).
+[^docs-rs]: Field/content split, typed kinds, nested widgets, illegal template items, and include region comments.
 [^article-rs]: Rust Markdown HTML for headings and other sugar nodes.
-[^lowerer]: Standalone `@docs` lowering to `Html.element` after the same field/content split.
+[^lowerer]: Standalone article-block lowering to `Html.element` after the same field/content split.
 [^docs-rocci]: Single `Render` matcher on `segment.kind` plus `|{ kind, title, ... }, body|` widgets.
 [^template-readme]: Props record plus extra body parameter; paired tags pass nested Html.
 [^lexer]: `skip_balanced_braces` skips strings and `#` comments, not Markdown fences.
@@ -896,9 +914,9 @@ namespace or inline decorations in the first syntax.
 [^markdown-first]: Mode changes only at visible document-root declarations or root HTML islands.
 [^pure-render]: `@component` is a pure function from explicit values and body to Html.
 [^catalog-shell]: Rust owns catalog and deterministic data; Rocci owns visible chrome; article HTML is currently Rust.
-[^generation-research]: Duplicate `@docs` wrappers and the rule that renderer compilation must not run per page.
+[^generation-research]: Duplicate article-widget wrappers and the rule that renderer compilation must not run per page.
 [^compiler-arch]: Static article tree, fragment files, and Rocci painting from scalar segment records.
-[^rocdown-reference]: Public `@docs` family contract: kinds are not top-level `@` names; mixed brace body.
+[^rocdown-reference]: Public `:kind` article-block contract: kinds are not top-level `@` names.
 [^format-report]: Original rationale for Markdown-first islands; not shipped syntax.
 [^bravo-ungram]: Line versus section blocks, decorators, and a uniform `Block*` document.
 [^syntax-recommended]: Decided sample: `:note`, `[params]`, line-scope, `{{ }}`.
