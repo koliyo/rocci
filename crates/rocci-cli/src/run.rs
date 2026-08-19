@@ -425,6 +425,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         devtools: config.development.devtools,
         state_key: Some(state_key),
         inspector_url: None,
+        source_root: None,
     })
     .map_err(|error| anyhow::anyhow!("{error}"));
     let _ = child.kill();

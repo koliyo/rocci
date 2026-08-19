@@ -5,6 +5,7 @@ mod events;
 mod history;
 mod menu;
 mod preview;
+mod source;
 pub mod state;
 mod window;
 
@@ -310,6 +311,8 @@ impl Shell {
                     if let Some(id) = self.focused.clone() {
                         self.close_window(id, control_flow);
                     }
+                } else if menu::is(&menu_event, menu::SELECT_ALL_ID) {
+                    self.select_all_focused();
                 } else if self.reload && menu::is(&menu_event, menu::RELOAD_ID) {
                     self.reload_focused();
                 } else if self.devtools && menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {
@@ -325,6 +328,14 @@ impl Shell {
             && let Err(error) = window.webview.reload()
         {
             tracing::error!(%error, "failed to reload webview");
+        }
+    }
+
+    fn select_all_focused(&self) {
+        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
+            && let Err(error) = window.webview.evaluate_script(chrome::SELECT_ALL_SCRIPT)
+        {
+            tracing::error!(%error, "failed to select all in webview");
         }
     }
 

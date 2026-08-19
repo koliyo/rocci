@@ -324,6 +324,7 @@ fn main() -> Result<()> {
                 width: 1200.0,
                 height: 800.0,
                 inspector_url: Some(server.inspector_url.clone()),
+                source_root: Some(target.root.clone()),
                 ..rocci_desktop::PreviewOptions::default()
             })
             .map_err(|error| anyhow::anyhow!("{error}"));

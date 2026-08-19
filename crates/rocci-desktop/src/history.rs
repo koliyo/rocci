@@ -6,6 +6,13 @@ pub enum NavCommand {
     Reload,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IpcMessage {
+    Nav(NavCommand),
+    Reveal(String),
+    CopySource(String),
+}
+
 impl NavCommand {
     pub fn parse(message: &str) -> Option<Self> {
         match message.trim() {
@@ -15,6 +22,19 @@ impl NavCommand {
             "reload" => Some(Self::Reload),
             _ => None,
         }
+    }
+}
+
+impl IpcMessage {
+    pub fn parse(message: &str) -> Option<Self> {
+        let message = message.trim();
+        if let Some(path) = message.strip_prefix("reveal:") {
+            return Some(Self::Reveal(path.to_string()));
+        }
+        if let Some(path) = message.strip_prefix("copy-source:") {
+            return Some(Self::CopySource(path.to_string()));
+        }
+        NavCommand::parse(message).map(Self::Nav)
     }
 }
 
@@ -167,6 +187,18 @@ mod tests {
         assert_eq!(NavCommand::parse("home"), Some(NavCommand::Home));
         assert_eq!(NavCommand::parse("reload"), Some(NavCommand::Reload));
         assert_eq!(NavCommand::parse("nope"), None);
+        assert_eq!(
+            IpcMessage::parse("reveal:architecture/overview.md"),
+            Some(IpcMessage::Reveal("architecture/overview.md".into()))
+        );
+        assert_eq!(
+            IpcMessage::parse("copy-source:guides/rocdown.rocdown"),
+            Some(IpcMessage::CopySource("guides/rocdown.rocdown".into()))
+        );
+        assert_eq!(
+            IpcMessage::parse("home"),
+            Some(IpcMessage::Nav(NavCommand::Home))
+        );
     }
 
     #[test]

@@ -16,6 +16,7 @@ pub const FIND_ID: &str = "edit.find";
 pub const FIND_NEXT_ID: &str = "edit.find-next";
 pub const FIND_PREVIOUS_ID: &str = "edit.find-previous";
 pub const USE_SELECTION_ID: &str = "edit.use-selection-for-find";
+pub const SELECT_ALL_ID: &str = "edit.select-all";
 pub const BACK_ID: &str = "view.back";
 pub const FORWARD_ID: &str = "view.forward";
 pub const HOME_ID: &str = "view.home";
@@ -99,7 +100,12 @@ impl NativeMenu {
             &PredefinedMenuItem::cut(None),
             &PredefinedMenuItem::copy(None),
             &PredefinedMenuItem::paste(None),
-            &PredefinedMenuItem::select_all(None),
+            &MenuItem::with_id(
+                SELECT_ALL_ID,
+                "Select All",
+                true,
+                Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyA)),
+            ),
         ])
         .map_err(menu_error)?;
         if config.search {
@@ -331,5 +337,10 @@ mod tests {
             vec![FIND_ID, FIND_NEXT_ID, FIND_PREVIOUS_ID, USE_SELECTION_ID]
         );
         assert!(edit_search_ids(&config(false, true, true, false)).is_empty());
+    }
+
+    #[test]
+    fn edit_menu_includes_select_all() {
+        assert_eq!(SELECT_ALL_ID, "edit.select-all");
     }
 }

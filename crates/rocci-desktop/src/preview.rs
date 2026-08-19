@@ -10,9 +10,9 @@ use wry::{PageLoadEvent, WebContext};
 use crate::{
     chrome,
     events::{self, PreviewEvent, ShellEvent},
-    history::{NavCommand, NavHistory},
+    history::{IpcMessage, NavCommand, NavHistory},
     menu::{self, MenuConfig},
-    web_context_dir,
+    source, web_context_dir,
     window::{LiveWindow, WebViewHooks},
 };
 
@@ -24,6 +24,7 @@ pub struct PreviewOptions {
     pub devtools: bool,
     pub state_key: Option<String>,
     pub inspector_url: Option<String>,
+    pub source_root: Option<std::path::PathBuf>,
 }
 
 impl Default for PreviewOptions {
@@ -37,6 +38,7 @@ impl Default for PreviewOptions {
             devtools: true,
             state_key: None,
             inspector_url: None,
+            source_root: None,
         }
     }
 }
@@ -89,13 +91,25 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         context,
         options.devtools,
         WebViewHooks {
-            initialization_script: Some(chrome::initialization_script_with_inspector(
+            initialization_script: Some(chrome::initialization_script(
                 options.inspector_url.as_deref(),
+                options.source_root.is_some(),
             )),
             ipc_handler: Some(Box::new(move |request| {
-                if let Some(command) = NavCommand::parse(request.body()) {
-                    let _ =
-                        ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Command(command)));
+                match IpcMessage::parse(request.body()) {
+                    Some(IpcMessage::Nav(command)) => {
+                        let _ = ipc_proxy
+                            .send_event(ShellEvent::Preview(PreviewEvent::Command(command)));
+                    }
+                    Some(IpcMessage::Reveal(path)) => {
+                        let _ =
+                            ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Reveal(path)));
+                    }
+                    Some(IpcMessage::CopySource(path)) => {
+                        let _ = ipc_proxy
+                            .send_event(ShellEvent::Preview(PreviewEvent::CopySource(path)));
+                    }
+                    None => {}
                 }
             })),
             on_page_load: Some(Box::new(move |event, url| {
@@ -128,6 +142,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut title = options.title;
     let mut modifiers = ModifiersState::empty();
     let save_key = state_key.clone();
+    let source_root = options.source_root.clone();
     event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
         let _keep = &menu;
@@ -184,10 +199,18 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     apply_overlay(&live, chrome::FIND_USE_SELECTION_SCRIPT);
                 } else if menu::is(&menu_event, menu::GO_TO_FILE_ID) {
                     apply_overlay(&live, chrome::GOTO_OPEN_SCRIPT);
+                } else if menu::is(&menu_event, menu::SELECT_ALL_ID) {
+                    apply_overlay(&live, chrome::SELECT_ALL_SCRIPT);
                 }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Command(command))) => {
                 apply_command(&live, &mut history, command);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Reveal(spec))) => {
+                apply_source(&source_root, &spec, SourceAction::Reveal);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::CopySource(spec))) => {
+                apply_source(&source_root, &spec, SourceAction::Copy);
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);
@@ -238,6 +261,25 @@ fn apply_command(live: &LiveWindow, history: &mut NavHistory, command: NavComman
 fn apply_overlay(live: &LiveWindow, script: &str) {
     if let Err(error) = live.webview.evaluate_script(script) {
         tracing::error!(%error, "failed to apply preview overlay action");
+    }
+}
+
+enum SourceAction {
+    Reveal,
+    Copy,
+}
+
+fn apply_source(root: &Option<std::path::PathBuf>, spec: &str, action: SourceAction) {
+    let Some(root) = root else {
+        return;
+    };
+    let Some(path) = source::resolve_source_file(root, spec) else {
+        tracing::warn!(spec, root = %root.display(), "preview source file not found");
+        return;
+    };
+    match action {
+        SourceAction::Reveal => source::reveal_in_file_manager(&path),
+        SourceAction::Copy => source::copy_file_text(&path),
     }
 }
 

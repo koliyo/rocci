@@ -1353,13 +1353,13 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         }
         let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
         let meta_header = render_concept_meta(concept, bundle);
-        let full_html = format!("{meta_header}{}", concept.article_html);
+        let full_html = with_meta_and_article(&meta_header, &concept.article_html);
         fs::write(&destination, html_page(title, &full_html))
             .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
         let governance_header = render_home_page_governance(bundle);
-        let full_index = format!("{governance_header}{}", index.article_html);
+        let full_index = with_meta_and_article(&governance_header, &index.article_html);
         fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
             .context("failed to write knowledge index")?;
     }
@@ -1372,8 +1372,11 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
             fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
-        fs::write(&destination, html_page(collection, &index.article_html))
-            .with_context(|| format!("failed to write {}", destination.display()))?;
+        fs::write(
+            &destination,
+            html_page(collection, &select_root_article(&index.article_html)),
+        )
+        .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     let review_dest = site.join("review").join("index.html");
     if let Some(parent) = review_dest.parent() {
@@ -1384,7 +1387,7 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         &review_dest,
         html_page(
             "Knowledge Governance & Review Queue",
-            &render_review_page(bundle),
+            &select_root_article(&render_review_page(bundle)),
         ),
     )
     .context("failed to write knowledge review page")?;
@@ -1533,7 +1536,7 @@ pub fn build_review_site_with_host(
                 }
                 let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
                 let meta_header = render_concept_meta(concept, bundle);
-                let full_html = format!("{meta_header}{}", concept.article_html);
+                let full_html = with_meta_and_article(&meta_header, &concept.article_html);
                 fs::write(&destination, html_page(title, &full_html))?;
             }
         }
@@ -1541,7 +1544,7 @@ pub fn build_review_site_with_host(
             let destination = staging.join("index.html");
             if !destination.exists() {
                 let governance_header = render_home_page_governance(bundle);
-                let full_index = format!("{governance_header}{}", index.article_html);
+                let full_index = with_meta_and_article(&governance_header, &index.article_html);
                 fs::write(&destination, html_page("Knowledge", &full_index))?;
             }
         }
@@ -1554,7 +1557,10 @@ pub fn build_review_site_with_host(
                 if let Some(parent) = destination.parent() {
                     fs::create_dir_all(parent)?;
                 }
-                fs::write(&destination, html_page(collection, &index.article_html))?;
+                fs::write(
+                    &destination,
+                    html_page(collection, &select_root_article(&index.article_html)),
+                )?;
             }
         }
         let review_dest = staging.join("review").join("index.html");
@@ -1566,7 +1572,7 @@ pub fn build_review_site_with_host(
                 &review_dest,
                 html_page(
                     "Knowledge Governance & Review Queue",
-                    &render_review_page(bundle),
+                    &select_root_article(&render_review_page(bundle)),
                 ),
             )?;
         }
@@ -1636,6 +1642,7 @@ main {
   padding: 2.15rem 1.2rem 2rem 1.5rem;
   overflow-x: hidden;
   overflow-y: auto;
+  user-select: none;
 }
 .rd-toc-label {
   margin: 0 0 0.65rem;
@@ -1719,7 +1726,7 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-auth-exploratory { background: rgba(198, 120, 221, 0.15); color: var(--rd-purple); border-color: var(--rd-purple); }
 .okf-auth-descriptive, .okf-trust-unverified { background: var(--rd-bg-subtle); color: var(--rd-muted); }
 .okf-alert-banner { display: flex; gap: 0.5rem; background: rgba(209, 154, 102, 0.12); border: 1px solid var(--rd-orange); padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; }
-.okf-concept-meta { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rd-border); }
+.okf-concept-meta { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rd-border); user-select: none; }
 .okf-lead { color: var(--rd-muted); margin: 0 0 0.75rem; }
 .okf-provenance { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; padding: 0; margin: 0 0 0.75rem; font-size: 0.9rem; }
 .okf-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; background: var(--rd-bg-subtle); padding: 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
@@ -1754,6 +1761,14 @@ struct TocHeading {
     level: u8,
     id: String,
     text: String,
+}
+
+fn select_root_article(html: &str) -> String {
+    format!("<article class=\"rd-article\">{html}</article>")
+}
+
+fn with_meta_and_article(meta: &str, article: &str) -> String {
+    format!("{meta}{}", select_root_article(article))
 }
 
 pub fn html_page(title: &str, article: &str) -> String {
@@ -2061,6 +2076,29 @@ mod tests {
     }
 
     #[test]
+    fn html_page_select_root_excludes_toc_and_meta() {
+        let html = html_page(
+            "Plan",
+            &with_meta_and_article(
+                "<section class=\"okf-concept-meta\">governance</section>",
+                "<h2>Alpha</h2><p>body</p>",
+            ),
+        );
+        let toc = html.find("class=\"rd-toc\"").expect("toc");
+        let main = html.find("<main>").expect("main");
+        let meta = html.find("okf-concept-meta").expect("meta");
+        let article = html.find("class=\"rd-article\"").expect("article");
+        assert!(toc < main);
+        assert!(main < meta);
+        assert!(meta < article);
+        let article_html = &html[article..];
+        assert!(article_html.contains("body"));
+        assert!(!article_html.contains("okf-concept-meta"));
+        assert!(!article_html.contains("class=\"rd-toc\""));
+        assert!(DEFAULT_CSS.contains("user-select: none"));
+    }
+
+    #[test]
     fn html_page_preserves_existing_heading_ids() {
         let html = html_page(
             "Review",
@@ -2127,6 +2165,10 @@ mod tests {
         let html = fs::read_to_string(site.join("overview").join("index.html")).unwrap();
         assert!(html.contains("System Overview"));
         assert!(html.contains("okf-concept-meta"));
+        assert!(html.contains("class=\"rd-article\""));
+        let meta = html.find("okf-concept-meta").unwrap();
+        let article = html.find("class=\"rd-article\"").unwrap();
+        assert!(meta < article);
         let _ = fs::remove_dir_all(&site);
     }
 
@@ -2139,5 +2181,8 @@ mod tests {
         assert!(modules.iter().any(|m| m.type_name == "ConceptMeta"));
         assert!(modules.iter().any(|m| m.type_name == "ReviewQueue"));
         assert!(modules.iter().any(|m| m.type_name == "OkfTheme"));
+        let theme = modules.iter().find(|m| m.type_name == "OkfTheme").unwrap();
+        assert!(theme.src.contains("class=\"rd-article\""));
+        assert!(theme.roc.contains("rd-article"));
     }
 }

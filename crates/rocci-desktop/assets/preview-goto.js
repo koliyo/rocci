@@ -373,5 +373,6 @@
     open: open,
     close: close,
     isOpen: isOpen,
+    loadCatalog: loadCatalog,
   };
 })();

@@ -43,6 +43,7 @@
   padding: 2.15rem 1.2rem 2rem 1.5rem;
   overflow-x: hidden;
   overflow-y: auto;
+  user-select: none;
 }
 .rd-toc-label {
   margin: 0 0 0.65rem;

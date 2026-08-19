@@ -19,6 +19,9 @@ Preview keyboard shortcuts (Command on macOS, Control elsewhere):
 - **Use Selection for Find** (`E`): set the find query from the selection without forcing the overlay open
 - **Find Next** / **Find Previous** (`G` / `Shift-G`): move between matches and wrap at the ends
 - **Go to File** (`K`): fuzzy-jump to a document from `/pages.json`, `/catalog.json`, or site nav links
+- **Select All** (`A`): select the document article when the page marks a select root (`data-rd-select-root`, `article.rd-article`, or `article.article`); otherwise the whole page. Find and Go to File fields keep field-level Select All. Copy uses the live selection.
+
+When `PreviewOptions.source_root` is set (OKF and Rocdown preview), a trailing **More** (`...`) menu can reveal the original source file and copy its contents. Reveal uses the platform file manager: Finder on macOS, Explorer on Windows, and Files on Linux.
 
 Do not author host chrome in `.rocci`. A template can snapshot markup, but it cannot own wry IPC, survive page loads, or update live state. Compiler-derived panels (parse timings, diagnostics, inspectors) belong in a preview-origin Rocci app that consumes host JSON, not in the initialization script overlay.
 

@@ -542,11 +542,13 @@ fn run_site_dev(
         server.wait();
         return Ok(());
     }
+    let source_root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
         url: server.url.clone(),
         title: server.title.clone(),
         state_key: Some("rocdown".to_string()),
         inspector_url: Some(server.inspector_url.clone()),
+        source_root: Some(source_root),
         ..rocci_desktop::PreviewOptions::default()
     })
     .map_err(|error| anyhow::anyhow!("{error}"));

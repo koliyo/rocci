@@ -18,7 +18,7 @@ import ConceptMeta
             @if has_meta {
                 <ConceptMeta.conceptMeta meta={meta} />
             }
-            {body}
+            <article class="rd-article">{body}</article>
         </main>
     </div>
 }
