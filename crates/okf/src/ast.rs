@@ -2,12 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use anyhow::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::diagnostic::{Diagnostic, Severity, SourceLocation};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Span {
     pub start: u32,
     pub end: u32,
@@ -100,7 +100,7 @@ pub enum InspectKind {
     Graph,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Heading {
     pub level: u8,
     pub id: String,
@@ -108,14 +108,14 @@ pub struct Heading {
     pub location: SourceLocation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HeadingSection {
     pub id: String,
     pub heading_text: String,
     pub body_texts: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Link {
     pub url: String,
     pub location: SourceLocation,
@@ -129,7 +129,7 @@ pub struct Edge {
     pub broken: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Concept {
     pub id: String,
     pub path: String,
@@ -144,7 +144,7 @@ pub struct Concept {
     pub article_html: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Index {
     pub path: String,
     pub version: Option<String>,
@@ -152,7 +152,7 @@ pub struct Index {
     pub article_html: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Log {
     pub path: String,
     pub body_span: SourceLocation,

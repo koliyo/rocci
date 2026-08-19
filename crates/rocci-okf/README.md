@@ -63,6 +63,10 @@ cargo run -p rocci-okf -- run knowledge --no-window --port 8000
 `run` (Rocci schema, no git provenance) for local authoring, and
 `check --profile rocci` when reviewing or in CI.
 
+`run` persists parsed Markdown under `ROCCI_CACHE` (default `~/.rocci/cache`)
+in `okf-parse/`, so a new process can reuse unchanged documents. `check` always
+parses the bundle fresh.
+
 ### Build Artifacts & Review Site
 
 ```sh

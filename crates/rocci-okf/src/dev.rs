@@ -50,14 +50,31 @@ pub fn run_knowledge(
     };
 
     let build_root = root.clone();
-    let mut cache = okf::ParseCache::new();
+    let cache_dir = parse_cache_dir(&root);
+    let mut cache = okf::ParseCache::load_dir(&cache_dir, profile);
     serve_static_site(config, move |out_dir| {
         let snapshot = rebuild_site(&build_root, out_dir, profile, provenance, host, &mut cache)?;
+        if let Err(error) = cache.save_dir(&cache_dir) {
+            eprintln!("rocci-okf: failed to save parse cache: {error:#}");
+        }
         if let Some(snapshot) = snapshot.as_ref() {
             emit_profile_report(profile_report, snapshot);
         }
         Ok(snapshot)
     })
+}
+
+fn parse_cache_dir(root: &Path) -> std::path::PathBuf {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(root.to_string_lossy().as_bytes());
+    let hash = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    rocci_roc_host::TwoTierCache::default_dir()
+        .join("okf-parse")
+        .join(format!("v{}", okf::PARSE_CACHE_VERSION))
+        .join(hash)
 }
 
 fn rebuild_site(

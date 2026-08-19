@@ -5,7 +5,7 @@ use comrak::{Arena, Options, parse_document};
 
 use crate::ast::{Heading, HeadingSection, Link, Span};
 use crate::diagnostic::Diagnostic;
-use crate::frontmatter::{lines_with_offsets, location};
+use crate::frontmatter::{LineIndex, lines_with_offsets, location};
 use crate::graph::published_href;
 
 pub struct MarkdownOutput {
@@ -36,6 +36,7 @@ pub fn parse_markdown_body(
     reject_declarations(relative, source, body, diagnostics);
 
     let body_str = body.of(source);
+    let lines = LineIndex::new(source);
     let arena = Arena::new();
     let options = comrak_options();
     let root = parse_document(&arena, body_str, &options);
@@ -43,6 +44,7 @@ pub fn parse_markdown_body(
     let mut walker = MarkdownWalker {
         relative,
         source,
+        lines: &lines,
         body_offset: body.start as usize,
         body_str,
         headings: Vec::new(),
@@ -101,6 +103,7 @@ pub fn parse_markdown_body(
 struct MarkdownWalker<'a> {
     relative: &'a str,
     source: &'a str,
+    lines: &'a LineIndex,
     body_offset: usize,
     body_str: &'a str,
     headings: Vec<Heading>,
@@ -124,13 +127,13 @@ impl<'a> MarkdownWalker<'a> {
                     level: heading.level,
                     id,
                     text,
-                    location: location(self.source, span),
+                    location: self.lines.location(self.source, span),
                 });
             }
             NodeValue::Link(link) => {
                 self.links.push(Link {
                     url: link.url.clone(),
-                    location: location(self.source, span),
+                    location: self.lines.location(self.source, span),
                 });
             }
             NodeValue::FootnoteReference(reference) => {
@@ -143,7 +146,7 @@ impl<'a> MarkdownWalker<'a> {
                 self.diagnostics.push(Diagnostic::error(
                     "OKF2009",
                     self.relative,
-                    Some(location(self.source, span)),
+                    Some(self.lines.location(self.source, span)),
                     format!(
                         "raw HTML is forbidden in knowledge records: `{}`",
                         block.literal.trim()
@@ -154,7 +157,7 @@ impl<'a> MarkdownWalker<'a> {
                 self.diagnostics.push(Diagnostic::error(
                     "OKF2009",
                     self.relative,
-                    Some(location(self.source, span)),
+                    Some(self.lines.location(self.source, span)),
                     format!(
                         "raw HTML is forbidden in knowledge records: `{}`",
                         html.trim()

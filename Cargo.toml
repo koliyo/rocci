@@ -68,3 +68,27 @@ wry = { version = "0.55", features = ["devtools"] }
 [profile.release]
 lto = "thin"
 strip = true
+
+[profile.dev.package.comrak]
+opt-level = 3
+
+[profile.dev.package.caseless]
+opt-level = 3
+
+[profile.dev.package.finl_unicode]
+opt-level = 3
+
+[profile.dev.package.jetscii]
+opt-level = 3
+
+[profile.dev.package.phf]
+opt-level = 3
+
+[profile.dev.package.typed-arena]
+opt-level = 3
+
+[profile.dev.package.yaml-rust]
+opt-level = 3
+
+[profile.dev.package.okf]
+opt-level = 3

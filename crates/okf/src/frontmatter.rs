@@ -11,6 +11,45 @@ pub struct Frontmatter {
     pub body: Span,
 }
 
+pub struct LineIndex {
+    starts: Vec<usize>,
+}
+
+impl LineIndex {
+    pub fn new(source: &str) -> Self {
+        let mut starts = vec![0];
+        for (index, byte) in source.bytes().enumerate() {
+            if byte == b'\n' && index + 1 < source.len() {
+                starts.push(index + 1);
+            }
+        }
+        Self { starts }
+    }
+
+    pub fn location(&self, source: &str, span: Span) -> SourceLocation {
+        let start_pos = (span.start as usize).min(source.len());
+        if start_pos >= source.len() {
+            return SourceLocation {
+                start: span.start,
+                end: span.end,
+                line: 1,
+                column: 1,
+            };
+        }
+        let (line, line_start) = match self.starts.binary_search(&start_pos) {
+            Ok(index) => (index + 1, self.starts[index]),
+            Err(0) => (1, 0),
+            Err(index) => (index, self.starts[index - 1]),
+        };
+        SourceLocation {
+            start: span.start,
+            end: span.end,
+            line: line as u32,
+            column: (start_pos - line_start + 1) as u32,
+        }
+    }
+}
+
 pub fn lines_with_offsets(source: &str) -> Vec<(usize, &str)> {
     let mut out = Vec::new();
     let mut offset = 0;
@@ -25,28 +64,7 @@ pub fn lines_with_offsets(source: &str) -> Vec<(usize, &str)> {
 }
 
 pub fn location(source: &str, span: Span) -> SourceLocation {
-    let start_pos = (span.start as usize).min(source.len());
-
-    let mut line = 1;
-    let mut column = 1;
-    let mut current_offset = 0;
-
-    for (line_idx, (_, line_str)) in lines_with_offsets(source).into_iter().enumerate() {
-        let line_end = current_offset + line_str.len();
-        if start_pos >= current_offset && start_pos < line_end {
-            line = (line_idx + 1) as u32;
-            column = (start_pos - current_offset + 1) as u32;
-            break;
-        }
-        current_offset = line_end;
-    }
-
-    SourceLocation {
-        start: span.start,
-        end: span.end,
-        line,
-        column,
-    }
+    LineIndex::new(source).location(source, span)
 }
 
 pub fn split_frontmatter(
@@ -126,5 +144,58 @@ pub fn yaml_to_json(value: &Yaml) -> std::result::Result<Value, String> {
         }
         Yaml::Null | Yaml::BadValue => Ok(Value::Null),
         Yaml::Alias(_) => Err("unresolved YAML aliases are not supported".into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LineIndex, location};
+    use crate::ast::Span;
+
+    fn legacy_location(source: &str, span: Span) -> crate::diagnostic::SourceLocation {
+        let start_pos = (span.start as usize).min(source.len());
+        let mut line = 1;
+        let mut column = 1;
+        let mut current_offset = 0;
+        for (line_idx, (_, line_str)) in super::lines_with_offsets(source).into_iter().enumerate() {
+            let line_end = current_offset + line_str.len();
+            if start_pos >= current_offset && start_pos < line_end {
+                line = (line_idx + 1) as u32;
+                column = (start_pos - current_offset + 1) as u32;
+                break;
+            }
+            current_offset = line_end;
+        }
+        crate::diagnostic::SourceLocation {
+            start: span.start,
+            end: span.end,
+            line,
+            column,
+        }
+    }
+
+    #[test]
+    fn location_matches_legacy_offsets() {
+        let source = "---\ntitle: Demo\n---\n\n# Heading\n\nSee [link](/a.md).\n";
+        let index = LineIndex::new(source);
+        for start in 0..=source.len() {
+            let span = Span::new(start, start.saturating_add(1).min(source.len()));
+            let expected = legacy_location(source, span);
+            let via_index = index.location(source, span);
+            let via_fn = location(source, span);
+            assert_eq!(via_index, expected, "index mismatch at {start}");
+            assert_eq!(via_fn, expected, "location() mismatch at {start}");
+        }
+    }
+
+    #[test]
+    fn location_maps_known_heading_offset() {
+        let source = "# Title\n\nBody\n";
+        let at = location(source, Span::new(0, 7));
+        assert_eq!(at.line, 1);
+        assert_eq!(at.column, 1);
+        let body = location(source, Span::new(9, 13));
+        assert_eq!(body.line, 3);
+        assert_eq!(body.column, 1);
     }
 }
