@@ -300,7 +300,7 @@ while building as part of `rocdown build site`.
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
-- `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to.
+- `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
 - `rocdown run DIR`: Run/preview a documentation site with live reload.
 - `rocdown build DIR`: Build a static documentation site to `dist/`.
 - `rocdown check DIR`: Check catalog, routes, and links.

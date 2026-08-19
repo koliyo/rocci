@@ -17,6 +17,16 @@ pub fn run_with_host(
     port: u16,
     host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<DevServer> {
+    run_with_host_at(root, output, port, host, "/")
+}
+
+pub fn run_with_host_at(
+    root: &Path,
+    output: Option<&Path>,
+    port: u16,
+    host: Option<rocci_roc_host::HostChoice>,
+    open_path: &str,
+) -> Result<DevServer> {
     let root = absolute(root)?;
     if !root.is_dir() {
         bail!("{} is not a directory", root.display());
@@ -63,7 +73,7 @@ pub fn run_with_host(
     let config = StaticDevServerConfig {
         title,
         port,
-        open_path: "/".into(),
+        open_path: open_path.to_string(),
         output: output.map(Path::to_path_buf),
         watch_paths,
         custom_filter: Some(custom_filter),
