@@ -569,21 +569,32 @@ fn planned_page(
     } else {
         format!("Page{}", &hex_sha256(page.id.as_bytes())[..HASH_LEN])
     };
-    let (segments, fragments) = crate::docs::plan_segments(&article_name, &page.article, rewrite);
-    let fragments = if fragments.is_empty() {
-        vec![(
-            format!("articles/{article_name}.html"),
-            article_html.clone(),
-        )]
+    let hybrid = matches!(page.kind, PageKind::Hydrate | PageKind::Live);
+    let (segments, fragments) = if hybrid {
+        let path = format!("articles/{article_name}.html");
+        (
+            vec![crate::docs::PlannedNode::Html { path: path.clone() }],
+            vec![(path, article_html.clone())],
+        )
     } else {
-        fragments
-    };
-    let segments = if segments.is_empty() {
-        vec![crate::docs::PlannedNode::Html {
-            path: format!("articles/{article_name}.html"),
-        }]
-    } else {
-        segments
+        let (segments, fragments) =
+            crate::docs::plan_segments(&article_name, &page.article, rewrite);
+        let fragments = if fragments.is_empty() {
+            vec![(
+                format!("articles/{article_name}.html"),
+                article_html.clone(),
+            )]
+        } else {
+            fragments
+        };
+        let segments = if segments.is_empty() {
+            vec![crate::docs::PlannedNode::Html {
+                path: format!("articles/{article_name}.html"),
+            }]
+        } else {
+            segments
+        };
+        (segments, fragments)
     };
 
     let page_has_playground = !not_found
