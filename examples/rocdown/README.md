@@ -5,7 +5,7 @@ Markdown-first pages with colocated Roc and Rocci.
 | File | What it shows |
 | --- | --- |
 | [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a document-root component tag, wiki links, `rocci` theme |
-| [`Blocks.rocdown`](Blocks.rocdown) | `:note`, `:steps`, `:tabs`, `:figure`, and other article blocks |
+| [`Blocks.rocdown`](Blocks.rocdown) | `:note`, `:steps`, `:tabs`, `:figure`, a wide table, and a long code fence |
 | [`Interactive.rocdown`](Interactive.rocdown) | Datastar toggles and a server `@on:post` reveal patch |
 
 From the repository root, with `roc` and `cargo` on `PATH`:
@@ -25,7 +25,7 @@ serves sibling pages, so Guide's `[[Interactive]]` link reaches
 | File | Page route | Notes |
 | --- | --- | --- |
 | Guide | `/guides/rocdown/` | Default HTML shell; no client JS |
-| Blocks | `/guides/rocdown-blocks/` | Article blocks; conservative standalone preview |
+| Blocks | `/guides/rocdown-blocks/` | Article blocks plus a wide table and long fence |
 | Interactive | `/guides/rocdown-interactive/` | `PageShell` loads Datastar; toggles + POST reveal |
 
 GET `/` serves the same document as the page route.

@@ -4,7 +4,7 @@ title: Mobile chrome for OKF, Rocdown, and rocci.dev
 description: "Phased no-JS narrow-viewport work: split OKF global nav from TOC, restore a details menu on rocci.dev, harden the default Rocdown mobile menu, and contain wide tables. Layout stays in product shells; rocci-ui extraction is gated on matching markup."
 tags: [domain/okf, domain/rocci-okf, domain/rocdown, domain/rocci, concern/rendering, concern/accessibility, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:10:00Z }
+generated: { by: process:cursor, at: 2026-08-19T16:30:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -43,7 +43,7 @@ sources:
     resource: ../../site/theme/SiteShell.rocci
     title: rocci.dev site shell
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-19
   - id: site-layouts
     resource: ../../site/theme/Layouts.rocci
     title: rocci.dev named layouts
@@ -68,7 +68,7 @@ sources:
     resource: ../../crates/rocci-okf/templates/ConceptMeta.rocci
     title: OKF concept metadata and sources table
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-19
   - id: theme-chrome
     resource: ../../crates/rocci-theme/src/themes/chrome.css
     title: Standalone Rocdown article chrome
@@ -78,7 +78,7 @@ sources:
     resource: ../../crates/rocci-rocdown/templates/RocdownBase.rocci
     title: Shared Rocdown article styles
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-19
   - id: nav-list
     resource: ../../crates/rocci-ui/templates/chrome/NavList.rocci
     title: Shared navigation list chrome
@@ -142,7 +142,10 @@ public-site search, implement `@island`, or change the portable `okf`
 engine.[^known-limitations][^static-okf]
 
 Research: [Mobile chrome for OKF, Rocdown, and rocci.dev](../research/mobile-chrome.md).
-Exploratory; no phase started.[^research]
+Exploratory. Phases 1–3 and 5–6 are implemented; Phase 4
+was skipped because the site Menu is layout-gated and the default theme always
+emits `NavList`. Not logged complete until CI and Knowledge workflows succeed
+on that revision.[^research]
 
 ## Established baseline
 
@@ -216,6 +219,18 @@ Rocdown declarations to knowledge records.
 research; no pixel hunting during later phases. Human answers to decision
 gates 1–3 are recorded.
 
+Accepted freeze for this implementation:
+
+| Surface | Phone (`max-width: 48rem`) | Tablet | Hide/replace |
+| --- | --- | --- | --- |
+| Default `RocdownTheme` | Header `<details class="mobile-menu">`; sidebar and outline out of the grid | Outline collapse stays at `70rem` | Menu replaces lanes and on-this-page links |
+| rocci.dev `SiteShell` | Brand plus Menu; subtitle, source, and inline lanes hidden | Docs outline at `64rem`, sidebar at `48rem` | Menu always has section lanes; `NavList` and `PageOutline` only on the docs layout |
+| OKF review shell | Home / Review always visible in `.okf-global-nav` | Same `48rem` phone rule; no separate tablet breakpoint | Outline stays in `.rd-toc`; phone gets `<details class="okf-outline-menu">` when non-empty |
+| Standalone `chrome.css` | Hide `.rd-toc`; show `<details class="rd-toc-menu">` | No tablet rule | Compact TOC in scope |
+| OKF review queue | `.okf-table-container { overflow-x: auto }`; filter bar wraps | — | Full table stays in the DOM |
+
+Decision gates: (1) keep `70rem` on the default theme; (2) overflow-x table plus wrapping filters; (3) compact standalone TOC in this plan; (4) extract `MobileNav` only after both Rocdown shells match — they did not, so Phase 4 is skipped.
+
 ### Phase 1 — OKF navigation structure
 
 - Render Home and Governance & Review outside `.rd-toc`, visible at every
@@ -232,6 +247,9 @@ gates 1–3 are recorded.
 
 **Exit:** `cargo test -p rocci-okf` covers the structure. A phone-width
 browser can reach `/` and `/review/` from a concept page without JavaScript.
+
+Status: implemented. Home / Review live in
+`.okf-global-nav` outside `.rd-toc`; phone outline is `okf-outline-menu`.
 
 ### Phase 2 — rocci.dev menu
 
@@ -252,6 +270,9 @@ the menu markup. A 320 CSS-pixel view of a docs page can open every sidebar
 target. Home, product, news, FAQ, and plain layouts do not grow an empty
 docs tree.
 
+Status: implemented. `SiteShell` Menu is layout-gated so non-docs pages do
+not copy an empty docs `NavList`.
+
 ### Phase 3 — default Rocdown theme hardening
 
 - Put the page outline in the mobile panel (or a sibling details control).
@@ -265,6 +286,9 @@ docs tree.
 
 **Exit:** Default-theme sites keep today’s menu and gain TOC plus targets.
 No regression in the `70rem`/`48rem` (or Phase 0) collapse.
+
+Status: implemented. Outline is in the mobile panel; Menu/lane targets and
+`100dvh` / safe-area padding landed; tables wrap in `.rd-table-wrap`.
 
 ### Phase 4 — optional shared `MobileNav`
 
@@ -280,6 +304,9 @@ Only if Phases 2 and 3 leave matching slots:
 **Exit:** Two Rocdown shells import the same component. OKF still compiles
 without `rocci-rocdown`. Skip this phase if markup diverged on purpose.
 
+Status: skipped. Site Menu omits docs `NavList` on non-docs layouts; the
+default theme always emits it. Do not extract `MobileNav` into `rocci-ui`.
+
 ### Phase 5 — standalone Rocdown compact TOC
 
 If Phase 0 kept this in scope:
@@ -292,6 +319,9 @@ If Phase 0 kept this in scope:
 
 **Exit:** `rocdown run` on a headed document shows an On this page control
 below `48rem`. Theme `none` still has no chrome.
+
+Status: implemented. Default lowering emits a sibling `<details class="rd-toc-menu">`;
+`chrome.css` reveals it at `48rem` and still hides both in print.
 
 ### Phase 6 — content fixtures and docs
 
@@ -307,6 +337,14 @@ below `48rem`. Theme `none` still has no chrome.
   language unless a human audit lands.[^design-ref]
 
 **Exit:** README and this plan’s acceptance list match shipped chrome.
+
+Status: implemented at the contract layer. Fixture:
+`examples/rocdown/Blocks.rocdown` (wide table, long fence, `:tabs`, nested
+outline). Deep docs-tree sidebar coverage is a published `layout: "docs"`
+page such as `docs/reference/rocdown.rocdown`. 320 / 768 / 1280 CSS-pixel
+layout is a maintainer resize of the HTTP origin, not an automated pixel
+audit. Public READMEs document `rd-toc-menu`, site `mobile-menu`, and OKF
+global nav.
 
 ## Acceptance criteria
 

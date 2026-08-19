@@ -136,14 +136,21 @@
     .article .rd-code-block .tok-namespace { color: var(--syntax-type); }
     .article .rd-code-block .tok-definition { font-weight: 600; }
     .article .rd-code-block .tok-default-library { font-weight: 500; }
-    .article .rd-table {
-        width: 100%;
+    .article .rd-table-wrap {
         margin: 1.4rem 0;
-        border-spacing: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
         border: 1px solid var(--line);
         border-radius: .68rem;
-        overflow: hidden;
         background: var(--surface);
+    }
+    .article .rd-table {
+        width: max-content;
+        min-width: 100%;
+        margin: 0;
+        border-spacing: 0;
+        border: 0;
+        background: transparent;
         font-size: .9rem;
     }
     .article .rd-table-header {
@@ -222,6 +229,7 @@
         .article .rd-blockquote,
         .article .rd-code,
         .article .rd-code-block,
+        .article .rd-table-wrap,
         .article .rd-table {
             border: 1px solid currentColor;
         }

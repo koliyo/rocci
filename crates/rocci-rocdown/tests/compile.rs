@@ -497,6 +497,7 @@ fn none_theme_skips_injection() {
     assert!(!out.roc.contains("rd-document"));
     assert!(!out.roc.contains("--rd-color-bg"));
     assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("\"rd-toc-menu\""));
     assert!(!out.roc.contains("On this page"));
     assert!(!out.roc.contains("requestAnimationFrame"));
 }
@@ -506,6 +507,7 @@ fn default_shell_emits_toc_for_h2_and_h3() {
     let src = "# Title\n\n## Alpha\n\n### Beta\n\n#### Gamma\n";
     let out = compile_ok(src);
     assert!(out.roc.contains("\"rd-toc\""));
+    assert!(out.roc.contains("\"rd-toc-menu\""));
     assert!(out.roc.contains("\"rd-shell\""));
     assert!(out.roc.contains("On this page"));
     assert!(out.roc.contains("\"#alpha\""));
@@ -520,6 +522,7 @@ fn default_shell_emits_toc_for_h2_and_h3() {
 fn default_shell_omits_toc_without_outline_headings() {
     let out = compile_ok("# Hello\n\nA paragraph.\n");
     assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("\"rd-toc-menu\""));
     assert!(!out.roc.contains("\"rd-shell\""));
     assert!(!out.roc.contains("On this page"));
     assert!(!out.roc.contains("requestAnimationFrame"));
@@ -540,6 +543,7 @@ fn custom_layout_omits_toc() {
             .contains("Docs.article({ meta: rocci_meta, content: rocci_content({}) })")
     );
     assert!(!out.roc.contains("\"rd-toc\""));
+    assert!(!out.roc.contains("\"rd-toc-menu\""));
     assert!(!out.roc.contains("\"rd-shell\""));
     assert!(!out.roc.contains("On this page"));
     assert!(!out.roc.contains("requestAnimationFrame"));
@@ -666,6 +670,33 @@ fn errors_demo_example_compiles() {
     assert!(out.roc.contains("demoLinks = |{}|"));
     assert!(out.roc.contains("href"));
     assert!(out.roc.contains("/missing"));
+}
+
+#[test]
+fn blocks_example_contains_narrow_viewport_fixture() {
+    let src = include_str!("../../../examples/rocdown/Blocks.rocdown");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
+    let out = compile(
+        SourceFile::new("examples/rocdown/Blocks.rocdown", src),
+        &CompileOptions {
+            pages: index_pages_in_dir(&dir),
+            ..CompileOptions::default()
+        },
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(out.roc.contains("rd-table-wrap"));
+    assert!(out.roc.contains("golf-overflow-cell"));
+    assert!(out.roc.contains("rd-docs-tab"));
+    assert!(out.roc.contains("\"rd-toc-menu\""));
+    assert!(out.roc.contains("nested-outline-heading"));
 }
 
 #[test]

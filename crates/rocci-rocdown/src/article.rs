@@ -216,7 +216,15 @@ pub(crate) fn render_md(node: &MdNode) -> String {
                     &body,
                 ));
             }
-            element("table", &[attribute("class", "rd-table")], &sections)
+            element(
+                "div",
+                &[attribute("class", "rd-table-wrap")],
+                &[element(
+                    "table",
+                    &[attribute("class", "rd-table")],
+                    &sections,
+                )],
+            )
         }
         MdNode::TableRow {
             header, children, ..
@@ -546,6 +554,7 @@ mod tests {
         assert!(rendered.contains("<span class=\"tok-number\">2</span>"));
         assert!(rendered.contains("<li class=\"rd-task-item\">"));
         assert!(rendered.contains("<input type=\"checkbox\" disabled checked />"));
+        assert!(rendered.contains("<div class=\"rd-table-wrap\">"));
         assert!(rendered.contains("<table class=\"rd-table\">"));
         assert!(rendered.contains("<th class=\"rd-table-header\">A</th>"));
         assert!(rendered.contains("<td class=\"rd-table-cell\">1</td>"));

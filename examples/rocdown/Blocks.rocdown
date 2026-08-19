@@ -43,6 +43,27 @@ Content is the rest of the line, a `{{ }}` section, or a matching `:end.kind`.
     :tab[id: "linux", label: "Linux"] Linux panel.
 :end.tabs
 
+## Narrow viewport overflow
+
+A table wider than a phone column must scroll inside `.rd-table-wrap`, not the
+page. Use this section with `rocdown run` at 320 CSS pixels.
+
+| WideColumnA | WideColumnB | WideColumnC | WideColumnD | WideColumnE | WideColumnF | WideColumnG |
+| --- | --- | --- | --- | --- | --- | --- |
+| alpha-cell | bravo-cell | charlie-cell | delta-cell | echo-cell | foxtrot-cell | golf-overflow-cell |
+
+A long fence must also stay inside the article measure:
+
+```
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Blocks.rocdown --no-window --port 8000 --theme rocci --color-scheme light
+```
+
+### Nested outline heading
+
+H2 and H3 here fill the standalone On this page control. Deep docs-tree
+sidebar coverage lives on `rocdown build site` pages such as the Rocdown
+language reference.
+
 ## Figures, labels, and extra structure
 
 :figure[caption: "A banana", credit: "Rocci fixtures"] {{

@@ -45,5 +45,8 @@ Copy a builtin and change variables:
 
 Rocci always appends chrome that maps those variables onto Markdown classes
 such as `rd-header-1` and `rd-paragraph`. The same chrome styles the
-standalone left navigator (`.rd-toc`) when the default page shell emits one,
-and ships a short script so navigator clicks scroll quickly instead of jumping.
+standalone left navigator (`.rd-toc`) when the default page shell emits one.
+Below `48rem` the same heading IDs appear in a compact `<details class="rd-toc-menu">`
+control; print still hides both. Wide tables scroll inside `.rd-table-wrap`.
+A short script makes navigator clicks scroll
+quickly instead of jumping.

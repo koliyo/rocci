@@ -4,17 +4,27 @@ import ConceptMeta
 
 @component KnowledgeShell = |{ outline, has_outline, meta, has_meta }, body| {
     <div class="rd-shell">
-        @if has_outline {
-            <aside class="rd-toc" aria-label="On this page">
-                <p class="rd-toc-label">Knowledge</p>
-                <div class="rd-toc-items" style="margin-bottom: 1.5rem; border-left: none;">
-                    <a class="rd-toc-link" href="/" style="padding-left: 0; font-weight: 600;">Home</a>
-                    <a class="rd-toc-link" href="/review/" style="padding-left: 0; font-weight: 600;">Governance & Review</a>
-                </div>
-                <PageOutline.pageOutline outline={outline} />
-            </aside>
-        }
+        <div class="okf-chrome">
+            <nav class="okf-global-nav" aria-label="Knowledge">
+                <p class="okf-global-label">Knowledge</p>
+                <a class="okf-global-link" href="/">Home</a>
+                <a class="okf-global-link" href="/review/">Governance & Review</a>
+            </nav>
+            @if has_outline {
+                <aside class="rd-toc" aria-label="On this page">
+                    <PageOutline.pageOutline outline={outline} />
+                </aside>
+            }
+        </div>
         <main>
+            @if has_outline {
+                <details class="okf-outline-menu">
+                    <summary>On this page</summary>
+                    <div class="okf-outline-panel">
+                        <PageOutline.pageOutline outline={outline} />
+                    </div>
+                </details>
+            }
             @if has_meta {
                 <ConceptMeta.conceptMeta meta={meta} />
             }

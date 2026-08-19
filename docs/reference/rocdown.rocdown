@@ -194,10 +194,13 @@ The default standalone shell is a single-document reader. When the selected
 theme is not `none`, `rocci_page` emits a left `<nav class="rd-toc">` from
 heading levels 2 and 3, linking to the same heading IDs used in the article.
 H1 is the page title and stays out of the navigator. Empty outlines are
-omitted. Theme chrome keeps the article measure, animates navigator jumps
-quickly, and hides the navigator on narrow screens and in print. This is not the site
-outline: site builds keep a right-hand “On this page” rail inside
-documentation-site chrome.
+omitted. Theme chrome keeps the article measure and animates navigator jumps
+quickly. Below `48rem` the left navigator hides and the same heading IDs appear
+in a no-JS `<details class="rd-toc-menu">` control. Print still hides both.
+This is not the site outline: site builds keep a right-hand “On this page” rail
+inside documentation-site chrome. Site themes that hide a sidebar at the phone
+breakpoint must replace it with their own disclosure; rocci.dev uses a header
+`<details class="mobile-menu">`.
 
 A custom `@page.layout` replaces that shell and does not receive the
 automatic navigator.

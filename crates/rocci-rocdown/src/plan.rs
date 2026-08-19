@@ -2087,4 +2087,24 @@ Content here.
 
         let _ = fs::remove_dir_all(root);
     }
+
+    #[test]
+    fn builtin_theme_keeps_phone_menu_and_table_wrap() {
+        let theme = runtime::THEME;
+        assert!(theme.contains("class=\"mobile-menu\""));
+        assert!(theme.contains("@media (max-width: 70rem)"));
+        assert!(theme.contains("@media (max-width: 48rem)"));
+        assert!(theme.contains(".mobile-menu { position: relative; display: block"));
+        assert!(theme.contains("100dvh"));
+        assert!(theme.contains("env(safe-area-inset-top"));
+        let panel = theme.find("class=\"mobile-panel\"").expect("mobile panel");
+        let details_end = theme[panel..].find("</details>").expect("details close");
+        assert!(
+            theme[panel..panel + details_end].contains("PageOutline.pageOutline"),
+            "phone menu must include on-this-page links"
+        );
+        assert!(runtime::BASE.contains("rd-table-wrap"));
+        assert!(runtime::BASE.contains("overflow-x: auto"));
+        assert!(!runtime::BASE.contains("overflow: hidden"));
+    }
 }
