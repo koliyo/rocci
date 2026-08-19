@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Rocci public-preview branding and community plan
-description: Prepare a reversible Rocci public preview, collect Roc and Datastar feedback, and turn the results into explicit naming, visual, and governance decisions.
+description: Prepare a reversible Rocci public preview for a near-term open-source repository, collect Roc and Datastar feedback, and turn the results into explicit naming, visual, and governance decisions.
 tags: [domain/rocci, domain/rocdown, domain/rocs, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:codex, at: 2026-08-18T12:04:47Z }
+generated: { by: process:cursor, at: 2026-08-19T16:05:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -23,7 +23,12 @@ sources:
     resource: ../../README.md
     title: Rocci workspace overview
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-19
+  - id: cargo-workspace
+    resource: ../../Cargo.toml
+    title: Workspace package metadata including license
+    author: process:git
+    last_modified: 2026-08-19
   - id: roc-community
     resource: https://roc-lang.org/community
     title: Roc community
@@ -59,6 +64,11 @@ authorize publication by itself and does not treat the preview recommendations
 as permanent brand decisions.[^branding-report][^branding-research]
 
 ## Working position
+
+The repository is intended to become public open source shortly. Cargo already
+declares `MIT OR Apache-2.0`, but root license texts, conduct, contribution,
+and the rest of Phase 0 are still the publication gate. This record does not
+flip the repository public and does not set a calendar date.[^cargo-workspace][^root-readme]
 
 Use Rocci as the preview masterbrand, Rocdown as the endorsed document format,
 and Rocci Docs as the public label for the current Rocs engine and command. Use
@@ -156,6 +166,7 @@ complete.[^branding-report]
 [^branding-report]: Detailed recommendation, evidence, launch blockers, four-week sequence, measures, and investigation backlog.
 [^branding-research]: Canonical exploratory hierarchy, naming, SEO, design, and community synthesis.
 [^root-readme]: Current shipped and planned workspace behavior used to bound public claims.
+[^cargo-workspace]: Declared workspace license `MIT OR Apache-2.0` without checked-in root license texts.
 [^roc-community]: Current Roc participation and community-venue guidance.
 [^datastar-community]: Current Datastar community-support venue and ecosystem framing.
 [^github-health]: Supported GitHub community-health artifacts and their purpose.
