@@ -21,7 +21,8 @@ import PageOutline
         position: sticky;
         z-index: 20;
         top: 0;
-        height: var(--header-height);
+        height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
+        padding-top: env(safe-area-inset-top, 0px);
         border-bottom: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
         background: color-mix(in srgb, var(--canvas) 92%, transparent);
         backdrop-filter: blur(14px);
@@ -69,7 +70,7 @@ import PageOutline
     .lanes:not(:has(.lane-link)) { display: none; }
     .lane-link {
         display: inline-flex;
-        min-height: 2.25rem;
+        min-height: 2.75rem;
         align-items: center;
         padding: .35rem .7rem;
         border-radius: .45rem;
@@ -280,7 +281,12 @@ import PageOutline
         .content-column { padding: 2.3rem 1.25rem 4rem; }
         .mobile-menu { position: relative; display: block; margin-left: auto; }
         .mobile-menu summary {
-            padding: .38rem .7rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.75rem;
+            min-width: 2.75rem;
+            padding: 0 .85rem;
             border: 1px solid var(--line);
             border-radius: .5rem;
             background: var(--surface);
@@ -291,19 +297,29 @@ import PageOutline
             list-style: none;
         }
         .mobile-menu summary::-webkit-details-marker { display: none; }
+        .mobile-panel { display: none; }
         .mobile-menu[open] .mobile-panel { display: block; }
         .mobile-panel {
             position: fixed;
-            top: var(--header-height);
+            top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
             right: 0;
             left: 0;
-            max-height: calc(100vh - var(--header-height));
-            padding: 1.3rem 1rem 2rem;
+            max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px));
+            max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px));
+            padding: 1.3rem max(1rem, env(safe-area-inset-right, 0px)) max(2rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
             overflow-y: auto;
             border-bottom: 1px solid var(--line);
             background: var(--canvas);
             box-shadow: 0 1rem 2.5rem rgba(35, 25, 20, .12);
         }
+        .mobile-panel .outline {
+            display: block;
+            position: static;
+            height: auto;
+            overflow: visible;
+            margin-top: 1.25rem;
+        }
+        .mobile-panel .outline:not(:has(.outline-link)) { display: none; }
     }
 
     /* OKF Concept Metadata & Governance UI */
@@ -855,6 +871,7 @@ import PageOutline
                                 }
                             </nav>
                             <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
+                            <PageOutline.pageOutline outline={outline} />
                         </div>
                     </details>
                 </div>

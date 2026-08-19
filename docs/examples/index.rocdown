@@ -19,7 +19,7 @@ runtime boundary that is easy to inspect in source.
 | `counter` | Standalone state, SQLite, GET document, POST patches | `rocci run examples/counter/Counter.rocci` |
 | `styling` | File-level and component-scoped `@css` | `rocci run examples/styling/Styling.rocci` |
 | `rocdown` | Markdown, page metadata, Roc values, components, links | `rocdown run examples/rocdown/Guide.rocdown` |
-| `rocdown` blocks | `:note`, `:tabs`, `:figure`, and other article blocks | `rocdown run examples/rocdown/Blocks.rocdown` |
+| `rocdown` blocks | `:note`, `:tabs`, `:figure`, a wide table, and a long fence | `rocdown run examples/rocdown/Blocks.rocdown` |
 | `errors` | Styled 404 and parse-error previews | `rocdown run examples/errors/ErrorDemo.rocdown` |
 | `snake` | A larger standalone Rocci app | `rocci run examples/snake` |
 | `datastar` | Search, edit, todos, tabs, and validation patterns | `rocci run examples/datastar` |

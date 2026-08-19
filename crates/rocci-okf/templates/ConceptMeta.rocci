@@ -48,50 +48,54 @@ import Html
         @if meta.has_sources {
             <details class="okf-sources-drawer">
                 <summary><strong>{"${meta.source_count} Cited Sources"}</strong> <span class="okf-sources-drift-note">{meta.drift_summary}</span></summary>
-                <table class="okf-sources-table">
-                    <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>
-                    <tbody>
-                        @for source in meta.sources {
-                            <tr>
-                                <td><code>{source.id}</code></td>
-                                <td>
-                                    @if source.href != "" {
-                                        <a href={source.href}><code>{source.resource}</code></a>
-                                    }
-                                    @if source.href == "" {
-                                        <code>{source.resource}</code>
-                                    }
-                                </td>
-                                <td>{source.author}</td>
-                                <td>
-                                    @if source.is_drifted {
-                                        <span class="okf-badge okf-status-draft">Modified since verification</span>
-                                    }
-                                    @if !source.is_drifted {
-                                        <span class="okf-badge okf-status-stable">Clean</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <div class="okf-table-container">
+                    <table class="okf-sources-table">
+                        <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>
+                        <tbody>
+                            @for source in meta.sources {
+                                <tr>
+                                    <td><code>{source.id}</code></td>
+                                    <td>
+                                        @if source.href != "" {
+                                            <a href={source.href}><code>{source.resource}</code></a>
+                                        }
+                                        @if source.href == "" {
+                                            <code>{source.resource}</code>
+                                        }
+                                    </td>
+                                    <td>{source.author}</td>
+                                    <td>
+                                        @if source.is_drifted {
+                                            <span class="okf-badge okf-status-draft">Modified since verification</span>
+                                        }
+                                        @if !source.is_drifted {
+                                            <span class="okf-badge okf-status-stable">Clean</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </details>
         }
 
         @if meta.has_other_meta {
             <details class="okf-other-meta">
                 <summary><strong>{"${meta.other_meta_count} other fields"}</strong></summary>
-                <table class="okf-sources-table">
-                    <thead><tr><th>Key</th><th>Value</th></tr></thead>
-                    <tbody>
-                        @for field in meta.other_meta {
-                            <tr>
-                                <td><code>{field.key}</code></td>
-                                <td><code>{field.val}</code></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <div class="okf-table-container">
+                    <table class="okf-sources-table">
+                        <thead><tr><th>Key</th><th>Value</th></tr></thead>
+                        <tbody>
+                            @for field in meta.other_meta {
+                                <tr>
+                                    <td><code>{field.key}</code></td>
+                                    <td><code>{field.val}</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </details>
         }
 

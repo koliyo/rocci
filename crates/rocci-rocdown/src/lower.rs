@@ -1653,6 +1653,18 @@ impl<'a> Emitter<'a> {
                 self.emit_html(".element(\n");
                 self.indent += 1;
                 self.push_indent();
+                self.emit_string("div", *span, OriginKind::MarkdownStructure);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit_attrs(&[("class", "rd-table-wrap")], *span);
+                self.emit(",\n");
+                self.push_indent();
+                self.emit("[\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit_html(".element(\n");
+                self.indent += 1;
+                self.push_indent();
                 self.emit_string("table", *span, OriginKind::MarkdownStructure);
                 self.emit(",\n");
                 self.push_indent();
@@ -1671,6 +1683,12 @@ impl<'a> Emitter<'a> {
                     self.emit_element("tbody", &[("class", "rd-table-body")], &body, false, *span);
                     self.emit(",\n");
                 }
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("],\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("),\n");
                 self.indent -= 1;
                 self.push_indent();
                 self.emit("],\n");
@@ -2035,6 +2053,23 @@ impl<'a> Emitter<'a> {
             .iter()
             .map(|heading| format!("#{}", heading.id))
             .collect();
+        self.emit_toc_links(&outline, &hrefs);
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("),\n");
+        self.emit_toc_menu(&outline, &hrefs, span);
+    }
+
+    fn emit_toc_links(&mut self, outline: &[&HeadingInfo], hrefs: &[String]) {
         for (heading, href) in outline.iter().zip(hrefs.iter()) {
             let class = if heading.level == 3 {
                 "rd-toc-link rd-toc-level-3"
@@ -2050,6 +2085,45 @@ impl<'a> Emitter<'a> {
             );
             self.emit(",\n");
         }
+    }
+
+    fn emit_toc_menu(&mut self, outline: &[&HeadingInfo], hrefs: &[String], span: Span) {
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("details", span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(
+            &[("class", "rd-toc-menu"), ("aria-label", "On this page")],
+            span,
+        );
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.emit_tagged_text(
+            "summary",
+            &[],
+            "On this page",
+            span,
+            OriginKind::MarkdownBoilerplate,
+        );
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_html(".element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_string("div", span, OriginKind::MarkdownBoilerplate);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit_attrs(&[("class", "rd-toc-items")], span);
+        self.emit(",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.emit_toc_links(outline, hrefs);
         self.indent -= 1;
         self.push_indent();
         self.emit("],\n");

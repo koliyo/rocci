@@ -1,5 +1,7 @@
 import Html
 import Layouts
+import NavList
+import PageOutline
 
 @component SiteShell = |view, content| {
     <html lang={view.site.language}>
@@ -64,6 +66,33 @@ import Layouts
                             <a class="header-link" href={view.site.repository}>Source ↗</a>
                         }
                     </div>
+                    <details class="mobile-menu">
+                        <summary>Menu</summary>
+                        <div class="mobile-panel">
+                            <nav class="mobile-lanes" aria-label="Sections">
+                                @for lane in view.lanes {
+                                    <a
+                                        class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                        href={lane.href}
+                                        aria-current={if lane.current { "true" } else { "false" }}
+                                    >{lane.label}</a>
+                                }
+                            </nav>
+                            @match view.layout {
+                                "home" => <></>
+                                "product" => <></>
+                                "section" => <></>
+                                "news-index" => <></>
+                                "news-post" => <></>
+                                "plain" => <></>
+                                "not-found" => <></>
+                                _ => <>
+                                    <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
+                                    <PageOutline.pageOutline outline={view.outline} />
+                                </>
+                            }
+                        </div>
+                    </details>
                 </div>
             </header>
             <div class="site-container">
@@ -196,6 +225,71 @@ import Layouts
     }
     .goto-open:hover {
         color: var(--ink);
+    }
+    .mobile-menu { display: none; }
+    @media (max-width: 48rem) {
+        .header-inner { gap: 0.75rem; }
+        .header-rule, .header-subtitle, .header-link, .lanes { display: none; }
+        .goto-open { min-height: 2.75rem; }
+        .mobile-menu { position: relative; display: block; margin-left: auto; }
+        .mobile-menu summary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.75rem;
+            min-width: 2.75rem;
+            padding: 0 0.85rem;
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 680;
+            cursor: pointer;
+            list-style: none;
+        }
+        .mobile-menu summary::-webkit-details-marker { display: none; }
+        .mobile-panel { display: none; }
+        .mobile-menu[open] .mobile-panel { display: block; }
+        .mobile-panel {
+            position: fixed;
+            top: var(--header-height);
+            right: 0;
+            left: 0;
+            z-index: 40;
+            max-height: calc(100vh - var(--header-height));
+            padding: 1.3rem 1rem 2rem;
+            overflow-y: auto;
+            border-bottom: 1px solid var(--line);
+            background: var(--canvas);
+            box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.18);
+        }
+        .mobile-lanes {
+            display: grid;
+            gap: 0.15rem;
+            margin: 0 0 1.15rem;
+        }
+        .mobile-panel .lane-link {
+            display: flex;
+            align-items: center;
+            min-height: 2.75rem;
+            padding: 0 0.7rem;
+        }
+        .mobile-panel .nav-link {
+            min-height: 2.75rem;
+            display: flex;
+            align-items: center;
+        }
+        .mobile-panel .outline {
+            position: static;
+            height: auto;
+            overflow: visible;
+            margin-top: 1.25rem;
+        }
+        .mobile-panel .outline:not(:has(.outline-link)) { display: none; }
+    }
+    @media print {
+        .mobile-menu { display: none; }
     }
     .site-footer {
         border-top: 1px solid var(--line);

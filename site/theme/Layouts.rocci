@@ -161,6 +161,15 @@ import PageOutline
         .sidebar {
             display: none;
         }
+        .outline {
+            display: none;
+        }
+        .mobile-panel .outline {
+            display: block;
+        }
+        .mobile-panel .outline:not(:has(.outline-link)) {
+            display: none;
+        }
     }
     .layout-home, .layout-product, .layout-section, .layout-news-index, .layout-news-post, .layout-plain, .layout-not-found {
         max-width: 54rem;

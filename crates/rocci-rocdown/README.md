@@ -189,9 +189,10 @@ viewport, `color-scheme` meta, title, selected theme CSS, file CSS in `<head>`,
 light or dark is forced, `data-rocci-css` on `html` / `body` / `main` when the
 file has `@css`, an automatic left `<nav class="rd-toc">` for heading levels
 2–3, and `rocci_content({})` inside `<main>`. The navigator uses the same
-heading IDs as in-page `#` links, is omitted when there are no outline
-headings, and is hidden on narrow and print viewports by theme chrome. Clicks
-scroll the article quickly with a short animation. Theme
+heading IDs as in-page `#` links and is omitted when there are no outline
+headings. Theme chrome hides the left navigator on print and, below `48rem`,
+replaces it with a no-JS `<details class="rd-toc-menu">` On this page control.
+Clicks scroll the article quickly with a short animation. Theme
 `none` skips chrome, including the navigator. A custom `layout` replaces the
 default shell entirely. Document `@css` overrides the theme. Default theme
 comes from `rocdown run --theme`, `ROCDOWN_THEME` (or `ROCCI_THEME`), then builtin `paper`.
@@ -278,7 +279,11 @@ Datastar is imported only when a Rocci region uses a Datastar action.
 ## Project themes
 
 A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
-site chrome and named layouts. Rocdown still compiles builtin `RocdownBase`
+site chrome and named layouts. Custom site shells that hide a docs sidebar
+below `48rem` must replace it with a labeled `<details>` menu; rocci.dev’s
+`SiteShell` uses `class="mobile-menu"` and only copies the docs `NavList` on
+the documentation layout. The builtin `RocdownTheme` already ships that menu.
+Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …). Static apply data is a tagged union of

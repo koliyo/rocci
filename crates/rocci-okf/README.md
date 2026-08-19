@@ -39,9 +39,12 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 ### Live Reload Review Server & Desktop Preview
 
-The review viewer uses a dark One Dark Pro palette. Pages with H2 or H3
-headings get a left “On this page” navigator, matching standalone Rocdown.
-Authored knowledge links such as `/decisions/foo.md` are bundle-root paths;
+The review viewer uses a dark One Dark Pro palette. Home and Governance &
+Review stay in `.okf-global-nav` at every width. Pages with H2 or H3 headings
+also get a left “On this page” navigator; below `48rem` that outline hides and
+a no-JS `<details class="okf-outline-menu">` control appears. Wide source and
+review tables scroll inside `.okf-table-container`. Authored knowledge links
+such as `/decisions/foo.md` are bundle-root paths;
 the review site publishes them at `/decisions/foo/` and writes collection
 indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
 backed by `/pages.json` and `/catalog.json` in the review tree; same-origin

@@ -262,6 +262,7 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
             sources.len(),
             escape(&drift_summary)
         ));
+        out.push_str("    <div class=\"okf-table-container\">\n");
         out.push_str("    <table class=\"okf-sources-table\">\n");
         out.push_str("      <thead><tr><th>ID</th><th>Resource</th><th>Author</th><th>Status</th></tr></thead>\n");
         out.push_str("      <tbody>\n");
@@ -290,6 +291,7 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
         }
         out.push_str("      </tbody>\n");
         out.push_str("    </table>\n");
+        out.push_str("    </div>\n");
         out.push_str("  </details>\n");
     }
 
@@ -305,6 +307,7 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
             unknown.len(),
             if unknown.len() == 1 { "" } else { "s" }
         ));
+        out.push_str("    <div class=\"okf-table-container\">\n");
         out.push_str("    <table class=\"okf-sources-table\">\n");
         out.push_str("      <thead><tr><th>Key</th><th>Value</th></tr></thead>\n");
         out.push_str("      <tbody>\n");
@@ -317,6 +320,7 @@ pub fn render_concept_meta(concept: &Concept, bundle: &Bundle) -> String {
         }
         out.push_str("      </tbody>\n");
         out.push_str("    </table>\n");
+        out.push_str("    </div>\n");
         out.push_str("  </details>\n");
     }
 
@@ -1711,14 +1715,7 @@ html.rd-document { scroll-behavior: smooth; }
   align-items: start;
   min-height: 100vh;
 }
-main {
-  box-sizing: border-box;
-  min-width: 0;
-  width: min(42rem, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 2.5rem 0 4rem;
-}
-.rd-toc {
+.okf-chrome {
   position: sticky;
   top: var(--rocci-chrome-top, 0px);
   box-sizing: border-box;
@@ -1729,7 +1726,14 @@ main {
   overflow-y: auto;
   user-select: none;
 }
-.rd-toc-label {
+.okf-global-nav {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1.5rem;
+}
+.okf-global-label,
+.rd-toc-label,
+.outline-label {
   margin: 0 0 0.65rem;
   color: var(--rd-muted);
   font-size: 0.68rem;
@@ -1737,12 +1741,44 @@ main {
   letter-spacing: 0.105em;
   text-transform: uppercase;
 }
-.rd-toc-items {
+.okf-global-link {
+  color: var(--rd-fg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  min-height: 1.5rem;
+}
+.okf-global-link:hover { color: var(--rd-primary); text-decoration: none; }
+main {
+  box-sizing: border-box;
+  min-width: 0;
+  width: min(42rem, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2.5rem 0 4rem;
+}
+.rd-toc {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+  user-select: none;
+}
+.rd-toc .outline {
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+}
+.rd-toc-items,
+.outline-items {
   display: grid;
   gap: 0.45rem;
   border-left: 1px solid var(--rd-border);
 }
-.rd-toc-link {
+.rd-toc-link,
+.outline-link {
   margin-left: -1px;
   padding-left: 0.8rem;
   border-left: 1px solid transparent;
@@ -1752,18 +1788,58 @@ main {
   text-decoration: none;
   overflow-wrap: anywhere;
 }
-.rd-toc-link:hover {
+.rd-toc-link:hover,
+.outline-link:hover {
   border-color: var(--rd-primary);
   color: var(--rd-fg);
   text-decoration: none;
 }
-.rd-toc-link.rd-toc-level-3 { padding-left: 1.35rem; }
-.rd-toc:not(:has(.rd-toc-link)) { display: none; }
+.rd-toc-link.rd-toc-level-3,
+.outline-link.level-3 { padding-left: 1.35rem; }
+.rd-toc:not(:has(.rd-toc-link)):not(:has(.outline-link)) { display: none; }
+.okf-outline-menu { display: none; }
+.okf-outline-menu .outline-label { display: none; }
 @media (max-width: 48rem) {
   .rd-shell { display: block; }
+  .okf-chrome {
+    position: static;
+    max-height: none;
+    padding: 1rem 1.25rem 0.25rem;
+    overflow: visible;
+  }
+  .okf-global-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 1.1rem;
+    margin-bottom: 0.35rem;
+  }
+  .okf-global-label { margin: 0; }
   .rd-toc { display: none; }
+  .okf-outline-menu { display: block; margin: 0 0 1.25rem; }
+  .okf-outline-menu summary {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.85rem;
+    border: 1px solid var(--rd-border);
+    border-radius: 0.5rem;
+    background: var(--rd-bg-subtle);
+    color: var(--rd-fg);
+    font-size: 0.85rem;
+    font-weight: 650;
+    cursor: pointer;
+    list-style: none;
+  }
+  .okf-outline-menu summary::-webkit-details-marker { display: none; }
+  .okf-outline-panel {
+    margin-top: 0.65rem;
+    padding: 0.75rem 0.15rem 0.25rem;
+  }
 }
-@media print { .rd-toc { display: none; } }
+@media print {
+  .rd-toc, .okf-outline-menu { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   html.rd-document { scroll-behavior: auto; }
 }
@@ -1831,7 +1907,8 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-review-table th { background: var(--rd-bg-subtle); }
 .okf-action-pill { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
 .okf-action-detail-text { font-size: 0.8rem; color: var(--rd-muted); margin-top: 0.25rem; }
-.okf-filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+.okf-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.okf-filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
 .okf-filter-btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); cursor: pointer; font-size: 0.85rem; }
 .okf-filter-btn.is-active { background: var(--rd-primary); color: #282c34; border-color: var(--rd-primary); }
 .okf-search-input { flex: 1; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); }
@@ -1856,32 +1933,47 @@ fn with_meta_and_article(meta: &str, article: &str) -> String {
     format!("{meta}{}", select_root_article(article))
 }
 
+const OKF_GLOBAL_NAV: &str = concat!(
+    "<nav class=\"okf-global-nav\" aria-label=\"Knowledge\">",
+    "<p class=\"okf-global-label\">Knowledge</p>",
+    "<a class=\"okf-global-link\" href=\"/\">Home</a>",
+    "<a class=\"okf-global-link\" href=\"/review/\">Governance &amp; Review</a>",
+    "</nav>",
+);
+
 pub fn html_page(title: &str, article: &str) -> String {
     let (article, headings) = stamp_and_collect_headings(article);
-    let body = if headings.is_empty() {
-        format!("<main>{article}</main>")
+    let mut chrome = String::from("<div class=\"okf-chrome\">");
+    chrome.push_str(OKF_GLOBAL_NAV);
+    if !headings.is_empty() {
+        chrome.push_str(&render_toc(&headings));
+    }
+    chrome.push_str("</div>");
+    let mut main = String::from("<main>");
+    if !headings.is_empty() {
+        main.push_str(&render_outline_details(&headings));
+    }
+    main.push_str(&article);
+    main.push_str("</main>");
+    let script = if headings.is_empty() {
+        String::new()
     } else {
-        format!(
-            "<div class=\"rd-shell\">{}<main>{article}</main></div><script>{}</script>",
-            render_toc(&headings),
-            TOC_SCRIPT
-        )
+        format!("<script>{TOC_SCRIPT}</script>")
     };
+    let body = format!("<div class=\"rd-shell\">{chrome}{main}</div>{script}");
     format!(
         "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
         escape(title)
     )
 }
 
-fn render_toc(headings: &[TocHeading]) -> String {
-    let mut out = String::from(
-        "<nav class=\"rd-toc\" aria-label=\"On this page\"><p class=\"rd-toc-label\">On this page</p><div class=\"rd-toc-items\">",
-    );
+fn toc_links(headings: &[TocHeading], class_for_level3: &str, class_default: &str) -> String {
+    let mut out = String::new();
     for heading in headings {
         let class = if heading.level == 3 {
-            "rd-toc-link rd-toc-level-3"
+            class_for_level3
         } else {
-            "rd-toc-link"
+            class_default
         };
         out.push_str(&format!(
             "<a class=\"{class}\" href=\"#{}\">{}</a>",
@@ -1889,8 +1981,21 @@ fn render_toc(headings: &[TocHeading]) -> String {
             escape(&heading.text)
         ));
     }
-    out.push_str("</div></nav>");
     out
+}
+
+fn render_toc(headings: &[TocHeading]) -> String {
+    format!(
+        "<nav class=\"rd-toc\" aria-label=\"On this page\"><p class=\"rd-toc-label\">On this page</p><div class=\"rd-toc-items\">{}</div></nav>",
+        toc_links(headings, "rd-toc-link rd-toc-level-3", "rd-toc-link")
+    )
+}
+
+fn render_outline_details(headings: &[TocHeading]) -> String {
+    format!(
+        "<details class=\"okf-outline-menu\"><summary>On this page</summary><div class=\"okf-outline-panel\"><nav class=\"outline\" aria-label=\"On this page\"><div class=\"outline-items\">{}</div></nav></div></details>",
+        toc_links(headings, "outline-link level-3", "outline-link")
+    )
 }
 
 fn stamp_and_collect_headings(html: &str) -> (String, Vec<TocHeading>) {
@@ -2087,6 +2192,7 @@ mod tests {
         assert!(html.contains("custom_note"));
         assert!(html.contains("preserved"));
         assert!(!html.contains("okf-meta-grid"));
+        assert!(html.contains("okf-table-container"));
     }
 
     #[test]
@@ -2127,6 +2233,33 @@ mod tests {
         ));
         assert!(html.contains("<code>../../README.md</code>"));
         assert!(!html.contains("href=\"../../README.md\""));
+        assert!(html.contains("okf-table-container"));
+    }
+
+    fn class_inner<'a>(html: &'a str, class: &str, close: &str) -> &'a str {
+        let marker = format!("class=\"{class}\"");
+        let start = html.find(&marker).unwrap_or_else(|| panic!("{class}"));
+        let open_end = start + html[start..].find('>').expect("open tag") + 1;
+        let close_at = open_end
+            + html[open_end..]
+                .find(close)
+                .unwrap_or_else(|| panic!("{close}"));
+        &html[open_end..close_at]
+    }
+
+    fn assert_global_nav_outside_toc(html: &str) {
+        let nav = class_inner(html, "okf-global-nav", "</nav>");
+        assert!(nav.contains("href=\"/\""));
+        assert!(nav.contains("href=\"/review/\""));
+        assert!(nav.contains("Home"));
+        assert!(nav.contains("Governance"));
+        if html.contains("class=\"rd-toc\"") {
+            let toc = class_inner(html, "rd-toc", "</nav>");
+            assert!(!toc.contains("href=\"/\""));
+            assert!(!toc.contains("/review/"));
+            assert!(!toc.contains("Home"));
+            assert!(!toc.contains("Governance"));
+        }
     }
 
     #[test]
@@ -2136,8 +2269,14 @@ mod tests {
         assert!(html.contains("content=\"dark\""));
         assert!(html.contains("class=\"rd-document\""));
         assert!(html.contains("/__rocci_okf/goto.js"));
-        assert!(!html.contains("rd-toc"));
-        assert!(!html.contains("rd-shell"));
+        assert!(html.contains("class=\"rd-shell\""));
+        assert!(!html.contains("class=\"rd-toc\""));
+        assert!(!html.contains("okf-outline-menu"));
+        assert_global_nav_outside_toc(&html);
+        assert!(DEFAULT_CSS.contains(".okf-table-container { overflow-x: auto"));
+        assert!(DEFAULT_CSS.contains(".okf-filter-bar { display: flex; flex-wrap: wrap"));
+        assert!(DEFAULT_CSS.contains(".rd-toc { display: none; }"));
+        assert!(DEFAULT_CSS.contains(".okf-outline-menu { display: block"));
     }
 
     #[test]
@@ -2148,6 +2287,7 @@ mod tests {
         );
         assert!(html.contains("class=\"rd-shell\""));
         assert!(html.contains("class=\"rd-toc\""));
+        assert!(html.contains("class=\"okf-outline-menu\""));
         assert!(html.contains("On this page"));
         assert!(html.contains("href=\"#alpha\""));
         assert!(html.contains("href=\"#beta\""));
@@ -2159,6 +2299,12 @@ mod tests {
         assert!(html.contains("__rdTocScroll"));
         assert!(html.contains("rocci-preview-nav"));
         assert!(html.contains("removeAttribute"));
+        assert_global_nav_outside_toc(&html);
+        let outline_menu = html
+            .find("class=\"okf-outline-menu\"")
+            .expect("outline menu");
+        let main = html.find("<main>").expect("main");
+        assert!(main < outline_menu);
     }
 
     #[test]
@@ -2275,5 +2421,30 @@ mod tests {
         let theme = modules.iter().find(|m| m.type_name == "OkfTheme").unwrap();
         assert!(theme.src.contains("class=\"rd-article\""));
         assert!(theme.roc.contains("rd-article"));
+        assert!(theme.src.contains("class=\"okf-global-nav\""));
+        assert!(theme.src.contains("class=\"okf-outline-menu\""));
+        let global = theme.src.find("okf-global-nav").expect("global nav");
+        let outline_gate = theme.src.find("@if has_outline").expect("outline gate");
+        assert!(
+            global < outline_gate,
+            "Home/Review must render even when has_outline is false"
+        );
+        let toc = theme.src.find("class=\"rd-toc\"").expect("toc");
+        let toc_home = theme.src[toc..].find("href=\"/\"");
+        let next_details = theme.src[toc..].find("okf-outline-menu");
+        if let (Some(home_rel), Some(details_rel)) = (toc_home, next_details) {
+            assert!(home_rel > details_rel, "Home must not live inside .rd-toc");
+        }
+        let concept_meta = modules
+            .iter()
+            .find(|m| m.type_name == "ConceptMeta")
+            .unwrap();
+        assert!(concept_meta.src.contains("okf-table-container"));
+        let review_queue = modules
+            .iter()
+            .find(|m| m.type_name == "ReviewQueue")
+            .unwrap();
+        assert!(review_queue.src.contains("okf-table-container"));
+        assert!(review_queue.src.contains("okf-filter-bar"));
     }
 }
