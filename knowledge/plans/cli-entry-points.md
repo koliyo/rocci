@@ -4,11 +4,16 @@ title: CLI entry points for Rocci, Rocdown, and OKF preview
 description: Choose how authors preview OKF Markdown and other documents without collapsing the three product CLIs into a plugin host.
 tags: [domain/rocci, domain/rocdown, domain/okf, domain/rocci-okf, concern/architecture, concern/tooling, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-18T10:30:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:50:00Z }
 stale_after: 2026-11-18
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: browser-plan
+    resource: rocci-browser.md
+    title: Dedicated rocci-browser implementation plan
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: product-boundary
     resource: ../decisions/consolidate-rocdown-product-boundary.md
     title: Approved Rocdown product-boundary decision
@@ -413,6 +418,10 @@ land. It requires a separate decision: the `rocci` binary would learn sibling
 command names without importing their packages. It is not a plugin system and
 is not required to close the metadata-preview gap.
 
+A dedicated `rocci-browser` host that execs sibling adapters is a different
+question: session and selection, not format dispatch. It must not become a
+`rocci browser` subcommand. See [rocci-browser](rocci-browser.md).[^browser-plan]
+
 ## Acceptance criteria
 
 - `rocci-okf run <concept.md>` opens the enclosing bundle on that concept with
@@ -436,6 +445,7 @@ Human review is required before:
 
 Until those gates open, implement option D.
 
+[^browser-plan]: Dedicated product-blind host with out-of-process adapters; not a `rocci` multiplexer.
 [^product-boundary]: Approved three-CLI split, one-way dependencies, and the `rocci run` extension-hint exception.
 [^static-okf]: Canonical records are inert OKF Markdown; Rocdown must not own OKF policy.
 [^okf-app-plan]: `rocci-okf` is the approved application and Cargo namespace; `okf` is the portable engine.

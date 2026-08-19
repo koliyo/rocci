@@ -14,6 +14,6 @@
 * [State-of-the-art OKF tools and workflows](okf-tools-and-workflows.md) - Portable Markdown, agent-native operations, curation, review, retrieval, and authenticated serving lessons.
 * [Rocdown report authoring friction](rocdown-report-authoring-friction.md) - Evidence and priorities for figures, citations, assets, report presentation, and export.
 * [Mobile chrome for OKF, Rocdown, and rocci.dev](mobile-chrome.md) - Code-backed inventory: default Rocdown theme has a no-JS menu; rocci.dev hides the docs sidebar without replacement; OKF nests Home/Review inside a TOC that phone CSS discards. Implementation plan: [mobile chrome](../plans/mobile-chrome.md). Exploratory; not shipped.
-* [Dedicated rocci-browser CLI and desktop host](rocci-browser.md) - Product-blind project registry and two-stage fuzzy picker (Enter opens a target, Tab lists documents) via out-of-process adapters; complements the shared preview window without plugins on `rocci` / `rocdown`. Exploratory; not approved.
+* [Dedicated rocci-browser CLI and desktop host](rocci-browser.md) - Product-blind project registry and two-stage fuzzy picker (Enter opens a target, Tab lists documents) via out-of-process adapters; complements the shared preview window without plugins on `rocci` / `rocdown`. Implementation plan: [rocci-browser](../plans/rocci-browser.md). Exploratory; not approved.
 
 Dated historical research reports remain available under [`archive/reports/`](../../archive/reports/) and are accounted for in the migration matrix.

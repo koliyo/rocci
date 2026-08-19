@@ -4,11 +4,16 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Exploratory research for a product-blind project browser that registers directories, two-stage fuzzy-picks a target then a document, and opens a persistent preview session through out-of-process adapters. Complements, and can later own the window of, rocci / rocdown / rocci-okf preview. Does not reverse the rejection of plugins on those product CLIs."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T19:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: browser-plan
+    resource: ../plans/rocci-browser.md
+    title: Dedicated rocci-browser implementation plan
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: cli-plan
     resource: ../plans/cli-entry-points.md
     title: CLI entry points for Rocci, Rocdown, and OKF preview
@@ -191,8 +196,10 @@ dispatch.[^cli-plan] A new host whose job is session, window, and project
 selection is a different question from teaching `rocci run` to compile Rocdown
 or OKF.
 
-No implementation plan is attached. Human review is required before treating
-the recommended split as a delivery track.
+The [implementation plan](../plans/rocci-browser.md) turns this recommendation
+into a phased delivery track. Human review is still required before treating
+that split as approved work (fourth CLI and out-of-process adapter
+gates).[^browser-plan]
 
 ## Job to be done
 
@@ -676,21 +683,8 @@ Human approval is required before:
    source (they belong in a repo-local registry file).
 
 Until those gates open, do not implement. This record is evidence and a
-recommended split, not a schedule.
-
-## Suggested delivery sketch (not a plan)
-
-Only after gate 1–2:
-
-0. Freeze protocol version, Enter/Tab, Cmd-P vs Cmd-K, and "host never
-   sniffs formats".
-1. Host crate + fixture adapter + TUI open/print URL.
-2. Persistent window that `load_url`s a fixture origin; session stop/start.
-3. First-party adapters on `rocdown` and `rocci-okf` (`probe`/`list`/`open`
-   wrapping existing `run --no-window`).
-4. Repo-local `.rocci/browser.toml` for this workspace; Rocci adapter for
-   app directories.
-5. Warm-session reuse; docs. Product CLIs keep one-shot preview.
+recommended split. Delivery phases, protocol freeze, and exit criteria live
+in the [implementation plan](../plans/rocci-browser.md).[^browser-plan]
 
 ## Disposition
 
@@ -700,7 +694,10 @@ process adapters; registry of directories; two-stage fuzzy picker (Enter
 opens a target, Tab lists documents). It complements today's previewer
 immediately and can later own the preview window without collapsing the three
 product CLIs. It does not authorize plugins on `rocci run` or `rocdown run`.
+The [implementation plan](../plans/rocci-browser.md) sequences that split
+after the fourth-CLI and adapter-shape gates.[^browser-plan]
 
+[^browser-plan]: Phased host crate, fixture adapter, persistent window, first-party adapters, repo-local registry, warm sessions.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.
 [^product-boundary]: Approved one-way package edges and product ownership.
 [^preview-decision]: Preview window versus overlay chrome versus Dev panel naming.
