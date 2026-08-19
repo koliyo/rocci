@@ -3,8 +3,8 @@ type: Implementation Plan
 title: First-party Rocci chrome library and generation host
 description: Extract demonstrated documentation chrome into base-Rocci components, keep Markdown and OKF governance in their owners, and host Roc through a cached native subprocess and an embedded Wasmtime runtime.
 tags: [domain/rocci, domain/rocdown, domain/rocci-okf, integration/roc, concern/rendering, concern/performance, concern/architecture, concern/caching]
-status: stable
-generated: { by: process:cursor, at: 2026-08-18T13:50:00Z }
+status: draft
+generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
 stale_after: 2026-11-18
 authority: normative
 owners: [human:nils]
@@ -118,7 +118,7 @@ pipeline is implemented.
 
 Rust still concatenates HTML in places the project already knows how to
 express as Rocci: documentation outlines, some navigation, and a leftover
-`@docs` renderer that duplicates `DocsComponents.rocci`. The OKF viewer copies
+`:kind` renderer that duplicates `DocsComponents.rocci`. The OKF viewer copies
 standalone Rocdown's table of contents instead of calling a shared component.
 At the same time, moving Markdown or OKF governance into Rocci would fight
 existing ownership rules and make cheap preview depend on the Roc
@@ -133,7 +133,7 @@ renderer program once. Pass page data in at apply time.
 | --- | --- | --- |
 | Catalog, routes, outline headings, nav items | Rust (`rocci-rocdown`, `okf`) | Not HTML |
 | Markdown / footnote / code-block HTML | Rust | Fragments or article strings |
-| `@docs` widgets | Rocci (`DocsComponents` or extracted twins) | Compiled renderer |
+| `:kind` widgets | Rocci (`DocsComponents` or extracted twins) | Compiled renderer |
 | Shared chrome: outline, breadcrumbs, nav list | Rocci in base Rocci | Compiled renderer |
 | Product shell: `<html>`, CSP, reload, metadata | Product theme or product Rust | Product |
 | OKF governance (badges, review queue, sources) | `rocci-okf` | Stay in that product; Rocci only if the same product wants it |
@@ -393,7 +393,7 @@ Record that Markdown fragments, catalog data, and OKF governance are not in
 scope. Record that shared chrome is outline, nav list, and breadcrumbs.
 Leave product shells product-owned.
 
-### 1. Delete the leftover Rust `@docs` painter for site output
+### 1. Delete the leftover Rust article-block painter for site output
 
 Keep Rust Markdown fragment rendering. Stop treating `docs.rs::render_docs` as
 a production HTML path once tests assert through `plan_segments` plus generated
@@ -489,7 +489,7 @@ descriptive architecture record before implementation.
 [^ui-readme]: View records are the present shared primitive.
 [^ui-view]: Shared primitives should match shipped `PageView` fields.
 [^deps-check]: Frozen package-class edges.
-[^docs-rocci]: Existing Rocci `@docs` widgets.
+[^docs-rocci]: Existing Rocci `:kind` widgets.
 [^theme-rocci]: First documentation shell.
 [^site-layouts]: Second documentation shell over the same view records.
 [^okf-presentation]: Rust TOC and governance HTML.
