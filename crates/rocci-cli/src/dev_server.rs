@@ -18,6 +18,7 @@ use rocci_desktop::{PreviewOptions, preview};
 
 use crate::inspect::InspectSnapshot;
 use crate::inspector;
+use crate::logs::{self, LogHub, LogLevel};
 use crate::profile::ProfileSnapshot;
 
 const DEBOUNCE: Duration = Duration::from_millis(200);
@@ -43,6 +44,7 @@ pub struct DevServer {
     pub url: String,
     pub title: String,
     pub inspector_url: String,
+    pub logs: Arc<LogHub>,
     pub output: PathBuf,
     stop: Arc<AtomicBool>,
     owns_output: bool,
@@ -76,6 +78,7 @@ pub struct ReloadHub {
     waiters: Mutex<Vec<mpsc::Sender<u64>>>,
     generation: AtomicU64,
     inspect: Mutex<Option<InspectSnapshot>>,
+    pub logs: Arc<LogHub>,
 }
 
 impl ReloadHub {
@@ -84,6 +87,7 @@ impl ReloadHub {
             waiters: Mutex::new(Vec::new()),
             generation: AtomicU64::new(0),
             inspect: Mutex::new(None),
+            logs: Arc::new(LogHub::new()),
         }
     }
 
@@ -180,7 +184,11 @@ where
             hub.set_inspect(snapshot);
         }
         Err(err) => {
-            eprintln!("{}: {err:#}", config.log_prefix);
+            logs::tee(
+                &hub.logs,
+                LogLevel::Error,
+                format!("{}: {err:#}", config.log_prefix),
+            );
             *last_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("{err:#}"));
         }
     }
@@ -239,6 +247,7 @@ where
 
     let watch_stop = stop.clone();
     let watch_output = output.clone();
+    let logs = hub.logs.clone();
     let watch_hub = hub;
     let watch_error = last_error;
     let watch_has_build = has_build;
@@ -264,6 +273,7 @@ where
         url,
         title: config.title,
         inspector_url,
+        logs,
         stop,
         output,
         owns_output,
@@ -285,7 +295,11 @@ where
     let prefix = config.log_prefix.clone();
     let title = config.title.clone();
     let server = serve_static_site(config, rebuild)?;
-    eprintln!("{prefix}: serving {title} at {}", server.url);
+    logs::tee(
+        &server.logs,
+        LogLevel::Info,
+        format!("{prefix}: serving {title} at {}", server.url),
+    );
     if no_window {
         server.wait();
         return Ok(());
@@ -344,15 +358,29 @@ fn watch_loop<F>(
         if !is_relevant {
             continue;
         }
+        logs::tee(
+            &ctl.hub.logs,
+            LogLevel::Info,
+            format!("{log_prefix}: rebuilding"),
+        );
         match rebuild(&output) {
             Ok(snapshot) => {
                 ctl.has_build.store(true, Ordering::Relaxed);
                 ctl.hub.set_inspect(snapshot);
                 *ctl.last_error.lock().unwrap_or_else(|err| err.into_inner()) = None;
+                logs::tee(
+                    &ctl.hub.logs,
+                    LogLevel::Info,
+                    format!("{log_prefix}: rebuilt"),
+                );
                 ctl.hub.broadcast();
             }
             Err(err) => {
-                eprintln!("{log_prefix}: {err:#}");
+                logs::tee(
+                    &ctl.hub.logs,
+                    LogLevel::Error,
+                    format!("{log_prefix}: {err:#}"),
+                );
                 *ctl.last_error.lock().unwrap_or_else(|e| e.into_inner()) =
                     Some(format!("{err:#}"));
                 ctl.hub.broadcast();
@@ -472,6 +500,27 @@ fn handle_client(
             RELOAD_JS.as_bytes(),
         ),
         ServeTarget::Events => write_sse(&mut stream, hub),
+        ServeTarget::Logs => write_response(
+            &mut stream,
+            200,
+            "application/json; charset=utf-8",
+            false,
+            hub.logs.to_json().as_bytes(),
+        ),
+        ServeTarget::LogEvents => write_log_sse(&mut stream, &hub.logs),
+        ServeTarget::LogClear => {
+            if method != "POST" {
+                return write_response(
+                    &mut stream,
+                    404,
+                    "text/plain; charset=utf-8",
+                    false,
+                    b"not found",
+                );
+            }
+            hub.logs.clear();
+            write_response(&mut stream, 204, "text/plain; charset=utf-8", false, b"")
+        }
         ServeTarget::Profile => {
             let body = hub
                 .profile()
@@ -496,7 +545,11 @@ fn handle_client(
             )
         }
         ServeTarget::Dev => {
-            let html = inspector::render_panel_html(hub.inspect().as_ref(), path);
+            let html = inspector::render_panel_with_logs(
+                hub.inspect().as_ref(),
+                path,
+                &hub.logs.snapshot(),
+            );
             let body = inject_live_reload(&html);
             write_response(
                 &mut stream,
@@ -620,6 +673,9 @@ fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Re
 pub enum ServeTarget {
     ReloadJs,
     Events,
+    Logs,
+    LogEvents,
+    LogClear,
     Profile,
     Inspect,
     Dev,
@@ -639,6 +695,21 @@ pub fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
     }
     if path == "/__rocci/events" || path == "/__rocdown/events" || path == "/__rocci_okf/events" {
         return ServeTarget::Events;
+    }
+    if path == "/__rocci/logs" || path == "/__rocdown/logs" || path == "/__rocci_okf/logs" {
+        return ServeTarget::Logs;
+    }
+    if path == "/__rocci/logs/events"
+        || path == "/__rocdown/logs/events"
+        || path == "/__rocci_okf/logs/events"
+    {
+        return ServeTarget::LogEvents;
+    }
+    if path == "/__rocci/logs/clear"
+        || path == "/__rocdown/logs/clear"
+        || path == "/__rocci_okf/logs/clear"
+    {
+        return ServeTarget::LogClear;
     }
     if path == "/__rocci/profile" || path == "/__rocdown/profile" || path == "/__rocci_okf/profile"
     {
@@ -800,6 +871,7 @@ fn write_response(
 ) -> io::Result<()> {
     let status_text = match status {
         200 => "OK",
+        204 => "No Content",
         404 => "Not Found",
         500 => "Internal Server Error",
         _ => "Status",
@@ -824,6 +896,25 @@ fn write_redirect(stream: &mut TcpStream, location: &str) -> io::Result<()> {
         "HTTP/1.1 301 Moved Permanently\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     )?;
     stream.flush()
+}
+
+fn write_log_sse(stream: &mut TcpStream, hub: &LogHub) -> io::Result<()> {
+    let rx = hub.subscribe();
+    write!(
+        stream,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n"
+    )?;
+    stream.flush()?;
+    while let Ok(line) = rx.recv() {
+        let data = serde_json::to_string(&line).unwrap_or_else(|_| "{}".into());
+        if write!(stream, "event: log\ndata: {data}\n\n").is_err() {
+            break;
+        }
+        if stream.flush().is_err() {
+            break;
+        }
+    }
+    Ok(())
 }
 
 fn write_sse(stream: &mut TcpStream, hub: &ReloadHub) -> io::Result<()> {
@@ -937,6 +1028,15 @@ mod tests {
         );
         assert_eq!(resolve_request(&temp, "/__rocci/dev"), ServeTarget::Dev);
         assert_eq!(resolve_request(&temp, "/__rocdown/dev"), ServeTarget::Dev);
+        assert_eq!(resolve_request(&temp, "/__rocci/logs"), ServeTarget::Logs);
+        assert_eq!(
+            resolve_request(&temp, "/__rocdown/logs/events"),
+            ServeTarget::LogEvents
+        );
+        assert_eq!(
+            resolve_request(&temp, "/__rocci_okf/logs/clear"),
+            ServeTarget::LogClear
+        );
         assert_eq!(
             resolve_request(&temp, "/__rocci/reload.js"),
             ServeTarget::ReloadJs

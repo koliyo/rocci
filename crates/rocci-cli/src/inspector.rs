@@ -14,6 +14,7 @@ use rocci_template::{LowerOptions, SourceFile, compile, file_scope_id};
 
 use crate::error_page;
 use crate::inspect::{self, InspectSnapshot};
+use crate::logs::{LogHub, LogLine};
 use crate::profile::ProfileSnapshot;
 
 const METRICS_PANEL: &str = include_str!("../templates/dev/MetricsPanel.rocci");
@@ -22,7 +23,17 @@ const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidd
 
 const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(location.search);parent.postMessage({type:"rocci-inspector",tab:p.get("tab")||"performance",view:p.get("view")||"source"},"*");})();</script>"#;
 
+const CONSOLE_JS: &str = r#"<script>(function(){var root=document.querySelector("[data-logs-root]");if(!root)return;var api=root.getAttribute("data-logs-root")||"/__rocci";var pane=document.getElementById("console-log");var body=pane&&pane.querySelector("tbody");if(!pane||!body)return;var levels={debug:true,info:true,warn:true,error:true};var stick=true;function near(){return pane.scrollHeight-pane.scrollTop-pane.clientHeight<32;}function apply(){var rows=body.querySelectorAll("tr[data-level]");for(var i=0;i<rows.length;i++){rows[i].hidden=!levels[rows[i].getAttribute("data-level")];}}function row(line){var tr=document.createElement("tr");tr.setAttribute("data-level",line.level||"info");var t=new Date(Number(line.t)||0);var time=isNaN(t.getTime())?String(line.t||""):t.toLocaleTimeString();tr.innerHTML="<td>"+time+"</td><td>"+esc(line.level)+"</td><td>"+esc(line.source)+"</td><td>"+esc(line.text)+"</td>";return tr;}function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(ch){return ch==="&"?"&amp;":ch==="<"?"&lt;":ch===">"?"&gt;":"&quot;";});}pane.addEventListener("scroll",function(){stick=near();});var chips=root.querySelectorAll("[data-level]");for(var c=0;c<chips.length;c++){(function(btn){btn.addEventListener("click",function(){var level=btn.getAttribute("data-level");levels[level]=!levels[level];btn.setAttribute("aria-pressed",levels[level]?"true":"false");apply();});})(chips[c]);}var clear=root.querySelector(".console-clear");if(clear){clear.addEventListener("click",function(){fetch(api+"/logs/clear",{method:"POST"}).then(function(){body.innerHTML="";});});}try{var es=new EventSource(api+"/logs/events");es.addEventListener("log",function(ev){var keep=stick||near();try{body.appendChild(row(JSON.parse(ev.data)));}catch(err){}apply();if(keep){pane.scrollTop=pane.scrollHeight;}});}catch(err){}})();</script>"#;
+
 pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> String {
+    render_panel_with_logs(snapshot, target, &[])
+}
+
+pub fn render_panel_with_logs(
+    snapshot: Option<&InspectSnapshot>,
+    target: &str,
+    logs: &[LogLine],
+) -> String {
     let css = panel_css();
     let scope = file_scope_id("MetricsPanel.rocci");
     let query = inspect::parse_inspect_query(target);
@@ -35,10 +46,7 @@ pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> St
             "<div class=\"inspector-body tab-source\">{}</div>",
             render_source_pane(snapshot, &query, target)
         ),
-        "console" => {
-            "<div class=\"inspector-body tab-console\"><p class=\"console-placeholder\">Runtime log stream is not attached yet.</p></div>"
-                .to_string()
-        }
+        "console" => render_console_pane(target, logs),
         _ => format!(
             "<div class=\"inspector-body tab-performance\"><h1>Profiling</h1>{}</div>",
             render_performance(snapshot.map(|snapshot| &snapshot.profile))
@@ -130,6 +138,37 @@ fn render_tablist(selected: &str, action: &str, route: &str, view: &str) -> Stri
     }
     html.push_str("</nav>");
     html
+}
+
+fn panel_api_root(target: &str) -> &'static str {
+    match panel_form_action(target) {
+        "/__rocdown/dev" => "/__rocdown",
+        "/__rocci_okf/dev" => "/__rocci_okf",
+        _ => "/__rocci",
+    }
+}
+
+fn render_console_pane(target: &str, logs: &[LogLine]) -> String {
+    let root = panel_api_root(target);
+    let mut rows = String::new();
+    for line in logs {
+        rows.push_str(&format!(
+            "<tr data-level=\"{}\"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
+            error_page::html_escape(&line.level),
+            line.t,
+            error_page::html_escape(&line.level),
+            error_page::html_escape(&line.source),
+            error_page::html_escape(&line.text),
+        ));
+    }
+    if rows.is_empty() {
+        rows.push_str(
+            "<tr class=\"console-empty\"><td colspan=\"4\">No runtime messages yet.</td></tr>",
+        );
+    }
+    format!(
+        "<div class=\"inspector-body tab-console\" data-logs-root=\"{root}\"><div class=\"console-toolbar\"><div class=\"console-filters\" role=\"group\" aria-label=\"Log level\"><button type=\"button\" data-level=\"debug\" aria-pressed=\"true\">debug</button><button type=\"button\" data-level=\"info\" aria-pressed=\"true\">info</button><button type=\"button\" data-level=\"warn\" aria-pressed=\"true\">warn</button><button type=\"button\" data-level=\"error\" aria-pressed=\"true\">error</button></div><button type=\"button\" class=\"console-clear\">Clear</button></div><div class=\"console-log\" id=\"console-log\"><table><thead><tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr></thead><tbody>{rows}</tbody></table></div></div>{CONSOLE_JS}"
+    )
 }
 
 fn render_performance(profile: Option<&ProfileSnapshot>) -> String {
@@ -247,6 +286,7 @@ pub fn metrics_panel_diagnostics() -> Vec<String> {
 
 pub struct InspectorServer {
     pub url: String,
+    pub logs: Arc<LogHub>,
     stop: Arc<AtomicBool>,
     _thread: Option<JoinHandle<()>>,
 }
@@ -261,8 +301,10 @@ impl InspectorServer {
         let url = format!("http://127.0.0.1:{port}/__rocci/dev");
         let stop = Arc::new(AtomicBool::new(false));
         let store = Arc::new(Mutex::new(snapshot.into()));
+        let logs = Arc::new(LogHub::new());
         let thread_stop = stop.clone();
         let thread_store = store;
+        let thread_logs = logs.clone();
         let thread = thread::spawn(move || {
             while !thread_stop.load(Ordering::Relaxed) {
                 match listener.accept() {
@@ -271,7 +313,10 @@ impl InspectorServer {
                             .lock()
                             .unwrap_or_else(|err| err.into_inner())
                             .clone();
-                        let _ = handle_inspector(stream, Some(&snapshot));
+                        let logs = thread_logs.clone();
+                        thread::spawn(move || {
+                            let _ = handle_inspector(stream, Some(&snapshot), &logs);
+                        });
                     }
                     Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
                         thread::sleep(Duration::from_millis(20));
@@ -282,6 +327,7 @@ impl InspectorServer {
         });
         Ok(Self {
             url,
+            logs,
             stop,
             _thread: Some(thread),
         })
@@ -297,6 +343,7 @@ impl Drop for InspectorServer {
 fn handle_inspector(
     mut stream: TcpStream,
     snapshot: Option<&InspectSnapshot>,
+    logs: &LogHub,
 ) -> std::io::Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
@@ -306,11 +353,10 @@ fn handle_inspector(
         return Ok(());
     }
     let request = String::from_utf8_lossy(&buf[..n]);
-    let target = request
-        .lines()
-        .next()
-        .and_then(|line| line.split_whitespace().nth(1))
-        .unwrap_or("/");
+    let first = request.lines().next().unwrap_or("");
+    let mut parts = first.split_whitespace();
+    let method = parts.next().unwrap_or("GET");
+    let target = parts.next().unwrap_or("/");
     let path = target.split(['?', '#']).next().unwrap_or(target);
     match path {
         "/__rocci/inspect" | "/__rocdown/inspect" | "/__rocci_okf/inspect" => {
@@ -333,8 +379,24 @@ fn handle_inspector(
                 body.as_bytes(),
             )
         }
+        "/__rocci/logs" | "/__rocdown/logs" | "/__rocci_okf/logs" => write_response(
+            &mut stream,
+            200,
+            "application/json; charset=utf-8",
+            logs.to_json().as_bytes(),
+        ),
+        "/__rocci/logs/events" | "/__rocdown/logs/events" | "/__rocci_okf/logs/events" => {
+            write_inspector_log_sse(&mut stream, logs)
+        }
+        "/__rocci/logs/clear" | "/__rocdown/logs/clear" | "/__rocci_okf/logs/clear" => {
+            if method != "POST" {
+                return write_response(&mut stream, 404, "text/plain; charset=utf-8", b"not found");
+            }
+            logs.clear();
+            write_response(&mut stream, 204, "text/plain; charset=utf-8", b"")
+        }
         "/__rocci/dev" | "/__rocdown/dev" | "/__rocci_okf/dev" | "/" => {
-            let html = render_panel_html(snapshot, target);
+            let html = render_panel_with_logs(snapshot, target, &logs.snapshot());
             write_response(
                 &mut stream,
                 200,
@@ -346,13 +408,36 @@ fn handle_inspector(
     }
 }
 
+fn write_inspector_log_sse(stream: &mut TcpStream, hub: &LogHub) -> std::io::Result<()> {
+    let rx = hub.subscribe();
+    write!(
+        stream,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\nAccess-Control-Allow-Origin: *\r\n\r\n"
+    )?;
+    stream.flush()?;
+    while let Ok(line) = rx.recv() {
+        let data = serde_json::to_string(&line).unwrap_or_else(|_| "{}".into());
+        if write!(stream, "event: log\ndata: {data}\n\n").is_err() {
+            break;
+        }
+        if stream.flush().is_err() {
+            break;
+        }
+    }
+    Ok(())
+}
+
 fn write_response(
     stream: &mut TcpStream,
     status: u16,
     content_type: &str,
     body: &[u8],
 ) -> std::io::Result<()> {
-    let reason = if status == 200 { "OK" } else { "Not Found" };
+    let reason = match status {
+        200 => "OK",
+        204 => "No Content",
+        _ => "Not Found",
+    };
     let header = format!(
         "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
@@ -438,9 +523,19 @@ mod tests {
         assert!(!performance.contains("<pre><code>"));
 
         let console = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=console");
-        assert!(console.contains("Runtime log stream is not attached yet."));
-        assert!(!console.contains("<table>"));
+        assert!(console.contains("No runtime messages yet."));
+        assert!(!console.contains("<table><thead><tr><th>Stage</th>"));
         assert!(!console.contains("<pre><code>"));
+        let logged = render_panel_with_logs(
+            Some(&snapshot),
+            "/__rocci/dev?tab=console",
+            &[LogLine::runtime(
+                crate::logs::LogLevel::Info,
+                "serving at 127.0.0.1",
+            )],
+        );
+        assert!(logged.contains("serving at 127.0.0.1"));
+        assert!(logged.contains("data-level=\"info\""));
 
         let unknown = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=nope");
         assert!(unknown.contains("<table>"));
@@ -563,5 +658,59 @@ mod tests {
         let mut not_found = String::new();
         missing.read_to_string(&mut not_found).unwrap();
         assert!(not_found.contains("HTTP/1.1 404 Not Found"), "{not_found}");
+    }
+
+    #[test]
+    fn inspector_server_serves_logs() {
+        use std::io::{Read, Write};
+
+        let server = InspectorServer::spawn(sample_inspect()).unwrap();
+        server
+            .logs
+            .push(crate::logs::LogLevel::Info, "rebuild done");
+        let port: u16 = server
+            .url
+            .trim_start_matches("http://127.0.0.1:")
+            .trim_end_matches("/__rocci/dev")
+            .parse()
+            .unwrap();
+
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client
+            .write_all(
+                b"GET /__rocci/logs HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+            )
+            .unwrap();
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        assert!(response.contains("HTTP/1.1 200 OK"), "{response}");
+        assert!(response.contains("application/json"));
+        let body = response.split("\r\n\r\n").nth(1).unwrap_or("");
+        let value: serde_json::Value = serde_json::from_str(body).unwrap();
+        assert_eq!(value[0]["text"], "rebuild done");
+        assert_eq!(value[0]["source"], "runtime");
+        assert_eq!(value[0]["level"], "info");
+
+        let mut panel = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        panel
+            .write_all(b"GET /__rocci/dev?tab=console HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut html = String::new();
+        panel.read_to_string(&mut html).unwrap();
+        assert!(html.contains("rebuild done"), "{html}");
+        assert!(html.contains("data-level=\"info\""));
+
+        let mut events = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        events
+            .set_read_timeout(Some(Duration::from_millis(400)))
+            .unwrap();
+        events
+            .write_all(b"GET /__rocci/logs/events HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut headers = [0u8; 512];
+        let n = events.read(&mut headers).unwrap_or(0);
+        let head = String::from_utf8_lossy(&headers[..n]);
+        assert!(head.contains("text/event-stream"), "{head}");
+        assert!(head.contains("event: log") || head.contains("HTTP/1.1 200 OK"));
     }
 }
