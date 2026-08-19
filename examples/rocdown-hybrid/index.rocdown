@@ -1,0 +1,73 @@
+@page {
+    route: "/",
+    meta: {
+        title: "Hybrid live",
+        description: "CDN HTML with a colocated island service",
+    },
+}
+
+@component
+RevealTip = |{ open }| {
+    @css {
+        .reveal {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--rd-color-border);
+            border-radius: 16px;
+            background: var(--rd-color-surface);
+        }
+        .reveal p { margin: 0 0 1rem; }
+        .reveal button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--rd-color-accent);
+            color: var(--rd-color-bg);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .reveal button.secondary {
+            border: 1px solid var(--rd-color-border);
+            background: transparent;
+            color: var(--rd-color-muted);
+        }
+    }
+    <div id="reveal-tip" class="reveal">
+        @if open {
+            <>
+                <p>
+                    POST handlers return a Datastar element patch. The browser keeps
+                    scrolling position; only the element with id reveal-tip morphs.
+                </p>
+                <button class="secondary" type="button" data-on:click=@post("/actions/reveal/hide")>
+                    Hide tip
+                </button>
+            </>
+        } @else {
+            <>
+                <p>This block is closed until the server sends the open markup.</p>
+                <button type="button" data-on:click=@post("/actions/reveal/show")>
+                    Show tip
+                </button>
+            </>
+        }
+    </div>
+}
+
+@on:post("/actions/reveal/show") = |_| {
+    revealTip({ open: True })
+}
+
+@on:post("/actions/reveal/hide") = |_| {
+    revealTip({ open: False })
+}
+
+# Hybrid live
+
+Prose stays Markdown. The button below posts to the island service.
+
+@render {
+    revealTip({ open: False })
+}

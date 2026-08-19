@@ -73,6 +73,26 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Start the island HTTP service for live pages in a documentation site.
+    ServeIslands {
+        /// Site root directory.
+        #[arg(default_value = ".")]
+        root: PathBuf,
+        /// Skip the preview window; print the URL and keep serving.
+        #[arg(long)]
+        no_window: bool,
+        /// TCP port to listen on. Defaults to a free port with the preview window,
+        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+        #[arg(
+            long,
+            default_value = "auto",
+            default_value_if("no_window", "true", "8000"),
+            value_name = "PORT",
+            value_parser = parse_port_arg,
+            env = "ROC_BASIC_WEBSERVER_PORT"
+        )]
+        port: PortArg,
+    },
     /// Validate the documentation catalog or document without writing output.
     Check {
         #[arg(default_value = ".")]
@@ -330,6 +350,14 @@ fn try_main() -> Result<()> {
                 refuse_okf_input(&path, "run")?;
                 run_site_dev(&path, output.as_deref(), no_window, port, host.into(), None)
             }
+        }
+        Commands::ServeIslands {
+            root,
+            no_window,
+            port,
+        } => {
+            refuse_okf_input(&root, "serve-islands")?;
+            rocci_rocdown::serve_islands(&root, no_window, port)
         }
         Commands::Check { root, format } => {
             let report = rocci_rocdown::check(&root)?;
@@ -711,6 +739,31 @@ mod tests {
                 assert_eq!(path, PathBuf::from("examples/errors/parse/Broken.rocdown"));
             }
             _ => panic!("expected run"),
+        }
+    }
+
+    #[test]
+    fn serve_islands_parses_root_and_port() {
+        let cli = Cli::try_parse_from([
+            "rocdown",
+            "serve-islands",
+            "examples/rocdown-hybrid",
+            "--no-window",
+            "--port",
+            "9001",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::ServeIslands {
+                root,
+                no_window,
+                port,
+            } => {
+                assert_eq!(root, PathBuf::from("examples/rocdown-hybrid"));
+                assert!(no_window);
+                assert_eq!(port, PortArg::Exact(9001));
+            }
+            _ => panic!("expected serve-islands"),
         }
     }
 

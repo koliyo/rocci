@@ -302,6 +302,7 @@ while building as part of `rocdown build site`.
 
 - `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
 - `rocdown run DIR`: Run/preview a documentation site with live reload.
+- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar).
 - `rocdown build DIR`: Build a static documentation site to `dist/`.
 - `rocdown check DIR`: Check catalog, routes, and links.
 - `rocdown test DIR`: Run documented `:example` tests.
@@ -338,13 +339,15 @@ above.
   curated navigation, and hashed asset pipeline
 - Site page kinds `static` / `hydrate` / `live` recorded on the catalog and
   `rocdown inspect catalog`. `hydrate` pages splice pure Rocci components into
-  CDN HTML at build time. `live` pages (`RD2302`) still fail site check/build
-  until the island service phase.
+  CDN HTML at build time. `live` pages splice initial island Html, hash
+  Datastar.js, and loosen per-page CSP. `rocdown serve-islands DIR` compiles
+  colocated `@on` handlers into one island HTTP service.
 
 **Not implemented / Deferred**
 
 - `@island` and client JS dynamic island splicing
-- Island HTTP service and Datastar.js for `live` pages
+- Combined `rocdown run DIR` preview of CDN files plus the island service
+- CDN-only publish flag that errors on `live` pages
 - Project default layouts and layout packages
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens

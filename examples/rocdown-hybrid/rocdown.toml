@@ -1,0 +1,10 @@
+[site]
+title = "Hybrid islands"
+description = "CDN-static Rocdown with a live island service"
+
+[build]
+output = "dist"
+
+[[nav]]
+label = "Site"
+items = ["index", "about"]

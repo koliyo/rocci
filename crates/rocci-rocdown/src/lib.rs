@@ -23,6 +23,7 @@ mod pprint;
 mod registry;
 mod runtime;
 mod scan;
+mod service;
 mod site;
 pub mod standalone;
 pub mod theme;
@@ -41,7 +42,9 @@ pub use catalog::{
     CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolveOptions, ResolveResult, ResolvedSite,
     RouteHint, Severity as CatalogSeverity, SourcePage, resolve,
 };
-pub use config::{BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load_config};
+pub use config::{
+    BuildConfig, CONFIG_FILE, HttpConfig, NavConfig, SiteConfig, SiteMeta, load_config,
+};
 pub use dev::{DevServer, run, run_with_host, run_with_host_at};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
@@ -61,6 +64,9 @@ pub use plan::{BuildPlan, DEFAULT_CSP, plan};
 pub use pprint::format_ast;
 pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
+pub use service::{
+    IslandServicePlan, live_csp, plan_island_service, prefix_action_urls, serve_islands,
+};
 pub use site::{
     CheckFormat, CheckReport, InspectKind, check, find_site_root, inspect, load_site,
     resolve_loaded, site_preview_route, test_examples,
