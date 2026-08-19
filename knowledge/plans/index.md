@@ -1,5 +1,6 @@
 # Plans
 
+* [Dedicated rocci-browser CLI and desktop host](rocci-browser.md) - Product-blind project registry, two-stage fuzzy picker, persistent preview window, and out-of-process adapters that exec existing `run --no-window` servers. Complements the three product CLIs; does not add plugins on `rocci` or `rocdown`. Exploratory; Phase 0 freeze only; Phases 1–5 wait on fourth-CLI and adapter-shape gates.
 * [Ungrammar AST codegen for Rocci and Rocdown](ungram-ast.md) - Phased owned-struct generation from per-language ungrams via a shared `rocci-ungram` CLI; scanners and parsers stay hand-written. Exploratory; Phases 1–5 implemented on `ungram-ast-implementation`, not CI-complete.
 * [Ungram follow-on backends after owned-struct codegen](ungram-follow-ons.md) - Freeze inspect tags and generate exhaustive `format_ast` walkers, add `NodeKind` highlighter coverage, generate `MdNode` from a Markdown ungram, and emit a public tree appendix. Do not generate `SyntaxKind`, highlighters, or a CST. Exploratory; no phase started.
 * [OKF preview compile and render cost](okf-compile-render-cost.md) - After load-performance work, stop baking page HTML into the Roc renderer hash, write Rocci chrome from apply, and reuse the applicator across watch ticks. Exploratory; no phase started.
