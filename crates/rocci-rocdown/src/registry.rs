@@ -62,7 +62,8 @@ const DETAILS: &[PaintField] = &[PaintField::str("summary"), PaintField::bool("o
 const STEP: &[PaintField] = &[PaintField::str("title"), PaintField::bool("verify")];
 const FIGURE: &[PaintField] = &[PaintField::str("caption"), PaintField::str("credit")];
 const DEFINITION: &[PaintField] = &[PaintField::map_str("title", "term")];
-const TAB: &[PaintField] = &[PaintField::str("label")];
+const TAB: &[PaintField] = &[PaintField::str("id"), PaintField::str("label")];
+const TABS: &[PaintField] = &[PaintField::str("group"), PaintField::str("kind")];
 const BADGE: &[PaintField] = &[PaintField::str("label")];
 const LINK_CARD: &[PaintField] = &[
     PaintField::str("href"),
@@ -115,6 +116,7 @@ impl KindSpec {
             "step" => STEP,
             "figure" => FIGURE,
             "definition" => DEFINITION,
+            "tabs" => TABS,
             "tab" => TAB,
             "badge" => BADGE,
             "link-card" => LINK_CARD,

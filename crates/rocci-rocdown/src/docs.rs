@@ -1919,6 +1919,9 @@ fn attr_str(attrs: &DocsAttrs, name: &str) -> String {
         }),
         "caption" => attrs.caption.clone().unwrap_or_default(),
         "credit" => attrs.credit.clone().unwrap_or_default(),
+        "id" => attrs.id.clone().unwrap_or_default(),
+        "group" => attrs.group.clone().unwrap_or_default(),
+        "kind" => attrs.tab_kind.clone().unwrap_or_default(),
         _ => String::new(),
     }
 }

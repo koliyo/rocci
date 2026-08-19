@@ -1740,6 +1740,30 @@ items = ["index", "guide"]
     }
 
     #[test]
+    fn pages_roc_emits_tab_ids_on_typed_children() {
+        let root = temp("tab-ids");
+        write_site(&root);
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n:tabs.begin[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] Mac panel.\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:tabs.end\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let roc = planned.pages_roc();
+        assert!(roc.contains("Tabs({"), "{roc}");
+        assert!(roc.contains("group: \"os\""), "{roc}");
+        assert!(roc.contains("kind: \"platform\""), "{roc}");
+        assert!(roc.contains("Tab({"), "{roc}");
+        assert!(roc.contains("id: \"mac\""), "{roc}");
+        assert!(roc.contains("id: \"linux\""), "{roc}");
+        assert!(roc.contains("label: \"macOS\""), "{roc}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn static_pages_keep_widget_forest_hybrid_pages_use_one_htmlfile() {
         let root = temp("dual-apply");
         fs::write(

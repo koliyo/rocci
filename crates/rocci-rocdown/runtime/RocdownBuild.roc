@@ -36,7 +36,8 @@ render_tree! = |segments, index| {
             Ok((DocsComponents.details({ summary: seg.summary, open: seg.open }, body), after))
         }
         Steps(seg) => {
-            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            (items, after) = render_step_items!(segments, index + 1, seg.child_count)?
+            body = html_from_records(items)
             Ok((DocsComponents.steps({}, body), after))
         }
         Step(seg) => {
@@ -52,19 +53,21 @@ render_tree! = |segments, index| {
             Ok((DocsComponents.definition({ title: seg.title }, body), after))
         }
         Tabs(seg) => {
-            (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.tabs({}, body), after))
+            (items, after) = render_tab_items!(segments, index + 1, seg.child_count)?
+            body = html_from_records(items)
+            Ok((DocsComponents.tabs({ group: seg.group, kind: seg.kind }, body), after))
         }
         Tab(seg) => {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
-            Ok((DocsComponents.tab({ label: seg.label }, body), after))
+            Ok((DocsComponents.tab({ id: seg.id, label: seg.label }, body), after))
         }
         Badge(seg) =>
             Ok((DocsComponents.badge({ label: seg.label }), index + 1))
         LinkCard(seg) =>
             Ok((DocsComponents.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }), index + 1))
         CardGrid(seg) => {
-            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            (items, after) = render_card_items!(segments, index + 1, seg.child_count)?
+            body = html_from_records(items)
             Ok((DocsComponents.cardGrid({}, body), after))
         }
         FileTree(seg) => {
@@ -93,6 +96,81 @@ render_children! = |segments, index, remaining|
         (node, after) = render_tree!(segments, index)?
         (rest, end) = render_children!(segments, after, remaining - 1)?
         Ok((Html.fragment([node, rest]), end))
+    }
+
+html_from_records = |items|
+    Html.fragment(List.map(items, |item| item.content))
+
+render_tab_items! = |segments, index, remaining|
+    if remaining == 0 {
+        Ok(([], index))
+    } else {
+        match List.get(segments, index)? {
+            Tab(seg) => {
+                (body, after) = render_children!(segments, index + 1, seg.child_count)?
+                item = {
+                    id: seg.id,
+                    label: seg.label,
+                    content: DocsComponents.tab({ id: seg.id, label: seg.label }, body),
+                }
+                (rest, end) = render_tab_items!(segments, after, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+            _ => {
+                (node, after) = render_tree!(segments, index)?
+                item = { id: "", label: "", content: node }
+                (rest, end) = render_tab_items!(segments, after, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+        }
+    }
+
+render_step_items! = |segments, index, remaining|
+    if remaining == 0 {
+        Ok(([], index))
+    } else {
+        match List.get(segments, index)? {
+            Step(seg) => {
+                (body, after) = render_children!(segments, index + 1, seg.child_count)?
+                item = {
+                    title: seg.title,
+                    verify: seg.verify,
+                    content: DocsComponents.step({ title: seg.title, verify: seg.verify }, body),
+                }
+                (rest, end) = render_step_items!(segments, after, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+            _ => {
+                (node, after) = render_tree!(segments, index)?
+                item = { title: "", verify: False, content: node }
+                (rest, end) = render_step_items!(segments, after, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+        }
+    }
+
+render_card_items! = |segments, index, remaining|
+    if remaining == 0 {
+        Ok(([], index))
+    } else {
+        match List.get(segments, index)? {
+            LinkCard(seg) => {
+                item = {
+                    href: seg.href,
+                    title: seg.title,
+                    summary: seg.summary,
+                    content: DocsComponents.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }),
+                }
+                (rest, end) = render_card_items!(segments, index + 1, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+            _ => {
+                (node, after) = render_tree!(segments, index)?
+                item = { href: "", title: "", summary: "", content: node }
+                (rest, end) = render_card_items!(segments, after, remaining - 1)?
+                Ok((List.prepend(rest, item), end))
+            }
+        }
     }
 
 render_forest! = |segments, index|
