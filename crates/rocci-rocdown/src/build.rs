@@ -304,7 +304,7 @@ impl Drop for BuildSession {
 }
 
 fn prepare_plan(loaded: &LoadedSite) -> Result<BuildPlan> {
-    let result = resolve_loaded(loaded);
+    let mut result = resolve_loaded(loaded);
     for diagnostic in &result.diagnostics {
         if diagnostic.severity == catalog::Severity::Warning {
             eprintln!("{diagnostic}");
@@ -313,7 +313,28 @@ fn prepare_plan(loaded: &LoadedSite) -> Result<BuildPlan> {
     if result.has_errors() {
         bail!("{}", result.error_summary());
     }
+    splice_hydrate_islands(loaded, &mut result.site)?;
     plan::plan(&loaded.root, &loaded.config, &result.site)
+}
+
+fn splice_hydrate_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Result<()> {
+    for page in &mut site.pages {
+        if page.kind != crate::article::PageKind::Hydrate {
+            continue;
+        }
+        let path = loaded.root.join(&page.source_path);
+        let src = fs::read_to_string(&path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let source_name = path.display().to_string();
+        let evaluated = crate::islands::evaluate_page(&path, &source_name, &src)
+            .with_context(|| format!("failed to evaluate islands in {}", page.source_path))?;
+        page.article_html = crate::islands::fill_placeholders(&page.article_html, &evaluated.html)
+            .with_context(|| format!("failed to splice islands into {}", page.source_path))?;
+        if page.island_css.is_empty() {
+            page.island_css = evaluated.css;
+        }
+    }
+    Ok(())
 }
 
 struct StagedBuild {
@@ -1020,19 +1041,69 @@ import Html
     }
 
     #[test]
-    fn island_pages_are_rejected_without_roc() {
-        let root = temp_dir("island-src");
+    fn hydrate_pages_splice_component_html_without_scripts() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("hydrate-src");
         write_page(
             &root,
             "index.rocdown",
-            "# Home\n\n@render {\n    Html.text(\"nope\")\n}\n",
+            r#"
+@page {
+    route: "/",
+    meta: { title: "Hydrate" },
+}
+
+@roc {
+feature_count = 3.I64
+}
+
+@css {
+    .feature-count { color: teal; }
+}
+
+@component
+FeatureCount = |{ count }| {
+    <p class="feature-count">{count.to_str()} core ideas</p>
+}
+
+# Rocdown
+
+Email docs@example.com.
+
+<FeatureCount count={feature_count} />
+
+After the island.
+"#,
         );
-        let output = temp_dir("island-out");
-        let err = build(&root, &output).unwrap_err();
-        let message = format!("{err:#}");
-        assert!(message.contains("@render"), "{message}");
-        assert!(message.contains("hydrate"), "{message}");
-        assert!(message.contains("RD2301"), "{message}");
+        let output = temp_dir("hydrate-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("<h1 class=\"rd-header-1\""), "{html}");
+        assert!(html.contains("Rocdown"), "{html}");
+        assert!(html.contains("docs@example.com"), "{html}");
+        assert!(html.contains("3 core ideas"), "{html}");
+        assert!(html.contains("After the island."), "{html}");
+        assert!(
+            html.contains("script-src 'none'") || html.contains("script-src &#39;none&#39;"),
+            "{html}"
+        );
+        assert!(
+            !html.to_ascii_lowercase().contains("<script"),
+            "hydrate pages must not emit a script tag\n{html}"
+        );
+        assert!(!html.contains("datastar"), "{html}");
+        let stylesheet = html
+            .split("href=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("stylesheet href");
+        let css_path = output.join(stylesheet.trim_start_matches('/'));
+        let css = fs::read_to_string(&css_path)
+            .unwrap_or_else(|_| panic!("missing stylesheet {}", css_path.display()));
+        assert!(css.contains(".feature-count"), "{css}");
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }

@@ -337,14 +337,13 @@ above.
 - Static site generation (`build`, `check`, `test`, `run`), content catalog,
   curated navigation, and hashed asset pipeline
 - Site page kinds `static` / `hydrate` / `live` recorded on the catalog and
-  `rocdown inspect catalog`. Hydrate (`RD2301`) and live (`RD2302`) pages still
-  fail site check/build until later hybrid phases splice components and emit an
-  island service
+  `rocdown inspect catalog`. `hydrate` pages splice pure Rocci components into
+  CDN HTML at build time. `live` pages (`RD2302`) still fail site check/build
+  until the island service phase.
 
 **Not implemented / Deferred**
 
 - `@island` and client JS dynamic island splicing
-- Build-time splice of `hydrate` Rocci components into CDN HTML
 - Island HTTP service and Datastar.js for `live` pages
 - Project default layouts and layout packages
 - Formatter

@@ -4,7 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-use rocci_template::{SourceFile, Span};
+use rocci_template::{SourceFile, Span, TemplateItem};
 use serde::Serialize;
 
 use crate::article::{render_md, render_static_image};
@@ -154,6 +154,7 @@ pub enum ArticleNode {
     Markdown(MdNode),
     Block(DocsNode),
     Image(StaticImage),
+    Island,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -358,6 +359,7 @@ fn article_text(nodes: &[ArticleNode]) -> String {
                         parts.push(image.alt.clone());
                     }
                 }
+                ArticleNode::Island => {}
             }
         }
     }
@@ -459,7 +461,7 @@ fn walk_links(nodes: &[ArticleNode], urls: &mut Vec<String>, images: bool) {
         match node {
             ArticleNode::Markdown(md) => walk_md_links(md, urls, images),
             ArticleNode::Image(image) if images => urls.push(image.src.clone()),
-            ArticleNode::Image(_) => {}
+            ArticleNode::Image(_) | ArticleNode::Island => {}
             ArticleNode::Block(docs) => {
                 if let Some(href) = &docs.attrs.href
                     && !images
@@ -544,6 +546,7 @@ fn rewrite_nodes(nodes: &mut [ArticleNode], map: &BTreeMap<String, String>) {
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => rewrite_md(md, map),
+            ArticleNode::Image(_) | ArticleNode::Island => {}
             ArticleNode::Block(docs) => {
                 if let Some(href) = &docs.attrs.href
                     && let Some(rewritten) = map.get(href)
@@ -552,7 +555,6 @@ fn rewrite_nodes(nodes: &mut [ArticleNode], map: &BTreeMap<String, String>) {
                 }
                 rewrite_nodes(&mut docs.children, map);
             }
-            ArticleNode::Image(_) => {}
         }
     }
 }
@@ -659,6 +661,17 @@ fn nodes_from_items(
             }
             Item::Page(_) if parent_kind.is_some() => illegal(ctx, item, "page"),
             Item::Page(_) => {}
+            Item::Render(_) if parent_kind.is_none() => nodes.push(ArticleNode::Island),
+            Item::Template(TemplateItem::Let(_)) if parent_kind.is_none() => {}
+            Item::Template(_) if parent_kind.is_none() => nodes.push(ArticleNode::Island),
+            Item::Roc(_)
+            | Item::Component(_)
+            | Item::Fixture(_)
+            | Item::Css(_)
+            | Item::Context(_)
+            | Item::Init(_)
+            | Item::On(_)
+                if parent_kind.is_none() => {}
             Item::Roc(_) => illegal(ctx, item, "roc"),
             Item::Render(_) => illegal(ctx, item, "render"),
             Item::Component(_) => illegal(ctx, item, "component"),
@@ -1028,7 +1041,7 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
             let extra = node.children.iter().any(|child| match child {
                 ArticleNode::Block(docs) => docs.kind != "step",
                 ArticleNode::Markdown(MdNode::List { ordered: true, .. }) => false,
-                ArticleNode::Markdown(_) | ArticleNode::Image(_) => true,
+                ArticleNode::Markdown(_) | ArticleNode::Image(_) | ArticleNode::Island => true,
             });
             if has_step && has_list {
                 malformed(ctx, line, "`:steps` cannot mix a list with `:step`");
@@ -1514,6 +1527,7 @@ fn render_node(node: &ArticleNode) -> String {
         ArticleNode::Markdown(md) => render_md(md),
         ArticleNode::Block(docs) => render_docs(docs),
         ArticleNode::Image(image) => render_static_image(image),
+        ArticleNode::Island => crate::islands::PLACEHOLDER.to_string(),
     }
 }
 
@@ -1563,6 +1577,7 @@ pub fn markdown_fragment(nodes: &[ArticleNode]) -> String {
                 out.push_str(&format!("![{}]({})", image.alt, image.src));
                 out.push('\n');
             }
+            ArticleNode::Island => {}
         }
     }
     out
@@ -1764,6 +1779,7 @@ fn plan_nodes(
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => markdown.push(md.clone()),
+            ArticleNode::Island => {}
             ArticleNode::Image(image) => {
                 flush(&mut markdown, files, counter, &mut segments);
                 let html = rewrite_urls(&render_static_image(image), rewrite);

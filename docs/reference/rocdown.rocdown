@@ -203,9 +203,12 @@ automatic navigator.
 
 ## Static documentation site support
 
-Rocdown site builds currently accept the static Markdown tree plus `@page` and article blocks.
-They reject dynamic Roc, Rocci templates, `@css`, handlers, `@use`, and custom layouts until the
-island splice path is implemented. Draft pages are excluded from production builds.
+Rocdown site builds accept the static Markdown tree plus `@page` and article
+blocks (`:note`, `:tabs`, and the other builtin kinds). They pre-render
+`hydrate` pages (`@component`, `@render`, document-root tags, `@css`, `@roc`)
+into CDN HTML. `@use` stays a site-build error. Pages with `@on` / `@context` /
+`@init` or `import Datastar` are `live` and are still rejected until the island
+service ships. Draft pages are excluded from production builds.
 
 The developer tree spec for owned article and module AST nodes is
 `crates/rocci-rocdown/Rocdown.AST.ungram`. It generates Rust types; it does not

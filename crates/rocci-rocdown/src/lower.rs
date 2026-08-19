@@ -21,6 +21,7 @@ use crate::parse_fragment;
 const META_NAME: &str = "rocci_meta";
 const CONTENT_NAME: &str = "rocci_content";
 const PAGE_NAME: &str = "rocci_page";
+const ISLANDS_NAME: &str = "rocci_islands";
 
 pub struct Lowered {
     pub roc: String,
@@ -60,7 +61,10 @@ pub fn lower(
         }
         if let Item::Roc(roc) = item {
             for (name, span) in roc_binding_names(source.src, roc.body) {
-                let reserved = matches!(name.as_str(), META_NAME | CONTENT_NAME | PAGE_NAME);
+                let reserved = matches!(
+                    name.as_str(),
+                    META_NAME | CONTENT_NAME | PAGE_NAME | ISLANDS_NAME
+                );
                 if reserved {
                     diagnostics.push(Diagnostic::error(
                         span,
@@ -357,6 +361,212 @@ pub fn lower(
     }
 }
 
+pub fn lower_islands(
+    source: SourceFile<'_>,
+    document: &Document,
+    options: &CompileOptions,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Lowered {
+    let mut page_meta = PageMeta::default();
+    let mut page_count = 0;
+    let mut page_span = Span::point(0);
+    for item in &document.items {
+        if let Item::Page(page) = item {
+            page_count += 1;
+            if page_count > 1 {
+                diagnostics.push(Diagnostic::error(
+                    page.span,
+                    "duplicate `@page`; a document may declare page metadata once",
+                ));
+            } else {
+                page_span = page.span;
+                page_meta = extract_page(source.src, page.body, diagnostics);
+            }
+        }
+        if let Item::Roc(roc) = item {
+            for (name, span) in roc_binding_names(source.src, roc.body) {
+                let reserved = matches!(
+                    name.as_str(),
+                    META_NAME | CONTENT_NAME | PAGE_NAME | ISLANDS_NAME
+                );
+                if reserved {
+                    diagnostics.push(Diagnostic::error(
+                        span,
+                        format!("`{name}` is reserved for generated Rocdown exports"),
+                    ));
+                }
+            }
+        }
+    }
+
+    let mut rocci_items = Vec::new();
+    for item in &document.items {
+        match item {
+            Item::Component(decl) => rocci_items.push(ModuleItem::Component(decl.clone())),
+            Item::Fixture(decl) => rocci_items.push(ModuleItem::Fixture(decl.clone())),
+            Item::Css(decl) => rocci_items.push(ModuleItem::Css(decl.clone())),
+            _ => {}
+        }
+    }
+    let rocci_doc = RocciDocument {
+        items: rocci_items,
+        span: document.span,
+    };
+    validate(source.src, &rocci_doc, diagnostics);
+    for item in &document.items {
+        if let Item::Template(template) = item {
+            validate_template_items(std::slice::from_ref(template), diagnostics);
+        }
+    }
+
+    if let Err(err) = rocci_theme::resolve(
+        page_meta.theme.as_deref(),
+        page_meta.color_scheme.as_deref(),
+        &options.theme,
+    ) {
+        diagnostics.push(Diagnostic::error(page_span, err.to_string()));
+    }
+    let mut lower_opts = options.lower.clone();
+    lower_opts.theme_css = None;
+    lower_opts.theme_id = None;
+    lower_opts.color_scheme_attr = None;
+    let lowered_rocci = rocci_template::lower(source, &rocci_doc, &lower_opts);
+
+    let css_stamp = if lowered_rocci
+        .styles
+        .iter()
+        .any(|style| matches!(style.kind, rocci_template::StyleKind::File))
+    {
+        Some(file_scope_id(source.name))
+    } else {
+        None
+    };
+
+    let field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
+        .components
+        .iter()
+        .map(|component| (component.name.clone(), component.param_defaults.clone()))
+        .collect();
+
+    let mut emitter = Emitter {
+        source,
+        options: &lower_opts,
+        html: &lower_opts.html_module,
+        roc: String::new(),
+        segments: Vec::new(),
+        indent: 0,
+        at_line_start: true,
+        css_stamp,
+        field_defaults,
+        theme: None,
+        diagnostics,
+        resolve_includes: options.resolve_includes,
+    };
+
+    let mut imports = Vec::new();
+    let mut rest = Vec::new();
+    for item in &document.items {
+        if let Item::Roc(roc) = item {
+            let (imp, body) = split_roc_body(source.src, roc.body);
+            imports.extend(imp);
+            rest.extend(body);
+        }
+    }
+    let injected_html = !imports_html(source.src, &imports);
+    if injected_html {
+        emitter.emit("import Html\n");
+    }
+    let mut template_roc = lowered_rocci.roc;
+    if template_roc.starts_with("import Datastar\n") {
+        template_roc = template_roc
+            .strip_prefix("import Datastar\n")
+            .unwrap_or(&template_roc)
+            .trim_start_matches('\n')
+            .to_string();
+    }
+    for span in &imports {
+        let text = span.of(source.src).trim_end();
+        if !text.is_empty() {
+            emitter.emit_source(*span, text, OriginKind::RocBlock);
+            if !text.ends_with('\n') {
+                emitter.emit("\n");
+            }
+        }
+    }
+    if injected_html || !imports.is_empty() {
+        emitter.emit("\n");
+    }
+    for span in &rest {
+        let text = span.of(source.src).trim_end();
+        if text.is_empty() {
+            continue;
+        }
+        emitter.emit_source(*span, text, OriginKind::RocBlock);
+        if !text.ends_with('\n') {
+            emitter.emit("\n");
+        }
+        emitter.emit("\n");
+    }
+    if !template_roc.trim().is_empty() {
+        let template_start = emitter.roc.len();
+        emitter.emit(template_roc.trim_start());
+        if !emitter.roc.ends_with('\n') {
+            emitter.emit("\n");
+        }
+        emitter.emit("\n");
+        for mut segment in lowered_rocci.segments {
+            segment.generated.start += template_start as u32;
+            segment.generated.end += template_start as u32;
+            emitter.segments.push(segment);
+        }
+    }
+
+    emitter.emit(ISLANDS_NAME);
+    emitter.emit(" = |{}| {\n");
+    emitter.indent += 1;
+    emitter.emit_content_lets(document);
+    emitter.push_indent();
+    emitter.emit_island_list(document);
+    emitter.emit("\n");
+    emitter.indent -= 1;
+    emitter.push_indent();
+    emitter.emit("}\n");
+
+    if !emitter.roc.ends_with('\n') {
+        emitter.roc.push('\n');
+    }
+
+    Lowered {
+        roc: emitter.roc,
+        segments: emitter.segments,
+        components: lowered_rocci.components,
+        fixtures: lowered_rocci.fixtures,
+        styles: lowered_rocci.styles,
+        state_type: None,
+        init: None,
+        routes: Vec::new(),
+        page_meta,
+        theme: None,
+    }
+}
+
+pub(crate) fn island_item_count(document: &Document) -> usize {
+    document
+        .items
+        .iter()
+        .filter(|item| is_island_item(item))
+        .count()
+}
+
+pub(crate) fn is_island_item(item: &Item) -> bool {
+    match item {
+        Item::Render(_) => true,
+        Item::Template(TemplateItem::Let(_)) => false,
+        Item::Template(_) => true,
+        _ => false,
+    }
+}
+
 struct Emitter<'a> {
     source: SourceFile<'a>,
     options: &'a LowerOptions,
@@ -515,6 +725,42 @@ impl<'a> Emitter<'a> {
             }
             self.emit(",\n");
         }
+    }
+
+    fn emit_island_list(&mut self, document: &Document) {
+        self.emit("[\n");
+        self.indent += 1;
+        for item in &document.items {
+            match item {
+                Item::Render(render) => {
+                    self.push_indent();
+                    let expr = render.expr.of(self.source.src).trim();
+                    self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
+                    self.emit(",\n");
+                }
+                Item::Template(TemplateItem::Let(_)) => {}
+                Item::Template(item) if matches!(item, TemplateItem::For(_)) => {
+                    self.push_indent();
+                    self.emit_html(".fragment(\n");
+                    self.indent += 1;
+                    self.push_indent();
+                    self.splice_template(std::slice::from_ref(item), TemplateValueCtx::List);
+                    self.emit("\n");
+                    self.indent -= 1;
+                    self.push_indent();
+                    self.emit("),\n");
+                }
+                Item::Template(item) => {
+                    self.push_indent();
+                    self.splice_template(std::slice::from_ref(item), TemplateValueCtx::Node);
+                    self.emit(",\n");
+                }
+                _ => {}
+            }
+        }
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("]");
     }
 
     fn emit_footnote_section(&mut self, document: &Document) {

@@ -85,6 +85,7 @@ pub struct SourcePage {
     pub outgoing_links: Vec<String>,
     pub image_urls: Vec<String>,
     pub article_html: String,
+    pub island_css: String,
     pub kind: PageKind,
     pub docs: crate::docs::PageDocs,
 }
@@ -119,6 +120,8 @@ pub struct ResolvedPage {
     pub headings: Vec<PageHeading>,
     pub outgoing_links: Vec<String>,
     pub article_html: String,
+    #[serde(skip)]
+    pub island_css: String,
     pub route: String,
     pub output_path: String,
     pub aliases: Vec<String>,
@@ -280,6 +283,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
             headings: page.headings.clone(),
             outgoing_links: page.outgoing_links.clone(),
             article_html: page.article_html.clone(),
+            island_css: page.island_css.clone(),
             output_path: if route.starts_with('/') && !route.contains("..") {
                 route_output_path(&route)
             } else {
@@ -983,6 +987,7 @@ mod tests {
             outgoing_links: Vec::new(),
             image_urls: Vec::new(),
             article_html: String::new(),
+            island_css: String::new(),
             kind: crate::article::PageKind::Static,
             docs: crate::docs::PageDocs::default(),
         }
