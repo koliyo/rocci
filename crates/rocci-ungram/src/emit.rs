@@ -42,13 +42,9 @@ fn emit_use(out: &mut String, path: &str) {
         if single.len() > 100 && !names.is_empty() {
             out.push_str("use ");
             out.push_str(head);
-            out.push_str("::{\n");
-            for name in names {
-                out.push_str("    ");
-                out.push_str(name);
-                out.push_str(",\n");
-            }
-            out.push_str("};\n");
+            out.push_str("::{\n    ");
+            out.push_str(&names.join(", "));
+            out.push_str(",\n};\n");
             return;
         }
     }

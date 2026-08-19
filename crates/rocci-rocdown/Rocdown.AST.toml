@@ -1,9 +1,11 @@
 # Maps Rocdown.AST.ungram productions onto shipped types.
-# Phase 1 documentation for codegen. Language crates do not parse this at runtime.
+# Language crates do not parse this at runtime. `super::MdNode` is the opaque
+# Markdown tree defined beside generated types in ast.rs.
 
 [meta]
 ungram = "Rocdown.AST.ungram"
 uses = [
+    "super::MdNode",
     "rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem}",
 ]
 

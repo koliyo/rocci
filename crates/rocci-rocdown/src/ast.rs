@@ -1,83 +1,8 @@
-use rocci_template::{
-    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem,
-};
+use rocci_template::Span;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Document {
-    pub items: Vec<Item>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Item {
-    Markdown(MdNode),
-    Page(PageDecl),
-    Roc(RocDecl),
-    Render(RenderDecl),
-    Component(ComponentDecl),
-    Fixture(FixtureDecl),
-    Css(CssDecl),
-    Context(ContextDecl),
-    Init(InitDecl),
-    On(OnDecl),
-    Use(UseDecl),
-    Template(TemplateItem),
-    Block(BlockCall),
-}
-
-impl Item {
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Markdown(node) => node.span(),
-            Self::Page(item) => item.span,
-            Self::Roc(item) => item.span,
-            Self::Render(item) => item.span,
-            Self::Component(item) => item.span,
-            Self::Fixture(item) => item.span,
-            Self::Css(item) => item.span,
-            Self::Context(item) => item.span,
-            Self::Init(item) => item.span,
-            Self::On(item) => item.span,
-            Self::Use(item) => item.span,
-            Self::Template(item) => item.span(),
-            Self::Block(item) => item.span,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PageDecl {
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RocDecl {
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RenderDecl {
-    pub expr: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct UseDecl {
-    pub path: String,
-    pub path_span: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BlockCall {
-    pub name: String,
-    pub name_span: Span,
-    pub params: Option<BracketRecord>,
-    pub content: Option<BlockContent>,
-    pub span: Span,
-}
+#[path = "ast.generated.rs"]
+mod ast_generated;
+pub use ast_generated::*;
 
 impl BlockCall {
     pub fn content_span(&self) -> Option<Span> {
@@ -112,64 +37,7 @@ impl BlockCall {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BracketRecord {
-    pub fields: Vec<ParamField>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BracketList {
-    pub items: Vec<ParamValue>,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ParamField {
-    pub name: String,
-    pub name_span: Span,
-    pub value: ParamValue,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParamValue {
-    StringLit { value: String, span: Span },
-    BoolLit { value: bool, span: Span },
-    NumberLit { value: String, span: Span },
-    Ident { name: String, span: Span },
-    Record(BracketRecord),
-    List(BracketList),
-}
-
-impl ParamValue {
-    pub fn span(&self) -> Span {
-        match self {
-            Self::StringLit { span, .. }
-            | Self::BoolLit { span, .. }
-            | Self::NumberLit { span, .. }
-            | Self::Ident { span, .. } => *span,
-            Self::Record(record) => record.span,
-            Self::List(list) => list.span,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum BlockContent {
-    Line(LineContent),
-    Brace(BraceSection),
-    End(EndSection),
-}
-
 impl BlockContent {
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Line(content) => content.span,
-            Self::Brace(section) => section.span,
-            Self::End(section) => section.span,
-        }
-    }
-
     pub fn scope_name(&self) -> &'static str {
         match self {
             Self::Line(_) => "line",
@@ -177,28 +45,6 @@ impl BlockContent {
             Self::End(_) => "end",
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LineContent {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BraceSection {
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EndSection {
-    pub span: Span,
-    pub marker: EndMarker,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EndMarker {
-    pub name: String,
-    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
