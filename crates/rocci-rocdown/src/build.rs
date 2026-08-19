@@ -125,12 +125,8 @@ fn build_loaded_with_host(
         };
 
     let roc_started = Instant::now();
-    let roc_output = if is_wasm {
-        invoke_wasm_apply(&apply_path, &staging)?
-    } else {
-        invoke_apply(&apply_path, &workspace, &staging, &maps)
-            .with_context(|| format!("workspace {}", workspace.display()))?
-    };
+    let roc_output = apply_html(&workspace, &staging, &maps, is_wasm, &apply_path)
+        .with_context(|| format!("workspace {}", workspace.display()))?;
     let roc_ms = roc_started.elapsed().as_millis();
     if !roc_output.is_empty() {
         eprint!("{roc_output}");
@@ -270,12 +266,8 @@ impl BuildSession {
             };
 
         let roc_started = Instant::now();
-        let roc_output = if is_wasm {
-            invoke_wasm_apply(&apply_bin, &staging)?
-        } else {
-            invoke_apply(&apply_bin, &self.workspace, &staging, &maps)
-                .with_context(|| format!("workspace {}", self.workspace.display()))?
-        };
+        let roc_output = apply_html(&self.workspace, &staging, &maps, is_wasm, &apply_bin)
+            .with_context(|| format!("workspace {}", self.workspace.display()))?;
         let roc_ms = roc_started.elapsed().as_millis();
         if !roc_output.is_empty() {
             eprint!("{roc_output}");
@@ -350,9 +342,12 @@ fn write_plan_files(
 
     let articles = workspace.join("articles");
     fs::create_dir_all(&articles).context("failed to create articles directory")?;
+    fs::create_dir_all(staging.join("articles")).context("failed to create staging articles")?;
     for page in &plan.pages {
         fs::write(workspace.join(&page.article_path), &page.article_html)
             .with_context(|| format!("failed to write {}", page.article_path))?;
+        fs::write(staging.join(&page.article_path), &page.article_html)
+            .with_context(|| format!("failed to stage article blob {}", page.article_path))?;
         for (path, html) in &page.fragments {
             if let Some(parent) = Path::new(path).parent()
                 && parent != Path::new("")
@@ -537,6 +532,26 @@ main! = |_args| {{
     }
 }
 
+fn apply_html(
+    workspace: &Path,
+    staging: &Path,
+    maps: &[MappedModule],
+    is_wasm: bool,
+    compiled: &Path,
+) -> Result<String> {
+    if is_wasm {
+        let wasm_out = invoke_wasm_apply(compiled, workspace, staging)?;
+        fs::write(workspace.join("main.roc"), main_roc(false))
+            .context("failed to write native apply main.roc")?;
+        let native_bin = workspace.join("apply");
+        let native_compile = invoke_roc_build(workspace, &native_bin, maps)?;
+        let native_out = invoke_apply(&native_bin, workspace, staging, maps)?;
+        Ok(format!("{wasm_out}{native_compile}{native_out}"))
+    } else {
+        invoke_apply(compiled, workspace, staging, maps)
+    }
+}
+
 fn invoke_roc_build(workspace: &Path, apply_bin: &Path, maps: &[MappedModule]) -> Result<String> {
     let output = Command::new("roc")
         .arg("build")
@@ -573,9 +588,9 @@ fn invoke_roc_wasm_build(
     Ok(combined)
 }
 
-fn invoke_wasm_apply(wasm_file: &Path, staging: &Path) -> Result<String> {
+fn invoke_wasm_apply(wasm_file: &Path, workspace: &Path, staging: &Path) -> Result<String> {
     let host = rocci_roc_host::WasmHost::from_file(wasm_file)?;
-    host.run_wasi(staging)
+    host.run_wasi_with_preopens(staging, &[workspace])
 }
 
 fn invoke_apply(
@@ -761,25 +776,35 @@ pub(crate) mod tests {
             eprintln!("skipping: roc not on PATH");
             return true;
         }
-        let test_dir = env::temp_dir().join(format!("roc-probe-{}", std::process::id()));
-        let _ = fs::create_dir_all(&test_dir);
+        let test_dir = unique_temp("roc-probe").unwrap();
         let probe_file = test_dir.join("main.roc");
         let _ = fs::write(
             &probe_file,
             "app [main!] { pf: platform \"https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst\" }\nmain! = |_| Ok({})\n",
         );
-        let build_ok = Command::new("roc")
+        let probe = Command::new("roc")
             .arg("build")
-            .arg(&probe_file)
+            .arg("main.roc")
             .arg("--opt=dev")
             .current_dir(&test_dir)
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false);
+            .env_remove("CARGO_MANIFEST_DIR")
+            .env_remove("CARGO")
+            .output();
+        let (build_ok, probe_out) = match probe {
+            Ok(output) => {
+                let combined = format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                (output.status.success(), combined)
+            }
+            Err(err) => (false, err.to_string()),
+        };
         let _ = fs::remove_dir_all(&test_dir);
         if !build_ok {
             if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-                panic!("roc compilation failed during environment probe");
+                panic!("roc compilation failed during environment probe:\n{probe_out}");
             }
             eprintln!("skipping: roc compilation not functional in this environment");
             return true;
@@ -1088,8 +1113,26 @@ import Html
         let _report = build_with_host(&root, &output, rocci_roc_host::HostChoice::Wasm).unwrap();
         assert!(output.join("index.html").is_file());
         let html = fs::read_to_string(output.join("index.html")).unwrap();
-        assert!(html.contains("Wasm Documentation"));
+        assert!(html.contains("Wasm Documentation"), "{html}");
+        assert!(
+            html.contains("<h1 class=\"rd-header-1\""),
+            "wasm apply must splice the Markdown blob into the theme article slot\n{html}"
+        );
+        assert!(!html.contains("&lt;h1"), "{html}");
+        let native_out = temp_dir("wasm-host-native-out");
+        build_with_host(&root, &native_out, rocci_roc_host::HostChoice::Native).unwrap();
+        let native = fs::read_to_string(native_out.join("index.html")).unwrap();
+        let article = |page: &str| {
+            let start = page
+                .find("<article")
+                .and_then(|idx| page[idx..].find('>').map(|rel| idx + rel + 1))
+                .expect("article open");
+            let end = page.find("</article>").expect("article close");
+            page[start..end].to_string()
+        };
+        assert_eq!(article(&html), article(&native));
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
+        let _ = fs::remove_dir_all(&native_out);
     }
 }

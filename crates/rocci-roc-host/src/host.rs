@@ -277,23 +277,44 @@ impl WasmHost {
     }
 
     pub fn run_wasi(&self, staging: &Path) -> Result<String> {
+        self.run_wasi_with_preopens(staging, &[])
+    }
+
+    pub fn run_wasi_with_preopens(&self, staging: &Path, extra: &[&Path]) -> Result<String> {
         use wasmtime_wasi::WasiCtxBuilder;
         use wasmtime_wasi::pipe::MemoryOutputPipe;
 
         let stdout_pipe = MemoryOutputPipe::new(4096);
         let stderr_pipe = MemoryOutputPipe::new(4096);
 
-        let wasi = WasiCtxBuilder::new()
+        let mut builder = WasiCtxBuilder::new();
+        builder
             .env("ROCDOWN_STAGING", staging.to_str().unwrap_or_default())
-            .preopened_dir(
+            .stdout(stdout_pipe.clone())
+            .stderr(stderr_pipe.clone());
+        if let Some(guest) = staging.to_str() {
+            builder.preopened_dir(
                 staging,
-                staging.to_str().unwrap_or_default(),
+                guest,
                 wasmtime_wasi::DirPerms::all(),
                 wasmtime_wasi::FilePerms::all(),
-            )?
-            .stdout(stdout_pipe.clone())
-            .stderr(stderr_pipe.clone())
-            .build_p1();
+            )?;
+        }
+        for dir in extra {
+            let Some(guest) = dir.to_str() else {
+                continue;
+            };
+            if staging.to_str() == Some(guest) {
+                continue;
+            }
+            builder.preopened_dir(
+                dir,
+                guest,
+                wasmtime_wasi::DirPerms::all(),
+                wasmtime_wasi::FilePerms::all(),
+            )?;
+        }
+        let wasi = builder.build_p1();
 
         let mut store = wasmtime::Store::new(&self.engine, wasi);
         let mut linker = wasmtime::Linker::new(&self.engine);
