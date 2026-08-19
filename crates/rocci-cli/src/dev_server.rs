@@ -469,9 +469,20 @@ fn handle_client(
             } else if output.join("404.html").is_file() {
                 serve_file(&mut stream, output, "404.html", 404)
             } else {
-                write_error_html(&mut stream, "no built site yet")
+                write_error_html(
+                    &mut stream,
+                    missing_page_message(has_build.load(Ordering::Relaxed)),
+                )
             }
         }
+    }
+}
+
+fn missing_page_message(has_build: bool) -> &'static str {
+    if has_build {
+        "page not found"
+    } else {
+        "no built site yet"
     }
 }
 
@@ -820,5 +831,11 @@ mod tests {
         assert_eq!(resolve_request(&temp, "/../outside"), ServeTarget::NotFound);
 
         let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn missing_page_message_depends_on_build_state() {
+        assert_eq!(missing_page_message(false), "no built site yet");
+        assert_eq!(missing_page_message(true), "page not found");
     }
 }
