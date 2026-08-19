@@ -39,7 +39,8 @@ cargo run -q -p rocci-cli -- run examples/errors/parse/Broken.rocdown
 
 The CLI still prints a rustc-style frame on stderr. The preview stays up and
 shows the same diagnostic. `rocci build` on that file exits after printing
-frames and does not start a server.
+frames and does not start a server. `rocdown run` on a broken document does the
+same: frames on stderr, error page in the preview, unless you pass `--quiet`.
 
 ## Roc compile error
 

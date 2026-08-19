@@ -52,6 +52,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Do not print compile diagnostics on stderr; the error page still serves.
+        #[arg(long)]
+        quiet: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -297,13 +300,14 @@ fn try_main() -> Result<()> {
             output,
             host,
             no_window,
+            quiet,
             port,
             theme,
             args,
         } => {
             if is_document_file(&path) {
                 refuse_okf_input(&path, "run")?;
-                run_standalone_doc(&path, &args, no_window, port, &theme)
+                run_standalone_doc(&path, &args, no_window, quiet, port, &theme)
             } else if path.is_file() {
                 bail!(
                     "unsupported file extension for `rocdown run`: {}; expected a .rocdown, .md, or .markdown file",
@@ -453,6 +457,7 @@ fn run_standalone_doc(
     file: &Path,
     args: &[String],
     no_window: bool,
+    quiet: bool,
     port: PortArg,
     theme: &ThemeArgs,
 ) -> Result<()> {
@@ -484,6 +489,9 @@ fn run_standalone_doc(
                     diagnostics: f.diagnostics,
                 })
                 .collect();
+            if !quiet {
+                rocci_cli::error_page::eprint_template_errors(&failed_files);
+            }
             return rocci_cli::driver::serve_template_errors(
                 &failed_files,
                 port,
@@ -663,12 +671,29 @@ mod tests {
             Commands::Run {
                 path,
                 no_window,
+                quiet,
                 port,
                 ..
             } => {
                 assert_eq!(path, PathBuf::from("examples/rocdown/Guide.rocdown"));
                 assert!(no_window);
+                assert!(!quiet);
                 assert_eq!(port, PortArg::Exact(8000));
+            }
+            _ => panic!("expected run"),
+        }
+
+        let cli = Cli::try_parse_from([
+            "rocdown",
+            "run",
+            "examples/errors/parse/Broken.rocdown",
+            "--quiet",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Run { quiet, path, .. } => {
+                assert!(quiet);
+                assert_eq!(path, PathBuf::from("examples/errors/parse/Broken.rocdown"));
             }
             _ => panic!("expected run"),
         }

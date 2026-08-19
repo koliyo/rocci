@@ -225,6 +225,11 @@ fn errors_parse_example_builds_error_page() {
     assert!(html.contains("Broken.rocdown"));
     assert!(html.contains("@page"));
     assert!(html.contains("error"));
+    let frames = error_page::format_template_errors(&failed_files);
+    assert!(frames.contains("error:"));
+    assert!(frames.contains("Broken.rocdown"));
+    assert!(frames.contains("@page"));
+    assert!(frames.contains("^"));
 }
 
 #[test]
