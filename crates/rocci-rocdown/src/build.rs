@@ -95,7 +95,7 @@ fn build_loaded_with_host(
     cdn_only: bool,
 ) -> Result<BuildReport> {
     let plan_started = Instant::now();
-    let plan = prepare_plan(loaded, cdn_only)?;
+    let plan = prepare_plan(loaded, cdn_only, false)?;
     let plan_ms = plan_started.elapsed().as_millis();
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
@@ -232,7 +232,7 @@ impl BuildSession {
         host: rocci_roc_host::HostChoice,
     ) -> Result<BuildReport> {
         let plan_started = Instant::now();
-        let plan = prepare_plan(loaded, false)?;
+        let plan = prepare_plan(loaded, false, true)?;
         let plan_ms = plan_started.elapsed().as_millis();
         let staging = unique_temp("stage")?;
         let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
@@ -328,7 +328,7 @@ impl Drop for BuildSession {
     }
 }
 
-fn prepare_plan(loaded: &LoadedSite, cdn_only: bool) -> Result<BuildPlan> {
+fn prepare_plan(loaded: &LoadedSite, cdn_only: bool, preview: bool) -> Result<BuildPlan> {
     let mut result = resolve_loaded(loaded);
     for diagnostic in &result.diagnostics {
         if diagnostic.severity == catalog::Severity::Warning {
@@ -355,7 +355,11 @@ fn prepare_plan(loaded: &LoadedSite, cdn_only: bool) -> Result<BuildPlan> {
         }
     }
     splice_islands(loaded, &mut result.site)?;
-    plan::plan(&loaded.root, &loaded.config, &result.site)
+    if preview {
+        plan::plan_preview(&loaded.root, &loaded.config, &result.site)
+    } else {
+        plan::plan(&loaded.root, &loaded.config, &result.site)
+    }
 }
 
 fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Result<()> {
@@ -1154,6 +1158,67 @@ import Html
         assert!(html.contains("data-test-note"), "{html}");
         assert!(html.contains("data-title=\"Watch\""), "{html}");
         assert!(!html.contains("data-rocci-docs=\"note\""), "{html}");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn debug_painter_emits_unfinished_markup() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("block-debug-src");
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <head>
+            <title>{view.title}</title>
+        </head>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/DocsComponents.rocci"),
+            r#"
+import Html
+
+@component Tip = |{ title }, content|
+    <p data-stub-tip data-title={title}>{content}</p>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+
+[blocks]
+debug = true
+"#,
+        )
+        .unwrap();
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n",
+        );
+        let output = temp_dir("block-debug-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("data-rocci-block-debug"), "{html}");
+        assert!(html.contains("data-kind=\"note\""), "{html}");
+        assert!(html.contains("Watch"), "{html}");
+        assert!(!html.contains("rd-docs-note"), "{html}");
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }

@@ -289,7 +289,9 @@ unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
 `theme/blocks/*.rocci`) overlays those painters by matching `@component` names.
 `[blocks] pack` in `rocdown.toml` selects a different pack path;
-`[blocks.override]` remaps a kind to a pack component. See
+`[blocks.override]` remaps a kind to a pack component. Known kinds without a
+painter fail `rocdown build` / `check` unless `[blocks] debug = true`; preview
+paints a `data-rocci-block-debug` placeholder. See
 [Rocdown site configuration](../../docs/reference/rocdown-site.rocdown). Static
 apply data is a tagged union of
 per-kind props plus fragment paths; widget bodies stay in HTML files and are
