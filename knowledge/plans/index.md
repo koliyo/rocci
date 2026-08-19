@@ -1,5 +1,6 @@
 # Plans
 
+* [Generalized Rocdown block model](generalized-rocdown-block-model.md) - Phased delivery of uniform article `BlockCall` nodes, `:name[params]` spelling, a closed builtin registry, and per-kind Rocci renderers. Exploratory; not shipped.
 * [Full Rocci and Rocdown language tooling](language-server.md) - Proposed region-aware editor tooling with shared token spans and product-owned server composition under the boundary refactor.
 * [Public-preview branding and community](public-preview-community.md) - Reversible launch gate, Roc and Datastar feedback sequence, and evidence-based naming and identity decisions.
 * [rocci.dev site architecture and Rocdown evolution](rocci-dev-site.md) - Proposed site structure, Rocdown/Rocci authoring split, named layouts, collections, and the decision boundary for a possible `rocci-site` profile.

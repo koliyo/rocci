@@ -1,0 +1,139 @@
+// Draft Rocdown document AST.
+//
+// Generate node types (and later `format_ast` / syntax kinds) from this file.
+// Do not generate the scanner. Comrak still owns Markdown sugar recognition.
+// Rocdown still owns document-root scanning. Spans are attached by codegen.
+//
+// Exploratory syntax this tree describes:
+//   :note Don't do this.
+//   :h2[id: "install"] Installing
+//   :note[title: "Watch"] {{ nested Rocdown }}
+//   :tabs[group: "os"] ... :end.tabs
+// Module / Rocci islands stay `@page { }`, `@component`, `@use`.
+// This is not the shipped `Item` / `DocsDecl` tree in ast.rs.
+
+/// A `.rocdown` file.
+Document =
+  items:Item*
+
+Item =
+  ModuleItem
+| Block
+
+/// Language islands. Payload is Roc, CSS, or Rocci — not article Rocdown.
+ModuleItem =
+  PageDecl
+| RocDecl
+| RenderDecl
+| ComponentDecl
+| FixtureDecl
+| CssDecl
+| ContextDecl
+| InitDecl
+| OnDecl
+| UseDecl
+
+PageDecl = '@' 'page' payload:BracePayload
+RocDecl = '@' 'roc' payload:BracePayload
+RenderDecl = '@' 'render' payload:BracePayload
+CssDecl = '@' 'css' payload:BracePayload
+UseDecl = '@' 'use' path:StringLit
+
+/// Opaque Rocci declarations. Shape lives in rocci-template.
+ComponentDecl = 'rocci-component'
+FixtureDecl = 'rocci-fixture'
+ContextDecl = 'rocci-context'
+InitDecl = 'rocci-init'
+OnDecl = 'rocci-on'
+
+/// Opaque `{ ... }` whose insides are Roc or CSS, not nested Rocdown.
+BracePayload = '{' '}'
+
+/// Article tree. Markdown sugar and explicit `:name` calls share this layer.
+Block =
+  BlockCall
+| Paragraph
+| List
+| BlockQuote
+| CodeBlock
+| Table
+| ThematicBreak
+| TemplateSplice
+| HtmlIsland
+
+/// Uniform article node: kind, optional params, optional content.
+/// `# Installing` and `:h2 Installing` both produce this (name = h2).
+/// `![alt](src)` at block level and `:img[src, alt]` both produce name = img.
+BlockCall =
+  name:Ident
+  params:BracketRecord?
+  content:BlockContent?
+
+/// Article params. Not `{ }` (Roc) and not `( )`.
+BracketRecord =
+  '['
+  fields:ParamField*
+  ']'
+
+ParamField =
+  name:Ident
+  ':'
+  value:ParamValue
+
+ParamValue =
+  StringLit
+| BoolLit
+| NumberLit
+| Ident
+| BracketRecord
+
+BlockContent =
+  LineContent
+| BraceSection
+| EndSection
+
+/// Rest of the line after `:name` / `:name[params]`. The newline is the fence.
+LineContent = inlines:Inline*
+
+/// Nested document. `{{` / `}}` is the usual fence.
+BraceSection =
+  '{{'
+  blocks:Block*
+  '}}'
+
+/// Named closer, for brace-heavy bodies. Follows the article prefix: `:end.tabs`.
+EndSection =
+  blocks:Block*
+  EndMarker
+
+EndMarker =
+  ':'
+  'end'
+  '.'
+  name:Ident
+
+/// Markdown inlines inside line content. Comrak-owned until a later ungram.
+Inline = 'md-inline'
+
+Paragraph = inlines:Inline*
+List = ordered:BoolLit items:ListItem*
+ListItem = blocks:Block*
+BlockQuote = blocks:Block*
+CodeBlock =
+  info:StringLit
+  literal:StringLit
+Table = rows:TableRow*
+TableRow = header:BoolLit cells:TableCell*
+TableCell = inlines:Inline*
+ThematicBreak = 'thematic-break'
+
+/// Document-root `@if` / `@for` / `@match` / `@let`. Rocci grammar, HTML body.
+TemplateSplice = 'rocci-splice'
+
+/// Document-root `<Tag>`. Not an article block.
+HtmlIsland = 'html-island'
+
+Ident = 'ident'
+StringLit = 'string'
+BoolLit = 'bool'
+NumberLit = 'number'

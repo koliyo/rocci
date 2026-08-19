@@ -1,5 +1,6 @@
 # Research
 
+* [Generalized Rocdown block model](generalized-rocdown-block-model.md) - Exploratory decision: article blocks are `:name[params]` with `{{ }}` bodies; draft AST ungram in `crates/rocci-rocdown`. Implementation plan: [generalized Rocdown block model](../plans/generalized-rocdown-block-model.md). Not shipped.
 * [Desktop host chrome versus Rocci inspector UI](desktop-host-chrome-and-inspector-ui.md) - Split wry overlay chrome (HTML/CSS/JS) from preview-origin Rocci panels for compiler metrics and similar richer UI.
 * [Branding and community foundation](branding-community-foundation.md) - Exploratory masterbrand, naming, SEO, visual-identity, and public-preview community research.
 * [Repository hosting for Rocci's distributed governance](repository-hosting-and-distributed-governance.md) - GitHub and Tangled comparison for public launch, contributor workflow, infrastructure ownership, and future shared authority.

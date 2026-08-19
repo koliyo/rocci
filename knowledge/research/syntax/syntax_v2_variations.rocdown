@@ -1,0 +1,188 @@
+This file compares wrapping and content-scope variants. It is not parsed by
+the current Rocdown compiler. Decided article spelling is `:name` with
+`[params]` (`syntax_v2_recommended.rocdown`). Wrapping examples below use that
+form. Other prefixes are historical.
+
+# Content scope
+
+Markdown headings are already line-scoped. Block syntax should feel the same
+when the body is one line.
+
+## Headings
+
+Markdown sugar (preferred for humans):
+
+## Installing Rocci
+
+Explicit block, line content:
+
+:h2 Installing Rocci
+
+Explicit block, section wrap (heavier than a heading needs):
+
+:h2 {{Installing Rocci}}
+
+Optional props, still line content:
+
+:h2[id: "install"] Installing Rocci
+
+## Short asides
+
+Line content, no title:
+
+:note Do not paste raw HTML into Markdown.
+
+Params plus line content:
+
+:caution[title: "Breaking"] The current compiler does not parse this file.
+
+Params plus nested document:
+
+:note[title: "Static pages"] {{
+    First paragraph of the note.
+
+    Second paragraph, with a [link](Guide.rocdown) and a fence:
+
+    ```roc
+    answer = 42
+    ```
+}}
+
+Rejected mixed form (today's `@docs` body): params and Markdown in one `{ }`.
+
+```text
+:note {
+    title: "Static pages"
+
+    First paragraph of the note.
+}
+```
+
+# Nested blocks
+
+## Decided: bracket params, double-brace content
+
+:tabs[group: "languages", kind: "language"] {{
+    :tab[id: "roc", label: "Roc"] {{
+        Roc tab. A `}` in this fence must not close the tab:
+
+        ```roc
+        pair = { a: 1, b: 2 }
+        ```
+    }}
+    :tab[id: "rust", label: "Rust"] {{
+        Rust tab.
+    }}
+}}
+
+## Alternative: named closer for long or brace-heavy bodies
+
+The closer follows the article prefix (`:end`). It is not `@end` and not a
+`%` fence.
+
+:tabs[group: "languages", kind: "language"]
+    :tab[id: "roc", label: "Roc"]
+        Roc tab. Closing is a line-start marker, not a brace count.
+
+        ```roc
+        pair = { a: 1, b: 2 }
+        ```
+    :end.tab
+    :tab[id: "rust", label: "Rust"]
+        Rust tab.
+    :end.tab
+:end.tabs
+
+## Not recommended: single `{ }` mixing fields and nested `{{ }}`
+
+:tabs {
+    :tab {
+        id: "tab1"
+        label: "Tab 1"
+        {{this is a tab content}}
+    }
+}
+
+# Params-only blocks
+
+:badge[label: "preview", tone: "preview"]
+
+:img[src: "./img/yammi_banana.png", alt: "A banana"]
+
+Long field lists still use article brackets, not `@page`-style `{ }`:
+
+:img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+
+# Custom block types
+
+@use "./Callout.rocci"
+
+:callout[tone: "warn"] Don't copy this command.
+
+# Prefix versus language class
+
+Module and Rocci keep a single `@`. Article blocks use `:`.
+
+@page { route: "/guides/syntax-v2/" }
+
+@component Hello = |{ name }|
+    <p>{name}</p>
+
+## Decided: single colon, bracket params
+
+:note Do not paste raw HTML into Markdown.
+:note[title: "Watch"] {{ Nested Markdown. }}
+
+:tabs[group: "os"] {{
+    :tab[id: "mac", label: "macOS"] {{
+        Mac panel, including a fence with braces:
+
+        ```roc
+        pair = { a: 1, b: 2 }
+        ```
+    }}
+}}
+
+Parens are not used for article params (`:note(title: "Watch")` is out).
+
+## Historical: `::` vs `!`
+
+`::` (Vue-family; prefix only):
+
+::note Do not paste raw HTML into Markdown.
+::note[title: "Watch"] {{ Nested Markdown. }}
+
+`!` (prefix only; not a `%` closer):
+
+!note Do not paste raw HTML into Markdown.
+!note[title: "Watch"] {{ Nested Markdown. }}
+
+`![alt](url)` stays a Markdown image. `!note` is `!` plus an ident.
+
+## Other prefixes (not selected)
+
+.note Do not paste raw HTML into Markdown.
+/note Do not paste raw HTML into Markdown.
++note Do not paste raw HTML into Markdown.
+\note Do not paste raw HTML into Markdown.
+
+Same `@` (rejected: article class shares the language-island sigil):
+
+@note Do not paste raw HTML into Markdown.
+@note[title: "Watch"] {{ Nested Markdown. }}
+
+`@@` as a doubled `@`:
+
+@@note Do not paste raw HTML into Markdown.
+
+`%note` as another punctuated prefix. No `%` end fence.
+
+Not article blocks (stay Rocci / HTML islands):
+
+<Hello name="Roc" />
+
+Not this (looks like Rocci, fights document-root HTML islands):
+
+```text
+<Note title="Watch">Do not paste raw HTML.</Note>
+```
