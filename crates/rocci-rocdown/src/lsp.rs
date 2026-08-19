@@ -44,14 +44,14 @@ pub struct RocdownAnalyzer;
 
 impl DocumentAnalyzer for RocdownAnalyzer {
     fn can_analyze(&self, uri: &Uri, language_id: Option<&str>) -> bool {
-        match language_id {
-            Some("rocdown" | "markdown" | "md") => true,
-            Some(_) => false,
-            None => {
-                let path = uri.path().as_str();
-                path.ends_with(".rocdown") || path.ends_with(".md") || path.ends_with(".markdown")
-            }
+        let path = uri.path().as_str();
+        if path.ends_with(".rocci") {
+            return false;
         }
+        if path.ends_with(".rocdown") || path.ends_with(".md") || path.ends_with(".markdown") {
+            return true;
+        }
+        matches!(language_id, Some("rocdown" | "markdown" | "md"))
     }
 
     fn analyze(
@@ -204,7 +204,7 @@ pub fn diagnostics(
     compiled: &CompileOutput,
     encoding: PositionEncoding,
 ) -> Vec<Diagnostic> {
-    map_diagnostics(name, text, &compiled.diagnostics, encoding)
+    map_diagnostics(name, text, &compiled.diagnostics, encoding, "rocdown")
 }
 
 pub fn document_symbols(

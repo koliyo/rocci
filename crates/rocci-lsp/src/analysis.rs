@@ -31,7 +31,7 @@ pub fn diagnostics(
     compiled: &CompileOutput,
     encoding: PositionEncoding,
 ) -> Vec<Diagnostic> {
-    map_diagnostics(name, text, &compiled.diagnostics, encoding)
+    map_diagnostics(name, text, &compiled.diagnostics, encoding, "rocci")
 }
 
 pub fn map_diagnostics(
@@ -39,6 +39,7 @@ pub fn map_diagnostics(
     text: &str,
     diagnostics: &[rocci_template::Diagnostic],
     encoding: PositionEncoding,
+    source_name: &str,
 ) -> Vec<Diagnostic> {
     let source = SourceFile::new(name, text);
     diagnostics
@@ -51,7 +52,7 @@ pub fn map_diagnostics(
             }),
             code: None,
             code_description: None,
-            source: Some("rocci".to_string()),
+            source: Some(source_name.to_string()),
             message: diagnostic.message.clone(),
             tags: None,
             related_information: None,
