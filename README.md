@@ -135,7 +135,7 @@ cargo run -p rocci-rocdown-cli -- build docs
 ```
 
 That build uses the configured output at `dist/rocci.dev`, copies the social
-preview asset, and emits `llms.txt`, `sitemap.xml`, and `robots.txt` beside the
+preview asset, and emits `llms.txt`, `pages.json`, `sitemap.xml`, and `robots.txt` beside the
 static pages.
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle

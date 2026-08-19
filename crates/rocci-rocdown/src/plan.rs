@@ -57,6 +57,15 @@ pub struct PlannedFile {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct PageIndexEntry<'a> {
+    title: &'a str,
+    route: &'a str,
+    path: &'a str,
+    #[serde(skip_serializing_if = "str::is_empty")]
+    description: &'a str,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ArtifactInspect {
     pub kind: &'static str,
     pub route: String,
@@ -918,6 +927,12 @@ fn discovery_files(
         output_path: "llms.txt".into(),
         contents: llms,
     });
+    files.push(PlannedFile {
+        kind: "pages",
+        route: "/pages.json".into(),
+        output_path: "pages.json".into(),
+        contents: pages_json(pages),
+    });
     if !config.site.base_url.is_empty() {
         let mut sitemap = String::from(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n",
@@ -957,6 +972,23 @@ fn discovery_files(
     }
     files.sort_by(|a, b| a.output_path.cmp(&b.output_path));
     files
+}
+
+fn pages_json(pages: &[ResolvedPage]) -> String {
+    let mut entries: Vec<PageIndexEntry<'_>> = pages
+        .iter()
+        .map(|page| PageIndexEntry {
+            title: &page.title,
+            route: &page.route,
+            path: &page.source_path,
+            description: &page.description,
+        })
+        .collect();
+    entries.sort_by(|left, right| left.route.cmp(right.route));
+    match serde_json::to_string_pretty(&entries) {
+        Ok(json) => format!("{json}\n"),
+        Err(_) => "[]\n".into(),
+    }
 }
 
 fn atom_feed(config: &SiteConfig, news_items: &[CollectionItemView]) -> String {
@@ -1380,8 +1412,23 @@ items = ["index", "guide"]
         assert!(kinds.contains(&"stylesheet"));
         assert!(kinds.contains(&"redirect"));
         assert!(kinds.contains(&"llms"));
+        assert!(kinds.contains(&"pages"));
         assert!(kinds.contains(&"sitemap"));
         assert!(kinds.contains(&"robots"));
+        let pages_json = planned
+            .files
+            .iter()
+            .find(|file| file.output_path == "pages.json")
+            .unwrap();
+        assert_eq!(pages_json.route, "/pages.json");
+        let listed: serde_json::Value = serde_json::from_str(&pages_json.contents).unwrap();
+        assert!(
+            listed
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|page| { page["route"] == "/guide/" && page["title"] == "Guide" })
+        );
         assert!(artifacts.iter().any(|item| item.output_path == "404.html"));
         assert!(
             artifacts

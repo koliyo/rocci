@@ -63,6 +63,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
             version: options.config.app.version.as_deref(),
             new_window: true,
             navigation: false,
+            search: false,
             reload: options.reload,
             devtools: options.devtools,
         },
