@@ -26,6 +26,7 @@ BASE_ROCCI = {
     "rocci-ui",
     "rocci-roc-host",
     "rocci-datastar",
+    "rocci-browser",
 }
 
 ROCDOWN = {

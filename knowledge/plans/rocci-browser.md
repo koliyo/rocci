@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:00:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -170,13 +170,13 @@ sources:
 ## Purpose and authority
 
 This is the implementation plan for the [rocci-browser
-research](../research/rocci-browser.md). It is exploratory until a human
-reviewer accepts the fourth-CLI and out-of-process-adapter gates. It does not
-describe shipped behavior. Architecture records, crate READMEs, and the three
-product CLIs remain the current contract.[^research][^system-overview][^root-readme]
+research](../research/rocci-browser.md). Gates 1–2 were accepted with an
+explicit request to implement from Phase 1. Architecture records and the three
+product CLIs remain the current one-shot preview contract until later
+phases.[^research][^system-overview][^root-readme]
 
-Do not start Phase 1 until those gates are accepted and the user asks. Phase 0
-is this freeze.
+Phase 0 is this freeze. Phase 1 is implemented in this revision; it is not
+logged complete until required GitHub workflows succeed.
 
 This plan does **not** reverse the CLI-entry-points recommendation that `rocci`
 and `rocdown` must not grow a plugin lifecycle for first-party format
@@ -703,8 +703,8 @@ track for the research recommendation, not an approved schedule.
 
 ## Status
 
-Exploratory; no phase started. Phase 0 is this freeze. Implementation waits on
-gates 1–2 and an explicit request.
+Exploratory; Phase 0 freeze plus Phase 1 host crate in this revision. Not
+CI-complete. Phases 2–5 remain.
 
 [^research]: Recommended split: product-blind host, stdio adapters, registry, two-stage picker.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.
