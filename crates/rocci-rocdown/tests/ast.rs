@@ -74,6 +74,151 @@ fn colon_note_and_img_are_block_calls() {
     )));
 }
 
+fn ungram_productions(src: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    for line in src.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with("//") {
+            continue;
+        }
+        let Some((name, _)) = line.split_once('=') else {
+            continue;
+        };
+        let name = name.trim();
+        if !name.is_empty()
+            && name
+                .chars()
+                .next()
+                .is_some_and(|ch| ch.is_ascii_alphabetic())
+            && name.chars().all(|ch| ch.is_ascii_alphanumeric())
+        {
+            names.push(name.to_string());
+        }
+    }
+    names
+}
+
+fn toml_table_keys(src: &str, heading: &str) -> Vec<String> {
+    let header = format!("[{heading}]");
+    let mut keys = Vec::new();
+    let mut in_section = false;
+    for line in src.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            in_section = trimmed == header;
+            continue;
+        }
+        if !in_section || trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some((key, _)) = trimmed.split_once('=') else {
+            continue;
+        };
+        keys.push(key.trim().trim_matches('"').to_string());
+    }
+    keys
+}
+
+fn classify_item(item: &rocci_rocdown::Item) -> &'static str {
+    match item {
+        rocci_rocdown::Item::Markdown(_) => "markdown",
+        rocci_rocdown::Item::Page(_) => "page",
+        rocci_rocdown::Item::Roc(_) => "roc",
+        rocci_rocdown::Item::Render(_) => "render",
+        rocci_rocdown::Item::Component(_) => "component",
+        rocci_rocdown::Item::Fixture(_) => "fixture",
+        rocci_rocdown::Item::Css(_) => "css",
+        rocci_rocdown::Item::Context(_) => "context",
+        rocci_rocdown::Item::Init(_) => "init",
+        rocci_rocdown::Item::On(_) => "on",
+        rocci_rocdown::Item::Use(_) => "use",
+        rocci_rocdown::Item::Template(_) => "template",
+        rocci_rocdown::Item::Block(_) => "block",
+    }
+}
+
+#[test]
+fn ungram_productions_are_classified_in_sidecar() {
+    let ungram = include_str!("../Rocdown.AST.ungram");
+    let sidecar = include_str!("../Rocdown.AST.toml");
+    let productions = ungram_productions(ungram);
+    let mut classified = Vec::new();
+    for section in [
+        "generated",
+        "foreign",
+        "opaque",
+        "doc_only",
+        "inline",
+        "leaves",
+    ] {
+        classified.extend(toml_table_keys(sidecar, section));
+    }
+    for name in &productions {
+        assert!(
+            classified.iter().any(|key| key == name),
+            "unclassified Rocdown production {name}"
+        );
+    }
+    for key in &classified {
+        assert!(
+            productions.iter().any(|name| name == key),
+            "sidecar key {key} is not a Rocdown ungram production"
+        );
+    }
+}
+
+#[test]
+fn ungram_generated_and_foreign_productions_exist_as_rust_types() {
+    let sidecar = include_str!("../Rocdown.AST.toml");
+    for name in toml_table_keys(sidecar, "generated") {
+        assert!(
+            [
+                "Document",
+                "Item",
+                "PageDecl",
+                "RocDecl",
+                "RenderDecl",
+                "UseDecl",
+                "BlockCall",
+                "BracketRecord",
+                "BracketList",
+                "ParamField",
+                "ParamValue",
+                "BlockContent",
+                "LineContent",
+                "BraceSection",
+                "EndSection",
+                "EndMarker",
+            ]
+            .contains(&name.as_str()),
+            "unexpected generated Rocdown production {name}"
+        );
+    }
+    let _ = std::any::type_name::<rocci_rocdown::Document>();
+    let _ = std::any::type_name::<rocci_rocdown::Item>();
+    let _ = std::any::type_name::<rocci_rocdown::PageDecl>();
+    let _ = std::any::type_name::<rocci_rocdown::RocDecl>();
+    let _ = std::any::type_name::<rocci_rocdown::RenderDecl>();
+    let _ = std::any::type_name::<rocci_rocdown::UseDecl>();
+    let _ = std::any::type_name::<rocci_rocdown::BlockCall>();
+    let _ = std::any::type_name::<rocci_rocdown::BracketRecord>();
+    let _ = std::any::type_name::<rocci_rocdown::BracketList>();
+    let _ = std::any::type_name::<rocci_rocdown::ParamField>();
+    let _ = std::any::type_name::<rocci_rocdown::ParamValue>();
+    let _ = std::any::type_name::<rocci_rocdown::BlockContent>();
+    let _ = std::any::type_name::<rocci_rocdown::LineContent>();
+    let _ = std::any::type_name::<rocci_rocdown::BraceSection>();
+    let _ = std::any::type_name::<rocci_rocdown::EndSection>();
+    let _ = std::any::type_name::<rocci_rocdown::EndMarker>();
+    let _ = std::any::type_name::<rocci_rocdown::MdNode>();
+    let _ = std::any::type_name::<rocci_rocdown::TemplateItem>();
+}
+
+#[test]
+fn item_enum_has_no_paragraph_variant() {
+    let _ = classify_item as fn(&rocci_rocdown::Item) -> &'static str;
+}
+
 #[test]
 fn ungram_article_call_productions_exist_as_rust_types() {
     let ungram = include_str!("../Rocdown.AST.ungram");
