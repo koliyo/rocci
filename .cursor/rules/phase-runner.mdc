@@ -1,48 +1,70 @@
 ---
-description: Structured phased execution protocol for multi-step implementation plans
-globs: ["**/*"]
-alwaysApply: false
+description: Execute a referenced implementation plan one phase at a time with a required phase header, Exit checks, and a per-phase commit
+alwaysApply: true
 ---
 
-# Phased Execution Protocol (/goal mode)
+# Phased Runner Instructions
 
-When executing an implementation plan referenced in the chat:
+Use this protocol only when executing a referenced implementation plan
+(for example `knowledge/plans/*.md` or an @-mentioned plan).
 
-## 1. Single-Phase Scope Enforcement
+## 1. Required Phase Output Header
 
-- Work strictly on **ONE phase at a time**.
-- Read the entire referenced plan file first to understand the context, dependencies, and boundaries.
-- Treat non-goals, constraints, and phase boundaries as hard invariants.
+Every response for a phase MUST begin immediately with this markdown block
+(fill in the brackets; keep the heading and field labels exactly):
 
-## 2. Phase Execution Cycle
+```markdown
+# [Plan Title] — Phase [X]: [Phase Name]
 
-For the target phase, you must execute strictly in this order:
+- **Goal:** [1-sentence summary of this phase's deliverable]
+- **Scope:** [Key modules / crates affected]
+- **Exit Target:** [Test or build command from the phase Exit criteria]
+```
 
-### Step A: Micro-Planning
+## 2. Single-Phase Scope
 
-Before creating or modifying any files:
+- Read the entire referenced plan first (constraints, non-goals, dependencies, later phases).
+- Work strictly on **one phase**. Do not implement later phases or extras outside the Bound.
+- Treat `Constraints that do not move`, **Non-goals**, the phase **Bound**, and **Out of bound** as hard invariants.
 
-1. Identify the exact files to create, edit, or delete.
-2. Outline the concrete code changes and type signatures.
-3. List the test assertions and validation commands specified in the phase's **Exit** criteria.
-4. Output this micro-plan to the user.
+## 3. Execution Flow
 
-### Step B: Implementation & Self-Correction
+Execute in this order:
 
-1. Apply the minimal necessary diffs matching the micro-plan.
-2. Maintain all invariants from the plan's `Constraints that do not move` section.
-3. Do not jump ahead into subsequent phase boundaries.
+### Step A: Micro-plan
 
-### Step C: Verification & Exit Gate
+Before creating or modifying files, state:
 
-1. Run the phase validation commands using terminal tools (e.g., `cargo test -p <crate>`, `cargo fmt --check`).
-2. If tests or validation fail, fix issues within the phase scope.
-3. Verify all explicit **Exit** criteria are satisfied.
+- Files to create, modify, or delete.
+- Concrete signatures, structs, or functions.
+- Tests and the exact validation commands from the phase **Exit** (and **Tests**, if listed).
 
-## 3. Hand-off & Advance
+### Step B: Implementation
 
-- Once the phase exit criteria are green, report:
-  - Summary of changes made.
-  - Test command execution results.
-  - Confirmation that the phase exit criteria are met.
-- Stop and wait for user confirmation before starting the next phase, unless explicitly told to run fully autonomously.
+- Apply the minimal diffs matching the micro-plan.
+- Stay inside this phase's Bound. Do not start the next phase.
+
+### Step C: Verification
+
+- Run the Exit commands in the terminal (typically `cargo test -p <crate>` and `cargo fmt --all -- --check` for Rust).
+- If they fail, fix only within this phase's scope and re-run.
+- The phase is done only when every explicit **Exit** criterion is satisfied.
+
+### Step D: Commit
+
+Once Exit is green, commit **only files this phase changed**. Do not `git add .` or include unrelated tracked or untracked work.
+
+Commit message:
+
+```text
+feat([owner-or-feature]): complete Phase [X] - [Phase Name]
+```
+
+This protocol is explicit permission to commit that phase. Do not push.
+
+### Step E: Hand-off
+
+Report what changed, the validation commands and results, and that Exit is met.
+
+Then **stop**. Wait for the user before starting the next phase, unless they
+explicitly said to continue remaining phases autonomously.
