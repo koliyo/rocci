@@ -18,6 +18,7 @@ Dependencies:
 ## Core Features
 
 - **Multi-Profile Validation**: `Profile::Base` (portable OKF specification) and `Profile::Rocci` (strict evidence, verification, and owners).
+- **Load timings**: `load_timed` returns ordinary `Duration` breakdowns (`discover`, `parse`, `graph`, and `provenance` when git provenance runs) beside the `Bundle`. `LoadOptions` selects the profile and whether provenance runs. `ParseCache` can reuse unchanged documents across loads. `okf` does not depend on CLI snapshot types.
 - **Graph Resolution**: Strict and fuzzy concept ID matching, fragment checking, and directed edge construction. Authored `/path.md` links are bundle-root; `article_html` rewrites in-bundle Markdown hrefs to published `/{id}/` routes while `concept.links` keep the source URLs.
 - **Search & Chunking**: Semantic search indexing by metadata and headings with BM25/lexical matching.
 - **Retrieval Benchmarking**: Automated evaluation against test questions with hit rate and MRR metrics.

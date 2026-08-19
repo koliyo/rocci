@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use okf::{
-    InspectKind, KnowledgeFilter, Profile, TrustTier, build, check, inspect_filtered, load, search,
+    InspectKind, KnowledgeFilter, LoadOptions, ParseCache, Profile, TrustTier, build, check,
+    inspect_filtered, load, load_timed, load_with_cache, search,
 };
 
 fn temp(name: &str) -> PathBuf {
@@ -304,6 +305,97 @@ fn article_html_rewrites_bundle_root_links() {
         .find(|index| index.path == "index.md")
         .expect("root index");
     assert!(home.article_html.contains("href=\"/architecture/\""));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn load_timed_records_nonzero_parse_on_tiny_fixture() {
+    let root = temp("load-timings");
+    fs::write(
+        root.join("note.md"),
+        "---\ntype: Note\ntitle: Timing\n---\n\n# Timing\n\nBody text for parse timing.\n",
+    )
+    .unwrap();
+
+    let loaded = load_timed(&root, LoadOptions::new(Profile::Base)).expect("load timed base");
+    assert!(
+        loaded.timings.parse > std::time::Duration::ZERO,
+        "parse span should be non-zero even on a tiny fixture"
+    );
+    assert_eq!(loaded.bundle.concepts.len(), 1);
+    assert_eq!(loaded.timings.provenance, None);
+
+    let rocci = load_timed(&root, LoadOptions::new(Profile::Rocci)).expect("load timed rocci");
+    assert!(rocci.timings.provenance.is_some());
+
+    let preview = load_timed(
+        &root,
+        LoadOptions::new(Profile::Rocci).with_provenance(false),
+    )
+    .expect("load timed rocci without provenance");
+    assert_eq!(preview.timings.provenance, Some(std::time::Duration::ZERO));
+    assert!(
+        preview.bundle.has_errors(),
+        "Rocci schema should still reject a minimal record when provenance is off"
+    );
+    assert!(!preview.bundle.diagnostics.iter().any(|diagnostic| {
+        diagnostic.code.starts_with("OKF4006")
+            || diagnostic.code == "OKF4007"
+            || diagnostic.code == "OKF4008"
+    }));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn parse_cache_skips_unchanged_files_on_second_load() {
+    let root = temp("parse-cache");
+    fs::write(
+        root.join("a.md"),
+        valid_rocci_concept("A", "", "Alpha body.\n"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("b.md"),
+        valid_rocci_concept("B", "", "Beta body.\n"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("c.md"),
+        valid_rocci_concept("C", "", "Gamma body.\n"),
+    )
+    .unwrap();
+
+    let mut cache = ParseCache::new();
+    let options = LoadOptions::new(Profile::Base);
+    let first = load_with_cache(&root, options, Some(&mut cache)).expect("first load");
+    assert_eq!(first.timings.parse_cache_hits, 0);
+    assert!(first.timings.parse_cache_misses >= 3);
+
+    let second = load_with_cache(&root, options, Some(&mut cache)).expect("second load");
+    assert!(
+        second.timings.parse_cache_hits >= 3,
+        "unchanged files should be cache hits: {:?}",
+        second.timings
+    );
+    assert_eq!(second.timings.parse_cache_misses, 0);
+
+    fs::write(
+        root.join("b.md"),
+        valid_rocci_concept("B", "", "Beta body changed.\n"),
+    )
+    .unwrap();
+    let third = load_with_cache(&root, options, Some(&mut cache)).expect("third load");
+    assert_eq!(third.timings.parse_cache_misses, 1);
+    assert!(third.timings.parse_cache_hits >= 2);
+    assert!(
+        third
+            .bundle
+            .concepts
+            .iter()
+            .any(|concept| concept.article_html.contains("Beta body changed"))
+    );
 
     let _ = fs::remove_dir_all(root);
 }

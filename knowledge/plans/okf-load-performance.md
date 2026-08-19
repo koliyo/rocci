@@ -1,14 +1,19 @@
 ---
 type: Implementation Plan
 title: OKF load-performance improvements
-description: Phased reduction of `okf::load` latency for `rocci-okf run` and `check`, starting from measured provenance and whole-bundle parse costs. Exploratory; no phase started.
+description: Phased reduction of `okf::load` latency for `rocci-okf run` and `check`, starting from measured provenance and whole-bundle parse costs. Phases 1–4 implemented; Phase 5 skipped (release concept-path load is sub-second); Phase 6 records the new baseline.
 tags: [domain/okf, domain/rocci-okf, concern/performance, concern/tooling, concern/validation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T11:30:00Z }
+generated: { by: process:cursor, at: 2026-08-19T12:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: results-status
+    resource: ../status/okf-load-performance.md
+    title: OKF load-performance improvement results
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: preview-audit
     resource: ../audits/hybrid-rocdown-islands-preview-performance.md
     title: hybrid-rocdown-islands preview performance audit
@@ -48,12 +53,12 @@ sources:
     resource: ../../crates/rocci-okf/README.md
     title: rocci-okf usage contract
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-19
   - id: engine-readme
     resource: ../../crates/okf/README.md
     title: Portable OKF engine boundary
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-19
   - id: cli-profile
     resource: ../../crates/rocci-cli/src/profile.rs
     title: Shared rebuild ProfileSnapshot and SpanRecorder
@@ -94,7 +99,12 @@ This plan covers load observability, git provenance cost, preview versus check
 policy, and watch-rebuild parse reuse. It does not redesign the portable OKF
 engine, the review HTML chrome, or Roc host caching.
 
-This is an exploratory recommendation. No phase has started.
+This is an exploratory recommendation. Phases 1–4 are implemented in this
+revision. Phase 5 is skipped: release `run path/to/concept.md` `load` is
+sub-second on this repository, so bounded concept preview is not started.
+Phase 6 records the post-change baseline. Measured before/after timings are in
+the [OKF load-performance improvement results](../status/okf-load-performance.md)
+status snapshot; those numbers are machine-local, not a latency SLA.[^results-status]
 
 ## Established baseline
 
@@ -193,7 +203,7 @@ time cargo run -q -p rocci-okf -- check knowledge --profile rocci --format termi
 time cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
-### Phase 1 — Split the opaque `load` span
+### Phase 1 — Split the opaque `load` span (implemented)
 
 **Bound:** A successful `--profile-report json` rebuild lists sub-spans inside
 load, at least `discover`, `parse`, `graph`, and `provenance` (the last omitted
@@ -212,7 +222,7 @@ fixture; `rocci-okf` report formatting still lists total plus named spans.
 Rocci-versus-base gap. Update the two load audits with that split, still as
 machine-local evidence.
 
-### Phase 2 — Batch and memoize git provenance
+### Phase 2 — Batch and memoize git provenance (implemented)
 
 **Bound:** `validate_lifecycle_and_sources` performs a constant number of git
 invocations per load (repository root, one dirty-status dump, one last-modified
@@ -242,7 +252,7 @@ dominated by hundreds of git processes. Diagnostic output on a known dirty
 source still matches pre-change codes. Headless `run --profile rocci` `load`
 drops by roughly the previously measured Rocci-versus-base provenance gap.
 
-### Phase 3 — Preview can skip provenance without dropping Rocci schema
+### Phase 3 — Preview can skip provenance without dropping Rocci schema (implemented)
 
 **Bound:** Load grows an explicit provenance switch, independent of
 `Profile::Base` versus `Profile::Rocci`. Schema, unique ids, graph, and
@@ -268,7 +278,7 @@ without `--provenance` has a near-zero provenance span and still rejects Rocci
 schema errors. `check --profile rocci` still emits OKF4006/4008 on a
 constructed dirty tracked source.
 
-### Phase 4 — Incremental parse cache on watch rebuilds
+### Phase 4 — Incremental parse cache on watch rebuilds (implemented)
 
 **Bound:** `rebuild_site` (or a helper owned by `okf`) reuses parsed concepts,
 indexes, and logs whose bytes or mtime+size have not changed. Graph resolve,
@@ -294,11 +304,15 @@ scanner monotonicity rules elsewhere are unchanged).
 `parse` collapsing on the second snapshot while diagnostics for the touched
 file still update.
 
-### Phase 5 — Bounded concept preview, only if still needed
+### Phase 5 — Bounded concept preview, only if still needed (skipped)
 
 **Gate:** After Phases 2–4, re-run the Phase 1 measurement commands. Start this
 phase only if first-open `run path/to/concept.md` `load` remains painful in a
 **release** binary (multiple seconds), not merely a cold debug build.
+
+**2026-08-19 skip:** Release first-open `run knowledge/plans/okf-load-performance.md`
+reported `load` 290ms (`parse` 289ms, `provenance` 0). That is not multiple
+seconds, so this phase was not started.
 
 **Bound if started:** `rocci-okf run concept.md` loads the bundle root index,
 collection indexes needed for chrome, the target concept, and records required
@@ -314,13 +328,14 @@ Do not present a partial graph as the full catalog.
 **Exit:** Concept-path first open is dominated by the target record and its
 indexes. Whole-bundle `run knowledge` and `check` behavior is unchanged.
 
-### Phase 6 — Record the new baseline
+### Phase 6 — Record the new baseline (implemented)
 
 **Bound:** Refresh the two load audits with post-change `--profile-report json`
-and release `check` timings. Mention the provenance flag and sub-spans in
+and release `check` timings. Record the dated before/after summary as a Status
+snapshot. Mention the provenance flag and sub-spans in
 `crates/rocci-okf/README.md` if Phase 3 shipped. Do not claim a phase complete
 in `knowledge/log.md` until the required GitHub workflows on that revision are
-green.[^preview-audit][^headless-audit][^okf-readme]
+green.[^preview-audit][^headless-audit][^results-status][^okf-readme]
 
 **Out of bound:** New product features.
 
@@ -356,10 +371,11 @@ green.[^preview-audit][^headless-audit][^okf-readme]
    the long-lived `run` server?
 3. After Phase 2, is Phase 5 unnecessary on this repository’s current size?
 
+[^results-status]: Dated Status snapshot of machine-local before/after timings, preview-versus-check policy, and skipped bounded preview.
 [^preview-audit]: Cached concept-path `run` spent 9593ms of 9750ms in `load`; concept-path was not cheaper than whole-bundle load; release `check` was 4.77s rocci versus 0.24s base.
 [^headless-audit]: Headless `--profile-report` made load-dominated rebuilds observable; recommended finer load spans and batched git.
 [^okf-load]: `okf::load` discovers and parses the whole bundle, resolves the graph, and runs Rocci-only lifecycle validation.
-[^okf-validate]: Provenance iterates each `sources[].resource` and shells out to git per path.
+[^okf-validate]: When git provenance is on, validation batches rev-parse, status, and log over unique source paths.
 [^okf-preview]: `resolve_preview_path` returns bundle root plus open path; it does not narrow loading.
 [^okf-dev]: `rebuild_site` records one `load` span around `okf::load` on every watch rebuild.
 [^okf-main]: `Run` forwards `--profile` and `--profile-report` into the headless rebuild path.

@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
@@ -292,13 +293,45 @@ pub fn validate_unique_ids(concepts: &[Concept], diagnostics: &mut Vec<Diagnosti
     }
 }
 
+static GIT_INVOCATIONS: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Clone, Debug, Default)]
+struct GitProvenance {
+    last_modified: BTreeMap<String, GitModification>,
+    dirty: BTreeSet<String>,
+}
+
+impl GitProvenance {
+    fn modification(&self, relative: &str) -> GitModification {
+        self.last_modified
+            .get(relative)
+            .copied()
+            .unwrap_or(GitModification::Untracked)
+    }
+
+    fn is_dirty(&self, relative: &str) -> bool {
+        self.dirty.contains(relative)
+    }
+}
+
 pub fn validate_lifecycle_and_sources(
     root: &Path,
     concepts: &[Concept],
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    validate_lifecycle_and_sources_with(root, concepts, diagnostics, true);
+}
+
+pub fn validate_lifecycle_and_sources_with(
+    root: &Path,
+    concepts: &[Concept],
+    diagnostics: &mut Vec<Diagnostic>,
+    check_git: bool,
+) {
     let today = current_utc_date();
-    let repository = git_repository_root(root);
+    let repository = check_git.then(|| git_repository_root(root)).flatten();
+    let mut relative_paths = BTreeSet::new();
+    let mut source_refs = Vec::new();
 
     for concept in concepts {
         if let (Some(today), Some(stale_after)) = (
@@ -335,6 +368,9 @@ pub fn validate_lifecycle_and_sources(
             ));
         }
 
+        if !check_git {
+            continue;
+        }
         let Some(repository) = repository.as_deref() else {
             continue;
         };
@@ -351,7 +387,11 @@ pub fn validate_lifecycle_and_sources(
             if external_url(resource) || Path::new(resource).is_absolute() {
                 continue;
             }
-            let source_id = source.get("id").and_then(Value::as_str).unwrap_or(resource);
+            let source_id = source
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or(resource)
+                .to_string();
             let Some(path) = repository_source_path(root, repository, &concept.path, resource)
             else {
                 continue;
@@ -359,48 +399,66 @@ pub fn validate_lifecycle_and_sources(
             let Some(relative) = path.strip_prefix(repository).ok() else {
                 continue;
             };
-            let relative_display = relative.to_string_lossy().replace('\\', "/");
-            match git_last_modified(repository, relative) {
-                GitModification::Tracked(modified_at) => {
-                    if let Some((verified_at, verified_label)) = human_verification.as_ref()
-                        && modified_at > *verified_at
-                    {
-                        diagnostics.push(Diagnostic::warning(
-                            "OKF4006",
-                            &concept.path,
-                            None,
-                            format!(
-                                "source `{source_id}` ({relative_display}) changed after human verification at {verified_label}"
-                            ),
-                        ));
-                    }
-                    if let Some((verified_at, _)) = human_verification.as_ref()
-                        && git_path_dirty(repository, relative)
-                        && filesystem_modified_at(&path)
-                            .is_none_or(|modified_at| modified_at > *verified_at)
-                    {
-                        diagnostics.push(Diagnostic::warning(
-                            "OKF4008",
-                            &concept.path,
-                            None,
-                            format!(
-                                "source `{source_id}` ({relative_display}) has uncommitted changes and cannot be matched to its human verification"
-                            ),
-                        ));
-                    }
-                }
-                GitModification::Untracked if path.exists() => {
+            let relative_display = git_path_key(relative);
+            relative_paths.insert(relative_display.clone());
+            source_refs.push((
+                concept.path.clone(),
+                source_id,
+                relative_display,
+                path,
+                human_verification.map(|(timestamp, label)| (timestamp, label.to_string())),
+            ));
+        }
+    }
+
+    if !check_git {
+        return;
+    }
+    let Some(repository) = repository.as_deref() else {
+        return;
+    };
+    let git_state = load_git_provenance(repository, &relative_paths);
+    for (concept_path, source_id, relative_display, path, human_verification) in source_refs {
+        match git_state.modification(&relative_display) {
+            GitModification::Tracked(modified_at) => {
+                if let Some((verified_at, verified_label)) = human_verification.as_ref()
+                    && modified_at > *verified_at
+                {
                     diagnostics.push(Diagnostic::warning(
-                        "OKF4007",
-                        &concept.path,
+                        "OKF4006",
+                        &concept_path,
                         None,
                         format!(
-                            "source `{source_id}` ({relative_display}) is untracked and has no git provenance"
+                            "source `{source_id}` ({relative_display}) changed after human verification at {verified_label}"
                         ),
                     ));
                 }
-                GitModification::Unknown | GitModification::Untracked => {}
+                if let Some((verified_at, _)) = human_verification.as_ref()
+                    && git_state.is_dirty(&relative_display)
+                    && filesystem_modified_at(&path)
+                        .is_none_or(|modified_at| modified_at > *verified_at)
+                {
+                    diagnostics.push(Diagnostic::warning(
+                        "OKF4008",
+                        &concept_path,
+                        None,
+                        format!(
+                            "source `{source_id}` ({relative_display}) has uncommitted changes and cannot be matched to its human verification"
+                        ),
+                    ));
+                }
             }
+            GitModification::Untracked if path.exists() => {
+                diagnostics.push(Diagnostic::warning(
+                    "OKF4007",
+                    &concept_path,
+                    None,
+                    format!(
+                        "source `{source_id}` ({relative_display}) is untracked and has no git provenance"
+                    ),
+                ));
+            }
+            GitModification::Unknown | GitModification::Untracked => {}
         }
     }
 }
@@ -451,8 +509,8 @@ pub fn repository_source_path(
 }
 
 pub fn git_repository_root(root: &Path) -> Option<PathBuf> {
-    let output = Command::new("git")
-        .args(["-C", root.to_str()?, "rev-parse", "--show-toplevel"])
+    let output = git_command(root)
+        .args(["rev-parse", "--show-toplevel"])
         .output()
         .ok()?;
     output.status.success().then(|| {
@@ -461,6 +519,7 @@ pub fn git_repository_root(root: &Path) -> Option<PathBuf> {
     })
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GitModification {
     Tracked(i64),
     Untracked,
@@ -468,36 +527,125 @@ pub enum GitModification {
 }
 
 pub fn git_last_modified(repository: &Path, relative: &Path) -> GitModification {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(repository)
-        .args(["log", "-1", "--format=%cI", "--"])
-        .arg(relative)
-        .output();
-    let Ok(output) = output else {
-        return GitModification::Unknown;
-    };
-    if !output.status.success() {
-        return GitModification::Unknown;
-    }
-    let timestamp = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    if timestamp.is_empty() {
-        GitModification::Untracked
-    } else if let Some(timestamp) = parse_timestamp(&timestamp) {
-        GitModification::Tracked(timestamp)
-    } else {
-        GitModification::Unknown
-    }
+    load_git_provenance(repository, &BTreeSet::from([git_path_key(relative)]))
+        .modification(&git_path_key(relative))
 }
 
 pub fn git_path_dirty(repository: &Path, relative: &Path) -> bool {
-    Command::new("git")
-        .arg("-C")
-        .arg(repository)
-        .args(["status", "--porcelain", "--untracked-files=no", "--"])
-        .arg(relative)
-        .output()
-        .is_ok_and(|output| output.status.success() && !output.stdout.is_empty())
+    load_git_provenance(repository, &BTreeSet::from([git_path_key(relative)]))
+        .is_dirty(&git_path_key(relative))
+}
+
+fn git_path_key(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
+fn git_command(dir: &Path) -> Command {
+    GIT_INVOCATIONS.fetch_add(1, Ordering::Relaxed);
+    let mut cmd = Command::new("git");
+    cmd.arg("-C").arg(dir);
+    cmd
+}
+
+fn load_git_provenance(repository: &Path, relatives: &BTreeSet<String>) -> GitProvenance {
+    if relatives.is_empty() {
+        return GitProvenance::default();
+    }
+    let dirty = git_dirty_paths(repository);
+    let timestamps = git_last_modified_paths(repository, relatives);
+    let last_modified = relatives
+        .iter()
+        .map(|relative| {
+            let modification = match &timestamps {
+                None => GitModification::Unknown,
+                Some(found) => found
+                    .get(relative)
+                    .copied()
+                    .map(GitModification::Tracked)
+                    .unwrap_or(GitModification::Untracked),
+            };
+            (relative.clone(), modification)
+        })
+        .collect();
+    GitProvenance {
+        last_modified,
+        dirty,
+    }
+}
+
+fn git_dirty_paths(repository: &Path) -> BTreeSet<String> {
+    let output = git_command(repository)
+        .args(["status", "--porcelain", "-z", "--untracked-files=no"])
+        .output();
+    let Ok(output) = output else {
+        return BTreeSet::new();
+    };
+    if !output.status.success() {
+        return BTreeSet::new();
+    }
+    parse_porcelain_z(&output.stdout)
+}
+
+fn parse_porcelain_z(stdout: &[u8]) -> BTreeSet<String> {
+    let mut dirty = BTreeSet::new();
+    for record in stdout.split(|byte| *byte == 0) {
+        if record.len() < 4 || record[2] != b' ' {
+            continue;
+        }
+        let xy = &record[..2];
+        if xy == b"??" || xy == b"!!" {
+            continue;
+        }
+        let path = String::from_utf8_lossy(&record[3..]).replace('\\', "/");
+        if !path.is_empty() {
+            dirty.insert(path);
+        }
+    }
+    dirty
+}
+
+fn git_last_modified_paths(
+    repository: &Path,
+    relatives: &BTreeSet<String>,
+) -> Option<BTreeMap<String, i64>> {
+    let mut cmd = git_command(repository);
+    cmd.args(["log", "--format=%cI", "--name-only", "--"]);
+    for relative in relatives {
+        cmd.arg(relative);
+    }
+    let output = cmd.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(parse_git_log_name_only(
+        &String::from_utf8_lossy(&output.stdout),
+        relatives,
+    ))
+}
+
+fn parse_git_log_name_only(stdout: &str, wanted: &BTreeSet<String>) -> BTreeMap<String, i64> {
+    let mut current_ts = None;
+    let mut found = BTreeMap::new();
+    for line in stdout.lines() {
+        if found.len() == wanted.len() {
+            break;
+        }
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if let Some(timestamp) = parse_timestamp(line) {
+            current_ts = Some(timestamp);
+            continue;
+        }
+        let key = line.replace('\\', "/");
+        if wanted.contains(&key)
+            && let Some(timestamp) = current_ts
+        {
+            found.entry(key).or_insert(timestamp);
+        }
+    }
+    found
 }
 
 pub fn filesystem_modified_at(path: &Path) -> Option<i64> {
@@ -649,4 +797,147 @@ pub fn metadata_string_array(metadata: &BTreeMap<String, Value>, key: &str) -> V
         .filter_map(Value::as_str)
         .map(str::to_string)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Profile, load};
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp(name: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("okf-provenance-{name}-{nonce}"));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    fn git(repo: &Path, args: &[&str]) {
+        let status = Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args(args)
+            .status()
+            .unwrap();
+        assert!(status.success(), "git {args:?} failed");
+    }
+
+    fn git_commit(repo: &Path, message: &str, date: &str) {
+        let status = Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args(["commit", "-m", message])
+            .env("GIT_AUTHOR_DATE", date)
+            .env("GIT_COMMITTER_DATE", date)
+            .env("GIT_AUTHOR_NAME", "Test")
+            .env("GIT_AUTHOR_EMAIL", "test@example.com")
+            .env("GIT_COMMITTER_NAME", "Test")
+            .env("GIT_COMMITTER_EMAIL", "test@example.com")
+            .status()
+            .unwrap();
+        assert!(status.success(), "git commit {message} failed");
+    }
+
+    fn concept(sources: &str) -> String {
+        format!(
+            "---\ntype: Architecture\ntitle: Provenance\ndescription: Provenance fixture.\ntags: [domain/okf, concern/validation]\nstatus: draft\ngenerated: {{ by: process:test, at: 2026-07-01T00:00:00Z }}\nverified:\n  - {{ by: human:nils, at: 2026-08-05T00:00:00Z }}\nauthority: descriptive\nowners: [human:nils]\nsources:\n{sources}---\n\n# Provenance\n\nBody.[^tracked]\n\n[^tracked]: Tracked source.\n"
+        )
+    }
+
+    #[test]
+    fn parse_git_log_keeps_first_timestamp_per_path() {
+        let wanted = BTreeSet::from(["a.rs".to_string(), "b.rs".to_string()]);
+        let found = parse_git_log_name_only(
+            "2026-08-10T00:00:00Z\n\na.rs\n\n2026-08-01T00:00:00Z\n\na.rs\nb.rs\n",
+            &wanted,
+        );
+        assert_eq!(
+            found["a.rs"],
+            parse_timestamp("2026-08-10T00:00:00Z").unwrap()
+        );
+        assert_eq!(
+            found["b.rs"],
+            parse_timestamp("2026-08-01T00:00:00Z").unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_porcelain_z_lists_dirty_tracked_paths() {
+        let stdout = b" M tracked.txt\0?? untracked.txt\0A  staged.txt\0";
+        let dirty = parse_porcelain_z(stdout);
+        assert!(dirty.contains("tracked.txt"));
+        assert!(dirty.contains("staged.txt"));
+        assert!(!dirty.contains("untracked.txt"));
+    }
+
+    #[test]
+    fn batched_provenance_emits_stable_codes_with_constant_git_calls() {
+        let root = temp("batch");
+        git(&root, &["init", "--initial-branch=main"]);
+        git(&root, &["config", "user.email", "test@example.com"]);
+        git(&root, &["config", "user.name", "Test"]);
+        git(&root, &["config", "commit.gpgsign", "false"]);
+
+        fs::write(root.join("tracked.txt"), "tracked v1\n").unwrap();
+        fs::write(root.join("dirty.txt"), "dirty v1\n").unwrap();
+        git(&root, &["add", "tracked.txt", "dirty.txt"]);
+        git_commit(&root, "initial", "2026-08-01T00:00:00Z");
+
+        fs::write(root.join("tracked.txt"), "tracked v2\n").unwrap();
+        git(&root, &["add", "tracked.txt"]);
+        git_commit(&root, "update tracked", "2026-08-10T00:00:00Z");
+        fs::write(root.join("dirty.txt"), "dirty v2\n").unwrap();
+        fs::write(root.join("untracked.txt"), "new\n").unwrap();
+
+        fs::write(
+            root.join("note.md"),
+            concept(
+                "  - id: tracked\n    resource: tracked.txt\n    title: Tracked\n  - id: dirty\n    resource: dirty.txt\n    title: Dirty\n  - id: untracked\n    resource: untracked.txt\n    title: Untracked\n",
+            ),
+        )
+        .unwrap();
+        fs::write(
+            root.join("copy.md"),
+            concept("  - id: tracked\n    resource: tracked.txt\n    title: Tracked again\n"),
+        )
+        .unwrap();
+
+        GIT_INVOCATIONS.store(0, Ordering::SeqCst);
+        let bundle = load(&root, Profile::Rocci).expect("load rocci fixture");
+        let git_calls = GIT_INVOCATIONS.load(Ordering::SeqCst);
+        assert!(
+            git_calls <= 3,
+            "expected constant git invocations, got {git_calls}"
+        );
+
+        let codes: Vec<_> = bundle
+            .diagnostics
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.message.as_str()))
+            .collect();
+        assert!(
+            codes.iter().any(|(code, message)| {
+                *code == "OKF4006" && message.contains("source `tracked`")
+            }),
+            "missing OKF4006: {codes:?}"
+        );
+        assert!(
+            codes.iter().any(|(code, message)| {
+                *code == "OKF4008" && message.contains("source `dirty`")
+            }),
+            "missing OKF4008: {codes:?}"
+        );
+        assert!(
+            codes.iter().any(|(code, message)| {
+                *code == "OKF4007" && message.contains("source `untracked`")
+            }),
+            "missing OKF4007: {codes:?}"
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
 }
