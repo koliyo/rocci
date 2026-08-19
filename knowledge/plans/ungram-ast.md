@@ -4,11 +4,16 @@ title: Ungrammar AST codegen for Rocci and Rocdown
 description: "Phased delivery of ungrammar as the tree spec for both languages, a shared generator of owned AST structs, and CI drift checks. Scanners and parsers stay hand-written."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T14:40:00Z }
+generated: { by: process:cursor, at: 2026-08-19T16:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: follow-ons
+    resource: ungram-follow-ons.md
+    title: Ungram follow-on backends after owned-struct codegen
+    author: process:cursor
+    last_modified: 2026-08-19
   - id: research
     resource: ../research/ungram-ast.md
     title: Ungrammar as AST spec for Rocci and Rocdown
@@ -336,15 +341,12 @@ until required GitHub workflows succeed on this revision.
 
 ## Follow-ons (not v1)
 
-- Generate `format_ast` once inspect tags are treated as generated
-  contract.
-- `SyntaxKind` / highlight tokens from the same ungrams.
-- A `Rocdown.Markdown.ungram` if `MdNode` should become a second generated
-  tree (still not a scanner; Comrak remains the recognizer).
-- rust-analyzer-style CST, only if lossless editing becomes a product
-  goal.
-- Citing ungram productions from public language-reference pages as an
-  appendix.
+Delivery is the [ungram follow-on backends plan](ungram-follow-ons.md).
+Sequence: freeze inspect tags → generate exhaustive `format_ast`
+walkers → `NodeKind` highlighter coverage → `Rocdown.Markdown.ungram`
+for shipped `MdNode` → public tree appendix. Do not generate
+rust-analyzer `SyntaxKind`, highlight collectors, scanners, or a
+CST.[^follow-ons]
 
 ## Validation
 
@@ -388,8 +390,11 @@ that revision.
 2. Whether `Element.self_closing` is a generated `BoolLit` field or stays
    in a hand-written `impl`.
 3. Whether public docs should link the ungrams in Phase 5 or stay
-   developer-only until a Markdown ungram exists.
+   developer-only until a Markdown ungram exists. Moved to the
+   [follow-on plan](ungram-follow-ons.md): generated name/tag appendix,
+   not a raw ungram paste.
 
+[^follow-ons]: Inspect exhaustiveness first; NodeKind not SyntaxKind; Markdown ungram generates MdNode; CST deferred.
 [^research]: Recommendation: ungram as tree spec; generate owned structs; no scanner, parser, or CST.
 [^ungram-intro]: Ungrammar describes trees and pairs with a hand-written parser.
 [^ungrammar-crate]: Parser-of-ungram library; not a parser generator.
