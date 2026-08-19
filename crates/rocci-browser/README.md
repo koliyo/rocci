@@ -53,7 +53,12 @@ argv = ["-u", "crates/rocci-browser/tests/fixtures/adapter.py"]
 ```
 
 `bin` is looked up on `PATH`. During workspace development, put `target/debug`
-on `PATH` (or pass absolute bins in tests).
+on `PATH` (or pass absolute bins in tests). First-party product CLIs expose a
+`browser-adapter` stdio command; plugin rows pass that as `argv`. Direct
+product `run` still opens a one-shot preview window.
+
+Host tests never spawn those product adapters. They use the fixture under
+`tests/fixtures/` only.
 
 ## Protocol
 

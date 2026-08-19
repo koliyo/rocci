@@ -64,6 +64,13 @@ cargo run -p rocci-okf -- run knowledge --provenance
 cargo run -p rocci-okf -- run knowledge --no-window --port 8000
 ```
 
+`run` without the browser still opens today's one-shot preview window.
+
+```sh
+# Speak the rocci-browser adapter protocol on stdio (probe / listDocuments / open)
+cargo run -p rocci-okf -- browser-adapter
+```
+
 `--profile base` is portable OKF, not the fast Rocci preview path. Use default
 `run` (Rocci schema, no git provenance) for local authoring, and
 `check --profile rocci` when reviewing or in CI.

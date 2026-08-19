@@ -1,5 +1,6 @@
 //! Product-blind project browser library: protocol, discovery, registry, and picker.
 
+pub mod adapter;
 mod client;
 mod discovery;
 mod fuzzy;
@@ -12,6 +13,10 @@ mod protocol;
 mod registry;
 mod session;
 
+pub use adapter::{
+    AdapterHandler, documents_from_pages_json, extract_http_url, inspector_url_for, serve_stdio,
+    spawn_run_no_window,
+};
 pub use client::AdapterClient;
 pub use discovery::{PluginSpec, discover_plugins, load_plugin_manifest};
 pub use fuzzy::{ScoreFields, fuzzy, score_entry};
