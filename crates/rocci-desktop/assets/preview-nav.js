@@ -5,7 +5,9 @@
   const HEIGHT = "48px";
   const STORAGE_KEY = "rocci-dev-panel";
   const VIEW_KEY = "rocci-dev-view";
+  const TAB_KEY = "rocci-dev-tab";
   const VIEWS = { source: true, ast: true, roc: true, html: true };
+  const TABS = { performance: true, source: true, console: true };
   const inspectorUrl =
     typeof __ROCCI_INSPECTOR_URL__ === "string" ? __ROCCI_INSPECTOR_URL__ : null;
   const hasSourceRoot = __ROCCI_HAS_SOURCE_ROOT__ === true;
@@ -74,33 +76,84 @@
       sessionStorage.setItem(VIEW_KEY, value);
     } catch (err) {}
   };
-  const rememberFrameView = () => {
-    if (!frame) {
+  const storedTab = () => {
+    try {
+      const value = sessionStorage.getItem(TAB_KEY);
+      if (value && TABS[value]) {
+        return value;
+      }
+    } catch (err) {}
+    return "performance";
+  };
+  const setStoredTab = (value) => {
+    if (!TABS[value]) {
       return;
     }
     try {
-      const href = frame.contentWindow.location.href;
-      const view = new URL(href).searchParams.get("view");
-      if (view) {
-        setStoredView(view);
-      }
+      sessionStorage.setItem(TAB_KEY, value);
     } catch (err) {}
   };
-  const inspectorSrc = (route) => {
+  const normalizeRoute = (value) => {
+    let route = value || "/";
+    try {
+      route = decodeURIComponent(route);
+    } catch (err) {}
+    if (!route || route.charAt(0) !== "/") {
+      route = "/" + route;
+    }
+    if (route.length > 1 && route.charAt(route.length - 1) !== "/") {
+      route += "/";
+    }
+    return route;
+  };
+  const inspectorOriginPath = () => {
     const url = new URL(inspectorUrl, window.location.href);
-    url.searchParams.set("route", route || "/");
-    url.searchParams.set("view", storedView());
+    return { origin: url.origin, path: url.pathname };
+  };
+  const inspectorTuple = (route) => {
+    const base = inspectorOriginPath();
+    return {
+      origin: base.origin,
+      path: base.path,
+      tab: storedTab(),
+      route: normalizeRoute(route),
+    };
+  };
+  const tuplesEqual = (left, right) =>
+    !!(
+      left &&
+      right &&
+      left.origin === right.origin &&
+      left.path === right.path &&
+      left.tab === right.tab &&
+      left.route === right.route
+    );
+  const inspectorHref = (tuple, includeView) => {
+    const url = new URL(inspectorUrl, window.location.href);
+    const params = new URLSearchParams();
+    params.set("tab", tuple.tab);
+    params.set("route", tuple.route);
+    if (includeView) {
+      params.set("view", storedView());
+    }
+    url.search = params.toString();
     return url.href;
+  };
+  let lastTuple = null;
+  let receivedInspectorMessage = false;
+  const assignFrame = (tuple, includeView) => {
+    lastTuple = tuple;
+    frame.src = inspectorHref(tuple, includeView);
   };
   const syncFrame = (route) => {
     if (!frame || !inspectorUrl) {
       return;
     }
-    rememberFrameView();
-    const next = inspectorSrc(route);
-    if (frame.src !== next) {
-      frame.src = next;
+    const next = inspectorTuple(route);
+    if (tuplesEqual(lastTuple, next)) {
+      return;
     }
+    assignFrame(next, true);
   };
   const setPanelOpen = (open) => {
     try {
@@ -121,8 +174,31 @@
     panel = document.createElement("rocci-preview-dev");
     frame = document.createElement("iframe");
     frame.title = "Developer panel";
-    frame.src = inspectorSrc(routeOf(window.location.href));
-    frame.addEventListener("load", rememberFrameView);
+    window.addEventListener("message", (event) => {
+      if (!frame || event.source !== frame.contentWindow) {
+        return;
+      }
+      const data = event.data;
+      if (!data || data.type !== "rocci-inspector") {
+        return;
+      }
+      receivedInspectorMessage = true;
+      if (data.tab) {
+        setStoredTab(data.tab);
+      }
+      if (data.view) {
+        setStoredView(data.view);
+      }
+      if (lastTuple) {
+        lastTuple = {
+          origin: lastTuple.origin,
+          path: lastTuple.path,
+          tab: storedTab(),
+          route: lastTuple.route,
+        };
+      }
+    });
+    assignFrame(inspectorTuple(routeOf(window.location.href)), true);
     panel.append(frame);
     dev.addEventListener("click", () => setPanelOpen(!panel.classList.contains("open")));
   }

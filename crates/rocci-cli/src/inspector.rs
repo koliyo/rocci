@@ -18,6 +18,10 @@ use crate::profile::ProfileSnapshot;
 
 const METRICS_PANEL: &str = include_str!("../templates/dev/MetricsPanel.rocci");
 
+const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; }";
+
+const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(location.search);parent.postMessage({type:"rocci-inspector",tab:p.get("tab")||"performance",view:p.get("view")||"source"},"*");})();</script>"#;
+
 pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> String {
     let css = panel_css();
     let scope = file_scope_id("MetricsPanel.rocci");
@@ -31,9 +35,9 @@ pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> St
         ),
         None => "<p class=\"empty\">No timing spans recorded.</p>".to_string(),
     };
-    let source_pane = render_source_pane(snapshot, &query);
+    let source_pane = render_source_pane(snapshot, &query, target);
     format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"color-scheme\" content=\"light dark\"><title>Profiling</title><style>{css}</style></head><body><section class=\"metrics-panel\" data-rocci-css=\"{scope}\"><h1>Profiling</h1>{profiling}{source_pane}</section></body></html>\n"
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"color-scheme\" content=\"light dark\"><title>Profiling</title><style>{DOCUMENT_CSS}{css}</style></head><body><section class=\"metrics-panel\" data-rocci-css=\"{scope}\"><h1>Profiling</h1>{profiling}{source_pane}</section>{INSPECTOR_NOTIFY}</body></html>\n"
     )
 }
 
@@ -53,9 +57,15 @@ fn panel_css() -> &'static str {
     })
 }
 
-fn render_source_pane(snapshot: Option<&InspectSnapshot>, query: &inspect::InspectQuery) -> String {
+fn render_source_pane(
+    snapshot: Option<&InspectSnapshot>,
+    query: &inspect::InspectQuery,
+    target: &str,
+) -> String {
     let view = query.view;
     let route = query.route.as_deref().unwrap_or("/");
+    let tab = panel_tab(target);
+    let action = panel_form_action(target);
     let (path, body, available, reason) =
         match snapshot.and_then(|snapshot| snapshot.resolve(query.route.as_deref()).ok()) {
             Some(page) => {
@@ -76,13 +86,49 @@ fn render_source_pane(snapshot: Option<&InspectSnapshot>, query: &inspect::Inspe
             error_page::html_escape(reason)
         )
     };
+    let pane_html = if available {
+        format!(
+            "<div class=\"code-pane\"><pre><code>{}</code></pre></div>",
+            error_page::html_escape(body)
+        )
+    } else {
+        "<div class=\"code-pane\"></div>".to_string()
+    };
     format!(
-        "<form class=\"source-form\" method=\"get\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><label class=\"view-label\">View<select name=\"view\" onchange=\"this.form.submit()\">{}</select></label><noscript><button type=\"submit\">Show</button></noscript></form><p class=\"file-path\">{}</p>{reason_html}<pre><code>{}</code></pre>",
+        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"{}\" /><label class=\"view-label\">View<select name=\"view\" onchange=\"this.form.submit()\">{}</select></label><noscript><button type=\"submit\">Show</button></noscript></form><p class=\"file-path\">{}</p>{reason_html}</div>{pane_html}",
         error_page::html_escape(route),
+        error_page::html_escape(tab),
         view_options(view),
         error_page::html_escape(path),
-        error_page::html_escape(body),
     )
+}
+
+fn panel_form_action(target: &str) -> &'static str {
+    let path = target.split(['?', '#']).next().unwrap_or(target);
+    match path {
+        "/__rocdown/dev" => "/__rocdown/dev",
+        "/__rocci_okf/dev" => "/__rocci_okf/dev",
+        _ => "/__rocci/dev",
+    }
+}
+
+fn panel_tab(target: &str) -> &'static str {
+    let query = target.split_once('?').map(|(_, query)| query).unwrap_or("");
+    for pair in query.split('&') {
+        if pair.is_empty() {
+            continue;
+        }
+        let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
+        if key == "tab" {
+            return match value {
+                "source" => "source",
+                "console" => "console",
+                "performance" => "performance",
+                _ => "performance",
+            };
+        }
+    }
+    "performance"
 }
 
 fn view_options(selected: inspect::InspectView) -> String {
@@ -331,19 +377,33 @@ mod tests {
         assert!(html.contains("App.rocci"));
         assert!(html.contains("&lt;div class=&quot;x&quot;&gt;&amp; more&lt;/div&gt;"));
         assert!(!html.contains("<p class=\"unavailable\">"));
+        assert!(html.contains("action=\"/__rocci/dev\""));
+        assert!(html.contains("name=\"tab\""));
+        assert!(html.contains("class=\"code-pane\""));
+        assert!(html.contains("html, body { height: 100%; margin: 0; overflow: hidden; }"));
+        assert!(html.contains("rocci-inspector"));
 
         let ast = render_panel_html(Some(&snapshot), "/__rocci/dev?view=ast");
         assert!(ast.contains("<option value=\"ast\" selected=\"\">"));
         assert!(ast.contains("(Document ...)"));
+        assert!(ast.contains("<div class=\"code-pane\"><pre><code>"));
 
         let html_view = render_panel_html(Some(&snapshot), "/__rocci/dev?view=html");
         assert!(html_view.contains("<option value=\"html\" selected=\"\">"));
         assert!(html_view.contains("HTML snapshot was not captured for this route."));
-        assert!(html_view.contains("<pre><code></code></pre>"));
+        assert!(html_view.contains("<div class=\"code-pane\"></div>"));
+        assert!(!html_view.contains("<pre><code>"));
 
         let unknown = render_panel_html(Some(&snapshot), "/__rocci/dev?view=nope");
         assert!(unknown.contains("<option value=\"source\" selected=\"\">"));
         assert!(unknown.contains("&lt;div class=&quot;x&quot;&gt;&amp; more&lt;/div&gt;"));
+
+        let alias = render_panel_html(
+            Some(&snapshot),
+            "/__rocdown/dev?tab=source&route=/&view=ast",
+        );
+        assert!(alias.contains("action=\"/__rocdown/dev\""));
+        assert!(alias.contains("name=\"tab\" value=\"source\""));
     }
 
     #[test]
