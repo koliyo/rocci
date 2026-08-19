@@ -29,6 +29,8 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Check workspace dependency direction
         run: python3 scripts/check-workspace-deps.py
+      - name: Check generated AST is current
+        run: cargo run -q -p rocci-ungram -- check
       - name: Check code formatting
         run: cargo fmt --all -- --check
       - name: Run clippy

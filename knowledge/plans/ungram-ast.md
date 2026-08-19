@@ -4,7 +4,7 @@ title: Ungrammar AST codegen for Rocci and Rocdown
 description: "Phased delivery of ungrammar as the tree spec for both languages, a shared generator of owned AST structs, and CI drift checks. Scanners and parsers stay hand-written."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T14:30:00Z }
+generated: { by: process:cursor, at: 2026-08-19T14:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -329,6 +329,10 @@ fields.
 instructions name the ungram as the first edit for a new node.
 Architecture records stay descriptive and are updated only after this
 phase ships, not in the plan commit.
+
+**Status:** implemented on `ungram-ast-implementation` (CI lint `--check`,
+crate README tree-spec notes, language-dev ungram-first). Not CI-complete
+until required GitHub workflows succeed on this revision.
 
 ## Follow-ons (not v1)
 
