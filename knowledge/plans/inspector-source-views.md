@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Preview inspector source views
-description: "Extend the preview-window Dev panel beyond profiling so it can show original source, formatted AST, generated Roc, or generated HTML for the current page, selected with a dropdown. Artifact JSON and the dropdown shipped; remaining UX (dock, tabs, scroll, console) is in the extended inspector plan."
+description: "Extend the preview-window Dev panel beyond profiling so it can show original source, formatted AST, generated Roc, or generated HTML for the current page, selected with a dropdown. Artifact JSON and the dropdown shipped; remaining UX is the inspector repair plan."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -149,6 +149,11 @@ sources:
     title: Extended preview-window inspector
     author: process:cursor
     last_modified: 2026-08-19
+  - id: repair-plan
+    resource: preview-inspector-repair.md
+    title: Investigate and repair the preview inspector
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Preview inspector source views
@@ -156,10 +161,12 @@ sources:
 Inspect JSON, capabilities, the Source dropdown, overlay `?route=` /
 `?view=` sync, and per-product artifact fill shipped on 2026-08-19
 (`feat(preview): show source, AST, Roc, and HTML in the Dev inspector`).
-Remaining Dev-panel UX — true dock, tabs, working dropdown/scroll, and a
-runtime console — lives in the [extended preview-window inspector
-plan](preview-inspector.md). This record is the artifact-and-dropdown
-contract those routes still follow.[^inspector-plan]
+Remaining Dev-panel UX — scrolling Source, dock chrome that does not cover
+tabs, OKF route coverage, and syntax highlighting — lives in
+[Investigate and repair the preview inspector](preview-inspector-repair.md).
+The [extended inspector](preview-inspector.md) plan is the original dock/tabs
+contract; those shells shipped. This record is the artifact-and-dropdown
+contract those routes still follow.[^inspector-plan][^repair-plan]
 
 ## Goal and scope
 
@@ -437,4 +444,5 @@ normative:
 [^dev-server]: Same-origin `/__rocci/dev` for static Rocdown and OKF preview.
 [^okf-main]: OKF preview sets `inspector_url` and does not set `source_root`.
 [^highlight-readme]: Token spans for Roc, HTML, Rocci, and Rocdown.
-[^inspector-plan]: Dock, tabs, Source DX, and runtime console; does not replace inspect JSON.
+[^inspector-plan]: Original dock/tabs/console contract; remaining repair is preview-inspector-repair.md.
+[^repair-plan]: Investigation matrix, scroll fix, dock chrome, OKF routes, and tok-* highlighting.

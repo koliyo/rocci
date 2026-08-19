@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Extended preview-window inspector
-description: "Multi-phase plan to turn the shipped Dev cover (profiling plus a fragile source dropdown) into a browser-like inspector: dock right or bottom, tabs for Performance / Source / Console, working source views and scroll, and a runtime log console. App-level Rocci logging is out of scope."
+description: "Original dock/tabs/console specification for the preview Dev inspector. Those shells are in the tree; remaining investigation and repair is the inspector-repair plan. App-level Rocci logging is out of scope."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -27,6 +27,11 @@ sources:
   - id: source-plan
     resource: inspector-source-views.md
     title: Preview inspector source views
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: repair-plan
+    resource: preview-inspector-repair.md
+    title: Investigate and repair the preview inspector
     author: process:cursor
     last_modified: 2026-08-19
   - id: desktop-readme
@@ -127,7 +132,12 @@ views](inspector-source-views.md). Inspect JSON, capabilities, overlay
 This plan does not replace `rocci inspect` / `rocdown inspect`, the
 playground, overlay Reveal/Copy, or wry native Web Inspector.[^source-plan][^cli-readme][^preview-rs]
 
-Exploratory; no phase started.
+Dock, tabs, Source dropdown, overlay tuple sync, and the runtime log hub
+are in the tree. They are not yet usable: Source does not scroll, overlay
+dock buttons cover tabs, and several OKF routes have no snapshot. Remaining
+investigation, repair, and syntax highlighting live in [Investigate and
+repair the preview inspector](preview-inspector-repair.md). Do not start
+the original Phases 1–7 on this record.[^repair-plan]
 
 ## Established baseline
 
@@ -464,7 +474,8 @@ normative:
 [^research]: DX findings: src clobber, @scope scroll, cover-not-dock, console sources.
 [^preview-decision]: Preview window versus preview chrome versus Dev panel naming.
 [^chrome-research]: Overlay HTML versus preview-origin inspector Rocci.
-[^source-plan]: Shipped inspect JSON and dropdown; remaining UX moved here.
+[^source-plan]: Shipped inspect JSON and dropdown; remaining UX moved to the repair plan.
+[^repair-plan]: Investigate-and-repair follow-on: scroll, dock chrome, OKF routes, highlighting.
 [^desktop-readme]: Overlay assets; 28rem column; compiler panels on the preview origin.
 [^preview-nav-js]: Dev iframe, cover layout, `frame.src` sync.
 [^preview-nav-html]: Dev button only.
