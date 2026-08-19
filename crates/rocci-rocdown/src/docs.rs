@@ -13,7 +13,7 @@ use crate::ast::{
     Item, MdNode, ParamField, ParamValue,
 };
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
-use crate::img::{StaticImage, extract_img_fields};
+use crate::img::{StaticImage, img_fields_from_params};
 use crate::page::{bool_literal, skip_value, string_list, string_literal};
 use crate::parse::parse_fragment;
 use crate::registry::{self, KindFamily, KindSpec};
@@ -515,6 +515,42 @@ pub fn collect_headings(nodes: &[ArticleNode]) -> Vec<PageHeading> {
     headings
 }
 
+fn is_heading_sugar(call: &BlockCall, src: &str) -> bool {
+    registry::heading_level(&call.name).is_some()
+        && (call.is_colon(src) || atx_heading(src, call.span))
+}
+
+fn atx_heading(src: &str, span: Span) -> bool {
+    src.get(span.start as usize..)
+        .unwrap_or("")
+        .trim_start_matches([' ', '\t'])
+        .starts_with('#')
+}
+
+fn article_text(nodes: &[ArticleNode]) -> String {
+    let mut parts = Vec::new();
+    fn walk(nodes: &[ArticleNode], parts: &mut Vec<String>) {
+        for node in nodes {
+            match node {
+                ArticleNode::Markdown(md) => {
+                    let text = md.text_content();
+                    if !text.is_empty() {
+                        parts.push(text);
+                    }
+                }
+                ArticleNode::Block(docs) => walk(&docs.children, parts),
+                ArticleNode::Image(image) => {
+                    if !image.alt.is_empty() {
+                        parts.push(image.alt.clone());
+                    }
+                }
+            }
+        }
+    }
+    walk(nodes, &mut parts);
+    parts.join(" ").trim().to_string()
+}
+
 fn collect_headings_in(
     nodes: &[ArticleNode],
     in_tab: bool,
@@ -536,6 +572,16 @@ fn collect_headings_in(
                 id: id.clone(),
                 text: children.iter().map(MdNode::text_content).collect(),
             }),
+            ArticleNode::Block(docs) if registry::heading_level(&docs.kind).is_some() => {
+                if !in_tab {
+                    let level = registry::heading_level(&docs.kind).unwrap();
+                    headings.push(PageHeading {
+                        level,
+                        id: docs.attrs.id.clone().unwrap_or_default(),
+                        text: article_text(&docs.children),
+                    });
+                }
+            }
             ArticleNode::Markdown(md) if !in_tab => {
                 for child in md.children_mut_slice() {
                     collect_headings_in(
@@ -786,6 +832,9 @@ fn nodes_from_items(
     for item in items {
         match item {
             Item::Markdown(node) => nodes.push(ArticleNode::Markdown(node.clone())),
+            Item::Block(call) if is_heading_sugar(call, ctx.source.src) => {
+                nodes.push(heading_from_call(ctx, call, parent_kind));
+            }
             Item::Block(call) if call.name == "img" => {
                 nodes.push(image_from_call(ctx, call));
             }
@@ -838,7 +887,7 @@ fn image_from_call(ctx: &mut BuildCtx<'_>, call: &BlockCall) -> ArticleNode {
         .as_ref()
         .map(|params| params.span)
         .unwrap_or(call.span);
-    let fields = extract_img_fields(ctx.source.src, body, &mut diags);
+    let fields = img_fields_from_params(call.params.as_ref(), body, &mut diags);
     for diagnostic in diags {
         ctx.diagnostics.push(CatalogDiagnostic {
             code: if diagnostic.is_error() {
@@ -856,6 +905,76 @@ fn image_from_call(ctx: &mut BuildCtx<'_>, call: &BlockCall) -> ArticleNode {
         });
     }
     ArticleNode::Image(StaticImage::from_fields(&fields, call.span))
+}
+
+fn heading_from_call(
+    ctx: &mut BuildCtx<'_>,
+    call: &BlockCall,
+    parent_kind: Option<&str>,
+) -> ArticleNode {
+    let line = line_number(ctx.source.src, call.span.start as usize);
+    let id = call
+        .params
+        .as_ref()
+        .and_then(|params| params.fields.iter().find(|field| field.name == "id"))
+        .and_then(|field| match &field.value {
+            ParamValue::StringLit { value, .. } => Some(value.clone()),
+            ParamValue::Ident { name, .. } => Some(name.clone()),
+            _ => None,
+        });
+
+    let attrs = DocsAttrs {
+        id,
+        ..Default::default()
+    };
+
+    let content = call
+        .content_span()
+        .unwrap_or_else(|| Span::point(call.span.end as usize));
+    let parsed = parse_fragment(ctx.source, content, false);
+    for diagnostic in parsed.diagnostics {
+        let code = if diagnostic.is_error() {
+            "RD1001"
+        } else {
+            "RD1002"
+        };
+        ctx.diagnostics.push(CatalogDiagnostic {
+            code,
+            severity: if diagnostic.is_error() {
+                Severity::Error
+            } else {
+                Severity::Warning
+            },
+            path: ctx.source_path.to_string(),
+            message: format!("line {line}: {}", diagnostic.message),
+        });
+    }
+
+    let children = unwrap_heading_children(nodes_from_items(
+        ctx,
+        &parsed.document.items,
+        Some(&call.name),
+    ));
+    let node = DocsNode {
+        kind: call.name.clone(),
+        attrs,
+        children,
+        origin: None,
+        line,
+    };
+    validate_model(ctx, &node, parent_kind);
+    ArticleNode::Block(node)
+}
+
+fn unwrap_heading_children(nodes: Vec<ArticleNode>) -> Vec<ArticleNode> {
+    if let [ArticleNode::Markdown(MdNode::Paragraph { children, .. })] = nodes.as_slice() {
+        return children
+            .iter()
+            .cloned()
+            .map(ArticleNode::Markdown)
+            .collect();
+    }
+    nodes
 }
 
 fn docs_node(
@@ -1609,6 +1728,24 @@ fn render_node(node: &ArticleNode) -> String {
 }
 
 fn render_docs(docs: &DocsNode) -> String {
+    if let Some(level) = registry::heading_level(&docs.kind) {
+        let tag = format!("h{level}");
+        let class = format!("rd-header-{level}");
+        let id = docs.attrs.id.as_deref().unwrap_or("");
+        return crate::article::render_heading(
+            &tag,
+            &class,
+            id,
+            &docs
+                .children
+                .iter()
+                .map(|child| match child {
+                    ArticleNode::Markdown(md) => render_md(md),
+                    other => render_node(other),
+                })
+                .collect::<Vec<_>>(),
+        );
+    }
     docs.children.iter().map(render_node).collect::<String>()
 }
 
@@ -1726,6 +1863,10 @@ fn docs_to_markdown(docs: &DocsNode) -> String {
                 _ => None,
             })
             .collect(),
+        kind if registry::heading_level(kind).is_some() => {
+            let level = registry::heading_level(kind).unwrap();
+            format!("{} {}\n\n", "#".repeat(level as usize), inner.trim())
+        }
         "include" | "example" => {
             let mut out = inner;
             if let Some(origin) = &docs.origin {
@@ -2235,6 +2376,27 @@ mod tests {
             !collect_headings(&docs.article)
                 .iter()
                 .any(|heading| heading.text == "Inside")
+        );
+    }
+
+    #[test]
+    fn sugar_and_colon_headings_share_outline() {
+        let (docs, diagnostics) =
+            load("# Guide\n\n## Install\n\n:h2[id: \"from-source\"] Building from source\n");
+        assert!(
+            !diagnostics.iter().any(CatalogDiagnostic::is_error),
+            "{diagnostics:?}"
+        );
+        let headings = collect_headings(&docs.article);
+        let ids: Vec<_> = headings.iter().map(|heading| heading.id.as_str()).collect();
+        assert_eq!(ids, ["guide", "install", "from-source"]);
+        let html = render_article(&docs.article);
+        assert!(html.contains("id=\"install\""), "{html}");
+        assert!(html.contains("id=\"from-source\""), "{html}");
+        assert!(html.contains("<h2 class=\"rd-header-2\""), "{html}");
+        assert!(
+            !html.contains("<p class=\"rd-paragraph\">Building from source"),
+            "{html}"
         );
     }
 

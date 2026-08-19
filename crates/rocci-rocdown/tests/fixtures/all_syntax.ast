@@ -4,8 +4,7 @@
   (css)
   (component Hello)
   (fixture helloSample)
-  (h 1 all-syntax
-    (text All syntax))
+  (block h1)
   (p
     (text Email)
     (a mailto:docs@example.com

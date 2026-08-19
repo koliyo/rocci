@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use rocci_template::{Cursor, Diagnostic, Span};
 
-use crate::ast::{Document, Item, MdNode};
+use crate::ast::{BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::docs::split_docs_body;
 use crate::page::{bool_literal, skip_value, string_literal};
 use crate::parse::parse_fragment;
@@ -327,6 +327,152 @@ fn skip_comma(cur: &mut Cursor<'_>) {
     }
 }
 
+pub fn img_fields_from_params(
+    params: Option<&BracketRecord>,
+    body_span: Span,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> ImgFields {
+    let mut fields = ImgFields::default();
+    let Some(params) = params else {
+        diagnostics.push(Diagnostic::error(
+            body_span,
+            "missing required field `src` in `@img`",
+        ));
+        return fields;
+    };
+
+    for field in &params.fields {
+        let name = field.name.as_str();
+        if !ALLOWED_FIELDS.contains(&name) {
+            diagnostics.push(Diagnostic::error(
+                field.name_span,
+                format!(
+                    "unknown field `{name}` in `@img`; expected one of {}",
+                    ALLOWED_FIELDS.join(", ")
+                ),
+            ));
+            continue;
+        }
+
+        match name {
+            "src" | "alt" | "title" | "width" | "height" | "class" => {
+                if let ParamValue::StringLit { value, span } = &field.value {
+                    let slot = match name {
+                        "src" => &mut fields.src,
+                        "alt" => &mut fields.alt,
+                        "title" => &mut fields.title,
+                        "width" => &mut fields.width,
+                        "height" => &mut fields.height,
+                        "class" => &mut fields.class,
+                        _ => unreachable!(),
+                    };
+                    *slot = Some((value.clone(), *span));
+                } else {
+                    diagnostics.push(Diagnostic::error(
+                        field.value.span(),
+                        format!("`{name}` must be a compile-time string literal"),
+                    ));
+                }
+            }
+            "loading" => {
+                if let ParamValue::StringLit { value, span } = &field.value {
+                    if LOADING_VALUES.contains(&value.as_str()) {
+                        fields.loading = Some((value.clone(), *span));
+                    } else {
+                        diagnostics.push(Diagnostic::error(
+                            *span,
+                            format!(
+                                "`loading` must be one of {}",
+                                LOADING_VALUES
+                                    .iter()
+                                    .map(|value| format!("`{value}`"))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            ),
+                        ));
+                    }
+                } else {
+                    diagnostics.push(Diagnostic::error(
+                        field.value.span(),
+                        format!("`{name}` must be a compile-time string literal"),
+                    ));
+                }
+            }
+            "decoding" => {
+                if let ParamValue::StringLit { value, span } = &field.value {
+                    if DECODING_VALUES.contains(&value.as_str()) {
+                        fields.decoding = Some((value.clone(), *span));
+                    } else {
+                        diagnostics.push(Diagnostic::error(
+                            *span,
+                            format!(
+                                "`decoding` must be one of {}",
+                                DECODING_VALUES
+                                    .iter()
+                                    .map(|value| format!("`{value}`"))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            ),
+                        ));
+                    }
+                } else {
+                    diagnostics.push(Diagnostic::error(
+                        field.value.span(),
+                        format!("`{name}` must be a compile-time string literal"),
+                    ));
+                }
+            }
+            "decorative" => {
+                if let ParamValue::BoolLit { value, span } = &field.value {
+                    fields.decorative = Some((*value, *span));
+                } else {
+                    diagnostics.push(Diagnostic::error(
+                        field.value.span(),
+                        "`decorative` must be `Bool.true` or `Bool.false`",
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if fields.src.is_none() {
+        diagnostics.push(Diagnostic::error(
+            body_span,
+            "missing required field `src` in `@img`",
+        ));
+    }
+
+    let decorative = fields
+        .decorative
+        .as_ref()
+        .map(|(value, _)| *value)
+        .unwrap_or(false);
+    if decorative {
+        if fields.alt.as_ref().is_some_and(|(alt, _)| !alt.is_empty()) {
+            diagnostics.push(Diagnostic::error(
+                fields
+                    .alt
+                    .as_ref()
+                    .map(|(_, span)| *span)
+                    .unwrap_or(body_span),
+                "decorative `@img` must not set a non-empty `alt`",
+            ));
+        }
+    } else if fields.alt.as_ref().is_none_or(|(alt, _)| alt.is_empty()) {
+        diagnostics.push(Diagnostic::error(
+            fields
+                .alt
+                .as_ref()
+                .map(|(_, span)| *span)
+                .unwrap_or(body_span),
+            "`@img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
+        ));
+    }
+
+    fields
+}
+
 pub fn is_remote_asset(url: &str) -> bool {
     let url = url.trim();
     url.contains("://") || url.starts_with("data:") || url.starts_with('#')
@@ -375,14 +521,14 @@ pub fn collect_local_media(source: SourceFile<'_>, document: &Document) -> Vec<(
 fn collect_media_in(source: SourceFile<'_>, document: &Document, urls: &mut Vec<(String, Span)>) {
     for item in &document.items {
         match item {
-            Item::Block(call) if call.is_legacy_img(source.src) => {
+            Item::Block(call) if call.name == "img" => {
                 let mut diags = Vec::new();
                 let body = call
                     .params
                     .as_ref()
                     .map(|params| params.span)
                     .unwrap_or(call.span);
-                let fields = extract_img_fields(source.src, body, &mut diags);
+                let fields = img_fields_from_params(call.params.as_ref(), body, &mut diags);
                 if let Some((src, span)) = fields.src
                     && !is_remote_asset(&src)
                 {

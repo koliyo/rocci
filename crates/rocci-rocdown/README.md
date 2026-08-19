@@ -161,7 +161,12 @@ Native image declaration. Lowers to `Html.void_element("img", ...)` with standar
 | `loading` | Optional | Compile-time string literal (`"lazy"` or `"eager"`) |
 | `decoding` | Optional | Compile-time string literal (`"async"`, `"auto"`, `"sync"`) |
 
-Markdown `![](path)` remains the empty-alt decorative shorthand. Nested `@img`
+Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph
+whose only child is a Markdown image, and ATX headings (`#` through `######`),
+parse as the same internal `img` / `h1`–`h6` block kinds as `:img` and `:h2`.
+Heading ids still come from the existing slug algorithm unless
+`:h2[id: "install"]` sets one. Inline images in mixed paragraphs stay Markdown.
+Nested `@img`
 inside `@docs figure` owns accessibility text; figure `caption` and `credit`
 do not substitute for `alt`. Local `src` paths, including `./img/photo.png`, resolve against the source file directory. `http(s):`, `mailto:`, and `data:` pass through. `rocdown run` diagnoses missing files, copies them into the preview workspace without hashing, and serves them next to the page route. Static site builds (`rocdown build`) hash files under `build.assets`.
 

@@ -8,7 +8,9 @@ use rocci_template::{
 };
 
 use crate::CompileOptions;
-use crate::ast::{BlockCall, Document, HeadingInfo, Item, MdNode, PageMeta, RenderDecl};
+use crate::ast::{
+    BlockCall, Document, HeadingInfo, Item, MdNode, PageMeta, ParamValue, RenderDecl,
+};
 use crate::docs::{
     docs_fields_from_params, extract_lines, extract_region, field_bool, field_string,
     resolve_include_path,
@@ -465,9 +467,10 @@ impl<'a> Emitter<'a> {
             self.push_indent();
             match node {
                 ContentPiece::Markdown(md) => self.lower_md(md),
-                ContentPiece::Block(call) if call.is_legacy_img(self.source.src) => {
-                    self.lower_img(call)
+                ContentPiece::Block(call) if is_heading_sugar(call, self.source.src) => {
+                    self.lower_heading_sugar(call)
                 }
+                ContentPiece::Block(call) if call.name == "img" => self.lower_img(call),
                 ContentPiece::Block(call) => self.lower_docs(call),
                 ContentPiece::Render(render) => {
                     let expr = render.expr.of(self.source.src).trim();
@@ -847,7 +850,12 @@ impl<'a> Emitter<'a> {
                     self.lower_md(node);
                     self.emit(",\n");
                 }
-                Item::Block(nested) if nested.is_legacy_img(self.source.src) => {
+                Item::Block(nested) if is_heading_sugar(nested, self.source.src) => {
+                    self.push_indent();
+                    self.lower_heading_sugar(nested);
+                    self.emit(",\n");
+                }
+                Item::Block(nested) if nested.name == "img" => {
                     self.push_indent();
                     self.lower_img(nested);
                     self.emit(",\n");
@@ -863,13 +871,34 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    fn lower_heading_sugar(&mut self, call: &BlockCall) {
+        let level = crate::registry::heading_level(&call.name).unwrap_or(1);
+        let id = heading_id_from_params(call).unwrap_or_default();
+        let tag = format!("h{level}");
+        let class = format!("rd-header-{level}");
+        let content = call
+            .content_span()
+            .unwrap_or_else(|| Span::point(call.span.end as usize));
+        let parsed = parse_fragment(self.source, content, false);
+        self.diagnostics.extend(parsed.diagnostics);
+        let children = heading_inline_nodes(&parsed.document.items);
+        self.emit_element(
+            &tag,
+            &[("class", class.as_str()), ("id", id.as_str())],
+            &children,
+            false,
+            call.span,
+        );
+    }
+
     fn lower_img(&mut self, call: &BlockCall) {
         let body = call
             .params
             .as_ref()
             .map(|params| params.span)
             .unwrap_or(call.span);
-        let fields = crate::img::extract_img_fields(self.source.src, body, self.diagnostics);
+        let fields =
+            crate::img::img_fields_from_params(call.params.as_ref(), body, self.diagnostics);
         let image = crate::img::StaticImage::from_fields(&fields, call.span);
         let attrs = image.html_attrs();
 
@@ -2022,4 +2051,42 @@ fn illegal_docs_item(item: &Item) -> Option<&'static str> {
         Item::On(_) => Some("on"),
         Item::Template(_) => Some("template"),
     }
+}
+
+fn is_heading_sugar(call: &BlockCall, src: &str) -> bool {
+    crate::registry::heading_level(&call.name).is_some()
+        && (call.is_colon(src)
+            || src
+                .get(call.span.start as usize..)
+                .unwrap_or("")
+                .trim_start_matches([' ', '\t'])
+                .starts_with('#'))
+}
+
+fn heading_id_from_params(call: &BlockCall) -> Option<String> {
+    call.params.as_ref().and_then(|params| {
+        params
+            .fields
+            .iter()
+            .find(|field| field.name == "id")
+            .and_then(|field| match &field.value {
+                ParamValue::StringLit { value, .. } => Some(value.clone()),
+                ParamValue::Ident { name, .. } => Some(name.clone()),
+                _ => None,
+            })
+    })
+}
+
+fn heading_inline_nodes(items: &[Item]) -> Vec<MdNode> {
+    let mut nodes = Vec::new();
+    for item in items {
+        match item {
+            Item::Markdown(MdNode::Paragraph { children, .. }) => {
+                nodes.extend(children.iter().cloned());
+            }
+            Item::Markdown(node) => nodes.push(node.clone()),
+            _ => {}
+        }
+    }
+    nodes
 }

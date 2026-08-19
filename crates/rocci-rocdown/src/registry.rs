@@ -357,6 +357,12 @@ pub fn is_docs_kind(name: &str) -> bool {
     })
 }
 
+pub fn heading_level(name: &str) -> Option<u8> {
+    name.strip_prefix('h')
+        .and_then(|rest| rest.parse::<u8>().ok())
+        .filter(|level| (1..=6).contains(level))
+}
+
 pub fn parent_allowed(spec: &KindSpec, parent_kind: Option<&str>) -> bool {
     spec.parents.is_empty()
         || parent_kind.is_some_and(|parent| spec.parents.iter().any(|want| *want == parent))
