@@ -1,4 +1,60 @@
+use serde::Serialize;
+
 use crate::{Document, Item, MdNode};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PageKind {
+    Static,
+    Hydrate,
+    Live,
+}
+
+impl PageKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Static => "static",
+            Self::Hydrate => "hydrate",
+            Self::Live => "live",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PageClass {
+    pub kind: PageKind,
+    pub reason: &'static str,
+}
+
+pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass {
+    let mut class = PageClass {
+        kind: PageKind::Static,
+        reason: "Markdown",
+    };
+    for item in &document.items {
+        let (kind, reason) = match item {
+            Item::Markdown(_) | Item::Page(_) | Item::Block(_) | Item::Use(_) => continue,
+            Item::Render(_) => (PageKind::Hydrate, "@render"),
+            Item::Roc(_) => (PageKind::Hydrate, "@roc"),
+            Item::Component(_) => (PageKind::Hydrate, "@component"),
+            Item::Fixture(_) => (PageKind::Hydrate, "@fixture"),
+            Item::Css(_) => (PageKind::Hydrate, "@css"),
+            Item::Template(_) => (PageKind::Hydrate, "Rocci template"),
+            Item::Context(_) => (PageKind::Live, "@context"),
+            Item::Init(_) => (PageKind::Live, "@init"),
+            Item::On(_) => (PageKind::Live, "@on"),
+        };
+        if kind > class.kind {
+            class.kind = kind;
+            class.reason = reason;
+        }
+    }
+    if uses_datastar && class.kind < PageKind::Live {
+        class.kind = PageKind::Live;
+        class.reason = "import Datastar";
+    }
+    class
+}
 
 pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
     for item in &document.items {
@@ -425,6 +481,10 @@ mod tests {
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert!(is_static_document(&out.document).is_ok());
+        assert_eq!(
+            classify_document(&out.document, false).kind,
+            PageKind::Static
+        );
         let mut diagnostics = Vec::new();
         let docs = load_page_docs(
             source,
@@ -533,6 +593,84 @@ Text in rocdown.
         assert!(rendered.contains("<pre class=\"rd-code-block\"><code class=\"rd-code language-unknown_lang\">&lt;script&gt;alert(1)&lt;/script&gt;"));
     }
 
+    fn classify(src: &str) -> PageClass {
+        classify_with_datastar(src, false)
+    }
+
+    fn classify_with_datastar(src: &str, uses_datastar: bool) -> PageClass {
+        let out = compile(
+            SourceFile::new("page.rocdown", src),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        classify_document(&out.document, uses_datastar)
+    }
+
+    #[test]
+    fn classifies_markdown_and_docs_as_static() {
+        assert_eq!(classify("# Hi\n").kind, PageKind::Static);
+        assert_eq!(
+            classify("# Hi\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n").kind,
+            PageKind::Static
+        );
+        assert_eq!(
+            classify("@page { meta: { title: \"Home\" } }\n\n# Hi\n").kind,
+            PageKind::Static
+        );
+    }
+
+    #[test]
+    fn classifies_render_as_hydrate() {
+        let class = classify("# Hi\n\n@render {\n    Html.text(\"x\")\n}\n");
+        assert_eq!(class.kind, PageKind::Hydrate);
+        assert_eq!(class.reason, "@render");
+    }
+
+    #[test]
+    fn classifies_component_css_and_roc_as_hydrate() {
+        assert_eq!(
+            classify("@component Box = || { <div /> }\n\n# Hi\n").kind,
+            PageKind::Hydrate
+        );
+        assert_eq!(
+            classify("@css { body { margin: 0; } }\n\n# Hi\n").kind,
+            PageKind::Hydrate
+        );
+        assert_eq!(classify("@roc { n = 1 }\n\n# Hi\n").kind, PageKind::Hydrate);
+        assert_eq!(classify("<Box />\n\n# Hi\n").kind, PageKind::Hydrate);
+    }
+
+    #[test]
+    fn classifies_on_as_live() {
+        let class = classify("# Hi\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n");
+        assert_eq!(class.kind, PageKind::Live);
+        assert_eq!(class.reason, "@on");
+    }
+
+    #[test]
+    fn classifies_context_and_init_as_live() {
+        assert_eq!(classify("@context AppState\n\n# Hi\n").kind, PageKind::Live);
+        assert_eq!(classify("@init {\n    0\n}\n\n# Hi\n").kind, PageKind::Live);
+    }
+
+    #[test]
+    fn live_wins_over_hydrate() {
+        let class = classify(
+            "@component Box = || { <div /> }\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
+        );
+        assert_eq!(class.kind, PageKind::Live);
+        assert_eq!(class.reason, "@on");
+    }
+
+    #[test]
+    fn datastar_import_promotes_to_live() {
+        let class = classify_with_datastar("@roc { n = 1 }\n\n# Hi\n", true);
+        assert_eq!(class.kind, PageKind::Live);
+        assert_eq!(class.reason, "import Datastar");
+    }
+
     #[test]
     fn rejects_render_islands() {
         let src = "# Hi\n\n@render {\n    Html.text(\"x\")\n}\n";
@@ -545,6 +683,7 @@ Text in rocdown.
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
         assert_eq!(is_static_document(&out.document), Err("@render"));
+        assert_eq!(classify_document(&out.document, false).kind, PageKind::Hydrate);
     }
 
     #[test]

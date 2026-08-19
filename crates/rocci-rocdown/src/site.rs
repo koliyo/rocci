@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::{CompileOptions, Document, Item, MdNode, compile};
 
-use crate::article::{is_static_document, render_document};
+use crate::article::{PageClass, PageKind, classify_document, render_document};
 use crate::catalog::{
     self, CatalogDiagnostic, Edge, NavSection, PageHeading, ResolveOptions, ResolvedPage,
     ResolvedSite, RouteHint, Severity, SourcePage,
@@ -237,13 +237,9 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         if compiled.has_errors() || has_use {
             continue;
         }
-        if compiled.roc.contains("import Datastar") {
-            diagnostics.push(CatalogDiagnostic::error(
-                "RD2301",
-                &relative_name,
-                format!("{relative_name} uses Datastar, which the rocdown runtime does not stage"),
-            ));
-            continue;
+        let class = classify_document(&compiled.document, compiled.roc.contains("import Datastar"));
+        if let Some(diagnostic) = page_kind_diagnostic(&relative_name, class) {
+            diagnostics.push(diagnostic);
         }
         const VALID_LAYOUTS: &[&str] = &[
             "home",
@@ -275,16 +271,6 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         } else {
             "docs".to_string()
         };
-        if let Err(kind) = is_static_document(&compiled.document) {
-            diagnostics.push(CatalogDiagnostic::error(
-                "RD2301",
-                &relative_name,
-                format!(
-                    "{relative_name} contains {kind}; static rocdown pages cannot include Roc/Rocci islands yet"
-                ),
-            ));
-            continue;
-        }
         let derived_id = relative_name
             .strip_suffix(".rocdown")
             .unwrap_or(&relative_name)
@@ -419,6 +405,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             outgoing_links,
             image_urls,
             article_html,
+            kind: class.kind,
             docs: page_docs,
         });
     }
@@ -596,6 +583,7 @@ struct CatalogInspect<'a> {
     route: &'a str,
     aliases: &'a [String],
     title: &'a str,
+    kind: PageKind,
     draft: bool,
     unlisted: bool,
 }
@@ -607,6 +595,7 @@ impl<'a> From<&'a ResolvedPage> for CatalogInspect<'a> {
             route: &page.route,
             aliases: &page.aliases,
             title: &page.title,
+            kind: page.kind,
             draft: page.draft,
             unlisted: page.unlisted,
         }
@@ -711,6 +700,28 @@ fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
         }
     }
     Ok(roots)
+}
+
+fn page_kind_diagnostic(path: &str, class: PageClass) -> Option<CatalogDiagnostic> {
+    match class.kind {
+        PageKind::Static => None,
+        PageKind::Hydrate => Some(CatalogDiagnostic::error(
+            "RD2301",
+            path,
+            format!(
+                "{path} is a hydrate page ({}); site builds cannot splice Rocci components yet",
+                class.reason
+            ),
+        )),
+        PageKind::Live => Some(CatalogDiagnostic::error(
+            "RD2302",
+            path,
+            format!(
+                "{path} is a live page ({}); site builds cannot include handlers or Datastar yet",
+                class.reason
+            ),
+        )),
+    }
 }
 
 fn collect_image_urls(document: &Document) -> Vec<String> {
@@ -905,6 +916,35 @@ mod tests {
     }
 
     #[test]
+    fn check_diagnoses_hydrate_pages() {
+        let root = temp("hydrate");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("widget.rocdown"),
+            "# Widget\n\n@render {\n    Html.text(\"x\")\n}\n",
+        )
+        .unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors());
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(rendered.contains("RD2301"), "{rendered}");
+        assert!(rendered.contains("hydrate"), "{rendered}");
+        assert!(rendered.contains("@render"), "{rendered}");
+        assert!(!rendered.contains("RD2302"), "{rendered}");
+        let catalog = inspect(&root, InspectKind::Catalog, None).unwrap();
+        assert!(catalog.contains("\"kind\": \"hydrate\""), "{catalog}");
+        let resolved = resolve_loaded(&load_site(&root).unwrap());
+        let widget = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id == "widget")
+            .unwrap();
+        assert_eq!(widget.kind, PageKind::Hydrate);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn find_site_root_is_none_without_toml() {
         let root = temp("no-toml");
         fs::write(root.join("Guide.rocdown"), "# Guide\n").unwrap();
@@ -957,5 +997,40 @@ mod tests {
             site_preview_route(&found, &file),
             "/guides/docs-components/"
         );
+    }
+
+    #[test]
+    fn check_diagnoses_live_pages() {
+        let root = temp("live");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("counter.rocdown"),
+            "# Counter\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+        )
+        .unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors());
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(rendered.contains("RD2302"), "{rendered}");
+        assert!(rendered.contains("live"), "{rendered}");
+        assert!(rendered.contains("@on"), "{rendered}");
+        let catalog = inspect(&root, InspectKind::Catalog, None).unwrap();
+        assert!(catalog.contains("\"kind\": \"live\""), "{catalog}");
+        let resolved = resolve_loaded(&load_site(&root).unwrap());
+        let counter = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id == "counter")
+            .unwrap();
+        assert_eq!(counter.kind, PageKind::Live);
+        let home = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id == "index")
+            .unwrap();
+        assert_eq!(home.kind, PageKind::Static);
+        let _ = fs::remove_dir_all(root);
     }
 }

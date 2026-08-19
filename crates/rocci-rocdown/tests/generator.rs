@@ -168,6 +168,7 @@ fn test_site_catalog_resolution() {
             outgoing_links: vec!["/guide/".to_string()],
             image_urls: vec![],
             article_html: "<p>Welcome</p>".to_string(),
+            kind: rocci_rocdown::PageKind::Static,
             docs: PageDocs::default(),
         },
         SourcePage {
@@ -193,6 +194,7 @@ fn test_site_catalog_resolution() {
             outgoing_links: vec!["/".to_string()],
             image_urls: vec![],
             article_html: "<p>Guide text</p>".to_string(),
+            kind: rocci_rocdown::PageKind::Static,
             docs: PageDocs::default(),
         },
     ];

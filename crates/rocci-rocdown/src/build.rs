@@ -1031,7 +1031,26 @@ import Html
         let err = build(&root, &output).unwrap_err();
         let message = format!("{err:#}");
         assert!(message.contains("@render"), "{message}");
-        assert!(message.contains("islands"), "{message}");
+        assert!(message.contains("hydrate"), "{message}");
+        assert!(message.contains("RD2301"), "{message}");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn live_pages_are_rejected_without_a_service() {
+        let root = temp_dir("live-src");
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+        );
+        let output = temp_dir("live-out");
+        let err = build(&root, &output).unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("@on"), "{message}");
+        assert!(message.contains("live"), "{message}");
+        assert!(message.contains("RD2302"), "{message}");
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }
@@ -1062,10 +1081,13 @@ import Html
         let output = temp_dir("session-out");
         let mut session = BuildSession::create().unwrap();
         let first = session.rebuild(&root, &output).unwrap();
-        assert!(first.recompiled);
         assert!(output.join("index.html").is_file());
         let second = session.rebuild(&root, &output).unwrap();
-        assert!(!second.recompiled);
+        assert!(
+            !second.recompiled,
+            "unchanged Roc sources should reuse the apply binary (first recompiled={})",
+            first.recompiled
+        );
         assert!(output.join("index.html").is_file());
         let _ = fs::remove_dir_all(&output);
     }
