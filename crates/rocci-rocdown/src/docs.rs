@@ -13,7 +13,7 @@ use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPag
 use crate::img::{StaticImage, img_fields_from_params};
 use crate::page::{bool_literal, string_list, string_literal};
 use crate::parse::parse_fragment;
-use crate::registry::{self, KindFamily, KindSpec};
+use crate::registry::{self, KindFamily, KindSpec, PaintType};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DocsField {
@@ -215,26 +215,54 @@ pub struct ExampleRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlannedSegment {
-    pub tag: String,
+pub enum PlannedNode {
+    Html { path: String },
+    Widget(PlannedWidget),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlannedWidget {
     pub kind: String,
-    pub path: String,
-    pub title: String,
-    pub summary: String,
-    pub label: String,
-    pub href: String,
-    pub tone: String,
-    pub group: String,
-    pub tab_kind: String,
-    pub tab_id: String,
-    pub origin: String,
-    pub caption: String,
-    pub credit: String,
-    pub alt: String,
-    pub language: String,
-    pub open: bool,
-    pub verify: bool,
-    pub children: Vec<PlannedSegment>,
+    pub component: String,
+    pub props: Vec<PlannedProp>,
+    pub children: Vec<PlannedNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlannedProp {
+    Str { name: String, value: String },
+    Bool { name: String, value: bool },
+}
+
+impl PlannedNode {
+    pub fn widget_kind(&self) -> Option<&str> {
+        match self {
+            Self::Widget(widget) => Some(widget.kind.as_str()),
+            Self::Html { .. } => None,
+        }
+    }
+}
+
+impl PlannedWidget {
+    pub fn str_prop(&self, name: &str) -> Option<&str> {
+        self.props.iter().find_map(|prop| match prop {
+            PlannedProp::Str {
+                name: prop_name,
+                value,
+            } if prop_name == name => Some(value.as_str()),
+            _ => None,
+        })
+    }
+
+    pub fn bool_prop(&self, name: &str) -> Option<bool> {
+        self.props.iter().find_map(|prop| match prop {
+            PlannedProp::Bool {
+                name: prop_name,
+                value,
+            } if prop_name == name => Some(*value),
+            _ => None,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1696,7 +1724,7 @@ pub fn plan_segments(
     article_name: &str,
     nodes: &[ArticleNode],
     rewrite: &BTreeMap<String, String>,
-) -> (Vec<PlannedSegment>, Vec<(String, String)>) {
+) -> (Vec<PlannedNode>, Vec<(String, String)>) {
     let mut files = Vec::new();
     let mut counter = 0u32;
     let segments = plan_nodes(article_name, nodes, rewrite, &mut files, &mut counter);
@@ -1709,13 +1737,13 @@ fn plan_nodes(
     rewrite: &BTreeMap<String, String>,
     files: &mut Vec<(String, String)>,
     counter: &mut u32,
-) -> Vec<PlannedSegment> {
+) -> Vec<PlannedNode> {
     let mut segments = Vec::new();
     let mut markdown = Vec::new();
     let flush = |markdown: &mut Vec<MdNode>,
                  files: &mut Vec<(String, String)>,
                  counter: &mut u32,
-                 segments: &mut Vec<PlannedSegment>| {
+                 segments: &mut Vec<PlannedNode>| {
         if markdown.is_empty() {
             return;
         }
@@ -1729,7 +1757,7 @@ fn plan_nodes(
         *counter += 1;
         files.push((path.clone(), html));
         markdown.clear();
-        segments.push(html_segment(path));
+        segments.push(PlannedNode::Html { path });
     };
     for node in nodes {
         match node {
@@ -1740,11 +1768,21 @@ fn plan_nodes(
                 let path = format!("articles/{article_name}.{counter}.html");
                 *counter += 1;
                 files.push((path.clone(), html));
-                segments.push(html_segment(path));
+                segments.push(PlannedNode::Html { path });
+            }
+            ArticleNode::Block(docs)
+                if registry::lookup(&docs.kind).is_some_and(|spec| spec.paints_as_widget()) =>
+            {
+                flush(&mut markdown, files, counter, &mut segments);
+                segments.push(widget_node(article_name, docs, rewrite, files, counter));
             }
             ArticleNode::Block(docs) => {
                 flush(&mut markdown, files, counter, &mut segments);
-                segments.push(docs_segment(article_name, docs, rewrite, files, counter));
+                let html = rewrite_urls(&render_docs(docs), rewrite);
+                let path = format!("articles/{article_name}.{counter}.html");
+                *counter += 1;
+                files.push((path.clone(), html));
+                segments.push(PlannedNode::Html { path });
             }
         }
     }
@@ -1752,81 +1790,81 @@ fn plan_nodes(
     segments
 }
 
-fn html_segment(path: String) -> PlannedSegment {
-    PlannedSegment {
-        tag: "html".into(),
-        path,
-        ..empty_segment()
-    }
-}
-
-fn empty_segment() -> PlannedSegment {
-    PlannedSegment {
-        tag: String::new(),
-        kind: String::new(),
-        path: String::new(),
-        title: String::new(),
-        summary: String::new(),
-        label: String::new(),
-        href: String::new(),
-        tone: String::new(),
-        group: String::new(),
-        tab_kind: String::new(),
-        tab_id: String::new(),
-        origin: String::new(),
-        caption: String::new(),
-        credit: String::new(),
-        alt: String::new(),
-        language: String::new(),
-        open: false,
-        verify: false,
-        children: Vec::new(),
-    }
-}
-
-fn docs_segment(
+fn widget_node(
     article_name: &str,
     docs: &DocsNode,
     rewrite: &BTreeMap<String, String>,
     files: &mut Vec<(String, String)>,
     counter: &mut u32,
-) -> PlannedSegment {
-    let href = docs.attrs.href.clone().unwrap_or_else(|| {
-        docs.attrs
-            .page
-            .as_deref()
-            .map(|page| format!("/{}/", page.trim_matches('/')))
-            .unwrap_or_default()
-    });
-    PlannedSegment {
-        tag: "docs".into(),
+) -> PlannedNode {
+    let spec = registry::lookup(&docs.kind).expect("validated widget kind");
+    let children = if spec.paint_content() {
+        plan_nodes(article_name, &docs.children, rewrite, files, counter)
+    } else {
+        Vec::new()
+    };
+    PlannedNode::Widget(PlannedWidget {
         kind: docs.kind.clone(),
-        path: String::new(),
-        title: docs
-            .attrs
-            .title
+        component: spec.component.to_string(),
+        props: paint_props(*spec, &docs.attrs, rewrite),
+        children,
+    })
+}
+
+fn paint_props(
+    spec: KindSpec,
+    attrs: &DocsAttrs,
+    rewrite: &BTreeMap<String, String>,
+) -> Vec<PlannedProp> {
+    spec.paint_fields()
+        .iter()
+        .map(|field| match field.ty {
+            PaintType::Str => {
+                let mut value = attr_str(attrs, field.attr);
+                if field.prop == "href" {
+                    value = rewrite_urls(&value, rewrite);
+                }
+                PlannedProp::Str {
+                    name: field.prop.to_string(),
+                    value,
+                }
+            }
+            PaintType::Bool => PlannedProp::Bool {
+                name: field.prop.to_string(),
+                value: attr_bool(attrs, field.attr),
+            },
+        })
+        .collect()
+}
+
+fn attr_str(attrs: &DocsAttrs, name: &str) -> String {
+    match name {
+        "title" => attrs.title.clone().unwrap_or_default(),
+        "term" => attrs
+            .term
             .clone()
-            .or_else(|| docs.attrs.term.clone())
+            .or_else(|| attrs.title.clone())
             .unwrap_or_default(),
-        summary: docs.attrs.summary.clone().unwrap_or_default(),
-        label: docs.attrs.label.clone().unwrap_or_default(),
-        href: rewrite_urls(&href, rewrite),
-        tone: docs.attrs.tone.clone().unwrap_or_default(),
-        group: docs.attrs.group.clone().unwrap_or_default(),
-        tab_kind: docs.attrs.tab_kind.clone().unwrap_or_default(),
-        tab_id: docs.attrs.id.clone().unwrap_or_default(),
-        origin: docs
-            .origin
-            .as_ref()
-            .map(|origin| origin.source_path.clone())
-            .unwrap_or_default(),
-        caption: docs.attrs.caption.clone().unwrap_or_default(),
-        credit: docs.attrs.credit.clone().unwrap_or_default(),
-        alt: docs.attrs.alt.clone().unwrap_or_default(),
-        language: docs.attrs.language.clone().unwrap_or_default(),
-        open: docs.attrs.open,
-        verify: docs.attrs.verify,
-        children: plan_nodes(article_name, &docs.children, rewrite, files, counter),
+        "summary" => attrs.summary.clone().unwrap_or_default(),
+        "label" => attrs.label.clone().unwrap_or_default(),
+        "href" => attrs.href.clone().unwrap_or_else(|| {
+            attrs
+                .page
+                .as_deref()
+                .map(|page| format!("/{}/", page.trim_matches('/')))
+                .unwrap_or_default()
+        }),
+        "caption" => attrs.caption.clone().unwrap_or_default(),
+        "credit" => attrs.credit.clone().unwrap_or_default(),
+        _ => String::new(),
+    }
+}
+
+fn attr_bool(attrs: &DocsAttrs, name: &str) -> bool {
+    match name {
+        "open" => attrs.open,
+        "verify" => attrs.verify,
+        _ => false,
     }
 }
 
@@ -2334,15 +2372,15 @@ mod tests {
         let rewrite = BTreeMap::new();
         let (first_segs, first_files) = plan_segments("Page", &first.article, &rewrite);
         let (second_segs, second_files) = plan_segments("Page", &second.article, &rewrite);
-        let paths = |segs: &[PlannedSegment]| {
+        let paths = |segs: &[PlannedNode]| {
             segs.iter()
-                .map(|seg| {
-                    (
-                        seg.tag.clone(),
-                        seg.kind.clone(),
-                        seg.path.clone(),
-                        seg.title.clone(),
-                    )
+                .map(|seg| match seg {
+                    PlannedNode::Html { path } => ("html".to_string(), String::new(), path.clone()),
+                    PlannedNode::Widget(widget) => (
+                        "widget".to_string(),
+                        widget.kind.clone(),
+                        widget.str_prop("title").unwrap_or_default().to_string(),
+                    ),
                 })
                 .collect::<Vec<_>>()
         };
@@ -2388,12 +2426,15 @@ mod tests {
         );
         assert!(!diags.iter().any(CatalogDiagnostic::is_error), "{diags:?}");
         let (segments, _fragments) = plan_segments("fig", &docs.article, &Default::default());
-        let figure_seg = segments
+        let figure = segments
             .iter()
-            .find(|s| s.kind == "figure")
-            .expect("missing figure segment");
-        assert_eq!(figure_seg.caption, "Architecture");
-        assert_eq!(figure_seg.credit, "Rocci docs");
+            .find_map(|node| match node {
+                PlannedNode::Widget(widget) if widget.kind == "figure" => Some(widget),
+                _ => None,
+            })
+            .expect("missing figure widget");
+        assert_eq!(figure.str_prop("caption"), Some("Architecture"));
+        assert_eq!(figure.str_prop("credit"), Some("Rocci docs"));
         let html = render_article(&docs.article);
         assert!(html.contains("src=\"diagram.png\""), "{html}");
         assert!(html.contains("alt=\"Diagram\""), "{html}");

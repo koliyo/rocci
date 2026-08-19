@@ -43,9 +43,9 @@ pub use config::{BuildConfig, CONFIG_FILE, NavConfig, SiteConfig, SiteMeta, load
 pub use dev::{DevServer, run, run_with_host};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
-    PageDocs, PlannedSegment, extract_lines, extract_region, field_bool, field_string,
-    field_strings, include_path_error, load_page_docs, markdown_fragment, plan_segments,
-    render_article, resolve_include_path, run_examples, search_text,
+    PageDocs, PlannedNode, PlannedProp, PlannedWidget, extract_lines, extract_region, field_bool,
+    field_string, field_strings, include_path_error, load_page_docs, markdown_fragment,
+    plan_segments, render_article, resolve_include_path, run_examples, search_text,
 };
 pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{

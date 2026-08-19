@@ -65,49 +65,70 @@ Footnote reference.[^first]
     let (segments, _fragments) =
         rocci_rocdown::plan_segments("guide", &page_docs.article, &Default::default());
 
-    // Verify note aside segment
+    // Verify note aside widget
     let note = segments
         .iter()
-        .find(|s| s.kind == "note")
-        .expect("missing note segment");
-    assert_eq!(note.tag, "docs");
-    assert_eq!(note.title, "Important");
+        .find_map(|node| match node {
+            rocci_rocdown::PlannedNode::Widget(widget) if widget.kind == "note" => Some(widget),
+            _ => None,
+        })
+        .expect("missing note widget");
+    assert_eq!(note.str_prop("title"), Some("Important"));
 
-    // Verify tabs segment
+    // Verify tabs widget
     let tabs = segments
         .iter()
-        .find(|s| s.kind == "tabs")
-        .expect("missing tabs segment");
-    assert_eq!(tabs.tag, "docs");
+        .find_map(|node| match node {
+            rocci_rocdown::PlannedNode::Widget(widget) if widget.kind == "tabs" => Some(widget),
+            _ => None,
+        })
+        .expect("missing tabs widget");
     assert_eq!(tabs.children.len(), 2);
-    assert_eq!(tabs.children[0].kind, "tab");
-    assert_eq!(tabs.children[0].label, "Roc");
-    assert_eq!(tabs.children[1].kind, "tab");
-    assert_eq!(tabs.children[1].label, "Rust");
+    let tab0 = match &tabs.children[0] {
+        rocci_rocdown::PlannedNode::Widget(widget) => widget,
+        _ => panic!("tab 0"),
+    };
+    let tab1 = match &tabs.children[1] {
+        rocci_rocdown::PlannedNode::Widget(widget) => widget,
+        _ => panic!("tab 1"),
+    };
+    assert_eq!(tab0.str_prop("label"), Some("Roc"));
+    assert_eq!(tab1.str_prop("label"), Some("Rust"));
 
-    // Verify details segment
+    // Verify details widget
     let details = segments
         .iter()
-        .find(|s| s.kind == "details")
-        .expect("missing details segment");
-    assert_eq!(details.summary, "Click to expand");
-    assert!(details.open);
+        .find_map(|node| match node {
+            rocci_rocdown::PlannedNode::Widget(widget) if widget.kind == "details" => Some(widget),
+            _ => None,
+        })
+        .expect("missing details widget");
+    assert_eq!(details.str_prop("summary"), Some("Click to expand"));
+    assert_eq!(details.bool_prop("open"), Some(true));
 
-    // Verify badge segment
+    // Verify badge widget
     let badge = segments
         .iter()
-        .find(|s| s.kind == "badge")
-        .expect("missing badge segment");
-    assert_eq!(badge.label, "Beta");
-    assert_eq!(badge.tone, "beta");
+        .find_map(|node| match node {
+            rocci_rocdown::PlannedNode::Widget(widget) if widget.kind == "badge" => Some(widget),
+            _ => None,
+        })
+        .expect("missing badge widget");
+    assert_eq!(badge.str_prop("label"), Some("Beta"));
+    assert!(badge.str_prop("tone").is_none());
 
-    // Verify link card segment
+    // Verify link card widget
     let link_card = segments
         .iter()
-        .find(|s| s.kind == "link-card")
-        .expect("missing link-card segment");
-    assert_eq!(link_card.title, "Installation");
-    assert_eq!(link_card.href, "/guides/install/");
+        .find_map(|node| match node {
+            rocci_rocdown::PlannedNode::Widget(widget) if widget.kind == "link-card" => {
+                Some(widget)
+            }
+            _ => None,
+        })
+        .expect("missing link-card widget");
+    assert_eq!(link_card.str_prop("title"), Some("Installation"));
+    assert_eq!(link_card.str_prop("href"), Some("/guides/install/"));
 
     // Verify markdown projection and image / footnote rendering
     let html = render_article(&page_docs.article);

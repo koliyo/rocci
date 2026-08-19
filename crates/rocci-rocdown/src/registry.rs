@@ -19,6 +19,59 @@ pub enum KindFamily {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaintType {
+    Str,
+    Bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PaintField {
+    pub prop: &'static str,
+    pub attr: &'static str,
+    pub ty: PaintType,
+}
+
+impl PaintField {
+    pub const fn str(name: &'static str) -> Self {
+        Self {
+            prop: name,
+            attr: name,
+            ty: PaintType::Str,
+        }
+    }
+
+    pub const fn bool(name: &'static str) -> Self {
+        Self {
+            prop: name,
+            attr: name,
+            ty: PaintType::Bool,
+        }
+    }
+
+    pub const fn map_str(prop: &'static str, attr: &'static str) -> Self {
+        Self {
+            prop,
+            attr,
+            ty: PaintType::Str,
+        }
+    }
+}
+
+const TITLE: &[PaintField] = &[PaintField::str("title")];
+const DETAILS: &[PaintField] = &[PaintField::str("summary"), PaintField::bool("open")];
+const STEP: &[PaintField] = &[PaintField::str("title"), PaintField::bool("verify")];
+const FIGURE: &[PaintField] = &[PaintField::str("caption"), PaintField::str("credit")];
+const DEFINITION: &[PaintField] = &[PaintField::map_str("title", "term")];
+const TAB: &[PaintField] = &[PaintField::str("label")];
+const BADGE: &[PaintField] = &[PaintField::str("label")];
+const LINK_CARD: &[PaintField] = &[
+    PaintField::str("href"),
+    PaintField::str("title"),
+    PaintField::str("summary"),
+];
+const CAPTION: &[PaintField] = &[PaintField::str("caption")];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KindSpec {
     pub name: &'static str,
     pub component: &'static str,
@@ -32,6 +85,34 @@ pub struct KindSpec {
     pub required_child_kinds: &'static [&'static str],
     pub forbidden_children: &'static [&'static str],
     pub required_one_of: &'static [&'static [&'static str]],
+}
+
+impl KindSpec {
+    pub fn paints_as_widget(self) -> bool {
+        matches!(
+            self.family,
+            KindFamily::Aside | KindFamily::Structure | KindFamily::Chrome | KindFamily::Tooling
+        ) && self.name != "playground"
+    }
+
+    pub fn paint_content(self) -> bool {
+        self.paints_as_widget() && !matches!(self.name, "badge" | "link-card")
+    }
+
+    pub fn paint_fields(self) -> &'static [PaintField] {
+        match self.name {
+            "note" | "tip" | "caution" | "danger" | "deprecated" => TITLE,
+            "details" => DETAILS,
+            "step" => STEP,
+            "figure" => FIGURE,
+            "definition" => DEFINITION,
+            "tab" => TAB,
+            "badge" => BADGE,
+            "link-card" => LINK_CARD,
+            "compatibility" => CAPTION,
+            _ => &[],
+        }
+    }
 }
 
 pub const KINDS: &[KindSpec] = &[
@@ -387,6 +468,34 @@ pub fn module_collision(name: &str) -> bool {
     )
 }
 
+pub fn widget_kinds() -> impl Iterator<Item = &'static KindSpec> {
+    KINDS.iter().filter(|kind| kind.paints_as_widget())
+}
+
+pub fn article_node_type_roc() -> String {
+    let mut out = String::from("ArticleNode : [\n    HtmlFile({ path : Str }),\n");
+    for spec in widget_kinds() {
+        out.push_str("    ");
+        out.push_str(spec.component);
+        out.push_str("({ ");
+        let mut parts = Vec::new();
+        for field in spec.paint_fields() {
+            let ty = match field.ty {
+                PaintType::Str => "Str",
+                PaintType::Bool => "Bool",
+            };
+            parts.push(format!("{} : {ty}", field.prop));
+        }
+        if spec.paint_content() {
+            parts.push("child_count : U64".into());
+        }
+        out.push_str(&parts.join(", "));
+        out.push_str(" }),\n");
+    }
+    out.push_str("]\n\n");
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,10 +509,17 @@ mod tests {
             "/templates/DocsComponents.rocci"
         ))
         .expect("DocsComponents.rocci");
-        for kind in render_match_kinds(&src) {
+        for spec in widget_kinds() {
             assert!(
-                lookup(&kind).is_some(),
-                "DocsComponents.Render matches `{kind}` but the registry has no row"
+                lookup(spec.name).is_some(),
+                "widget kind `{}` missing from registry",
+                spec.name
+            );
+            let needle = format!("@component {}", spec.component);
+            assert!(
+                src.contains(&needle),
+                "DocsComponents.rocci missing painter `{needle}` for kind `{}`",
+                spec.name
             );
         }
     }
@@ -427,8 +543,12 @@ mod tests {
             );
         }
         assert!(
-            src.contains("@component Render"),
-            "thin Render adapter should remain until typed props land"
+            !src.contains("@component Render"),
+            "Render dispatcher should be gone once typed props land"
+        );
+        assert!(
+            !src.contains("@match segment.kind"),
+            "kind matcher should not remain as the paint contract"
         );
         assert!(
             !src.contains("@component DocsAside"),
@@ -481,37 +601,63 @@ mod tests {
         }
     }
 
-    fn render_match_kinds(src: &str) -> Vec<String> {
-        let start = src
-            .find("@match segment.kind")
-            .expect("Render kind matcher");
-        let block = &src[start..];
-        let end = block.find("_ =>").expect("wildcard arm");
-        let block = &block[..end];
-        let mut kinds = Vec::new();
-        let bytes = block.as_bytes();
-        let mut i = 0;
-        while i < bytes.len() {
-            if bytes[i] == b'"' {
-                let rest = &block[i + 1..];
-                if let Some(close) = rest.find('"') {
-                    let token = &rest[..close];
-                    let after = rest.get(close + 1..).unwrap_or("");
-                    let trimmed = after.trim_start();
-                    if trimmed.starts_with("=>")
-                        && token
-                            .chars()
-                            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
-                        && !token.is_empty()
-                    {
-                        kinds.push(token.to_string());
-                    }
-                    i += close + 2;
-                    continue;
-                }
+    #[test]
+    fn widget_paint_fields_are_named() {
+        for spec in widget_kinds() {
+            for field in spec.paint_fields() {
+                assert!(!field.prop.is_empty(), "{}", spec.name);
+                assert!(!field.attr.is_empty(), "{}", spec.name);
             }
-            i += 1;
         }
-        kinds
+        let note = lookup("note").unwrap();
+        assert!(note.paints_as_widget());
+        assert!(note.paint_content());
+        assert_eq!(note.paint_fields()[0].prop, "title");
+        let badge = lookup("badge").unwrap();
+        assert!(!badge.paint_content());
+        let heading = lookup("h2").unwrap();
+        assert!(!heading.paints_as_widget());
+    }
+
+    #[test]
+    fn article_node_type_lists_widget_tags() {
+        let src = article_node_type_roc();
+        assert!(src.contains("HtmlFile({ path : Str })"), "{src}");
+        assert!(src.contains("ArticleNode : ["), "{src}");
+        assert!(src.contains("child_count : U64"), "{src}");
+        for spec in widget_kinds() {
+            assert!(
+                src.contains(&format!("{}({{ ", spec.component)),
+                "type missing `{}`: {src}",
+                spec.component
+            );
+        }
+    }
+
+    #[test]
+    fn rocdown_build_calls_each_widget_component() {
+        let src = include_str!("../runtime/RocdownBuild.roc");
+        assert!(
+            !src.contains("DocsComponents.render"),
+            "apply host should call per-kind components"
+        );
+        assert!(src.contains("child_count"), "{src}");
+        assert!(src.contains("HtmlFile"), "{src}");
+        for spec in widget_kinds() {
+            let mut chars = spec.component.chars();
+            let first = chars.next().unwrap();
+            let roc_name: String = first.to_lowercase().chain(chars).collect();
+            let call = format!("DocsComponents.{roc_name}");
+            assert!(
+                src.contains(&call),
+                "RocdownBuild.roc missing `{call}` for kind `{}`",
+                spec.name
+            );
+            assert!(
+                src.contains(spec.component),
+                "RocdownBuild.roc missing tag `{}`",
+                spec.component
+            );
+        }
     }
 }

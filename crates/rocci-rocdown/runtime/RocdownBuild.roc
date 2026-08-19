@@ -6,13 +6,83 @@ import DocsComponents
 import RocdownPages
 
 render_tree! = |segments, index| {
-    seg = List.get(segments, index)?
-    if seg.tag == "html" {
-        html = Path.utf8(seg.path).read_utf8!()?
-        Ok((Html.dangerously_include_unescaped_html(html), index + 1))
-    } else {
-        (body, after) = render_children!(segments, index + 1, seg.child_count)?
-        Ok((DocsComponents.render(seg, body), after))
+    match List.get(segments, index)? {
+        HtmlFile(seg) => {
+            html = Path.utf8(seg.path).read_utf8!()?
+            Ok((Html.dangerously_include_unescaped_html(html), index + 1))
+        }
+        Note(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.note({ title: seg.title }, body), after))
+        }
+        Tip(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.tip({ title: seg.title }, body), after))
+        }
+        Caution(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.caution({ title: seg.title }, body), after))
+        }
+        Danger(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.danger({ title: seg.title }, body), after))
+        }
+        Deprecated(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.deprecated({ title: seg.title }, body), after))
+        }
+        Details(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.details({ summary: seg.summary, open: seg.open }, body), after))
+        }
+        Steps(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.steps({}, body), after))
+        }
+        Step(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.step({ title: seg.title, verify: seg.verify }, body), after))
+        }
+        Figure(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.figure({ caption: seg.caption, credit: seg.credit }, body), after))
+        }
+        Definition(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.definition({ title: seg.title }, body), after))
+        }
+        Tabs(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.tabs({}, body), after))
+        }
+        Tab(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.tab({ label: seg.label }, body), after))
+        }
+        Badge(seg) =>
+            Ok((DocsComponents.badge({ label: seg.label }), index + 1))
+        LinkCard(seg) =>
+            Ok((DocsComponents.linkCard({ href: seg.href, title: seg.title, summary: seg.summary }), index + 1))
+        CardGrid(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.cardGrid({}, body), after))
+        }
+        FileTree(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.fileTree({}, body), after))
+        }
+        Compatibility(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.compatibility({ caption: seg.caption }, body), after))
+        }
+        Example(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.example({}, body), after))
+        }
+        Include(seg) => {
+            (body, after) = render_children!(segments, index + 1, seg.child_count)?
+            Ok((DocsComponents.include({}, body), after))
+        }
     }
 }
 
