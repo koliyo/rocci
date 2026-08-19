@@ -279,8 +279,11 @@ A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
 site chrome and named layouts. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
-component (`Note`, `Tabs`, `Figure`, …); a thin `Render` adapter still dispatches
-from planned segment records. Article HTML is an `Html` body
+component (`Note`, `Tabs`, `Figure`, …). Static apply data is a tagged union of
+per-kind props plus fragment paths; widget bodies stay in HTML files and are
+passed as the extra content argument. There is no flattened optional-field bag
+and no `Render` kind matcher. Article HTML is
+an `Html` body
 parameter: write `@component Layout = |{ view }, content|` and `{content}` in
 the template body. Putting `content` in the props record wraps it in
 `Html.text` and escapes the article as text.

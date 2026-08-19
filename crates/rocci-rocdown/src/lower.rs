@@ -750,22 +750,27 @@ impl<'a> Emitter<'a> {
             }
         }
         let class = format!("rd-docs-{} rd-docs-block", call.name);
-        let tag = match call.name.as_str() {
-            "note" | "tip" | "caution" | "danger" | "deprecated" => "aside",
-            "details" => "details",
-            "figure" => "figure",
-            "badge" => "p",
-            "tabs" | "tab" | "steps" | "step" | "card-grid" | "link-card" | "file-tree"
-            | "compatibility" | "definition" | "example" => "section",
-            _ => "div",
+        let tag = if crate::registry::is_aside(&call.name) {
+            "aside"
+        } else {
+            match call.name.as_str() {
+                "details" => "details",
+                "figure" => "figure",
+                "badge" => "p",
+                _ => "section",
+            }
         };
-        let label_text = match call.name.as_str() {
-            "note" => "Note",
-            "tip" => "Tip",
-            "caution" => "Caution",
-            "danger" => "Danger",
-            "deprecated" => "Deprecated",
-            _ => "",
+        let label_text = if crate::registry::is_aside(&call.name) {
+            match call.name.as_str() {
+                "note" => "Note",
+                "tip" => "Tip",
+                "caution" => "Caution",
+                "danger" => "Danger",
+                "deprecated" => "Deprecated",
+                _ => "Note",
+            }
+        } else {
+            ""
         };
         self.emit_html(".element(\n");
         self.indent += 1;

@@ -27,7 +27,7 @@ pub struct PlannedPage {
     pub output_path: String,
     pub article_html: String,
     pub fragments: Vec<(String, String)>,
-    pub segments: Vec<crate::docs::PlannedSegment>,
+    pub segments: Vec<crate::docs::PlannedNode>,
     pub view: PageView,
 }
 
@@ -507,26 +507,8 @@ fn planned_page(
         fragments
     };
     let segments = if segments.is_empty() {
-        vec![crate::docs::PlannedSegment {
-            tag: "html".into(),
+        vec![crate::docs::PlannedNode::Html {
             path: format!("articles/{article_name}.html"),
-            kind: String::new(),
-            title: String::new(),
-            summary: String::new(),
-            label: String::new(),
-            href: String::new(),
-            tone: String::new(),
-            group: String::new(),
-            tab_kind: String::new(),
-            tab_id: String::new(),
-            origin: String::new(),
-            caption: String::new(),
-            credit: String::new(),
-            alt: String::new(),
-            language: String::new(),
-            open: false,
-            verify: false,
-            children: Vec::new(),
         }]
     } else {
         segments
@@ -605,26 +587,8 @@ fn not_found_page(
         output_path: "404.html".into(),
         article_html: not_found_html(),
         fragments: vec![("articles/NotFound.html".into(), not_found_html())],
-        segments: vec![crate::docs::PlannedSegment {
-            tag: "html".into(),
+        segments: vec![crate::docs::PlannedNode::Html {
             path: "articles/NotFound.html".into(),
-            kind: String::new(),
-            title: String::new(),
-            summary: String::new(),
-            label: String::new(),
-            href: String::new(),
-            tone: String::new(),
-            group: String::new(),
-            tab_kind: String::new(),
-            tab_id: String::new(),
-            origin: String::new(),
-            caption: String::new(),
-            credit: String::new(),
-            alt: String::new(),
-            language: String::new(),
-            open: false,
-            verify: false,
-            children: Vec::new(),
         }],
         view: PageView {
             site: site.clone(),
@@ -1093,7 +1057,7 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         out.push_str(",\n            output_path: ");
         push_roc_string(&mut out, &page.output_path);
         out.push_str(",\n            segments: ");
-        push_segments(&mut out, &page.segments, 3);
+        push_nodes(&mut out, &page.segments, 3);
         out.push_str(
             ",\n            view: {\n                site: {\n                    title: ",
         );
@@ -1226,53 +1190,16 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
     out
 }
 
-fn push_segments(out: &mut String, segments: &[crate::docs::PlannedSegment], indent: usize) {
+fn push_nodes(out: &mut String, nodes: &[crate::docs::PlannedNode], indent: usize) {
     let mut flat = Vec::new();
-    collect_flat(segments, &mut flat);
+    collect_flat(nodes, &mut flat);
     out.push_str("[\n");
-    for segment in flat {
+    for node in flat {
         for _ in 0..indent + 1 {
             out.push_str("    ");
         }
-        out.push_str("{ tag: ");
-        push_roc_string(out, &segment.tag);
-        out.push_str(", kind: ");
-        push_roc_string(out, &segment.kind);
-        out.push_str(", path: ");
-        push_roc_string(out, &segment.path);
-        out.push_str(", title: ");
-        push_roc_string(out, &segment.title);
-        out.push_str(", summary: ");
-        push_roc_string(out, &segment.summary);
-        out.push_str(", label: ");
-        push_roc_string(out, &segment.label);
-        out.push_str(", href: ");
-        push_roc_string(out, &segment.href);
-        out.push_str(", tone: ");
-        push_roc_string(out, &segment.tone);
-        out.push_str(", group: ");
-        push_roc_string(out, &segment.group);
-        out.push_str(", tab_kind: ");
-        push_roc_string(out, &segment.tab_kind);
-        out.push_str(", tab_id: ");
-        push_roc_string(out, &segment.tab_id);
-        out.push_str(", origin: ");
-        push_roc_string(out, &segment.origin);
-        out.push_str(", caption: ");
-        push_roc_string(out, &segment.caption);
-        out.push_str(", credit: ");
-        push_roc_string(out, &segment.credit);
-        out.push_str(", alt: ");
-        push_roc_string(out, &segment.alt);
-        out.push_str(", language: ");
-        push_roc_string(out, &segment.language);
-        out.push_str(", open: ");
-        out.push_str(if segment.open { "True" } else { "False" });
-        out.push_str(", verify: ");
-        out.push_str(if segment.verify { "True" } else { "False" });
-        out.push_str(", child_count: ");
-        out.push_str(&segment.children.len().to_string());
-        out.push_str(" },\n");
+        push_node(out, node);
+        out.push_str(",\n");
     }
     for _ in 0..indent {
         out.push_str("    ");
@@ -1281,12 +1208,55 @@ fn push_segments(out: &mut String, segments: &[crate::docs::PlannedSegment], ind
 }
 
 fn collect_flat<'a>(
-    segments: &'a [crate::docs::PlannedSegment],
-    out: &mut Vec<&'a crate::docs::PlannedSegment>,
+    nodes: &'a [crate::docs::PlannedNode],
+    out: &mut Vec<&'a crate::docs::PlannedNode>,
 ) {
-    for segment in segments {
-        out.push(segment);
-        collect_flat(&segment.children, out);
+    for node in nodes {
+        out.push(node);
+        if let crate::docs::PlannedNode::Widget(widget) = node {
+            collect_flat(&widget.children, out);
+        }
+    }
+}
+
+fn push_node(out: &mut String, node: &crate::docs::PlannedNode) {
+    match node {
+        crate::docs::PlannedNode::Html { path } => {
+            out.push_str("HtmlFile({ path: ");
+            push_roc_string(out, path);
+            out.push_str(" })");
+        }
+        crate::docs::PlannedNode::Widget(widget) => {
+            out.push_str(&widget.component);
+            out.push_str("({ ");
+            let spec = crate::registry::lookup(&widget.kind);
+            let paint_content = spec.is_some_and(|kind| kind.paint_content());
+            for (index, prop) in widget.props.iter().enumerate() {
+                if index > 0 {
+                    out.push_str(", ");
+                }
+                match prop {
+                    crate::docs::PlannedProp::Str { name, value } => {
+                        out.push_str(name);
+                        out.push_str(": ");
+                        push_roc_string(out, value);
+                    }
+                    crate::docs::PlannedProp::Bool { name, value } => {
+                        out.push_str(name);
+                        out.push_str(": ");
+                        out.push_str(if *value { "True" } else { "False" });
+                    }
+                }
+            }
+            if paint_content {
+                if !widget.props.is_empty() {
+                    out.push_str(", ");
+                }
+                out.push_str("child_count: ");
+                out.push_str(&widget.children.len().to_string());
+            }
+            out.push_str(" })");
+        }
     }
 }
 
@@ -1540,6 +1510,39 @@ items = ["index", "guide"]
         let resolved = resolve_loaded(&loaded);
         let third = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
         assert_ne!(first_roc, third.pages_roc());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn pages_roc_emits_typed_widget_tags_not_segment_bag() {
+        let root = temp("typed-props");
+        write_site(&root);
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n:note[title: \"Watch\"] Body text.\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let roc = planned.pages_roc();
+        assert!(roc.contains("HtmlFile({ path:"), "{roc}");
+        assert!(roc.contains("Note({"), "{roc}");
+        assert!(roc.contains("title: \"Watch\""), "{roc}");
+        assert!(roc.contains("child_count:"), "{roc}");
+        assert!(!roc.contains("tab_id"), "{roc}");
+        assert!(!roc.contains("kind: \"note\""), "{roc}");
+        let home = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/")
+            .unwrap();
+        assert!(
+            home.segments
+                .iter()
+                .any(|node| node.widget_kind() == Some("note"))
+        );
         let _ = fs::remove_dir_all(root);
     }
 
