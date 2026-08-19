@@ -216,6 +216,15 @@ where
     };
 
     let hub = Arc::new(ReloadHub::new());
+    logs::tee(
+        &hub.logs,
+        LogLevel::Info,
+        format!(
+            "{}: preview files at {}",
+            config.log_prefix,
+            output.display()
+        ),
+    );
     let last_error = Arc::new(Mutex::new(None));
     let has_build = Arc::new(AtomicBool::new(false));
     let stop = Arc::new(AtomicBool::new(false));
@@ -1236,6 +1245,15 @@ mod tests {
             |_| Ok(None),
         )
         .unwrap();
+
+        let logged = server.logs.snapshot();
+        assert!(
+            logged.iter().any(|line| {
+                line.text.contains("preview files at")
+                    && line.text.contains(&output.display().to_string())
+            }),
+            "{logged:?}"
+        );
 
         let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
         client

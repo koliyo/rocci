@@ -373,8 +373,8 @@ fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Resu
         let path = loaded.root.join(&page.source_path);
         let src = fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        let source_name = path.display().to_string();
-        let evaluated = crate::islands::evaluate_page(&path, &source_name, &src)
+        let source_name = page.source_path.as_str();
+        let evaluated = crate::islands::evaluate_page(&path, source_name, &src)
             .with_context(|| format!("failed to evaluate islands in {}", page.source_path))?;
         page.article_html = crate::islands::fill_placeholders(&page.article_html, &evaluated.html)
             .with_context(|| format!("failed to splice islands into {}", page.source_path))?;
@@ -384,9 +384,7 @@ fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Resu
                 &loaded.config.http.service_origin,
             );
         }
-        if page.island_css.is_empty() {
-            page.island_css = evaluated.css;
-        }
+        page.island_css = evaluated.css;
     }
     Ok(())
 }
@@ -1804,8 +1802,42 @@ Static neighbor.
             "{index}"
         );
         assert!(
+            index.contains("rd-document"),
+            "site shell should stamp html.rd-document\n{index}"
+        );
+        assert!(
+            index.contains("rel=\"stylesheet\"") && index.contains("/assets/"),
+            "{index}"
+        );
+        assert!(
+            !index.contains("site-grid is-plain"),
+            "index should use the docs layout\n{index}"
+        );
+        assert!(
             index.contains("/assets/datastar.") || index.contains("datastar."),
             "{index}"
+        );
+        let stamp = index
+            .split("id=\"counter\"")
+            .nth(1)
+            .and_then(|rest| rest.split("data-rocci-css=\"").nth(1))
+            .and_then(|rest| rest.split('"').next())
+            .unwrap_or("");
+        assert!(!stamp.is_empty(), "missing counter css stamp\n{index}");
+        let stylesheet = index
+            .split("href=\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("stylesheet href");
+        let css = fs::read_to_string(output.join(stylesheet.trim_start_matches('/')))
+            .unwrap_or_else(|_| panic!("missing stylesheet {stylesheet}"));
+        assert!(
+            css.contains(stamp),
+            "theme.css should include island stamp {stamp}"
+        );
+        assert!(
+            css.contains("border-radius: 16px"),
+            "island card CSS should be in the hashed stylesheet"
         );
         let about = fs::read_to_string(output.join("about/index.html")).unwrap();
         assert!(about.contains("static CDN HTML"), "{about}");

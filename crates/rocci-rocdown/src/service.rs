@@ -251,9 +251,9 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
         let path = root.join(&page.source_path);
         let src = fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        let source_name = path.display().to_string();
+        let source_name = page.source_path.as_str();
         let compiled = compile(
-            SourceFile::new(&source_name, &src),
+            SourceFile::new(source_name, &src),
             &CompileOptions {
                 check_assets: false,
                 ..CompileOptions::default()
@@ -287,7 +287,7 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
             mapped: rocci_template::MappedModule {
                 type_name,
                 generated: compiled.roc,
-                source_name,
+                source_name: source_name.to_string(),
                 source_src: src,
                 segments: compiled.segments,
             },
