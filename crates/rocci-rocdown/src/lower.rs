@@ -745,6 +745,7 @@ impl<'a> Emitter<'a> {
         let title = fields
             .iter()
             .find(|field| field.name == "title")
+            .or_else(|| fields.iter().find(|field| field.name == "term"))
             .and_then(|field| field_string(src, field))
             .unwrap_or_default();
         let summary = fields
@@ -786,7 +787,11 @@ impl<'a> Emitter<'a> {
                 ));
             }
         }
-        let class = format!("rd-docs-{} rd-docs-block", call.name);
+        let class = if crate::registry::is_aside(&call.name) {
+            format!("rd-docs-aside rd-docs-block rd-docs-{}", call.name)
+        } else {
+            format!("rd-docs-{} rd-docs-block", call.name)
+        };
         let tag = if crate::registry::is_aside(&call.name) {
             "aside"
         } else {
@@ -846,6 +851,11 @@ impl<'a> Emitter<'a> {
         } else if !label_text.is_empty() {
             self.push_indent();
             self.emit_text_element("p", "rd-docs-label", label_text, call.span);
+            self.emit(",\n");
+        }
+        if call.name == "tab" && !label.is_empty() {
+            self.push_indent();
+            self.emit_text_element("h3", "rd-docs-tab-label", &label, call.span);
             self.emit(",\n");
         }
         if !title.is_empty() && call.name != "details" {

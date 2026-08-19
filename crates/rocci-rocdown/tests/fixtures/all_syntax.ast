@@ -31,13 +31,24 @@
   (if)
   (for item)
   (match)
-  (block img src ./img/yammi_banana.png alt A banana width 50px)
+  (block figure section caption A banana credit Rocci fixtures
+    (block img src ./img/yammi_banana.png alt A banana width 50px))
   (block note line
     (p
       (text Don't do this.)))
   (block note section title Watch
     (p
       (text Nested section body.)))
+  (block details line summary More
+    (p
+      (text Nested details body.)))
+  (block steps end
+    (block step line title One
+      (p
+        (text First step.)))
+    (block step line title Two
+      (p
+        (text Second step.))))
   (block tabs end group os kind platform
     (block tab line id mac label macOS
       (p

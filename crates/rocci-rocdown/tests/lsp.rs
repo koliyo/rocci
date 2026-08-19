@@ -93,10 +93,27 @@ fn test_rocdown_lsp_all_syntax() {
                 syms.iter().any(|s| s.name == "Hello"),
                 "missing component Hello symbol"
             );
-            assert!(syms.iter().any(|s| s.name == ":img"), "missing :img symbol");
+            assert!(
+                syms.iter().any(|s| s.name == ":figure"),
+                "missing :figure symbol"
+            );
+            let figure = syms.iter().find(|s| s.name == ":figure").unwrap();
+            let figure_children = figure.children.as_deref().unwrap_or(&[]);
+            assert!(
+                figure_children.iter().any(|s| s.name == ":img"),
+                "missing nested :img symbol"
+            );
             assert!(
                 syms.iter().any(|s| s.name == ":note"),
                 "missing :note symbol"
+            );
+            assert!(
+                syms.iter().any(|s| s.name == ":details"),
+                "missing :details symbol"
+            );
+            assert!(
+                syms.iter().any(|s| s.name == ":steps"),
+                "missing :steps symbol"
             );
             assert!(
                 syms.iter().any(|s| s.name == ":tabs"),

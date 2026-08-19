@@ -643,6 +643,7 @@ fn guide_example_compiles() {
     assert!(out.roc.contains("docs@example.com"));
     assert!(out.roc.contains("@roclang"));
     assert!(!out.roc.contains("import Datastar"));
+    assert!(out.roc.contains("rocdown-blocks"));
     assert_eq!(out.roc, include_str!("fixtures/guide.roc"));
 }
 
@@ -690,6 +691,7 @@ fn all_syntax_example_compiles() {
     assert!(out.roc.contains("match status {"));
     assert!(out.roc.contains("hello({ name: \"render\" })"));
     assert!(out.roc.contains("@if this is escaped"));
+    assert!(out.roc.contains("rd-docs-aside rd-docs-block rd-docs-note"));
     assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 

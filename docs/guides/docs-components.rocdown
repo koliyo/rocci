@@ -4,7 +4,7 @@
 
     meta: {
         title: "Write documentation components",
-        description: "Author asides, steps, includes, and no-JS tabs in Rocdown without raw HTML.",
+        description: "Author asides, steps, figures, tabs, and other article blocks in Rocdown without raw HTML.",
     },
 }
 
@@ -73,6 +73,34 @@ script exists.
     :link-card[page: "reference/rocdown"]
     :link-card[page: "reference/rocdown-site"]
 :end.card-grid
+
+## Caption an image
+
+Nested `:img` owns the accessible name. Figure `caption` and `credit` are
+optional labels around that image.
+
+:figure[caption: "A banana", credit: "Rocci fixtures"] {{
+    :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+}}
+
+## Disclose extra detail
+
+:details[summary: "What stays in the document"] {{
+    Disclosure bodies stay in the HTML. Print and browsers with scripts
+    disabled still show the content.
+}}
+
+:badge[label: "preview", tone: "preview"]
+
+:definition[term: "Article block"] A `:kind[params]` node with optional Markdown or nested blocks as its body.
+
+:file-tree {{
+- docs/
+    - guides/
+    - reference/
+- examples/
+    - rocdown/
+}}
 
 :example[id: "echo-hello", language: "sh", test: ["/bin/echo", "hello"], expect: "hello"] {{
     ```sh
