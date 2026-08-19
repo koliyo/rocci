@@ -118,17 +118,17 @@ and must not rely on GET `/` (the CDN owns page GET).
 ## Local Docker
 
 Same-origin two-image layout: Caddy serves the CDN tree and reverse-proxies
-`/actions/` plus `/health` to `serve-islands`. Images are defined in
-[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile). From the
-repository root:
+`/actions/` plus `/health` to `serve-islands`. Base images are defined in
+[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile) and do not bake
+this site. From the repository root:
 
 ```sh
-docker compose -f examples/rocdown-counter/docker-compose.yml up --build
+./docker/run-site.sh examples/rocdown-counter
 ```
 
 Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
 [/about/](http://127.0.0.1:8080/about/) (static). SQLite state is the
-`counter-db` volume (`DB_PATH=/var/lib/rocci/counter.db`). The islands
+`islands-db` volume (`DB_PATH=/var/lib/rocci/site.db`). The islands
 container sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so Caddy can reach it.
 
 Smoke through Caddy, not the island port:
@@ -141,7 +141,8 @@ curl -s http://127.0.0.1:8080/about/ | grep -E '<script>|datastar' || true
 
 First boot may spend a minute compiling generated `main.roc`. Image build
 needs Docker with BuildKit and network access for the pinned Roc nightly and
-crates.io.
+crates.io. Operator notes for other mounted sites are in
+[`docker/README.md`](../../docker/README.md).
 
 ## Smoke checks
 
