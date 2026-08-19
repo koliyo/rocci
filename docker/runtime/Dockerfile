@@ -1,14 +1,15 @@
 # syntax=docker/dockerfile:1
-# Ubuntu toolchain plus hybrid counter images.
+# Content-agnostic Rocci/Rocdown runtime and Caddy CDN images.
 # Build from the repository root:
-#   docker compose -f examples/rocdown-counter/docker-compose.yml build
+#   docker compose -f docker/compose.yml build
+# Run a mounted hybrid site:
+#   ./docker/run-site.sh examples/rocdown-counter
 
 ARG UBUNTU_IMAGE=ubuntu:24.04
 ARG CADDY_IMAGE=caddy:2-alpine
 
 FROM ${UBUNTU_IMAGE} AS builder
 ARG TARGETARCH
-ARG SITE=examples/rocdown-counter
 ARG ROC_NIGHTLY_DATE=2026-08-10
 ARG ROC_NIGHTLY_SHA=7df8509
 ARG ROC_NIGHTLY_TAG=nightly-2026-08-10-7df8509
@@ -33,11 +34,9 @@ RUN chmod +x /tmp/docker/*.sh \
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
-COPY examples examples
 COPY playground playground
 RUN cargo build --release -p rocci-cli -p rocci-rocdown-cli \
     && cp target/release/rocci target/release/rocdown /usr/local/bin/ \
-    && rocdown build "${SITE}" \
     && rm -rf target /usr/local/cargo/registry /usr/local/cargo/git /usr/local/rustup
 
 FROM ${UBUNTU_IMAGE} AS runtime
@@ -49,7 +48,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/bin:/opt/roc:${PATH}" \
     ROCCI_CACHE=/var/cache/rocci \
     HOME=/root \
-    ROC_BASIC_WEBSERVER_HOST=0.0.0.0
+    ROC_BASIC_WEBSERVER_HOST=0.0.0.0 \
+    ROC_BASIC_WEBSERVER_PORT=8001 \
+    DB_PATH=/var/lib/rocci/site.db
+WORKDIR /src/site
 
 COPY docker/install-linux-deps.sh docker/install-roc.sh /tmp/docker/
 RUN chmod +x /tmp/docker/*.sh \
@@ -57,7 +59,7 @@ RUN chmod +x /tmp/docker/*.sh \
     && TARGETARCH="${TARGETARCH}" ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE}" \
        ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA}" ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG}" \
        /tmp/docker/install-roc.sh \
-    && mkdir -p /var/lib/rocci "${ROCCI_CACHE}" \
+    && mkdir -p /var/lib/rocci "${ROCCI_CACHE}" /src/site \
     && rm -rf /tmp/docker
 
 COPY --from=builder /usr/local/bin/rocci /usr/local/bin/rocci
@@ -66,18 +68,9 @@ COPY --from=builder /var/cache/rocci /var/cache/rocci
 COPY --from=builder /root/.rocci /root/.rocci
 COPY --from=builder /root/.cache /root/.cache
 
-FROM runtime AS islands
-ARG SITE=examples/rocdown-counter
-ENV ROC_BASIC_WEBSERVER_PORT=8001 \
-    DB_PATH=/var/lib/rocci/counter.db
-WORKDIR /src
-COPY --from=builder /src/${SITE} /src/site
-WORKDIR /src/site
 EXPOSE 8001
-CMD ["rocdown", "serve-islands", ".", "--no-window", "--port", "8001"]
+CMD ["rocdown", "serve-islands", "/src/site", "--no-window", "--port", "8001"]
 
 FROM ${CADDY_IMAGE} AS cdn
-ARG SITE=examples/rocdown-counter
-COPY --from=builder /src/${SITE}/dist /srv
-COPY ${SITE}/Caddyfile /etc/caddy/Caddyfile
+COPY docker/cdn/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80

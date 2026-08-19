@@ -63,8 +63,8 @@ allowed when it returns fragments only.
 ## Local preview
 
 Debug hybrid sites on the host. Docker is not required for HTML, CSS, or
-increment morphing. Use Compose later for Caddy `try_files`, published 8001,
-`ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and container path stamps.
+increment morphing. Use Compose later for Caddy same-origin proxy, published
+8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and mounted-site path stamps.
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
@@ -149,21 +149,22 @@ example.com {
 ## Local Docker
 
 Use Compose after the host preview above is green. It checks Caddy
-`try_files`, published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and
-container path stamps — not HTML, CSS, or increment morphing.
+same-origin proxy, published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and
+mounted-site path stamps — not HTML, CSS, or increment morphing.
 
-The counter example ships a two-image Compose file: Ubuntu runs
-`rocdown serve-islands`; official Caddy serves `dist/` and proxies island
-routes on one origin. From the repository root:
+Content-agnostic images in `docker/` run `rocdown serve-islands` and official
+Caddy, which serves `dist/` and proxies island routes on one origin. Mount any
+hybrid site (this counter, `examples/rocdown-hybrid`, or another directory
+with `rocdown.toml`). From the repository root:
 
 ```sh
-docker compose -f examples/rocdown-counter/docker-compose.yml up --build
+./docker/run-site.sh examples/rocdown-counter
 ```
 
 Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/). The islands process
 listens on `0.0.0.0` via `ROC_BASIC_WEBSERVER_HOST` so the Caddy container can
 reach it. Commands and smoke curls are in
-`examples/rocdown-counter/README.md`.
+`examples/rocdown-counter/README.md`. Operator notes are in `docker/README.md`.
 
 ## Cross-origin service
 

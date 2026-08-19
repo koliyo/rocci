@@ -1,0 +1,60 @@
+name: rocci-hybrid
+
+services:
+  site-build:
+    image: rocci-runtime:local
+    build:
+      context: ..
+      dockerfile: docker/runtime/Dockerfile
+      target: runtime
+    volumes:
+      - ${ROCCI_SITE:?ROCCI_SITE must be an absolute path to a Rocdown site}:/src/site
+      - rocci-cache:/var/cache/rocci
+    command: ["rocdown", "build", "/src/site"]
+    restart: "no"
+
+  islands:
+    image: rocci-runtime:local
+    build:
+      context: ..
+      dockerfile: docker/runtime/Dockerfile
+      target: runtime
+    environment:
+      ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
+      ROC_BASIC_WEBSERVER_PORT: "8001"
+      DB_PATH: /var/lib/rocci/site.db
+    volumes:
+      - ${ROCCI_SITE:?ROCCI_SITE must be an absolute path to a Rocdown site}:/src/site
+      - islands-db:/var/lib/rocci
+      - rocci-cache:/var/cache/rocci
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 90s
+    depends_on:
+      site-build:
+        condition: service_completed_successfully
+
+  cdn:
+    image: rocci-cdn:local
+    build:
+      context: ..
+      dockerfile: docker/runtime/Dockerfile
+      target: cdn
+    volumes:
+      - ${ROCCI_SITE:?ROCCI_SITE must be an absolute path to a Rocdown site}:/src/site:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      site-build:
+        condition: service_completed_successfully
+      islands:
+        condition: service_healthy
+
+volumes:
+  islands-db:
+  rocci-cache:

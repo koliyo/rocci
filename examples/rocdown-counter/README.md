@@ -19,8 +19,9 @@ For page-kind coverage without SQLite, see
 ## Preview
 
 Debug this example on the host with `roc` and `cargo` on `PATH`. Do not start
-Docker until the steps below are green. Compose is only for Caddy `try_files`,
-published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and container path stamps.
+Docker until the steps below are green. Compose is only for Caddy same-origin
+proxy, published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and mounted-site
+path stamps.
 
 ### Catalog without Roc
 
@@ -151,16 +152,16 @@ and must not rely on GET `/` (the CDN owns page GET).
 ## Local Docker
 
 Use Compose after the host `run` loop above is green. It is the check for
-Caddy `try_files` vs hashed assets, published 8001, `0.0.0.0` bind, and
-container `COPY` path stamps — not the day-to-day increment/CSS loop.
+Caddy same-origin proxy vs hashed assets, published 8001, `0.0.0.0` bind, and
+mounted-site path stamps — not the day-to-day increment/CSS loop.
 
 Same-origin two-image layout: Caddy serves the CDN tree and reverse-proxies
-`/actions/` plus `/health` to `serve-islands`. Images are defined in
-[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile). From the
-repository root:
+`/actions/` plus `/health` to `serve-islands`. Base images are defined in
+[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile) and do not bake
+this site. From the repository root:
 
 ```sh
-docker compose -f examples/rocdown-counter/docker-compose.yml up --build
+./docker/run-site.sh examples/rocdown-counter
 ```
 
 Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
@@ -168,7 +169,7 @@ Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
 demo: Caddy serves the CDN tree and proxies `/actions/` plus `/health`. The
 islands process is also published at [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
 for direct smoke curls; the browser should stay on 8080. SQLite state is the
-`counter-db` volume (`DB_PATH=/var/lib/rocci/counter.db`). The islands
+`islands-db` volume (`DB_PATH=/var/lib/rocci/site.db`). The islands
 container sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so Caddy can reach it.
 
 ```sh
@@ -180,7 +181,8 @@ curl -s http://127.0.0.1:8080/about/ | grep -E '<script>|datastar' || true
 
 First boot may spend a minute compiling generated `main.roc`. Image build
 needs Docker with BuildKit and network access for the pinned Roc nightly and
-crates.io.
+crates.io. Operator notes for other mounted sites are in
+[`docker/README.md`](../../docker/README.md).
 
 ## Smoke checks
 
