@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
@@ -1613,11 +1613,28 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+pub struct ApplySession {
+    pub compile_hash: String,
+    pub apply_path: PathBuf,
+    pub is_wasm: bool,
+}
+
 pub fn build_review_site_with_host(
     bundle: &Bundle,
     site: &Path,
     host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<ProfileSnapshot> {
+    let (snapshot, _) = build_review_site_with_session(bundle, site, host, None)?;
+    Ok(snapshot)
+}
+
+pub fn build_review_site_with_session(
+    bundle: &Bundle,
+    site: &Path,
+    host: Option<rocci_roc_host::HostChoice>,
+    session: Option<&ApplySession>,
+) -> Result<(ProfileSnapshot, Option<ApplySession>)> {
     let mut rec = SpanRecorder::new();
     let host_choice = host.unwrap_or(rocci_roc_host::HostChoice::Auto).resolve();
     let is_wasm = host_choice == rocci_roc_host::HostChoice::Wasm;
@@ -1626,7 +1643,7 @@ pub fn build_review_site_with_host(
 
     if !force_roc && !is_roc_available() && !is_wasm {
         rec.span("write", || build_review_site_pure_rust(bundle, site))?;
-        return Ok(rec.finish());
+        return Ok((rec.finish(), None));
     }
 
     let modules = rec.span("compile templates", compile_okf_templates)?;
@@ -1690,7 +1707,19 @@ pub fn build_review_site_with_host(
         })
         .collect();
 
-    let apply_path = if let Some(cached) = cache.lookup_renderer(&roc_hash, &target) {
+    let apply_path = if let Some(prev) = session
+        && prev.compile_hash == roc_hash
+        && prev.is_wasm == is_wasm
+        && prev.apply_path.is_file()
+    {
+        eprintln!(
+            "rocci-okf: reusing {} applicator {}",
+            if is_wasm { "wasm" } else { "native" },
+            &roc_hash[..8.min(roc_hash.len())]
+        );
+        rec.push("compile", 0, Some("cached".into()));
+        prev.apply_path.clone()
+    } else if let Some(cached) = cache.lookup_renderer(&roc_hash, &target) {
         eprintln!(
             "rocci-okf: using cached {} renderer for {}",
             if is_wasm { "wasm" } else { "native" },
@@ -1726,7 +1755,10 @@ pub fn build_review_site_with_host(
         })?
     };
 
-    rec.span("render", || {
+    let reused_apply = session.is_some_and(|prev| {
+        prev.compile_hash == roc_hash && prev.is_wasm == is_wasm && prev.apply_path == apply_path
+    });
+    rec.span_with_note("render", reused_apply.then(|| "reuse".into()), || {
         let roc_output = if is_wasm {
             invoke_wasm_apply(&apply_path, &staging)
         } else {
@@ -1803,7 +1835,12 @@ pub fn build_review_site_with_host(
         Ok::<(), anyhow::Error>(())
     })?;
 
-    Ok(rec.finish())
+    let next_session = ApplySession {
+        compile_hash: roc_hash,
+        apply_path,
+        is_wasm,
+    };
+    Ok((rec.finish(), Some(next_session)))
 }
 
 pub const DEFAULT_CSS: &str = r#"
@@ -2695,5 +2732,51 @@ mod tests {
         assert!(html.contains("Home"));
         assert!(html.contains("<nav class=\"rd-toc\""));
         let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn watch_session_reuses_apply_without_roc_build() {
+        if !is_roc_available() {
+            return;
+        }
+        let site1 = unique_temp("site-session-1").unwrap();
+        let site2 = unique_temp("site-session-2").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "overview".into();
+        overview.path = "overview.md".into();
+        overview.article_html = "<h1>System Overview</h1>\n<p>Body.</p>".into();
+        let bundle = bundle_with(vec![overview]);
+        let host = Some(rocci_roc_host::HostChoice::Native);
+        let (first, session) = build_review_site_with_session(&bundle, &site1, host, None).unwrap();
+        let session = session.expect("apply session after first build");
+        assert!(
+            first
+                .spans
+                .iter()
+                .any(|span| span.name == "compile" && span.note.as_deref() == Some("cached"))
+                || first.spans.iter().any(|span| span.name == "compile")
+        );
+        let (second, next) =
+            build_review_site_with_session(&bundle, &site2, host, Some(&session)).unwrap();
+        let next = next.expect("apply session after second build");
+        assert_eq!(session.compile_hash, next.compile_hash);
+        assert_eq!(session.apply_path, next.apply_path);
+        let compile = second
+            .spans
+            .iter()
+            .find(|span| span.name == "compile")
+            .expect("compile span");
+        assert_eq!(compile.duration_ms, 0);
+        assert_eq!(compile.note.as_deref(), Some("cached"));
+        let render = second
+            .spans
+            .iter()
+            .find(|span| span.name == "render")
+            .expect("render span");
+        assert_eq!(render.note.as_deref(), Some("reuse"));
+        let html = fs::read_to_string(site2.join("overview").join("index.html")).unwrap();
+        assert!(html.contains("System Overview"));
+        let _ = fs::remove_dir_all(&site1);
+        let _ = fs::remove_dir_all(&site2);
     }
 }
