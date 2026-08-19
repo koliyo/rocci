@@ -1,0 +1,105 @@
+# Maps Rocdown.AST.ungram productions onto shipped types.
+# Phase 1 documentation for codegen. Language crates do not parse this at runtime.
+
+[meta]
+ungram = "Rocdown.AST.ungram"
+
+# Emit a struct or enum matching `rust`.
+[generated]
+Document = "rocci_rocdown::Document"
+Item = "rocci_rocdown::Item"
+PageDecl = "rocci_rocdown::PageDecl"
+RocDecl = "rocci_rocdown::RocDecl"
+RenderDecl = "rocci_rocdown::RenderDecl"
+UseDecl = "rocci_rocdown::UseDecl"
+BlockCall = "rocci_rocdown::BlockCall"
+BracketRecord = "rocci_rocdown::BracketRecord"
+BracketList = "rocci_rocdown::BracketList"
+ParamField = "rocci_rocdown::ParamField"
+ParamValue = "rocci_rocdown::ParamValue"
+BlockContent = "rocci_rocdown::BlockContent"
+LineContent = "rocci_rocdown::LineContent"
+BraceSection = "rocci_rocdown::BraceSection"
+EndSection = "rocci_rocdown::EndSection"
+EndMarker = "rocci_rocdown::EndMarker"
+
+# Do not emit; use the named type from rocci-template.
+[foreign]
+ComponentDecl = "rocci_template::ComponentDecl"
+FixtureDecl = "rocci_template::FixtureDecl"
+CssDecl = "rocci_template::CssDecl"
+ContextDecl = "rocci_template::ContextDecl"
+InitDecl = "rocci_template::InitDecl"
+OnDecl = "rocci_template::OnDecl"
+TemplateItem = "rocci_template::TemplateItem"
+
+# Hand-written in this crate. Do not generate in v1.
+[opaque]
+MdNode = "rocci_rocdown::MdNode"
+
+# Human grammar / target article layer. Not a runtime type.
+# Do not invent Item::Paragraph.
+[doc_only]
+ModuleItem = "grouping of language islands; Item lists those payloads directly"
+Block = "target article layer; runtime Markdown is Item::Markdown(MdNode)"
+Paragraph = "Comrak/MdNode; not constructed"
+List = "Comrak/MdNode; not constructed"
+ListItem = "Comrak/MdNode; not constructed"
+BlockQuote = "Comrak/MdNode; not constructed"
+CodeBlock = "Comrak/MdNode; not constructed"
+Table = "Comrak/MdNode; not constructed"
+TableRow = "Comrak/MdNode; not constructed"
+TableCell = "Comrak/MdNode; not constructed"
+ThematicBreak = "Comrak/MdNode; not constructed"
+Inline = "Comrak inline tree; LineContent does not store inlines"
+TemplateSplice = "source shape for Item::Template(TemplateItem)"
+HtmlIsland = "source shape for Item::Template(TemplateItem)"
+
+# Leaf `Name = 'token'` rust types. Do not guess.
+# Rocdown Ident is not rocci_template::Ident.
+[leaves]
+BracePayload = "Span"
+Ident = "{ name: String, span: Span }"
+StringLit = "{ value: String, span: Span }"
+BoolLit = "{ value: bool, span: Span }"
+NumberLit = "{ value: String, span: Span }"
+
+[item_variants]
+MdNode = "Markdown"
+PageDecl = "Page"
+RocDecl = "Roc"
+RenderDecl = "Render"
+ComponentDecl = "Component"
+FixtureDecl = "Fixture"
+CssDecl = "Css"
+ContextDecl = "Context"
+InitDecl = "Init"
+OnDecl = "On"
+UseDecl = "Use"
+TemplateItem = "Template"
+BlockCall = "Block"
+
+[param_value_variants]
+StringLit = "StringLit"
+BoolLit = "BoolLit"
+NumberLit = "NumberLit"
+Ident = "Ident"
+BracketRecord = "Record"
+BracketList = "List"
+
+[extra]
+"ParamField.span" = "omitted; shipped ParamField has no overall span"
+"BlockCall.name" = "String + name_span from Ident"
+"ParamField.name" = "String + name_span from Ident"
+"UseDecl.path" = "String + path_span from StringLit"
+"PageDecl.body" = "Span from BracePayload"
+"RocDecl.body" = "Span from BracePayload"
+"RenderDecl.expr" = "Span from BracePayload"
+"LineContent.inlines" = "not stored; LineContent is an opaque span"
+"BraceSection.blocks" = "not stored; nested items reparsed via parse_fragment"
+"EndSection.blocks" = "not stored; nested items reparsed via parse_fragment"
+
+[out_of_tree]
+PageMeta = "analysis type; not a parse node"
+HeadingInfo = "analysis type; not a parse node"
+LinkInfo = "analysis type; not a parse node"

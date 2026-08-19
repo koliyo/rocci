@@ -1,0 +1,169 @@
+// Rocci template AST.
+//
+// Tree spec for crates/rocci-template/src/ast.rs. Generate node types from this
+// file. Do not generate the scanner or parser. Ordinary Roc outside recognized
+// declarations is opaque. This is not the language of strings.
+//
+// Lowering rules (owned structs, not a CST):
+//   - Top-level `|` of node names → enum of tuple variants matching today
+//     (`TemplateItem::Element(Element)`). Variant names that differ from the
+//     payload type are in Rocci.AST.toml `[item_variants]` / `[template_item_variants]`.
+//   - Sequence of labeled fields → struct. Unlabeled tokens are omitted.
+//   - `T*` → `Vec<T>`. `T?` → `Option<T>`. Recursive struct fields → `Box`.
+//   - Every generated struct gets `pub span: Span`. Enums that already expose
+//     `fn span(&self)` keep that method; `AttrValue` has no `span()` today
+//     (`Boolean` is a unit variant).
+//   - Leaf `Name = 'token'` uses the sidecar rust type. Do not guess Span vs
+//     String+Span.
+//   - Derives: `Clone, Debug, PartialEq, Eq`.
+//   - `ParsedParams` / `parse_component_params` stay out of this tree.
+//
+// Classification lives in Rocci.AST.toml: generated, inline, leaves, extra.
+// Extra fields (`Element.self_closing`, `ComponentPath.roc_name`) stay
+// hand-written beside generated types.
+
+/// A `.rocci` file: ordinary Roc regions mixed with template declarations.
+Document =
+  items:ModuleItem*
+
+ModuleItem =
+  RocRegion
+| ComponentDecl
+| FixtureDecl
+| CssDecl
+| ContextDecl
+| InitDecl
+| OnDecl
+
+/// Opaque Roc between declarations. Shipped as `ModuleItem::Roc { span }` —
+/// there is no exported `RocRegion` type.
+RocRegion = 'roc-region'
+
+ComponentDecl =
+  '@' 'component'
+  name:Ident
+  params:ParamList
+  body:TemplateBlock
+
+FixtureDecl =
+  '@' 'fixture'
+  name:Ident
+  target:ComponentPath
+  value:RocExpr
+
+CssDecl =
+  '@' 'css'
+  body:CssPayload
+
+ContextDecl =
+  '@' 'context'
+  ty:RocType
+
+InitDecl =
+  '@' 'init'
+  body:RocExpr
+
+OnDecl =
+  '@' 'on'
+  method:Ident
+  path:StringLit
+  params:RocExpr?
+  body:RocExpr
+
+TemplateBlock =
+  items:TemplateItem*
+
+TemplateItem =
+  Element
+| ComponentCall
+| Fragment
+| TextNode
+| Interpolation
+| IfDirective
+| ForDirective
+| MatchDirective
+| LetDirective
+| CssDecl
+
+Element =
+  name:Ident
+  attrs:Attr*
+  children:TemplateItem*
+
+ComponentCall =
+  path:ComponentPath
+  attrs:Attr*
+  children:TemplateItem*
+
+ComponentPath =
+  parts:Ident*
+
+Fragment =
+  children:TemplateItem*
+
+TextNode = 'text'
+
+Interpolation =
+  expr:RocExpr
+
+Attr =
+  name:Ident
+  value:AttrValue
+
+AttrValue =
+  Static
+| Expr
+| Action
+| Boolean
+
+/// Inline `AttrValue::Static { span, value }`. Not an exported type.
+Static =
+  value:StringLit
+
+/// Inline `AttrValue::Expr { expr }`. Not an exported type.
+Expr =
+  expr:RocExpr
+
+/// Inline `AttrValue::Action { name, args }`. Not an exported type.
+Action =
+  name:Ident
+  args:RocExpr
+
+/// Unit variant `AttrValue::Boolean`. No span on the variant.
+Boolean = 'boolean-attr'
+
+IfDirective =
+  condition:RocExpr
+  then_body:TemplateBlock
+  else_ifs:ElseIf*
+  else_body:TemplateBlock?
+
+/// Flattened to `(Span, TemplateBlock)` on `IfDirective.else_ifs`.
+ElseIf =
+  condition:RocExpr
+  body:TemplateBlock
+
+ForDirective =
+  binder:Ident
+  collection:RocExpr
+  body:TemplateBlock
+
+MatchDirective =
+  scrutinee:RocExpr
+  arms:MatchArm*
+
+MatchArm =
+  pattern:RocPattern
+  value:TemplateItem
+
+LetDirective =
+  binder:Ident
+  expr:RocExpr
+
+Ident = 'ident'
+StringLit = 'string'
+ParamList = 'param-list'
+RocExpr = 'roc-expr'
+RocType = 'roc-type'
+RocPattern = 'roc-pattern'
+CssPayload = 'css-payload'

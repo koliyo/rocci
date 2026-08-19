@@ -1,0 +1,91 @@
+# Maps Rocci.AST.ungram productions onto shipped rocci-template types.
+# Phase 1 documentation for codegen. Language crates do not parse this at runtime.
+
+[meta]
+ungram = "Rocci.AST.ungram"
+
+# Emit a struct or enum matching `rust`.
+[generated]
+Document = "rocci_template::Document"
+ModuleItem = "rocci_template::ModuleItem"
+ComponentDecl = "rocci_template::ComponentDecl"
+FixtureDecl = "rocci_template::FixtureDecl"
+CssDecl = "rocci_template::CssDecl"
+ContextDecl = "rocci_template::ContextDecl"
+InitDecl = "rocci_template::InitDecl"
+OnDecl = "rocci_template::OnDecl"
+TemplateBlock = "rocci_template::TemplateBlock"
+TemplateItem = "rocci_template::TemplateItem"
+Element = "rocci_template::Element"
+ComponentCall = "rocci_template::ComponentCall"
+ComponentPath = "rocci_template::ComponentPath"
+Fragment = "rocci_template::Fragment"
+TextNode = "rocci_template::TextNode"
+Interpolation = "rocci_template::Interpolation"
+Attr = "rocci_template::Attr"
+AttrValue = "rocci_template::AttrValue"
+IfDirective = "rocci_template::IfDirective"
+ForDirective = "rocci_template::ForDirective"
+MatchDirective = "rocci_template::MatchDirective"
+MatchArm = "rocci_template::MatchArm"
+LetDirective = "rocci_template::LetDirective"
+Ident = "rocci_template::Ident"
+
+# Production names a variant payload, not a standalone exported type.
+[inline]
+RocRegion = "ModuleItem::Roc { span }"
+Static = "AttrValue::Static { span, value }"
+Expr = "AttrValue::Expr { expr }"
+Action = "AttrValue::Action { name, args }"
+Boolean = "AttrValue::Boolean"
+ElseIf = "IfDirective.else_ifs: Vec<(Span, TemplateBlock)>"
+
+# Leaf `Name = 'token'` rust types. Do not guess.
+[leaves]
+RocRegion = "Span"
+ParamList = "Span"
+RocExpr = "Span"
+RocType = "Span"
+RocPattern = "Span"
+CssPayload = "Span"
+StringLit = "{ value: String, span: Span }"
+Ident = "{ name: String, span: Span }"
+TextNode = "{ value: String, span: Span }"
+
+# Present on the shipped type but not a tree child from ungram labels.
+[extra]
+"Element.self_closing" = "bool"
+"ComponentPath.roc_name" = "String"
+"ComponentCall.children" = "Option<Vec<TemplateItem>> wrapping TemplateItem*"
+"MatchArm.value" = "Box<TemplateItem>"
+"OnDecl.path" = "String + path_span from StringLit"
+
+[module_item_variants]
+RocRegion = "Roc"
+ComponentDecl = "Component"
+FixtureDecl = "Fixture"
+CssDecl = "Css"
+ContextDecl = "Context"
+InitDecl = "Init"
+OnDecl = "On"
+
+[template_item_variants]
+Element = "Element"
+ComponentCall = "ComponentCall"
+Fragment = "Fragment"
+TextNode = "Text"
+Interpolation = "Interpolation"
+IfDirective = "If"
+ForDirective = "For"
+MatchDirective = "Match"
+LetDirective = "Let"
+CssDecl = "Css"
+
+[attr_value_variants]
+Static = "Static"
+Expr = "Expr"
+Action = "Action"
+Boolean = "Boolean"
+
+[out_of_tree]
+ParsedParams = "derived from ParamList text; not a node"

@@ -1,26 +1,53 @@
-// Draft Rocdown document AST.
+// Rocdown document AST.
 //
-// Generate node types (and later `format_ast` / syntax kinds) from this file.
-// Do not generate the scanner. Comrak still owns Markdown sugar recognition.
-// Rocdown still owns document-root scanning. Spans are attached by codegen.
+// Tree spec for crates/rocci-rocdown/src/ast.rs. Generate node types from this
+// file. Do not generate the scanner. Comrak still owns Markdown sugar
+// recognition. Rocdown still owns document-root scanning. Spans are attached
+// by codegen.
 //
-// Exploratory syntax this tree describes:
-//   :note Don't do this.
-//   :h2[id: "install"] Installing
-//   :note[title: "Watch"] {{ nested Rocdown }}
-//   :tabs[group: "os"] ... :end.tabs
-// Module / Rocci islands stay `@page { }`, `@component`, `@use`.
-// This is not a second scanner; it matches the shipped `Item` / `BlockCall` tree.
+// Lowering rules (owned structs, not a CST):
+//   - Top-level `|` of node names → enum of tuple variants matching today
+//     (`Item::Block(BlockCall)`). Variant names that differ from the payload
+//     type are in Rocdown.AST.toml `[item_variants]`.
+//   - Sequence of labeled fields → struct. Unlabeled tokens are omitted.
+//   - `T*` → `Vec<T>`. `T?` → `Option<T>`. Recursive struct fields → `Box`.
+//   - Every generated struct gets `pub span: Span` except `ParamField`, which
+//     is shipped without an overall span (`name` + `name_span` + `value`).
+//   - Leaf `Name = 'token'` uses the sidecar rust type. Do not guess Span vs
+//     String+Span. Rocdown `Ident` is not `rocci_template::Ident`.
+//   - Derives: `Clone, Debug, PartialEq, Eq`.
+//   - `PageMeta` / `HeadingInfo` / `LinkInfo` stay out of this tree.
+//
+// Classification lives in Rocdown.AST.toml:
+//   generated  — article / module nodes the parser constructs
+//   foreign    — `rocci_template::*` (do not re-emit ComponentDecl)
+//   opaque     — hand-written `MdNode`
+//   doc-only   — Markdown article layer and source-shape aliases
+//
+// Nested `:name` bodies are holes: `LineContent` / `BraceSection` /
+// `EndSection` store spans; `parse_fragment` rebuilds inner `Item`s.
 
 /// A `.rocdown` file.
 Document =
   items:Item*
 
+/// Shipped document node. Flat enum; not `ModuleItem | Block`.
 Item =
-  ModuleItem
-| Block
+  MdNode
+| PageDecl
+| RocDecl
+| RenderDecl
+| ComponentDecl
+| FixtureDecl
+| CssDecl
+| ContextDecl
+| InitDecl
+| OnDecl
+| UseDecl
+| TemplateItem
+| BlockCall
 
-/// Language islands. Payload is Roc, CSS, or Rocci — not article Rocdown.
+/// doc-only grouping. Not a Rust type. Payloads are Item variants.
 ModuleItem =
   PageDecl
 | RocDecl
@@ -33,43 +60,38 @@ ModuleItem =
 | OnDecl
 | UseDecl
 
-PageDecl = '@' 'page' payload:BracePayload
-RocDecl = '@' 'roc' payload:BracePayload
-RenderDecl = '@' 'render' payload:BracePayload
-CssDecl = '@' 'css' payload:BracePayload
+PageDecl = '@' 'page' body:BracePayload
+RocDecl = '@' 'roc' body:BracePayload
+RenderDecl = '@' 'render' expr:BracePayload
 UseDecl = '@' 'use' path:StringLit
 
-/// Opaque Rocci declarations. Shape lives in rocci-template.
+/// foreign → rocci_template::ComponentDecl
 ComponentDecl = 'rocci-component'
+/// foreign → rocci_template::FixtureDecl
 FixtureDecl = 'rocci-fixture'
+/// foreign → rocci_template::CssDecl
+CssDecl = 'rocci-css'
+/// foreign → rocci_template::ContextDecl
 ContextDecl = 'rocci-context'
+/// foreign → rocci_template::InitDecl
 InitDecl = 'rocci-init'
+/// foreign → rocci_template::OnDecl
 OnDecl = 'rocci-on'
+/// foreign → rocci_template::TemplateItem
+TemplateItem = 'rocci-template-item'
 
 /// Opaque `{ ... }` whose insides are Roc or CSS, not nested Rocdown.
 BracePayload = '{' '}'
 
-/// Article tree. Markdown sugar and explicit `:name` calls share this layer.
-Block =
-  BlockCall
-| Paragraph
-| List
-| BlockQuote
-| CodeBlock
-| Table
-| ThematicBreak
-| TemplateSplice
-| HtmlIsland
+/// opaque → rocci_rocdown::MdNode (Comrak). Do not generate in v1.
+MdNode = 'md-node'
 
-/// Uniform article node: kind, optional params, optional content.
-/// `# Installing` and `:h2 Installing` both produce this (name = h2).
-/// `![alt](src)` at block level and `:img[src, alt]` both produce name = img.
+/// Uniform article node. Sugar headings/images lower to this too.
 BlockCall =
   name:Ident
   params:BracketRecord?
   content:BlockContent?
 
-/// Article params. Not `{ }` (Roc) and not `( )`.
 BracketRecord =
   '['
   fields:ParamField*
@@ -98,25 +120,41 @@ BlockContent =
 | BraceSection
 | EndSection
 
-/// Rest of the line after `:name` / `:name[params]`. The newline is the fence.
-LineContent = inlines:Inline*
+/// Rest of the line after `:name` / `:name[params]`. Opaque span.
+LineContent = 'line-content'
 
-/// Nested document. `{{` / `}}` is the usual fence.
+/// Nested document hole. `{{` / `}}` is the usual fence.
 BraceSection =
   '{{'
-  blocks:Block*
   '}}'
 
-/// Named closer, for brace-heavy bodies. Follows the article prefix: `:end.tabs`.
+/// Named closer hole. Follows the article prefix: `:end.tabs`.
 EndSection =
-  blocks:Block*
-  EndMarker
+  marker:EndMarker
 
 EndMarker =
   ':'
   'end'
   '.'
   name:Ident
+
+Ident = 'ident'
+StringLit = 'string'
+BoolLit = 'bool'
+NumberLit = 'number'
+
+/// doc-only: target article layer from the block-model plan.
+/// Runtime Markdown is `Item::Markdown(MdNode)`. Do not invent `Item::Paragraph`.
+Block =
+  BlockCall
+| Paragraph
+| List
+| BlockQuote
+| CodeBlock
+| Table
+| ThematicBreak
+| TemplateSplice
+| HtmlIsland
 
 /// Markdown inlines inside line content. Comrak-owned until a later ungram.
 Inline = 'md-inline'
@@ -133,13 +171,8 @@ TableRow = header:BoolLit cells:TableCell*
 TableCell = inlines:Inline*
 ThematicBreak = 'thematic-break'
 
-/// Document-root `@if` / `@for` / `@match` / `@let`. Rocci grammar, HTML body.
+/// Document-root `@if` / `@for` / `@match` / `@let`. Same payload as TemplateItem.
 TemplateSplice = 'rocci-splice'
 
-/// Document-root `<Tag>`. Not an article block.
+/// Document-root `<Tag>`. Same payload as TemplateItem.
 HtmlIsland = 'html-island'
-
-Ident = 'ident'
-StringLit = 'string'
-BoolLit = 'bool'
-NumberLit = 'number'

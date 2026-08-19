@@ -4,7 +4,7 @@ title: Ungrammar AST codegen for Rocci and Rocdown
 description: "Phased delivery of ungrammar as the tree spec for both languages, a shared generator of owned AST structs, and CI drift checks. Scanners and parsers stay hand-written."
 tags: [domain/rocci, domain/rocdown, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
+generated: { by: process:cursor, at: 2026-08-19T16:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -242,6 +242,9 @@ lists foreign / opaque nodes. No generator crate yet.
 Rust type (or to an explicit `foreign` / `doc-only` mark) without
 guessing. Existing `ungram_article_call_productions_exist_as_rust_types`
 still passes.[^rocdown-ungram][^template-ast][^rocdown-ast][^ast-test]
+
+**Status:** implemented on `ungram-ast-implementation` (ungrams + sidecars).
+Not CI-complete. Generator crate is Phase 2.
 
 ### Phase 2 — `rocci-ungram` crate, snapshots only
 
