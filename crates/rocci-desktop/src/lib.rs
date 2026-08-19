@@ -25,7 +25,7 @@ use wry::WebContext;
 
 use crate::window::LiveWindow;
 
-pub use events::ShellEvent;
+pub use events::{PreviewEvent, PreviewSink, ShellEvent};
 pub use preview::{PreviewOptions, preview};
 
 pub struct RunOptions {
@@ -68,6 +68,7 @@ pub fn run(mut options: RunOptions) -> Result<()> {
             search: false,
             reload: options.reload,
             devtools: options.devtools,
+            picker: false,
         },
     )?;
 

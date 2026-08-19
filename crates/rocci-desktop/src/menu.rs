@@ -22,6 +22,7 @@ pub const BACK_ID: &str = "view.back";
 pub const FORWARD_ID: &str = "view.forward";
 pub const HOME_ID: &str = "view.home";
 pub const GO_TO_FILE_ID: &str = "view.go-to-file";
+pub const OPEN_PICKER_ID: &str = "view.open-target";
 pub const RELOAD_ID: &str = "view.reload";
 pub const WEB_INSPECTOR_ID: &str = "view.web-inspector";
 
@@ -33,6 +34,7 @@ pub struct MenuConfig<'a> {
     pub search: bool,
     pub reload: bool,
     pub devtools: bool,
+    pub picker: bool,
 }
 
 pub struct NativeMenu {
@@ -180,6 +182,17 @@ impl NativeMenu {
             view.append(&PredefinedMenuItem::separator())
                 .map_err(menu_error)?;
         }
+        if config.picker {
+            view.append(&MenuItem::with_id(
+                OPEN_PICKER_ID,
+                "Open Target…",
+                true,
+                Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyP)),
+            ))
+            .map_err(menu_error)?;
+            view.append(&PredefinedMenuItem::separator())
+                .map_err(menu_error)?;
+        }
         if config.reload {
             view.append(&MenuItem::with_id(
                 RELOAD_ID,
@@ -275,6 +288,9 @@ pub fn view_action_ids(config: &MenuConfig<'_>) -> Vec<&'static str> {
     if config.search {
         ids.push(GO_TO_FILE_ID);
     }
+    if config.picker {
+        ids.push(OPEN_PICKER_ID);
+    }
     if config.reload {
         ids.push(RELOAD_ID);
     }
@@ -310,7 +326,17 @@ mod tests {
             search,
             reload,
             devtools,
+            picker: false,
         }
+    }
+
+    #[test]
+    fn picker_view_menu_includes_open_target() {
+        let mut cfg = config(true, true, true, true);
+        cfg.picker = true;
+        let ids = view_action_ids(&cfg);
+        assert!(ids.contains(&OPEN_PICKER_ID));
+        assert!(ids.contains(&GO_TO_FILE_ID));
     }
 
     #[test]

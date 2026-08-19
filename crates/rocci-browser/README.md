@@ -21,6 +21,11 @@ cargo run -q -p rocci-browser -- remove my-project
 `open --no-window --json` prints `{ "url", "title" }` and keeps the adapter
 origin up until stdin closes (or the process is signaled).
 
+With no arguments, `rocci-browser` opens a persistent preview window: a
+host-owned launcher, Cmd-P (Ctrl-P) picker overlay, and `load_url` of adapter
+origins. Tab in the picker input does not move focus. Cmd-K remains in-page
+Go to File. Overlay back/home/reload still apply to the visible origin.
+
 TUI keys: type to filter, Enter opens a target home, Tab lists adapter
 documents then Enter opens one, Shift-Tab / Escape returns to targets.
 

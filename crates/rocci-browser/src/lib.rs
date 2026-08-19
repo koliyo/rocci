@@ -4,15 +4,19 @@ mod client;
 mod discovery;
 mod fuzzy;
 mod host;
+mod launcher;
+pub mod overlay;
 mod paths;
 mod picker;
 mod protocol;
 mod registry;
+mod session;
 
 pub use client::AdapterClient;
 pub use discovery::{PluginSpec, discover_plugins, load_plugin_manifest};
 pub use fuzzy::{ScoreFields, fuzzy, score_entry};
 pub use host::{Host, OpenRequest, Opened, Target};
+pub use launcher::{Launcher, launcher_html, spawn_launcher};
 pub use paths::{Paths, browser_dir};
 pub use picker::{Picker, PickerAction, PickerOutcome, PickerStage};
 pub use protocol::{
@@ -20,6 +24,7 @@ pub use protocol::{
     ProbeResult,
 };
 pub use registry::{Project, Registry};
+pub use session::{Session, SessionTable};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
