@@ -1,0 +1,15 @@
+@page {
+    route: "/about/",
+    meta: {
+        title: "About",
+        description: "A neighboring static page with no island service",
+    },
+}
+
+# About
+
+This page is static CDN HTML. It has no Rocci components, no Datastar.js, and
+no `connect-src` to the island service.
+
+The [counter](/) on the home page is a `live` island: the CDN file is a
+snapshot, and increment/reset POST to `rocdown serve-islands`.

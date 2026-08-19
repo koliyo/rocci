@@ -27,6 +27,7 @@ items = [
     "guides/build-a-component",
     "guides/server-actions",
     "guides/rocdown-pages",
+    "guides/hybrid-sites",
     "guides/docs-components",
     "guides/desktop-app",
 ]

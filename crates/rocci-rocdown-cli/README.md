@@ -24,6 +24,7 @@ cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.
 cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- run examples/rocdown-counter [--port 8000] [--no-window]
 
 # Build a static documentation site to dist/
 # Hybrid sites emit CDN HTML plus islands.json; --cdn-only errors on live pages.
@@ -32,6 +33,7 @@ cargo run -p rocci-rocdown-cli -- build examples/rocdown-hybrid --cdn-only
 
 # Start the island HTTP service for live pages (colocated @on handlers)
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-hybrid [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-counter [--port 8000] [--no-window]
 
 # Check documentation catalog, routes, links, includes, and assets without compiling Roc
 cargo run -p rocci-rocdown-cli -- check docs [--format terminal|json]

@@ -14,7 +14,9 @@ Rocci uses Datastar as a transport for server-rendered updates. The browser
 declares an action, the Roc handler changes state, and the response replaces a
 targeted HTML fragment.
 
-This guide sketches the counter included in `examples/counter`.
+This guide sketches the counter included in `examples/counter`. The same
+card on a Rocdown CDN page is `examples/rocdown-counter`; see
+[Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/).
 
 ## Declare application state
 
@@ -96,3 +98,7 @@ cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 Increment the counter in two browser windows to verify that SQLite-backed
 state is shared. See [the rendering model](/docs/concepts/rendering-model/) for the
 boundary between documents, patches, and client behavior.
+
+The hybrid site form of this card (`examples/rocdown-counter`) puts the
+document on the CDN and the POST handlers on `rocdown serve-islands`. GET `/`
+stays a build-time snapshot; the service owns SQLite.

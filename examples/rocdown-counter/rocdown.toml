@@ -1,0 +1,16 @@
+[site]
+title = "Hybrid counter"
+description = "CDN-static Rocdown with a SQLite-backed island"
+
+[build]
+output = "dist"
+
+# Leave [http].service_origin empty (the default) for same-origin deploys:
+# reverse-proxy /actions/ and /health to `rocdown serve-islands`.
+# For a separate island origin, set service_origin and rebuild:
+# [http]
+# service_origin = "https://islands.example.com"
+
+[[nav]]
+label = "Site"
+items = ["index", "about"]

@@ -1,0 +1,149 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/hybrid-sites/"],
+
+    meta: {
+        title: "Publish a hybrid Rocdown site",
+        description: "Build CDN-static Rocdown HTML with live Rocci islands, then deploy the island HTTP service beside it.",
+    },
+}
+
+# Publish a hybrid Rocdown site
+
+A hybrid Rocdown site is two artifacts:
+
+1. **CDN tree** — HTML documents, hashed CSS/images, discovery files. Pages
+   without handlers stay free of JavaScript. `live` pages include initial
+   island HTML and Datastar.js pointed at the island service.
+2. **Island service** — `rocdown serve-islands` (colocated `@on`) or `rocci run`
+   on `[http].service`. Mutation handlers return Datastar patches. The CDN file
+   is a snapshot; the service owns durable state.
+
+`docs/` in this repository is a `static` catalog. The worked example is
+`examples/rocdown-counter`: Markdown plus a SQLite counter, with a neighboring
+static page.
+
+See [Rocdown site configuration](/docs/reference/rocdown-site/) for the field
+reference (`service_origin`, `--cdn-only`, `islands.json`).
+
+## Page kinds
+
+| Kind | Meaning | Datastar |
+| --- | --- | --- |
+| `static` | Markdown / `@page` / `@docs` | No |
+| `hydrate` | Pure Rocci spliced at build | No |
+| `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Yes |
+
+`rocdown check` accepts all three. Default `rocdown build` accepts `live` and
+emits `islands.json`. `rocdown build --cdn-only` errors (`RD2302`) when any
+published page is `live`, so a CDN-only publish cannot ship action buttons
+with no service.
+
+## Walk the counter
+
+`examples/rocdown-counter/index.rocdown` colocates `CounterCard` with SQLite
+`@context` / `@init` / `@on:post`. `@render` bakes `count: 0` into the CDN
+HTML. Increment and reset POST `/actions/counter/increment` and
+`/actions/counter/reset` and morph `#counter`. There is no island GET in v1:
+opening the CDN file always shows the build-time snapshot until a mutation
+runs.
+
+`about.rocdown` is `static`. Built `about/index.html` has no `<script>` and
+`script-src 'none'`.
+
+Do not set `[http].service` to `examples/counter/Counter.rocci`. That file is
+a full-page app; GET `/` is not an island route. A sibling `.rocci` service is
+allowed when it returns fragments only.
+
+## Local preview
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window
+```
+
+`rocdown run DIR` writes a temp CDN tree, serves it, and proxies colocated
+`/actions/` on the same origin. Preview SQLite is ephemeral. Pass `--output`
+to keep the files. `--no-window` serves in the browser only.
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
+```
+
+`inspect artifacts` does not invoke Roc. It reports page kinds, Datastar
+emission, `service_origin`, and mutation routes.
+
+## Build and serve separately
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown-counter --no-window
+```
+
+`build` writes the CDN tree (`dist/` in the example). `serve-islands` starts
+the mutation process only: `/health` and `/actions/...`. It does not serve
+Markdown. Default SQLite path is `{primary}.db` next to the site root (`index.db`
+for this example). Set `DB_PATH` to a persistent file in production.
+
+Hashed `/assets/*` files (theme CSS, Datastar.js) are content-addressed and
+can be cached indefinitely. HTML, `pages.json`, and `islands.json` should
+revalidate.
+
+## Same-origin deploy
+
+Leave `[http].service_origin` empty. The browser POSTs relative `/actions/`
+URLs; CSP `connect-src` is `'self'`. Reverse-proxy `/actions/` and `/health`
+to `serve-islands`; serve the rest from the CDN tree.
+
+```caddy
+example.com {
+    handle /actions/* {
+        reverse_proxy 127.0.0.1:8001
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:8001
+    }
+    handle {
+        root * /var/www/site
+        try_files {path} {path}/index.html
+        file_server
+    }
+}
+```
+
+1. `rocdown build` the site.
+2. Upload `dist/` to the CDN or object store.
+3. Run `rocdown serve-islands` with a persistent `DB_PATH`.
+4. Point the reverse proxy at that process for `/actions/` and `/health`.
+
+## Cross-origin service
+
+Set an absolute origin and rebuild so action URLs and CSP match:
+
+```toml
+[http]
+service_origin = "https://islands.example.com"
+```
+
+CORS and cookies for that layout are not shipped. Prefer the same-origin
+proxy until those details exist.
+
+## Sibling service apps
+
+`[http].service = "Islands.rocci"` skips the generated dispatcher.
+`rocdown serve-islands` runs that file with `rocci run`. Routes stay explicit
+strings. The app must return Datastar element patches for mutation methods.
+
+## Smoke checks
+
+After `build`, the home page HTML includes `#counter` and Datastar; `about/`
+does not. With `serve-islands` listening:
+
+```sh
+curl -s http://127.0.0.1:8001/health
+curl -s -X POST http://127.0.0.1:8001/actions/counter/increment
+```
+
+The POST body is a `datastar-patch-elements` event that morphs `#counter`.
+
+The complete command list lives in `examples/rocdown-counter/README.md`. Handler
+syntax is in [Server actions](/docs/guides/server-actions/).
