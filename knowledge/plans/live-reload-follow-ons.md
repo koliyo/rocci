@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Live reload follow-ons after the preview chrome toggle
-description: "Three deferred live-reload controls after the shipped preview-bar toggle: a native View menu check item, a shared CLI flag, and a --no-window browser pause that does not require overlay chrome."
+description: "Three live-reload controls after the shipped preview-bar toggle: a native View menu check item, a shared CLI flag, and a --no-window browser pause. Phases 1–3 implemented in this revision; not CI-complete."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:40:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:05:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -44,6 +44,11 @@ sources:
     title: Call the embedded Tao/Wry shell the preview window
     author: process:cursor
     last_modified: 2026-08-18
+  - id: deferred
+    resource: live-reload-deferred.md
+    title: Deferred live-reload controls after the three follow-ons
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Live reload follow-ons
@@ -67,13 +72,15 @@ still works.[^preview-nav-html][^preview-nav-js][^reload-js]
 
 ## Out of bound
 
-Stopping the file watcher, per-route reload policy, inspector-only pause, and
-persisting the pause across preview-window sessions (`localStorage`).
+Stopping the file watcher, per-route reload policy, and inspector-only pause
+are planned separately in [deferred live-reload controls](live-reload-deferred.md).
+Persisting the pause across preview-window sessions (`localStorage`) stays
+unplanned.[^deferred]
 
 ## Phase 1 — Native View menu check item
 
-View already has Reload (`view.reload`). It has no live-reload item and no
-`CheckMenuItem` usage.[^menu-rs]
+Implemented in this revision. View already had Reload (`view.reload`). It had
+no live-reload item and no `CheckMenuItem` usage.[^menu-rs]
 
 - Add a checkable **Live Reload** item next to Reload.
 - Toggle by evaluating `window.__rocciLiveReload.set(...)` in the webview.
@@ -86,8 +93,9 @@ check stay in sync after a click from either side.
 
 ## Phase 2 — Shared CLI flag
 
-`ServeOptions` already shares `--no-window` and `--port` across `rocci run` /
-`view` / `browse`. Rocdown and `rocci-okf run` have parallel flags.[^serve-rs]
+Implemented in this revision. `ServeOptions` already shared `--no-window` and
+`--port` across `rocci run` / `view` / `browse`. Rocdown and `rocci-okf run`
+had parallel flags.[^serve-rs]
 
 - Add `--no-live-reload` (default off) on those same run surfaces.
 - Seed `sessionStorage` from the initialization script, or skip injecting
@@ -101,8 +109,8 @@ preview chrome opens already paused; re-enabling from the bar still works.
 
 ## Phase 3 — `--no-window` browser pause
 
-`--no-window` prints a URL and skips the preview window, so there is no
-overlay toggle.[^serve-rs][^desktop-readme]
+Implemented in this revision. `--no-window` prints a URL and skips the
+preview window, so there is no overlay toggle.[^serve-rs][^desktop-readme]
 
 - Honor a same-origin query such as `?reload=0` (or a cookie) inside
   `reload.js` before connecting behavior.
@@ -117,8 +125,9 @@ pauses auto-refresh; removing the query (or calling `set(true)`) resumes.
 
 ## Status
 
-Exploratory; no phase started. The chrome toggle is a separate shipped change
-on this revision.
+Phases 1–3 implemented in this revision. Exploratory until CI and Knowledge
+workflows succeed. The chrome toggle remains a separate shipped change on the
+parent revision.
 
 [^desktop-readme]: Chrome Live reload toggle, sessionStorage key, and `--no-window` gap.
 [^preview-nav-html]: Overlay markup for the Live reload button.
@@ -127,3 +136,4 @@ on this revision.
 [^menu-rs]: View menu Reload item; no live-reload check item.
 [^serve-rs]: Shared `--no-window` / `--port`; no live-reload flag.
 [^preview-decision]: Overlay chrome stays host HTML/JS, not Rocci.
+[^deferred]: Watcher stop, per-route policy, and inspector-only pause.

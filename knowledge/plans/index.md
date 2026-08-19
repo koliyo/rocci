@@ -20,7 +20,8 @@
 * [Cmd-K fuzzy navigation for OKF, Rocdown, and rocci.dev](fuzzy-navigation.md) - Shared `goto.js` palette in preview and hosted trees, History-API HTML swap. Implemented in this revision; not CI-complete.
 * [Preview inspector source views](inspector-source-views.md) - Inspect JSON and a Dev-panel dropdown for original source, AST, generated Roc, and generated HTML. Artifact fill shipped; remaining UX is the [extended inspector](preview-inspector.md) plan.
 * [Extended preview-window inspector](preview-inspector.md) - Dock right or bottom, tabs for Performance / Source / Console, fix source-view DX and scroll, runtime log console. App-level Rocci logging out of scope. Exploratory; no phase started.
-* [Live reload follow-ons after the preview chrome toggle](live-reload-follow-ons.md) - Native View menu check item, shared `--no-live-reload` CLI flag, and a `--no-window` browser pause. Exploratory; no phase started.
+* [Live reload follow-ons after the preview chrome toggle](live-reload-follow-ons.md) - Native View menu check item, shared `--no-live-reload` CLI flag, and a `--no-window` browser pause. Exploratory; Phases 1–3 implemented in this revision, not CI-complete.
+* [Deferred live-reload controls after the three follow-ons](live-reload-deferred.md) - Stop the file watcher, per-route reload policy, and inspector-only pause. Exploratory; no phase started.
 * [Tangled hosting and devops with a GitHub macOS mirror](tangled-hosting.md) - Tangled as canonical git, review, and Linux CI before the near-term public open-source clone; GitHub as a fast-forward mirror that supplies `macos-latest` runners. Exploratory; no phase started.
 
 Other implementation-plan concepts have not yet been migrated. Priority-2 plan migration remains scheduled after the Phase 2 priority-1 corpus.
