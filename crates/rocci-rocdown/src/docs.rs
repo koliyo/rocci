@@ -192,6 +192,8 @@ pub struct DocsAttrs {
     pub verify: bool,
     pub allow_network: bool,
     pub unknown: Vec<String>,
+    pub extra: BTreeMap<String, String>,
+    pub extra_bool: BTreeMap<String, bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
@@ -227,6 +229,7 @@ pub struct PlannedWidget {
     pub component: String,
     pub props: Vec<PlannedProp>,
     pub children: Vec<PlannedNode>,
+    pub paint_content: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -898,7 +901,15 @@ fn parse_attrs(src: &str, fields: &[DocsField]) -> DocsAttrs {
                     attrs.unknown.push(field.name.clone());
                 }
             }
-            other => attrs.unknown.push(other.to_string()),
+            other => {
+                if let Some(value) = field_bool(src, field) {
+                    attrs.extra_bool.insert(other.to_string(), value);
+                } else if let Some(value) = field_string(src, field) {
+                    attrs.extra.insert(other.to_string(), value);
+                } else {
+                    attrs.unknown.push(other.to_string());
+                }
+            }
         }
     }
     attrs
@@ -909,6 +920,9 @@ fn split_argv(value: &str) -> Vec<String> {
 }
 
 fn attr_nonempty(attrs: &DocsAttrs, field: &str) -> bool {
+    if attrs.extra_bool.contains_key(field) {
+        return true;
+    }
     let value = match field {
         "title" => attrs.title.as_deref(),
         "summary" => attrs.summary.as_deref(),
@@ -927,7 +941,7 @@ fn attr_nonempty(attrs: &DocsAttrs, field: &str) -> bool {
         "region" => attrs.region.as_deref(),
         "language" => attrs.language.as_deref(),
         "expect" => attrs.expect.as_deref(),
-        _ => None,
+        other => attrs.extra.get(other).map(String::as_str),
     };
     value.is_some_and(|value| !value.is_empty())
 }
@@ -1008,6 +1022,36 @@ fn validate_model(ctx: &mut BuildCtx<'_>, node: &DocsNode, parent_kind: Option<&
                 node.attrs.unknown.join(", ")
             ),
         ));
+    }
+    if let Some(spec) = registry::lookup(&node.kind) {
+        let known: Vec<&str> = spec
+            .required_fields
+            .iter()
+            .copied()
+            .chain(spec.optional_fields.iter().copied())
+            .chain(spec.paint_fields().iter().map(|field| field.attr))
+            .collect();
+        let extras: Vec<&String> = node
+            .attrs
+            .extra
+            .keys()
+            .filter(|key| !known.contains(&key.as_str()))
+            .collect();
+        if !extras.is_empty() {
+            ctx.diagnostics.push(CatalogDiagnostic::error(
+                "RD2402",
+                path,
+                format!(
+                    "line {line}: unknown `:{}` field `{}`",
+                    node.kind,
+                    extras
+                        .iter()
+                        .map(|key| key.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            ));
+        }
     }
     validate_registry_shape(ctx, node, parent_kind);
     match node.kind.as_str() {
@@ -1871,6 +1915,7 @@ fn widget_node(
         component: spec.component.to_string(),
         props: paint_props(*spec, &docs.attrs, rewrite),
         children,
+        paint_content: spec.paint_content(),
     })
 }
 
@@ -1922,7 +1967,8 @@ fn attr_str(attrs: &DocsAttrs, name: &str) -> String {
         "id" => attrs.id.clone().unwrap_or_default(),
         "group" => attrs.group.clone().unwrap_or_default(),
         "kind" => attrs.tab_kind.clone().unwrap_or_default(),
-        _ => String::new(),
+        "tone" => attrs.tone.clone().unwrap_or_default(),
+        other => attrs.extra.get(other).cloned().unwrap_or_default(),
     }
 }
 
@@ -1930,7 +1976,8 @@ fn attr_bool(attrs: &DocsAttrs, name: &str) -> bool {
     match name {
         "open" => attrs.open,
         "verify" => attrs.verify,
-        _ => false,
+        "allow_network" => attrs.allow_network,
+        other => attrs.extra_bool.get(other).copied().unwrap_or(false),
     }
 }
 

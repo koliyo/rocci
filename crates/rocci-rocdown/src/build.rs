@@ -402,8 +402,8 @@ fn write_plan_files(
     plan: &BuildPlan,
     is_wasm: bool,
 ) -> Result<StagedBuild> {
-    let build_roc = runtime::build_roc(is_wasm);
-    fs::write(workspace.join("RocdownBuild.roc"), build_roc)
+    let build_roc = staged_build_roc(plan, is_wasm);
+    fs::write(workspace.join("RocdownBuild.roc"), &build_roc)
         .context("failed to write RocdownBuild.roc")?;
     let mut generated_roc_bytes = runtime::HTML.len() + build_roc.len();
     for module in &plan.theme_modules {
@@ -456,7 +456,7 @@ fn write_plan_files(
 
     Ok(StagedBuild {
         generated_roc_bytes,
-        roc_hash: roc_source_hash(&pages_roc, &plan.theme_modules, &main, build_roc),
+        roc_hash: roc_source_hash(&pages_roc, &plan.theme_modules, &main, &build_roc),
     })
 }
 
@@ -506,9 +506,13 @@ fn staged_fingerprints(plan: &BuildPlan, is_wasm: bool) -> Vec<rocci_roc_host::I
     ));
     fps.push(rocci_roc_host::InputFingerprint::from_bytes(
         "RocdownBuild.roc",
-        runtime::build_roc(is_wasm).as_bytes(),
+        staged_build_roc(plan, is_wasm).as_bytes(),
     ));
     fps
+}
+
+fn staged_build_roc(plan: &BuildPlan, is_wasm: bool) -> String {
+    runtime::build_roc(is_wasm).replace("        # rocci-pack-kind-arms\n", &plan.pack_render_arms)
 }
 
 pub(crate) fn roc_source_hash(
@@ -1158,6 +1162,55 @@ import Html
         assert!(html.contains("data-test-note"), "{html}");
         assert!(html.contains("data-title=\"Watch\""), "{html}");
         assert!(!html.contains("data-rocci-docs=\"note\""), "{html}");
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn pack_custom_kind_paints_callout_html() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("block-pack-callout-src");
+        fs::create_dir_all(root.join("theme")).unwrap();
+        fs::write(
+            root.join("theme/SiteShell.rocci"),
+            r#"
+import Html
+
+@component SiteShell = |view, content| {
+    <html>
+        <head>
+            <title>{view.title}</title>
+        </head>
+        <body>{content}</body>
+    </html>
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("theme/Blocks.rocci"),
+            r#"
+import Html
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside data-test-callout data-tone={tone}>{content}</aside>
+"#,
+        )
+        .unwrap();
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n:callout[tone: \"warn\"] {{\n    Watch this.\n}}\n",
+        );
+        let output = temp_dir("block-pack-callout-out");
+        build(&root, &output).unwrap();
+        let html = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(html.contains("data-test-callout"), "{html}");
+        assert!(html.contains("data-tone=\"warn\""), "{html}");
+        assert!(html.contains("Watch this."), "{html}");
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&output);
     }

@@ -210,6 +210,13 @@ note = "Callout"
   `DocsComponents` component name (`Callout`). Unknown kinds fail config load.
   Unknown component names fail theme compile.
 
+A pack `@component` whose name does not match a builtin painter becomes a
+custom article kind: PascalCase `Callout` is authored as `:callout`. The
+inferred schema uses the `@component` header (`??` defaults and an extra body
+parameter). Child policy is fragment plus any children. Helpers and other
+non-kind functions must not live in the block pack; they become kinds or
+collide with reserved names (`page`, `use`, …).
+
 ## Composable content mounts
 
 Sites can mount external documentation catalogs or content trees using `[[mount]]` tables in `rocdown.toml`. This allows maintaining standalone documentation at repository root (`docs/`) while mounting it into a full website (`site/`):

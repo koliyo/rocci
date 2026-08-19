@@ -86,6 +86,7 @@ render_tree! = |segments, index| {
             (body, after) = render_children!(segments, index + 1, seg.child_count)?
             Ok((BlockPainters.include({}, body), after))
         }
+        # rocci-pack-kind-arms
     }
 }
 
