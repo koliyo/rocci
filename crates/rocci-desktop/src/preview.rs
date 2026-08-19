@@ -47,6 +47,7 @@ impl Default for PreviewOptions {
 
 pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
+    crate::icon::apply_host_icon();
     let proxy = event_loop.create_proxy();
     let id = WindowId::new("preview");
     let state_key = options

@@ -8,6 +8,7 @@ Native windowing and webview host built on [tao](https://github.com/tauri-apps/t
 - **Embedded webview**: Loads the local HTTP server URL, applies DevTools configurations, and configures security policies.
 - **Window state persistence**: Automatically restores and saves window size and position across sessions.
 - **Packaging runtime**: Acts as the desktop container in ad-hoc signed macOS application bundles.
+- **Host icon**: Embeds `assets/rocci-icon.png` and applies it as the macOS Dock image for `preview()` and `run()`. Windows and Linux use the same PNG as the window icon. macOS ignores Tao window icons; the Dock tile comes from `NSApplication.setApplicationIconImage`.
 
 ## Preview chrome
 
@@ -29,4 +30,4 @@ Do not author host chrome in `.rocci`. A template can snapshot markup, but it ca
 
 - Relies on `tao`, `wry`, and `muda` (native menus).
 - Consumes `rocci-core` for configuration types.
-- Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`.
+- Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`; the host icon is embedded with `include_bytes!`.

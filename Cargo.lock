@@ -2927,6 +2927,10 @@ name = "rocci-desktop"
 version = "0.1.0"
 dependencies = [
  "muda",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "png",
  "rocci-core",
  "serde",
  "serde_json",

@@ -36,7 +36,8 @@ impl LiveWindow {
     ) -> Result<Self> {
         let mut builder = WindowBuilder::new()
             .with_title(&template.title)
-            .with_inner_size(LogicalSize::new(template.width, template.height));
+            .with_inner_size(LogicalSize::new(template.width, template.height))
+            .with_window_icon(crate::icon::window_icon());
         if let (Some(min_width), Some(min_height)) = (template.min_width, template.min_height) {
             builder = builder.with_min_inner_size(LogicalSize::new(min_width, min_height));
         }
