@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU16, AtomicU64, Ordering},
         mpsc,
     },
     thread::{self, JoinHandle},
@@ -45,6 +45,7 @@ pub struct DevServer {
     pub output: PathBuf,
     stop: Arc<AtomicBool>,
     owns_output: bool,
+    on_stop: Option<Arc<dyn Fn() + Send + Sync>>,
     _watcher: Option<RecommendedWatcher>,
     _threads: Vec<JoinHandle<()>>,
 }
@@ -60,6 +61,9 @@ impl DevServer {
 impl Drop for DevServer {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Relaxed);
+        if let Some(on_stop) = &self.on_stop {
+            on_stop();
+        }
         if self.owns_output {
             let _ = fs::remove_dir_all(&self.output);
         }
@@ -125,6 +129,8 @@ pub struct StaticDevServerConfig {
     pub watch_paths: Vec<PathBuf>,
     pub custom_filter: Option<PathFilter>,
     pub log_prefix: String,
+    pub backend_port: Option<Arc<AtomicU16>>,
+    pub on_stop: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 pub fn serve_static_site<F>(config: StaticDevServerConfig, mut rebuild: F) -> Result<DevServer>
@@ -198,6 +204,7 @@ where
     let server_output = output.clone();
     let server_error = last_error.clone();
     let server_has_build = has_build.clone();
+    let server_backend = config.backend_port.clone();
     let server = thread::spawn(move || {
         serve_loop(
             listener,
@@ -205,6 +212,7 @@ where
             server_hub,
             server_error,
             server_has_build,
+            server_backend,
             server_stop,
         );
     });
@@ -254,6 +262,7 @@ where
         stop,
         output,
         owns_output,
+        on_stop: config.on_stop,
         _watcher: Some(watcher),
         _threads: vec![server, watch],
     })
@@ -393,6 +402,7 @@ fn serve_loop(
     hub: Arc<ReloadHub>,
     last_error: Arc<Mutex<Option<String>>>,
     has_build: Arc<AtomicBool>,
+    backend_port: Option<Arc<AtomicU16>>,
     stop: Arc<AtomicBool>,
 ) {
     while !stop.load(Ordering::Relaxed) {
@@ -402,8 +412,16 @@ fn serve_loop(
                 let hub = hub.clone();
                 let last_error = last_error.clone();
                 let has_build = has_build.clone();
+                let backend_port = backend_port.clone();
                 thread::spawn(move || {
-                    let _ = handle_client(stream, &output, &hub, &last_error, &has_build);
+                    let _ = handle_client(
+                        stream,
+                        &output,
+                        &hub,
+                        &last_error,
+                        &has_build,
+                        backend_port.as_deref(),
+                    );
                 });
             }
             Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
@@ -420,6 +438,7 @@ fn handle_client(
     hub: &ReloadHub,
     last_error: &Mutex<Option<String>>,
     has_build: &AtomicBool,
+    backend_port: Option<&AtomicU16>,
 ) -> io::Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
@@ -431,7 +450,15 @@ fn handle_client(
     }
     let request = String::from_utf8_lossy(&buf[..n]);
     let path = request_path(&request).unwrap_or("/");
-    match resolve_request(output, path) {
+    let method = request_method(&request).unwrap_or("GET");
+    let backend = backend_port
+        .map(|port| port.load(Ordering::Relaxed))
+        .unwrap_or(0);
+    let target = resolve_request(output, path);
+    if should_proxy(method, path, &target, backend) {
+        return proxy_to_backend(&mut stream, &buf[..n], backend);
+    }
+    match target {
         ServeTarget::ReloadJs => write_response(
             &mut stream,
             200,
@@ -501,6 +528,70 @@ fn request_path(request: &str) -> Option<&str> {
     let mut parts = first.split_whitespace();
     let _method = parts.next()?;
     parts.next()
+}
+
+fn request_method(request: &str) -> Option<&str> {
+    request.split([' ', '\r', '\n']).next()
+}
+
+fn is_preview_internal(path: &str) -> bool {
+    path.starts_with("/__rocci")
+        || path.starts_with("/__rocdown")
+        || path.starts_with("/__rocci_okf")
+}
+
+pub(crate) fn should_proxy(method: &str, path: &str, target: &ServeTarget, backend: u16) -> bool {
+    if backend == 0 || is_preview_internal(path) {
+        return false;
+    }
+    if method != "GET" && method != "HEAD" {
+        return true;
+    }
+    matches!(target, ServeTarget::NotFound)
+}
+
+fn remaining_body(initial: &[u8]) -> usize {
+    let Some(idx) = initial.windows(4).position(|window| window == b"\r\n\r\n") else {
+        return 0;
+    };
+    let headers = &initial[..idx];
+    let body = &initial[idx + 4..];
+    let headers_text = String::from_utf8_lossy(headers);
+    let length = headers_text
+        .lines()
+        .find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        })
+        .unwrap_or(0);
+    length.saturating_sub(body.len())
+}
+
+fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Result<()> {
+    let mut backend = match TcpStream::connect(("127.0.0.1", port)) {
+        Ok(stream) => stream,
+        Err(_) => {
+            return write_error_html(
+                client,
+                "island service is not running; static preview is still available",
+            );
+        }
+    };
+    backend.set_read_timeout(Some(Duration::from_secs(30)))?;
+    backend.set_write_timeout(Some(Duration::from_secs(30)))?;
+    backend.write_all(initial)?;
+    let remaining = remaining_body(initial);
+    if remaining > 0 {
+        let mut rest = vec![0u8; remaining];
+        client.read_exact(&mut rest)?;
+        backend.write_all(&rest)?;
+    }
+    io::copy(&mut backend, client)?;
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -846,5 +937,119 @@ mod tests {
     fn missing_page_message_depends_on_build_state() {
         assert_eq!(missing_page_message(false), "no built site yet");
         assert_eq!(missing_page_message(true), "page not found");
+    }
+
+    #[test]
+    fn should_proxy_posts_and_missing_gets_to_backend() {
+        assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 0));
+        assert!(should_proxy("GET", "/health", &ServeTarget::NotFound, 9000));
+        assert!(should_proxy(
+            "POST",
+            "/actions/reveal/show",
+            &ServeTarget::NotFound,
+            9000
+        ));
+        assert!(should_proxy(
+            "POST",
+            "/",
+            &ServeTarget::File {
+                relative: "index.html".into()
+            },
+            9000
+        ));
+        assert!(!should_proxy(
+            "GET",
+            "/",
+            &ServeTarget::File {
+                relative: "index.html".into()
+            },
+            9000
+        ));
+        assert!(!should_proxy(
+            "GET",
+            "/__rocci/events",
+            &ServeTarget::Events,
+            9000
+        ));
+        assert!(!should_proxy(
+            "POST",
+            "/__rocci/events",
+            &ServeTarget::Events,
+            9000
+        ));
+    }
+
+    #[test]
+    fn remaining_body_uses_content_length() {
+        let request =
+            b"POST /actions/x HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 7\r\n\r\nhello";
+        assert_eq!(remaining_body(request), 2);
+        let complete = b"POST /actions/x HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\n\r\n";
+        assert_eq!(remaining_body(complete), 0);
+    }
+
+    #[test]
+    fn static_server_proxies_unmatched_posts() {
+        let output = std::env::temp_dir().join(format!(
+            "rocci-proxy-out-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        fs::write(output.join("index.html"), "<h1>cdn</h1>").unwrap();
+
+        let backend_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let backend_port = backend_listener.local_addr().unwrap().port();
+        let backend = thread::spawn(move || {
+            let (mut stream, _) = backend_listener.accept().unwrap();
+            let mut buf = [0u8; 2048];
+            let n = stream.read(&mut buf).unwrap();
+            let request = String::from_utf8_lossy(&buf[..n]);
+            assert!(request.starts_with("POST /actions/x"), "{request}");
+            let body = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 21\r\nConnection: close\r\n\r\n<div id=\"slot-a\">ok</div>";
+            stream.write_all(body).unwrap();
+        });
+
+        let port = crate::serve::free_port().unwrap();
+        let advertised = Arc::new(AtomicU16::new(backend_port));
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "proxy".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: Some(advertised),
+                on_stop: None,
+            },
+            |_| Ok(None),
+        )
+        .unwrap();
+
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client
+            .write_all(
+                b"POST /actions/x HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .unwrap();
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        assert!(response.contains("slot-a"), "{response}");
+
+        let mut home = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        home.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut html = String::new();
+        home.read_to_string(&mut html).unwrap();
+        assert!(html.contains("<h1>cdn</h1>"), "{html}");
+
+        drop(server);
+        let _ = backend.join();
+        let _ = fs::remove_dir_all(&output);
     }
 }

@@ -250,14 +250,18 @@ fn wait_for_roc_diagnostics(tee: &StderrTee) -> String {
 
 fn stop_roc(child: &mut Child, tee: &mut StderrTee, port: u16) -> String {
     stop_child(child);
-    let start = Instant::now();
-    while port_in_use(port) && start.elapsed() < Duration::from_secs(2) {
-        thread::sleep(Duration::from_millis(20));
-    }
+    wait_port_free(port, Duration::from_secs(2));
     tee.finish()
 }
 
-fn stop_child(child: &mut Child) {
+pub fn wait_port_free(port: u16, budget: Duration) {
+    let start = Instant::now();
+    while port_in_use(port) && start.elapsed() < budget {
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+pub fn stop_child(child: &mut Child) {
     #[cfg(unix)]
     kill_process_group(child.id());
     let _ = child.kill();

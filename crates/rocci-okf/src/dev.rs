@@ -45,6 +45,8 @@ pub fn run_knowledge(
         watch_paths: vec![root.clone()],
         custom_filter: Some(custom_filter),
         log_prefix: "rocci-okf".into(),
+        backend_port: None,
+        on_stop: None,
     };
 
     let build_root = root.clone();

@@ -7,4 +7,4 @@ output = "dist"
 
 [[nav]]
 label = "Site"
-items = ["index", "about"]
+items = ["index", "widgets", "pair", "about"]

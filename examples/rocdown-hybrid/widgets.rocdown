@@ -1,0 +1,26 @@
+@page {
+    route: "/widgets/",
+    meta: {
+        title: "Widgets",
+        description: "A hydrate page with no Datastar",
+    },
+}
+
+@roc {
+feature_count = 3.I64
+}
+
+@css {
+    .feature-count { font-weight: 700; }
+}
+
+@component
+FeatureCount = |{ count }| {
+    <p class="feature-count">{count.to_str()} core ideas</p>
+}
+
+# Widgets
+
+Pure Rocci on a CDN page. No handlers, no Datastar.
+
+<FeatureCount count={feature_count} />

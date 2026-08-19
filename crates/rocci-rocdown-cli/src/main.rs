@@ -42,6 +42,7 @@ enum Commands {
         theme: ThemeArgs,
     },
     /// Run an interactive document or serve a documentation site with live reload.
+    /// Hybrid sites proxy the island service on the same origin.
     Run {
         /// Site root directory, or a .rocdown file. A file inside a site
         /// (ancestor `rocdown.toml`) previews that site at the page route.

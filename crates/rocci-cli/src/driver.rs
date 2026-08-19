@@ -1,12 +1,13 @@
 use std::{
     env, fs,
     path::{Path, PathBuf},
-    process::Command,
-    time::Instant,
+    process::{Child, Command},
+    time::{Duration, Instant},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use rocci_template::{InitInfo, RouteInfo};
+use sha2::{Digest, Sha256};
 
 use crate::datastar_asset;
 use crate::dispatch::{self, DispatchOptions, DispatchSource};
@@ -73,6 +74,31 @@ impl GenericAppPlan {
             },
         )
     }
+
+    pub fn fingerprint(&self) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(self.primary_name.as_bytes());
+        hasher.update(self.main_roc().as_bytes());
+        for module in &self.modules {
+            hasher.update(module.type_name.as_bytes());
+            hasher.update(module.roc.as_bytes());
+        }
+        format!("{:x}", hasher.finalize())
+    }
+}
+
+pub struct RunningApp {
+    pub port: u16,
+    pub fingerprint: String,
+    child: Child,
+    _workspace: TempDir,
+}
+
+impl Drop for RunningApp {
+    fn drop(&mut self) {
+        serve::stop_child(&mut self.child);
+        serve::wait_port_free(self.port, Duration::from_secs(2));
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,7 +125,69 @@ pub fn execute_app_plan(
 ) -> Result<()> {
     let write_started = Instant::now();
     let type_name = plan.primary_name.clone();
-    let workspace = TempDir::create("run")?;
+    let workspace = stage_app_workspace(plan, src_dir, "run")?;
+    let default_db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
+    let db_path = options.db_path.as_deref().unwrap_or(&default_db_path);
+    let resolved = ResolvedEntry {
+        app_dir: workspace.path.clone(),
+        roc_file: PathBuf::from("main.roc"),
+    };
+    let write_ms = write_started.elapsed().as_millis();
+    let mut profile = options.profile.clone();
+    profile.merge(ProfileSnapshot {
+        total_ms: write_ms,
+        spans: vec![ProfileSpan {
+            name: "write".into(),
+            duration_ms: write_ms,
+            note: None,
+        }],
+    });
+    invoke_standalone(
+        &resolved,
+        &options.args,
+        options.no_window,
+        options.port,
+        db_path,
+        &options.title,
+        options
+            .preview_path
+            .clone()
+            .unwrap_or_else(|| preview_path(&plan.modules[0].routes)),
+        &plan.maps(),
+        profile,
+        options.state_key.clone(),
+    )
+}
+
+pub fn spawn_app_plan(plan: &GenericAppPlan, src_dir: &Path, port: u16) -> Result<RunningApp> {
+    let fingerprint = plan.fingerprint();
+    let workspace = stage_app_workspace(plan, src_dir, "islands-dev")?;
+    let db_path = workspace.path.join("islands.db");
+    let resolved = ResolvedEntry {
+        app_dir: workspace.path.clone(),
+        roc_file: PathBuf::from("main.roc"),
+    };
+    let invocation = roc_invocation(&resolved, &[]);
+    let mut cmd = roc_command(&invocation, port);
+    cmd.env("DB_PATH", &db_path);
+    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    match serve::wait_for_roc(&mut child, &mut tee, port, "/health")? {
+        serve::RocStart::Ready => Ok(RunningApp {
+            port,
+            fingerprint,
+            child,
+            _workspace: workspace,
+        }),
+        serve::RocStart::Failed(output) => {
+            serve::stop_child(&mut child);
+            bail!("island service failed to start: {output}")
+        }
+    }
+}
+
+fn stage_app_workspace(plan: &GenericAppPlan, src_dir: &Path, kind: &str) -> Result<TempDir> {
+    let type_name = plan.primary_name.clone();
+    let workspace = TempDir::create(kind)?;
     runtime_assets::stage_into(&workspace.path)?;
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
     let sibling_assets = src_dir.join("assets");
@@ -151,38 +239,7 @@ pub fn execute_app_plan(
     }
     fs::write(workspace.path.join("main.roc"), plan.main_roc())
         .context("failed to write generated main.roc")?;
-
-    let default_db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
-    let db_path = options.db_path.as_deref().unwrap_or(&default_db_path);
-    let resolved = ResolvedEntry {
-        app_dir: workspace.path.clone(),
-        roc_file: PathBuf::from("main.roc"),
-    };
-    let write_ms = write_started.elapsed().as_millis();
-    let mut profile = options.profile.clone();
-    profile.merge(ProfileSnapshot {
-        total_ms: write_ms,
-        spans: vec![ProfileSpan {
-            name: "write".into(),
-            duration_ms: write_ms,
-            note: None,
-        }],
-    });
-    invoke_standalone(
-        &resolved,
-        &options.args,
-        options.no_window,
-        options.port,
-        db_path,
-        &options.title,
-        options
-            .preview_path
-            .clone()
-            .unwrap_or_else(|| preview_path(&plan.modules[0].routes)),
-        &plan.maps(),
-        profile,
-        options.state_key.clone(),
-    )
+    Ok(workspace)
 }
 
 pub fn execute_resolved_entry(
