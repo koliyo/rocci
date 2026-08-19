@@ -382,7 +382,7 @@ pub fn with_window_and_inspector(
     url: &str,
     title: &str,
     no_window: bool,
-    profile: Option<crate::profile::ProfileSnapshot>,
+    inspect: Option<crate::inspect::InspectSnapshot>,
     state_key: Option<String>,
 ) -> Result<()> {
     if no_window {
@@ -393,7 +393,7 @@ pub fn with_window_and_inspector(
         return Ok(());
     }
 
-    let inspector = match profile {
+    let inspector = match inspect {
         Some(snapshot) => Some(crate::inspector::InspectorServer::spawn(snapshot)?),
         None => None,
     };

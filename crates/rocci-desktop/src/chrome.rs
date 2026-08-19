@@ -130,6 +130,13 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
         assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
         assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev)"));
+        assert!(PREVIEW_NAV_JS.contains("searchParams.set(\"route\""));
+        assert!(PREVIEW_NAV_JS.contains("searchParams.set(\"view\""));
+        assert!(PREVIEW_NAV_JS.contains("rocci-dev-view"));
+        assert!(PREVIEW_NAV_JS.contains("width: 28rem"));
+        assert!(!PREVIEW_NAV_JS.contains("width: 320px"));
+        assert!(!PREVIEW_NAV_HTML.contains("<select"));
+        assert!(!PREVIEW_NAV_HTML.contains("Original source"));
         assert!(PREVIEW_NAV_JS.contains("overflow: visible"));
         assert!(PREVIEW_NAV_CSS.contains("overflow: visible"));
         assert!(!initialization_script(None, false).contains("http://127.0.0.1"));
@@ -148,6 +155,9 @@ mod tests {
         assert!(
             initialization_script(None, false).contains("const __ROCCI_INSPECTOR_URL__ = null")
         );
+        let cargo = include_str!("../Cargo.toml");
+        assert!(!cargo.contains("rocci-template"));
+        assert!(!cargo.contains("rocci-rocdown"));
     }
 
     #[test]

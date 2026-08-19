@@ -23,6 +23,7 @@ pub struct LoadedSite {
     pub files: BTreeSet<String>,
     pub static_files: Vec<StaticFile>,
     pub diagnostics: Vec<CatalogDiagnostic>,
+    pub inspect: Vec<crate::inspect_snapshot::PageInspectDraft>,
 }
 
 #[derive(Debug, Clone)]
@@ -180,6 +181,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
     let files = collect_files(&root, &config)?;
     let snippet_roots = snippet_roots(&root, &config)?;
     let mut sources = Vec::new();
+    let mut inspect = Vec::new();
     let mut diagnostics = Vec::new();
 
     for page_info in &discovered_pages {
@@ -398,7 +400,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         sources.push(SourcePage {
             id: page_id,
             id_explicit,
-            source_path: relative_name,
+            source_path: relative_name.clone(),
             route_hint,
             aliases: compiled.page_meta.aliases.clone(),
             draft: compiled.page_meta.draft,
@@ -418,6 +420,12 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             kind: class.kind,
             docs: page_docs,
         });
+        inspect.push(crate::inspect_snapshot::PageInspectDraft {
+            source_path: relative_name,
+            source: src.clone(),
+            ast: crate::format_ast(&src, &compiled.document),
+            roc: compiled.roc.clone(),
+        });
     }
 
     Ok(LoadedSite {
@@ -427,6 +435,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         files,
         static_files: Vec::new(),
         diagnostics,
+        inspect,
     })
 }
 

@@ -53,10 +53,13 @@ cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
 cargo run -p rocci-cli -- datastar update --app examples/datastar
 ```
 
-`templates/dev/MetricsPanel.rocci` is the preview-origin profiling inspector. Static
-dev servers serve it at `GET /__rocci/dev` from the current `ProfileSnapshot`;
-`rocci run` hosts the same panel on a sibling loopback port. Overlay chrome only
-adds a Dev button that loads that URL.
+`templates/dev/MetricsPanel.rocci` is the preview-origin Dev inspector. It shows
+profiling plus a dropdown for original source, formatted AST, generated Roc, and
+generated HTML. Static dev servers serve it at `GET /__rocci/dev` (form query
+`route` and `view`) from the current inspect snapshot; JSON for those views is
+`GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a sibling
+loopback port. Overlay chrome only adds a Dev button that loads that URL. The
+panel is not a playground: there is no editor and no WASM compile.
 
 ## Architectural Boundary
 

@@ -4,6 +4,8 @@
   }
   const HEIGHT = "48px";
   const STORAGE_KEY = "rocci-dev-panel";
+  const VIEW_KEY = "rocci-dev-view";
+  const VIEWS = { source: true, ast: true, roc: true, html: true };
   const inspectorUrl =
     typeof __ROCCI_INSPECTOR_URL__ === "string" ? __ROCCI_INSPECTOR_URL__ : null;
   const hasSourceRoot = __ROCCI_HAS_SOURCE_ROOT__ === true;
@@ -34,35 +36,6 @@
   forward.addEventListener("click", () => send("forward"));
   shadow.getElementById("home").addEventListener("click", () => send("home"));
   shadow.getElementById("reload").addEventListener("click", () => send("reload"));
-  let panel = null;
-  const panelOpen = () => {
-    try {
-      return sessionStorage.getItem(STORAGE_KEY) === "1";
-    } catch (err) {
-      return false;
-    }
-  };
-  const setPanelOpen = (open) => {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, open ? "1" : "0");
-    } catch (err) {}
-    if (panel) {
-      panel.classList.toggle("open", open);
-    }
-    if (dev) {
-      dev.setAttribute("aria-pressed", open ? "true" : "false");
-    }
-  };
-  if (inspectorUrl && dev) {
-    dev.hidden = false;
-    panel = document.createElement("rocci-preview-dev");
-    const frame = document.createElement("iframe");
-    frame.title = "Developer panel";
-    frame.src = inspectorUrl;
-    panel.append(frame);
-    dev.addEventListener("click", () => setPanelOpen(!panel.classList.contains("open")));
-  }
-
   const routeOf = (value) => {
     try {
       const url = new URL(value, window.location.href);
@@ -75,6 +48,84 @@
       return "/";
     }
   };
+  let panel = null;
+  let frame = null;
+  const panelOpen = () => {
+    try {
+      return sessionStorage.getItem(STORAGE_KEY) === "1";
+    } catch (err) {
+      return false;
+    }
+  };
+  const storedView = () => {
+    try {
+      const value = sessionStorage.getItem(VIEW_KEY);
+      if (value && VIEWS[value]) {
+        return value;
+      }
+    } catch (err) {}
+    return "source";
+  };
+  const setStoredView = (value) => {
+    if (!VIEWS[value]) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(VIEW_KEY, value);
+    } catch (err) {}
+  };
+  const rememberFrameView = () => {
+    if (!frame) {
+      return;
+    }
+    try {
+      const href = frame.contentWindow.location.href;
+      const view = new URL(href).searchParams.get("view");
+      if (view) {
+        setStoredView(view);
+      }
+    } catch (err) {}
+  };
+  const inspectorSrc = (route) => {
+    const url = new URL(inspectorUrl, window.location.href);
+    url.searchParams.set("route", route || "/");
+    url.searchParams.set("view", storedView());
+    return url.href;
+  };
+  const syncFrame = (route) => {
+    if (!frame || !inspectorUrl) {
+      return;
+    }
+    rememberFrameView();
+    const next = inspectorSrc(route);
+    if (frame.src !== next) {
+      frame.src = next;
+    }
+  };
+  const setPanelOpen = (open) => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, open ? "1" : "0");
+    } catch (err) {}
+    if (panel) {
+      panel.classList.toggle("open", open);
+    }
+    if (dev) {
+      dev.setAttribute("aria-pressed", open ? "true" : "false");
+    }
+    if (open) {
+      syncFrame(routeOf(window.location.href));
+    }
+  };
+  if (inspectorUrl && dev) {
+    dev.hidden = false;
+    panel = document.createElement("rocci-preview-dev");
+    frame = document.createElement("iframe");
+    frame.title = "Developer panel";
+    frame.src = inspectorSrc(routeOf(window.location.href));
+    frame.addEventListener("load", rememberFrameView);
+    panel.append(frame);
+    dev.addEventListener("click", () => setPanelOpen(!panel.classList.contains("open")));
+  }
 
   const sourceSpec = (rows) => {
     const current = routeOf(window.location.href);
@@ -149,6 +200,9 @@
       }
       if (typeof next.path === "string") {
         path.textContent = next.path;
+        if (panel && panel.classList.contains("open")) {
+          syncFrame(routeOf(next.path));
+        }
       }
       if (typeof next.canBack === "boolean") {
         back.disabled = !next.canBack;
@@ -181,6 +235,6 @@
     HEIGHT +
     " !important; box-sizing: border-box; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; width: 100%; min-width: 100%; height: " +
     HEIGHT +
-    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: 320px; max-width: 100%; z-index: 2147483646; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); background: #21252b; background: light-dark(#f7f7f8, #21252b); box-sizing: border-box; } rocci-preview-dev.open { display: block; } rocci-preview-dev iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }";
+    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: 28rem; max-width: 100%; z-index: 2147483646; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); background: #21252b; background: light-dark(#f7f7f8, #21252b); box-sizing: border-box; } rocci-preview-dev.open { display: block; } rocci-preview-dev iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }";
   document.documentElement.appendChild(spacer);
 })();

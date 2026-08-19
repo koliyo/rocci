@@ -115,6 +115,7 @@ pub struct DriverOptions {
     pub title: String,
     pub preview_path: Option<String>,
     pub profile: crate::profile::ProfileSnapshot,
+    pub inspect_pages: Vec<crate::inspect::InspectPage>,
     pub state_key: Option<String>,
 }
 
@@ -155,6 +156,7 @@ pub fn execute_app_plan(
             .unwrap_or_else(|| preview_path(&plan.modules[0].routes)),
         &plan.maps(),
         profile,
+        options.inspect_pages.clone(),
         options.state_key.clone(),
     )
 }
@@ -250,6 +252,7 @@ pub fn execute_resolved_entry(
     maps: &[MappedModule],
     title: Option<&str>,
     mut profile: ProfileSnapshot,
+    inspect_pages: Vec<crate::inspect::InspectPage>,
 ) -> Result<()> {
     let default_title = window_title(resolved);
     let title = title.unwrap_or(&default_title);
@@ -274,12 +277,16 @@ pub fn execute_resolved_entry(
                 "{}",
                 style::serving(&invocation.app_dir.display().to_string(), &url)
             );
+            let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
+            if !no_window {
+                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
+            }
             serve::with_window_and_inspector(
                 &mut child,
                 &url,
                 title,
                 no_window,
-                Some(profile),
+                Some(inspect),
                 None,
             )
         }
@@ -369,6 +376,7 @@ pub fn invoke_standalone(
     path: String,
     maps: &[MappedModule],
     mut profile: ProfileSnapshot,
+    inspect_pages: Vec<crate::inspect::InspectPage>,
     state_key: Option<String>,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
@@ -392,12 +400,16 @@ pub fn invoke_standalone(
                 }],
             });
             println!("{}", style::serving(title, &url));
+            let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
+            if !no_window {
+                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
+            }
             serve::with_window_and_inspector(
                 &mut child,
                 &url,
                 title,
                 no_window,
-                Some(profile),
+                Some(inspect),
                 state_key,
             )
         }

@@ -10,6 +10,7 @@ mod docs;
 pub mod highlight;
 mod img;
 mod imports;
+mod inspect_snapshot;
 mod islands;
 mod links;
 mod lower;

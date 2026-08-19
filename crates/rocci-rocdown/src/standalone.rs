@@ -39,6 +39,7 @@ pub struct StandalonePlan {
     pub primary_name: String,
     pub modules: Vec<StandaloneModule>,
     pub redirect_trailing_slash: bool,
+    pub inspect_pages: Vec<rocci_cli::inspect::InspectPage>,
 }
 
 pub enum StandaloneReady {
@@ -59,6 +60,7 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
 
     let mut modules = Vec::new();
     let mut failures = Vec::new();
+    let mut inspect_pages = Vec::new();
     let inputs = linked_standalone_inputs(&primary)?;
     let root = primary
         .parent()
@@ -116,6 +118,15 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             .map(|(url, _)| url)
             .collect();
 
+        inspect_pages.push(rocci_cli::inspect::InspectPage::from_rocdown(
+            &page.route,
+            &relative_inspect_path(input, &root),
+            src.clone(),
+            crate::format_ast(src, &compiled.document),
+            compiled.roc.clone(),
+            None,
+        ));
+
         modules.push(StandaloneModule {
             type_name: type_name.clone(),
             roc: compiled.roc.clone(),
@@ -143,7 +154,15 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
         primary_name: type_names[0].clone(),
         modules,
         redirect_trailing_slash,
+        inspect_pages,
     }))
+}
+
+fn relative_inspect_path(path: &Path, root: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 pub fn linked_standalone_inputs(primary: &Path) -> Result<Vec<PathBuf>> {

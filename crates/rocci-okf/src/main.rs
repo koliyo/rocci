@@ -6,6 +6,7 @@ use okf::InspectKind;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 
 mod dev;
+mod inspect;
 mod presentation;
 mod runtime;
 
