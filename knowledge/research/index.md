@@ -10,5 +10,6 @@
 * [Rocci components in the generation pipeline](rocci-components-in-generation.md) - Evidence for moving demonstrated HTML chrome into Rocci, native subprocess versus Wasmtime hosts, two-tier renderer caching, and glue as a later native host.
 * [State-of-the-art OKF tools and workflows](okf-tools-and-workflows.md) - Portable Markdown, agent-native operations, curation, review, retrieval, and authenticated serving lessons.
 * [Rocdown report authoring friction](rocdown-report-authoring-friction.md) - Evidence and priorities for figures, citations, assets, report presentation, and export.
+* [Mobile chrome for OKF, Rocdown, and rocci.dev](mobile-chrome.md) - Code-backed inventory: default Rocdown theme has a no-JS menu; rocci.dev hides the docs sidebar without replacement; OKF nests Home/Review inside a TOC that phone CSS discards. Implementation plan: [mobile chrome](../plans/mobile-chrome.md). Exploratory; not shipped.
 
 Dated historical research reports remain available under [`archive/reports/`](../../archive/reports/) and are accounted for in the migration matrix.
