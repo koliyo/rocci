@@ -1087,6 +1087,145 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn dual_apply_paints_widgets_and_splices_islands() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = temp_dir("dual-apply-src");
+        write_page(
+            &root,
+            "index.rocdown",
+            "# Home\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n\n:tabs[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] Mac panel.\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:end.tabs\n",
+        );
+        write_page(
+            &root,
+            "widgets.rocdown",
+            r#"
+@page {
+    route: "/widgets/",
+    meta: { title: "Widgets" },
+}
+
+@roc {
+feature_count = 3.I64
+}
+
+@component
+FeatureCount = |{ count }| {
+    <p class="feature-count">{count.to_str()} core ideas</p>
+}
+
+# Widgets
+
+<FeatureCount count={feature_count} />
+"#,
+        );
+        write_page(
+            &root,
+            "live.rocdown",
+            r#"
+@page {
+    route: "/live/",
+    meta: { title: "Live" },
+}
+
+@component
+RevealTip = |{ open }| {
+    <div id="reveal-tip">
+        @if open {
+            <p>Hide tip</p>
+        } @else {
+            <p>This block is closed until the server sends the open markup.</p>
+        }
+    </div>
+}
+
+@on:post("/actions/reveal/show") = |_| {
+    revealTip({ open: True })
+}
+
+# Live
+
+@render {
+    revealTip({ open: False })
+}
+"#,
+        );
+        write_page(
+            &root,
+            "about.rocdown",
+            r#"
+@page {
+    route: "/about/",
+    meta: { title: "About" },
+}
+
+# About
+
+Static neighbor.
+"#,
+        );
+        let output = temp_dir("dual-apply-out");
+        let report = build(&root, &output).unwrap();
+        assert!(report.datastar);
+        let home = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(home.contains("data-rocci-docs=\"note\""), "{home}");
+        assert!(home.contains("data-rocci-docs=\"tabs\""), "{home}");
+        assert!(home.contains("Mac panel"), "{home}");
+        assert!(
+            !home.to_ascii_lowercase().contains("<script"),
+            "static widget page must not emit a script tag\n{home}"
+        );
+        assert!(!home.to_ascii_lowercase().contains("datastar"), "{home}");
+
+        let widgets = fs::read_to_string(output.join("widgets/index.html")).unwrap();
+        assert!(widgets.contains("3 core ideas"), "{widgets}");
+        assert!(
+            widgets.contains("script-src 'none'") || widgets.contains("script-src &#39;none&#39;"),
+            "{widgets}"
+        );
+        assert!(
+            !widgets.to_ascii_lowercase().contains("<script"),
+            "hydrate page must not emit a script tag\n{widgets}"
+        );
+        assert!(!widgets.contains("datastar"), "{widgets}");
+
+        let live = fs::read_to_string(output.join("live/index.html")).unwrap();
+        assert!(live.contains("reveal-tip"), "{live}");
+        assert!(
+            live.contains("/assets/datastar.") || live.contains("datastar."),
+            "{live}"
+        );
+
+        let about = fs::read_to_string(output.join("about/index.html")).unwrap();
+        assert!(about.contains("Static neighbor."), "{about}");
+        assert!(
+            !about.to_ascii_lowercase().contains("<script"),
+            "static neighbor must not emit a script tag\n{about}"
+        );
+        assert!(!about.to_ascii_lowercase().contains("datastar"), "{about}");
+        let pages: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(output.join("pages.json")).unwrap()).unwrap();
+        let kind = |route: &str| {
+            pages
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|page| page["route"] == route)
+                .unwrap()
+                .clone()
+        };
+        assert_eq!(kind("/")["kind"], "static");
+        assert_eq!(kind("/widgets/")["kind"], "hydrate");
+        assert_eq!(kind("/live/")["kind"], "live");
+        assert_eq!(kind("/about/")["kind"], "static");
+        assert!(kind("/about/").get("datastar").is_none());
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
     fn project_theme_renders_article_html_unescaped() {
         if skip_without_roc() {
             return;
@@ -1469,6 +1608,54 @@ Static neighbor.
         assert_eq!(collect_files(&first), collect_files(&second));
         let _ = fs::remove_dir_all(&first);
         let _ = fs::remove_dir_all(&second);
+    }
+
+    #[test]
+    fn counter_example_builds_live_with_static_neighbor() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-counter");
+        let output = temp_dir("counter-out");
+        let report = build(&root, &output).unwrap();
+        assert!(report.datastar);
+        assert!(
+            report
+                .pages
+                .iter()
+                .any(|page| page.kind == crate::article::PageKind::Live && page.datastar),
+            "{:?}",
+            report.pages
+        );
+        assert!(
+            report
+                .pages
+                .iter()
+                .any(|page| page.kind == crate::article::PageKind::Static && !page.datastar),
+            "{:?}",
+            report.pages
+        );
+        let index = fs::read_to_string(output.join("index.html")).unwrap();
+        assert!(
+            index.contains("id=\"counter\"") || index.contains("id='counter'"),
+            "{index}"
+        );
+        assert!(
+            index.contains("/assets/datastar.") || index.contains("datastar."),
+            "{index}"
+        );
+        let about = fs::read_to_string(output.join("about/index.html")).unwrap();
+        assert!(about.contains("static CDN HTML"), "{about}");
+        assert!(
+            !about.to_ascii_lowercase().contains("<script"),
+            "counter neighbor must not emit a script tag\n{about}"
+        );
+        assert!(
+            !about.contains("/assets/datastar") && !about.contains("datastar.js"),
+            "{about}"
+        );
+        let _ = fs::remove_dir_all(&output);
     }
 
     #[test]

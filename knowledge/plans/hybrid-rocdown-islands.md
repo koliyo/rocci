@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Hybrid Rocdown islands for CDN-static sites
-description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phase 7 rebased the hybrid branch onto main's :name[params] / BlockCall AST; phases 8–10 remain. Exploratory; not shipped."
+description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phases 1–8 are on the hybrid branch (dual apply: widget forest plus island splice); phases 9–10 remain. Exploratory; not shipped."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T14:10:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -170,11 +170,11 @@ research](/research/hybrid-rocdown-islands.md). It is exploratory until a
 human reviewer accepts a scope. It does not describe shipped
 behavior.[^research][^rocdown-readme][^compiler-arch]
 
-Do not start a phase until the user asks. Phases 1–6 are implemented on
-branch `hybrid-rocdown-islands-implementation`. Phase 7 rebased that branch
-onto `main`'s `Item::Block` / `:name[params]` AST. Do not start Phase 8
-until the user asks. Do not put islands inside article-block bodies in
-v1.[^block-plan][^language-dev]
+Do not start a phase until the user asks. Phases 1–8 are implemented on
+branch `hybrid-rocdown-islands-implementation`. Phase 8 restored dual apply:
+`static` pages keep the widget forest; hydrate/live pages splice island Html.
+Do not start Phase 9 until the user asks. Do not put islands inside
+article-block bodies in v1.[^block-plan][^language-dev]
 
 ## Goal
 
@@ -321,9 +321,8 @@ entries in v1.
 
 ## Delivery phases
 
-Each phase is one mergeable change. Phases 1–6 below are **done on the
-hybrid branch** against the pre-block-model AST. Phase 7 rebased them onto
-`main`. Continue at Phase 8.
+Each phase is one mergeable change. Phases 1–8 below are **done on the
+hybrid branch**. Continue at Phase 9.
 
 ### Phase 1 — Theme content slot for a single article blob
 

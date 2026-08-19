@@ -1729,6 +1729,104 @@ items = ["index", "guide"]
     }
 
     #[test]
+    fn static_pages_keep_widget_forest_hybrid_pages_use_one_htmlfile() {
+        let root = temp("dual-apply");
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Dual"
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Start"
+items = ["index", "widgets"]
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("index.rocdown"),
+            "# Home\n\n:note[title: \"Watch\"] Body text.\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("widgets.rocdown"),
+            r#"
+@page {
+    route: "/widgets/",
+    meta: { title: "Widgets" },
+}
+
+@component
+FeatureCount = |_| {
+    <p class="feature-count">3 core ideas</p>
+}
+
+# Widgets
+
+@render {
+    featureCount({})
+}
+"#,
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let home_page = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.route == "/")
+            .unwrap();
+        let widgets_page = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.route == "/widgets/")
+            .unwrap();
+        assert_eq!(home_page.kind, PageKind::Static);
+        assert_eq!(widgets_page.kind, PageKind::Hydrate);
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let roc = planned.pages_roc();
+        assert!(roc.contains("Note({"), "{roc}");
+        assert!(roc.contains("HtmlFile({ path:"), "{roc}");
+        let home = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/")
+            .unwrap();
+        assert!(
+            home.segments
+                .iter()
+                .any(|node| node.widget_kind() == Some("note")),
+            "{:?}",
+            home.segments
+        );
+        let widgets = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/widgets/")
+            .unwrap();
+        assert_eq!(widgets.segments.len(), 1);
+        assert!(
+            matches!(widgets.segments[0], crate::docs::PlannedNode::Html { .. }),
+            "{:?}",
+            widgets.segments
+        );
+        assert!(
+            widgets
+                .fragments
+                .iter()
+                .any(|(_, html)| html.contains(crate::islands::PLACEHOLDER)),
+            "{:?}",
+            widgets.fragments
+        );
+        assert!(widgets.view.resources.module_script.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn project_local_theme_compiles_and_is_staged() {
         let root = temp("custom-theme");
         write_site(&root);
