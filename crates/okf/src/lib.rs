@@ -7,15 +7,16 @@ pub mod diagnostic;
 pub mod frontmatter;
 pub mod graph;
 pub mod markdown;
+pub mod parse_cache;
 pub mod preview;
 pub mod review;
 pub mod search;
 pub mod validate;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
@@ -38,6 +39,7 @@ pub use graph::{published_href, resolve_bundle_path, resolve_graph, split_fragme
 pub use markdown::{
     MarkdownOutput, footnote_labels, parse_markdown_body, reject_declarations, slugify,
 };
+pub use parse_cache::{PARSE_CACHE_VERSION, ParseCache};
 pub use preview::{PreviewTarget, resolve_preview_path};
 pub use review::{ActionKind, ConceptAction, classify_concept_action};
 pub use search::{SearchChunk, matching_search_chunks, normalize_search_text, search_index};
@@ -57,75 +59,6 @@ pub struct LoadTimings {
     pub provenance: Option<Duration>,
     pub parse_cache_hits: u32,
     pub parse_cache_misses: u32,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct FileFingerprint {
-    modified_secs: u64,
-    modified_nanos: u32,
-    len: u64,
-}
-
-#[derive(Clone, Debug)]
-enum CachedDocument {
-    Concept {
-        concept: Concept,
-        diagnostics: Vec<Diagnostic>,
-    },
-    Index {
-        index: Index,
-        diagnostics: Vec<Diagnostic>,
-    },
-    Log {
-        log: Log,
-        diagnostics: Vec<Diagnostic>,
-    },
-    Diagnostics(Vec<Diagnostic>),
-}
-
-#[derive(Clone, Debug)]
-struct CacheEntry {
-    fingerprint: FileFingerprint,
-    document: CachedDocument,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ParseCache {
-    profile: Option<Profile>,
-    entries: BTreeMap<String, CacheEntry>,
-}
-
-impl ParseCache {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    fn begin(&mut self, profile: Profile) {
-        if self.profile != Some(profile) {
-            self.entries.clear();
-            self.profile = Some(profile);
-        }
-    }
-
-    fn get(&self, relative: &str, fingerprint: FileFingerprint) -> Option<&CachedDocument> {
-        self.entries
-            .get(relative)
-            .and_then(|entry| (entry.fingerprint == fingerprint).then_some(&entry.document))
-    }
-
-    fn insert(&mut self, relative: String, fingerprint: FileFingerprint, document: CachedDocument) {
-        self.entries.insert(
-            relative,
-            CacheEntry {
-                fingerprint,
-                document,
-            },
-        );
-    }
-
-    fn retain_paths(&mut self, live: &BTreeSet<String>) {
-        self.entries.retain(|path, _| live.contains(path));
-    }
 }
 
 #[derive(Debug)]
@@ -177,16 +110,17 @@ pub fn load_with_cache(
         cache.begin(options.profile);
     }
 
+    let mut misses = Vec::new();
     for path in paths {
         let relative = relative_path(&root, &path);
         live_paths.insert(relative.clone());
-        let fingerprint = file_fingerprint(&path);
+        let fingerprint = parse_cache::file_fingerprint(&path);
         if let Some(document) = cache
             .as_ref()
             .and_then(|cache| fingerprint.and_then(|fingerprint| cache.get(&relative, fingerprint)))
             .cloned()
         {
-            apply_cached(
+            parse_cache::apply_cached(
                 &document,
                 &mut concepts,
                 &mut indexes,
@@ -197,52 +131,19 @@ pub fn load_with_cache(
             continue;
         }
         parse_cache_misses += 1;
-        let diagnostics_before = diagnostics.len();
-        let concepts_before = concepts.len();
-        let indexes_before = indexes.len();
-        let logs_before = logs.len();
-        let bytes =
-            fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?;
-        let source = match String::from_utf8(bytes) {
-            Ok(source) => source,
-            Err(_) => {
-                diagnostics.push(Diagnostic::error(
-                    "OKF1001",
-                    relative.clone(),
-                    None,
-                    "document is not valid UTF-8",
-                ));
-                if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
-                    cache.insert(
-                        relative,
-                        fingerprint,
-                        CachedDocument::Diagnostics(diagnostics[diagnostics_before..].to_vec()),
-                    );
-                }
-                continue;
-            }
-        };
-        match path.file_name().and_then(|name| name.to_str()) {
-            Some("index.md") => {
-                parse_index(&root, &relative, &source, &mut indexes, &mut diagnostics)
-            }
-            Some("log.md") => parse_log(&relative, &source, &mut logs, &mut diagnostics),
-            _ => parse_concept(
-                &relative,
-                &source,
-                options.profile,
-                &mut concepts,
-                &mut diagnostics,
-            ),
-        }
-        if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
-            let document = capture_cached(
-                &concepts[concepts_before..],
-                &indexes[indexes_before..],
-                &logs[logs_before..],
-                &diagnostics[diagnostics_before..],
-            );
-            cache.insert(relative, fingerprint, document);
+        misses.push((path, relative, fingerprint));
+    }
+
+    let parsed = parse_files_parallel(&root, options.profile, misses)?;
+    for parsed in parsed {
+        concepts.extend(parsed.concepts);
+        indexes.extend(parsed.indexes);
+        logs.extend(parsed.logs);
+        diagnostics.extend(parsed.diagnostics);
+        if let (Some(cache), Some(fingerprint), Some(document)) =
+            (cache.as_mut(), parsed.fingerprint, parsed.document)
+        {
+            cache.insert(parsed.relative, fingerprint, document);
         }
     }
     if let Some(cache) = cache.as_mut() {
@@ -374,74 +275,119 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
     build_artifacts(&bundle, output)
 }
 
-fn file_fingerprint(path: &Path) -> Option<FileFingerprint> {
-    let meta = fs::metadata(path).ok()?;
-    let modified = meta.modified().ok()?.duration_since(UNIX_EPOCH).ok()?;
-    Some(FileFingerprint {
-        modified_secs: modified.as_secs(),
-        modified_nanos: modified.subsec_nanos(),
-        len: meta.len(),
+struct ParsedFile {
+    relative: String,
+    fingerprint: Option<parse_cache::FileFingerprint>,
+    concepts: Vec<Concept>,
+    indexes: Vec<Index>,
+    logs: Vec<Log>,
+    diagnostics: Vec<Diagnostic>,
+    document: Option<parse_cache::CachedDocument>,
+}
+
+fn parse_files_parallel(
+    root: &Path,
+    profile: Profile,
+    misses: Vec<(PathBuf, String, Option<parse_cache::FileFingerprint>)>,
+) -> Result<Vec<ParsedFile>> {
+    if misses.len() <= 1 {
+        return misses
+            .into_iter()
+            .map(|(path, relative, fingerprint)| {
+                parse_one_file(root, &path, relative, fingerprint, profile)
+            })
+            .collect();
+    }
+
+    let workers = std::thread::available_parallelism()
+        .map(std::num::NonZero::get)
+        .unwrap_or(1)
+        .min(misses.len());
+    let remaining = misses.len();
+    let queue = std::sync::Mutex::new(misses.into_iter());
+    std::thread::scope(|scope| {
+        let mut handles = Vec::new();
+        for _ in 0..workers {
+            handles.push(scope.spawn(|| {
+                let mut parsed = Vec::new();
+                loop {
+                    let next = queue
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .next();
+                    let Some((path, relative, fingerprint)) = next else {
+                        break;
+                    };
+                    parsed.push(parse_one_file(root, &path, relative, fingerprint, profile)?);
+                }
+                Ok::<Vec<ParsedFile>, anyhow::Error>(parsed)
+            }));
+        }
+        let mut parsed = Vec::with_capacity(remaining);
+        for handle in handles {
+            let chunk = match handle.join() {
+                Ok(chunk) => chunk?,
+                Err(_) => bail!("parse worker panicked"),
+            };
+            parsed.extend(chunk);
+        }
+        Ok(parsed)
     })
 }
 
-fn apply_cached(
-    document: &CachedDocument,
-    concepts: &mut Vec<Concept>,
-    indexes: &mut Vec<Index>,
-    logs: &mut Vec<Log>,
-    diagnostics: &mut Vec<Diagnostic>,
-) {
-    match document {
-        CachedDocument::Concept {
-            concept,
-            diagnostics: cached,
-        } => {
-            concepts.push(concept.clone());
-            diagnostics.extend(cached.iter().cloned());
+fn parse_one_file(
+    root: &Path,
+    path: &Path,
+    relative: String,
+    fingerprint: Option<parse_cache::FileFingerprint>,
+    profile: Profile,
+) -> Result<ParsedFile> {
+    let mut concepts = Vec::new();
+    let mut indexes = Vec::new();
+    let mut logs = Vec::new();
+    let mut diagnostics = Vec::new();
+    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let source = match String::from_utf8(bytes) {
+        Ok(source) => source,
+        Err(_) => {
+            diagnostics.push(Diagnostic::error(
+                "OKF1001",
+                relative.clone(),
+                None,
+                "document is not valid UTF-8",
+            ));
+            let document = Some(parse_cache::capture_cached(&[], &[], &[], &diagnostics));
+            return Ok(ParsedFile {
+                relative,
+                fingerprint,
+                concepts,
+                indexes,
+                logs,
+                diagnostics,
+                document,
+            });
         }
-        CachedDocument::Index {
-            index,
-            diagnostics: cached,
-        } => {
-            indexes.push(index.clone());
-            diagnostics.extend(cached.iter().cloned());
-        }
-        CachedDocument::Log {
-            log,
-            diagnostics: cached,
-        } => {
-            logs.push(log.clone());
-            diagnostics.extend(cached.iter().cloned());
-        }
-        CachedDocument::Diagnostics(cached) => diagnostics.extend(cached.iter().cloned()),
+    };
+    match path.file_name().and_then(|name| name.to_str()) {
+        Some("index.md") => parse_index(root, &relative, &source, &mut indexes, &mut diagnostics),
+        Some("log.md") => parse_log(&relative, &source, &mut logs, &mut diagnostics),
+        _ => parse_concept(&relative, &source, profile, &mut concepts, &mut diagnostics),
     }
-}
-
-fn capture_cached(
-    concepts: &[Concept],
-    indexes: &[Index],
-    logs: &[Log],
-    diagnostics: &[Diagnostic],
-) -> CachedDocument {
-    let diagnostics = diagnostics.to_vec();
-    if let Some(concept) = concepts.first() {
-        CachedDocument::Concept {
-            concept: concept.clone(),
-            diagnostics,
-        }
-    } else if let Some(index) = indexes.first() {
-        CachedDocument::Index {
-            index: index.clone(),
-            diagnostics,
-        }
-    } else if let Some(log) = logs.first() {
-        CachedDocument::Log {
-            log: log.clone(),
-            diagnostics,
-        }
-    } else {
-        CachedDocument::Diagnostics(diagnostics)
-    }
+    let document = Some(parse_cache::capture_cached(
+        &concepts,
+        &indexes,
+        &logs,
+        &diagnostics,
+    ));
+    Ok(ParsedFile {
+        relative,
+        fingerprint,
+        concepts,
+        indexes,
+        logs,
+        diagnostics,
+        document,
+    })
 }
 
 fn parse_concept(

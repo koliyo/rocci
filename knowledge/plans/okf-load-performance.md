@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: OKF load-performance improvements
-description: Phased reduction of `okf::load` latency for `rocci-okf run` and `check`, starting from measured provenance and whole-bundle parse costs. Phases 1–4 implemented; Phase 5 skipped (release concept-path load is sub-second); Phase 6 records the new baseline.
+description: Phased reduction of `okf::load` latency for `rocci-okf run` and `check`, starting from measured provenance and whole-bundle parse costs. Phases 1–4 implemented; Phase 4 follow-on covers debug first-open parse and cross-process cache; Phase 5 skipped (release concept-path load is sub-second); Phase 6 records the new baseline.
 tags: [domain/okf, domain/rocci-okf, concern/performance, concern/tooling, concern/validation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T12:15:00Z }
+generated: { by: process:cursor, at: 2026-08-19T16:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -41,7 +41,17 @@ sources:
     last_modified: 2026-08-18
   - id: okf-dev
     resource: ../../crates/rocci-okf/src/dev.rs
-    title: Headless rebuild and load span
+    title: Headless rebuild and persisted parse cache
+    author: process:git
+    last_modified: 2026-08-19
+  - id: parse-cache
+    resource: ../../crates/okf/src/parse_cache.rs
+    title: ParseCache memory map and directory persistence
+    author: process:git
+    last_modified: 2026-08-19
+  - id: workspace-cargo
+    resource: ../../Cargo.toml
+    title: Dev-profile opt-level for comrak, okf, and Markdown parse deps
     author: process:git
     last_modified: 2026-08-19
   - id: okf-main
@@ -100,10 +110,11 @@ policy, and watch-rebuild parse reuse. It does not redesign the portable OKF
 engine, the review HTML chrome, or Roc host caching.
 
 This is an exploratory recommendation. Phases 1–4 are implemented in this
-revision. Phase 5 is skipped: release `run path/to/concept.md` `load` is
-sub-second on this repository, so bounded concept preview is not started.
-Phase 6 records the post-change baseline. Measured before/after timings are in
-the [OKF load-performance improvement results](../status/okf-load-performance.md)
+revision, plus a Phase 4 follow-on for debug first-open parse and
+cross-process `ParseCache`. Phase 5 is skipped: release `run path/to/concept.md`
+`load` is sub-second on this repository, so bounded concept preview is not
+started. Phase 6 records the post-change baseline. Measured before/after
+timings are in the [OKF load-performance improvement results](../status/okf-load-performance.md)
 status snapshot; those numbers are machine-local, not a latency SLA.[^results-status]
 
 ## Established baseline
@@ -304,6 +315,33 @@ scanner monotonicity rules elsewhere are unchanged).
 `parse` collapsing on the second snapshot while diagnostics for the touched
 file still update.
 
+### Phase 4 follow-on — Debug first-open parse and cross-process cache (implemented)
+
+**Bound:** Debug `cargo run -p rocci-okf -- run` first-open `parse` is in the
+hundreds of milliseconds on this repository, not multiple seconds. A second
+`run` process reports parse-cache hits for unchanged Markdown. `check` still
+parses fresh.[^okf-dev][^okf-load][^results-status]
+
+Implementation that stays inside the Phase 4 cache helper:
+
+- Dev-profile opt-level 3 for `comrak`, `okf`, and the Unicode/YAML crates on
+  the Markdown parse path.[^workspace-cargo]
+- Parallel parse of cache misses (`std::thread::scope`).[^okf-load]
+- `ParseCache::load_dir` / `save_dir` on a caller-provided directory.
+  `rocci-okf run` stores that under `ROCCI_CACHE/okf-parse/` (versioned).
+  Diagnostic codes intern from a known list; unknown codes drop the entry.
+  [^parse-cache][^okf-dev]
+
+**Owner:** `crates/okf` parse cache and load loop; `crates/rocci-okf` `run`
+directory wiring; workspace `Cargo.toml` for the dev-profile overrides.
+
+**Out of bound:** Bounded concept-path loading. Sharing the disk cache with
+`check`. Caching git provenance across process restarts.
+
+**Exit:** Headless debug `run knowledge/plans/ungram-ast.md --profile-report json`
+with an empty parse cache shows `parse` in the hundreds of milliseconds;
+a second process shows `cache_hit` near the document count.
+
 ### Phase 5 — Bounded concept preview, only if still needed (skipped)
 
 **Gate:** After Phases 2–4, re-run the Phase 1 measurement commands. Start this
@@ -374,15 +412,17 @@ green.[^preview-audit][^headless-audit][^results-status][^okf-readme]
 [^results-status]: Dated Status snapshot of machine-local before/after timings, preview-versus-check policy, and skipped bounded preview.
 [^preview-audit]: Cached concept-path `run` spent 9593ms of 9750ms in `load`; concept-path was not cheaper than whole-bundle load; release `check` was 4.77s rocci versus 0.24s base.
 [^headless-audit]: Headless `--profile-report` made load-dominated rebuilds observable; recommended finer load spans and batched git.
-[^okf-load]: `okf::load` discovers and parses the whole bundle, resolves the graph, and runs Rocci-only lifecycle validation.
+[^okf-load]: `okf::load` discovers and parses the whole bundle in parallel on misses, resolves the graph, and runs Rocci-only lifecycle validation.
 [^okf-validate]: When git provenance is on, validation batches rev-parse, status, and log over unique source paths.
 [^okf-preview]: `resolve_preview_path` returns bundle root plus open path; it does not narrow loading.
-[^okf-dev]: `rebuild_site` records one `load` span around `okf::load` on every watch rebuild.
+[^okf-dev]: `rebuild_site` records load sub-spans, holds ParseCache across watch ticks, and persists it under ROCCI_CACHE for the next `run` process.
 [^okf-main]: `Run` forwards `--profile` and `--profile-report` into the headless rebuild path.
-[^okf-readme]: `rocci-okf` documents `run`, `check`, inspect, and build; fast-preview policy belongs here once it exists.
+[^okf-readme]: `rocci-okf` documents `run`, `check`, inspect, and build; `run` persists parse cache, `check` does not.
 [^engine-readme]: `okf` is UI-neutral and has zero dependencies on other Rocci crates.
 [^cli-profile]: CLI snapshots are lists of named millisecond spans; `okf` should supply durations, not import this type.
 [^cli-plan]: OKF preview stays on `rocci-okf`, not `rocci` or `rocdown`.
 [^okf-app-plan]: Portable engine versus Rocci application split; load performance belongs in `okf` with CLI mapping in `rocci-okf`.
 [^static-okf]: Canonical knowledge remains inert Markdown; this plan does not add executable records.
 [^deps-check]: Workspace dependency direction is mechanical; `okf` must not grow a `rocci-cli` edge.
+[^parse-cache]: `ParseCache::load_dir` / `save_dir` persist versioned entries; unknown diagnostic codes drop the entry.
+[^workspace-cargo]: Dev profile sets opt-level 3 for `comrak`, `okf`, `yaml-rust`, and comrak Unicode helpers.

@@ -399,3 +399,91 @@ fn parse_cache_skips_unchanged_files_on_second_load() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn parallel_load_is_deterministic_across_runs() {
+    let root = temp("parallel-parse");
+    for name in ["a", "b", "c", "d", "e"] {
+        fs::write(
+            root.join(format!("{name}.md")),
+            valid_rocci_concept(name, "", &format!("{name} body.\n")),
+        )
+        .unwrap();
+    }
+
+    let first = load(&root, Profile::Base).expect("first load");
+    let second = load(&root, Profile::Base).expect("second load");
+    let ids: Vec<_> = first
+        .concepts
+        .iter()
+        .map(|concept| concept.id.as_str())
+        .collect();
+    let ids_again: Vec<_> = second
+        .concepts
+        .iter()
+        .map(|concept| concept.id.as_str())
+        .collect();
+    assert_eq!(ids, ids_again);
+    let codes: Vec<_> = first
+        .diagnostics
+        .iter()
+        .map(|diagnostic| (diagnostic.path.as_str(), diagnostic.code))
+        .collect();
+    let codes_again: Vec<_> = second
+        .diagnostics
+        .iter()
+        .map(|diagnostic| (diagnostic.path.as_str(), diagnostic.code))
+        .collect();
+    assert_eq!(codes, codes_again);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn parse_cache_roundtrips_through_a_directory() {
+    let root = temp("parse-cache-disk-root");
+    fs::write(
+        root.join("a.md"),
+        valid_rocci_concept("A", "", "Alpha body.\n"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("b.md"),
+        valid_rocci_concept("B", "", "Beta body.\n"),
+    )
+    .unwrap();
+    fs::write(
+        root.join("c.md"),
+        valid_rocci_concept("C", "", "Gamma body.\n"),
+    )
+    .unwrap();
+
+    let store = temp("parse-cache-disk-store");
+    let mut first = ParseCache::new();
+    let options = LoadOptions::new(Profile::Base);
+    let loaded = load_with_cache(&root, options, Some(&mut first)).expect("populate cache");
+    assert_eq!(loaded.timings.parse_cache_hits, 0);
+    first.save_dir(&store).expect("save parse cache");
+
+    let mut restored = ParseCache::load_dir(&store, Profile::Base);
+    let second = load_with_cache(&root, options, Some(&mut restored)).expect("restored cache");
+    assert!(
+        second.timings.parse_cache_hits >= 3,
+        "directory cache should hit unchanged files: {:?}",
+        second.timings
+    );
+    assert_eq!(second.timings.parse_cache_misses, 0);
+    assert_eq!(second.bundle.concepts.len(), loaded.bundle.concepts.len());
+
+    fs::write(
+        root.join("b.md"),
+        valid_rocci_concept("B", "", "Beta body changed.\n"),
+    )
+    .unwrap();
+    let third = load_with_cache(&root, options, Some(&mut restored)).expect("edited file");
+    assert_eq!(third.timings.parse_cache_misses, 1);
+    assert!(third.timings.parse_cache_hits >= 2);
+
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(store);
+}
