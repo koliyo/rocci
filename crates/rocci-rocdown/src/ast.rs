@@ -169,6 +169,14 @@ impl BlockContent {
             Self::End(section) => section.span,
         }
     }
+
+    pub fn scope_name(&self) -> &'static str {
+        match self {
+            Self::Line(_) => "line",
+            Self::Brace(_) => "section",
+            Self::End(_) => "end",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

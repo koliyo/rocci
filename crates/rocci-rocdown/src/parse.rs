@@ -140,6 +140,15 @@ pub fn parse_markdown_body(
     }
 }
 
+pub fn nested_items(src: &str, call: &BlockCall) -> Vec<Item> {
+    let Some(span) = call.content_span() else {
+        return Vec::new();
+    };
+    parse_fragment(SourceFile::new("block", src), span, false)
+        .document
+        .items
+}
+
 pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> ParseOutput {
     let start = body.start as usize;
     let end = body.end as usize;

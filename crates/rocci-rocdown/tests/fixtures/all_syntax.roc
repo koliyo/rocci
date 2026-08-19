@@ -321,6 +321,128 @@ rocci_content = |{}| {
                             ],
                         ),
                         Html.element(
+                            "aside",
+                            [
+                                Html.attribute("class", "rd-docs-note rd-docs-block"),
+                                Html.attribute("data-rocci-docs", "note"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-docs-label"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text("Note"),
+                                    ],
+                                ),
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-paragraph"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text("Don't do this."),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Html.element(
+                            "aside",
+                            [
+                                Html.attribute("class", "rd-docs-note rd-docs-block"),
+                                Html.attribute("data-rocci-docs", "note"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-docs-label"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text("Note"),
+                                    ],
+                                ),
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-docs-title"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text("Watch"),
+                                    ],
+                                ),
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-paragraph"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.text("Nested section body."),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Html.element(
+                            "section",
+                            [
+                                Html.attribute("class", "rd-docs-tabs rd-docs-block"),
+                                Html.attribute("data-rocci-docs", "tabs"),
+                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                            ],
+                            [
+                                Html.element(
+                                    "section",
+                                    [
+                                        Html.attribute("class", "rd-docs-tab rd-docs-block"),
+                                        Html.attribute("data-rocci-docs", "tab"),
+                                        Html.attribute("aria-label", "macOS"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.element(
+                                            "p",
+                                            [
+                                                Html.attribute("class", "rd-paragraph"),
+                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                            ],
+                                            [
+                                                Html.text("Mac panel."),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                Html.element(
+                                    "section",
+                                    [
+                                        Html.attribute("class", "rd-docs-tab rd-docs-block"),
+                                        Html.attribute("data-rocci-docs", "tab"),
+                                        Html.attribute("aria-label", "Linux"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                    ],
+                                    [
+                                        Html.element(
+                                            "p",
+                                            [
+                                                Html.attribute("class", "rd-paragraph"),
+                                                Html.attribute("data-rocci-css", "AllSyntax-13744130"),
+                                            ],
+                                            [
+                                                Html.text("Linux panel."),
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Html.element(
                             "p",
                             [
                                 Html.attribute("class", "rd-paragraph"),

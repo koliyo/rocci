@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use lsp_types::{
     CompletionItemKind, CompletionParams, CompletionResponse, Diagnostic, DocumentSymbol,
     DocumentSymbolParams, DocumentSymbolResponse, GotoDefinitionParams, GotoDefinitionResponse,
-    Hover, HoverContents, HoverParams, MarkupContent, MarkupKind, Range, SemanticTokens,
+    Hover, HoverContents, HoverParams, Location, MarkupContent, MarkupKind, Range, SemanticTokens,
     SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensRangeResult,
     SemanticTokensResult, SymbolKind, Uri,
 };
@@ -16,8 +16,9 @@ use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
-use crate::ast::{BlockCall, Document, HeadingInfo, Item, PageDecl, PageMeta};
+use crate::ast::{BlockCall, BlockContent, Document, HeadingInfo, Item, PageDecl, PageMeta};
 use crate::highlight::{extract_rocdown_regions, highlight_rocdown_document};
+use crate::parse::nested_items;
 use crate::{
     CompileOptions, CompileOutput, discovered_ids, index_pages_in_dir, page_ref_from_source,
 };
@@ -299,14 +300,11 @@ pub fn hover(
     }) {
         return Some(page_hover(source, page, compiled, encoding));
     }
-    if let Some(call) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Block(call) if call.span.contains(offset) => Some(call),
-        _ => None,
-    }) {
+    if let Some(call) = innermost_block(text, &compiled.document.items, offset) {
         return Some(if call.name == "img" {
-            img_hover(source, call, encoding)
+            img_hover(source, &call, encoding)
         } else {
-            docs_hover(source, call, encoding)
+            docs_hover(source, &call, encoding)
         });
     }
     compiled.headings.iter().find_map(|heading| {
@@ -338,7 +336,23 @@ pub fn goto_definition(
 ) -> Option<GotoDefinitionResponse> {
     let comps = components(compiled);
     let extra = template_items(compiled);
-    goto_definition_components(name, text, &comps, &extra, offset, encoding, uri)
+    if let Some(response) =
+        goto_definition_components(name, text, &comps, &extra, offset, encoding, uri.clone())
+    {
+        return Some(response);
+    }
+    let call = innermost_block(text, &compiled.document.items, offset)?;
+    let BlockContent::End(section) = call.content.as_ref()? else {
+        return None;
+    };
+    if !section.marker.span.contains(offset) {
+        return None;
+    }
+    let source = SourceFile::new(name, text);
+    Some(GotoDefinitionResponse::Scalar(Location {
+        uri,
+        range: lsp_range(source, call.name_span, encoding),
+    }))
 }
 
 pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
@@ -353,15 +367,22 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
     }) {
         return page_completion(text, page, offset, compiled);
     }
-    if let Some(call) = compiled.document.items.iter().find_map(|item| match item {
-        Item::Block(call) if call.span.contains(offset as u32) => Some(call),
-        _ => None,
-    }) {
-        return if call.name == "img" {
-            img_completion(text, call, offset)
-        } else {
-            docs_completion(text, call, offset)
-        };
+    if let Some(call) = innermost_block(text, &compiled.document.items, offset as u32)
+        && call
+            .params
+            .as_ref()
+            .is_some_and(|params| params.span.contains(offset as u32))
+    {
+        return field_completion(&call.name, params_before(text, &call, offset));
+    }
+    if let Some((kind, before)) = incomplete_bracket_before(text, offset) {
+        return field_completion(&kind, before);
+    }
+    if let Some(prefix) = colon_kind_prefix(text, offset) {
+        return kind_completion(
+            &prefix,
+            enclosing_parent_kind(text, &compiled.document.items, offset as u32),
+        );
     }
     if let Some(prefix) = root_declaration_prefix(text, offset) {
         return CompletionResponse::Array(
@@ -669,55 +690,156 @@ fn docs_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncodi
     }
 }
 
-fn docs_completion(text: &str, call: &BlockCall, offset: usize) -> CompletionResponse {
-    let body_span = call.payload_span();
-    let body = body_span.of(text);
-    let rel = offset
-        .saturating_sub(body_span.start as usize)
-        .min(body.len());
-    let prefix = field_prefix(&body[..rel]);
-    if call.name == "tabs"
-        && let Some(value) = after_field(&body[..rel], "kind")
-    {
-        let items = ["language", "platform", "tool"]
-            .into_iter()
-            .filter(|id| id.starts_with(&value))
-            .map(|id| completion_item(id, CompletionItemKind::ENUM_MEMBER, Some("kind".into())))
-            .collect();
-        return CompletionResponse::Array(items);
+fn kind_completion(prefix: &str, parent: Option<String>) -> CompletionResponse {
+    let parent = parent.as_deref();
+    CompletionResponse::Array(
+        crate::registry::authorable_kinds()
+            .filter(|spec| spec.name.starts_with(prefix))
+            .filter(|spec| crate::registry::parent_allowed(spec, parent))
+            .map(|spec| {
+                completion_item(
+                    spec.name,
+                    CompletionItemKind::CLASS,
+                    Some(format!(":{}", spec.name)),
+                )
+            })
+            .collect(),
+    )
+}
+
+fn field_completion(kind: &str, before: String) -> CompletionResponse {
+    let fields: Vec<&str> = crate::registry::lookup(kind)
+        .map(|spec| spec.completion_fields().collect())
+        .unwrap_or_default();
+    if let Some((field, value)) = completing_field_value(&before, &fields) {
+        if let Some(values) = crate::registry::field_enum_values(kind, field) {
+            return CompletionResponse::Array(
+                values
+                    .iter()
+                    .filter(|id| id.starts_with(&value))
+                    .map(|id| {
+                        completion_item(id, CompletionItemKind::ENUM_MEMBER, Some(field.into()))
+                    })
+                    .collect(),
+            );
+        }
+        if crate::registry::is_bool_field(kind, field) {
+            return CompletionResponse::Array(
+                ["Bool.true", "Bool.false", "true", "false"]
+                    .into_iter()
+                    .filter(|id| id.starts_with(&value))
+                    .map(|id| {
+                        completion_item(id, CompletionItemKind::ENUM_MEMBER, Some(field.into()))
+                    })
+                    .collect(),
+            );
+        }
     }
-    if let Some(value) = after_field(&body[..rel], "open") {
-        let items = ["true", "false", "Bool.true", "Bool.false"]
+    let prefix = field_prefix(&before);
+    CompletionResponse::Array(
+        fields
             .into_iter()
-            .filter(|id| id.starts_with(&value))
-            .map(|id| completion_item(id, CompletionItemKind::ENUM_MEMBER, Some("open".into())))
-            .collect();
-        return CompletionResponse::Array(items);
-    }
-    let fields: &[&str] = match call.name.as_str() {
-        "include" => &["path", "region", "language", "start_line", "end_line"],
-        "tabs" => &["group", "kind"],
-        "tab" => &["id", "label"],
-        "link-card" => &["page", "href", "title", "description"],
-        "details" => &["summary", "open"],
-        "figure" => &["caption", "credit"],
-        "definition" => &["term"],
-        "badge" => &["label", "tone"],
-        "example" => &["name", "command", "language"],
-        _ => &["title", "summary", "open", "label"],
+            .filter(|field| field.starts_with(&prefix))
+            .map(|field| {
+                completion_item(field, CompletionItemKind::FIELD, Some(format!(":{kind}")))
+            })
+            .collect(),
+    )
+}
+
+fn params_before(text: &str, call: &BlockCall, offset: usize) -> String {
+    let Some(params) = call.params.as_ref() else {
+        return String::new();
     };
-    let items = fields
+    let body = params.span.of(text);
+    let rel = offset
+        .saturating_sub(params.span.start as usize)
+        .min(body.len());
+    body[..rel].to_string()
+}
+
+fn incomplete_bracket_before(text: &str, offset: usize) -> Option<(String, String)> {
+    let line_start = text[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let line = &text[line_start..offset];
+    let trimmed = line.trim_start_matches([' ', '\t']);
+    let rest = trimmed.strip_prefix(':')?;
+    let bracket = rest.find('[')?;
+    let kind = rest[..bracket].trim();
+    if kind.is_empty()
+        || !kind
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
+    {
+        return None;
+    }
+    let inside = &rest[bracket + 1..];
+    if inside.contains(']') {
+        return None;
+    }
+    Some((kind.to_string(), inside.to_string()))
+}
+
+fn completing_field_value<'a>(before: &str, fields: &[&'a str]) -> Option<(&'a str, String)> {
+    fields
         .iter()
-        .filter(|field| field.starts_with(&prefix))
-        .map(|field| {
-            completion_item(
-                field,
-                CompletionItemKind::FIELD,
-                Some(format!(":{}", call.name)),
-            )
-        })
-        .collect();
-    CompletionResponse::Array(items)
+        .copied()
+        .find_map(|field| after_field(before, field).map(|value| (field, value)))
+}
+
+fn colon_kind_prefix(text: &str, offset: usize) -> Option<String> {
+    let line_start = text[..offset].rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let line = &text[line_start..offset];
+    let trimmed = line.trim_start_matches([' ', '\t']);
+    let prefix = trimmed.strip_prefix(':')?;
+    if prefix
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')
+    {
+        Some(prefix.to_string())
+    } else {
+        None
+    }
+}
+
+fn innermost_block(src: &str, items: &[Item], offset: u32) -> Option<BlockCall> {
+    for item in items {
+        let Item::Block(call) = item else {
+            continue;
+        };
+        if !call.span.contains(offset) {
+            continue;
+        }
+        let nested = nested_items(src, call);
+        if let Some(inner) = innermost_block(src, &nested, offset) {
+            return Some(inner);
+        }
+        return Some(call.clone());
+    }
+    None
+}
+
+fn enclosing_parent_kind(src: &str, items: &[Item], offset: u32) -> Option<String> {
+    fn walk(src: &str, items: &[Item], offset: u32, best: &mut Option<(u32, String)>) {
+        for item in items {
+            let Item::Block(call) = item else {
+                continue;
+            };
+            let Some(content) = call.content_span() else {
+                continue;
+            };
+            if !content.contains(offset) {
+                continue;
+            }
+            let len = content.end.saturating_sub(content.start);
+            if best.as_ref().is_none_or(|(best_len, _)| len < *best_len) {
+                *best = Some((len, call.name.clone()));
+            }
+            walk(src, &nested_items(src, call), offset, best);
+        }
+    }
+    let mut best = None;
+    walk(src, items, offset, &mut best);
+    best.map(|(_, name)| name)
 }
 
 fn docs_symbol(
@@ -838,32 +960,4 @@ fn img_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncodin
         }),
         range: Some(lsp_range(source, call.span, encoding)),
     }
-}
-
-const IMG_FIELDS: &[&str] = &[
-    "src",
-    "alt",
-    "title",
-    "width",
-    "height",
-    "class",
-    "loading",
-    "decoding",
-    "decorative",
-];
-
-fn img_completion(_text: &str, _call: &BlockCall, _offset: usize) -> CompletionResponse {
-    CompletionResponse::Array(
-        IMG_FIELDS
-            .iter()
-            .map(|name| {
-                let insert = if *name == "decorative" {
-                    format!("{name}: Bool.true")
-                } else {
-                    format!("{name}: \"\"")
-                };
-                completion_item(name, CompletionItemKind::PROPERTY, Some(insert))
-            })
-            .collect(),
-    )
 }
