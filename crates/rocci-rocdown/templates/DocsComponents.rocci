@@ -166,11 +166,11 @@ import Html
         <dd>{content}</dd>
     </dl>
 
-@component Tabs = |{}, content|
-    <div class="rd-docs-tabs rd-docs-block" data-rocci-docs="tabs">{content}</div>
+@component Tabs = |{ group, kind }, content|
+    <div class="rd-docs-tabs rd-docs-block" data-rocci-docs="tabs" data-tabs-group={group} data-tabs-kind={kind}>{content}</div>
 
-@component Tab = |{ label }, content|
-    <section class="rd-docs-tab" data-rocci-docs="tab" aria-label={label}>
+@component Tab = |{ id, label }, content|
+    <section class="rd-docs-tab" data-rocci-docs="tab" data-tab-id={id} aria-label={label}>
         <h3 class="rd-docs-tab-label">{label}</h3>
         {content}
     </section>
