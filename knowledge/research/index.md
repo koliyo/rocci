@@ -1,5 +1,6 @@
 # Research
 
+* [Ungrammar as AST spec for Rocci and Rocdown](ungram-ast.md) - Exploratory recommendation: ungrammar as the tree spec for both languages; generate owned AST structs; do not generate scanners. Implementation plan: [ungram AST codegen](../plans/ungram-ast.md). Not shipped.
 * [Hybrid Rocdown islands for CDN-static sites](hybrid-rocdown-islands.md) - Exploratory research: CDN-static HTML with dynamic Rocci components backed by a rocci/rocdown HTTP service. Article widgets out of scope. Implementation plan: [hybrid Rocdown islands](../plans/hybrid-rocdown-islands.md). Not shipped.
 * [Generalized Rocdown block model](generalized-rocdown-block-model.md) - Exploratory decision: article blocks are `:name[params]` with `{{ }}` bodies; draft AST ungram in `crates/rocci-rocdown`. Implementation plan: [generalized Rocdown block model](../plans/generalized-rocdown-block-model.md). Not shipped.
 * [Desktop host chrome versus Rocci inspector UI](desktop-host-chrome-and-inspector-ui.md) - Split wry overlay chrome (HTML/CSS/JS) from preview-origin Rocci panels for compiler metrics and similar richer UI.

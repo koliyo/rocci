@@ -4,7 +4,7 @@ title: Generalized Rocdown block model
 description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. No @docs compatibility window."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T08:25:00Z }
+generated: { by: process:cursor, at: 2026-08-19T15:45:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -164,6 +164,11 @@ sources:
     title: Rocci and Rocdown authoring skill
     author: process:git
     last_modified: 2026-08-18
+  - id: ungram-plan
+    resource: ungram-ast.md
+    title: Ungrammar AST codegen implementation plan
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Generalized Rocdown block model
@@ -666,7 +671,8 @@ workflows (CI and Knowledge) have succeeded on that revision.
   [hybrid Rocdown islands plan](hybrid-rocdown-islands.md), not this
   spelling plan).
 - Generate AST types (and later syntax kinds) from the ungram; CI fails on
-  drift.
+  drift. Owned by the [ungram AST plan](ungram-ast.md), which also covers
+  a `Rocci.AST.ungram`.[^ungram-plan]
 - Rename `rd-docs-*` / `data-rocci-docs` once painting is fully component-
   owned.
 - `Heading` Rocci renderer if Rust heading HTML should move.
@@ -717,3 +723,4 @@ workflows (CI and Knowledge) have succeeded on that revision.
 [^generation-plan]: Shared chrome library vs Rocdown-owned `DocsComponents`.
 [^language-dev]: Grammar/parser/lowering workflow, monotonic scanners, AllSyntax inspect.
 [^rocci-author]: Authoring skill; wrong until the syntax exists, then used to rewrite pages.
+[^ungram-plan]: Shared generator of owned AST structs from Rocci and Rocdown ungrams; scanners stay hand-written.
