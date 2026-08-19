@@ -2,6 +2,8 @@
 
 ## 2026-08-19
 
+- Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.
+
 - Revised [landed Rocdown block renderers compared with related systems](research/rocdown-block-renderers-comparison.md) with authoring DX, the three-actor authorable surface (static document, interactive document, theme pack), expressability versus Markdoc/MDX/Nuxt/Gutenberg, and eight stack-consistency fractures (`@use` vs pack, flatten-before-parent, sugar vs widget, dual paint paths).
 - Added draft [landed Rocdown block renderers compared with related systems](research/rocdown-block-renderers-comparison.md): exploratory scores of the shipped KindSpec plus theme pack against Markdoc, MDX, Nuxt MDC, MyST/Sphinx, Docusaurus/VitePress, shortcodes, Pandoc/remark, Gutenberg, CMS serializers, Typst show, and Bravo. Remaining gaps: custom-kind child policy, typed lists into parent painters, `@block`, heading Prose. Updated the design research, plan index, implementation status, known limitations, theming, and documentation-compiler records so they no longer claim the overlay is unshipped.
 - Added the draft [deferred OKF compile and render follow-ons plan](plans/okf-compile-render-follow-ons.md): keep embedded page Roc in the compile hash (reject research option B), skip-roc as an explicit host not the default product (option A), and wasm apply-to-disk without embedding the Roc compiler or waiting on `basic-cli` `wasm32`. Exploratory; no phase started.

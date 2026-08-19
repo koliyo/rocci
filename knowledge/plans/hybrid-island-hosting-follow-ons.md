@@ -4,7 +4,7 @@ title: Hybrid island hosting follow-ons
 description: "Three deferred hosting steps after the local Docker same-origin demo: optional WebKit-free CLI builds, a precompiled island binary that does not need roc at runtime, and cross-origin CORS plus cookies for service_origin. Exploratory; no phase started."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/packaging, concern/security, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:30:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -30,8 +30,8 @@ sources:
     author: process:cursor
     last_modified: 2026-08-19
   - id: compose
-    resource: ../../examples/rocdown-counter/docker-compose.yml
-    title: Local Caddy plus islands Compose file
+    resource: ../../docker/compose.yml
+    title: Generic Caddy plus islands Compose file
     author: process:cursor
     last_modified: 2026-08-19
   - id: runtime-dockerfile
@@ -40,8 +40,8 @@ sources:
     author: process:cursor
     last_modified: 2026-08-19
   - id: caddyfile
-    resource: ../../examples/rocdown-counter/Caddyfile
-    title: Same-origin Caddy reverse proxy for the counter
+    resource: ../../docker/cdn/Caddyfile
+    title: Same-origin Caddy reverse proxy for hybrid sites
     author: process:cursor
     last_modified: 2026-08-19
   - id: serve-rs
@@ -271,7 +271,7 @@ cargo fmt --all -- --check
 After Phase 1 image changes:
 
 ```text
-docker compose -f examples/rocdown-counter/docker-compose.yml build
+ROCCI_SITE=/abs/path/to/site docker compose -f docker/compose.yml build
 ```
 
 After knowledge edits:
@@ -289,13 +289,13 @@ that revision.
 - Using `examples/rocdown-hybrid` as the Docker demonstrator (no SQLite).
 - One kitchen-sink image that runs Caddy and `serve-islands` in one
   process.
-- Vendor cache-header adapters beyond the example Caddyfile.
+- Vendor cache-header adapters beyond the generic Caddyfile.
 
 [^hybrid-plan]: Follow-ons listed CORS and cache adapters as not v1.
 [^hybrid-research]: CDN plus island service; same-origin preferred.
 [^hybrid-guide]: Caddy sketch; CORS not shipped; Docker section for local Compose.
 [^counter-readme]: Two-artifact runbook and local Docker smoke curls.
-[^compose]: Caddy `cdn` plus Ubuntu `islands`, healthcheck, SQLite volume.
+[^compose]: Caddy `cdn` plus Ubuntu `islands`, healthcheck, SQLite volume; site bind-mounted at `/src/site`.
 [^runtime-dockerfile]: Ubuntu 24.04, pinned Roc nightly, WebKit runtime libs, `roc` on PATH.
 [^caddyfile]: `/actions/` and `/health` reverse_proxy; hashed `/assets/` cache.
 [^serve-rs]: `preview()` only when a window is requested; listen helpers.
