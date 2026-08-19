@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -61,19 +61,24 @@ sources:
     title: Current Rocdown documentation generator boundary
     author: process:codex
     last_modified: 2026-08-17
+  - id: site-ref
+    resource: ../../docs/reference/rocdown-site.rocdown
+    title: Public Rocdown site configuration
+    author: process:git
+    last_modified: 2026-08-19
 ---
 
 # Rocci implementation status
 
 ## Snapshot date
 
-2026-08-17.
+2026-08-19.
 
 ## Shipped
 
 The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
 
-Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include bounded `:kind` article blocks: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records; Rocci paints them from `DocsComponents.rocci` compiled once with the shell. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan]
+Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include bounded `:kind` article blocks: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records. Builtin painters live in `DocsComponents.rocci`; a site `theme/Blocks.rocci` (or `[blocks] pack`) can replace those painters or add site-local kinds. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan][^site-ref]
 
 Tree-sitter highlighting library `rocci-highlight` provides token spans for LSP and documentation rendering parity.[^rocdown-compiler]
 
@@ -119,3 +124,4 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
 [^rocdown-compiler]: Current static code-block rendering path and token spans.
+[^site-ref]: Theme block-pack overlay and `[blocks]` configuration.

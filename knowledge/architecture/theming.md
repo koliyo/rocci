@@ -1,10 +1,10 @@
 ---
 type: Architecture
 title: Rocci theming surfaces
-description: Standalone Rocdown uses CSS variable themes while Rocdown sites use a Rocci-authored documentation shell and rocci-ui view records; DTCG is research evidence, not an adopted token authority.
+description: Standalone Rocdown uses CSS variable themes; Rocdown sites use a Rocci-authored documentation shell, rocci-ui view records, and an article-block painter overlay. DTCG is research evidence, not an adopted token authority.
 tags: [domain/rocdown, domain/design-system, concern/theming, concern/accessibility]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -51,6 +51,11 @@ sources:
     title: Rocci design-token research
     author: process:okf-phase-4
     last_modified: 2026-08-16
+  - id: site-ref
+    resource: ../../docs/reference/rocdown-site.rocdown
+    title: Public Rocdown site configuration
+    author: process:git
+    last_modified: 2026-08-19
 ---
 
 # Rocci theming surfaces
@@ -67,7 +72,7 @@ Standalone Rocdown and OKF share the base `toc.js` scroll script and `.rd-toc` c
 
 ## Boundaries
 
-Format, layout, visual theme, and code highlighting are separate concerns. The current implementation covers native article themes and a first-party documentation shell, not presentation renderers or a general external theme-package interface.[^theming-report]
+Format, layout, visual theme, and code highlighting are separate concerns. The current implementation covers native article themes, a first-party documentation shell, and site-overridable article-block painters (`DocsComponents` plus `theme/Blocks.rocci`). It does not ship a general external theme-package interface.[^theming-report][^site-ref]
 
 ## DTCG research boundary
 
@@ -81,7 +86,7 @@ No DTCG token files, resolver matrix, generated shared CSS, manifest, or token v
 
 ## Evidence policy
 
-The resolver and shell establish current behavior. The theming report remains useful design research, but its package, adapter, and presentation proposals are not treated as shipped.[^theming-report]
+The resolver and shell establish current behavior. Article-block painters (`DocsComponents` and site block packs) are a shipped widget overlay. The theming report's package, adapter, and general presentation-renderer proposals are not treated as shipped.[^theming-report][^site-ref]
 
 [^theme-readme]: Current standalone selection precedence and CSS-variable authoring contract.
 [^theme-resolver]: Built-in, local, path, alias, and color-scheme resolution in code.
@@ -91,3 +96,4 @@ The resolver and shell establish current behavior. The theming report remains us
 [^okf-plan]: Amended Phase 4 DTCG research role and explicit non-adoption boundary.
 [^design-system]: Phase 4 description of current design intent and shipped surface boundaries.
 [^design-tokens]: Phase 4 inventory of current CSS roles and DTCG research.
+[^site-ref]: Theme block-pack overlay for article widgets, distinct from a theme-package interface.

@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -51,6 +51,11 @@ sources:
     title: Cmd-K fuzzy navigation plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: site-ref
+    resource: ../../docs/reference/rocdown-site.rocdown
+    title: Public Rocdown site configuration
+    author: process:git
+    last_modified: 2026-08-19
 ---
 
 # Known Rocci limitations
@@ -73,7 +78,7 @@ The desktop host exposes the current window/webview boundary but not general nat
 
 ## Language and client behavior
 
-There is no implemented `@island` construct. Rich browser-owned behavior therefore remains an explicit future boundary rather than a capability authors can rely on today. Documentation tabs ship as stacked no-JS sections; tab persistence JavaScript is not shipped.[^roadmap]
+There is no implemented `@island` construct. Rich browser-owned behavior therefore remains an explicit future boundary rather than a capability authors can rely on today. Documentation tabs ship as stacked no-JS sections; tab persistence JavaScript is not shipped. The tabs parent painter receives concatenated Html even though the dispatcher builds typed child records; a site cannot yet compose a `tablist` from labels as data. Custom static kinds inferred from a theme pack cannot declare exclusive child policy (`accepts`); `@block` is not shipped, so helpers must not live in the block pack.[^roadmap][^site-ref]
 
 ## Validation
 
@@ -87,3 +92,4 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^okf]: Current local search and machine-output support in portable OKF engine.
 [^goto-js]: Shared Cmd/Ctrl-K palette and History-API HTML swap.
 [^fuzzy-plan]: Document navigation versus full-text search boundary.
+[^site-ref]: Pack-inferred custom kinds default to any children; helpers must not live in the pack.

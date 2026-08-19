@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Custom Rocdown block schemas and renderers
-description: "Exploratory research: treat :kind as a Rocci function interface with named params and constrained children, then let a site-selected renderer paint Html. Syntax is shipped; schema/renderer split and site overrides are not."
+description: "Design research: treat :kind as a Rocci function interface with named params and constrained children, then let a site-selected renderer paint Html. Syntax and the v1 pack overlay are in the crate; leftover @block / heading Prose are not. Post-landing comparison: rocdown-block-renderers-comparison.md."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring, concern/theming]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -192,6 +192,11 @@ sources:
     title: Custom Rocdown block schemas and renderers plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: comparison
+    resource: rocdown-block-renderers-comparison.md
+    title: Landed Rocdown block renderers compared with related systems
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Custom Rocdown block schemas and renderers
@@ -216,10 +221,16 @@ Sub-questions:
 5. How does **site configuration** override `:note` (and add new kinds) so
    the change is HTML structure, not only CSS?
 
-This is not shipped behavior. Do not treat sketches as language or site
-config. The [implementation plan](../plans/rocdown-block-renderers.md) is
-exploratory until a human accepts a scope. Architecture records describe
-today's format and generator, not this overlay.[^impl-plan][^format-arch]
+The overlay described here is now in the crate (`theme/Blocks.rocci`,
+`[blocks]`, debug painter, pack-inferred custom kinds, generated
+dispatcher). This record remains the **design rationale**, not the current
+contract. Prefer the crate README and the public site reference for shipped
+behavior. Prefer the [post-landing comparison](rocdown-block-renderers-comparison.md)
+for how that contract sits next to Markdoc, MDX, and the other systems
+surveyed below. Leftover: `@block`, heading-sugar painters, and parent
+painters still receiving concatenated Html after typed child records are
+built. Worked sketches below are historical illustrations of the pack
+convention that shipped.[^impl-plan][^comparison][^rocdown-readme][^format-arch][^site-ref]
 
 `@docs` is not part of this design. It was a short-lived experimental
 family name and is **removed**. Line-start `@docs` is only a removal
@@ -228,22 +239,25 @@ synonym, compatibility story, or implementation analogy.
 
 ## For a later agent
 
-- **Authority:** exploratory. Crate READMEs and architecture records describe
-  shipped behavior; this record does not.
+- **Authority:** exploratory design rationale. Crate READMEs describe the
+  current overlay; this record does not replace them.
 - **Shipped already:** `:name[params]` article blocks, line / `{{ }}` /
-  `:kind.begin` ... `:kind.end` (not mixed), the closed Rust
-  `KindSpec` registry, per-kind `DocsComponents` painters, `@use` on
-  `rocdown run`, parent-kind rules for `tab` / `step`.[^registry][^docs-rocci][^imports-rs]
-- **Not shipped:** schema/renderer split, site-level renderer override,
-  custom static kinds in the theme, structured child lists into Rocci,
-  `@block` / export tables, a debug painter.
+  `:kind.begin` ... `:kind.end` (not mixed), `KindSpec` child policy,
+  per-kind `DocsComponents` painters, `@use` on `rocdown run`, theme
+  block-pack overlay, `[blocks]` config, debug painter, pack-inferred
+  custom kinds, generated dispatcher. Typed child *records* exist in the
+  walk then flatten to Html before parent painters.[^registry][^docs-rocci][^imports-rs][^comparison]
+- **Not shipped:** `@block` / helper-safe exports, heading-sugar Prose
+  painters, parent painters receiving typed lists (records are flattened),
+  custom-kind `accepts` policy.
 - **Do not discuss `@docs`.** Removed experiment. Current blocks are
   `:kind`.
 - **Examples:** [Worked examples](#worked-examples) in this record.
   v1 schema comes from `@component` headers, not named Roc structs.
   Named structs do not require Roc introspection; they also do not give
   the catalog fields without a restricted type scan or `@block`.
-- **Do not implement** unless the user asks. Follow
+- **Do not implement leftover phases** (`@block`, heading Prose, typed lists
+  into parent painters) unless the user asks. Follow
   [the plan](../plans/rocdown-block-renderers.md).
 - **Keep:** Markdown-first islands, pure `@component` render, Rust catalog /
   Rocci shell, OKF Markdown-only, `rocci-template` grammar unchanged unless a
@@ -269,6 +283,11 @@ Human authoring DX still matters, but the acceptance test here is
 document. CSS variables on `.rd-docs-note` are not that capability.[^docs-rocci][^theming-arch]
 
 ## Current contract
+
+The subsections below are the **pre-overlay baseline** this design started
+from. The pack overlay, `[blocks]` table, debug painter, and pack-inferred
+kinds are now in the crate; see the [comparison record](rocdown-block-renderers-comparison.md)
+and the crate README for the current paint path.[^comparison][^rocdown-readme]
 
 ### Syntax and registry
 
@@ -983,7 +1002,7 @@ stays out of Rocdown v1.[^block-research]
 | Pure `@component` | Renderers are functions to `Html`; no lifecycle on widgets |
 | Rust catalog / Rocci shell | Schema validation, includes, heading ids stay Rust; paint stays Rocci; do not interpret `.rocci` in Rust |
 | Generation pipeline | One renderer compile per theme; no per-page Roc for `:note` |
-| Theming surfaces | This research *proposes* presentation renderers; it does not claim they exist |
+| Theming surfaces | Article-block painters are now a site overlay; they are still not a general theme-package interface |
 | OKF Markdown-only | No `:note` in `knowledge/**/*.md` |
 | Hybrid islands | `static` pages keep the widget forest; block renderers are not Datastar islands |
 
@@ -1105,4 +1124,5 @@ with `rocdown build docs` still green on un-overridden kinds.[^impl-plan]
 [^sphinx-extend]: Register directive classes; docutils child node models.
 [^mdx-missing]: Default crash on missing custom MDX component.
 [^astro-markdoc]: Prefer throw over inventing HTML for undefined components.
-[^impl-plan]: Phased delivery; exploratory; do not start until asked.
+[^impl-plan]: Phased delivery; leftover `@block` and heading Prose; do not start leftover phases until asked.
+[^comparison]: Post-landing scores versus Markdoc, MDX, Nuxt, Gutenberg, Typst, and the other surveyed systems.

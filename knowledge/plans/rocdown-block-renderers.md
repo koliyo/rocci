@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Custom Rocdown block schemas and renderers
-description: "Phased delivery of a schema/renderer split for :kind blocks: generic child policy, structured parent children, theme block-pack overrides, optional debug painter, and site config. No document spelling change."
+description: "Phased delivery of a schema/renderer split for :kind blocks. Phases 1–7 are in the crate; Phase 2 still flattens typed child records to Html before parent painters. Phase 8 @block and Phase 9 heading Prose are leftover. Post-landing comparison: ../research/rocdown-block-renderers-comparison.md."
 tags: [domain/rocdown, domain/rocci, concern/rendering, concern/architecture, concern/theming, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -12,6 +12,11 @@ sources:
   - id: research
     resource: ../research/rocdown-block-renderers.md
     title: Custom Rocdown block schemas and renderers research
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: comparison
+    resource: ../research/rocdown-block-renderers-comparison.md
+    title: Landed Rocdown block renderers compared with related systems
     author: process:cursor
     last_modified: 2026-08-19
   - id: block-research
@@ -111,10 +116,15 @@ sources:
 ## Purpose and authority
 
 This is the implementation plan for the [block schema and renderer
-research](/research/rocdown-block-renderers.md). It is exploratory until a
-human reviewer accepts a scope. It does not describe shipped behavior.
-Architecture records and crate READMEs remain the current
-contract.[^research][^rocdown-readme]
+research](/research/rocdown-block-renderers.md). Architecture records and
+crate READMEs are the current contract. As of 2026-08-19, Phases 1–7 are in
+the crate (generic child policy, pack overlay, `[blocks]`, debug painter,
+custom kinds from `@component` headers, generated dispatcher). Phase 2
+typed child records exist in the walk and then flatten to Html before
+parent painters. Phase 8 `@block` and Phase 9 heading-sugar override are
+not shipped. Do not start leftover phases until the user asks. Post-landing
+comparison:
+[landed renderers vs related systems](/research/rocdown-block-renderers-comparison.md).[^research][^comparison][^rocdown-readme]
 
 The [generalized block-model plan](generalized-rocdown-block-model.md)
 owned source spelling and the closed builtin registry. That spelling is
@@ -122,9 +132,9 @@ in the tree. This plan does not reopen `:name[params]`. It owns how a
 `BlockCall` is validated as an interface and painted by a site-selected
 Rocci renderer.[^block-plan][^block-research]
 
-Do not start a phase until the user asks. Use `rocci-language-dev` only if
-a phase adds `@block` grammar. Use `rocci-author` for theme pack modules
-and public docs examples.[^language-dev][^rocci-author]
+Do not start leftover phases until the user asks. Use `rocci-language-dev`
+only if a phase adds `@block` grammar. Use `rocci-author` for theme pack
+modules and public docs examples.[^language-dev][^rocci-author]
 
 ## Goal
 
@@ -481,6 +491,7 @@ workflows succeed on that revision.
    Roc spans for schema. Frozen as no for v1.
 
 [^research]: Exploratory schema/renderer split, child modes, pack overlay, debug policy.
+[^comparison]: Post-landing comparison of the crate overlay against Markdoc, MDX, Nuxt, Gutenberg, Typst, and related systems.
 [^block-research]: Syntax and uniform BlockCall; not renderer override.
 [^block-plan]: Spelling delivery; `@use` interactive-only.
 [^registry]: Current `KindSpec`; `child_kinds` unused as exclusive policy.
