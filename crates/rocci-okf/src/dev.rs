@@ -8,7 +8,7 @@ use rocci_cli::inspect::InspectSnapshot;
 use rocci_cli::profile::{ProfileSnapshot, ProfileSpan};
 
 use crate::inspect;
-use crate::presentation::build_review_site_with_host;
+use crate::presentation::{ApplySession, build_review_site_with_session};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ProfileReportMode {
@@ -54,8 +54,17 @@ pub fn run_knowledge(
     let build_root = root.clone();
     let cache_dir = parse_cache_dir(&root);
     let mut cache = okf::ParseCache::load_dir(&cache_dir, profile);
+    let mut apply_session: Option<ApplySession> = None;
     serve_static_site(config, move |out_dir| {
-        let snapshot = rebuild_site(&build_root, out_dir, profile, provenance, host, &mut cache)?;
+        let snapshot = rebuild_site(
+            &build_root,
+            out_dir,
+            profile,
+            provenance,
+            host,
+            &mut cache,
+            &mut apply_session,
+        )?;
         if let Err(error) = cache.save_dir(&cache_dir) {
             eprintln!("rocci-okf: failed to save parse cache: {error:#}");
         }
@@ -86,6 +95,7 @@ fn rebuild_site(
     provenance: bool,
     host: Option<rocci_roc_host::HostChoice>,
     cache: &mut okf::ParseCache,
+    apply_session: &mut Option<ApplySession>,
 ) -> Result<Option<InspectSnapshot>> {
     let load_started = Instant::now();
     let loaded = okf::load_with_cache(
@@ -98,7 +108,9 @@ fn rebuild_site(
         bail!("knowledge bundle has validation errors");
     }
     let mut snapshot = load_profile_snapshot(load_ms, &loaded.timings);
-    let mut built = build_review_site_with_host(&loaded.bundle, output, host)?;
+    let (mut built, next_session) =
+        build_review_site_with_session(&loaded.bundle, output, host, apply_session.as_ref())?;
+    *apply_session = next_session;
     snapshot.spans.append(&mut built.spans);
     snapshot.total_ms += built.total_ms;
     Ok(Some(inspect::from_bundle(
