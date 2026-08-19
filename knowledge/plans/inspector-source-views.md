@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Preview inspector source views
-description: "Extend the preview-window Dev panel beyond profiling so it can show original source, formatted AST, generated Roc, or generated HTML for the current page, selected with a dropdown."
+description: "Extend the preview-window Dev panel beyond profiling so it can show original source, formatted AST, generated Roc, or generated HTML for the current page, selected with a dropdown. Artifact JSON and the dropdown shipped; remaining UX (dock, tabs, scroll, console) is in the extended inspector plan."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T18:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -144,9 +144,22 @@ sources:
     title: rocci-highlight span contract
     author: process:git
     last_modified: 2026-08-17
+  - id: inspector-plan
+    resource: preview-inspector.md
+    title: Extended preview-window inspector
+    author: process:cursor
+    last_modified: 2026-08-19
 ---
 
 # Preview inspector source views
+
+Inspect JSON, capabilities, the Source dropdown, overlay `?route=` /
+`?view=` sync, and per-product artifact fill shipped on 2026-08-19
+(`feat(preview): show source, AST, Roc, and HTML in the Dev inspector`).
+Remaining Dev-panel UX — true dock, tabs, working dropdown/scroll, and a
+runtime console — lives in the [extended preview-window inspector
+plan](preview-inspector.md). This record is the artifact-and-dropdown
+contract those routes still follow.[^inspector-plan]
 
 ## Goal and scope
 
@@ -160,7 +173,9 @@ product-specific capability flags for `rocci run` / `view`, `rocdown run`,
 and `rocci-okf run`. It does not replace `rocci inspect` / `rocdown inspect`,
 the playground workbench, overlay Reveal/Copy, or the native web inspector.[^inspect-cli][^inspect-rocdown][^playground-app][^source-rs][^desktop-readme]
 
-Exploratory; no phase started.
+Artifact and dropdown work landed in tree. Treat this record as the
+inspect-JSON contract; do not restart Phases 1–4. Exploratory remaining
+UX is not this plan.
 
 ## Established baseline
 
@@ -422,3 +437,4 @@ normative:
 [^dev-server]: Same-origin `/__rocci/dev` for static Rocdown and OKF preview.
 [^okf-main]: OKF preview sets `inspector_url` and does not set `source_root`.
 [^highlight-readme]: Token spans for Roc, HTML, Rocci, and Rocdown.
+[^inspector-plan]: Dock, tabs, Source DX, and runtime console; does not replace inspect JSON.
