@@ -10,6 +10,7 @@
 ## 2026-08-19
 
 - Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.
+- Implemented Phase 5 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): OKF inspect snapshots cover collection indexes and `/review/` from disk HTML; `--no-window` captures HTML after listen and keeps the sibling inspector. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 4 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): Rocdown sticky columns and OKF `.okf-chrome` subtract `--rocci-chrome-bottom` so a docked Dev inset shrinks nav and article. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): overlay R/B sit in a flex chrome strip above the Dev iframe so they no longer cover inspector tabs. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 2 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): inspector panel root uses `:scope` flex column so long Source Roc/HTML scroll inside `.code-pane`. Not logged complete until CI and Knowledge workflows succeed on this revision.

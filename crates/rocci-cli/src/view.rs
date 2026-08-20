@@ -133,9 +133,7 @@ pub fn view(
                 crate::profile::ProfileSnapshot::default(),
                 vec![inspect_page],
             );
-            if !no_window {
-                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
-            }
+            inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
             serve::with_window_and_inspector(
                 &mut child,
                 &url,
