@@ -18,11 +18,13 @@ esac
 
 archive="roc_nightly-linux_${roc_arch}-${ROC_NIGHTLY_DATE}-${ROC_NIGHTLY_SHA}.tar.gz"
 url="https://github.com/roc-lang/nightlies/releases/download/${ROC_NIGHTLY_TAG}/${archive}"
+prefix="${ROC_PREFIX:-/opt/roc}"
+link_dir="${ROC_LINK_DIR:-/usr/local/bin}"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL "$url" -o "$tmp/roc.tar.gz"
-mkdir -p /opt/roc
+mkdir -p "$prefix" "$link_dir"
 tar -xzf "$tmp/roc.tar.gz" -C "$tmp"
 roc_bin="$(find "$tmp" -type f -name roc | head -n 1)"
 if [ -z "$roc_bin" ]; then
@@ -30,6 +32,7 @@ if [ -z "$roc_bin" ]; then
     exit 1
 fi
 roc_root="$(cd "$(dirname "$roc_bin")" && pwd)"
-cp -a "$roc_root/." /opt/roc/
-ln -sf /opt/roc/roc /usr/local/bin/roc
+cp -a "$roc_root/." "$prefix/"
+ln -sf "$prefix/roc" "$link_dir/roc"
+export PATH="$link_dir:$PATH"
 roc version

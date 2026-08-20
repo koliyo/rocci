@@ -4,7 +4,7 @@ title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
 description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, bootstrap-SSH, GitHub Environment, and deploy-user preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:codex, at: 2026-08-20T17:49:09Z }
+generated: { by: process:cursor, at: 2026-08-20T17:51:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -375,7 +375,9 @@ cargo run -q -p rocci-rocdown-cli -- check docs
 A GitHub `site.yml` run on the same revision uploads linux/amd64 artifacts.
 `package` is not required in `ci-local.sh` unless Roc is on `PATH`.
 
-**Status:** not started.
+**Status:** implemented in this revision (`check site`, `site.yml` package-only
+artifacts, README). Not logged complete until CI and Knowledge succeed on the
+revision.
 
 ### Phase 2 — Origin VPS, Tunnel, and a manual first publish
 

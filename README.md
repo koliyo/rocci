@@ -99,6 +99,7 @@ cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 ```sh
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 cargo run -p rocci-rocdown-cli -- build examples/rocdown/site --output dist
+cargo run -p rocci-rocdown-cli -- check site
 cargo run -p rocci-rocdown-cli -- check docs
 cargo run -p rocci-rocdown-cli -- test docs
 cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
@@ -141,17 +142,20 @@ around that same host; it does not use `rocci bundle`. Production signing is
 planned. See
 [`docs/guides/rocci-browser.rocdown`](docs/guides/rocci-browser.rocdown).
 
-The project documentation lives in [`docs`](docs) and is configured by
-[`docs/rocdown.toml`](docs/rocdown.toml). With `roc` and `cargo` on `PATH`, build the
-publishable `rocci.dev` tree with:
+The public `rocci.dev` tree is [`site`](site), configured by
+[`site/rocdown.toml`](site/rocdown.toml) and written to `dist/rocci.dev`.
+[`docs`](docs) remains the mounted documentation catalog and a standalone
+`check docs` / `test docs` target. With `roc` and `cargo` on `PATH`, package
+the hybrid site (CDN archive plus musl `islands` binary) with:
 
 ```sh
-cargo run -p rocci-rocdown-cli -- build docs
+cargo run -p rocci-rocdown-cli -- package site --target x64musl
 ```
 
-That build uses the configured output at `dist/rocci.dev`, copies the social
-preview asset, and emits `llms.txt`, `pages.json`, `sitemap.xml`, and `robots.txt` beside the
-static pages.
+That writes `dist/rocci.dev`, `dist/site.tgz`, `dist/islands`, and
+`publish.json`. GitHub Actions workflow `site.yml` runs the same package on
+linux/amd64 and uploads those artifacts; it does not deploy. `check site`
+validates the public tree without packaging.
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
