@@ -50,6 +50,10 @@ pub struct ServeOptions {
     #[arg(long)]
     pub no_live_reload: bool,
 
+    /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+    #[arg(long)]
+    pub log_handlers: bool,
+
     /// TCP port to listen on. Defaults to a free port with the preview window,
     /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
     #[arg(
@@ -662,6 +666,14 @@ mod tests {
         let cli = ServeCli::try_parse_from(["rocci", "--no-live-reload"]).unwrap();
         assert!(cli.serve.no_live_reload);
         assert!(!cli.serve.live_reload());
+    }
+
+    #[test]
+    fn clap_accepts_log_handlers() {
+        let cli = ServeCli::try_parse_from(["rocci", "--log-handlers"]).unwrap();
+        assert!(cli.serve.log_handlers);
+        let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
+        assert!(!cli.serve.log_handlers);
     }
 
     #[test]

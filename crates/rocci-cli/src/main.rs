@@ -195,6 +195,7 @@ fn try_main() -> Result<()> {
             serve.no_window,
             serve.port,
             serve.live_reload(),
+            serve.log_handlers,
         ),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),

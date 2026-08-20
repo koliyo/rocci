@@ -31,10 +31,12 @@ pub struct GenericModule {
     pub local_assets: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
 pub struct GenericAppPlan {
     pub primary_name: String,
     pub modules: Vec<GenericModule>,
     pub redirect_trailing_slash: bool,
+    pub log_handlers: bool,
 }
 
 impl GenericAppPlan {
@@ -73,6 +75,7 @@ impl GenericAppPlan {
                         .iter()
                         .flat_map(|module| module.local_assets.iter()),
                 ),
+                log_handlers: self.log_handlers,
             },
         )
     }
@@ -113,6 +116,7 @@ pub struct DriverOptions {
     pub args: Vec<String>,
     pub no_window: bool,
     pub live_reload: bool,
+    pub log_handlers: bool,
     pub port: serve::PortArg,
     pub db_path: Option<PathBuf>,
     pub title: String,
@@ -127,9 +131,11 @@ pub fn execute_app_plan(
     src_dir: &Path,
     options: &DriverOptions,
 ) -> Result<()> {
+    let mut plan = plan.clone();
+    plan.log_handlers = options.log_handlers;
     let write_started = Instant::now();
     let type_name = plan.primary_name.clone();
-    let workspace = stage_app_workspace(plan, src_dir, "run")?;
+    let workspace = stage_app_workspace(&plan, src_dir, "run")?;
     let default_db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
     let db_path = options.db_path.as_deref().unwrap_or(&default_db_path);
     let resolved = ResolvedEntry {
@@ -165,9 +171,17 @@ pub fn execute_app_plan(
     )
 }
 
-pub fn spawn_app_plan(plan: &GenericAppPlan, src_dir: &Path, port: u16) -> Result<RunningApp> {
+pub fn spawn_app_plan(
+    plan: &GenericAppPlan,
+    src_dir: &Path,
+    port: u16,
+    logs: Option<Arc<LogHub>>,
+    log_handlers: bool,
+) -> Result<RunningApp> {
+    let mut plan = plan.clone();
+    plan.log_handlers = log_handlers;
     let fingerprint = plan.fingerprint();
-    let workspace = stage_app_workspace(plan, src_dir, "islands-dev")?;
+    let workspace = stage_app_workspace(&plan, src_dir, "islands-dev")?;
     let db_path = workspace.path.join("islands.db");
     let resolved = ResolvedEntry {
         app_dir: workspace.path.clone(),
@@ -176,7 +190,7 @@ pub fn spawn_app_plan(plan: &GenericAppPlan, src_dir: &Path, port: u16) -> Resul
     let invocation = roc_invocation(&resolved, &[]);
     let mut cmd = roc_command(&invocation, port);
     cmd.env("DB_PATH", &db_path);
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, logs)?;
     match serve::wait_for_roc(&mut child, &mut tee, port, "/health")? {
         serve::RocStart::Ready => Ok(RunningApp {
             port,

@@ -43,6 +43,7 @@ pub fn merge_standalone_routes<'a>(
 pub struct DispatchOptions {
     pub redirect_trailing_slash: bool,
     pub media_dirs: Vec<String>,
+    pub log_handlers: bool,
 }
 
 impl Default for DispatchOptions {
@@ -50,6 +51,7 @@ impl Default for DispatchOptions {
         Self {
             redirect_trailing_slash: true,
             media_dirs: Vec::new(),
+            log_handlers: false,
         }
     }
 }
@@ -95,7 +97,7 @@ pub fn generate_bound_main_roc(
             has_health = true;
         }
         listed.push(listed_route(module, route));
-        arms.push_str(&route_arm(module, route));
+        arms.push_str(&route_arm(module, route, options.log_handlers));
     }
     if !has_health {
         listed.push(ListedRoute::new("GET", "/health", "health"));
@@ -178,6 +180,24 @@ pub fn generate_bound_main_roc(
     let static_mounts_code = static_mounts.join("\n");
     let file_roots_list = file_root_ids.join(", ");
 
+    let stderr_import = if options.log_handlers {
+        "import pf.Stderr\n"
+    } else {
+        ""
+    };
+    let handler_log_helper = if options.log_handlers {
+        r#"
+handler_log! = |method, path, status| {
+    match Stderr.line!("${method} ${path} -> ${status}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+}
+"#
+    } else {
+        ""
+    };
+
     let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{PLATFORM}",
@@ -188,7 +208,7 @@ import pf.Env
 import pf.Path
 import pf.Server
 import pf.Sse
-import http.Method
+{stderr_import}import http.Method
 import http.Response
 {imports}import Datastar
 import Html
@@ -228,7 +248,7 @@ respond! = |request, context| {{
 
 shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
 shutdown! = |_reason, _context| Ok({{}})
-
+{handler_log_helper}
 html_ok = |body|
     Ok(
         Server.respond(
@@ -335,34 +355,64 @@ fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
     )
 }
 
-fn route_arm(type_name: &str, route: &RouteInfo) -> String {
+fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
     let handler = format!("{type_name}.{}!", route.fn_name.trim_end_matches('!'));
     let call = format!("{handler}(context, request)");
+    let ok_log = if log_handlers {
+        format!(
+            "handler_log!(\"{method}\", \"{path}\", \"ok\")\n                ",
+            method = route.method,
+            path = route.path,
+        )
+    } else {
+        String::new()
+    };
+    let err_log = if log_handlers {
+        format!(
+            "handler_log!(\"{method}\", \"{path}\", \"err\")\n                ",
+            method = route.method,
+            path = route.path,
+        )
+    } else {
+        String::new()
+    };
     if route.method == "GET" {
         format!(
             r#"        ("{method}", "{path}") =>
             match {call} {{
-                Ok(html) => html_ok(Html.render(html))
-                Err(err) => html_status(500, handler_error_html("{method}", "{path}", "{handler}", Str.inspect(err)))
+                Ok(html) => {{
+                {ok_log}html_ok(Html.render(html))
+                }}
+                Err(err) => {{
+                {err_log}html_status(500, handler_error_html("{method}", "{path}", "{handler}", Str.inspect(err)))
+                }}
             }}
 "#,
             method = route.method,
             path = route.path,
             call = call,
             handler = handler,
+            ok_log = ok_log,
+            err_log = err_log,
         )
     } else {
         format!(
             r#"        ("{method}", "{path}") =>
             match {call} {{
-                Ok(html) => Ok(patch_html!(html))
-                Err(err) => Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                Ok(html) => {{
+                {ok_log}Ok(patch_html!(html))
+                }}
+                Err(err) => {{
+                {err_log}Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                }}
             }}
 "#,
             method = route.method,
             path = route.path,
             call = call,
             handler = handler,
+            ok_log = ok_log,
+            err_log = err_log,
         )
     }
 }
@@ -432,6 +482,42 @@ mod tests {
         assert!(main.contains("ROC_BASIC_WEBSERVER_HOST"));
         assert!(main.contains("host: listen_host!({})"));
         assert!(!main.contains("on_get_root!!"));
+        assert!(!main.contains("import pf.Stderr"));
+        assert!(!main.contains("handler_log!"));
+    }
+
+    #[test]
+    fn log_handlers_wraps_route_arms() {
+        let main = generate_bound_main_roc(
+            "Counter",
+            None,
+            None,
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Counter",
+                    routes: &[route(
+                        "POST",
+                        "/actions/counter/increment",
+                        "on_post_actions_counter_increment!",
+                    )],
+                },
+                &[],
+            ),
+            DispatchOptions {
+                log_handlers: true,
+                ..DispatchOptions::default()
+            },
+        );
+        assert!(main.contains("import pf.Stderr"), "{main}");
+        assert!(main.contains("handler_log!"), "{main}");
+        assert!(
+            main.contains("handler_log!(\"POST\", \"/actions/counter/increment\", \"ok\")"),
+            "{main}"
+        );
+        assert!(
+            main.contains("handler_log!(\"POST\", \"/actions/counter/increment\", \"err\")"),
+            "{main}"
+        );
     }
 
     #[test]

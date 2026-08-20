@@ -48,6 +48,7 @@ pub fn run_knowledge(
         custom_filter: Some(custom_filter),
         log_prefix: "rocci-okf".into(),
         backend_port: None,
+        log_handlers: false,
         on_stop: None,
     };
 
@@ -55,7 +56,7 @@ pub fn run_knowledge(
     let cache_dir = parse_cache_dir(&root);
     let mut cache = okf::ParseCache::load_dir(&cache_dir, profile);
     let mut apply_session: Option<ApplySession> = None;
-    serve_static_site(config, move |out_dir| {
+    serve_static_site(config, move |out_dir, _logs| {
         let snapshot = rebuild_site(
             &build_root,
             out_dir,

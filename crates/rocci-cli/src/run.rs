@@ -23,9 +23,10 @@ pub fn run(
     no_window: bool,
     port: serve::PortArg,
     live_reload: bool,
+    log_handlers: bool,
 ) -> Result<()> {
     if is_standalone_file(file) {
-        return run_standalone(file, args, no_window, port, live_reload);
+        return run_standalone(file, args, no_window, port, live_reload, log_handlers);
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
@@ -162,6 +163,7 @@ fn run_standalone(
     no_window: bool,
     port: serve::PortArg,
     live_reload: bool,
+    log_handlers: bool,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -193,6 +195,7 @@ fn run_standalone(
         args: args.to_vec(),
         no_window,
         live_reload,
+        log_handlers,
         port,
         db_path: None,
         title,
@@ -274,6 +277,7 @@ fn plan_standalone(
             redirect_trailing_slash: redirect_trailing_slash_for(
                 primary.parent().unwrap_or_else(|| Path::new(".")),
             ),
+            log_handlers: false,
         }),
         profile,
         inspect_pages,

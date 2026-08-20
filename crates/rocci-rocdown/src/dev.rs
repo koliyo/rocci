@@ -29,7 +29,7 @@ pub fn run_with_host(
     port: u16,
     host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<DevServer> {
-    run_with_host_at(root, output, port, host, "/")
+    run_with_host_at(root, output, port, host, "/", false)
 }
 
 pub fn run_with_host_at(
@@ -38,6 +38,7 @@ pub fn run_with_host_at(
     port: u16,
     host: Option<rocci_roc_host::HostChoice>,
     open_path: &str,
+    log_handlers: bool,
 ) -> Result<DevServer> {
     let root = absolute(root)?;
     if !root.is_dir() {
@@ -95,19 +96,26 @@ pub fn run_with_host_at(
         custom_filter: Some(custom_filter),
         log_prefix: "rocdown".into(),
         backend_port: Some(backend_port.clone()),
+        log_handlers,
         on_stop: Some(Arc::new(move || {
             *backend_slot.lock().unwrap_or_else(|err| err.into_inner()) = None;
         })),
     };
 
     let session_root = root.clone();
-    serve_static_site(config, move |out_dir| {
+    serve_static_site(config, move |out_dir, logs| {
         let load_started = Instant::now();
         let loaded = load_site(&session_root)?;
         let load_ms = load_started.elapsed().as_millis();
         let mut report = session.rebuild_loaded(&loaded, out_dir)?;
         report.load_ms = load_ms;
-        sync_island_backend(&session_root, &backend, &backend_port);
+        sync_island_backend(
+            &session_root,
+            &backend,
+            &backend_port,
+            Some(logs.clone()),
+            log_handlers,
+        );
         Ok(Some(snapshot_from_loaded(
             &loaded,
             out_dir,
@@ -116,7 +124,13 @@ pub fn run_with_host_at(
     })
 }
 
-fn sync_island_backend(root: &Path, backend: &Mutex<Option<RunningApp>>, advertised: &AtomicU16) {
+fn sync_island_backend(
+    root: &Path,
+    backend: &Mutex<Option<RunningApp>>,
+    advertised: &AtomicU16,
+    logs: Option<Arc<rocci_cli::logs::LogHub>>,
+    log_handlers: bool,
+) {
     match crate::service::generated_island_plan(root) {
         Ok(None) => {
             *backend.lock().unwrap_or_else(|err| err.into_inner()) = None;
@@ -124,7 +138,11 @@ fn sync_island_backend(root: &Path, backend: &Mutex<Option<RunningApp>>, adverti
         }
         Ok(Some(plan)) => {
             let app = plan.into_app_plan();
-            let fingerprint = app.fingerprint();
+            let fingerprint = {
+                let mut app = app.clone();
+                app.log_handlers = log_handlers;
+                app.fingerprint()
+            };
             let mut slot = backend.lock().unwrap_or_else(|err| err.into_inner());
             if slot
                 .as_ref()
@@ -144,7 +162,7 @@ fn sync_island_backend(root: &Path, backend: &Mutex<Option<RunningApp>>, adverti
             };
             advertised.store(0, Ordering::Relaxed);
             *slot = None;
-            match rocci_cli::driver::spawn_app_plan(&app, root, port) {
+            match rocci_cli::driver::spawn_app_plan(&app, root, port, logs, log_handlers) {
                 Ok(running) => {
                     advertised.store(running.port, Ordering::Relaxed);
                     eprintln!("rocdown: island actions available on this origin");
