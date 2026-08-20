@@ -35,6 +35,9 @@ pub fn load_plugin_manifest(path: &Path) -> Result<PluginSpec> {
 }
 
 pub fn load_repo_local(paths: &Paths) -> Result<Option<RepoLocalFile>> {
+    if paths.ignore_cwd_repo_local {
+        return Ok(None);
+    }
     let repo_local = paths.repo_local_path();
     if !repo_local.is_file() {
         return Ok(None);

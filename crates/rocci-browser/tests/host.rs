@@ -41,11 +41,7 @@ fn temp_paths() -> (Paths, PathBuf) {
     let project = root.join("fixture");
     fs::create_dir_all(browser_dir.join("plugins")).unwrap();
     fs::create_dir_all(&project).unwrap();
-    let paths = Paths {
-        browser_dir,
-        cwd: root,
-        plugins_env: None,
-    };
+    let paths = Paths::new(browser_dir, root);
     (paths, project)
 }
 

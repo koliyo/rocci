@@ -125,8 +125,10 @@ fn main() -> Result<()> {
 fn paths_from_cli(root: Option<PathBuf>) -> Result<Paths> {
     let mut paths = Paths::from_env()?;
     if let Some(root) = root {
-        paths.cwd = fs::canonicalize(&root)
-            .with_context(|| format!("cannot resolve --root {}", root.display()))?;
+        paths.set_explicit_root(
+            fs::canonicalize(&root)
+                .with_context(|| format!("cannot resolve --root {}", root.display()))?,
+        );
     }
     Ok(paths)
 }

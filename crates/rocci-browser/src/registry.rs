@@ -86,11 +86,7 @@ mod tests {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&dir).unwrap();
-        Paths {
-            browser_dir: dir.join("browser"),
-            cwd: dir,
-            plugins_env: None,
-        }
+        Paths::new(dir.join("browser"), dir)
     }
 
     #[test]
