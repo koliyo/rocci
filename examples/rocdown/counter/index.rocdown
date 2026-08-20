@@ -3,7 +3,7 @@
     layout: "docs",
     meta: {
         title: "Hybrid counter",
-        description: "CDN HTML with a SQLite-backed island and timezone click feed",
+        description: "CDN HTML with a SQLite-backed island",
     },
 }
 
@@ -12,7 +12,6 @@ import pf.Env
 import pf.Path
 import pf.Sqlite
 import pf.Stderr
-import Origin
 }
 
 @context { db : Sqlite.Db }
@@ -38,27 +37,10 @@ import Origin
             params: {},
         },
     )?
-    Sqlite.execute!(
-        {
-            db,
-            query: "CREATE TABLE IF NOT EXISTS clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL)",
-            params: {},
-        },
-    )?
     { db: db }
 }
 
-@on:post("/actions/counter/sync") = |{ db }, request| {
-    _ = request
-    now_row : { now : I64 }
-    now_row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
+@on:post("/actions/counter/sync") = |{ db }| {
     count_row : { value : I64 }
     count_row = Sqlite.query!(
         {
@@ -68,74 +50,10 @@ import Origin
             limits: Sqlite.default_query_limits,
         },
     )?
-    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
-    rows = Sqlite.query_many!(
-        {
-            db,
-            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    clicks = List.map(
-        rows,
-        |row| {
-            mapped = Origin.lookup(row.tz)
-            {
-                flag: mapped.flag,
-                place: Origin.place_label({
-                    country: row.country,
-                    city: row.city,
-                    region: row.region,
-                    flag: mapped.flag,
-                }),
-                ago: Origin.relative_ago(now_row.now, row.ts),
-                ts: row.ts.to_str(),
-            }
-        },
-    )
-    counterLive({ count: count_row.value, clicks })
+    counterCard({ count: count_row.value })
 }
 
-@on:post("/actions/counter/increment") = |{ db }, request| {
-    body =
-        match request.body().with_limit(8 * 1024).read_all!() {
-            Ok(bytes) => Str.from_utf8_lossy(bytes)
-            Err(_) => ""
-        }
-    tz_raw = Origin.signal_str(body, "tz")
-    tz = if tz_raw == "" { "UTC" } else { tz_raw }
-    place = Origin.lookup(tz)
-    now_row : { now : I64 }
-    now_row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    now = now_row.now
-    Sqlite.execute!(
-        {
-            db,
-            query: "INSERT INTO clicks (ts, tz, country, city, region) VALUES (:ts, :tz, :country, :city, :region)",
-            params: {
-                ts: now,
-                tz: tz,
-                country: place.country,
-                city: place.city,
-                region: place.region,
-            },
-        },
-    )?
-    Sqlite.execute!(
-        {
-            db,
-            query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 20)",
-            params: {},
-        },
-    )?
+@on:post("/actions/counter/increment") = |{ db }| {
     Sqlite.execute!(
         {
             db,
@@ -152,37 +70,11 @@ import Origin
             limits: Sqlite.default_query_limits,
         },
     )?
-    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
-    rows = Sqlite.query_many!(
-        {
-            db,
-            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    clicks = List.map(
-        rows,
-        |row| {
-            mapped = Origin.lookup(row.tz)
-            {
-                flag: mapped.flag,
-                place: Origin.place_label({
-                    country: row.country,
-                    city: row.city,
-                    region: row.region,
-                    flag: mapped.flag,
-                }),
-                ago: Origin.relative_ago(now, row.ts),
-                ts: row.ts.to_str(),
-            }
-        },
-    )
     match Stderr.line!("counter increment count=${count_row.value.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterLive({ count: count_row.value, clicks })
+    counterCard({ count: count_row.value })
 }
 
 @on:post("/actions/counter/reset") = |{ db }| {
@@ -193,23 +85,23 @@ import Origin
             params: {},
         },
     )?
-    Sqlite.execute!(
-        {
-            db,
-            query: "DELETE FROM clicks",
-            params: {},
-        },
-    )?
-    match Stderr.line!("counter reset") {
+    match Stderr.line!("counter reset count=0") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterLive({ count: 0.I64, clicks: [] })
+    counterCard({ count: 0.I64 })
 }
 
 @component
-CounterPanel = |{ count }| {
+CounterCard = |{ count }| {
     @css {
+        section {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--rd-color-border);
+            border-radius: 16px;
+            background: var(--rd-color-surface);
+        }
         .eyebrow {
             margin: 0 0 0.35rem;
             color: var(--rd-color-accent);
@@ -228,93 +120,15 @@ CounterPanel = |{ count }| {
             letter-spacing: -0.04em;
         }
     }
-    <div id="counter-panel">
+    <section id="counter" class="counter-card">
         <p class="eyebrow">Shared count</p>
         <output>{count.to_str()}</output>
-    </div>
+    </section>
 }
 
 @component
-CounterFeed = |{ clicks }| {
+CounterIsland = |{ count }| {
     @css {
-        .feed {
-            margin: 1.35rem 0 0;
-            padding: 0;
-            list-style: none;
-        }
-        .feed li {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 0.65rem 0.85rem;
-            align-items: baseline;
-            padding: 0.55rem 0;
-            border-top: 1px solid var(--rd-color-border);
-            font-size: 0.92rem;
-        }
-        .feed .flag {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 2rem;
-            padding: 0.15rem 0.35rem;
-            border-radius: 6px;
-            background: var(--rd-color-bg);
-            border: 1px solid var(--rd-color-border);
-            color: var(--rd-color-text);
-            font-family: ui-monospace, monospace;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-        }
-        .feed .where {
-            color: var(--rd-color-text);
-            font-size: 0.92rem;
-        }
-        .feed time {
-            color: var(--rd-color-muted);
-            font-size: 0.8rem;
-            white-space: nowrap;
-        }
-        .empty {
-            margin: 1.35rem 0 0;
-            color: var(--rd-color-muted);
-            font-size: 0.9rem;
-        }
-    }
-    <div id="counter-feed">
-        @if List.is_empty(clicks) {
-            <p class="empty">No clicks yet - be the first.</p>
-        } @else {
-            <ul class="feed" aria-label="Recent increments">
-                @for click in clicks {
-                    <li>
-                        <span class="flag" aria-hidden="true">{click.flag}</span>
-                        <div class="where">{click.place}</div>
-                        <time datetime={click.ts}>{click.ago}</time>
-                    </li>
-                }
-            </ul>
-        }
-    </div>
-}
-
-@component
-CounterLive = |{ count, clicks }|
-    <>
-        <CounterPanel count={count} />
-        <CounterFeed clicks={clicks} />
-    </>
-
-@component
-CounterCard = |{ count, clicks }| {
-    @css {
-        section {
-            margin: 1.25rem 0 0;
-            padding: 1.15rem 1.25rem;
-            border: 1px solid var(--rd-color-border);
-            border-radius: 16px;
-            background: var(--rd-color-surface);
-        }
         .actions {
             display: flex;
             gap: 0.75rem;
@@ -337,19 +151,10 @@ CounterCard = |{ count, clicks }| {
             background: transparent;
             color: var(--rd-color-muted);
         }
-        .privacy {
-            margin: 1rem 0 0;
-            color: var(--rd-color-muted);
-            font-size: 0.8rem;
-            line-height: 1.45;
-        }
     }
-    <section id="counter" class="counter-card">
-        <div
-            data-signals="{tz: ''}"
-            data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; @post('/actions/counter/sync')"
-        ></div>
-        <CounterPanel count={count} />
+    <>
+        <div data-init=@post("/actions/counter/sync")></div>
+        <CounterCard count={count} />
         <div class="actions">
             <button type="button" data-on:click=@post("/actions/counter/increment")>
                 Increment
@@ -358,23 +163,17 @@ CounterCard = |{ count, clicks }| {
                 Reset
             </button>
         </div>
-        <CounterFeed clicks={clicks} />
-        <p class="privacy">
-            Origin comes from your browser timezone - no IP address is stored.
-        </p>
-    </section>
+    </>
 }
 
 # Hybrid counter
 
 Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
 time (`count` is `0` in that snapshot). On load, the island syncs the live
-count and last twenty clicks. Increment posts the browser timezone; the service
-maps IANA zones to country and city, then morphs `#counter-panel` and
-`#counter-feed`.
+count. Increment and reset morph `#counter`.
 
 See [About](/about/) for a neighboring page that stays static.
 
 @render {
-    counterCard({ count: 0.I64, clicks: [] })
+    counterIsland({ count: 0.I64 })
 }

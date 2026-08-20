@@ -1,6 +1,6 @@
 [site]
 title = "Hybrid counter"
-description = "CDN-static Rocdown with a SQLite-backed island"
+description = "CDN-static Rocdown with a SQLite-backed counter island"
 
 [build]
 output = "dist"

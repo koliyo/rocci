@@ -24,7 +24,7 @@ runtime boundary that is easy to inspect in source.
 | `rocci/custom/snake` | Custom `main.roc` multiplayer stress demo | `rocci run examples/rocci/custom/snake` |
 | `rocci/custom/datastar` | Custom `main.roc` search, edit, todos, tabs, validation | `rocci run examples/rocci/custom/datastar` |
 | `rocdown/site` | Two-page static documentation fixture | `rocdown build examples/rocdown/site --output dist` |
-| `rocdown/counter` | Hybrid CDN page, SQLite count, timezone click feed | `rocdown run examples/rocdown/counter` |
+| `rocdown/counter` | Hybrid CDN page with a SQLite counter island | `rocdown run examples/rocdown/counter` |
 | `rocdown/hybrid` | Page-kind fixture (`static` / `hydrate` / `live`) | `rocdown run examples/rocdown/hybrid` |
 
 When working from source, prefix `rocci` with
