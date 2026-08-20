@@ -4,7 +4,7 @@ title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
 description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, and origin docker kit were reported in place. CI packages site/ and deploys from main before the production Tunnel hostname is routed. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-20T20:55:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -267,9 +267,11 @@ here.[^human-preparation]
 
    | Secret | Value |
    | --- | --- |
-   | `DEPLOY_HOST` | VPS IPv4 (or a hostname that resolves to it) |
+   | `DEPLOY_HOST` | Access SSH hostname (`ssh.rocci.dev`) |
    | `DEPLOY_USER` | SSH user that may write the release directory |
    | `DEPLOY_SSH_KEY` | Private key for that user (ed25519) |
+   | `CF_ACCESS_CLIENT_ID` | Cloudflare Access service token id |
+   | `CF_ACCESS_CLIENT_SECRET` | Cloudflare Access service token secret |
 
    The `deploy` user's matching public key is on the VPS. Optional later: a
    Cloudflare API token used only to purge cache, as `CLOUDFLARE_PURGE_TOKEN`.
@@ -388,12 +390,11 @@ copy `site.tgz` or `islands` by hand.[^docker-readme][^compose-hybrid][^cf-tunne
 
 **Does:**
 
-- Create the VM. Add IPv6 plus a Primary IPv4 for bootstrap SSH. No inbound
-  80/443 (provider firewall). Allow SSH from the maintainer network and from
-  GitHub-hosted Actions (or another documented CI egress) so later deploys
-  can rsync.
-- Install Docker. Rsync `docker/compose.hybrid.yml`, `docker/cdn/`,
-  `docker/islands/Dockerfile`, and `docker/prod/` (`bootstrap-rsync.sh`).
+- Create the VM. Add IPv6 plus a Primary IPv4 for bootstrap. No inbound
+  22/80/443 on the provider firewall. CI and operators SSH through Cloudflare
+  Access (`ssh.rocci.dev` + service token), not grey-cloud port 22.
+- Install Docker. Scp `docker/compose.hybrid.yml`, `docker/cdn/`,
+  `docker/islands/Dockerfile`, and `docker/prod/` (`bootstrap-scp.sh`).
 - Keep `cloudflared` installed; do not attach `rocci.dev` until origin
   health exists.
 - Persist SQLite on a named volume. Document a copy-out backup.
@@ -413,10 +414,12 @@ locked-down deploy user. No Kubernetes. No public hostname requirement.
 
 **Does:**
 
-- Environment secrets: `DEPLOY_HOST`, `DEPLOY_USER`, SSH private key.
+- Environment secrets: `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`, SSH
+  private key, Cloudflare Access service token id/secret. CI uses
+  `cloudflared access ssh` as `ProxyCommand`; public 22 stays closed.
 - `deploy` job: `if: github.ref == 'refs/heads/main' && github.event_name ==
   'push'`. Needs the package job. Never runs on `pull_request`.
-- Rsync the origin kit plus `site.tgz` and `islands`. Atomic publish:
+- Scp the origin kit plus `site.tgz` and `islands`. Atomic publish:
   unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
   `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
   release. Failed health restores the previous release.

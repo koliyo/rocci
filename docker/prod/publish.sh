@@ -31,6 +31,8 @@ compose_file="${repo_docker}/compose.hybrid.yml"
 
 tgz="${incoming}/site.tgz"
 bin="${incoming}/islands"
+echo "=== publish ${sha} ==="
+echo "incoming=$(ls -l "${tgz}" "${bin}" 2>&1 || true)"
 if [ ! -f "${tgz}" ] || [ ! -f "${bin}" ]; then
     echo "error: missing ${tgz} or ${bin}" >&2
     exit 1
@@ -41,10 +43,13 @@ if [ -L "${current}" ]; then
     previous="$(readlink -f "${current}" || true)"
 fi
 
+echo "previous current=${previous:-none}"
 mkdir -p "${release}/dist" "${release}/islands-context"
+echo "=== unpack site.tgz ==="
 tar -xzf "${tgz}" -C "${release}/dist"
 if [ ! -f "${release}/dist/index.html" ]; then
     echo "error: site.tgz did not contain index.html" >&2
+    ls -la "${release}/dist" >&2 || true
     exit 1
 fi
 cp "${repo_docker}/islands/Dockerfile" "${release}/islands-context/Dockerfile"
@@ -57,13 +62,16 @@ compose_up() {
     export ROCCI_DIST="${root}/dist"
     export ROCCI_ISLANDS_CONTEXT="${root}/islands-context"
     export ROCCI_HTTP_PORT="${http_port}"
+    echo "=== docker compose up --build dist=${ROCCI_DIST} islands=${ROCCI_ISLANDS_CONTEXT} ==="
     docker compose -f "${compose_file}" --project-directory "${repo_docker}" up -d --build
 }
 
 wait_health() {
-    local i
+    local i code
     for i in $(seq 1 36); do
-        if curl -sf "http://127.0.0.1:${http_port}/health" >/dev/null; then
+        code="$(curl -sS -o /tmp/rocci-health.out -w '%{http_code}' "http://127.0.0.1:${http_port}/health" || true)"
+        echo "health ${i}/36 HTTP ${code} body=$(head -c 200 /tmp/rocci-health.out 2>/dev/null || true)"
+        if [ "${code}" = "200" ]; then
             return 0
         fi
         sleep 5
@@ -74,7 +82,14 @@ wait_health() {
 compose_up "${release}"
 if ! wait_health; then
     echo "error: origin health failed for ${sha}" >&2
+    echo "=== curl -v health ===" >&2
+    curl -v "http://127.0.0.1:${http_port}/health" || true
+    echo "=== docker compose ps / logs ===" >&2
+    export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-rocci-prod}"
+    docker compose -f "${compose_file}" --project-directory "${repo_docker}" ps -a || true
+    docker compose -f "${compose_file}" --project-directory "${repo_docker}" logs --tail 120 || true
     if [ -n "${previous}" ] && [ -d "${previous}" ]; then
+        echo "=== rollback to ${previous} ===" >&2
         compose_up "${previous}"
     fi
     exit 1

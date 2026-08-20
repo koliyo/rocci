@@ -65,24 +65,66 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      CF_SSH_HOSTNAME: ssh.rocci.dev
+      ROCCI_SSH_VERBOSE: "1"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           name: rocci-dev-linux-amd64
           path: artifacts
-      - name: SSH and rsync to origin
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      - name: Show downloaded artifacts
+        run: |
+          set -euo pipefail
+          ls -la artifacts
+          test -f artifacts/site.tgz
+          test -f artifacts/islands
+          wc -c artifacts/site.tgz artifacts/islands
+          file artifacts/islands || true
+      - name: Install cloudflared
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o "$HOME/.local/bin/cloudflared"
+          chmod +x "$HOME/.local/bin/cloudflared"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/cloudflared" version || "$HOME/.local/bin/cloudflared" --version
+      - name: Write SSH key
         run: |
           set -euo pipefail
           umask 077
           mkdir -p "$HOME/.ssh"
+          if [ -z "${DEPLOY_SSH_KEY:-}" ]; then
+            echo "error: DEPLOY_SSH_KEY is empty" >&2
+            exit 1
+          fi
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy"
           chmod 600 "$HOME/.ssh/deploy"
-          ssh-keyscan -T 10 "$DEPLOY_HOST" >> "$HOME/.ssh/known_hosts"
-          export RSYNC_RSH="ssh -i $HOME/.ssh/deploy -o IdentitiesOnly=yes"
-          export DEPLOY_HOST DEPLOY_USER
-          ./docker/prod/push-release.sh artifacts "$GITHUB_SHA"
+          chmod +x docker/prod/*.sh
+      - name: Probe Access SSH
+        run: ./docker/prod/check-ssh.sh
+      - name: Bootstrap origin kit
+        run: ./docker/prod/bootstrap-scp.sh
+      - name: Copy site.tgz and islands
+        run: |
+          set -euo pipefail
+          . docker/prod/ssh-opts.sh
+          user="${DEPLOY_USER:-deploy}"
+          incoming="/srv/rocci/incoming/${GITHUB_SHA}"
+          ssh_target="${user}@${DEPLOY_HOST}"
+          rocci_ssh "${ssh_target}" "mkdir -p '${incoming}'"
+          rocci_scp artifacts/site.tgz artifacts/islands "${ssh_target}:${incoming}/"
+          rocci_ssh "${ssh_target}" "ls -l '${incoming}'"
+      - name: Publish on origin
+        run: |
+          set -euo pipefail
+          . docker/prod/ssh-opts.sh
+          user="${DEPLOY_USER:-deploy}"
+          rocci_ssh "${user}@${DEPLOY_HOST}" "/srv/rocci/docker/prod/publish.sh '${GITHUB_SHA}'"

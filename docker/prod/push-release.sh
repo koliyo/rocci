@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# From CI or a laptop: rsync origin kit + artifacts, then run publish.sh on the VPS.
+# From CI or a laptop: scp origin kit + artifacts, then run publish.sh on the VPS.
 set -euo pipefail
 
 usage() {
@@ -7,7 +7,7 @@ usage() {
     echo "  ARTIFACT_DIR  directory with site.tgz and islands" >&2
     echo "  SHA           git commit (hex)" >&2
     echo "env: DEPLOY_HOST (required), DEPLOY_USER (default deploy)," >&2
-    echo "     ROCCI_ORIGIN_ROOT (default /srv/rocci), RSYNC_RSH" >&2
+    echo "     ROCCI_ORIGIN_ROOT (default /srv/rocci)" >&2
     exit 1
 }
 
@@ -24,8 +24,9 @@ else
     user="${DEPLOY_USER}"
 fi
 origin_root="${ROCCI_ORIGIN_ROOT:-/srv/rocci}"
-rsh="${RSYNC_RSH:-ssh}"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=ssh-opts.sh
+. "${script_dir}/ssh-opts.sh"
 
 if [ ! -d "${artifact_dir}" ]; then
     echo "error: not a directory: ${artifact_dir}" >&2
@@ -39,12 +40,17 @@ fi
 ssh_target="${user}@${host}"
 incoming="${origin_root}/incoming/${sha}"
 
-"${script_dir}/bootstrap-rsync.sh"
+echo "=== artifacts $(ls -l "${artifact_dir}/site.tgz" "${artifact_dir}/islands") ==="
+"${script_dir}/bootstrap-scp.sh"
 
-${rsh} "${ssh_target}" "mkdir -p '${incoming}'"
-rsync -az -e "${rsh}" \
+echo "=== mkdir incoming ${incoming} ==="
+rocci_ssh "${ssh_target}" "mkdir -p '${incoming}'"
+echo "=== scp site.tgz + islands ==="
+rocci_scp \
     "${artifact_dir}/site.tgz" \
     "${artifact_dir}/islands" \
     "${ssh_target}:${incoming}/"
+rocci_ssh "${ssh_target}" "ls -l '${incoming}'"
 
-${rsh} "${ssh_target}" "${origin_root}/docker/prod/publish.sh '${sha}'"
+echo "=== remote publish.sh ${sha} ==="
+rocci_ssh "${ssh_target}" "${origin_root}/docker/prod/publish.sh '${sha}'"
