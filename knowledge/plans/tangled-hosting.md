@@ -1,14 +1,19 @@
 ---
 type: Implementation Plan
 title: Tangled hosting and devops with a GitHub macOS mirror
-description: "Make Tangled the canonical git host, review surface, and Linux CI before Rocci becomes public open source; keep GitHub as a one-way mirror that runs macOS GitHub Actions. rocci.dev DNS and inbound-mail preparation was reported complete on 2026-08-20; Tangled identity and spindle work remains unstarted. Exploratory."
+description: "Deferred proposal to make Tangled the canonical git host, review surface, and Linux CI while GitHub becomes a macOS mirror. Rocci is not using Tangled at this point; GitHub remains the active repository, CI, and deployment path."
 tags: [domain/rocci, concern/ci, concern/governance, concern/publication, concern/community]
 status: draft
-generated: { by: process:codex, at: 2026-08-20T14:45:11Z }
+generated: { by: process:codex, at: 2026-08-20T17:49:09Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: maintainer-decision
+    resource: ../log.md
+    title: Maintainer decision to defer Tangled
+    author: human:nils
+    last_modified: 2026-08-20
   - id: publish-plan
     resource: rocci-dev-publish.md
     title: rocci.dev deployment preparation status
@@ -114,7 +119,14 @@ sources:
 
 # Tangled hosting and devops with a GitHub macOS mirror
 
-## Goal
+## Current decision
+
+Rocci is not using Tangled at this point. GitHub remains the active canonical
+repository, CI surface, and deployment path. This plan is deferred: none of
+its phases is a public-launch gate, and no Tangled account, remote, spindle,
+or mirror work should begin without a new maintainer decision.[^maintainer-decision]
+
+## Deferred proposal
 
 Run Rocci's repository, review, and Linux devops on Tangled, and keep GitHub
 only as a SHA-faithful mirror that provides `macos-latest` runners. This plan
@@ -128,7 +140,7 @@ GitHub and migrate after two release cycles. Public-preview Phase 0 (license
 texts, conduct, contribution, support) remains the publication gate and should
 land on the canonical Tangled surface.[^preview-plan][^research]
 
-## Working position
+## Proposed future position (deferred)
 
 - Canonical git remote, issues, and pull requests live on a Tangled knot,
   viewed at tangled.org.
@@ -160,7 +172,8 @@ land on the canonical Tangled surface.[^preview-plan][^research]
 | GitHub Release publication | No | Keep as the public binary channel until Tangled has an equivalent |
 | `rocci.dev` | Out of scope | Out of scope; custom domains are unimplemented on Tangled Sites |[^ci-workflow][^knowledge-workflow][^release-workflow][^tangled-pages][^research]
 
-Phases 0–4 are launch-blocking for the near-term public open-source clone:
+If the proposal is resumed, Phases 0–4 would be launch-blocking for a future
+open-source clone:
 identity, dual remotes, Linux spindle, the GitHub Darwin mirror, and the
 origin flip. Public-preview Phase 0 (license texts, conduct, contribution)
 must land on that Tangled surface before the repository is public. Phases 5–7
@@ -404,6 +417,8 @@ revision. Do not set `ROCCI_REQUIRE_ROC=1`.
    workspace remote. Tangled grouping stops at handle-owned siblings.
 
 [^research]: Operational constraints for the inverse topology, timeouts, pages, and split status.
+[^maintainer-decision]: The maintainer deferred Tangled adoption in the
+2026-08-20 Codex task; GitHub remains active for repository, CI, and deploy.
 [^publish-plan]: Maintainer-reported registrar, Cloudflare DNS, and inbound-mail completion; the deployment plan retains the remaining origin work.
 [^hosting-research]: Prior comparison and the governance warning that hosting is not governance.
 [^preview-plan]: Near-term public open-source intent; Phase 0 (license texts, conduct, contribution) remains the publication gate.
