@@ -3,6 +3,49 @@
 Build the site on a toolchain host. Local Docker then serves only the compiled
 artifacts. Official Caddy has no `rocci`, `rocdown`, `roc`, rustc, or WebKit.
 
+## Choosing `--target`
+
+`--target` is Roc’s process ISA/OS for the **Linux container** binary, not the
+machine that runs `package` / `build --release`. Match the container CPU:
+
+| Where the binary runs | Use |
+| --- | --- |
+| Docker Desktop on Apple Silicon (default `linux/arm64`) | `arm64musl` |
+| Docker on Intel Mac, most CI, typical `amd64` Linux VMs | `x64musl` |
+| Native macOS process (`.app`, local `rocci run`) | omit `--target` (host-native; not musl) |
+
+Compose does **not** choose the image architecture from `--target`. The slim
+Dockerfiles pull `debian:bookworm-slim` for Docker’s **default platform**
+(usually `linux/arm64` on Apple Silicon, `linux/amd64` on Intel). You must
+build a musl binary that matches that platform—or pin both sides yourself.
+
+On Apple Silicon you can run either path:
+
+```sh
+# Native arm64 containers (default, fastest)
+cargo run -q -p rocci-rocdown-cli -- package SITE --target arm64musl
+./docker/run-hybrid.sh DIST ISLANDS
+
+# amd64 containers via Docker’s x86_64 emulation (Rosetta/QEMU)
+cargo run -q -p rocci-rocdown-cli -- package SITE --target x64musl
+DOCKER_DEFAULT_PLATFORM=linux/amd64 ./docker/run-hybrid.sh DIST ISLANDS
+```
+
+A mismatch (`x64musl` binary in an arm64 image, or the reverse) fails at
+container start with an exec-format error. Check the engine default:
+
+```sh
+docker info --format '{{.Architecture}}'
+# aarch64 → default images are arm64 → prefer arm64musl
+# x86_64  → default images are amd64 → prefer x64musl
+```
+
+Apple Silicon does **not** mean `arm64mac` for Docker. `arm64mac` / `x64mac`
+are macOS process targets. Musl names (`*musl`) are Linux and are what the
+slim hybrid/app images expect. Prefer musl over glibc for portable static
+Linux binaries; see `rocci build --help` / `rocdown package --help` for the
+full Roc list.
+
 ## Static site (default hosting)
 
 Host a pre-built Rocdown tree (`rocdown build --cdn-only`). There is no custom
@@ -38,13 +81,15 @@ Package on the host, then Caddy plus a slim process image that contains only
 the island binary (Debian, SQLite, no `rocci` / `rocdown` / `roc`):
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+# Apple Silicon Docker → arm64musl; Intel / amd64 containers → x64musl
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
 ./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
 `package` writes `dist/`, `publish.json` (live routes and binary fingerprint),
-and a sibling `islands` binary. `--target x64musl` (or `arm64musl`) is the
-Linux container process target; `--host` remains apply-only.
+and a sibling `islands` binary. `--target` is the Linux container process
+target (see [Choosing `--target`](#choosing---target)); `--host` remains
+apply-only.
 
 `ROCCI_DIST` and `ROCCI_ISLANDS_CONTEXT` must be absolute. The wrapper copies
 the binary into a build context. The image creates an empty `assets/` directory
@@ -69,12 +114,12 @@ Linux OCI is opt-in: set `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose (do not
 weaken `rocci.toml` loopback validation).
 
 ```sh
-cargo run -q -p rocci-cli -- build --release examples/datastar --target x64musl
+# Match the container CPU (Apple Silicon Docker → arm64musl)
+cargo run -q -p rocci-cli -- build --release examples/datastar --target arm64musl
 ./docker/run-app.sh target/release/rocci-server
 ```
 
-Use `--target arm64musl` when the container is arm64. Override the published
-port with `ROCCI_HTTP_PORT`. Then open
+Override the published port with `ROCCI_HTTP_PORT`. Then open
 [http://127.0.0.1:8080/](http://127.0.0.1:8080/).
 
 ## Hybrid builder/dev demo (toolchain-heavy)

@@ -58,9 +58,10 @@ cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci
 # Bundle an ad-hoc signed macOS application (host-native server; not --target musl)
 cargo run -p rocci-cli -- bundle --config rocci.toml
 
-# Roc process `--target` (x64musl, arm64musl, x64glibc, …; see `rocci build --help`) is for island/app binaries, not apply
-# and not macOS .app bundles. Musl is the Linux container process target.
-# Linux OCI is opt-in: `./docker/run-app.sh` after `rocci build --release`.
+# Roc process `--target` matches the Linux container CPU (Apple Silicon Docker →
+# arm64musl; amd64 → x64musl). See docker/README.md and `rocci build --help`.
+# Not for apply or macOS .app bundles. Linux OCI: `./docker/run-app.sh` after
+# `rocci build --release --target …`.
 
 # Pin or update Datastar JavaScript assets
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar

@@ -184,9 +184,11 @@ routes.
 `basic-cli` without a Roc `--target`; `wasm` uses the embedded wasm32 renderer).
 `--host wasm` does not produce a hosted Wasm server. Some Roc platforms cannot
 compile to wasm, so native apply remains required. `--target` is a separate
-native ISA/OS for **island and app** `main.roc` process binaries
-(`x64musl` / `arm64musl` for Linux containers). Do not pass musl `--target`
-into `--host native` on a Mac.
+native ISA/OS for **island and app** `main.roc` process binaries. For Linux
+Docker, match the **container** CPU (`arm64musl` on Apple Silicon Docker
+Desktop by default; `x64musl` on Intel Mac / most CI). Musl is Linux; do not
+use `arm64mac` for containers, and do not pass musl `--target` into `--host
+native` on a Mac. See `docker/README.md`.
 
 ### Package a site
 
@@ -197,8 +199,9 @@ cargo run -p rocci-rocdown-cli -- package [ROOT] [--output DIRECTORY] [--archive
 Implies `--cdn-only` for static catalogs. `live` pages fail with `RD2302`
 when `--cdn-only` is set. Otherwise a hybrid package compiles the island
 process binary (sibling `islands` file) and records live routes plus the
-binary fingerprint in `publish.json`. `--target x64musl` / `arm64musl` is
-the Linux container process target. Failed package leaves the previous
+binary fingerprint in `publish.json`. `--target` is the Linux container
+process target (`arm64musl` on Apple Silicon Docker by default; `x64musl` on
+amd64). See `docker/README.md`. Failed package leaves the previous
 `site.tgz`. `--no-archive` skips the tarball.
 
 ### Serve a built tree

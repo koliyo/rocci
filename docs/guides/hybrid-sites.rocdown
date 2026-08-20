@@ -157,13 +157,18 @@ Pre-built hybrid sites package the CDN tree plus an island binary, then
 Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+# Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
 ./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
-Use `--target arm64musl` when the container is arm64. Operator notes are in
-`docker/README.md`. `./docker/run-site.sh` remains the **builder/dev**
-toolchain demo (Ubuntu + Roc + WebKit, compile at start), not hosting.
+`--target` follows the **container**, not the Mac host: Apple Silicon local
+Docker defaults to `arm64musl`; use `x64musl` only when you also run amd64
+images (for example `DOCKER_DEFAULT_PLATFORM=linux/amd64`). Compose does not
+auto-select the image arch from `--target`. Do not use `arm64mac` for Linux
+images. Operator notes and a short table are in `docker/README.md`.
+`./docker/run-site.sh` remains the **builder/dev** toolchain demo (Ubuntu +
+Roc + WebKit, compile at start), not hosting.
 
 ## Cross-origin service
 

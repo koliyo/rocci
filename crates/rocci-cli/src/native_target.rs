@@ -6,10 +6,10 @@ use clap::ValueEnum;
 /// Roc `roc build --target=` names for process binaries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum NativeTarget {
-    /// Linux x86_64 with musl (static linking)
+    /// Linux x86_64 with musl (static); typical Docker on Intel / amd64 CI
     #[value(name = "x64musl")]
     X64Musl,
-    /// Linux ARM64 with musl (static linking)
+    /// Linux ARM64 with musl (static); typical Docker on Apple Silicon
     #[value(name = "arm64musl")]
     Arm64Musl,
     /// Linux x86_64 with glibc (dynamic linking)
