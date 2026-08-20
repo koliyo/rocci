@@ -20,6 +20,8 @@
     '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="1" fill="none" stroke="currentColor" stroke-width="1.25"/><rect x="2.75" y="9" width="10.5" height="4.5" fill="currentColor"/></svg>';
   const ICON_EXPAND =
     '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.25" d="M3 6.5V3h3.5M13 9.5V13H9.5M10 3h3v3M6 13H3V10"/><path fill="none" stroke="currentColor" stroke-width="1.25" d="M9.5 6.5 13 3M6.5 9.5 3 13"/></svg>';
+  const ICON_WEB_INSPECTOR =
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" d="M5.5 3.5 2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5M9 3 7 13"/></svg>';
   let inspectorUrl =
     typeof __ROCCI_INSPECTOR_URL__ === "string" ? __ROCCI_INSPECTOR_URL__ : null;
   const hasSourceRoot = __ROCCI_HAS_SOURCE_ROOT__ === true;
@@ -197,6 +199,7 @@
   let dockRightBtn = null;
   let dockBottomBtn = null;
   let expandBtn = null;
+  let webInspectorBtn = null;
   const panelOpen = () => !!prefs.open;
   const storedView = () => (VIEWS[prefs.view] ? prefs.view : "source");
   const setStoredView = (value) => {
@@ -357,6 +360,7 @@
     }
     applyDock();
     if (open) {
+      send("devtools:0");
       syncFrame(routeOf(window.location.href));
     }
   };
@@ -383,7 +387,12 @@
     expandBtn.type = "button";
     expandBtn.setAttribute("aria-label", "Open as page");
     expandBtn.innerHTML = ICON_EXPAND;
-    docks.append(dockRightBtn, dockBottomBtn, expandBtn);
+    webInspectorBtn = document.createElement("button");
+    webInspectorBtn.type = "button";
+    webInspectorBtn.setAttribute("aria-label", "Web Inspector");
+    webInspectorBtn.setAttribute("title", "Native browser inspector");
+    webInspectorBtn.innerHTML = ICON_WEB_INSPECTOR;
+    docks.append(dockRightBtn, dockBottomBtn, expandBtn, webInspectorBtn);
     dockRightBtn.addEventListener("click", (event) => {
       event.stopPropagation();
       setStoredDock("right");
@@ -401,6 +410,11 @@
       }
       const tuple = lastTuple || inspectorTuple(routeOf(window.location.href));
       window.location.href = inspectorHref(tuple, true);
+    });
+    webInspectorBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setPanelOpen(false);
+      send("devtools:1");
     });
     splitter.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) {

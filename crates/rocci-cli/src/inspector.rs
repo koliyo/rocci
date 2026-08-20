@@ -661,7 +661,7 @@ mod tests {
             ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: auto;\n        overflow-y: auto;\n        background:"
         ));
         assert!(!html.contains("scrollbar-gutter"));
-        assert!(html.contains("padding: 0 88px 0 8px"));
+        assert!(html.contains("padding: 0 114px 0 8px"));
         assert!(html.contains("visually-hidden"));
         assert!(html.contains("aria-label=\"View\""));
         assert!(html.contains(".inspector-body.tab-source {\n        padding: 0;"));
