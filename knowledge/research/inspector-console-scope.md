@@ -4,7 +4,7 @@ title: Preview inspector console scope
 description: "The Dev Console tab should stay a host runtime stream (CLI, watch, Roc stderr). Do not add logging from Rocci @component render functions; that would need a language effect and would violate pure render."
 tags: [domain/rocci, domain/desktop, domain/runtime, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T08:25:00Z }
+generated: { by: process:cursor, at: 2026-08-20T08:54:17Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -157,14 +157,12 @@ Two hosts populate that pane differently:
 | Product | Log hub | What authors see in Console today |
 | --- | --- | --- |
 | `rocdown run` / `rocci-okf run` (static `DevServer`) | Same `ReloadHub.logs` the watcher tees into | Bind URL, rebuild start/finish, rebuild errors |
-| `rocci run` / `view` (Roc process + sibling `InspectorServer`) | A **new empty** `LogHub` created inside `InspectorServer::spawn` | Empty list ("No runtime messages yet") unless a test pushes a line |
+| `rocci run` / `view` (Roc process + sibling `InspectorServer`) | Shared `LogHub` from `spawn_roc_with_logs` into `InspectorServer` | Host serve notes plus Roc **stderr** lines (`source: runtime`) |
 
-Static preview already tees `logs::tee` (eprintln plus hub push) on serve
-and rebuild. `rocci run` captures Roc **stderr** in `StderrTee` for listen
-failure and still prints it to the terminal, but `with_window_and_inspector`
-never copies those bytes into `InspectorServer.logs`. The repair plan named
-that leftover; Phase 7 of that plan shipped README sentences instead of the
-wire-up.[^dev-server][^serve-rs][^repair-plan]
+Static preview tees `logs::tee` on serve and rebuild. `rocci run` pipes Roc
+stderr through `StderrTee` into the same hub the Console reads (terminal
+still gets a copy). Handler intentional logging beyond that stream is
+[handler-runtime-logging](handler-runtime-logging.md).[^dev-server][^serve-rs][^repair-plan]
 
 Wry 0.55 still has no `with_console_handler`. Native Web Inspector remains
 a separate View-menu command and already shows page `console.*`.[^window-rs][^preview-decision]
@@ -192,18 +190,20 @@ a pure view of `{ count }`; SQLite lives in `@on` / helpers with `!`.
 Putting `Stdout.line!` inside `CounterCard` is not expressible without
 changing lowering.[^counter][^pure-render]
 
-### 2. Prints from `@on` handlers (not component logging; later optional)
+### 2. Prints from `@on` handlers (not component logging; designed separately)
 
 `@on` bodies are Roc and already effectful (`Sqlite.execute!` in Counter).
 Generated `main.roc` imports `pf.Env`, `pf.Path`, `pf.Server`, and
-`pf.Sse`, not `pf.Stdout`. Handler stdout, if an author added a platform
-import and `Stdout.line!`, currently **inherits** to the terminal. It is
-not teed into `LogHub`. That is application I/O, not a template
-API.[^dispatch-rs][^serve-rs][^counter]
+`pf.Sse`, not `pf.Stdout` / `pf.Stderr`. Authors may import those
+platform modules. **`Stderr.line!` already reaches** the terminal and the
+Dev Console (`source: runtime`) via `StderrTee`. **`Stdout.line!` still
+inherits** to the terminal only and is not teed into `LogHub`. That is
+application I/O, not a template API.[^dispatch-rs][^serve-rs][^counter]
 
-Capturing it later as `source: app` would still not be "logging from
-components." It would be piping the Roc process. Do not treat that as a
-reason to add `@log` in markup.
+Follow-on design (prefix protocol, optional `log!`, `source: app`) lives
+in [Handler logging into the Rocci runtime
+console](handler-runtime-logging.md). Do not treat that work as a reason
+to add `@log` in markup or to make `@component` effectful.
 
 ### 3. Page JavaScript `console.*` (separate class; optional later)
 
@@ -258,13 +258,14 @@ matches static preview Console.
 | B. Runtime = host lines **plus** Roc stderr (recommended) | Same class of message; no language change |
 | C. B plus page `console.*` in the same milestone | Optional later; wry wrap; native inspector already has it |
 | D. `@log` / effectful components | Reject; contradicts pure render |
-| E. Tee handler `Stdout.line!` as `source: app` | Later optional; still not component logging; do not start here |
+| E. Handler prints → Console (`stderr` today; `source: app` later) | See [handler-runtime-logging](handler-runtime-logging.md); not component logging |
 
 ## Disposition
 
-Draft and exploratory. The Console **shell** is in tree. The **scope**
-should stay runtime. The **gap** is `InspectorServer` isolation from
-`StderrTee`, not the absence of a Rocci log API.
+Draft and exploratory. The Console **shell** and `rocci run` stderr feed
+are in tree. The **scope** should stay runtime for host/compiler lines.
+Handler prints that want an `app` badge are a separate follow-on, not a
+component log API.
 
 [^preview-research]: Three message classes; app log out of scope; gate 3 left open.
 [^inspector-plan]: Console v1 runtime-only; no Rocci app log API; Phase 5 page JS optional.
