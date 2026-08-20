@@ -246,6 +246,16 @@ fn stage_app_workspace(plan: &GenericAppPlan, src_dir: &Path, kind: &str) -> Res
     Ok(workspace)
 }
 
+pub fn compile_app_plan(
+    plan: &GenericAppPlan,
+    src_dir: &Path,
+    output: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<()> {
+    let workspace = stage_app_workspace(plan, src_dir, "islands-build")?;
+    crate::native_target::build_roc_server(&workspace.path, output, target)
+}
+
 pub fn execute_resolved_entry(
     resolved: &ResolvedEntry,
     args: &[String],

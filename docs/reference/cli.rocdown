@@ -35,6 +35,23 @@ cargo run -p rocci-cli -- build INPUT [-o OUTPUT]
 Compile a single `.rocci` template to Roc. With `-o`, write to the given path;
 otherwise print to stdout.
 
+### Package a Linux server binary
+
+```sh
+cargo run -p rocci-cli -- build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
+```
+
+`INPUT` is an app directory with `main.roc` (for example `examples/datastar`), a
+standalone `.rocci` file (`examples/counter/Counter.rocci`), or `rocci.toml`.
+Writes `server` plus staged `assets/` (default `target/release/rocci-server`).
+This is **server packaging**, not a macOS `.app` (`rocci bundle` stays the
+desktop path). `--target` is the Linux container process target. Linux OCI is
+opt-in: `./docker/run-app.sh` sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose
+and does not change `rocci.toml` loopback validation.
+
+Without `--release`, `rocci build FILE.rocci` still lowers a single template to
+Roc. `--target` requires `--release`.
+
 ### Inspect template source and AST
 
 ```sh
@@ -89,11 +106,13 @@ after listen; it prints timings on stderr instead of opening a window.
 ### Bundle a macOS app
 
 ```sh
-cargo run -p rocci-cli -- bundle [--config rocci.toml]
+cargo run -p rocci-cli -- bundle [--config rocci.toml] [--target x64musl|arm64musl]
 ```
 
-Build a local ad-hoc-signed macOS app bundle. Other packaging targets are not
-implemented yet.
+Build a local ad-hoc-signed macOS app bundle. `--target` is the Roc native
+ISA/OS for Linux process binaries (`x64musl` is the Linux container target).
+macOS `.app` bundles stay host-native and reject `--target`. `--host` on
+`rocdown build` is apply-only and is not this flag.
 
 ### Datastar asset management
 
@@ -150,7 +169,7 @@ shows runtime session messages, not an app log API. `rocdown run` and
 ### Build documentation
 
 ```sh
-cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY] [--cdn-only]
+cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY] [--cdn-only] [--host auto|native|wasm] [--target x64musl|arm64musl]
 ```
 
 The default root is the current directory. `ROOT` may be a documentation
@@ -160,6 +179,39 @@ errors (`RD2302`) when any published page is `live`, so a CDN-only publish canno
 ship Datastar actions without the island service. Default hybrid build accepts
 `live` pages and prints page kinds, whether Datastar was emitted, and service
 routes.
+
+`--host` selects how **apply** runs on the build machine (`native` uses
+`basic-cli` without a Roc `--target`; `wasm` uses the embedded wasm32 renderer).
+`--host wasm` does not produce a hosted Wasm server. Some Roc platforms cannot
+compile to wasm, so native apply remains required. `--target` is a separate
+native ISA/OS for **island and app** `main.roc` process binaries
+(`x64musl` / `arm64musl` for Linux containers). Do not pass musl `--target`
+into `--host native` on a Mac.
+
+### Package a site
+
+```sh
+cargo run -p rocci-rocdown-cli -- package [ROOT] [--output DIRECTORY] [--archive site.tgz] [--target x64musl|arm64musl]
+```
+
+Implies `--cdn-only` for static catalogs. `live` pages fail with `RD2302`
+when `--cdn-only` is set. Otherwise a hybrid package compiles the island
+process binary (sibling `islands` file) and records live routes plus the
+binary fingerprint in `publish.json`. `--target x64musl` / `arm64musl` is
+the Linux container process target. Failed package leaves the previous
+`site.tgz`. `--no-archive` skips the tarball.
+
+### Serve a built tree
+
+```sh
+cargo run -p rocci-rocdown-cli -- serve [DIST] [--port PORT] [--no-window]
+```
+
+Serve an existing `dist/` on loopback without Roc, watch, or rebuild. `DIST`
+must contain `index.html`. Preview window follows the same `--no-window` rules
+as `rocdown run`. This checks that a package is self-contained; it is not
+`rocdown run` (which rebuilds from sources) and not `serve-islands` (island
+process only).
 
 Local `:img` and Markdown image paths resolve against the source file. Missing
 local files fail the catalog (`RD2103`). Files under `build.assets` are

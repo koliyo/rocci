@@ -173,6 +173,14 @@ Rocdown writes into a staging directory and atomically replaces the output only
 after a successful build. A failed build leaves the previous output tree in
 place. Rebuilding with unchanged inputs produces byte-identical files.
 
+`--host auto|native|wasm` selects how apply runs on the **build machine**.
+Native apply uses `basic-cli` without Roc `--target`. Wasm apply is a renderer
+only: it does not produce a hosted Wasm server, and platforms such as
+`basic-cli` / `basic-webserver` have no `wasm32`, so native apply remains
+required. `--target x64musl` / `arm64musl` is the native ISA/OS for island and
+app **process** binaries that will run elsewhere (Linux containers). Musl is
+the Linux container process target. Do not pass musl `--target` into Mac apply.
+
 The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
 from every page, including sites with a project-local `theme/`. Project chrome
 and named layouts compile beside it. Generated HTML declares the CSP with a
@@ -269,6 +277,12 @@ page ids and routes, and the mutation routes the island service serves.
 `rocdown inspect artifacts` prints the publish report without invoking Roc:
 page kinds, whether Datastar was emitted, service origin and routes, and the
 planned output tree including hashed asset paths.
+
+`rocdown package` writes that report as `publish.json` in the output tree, plus
+`site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a
+sibling `islands` binary and record live routes plus the binary fingerprint
+unless `--cdn-only` (then `RD2302`). `rocdown serve DIST` hosts the CDN tree
+without rebuilding.
 
 Build this site's content from the repository root with:
 

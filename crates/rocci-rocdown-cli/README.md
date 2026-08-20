@@ -28,9 +28,17 @@ cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid [--port 8000] [--n
 cargo run -p rocci-rocdown-cli -- run examples/rocdown-counter [--port 8000] [--no-window]
 
 # Build a static documentation site to dist/
+# --host is apply on this machine; --target is musl for Linux process binaries.
 # Hybrid sites emit CDN HTML plus islands.json; --cdn-only errors on live pages.
-cargo run -p rocci-rocdown-cli -- build docs [--output dist]
+cargo run -p rocci-rocdown-cli -- build docs [--output dist] [--host auto|native|wasm]
 cargo run -p rocci-rocdown-cli -- build examples/rocdown-hybrid --cdn-only
+
+# Package: static CDN tree, or hybrid CDN plus sibling islands binary
+cargo run -p rocci-rocdown-cli -- package docs [--output dist] [--archive site.tgz]
+cargo run -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+
+# Serve a previously built dist/ tree without rebuilding (no Roc, no watch)
+cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window]
 
 # Start the island HTTP service for live pages (colocated @on handlers)
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-hybrid [--port 8000] [--no-window]

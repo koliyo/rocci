@@ -28,12 +28,24 @@ enum Commands {
     Bundle {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
+        /// Native ISA/OS for the Roc process binary (`x64musl`, `arm64musl`).
+        /// Apply `--host` is separate. macOS `.app` bundles stay host-native.
+        #[arg(long, value_enum)]
+        target: Option<rocci_cli::native_target::NativeTarget>,
     },
-    /// Build a .rocci template to ordinary Roc.
+    /// Build a .rocci template to ordinary Roc, or package a Linux server with `--release`.
     Build {
+        /// `.rocci` file (template-to-Roc), or with `--release` an app directory / `.rocci` / `rocci.toml`.
         input: PathBuf,
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Package a Roc server binary plus assets (not a macOS `.app`).
+        #[arg(long)]
+        release: bool,
+        /// Native ISA/OS for the Roc process binary (`x64musl`, `arm64musl`).
+        /// Requires `--release`. macOS `.app` bundling stays on `rocci bundle`.
+        #[arg(long, value_enum)]
+        target: Option<rocci_cli::native_target::NativeTarget>,
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
@@ -152,8 +164,29 @@ fn try_main() -> Result<()> {
 
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
-        Commands::Bundle { config } => bundle::bundle(&config),
-        Commands::Build { input, output } => build_module(&input, output.as_deref()),
+        Commands::Bundle { config, target } => bundle::bundle(&config, target),
+        Commands::Build {
+            input,
+            output,
+            release,
+            target,
+        } => {
+            if release {
+                let report = bundle::package_server(&input, output.as_deref(), target)?;
+                println!(
+                    "{}",
+                    style::success_text(&report.output.display().to_string())
+                );
+                Ok(())
+            } else {
+                if target.is_some() {
+                    bail!(
+                        "`--target` requires `--release` (Linux server packaging, not template-to-Roc)"
+                    );
+                }
+                build_module(&input, output.as_deref())
+            }
+        }
         Commands::Run { file, args, serve } => run::run(
             &file,
             &args,
@@ -346,6 +379,72 @@ mod tests {
             | Commands::View { serve, .. }
             | Commands::Browse { serve, .. } => serve.no_live_reload,
             _ => panic!("expected a hosting command"),
+        }
+    }
+
+    #[test]
+    fn bundle_parses_target() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "bundle",
+            "--config",
+            "rocci.toml",
+            "--target",
+            "x64musl",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Bundle { target, .. } => {
+                assert_eq!(
+                    target,
+                    Some(rocci_cli::native_target::NativeTarget::X64Musl)
+                );
+            }
+            _ => panic!("expected bundle --target"),
+        }
+    }
+
+    #[test]
+    fn build_release_parses_target_and_keeps_template_mode() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "build",
+            "--release",
+            "examples/datastar",
+            "--target",
+            "x64musl",
+            "-o",
+            "target/release/rocci-server",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Build {
+                input,
+                output,
+                release,
+                target,
+            } => {
+                assert_eq!(input, PathBuf::from("examples/datastar"));
+                assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
+                assert!(release);
+                assert_eq!(
+                    target,
+                    Some(rocci_cli::native_target::NativeTarget::X64Musl)
+                );
+            }
+            _ => panic!("expected build --release"),
+        }
+
+        let cli =
+            Cli::try_parse_from(["rocci", "build", "examples/counter/Counter.rocci"]).unwrap();
+        match cli.command {
+            Commands::Build {
+                release, target, ..
+            } => {
+                assert!(!release);
+                assert!(target.is_none());
+            }
+            _ => panic!("expected build without --release"),
         }
     }
 

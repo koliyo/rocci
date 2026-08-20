@@ -32,12 +32,56 @@ Hashed `/assets/` files are immutable. HTML uses `no-cache`. `/actions/` is
 not proxied (Caddy 404). This path rejects `live` pages at build time
 (`RD2302`).
 
-## Hybrid live-island demo (toolchain-heavy)
+## Hybrid live-island hosting (pre-built)
+
+Package on the host, then Caddy plus a slim process image that contains only
+the island binary (Debian, SQLite, no `rocci` / `rocdown` / `roc`):
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
+```
+
+`package` writes `dist/`, `publish.json` (live routes and binary fingerprint),
+and a sibling `islands` binary. `--target x64musl` (or `arm64musl`) is the
+Linux container process target; `--host` remains apply-only.
+
+`ROCCI_DIST` and `ROCCI_ISLANDS_CONTEXT` must be absolute. The wrapper copies
+the binary into a build context. The image creates an empty `assets/` directory
+so basic-webserver can start; hashed site files stay on the CDN mount. Then open
+[http://127.0.0.1:8080/](http://127.0.0.1:8080/). Override the published port
+with `ROCCI_HTTP_PORT` when 8080 is already taken. Smoke:
+
+```sh
+curl -sf http://127.0.0.1:8080/health
+curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
+docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
+```
+
+`which roc` must fail.
+
+## Rocci app Linux hosting (opt-in)
+
+Package a Roc server binary plus assets on the host, then a slim process image
+(no `rocci` CLI, `roc`, or WebKit). macOS `.app` remains `rocci bundle`.
+Linux OCI is opt-in: set `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose (do not
+weaken `rocci.toml` loopback validation).
+
+```sh
+cargo run -q -p rocci-cli -- build --release examples/datastar --target x64musl
+./docker/run-app.sh target/release/rocci-server
+```
+
+Use `--target arm64musl` when the container is arm64. Override the published
+port with `ROCCI_HTTP_PORT`. Then open
+[http://127.0.0.1:8080/](http://127.0.0.1:8080/).
+
+## Hybrid builder/dev demo (toolchain-heavy)
 
 The original Compose file still builds Ubuntu images with Roc, the Rocci CLIs,
 and WebKit, then compiles island `main.roc` at start. Use it only as a
-**live-island operator demo** (Caddy same-origin proxy, published 8001,
-`ROC_BASIC_WEBSERVER_HOST=0.0.0.0`). It is not the static publish path.
+**builder/dev** operator demo, not hosting.
 
 From the repository root:
 
@@ -87,10 +131,16 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`static/Caddyfile`](static/Caddyfile) | Static `file_server` of `/srv`; no island proxy |
 | [`compose.static.yml`](compose.static.yml) | Official `caddy:2-alpine`; bind-mount `ROCCI_DIST` |
 | [`run-static.sh`](run-static.sh) | Absolutize `ROCCI_DIST` and `compose up` |
-| [`runtime/Dockerfile`](runtime/Dockerfile) | Toolchain `builder` / `runtime` plus hybrid `cdn` |
+| [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
+| [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
+| [`run-hybrid.sh`](run-hybrid.sh) | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
+| [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
+| [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
+| [`run-app.sh`](run-app.sh) | Absolutize server dir and app `compose up` |
+| [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain plus hybrid `cdn` |
 | [`cdn/Caddyfile`](cdn/Caddyfile) | Hybrid same-origin proxy; `root * /src/site/dist` |
-| [`compose.yml`](compose.yml) | Hybrid `site-build`, `islands`, `cdn` |
-| [`run-site.sh`](run-site.sh) | Absolutize `ROCCI_SITE` and hybrid `compose up` |
+| [`compose.yml`](compose.yml) | **Builder/dev** hybrid `site-build`, `islands`, `cdn` |
+| [`run-site.sh`](run-site.sh) | Absolutize `ROCCI_SITE` and toolchain `compose up` |
 
 The two-artifact production sketch (upload `dist/`, run `serve-islands`,
 reverse-proxy) is in [`examples/rocdown-counter/README.md`](../examples/rocdown-counter/README.md)

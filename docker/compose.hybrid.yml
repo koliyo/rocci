@@ -1,0 +1,32 @@
+name: rocci-hybrid-prebuilt
+
+services:
+  islands:
+    image: rocci-islands:local
+    build: ${ROCCI_ISLANDS_CONTEXT:?ROCCI_ISLANDS_CONTEXT must be a directory containing the islands binary and Dockerfile}
+    environment:
+      ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
+      ROC_BASIC_WEBSERVER_PORT: "8001"
+      DB_PATH: /var/lib/rocci/site.db
+    volumes:
+      - islands-db:/var/lib/rocci
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  cdn:
+    image: caddy:2-alpine
+    volumes:
+      - ${ROCCI_DIST:?ROCCI_DIST must be an absolute path to a built Rocdown dist}:/src/site/dist:ro
+      - ./cdn/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "${ROCCI_HTTP_PORT:-8080}:80"
+    depends_on:
+      islands:
+        condition: service_healthy
+
+volumes:
+  islands-db:

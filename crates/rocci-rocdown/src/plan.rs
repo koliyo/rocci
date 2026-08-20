@@ -88,7 +88,7 @@ pub struct PublishReport {
     pub artifacts: Vec<ArtifactInspect>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactInspect {
     pub kind: &'static str,
     pub route: String,

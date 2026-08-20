@@ -318,7 +318,9 @@ while building as part of `rocdown build site`.
 - `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
 - `rocdown run DIR`: Run/preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
 - `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
-- `rocdown build DIR`: Build a static documentation site to `dist/`. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
+- `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target x64musl|arm64musl` is the Linux container process target for island/app binaries, never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
+- `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target x64musl|arm64musl` is the Linux container process target.
+- `rocdown serve DIST`: Serve a previously built tree on loopback without Roc, watch, or rebuild.
 - `rocdown check DIR`: Check catalog, routes, and links.
 - `rocdown test DIR`: Run documented `:example` tests.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
@@ -369,7 +371,11 @@ not a substitute for the syntax above.
   navigation) with `script-src 'self'; connect-src 'self'`. `rocdown serve-islands DIR` compiles colocated `@on` handlers
   into one island HTTP service. Hybrid builds emit `pages.json` kinds,
   `islands.json` service routes, and a publish report. `--cdn-only` refuses
-  `live` pages so a CDN publish cannot ship dead actions. `rocdown run DIR`
+  `live` pages so a CDN publish cannot ship dead actions. `rocdown package DIR`
+  writes `publish.json` and `site.tgz`; hybrid sites also compile a sibling
+  `islands` binary and record live routes plus the binary fingerprint.
+  `--cdn-only` still refuses `live` pages. `rocdown serve DIST` hosts the CDN
+  tree without Roc or rebuild. `rocdown run DIR`
   previews both artifacts on one local origin and reloads after content or
   handler edits.
 
