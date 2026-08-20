@@ -3,9 +3,7 @@
 A Rocdown site with one `live` page: Markdown plus a SQLite-backed counter
 island, the hybrid analog of [`examples/rocci/standalone/counter`](../../rocci/standalone/counter). The CDN file is
 a snapshot (`count` is `0` at build). On load, `POST /actions/counter/sync`
-refreshes count and the last twenty clicks. Increment posts browser timezone;
-the service maps IANA zones to country/city (no IP lookup). Reset clears count
-and clicks. The click feed lists location only (no nicknames).
+refreshes the live count. Increment and reset morph `#counter`.
 
 A neighboring [`about.rocdown`](about.rocdown) page stays `static`: no Datastar,
 no island routes.
@@ -60,6 +58,9 @@ Omit `--no-window` to open an embedded preview. Override the port with
 `--port` or `ROC_BASIC_WEBSERVER_PORT`. Generated island `main.roc` binds
 `127.0.0.1` unless `ROC_BASIC_WEBSERVER_HOST` is set.
 
+Pass `--log-handlers` to print each proxied / dispatched `@on` route on the
+CLI and in the Dev Console.
+
 Preview SQLite state is ephemeral (`islands.db` in the staging workspace).
 Handler and content edits reload; durable production state uses
 `serve-islands` and `DB_PATH` below.
@@ -71,11 +72,11 @@ curl -sf http://127.0.0.1:8000/health
 curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
 curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm"}'
+  -d '{}'
 ```
 
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment once, and
-confirm `#counter-panel` and `#counter-feed` morph (buttons stay outside). Dev inspector:
+confirm `#counter` morphs (buttons stay outside). Dev inspector:
 [http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev).
 While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
 `dist/` above.
@@ -173,7 +174,7 @@ See [`docker/README.md`](../../docker/README.md) for choosing `--target`.
 curl -sf http://127.0.0.1:8080/health
 curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm"}'
+  -d '{}'
 docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
@@ -200,10 +201,9 @@ curl -s http://127.0.0.1:8001/health
 
 curl -s -X POST http://127.0.0.1:8001/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm"}'
+  -d '{}'
 # event: datastar-patch-elements
-# data: elements <div id="counter-panel" ...><output>1</output>...
-# Stockholm, Sweden
+# data: elements <section id="counter" ...><output>1</output>...
 ```
 
 With `rocdown run --no-window` on port 8000, the same POST works on that
