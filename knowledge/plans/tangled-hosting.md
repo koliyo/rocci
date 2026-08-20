@@ -1,14 +1,19 @@
 ---
 type: Implementation Plan
 title: Tangled hosting and devops with a GitHub macOS mirror
-description: "Make Tangled the canonical git host, review surface, and Linux CI before Rocci becomes public open source; keep GitHub as a one-way mirror that runs macOS GitHub Actions. Exploratory; no phase started."
+description: "Make Tangled the canonical git host, review surface, and Linux CI before Rocci becomes public open source; keep GitHub as a one-way mirror that runs macOS GitHub Actions. rocci.dev DNS and inbound-mail preparation was reported complete on 2026-08-20; Tangled identity and spindle work remains unstarted. Exploratory."
 tags: [domain/rocci, concern/ci, concern/governance, concern/publication, concern/community]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:25:00Z }
+generated: { by: process:codex, at: 2026-08-20T14:45:11Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: publish-plan
+    resource: rocci-dev-publish.md
+    title: rocci.dev deployment preparation status
+    author: human:nils
+    last_modified: 2026-08-20
   - id: research
     resource: ../research/tangled-hosting.md
     title: Tangled as canonical host with a GitHub macOS CI mirror
@@ -211,13 +216,11 @@ Free plan, adds MX/SPF/DKIM itself, and forwards to an existing inbox.
 Outbound SMTP is a later, separate product if the project must *send* as
 `@rocci.dev`.[^cf-email-routing][^cf-email-route]
 
-On 2026-08-19, `rocci.dev` had **no MX**. Public NS were
-`ns1.registrant-verification.com` and `ns2.registrant-verification.com`,
-which registrars in the HEXONET/EPAG family use when ICANN registrant-email
-verification has not completed: the registry NS are replaced and the domain
-stops resolving until the registrant confirms a working mailbox. Verify at
-the registrar with a **personal** address first; `@rocci.dev` cannot receive
-that mail until MX exists.[^hexonet-verify]
+The former registrar-verification DNS state is historical: on 2026-08-20, the
+maintainer reported that ICANN registrant-email verification, the Cloudflare
+nameserver cutover, and tested `oss@rocci.dev` forwarding were complete. The
+personal destination inbox remains the forwarding target; `security@rocci.dev`
+is intentionally deferred.[^publish-plan][^hexonet-verify]
 
 Recommended path (zero extra monthly cost):
 
@@ -401,6 +404,7 @@ revision. Do not set `ROCCI_REQUIRE_ROC=1`.
    workspace remote. Tangled grouping stops at handle-owned siblings.
 
 [^research]: Operational constraints for the inverse topology, timeouts, pages, and split status.
+[^publish-plan]: Maintainer-reported registrar, Cloudflare DNS, and inbound-mail completion; the deployment plan retains the remaining origin work.
 [^hosting-research]: Prior comparison and the governance warning that hosting is not governance.
 [^preview-plan]: Near-term public open-source intent; Phase 0 (license texts, conduct, contribution) remains the publication gate.
 [^ci-workflow]: Current four-job GitHub CI matrix including Darwin tests and macOS editors.

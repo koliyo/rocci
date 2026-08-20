@@ -1,14 +1,19 @@
 ---
 type: Implementation Plan
 title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
-description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. GitHub Actions packages site/ and deploys from main. Exploratory; no phase started."
+description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, and bootstrap-SSH preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T09:05:00Z }
+generated: { by: process:codex, at: 2026-08-20T14:45:11Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: human-preparation
+    resource: ../log.md
+    title: Maintainer-reported rocci.dev deployment preparation
+    author: human:nils
+    last_modified: 2026-08-20
   - id: research
     resource: ../research/rocci-dev-publish.md
     title: Publishing rocci.dev with Cloudflare, a small origin, and CI
@@ -210,8 +215,16 @@ public.
 `site/` is the public tree (`base_url` `https://rocci.dev`, output
 `dist/rocci.dev`, docs mounted). Home is a live counter island. Local hybrid
 Compose already serves that shape. CI only `check docs` and never installs
-Roc. On 2026-08-20, `1.1.1.1` still returned no NS/SOA/MX, only
-`A 212.123.41.108` (TTL 0) for the apex and `www`.[^site-config][^site-home][^compose-hybrid][^ci-workflow][^tangled-plan][^hexonet-verify][^root-readme]
+Roc.[^site-config][^site-home][^compose-hybrid][^ci-workflow][^root-readme]
+
+On 2026-08-20, the owner reported completing registrar verification, the
+Cloudflare Free zone and nameserver cutover, Always Use HTTPS (without
+Flexible SSL), Email Routing with a verified personal destination and tested
+`oss@rocci.dev` forwarding, the specified Hetzner VPS and firewall, a named
+Tunnel with `cloudflared` installed on the VPS, and bootstrap SSH as a
+sudo-capable user. The Tunnel has no production hostname route; Caddy and the
+first manual publish remain to be done. No deploy user exists yet, so Phase 3
+cannot start.[^human-preparation]
 
 ## Human preparation (before an agent continues)
 
@@ -225,30 +238,26 @@ An agent can implement **CI package-only** (`check site`, `site.yml` that
 uploads `site.tgz` + `islands`, README fix) from this repository today. That
 job needs no VPS, no Cloudflare, and no GitHub Environment.[^ci-workflow][^rocdown-readme]
 
-### Must do yourself before Phase 2 (live origin)
+### Human preparation completed before Phase 2 (reported 2026-08-20)
 
-These require a browser, a payment method, and registrar/Cloudflare/Hetzner
-login. An agent cannot complete them.
+These actions were completed by the owner in vendor UIs and on the VPS. Their
+credentials and infrastructure identifiers are deliberately not recorded
+here.[^human-preparation]
 
-1. **Registrar.** Finish ICANN registrant-email verification so NS are no
-   longer a verification placeholder.[^hexonet-verify][^tangled-plan]
-2. **Cloudflare account** (Free plan). Add zone `rocci.dev`, point the
-   registrar NS at Cloudflare, enable Always Use HTTPS, do not use Flexible
-   SSL.[^cf-universal-ssl][^get-dev]
-3. **Mail.** Email Routing: verify a personal destination inbox, then
-   `oss@rocci.dev` (and later `security@rocci.dev`). Confirm with a test
-   message.[^cf-email-routing][^tangled-plan]
-4. **Hetzner Cloud** (OVH VPS-1 Germany only if Hetzner is blocked). Create
-   Cost-Optimized **x86** 2 vCPU / 4 GB, Debian 12, `fsn1` or `nbg1`. Add
-   IPv6 plus a Primary IPv4. Firewall: allow SSH from your network, deny
-   inbound 80/443. Install nothing Rocci-specific yet if you prefer the
-   agent to SSH later; Docker can wait for Phase 2.[^hetzner-cloud][^hetzner-servers]
-5. **Tunnel.** In Cloudflare Zero Trust, create a named Tunnel. Install
-   `cloudflared` on the VPS with the **tunnel token** (stays on the box).
-   Do not route `rocci.dev` to production until Caddy is up; a parked origin
-   is fine.[^cf-tunnel]
-6. **Bootstrap SSH.** Confirm you can `ssh` to the IPv4 as a sudo-capable
-   user. Optionally add a locked-down `deploy` user now; Phase 3 needs it.
+1. **Registrar.** ICANN registrant-email verification is complete; the
+   verification placeholder is no longer the intended delegation.[^hexonet-verify][^tangled-plan]
+2. **Cloudflare account.** The Free zone is added, registrar nameservers are
+   pointed at Cloudflare, Always Use HTTPS is enabled, and Flexible SSL is not
+   used.[^cf-universal-ssl][^get-dev]
+3. **Mail.** Email Routing has a verified personal destination; `oss@rocci.dev`
+   forwards there and has been tested. `security@rocci.dev` remains a later
+   address.[^cf-email-routing][^tangled-plan]
+4. **Hetzner Cloud.** The specified Cost-Optimized **x86** Debian 12 VPS,
+   IPv6, Primary IPv4, and SSH-only provider firewall are in place.[^hetzner-cloud][^hetzner-servers]
+5. **Tunnel.** A named Tunnel exists and `cloudflared` is installed on the
+   VPS. It has no production hostname route until Caddy is up.[^cf-tunnel]
+6. **Bootstrap SSH.** SSH as a sudo-capable user is confirmed. A locked-down
+   `deploy` user does not yet exist and is still required for Phase 3.
 
 ### Must do yourself before Phase 3 (CI deploy)
 
@@ -324,7 +333,8 @@ hostname.[^tangled-plan][^cf-email-routing]
 the zone active and waiting on the Tunnel CNAME). HTTP to the apex cannot
 succeed in a normal browser.[^cf-universal-ssl][^get-dev]
 
-**Status:** not started.
+**Status:** human preparation complete; Phase 0 exit and first production
+route remain pending Caddy and the first publish.
 
 ### Phase 1 — CI packages `site/` without deploying
 
@@ -406,7 +416,8 @@ curl -sf -X POST https://rocci.dev/actions/counter/increment \
 `/assets/` responses include long cache headers. `docker run --rm --entrypoint
 /bin/sh rocci-islands:local -c 'which roc'` still fails.
 
-**Status:** not started.
+**Status:** origin prerequisites are human-prepared; Caddy, the production
+Tunnel route, and the manual first publish have not started.
 
 ### Phase 3 — Deploy from `main`
 
@@ -543,3 +554,5 @@ revision. Phase 0 is operator DNS and has no crate test.
 [^hetzner-servers]: Debian images; IPv6 free; IPv4 extra; firewall.
 [^ovh-vps]: VPS-1 2 vCores / 4 GB / 40 GB NVMe; unlimited EU traffic.
 [^gh-environments]: Deployment jobs should use an Environment so secrets are not available to ordinary PR jobs.
+[^human-preparation]: Maintainer report in the 2026-08-20 Codex task; no
+credentials, IP addresses, account identifiers, or tunnel token were recorded.
