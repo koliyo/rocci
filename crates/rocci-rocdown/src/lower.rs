@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use rocci_template::{
     ComponentInfo, Diagnostic, Document as RocciDocument, FixtureInfo, InitInfo, LowerOptions,
     LoweredTemplate, ModuleItem, OriginKind, RouteInfo, Segment, SourceFile, Span, StyleArtifact,
-    TemplateItem, TemplateValueCtx, file_scope_id, lower_template_items, route_fn_name,
-    template_items_have_action, validate, validate_template_items,
+    TemplateItem, TemplateValueCtx, file_scope_id, lower_template_items, pascal_to_camel,
+    route_fn_name, template_items_have_action, validate, validate_template_items,
 };
 
 use crate::CompileOptions;
@@ -15,7 +15,10 @@ use crate::docs::{
     docs_fields_from_params, extract_lines, extract_region, field_bool, field_string,
     resolve_include_path,
 };
-use crate::page::{extract_page, imports_html, roc_binding_names, split_roc_body};
+use crate::page::{
+    extract_page, import_local_name, imports_html, roc_binding_names, roc_name_appears,
+    roc_rest_name, split_roc_body,
+};
 use crate::parse_fragment;
 
 const META_NAME: &str = "rocci_meta";
@@ -489,6 +492,7 @@ pub fn lower_islands(
             rest.extend(body);
         }
     }
+    let (imports, rest) = filter_snapshot_roc(source, document, imports, rest);
     let injected_html = !imports_html(source.src, &imports);
     if injected_html {
         emitter.emit("import Html\n");
@@ -570,6 +574,100 @@ pub fn lower_islands(
         page_meta,
         theme: None,
     }
+}
+
+fn filter_snapshot_roc(
+    source: SourceFile<'_>,
+    document: &Document,
+    imports: Vec<Span>,
+    rest: Vec<Span>,
+) -> (Vec<Span>, Vec<Span>) {
+    let mut kept_text = island_used_text(source.src, document);
+    let names: Vec<Option<String>> = rest
+        .iter()
+        .map(|span| roc_rest_name(source.src, *span))
+        .collect();
+    let mut keep = vec![false; rest.len()];
+    loop {
+        let mut changed = false;
+        for (i, span) in rest.iter().enumerate() {
+            if keep[i] {
+                continue;
+            }
+            let take = match names[i].as_deref() {
+                None => true,
+                Some(name) => roc_name_appears(name, &kept_text),
+            };
+            if take {
+                keep[i] = true;
+                kept_text.push('\n');
+                kept_text.push_str(span.of(source.src));
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    let kept_rest: Vec<Span> = rest
+        .iter()
+        .zip(keep.iter())
+        .filter_map(|(span, keep)| keep.then_some(*span))
+        .collect();
+    let kept_imports: Vec<Span> = imports
+        .into_iter()
+        .filter(|span| match import_local_name(source.src, *span) {
+            None => true,
+            Some(name) => roc_name_appears(&name, &kept_text),
+        })
+        .collect();
+    (kept_imports, kept_rest)
+}
+
+fn island_used_text(src: &str, document: &Document) -> String {
+    let mut text = String::new();
+    for item in &document.items {
+        match item {
+            Item::Render(render) => {
+                text.push('\n');
+                text.push_str(render.span.of(src));
+            }
+            Item::Template(template) => {
+                text.push('\n');
+                text.push_str(template.span().of(src));
+            }
+            _ => {}
+        }
+    }
+    let components: Vec<_> = document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Component(decl) => Some(decl),
+            _ => None,
+        })
+        .collect();
+    let mut included = vec![false; components.len()];
+    loop {
+        let mut changed = false;
+        for (i, component) in components.iter().enumerate() {
+            if included[i] {
+                continue;
+            }
+            let pascal = component.name.name.as_str();
+            let camel = pascal_to_camel(pascal);
+            if roc_name_appears(pascal, &text) || roc_name_appears(&camel, &text) {
+                included[i] = true;
+                text.push('\n');
+                text.push_str(component.span.of(src));
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    text
 }
 
 pub(crate) fn island_item_count(document: &Document) -> usize {

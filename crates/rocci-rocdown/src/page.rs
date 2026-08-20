@@ -492,6 +492,7 @@ fn skip_statement(cur: &mut Cursor<'_>, end: usize) {
     if cur.pos >= end {
         return;
     }
+    let stmt_indent = indent_at(cur.src, cur.pos);
     let mut started = false;
     loop {
         if cur.pos >= end {
@@ -500,7 +501,12 @@ fn skip_statement(cur: &mut Cursor<'_>, end: usize) {
         if started && cur.is_top_level() {
             match cur.peek() {
                 None => return,
-                Some('\n' | '\r') => return,
+                Some('\n' | '\r') => {
+                    if continues_indented(cur, end, stmt_indent) {
+                        continue;
+                    }
+                    return;
+                }
                 Some('#') => {
                     cur.skip_comment();
                     return;
@@ -527,6 +533,48 @@ fn skip_statement(cur: &mut Cursor<'_>, end: usize) {
         if cur.pos == end {
             return;
         }
+    }
+}
+
+fn indent_at(src: &str, pos: usize) -> usize {
+    let line_start = src[..pos].rfind(['\n', '\r']).map(|i| i + 1).unwrap_or(0);
+    src[line_start..pos]
+        .chars()
+        .take_while(|ch| *ch == ' ' || *ch == '\t')
+        .count()
+}
+
+fn continues_indented(cur: &mut Cursor<'_>, end: usize, stmt_indent: usize) -> bool {
+    let saved = cur.pos;
+    loop {
+        if cur.pos >= end || cur.peek().is_none() {
+            cur.pos = saved;
+            return false;
+        }
+        if matches!(cur.peek(), Some('\n' | '\r')) {
+            let before = cur.pos;
+            cur.bump();
+            if cur.pos == before {
+                cur.pos = saved;
+                return false;
+            }
+            continue;
+        }
+        let indent_start = cur.pos;
+        cur.skip_spaces_tabs();
+        if matches!(cur.peek(), Some('\n' | '\r')) {
+            if cur.pos == indent_start {
+                cur.pos = saved;
+                return false;
+            }
+            continue;
+        }
+        let indent = cur.src[indent_start..cur.pos].chars().count();
+        if indent > stmt_indent && cur.peek().is_some() {
+            return true;
+        }
+        cur.pos = saved;
+        return false;
     }
 }
 
@@ -585,10 +633,14 @@ pub fn roc_binding_names(src: &str, body: Span) -> Vec<(String, Span)> {
             continue;
         }
         if let Some(ident) = cur.scan_ident() {
-            let name = cur.ident_text(ident).to_string();
-            let after = Cursor::at(src, cur.pos);
-            let mut look = after;
+            let mut name = cur.ident_text(ident).to_string();
+            let mut look = Cursor::at(src, cur.pos);
             look.skip_trivia();
+            if look.peek() == Some('!') {
+                name.push('!');
+                look.bump();
+                look.skip_trivia();
+            }
             if look.peek() == Some('=') {
                 names.push((name, ident));
             }
@@ -600,6 +652,107 @@ pub fn roc_binding_names(src: &str, body: Span) -> Vec<(String, Span)> {
         }
     }
     names
+}
+
+pub fn roc_rest_name(src: &str, stmt: Span) -> Option<String> {
+    let mut cur = Cursor::at(src, stmt.start as usize);
+    let end = stmt.end as usize;
+    cur.skip_trivia();
+    if cur.pos >= end {
+        return None;
+    }
+    let ident = cur.scan_ident()?;
+    let mut name = cur.ident_text(ident).to_string();
+    cur.skip_trivia();
+    if cur.peek() == Some('!') {
+        name.push('!');
+        cur.bump();
+        cur.skip_trivia();
+    }
+    match cur.peek() {
+        Some('=' | ':') => Some(name),
+        _ => None,
+    }
+}
+
+pub fn import_local_name(src: &str, span: Span) -> Option<String> {
+    let text = span.of(src);
+    if text.contains("exposing") {
+        return None;
+    }
+    let mut cur = Cursor::at(src, span.start as usize);
+    cur.skip_trivia();
+    if !is_import(&cur) {
+        return None;
+    }
+    cur.eat_str("import");
+    cur.skip_trivia();
+    let mut last = None;
+    loop {
+        let Some(ident) = cur.scan_ident() else {
+            break;
+        };
+        last = Some(cur.ident_text(ident).to_string());
+        cur.skip_trivia();
+        if cur.peek() == Some('.') {
+            cur.bump();
+            cur.skip_trivia();
+            continue;
+        }
+        break;
+    }
+    cur.skip_trivia();
+    if eat_keyword(&mut cur, "as") {
+        cur.skip_trivia();
+        let ident = cur.scan_ident()?;
+        return Some(cur.ident_text(ident).to_string());
+    }
+    last
+}
+
+pub fn roc_name_appears(name: &str, text: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    let mut from = 0;
+    while from <= text.len() {
+        let Some(rel) = text[from..].find(name) else {
+            return false;
+        };
+        let start = from + rel;
+        let end = start + name.len();
+        let before_ok = start == 0
+            || text[..start]
+                .chars()
+                .next_back()
+                .is_none_or(|ch| !is_ident_continue(ch));
+        let after_ok = end >= text.len()
+            || text[end..]
+                .chars()
+                .next()
+                .is_none_or(|ch| !is_ident_continue(ch) && ch != '!');
+        if before_ok && after_ok {
+            return true;
+        }
+        from = start.saturating_add(1);
+        if from <= start {
+            return false;
+        }
+    }
+    false
+}
+
+fn eat_keyword(cur: &mut Cursor<'_>, kw: &str) -> bool {
+    if !cur.starts_with(kw) {
+        return false;
+    }
+    let after = cur.pos + kw.len();
+    let next = cur.src.get(after..).and_then(|s| s.chars().next());
+    if next.is_some_and(is_ident_continue) {
+        return false;
+    }
+    cur.pos = after;
+    true
 }
 
 pub fn imports_html(src: &str, imports: &[Span]) -> bool {
@@ -640,6 +793,76 @@ isLoaded = Bool.true
         let names = roc_binding_names(src, Span::new(0, src.len()));
         assert_eq!(names.len(), 1);
         assert_eq!(names[0].0, "broken");
+    }
+
+    #[test]
+    fn roc_binding_names_includes_effectful_bindings() {
+        let src = "read_count! = |db| db\nincrement_count! = |db| db\n";
+        let names = roc_binding_names(src, Span::new(0, src.len()));
+        let binding_names: Vec<_> = names.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(binding_names, vec!["read_count!", "increment_count!"]);
+    }
+
+    #[test]
+    fn roc_rest_name_classifies_bindings_aliases_and_unknown() {
+        assert_eq!(
+            roc_rest_name("read_count! = |db| db", Span::new(0, 21)).as_deref(),
+            Some("read_count!")
+        );
+        assert_eq!(
+            roc_rest_name("Status : [Active, Idle]", Span::new(0, 23)).as_deref(),
+            Some("Status")
+        );
+        assert_eq!(roc_rest_name("expect x == 1", Span::new(0, 13)), None);
+    }
+
+    #[test]
+    fn import_local_name_reads_module_and_alias() {
+        assert_eq!(
+            import_local_name("import pf.Sqlite", Span::new(0, 16)).as_deref(),
+            Some("Sqlite")
+        );
+        assert_eq!(
+            import_local_name("import pf.Sqlite as Sql", Span::new(0, 23)).as_deref(),
+            Some("Sql")
+        );
+        assert_eq!(
+            import_local_name("import pf.Stdout exposing [line!]", Span::new(0, 33)),
+            None
+        );
+    }
+
+    #[test]
+    fn roc_name_appears_uses_ident_boundaries() {
+        assert!(roc_name_appears(
+            "feature_count",
+            "{ count: feature_count }"
+        ));
+        assert!(roc_name_appears("count", "{ count: feature_count }"));
+        assert!(!roc_name_appears("count", "feature_count = 3"));
+        assert!(roc_name_appears("read_count!", "count = read_count!(db)"));
+        assert!(!roc_name_appears("read_count", "count = read_count!(db)"));
+    }
+
+    #[test]
+    fn split_roc_body_keeps_indented_lambda_bodies() {
+        let src = "\
+import pf.Sqlite
+
+read_count! = |db|
+    Sqlite.query!(
+        {
+            db,
+            query: \"SELECT 1\",
+            params: {},
+        },
+    )
+";
+        let (imports, rest) = split_roc_body(src, Span::new(0, src.len()));
+        assert_eq!(imports.len(), 1);
+        assert_eq!(rest.len(), 1);
+        assert!(rest[0].of(src).contains("read_count!"));
+        assert!(rest[0].of(src).contains("Sqlite.query!"));
     }
 
     #[test]
