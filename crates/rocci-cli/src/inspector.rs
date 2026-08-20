@@ -839,4 +839,14 @@ mod tests {
         assert!(head.contains("text/event-stream"), "{head}");
         assert!(head.contains("event: log") || head.contains("HTTP/1.1 200 OK"));
     }
+
+    #[test]
+    fn readme_describes_scrolling_highlight_and_dock() {
+        let readme = include_str!("../README.md");
+        assert!(readme.contains("/__rocci/dev"));
+        assert!(readme.contains(".code-pane"));
+        assert!(readme.contains("tok-*"));
+        assert!(readme.contains("right or bottom"));
+        assert!(readme.contains("AST and Roc stay unavailable"));
+    }
 }

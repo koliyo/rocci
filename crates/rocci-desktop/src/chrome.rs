@@ -301,4 +301,14 @@ mod tests {
         assert!(!manifest.contains("rocci-okf"));
         assert!(!manifest.contains("rocci-template"));
     }
+
+    #[test]
+    fn readme_describes_dock_chrome() {
+        let readme = include_str!("../README.md");
+        assert!(readme.contains("right (default"));
+        assert!(readme.contains("bottom"));
+        assert!(readme.contains("flex chrome strip"));
+        assert!(readme.contains("does not assign `iframe.src` for a Source `view`-only change"));
+        assert!(!readme.contains("undock"));
+    }
 }
