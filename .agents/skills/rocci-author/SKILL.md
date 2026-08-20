@@ -91,7 +91,7 @@ path until island splicing lands.
 - Fenced code is always display-only, even when the language is `roc`,
   `rocci`, or `rocdown`.
 - Raw HTML in Markdown is disabled. Use Markdown, `:note`, `:img`, a
-  document-root `<Tag />`, or `@render { htmlExpr }`.
+  document-root `<Tag />`, or `@render MyComponent({ ... })`.
 - `@page` is at most once. Docs sites usually omit `route` and let the catalog
   derive it. Use `True` / `False` in page metadata.
 - `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,

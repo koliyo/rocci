@@ -27,7 +27,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | --- | --- |
 | `@page { ... }` | Route, draft, layout, theme, color scheme, and metadata |
 | `@roc { ... }` | Roc imports, types, values, and helpers |
-| `@render { expr }` | Insert one Roc `Html` expression |
+| `@render MyComponent({ ... })` | Insert a PascalCase component call |
 | `@component` | Declare a Rocci component |
 | `@fixture` | Tag preview or test data |
 | `@css { ... }` | Add file-scoped CSS |
@@ -157,7 +157,7 @@ URL autolinks, and footnotes. It adds deterministic heading IDs, stable `rd-*`
 classes, language classes on fenced code, wiki links, and page-link resolution.
 
 Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
-Rocci tag, or `@render` instead.
+Rocci tag, or `@render MyComponent({ ... })` instead.
 
 ## Footnotes
 

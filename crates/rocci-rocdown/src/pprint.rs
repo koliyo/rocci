@@ -28,8 +28,19 @@ fn write_roc_decl(w: &mut Writer<'_>, src: &str, roc: &RocDecl) {
     w.leaf("roc", &[atom(roc.body.of(src).trim())]);
 }
 
-fn write_render(w: &mut Writer<'_>, src: &str, render: &RenderDecl) {
-    w.leaf("render", &[atom(render.expr.of(src).trim())]);
+fn write_render(w: &mut Writer<'_>, _src: &str, render: &RenderDecl) {
+    let name = render
+        .path
+        .parts
+        .iter()
+        .map(|part| part.name.as_str())
+        .collect::<Vec<_>>()
+        .join(".");
+    if name.is_empty() {
+        w.leaf("render", &[]);
+    } else {
+        w.leaf("render", std::slice::from_ref(&name));
+    }
 }
 
 fn write_component_leaf(w: &mut Writer<'_>, _src: &str, component: &ComponentDecl) {

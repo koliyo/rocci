@@ -606,7 +606,7 @@ Text in rocdown.
 
     #[test]
     fn classifies_render_as_hydrate() {
-        let class = classify("# Hi\n\n@render {\n    Html.text(\"x\")\n}\n");
+        let class = classify("# Hi\n\n@render Mark({})\n");
         assert_eq!(class.kind, PageKind::Hydrate);
         assert_eq!(class.reason, "@render");
     }
@@ -657,7 +657,7 @@ Text in rocdown.
 
     #[test]
     fn rejects_render_islands() {
-        let src = "# Hi\n\n@render {\n    Html.text(\"x\")\n}\n";
+        let src = "# Hi\n\n@render Mark({})\n";
         let out = compile(
             SourceFile::new("island.rocdown", src),
             &CompileOptions {

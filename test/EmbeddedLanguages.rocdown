@@ -147,9 +147,7 @@ Plain inert text block 📝
 
 ## Section 4: Executable Island and Template Directives {#sec-executable}
 
-@render {
-    card({ title: "Rendered Card 🎉", count: 100 })
-}
+@render Card({ title: "Rendered Card 🎉", count: 100 })
 
 @let activeItems = List.keep_if(items, |item| item.id > 0)
 

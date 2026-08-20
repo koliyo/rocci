@@ -244,6 +244,8 @@ fn try_scan_decl(
         (parsed.end, parsed.diagnostics)
     } else if kind == Reserved::Use {
         skip_use_path(src, at)
+    } else if kind == Reserved::Render {
+        skip_render(src, at)
     } else {
         skip_brace_block(src, at, kind)
     };
@@ -683,10 +685,11 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             matches!(cur.peek(), Some('{')) || cur.peek().is_some_and(is_ident_start)
         }
-        Reserved::Page | Reserved::Roc | Reserved::Render | Reserved::Css | Reserved::Init => {
+        Reserved::Page | Reserved::Roc | Reserved::Css | Reserved::Init => {
             cur.skip_trivia();
             cur.peek() == Some('{')
         }
+        Reserved::Render => header_matches_render(src, after_name),
         Reserved::Use => {
             cur.skip_trivia();
             cur.peek() == Some('"')
@@ -761,6 +764,77 @@ fn header_matches_let(src: &str, after_name: usize) -> bool {
     cur.peek() == Some('=')
 }
 
+fn header_matches_render(src: &str, after_name: usize) -> bool {
+    let mut cur = Cursor::at(src, after_name);
+    cur.skip_trivia();
+    matches!(cur.peek(), Some('{') | Some('<')) || cur.peek().is_some_and(is_ident_start)
+}
+
+fn skip_render(src: &str, at: usize) -> (usize, Vec<Diagnostic>) {
+    let mut diagnostics = Vec::new();
+    let mut cur = Cursor::at(src, at);
+    cur.eat('@');
+    cur.scan_ident();
+    cur.skip_trivia();
+    if cur.peek() == Some('{') {
+        let brace_start = cur.pos;
+        cur.skip_balanced_braces();
+        if cur.pos <= brace_start || src.as_bytes().get(cur.pos.saturating_sub(1)) != Some(&b'}') {
+            diagnostics.push(Diagnostic::error(
+                Span::new(brace_start, cur.pos),
+                "unterminated `@render` block; expected `}`",
+            ));
+        }
+        return (cur.pos, diagnostics);
+    }
+    if cur.peek() == Some('<') {
+        while !cur.is_eof() && !matches!(cur.peek(), Some('\n')) {
+            let before = cur.pos;
+            cur.bump();
+            if cur.pos == before {
+                break;
+            }
+        }
+        return (cur.pos, diagnostics);
+    }
+    if cur.scan_ident().is_none() {
+        diagnostics.push(Diagnostic::error(
+            Span::point(cur.pos),
+            "expected a PascalCase component after `@render`",
+        ));
+        if !cur.is_eof() {
+            cur.bump();
+        }
+        return (cur.pos, diagnostics);
+    }
+    while cur.eat('.') {
+        if cur.scan_ident().is_none() {
+            diagnostics.push(Diagnostic::error(
+                Span::point(cur.pos),
+                "expected identifier after `.`",
+            ));
+            break;
+        }
+    }
+    cur.skip_trivia();
+    if cur.peek() != Some('(') {
+        diagnostics.push(Diagnostic::error(
+            Span::point(cur.pos),
+            "expected `(` after `@render` target; write `@render MyComponent({ ... })`",
+        ));
+        return (cur.pos, diagnostics);
+    }
+    let paren_start = cur.pos;
+    cur.skip_balanced_parens();
+    if cur.pos <= paren_start || src.as_bytes().get(cur.pos.saturating_sub(1)) != Some(&b')') {
+        diagnostics.push(Diagnostic::error(
+            Span::new(paren_start, cur.pos),
+            "unterminated `@render` call; expected `)`",
+        ));
+    }
+    (cur.pos, diagnostics)
+}
+
 fn skip_use_path(src: &str, at: usize) -> (usize, Vec<Diagnostic>) {
     let mut diagnostics = Vec::new();
     let mut cur = Cursor::at(src, at);
@@ -821,7 +895,7 @@ fn trailing_text(src: &str, end: usize) -> Option<Diagnostic> {
     if line.chars().any(|ch| !ch.is_whitespace()) {
         Some(Diagnostic::error(
             Span::new(end, end + line.len()),
-            "text after a declaration's closing `}` must be on the next line",
+            "text after a declaration must be on the next line",
         ))
     } else {
         None

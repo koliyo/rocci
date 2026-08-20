@@ -68,6 +68,4 @@ RevealTip = |{ open }| {
 
 Prose stays Markdown. The button below posts to the island service.
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })

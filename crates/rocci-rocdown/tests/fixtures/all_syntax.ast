@@ -60,7 +60,7 @@
     (text .))
   (fence roc answer = 42)
   (md)
-  (render hello({ name: "render" }))
+  (render Hello)
   (call hello)
   (let visible)
   (if)

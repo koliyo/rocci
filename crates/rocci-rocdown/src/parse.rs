@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use comrak::{Arena, Options, parse_document};
 use rocci_template::{
-    Cursor, Diagnostic, ModuleItem, SourceFile, Span, parse_declaration_from,
-    parse_template_item_from,
+    ComponentPath, Cursor, Diagnostic, Ident, ModuleItem, SourceFile, Span, camel_to_pascal,
+    component_roc_name, is_ambiguous_pascal, parse_declaration_from, parse_template_item_from,
 };
 
 use crate::ast::{
@@ -766,13 +766,7 @@ fn fill_at_decl(
                 span: Span::new(decl.at, decl.end),
             })
         }
-        Reserved::Render => {
-            let expr = inner_span(src, decl.at);
-            Item::Render(RenderDecl {
-                expr,
-                span: Span::new(decl.at, decl.end),
-            })
-        }
+        Reserved::Render => Item::Render(parse_render(src, decl, diagnostics)),
         Reserved::Use => {
             let (path, path_span) = crate::imports::parse_use_path(src, decl.at, decl.end);
             Item::Use(UseDecl {
@@ -819,5 +813,139 @@ fn fill_at_decl(
                 }),
             }
         }
+    }
+}
+
+fn parse_render(src: &str, decl: &ScannedDecl, diagnostics: &mut Vec<Diagnostic>) -> RenderDecl {
+    let span = Span::new(decl.at, decl.end);
+    let mut cur = Cursor::at(src, decl.at);
+    cur.eat('@');
+    cur.scan_ident();
+    cur.skip_trivia();
+    if cur.peek() == Some('{') {
+        diagnostics.push(Diagnostic::error(
+            span,
+            "`@render` takes a PascalCase call, not a `{ }` body; write `@render MyComponent({ ... })`. For tags, write `<MyComponent />` as a standalone HTML block.",
+        ));
+        return RenderDecl {
+            path: empty_render_path(Span::point(cur.pos)),
+            args: Span::point(cur.pos),
+            span,
+        };
+    }
+    if cur.peek() == Some('<') {
+        diagnostics.push(Diagnostic::error(
+            Span::point(cur.pos),
+            "`@render` takes a PascalCase call, not an HTML tag; write `@render MyComponent({ ... })`. For tags, write `<MyComponent />` as a standalone HTML block.",
+        ));
+        return RenderDecl {
+            path: empty_render_path(Span::point(cur.pos)),
+            args: Span::point(cur.pos),
+            span,
+        };
+    }
+    let Some(path) = parse_render_path(&mut cur, diagnostics) else {
+        return RenderDecl {
+            path: empty_render_path(Span::point(cur.pos)),
+            args: Span::point(cur.pos),
+            span,
+        };
+    };
+    if let Some(last) = path.parts.last()
+        && let Some(message) = render_target_error(&last.name)
+    {
+        diagnostics.push(Diagnostic::error(last.span, message));
+    }
+    cur.skip_trivia();
+    if cur.peek() != Some('(') {
+        return RenderDecl {
+            path,
+            args: Span::point(cur.pos),
+            span,
+        };
+    }
+    let paren_start = cur.pos;
+    cur.skip_balanced_parens();
+    let args = if cur.pos > paren_start + 1
+        && src.as_bytes().get(cur.pos.saturating_sub(1)) == Some(&b')')
+    {
+        rocci_template::trim_span(src, Span::new(paren_start + 1, cur.pos - 1))
+    } else {
+        Span::point(paren_start.saturating_add(1))
+    };
+    RenderDecl { path, args, span }
+}
+
+fn parse_render_path(
+    cur: &mut Cursor<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<ComponentPath> {
+    let first = cur.scan_ident()?;
+    let mut parts = vec![Ident {
+        name: cur.ident_text(first).to_string(),
+        span: first,
+    }];
+    while cur.eat('.') {
+        if let Some(next) = cur.scan_ident() {
+            parts.push(Ident {
+                name: cur.ident_text(next).to_string(),
+                span: next,
+            });
+        } else {
+            diagnostics.push(Diagnostic::error(
+                Span::point(cur.pos),
+                "expected identifier after `.`",
+            ));
+            break;
+        }
+    }
+    let span = Span::new(
+        parts.first().unwrap().span.start as usize,
+        parts.last().unwrap().span.end as usize,
+    );
+    if parts
+        .last()
+        .is_some_and(|part| is_ambiguous_pascal(&part.name))
+    {
+        diagnostics.push(Diagnostic::error(
+            parts.last().unwrap().span,
+            format!(
+                "ambiguous render target `{}`; write `@render HtmlShell(...)` rather than `@render {}(...)`",
+                parts.last().unwrap().name,
+                parts.last().unwrap().name
+            ),
+        ));
+    }
+    let roc_name = component_roc_name(&parts);
+    Some(ComponentPath {
+        parts,
+        roc_name,
+        span,
+    })
+}
+
+fn empty_render_path(span: Span) -> ComponentPath {
+    ComponentPath {
+        parts: Vec::new(),
+        roc_name: String::new(),
+        span,
+    }
+}
+
+fn render_target_error(name: &str) -> Option<String> {
+    if name.is_empty() || is_ambiguous_pascal(name) {
+        return None;
+    }
+    if !name
+        .chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_uppercase())
+    {
+        Some(format!(
+            "render targets must be PascalCase; write `@render {}(...)`",
+            camel_to_pascal(name)
+        ))
+    } else {
+        None
     }
 }

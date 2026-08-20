@@ -180,6 +180,4 @@ count. Increment and reset morph `#counter`.
 
 See [About](/about/) for a neighboring page that stays static.
 
-@render {
-    counterIsland({ count: 0.I64 })
-}
+@render CounterIsland({ count: 0.I64 })

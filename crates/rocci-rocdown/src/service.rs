@@ -433,9 +433,7 @@ RevealTip = |{ open }| {
 
 # Live
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })
 "#,
         )
         .unwrap();
@@ -504,9 +502,7 @@ RevealTip = |{ open }| {
 
 # Live
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })
 "#,
         )
         .unwrap();

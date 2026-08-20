@@ -384,7 +384,7 @@ impl MarkdownConvert {
         } else {
             diagnostics.push(Diagnostic::error(
                 span,
-                "raw HTML is disabled in Rocdown; use Markdown or @render { ... }",
+                "raw HTML is disabled in Rocdown; use Markdown, a document-root tag, or @render MyComponent({ ... })",
             ));
             None
         }
