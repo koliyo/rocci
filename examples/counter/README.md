@@ -23,6 +23,9 @@ cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
 
 This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
+Increment and reset call `Stderr.line!` so each action prints on the CLI and
+shows in the preview Dev Console (`source: runtime`).
+
 `rocci view` and `rocci browse` render components from fixtures; they do not run `@init` or `@on` handlers.
 
 ## Smoke checks

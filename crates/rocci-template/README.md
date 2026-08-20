@@ -202,7 +202,9 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   `|{ db }|` or `|_|` lowers with an unused `_request` appended. Omit the
   parameter list to get `|state, _request|`. `GET` responses are HTML
   documents; other methods are one-shot `datastar-patch-elements` SSE
-  events. Generated `respond!` maps `?` failures to HTTP 500.
+  events. Generated `respond!` maps `?` failures to HTTP 500. Bodies may
+  call platform effects such as `pf.Stderr.line!`; under `rocci run` those
+  lines are teed to the CLI and Dev Console. Do not print from `@component`.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
 
 Paths are free-form. The convention is:

@@ -80,9 +80,12 @@ classes (playground token colors). AST stays escaped plaintext. OKF records
 show Markdown source and built HTML; the Source dropdown omits AST and Generated Roc.
 Console lists runtime messages teed from the session, including Roc process
 stderr for `rocci run` (`GET /__rocci/logs`, SSE `GET /__rocci/logs/events`).
-It is not an app-level Rocci log API and does not capture page `console.*`
-(native Web Inspector remains the page console; that overlay wrap is original
-inspector Phase 5 and is not shipped). Static
+Handler and `@init` code can target that stream with `import pf.Stderr` and
+`Stderr.line!` (see `examples/counter`; discard `StderrErr` when mixing with
+other `?` errors). There is still no Rocci `@log` and no
+logging from `@component` render functions. Console does not capture page
+`console.*` (native Web Inspector remains the page console; that overlay wrap
+is original inspector Phase 5 and is not shipped). Static
 dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
 `GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a

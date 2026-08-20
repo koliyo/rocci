@@ -252,10 +252,12 @@ stream. Different product.
 
 ## Recommendation
 
-1. **Near-term (docs only):** treat `pf.Stderr.line!` in `@on` / `@init` as
-   the supported way to target the Rocci runtime Console and CLI. Do not
-   claim an app-level Rocci log API yet; README already says Console is not
-   that API.[^cli-readme]
+1. **Near-term (docs + examples):** treat `pf.Stderr.line!` in `@on` / `@init`
+   as the supported way to target the Rocci runtime Console and CLI. Discard
+   `StderrErr` with `match` when the handler also uses other `?` errors
+   (SQLite and stderr do not share one error type). Documented in the Rocci
+   reference and server-actions guide; demonstrated in `examples/counter` and
+   `examples/rocdown-counter`.
 2. **Next implementation (if wanted):** option **B**, then optional **C**.
    Extend `LogLine` (or `push_line`) so Console can badge `app` without
    renaming JSON fields the pane already reads.
@@ -278,10 +280,10 @@ scheduled. Writing this report does not start that plan.
 
 ## Disposition
 
-Draft and exploratory. **Shipped fact:** handler `Stderr.line!` already
-reaches CLI and Console as `runtime`. **Open product choice:** document
-only versus add a prefix protocol and optional `log!` helper with
-`source: app`.
+Draft and exploratory on the **product** choices (prefix protocol, `log!`,
+`source: app`). **Shipped authoring path:** `pf.Stderr.line!` in `@on` /
+`@init` is documented in the Rocci reference and server-actions guide, and
+demonstrated in `examples/counter` and `examples/rocdown-counter`.
 
 [^console-scope]: Runtime-only Console; component log rejected; handler Stdout sketched as later optional.
 [^console-plan]: Stderr feed and runtime-only freeze; `source: app` explicitly out of bound.

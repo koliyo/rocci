@@ -119,6 +119,28 @@ one-parameter list such as `|{ db }|` lowers with an unused `_request`
 appended. Handlers without an explicit parameter list lower to
 `|state, _request|`.
 
+Handlers and `@init` may use platform effects such as `pf.Stderr`. Under
+`rocci run`, each `Stderr.line!` line is printed on the CLI and appears in
+the preview Dev Console as `source: runtime`. Prefer stderr over stdout for
+session diagnostics: stdout is inherited by the terminal and is not teed
+into the Console. There is no Rocci `@log` and no logging from pure
+`@component` functions. Do not `?` a stderr failure into a handler that also
+uses SQLite (or other) `?` errors; discard the `StderrErr` so error types
+stay compatible:
+
+```rocci
+import pf.Stderr
+
+@on:post("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    match Stderr.line!("counter increment count=${count.to_str()}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+    counterCard({ count: count })
+}
+```
+
 ## Comments and escaping
 
 - `#` begins a template line comment at the start of an item.
