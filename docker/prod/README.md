@@ -27,12 +27,15 @@ Copy Compose/Caddy/`prod/` (not `site.tgz` / `islands`):
 DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy ./docker/prod/bootstrap-scp.sh
 ```
 
-Default remote dir is `/srv/rocci/docker`. The `deploy` user must be able to
-`docker compose` and write `/srv/rocci/{incoming,releases,current}`. Provider
-firewall should keep 22 and 80/443 closed; CI SSHs through Cloudflare Access
-(`ssh.rocci.dev`). From a laptop with Access, export `CF_ACCESS_CLIENT_ID`,
-`CF_ACCESS_CLIENT_SECRET`, and `CF_SSH_HOSTNAME=ssh.rocci.dev` so `scp`/`ssh`
-use [`access-ssh-proxy.sh`](access-ssh-proxy.sh) as `ProxyCommand`.
+Default remote dir is `/srv/rocci/docker`. The `deploy` user must write
+`/srv/rocci/{incoming,releases,current}` and call `docker compose` without
+sudo: `sudo usermod -aG docker deploy`, then a **new** SSH session (group
+membership is not picked up by an existing login). Confirm with
+`docker compose version` as `deploy`. Provider firewall should keep 22 and
+80/443 closed; CI SSHs through Cloudflare Access (`ssh.rocci.dev`). From a
+laptop with Access, export `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`,
+and `CF_SSH_HOSTNAME=ssh.rocci.dev` so `scp`/`ssh` use
+[`access-ssh-proxy.sh`](access-ssh-proxy.sh) as `ProxyCommand`.
 
 ## Deploy from `main`
 
