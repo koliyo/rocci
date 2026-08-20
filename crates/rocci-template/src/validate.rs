@@ -57,13 +57,13 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                 }
             }
             ModuleItem::On(on) => {
-                if let Some(params) = on.params {
-                    if handler_param_arity(params.of(src)) > 2 {
-                        diagnostics.push(Diagnostic::error(
-                            params,
-                            "`@on` handlers take at most two parameters: state and request",
-                        ));
-                    }
+                if let Some(params) = on.params
+                    && handler_param_arity(params.of(src)) > 2
+                {
+                    diagnostics.push(Diagnostic::error(
+                        params,
+                        "`@on` handlers take at most two parameters: state and request",
+                    ));
                 }
                 if handler_has_record_params(src, on) {
                     has_record_handler = true;

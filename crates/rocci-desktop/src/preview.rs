@@ -21,6 +21,8 @@ use crate::{
     window::{LiveWindow, WebViewHooks},
 };
 
+pub type IpcHandler = Arc<dyn Fn(&str, Arc<dyn PreviewSink>) + Send + Sync>;
+
 pub struct PreviewOptions {
     pub url: String,
     pub title: String,
@@ -32,7 +34,7 @@ pub struct PreviewOptions {
     pub source_root: Option<std::path::PathBuf>,
     pub live_reload: bool,
     pub extra_initialization_script: Option<String>,
-    pub on_ipc: Option<Arc<dyn Fn(&str, Arc<dyn PreviewSink>) + Send + Sync>>,
+    pub on_ipc: Option<IpcHandler>,
     pub picker: bool,
 }
 
