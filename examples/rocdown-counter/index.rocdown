@@ -11,6 +11,7 @@
 import pf.Env
 import pf.Path
 import pf.Sqlite
+import pf.Stderr
 import Origin
 }
 
@@ -203,6 +204,10 @@ import Origin
             }
         },
     )
+    match Stderr.line!("counter increment count=${count_row.value.to_str()}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
     counterCard({ count: count_row.value, clicks })
 }
 
@@ -221,6 +226,10 @@ import Origin
             params: {},
         },
     )?
+    match Stderr.line!("counter reset") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
     counterCard({ count: 0.I64, clicks: [] })
 }
 

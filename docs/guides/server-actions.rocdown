@@ -65,6 +65,30 @@ parameter when the handler reads `Server.Request`; omit it otherwise.
 Non-GET handlers return one-shot `datastar-patch-elements` events. The stable
 `id` lets Datastar target the existing fragment.
 
+## Log from a handler
+
+`@on` and `@init` are effectful Roc. Import `pf.Stderr` and write lines with
+`Stderr.line!`. Under `rocci run`, those lines show on the CLI and in the
+preview Dev Console (`source: runtime`). Do not put prints in `@component`
+bodies; keep components pure. Match away `StderrErr` instead of using `?` when
+the handler already propagates other error types (for example SQLite):
+
+```rocci
+import pf.Stderr
+
+@on:post("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    match Stderr.line!("counter increment count=${count.to_str()}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+    counterCard({ count })
+}
+```
+
+`Stdout.line!` reaches the terminal only. Prefer stderr when you want the
+same line in Console.
+
 ## Trigger the action
 
 ```rocci

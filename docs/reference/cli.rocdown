@@ -90,7 +90,7 @@ preview window by default. The preview overlay supports current-document find
 ends) and go-to-file (`Cmd/Ctrl-K`). Static site and knowledge review servers
 expose a Dev control that docks an inspector with Performance, Source, and
 Console tabs (original source, AST, generated Roc, generated HTML, plus
-runtime session logs). Source scrolls long Roc/HTML and highlights Rocci,
+runtime session logs including Roc stderr). Source scrolls long Roc/HTML and highlights Rocci,
 Rocdown, Markdown, Roc, and HTML with `tok-*` classes. Dock is right or
 bottom only. `rocci run` serves that
 panel on a sibling loopback port so it is not injected into the authored app's
@@ -155,10 +155,11 @@ Dev control opens a panel at `/__rocci/dev` with Performance, Source, and
 Console tabs for the current route (`?tab=`, `?route=`, and `?view=`). Long
 Source Roc and HTML scroll inside the pane. Original Rocci/Rocdown/Markdown,
 generated Roc, and generated HTML use `tok-*` highlighting; AST stays plain.
-Console
-shows runtime session messages, not an app log API. `rocdown run` and
-`rocdown build` refuse OKF knowledge records and bundles and point to
-`rocci-okf run`.
+Console shows runtime session messages (host notes and Roc stderr). From
+`@on` / `@init`, `pf.Stderr.line!` reaches that pane under `rocci run` (discard
+`StderrErr` when mixing with other `?` errors); there is no Rocci `@log`.
+`rocdown run` and `rocdown build` refuse OKF knowledge records and bundles and
+point to `rocci-okf run`.
 
 | Option | Effect |
 | --- | --- |

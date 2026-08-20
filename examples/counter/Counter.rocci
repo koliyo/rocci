@@ -1,6 +1,7 @@
 import pf.Env
 import pf.Path
 import pf.Sqlite
+import pf.Stderr
 import Html
 
 @context { db : Sqlite.Db }
@@ -36,11 +37,19 @@ import Html
 
 @on:post("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
+    match Stderr.line!("counter increment count=${count.to_str()}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
     counterCard({ count: count })
 }
 
 @on:post("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
+    match Stderr.line!("counter reset count=${count.to_str()}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
     counterCard({ count: count })
 }
 
