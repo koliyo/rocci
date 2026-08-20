@@ -106,10 +106,12 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let title_proxy = proxy.clone();
     let host_ipc = options.on_ipc.clone();
     let host_sink: Arc<dyn PreviewSink> = Arc::new(ProxySink(proxy.clone()));
+    let saved_inspector = crate::state::load_inspector_state(&state_key);
     let mut init_script = chrome::initialization_script(
         options.inspector_url.as_deref(),
         options.source_root.is_some(),
         options.live_reload,
+        saved_inspector.as_ref(),
     );
     if let Some(extra) = &options.extra_initialization_script {
         init_script.push('\n');
@@ -141,6 +143,10 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     Some(IpcMessage::LiveReload(enabled)) => {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::LiveReload(enabled)));
+                    }
+                    Some(IpcMessage::InspectorPrefs(json)) => {
+                        let _ = ipc_proxy
+                            .send_event(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json)));
                     }
                     None => {
                         if let Some(handler) = &host_ipc {
@@ -267,6 +273,11 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::LiveReload(enabled))) => {
                 menu.set_live_reload_checked(enabled);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json))) => {
+                if let Some(state) = crate::state::parse_inspector_state_json(&json) {
+                    crate::state::save_inspector_state(&state_key, state);
+                }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);
