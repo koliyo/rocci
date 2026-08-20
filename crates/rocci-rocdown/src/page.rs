@@ -111,7 +111,7 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                 Some(draft) => meta.draft = draft,
                 None => diagnostics.push(Diagnostic::error(
                     value,
-                    "`draft` must be `Bool.true` or `Bool.false`",
+                    "`draft` must be `True` or `False`",
                 )),
             },
             "theme" => match string_literal(src, value) {
@@ -285,8 +285,8 @@ fn unescape_roc_string(text: &str) -> String {
 
 pub(crate) fn bool_literal(src: &str, span: Span) -> Option<bool> {
     match span.of(src).trim() {
-        "Bool.true" => Some(true),
-        "Bool.false" => Some(false),
+        "True" => Some(true),
+        "False" => Some(false),
         _ => None,
     }
 }
@@ -780,7 +780,7 @@ items = [
     { id: 2, name: "Item 2 ✨" },
 ]
 status = Active(42)
-isLoaded = Bool.true
+isLoaded = True
 "#;
         let names = roc_binding_names(src, Span::new(0, src.len()));
         let binding_names: Vec<_> = names.iter().map(|(n, _)| n.as_str()).collect();
@@ -830,6 +830,14 @@ isLoaded = Bool.true
             import_local_name("import pf.Stdout exposing [line!]", Span::new(0, 33)),
             None
         );
+    }
+
+    #[test]
+    fn bool_literal_is_roc_true_false() {
+        assert_eq!(bool_literal("True", Span::new(0, 4)), Some(true));
+        assert_eq!(bool_literal("False", Span::new(0, 5)), Some(false));
+        assert_eq!(bool_literal("Bool.true", Span::new(0, 9)), None);
+        assert_eq!(bool_literal("true", Span::new(0, 4)), None);
     }
 
     #[test]

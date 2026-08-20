@@ -60,7 +60,7 @@ Text after a declaration's closing `}` on the same line is an error.
 ````rocdown
 @page {
     route: "/guides/rocdown/",
-    draft: Bool.false,
+    draft: False,
     theme: "paper",
     color_scheme: "auto",
     meta: {
@@ -153,7 +153,7 @@ Native image declaration. Lowers to `Html.void_element("img", ...)` with standar
 | --- | --- | --- |
 | `src` | **Required** | Compile-time string literal path or URL to image |
 | `alt` | Required unless `decorative` | Compile-time string literal accessible description |
-| `decorative` | Optional | `Bool.true` emits `alt=""`; a non-empty `alt` with this flag is an error |
+| `decorative` | Optional | `True` emits `alt=""`; a non-empty `alt` with this flag is an error |
 | `title` | Optional | Compile-time string literal tooltip / title attribute |
 | `width` | Optional | Compile-time string literal (e.g. `"50px"`, `"100%"`) |
 | `height` | Optional | Compile-time string literal (e.g. `"50px"`, `"auto"`) |
@@ -178,7 +178,7 @@ At most one per file. Unknown top-level fields are errors. Extracted controls:
 | --- | --- |
 | `route` | compile-time string literal; no `..`, query, fragment, `%2f`, or NUL |
 | `layout` | statically resolvable Roc path, called as `Layout({ meta, content })` |
-| `draft` | `Bool.true` or `Bool.false` |
+| `draft` | `True` or `False` |
 | `theme` | compile-time string; `paper` (default), `rocci`, `none`, a name in `~/.rocci/themes`, or a CSS file path |
 | `color_scheme` | `"auto"` (OS light/dark), `"light"`, or `"dark"`. The default `paper` palette is One Light / One Dark Pro. |
 | `meta` | arbitrary Roc record; `title` is copied onto the default document `<title>` |

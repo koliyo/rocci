@@ -240,26 +240,31 @@ fn parse_ident_or_bool(
         ));
         return None;
     };
-    if ident.of(src) == "Bool" && cur.eat('.') {
-        let Some(flag) = cur.scan_ident() else {
+    match ident.of(src) {
+        "True" => {
+            return Some(ParamValue::BoolLit {
+                value: true,
+                span: ident,
+            });
+        }
+        "False" => {
+            return Some(ParamValue::BoolLit {
+                value: false,
+                span: ident,
+            });
+        }
+        "Bool" if cur.eat('.') => {
+            let end = cur
+                .scan_ident()
+                .map(|flag| flag.end as usize)
+                .unwrap_or(cur.pos);
             diagnostics.push(Diagnostic::error(
-                Span::new(start, cur.pos),
-                "expected `Bool.true` or `Bool.false`",
+                Span::new(start, end),
+                "Roc booleans are `True` and `False`, not `Bool.true`",
             ));
             return None;
-        };
-        let span = Span::new(start, flag.end as usize);
-        return match flag.of(src) {
-            "true" => Some(ParamValue::BoolLit { value: true, span }),
-            "false" => Some(ParamValue::BoolLit { value: false, span }),
-            other => {
-                diagnostics.push(Diagnostic::error(
-                    span,
-                    format!("expected `Bool.true` or `Bool.false`, found `Bool.{other}`"),
-                ));
-                None
-            }
-        };
+        }
+        _ => {}
     }
     Some(ParamValue::Ident {
         name: ident.of(src).to_string(),

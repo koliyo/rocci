@@ -37,7 +37,7 @@ paints the HTML. Fenced code stays display-only.
         double braces on the same call.
     }}
 
-    :step[title: "Include source from disk", verify: Bool.true] {{
+    :step[title: "Include source from disk", verify: True] {{
         Point `:include` at a file under the content root. Prefer a named
         region over line numbers.
     }}

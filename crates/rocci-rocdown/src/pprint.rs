@@ -103,9 +103,9 @@ fn param_display(src: &str, value: &ParamValue) -> String {
         ParamValue::StringLit { value, .. } => value.clone(),
         ParamValue::BoolLit { value, .. } => {
             if *value {
-                "true".into()
+                "True".into()
             } else {
-                "false".into()
+                "False".into()
             }
         }
         ParamValue::NumberLit { value, .. } => value.clone(),

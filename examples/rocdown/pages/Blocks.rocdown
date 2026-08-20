@@ -1,6 +1,6 @@
 @page {
     route: "/guides/rocdown-blocks/",
-    draft: Bool.false,
+    draft: False,
     theme: "rocci",
     color_scheme: "light",
     meta: {

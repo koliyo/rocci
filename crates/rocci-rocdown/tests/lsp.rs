@@ -16,7 +16,13 @@ const BLOCKS_ROCDOWN: &str = include_str!("../../../examples/rocdown/pages/Block
 use std::path::PathBuf;
 
 fn test_uri() -> Uri {
-    "file:///AllSyntax.rocdown".parse().expect("test uri")
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../test/AllSyntax.rocdown")
+        .canonicalize()
+        .expect("AllSyntax.rocdown path");
+    format!("file://{}", path.display())
+        .parse()
+        .expect("test uri")
 }
 
 fn embedded_uri() -> Uri {

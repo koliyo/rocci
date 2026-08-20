@@ -408,6 +408,53 @@ fn standalone_compile_failure_builds_error_page() {
 }
 
 #[test]
+fn all_syntax_fixture_plans_two_arg_handlers() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../test/AllSyntax.rocdown");
+    let plan = plan_ready(&path);
+    let all_syntax = plan
+        .modules
+        .iter()
+        .find(|module| module.type_name == "AllSyntax")
+        .expect("AllSyntax module");
+    assert!(
+        all_syntax
+            .roc
+            .contains("on_get_all_syntax! = |_state, _request|"),
+        "{}",
+        all_syntax.roc
+    );
+    assert!(
+        all_syntax
+            .roc
+            .contains("on_post_actions_all_syntax_ping! = |_, _request|"),
+        "{}",
+        all_syntax.roc
+    );
+    assert!(
+        !all_syntax.roc.contains("Bool.true"),
+        "Roc expressions must use True/False, not Bool.true:\n{}",
+        all_syntax.roc
+    );
+    for module in &plan.modules {
+        assert!(
+            !module.roc.contains("! = |_state| {"),
+            "{} still emits a one-arg GET handler:\n{}",
+            module.type_name,
+            module.roc
+        );
+    }
+    let main = plan.main_roc();
+    assert!(
+        main.contains("AllSyntax.on_get_all_syntax!(context, request)"),
+        "{main}"
+    );
+    assert!(
+        main.contains("AllSyntax.on_post_actions_all_syntax_ping!(context, request)"),
+        "{main}"
+    );
+}
+
+#[test]
 fn use_callout_example_plans_for_interactive_run() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../test/use-callout.rocdown");
     let plan = plan_ready(&path);

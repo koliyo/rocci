@@ -25,7 +25,7 @@ fn test_article_html_components() {
     }}
 :tabs.end
 
-:details[summary: "Click to expand", open: Bool.true] Hidden content revealed.
+:details[summary: "Click to expand", open: True] Hidden content revealed.
 
 :badge[label: "Beta", tone: "beta"]
 

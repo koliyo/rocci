@@ -1,9 +1,12 @@
 (rocdown
-  (page route: "/all-syntax/", draft: Bool.false…)
+  (page route: "/all-syntax/", draft: False, the…)
   (roc Status : [Ready, Loading] items = [{ nam…)
+  (context)
+  (init)
   (css)
   (component Hello)
   (fixture helloSample)
+  (on post:/actions/all-syntax/ping)
   (block h1 line id all-syntax
     (p
       (text All syntax)))
@@ -11,42 +14,100 @@
     (text Email)
     (a mailto:docs@example.com
       (text docs@example.com))
-    (text or mention @roclang.))
+    (text or mention @roclang. Visit)
+    (a https://example.com
+      (text https://example.com))
+    (text or see)
+    (md)
+    (a syntax-v2
+      (text syntax-v2))
+    (text ,)
+    (a syntax-v2.rocdown
+      (text v2))
+    (text , and)
+    (a #explicit-heading
+      (text the heading))
+    (text .))
   (p
     (text This is)
     (strong
       (text bold))
-    (text and)
+    (text ,)
     (em
       (text italic))
+    (text ,)
+    (md)
+    (text , and)
+    (code inline code)
     (text .))
   (ul
     (li
       (p
-        (text list item))))
+        (text list item)))
+    (md)
+    (md))
+  (ol
+    (li
+      (p
+        (text ordered item))))
+  (md)
+  (md)
+  (block img src ./img/yammi_banana.png alt A banana)
+  (p
+    (text See)
+    (a syntax-v2.rocdown
+      (text ref text))
+    (text .))
   (fence roc answer = 42)
   (md)
   (render hello({ name: "render" }))
+  (call hello)
   (let visible)
   (if)
   (for item)
   (match)
+  (block h2 line id explicit-heading
+    (p
+      (text Explicit heading)))
   (block figure section caption A banana credit Rocci fixtures
     (block img src ./img/yammi_banana.png alt A banana width 50px))
+  (block img src ./img/yammi_banana.png decorative True width 20px)
   (block note line
     (p
       (text Don't do this.)))
+  (block tip line
+    (p
+      (text Line-scope still works.)))
+  (block caution line title Watch
+    (p
+      (text Prefer)
+      (code :caution)
+      (text over leftover)
+      (code @docs)
+      (text .)))
+  (block danger line
+    (p
+      (text Do not paste raw HTML.)))
+  (block deprecated line
+    (p
+      (text This spelling is kept for coverage.)))
   (block note section title Watch
     (p
       (text Nested section body.)))
-  (block details line summary More
+  (block details line summary More open False
     (p
       (text Nested details body.)))
+  (block definition line term Article block
+    (p
+      (text A)
+      (code :kind[params])
+      (text node with a body.)))
+  (block badge label preview tone preview)
   (block steps end
     (block step line title One
       (p
         (text First step.)))
-    (block step line title Two
+    (block step line title Two verify True
       (p
         (text Second step.))))
   (block tabs end group os kind platform
@@ -56,6 +117,33 @@
     (block tab line id linux label Linux
       (p
         (text Linux panel.))))
+  (block tabs section group install kind tool
+    (block tab line id cli label CLI
+      (p
+        (text Check the catalog.)))
+    (block tab line id test label Examples
+      (p
+        (text Run declared examples.))))
+  (block card-grid end
+    (block link-card href https://example.com title Example summary External page)
+    (block link-card href https://roc-lang.org title Roc))
+  (block file-tree section
+    (ul
+      (li
+        (p
+          (text test/))
+        (ul
+          (li
+            (p
+              (text AllSyntax.rocdown)))
+          (li
+            (p
+              (text snippet.txt)))))))
+  (block compatibility section caption Hosts
+    (md))
+  (block include path snippet.txt language text)
+  (block example section language sh test ["/bin/echo", "hello"] expect hello
+    (fence sh echo hello))
   (p
     (text @if this is escaped))
   (p

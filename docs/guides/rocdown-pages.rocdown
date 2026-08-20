@@ -19,7 +19,7 @@ needs structure or behavior.
 ````rocdown
 @page {
     route: "/guides/hello/",
-    draft: Bool.false,
+    draft: False,
     meta: {
         title: "Hello from Rocdown",
         description: "A small Markdown-first page",

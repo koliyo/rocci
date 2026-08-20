@@ -4,9 +4,18 @@ use lsp_types::{
 };
 use rocci_lsp::LanguageServer;
 use rocci_rocdown_lsp::composed_server;
+use std::path::PathBuf;
 
 const ROCCI: &str = include_str!("../../../test/AllSyntax.rocci");
 const ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
+
+fn all_syntax_rocdown_uri() -> String {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../test/AllSyntax.rocdown")
+        .canonicalize()
+        .expect("AllSyntax.rocdown path");
+    format!("file://{}", path.display())
+}
 
 fn initialize_server() -> LanguageServer {
     let mut server = composed_server();
@@ -52,7 +61,7 @@ fn open(server: &mut LanguageServer, uri: &str, language_id: &str, text: &str) {
 fn composition_server_analyzes_rocci_and_rocdown() {
     let mut server = initialize_server();
     open(&mut server, "file:///x.rocci", "rocci", ROCCI);
-    open(&mut server, "file:///x.rocdown", "rocdown", ROCDOWN);
+    open(&mut server, &all_syntax_rocdown_uri(), "rocdown", ROCDOWN);
 }
 
 #[test]

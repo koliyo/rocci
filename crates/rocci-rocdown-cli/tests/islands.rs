@@ -435,6 +435,76 @@ fn counter_run_proxies_actions_on_one_origin() {
     drop(child);
 }
 
+#[test]
+fn all_syntax_run_serves_the_kitchen_sink() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let fixture = repo_root().join("test/AllSyntax.rocdown");
+    let bin = rocdown_bin();
+    let port = rocci_cli::serve::free_port().unwrap();
+    let mut child = Command::new(&bin)
+        .args([
+            "run",
+            fixture.to_str().unwrap(),
+            "--no-window",
+            "--port",
+            &port.to_string(),
+        ])
+        .current_dir(repo_root())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .unwrap();
+    wait_for_preview_or_roc_error(port, &mut child, "Don't do this.");
+    let child = KillOnDrop(child);
+
+    let home = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(home.contains("Don't do this."), "{home}");
+    assert!(
+        home.contains("Hello, render") || home.contains("Hello, island"),
+        "{home}"
+    );
+    drop(child);
+}
+
+fn wait_for_preview_or_roc_error(port: u16, child: &mut Child, needle: &str) {
+    let start = Instant::now();
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            panic!("preview server exited before ready ({status})");
+        }
+        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+            let req =
+                format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+            if stream.write_all(req.as_bytes()).is_ok() {
+                let mut body = Vec::new();
+                let _ = stream.read_to_end(&mut body);
+                let text = String::from_utf8_lossy(&body);
+                if text.contains(needle) {
+                    return;
+                }
+                if text.contains("does not exist")
+                    || text.contains("too many args")
+                    || text.contains("ROC CRASHED")
+                    || text.contains("runtime error")
+                {
+                    panic!("AllSyntax failed to compile with Roc:\n{text}");
+                }
+            }
+        }
+        if start.elapsed() > Duration::from_secs(180) {
+            panic!("timed out waiting for AllSyntax preview on port {port}");
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+}
+
 fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
     let start = Instant::now();
     loop {

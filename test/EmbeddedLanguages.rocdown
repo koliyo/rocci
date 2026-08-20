@@ -1,6 +1,6 @@
 @page {
     route: "/embedded-languages/",
-    draft: Bool.false,
+    draft: False,
     theme: "rocci",
     meta: {
         title: "Embedded Languages Demo 🚀",
@@ -80,7 +80,7 @@ Inline code looks like `Num.toStr(42)`. You can also visit [External Link](https
 
 ## Section 2: Documentation Components {#sec-docs}
 
-:note[title: "Important Usage Note", open: Bool.true] {{
+:note[title: "Important Usage Note", open: True] {{
 This is the content of the note. It supports *Markdown* and `inline code`.
 }}
 
@@ -111,7 +111,7 @@ counter = 42
 
 :link-card[page: "/guides/getting-started/", title: "Getting Started 🚀", description: "Learn how to build applications with Rocci."]
 
-:details[summary: "Advanced Details 🔍", open: Bool.false] {{
+:details[summary: "Advanced Details 🔍", open: False] {{
 Here is collapsible markdown content that stays hidden until expanded.
 }}
 
