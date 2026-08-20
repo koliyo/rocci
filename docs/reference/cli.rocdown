@@ -161,6 +161,31 @@ ship Datastar actions without the island service. Default hybrid build accepts
 `live` pages and prints page kinds, whether Datastar was emitted, and service
 routes.
 
+### Package a static site
+
+```sh
+cargo run -p rocci-rocdown-cli -- package [ROOT] [--output DIRECTORY] [--archive site.tgz]
+```
+
+Implies `--cdn-only`: `live` pages fail with `RD2302` and leave the previous
+`site.tgz` in place. Writes the CDN tree, `publish.json` (page kinds, Datastar,
+empty `service_origin`, output hash, file list, and `rocdown` / `roc` versions
+when known), and a gzip tarball whose root is that tree plus `publish.json`.
+`--no-archive` skips the tarball. This is the artifact `rocdown serve` and the
+static Docker host consume.
+
+### Serve a built tree
+
+```sh
+cargo run -p rocci-rocdown-cli -- serve [DIST] [--port PORT] [--no-window]
+```
+
+Serve an existing `dist/` on loopback without Roc, watch, or rebuild. `DIST`
+must contain `index.html`. Preview window follows the same `--no-window` rules
+as `rocdown run`. This checks that a package is self-contained; it is not
+`rocdown run` (which rebuilds from sources) and not `serve-islands` (island
+process only).
+
 Local `:img` and Markdown image paths resolve against the source file. Missing
 local files fail the catalog (`RD2103`). Files under `build.assets` are
 content-hashed whether the authored URL is `/assets/foo.png` or `assets/foo.png`.

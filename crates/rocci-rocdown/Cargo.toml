@@ -13,6 +13,8 @@ path = "src/lib.rs"
 anyhow = { workspace = true }
 clap = { workspace = true }
 comrak = { version = "0.54", default-features = false }
+flate2 = "1"
+tar = "0.4"
 lsp-types = { workspace = true }
 notify = { workspace = true }
 rocci-cli = { workspace = true }

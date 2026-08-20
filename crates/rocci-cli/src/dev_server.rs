@@ -372,6 +372,185 @@ where
     result
 }
 
+pub struct PublishedTreeConfig {
+    pub title: String,
+    pub port: u16,
+    pub dist: PathBuf,
+    pub open_path: String,
+    pub log_prefix: String,
+}
+
+pub struct PublishedServer {
+    pub url: String,
+    pub title: String,
+    pub logs: Arc<LogHub>,
+    stop: Arc<AtomicBool>,
+    _thread: JoinHandle<()>,
+}
+
+impl PublishedServer {
+    pub fn wait(&self) {
+        while !self.stop.load(Ordering::Relaxed) {
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+}
+
+impl Drop for PublishedServer {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+pub fn serve_published_tree(config: PublishedTreeConfig) -> Result<PublishedServer> {
+    let dist = if config.dist.is_absolute() {
+        config.dist
+    } else {
+        std::env::current_dir()?.join(config.dist)
+    };
+    if !dist.join("index.html").is_file() {
+        anyhow::bail!(
+            "`{}` is not a built site tree (missing index.html)",
+            dist.display()
+        );
+    }
+    let hub = Arc::new(ReloadHub::new());
+    logs::tee(
+        &hub.logs,
+        LogLevel::Info,
+        format!("{}: serving files at {}", config.log_prefix, dist.display()),
+    );
+    let stop = Arc::new(AtomicBool::new(false));
+    let listener = TcpListener::bind(("127.0.0.1", config.port))
+        .with_context(|| format!("failed to bind 127.0.0.1:{}", config.port))?;
+    listener
+        .set_nonblocking(true)
+        .context("failed to set listener non-blocking")?;
+    let bound = listener.local_addr()?.port();
+    let open_path = if config.open_path.is_empty() {
+        "/"
+    } else {
+        &config.open_path
+    };
+    let open_path = if open_path.starts_with('/') {
+        open_path.to_string()
+    } else {
+        format!("/{open_path}")
+    };
+    let url = format!("http://127.0.0.1:{bound}{open_path}");
+
+    let server_stop = stop.clone();
+    let server_dist = dist;
+    let server = thread::spawn(move || {
+        serve_published_loop(listener, server_dist, server_stop);
+    });
+
+    Ok(PublishedServer {
+        url,
+        title: config.title,
+        logs: hub.logs.clone(),
+        stop,
+        _thread: server,
+    })
+}
+
+pub fn preview_published_tree(
+    config: PublishedTreeConfig,
+    no_window: bool,
+    state_key: Option<String>,
+) -> Result<()> {
+    let prefix = config.log_prefix.clone();
+    let title = config.title.clone();
+    let server = serve_published_tree(config)?;
+    logs::tee(
+        &server.logs,
+        LogLevel::Info,
+        format!("{prefix}: serving {title} at {}", server.url),
+    );
+    if no_window {
+        server.wait();
+        return Ok(());
+    }
+    let result = preview(PreviewOptions {
+        url: server.url.clone(),
+        title: format!("{title} — Rocci"),
+        state_key,
+        width: 1200.0,
+        height: 800.0,
+        live_reload: false,
+        ..PreviewOptions::default()
+    })
+    .map_err(|error| anyhow::anyhow!("{error}"));
+    drop(server);
+    result
+}
+
+fn serve_published_loop(listener: TcpListener, dist: PathBuf, stop: Arc<AtomicBool>) {
+    while !stop.load(Ordering::Relaxed) {
+        match listener.accept() {
+            Ok((stream, _)) => {
+                let dist = dist.clone();
+                thread::spawn(move || {
+                    let _ = handle_published_client(stream, &dist);
+                });
+            }
+            Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+                thread::sleep(Duration::from_millis(20));
+            }
+            Err(_) => break,
+        }
+    }
+}
+
+fn handle_published_client(mut stream: TcpStream, dist: &Path) -> io::Result<()> {
+    stream.set_nonblocking(false)?;
+    stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+    stream.set_write_timeout(Some(Duration::from_secs(30)))?;
+    let mut buf = [0u8; 8192];
+    let n = stream.read(&mut buf)?;
+    if n == 0 {
+        return Ok(());
+    }
+    let request = String::from_utf8_lossy(&buf[..n]);
+    let path = request_path(&request).unwrap_or("/");
+    match resolve_published_request(dist, path) {
+        ServeTarget::Redirect(location) => write_redirect(&mut stream, &location),
+        ServeTarget::File { relative } => serve_published_file(&mut stream, dist, &relative, 200),
+        ServeTarget::NotFound => {
+            if dist.join("404.html").is_file() {
+                serve_published_file(&mut stream, dist, "404.html", 404)
+            } else {
+                write_response(
+                    &mut stream,
+                    404,
+                    "text/plain; charset=utf-8",
+                    false,
+                    b"not found",
+                )
+            }
+        }
+        _ => write_response(
+            &mut stream,
+            404,
+            "text/plain; charset=utf-8",
+            false,
+            b"not found",
+        ),
+    }
+}
+
+fn serve_published_file(
+    stream: &mut TcpStream,
+    output: &Path,
+    relative: &str,
+    status: u16,
+) -> io::Result<()> {
+    let path = output.join(relative);
+    let bytes = fs::read(&path)?;
+    let mime = mime_type(&path);
+    write_response(stream, status, mime, false, &bytes)
+}
+
 struct WatchCtl {
     hub: Arc<ReloadHub>,
     last_error: Arc<Mutex<Option<String>>>,
@@ -775,6 +954,16 @@ pub fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
     if path == "/__rocci/dev" || path == "/__rocdown/dev" || path == "/__rocci_okf/dev" {
         return ServeTarget::Dev;
     }
+    resolve_file_request(output, path)
+}
+
+pub fn resolve_published_request(output: &Path, url_path: &str) -> ServeTarget {
+    let path = url_path.split(['?', '#']).next().unwrap_or(url_path);
+    let path = if path.is_empty() { "/" } else { path };
+    resolve_file_request(output, path)
+}
+
+fn resolve_file_request(output: &Path, path: &str) -> ServeTarget {
     if path.split('/').any(|segment| segment == "..") {
         return ServeTarget::NotFound;
     }
@@ -1137,6 +1326,32 @@ mod tests {
         );
         assert_eq!(resolve_request(&temp, "/../outside"), ServeTarget::NotFound);
 
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn published_request_serves_files_without_preview_routes() {
+        let temp =
+            std::env::temp_dir().join(format!("rocci-published-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp);
+        fs::create_dir_all(temp.join("guide")).unwrap();
+        fs::write(temp.join("index.html"), "<h1>Home</h1>").unwrap();
+        fs::write(temp.join("guide").join("index.html"), "<h1>Guide</h1>").unwrap();
+
+        assert_eq!(
+            resolve_published_request(&temp, "/"),
+            ServeTarget::File {
+                relative: "index.html".into()
+            }
+        );
+        assert_eq!(
+            resolve_published_request(&temp, "/__rocci/reload.js"),
+            ServeTarget::NotFound
+        );
+        assert_eq!(
+            resolve_published_request(&temp, "/guide"),
+            ServeTarget::Redirect("/guide/".into())
+        );
         let _ = fs::remove_dir_all(&temp);
     }
 

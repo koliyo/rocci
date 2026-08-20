@@ -43,6 +43,24 @@ enum Commands {
         #[command(flatten)]
         theme: ThemeArgs,
     },
+    /// Package a static site for hosting: `--cdn-only` build, `publish.json`, and `site.tgz`.
+    Package {
+        /// Site root directory.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Override output path.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
+        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+        host: HostArg,
+        /// Gzip tarball path, relative to the output parent unless absolute.
+        #[arg(long, default_value = "site.tgz")]
+        archive: PathBuf,
+        /// Write `dist/` and `publish.json` without a tarball.
+        #[arg(long)]
+        no_archive: bool,
+    },
     /// Run an interactive document or serve a documentation site with live reload.
     /// Hybrid sites proxy the island service on the same origin.
     Run {
@@ -85,6 +103,26 @@ enum Commands {
     },
     /// Speak the rocci-browser adapter protocol on stdio.
     BrowserAdapter,
+    /// Serve a previously built site tree without rebuilding.
+    Serve {
+        /// Built `dist/` directory (must contain `index.html`).
+        #[arg(default_value = ".")]
+        dist: PathBuf,
+        /// Skip the preview window; print the URL and keep serving.
+        #[arg(long)]
+        no_window: bool,
+        /// TCP port to listen on. Defaults to a free port with the preview window,
+        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+        #[arg(
+            long,
+            default_value = "auto",
+            default_value_if("no_window", "true", "8000"),
+            value_name = "PORT",
+            value_parser = parse_port_arg,
+            env = "ROC_BASIC_WEBSERVER_PORT"
+        )]
+        port: PortArg,
+    },
     /// Start the island HTTP service for live pages in a documentation site.
     ServeIslands {
         /// Site root directory.
@@ -336,6 +374,29 @@ fn try_main() -> Result<()> {
                 Ok(())
             }
         }
+        Commands::Package {
+            path,
+            output,
+            host,
+            archive,
+            no_archive,
+        } => {
+            if is_document_file(&path) {
+                bail!("`rocdown package` builds a site directory, not a single .rocdown file");
+            }
+            refuse_okf_input(&path, "package")?;
+            let report = rocci_rocdown::package_configured(
+                &path,
+                output.as_deref(),
+                rocci_rocdown::PackageOptions {
+                    host: Some(host.into()),
+                    archive: Some(archive),
+                    write_archive: !no_archive,
+                },
+            )?;
+            print!("{}", report.render());
+            Ok(())
+        }
         Commands::Run {
             path,
             output,
@@ -381,6 +442,30 @@ fn try_main() -> Result<()> {
                     None,
                 )
             }
+        }
+        Commands::Serve {
+            dist,
+            no_window,
+            port,
+        } => {
+            rocci_rocdown::ensure_built_tree(&dist)?;
+            let port = port.resolve()?;
+            let title = dist
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("rocdown")
+                .to_string();
+            rocci_cli::dev_server::preview_published_tree(
+                rocci_cli::dev_server::PublishedTreeConfig {
+                    title,
+                    port,
+                    dist,
+                    open_path: "/".to_string(),
+                    log_prefix: "rocdown".to_string(),
+                },
+                no_window,
+                Some("rocdown".to_string()),
+            )
         }
         Commands::ServeIslands {
             root,
@@ -755,6 +840,66 @@ mod tests {
         match cli.command {
             Commands::Build { cdn_only, .. } => assert!(cdn_only),
             _ => panic!("expected build --cdn-only"),
+        }
+    }
+
+    #[test]
+    fn package_parses_root_output_and_archive() {
+        let cli = Cli::try_parse_from([
+            "rocdown",
+            "package",
+            "docs",
+            "--output",
+            "dist",
+            "--archive",
+            "site.tgz",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Package {
+                path,
+                output,
+                archive,
+                no_archive,
+                ..
+            } => {
+                assert_eq!(path, PathBuf::from("docs"));
+                assert_eq!(output, Some(PathBuf::from("dist")));
+                assert_eq!(archive, PathBuf::from("site.tgz"));
+                assert!(!no_archive);
+            }
+            _ => panic!("expected package"),
+        }
+
+        let cli = Cli::try_parse_from(["rocdown", "package", "docs", "--no-archive"]).unwrap();
+        match cli.command {
+            Commands::Package { no_archive, .. } => assert!(no_archive),
+            _ => panic!("expected package --no-archive"),
+        }
+    }
+
+    #[test]
+    fn serve_parses_dist_and_port() {
+        let cli = Cli::try_parse_from([
+            "rocdown",
+            "serve",
+            "dist/docs",
+            "--no-window",
+            "--port",
+            "8080",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Serve {
+                dist,
+                no_window,
+                port,
+            } => {
+                assert_eq!(dist, PathBuf::from("dist/docs"));
+                assert!(no_window);
+                assert_eq!(port, PortArg::Exact(8080));
+            }
+            _ => panic!("expected serve"),
         }
     }
 

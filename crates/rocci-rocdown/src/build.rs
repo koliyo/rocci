@@ -552,6 +552,7 @@ pub struct BuildReport {
     pub datastar: bool,
     pub service_origin: String,
     pub service_routes: Vec<crate::service::IslandRoute>,
+    pub artifacts: Vec<plan::ArtifactInspect>,
 }
 
 impl BuildReport {
@@ -621,6 +622,7 @@ fn report_from_plan(
         datastar: plan.datastar,
         service_origin: plan.service_origin.clone(),
         service_routes: plan.service_routes.clone(),
+        artifacts: plan.artifacts(),
     }
 }
 

@@ -270,6 +270,10 @@ page ids and routes, and the mutation routes the island service serves.
 page kinds, whether Datastar was emitted, service origin and routes, and the
 planned output tree including hashed asset paths.
 
+`rocdown package` writes that report as `publish.json` in the output tree after
+a `--cdn-only` build, plus `site.tgz`. `rocdown serve DIST` hosts the tree
+without rebuilding.
+
 Build this site's content from the repository root with:
 
 ```sh
