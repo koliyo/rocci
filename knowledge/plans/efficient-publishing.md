@@ -248,7 +248,7 @@ official Caddy. No Rocci toolchain in that image. No island proxy.
 - Add `docker/compose.static.yml` (name bikesheddable) that uses
   `caddy:2-alpine`, bind-mounts `ROCCI_DIST`, and publishes 8080. Prefer
   **no custom image build**.
-- Wrapper script analogous to `run-site.sh` that absolutizes `ROCCI_DIST`
+- Wrapper script analogous to `docker-serve-site.sh` that absolutizes `ROCCI_DIST`
   and runs Compose. Document: build on the host first.
 - Dogfood `docs/` (`build.output = "../dist/docs"`): `rocdown build docs
   --cdn-only` then compose up.[^docs-config][^hybrid-plan]

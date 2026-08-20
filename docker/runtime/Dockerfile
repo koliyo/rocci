@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
-# Content-agnostic Rocci/Rocdown runtime and Caddy CDN images.
+# Content-agnostic Rocci/Rocdown runtime image (builder/dev toolchain).
+# CDN hosting uses docker/cdn/Dockerfile via compose.
 # Build from the repository root:
 #   docker compose -f docker/compose.yml build
 # Run a mounted hybrid site:
-#   ./docker/run-site.sh examples/rocdown-counter
+#   ./docker/docker-serve-site.sh examples/rocdown-counter
 
 ARG UBUNTU_IMAGE=ubuntu:24.04
-ARG CADDY_IMAGE=caddy:2-alpine
 
 FROM ${UBUNTU_IMAGE} AS builder
 ARG TARGETARCH
@@ -70,7 +70,3 @@ COPY --from=builder /root/.cache /root/.cache
 
 EXPOSE 8001
 CMD ["rocdown", "serve-islands", "/src/site", "--no-window", "--port", "8001"]
-
-FROM ${CADDY_IMAGE} AS cdn
-COPY docker/cdn/Caddyfile /etc/caddy/Caddyfile
-EXPOSE 80

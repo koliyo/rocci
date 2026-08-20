@@ -8,9 +8,11 @@ RUN apt-get update \
     && mkdir -p /app/assets
 COPY server /usr/local/bin/server
 COPY assets/ /app/assets/
-RUN chmod +x /usr/local/bin/server
+COPY entrypoint.sh /usr/local/bin/rocci-app-entrypoint
+RUN chmod +x /usr/local/bin/server /usr/local/bin/rocci-app-entrypoint
 WORKDIR /app
 ENV ROC_BASIC_WEBSERVER_PORT=8000 \
+    ROCCI_HTTP_PORT=8080 \
     DB_PATH=/var/lib/rocci/app.db
 EXPOSE 8000
-CMD ["server"]
+ENTRYPOINT ["/usr/local/bin/rocci-app-entrypoint"]

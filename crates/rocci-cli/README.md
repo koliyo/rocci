@@ -60,7 +60,7 @@ cargo run -p rocci-cli -- bundle --config rocci.toml
 
 # Roc process `--target` matches the Linux container CPU (Apple Silicon Docker →
 # arm64musl; amd64 → x64musl). See docker/README.md and `rocci build --help`.
-# Not for apply or macOS .app bundles. Linux OCI: `./docker/run-app.sh` after
+# Not for apply or macOS .app bundles. Linux OCI: `./docker/docker-serve-app.sh` after
 # `rocci build --release --target …`.
 
 # Pin or update Datastar JavaScript assets

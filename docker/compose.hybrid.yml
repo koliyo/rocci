@@ -18,7 +18,10 @@ services:
       start_period: 10s
 
   cdn:
-    image: caddy:2-alpine
+    image: rocci-cdn:local
+    build: ./cdn
+    environment:
+      ROCCI_HTTP_PORT: "${ROCCI_HTTP_PORT:-8080}"
     volumes:
       - ${ROCCI_DIST:?ROCCI_DIST must be an absolute path to a built Rocdown dist}:/src/site/dist:ro
       - ./cdn/Caddyfile:/etc/caddy/Caddyfile:ro
