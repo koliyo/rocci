@@ -97,7 +97,7 @@ See [[About]]
         r#"
 @page { route: "/about/" }
 
-@on:get("/") = |_| {
+@on:get("/") = |_, _request| {
     rocci_page({})
 }
 
@@ -119,11 +119,11 @@ See [[About]]
     assert!(main.contains("About.on_get_about!"));
     assert_eq!(
         dispatch_handler(&main, "GET", "/"),
-        "Home.on_get_home!(context)"
+        "Home.on_get_home!(context, request)"
     );
     assert_eq!(
         dispatch_handler(&main, "GET", "/about/"),
-        "About.on_get_about!(context)"
+        "About.on_get_about!(context, request)"
     );
     assert!(main.contains("html_status(404, not_found_html("));
     assert!(!main.contains("Not found"));
@@ -170,15 +170,15 @@ fn guide_example_serves_interactive_route() {
     assert!(main.contains("import Interactive"));
     assert_eq!(
         dispatch_handler(&main, "GET", "/guides/rocdown-interactive/"),
-        "Interactive.on_get_guides_rocdown_interactive!(context)"
+        "Interactive.on_get_guides_rocdown_interactive!(context, request)"
     );
     assert_eq!(
         dispatch_handler(&main, "GET", "/"),
-        "Guide.on_get_guides_rocdown!(context)"
+        "Guide.on_get_guides_rocdown!(context, request)"
     );
     assert_eq!(
         dispatch_handler(&main, "POST", "/actions/reveal/show"),
-        "Interactive.on_post_actions_reveal_show!(context)"
+        "Interactive.on_post_actions_reveal_show!(context, request)"
     );
     assert!(!main.contains("Interactive.on_get_root!"));
 }
@@ -193,7 +193,7 @@ fn errors_example_lists_error_demo_route_on_404() {
     let main = plan.main_roc();
     assert_eq!(
         dispatch_handler(&main, "GET", "/error-demo/"),
-        "ErrorDemo.on_get_error_demo!(context)"
+        "ErrorDemo.on_get_error_demo!(context, request)"
     );
     assert!(main.contains("html_status(404, not_found_html("));
     assert!(main.contains("/error-demo/"));
@@ -264,7 +264,7 @@ fn standalone_markdown_serves_themed_page() {
     assert!(main.contains("import Plan"));
     assert_eq!(
         dispatch_handler(&main, "GET", "/"),
-        "Plan.on_get_root!(context)"
+        "Plan.on_get_root!(context, request)"
     );
     let module_roc = &plan.modules[0].roc;
     assert!(module_roc.contains("Implementation Plan"));
@@ -365,11 +365,11 @@ fn standalone_markdown_serves_linked_page_routes() {
     let main = ready.main_roc();
     assert_eq!(
         dispatch_handler(&main, "GET", "/"),
-        "Plan.on_get_root!(context)"
+        "Plan.on_get_root!(context, request)"
     );
     assert_eq!(
         dispatch_handler(&main, "GET", "/knowledge/decisions/boundary.md"),
-        "Boundary.on_get_knowledge_decisions_boundary_md!(context)"
+        "Boundary.on_get_knowledge_decisions_boundary_md!(context, request)"
     );
     let plan_roc = &ready.modules[0].roc;
     assert!(plan_roc.contains("\"/knowledge/decisions/boundary.md\""));

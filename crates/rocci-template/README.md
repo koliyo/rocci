@@ -70,7 +70,7 @@ handlers, helpers—uses that camelCase name, because those regions are Roc:
 ```rocci
 module CounterPage exposing [hello]
 
-@on:get("/") = |{}| {
+@on:get("/") = |{}, _request| {
     hello({ name: "Roc" })
 }
 
@@ -180,12 +180,12 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
     { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@on:get("/") = |{ db }, _request| {
     count = read_count!(db)?
     page({ count })
 }
 
-@on:post("/actions/increment") = |{ db }| {
+@on:post("/actions/increment") = |{ db }, _request| {
     count = increment_count!(db)?
     card({ count })
 }
@@ -195,10 +195,12 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   `main.roc` uses `Context : Module.State`.
 - `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
   generated app maps failures to process exit.
-- `@on:METHOD("literal-path") = |params| { ... }` lowers to a named function
-  (`on_get_root!`, `on_post_actions_increment!`). `GET` responses are HTML
-  documents; other methods are one-shot `datastar-patch-elements` SSE events.
-  Generated `respond!` maps `?` failures to HTTP 500.
+- `@on:METHOD("literal-path") = |state, request| { ... }` lowers to a named
+  function (`on_get_root!`, `on_post_actions_increment!`). Generated
+  dispatch calls `handler!(context, request)`. Omit the parameter list to
+  get `|state, _request|`. `GET` responses are HTML documents; other
+  methods are one-shot `datastar-patch-elements` SSE events. Generated
+  `respond!` maps `?` failures to HTTP 500.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
 
 Paths are free-form. The convention is:

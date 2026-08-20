@@ -44,11 +44,11 @@ PageShell = |{ title }, content|
         </body>
     </html>
 
-@on:get("/guides/rocdown-interactive/") = |_| {
+@on:get("/guides/rocdown-interactive/") = |_, _request| {
     pageShell({ title: rocci_meta.title }, rocci_content({}))
 }
 
-@on:get("/") = |_| {
+@on:get("/") = |_, _request| {
     pageShell({ title: rocci_meta.title }, rocci_content({}))
 }
 
@@ -180,11 +180,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_| {
+@on:post("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@on:post("/actions/reveal/hide") = |_| {
+@on:post("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -267,7 +267,7 @@ Fences are documentation only — never evaluated:
 ```
 
 ```rocci
-@on:post("/actions/reveal/show") = |_| {
+@on:post("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 ```

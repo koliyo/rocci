@@ -1101,7 +1101,7 @@ debug = true
         fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
         fs::write(
             root.join("counter.rocdown"),
-            "# Counter\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+            "# Counter\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n",
         )
         .unwrap();
         let report = check(&root).unwrap();
@@ -1138,7 +1138,7 @@ debug = true
         fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
         fs::write(
             root.join("counter.rocdown"),
-            "# Counter\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n",
+            "# Counter\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n",
         )
         .unwrap();
         let resolved = resolve_loaded(&load_site(&root).unwrap());

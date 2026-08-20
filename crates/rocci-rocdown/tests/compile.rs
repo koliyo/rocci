@@ -405,7 +405,7 @@ fn site_chrome_layout_is_not_emitted_as_a_roc_call() {
     meta: { title: "Counter" },
 }
 
-@on:post("/actions/x") = |_| {
+@on:post("/actions/x") = |_, _request| {
     <p>ok</p>
 }
 

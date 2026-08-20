@@ -20,9 +20,9 @@ A hybrid Rocdown site is two artifacts:
    on `[http].service`. Mutation handlers return Datastar patches. The CDN file
    is a snapshot; the service owns durable state.
 
-`docs/` in this repository is a `static` catalog. The worked example is
-`examples/rocdown-counter`: Markdown plus a SQLite counter, with a neighboring
-static page.
+`docs/` in this repository is a `static` catalog. The public `site/` tree is
+hybrid: home is `live` (the timezone counter island); mounted docs stay
+`static`. The worked example is `examples/rocdown-counter`.
 
 See [Rocdown site configuration](/docs/reference/rocdown-site/) for the field
 reference (`service_origin`, `--cdn-only`, `islands.json`).
@@ -47,11 +47,11 @@ with no service.
 ## Walk the counter
 
 `examples/rocdown-counter/index.rocdown` colocates `CounterCard` with SQLite
-`@context` / `@init` / `@on:post`. `@render` bakes `count: 0` into the CDN
-HTML. Increment and reset POST `/actions/counter/increment` and
-`/actions/counter/reset` and morph `#counter`. There is no island GET in v1:
-opening the CDN file always shows the build-time snapshot until a mutation
-runs.
+`@context` / `@init` / `@on:post`. `@render` bakes `count: 0` into the CDN HTML. On load, `POST /actions/counter/sync`
+morphs the live count and last-twenty click feed (timezone atlas, no IP).
+Increment and reset POST `/actions/counter/increment` and
+`/actions/counter/reset`. There is no island GET in v1: opening the CDN file
+shows the build-time snapshot until sync or a mutation runs.
 
 `about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
 and `script-src 'self'`; it does not include Datastar.
@@ -72,7 +72,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
 
 `inspect artifacts` does not invoke Roc. It reports page kinds, Datastar
 emission, `service_origin`, and mutation routes. Expect `index` live, `about`
-static, and increment/reset POSTs.
+static, and sync/increment/reset POSTs.
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
@@ -96,7 +96,8 @@ ephemeral. `--no-window` serves in the browser only.
 curl -sf http://127.0.0.1:8000/health
 curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
 curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
-  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
+  -H 'datastar-request: true' -H 'content-type: application/json' \
+  -d '{"tz":"Europe/Stockholm","handle":"Coral Lynx"}'
 ```
 
 Open `/`, click Increment, and confirm `#counter output` morphs. Inspector:
@@ -190,7 +191,8 @@ does not. With `rocdown run --no-window` on 8000:
 ```sh
 curl -sf http://127.0.0.1:8000/health
 curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
-  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
+  -H 'datastar-request: true' -H 'content-type: application/json' \
+  -d '{"tz":"Europe/Stockholm","handle":"Coral Lynx"}'
 ```
 
 The POST body is a `datastar-patch-elements` event that morphs `#counter`.

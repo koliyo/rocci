@@ -1107,11 +1107,11 @@ import Html
             { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@on:get("/") = |{ db }, _request| {
     counterPage({ count: 0 })
 }
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") = |{ db }, _request| {
     counterCard({ count: 1 })
 }
 
@@ -1137,10 +1137,10 @@ import Html
     assert!(out.roc.contains("init! = || {"));
     assert!(out.roc.contains("rocci_state = {"));
     assert!(out.roc.contains("Ok(rocci_state)"));
-    assert!(out.roc.contains("on_get_root! = |{ db }| {"));
+    assert!(out.roc.contains("on_get_root! = |{ db }, _request| {"));
     assert!(
         out.roc
-            .contains("on_post_actions_counter_increment! = |{ db }| {")
+            .contains("on_post_actions_counter_increment! = |{ db }, _request| {")
     );
     assert!(!out.roc.contains("@context"));
     assert!(!out.roc.contains("@init"));
@@ -1153,7 +1153,7 @@ import Html
 }
 
 #[test]
-fn on_without_params_defaults_to_state() {
+fn on_without_params_defaults_to_state_and_request() {
     let src = r#"
 @on:get("/") {
     Html.text("ok")
@@ -1165,7 +1165,7 @@ fn on_without_params_defaults_to_state() {
 "#;
     let out = compile_ok(src);
     assert_eq!(out.routes[0].fn_name, "on_get_root!");
-    assert!(out.roc.contains("on_get_root! = |state| {"));
+    assert!(out.roc.contains("on_get_root! = |state, _request| {"));
 }
 
 #[test]

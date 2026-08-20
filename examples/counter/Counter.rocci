@@ -29,17 +29,17 @@ import Html
     { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@on:get("/") = |{ db }, _request| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") = |{ db }, _request| {
     count = increment_count!(db)?
     counterCard({ count: count })
 }
 
-@on:post("/actions/counter/reset") = |{ db }| {
+@on:post("/actions/counter/reset") = |{ db }, _request| {
     count = reset_count!(db)?
     counterCard({ count: count })
 }
