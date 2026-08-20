@@ -212,9 +212,14 @@ pub fn stderr_log_lines(text: &str) -> Vec<LogLine> {
 }
 
 fn level_for_stderr_line(line: &str) -> LogLevel {
-    if roc_output_is_failure(line) {
+    let line = style::strip_ansi(line);
+    if roc_output_is_failure(&line) {
         LogLevel::Error
-    } else if line.to_ascii_lowercase().contains("warning") {
+    } else if line.ends_with(" -> err") || line.contains(" -> proxy error:") {
+        LogLevel::Error
+    } else if line.to_ascii_lowercase().contains("warning")
+        || line.ends_with(" -> island unavailable")
+    {
         LogLevel::Warn
     } else {
         LogLevel::Info
@@ -839,6 +844,11 @@ mod tests {
         assert_eq!(lines[2].text, "warning: unused");
         assert_eq!(lines[3].level, "warn");
         assert_eq!(lines[3].text, "Found 0 errors and 2 warnings for main.roc.");
+        let handlers = stderr_log_lines(
+            "POST /actions/counter/increment -> ok\nPOST /actions/counter/increment -> err\n",
+        );
+        assert_eq!(handlers[0].level, "info");
+        assert_eq!(handlers[1].level, "error");
     }
 
     #[test]

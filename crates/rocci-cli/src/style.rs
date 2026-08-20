@@ -63,6 +63,84 @@ fn labeled(color: bool, codes: &str, label: &str, message: &str) -> String {
     format!("{} {message}", paint(color, codes, label))
 }
 
+pub fn handler(method: &str, path: &str, status: &str) -> String {
+    format_handler(stderr_color(), method, path, status)
+}
+
+pub fn handler_proxied(method: &str, path: &str, ms: u128) -> String {
+    format_handler_detail(
+        stderr_color(),
+        method,
+        path,
+        &format!("proxied ({ms}ms)"),
+        "1;32",
+    )
+}
+
+pub fn handler_unavailable(method: &str, path: &str) -> String {
+    format_handler_detail(stderr_color(), method, path, "island unavailable", "1;33")
+}
+
+pub fn handler_proxy_error(method: &str, path: &str, err: impl std::fmt::Display) -> String {
+    format_handler_detail(
+        stderr_color(),
+        method,
+        path,
+        &format!("proxy error: {err}"),
+        "1;31",
+    )
+}
+
+fn format_handler(color: bool, method: &str, path: &str, status: &str) -> String {
+    let status_code = if status == "ok" { "1;32" } else { "1;31" };
+    format_handler_detail(color, method, path, status, status_code)
+}
+
+fn format_handler_detail(
+    color: bool,
+    method: &str,
+    path: &str,
+    detail: &str,
+    detail_code: &str,
+) -> String {
+    format!(
+        "{} {path} -> {}",
+        paint(color, method_code(method), method),
+        paint(color, detail_code, detail)
+    )
+}
+
+fn method_code(method: &str) -> &'static str {
+    match method {
+        "GET" => "1;32",
+        "HEAD" => "32",
+        "POST" => "1;33",
+        "PUT" | "PATCH" => "1;35",
+        "DELETE" => "1;31",
+        _ => "1;36",
+    }
+}
+
+pub fn strip_ansi(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\u{1b}' {
+            if chars.peek() == Some(&'[') {
+                chars.next();
+                for next in chars.by_ref() {
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+        out.push(ch);
+    }
+    out
+}
+
 pub fn print_anyhow(err: &anyhow::Error) {
     let color = stderr_color();
     let mut chain = err.chain();
@@ -92,5 +170,33 @@ mod tests {
         assert!(note("Datastar 1.0.3 is available").contains("note: Datastar 1.0.3 is available"));
         assert!(pinned("Datastar 1.0.2 for app").contains("pinned Datastar 1.0.2 for app"));
         assert!(success_text("/tmp/App.app").contains("/tmp/App.app"));
+    }
+
+    #[test]
+    fn handler_lines_keep_the_plain_shape() {
+        assert_eq!(
+            format_handler(false, "POST", "/actions/counter/increment", "ok"),
+            "POST /actions/counter/increment -> ok"
+        );
+        let colored = format_handler(true, "POST", "/actions/counter/increment", "ok");
+        assert!(colored.contains("\x1b["), "{colored}");
+        assert_eq!(
+            strip_ansi(&colored),
+            "POST /actions/counter/increment -> ok"
+        );
+        assert_eq!(
+            strip_ansi(&format_handler(true, "GET", "/health", "err")),
+            "GET /health -> err"
+        );
+        assert_eq!(
+            strip_ansi(&format_handler_detail(
+                true,
+                "POST",
+                "/actions/x",
+                "proxied (4ms)",
+                "1;32"
+            )),
+            "POST /actions/x -> proxied (4ms)"
+        );
     }
 }
