@@ -33,7 +33,6 @@ cargo run -q -p rocci-browser -- add ./my-project
 cargo run -q -p rocci-browser -- list
 cargo run -q -p rocci-browser -- open my-project --no-window --json
 cargo run -q -p rocci-browser -- open my-project --document about --no-window --json
-cargo run -q -p rocci-browser -- tui --no-window --json
 cargo run -q -p rocci-browser -- remove my-project
 ```
 
@@ -48,9 +47,6 @@ With no arguments, `rocci-browser` opens a persistent preview window: a
 host-owned launcher, Cmd-P (Ctrl-P) picker overlay, and `load_url` of adapter
 origins. Tab in the picker input does not move focus. Cmd-K remains in-page
 Go to File. Overlay back/home/reload still apply to the visible origin.
-
-TUI keys: type to filter, Enter opens a target home, Tab lists adapter
-documents then Enter opens one, Shift-Tab / Escape returns to targets.
 
 Switching targets reuses a still-warm adapter origin for the same root. The
 previous child is grace-stopped after about 30s. The Dev iframe follows the
