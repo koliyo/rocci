@@ -9,7 +9,7 @@ use std::{
         mpsc,
     },
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
@@ -184,12 +184,13 @@ pub struct StaticDevServerConfig {
     pub custom_filter: Option<PathFilter>,
     pub log_prefix: String,
     pub backend_port: Option<Arc<AtomicU16>>,
+    pub log_handlers: bool,
     pub on_stop: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 pub fn serve_static_site<F>(config: StaticDevServerConfig, mut rebuild: F) -> Result<DevServer>
 where
-    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
+    F: FnMut(&Path, Arc<LogHub>) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     let (output, owns_output) = match config.output {
         Some(path) => {
@@ -232,7 +233,7 @@ where
     let has_build = Arc::new(AtomicBool::new(false));
     let stop = Arc::new(AtomicBool::new(false));
 
-    match rebuild(&output) {
+    match rebuild(&output, hub.logs.clone()) {
         Ok(snapshot) => {
             has_build.store(true, Ordering::Relaxed);
             hub.set_inspect(snapshot);
@@ -272,6 +273,7 @@ where
     let server_error = last_error.clone();
     let server_has_build = has_build.clone();
     let server_backend = config.backend_port.clone();
+    let server_log_handlers = config.log_handlers;
     let server = thread::spawn(move || {
         serve_loop(
             listener,
@@ -280,6 +282,7 @@ where
             server_error,
             server_has_build,
             server_backend,
+            server_log_handlers,
             server_stop,
         );
     });
@@ -345,7 +348,7 @@ pub fn preview_static_site<F>(
     rebuild: F,
 ) -> Result<()>
 where
-    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
+    F: FnMut(&Path, Arc<LogHub>) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     let prefix = config.log_prefix.clone();
     let title = config.title.clone();
@@ -569,7 +572,7 @@ fn watch_loop<F>(
     log_prefix: String,
     ctl: WatchCtl,
 ) where
-    F: FnMut(&Path) -> Result<Option<InspectSnapshot>> + Send + 'static,
+    F: FnMut(&Path, Arc<LogHub>) -> Result<Option<InspectSnapshot>> + Send + 'static,
 {
     loop {
         if ctl.stop.load(Ordering::Relaxed) {
@@ -599,7 +602,7 @@ fn watch_loop<F>(
             LogLevel::Info,
             format!("{log_prefix}: rebuilding"),
         );
-        match rebuild(&output) {
+        match rebuild(&output, ctl.hub.logs.clone()) {
             Ok(snapshot) => {
                 ctl.has_build.store(true, Ordering::Relaxed);
                 ctl.hub.set_inspect(snapshot);
@@ -672,6 +675,7 @@ fn serve_loop(
     last_error: Arc<Mutex<Option<String>>>,
     has_build: Arc<AtomicBool>,
     backend_port: Option<Arc<AtomicU16>>,
+    log_handlers: bool,
     stop: Arc<AtomicBool>,
 ) {
     while !stop.load(Ordering::Relaxed) {
@@ -690,6 +694,7 @@ fn serve_loop(
                         &last_error,
                         &has_build,
                         backend_port.as_deref(),
+                        log_handlers,
                     );
                 });
             }
@@ -708,6 +713,7 @@ fn handle_client(
     last_error: &Mutex<Option<String>>,
     has_build: &AtomicBool,
     backend_port: Option<&AtomicU16>,
+    log_handlers: bool,
 ) -> io::Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
@@ -725,7 +731,15 @@ fn handle_client(
         .unwrap_or(0);
     let target = resolve_request(output, path);
     if should_proxy(method, path, &target, backend) {
-        return proxy_to_backend(&mut stream, &buf[..n], backend);
+        return proxy_to_backend(
+            &mut stream,
+            &buf[..n],
+            backend,
+            method,
+            path,
+            log_handlers,
+            &hub.logs,
+        );
     }
     match target {
         ServeTarget::ReloadJs => write_response(
@@ -943,10 +957,26 @@ fn read_headers(stream: &mut TcpStream) -> io::Result<Vec<u8>> {
     }
 }
 
-fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Result<()> {
+fn proxy_to_backend(
+    client: &mut TcpStream,
+    initial: &[u8],
+    port: u16,
+    method: &str,
+    path: &str,
+    log_handlers: bool,
+    logs: &LogHub,
+) -> io::Result<()> {
+    let started = Instant::now();
     let mut backend = match TcpStream::connect(("127.0.0.1", port)) {
         Ok(stream) => stream,
         Err(_) => {
+            if log_handlers {
+                logs::tee(
+                    logs,
+                    LogLevel::Warn,
+                    format!("{method} {path} -> island unavailable"),
+                );
+            }
             return write_error_html(
                 client,
                 "island service is not running; static preview is still available",
@@ -966,8 +996,29 @@ fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Re
     let headers = read_headers(&mut backend)?;
     let rewritten = rewrite_message_connection_close(&headers);
     client.write_all(&rewritten)?;
-    io::copy(&mut backend, client)?;
-    Ok(())
+    match io::copy(&mut backend, client) {
+        Ok(_) => {
+            if log_handlers {
+                let ms = started.elapsed().as_millis();
+                logs::tee(
+                    logs,
+                    LogLevel::Info,
+                    format!("{method} {path} -> proxied ({ms}ms)"),
+                );
+            }
+            Ok(())
+        }
+        Err(err) => {
+            if log_handlers {
+                logs::tee(
+                    logs,
+                    LogLevel::Error,
+                    format!("{method} {path} -> proxy error: {err}"),
+                );
+            }
+            Err(err)
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1581,9 +1632,10 @@ mod tests {
                 custom_filter: None,
                 log_prefix: "test".into(),
                 backend_port: Some(advertised),
+                log_handlers: false,
                 on_stop: None,
             },
-            |_| Ok(None),
+            |_, _| Ok(None),
         )
         .unwrap();
 
@@ -1654,9 +1706,10 @@ mod tests {
                 custom_filter: None,
                 log_prefix: "test".into(),
                 backend_port: None,
+                log_handlers: false,
                 on_stop: None,
             },
-            |out| {
+            |out, _| {
                 fs::write(out.join("index.html"), "<h1>home</h1>").unwrap();
                 Ok(Some(InspectSnapshot {
                     pages: vec![InspectPage {

@@ -47,6 +47,7 @@ impl IslandServicePlan {
                 })
                 .collect(),
             redirect_trailing_slash: self.redirect_trailing_slash,
+            log_handlers: false,
         }
     }
 }
@@ -202,7 +203,12 @@ pub fn plan_island_service_from(
     })
 }
 
-pub fn serve_islands(root: &Path, no_window: bool, port: PortArg) -> Result<()> {
+pub fn serve_islands(
+    root: &Path,
+    no_window: bool,
+    port: PortArg,
+    log_handlers: bool,
+) -> Result<()> {
     let loaded = load_site(root)?;
     if !loaded.config.http.service.is_empty() {
         let service = loaded.root.join(&loaded.config.http.service);
@@ -212,7 +218,7 @@ pub fn serve_islands(root: &Path, no_window: bool, port: PortArg) -> Result<()> 
                 loaded.config.http.service
             );
         }
-        return rocci_cli::run::run(&service, &[], no_window, port, true);
+        return rocci_cli::run::run(&service, &[], no_window, port, true, log_handlers);
     }
 
     let plan = plan_island_service(&loaded.root)?;
@@ -223,6 +229,7 @@ pub fn serve_islands(root: &Path, no_window: bool, port: PortArg) -> Result<()> 
         args: Vec::new(),
         no_window,
         live_reload: true,
+        log_handlers,
         port,
         db_path: None,
         title,

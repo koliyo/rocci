@@ -97,6 +97,9 @@ enum Commands {
         /// Do not print compile diagnostics on stderr; the error page still serves.
         #[arg(long)]
         quiet: bool,
+        /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+        #[arg(long)]
+        log_handlers: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -144,6 +147,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+        #[arg(long)]
+        log_handlers: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -428,6 +434,7 @@ fn try_main() -> Result<()> {
             no_window,
             no_live_reload,
             quiet,
+            log_handlers,
             port,
             theme,
             args,
@@ -442,12 +449,22 @@ fn try_main() -> Result<()> {
                         output.as_deref(),
                         no_window,
                         live_reload,
+                        log_handlers,
                         port,
                         host.into(),
                         Some(&route),
                     )
                 } else {
-                    run_standalone_doc(&path, &args, no_window, live_reload, quiet, port, &theme)
+                    run_standalone_doc(
+                        &path,
+                        &args,
+                        no_window,
+                        live_reload,
+                        log_handlers,
+                        quiet,
+                        port,
+                        &theme,
+                    )
                 }
             } else if path.is_file() {
                 bail!(
@@ -461,6 +478,7 @@ fn try_main() -> Result<()> {
                     output.as_deref(),
                     no_window,
                     live_reload,
+                    log_handlers,
                     port,
                     host.into(),
                     None,
@@ -494,10 +512,11 @@ fn try_main() -> Result<()> {
         Commands::ServeIslands {
             root,
             no_window,
+            log_handlers,
             port,
         } => {
             refuse_okf_input(&root, "serve-islands")?;
-            rocci_rocdown::serve_islands(&root, no_window, port)
+            rocci_rocdown::serve_islands(&root, no_window, port, log_handlers)
         }
         Commands::Check { root, format } => {
             let report = rocci_rocdown::check(&root)?;
@@ -590,6 +609,7 @@ fn try_main() -> Result<()> {
             let serve = rocci_cli::serve::ServeOptions {
                 no_window,
                 no_live_reload: false,
+                log_handlers: false,
                 port,
             };
             let hook = match mode {
@@ -644,6 +664,7 @@ fn run_standalone_doc(
     args: &[String],
     no_window: bool,
     live_reload: bool,
+    log_handlers: bool,
     quiet: bool,
     port: PortArg,
     theme: &ThemeArgs,
@@ -709,12 +730,14 @@ fn run_standalone_doc(
             })
             .collect(),
         redirect_trailing_slash: plan.redirect_trailing_slash,
+        log_handlers,
     };
 
     let driver_options = DriverOptions {
         args: args.to_vec(),
         no_window,
         live_reload,
+        log_handlers,
         port,
         db_path: None,
         title,
@@ -732,13 +755,15 @@ fn run_site_dev(
     output: Option<&Path>,
     no_window: bool,
     live_reload: bool,
+    log_handlers: bool,
     port: PortArg,
     host: rocci_rocdown::HostChoice,
     open_path: Option<&str>,
 ) -> Result<()> {
     let port = port.resolve()?;
     let open_path = open_path.unwrap_or("/");
-    let server = rocci_rocdown::run_with_host_at(root, output, port, Some(host), open_path)?;
+    let server =
+        rocci_rocdown::run_with_host_at(root, output, port, Some(host), open_path, log_handlers)?;
     rocci_cli::logs::tee(
         &server.logs,
         rocci_cli::logs::LogLevel::Info,
@@ -1053,10 +1078,12 @@ mod tests {
             Commands::ServeIslands {
                 root,
                 no_window,
+                log_handlers,
                 port,
             } => {
                 assert_eq!(root, PathBuf::from("examples/rocdown/hybrid"));
                 assert!(no_window);
+                assert!(!log_handlers);
                 assert_eq!(port, PortArg::Exact(9001));
             }
             _ => panic!("expected serve-islands"),
