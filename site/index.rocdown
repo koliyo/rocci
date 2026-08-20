@@ -11,6 +11,29 @@ import pf.Env
 import pf.Path
 import pf.Sqlite
 import Origin
+
+clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL"
+
+ensure_clicks! = |db| {
+    create = "CREATE TABLE IF NOT EXISTS clicks (${clicks_ddl})"
+    Sqlite.execute!({ db, query: create, params: {} })?
+    row : { sql : Str }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'clicks'",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    if Str.contains(row.sql, clicks_ddl) {
+        Ok({})
+    } else {
+        Sqlite.execute!({ db, query: "DROP TABLE IF EXISTS clicks", params: {} })?
+        Sqlite.execute!({ db, query: create, params: {} })?
+        Ok({})
+    }
+}
 }
 
 @context { db : Sqlite.Db }
@@ -36,13 +59,7 @@ import Origin
             params: {},
         },
     )?
-    Sqlite.execute!(
-        {
-            db,
-            query: "CREATE TABLE IF NOT EXISTS clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL)",
-            params: {},
-        },
-    )?
+    ensure_clicks!(db)?
     { db: db }
 }
 
