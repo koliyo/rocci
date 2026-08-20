@@ -4,7 +4,7 @@ title: rocci-browser macOS app and TUI removal
 description: "Follow-on after rocci-browser Phases 1–5: delete the terminal picker, keep graphical preview() plus headless open, and assemble an ad-hoc Finder-launchable Rocci Browser.app. Does not reuse rocci bundle, embed product adapters, or notarize."
 tags: [domain/rocci, domain/desktop, concern/architecture, concern/tooling, concern/packaging, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T07:50:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -40,10 +40,10 @@ sources:
     author: process:cursor
     last_modified: 2026-08-18
   - id: tui-rs
-    resource: ../../crates/rocci-browser/src/tui.rs
-    title: crossterm two-stage terminal picker
+    resource: ../../crates/rocci-browser/src/main.rs
+    title: rocci-browser clap surface after TUI removal
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
   - id: browser-main
     resource: ../../crates/rocci-browser/src/main.rs
     title: rocci-browser clap surface including tui
@@ -348,8 +348,9 @@ TUI removal (Phase 1) is accepted. Phase 2 may proceed without gate 1.
 
 ## Status
 
-Exploratory; no phase started. Phase 0 is this freeze. Phases 1–2 are
-unblocked. Phase 3 waits on gate 1. Not CI-complete.
+Exploratory; Phase 0 freeze plus Phases 1–4 in this revision. Gate 1 accepted
+with the request to assemble the ad-hoc app. Production notarization stays
+later. Not CI-complete.
 
 [^research]: Recommended split: delete TUI; wrap preview() in an ad-hoc .app; repair GUI PATH and Finder cwd.
 [^browser-plan]: Original later row for signed .app; Phase 1 shipped tui.

@@ -276,6 +276,10 @@ cargo run -q -p rocci-browser -- add ./my-project
 cargo run -q -p rocci-browser -- open TARGET [--document ID] [--no-window] [--json]
 ```
 
-`--no-window --json` prints `{ "url", "title" }` for agents. A signed `.app` for
-this host is planned; v1 is `cargo run`.
+`--no-window --json` prints `{ "url", "title" }` for agents and for machines
+without a display. There is no `tui` command.
+
+On macOS, `./scripts/bundle-browser-macos.sh` (or `rocci-browser package`)
+assembles an ad-hoc **Rocci Browser.app**. That wrapper is not `rocci bundle`.
+Production signing is planned.
 

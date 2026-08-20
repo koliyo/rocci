@@ -135,8 +135,10 @@ cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-point
 ```
 
 `rocci-browser` keeps one preview window and a Cmd-P target picker. Cmd-K stays
-in-page Go to File. `rocci browse` is still the component gallery. A signed
-`.app` for the project browser is planned. See
+in-page Go to File. `rocci browse` is still the component gallery. On macOS,
+`./scripts/bundle-browser-macos.sh` assembles an ad-hoc **Rocci Browser.app**
+around that same host; it does not use `rocci bundle`. Production signing is
+planned. See
 [`docs/guides/rocci-browser.rocdown`](docs/guides/rocci-browser.rocdown).
 
 The project documentation lives in [`docs`](docs) and is configured by

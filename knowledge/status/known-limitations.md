@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T07:50:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -60,7 +60,7 @@ sources:
     resource: ../../docs/guides/rocci-browser.rocdown
     title: Public project-browser guide
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
   - id: macos-plan
     resource: ../plans/rocci-browser-macos-app.md
     title: rocci-browser macOS app and TUI removal plan
@@ -82,7 +82,7 @@ Cmd/Ctrl-K fuzzy page navigation ships on Rocdown sites, rocci.dev, OKF review H
 
 ## Runtime and desktop delivery
 
-Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed macOS `.app`. `rocci-browser` has no Finder `.app` yet; it is launched with `cargo run`. Production signing, notarization, update delivery, Windows and Linux installers, tray and deep-link integration, and full platform CI remain absent.[^roadmap][^browser-guide][^macos-plan]
+Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed macOS `.app`. `rocci-browser` can assemble a separate ad-hoc **Rocci Browser.app** around `preview()`; that wrapper does not reuse `rocci bundle` or embed product adapters. Production signing, notarization, update delivery, Windows and Linux installers, tray and deep-link integration, and full platform CI remain absent.[^roadmap][^browser-guide][^macos-plan]
 
 The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^roadmap]
 
@@ -103,5 +103,5 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^goto-js]: Shared Cmd/Ctrl-K palette and History-API HTML swap.
 [^fuzzy-plan]: Document navigation versus full-text search boundary.
 [^site-ref]: Pack-inferred custom kinds default to any children; helpers must not live in the pack.
-[^browser-guide]: rocci-browser packaging is planned; v1 is cargo run.
-[^macos-plan]: Follow-on ad-hoc Rocci Browser.app; notarization stays later.
+[^browser-guide]: rocci-browser ad-hoc .app is documented; production signing is planned.
+[^macos-plan]: Ad-hoc Rocci Browser.app; notarization stays later.

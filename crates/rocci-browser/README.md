@@ -94,4 +94,32 @@ first. Unknown methods are ignored.
 ## Tests
 
 `cargo test -p rocci-browser` uses the fixture adapter under
-`tests/fixtures/`. It does not start product CLIs or compile other formats.
+`tests/fixtures/`. It does not start product CLIs, compile other formats, or
+call `codesign`.
+
+## macOS app
+
+On macOS, wrap the same graphical `preview()` binary in an ad-hoc **Rocci
+Browser.app**:
+
+```sh
+./scripts/bundle-browser-macos.sh
+open "target/release/bundle/macos/Rocci Browser.app"
+```
+
+Or `cargo build --release -p rocci-browser` then
+`cargo run --release -p rocci-browser -- package`. This does not call
+`rocci bundle` (that still packages authored Roc apps) and does not copy
+product CLIs into the bundle. Adapters stay on `PATH` or as absolute plugin
+`bin` paths.
+
+Finder / Dock launch repairs a sanitized GUI `PATH` by prepending existing
+`/opt/homebrew/bin`, `/usr/local/bin`, `$HOME/.local/bin`, and
+`$HOME/.cargo/bin`. It does not read `.rocci/browser.toml` from cwd `/`.
+`--root` still selects a repo file. After a graphical quit with a real repo
+root, the host writes `last-root` under the browser directory and restores it
+on the next bundled launch.
+
+There is no `tui` command. Agents and machines without a display use
+`open --no-window`. Production signing and notarization are **planned**, not
+shipped; the `.app` is ad-hoc signed only.
