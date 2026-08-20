@@ -137,7 +137,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 Call the component from Roc with the lowered name:
 
 ```rocci
-@on:get("/") = |{ db }, _request| {
+@on:get("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count })
 }
@@ -248,7 +248,7 @@ answer = 42
 Keep rendering pure. Put I/O in `@init` and `@on` (or an authored `main.roc`).
 
 ```rocci
-@on:post("/actions/counter/increment") = |{ db }, _request| {
+@on:post("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     counterCard({ count })
 }

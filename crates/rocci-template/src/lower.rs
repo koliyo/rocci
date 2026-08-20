@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
     FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, parse_component_params,
-    strip_param_defaults,
+    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, ensure_handler_request_param,
+    parse_component_params, strip_param_defaults,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -468,7 +468,9 @@ impl<'a> Emitter<'a> {
         });
         let params = on
             .params
-            .map(|span| strip_param_defaults(span.of(self.src).trim()))
+            .map(|span| {
+                ensure_handler_request_param(&strip_param_defaults(span.of(self.src).trim()))
+            })
             .unwrap_or_else(|| "|state, _request|".to_string());
         self.emit_mapped(&fn_name, on.span, OriginKind::OrdinaryRoc);
         self.emit(" = ");

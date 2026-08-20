@@ -100,6 +100,39 @@ pub fn strip_param_defaults(raw: &str) -> String {
     format!("|{}|", parts.join(", "))
 }
 
+/// Count top-level `|a, b|` parameters. A record `{ db }` is one argument.
+/// `||` is zero.
+pub fn handler_param_arity(raw: &str) -> usize {
+    let trimmed = raw.trim();
+    let inner = trimmed
+        .strip_prefix('|')
+        .and_then(|s| s.strip_suffix('|'))
+        .unwrap_or(trimmed)
+        .trim();
+    if inner.is_empty() {
+        return 0;
+    }
+    split_top_level(inner, ',').len()
+}
+
+/// Generated dispatch always calls `handler!(context, request)`.
+/// Empty and one-parameter handlers get an unused `_request` appended.
+pub fn ensure_handler_request_param(raw: &str) -> String {
+    match handler_param_arity(raw) {
+        0 => "|_, _request|".to_string(),
+        1 => {
+            let trimmed = raw.trim();
+            let inner = trimmed
+                .strip_prefix('|')
+                .and_then(|s| s.strip_suffix('|'))
+                .unwrap_or(trimmed)
+                .trim();
+            format!("|{inner}, _request|")
+        }
+        _ => raw.to_string(),
+    }
+}
+
 #[derive(Clone, Debug)]
 struct NamedParam {
     name: String,
@@ -232,6 +265,41 @@ fn split_top_level(inner: &str, sep: char) -> Vec<&str> {
     }
     parts.push(&inner[part_start..]);
     parts
+}
+
+#[cfg(test)]
+mod handler_params {
+    use super::{ensure_handler_request_param, handler_param_arity};
+
+    #[test]
+    fn counts_top_level_params_not_record_fields() {
+        assert_eq!(handler_param_arity("||"), 0);
+        assert_eq!(handler_param_arity("|{ db }|"), 1);
+        assert_eq!(handler_param_arity("|{ db, count }|"), 1);
+        assert_eq!(handler_param_arity("|state|"), 1);
+        assert_eq!(handler_param_arity("|_|"), 1);
+        assert_eq!(handler_param_arity("|{ db }, request|"), 2);
+        assert_eq!(handler_param_arity("|state, _request|"), 2);
+        assert_eq!(handler_param_arity("|a, b, c|"), 3);
+    }
+
+    #[test]
+    fn injects_unused_request_for_short_handlers() {
+        assert_eq!(ensure_handler_request_param("||"), "|_, _request|");
+        assert_eq!(
+            ensure_handler_request_param("|{ db }|"),
+            "|{ db }, _request|"
+        );
+        assert_eq!(ensure_handler_request_param("|_|"), "|_, _request|");
+        assert_eq!(
+            ensure_handler_request_param("|{ db }, request|"),
+            "|{ db }, request|"
+        );
+        assert_eq!(
+            ensure_handler_request_param("|state, _request|"),
+            "|state, _request|"
+        );
+    }
 }
 
 fn ident_from_param(part: &str) -> Option<String> {

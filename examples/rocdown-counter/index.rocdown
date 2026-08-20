@@ -206,7 +206,7 @@ import Origin
     counterCard({ count: count_row.value, clicks })
 }
 
-@on:post("/actions/counter/reset") = |{ db }, _request| {
+@on:post("/actions/counter/reset") = |{ db }| {
     Sqlite.execute!(
         {
             db,
