@@ -70,8 +70,8 @@ MetricsSpan : {
                 <input type="hidden" name="route" value={route} />
                 <input type="hidden" name="tab" value="source" />
                 <label class="view-label">
-                    View
-                    <select name="view" onchange="this.form.submit()">
+                    <span class="visually-hidden">View</span>
+                    <select name="view" aria-label="View" onchange="this.form.submit()">
                         @if view == "source" {
                             <option value="source" selected="">Original source</option>
                         } @else {
@@ -94,11 +94,11 @@ MetricsSpan : {
                         }
                     </select>
                 </label>
+                <p class="file-path">{path}</p>
                 <noscript>
                     <button type="submit">Show</button>
                 </noscript>
             </form>
-            <p class="file-path">{path}</p>
             @if !available {
                 <p class="unavailable">{reason}</p>
             }
@@ -239,7 +239,7 @@ samplePage = {
         display: flex;
         gap: 0;
         border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
-        padding: 0 8px;
+        padding: 0 88px 0 8px;
     }
     .inspector-tabs a {
         padding: 10px 12px;
@@ -262,6 +262,9 @@ samplePage = {
         overflow: hidden;
         padding: 16px 14px 20px;
     }
+    .inspector-body.tab-source {
+        padding: 8px 10px;
+    }
     .inspector-body.tab-performance,
     .inspector-body.tab-console {
         overflow: auto;
@@ -272,7 +275,9 @@ samplePage = {
     .code-pane {
         flex: 1 1 auto;
         min-height: 0;
-        overflow: auto;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: auto;
     }
     .inspector-body h1 {
         margin: 0 0 8px;
@@ -368,41 +373,53 @@ samplePage = {
     }
     .source-form {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         gap: 8px;
-        margin: 0 0 8px;
+        margin: 0 0 6px;
+        min-width: 0;
     }
     .view-label {
+        flex: 0 0 auto;
         display: flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        align-items: center;
+        margin: 0;
         color: light-dark(#71717a, #9da5b4);
+    }
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
     .view-label select {
         font: inherit;
-        text-transform: none;
-        letter-spacing: 0;
+        font-size: 12px;
         font-weight: 500;
         color: inherit;
         background: light-dark(#fff, #2c313c);
         border: 1px solid light-dark(#d4d4d8, #3e4451);
         border-radius: 4px;
-        padding: 4px 8px;
+        padding: 3px 6px;
     }
     .file-path {
-        margin: 0 0 8px;
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
         font-family: ui-monospace, Menlo, monospace;
         font-size: 11px;
         color: light-dark(#71717a, #9da5b4);
-        word-break: break-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .unavailable {
-        margin: 0 0 8px;
+        margin: 0 0 6px;
         color: light-dark(#b45309, #e5c07b);
     }
     pre {

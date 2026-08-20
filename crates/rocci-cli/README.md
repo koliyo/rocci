@@ -84,8 +84,9 @@ dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
 `GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a
 sibling loopback port, including `--no-window`. Overlay chrome docks that URL
-right or bottom; R/B sit in a strip above the iframe so they do not cover tabs.
-The overlay does not embed compiler output. The panel is not a playground:
+right or bottom with DevTools-style dock icons over the panel corner (tabs pad
+right); prefs persist in `localStorage`, and Open as page loads the inspector as
+main content. The overlay does not embed compiler output. The panel is not a playground:
 there is no editor and no WASM compile.
 
 ## Architectural Boundary
