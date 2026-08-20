@@ -9,6 +9,7 @@ use clap::{Parser, Subcommand};
 use rocci_browser::{Host, OpenRequest, Opened, Paths, Registry};
 use serde_json::json;
 
+mod package;
 mod window;
 
 #[derive(Parser)]
@@ -47,10 +48,23 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Assemble an ad-hoc Rocci Browser.app (macOS only).
+    Package {
+        /// Release `rocci-browser` binary to copy (default: target/release/rocci-browser).
+        #[arg(long)]
+        exe: Option<PathBuf>,
+        /// Bundle directory to write (default: target/release/bundle/macos/Rocci Browser.app).
+        #[arg(long)]
+        output: Option<PathBuf>,
+    },
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    match cli.command {
+        Some(Commands::Package { exe, output }) => return package::run(exe, output),
+        _ => {}
+    }
     let paths = paths_from_cli(cli.root)?;
     match cli.command {
         None => window::run(paths)?,
@@ -118,6 +132,7 @@ fn main() -> Result<()> {
             emit_open(&opened, no_window, json)?;
             keep_serving(&mut host, no_window)?;
         }
+        Some(Commands::Package { .. }) => unreachable!("package is handled before path setup"),
     }
     Ok(())
 }
