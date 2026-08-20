@@ -16,7 +16,7 @@ cargo run -p rocci-cli -- validate [rocci.toml]
 cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 
 # Package a Linux server binary plus assets (not a macOS .app)
-cargo run -p rocci-cli -- build --release examples/datastar [-o target/release/rocci-server] [--target x64musl]
+cargo run -p rocci-cli -- build --release examples/datastar [-o target/release/rocci-server] [--target x64musl|arm64musl|…]
 cargo run -p rocci-cli -- build --release examples/counter/Counter.rocci
 
 # Run a standalone template application with live reload and embedded preview
@@ -58,7 +58,7 @@ cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci
 # Bundle an ad-hoc signed macOS application (host-native server; not --target musl)
 cargo run -p rocci-cli -- bundle --config rocci.toml
 
-# Linux process `--target` (x64musl / arm64musl) is for island/app binaries, not apply
+# Roc process `--target` (x64musl, arm64musl, x64glibc, …; see `rocci build --help`) is for island/app binaries, not apply
 # and not macOS .app bundles. Musl is the Linux container process target.
 # Linux OCI is opt-in: `./docker/run-app.sh` after `rocci build --release`.
 
