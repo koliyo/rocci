@@ -14,6 +14,7 @@ use anyhow::{Context, Result, bail};
 use clap::Args;
 use rocci_desktop::{PreviewOptions, preview};
 
+use crate::logs::{LogHub, LogLevel, LogLine};
 use crate::style;
 
 const SERVER_WAIT: Duration = Duration::from_secs(120);
@@ -110,7 +111,18 @@ pub enum ListenWait {
 
 pub struct StderrTee {
     buf: Arc<Mutex<String>>,
+    feed: Option<Arc<StderrHubFeed>>,
     thread: Option<JoinHandle<()>>,
+}
+
+struct StderrHubFeed {
+    hub: Arc<LogHub>,
+    state: Mutex<StderrFeedState>,
+}
+
+struct StderrFeedState {
+    offset: usize,
+    remainder: String,
 }
 
 impl StderrTee {
@@ -121,6 +133,12 @@ impl StderrTee {
             .clone()
     }
 
+    pub fn flush_to_hub(&self) {
+        if let Some(feed) = &self.feed {
+            feed.drain(&self.snapshot());
+        }
+    }
+
     pub fn finish(&mut self) -> String {
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
@@ -129,7 +147,84 @@ impl StderrTee {
     }
 }
 
-pub fn spawn_roc(mut cmd: Command) -> Result<(Child, StderrTee)> {
+impl StderrHubFeed {
+    fn drain(&self, buf: &str) {
+        let mut state = self.state.lock().unwrap_or_else(|err| err.into_inner());
+        if state.offset > buf.len() {
+            state.offset = buf.len();
+        }
+        if state.offset < buf.len() {
+            let offset = state.offset;
+            state.remainder.push_str(&buf[offset..]);
+            state.offset = buf.len();
+        }
+        loop {
+            let Some(idx) = state.remainder.find('\n') else {
+                break;
+            };
+            let mut line: String = state.remainder[..idx].to_string();
+            state.remainder.replace_range(..=idx, "");
+            if line.ends_with('\r') {
+                line.pop();
+            }
+            if line.is_empty() {
+                continue;
+            }
+            self.hub
+                .push_line(LogLine::runtime(level_for_stderr_line(&line), line));
+        }
+    }
+
+    fn finish(&self, buf: &str) {
+        self.drain(buf);
+        let leftover = {
+            let mut state = self.state.lock().unwrap_or_else(|err| err.into_inner());
+            let leftover = state.remainder.trim_end_matches('\r').to_string();
+            state.remainder.clear();
+            leftover
+        };
+        if leftover.is_empty() {
+            return;
+        }
+        self.hub
+            .push_line(LogLine::runtime(level_for_stderr_line(&leftover), leftover));
+    }
+}
+
+pub fn stderr_log_lines(text: &str) -> Vec<LogLine> {
+    text.split('\n')
+        .filter_map(|raw| {
+            let line = raw.trim_end_matches('\r');
+            if line.is_empty() {
+                None
+            } else {
+                Some(LogLine::runtime(
+                    level_for_stderr_line(line),
+                    line.to_string(),
+                ))
+            }
+        })
+        .collect()
+}
+
+fn level_for_stderr_line(line: &str) -> LogLevel {
+    if roc_output_is_failure(line) {
+        LogLevel::Error
+    } else if line.to_ascii_lowercase().contains("warning") {
+        LogLevel::Warn
+    } else {
+        LogLevel::Info
+    }
+}
+
+pub fn spawn_roc(cmd: Command) -> Result<(Child, StderrTee)> {
+    spawn_roc_with_logs(cmd, None)
+}
+
+pub fn spawn_roc_with_logs(
+    mut cmd: Command,
+    logs: Option<Arc<LogHub>>,
+) -> Result<(Child, StderrTee)> {
     cmd.stdin(Stdio::null())
         .stdout(Stdio::inherit())
         .stderr(Stdio::piped());
@@ -146,19 +241,41 @@ pub fn spawn_roc(mut cmd: Command) -> Result<(Child, StderrTee)> {
         .take()
         .context("failed to capture roc stderr")?;
     let buf = Arc::new(Mutex::new(String::new()));
+    let feed = logs.map(|hub| {
+        Arc::new(StderrHubFeed {
+            hub,
+            state: Mutex::new(StderrFeedState {
+                offset: 0,
+                remainder: String::new(),
+            }),
+        })
+    });
     let thread_buf = buf.clone();
+    let thread_feed = feed.clone();
     let thread = thread::spawn(move || {
         let mut reader = io::BufReader::new(stderr);
         let mut chunk = [0u8; 8192];
         loop {
             match reader.read(&mut chunk) {
-                Ok(0) => break,
+                Ok(0) => {
+                    if let Some(feed) = &thread_feed {
+                        let snap = thread_buf
+                            .lock()
+                            .unwrap_or_else(|err| err.into_inner())
+                            .clone();
+                        feed.finish(&snap);
+                    }
+                    break;
+                }
                 Ok(n) => {
                     let text = String::from_utf8_lossy(&chunk[..n]);
-                    thread_buf
-                        .lock()
-                        .unwrap_or_else(|err| err.into_inner())
-                        .push_str(&text);
+                    {
+                        let mut buf = thread_buf.lock().unwrap_or_else(|err| err.into_inner());
+                        buf.push_str(&text);
+                        if let Some(feed) = &thread_feed {
+                            feed.drain(&buf);
+                        }
+                    }
                     eprint!("{text}");
                     let _ = io::stderr().flush();
                 }
@@ -170,6 +287,7 @@ pub fn spawn_roc(mut cmd: Command) -> Result<(Child, StderrTee)> {
         child,
         StderrTee {
             buf,
+            feed,
             thread: Some(thread),
         },
     ))
@@ -413,9 +531,10 @@ pub fn with_window(
     no_window: bool,
     live_reload: bool,
 ) -> Result<()> {
-    with_window_and_inspector(child, url, title, no_window, live_reload, None, None)
+    with_window_and_inspector(child, url, title, no_window, live_reload, None, None, None)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn with_window_and_inspector(
     child: &mut Child,
     url: &str,
@@ -424,10 +543,14 @@ pub fn with_window_and_inspector(
     live_reload: bool,
     inspect: Option<crate::inspect::InspectSnapshot>,
     state_key: Option<String>,
+    logs: Option<Arc<LogHub>>,
 ) -> Result<()> {
     note_live_reload_paused(live_reload);
     let inspector = match inspect {
-        Some(snapshot) => Some(crate::inspector::InspectorServer::spawn(snapshot)?),
+        Some(snapshot) => Some(crate::inspector::InspectorServer::spawn_with_logs(
+            snapshot,
+            logs.unwrap_or_else(|| Arc::new(LogHub::new())),
+        )?),
         None => None,
     };
     if no_window {
@@ -640,6 +763,7 @@ mod tests {
     fn stderr_snapshot_does_not_consume_the_buffer() {
         let tee = StderrTee {
             buf: Arc::new(Mutex::new(String::from("Found 2 errors\n"))),
+            feed: None,
             thread: None,
         };
         assert_eq!(tee.snapshot(), "Found 2 errors\n");
@@ -653,6 +777,7 @@ mod tests {
             buf: Arc::new(Mutex::new(String::from(
                 "Found 2 errors and 0 warnings for main.roc.\nListening on http://127.0.0.1:1\n",
             ))),
+            feed: None,
             thread: None,
         };
         let snap = wait_for_roc_diagnostics(&tee);
@@ -685,6 +810,72 @@ mod tests {
         assert_eq!(normalize_probe_path(""), "/");
         assert_eq!(normalize_probe_path("/all-syntax/"), "/all-syntax/");
         assert_eq!(normalize_probe_path("all-syntax/"), "/all-syntax/");
+    }
+
+    #[test]
+    fn stderr_bytes_become_runtime_log_lines() {
+        let lines = stderr_log_lines(
+            "compiling main.roc\nFound 1 error and 0 warnings for main.roc.\nwarning: unused\nFound 0 errors and 2 warnings for main.roc.\n",
+        );
+        assert_eq!(lines.len(), 4);
+        assert_eq!(lines[0].source, "runtime");
+        assert_eq!(lines[0].level, "info");
+        assert_eq!(lines[0].text, "compiling main.roc");
+        assert_eq!(lines[1].source, "runtime");
+        assert_eq!(lines[1].level, "error");
+        assert_eq!(lines[2].level, "warn");
+        assert_eq!(lines[2].text, "warning: unused");
+        assert_eq!(lines[3].level, "warn");
+        assert_eq!(lines[3].text, "Found 0 errors and 2 warnings for main.roc.");
+    }
+
+    #[test]
+    fn stderr_feed_skips_already_drained_bytes() {
+        let hub = Arc::new(LogHub::new());
+        let feed = StderrHubFeed {
+            hub: hub.clone(),
+            state: Mutex::new(StderrFeedState {
+                offset: 0,
+                remainder: String::new(),
+            }),
+        };
+        feed.drain("first\n");
+        feed.drain("first\nsecond\n");
+        let lines = hub.snapshot();
+        assert_eq!(
+            lines
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<Vec<_>>(),
+            ["first", "second"]
+        );
+        assert!(lines.iter().all(|line| line.source == "runtime"));
+    }
+
+    #[test]
+    fn flush_to_hub_copies_snapshot_without_duplicates() {
+        let hub = Arc::new(LogHub::new());
+        let feed = Arc::new(StderrHubFeed {
+            hub: hub.clone(),
+            state: Mutex::new(StderrFeedState {
+                offset: 0,
+                remainder: String::new(),
+            }),
+        });
+        let tee = StderrTee {
+            buf: Arc::new(Mutex::new(String::from(
+                "Listening on http://127.0.0.1:8000\n",
+            ))),
+            feed: Some(feed),
+            thread: None,
+        };
+        tee.flush_to_hub();
+        tee.flush_to_hub();
+        let lines = hub.snapshot();
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].text, "Listening on http://127.0.0.1:8000");
+        assert_eq!(lines[0].source, "runtime");
+        assert_eq!(lines[0].level, "info");
     }
 
     #[test]
