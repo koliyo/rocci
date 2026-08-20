@@ -337,7 +337,7 @@ fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
 
 fn route_arm(type_name: &str, route: &RouteInfo) -> String {
     let handler = format!("{type_name}.{}!", route.fn_name.trim_end_matches('!'));
-    let call = format!("{handler}(context)");
+    let call = format!("{handler}(context, request)");
     if route.method == "GET" {
         format!(
             r#"        ("{method}", "{path}") =>
@@ -416,8 +416,8 @@ mod tests {
         );
         assert!(main.contains("Context : Counter.State"));
         assert!(main.contains("context = Counter.init!() ? |_| Exit(2)"));
-        assert!(main.contains("Counter.on_get_root!(context)"));
-        assert!(main.contains("Counter.on_post_actions_counter_increment!(context)"));
+        assert!(main.contains("Counter.on_get_root!(context, request)"));
+        assert!(main.contains("Counter.on_post_actions_counter_increment!(context, request)"));
         assert!(main.contains("html_ok(Html.render(html))"));
         assert!(main.contains("Ok(patch_html!(html))"));
         assert!(main.contains("html_status(404, not_found_html("));
@@ -485,11 +485,11 @@ mod tests {
         let main = generate_bound_main_roc("Home", None, None, &bound, DispatchOptions::default());
         assert!(main.contains("import Home"));
         assert!(main.contains("import About"));
-        assert!(main.contains("Home.on_get_root!(context)"));
-        assert!(main.contains("About.on_get_about!(context)"));
-        assert!(main.contains("About.on_post_actions_reveal_show!(context)"));
+        assert!(main.contains("Home.on_get_root!(context, request)"));
+        assert!(main.contains("About.on_get_about!(context, request)"));
+        assert!(main.contains("About.on_post_actions_reveal_show!(context, request)"));
         assert!(main.contains("(\"GET\", \"/about/\")"));
-        assert!(main.contains("match Home.on_get_root!(context)"));
+        assert!(main.contains("match Home.on_get_root!(context, request)"));
         assert!(!main.contains("About.on_get_root!"));
         assert!(main.contains("(\"GET\", \"/about\") =>"));
         assert!(main.contains("redirect_slash(\"/about/\")"));
@@ -535,8 +535,8 @@ mod tests {
         assert!(main.contains("redirect_slash(\"/health\")"));
         assert!(main.contains("(\"GET\", \"/dx\") =>"));
         assert!(main.contains("(\"GET\", \"/dx/\") =>"));
-        assert!(main.contains("App.on_get_dx!(context)"));
-        assert!(main.contains("App.on_get_dx_slash!(context)"));
+        assert!(main.contains("App.on_get_dx!(context, request)"));
+        assert!(main.contains("App.on_get_dx_slash!(context, request)"));
     }
 
     #[test]

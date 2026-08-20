@@ -412,11 +412,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_| {
+@on:post("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@on:post("/actions/reveal/hide") = |_| {
+@on:post("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -474,7 +474,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/", meta: { title: "Live" } }
 
-@on:post("/actions/counter/increment") = |_| {
+@on:post("/actions/counter/increment") = |_, _request| {
     Html.text("1")
 }
 
@@ -492,7 +492,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/live", meta: { title: "Also live" } }
 
-@on:post("/actions/live/ping") = |_| {
+@on:post("/actions/live/ping") = |_, _request| {
     Html.text("ok")
 }
 
@@ -559,7 +559,7 @@ RevealTip = |{ open }| {
         .unwrap();
         fs::write(
             sibling.join("Islands.rocci"),
-            "@on:post(\"/x\") = |_| <p>x</p>\n",
+            "@on:post(\"/x\") = |_, _request| <p>x</p>\n",
         )
         .unwrap();
         assert!(generated_island_plan(&sibling).unwrap().is_none());

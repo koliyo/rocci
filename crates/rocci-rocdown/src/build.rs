@@ -1335,7 +1335,7 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_| {
+@on:post("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
@@ -1492,7 +1492,7 @@ import Html
         write_page(
             &root,
             "index.rocdown",
-            "@page { route: \"/\", meta: { title: \"Live\" } }\n\n@on:post(\"/actions/x\") = |_| {\n    Html.text(\"x\")\n}\n\n# Live\n",
+            "@page { route: \"/\", meta: { title: \"Live\" } }\n\n@on:post(\"/actions/x\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Live\n",
         );
         let output = temp_dir("cdn-only-out");
         fs::write(output.join("keep.txt"), "preserve me").unwrap();
@@ -1642,7 +1642,7 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_| {
+@on:post("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 

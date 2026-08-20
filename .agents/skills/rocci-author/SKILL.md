@@ -108,10 +108,11 @@ path until island splicing lands.
 ```rocci
 @context { db : Sqlite.Db }
 @init { ... }
-@on:get("/") = |{ db }| { page({ count }) }
-@on:post("/actions/save") = |{ db }| { fragment({ count }) }
+@on:get("/") = |{ db }, _request| { page({ count }) }
+@on:post("/actions/save") = |{ db }, request| { fragment({ count }) }
 ```
 
+Generated dispatch passes `(context, request)`. Use `_request` when unused.
 | Kind | Path | Returns |
 | --- | --- | --- |
 | Document | `/`, `/todos` | Full `<html>` |

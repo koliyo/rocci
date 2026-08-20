@@ -469,7 +469,7 @@ impl<'a> Emitter<'a> {
         let params = on
             .params
             .map(|span| strip_param_defaults(span.of(self.src).trim()))
-            .unwrap_or_else(|| "|state|".to_string());
+            .unwrap_or_else(|| "|state, _request|".to_string());
         self.emit_mapped(&fn_name, on.span, OriginKind::OrdinaryRoc);
         self.emit(" = ");
         if let Some(span) = on.params {

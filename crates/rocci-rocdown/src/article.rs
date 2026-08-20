@@ -627,7 +627,8 @@ Text in rocdown.
 
     #[test]
     fn classifies_on_as_live() {
-        let class = classify("# Hi\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n");
+        let class =
+            classify("# Hi\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n");
         assert_eq!(class.kind, PageKind::Live);
         assert_eq!(class.reason, "@on");
     }
@@ -641,7 +642,7 @@ Text in rocdown.
     #[test]
     fn live_wins_over_hydrate() {
         let class = classify(
-            "@component Box = || { <div /> }\n\n@on:post(\"/inc\") = |_| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
+            "@component Box = || { <div /> }\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
         );
         assert_eq!(class.kind, PageKind::Live);
         assert_eq!(class.reason, "@on");

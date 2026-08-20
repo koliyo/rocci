@@ -32,11 +32,11 @@ BetaSlot = |{ open }| {
     </div>
 }
 
-@on:post("/actions/alpha/show") = |_| {
+@on:post("/actions/alpha/show") = |_, _request| {
     alphaSlot({ open: True })
 }
 
-@on:post("/actions/beta/show") = |_| {
+@on:post("/actions/beta/show") = |_, _request| {
     betaSlot({ open: True })
 }
 

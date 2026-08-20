@@ -6,6 +6,337 @@
     },
 }
 
+@roc {
+import pf.Env
+import pf.Path
+import pf.Sqlite
+import Origin
+}
+
+@context { db : Sqlite.Db }
+
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./counter.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR IGNORE INTO counter (id, value) VALUES (1, 0)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, handle TEXT NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL)",
+            params: {},
+        },
+    )?
+    { db: db }
+}
+
+@on:post("/actions/counter/sync") = |{ db }, request| {
+    _ = request
+    now_row : { now : I64 }
+    now_row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    now = now_row.now
+    count_row : { value : I64 }
+    count_row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    rows : List({ ts : I64, handle : Str, tz : Str, country : Str, city : Str, region : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts, handle, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    clicks = List.map(
+        rows,
+        |row| {
+            place = Origin.lookup(row.tz)
+            {
+                handle: row.handle,
+                flag: place.flag,
+                place: Origin.place_label({
+                    country: row.country,
+                    city: row.city,
+                    region: row.region,
+                    flag: place.flag,
+                }),
+                ago: Origin.relative_ago(now, row.ts),
+                ts: row.ts.to_str(),
+            }
+        },
+    )
+    counterCard({ count: count_row.value, clicks })
+}
+
+@on:post("/actions/counter/increment") = |{ db }, request| {
+    body =
+        match request.body().with_limit(8 * 1024).read_all!() {
+            Ok(bytes) => Str.from_utf8_lossy(bytes)
+            Err(_) => ""
+        }
+    tz_raw = Origin.signal_str(body, "tz")
+    handle_raw = Origin.signal_str(body, "handle")
+    tz = if tz_raw == "" { "UTC" } else { tz_raw }
+    handle = if handle_raw == "" { "Visitor" } else { handle_raw }
+    place = Origin.lookup(tz)
+    now_row : { now : I64 }
+    now_row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    now = now_row.now
+    recent : List({ ts : I64 })
+    recent = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts FROM clicks WHERE handle = :handle ORDER BY id DESC LIMIT 1",
+            params: { handle: handle },
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    last =
+        match List.get(recent, 0) {
+            Ok(row) => row.ts
+            Err(_) => 0.I64
+        }
+    _ =
+        if now - last < 1.I64 {
+            {}
+        } else {
+            Sqlite.execute!(
+                {
+                    db,
+                    query: "INSERT INTO clicks (ts, handle, tz, country, city, region) VALUES (:ts, :handle, :tz, :country, :city, :region)",
+                    params: {
+                        ts: now,
+                        handle: handle,
+                        tz: tz,
+                        country: place.country,
+                        city: place.city,
+                        region: place.region,
+                    },
+                },
+            )?
+            Sqlite.execute!(
+                {
+                    db,
+                    query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 20)",
+                    params: {},
+                },
+            )?
+            Sqlite.execute!(
+                {
+                    db,
+                    query: "UPDATE counter SET value = value + 1 WHERE id = 1",
+                    params: {},
+                },
+            )?
+            {}
+        }
+    count_row : { value : I64 }
+    count_row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    rows : List({ ts : I64, handle : Str, tz : Str, country : Str, city : Str, region : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts, handle, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    clicks = List.map(
+        rows,
+        |row| {
+            mapped = Origin.lookup(row.tz)
+            {
+                handle: row.handle,
+                flag: mapped.flag,
+                place: Origin.place_label({
+                    country: row.country,
+                    city: row.city,
+                    region: row.region,
+                    flag: mapped.flag,
+                }),
+                ago: Origin.relative_ago(now, row.ts),
+                ts: row.ts.to_str(),
+            }
+        },
+    )
+    counterCard({ count: count_row.value, clicks })
+}
+
+@component
+CounterCard = |{ count, clicks }| {
+    @css {
+        section {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--surface);
+        }
+        .eyebrow {
+            margin: 0 0 0.35rem;
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        output {
+            display: block;
+            color: var(--ink);
+            font-family: ui-monospace, monospace;
+            font-size: 3.5rem;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.04em;
+        }
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--accent);
+            color: var(--canvas);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .feed {
+            margin: 1.35rem 0 0;
+            padding: 0;
+            list-style: none;
+        }
+        .feed li {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.65rem 0.85rem;
+            align-items: baseline;
+            padding: 0.55rem 0;
+            border-top: 1px solid var(--line);
+            font-size: 0.92rem;
+        }
+        .feed .flag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2rem;
+            padding: 0.15rem 0.35rem;
+            border-radius: 6px;
+            background: var(--canvas);
+            border: 1px solid var(--line);
+            color: var(--ink);
+            font-family: ui-monospace, monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .feed .who {
+            font-weight: 650;
+            color: var(--ink);
+        }
+        .feed .where {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .feed time {
+            color: var(--muted);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .privacy {
+            margin: 1rem 0 0;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+        .empty {
+            margin: 1rem 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+    }
+    <section
+        id="counter"
+        class="counter-card"
+        data-signals="{tz: '', handle: ''}"
+        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
+    >
+        <p class="eyebrow">Live shared count</p>
+        <output>{count.to_str()}</output>
+        <div class="actions">
+            <button type="button" data-on:click=@post("/actions/counter/increment")>
+                Increment
+            </button>
+        </div>
+        @if List.is_empty(clicks) {
+            <p class="empty">No clicks yet - be the first visitor.</p>
+        } @else {
+            <ul class="feed" aria-label="Recent increments">
+                @for click in clicks {
+                    <li>
+                        <span class="flag" aria-hidden="true">{click.flag}</span>
+                        <div>
+                            <div class="who">{click.handle}</div>
+                            <div class="where">{click.place}</div>
+                        </div>
+                        <time datetime={click.ts}>{click.ago}</time>
+                    </li>
+                }
+            </ul>
+        }
+        <p class="privacy">
+            Origin comes from your browser timezone and a session nickname - no IP address is stored.
+        </p>
+    </section>
+}
+
 # Roc-native interfaces and Markdown-first documents
 
 Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a small desktop host. This site is the working tree for public docs: add pages under `site/`, keep chrome in `site/theme/`, and preview with `rocdown run site`.
@@ -17,17 +348,19 @@ Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a smal
     :link-card[page: "project/index", title: "Project", summary: "Status, roadmap, and how to contribute."]
 :card-grid.end
 
-## A component in `.rocci`
+## Try a live island
 
-```roc
-import Html
+The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last twenty clicks, and origin from your IANA timezone. The same pattern lives in `examples/rocdown-counter`.
 
-@component CounterCard = |{ count }| {
-    <div class="counter-card">
-        <h3>Counter: {Num.toStr(count)}</h3>
-        <button data-on-click="/increment">+1</button>
-    </div>
+@render {
+    counterCard({ count: 0.I64, clicks: [] })
+}
+
+```rocci
+@on:post("/actions/counter/increment") = |{ db }, request| {
+    # read tz + handle signals, insert click, morph #counter
+    counterCard({ count, clicks })
 }
 ```
 
-See [Quickstart](/docs/getting-started/quickstart/) to run this locally, or [Guides](/docs/guides/build-a-component/) for the next implementation steps.
+See [Quickstart](/docs/getting-started/quickstart/) to run this locally, or [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) for CDN plus `serve-islands`.

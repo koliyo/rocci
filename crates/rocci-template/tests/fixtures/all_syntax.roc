@@ -346,7 +346,7 @@ badgeClass = |tone| {
     }
 }
 
-on_get_root! = |state| {
+on_get_root! = |state, _request| {
     rocci_value = {
         counterPage({ person: { name: "Roc" }, count: 0 })
     }

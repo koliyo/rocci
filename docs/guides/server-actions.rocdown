@@ -37,19 +37,20 @@ that state once when the standalone app starts.
 ## Serve the document
 
 ```rocci
-@on:get("/") = |{ db }| {
+@on:get("/") = |{ db }, _request| {
     count = read_count!(db)?
     counterPage({ count })
 }
 ```
 
 GET handlers return complete HTML documents. Rocci generates a basic-webserver
-dispatcher around the authored function.
+dispatcher around the authored function. The second argument is the
+`Server.Request` for that call.
 
 ## Return a targeted patch
 
 ```rocci
-@on:post("/actions/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") = |{ db }, _request| {
     count = increment_count!(db)?
     counterCard({ count })
 }
