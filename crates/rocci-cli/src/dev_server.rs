@@ -1027,10 +1027,20 @@ pub fn inject_live_reload(html: &str) -> String {
 }
 
 fn relax_csp(html: &str) -> String {
-    html.replace("script-src 'none'", "script-src 'self'")
+    let html = html
+        .replace("script-src 'none'", "script-src 'self'")
         .replace("script-src &#39;none&#39;", "script-src &#39;self&#39;")
         .replace("connect-src 'none'", "connect-src 'self'")
-        .replace("connect-src &#39;none&#39;", "connect-src &#39;self&#39;")
+        .replace("connect-src &#39;none&#39;", "connect-src &#39;self&#39;");
+    if html.contains("frame-src") {
+        html
+    } else {
+        html.replace("default-src 'none'", "default-src 'none'; frame-src 'self'")
+            .replace(
+                "default-src &#39;none&#39;",
+                "default-src &#39;none&#39;; frame-src &#39;self&#39;",
+            )
+    }
 }
 
 fn write_error_html(stream: &mut TcpStream, message: &str) -> io::Result<()> {
@@ -1119,7 +1129,7 @@ fn write_response(
         _ => "Status",
     };
     let csp = if inject {
-        "Content-Security-Policy: default-src 'self' 'unsafe-inline'; connect-src 'self';\r\n"
+        "Content-Security-Policy: default-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'self';\r\n"
     } else {
         ""
     };
@@ -1225,6 +1235,23 @@ mod tests {
         assert!(injected.contains("script-src 'self'"));
         assert!(injected.contains("connect-src 'self'"));
         assert!(!injected.contains("script-src 'none'"));
+
+        let rocdown = concat!(
+            "<!doctype html><html><head><meta http-equiv=\"Content-Security-Policy\" content=\"",
+            "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; ",
+            "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; ",
+            "frame-ancestors 'none'; form-action 'none\"></head><body><h1>Docs</h1></body></html>"
+        );
+        let relaxed = inject_live_reload(rocdown);
+        assert!(relaxed.contains("frame-src 'self'"));
+        assert!(relaxed.contains("default-src 'none'; frame-src 'self'"));
+        assert!(relaxed.contains("<script src=\"/__rocci/reload.js\" defer></script>"));
+
+        let okf = "<!doctype html><html><head><title>OKF</title></head><body><h1>Review</h1></body></html>";
+        let okf_injected = inject_live_reload(okf);
+        assert!(okf_injected.contains("<script src=\"/__rocci/reload.js\" defer></script>"));
+        assert!(!okf_injected.contains("frame-src"));
+        assert!(!okf_injected.contains("Content-Security-Policy"));
     }
 
     #[test]

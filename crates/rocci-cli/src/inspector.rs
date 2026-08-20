@@ -113,7 +113,7 @@ fn render_source_pane(
     format!(
         "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\">View<select name=\"view\" onchange=\"this.form.submit()\">{}</select></label><noscript><button type=\"submit\">Show</button></noscript></form><p class=\"file-path\">{}</p>{reason_html}</div>{pane_html}",
         error_page::html_escape(route),
-        view_options(view),
+        view_options(view, page),
         error_page::html_escape(path),
     )
 }
@@ -246,16 +246,21 @@ fn panel_tab(target: &str) -> &'static str {
     "performance"
 }
 
-fn view_options(selected: inspect::InspectView) -> String {
-    const OPTIONS: [(&str, &str); 4] = [
+fn view_options(selected: inspect::InspectView, page: Option<&inspect::InspectPage>) -> String {
+    const ALL: [(&str, &str); 4] = [
         ("source", "Original source"),
         ("ast", "AST"),
         ("roc", "Generated Roc"),
         ("html", "Generated HTML"),
     ];
+    const MARKDOWN: [(&str, &str); 2] = [("source", "Original source"), ("html", "Generated HTML")];
+    let options: &[(&str, &str)] = match page {
+        Some(page) if page.language == "markdown" => &MARKDOWN,
+        _ => &ALL,
+    };
     let mut html = String::new();
-    for (value, label) in OPTIONS {
-        if selected.as_str() == value {
+    for (value, label) in options {
+        if selected.as_str() == *value {
             html.push_str(&format!(
                 "<option value=\"{value}\" selected=\"\">{label}</option>"
             ));
@@ -712,8 +717,16 @@ mod tests {
         let missing_roc = render_panel_html(Some(&unavailable), "/__rocci/dev?tab=source&view=roc");
         assert!(missing_roc.contains("<div class=\"code-pane\"></div>"));
         assert!(!missing_roc.contains("<pre><code>"));
+        assert!(!missing_roc.contains("value=\"ast\""));
+        assert!(!missing_roc.contains("Generated Roc"));
+        assert!(missing_roc.contains("value=\"source\""));
+        assert!(missing_roc.contains("Original source"));
+        assert!(missing_roc.contains("value=\"html\""));
+        assert!(missing_roc.contains("Generated HTML"));
         let markdown = render_panel_html(Some(&unavailable), "/__rocci/dev?tab=source&view=source");
         assert!(markdown.contains("tok-keyword"));
+        assert!(!markdown.contains("value=\"ast\""));
+        assert!(!markdown.contains("Generated Roc"));
     }
 
     #[test]
@@ -847,6 +860,6 @@ mod tests {
         assert!(readme.contains(".code-pane"));
         assert!(readme.contains("tok-*"));
         assert!(readme.contains("right or bottom"));
-        assert!(readme.contains("AST and Roc stay unavailable"));
+        assert!(readme.contains("omits AST and Generated Roc"));
     }
 }
