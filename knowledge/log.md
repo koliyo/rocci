@@ -2,6 +2,7 @@
 
 ## 2026-08-20
 
+- Revised the draft [rocci.dev deploy plan](plans/rocci-dev-publish.md) and the overlapping mail evidence in [Tangled hosting](plans/tangled-hosting.md) after a maintainer report: registrar verification, Cloudflare DNS/HTTPS, tested `oss@rocci.dev` routing, the Hetzner origin and firewall, the named Tunnel with `cloudflared`, and bootstrap SSH are complete. Caddy, the production Tunnel route, and the manual first publish remain; no locked-down deploy user exists, so Phase 3 cannot start. Tangled identity and spindle work is unchanged. Exploratory; no delivery phase is CI-complete.
 - Added draft [snapshot eval must not compile service-only `@roc`](research/island-snapshot-roc-reachability.md): SQLite is not a CDN concern; the leak was feeding unused `@roc` helpers into the `basic-cli` snapshot compile. One `pf.Sqlite`, Roc skipping unused bindings, snapshot-as-webserver, and effectful `@component` are not available; the plan ships a lowering reachability subset. Plan: [snapshot reachability](plans/island-snapshot-roc-reachability.md). Exploratory.
 - Added draft [snapshot eval must not compile service-only `@roc`](plans/island-snapshot-roc-reachability.md): CDN splice typechecks unused `@roc` helpers against `basic-cli` while island `@on` uses `basic-webserver`; authors should keep helpers in one `@roc` block. Exploratory; no phase started.
 - Revised [rocci.dev deploy plan](plans/rocci-dev-publish.md) with a human-prep gate: Phase 1 (CI package) can start from the repo; Phases 2–3 wait on registrar/Cloudflare/Hetzner/Tunnel and a GitHub Environment `production` (secrets never in git or chat). Exploratory; no phase started.
@@ -166,4 +167,3 @@
 - Corrected the public project-status page now that Rocs aliases, watch mode, and live reload ship; kept audience-facing status prose because knowledge publication remains local-only.
 - Shipped bounded `@docs` components, catalog includes, Markdown/search projections, and opt-in `rocs test`; knowledge records distinguish that from still-unshipped `api-operation` and tab JS.
 - Clarified that document-root HTML-shaped syntax is a structured Rocci template island, not raw HTML; recorded the separate trusted uses of `dangerously_include_unescaped_html` and the consequence that Rocs rejects root template islands while internally composing escaped Rust-rendered fragments through that bridge.
-
