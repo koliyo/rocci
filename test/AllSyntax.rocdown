@@ -1,6 +1,8 @@
 @page {
     route: "/all-syntax/",
-    draft: Bool.false,
+    draft: False,
+    theme: "paper",
+    color_scheme: "auto",
     meta: {
         title: "All syntax",
         description: "Rocdown kitchen sink",
@@ -15,24 +17,53 @@ status = Ready
 show_notice = True
 }
 
+@context { ready : Bool }
+
+@init {
+    { ready: True }
+}
+
 @css {
     body { font-family: system-ui, sans-serif; }
 }
 
 @component
-Hello = |{ name ?? "World" }|
+Hello = |{ name ?? "World" }| {
+    @css {
+        p { color: inherit; }
+    }
     <p>Hello, {name}</p>
+}
 
 @fixture{target: Hello}
 helloSample = { name: "Roc" }
 
+@on:post("/actions/all-syntax/ping") = |_| {
+    hello({ name: "pong" })
+}
+
 # All syntax
 
-Email docs@example.com or mention @roclang.
+Email docs@example.com or mention @roclang. Visit https://example.com or see
+[[syntax-v2]], [v2](syntax-v2.rocdown), and [the heading](#explicit-heading).
 
-This is **bold** and *italic*.
+This is **bold**, *italic*, ~~struck~~, and `inline code`.
 
 - list item
+- [x] done
+- [ ] todo
+
+1. ordered item
+
+> A quotation.
+
+---
+
+![A banana](./img/yammi_banana.png)
+
+See [ref text][blocks].
+
+[blocks]: syntax-v2.rocdown
 
 ```roc
 answer = 42
@@ -45,6 +76,8 @@ answer = 42
 @render {
     hello({ name: "render" })
 }
+
+<Hello name="island" />
 
 @let visible = List.keep_if(items, |_| True)
 
@@ -69,21 +102,37 @@ answer = 42
     Ready => <Hello name="ready" />
 }
 
+:h2[id: "explicit-heading"] Explicit heading
+
 :figure[caption: "A banana", credit: "Rocci fixtures"] {{
     :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
 }}
 
+:img[src: "./img/yammi_banana.png", decorative: True, width: "20px"]
+
 :note Don't do this.
+
+:tip Line-scope still works.
+
+:caution[title: "Watch"] Prefer `:caution` over leftover `@docs`.
+
+:danger Do not paste raw HTML.
+
+:deprecated This spelling is kept for coverage.
 
 :note[title: "Watch"] {{
 Nested section body.
 }}
 
-:details[summary: "More"] Nested details body.
+:details[summary: "More", open: False] Nested details body.
+
+:definition[term: "Article block"] A `:kind[params]` node with a body.
+
+:badge[label: "preview", tone: "preview"]
 
 :steps.begin
     :step[title: "One"] First step.
-    :step[title: "Two"] Second step.
+    :step[title: "Two", verify: True] Second step.
 :steps.end
 
 :tabs.begin[group: "os", kind: "platform"]
@@ -91,9 +140,38 @@ Nested section body.
     :tab[id: "linux", label: "Linux"] Linux panel.
 :tabs.end
 
+:tabs[group: "install", kind: "tool"] {{
+    :tab[id: "cli", label: "CLI"] Check the catalog.
+    :tab[id: "test", label: "Examples"] Run declared examples.
+}}
+
+:card-grid.begin
+    :link-card[href: "https://example.com", title: "Example", summary: "External page"]
+    :link-card[href: "https://roc-lang.org", title: "Roc"]
+:card-grid.end
+
+:file-tree {{
+- test/
+    - AllSyntax.rocdown
+    - snippet.txt
+}}
+
+:compatibility[caption: "Hosts"] {{
+| Host | Status |
+| --- | --- |
+| Native | yes |
+}}
+
+:include[path: "snippet.txt", language: "text"]
+
+:example[language: "sh", test: ["/bin/echo", "hello"], expect: "hello"] {{
+```sh
+echo hello
+```
+}}
+
 \@if this is escaped
 
 More markdown after.[^note]
 
 [^note]: Footnotes stay in ordinary Rocdown and include a backlink.
-

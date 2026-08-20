@@ -1,6 +1,6 @@
 use rocci_rocdown::{
     CompileOptions, Diagnostic, OriginKind, SourceFile, collect_local_media, compile, format_ast,
-    normalize_local_asset_url, parse,
+    index_pages_in_dir, normalize_local_asset_url, parse,
 };
 
 #[test]
@@ -15,6 +15,11 @@ fn test_all_syntax_ast() {
     );
 
     let ast = format_ast(src, &parsed.document);
+    let fixture =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/all_syntax.ast");
+    if std::env::var("UPDATE_FIXTURES").ok().as_deref() == Some("1") {
+        std::fs::write(&fixture, ast.trim()).unwrap();
+    }
     let expected = include_str!("fixtures/all_syntax.ast");
     assert_eq!(ast.trim(), expected.trim(), "AST S-expression mismatch");
 }
@@ -172,11 +177,23 @@ fn item_enum_has_no_paragraph_variant() {
     let _ = classify_item as fn(&rocci_rocdown::Item) -> &'static str;
 }
 
+fn compile_all_syntax() -> rocci_rocdown::CompileOutput {
+    let src = include_str!("../../../test/AllSyntax.rocdown");
+    let test_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test");
+    compile(
+        SourceFile::new("test/AllSyntax.rocdown", src),
+        &CompileOptions {
+            pages: index_pages_in_dir(&test_dir),
+            resolve_includes: false,
+            ..CompileOptions::default()
+        },
+    )
+}
+
 #[test]
 fn test_all_syntax_source_map_segments() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
-    let source = SourceFile::new("test/AllSyntax.rocdown", src);
-    let out = compile(source, &CompileOptions::default());
+    let out = compile_all_syntax();
     assert!(!out.has_errors(), "{:?}", out.diagnostics);
 
     // Verify origin kinds are present
@@ -226,26 +243,98 @@ fn test_all_syntax_source_map_segments() {
 fn test_all_syntax_routes_and_media() {
     let src = include_str!("../../../test/AllSyntax.rocdown");
     let source = SourceFile::new("test/AllSyntax.rocdown", src);
-    let out = compile(source, &CompileOptions::default());
+    let out = compile_all_syntax();
     assert!(!out.has_errors(), "{:?}", out.diagnostics);
 
-    // Verify page route
     assert_eq!(out.page_meta.route.as_deref(), Some("/all-syntax/"));
     assert_eq!(out.page_meta.title.as_deref(), Some("All syntax"));
     assert!(!out.page_meta.draft);
 
-    // Verify routes
     assert!(
         out.routes
             .iter()
             .any(|r| r.method == "GET" && r.path == "/all-syntax/"),
         "missing GET /all-syntax/ route"
     );
+    assert!(
+        out.routes
+            .iter()
+            .any(|r| r.method == "POST" && r.path == "/actions/all-syntax/ping"),
+        "missing POST /actions/all-syntax/ping route"
+    );
 
-    // Verify local media discovery
     let media = collect_local_media(source, &out.document);
-    assert_eq!(media.len(), 1);
-    assert_eq!(media[0].0, "./img/yammi_banana.png");
+    assert!(!media.is_empty());
+    assert!(
+        media.iter().all(|(url, _)| url == "./img/yammi_banana.png"),
+        "{media:?}"
+    );
     let normalized = normalize_local_asset_url(&media[0].0);
     assert_eq!(normalized.as_deref(), Some("img/yammi_banana.png"));
+}
+
+#[test]
+fn all_syntax_covers_document_and_block_kinds() {
+    let src = include_str!("../../../test/AllSyntax.rocdown");
+    let parsed = parse(SourceFile::new("test/AllSyntax.rocdown", src), false);
+    assert!(
+        !parsed.diagnostics.iter().any(Diagnostic::is_error),
+        "{:?}",
+        parsed.diagnostics
+    );
+
+    let mut kinds = std::collections::BTreeSet::new();
+    for item in &parsed.document.items {
+        kinds.insert(classify_item(item));
+    }
+    for kind in [
+        "page",
+        "roc",
+        "css",
+        "component",
+        "fixture",
+        "context",
+        "init",
+        "on",
+        "render",
+        "template",
+        "block",
+        "markdown",
+    ] {
+        assert!(kinds.contains(kind), "AllSyntax missing item kind {kind}");
+    }
+
+    let ast = format_ast(src, &parsed.document);
+    for name in [
+        "note",
+        "tip",
+        "caution",
+        "danger",
+        "deprecated",
+        "details",
+        "definition",
+        "badge",
+        "steps",
+        "step",
+        "tabs",
+        "tab",
+        "figure",
+        "img",
+        "card-grid",
+        "link-card",
+        "file-tree",
+        "compatibility",
+        "include",
+        "example",
+        "h1",
+        "h2",
+    ] {
+        assert!(
+            ast.contains(&format!("(block {name}")),
+            "AllSyntax missing block kind {name}:\n{ast}"
+        );
+    }
+    assert!(ast.contains("(context"), "{ast}");
+    assert!(ast.contains("(init)"), "{ast}");
+    assert!(ast.contains("(on "), "{ast}");
 }

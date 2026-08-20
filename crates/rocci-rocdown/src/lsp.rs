@@ -725,7 +725,7 @@ fn field_completion(kind: &str, before: String) -> CompletionResponse {
         }
         if crate::registry::is_bool_field(kind, field) {
             return CompletionResponse::Array(
-                ["Bool.true", "Bool.false", "true", "false"]
+                ["True", "False"]
                     .into_iter()
                     .filter(|id| id.starts_with(&value))
                     .map(|id| {
@@ -945,7 +945,7 @@ fn img_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncodin
         doc.push_str(&format!("\n- **alt**: `{alt}`"));
     }
     if fields.decorative.as_ref().is_some_and(|(value, _)| *value) {
-        doc.push_str("\n- **decorative**: `Bool.true`");
+        doc.push_str("\n- **decorative**: `True`");
     }
     if let Some((width, _)) = &fields.width {
         doc.push_str(&format!("\n- **width**: `{width}`"));

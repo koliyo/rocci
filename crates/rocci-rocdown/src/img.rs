@@ -221,7 +221,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
             let Some(flag) = bool_literal(src, value) else {
                 diagnostics.push(Diagnostic::error(
                     value,
-                    "`decorative` must be `Bool.true` or `Bool.false`",
+                    "`decorative` must be `True` or `False`",
                 ));
                 skip_comma(&mut cur);
                 continue;
@@ -312,7 +312,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
     } else if alt.is_none() || alt.is_some_and(str::is_empty) {
         diagnostics.push(Diagnostic::error(
             fields.alt.as_ref().map(|(_, span)| *span).unwrap_or(body),
-            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
+            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: True`",
         ));
     }
 
@@ -427,7 +427,7 @@ pub fn img_fields_from_params(
                 } else {
                     diagnostics.push(Diagnostic::error(
                         field.value.span(),
-                        "`decorative` must be `Bool.true` or `Bool.false`",
+                        "`decorative` must be `True` or `False`",
                     ));
                 }
             }
@@ -465,7 +465,7 @@ pub fn img_fields_from_params(
                 .as_ref()
                 .map(|(_, span)| *span)
                 .unwrap_or(body_span),
-            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: Bool.true`",
+            "`:img` requires `alt` for meaningful images; set `alt` or `decorative: True`",
         ));
     }
 

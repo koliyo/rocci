@@ -93,13 +93,13 @@ path until island splicing lands.
 - Raw HTML in Markdown is disabled. Use Markdown, `:note`, `:img`, a
   document-root `<Tag />`, or `@render { htmlExpr }`.
 - `@page` is at most once. Docs sites usually omit `route` and let the catalog
-  derive it. Use `Bool.true` / `Bool.false` in page metadata.
+  derive it. Use `True` / `False` in page metadata.
 - `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,
   `include`, …). Nested blocks are legal; `@page` / `@roc` / handlers inside a
   block body are errors. Leftover `@docs` / `@img` is a removal error.
   Interactive `rocdown run` may `@use "./Callout.rocci"` to import extra kinds
   (`Callout` → `:callout`). Static `rocdown build` / `check` reject `@use`.
-- `:img` requires `alt` or `decorative: Bool.true`, not both with a non-empty
+- `:img` requires `alt` or `decorative: True`, not both with a non-empty
   alt. Local `src` is relative to the source file.
 - Names `rocci_meta`, `rocci_content`, and `rocci_page` are reserved.
 

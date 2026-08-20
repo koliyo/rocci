@@ -135,7 +135,7 @@ fn fenced_code_is_never_executed() {
     let src = "\
 ```roc
 @roc {
-    this_is_displayed = Bool.true
+    this_is_displayed = True
 }
 ```
 ";
@@ -360,7 +360,7 @@ fn page_layout_and_route_are_emitted() {
 @page {
     route: "/guides/rocdown/",
     layout: Docs.article,
-    draft: Bool.false,
+    draft: False,
     meta: { title: "Rocdown", description: "Markdown-first pages" },
 }
 
@@ -393,6 +393,26 @@ fn page_layout_and_route_are_emitted() {
         out.routes
             .iter()
             .any(|route| route.method == "GET" && route.path == "/")
+    );
+}
+
+#[test]
+fn page_draft_rejects_bool_dot_true() {
+    let errs = compile_err("@page {\n    draft: Bool.true,\n}\n\n# Hi\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`draft` must be `True` or `False`")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn article_params_reject_bool_dot_true() {
+    let errs = compile_err(":details[summary: \"More\", open: Bool.true] Nested.\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("Roc booleans are `True` and `False`, not `Bool.true`")),
+        "{errs:?}"
     );
 }
 
@@ -622,7 +642,7 @@ fn static_page_emits_no_datastar() {
     let out = compile_ok(src);
     assert!(!out.roc.contains("import Datastar"));
     assert!(out.roc.contains("rocci_page"));
-    assert!(out.roc.contains("on_get_root!"));
+    assert!(out.roc.contains("on_get_root! = |_state, _request|"));
     assert!(out.roc.contains("charset"));
     assert!(out.roc.contains("\"main\""));
 }
@@ -641,7 +661,7 @@ fn heading_ids_disambiguate_duplicates() {
 #[test]
 fn guide_example_compiles() {
     let src = include_str!("../../../examples/rocdown/pages/Guide.rocdown");
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/pages");
     let out = compile(
         SourceFile::new("examples/rocdown/pages/Guide.rocdown", src),
         &CompileOptions {
@@ -669,6 +689,10 @@ fn guide_example_compiles() {
     assert!(out.roc.contains("@roclang"));
     assert!(!out.roc.contains("import Datastar"));
     assert!(out.roc.contains("rocdown-blocks"));
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/guide.roc");
+    if std::env::var("UPDATE_FIXTURES").ok().as_deref() == Some("1") {
+        fs::write(&fixture, &out.roc).unwrap();
+    }
     assert_eq!(out.roc, include_str!("fixtures/guide.roc"));
 }
 
@@ -696,7 +720,7 @@ fn errors_demo_example_compiles() {
 #[test]
 fn blocks_example_contains_narrow_viewport_fixture() {
     let src = include_str!("../../../examples/rocdown/pages/Blocks.rocdown");
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/pages");
     let out = compile(
         SourceFile::new("examples/rocdown/pages/Blocks.rocdown", src),
         &CompileOptions {
@@ -720,13 +744,22 @@ fn blocks_example_contains_narrow_viewport_fixture() {
     assert!(out.roc.contains("nested-outline-heading"));
 }
 
+fn compile_all_syntax() -> rocci_rocdown::CompileOutput {
+    let src = include_str!("../../../test/AllSyntax.rocdown");
+    let test_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test");
+    compile(
+        SourceFile::new("test/AllSyntax.rocdown", src),
+        &CompileOptions {
+            pages: index_pages_in_dir(&test_dir),
+            resolve_includes: false,
+            ..CompileOptions::default()
+        },
+    )
+}
+
 #[test]
 fn all_syntax_example_compiles() {
-    let src = include_str!("../../../test/AllSyntax.rocdown");
-    let out = compile(
-        SourceFile::new("test/AllSyntax.rocdown", src),
-        &CompileOptions::default(),
-    );
+    let out = compile_all_syntax();
     assert!(
         !out.has_errors(),
         "{}",
@@ -744,6 +777,25 @@ fn all_syntax_example_compiles() {
     assert!(out.roc.contains("hello({ name: \"render\" })"));
     assert!(out.roc.contains("@if this is escaped"));
     assert!(out.roc.contains("rd-docs-aside rd-docs-block rd-docs-note"));
+    assert!(out.roc.contains("on_get_all_syntax! = |_state, _request|"));
+    assert!(
+        out.roc
+            .contains("on_post_actions_all_syntax_ping! = |_, _request|")
+    );
+    assert!(
+        !out.roc.contains("Bool.true"),
+        "Roc expressions must use True/False, not Bool.true:\n{}",
+        out.roc
+    );
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "POST" && route.path == "/actions/all-syntax/ping")
+    );
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/all_syntax.roc");
+    if std::env::var("UPDATE_FIXTURES").ok().as_deref() == Some("1") {
+        fs::write(&fixture, &out.roc).unwrap();
+    }
     assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 
@@ -759,7 +811,7 @@ fn top_level_if_for_match_and_let() {
     let src = r#"
 @roc {
 items = [{ name: "a" }]
-show = Bool.true
+show = True
 status = Ready
 }
 
@@ -825,7 +877,7 @@ fn if_inside_lists_stays_markdown() {
 - item
   @if show { captured }
 
-@if Bool.true {
+@if True {
     <p>yes</p>
 }
 ";
@@ -837,13 +889,13 @@ fn if_inside_lists_stays_markdown() {
         .filter(|item| matches!(item, rocci_rocdown::Item::Template(_)))
         .count();
     assert_eq!(templates, 1);
-    assert!(out.roc.contains("if Bool.true {"));
+    assert!(out.roc.contains("if True {"));
 }
 
 #[test]
 fn else_attaches_across_blank_lines() {
     let src = r#"
-@if Bool.true {
+@if True {
     <p>yes</p>
 }
 
@@ -852,7 +904,7 @@ fn else_attaches_across_blank_lines() {
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.roc.contains("if Bool.true {"));
+    assert!(out.roc.contains("if True {"));
     assert!(out.roc.contains("} else {"));
     assert!(out.roc.contains("\"yes\""));
     assert!(out.roc.contains("\"no\""));
@@ -1255,7 +1307,7 @@ fn inline_html_in_a_paragraph_is_still_rejected() {
 fn top_level_if_cannot_declare_component() {
     let errs = compile_err(
         r#"
-@if Bool.true {
+@if True {
     @component Foo = |{}| {
         <p>no</p>
     }
@@ -1578,7 +1630,7 @@ fn img_missing_alt_is_an_error() {
 #[test]
 fn img_decorative_emits_empty_alt() {
     let src = "\
-:img[src: \"img/divider.png\", decorative: Bool.true]
+:img[src: \"img/divider.png\", decorative: True]
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("\"img/divider.png\""));
@@ -1588,7 +1640,7 @@ fn img_decorative_emits_empty_alt() {
 #[test]
 fn img_decorative_rejects_nonempty_alt() {
     let src = "\
-:img[src: \"img/divider.png\", alt: \"Divider\", decorative: Bool.true]
+:img[src: \"img/divider.png\", alt: \"Divider\", decorative: True]
 ";
     let errs = compile_err(src);
     assert!(

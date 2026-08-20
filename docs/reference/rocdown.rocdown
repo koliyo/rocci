@@ -47,7 +47,7 @@ like Roc is Markdown, not a module item.
 
 ## `:img` native images
 
-Use `:img[...]` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: Bool.true` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: Bool.true` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph that is only a Markdown image, and ATX headings, parse as the same internal `img` / `h1`–`h6` blocks as `:img` and `:h2`. Explicit `:h2[id: "install"]` keeps that id in the outline.
+Use `:img[...]` for first-class image elements with compile-time field extraction and optional sizing. Meaningful images require `alt`. Set `decorative: True` for purely decorative images (`alt=""`). A non-empty `alt` together with `decorative: True` is an error. Markdown `![](path)` remains the empty-alt decorative shorthand. A paragraph that is only a Markdown image, and ATX headings, parse as the same internal `img` / `h1`–`h6` blocks as `:img` and `:h2`. Explicit `:h2[id: "install"]` keeps that id in the outline.
 
 Local `src` paths, including `./img/photo.png`, resolve against the source file
 directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /
@@ -63,7 +63,7 @@ serves them beside the page route; static site builds hash files under `build.as
 | --- | --- | --- |
 | `src` | **Required** | Compile-time string literal path or URL |
 | `alt` | Required unless `decorative` | Accessible description |
-| `decorative` | Optional | `Bool.true` emits empty `alt` for purely decorative images |
+| `decorative` | Optional | `True` emits empty `alt` for purely decorative images |
 | `title` | Optional | Tooltip text |
 | `width` | Optional | Explicit width string (e.g. `"50px"`, `"100%"`) |
 | `height` | Optional | Explicit height string (e.g. `"50px"`, `"auto"`) |
@@ -131,7 +131,7 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 ````rocdown
 @page {
     route: "/guides/rocdown/",
-    draft: Bool.false,
+    draft: False,
     theme: "paper",
     color_scheme: "auto",
     meta: {
@@ -145,7 +145,7 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 | --- | --- |
 | `route` | Absolute string path; no `..`, query, fragment, encoded separator, or NUL |
 | `layout` | Statically resolvable Roc value path |
-| `draft` | `Bool.true` or `Bool.false` |
+| `draft` | `True` or `False` |
 | `theme` | Built-in ID, local theme ID, `none`, or CSS file path |
 | `color_scheme` | `auto`, `light`, or `dark` |
 | `meta` | Roc record; title and description are statically extracted |

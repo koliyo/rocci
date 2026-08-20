@@ -2957,7 +2957,7 @@ Content here.
         .unwrap();
         fs::write(
             root.join("news/draft.rocdown"),
-            "@page {\n    draft: Bool.true,\n    layout: \"news-post\",\n    published: \"2026-08-20\",\n    collection: \"news\",\n}\n\n# Draft\n",
+            "@page {\n    draft: True,\n    layout: \"news-post\",\n    published: \"2026-08-20\",\n    collection: \"news\",\n}\n\n# Draft\n",
         )
         .unwrap();
 

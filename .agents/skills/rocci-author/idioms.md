@@ -150,8 +150,8 @@ Do not copy `test/AllSyntax.rocci` identifiers such as `List.isEmpty` or
 `Num.toStr`. Current examples and the pinned nightly use `List.is_empty`,
 `count.to_str()`, `Str.split_on`, `I64.from_str`.
 
-Booleans: `Bool.true` / `Bool.false` in `@page` and `:kind[params]`; `True` /
-`False` (or `Bool.true`) in Roc expressions. Typed integers: `3.I64`.
+Booleans: `True` / `False` in Roc expressions, `@page`, and `:kind[params]`.
+Typed integers: `3.I64`.
 
 ## Markup vs Roc expressions
 

@@ -132,11 +132,7 @@ fn collect_docs_block(src: &str, collector: &mut Vec<HighlightSpan>, call: &Bloc
                 0,
                 50,
             ));
-        } else if val_str == "true"
-            || val_str == "false"
-            || val_str == "Bool.true"
-            || val_str == "Bool.false"
-        {
+        } else if val_str == "True" || val_str == "False" {
             collector.push(HighlightSpan::new(
                 field.value,
                 HighlightKind::Keyword,

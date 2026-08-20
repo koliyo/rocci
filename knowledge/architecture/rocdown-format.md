@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-20T13:48:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -65,7 +65,7 @@ Article widgets have no family prefix. A short-lived experimental `@docs` / `@im
 
 Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, footnotes, and Rocdown page-link forms. Raw inline HTML is disabled by default. Ordinary compilation and the OKF adapter share footnote parsing; OKF still validates keyed `sources[].id` separately.[^rocdown-readme][^parser][^compiler-tests]
 
-`:img` requires `alt` unless `decorative: Bool.true`. Nested `:img` inside `:figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
+`:img` requires `alt` unless `decorative: True`. Nested `:img` inside `:figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
 
 The standalone compiler lowers documents to ordinary Roc exports for metadata, content, and the page shell. It does not type-check Roc or run the server itself.[^rocdown-readme]
 
