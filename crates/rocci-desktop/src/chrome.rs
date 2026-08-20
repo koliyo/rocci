@@ -172,7 +172,7 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("reveal:"));
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
         assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
-        assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev)"));
+        assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev && !onInspectorPage())"));
         assert!(PREVIEW_NAV_JS.contains("params.set(\"tab\""));
         assert!(PREVIEW_NAV_JS.contains("params.set(\"route\""));
         assert!(PREVIEW_NAV_JS.contains("params.set(\"view\""));
@@ -199,17 +199,27 @@ mod tests {
             )
         );
         assert!(
-            PREVIEW_NAV_JS.contains("rocci-preview-dev .rocci-dev-docks { position: relative;")
+            PREVIEW_NAV_JS.contains("rocci-preview-dev .rocci-dev-docks { position: absolute;")
         );
+        assert!(PREVIEW_NAV_JS.contains("Open as page"));
+        assert!(PREVIEW_NAV_JS.contains("ICON_DOCK_RIGHT"));
+        assert!(PREVIEW_NAV_JS.contains("prefGet"));
+        assert!(PREVIEW_NAV_JS.contains("localStorage.getItem"));
+        assert!(PREVIEW_NAV_JS.contains("localStorage.setItem"));
+        assert!(PREVIEW_NAV_JS.contains("onInspectorPage"));
+        assert!(PREVIEW_NAV_JS.contains("Resize developer panel"));
+        assert!(PREVIEW_NAV_JS.contains("rocci-dev-splitter::after"));
         assert!(
             !PREVIEW_NAV_JS
                 .contains("rocci-preview-dev.dock-right .rocci-dev-docks { top: 0; left: 8px; }")
         );
         assert!(
             !PREVIEW_NAV_JS.contains(
-                "position: absolute; z-index: 2; display: flex; gap: 2px; padding: 4px; }"
+                "position: relative; z-index: 2; flex: 0 0 auto; display: flex; gap: 2px; padding: 4px 8px; }"
             )
         );
+        assert!(!PREVIEW_NAV_JS.contains("dockRightBtn.textContent = \"R\""));
+        assert!(!PREVIEW_NAV_JS.contains("dockBottomBtn.textContent = \"B\""));
         assert!(PREVIEW_FIND_JS.contains("var(--rocci-chrome-right"));
         assert!(PREVIEW_NAV_JS.contains(
             "rocci-goto { right: var(--rocci-chrome-right, 0px); bottom: var(--rocci-chrome-bottom, 0px); }"
@@ -307,8 +317,11 @@ mod tests {
         let readme = include_str!("../README.md");
         assert!(readme.contains("right (default"));
         assert!(readme.contains("bottom"));
-        assert!(readme.contains("flex chrome strip"));
+        assert!(readme.contains("localStorage"));
+        assert!(readme.contains("Open as page"));
+        assert!(readme.contains("DevTools-style icons"));
         assert!(readme.contains("does not assign `iframe.src` for a Source `view`-only change"));
         assert!(!readme.contains("undock"));
+        assert!(!readme.contains("flex chrome strip"));
     }
 }

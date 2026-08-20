@@ -111,7 +111,7 @@ fn render_source_pane(
         "<div class=\"code-pane\"></div>".to_string()
     };
     format!(
-        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\">View<select name=\"view\" onchange=\"this.form.submit()\">{}</select></label><noscript><button type=\"submit\">Show</button></noscript></form><p class=\"file-path\">{}</p>{reason_html}</div>{pane_html}",
+        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\"><span class=\"visually-hidden\">View</span><select name=\"view\" aria-label=\"View\" onchange=\"this.form.submit()\">{}</select></label><p class=\"file-path\">{}</p><noscript><button type=\"submit\">Show</button></noscript></form>{reason_html}</div>{pane_html}",
         error_page::html_escape(route),
         view_options(view, page),
         error_page::html_escape(path),
@@ -650,8 +650,12 @@ mod tests {
         assert!(html.contains("min-height: 0"));
         assert!(html.contains("overflow: hidden"));
         assert!(html.contains(
-            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        overflow: auto;"
+            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: auto;\n        overflow-y: auto;"
         ));
+        assert!(html.contains("padding: 0 88px 0 8px"));
+        assert!(html.contains("visually-hidden"));
+        assert!(html.contains("aria-label=\"View\""));
+        assert!(html.contains(".inspector-body.tab-source {\n        padding: 8px 10px;"));
         assert!(html.contains("pre {\n        margin: 0;"));
         assert!(html.contains("overflow: visible"));
         assert!(html.contains("white-space: pre"));
@@ -659,6 +663,7 @@ mod tests {
         assert!(html.contains(".tok-keyword"));
         assert!(html.contains("<span class=\"tok-"));
         assert!(!html.contains(".inspector-panel {"));
+        assert!(!html.contains(">View<select"));
     }
 
     #[test]
