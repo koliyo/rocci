@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
-description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, bootstrap-SSH, GitHub Environment, and deploy-user preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
+description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, and origin docker kit were reported in place. CI packages site/ and deploys from main before the production Tunnel hostname is routed. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T18:45:00Z }
+generated: { by: process:cursor, at: 2026-08-20T19:10:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -221,11 +221,10 @@ On 2026-08-20, the owner reported completing registrar verification, the
 Cloudflare Free zone and nameserver cutover, Always Use HTTPS (without
 Flexible SSL), Email Routing with a verified personal destination and tested
 `oss@rocci.dev` forwarding, the specified Hetzner VPS and firewall, a named
-Tunnel with `cloudflared` installed on the VPS, and bootstrap SSH as a
-sudo-capable user. The Tunnel has no production hostname route; Caddy and the
-first manual publish remain to be done. The GitHub Environment `production`
-is configured and a locked-down deploy user is in place; their secret values,
-host details, and keys are not recorded here.[^human-preparation]
+Tunnel with `cloudflared` installed on the VPS, bootstrap SSH, GitHub
+Environment `production`, a locked-down deploy user, and the origin docker
+kit at `/srv/rocci/docker`. The Tunnel has no production hostname route.
+Artifacts are pushed by CI, not copied by hand.[^human-preparation]
 
 ## Human preparation (before an agent continues)
 
@@ -258,7 +257,7 @@ here.[^human-preparation]
 5. **Tunnel.** A named Tunnel exists and `cloudflared` is installed on the
    VPS. It has no production hostname route until Caddy is up.[^cf-tunnel]
 6. **Bootstrap SSH.** SSH as a sudo-capable user is confirmed. A locked-down
-   `deploy` user is in place for Phase 3.
+   `deploy` user is in place for CI artifact push.
 
 ### Phase 3 access preparation completed (reported 2026-08-20)
 
@@ -275,9 +274,9 @@ here.[^human-preparation]
    The `deploy` user's matching public key is on the VPS. Optional later: a
    Cloudflare API token used only to purge cache, as `CLOUDFLARE_PURGE_TOKEN`.
 
-8. **Smoke identity.** After Phase 2, you should be able to open
-   `https://rocci.dev/` in a browser. The agent uses that as the Phase 3
-   exit, not a private origin URL.
+8. **Smoke identity.** After CI deploy, origin health is
+   `http://127.0.0.1:8080/health` on the VPS. `https://rocci.dev/` is the
+   exit for the Tunnel-routing phase, not for the first artifact push.
 
 ### Hand-off to the agent (paste facts, not secrets)
 
@@ -322,8 +321,8 @@ hostname.[^tangled-plan][^cf-email-routing]
 - Always Use HTTPS. SSL/TLS mode unused for Tunnel visitors; do not set
   Flexible.
 - Email Routing: `oss@rocci.dev`, later `security@rocci.dev`.
-- Create a Tunnel; do **not** yet route production traffic if Phase 2 is
-  not ready. A parked "coming soon" origin is allowed.
+- Create a Tunnel; do **not** yet route production traffic if origin Caddy
+  is not up. A parked "coming soon" origin is allowed.
 - Reserve `www.rocci.dev` → `https://rocci.dev`.
 - Leave `_atproto.rocci.dev` for Tangled; do not collide with MX.[^tangled-plan]
 
@@ -334,8 +333,8 @@ hostname.[^tangled-plan][^cf-email-routing]
 the zone active and waiting on the Tunnel CNAME). HTTP to the apex cannot
 succeed in a normal browser.[^cf-universal-ssl][^get-dev]
 
-**Status:** human preparation complete; Phase 0 exit and first production
-route remain pending Caddy and the first publish.
+**Status:** human preparation complete; production hostname route waits on
+origin Caddy from CI deploy.
 
 ### Phase 1 — CI packages `site/` without deploying
 
@@ -379,31 +378,78 @@ A GitHub `site.yml` run on the same revision uploads linux/amd64 artifacts.
 artifacts, README). Not logged complete until CI and Knowledge succeed on the
 revision.
 
-### Phase 2 — Origin VPS, Tunnel, and a manual first publish
+### Phase 2 — Origin VPS and docker kit
 
 **Bound:** one Hetzner Cloud **Cost-Optimized x86** VM (2 vCPU / 4 GB, Debian
 12) in **Falkenstein (`fsn1`)** or **Nuremberg (`nbg1`)**, Docker Engine, the
-existing hybrid Compose, `cloudflared`. OVHcloud VPS-1 in Germany is the
-fallback if Hetzner is unavailable. Human uploads the Phase 1 artifacts
-once.[^docker-readme][^compose-hybrid][^cf-tunnel][^hetzner-cloud][^hetzner-servers][^ovh-vps]
+hybrid Compose files, `cloudflared` **process** (no production hostname yet).
+OVHcloud VPS-1 in Germany is the fallback if Hetzner is unavailable. Do not
+copy `site.tgz` or `islands` by hand.[^docker-readme][^compose-hybrid][^cf-tunnel][^hetzner-cloud][^hetzner-servers][^ovh-vps]
 
 **Does:**
 
 - Create the VM. Add IPv6 plus a Primary IPv4 for bootstrap SSH. No inbound
-  80/443 (provider firewall). Restrict SSH to the maintainer network.
-- Install Docker. Copy `docker/compose.hybrid.yml`, `docker/cdn/Caddyfile`,
-  and `docker/islands/Dockerfile` (or a thin `docker/prod/` wrapper that
-  sets absolute `ROCCI_DIST` / `ROCCI_ISLANDS_CONTEXT` and a persistent
-  `DB_PATH` volume).
-- Run `cloudflared` as a service; map `rocci.dev` (and `www`) to
-  `http://127.0.0.1:8080` (or the Compose published port).
-- Cloudflare Cache Rule: bypass `/actions/` and `/health`. Origin headers
-  already mark `/assets/` immutable and HTML `no-cache`.[^static-caddy][^cdn-caddy]
-- Unpack a hybrid `package` onto the box and `compose up -d`.
+  80/443 (provider firewall). Allow SSH from the maintainer network and from
+  GitHub-hosted Actions (or another documented CI egress) so later deploys
+  can rsync.
+- Install Docker. Rsync `docker/compose.hybrid.yml`, `docker/cdn/`,
+  `docker/islands/Dockerfile`, and `docker/prod/` (`bootstrap-rsync.sh`).
+- Keep `cloudflared` installed; do not attach `rocci.dev` until origin
+  health exists.
 - Persist SQLite on a named volume. Document a copy-out backup.
 
-**Does not:** GitHub deploy secrets; rate limits (Phase 4); staging unless
-the reviewer chose it in research open questions.
+**Does not:** unpack site artifacts; GitHub deploy job (Phase 3); production
+Tunnel hostname or cache bypass (Phase 4); rate limits (Phase 5).
+
+**Exit:** `/srv/rocci/docker` contains Compose, Caddy, islands Dockerfile, and
+`prod/` scripts. `deploy` can write `/srv/rocci` and run `docker compose`.
+
+**Status:** complete. Origin kit is on the VPS; no artifacts yet.
+
+### Phase 3 — CI pushes artifacts from `main`
+
+**Bound:** `site.yml` deploy job, GitHub Environment `production`, SSH as a
+locked-down deploy user. No Kubernetes. No public hostname requirement.
+
+**Does:**
+
+- Environment secrets: `DEPLOY_HOST`, `DEPLOY_USER`, SSH private key.
+- `deploy` job: `if: github.ref == 'refs/heads/main' && github.event_name ==
+  'push'`. Needs the package job. Never runs on `pull_request`.
+- Rsync the origin kit plus `site.tgz` and `islands`. Atomic publish:
+  unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
+  `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
+  release. Failed health restores the previous release.
+- Document the Environment and that fork PRs cannot deploy.
+
+**Does not:** `workflow_dispatch` to production without the same origin
+health; deploy from contributor forks; store the SSH key in the repo;
+Cloudflare Tunnel hostname routing; the public `https://rocci.dev/` curls.
+
+**Exit:** A push to `main` that runs `site.yml` publishes artifacts in that
+Actions run. A failing `package` job does not touch the VPS. On the origin:
+
+```text
+curl -sf http://127.0.0.1:8080/health
+```
+
+README or `docker/README.md` names the workflow and the Environment.
+
+**Status:** implementing (`push-release.sh`, `publish.sh`, `site.yml` deploy
+job). Not logged complete until that workflow succeeds on `main`.
+
+### Phase 4 — Tunnel hostname and public smoke
+
+**Bound:** Cloudflare Tunnel public hostname, Cache Rule. Origin Caddy from
+Phase 3 must already answer on loopback.
+
+**Does:**
+
+- Map `rocci.dev` (and `www`) to `http://127.0.0.1:8080`.
+- Cloudflare Cache Rule: bypass `/actions/` and `/health`. Origin headers
+  already mark `/assets/` immutable and HTML `no-cache`.[^static-caddy][^cdn-caddy]
+
+**Does not:** GitHub deploy changes; rate limits (Phase 5).
 
 **Exit:** From a machine that is not the VPS:
 
@@ -419,42 +465,9 @@ curl -sf -X POST https://rocci.dev/actions/counter/increment \
 `/assets/` responses include long cache headers. `docker run --rm --entrypoint
 /bin/sh rocci-islands:local -c 'which roc'` still fails.
 
-**Status:** origin layout is in `docker/prod/` (`up.sh`, SQLite backup, Tunnel
-ingress example). First publish on the VPS and the production Tunnel hostname
-route are still operator steps. Not logged complete until the Phase 2 curls
-succeed from off-box.
+**Status:** not started. Origin kit is ready; wait for Phase 3 health.
 
-### Phase 3 — Deploy from `main`
-
-**Bound:** `site.yml` deploy job, GitHub Environment `production`, SSH as a
-locked-down deploy user. No Kubernetes.
-
-**Does:**
-
-- Environment secrets: `DEPLOY_HOST`, `DEPLOY_USER`, SSH private key.
-  Optional Cloudflare cache-purge token.
-- `deploy` job: `if: github.ref == 'refs/heads/main' && github.event_name ==
-  'push'`. Needs the package job. Never runs on `pull_request`.
-- Atomic publish: rsync into `releases/<sha>/`, point `current` symlink at
-  it, `docker compose up -d --build` (or restart only `islands` when the
-  binary fingerprint in `publish.json` changed). Keep the previous symlink
-  target until health succeeds; then delete older than N releases.
-- Post-deploy smoke (the three `curl`s from Phase 2). Failed smoke leaves
-  the previous symlink.
-- Document the Environment, the deploy user (`ForceCommand` / directory
-  jail), and that fork PRs cannot deploy.
-
-**Does not:** `workflow_dispatch` to production without the same smoke;
-deploy from contributor forks; store the SSH key in the repo.
-
-**Exit:** A push to `main` that changes `site/` publishes within one Actions
-run. A failing `package` job does not touch the VPS. README or
-`docker/README.md` names the workflow and the Environment.
-
-**Status:** GitHub Environment and deploy-user prerequisites are reported
-ready; the package/deploy workflow has not started.
-
-### Phase 4 — Public-OSS hardening
+### Phase 5 — Public-OSS hardening
 
 **Bound:** Cloudflare rules, SQLite backup, operator notes. Code changes
 only if the public counter needs a documented rate-limit header or a
@@ -467,7 +480,7 @@ robots/security.txt page that Rocdown already supports.
 - Confirm `security@rocci.dev` forwards before the repository lists it.
 - After the repo is public: verify a fork PR cannot read `production`
   secrets and cannot trigger deploy.
-- Optional `staging.rocci.dev` Tunnel hostname only if Phase 2 left it
+- Optional `staging.rocci.dev` Tunnel hostname only if Phase 4 left it
   open.
 
 **Does not:** OKF public deploy; product hosting adapters; stripping the
@@ -478,7 +491,7 @@ the deploy key. One fork-PR Actions run shows deploy skipped.
 
 **Status:** not started.
 
-### Phase 5 — Tangled handoff (after forge Phase 2)
+### Phase 6 — Tangled handoff (after forge Phase 2)
 
 **Bound:** who builds Linux `package`. Origin and Cloudflare do not move.
 
@@ -526,9 +539,9 @@ revision. Phase 0 is operator DNS and has no crate test.
 
 ```text
 1 (CI package) can start now
-0 + VPS + Tunnel (human) before 2
-2 before 3 (needs GitHub Environment secrets)
-4 after a public origin exists
+2 origin docker kit (human) before 3
+3 (CI artifact push) before 4 (Tunnel hostname)
+5 after a public origin exists
 ```
 
 [^research]: Cloudflare as CDN; Tunnel TLS; hybrid origin; GitHub Actions until Tangled.

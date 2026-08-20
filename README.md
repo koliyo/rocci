@@ -153,9 +153,9 @@ cargo run -p rocci-rocdown-cli -- package site --target x64musl
 ```
 
 That writes `dist/rocci.dev`, `dist/site.tgz`, `dist/islands`, and
-`publish.json`. GitHub Actions workflow `site.yml` runs the same package on
-linux/amd64 and uploads those artifacts; it does not deploy. `check site`
-validates the public tree without packaging.
+`publish.json`. GitHub Actions workflow `site.yml` packages on linux/amd64
+and, on `main` only, rsyncs those artifacts to the origin using the
+`production` Environment. Pull requests never deploy.
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
