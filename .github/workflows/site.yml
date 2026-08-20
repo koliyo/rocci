@@ -50,7 +50,7 @@ jobs:
       - name: Package hybrid site
         run: cargo run -q -p rocci-rocdown-cli -- package site --target x64musl
       - name: Upload linux/amd64 artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rocci-dev-linux-amd64
           if-no-files-found: error
@@ -72,10 +72,10 @@ jobs:
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
       CF_SSH_HOSTNAME: ssh.rocci.dev
-      ROCCI_SSH_VERBOSE: "1"
+      # ROCCI_SSH_VERBOSE: "1"
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: rocci-dev-linux-amd64
           path: artifacts

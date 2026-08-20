@@ -63,7 +63,12 @@ compose_up() {
     export ROCCI_ISLANDS_CONTEXT="${root}/islands-context"
     export ROCCI_HTTP_PORT="${http_port}"
     echo "=== docker compose up --build dist=${ROCCI_DIST} islands=${ROCCI_ISLANDS_CONTEXT} ==="
-    docker compose -f "${compose_file}" --project-directory "${repo_docker}" up -d --build
+    if ! docker compose -f "${compose_file}" --project-directory "${repo_docker}" up -d --build; then
+        echo "error: docker compose failed. If this is permission denied on docker.sock, add this user to the docker group (usermod -aG docker \"$(id -un)\" as root) and start a new SSH session." >&2
+        id >&2
+        ls -l /var/run/docker.sock >&2 || true
+        return 1
+    fi
 }
 
 wait_health() {

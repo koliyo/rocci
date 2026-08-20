@@ -51,5 +51,5 @@ getent ahosts "${dns_name}" || true
 getent hosts "${dns_name}" || true
 
 echo "=== SSH probe ${ssh_target} ==="
-rocci_ssh "${ssh_target}" "set -e; echo PROBE_OK; date -u +%Y-%m-%dT%H:%M:%SZ; hostname; uname -a; id; command -v docker; docker compose version; ls -ld /srv/rocci /srv/rocci/docker /srv/rocci/incoming /srv/rocci/releases 2>&1 || true"
+rocci_ssh "${ssh_target}" 'echo PROBE_OK; date -u +%Y-%m-%dT%H:%M:%SZ; hostname; uname -a; id; echo "docker.sock:"; ls -l /var/run/docker.sock 2>&1 || true; echo "docker compose:"; if docker compose version; then echo docker_ok; else echo "error: deploy cannot use docker (add the user to the docker group, then ssh again)"; exit 1; fi; ls -ld /srv/rocci /srv/rocci/docker /srv/rocci/incoming /srv/rocci/releases 2>&1 || true'
 echo "=== probe succeeded ==="
