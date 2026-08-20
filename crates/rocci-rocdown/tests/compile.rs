@@ -1114,6 +1114,77 @@ FeatureCount = |{ count }| {
     assert!(!out.roc.contains("rocci_content"), "{}", out.roc);
 }
 
+fn live_sqlite_helper_page() -> &'static str {
+    r#"
+@page {
+    route: "/",
+    layout: "docs",
+    meta: { title: "Counter" },
+}
+
+@roc {
+import pf.Sqlite
+
+read_count! = |db|
+    Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )
+}
+
+@on:post("/actions/counter/sync") = |_, _request| {
+    count = read_count!(db)?
+    counterCard({ count: count.value })
+}
+
+@component
+CounterCard = |{ count }| {
+    <output>{count.to_str()}</output>
+}
+
+@render {
+    counterCard({ count: 0.I64 })
+}
+"#
+}
+
+fn compile_islands_ok(src: &str) -> rocci_rocdown::CompileOutput {
+    let out = compile_islands(
+        SourceFile::new("test.rocdown", src),
+        &CompileOptions::default(),
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    out
+}
+
+#[test]
+fn compile_islands_copies_service_only_roc_helpers() {
+    let out = compile_islands_ok(live_sqlite_helper_page());
+    assert!(out.roc.contains("rocci_islands"), "{}", out.roc);
+    assert!(out.roc.contains("counterCard"), "{}", out.roc);
+    assert!(out.roc.contains("read_count!"), "{}", out.roc);
+    assert!(out.roc.contains("import pf.Sqlite"), "{}", out.roc);
+}
+
+#[test]
+fn compile_keeps_service_roc_helpers() {
+    let out = compile_ok(live_sqlite_helper_page());
+    assert!(out.roc.contains("read_count!"), "{}", out.roc);
+    assert!(out.roc.contains("import pf.Sqlite"), "{}", out.roc);
+}
+
 #[test]
 fn html_inside_lists_and_fences_is_not_an_island() {
     let src = "\
