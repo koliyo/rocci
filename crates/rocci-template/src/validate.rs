@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use crate::ast::{Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, parse_component_params};
+use crate::ast::{
+    Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, handler_param_arity,
+    parse_component_params,
+};
 use crate::diagnostic::Diagnostic;
 use crate::resolve::{fixture_target_name_error, pascal_to_camel};
 
@@ -54,6 +57,14 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                 }
             }
             ModuleItem::On(on) => {
+                if let Some(params) = on.params {
+                    if handler_param_arity(params.of(src)) > 2 {
+                        diagnostics.push(Diagnostic::error(
+                            params,
+                            "`@on` handlers take at most two parameters: state and request",
+                        ));
+                    }
+                }
                 if handler_has_record_params(src, on) {
                     has_record_handler = true;
                 }

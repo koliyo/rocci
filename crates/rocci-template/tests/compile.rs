@@ -1107,11 +1107,11 @@ import Html
             { db: db }
 }
 
-@on:get("/") = |{ db }, _request| {
+@on:get("/") = |{ db }| {
     counterPage({ count: 0 })
 }
 
-@on:post("/actions/counter/increment") = |{ db }, _request| {
+@on:post("/actions/counter/increment") = |{ db }| {
     counterCard({ count: 1 })
 }
 
@@ -1166,6 +1166,79 @@ fn on_without_params_defaults_to_state_and_request() {
     let out = compile_ok(src);
     assert_eq!(out.routes[0].fn_name, "on_get_root!");
     assert!(out.roc.contains("on_get_root! = |state, _request| {"));
+}
+
+#[test]
+fn on_one_param_injects_unused_request() {
+    let src = r#"
+@on:get("/") = |{ db }| {
+    Html.text("ok")
+}
+
+@on:post("/actions/x") = |_| {
+    Html.text("x")
+}
+
+@on:put("/y") = || {
+    Html.text("y")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+
+@context { db : {} }
+
+@init {
+    { db: {} }
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("on_get_root! = |{ db }, _request| {"));
+    assert!(out.roc.contains("on_post_actions_x! = |_, _request| {"));
+    assert!(out.roc.contains("on_put_y! = |_, _request| {"));
+}
+
+#[test]
+fn on_two_params_keep_authored_request() {
+    let src = r#"
+@on:post("/actions/save") = |{ db }, request| {
+    _ = request
+    Html.text("ok")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+
+@context { db : {} }
+
+@init {
+    { db: {} }
+}
+"#;
+    let out = compile_ok(src);
+    assert!(
+        out.roc
+            .contains("on_post_actions_save! = |{ db }, request| {")
+    );
+}
+
+#[test]
+fn rejects_on_with_more_than_two_params() {
+    let errors = compile_err(
+        r#"
+@on:post("/x") = |state, request, extra| {
+    Html.text("x")
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("at most two parameters")),
+        "{errors:?}"
+    );
 }
 
 #[test]
