@@ -956,5 +956,9 @@ mod tests {
         assert!(readme.contains("tok-*"));
         assert!(readme.contains("right or bottom"));
         assert!(readme.contains("omits AST and Generated Roc"));
+        assert!(readme.contains("stderr for `rocci run`"));
+        assert!(readme.contains("not an app-level Rocci log API"));
+        assert!(readme.contains("does not capture page `console.*`"));
+        assert!(readme.contains("inspector Phase 5 and is not shipped"));
     }
 }

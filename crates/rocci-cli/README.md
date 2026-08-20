@@ -78,8 +78,11 @@ Long Source bodies scroll inside `.code-pane`. Original Rocci, Rocdown, and
 Markdown, plus generated Roc and HTML, highlight with `rocci-highlight` `tok-*`
 classes (playground token colors). AST stays escaped plaintext. OKF records
 show Markdown source and built HTML; the Source dropdown omits AST and Generated Roc.
-Console lists runtime messages teed from the session (`GET /__rocci/logs`,
-SSE `GET /__rocci/logs/events`); it is not an app-level Rocci log API. Static
+Console lists runtime messages teed from the session, including Roc process
+stderr for `rocci run` (`GET /__rocci/logs`, SSE `GET /__rocci/logs/events`).
+It is not an app-level Rocci log API and does not capture page `console.*`
+(native Web Inspector remains the page console; that overlay wrap is original
+inspector Phase 5 and is not shipped). Static
 dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
 `GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a

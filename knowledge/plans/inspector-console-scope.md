@@ -4,7 +4,7 @@ title: Runtime console without a component log API
 description: "Keep the Dev Console as a host runtime stream. Feed rocci run Roc stderr into InspectorServer LogHub so app preview matches static preview. Do not add logging from Rocci @component functions."
 tags: [domain/rocci, domain/desktop, domain/runtime, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T10:31:00Z }
+generated: { by: process:cursor, at: 2026-08-20T10:45:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -191,9 +191,9 @@ run` stderr feed. `cargo test -p rocci-cli`.
 
 ## Status
 
-Exploratory; Phase 1 complete (Console v1 frozen as runtime-only).
-Phase 2 not started. Depends on the shipped `LogHub` and Console pane.
-Does not depend on further inspector-repair phases.
+Exploratory; Phases 1–3 implemented in this revision, not CI-complete.
+Depends on the shipped `LogHub` and Console pane. Does not depend on
+further inspector-repair phases.
 
 [^research]: Runtime-only recommendation; component log API rejected; rocci run hub empty.
 [^preview-research]: Original three-class table and open gate 3.
