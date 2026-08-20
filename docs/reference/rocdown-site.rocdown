@@ -178,8 +178,11 @@ Native apply uses `basic-cli` without Roc `--target`. Wasm apply is a renderer
 only: it does not produce a hosted Wasm server, and platforms such as
 `basic-cli` / `basic-webserver` have no `wasm32`, so native apply remains
 required. `--target x64musl` / `arm64musl` is the native ISA/OS for island and
-app **process** binaries that will run elsewhere (Linux containers). Musl is
-the Linux container process target. Do not pass musl `--target` into Mac apply.
+app **process** binaries that will run elsewhere (Linux containers). Match the
+container CPU (`arm64musl` for Apple Silicon Docker Desktop; `x64musl` for
+most amd64 hosts)—not the Mac host (`arm64mac`). Musl is the portable Linux
+container target. Do not pass musl `--target` into Mac apply. See
+`docker/README.md`.
 
 The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
 from every page, including sites with a project-local `theme/`. Project chrome

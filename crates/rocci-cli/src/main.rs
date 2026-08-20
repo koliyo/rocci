@@ -29,6 +29,7 @@ enum Commands {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
         /// Roc `roc build --target=` for the process binary (see possible values).
+        /// Match the Linux container CPU (`arm64musl` on Apple Silicon Docker).
         /// Apply `--host` is separate. macOS `.app` bundles stay host-native.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
@@ -43,6 +44,7 @@ enum Commands {
         #[arg(long)]
         release: bool,
         /// Roc `roc build --target=` for the process binary (see possible values).
+        /// Match the Linux container CPU (`arm64musl` on Apple Silicon Docker).
         /// Requires `--release`. macOS `.app` bundling stays on `rocci bundle`.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,

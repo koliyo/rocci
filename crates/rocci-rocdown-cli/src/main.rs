@@ -41,6 +41,7 @@ enum Commands {
         #[arg(long)]
         cdn_only: bool,
         /// Roc `roc build --target=` for island/app process binaries (see possible values).
+        /// Match the Linux container CPU (`arm64musl` on Apple Silicon Docker).
         /// Not passed to `--host native` apply on the build machine.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
@@ -68,6 +69,7 @@ enum Commands {
         #[arg(long)]
         cdn_only: bool,
         /// Roc `roc build --target=` for island process binaries (see possible values).
+        /// Match the Linux container CPU (`arm64musl` on Apple Silicon Docker).
         /// Not passed to `--host native` apply on the build machine.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,

@@ -35,7 +35,7 @@ cargo run -p rocci-rocdown-cli -- build examples/rocdown-hybrid --cdn-only
 
 # Package: static CDN tree, or hybrid CDN plus sibling islands binary
 cargo run -p rocci-rocdown-cli -- package docs [--output dist] [--archive site.tgz]
-cargo run -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+cargo run -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
 
 # Serve a previously built dist/ tree without rebuilding (no Roc, no watch)
 cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window]

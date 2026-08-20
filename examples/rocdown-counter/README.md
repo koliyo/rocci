@@ -158,14 +158,16 @@ Package on the host, then Caddy plus a slim island process image (no `roc` /
 `rocdown` at runtime):
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+# Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
 ./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
-Use `--target arm64musl` when the container is arm64. Then open
+Then open
 [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
 [/about/](http://127.0.0.1:8080/about/) (static). Caddy serves the CDN tree and
 proxies `/actions/` plus `/health`. SQLite state is the `islands-db` volume.
+See [`docker/README.md`](../../docker/README.md) for choosing `--target`.
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
