@@ -4,7 +4,7 @@ title: Product run skips preview when rocci-browser is already open
 description: "Gate 3 follow-on after rocci-browser Phases 1–5: when a graphical browser session exists, rocci / rocdown / rocci-okf run (and view / browse) default to --no-window instead of opening a second one-shot preview. Exploratory; no phase started."
 tags: [domain/rocci, domain/desktop, domain/rocdown, domain/rocci-okf, concern/tooling, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T23:15:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -24,6 +24,11 @@ sources:
     title: rocci-browser crate contract
     author: process:cursor
     last_modified: 2026-08-19
+  - id: macos-plan
+    resource: rocci-browser-macos-app.md
+    title: rocci-browser macOS app and TUI removal plan
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: browser-guide
     resource: ../../docs/guides/rocci-browser.rocdown
     title: Public project-browser guide
@@ -92,7 +97,7 @@ no lock file or other live-session signal in `browser_dir`.[^window-rs][^paths-r
 - Making product crates depend on `rocci-browser` (put the lock helper in
   `rocci-core` so base, Rocdown, and OKF CLIs share one check).[^core-readme]
 - Defaulting to `--no-window` when the host is *not* running.
-- Signed `.app` packaging.
+- Signed `.app` packaging (see [macOS app plan](rocci-browser-macos-app.md)).[^macos-plan]
 
 ## Phase 1 — Live-session lock in rocci-core
 
@@ -102,8 +107,8 @@ a tiny shared path helper) and add `session.pid` next to `projects.json`.[^paths
 
 - Graphical `rocci-browser` writes its pid on entering `preview()` and
   removes the file on clean exit. Stale file plus dead pid is not live.
-- `is_browser_session_live()` returns true only for that case. TUI and
-  `open --no-window` do not write the lock.
+- `is_browser_session_live()` returns true only for that case. CLI commands
+  including `open --no-window` do not write the lock. There is no TUI.
 - Tests: live pid, missing file, stale pid; no preview window.
 
 **Exit:** Host writes and clears the lock; core tests cover the three
@@ -150,3 +155,4 @@ Exploratory; no phase started. Blocked on rocci-browser gate 3.
 [^window-rs]: Graphical host enters rocci_desktop::preview and stays there.
 [^preview-decision]: The native window stays named the preview window.
 [^core-readme]: Shared contracts with no GUI or product-format dependencies.
+[^macos-plan]: Ad-hoc Finder .app is a separate follow-on; this plan is the live-session lock.

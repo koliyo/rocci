@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -66,13 +66,28 @@ sources:
     title: Public Rocdown site configuration
     author: process:git
     last_modified: 2026-08-19
+  - id: browser-readme
+    resource: ../../crates/rocci-browser/README.md
+    title: rocci-browser crate contract
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: browser-guide
+    resource: ../../docs/guides/rocci-browser.rocdown
+    title: Public project-browser guide
+    author: process:cursor
+    last_modified: 2026-08-19
+  - id: macos-plan
+    resource: ../plans/rocci-browser-macos-app.md
+    title: rocci-browser macOS app and TUI removal plan
+    author: process:cursor
+    last_modified: 2026-08-20
 ---
 
 # Rocci implementation status
 
 ## Snapshot date
 
-2026-08-19.
+2026-08-20.
 
 ## Shipped
 
@@ -83,6 +98,8 @@ Rocdown currently resolves nested routes, links, assets, navigation, drafts, has
 Tree-sitter highlighting library `rocci-highlight` provides token spans for LSP and documentation rendering parity.[^rocdown-compiler]
 
 The shipped OKF knowledge path validates, graphs, renders, previews, inspects, and searches the knowledge bundle using the portable `okf` engine and `rocci-okf` review application. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
+
+`rocci-browser` is a fourth binary: a product-blind registry, two-stage Cmd-P picker, and persistent preview window that `load_url`s adapter origins. v1 is `cargo run`; a terminal `tui` command still exists; a Finder `.app` is not shipped.[^browser-readme][^browser-guide][^macos-plan]
 
 Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark with JSON hit-rate and mean-reciprocal-rank reporting, with CI threshold enforcement.[^consolidation]
 
@@ -125,3 +142,6 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
 [^rocdown-compiler]: Current static code-block rendering path and token spans.
 [^site-ref]: Theme block-pack overlay and `[blocks]` configuration.
+[^browser-readme]: Shipped host commands, including tui, and cargo-run graphical window.
+[^browser-guide]: Public contract: Cmd-P versus Cmd-K; signed .app planned.
+[^macos-plan]: Follow-on to delete tui and assemble an ad-hoc Finder .app.
