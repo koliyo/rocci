@@ -1,3 +1,5 @@
+# Builder/dev toolchain Compose (Ubuntu + Roc + WebKit, compile at start).
+# Hosting uses compose.static.yml (static) or compose.hybrid.yml (pre-built).
 name: rocci-hybrid
 
 services:

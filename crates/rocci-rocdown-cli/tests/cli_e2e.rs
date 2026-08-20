@@ -312,6 +312,7 @@ fn package_live_site_fails_with_rd2302() {
         .arg(&output)
         .arg("--archive")
         .arg(&archive)
+        .arg("--cdn-only")
         .current_dir(&root)
         .output()
         .unwrap();

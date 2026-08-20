@@ -9,18 +9,23 @@ use anyhow::{Context, Result, bail};
 use flate2::{Compression, write::GzEncoder};
 use sha2::{Digest, Sha256};
 
+use crate::article::PageKind;
 use crate::build::{BuildOptions, BuildReport, absolute, build_configured_with_options};
 use crate::plan::{ArtifactInspect, PublishPage, PublishReport};
-use crate::service::IslandRoute;
+use crate::service::{IslandRoute, generated_island_plan};
+use crate::site::{load_site, resolve_loaded};
 
 const PUBLISH_JSON: &str = "publish.json";
 const DEFAULT_ARCHIVE: &str = "site.tgz";
+const ISLANDS_BIN: &str = "islands";
 
 #[derive(Debug, Clone)]
 pub struct PackageOptions {
     pub host: Option<rocci_roc_host::HostChoice>,
     pub archive: Option<PathBuf>,
     pub write_archive: bool,
+    pub cdn_only: bool,
+    pub native_target: Option<rocci_cli::native_target::NativeTarget>,
 }
 
 impl Default for PackageOptions {
@@ -29,6 +34,8 @@ impl Default for PackageOptions {
             host: None,
             archive: None,
             write_archive: true,
+            cdn_only: false,
+            native_target: None,
         }
     }
 }
@@ -45,6 +52,12 @@ pub struct PackageManifest {
     pub rocdown_version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roc_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub native_target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub binary_hash: Option<String>,
 }
 
 impl PackageManifest {
@@ -60,6 +73,9 @@ impl PackageManifest {
             files,
             rocdown_version: env!("CARGO_PKG_VERSION").to_string(),
             roc_version: roc_version(),
+            native_target: None,
+            binary: None,
+            binary_hash: None,
         }
     }
 }
@@ -70,6 +86,7 @@ pub struct PackageReport {
     pub output: PathBuf,
     pub publish_json: PathBuf,
     pub archive: Option<PathBuf>,
+    pub binary: Option<PathBuf>,
     pub manifest: PackageManifest,
 }
 
@@ -77,6 +94,9 @@ impl PackageReport {
     pub fn render(&self) -> String {
         let mut out = self.build.render_publish();
         out.push_str(&format!("wrote {}\n", self.publish_json.display()));
+        if let Some(binary) = &self.binary {
+            out.push_str(&format!("wrote {}\n", binary.display()));
+        }
         if let Some(archive) = &self.archive {
             out.push_str(&format!("wrote {}\n", archive.display()));
         }
@@ -89,31 +109,89 @@ pub fn package_configured(
     output_override: Option<&Path>,
     options: PackageOptions,
 ) -> Result<PackageReport> {
+    let loaded = load_site(root)?;
+    let resolved = resolve_loaded(&loaded);
+    if resolved.has_errors() {
+        bail!("{}", resolved.error_summary());
+    }
+    let has_live = resolved
+        .site
+        .pages
+        .iter()
+        .any(|page| !page.draft && page.kind == PageKind::Live);
+    let cdn_only = options.cdn_only || !has_live;
     let report = build_configured_with_options(
         root,
         output_override,
         BuildOptions {
             host: options.host,
-            cdn_only: true,
+            cdn_only,
         },
     )?;
     let output = match output_override {
         Some(output) => absolute(output)?,
-        None => {
-            let loaded = crate::site::load_site(root)?;
-            loaded.root.join(&loaded.config.build.output)
-        }
+        None => loaded.root.join(&loaded.config.build.output),
     };
-    finish_package(&output, report, options)
+    let binary = if has_live && !options.cdn_only {
+        Some(compile_island_binary(root, &output, options.native_target)?)
+    } else {
+        None
+    };
+    finish_package(&output, report, options, binary)
+}
+
+fn compile_island_binary(
+    root: &Path,
+    output: &Path,
+    target: Option<rocci_cli::native_target::NativeTarget>,
+) -> Result<PathBuf> {
+    let Some(plan) = generated_island_plan(root)? else {
+        bail!(
+            "hybrid package needs a colocated island binary; [http].service sites are not packaged here"
+        );
+    };
+    let binary = absolute(
+        &output
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(ISLANDS_BIN),
+    )?;
+    rocci_cli::driver::compile_app_plan(&plan.into_app_plan(), root, &binary, target)?;
+    if !binary.is_file() {
+        bail!("island compile did not write {}", binary.display());
+    }
+    Ok(binary)
 }
 
 fn finish_package(
     output: &Path,
     report: BuildReport,
     options: PackageOptions,
+    binary: Option<PathBuf>,
 ) -> Result<PackageReport> {
     let (files, output_hash) = hash_tree(output)?;
-    let manifest = PackageManifest::from_report(&report, files, output_hash);
+    let mut manifest = PackageManifest::from_report(&report, files, output_hash);
+    if let Some(path) = &binary {
+        manifest.native_target = options
+            .native_target
+            .map(|target| target.as_roc_target().to_string());
+        manifest.binary = Some(ISLANDS_BIN.to_string());
+        let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        manifest.binary_hash = Some(
+            hasher
+                .finalize()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect(),
+        );
+        if manifest.service_routes.is_empty() && !report.service_routes.is_empty() {
+            manifest.service_routes = report.service_routes.clone();
+        }
+    } else if report.pages.iter().any(|page| page.kind == PageKind::Live) {
+        bail!("hybrid package is allowed only when the island binary is present");
+    }
     let publish_json = output.join(PUBLISH_JSON);
     let json =
         serde_json::to_string_pretty(&manifest).context("failed to serialize publish.json")?;
@@ -133,6 +211,7 @@ fn finish_package(
         output: output.to_path_buf(),
         publish_json,
         archive,
+        binary,
         manifest,
     })
 }
@@ -325,9 +404,8 @@ mod tests {
             &root,
             Some(&output),
             PackageOptions {
-                host: None,
                 archive: Some(archive_path.clone()),
-                write_archive: true,
+                ..PackageOptions::default()
             },
         )
         .unwrap();
@@ -387,9 +465,9 @@ mod tests {
             &root,
             Some(&output),
             PackageOptions {
-                host: None,
                 archive: Some(archive.clone()),
-                write_archive: true,
+                cdn_only: true,
+                ..PackageOptions::default()
             },
         )
         .unwrap_err();
@@ -397,6 +475,46 @@ mod tests {
         assert!(message.contains("RD2302"), "{message}");
         assert_eq!(fs::read(&archive).unwrap(), b"previous-archive");
         let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&parent);
+    }
+
+    #[test]
+    fn package_live_fixture_writes_island_binary_and_fingerprint() {
+        if skip_without_roc() {
+            return;
+        }
+        let _lock = ROC_LOCK.lock().unwrap();
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("examples/rocdown-hybrid");
+        let parent = unique_temp("pkg-live-bin-parent").unwrap();
+        let output = parent.join("dist");
+        let report = package_configured(
+            &root,
+            Some(&output),
+            PackageOptions {
+                write_archive: false,
+                ..PackageOptions::default()
+            },
+        )
+        .unwrap();
+        let binary = report.binary.expect("island binary");
+        assert!(binary.is_file());
+        assert_eq!(binary.file_name().unwrap(), "islands");
+        let json: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&report.publish_json).unwrap()).unwrap();
+        assert_eq!(json["binary"], "islands");
+        assert!(!json["binary_hash"].as_str().unwrap().is_empty());
+        assert!(
+            json["service_routes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|route| route["path"].as_str().unwrap().contains("/actions/"))
+        );
         let _ = fs::remove_dir_all(&parent);
     }
 
