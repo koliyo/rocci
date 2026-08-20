@@ -61,6 +61,22 @@ docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 
 `which roc` must fail.
 
+## Rocci app Linux hosting (opt-in)
+
+Package a Roc server binary plus assets on the host, then a slim process image
+(no `rocci` CLI, `roc`, or WebKit). macOS `.app` remains `rocci bundle`.
+Linux OCI is opt-in: set `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose (do not
+weaken `rocci.toml` loopback validation).
+
+```sh
+cargo run -q -p rocci-cli -- build --release examples/datastar --target x64musl
+./docker/run-app.sh target/release/rocci-server
+```
+
+Use `--target arm64musl` when the container is arm64. Override the published
+port with `ROCCI_HTTP_PORT`. Then open
+[http://127.0.0.1:8080/](http://127.0.0.1:8080/).
+
 ## Hybrid builder/dev demo (toolchain-heavy)
 
 The original Compose file still builds Ubuntu images with Roc, the Rocci CLIs,
@@ -118,6 +134,9 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
 | [`run-hybrid.sh`](run-hybrid.sh) | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
+| [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
+| [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
+| [`run-app.sh`](run-app.sh) | Absolutize server dir and app `compose up` |
 | [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain plus hybrid `cdn` |
 | [`cdn/Caddyfile`](cdn/Caddyfile) | Hybrid same-origin proxy; `root * /src/site/dist` |
 | [`compose.yml`](compose.yml) | **Builder/dev** hybrid `site-build`, `islands`, `cdn` |

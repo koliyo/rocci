@@ -69,9 +69,23 @@ The command compiles the Roc app, builds the native host, assembles an `.app`,
 and applies an ad-hoc signature. The bundled app does not need `roc` on the
 runtime `PATH`.
 
+## Linux server binary (opt-in OCI)
+
+`rocci build --release` writes a Roc `server` plus `assets/`, not a `.app`.
+Reuse that tree in a slim process image with `./docker/run-app.sh`. Compose
+sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so the container is reachable; do not
+change `[http].host` in `rocci.toml` (loopback validation stays). Linux OCI is
+opt-in. Windows installers are not implemented.
+
+```sh
+cargo run -p rocci-cli -- build --release examples/datastar --target x64musl
+./docker/run-app.sh target/release/rocci-server
+```
+
 ## Understand the current boundary
 
-- Packaging is macOS-only today.
+- Desktop packaging is macOS-only (ad-hoc `.app`).
+- Linux server packaging is opt-in (`rocci build --release` plus optional OCI).
 - The signature is suitable for local development, not distribution.
 - Production signing, notarization, installers, and updates are not implemented.
 - The host currently manages one application window.
