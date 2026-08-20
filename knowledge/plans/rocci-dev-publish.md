@@ -4,7 +4,7 @@ title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
 description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. GitHub Actions packages site/ and deploys from main. Exploratory; no phase started."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T08:55:00Z }
+generated: { by: process:cursor, at: 2026-08-20T09:05:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -147,6 +147,10 @@ sources:
     resource: https://www.ovhcloud.com/en/vps/cheap-vps/
     title: OVHcloud starter VPS (VPS-1)
     author: organization:ovhcloud
+  - id: gh-environments
+    resource: https://docs.github.com/en/actions/how-tos/writing-workflows/choosing-what-your-workflow-does/using-environments-for-deployment
+    title: GitHub Actions environments for deployment secrets
+    author: organization:github
 ---
 
 # Deploy rocci.dev with Cloudflare, a small VPS, and CI
@@ -208,6 +212,87 @@ public.
 Compose already serves that shape. CI only `check docs` and never installs
 Roc. On 2026-08-20, `1.1.1.1` still returned no NS/SOA/MX, only
 `A 212.123.41.108` (TTL 0) for the apex and `www`.[^site-config][^site-home][^compose-hybrid][^ci-workflow][^tangled-plan][^hexonet-verify][^root-readme]
+
+## Human preparation (before an agent continues)
+
+Do not put tokens, SSH private keys, or Cloudflare Tunnel credentials in git
+or in chat. Create them in the vendor UI, then tell the agent only the
+**names** and non-secret facts below.[^ci-workflow][^gh-environments]
+
+### Already enough for Phase 1
+
+An agent can implement **CI package-only** (`check site`, `site.yml` that
+uploads `site.tgz` + `islands`, README fix) from this repository today. That
+job needs no VPS, no Cloudflare, and no GitHub Environment.[^ci-workflow][^rocdown-readme]
+
+### Must do yourself before Phase 2 (live origin)
+
+These require a browser, a payment method, and registrar/Cloudflare/Hetzner
+login. An agent cannot complete them.
+
+1. **Registrar.** Finish ICANN registrant-email verification so NS are no
+   longer a verification placeholder.[^hexonet-verify][^tangled-plan]
+2. **Cloudflare account** (Free plan). Add zone `rocci.dev`, point the
+   registrar NS at Cloudflare, enable Always Use HTTPS, do not use Flexible
+   SSL.[^cf-universal-ssl][^get-dev]
+3. **Mail.** Email Routing: verify a personal destination inbox, then
+   `oss@rocci.dev` (and later `security@rocci.dev`). Confirm with a test
+   message.[^cf-email-routing][^tangled-plan]
+4. **Hetzner Cloud** (OVH VPS-1 Germany only if Hetzner is blocked). Create
+   Cost-Optimized **x86** 2 vCPU / 4 GB, Debian 12, `fsn1` or `nbg1`. Add
+   IPv6 plus a Primary IPv4. Firewall: allow SSH from your network, deny
+   inbound 80/443. Install nothing Rocci-specific yet if you prefer the
+   agent to SSH later; Docker can wait for Phase 2.[^hetzner-cloud][^hetzner-servers]
+5. **Tunnel.** In Cloudflare Zero Trust, create a named Tunnel. Install
+   `cloudflared` on the VPS with the **tunnel token** (stays on the box).
+   Do not route `rocci.dev` to production until Caddy is up; a parked origin
+   is fine.[^cf-tunnel]
+6. **Bootstrap SSH.** Confirm you can `ssh` to the IPv4 as a sudo-capable
+   user. Optionally add a locked-down `deploy` user now; Phase 3 needs it.
+
+### Must do yourself before Phase 3 (CI deploy)
+
+7. **GitHub Environment `production`** on this repository. Restrict it to
+   the `main` branch. Add secrets (values only in GitHub, never in the
+   repo):[^gh-environments][^ci-workflow]
+
+   | Secret | Value |
+   | --- | --- |
+   | `DEPLOY_HOST` | VPS IPv4 (or a hostname that resolves to it) |
+   | `DEPLOY_USER` | SSH user that may write the release directory |
+   | `DEPLOY_SSH_KEY` | Private key for that user (ed25519) |
+
+   Put the matching **public** key on the VPS. Optional later: a Cloudflare
+   API token used only to purge cache, as `CLOUDFLARE_PURGE_TOKEN`.
+
+8. **Smoke identity.** After Phase 2, you should be able to open
+   `https://rocci.dev/` in a browser. The agent uses that as the Phase 3
+   exit, not a private origin URL.
+
+### Hand-off to the agent (paste facts, not secrets)
+
+When the items above exist, send a message like this (fill the brackets):
+
+```text
+Human prep for rocci-dev-publish:
+- Phase 1: start whenever
+- Cloudflare zone rocci.dev: active
+- NS at Cloudflare: yes
+- oss@rocci.dev: receives mail
+- VPS: Hetzner fsn1 (or nbg1), Debian 12, amd64, IPv4 [x.x.x.x]
+- SSH: user [name], public key installed (private key is GitHub secret, not chat)
+- Tunnel: name [name], cloudflared running, hostname not yet on production
+- GitHub Environment production: created / not yet (needed only for Phase 3)
+- Decision gates 2–4: keep live home island; deploy from GitHub main; no staging
+```
+
+### What the agent still must not invent
+
+- Registrar or Cloudflare logins
+- Hetzner/OVH billing
+- Secret values
+- A public knowledge deploy
+- Product `rocci deploy` adapters
 
 ## Delivery phases
 
@@ -421,11 +506,11 @@ revision. Phase 0 is operator DNS and has no crate test.
 ## Dependency order
 
 ```text
-0 (DNS/mail) can overlap 1 (CI package)
-2 requires 0 and at least one successful package (from 1 or a laptop)
-3 requires 2
-4 requires 3 (or a public origin from 2)
-5 requires Tangled hosting Phase 2+
+1 (CI package) can start now
+0 + VPS + Tunnel (human) before 2
+2 before 3 (needs GitHub Environment secrets)
+4 after a public origin exists
+5 after Tangled hosting Phase 2+
 ```
 
 [^research]: Cloudflare as CDN; Tunnel TLS; hybrid origin; GitHub Actions until Tangled.
@@ -457,3 +542,4 @@ revision. Phase 0 is operator DNS and has no crate test.
 [^hetzner-cloud]: Falkenstein/Nuremberg/Helsinki; cost-optimized shared x86.
 [^hetzner-servers]: Debian images; IPv6 free; IPv4 extra; firewall.
 [^ovh-vps]: VPS-1 2 vCores / 4 GB / 40 GB NVMe; unlimited EU traffic.
+[^gh-environments]: Deployment jobs should use an Environment so secrets are not available to ordinary PR jobs.
