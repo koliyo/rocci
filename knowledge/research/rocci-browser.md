@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Exploratory research for a product-blind project browser that registers directories, two-stage fuzzy-picks a target then a document, and opens a persistent preview session through out-of-process adapters. Complements, and can later own the window of, rocci / rocdown / rocci-okf preview. Does not reverse the rejection of plugins on those product CLIs."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:50:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -14,6 +14,11 @@ sources:
     title: Dedicated rocci-browser implementation plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: macos-plan
+    resource: ../plans/rocci-browser-macos-app.md
+    title: rocci-browser macOS app and TUI removal plan
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: cli-plan
     resource: ../plans/cli-entry-points.md
     title: CLI entry points for Rocci, Rocdown, and OKF preview
@@ -537,7 +542,7 @@ using the same subsequence / substring scoring already used in
 - **Tab**: do not open. Call `listDocuments` for the highlighted target and
   switch to stage 2. If the list is empty, stay on stage 1 with a reason
   from the adapter.
-- **Escape**: close picker (desktop) or quit TUI without launching.
+- **Escape**: close picker without launching.
 
 This is the Raycast / shell-completion shape (Tab completes, Enter runs),
 not fzf's Tab-toggle. Do not steal in-page Cmd-K: once a session is showing
@@ -592,9 +597,16 @@ Same library, two fronts.
 | Front | Behavior |
 | --- | --- |
 | `rocci-browser` (no args, graphical) | Persistent window: registry + picker overlay + webview that `load_url`s adapter origins |
-| `rocci-browser tui` | Terminal two-stage picker, then either exec with a preview window or `--no-window` print URL |
 | `rocci-browser add\|remove\|list` | Registry CRUD |
 | `rocci-browser open <query>` | Non-interactive fuzzy over targets; `--document` for stage 2 |
+
+Do not ship a TUI. A Phase 1 `tui` command existed as a bootstrap; it is
+withdrawn. Headless work is `open --no-window`.[^macos-plan]
+
+v1 remains `cargo run -p rocci-browser`. An ad-hoc Finder `.app` is the
+[macOS app plan](../plans/rocci-browser-macos-app.md): wrap the existing
+`preview()` host, do not `rocci bundle` a gallery, do not switch to
+`run()`. Production signing stays a known limitation.[^macos-plan][^known-limitations][^root-readme]
 
 Executable name: **`rocci-browser`**. Cargo package: **`rocci-browser`**. Do
 not call it `rocci browse`, `rocci-okf-cli`, or `rocci` subcommand
@@ -606,11 +618,6 @@ so it cannot depend on Rocdown or OKF. First-party adapter code lives in
 `rocci-cli`, `rocci-rocdown-cli`, and `rocci-okf` (their classes already
 allow depending on base Rocci). Adding the workspace member must update
 `CLASSES` in the same change.[^deps-check][^agents]
-
-Desktop packaging can wait. v1 is `cargo run -p rocci-browser`. A later
-`.app` would use the persistent `run` shell, not `rocci bundle` of an
-example Datastar gallery. Production signing remains a known
-limitation.[^known-limitations][^root-readme]
 
 ## Window and session model
 
@@ -682,9 +689,10 @@ Human approval is required before:
 6. Encoding `site` / `docs` / `knowledge` as built-in targets in host
    source (they belong in a repo-local registry file).
 
-Until those gates open, do not implement. This record is evidence and a
-recommended split. Delivery phases, protocol freeze, and exit criteria live
-in the [implementation plan](../plans/rocci-browser.md).[^browser-plan]
+Until those gates open, do not implement *this* record's host. Phases 1–5 of
+the [implementation plan](../plans/rocci-browser.md) already exist in the
+tree. TUI removal and an ad-hoc Finder `.app` live in the [macOS app
+plan](../plans/rocci-browser-macos-app.md).[^browser-plan][^macos-plan]
 
 ## Disposition
 
@@ -694,10 +702,12 @@ process adapters; registry of directories; two-stage fuzzy picker (Enter
 opens a target, Tab lists documents). It complements today's previewer
 immediately and can later own the preview window without collapsing the three
 product CLIs. It does not authorize plugins on `rocci run` or `rocdown run`.
-The [implementation plan](../plans/rocci-browser.md) sequences that split
-after the fourth-CLI and adapter-shape gates.[^browser-plan]
+The [implementation plan](../plans/rocci-browser.md) sequences that split.
+Do not keep a TUI. An ad-hoc **Rocci Browser.app** is a follow-on, not
+`rocci bundle`.[^browser-plan][^macos-plan]
 
 [^browser-plan]: Phased host crate, fixture adapter, persistent window, first-party adapters, repo-local registry, warm sessions.
+[^macos-plan]: Withdraw TUI; wrap preview() in an ad-hoc Finder .app; do not embed adapters.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.
 [^product-boundary]: Approved one-way package edges and product ownership.
 [^preview-decision]: Preview window versus overlay chrome versus Dev panel naming.

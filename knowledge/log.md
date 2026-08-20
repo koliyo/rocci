@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-08-20
+
+- Added draft [native macOS app for rocci-browser](research/rocci-browser-macos-app.md) research and [implementation plan](plans/rocci-browser-macos-app.md): delete the crossterm `tui` front; keep graphical `preview()` plus headless `open --no-window`; assemble an ad-hoc Finder `Rocci Browser.app` that does not reuse `rocci bundle` or copy product adapters. GUI launch repairs PATH and ignores cwd `/` for repo-local files. Production notarization stays later. Exploratory; no phase started; Phase 3 waits on an ad-hoc-app gate.
+
 ## 2026-08-19
 
 - Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.

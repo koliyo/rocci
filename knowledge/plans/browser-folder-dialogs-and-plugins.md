@@ -4,7 +4,7 @@ title: Native folder dialogs and a later adapter plugin index
 description: "Gate 5 follow-on after rocci-browser Phases 1–5: add a host-only native folder dialog for registering projects, then a later local-to-remote plugin index. Does not add a plugin lifecycle on rocci or rocdown, and does not give authored Roc apps dialogs. Exploratory; no phase started."
 tags: [domain/rocci, domain/desktop, concern/tooling, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T23:15:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -39,6 +39,11 @@ sources:
     title: rocci-browser crate contract
     author: process:cursor
     last_modified: 2026-08-19
+  - id: macos-plan
+    resource: rocci-browser-macos-app.md
+    title: rocci-browser macOS app and TUI removal plan
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: browser-main
     resource: ../../crates/rocci-browser/src/main.rs
     title: rocci-browser add / remove / list CLI
@@ -91,7 +96,8 @@ workspace.[^browser-main][^registry-rs][^discovery-rs][^repo-local]
 
 - Built-in `site` / `docs` / `knowledge` ids in host source (gate 6).
 - dlopen / Wasm adapters, Content-Length LSP framing.
-- Signed `.app` packaging (separate later row on the browser plan).
+- Signed `.app` packaging ([macOS app plan](rocci-browser-macos-app.md); this
+  plan is dialogs and a plugin index only).[^macos-plan]
 - A marketplace that installs plugins *into* `rocci` or `rocdown`.
 - Giving `.rocci` templates a native dialog API.
 
@@ -117,7 +123,7 @@ label and last error, as the research already described. Dialog from Phase
 directories to find `.rocci/browser.toml`.[^browser-research][^discovery-rs]
 
 **Exit:** From the persistent window, a user can add and remove user-registry
-targets without leaving the TUI/CLI mental model.
+targets without leaving the graphical host.
 
 ## Phase 3 — Adapter index (later)
 
@@ -147,3 +153,4 @@ Exploratory; no phase started. Blocked on rocci-browser gate 5. Prefer Phase
 [^discovery-rs]: PluginSpec is id, bin, argv; discovery is files then repo-local then env.
 [^registry-rs]: User registry persists projects.json only.
 [^repo-local]: Workspace browser.toml lists first-party adapter bins as data.
+[^macos-plan]: Ad-hoc Finder .app is a separate follow-on; this plan is folder dialogs and a plugin index.

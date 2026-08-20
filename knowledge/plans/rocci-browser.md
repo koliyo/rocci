@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T23:15:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -14,6 +14,11 @@ sources:
     title: Dedicated rocci-browser CLI and desktop host research
     author: process:cursor
     last_modified: 2026-08-19
+  - id: macos-plan
+    resource: rocci-browser-macos-app.md
+    title: rocci-browser macOS app and TUI removal plan
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: cli-plan
     resource: cli-entry-points.md
     title: CLI entry points for Rocci, Rocdown, and OKF preview
@@ -178,6 +183,11 @@ phases.[^research][^system-overview][^root-readme]
 Phase 0 is this freeze. Phases 1–5 are implemented in this revision; they are
 not logged complete until required GitHub workflows succeed.
 
+A follow-on [macOS app plan](rocci-browser-macos-app.md) withdraws the TUI front
+and sequences an ad-hoc Finder `.app`. Production notarization stays later.
+Phase 1 historically shipped `tui`; that command is not part of the product
+going forward.[^macos-plan]
+
 This plan does **not** reverse the CLI-entry-points recommendation that `rocci`
 and `rocdown` must not grow a plugin lifecycle for first-party format
 dispatch.[^cli-plan] A host whose job is session, window, and project selection
@@ -247,7 +257,9 @@ but the gallery remains a Rocci product feature.[^browse-rs][^cli-readme]
 - Host parsing `.rocci`, `.rocdown`, OKF YAML, `pages.json` schema, or concept ids.
 - In-process `dlopen`, Wasm adapter sandbox, or a third-party marketplace.
 - Native folder dialogs (they do not exist today).[^known-limitations]
-- Desktop `.app` packaging and production signing.
+- A terminal picker (`tui`). Withdrawn; see the [macOS app plan](rocci-browser-macos-app.md).[^macos-plan]
+- Production signing and notarization. Ad-hoc Finder `.app` assembly is the
+  [macOS app plan](rocci-browser-macos-app.md), not `rocci bundle`.[^macos-plan]
 - Multiple native windows (one per target). The persistent shell already
   allocates window ids; connecting them is extra product scope.[^desktop-lib][^known-limitations]
 - Caching Roc compile artifacts in the browser. First-open cost stays an
@@ -429,7 +441,7 @@ Filter registered targets by `id`, relative path, and adapter label.
 - **Tab**: do not open. Call `listDocuments` for the highlighted target and
   switch to stage 2. If the list is empty, stay on stage 1 with a reason from
   the adapter.
-- **Escape**: close picker (desktop) or quit TUI without launching.
+- **Escape**: close picker without launching.
 
 This is Raycast / shell-completion (Tab completes, Enter runs), not fzf
 Tab-toggle.
@@ -480,13 +492,16 @@ subcommand.[^cli-plan][^cli-readme]
 | Front | Behavior |
 | --- | --- |
 | `rocci-browser` (no args, graphical) | Persistent window: registry + picker overlay + webview that `load_url`s adapter origins |
-| `rocci-browser tui` | Terminal two-stage picker, then either exec with a preview window or `--no-window` print URL |
 | `rocci-browser add\|remove\|list` | Registry CRUD |
 | `rocci-browser open <query>` | Non-interactive fuzzy over targets; `--document` for stage 2 |
 
-Desktop packaging waits. v1 is `cargo run -p rocci-browser`. A later `.app`
-would use the persistent `run` shell, not `rocci bundle` of a Datastar
-gallery.[^known-limitations][^root-readme]
+Do not add a `tui` command. Phase 1 shipped one as a bootstrap; the [macOS app
+plan](rocci-browser-macos-app.md) deletes it. Headless work is `open
+--no-window`.[^macos-plan]
+
+Desktop packaging is that same follow-on: an ad-hoc **Rocci Browser.app**
+around `preview()`, not `rocci bundle` of a Datastar gallery and not a switch
+to `run()`.[^macos-plan][^known-limitations][^root-readme]
 
 ## Window and session model
 
@@ -573,16 +588,17 @@ question, including gates 1–2.
 - Fixture adapter under `crates/rocci-browser/tests/fixtures/` (script or tiny
   binary) that claims a temp directory, lists two documents, and on `open`
   serves `hello` over loopback.
-- CLI: `add` / `remove` / `list` / `open` / `tui`. `open --no-window --json`
-  prints `{ url, title }`.
+- CLI: `add` / `remove` / `list` / `open` / `tui` (TUI later withdrawn).
+  `open --no-window --json` prints `{ url, title }`.
 - Tests: protocol round-trip against the fixture; registry file under a temp
   `ROCCI_BROWSER_DIR`; two adapters claiming one path appear as two targets;
   `cargo test -p rocci-browser` does not invoke `rocci-okf` or `rocdown`.
 - `scripts/check-workspace-deps.py` stays green.
 
 Exit when `rocci-browser open fixture --no-window --json` prints the fixture
-URL, and Tab-then-Enter via `tui` or `--document` prints a document URL, with
-no product crates in the host test process.
+URL, and Tab-then-Enter via `--document` prints a document URL, with no
+product crates in the host test process. (Phase 1 also shipped `tui` for the
+same keys; that front is withdrawn.)
 
 ### 2. Persistent preview window and host picker overlay
 
@@ -668,7 +684,8 @@ Not in Phases 0–5:
 | 6 | Built-in `site` / `docs` / `knowledge` in host source (forbidden; belongs in the repo-local file) |
 | — | Multi-window (one native window per target) |
 | — | Content-Length LSP framing, dlopen/Wasm adapters |
-| — | Signed `.app` packaging |
+| — | Ad-hoc Finder `.app` and TUI removal ([plan](rocci-browser-macos-app.md)) |
+| — | Production signing / notarization of that `.app` |
 
 ## Acceptance criteria (through Phase 5)
 
@@ -736,3 +753,4 @@ Exploratory; Phase 0 freeze plus Phases 1–5 in this revision. Not CI-complete.
 [^root-readme]: Public commands for rocci, rocdown, and rocci-okf.
 [^compile-research]: OKF first-open dominated by Roc compile and render.
 [^lsp-spec]: JSON-RPC process model for a generic host plus adapters.
+[^macos-plan]: Withdraw TUI; ad-hoc Rocci Browser.app around preview(); do not reuse rocci bundle.
