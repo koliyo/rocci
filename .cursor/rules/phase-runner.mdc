@@ -1,5 +1,5 @@
 ---
-description: Execute a referenced implementation plan one phase at a time with a required phase header, Exit checks, and a per-phase commit
+description: Execute a referenced implementation plan one phase at a time on a named worktree branch, with a required phase header, Exit checks, and a per-phase commit
 alwaysApply: true
 ---
 
@@ -27,7 +27,24 @@ Every response for a phase MUST begin immediately with this markdown block
 - Work strictly on **one phase**. Do not implement later phases or extras outside the Bound.
 - Treat `Constraints that do not move`, **Non-goals**, the phase **Bound**, and **Out of bound** as hard invariants.
 
-## 3. Execution Flow
+## 3. Named worktree branch
+
+Commit phase work on a named branch in this worktree. Do not commit on
+`main` or in detached HEAD.
+
+**Branch name:** the plan filename without `.md` (`knowledge/plans/live-reload-follow-ons.md`
+→ `live-reload-follow-ons`). If the user already named a branch, use that.
+If this checkout is already a non-`main` named branch for this plan, keep it.
+
+Before modifying files, run `git rev-parse --abbrev-ref HEAD`:
+
+- That branch already → continue.
+- Detached HEAD or `main` → `git switch <branch>` if it exists, otherwise
+  `git switch -c <branch>`. If another worktree holds the name, stop and
+  report it; do not steal the branch.
+- Do not rebase `main` onto this branch. Do not push.
+
+## 4. Execution Flow
 
 Execute in this order:
 
@@ -60,11 +77,13 @@ Commit message:
 feat([owner-or-feature]): complete Phase [X] - [Phase Name]
 ```
 
-This protocol is explicit permission to commit that phase. Do not push.
+This protocol is explicit permission to create or switch to the plan branch
+and to commit that phase. Do not push.
 
 ### Step E: Hand-off
 
-Report what changed, the validation commands and results, and that Exit is met.
+Report the branch name, what changed, the validation commands and results,
+and that Exit is met.
 
 Then **stop**. Wait for the user before starting the next phase, unless they
 explicitly said to continue remaining phases autonomously.
