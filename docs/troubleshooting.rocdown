@@ -41,7 +41,7 @@ root and compare its header with the relevant language reference.
 
 **Cause:** inline raw HTML is disabled by default.
 
-**Fix:** use Markdown, a document-root Rocci tag, or `@render { ... }`. Use a
+**Fix:** use Markdown, a document-root Rocci tag, or `@render MyComponent({ ... })`. Use a
 fence when the HTML is an example rather than page content.
 
 ## A Datastar button does nothing

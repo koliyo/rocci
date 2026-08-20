@@ -6,6 +6,7 @@
 ungram = "Rocdown.AST.ungram"
 uses = [
     "super::MdNode",
+    "rocci_template::ComponentPath",
     "rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem}",
 ]
 
@@ -37,6 +38,7 @@ ContextDecl = "rocci_template::ContextDecl"
 InitDecl = "rocci_template::InitDecl"
 OnDecl = "rocci_template::OnDecl"
 TemplateItem = "rocci_template::TemplateItem"
+ComponentPath = "rocci_template::ComponentPath"
 
 # Generated from Rocdown.Markdown.ungram into md.generated.rs. Opaque to this document ungram.
 [opaque]
@@ -64,6 +66,7 @@ HtmlIsland = "source shape for Item::Template(TemplateItem)"
 # Rocdown Ident is not rocci_template::Ident.
 [leaves]
 BracePayload = "Span"
+ParenPayload = "Span"
 Ident = "{ name: String, span: Span }"
 StringLit = "{ value: String, span: Span }"
 BoolLit = "{ value: bool, span: Span }"
@@ -100,7 +103,7 @@ BracketList = "List"
 "UseDecl.path" = "String + path_span from StringLit"
 "PageDecl.body" = "Span from BracePayload"
 "RocDecl.body" = "Span from BracePayload"
-"RenderDecl.expr" = "Span from BracePayload"
+"RenderDecl.args" = "Span from ParenPayload"
 "LineContent.inlines" = "not stored; LineContent is an opaque span"
 "BraceSection.blocks" = "not stored; nested items reparsed via parse_fragment"
 "EndSection.blocks" = "not stored; nested items reparsed via parse_fragment"

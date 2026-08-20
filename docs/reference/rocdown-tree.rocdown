@@ -27,6 +27,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `BracketRecord` | omit | generated |
 | `CodeBlock` | — | doc-only |
 | `ComponentDecl` | `component` | foreign |
+| `ComponentPath` | — | foreign |
 | `ContextDecl` | `context` | foreign |
 | `CssDecl` | `css` | foreign |
 | `Document` | `rocdown` | generated |
@@ -59,6 +60,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `Paragraph` | — | doc-only |
 | `ParamField` | omit | generated |
 | `ParamValue` | omit | generated |
+| `ParenPayload` | — | leaf |
 | `RenderDecl` | `render` | generated |
 | `RocDecl` | `roc` | generated |
 | `StringLit` | — | leaf |

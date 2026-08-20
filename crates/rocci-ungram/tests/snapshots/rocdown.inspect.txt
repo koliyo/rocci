@@ -10,6 +10,7 @@ BracketList	omit	flattened onto param atoms
 BracketRecord	omit	flattened onto block param atoms
 CodeBlock	doc_only	—
 ComponentDecl	tag	component
+ComponentPath	foreign	—
 ContextDecl	tag	context
 CssDecl	tag	css
 Document	tag	rocdown
@@ -42,6 +43,7 @@ PageDecl	tag	page
 Paragraph	doc_only	—
 ParamField	omit	flattened onto block param atoms
 ParamValue	omit	flattened onto block param atoms
+ParenPayload	leaf	—
 RenderDecl	tag	render
 RocDecl	tag	roc
 StringLit	leaf	—

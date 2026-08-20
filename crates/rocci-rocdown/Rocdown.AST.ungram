@@ -62,8 +62,11 @@ ModuleItem =
 
 PageDecl = '@' 'page' body:BracePayload
 RocDecl = '@' 'roc' body:BracePayload
-RenderDecl = '@' 'render' expr:BracePayload
+RenderDecl = '@' 'render' path:ComponentPath args:ParenPayload
 UseDecl = '@' 'use' path:StringLit
+
+/// foreign → rocci_template::ComponentPath
+ComponentPath = 'rocci-component-path'
 
 /// foreign → rocci_template::ComponentDecl
 ComponentDecl = 'rocci-component'
@@ -82,6 +85,9 @@ TemplateItem = 'rocci-template-item'
 
 /// Opaque `{ ... }` whose insides are Roc or CSS, not nested Rocdown.
 BracePayload = '{' '}'
+
+/// Opaque `( ... )` Roc argument list after a `@render` callee.
+ParenPayload = '(' ')'
 
 /// opaque → generated `MdNode` from Rocdown.Markdown.ungram (Comrak projection).
 MdNode = 'md-node'

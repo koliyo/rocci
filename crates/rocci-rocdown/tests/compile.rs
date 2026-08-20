@@ -151,15 +151,19 @@ fn declarations_work_with_leading_indent() {
     answer = 42
     }
 
+@component
+Show = |{ text }| {
+    <span>{text}</span>
+}
+
 Value: see below.
 
-@render {
-    Html.text(answer.to_str())
-}
+@render Show({ text: answer.to_str() })
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("answer = 42"));
-    assert!(out.roc.contains("Html.text(answer.to_str())"));
+    assert!(out.roc.contains("show("));
+    assert!(out.roc.contains("answer.to_str()"));
 }
 
 #[test]
@@ -200,9 +204,12 @@ nested = { a: 1, b: { c: 2 } }
 # } comment
 }
 
-@render {
-    Html.text(msg)
+@component
+Show = |{ text }| {
+    <span>{text}</span>
 }
+
+@render Show({ text: msg })
 "#;
     let out = compile_ok(src);
     assert!(out.roc.contains(r#"msg = "close } please""#));
@@ -254,21 +261,24 @@ x = 1
 #[test]
 fn render_keeps_paragraph_boundaries() {
     let src = "\
+@component
+Card = |_| {
+    <span>card</span>
+}
+
 Before the card.
 
-@render {
-    Html.text(\"card\")
-}
+@render Card({})
 
 After the card.
 ";
     let out = compile_ok(src);
     assert!(out.roc.contains("Before the card."));
-    assert!(out.roc.contains("Html.text(\"card\")"));
+    assert!(out.roc.contains("card("));
     assert!(out.roc.contains("After the card."));
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(p"));
-    assert!(ast.contains("(render"));
+    assert!(ast.contains("(render Card)"));
 }
 
 #[test]
@@ -278,11 +288,14 @@ fn source_maps_cover_markdown_and_roc() {
 answer = 1
 }
 
+@component
+Mark = |_| {
+    <span>x</span>
+}
+
 # Hello
 
-@render {
-    Html.text(\"x\")
-}
+@render Mark({})
 ";
     let out = compile_ok(src);
     assert!(
@@ -350,7 +363,7 @@ fn text_after_closing_brace_is_an_error() {
     );
     assert!(
         errs.iter()
-            .any(|msg| msg.contains("text after a declaration's closing `}`"))
+            .any(|msg| msg.contains("text after a declaration must be on the next line"))
     );
 }
 
@@ -1131,6 +1144,87 @@ Hello = |{ name }| {
 }
 
 #[test]
+fn top_level_html_component_tags_pass_children() {
+    let src = r#"
+@component
+Badge = |{ tone }, content| {
+    <span class={tone}>{content}</span>
+}
+
+<Badge tone="ok">
+    <p>child</p>
+</Badge>
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(call badge)"));
+    assert!(out.roc.contains("badge("));
+    assert!(out.roc.contains("{ tone: \"ok\" }"));
+    assert!(out.roc.contains("\"p\""));
+    assert!(out.roc.contains("\"child\""));
+}
+
+#[test]
+fn render_call_uses_pascal_case_and_lowers_to_camel_case() {
+    let src = r#"
+@component
+MyComponent = |{ num }| {
+    <p>{num.to_str()}</p>
+}
+
+@render MyComponent({ num: 1 })
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(render MyComponent)"), "{ast}");
+    assert!(out.roc.contains("myComponent("));
+    assert!(out.roc.contains("{ num: 1 }"));
+    assert!(
+        out.segments
+            .iter()
+            .any(|seg| seg.origin == OriginKind::RenderRoc)
+    );
+}
+
+#[test]
+fn render_brace_body_is_a_removal_error() {
+    let errs = compile_err("@render {\n    Html.text(\"x\")\n}\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("PascalCase call") && msg.contains("`{ }` body")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn render_html_tag_payload_is_an_error() {
+    let errs = compile_err("@render <MyComponent num=\"1\" />\n");
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("not an HTML tag") && msg.contains("standalone")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn render_camel_case_target_is_an_error() {
+    let src = r#"
+@component
+Hello = |{ name }| {
+    <p>{name}</p>
+}
+
+@render hello({ name: "x" })
+"#;
+    let errs = compile_err(src);
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("PascalCase") && msg.contains("Hello")),
+        "{errs:?}"
+    );
+}
+
+#[test]
 fn island_lowering_keeps_markdown_off_the_roc_path() {
     let src = r#"
 @roc {
@@ -1198,9 +1292,7 @@ CounterCard = |{ count }| {
     <output>{count.to_str()}</output>
 }
 
-@render {
-    counterCard({ count: 0.I64 })
-}
+@render CounterCard({ count: 0.I64 })
 "#
 }
 
@@ -1251,9 +1343,7 @@ FeatureCount = |{ count }| {
     <p class="feature-count">{count.to_str()} core ideas</p>
 }
 
-@render {
-    featureCount({ count: feature_count, caption: format_count(feature_count) })
-}
+@render FeatureCount({ count: feature_count, caption: format_count(feature_count) })
 "#;
     let out = compile_islands_ok(src);
     assert!(out.roc.contains("rocci_islands"), "{}", out.roc);

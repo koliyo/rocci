@@ -1341,9 +1341,7 @@ RevealTip = |{ open }| {
 
 # Live
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })
 "#,
         );
         write_page(
@@ -1650,9 +1648,7 @@ RevealTip = |{ open }| {
 
 Prose stays Markdown.
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })
 "#,
         );
         write_page(

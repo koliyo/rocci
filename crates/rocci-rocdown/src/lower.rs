@@ -836,8 +836,7 @@ impl<'a> Emitter<'a> {
                 ContentPiece::Block(call) if call.name == "img" => self.lower_img(call),
                 ContentPiece::Block(call) => self.lower_docs(call),
                 ContentPiece::Render(render) => {
-                    let expr = render.expr.of(self.source.src).trim();
-                    self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
+                    self.lower_render_call(render);
                 }
                 ContentPiece::Template(item) => {
                     self.splice_template(std::slice::from_ref(item), TemplateValueCtx::Node);
@@ -847,6 +846,24 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    fn lower_render_call(&mut self, render: &RenderDecl) {
+        if render.path.roc_name.is_empty() {
+            self.emit_html(".empty");
+            return;
+        }
+        self.emit_mapped(
+            &render.path.roc_name,
+            render.path.span,
+            OriginKind::RenderRoc,
+        );
+        self.emit("(");
+        let args = render.args.of(self.source.src).trim();
+        if !args.is_empty() {
+            self.emit_mapped(args, render.args, OriginKind::RenderRoc);
+        }
+        self.emit(")");
+    }
+
     fn emit_island_list(&mut self, document: &Document) {
         self.emit("[\n");
         self.indent += 1;
@@ -854,8 +871,7 @@ impl<'a> Emitter<'a> {
             match item {
                 Item::Render(render) => {
                     self.push_indent();
-                    let expr = render.expr.of(self.source.src).trim();
-                    self.emit_mapped(expr, render.expr, OriginKind::RenderRoc);
+                    self.lower_render_call(render);
                     self.emit(",\n");
                 }
                 Item::Template(TemplateItem::Let(_)) => {}

@@ -340,6 +340,33 @@ impl<'a> Cursor<'a> {
             }
         }
     }
+
+    pub fn skip_balanced_parens(&mut self) {
+        if self.peek() != Some('(') {
+            return;
+        }
+        let mut depth = 0;
+        while !self.is_eof() {
+            match self.peek() {
+                Some('"') => self.skip_string(),
+                Some('#') => self.skip_comment(),
+                Some('(') => {
+                    self.bump();
+                    depth += 1;
+                }
+                Some(')') => {
+                    self.bump();
+                    depth -= 1;
+                    if depth == 0 {
+                        return;
+                    }
+                }
+                _ => {
+                    self.bump();
+                }
+            }
+        }
+    }
 }
 
 pub fn is_ident_start(ch: char) -> bool {
@@ -385,6 +412,14 @@ mod tests {
         let unclosed = "{ nested { unclosed";
         let mut cur = Cursor::at(unclosed, 0);
         cur.skip_balanced_braces();
+        assert!(cur.is_eof());
+    }
+
+    #[test]
+    fn cursor_skip_balanced_parens_handles_unclosed_without_hanging() {
+        let unclosed = "( nested ( unclosed";
+        let mut cur = Cursor::at(unclosed, 0);
+        cur.skip_balanced_parens();
         assert!(cur.is_eof());
     }
 }

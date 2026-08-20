@@ -2274,9 +2274,7 @@ FeatureCount = |_| {
 
 # Widgets
 
-@render {
-    featureCount({})
-}
+@render FeatureCount({})
 "#,
         )
         .unwrap();

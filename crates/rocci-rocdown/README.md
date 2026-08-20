@@ -104,7 +104,7 @@ See [`examples/rocdown/pages/Guide.rocdown`](../../examples/rocdown/pages/Guide.
 | --- | --- | --- |
 | `@page { ... }` | one Roc record | route, layout, draft, meta, theme, color_scheme |
 | `@roc { ... }` | Roc module items | imports, types, values; outer braces stripped |
-| `@render { ... }` | one Roc expression | spliced as `Html` into the Markdown stream |
+| `@render MyComponent({ ... })` | Roc call | prefix call; PascalCase target, camelCase Roc |
 | `@component` | Rocci template | same grammar as `.rocci` |
 | `@fixture` | Roc binding | preview/test sample; not rendered into the article |
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
@@ -127,8 +127,8 @@ forms.
 A line-start `<Tag>` or `<>...</>` at document root (same list/quote/fence
 rules as `@`) is a Rocci HTML island, not CommonMark raw HTML. Use it to
 instantiate colocated components next to Markdown. Bare `{expr}` at document
-root is still prose; wrap a Roc `Html` value in `@render { ... }`. There is no
-`@html { ... }` wrapper.
+root is still prose. Splice a colocated component with `@render MyComponent({ ... })`
+or a standalone `<MyComponent />` tag. There is no `@html { ... }` wrapper.
 
 Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 [`rocci-template`](../rocci-template).
@@ -209,8 +209,11 @@ are reserved.
 
 ### `@render`
 
-Block-level only. The expression is inserted as a node, not escaped as text.
-Roc must type it as `Html`.
+Block-level only. A prefix on a PascalCase component call whose arguments are
+ordinary Roc, typically a props record: `@render MyComponent({ num: 1 })`.
+Lowering emits the camelCase Roc function (`myComponent({ num: 1 })`). HTML
+tags such as `<MyComponent num="1" />` are standalone document-root islands,
+not an `@render` payload.
 
 ## Markdown profile
 
@@ -249,7 +252,7 @@ pass through. Unknown wiki / `.rocdown` targets are errors. Duplicate
 `@page.route` values across siblings are errors.
 
 **Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
-disabled in Rocdown; use Markdown or @render { ... }`). `CompileOptions.raw_html`
+disabled in Rocdown; use Markdown, a document-root tag, or @render MyComponent({ ... })`). `CompileOptions.raw_html`
 preserves that inline/comment HTML through `Html.dangerously_include_unescaped_html`.
 It never turns inline tags into Rocci component calls. Document-root `<Hello />`
 is an HTML island, not this escape hatch.

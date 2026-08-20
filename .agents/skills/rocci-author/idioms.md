@@ -238,7 +238,7 @@ answer = 42
 ````
 
 - Document-root `<Byline date={published} />` is an HTML island, not raw HTML.
-- `@render { expr }` splices one `Html` value into the Markdown stream.
+- `@render MyComponent({ ... })` splices a PascalCase component call into the Markdown stream.
 - Links: `[[Page]]`, `[label](Page.rocdown)`, or stable `/route/` on sites.
 - `:include` should prefer a named region over line numbers.
 - Knowledge records stay inert Markdown. Do not add Rocdown declarations there.

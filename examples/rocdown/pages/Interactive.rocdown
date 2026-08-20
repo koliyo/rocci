@@ -214,48 +214,38 @@ Lede = |{ text }| {
 
 # Rocdown interactivity
 
-@render {
-    lede({
+@render Lede({
         text: "Prose stays Markdown. Buttons and patches live in colocated components, with Datastar only where you ask for it.",
     })
-}
 
 ## Client toggles
 
 These sections flip open and closed in the browser. Underscore signals stay
 local and never round-trip to the server.
 
-@render {
-    toggleSection({
+@render ToggleSection({
         title: "What is a Rocdown declaration?",
         summary: "Line-start @page, @roc, @component, @render, and friends switch language mode. Emails and @handles in paragraphs stay plain text.",
         open: True,
     })
-}
 
-@render {
-    toggleSection({
+@render ToggleSection({
         title: "When does JavaScript load?",
         summary: "This page wraps Markdown in PageShell, which includes /assets/datastar.js. A static Guide.rocdown page emits no client script.",
         open: False,
     })
-}
 
-@render {
-    toggleSection({
+@render ToggleSection({
         title: "How do server patches fit?",
         summary: "Use @on:post for actions. GET stays the document; other methods stream a Datastar morph of the returned Html.",
         open: False,
     })
-}
 
 ## Server reveal
 
 Clicking asks Roc for new markup. The stable `id` is the morph boundary.
 
-@render {
-    revealTip({ open: False })
-}
+@render RevealTip({ open: False })
 
 ## Displayed code
 

@@ -73,9 +73,7 @@ answer = 42
 | --- | --- |
 | a | b |
 
-@render {
-    hello({ name: "render" })
-}
+@render Hello({ name: "render" })
 
 <Hello name="island" />
 

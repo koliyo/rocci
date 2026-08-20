@@ -44,10 +44,6 @@ BetaSlot = |{ open }| {
 
 Two hosts. Each mutation returns only its own element id.
 
-@render {
-    alphaSlot({ open: False })
-}
+@render AlphaSlot({ open: False })
 
-@render {
-    betaSlot({ open: False })
-}
+@render BetaSlot({ open: False })

@@ -73,7 +73,7 @@ pub fn collect_rocdown(
                 collect_keyword(src, collector, roc.span, roc.body.start, "@roc");
             }
             Item::Render(render) => {
-                collect_keyword(src, collector, render.span, render.expr.start, "@render");
+                collect_keyword(src, collector, render.span, render.args.start, "@render");
             }
             Item::Component(component) => {
                 collect_component(src, collector, component);
@@ -341,12 +341,12 @@ fn collect_rocdown_items(
                     Some(parent_id),
                     10,
                 );
-                if !render.expr.is_empty() {
+                if !render.args.is_empty() {
                     builder.add(
                         LanguageId::Roc,
                         RegionContext::Expression,
                         RegionPurpose::Executable,
-                        render.expr,
+                        render.args,
                         Some(render_id),
                         20,
                     );

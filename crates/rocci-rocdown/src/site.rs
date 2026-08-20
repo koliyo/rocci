@@ -1010,7 +1010,7 @@ debug = true
         fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
         fs::write(
             root.join("widget.rocdown"),
-            "# Widget\n\n@render {\n    Html.text(\"x\")\n}\n",
+            "# Widget\n\n@component\nMark = |_| {\n    <span>x</span>\n}\n\n@render Mark({})\n",
         )
         .unwrap();
         let report = check(&root).unwrap();

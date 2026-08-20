@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T13:48:00Z }
+generated: { by: process:cursor, at: 2026-08-20T15:10:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -57,7 +57,7 @@ sources:
 
 ## Current contract
 
-A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, rendered Roc expressions, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, line-start `:kind` article blocks (`:note`, `:img`, `:tabs`, …), and document-root HTML islands.[^rocdown-readme][^parser]
+A `.rocdown` document interleaves ordinary Markdown with reserved declarations recognized only at a document-root line boundary. Reserved declarations include page metadata, Roc blocks, `@render Name({ ... })` prefix calls, Rocci components and fixtures, scoped CSS, server lifecycle forms, structural template forms, line-start `:kind` article blocks (`:note`, `:img`, `:tabs`, …), and standalone document-root HTML islands.[^rocdown-readme][^parser]
 
 Article blocks use `:kind[params]`. Content is line-scope, a `{{ }}` section, or `:kind.begin` ... `:kind.end`. A call uses one delimiter, not both. Line-start `:end.kind` is a removal diagnostic naming `:kind.end`.[^rocdown-readme][^parser]
 
@@ -71,7 +71,7 @@ The standalone compiler lowers documents to ordinary Roc exports for metadata, c
 
 ## HTML boundary
 
-A line-start `<Tag>` at document root is scanned before CommonMark and parsed as a Rocci `Element`, `ComponentCall`, or `Fragment`. It therefore uses Rocci template syntax and lowers through structured `Html.element`, `Html.void_element`, `Html.text`, attributes, and component calls; it is not preserved as an authored HTML string and does not itself invoke `Html.dangerously_include_unescaped_html`. Autolinks, comments, doctypes, processing instructions, namespaced-looking tags, and tags inside a list, quote, or fence do not enter this document-root island path.[^scanner][^parser][^lowerer][^compiler-tests]
+A line-start `<Tag>` at document root is scanned before CommonMark and parsed as a Rocci `Element`, `ComponentCall`, or `Fragment`. It is standalone markup, not an `@render` payload. `@render` is a prefix on a PascalCase Roc call such as `@render MyComponent({ num: 1 })`; lowering emits the camelCase function. The tag path uses Rocci template syntax and lowers through structured `Html.element`, `Html.void_element`, `Html.text`, attributes, and component calls; it is not preserved as an authored HTML string and does not itself invoke `Html.dangerously_include_unescaped_html`. Autolinks, comments, doctypes, processing instructions, namespaced-looking tags, and tags inside a list, quote, or fence do not enter this document-root island path.[^scanner][^parser][^lowerer][^compiler-tests]
 
 CommonMark raw HTML is a separate AST case. The default parser reports it as an error, while the library-only `CompileOptions.raw_html` opt-in preserves the literal with `Html.dangerously_include_unescaped_html`. That opt-in bypasses normal text and attribute escaping and must therefore be limited to trusted authored input; it does not reinterpret the tag as a Rocci component. The normal CLI compile options leave it disabled.[^rocdown-readme][^lowerer][^compiler-tests][^cli-options]
 
