@@ -173,6 +173,14 @@ Rocdown writes into a staging directory and atomically replaces the output only
 after a successful build. A failed build leaves the previous output tree in
 place. Rebuilding with unchanged inputs produces byte-identical files.
 
+`--host auto|native|wasm` selects how apply runs on the **build machine**.
+Native apply uses `basic-cli` without Roc `--target`. Wasm apply is a renderer
+only: it does not produce a hosted Wasm server, and platforms such as
+`basic-cli` / `basic-webserver` have no `wasm32`, so native apply remains
+required. `--target x64musl` / `arm64musl` is the native ISA/OS for island and
+app **process** binaries that will run elsewhere (Linux containers). Musl is
+the Linux container process target. Do not pass musl `--target` into Mac apply.
+
 The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
 from every page, including sites with a project-local `theme/`. Project chrome
 and named layouts compile beside it. Generated HTML declares the CSP with a

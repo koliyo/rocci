@@ -28,6 +28,10 @@ enum Commands {
     Bundle {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
+        /// Native ISA/OS for the Roc process binary (`x64musl`, `arm64musl`).
+        /// Apply `--host` is separate. macOS `.app` bundles stay host-native.
+        #[arg(long, value_enum)]
+        target: Option<rocci_cli::native_target::NativeTarget>,
     },
     /// Build a .rocci template to ordinary Roc.
     Build {
@@ -152,7 +156,7 @@ fn try_main() -> Result<()> {
 
     match Cli::parse().command {
         Commands::Validate { config } => validate(&config),
-        Commands::Bundle { config } => bundle::bundle(&config),
+        Commands::Bundle { config, target } => bundle::bundle(&config, target),
         Commands::Build { input, output } => build_module(&input, output.as_deref()),
         Commands::Run { file, args, serve } => run::run(
             &file,
@@ -346,6 +350,28 @@ mod tests {
             | Commands::View { serve, .. }
             | Commands::Browse { serve, .. } => serve.no_live_reload,
             _ => panic!("expected a hosting command"),
+        }
+    }
+
+    #[test]
+    fn bundle_parses_target() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "bundle",
+            "--config",
+            "rocci.toml",
+            "--target",
+            "x64musl",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Bundle { target, .. } => {
+                assert_eq!(
+                    target,
+                    Some(rocci_cli::native_target::NativeTarget::X64Musl)
+                );
+            }
+            _ => panic!("expected bundle --target"),
         }
     }
 

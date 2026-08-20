@@ -9,6 +9,7 @@ pub mod error_page;
 pub mod inspect;
 pub mod inspector;
 pub mod logs;
+pub mod native_target;
 pub mod path_hint;
 pub mod playground;
 pub(crate) mod playground_compile;
