@@ -19,7 +19,7 @@ use crate::profile::ProfileSnapshot;
 
 const METRICS_PANEL: &str = include_str!("../templates/dev/MetricsPanel.rocci");
 
-const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; }";
+const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; } body { display: flex; flex-direction: column; min-height: 0; }";
 
 const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(location.search);parent.postMessage({type:"rocci-inspector",tab:p.get("tab")||"performance",view:p.get("view")||"source"},"*");})();</script>"#;
 
@@ -565,6 +565,7 @@ mod tests {
         assert!(html.contains("name=\"tab\" value=\"source\""));
         assert!(html.contains("class=\"code-pane\""));
         assert!(html.contains("html, body { height: 100%; margin: 0; overflow: hidden; }"));
+        assert!(html.contains("body { display: flex; flex-direction: column; min-height: 0; }"));
         assert!(html.contains("rocci-inspector"));
         assert!(!html.contains("<table>"));
 
@@ -589,6 +590,43 @@ mod tests {
         );
         assert!(alias.contains("action=\"/__rocdown/dev\""));
         assert!(alias.contains("name=\"tab\" value=\"source\""));
+    }
+
+    #[test]
+    fn panel_css_flexes_scope_root_and_code_pane() {
+        let roc = "module [] {\n".to_string() + &"    expose []\n".repeat(400);
+        let snapshot = InspectSnapshot {
+            pages: vec![inspect::InspectPage {
+                route: "/".into(),
+                path: "App.rocci".into(),
+                language: "rocci".into(),
+                source: "app".into(),
+                ast: "(Document)".into(),
+                roc,
+                html: "<html></html>".into(),
+                capabilities: inspect::InspectCapabilities {
+                    source: inspect::ViewCapability::available(),
+                    ast: inspect::ViewCapability::available(),
+                    roc: inspect::ViewCapability::available(),
+                    html: inspect::ViewCapability::available(),
+                },
+            }],
+            profile: ProfileSnapshot::default(),
+        };
+        let html = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=source&route=/&view=roc");
+        assert!(html.contains(":scope {"));
+        assert!(html.contains("display: flex"));
+        assert!(html.contains("flex-direction: column"));
+        assert!(html.contains("min-height: 0"));
+        assert!(html.contains("overflow: hidden"));
+        assert!(html.contains(
+            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        overflow: auto;"
+        ));
+        assert!(html.contains("pre {\n        margin: 0;"));
+        assert!(html.contains("overflow: visible"));
+        assert!(html.contains("white-space: pre"));
+        assert!(html.contains("expose []"));
+        assert!(!html.contains(".inspector-panel {"));
     }
 
     #[test]
