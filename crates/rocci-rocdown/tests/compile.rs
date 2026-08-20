@@ -1170,12 +1170,12 @@ fn compile_islands_ok(src: &str) -> rocci_rocdown::CompileOutput {
 }
 
 #[test]
-fn compile_islands_copies_service_only_roc_helpers() {
+fn compile_islands_omits_service_only_roc_helpers() {
     let out = compile_islands_ok(live_sqlite_helper_page());
     assert!(out.roc.contains("rocci_islands"), "{}", out.roc);
     assert!(out.roc.contains("counterCard"), "{}", out.roc);
-    assert!(out.roc.contains("read_count!"), "{}", out.roc);
-    assert!(out.roc.contains("import pf.Sqlite"), "{}", out.roc);
+    assert!(!out.roc.contains("read_count!"), "{}", out.roc);
+    assert!(!out.roc.contains("import pf.Sqlite"), "{}", out.roc);
 }
 
 #[test]
@@ -1183,6 +1183,31 @@ fn compile_keeps_service_roc_helpers() {
     let out = compile_ok(live_sqlite_helper_page());
     assert!(out.roc.contains("read_count!"), "{}", out.roc);
     assert!(out.roc.contains("import pf.Sqlite"), "{}", out.roc);
+}
+
+#[test]
+fn compile_islands_keeps_roc_used_from_render() {
+    let src = r#"
+@roc {
+feature_count = 3.I64
+format_count = |n| n.to_str()
+unused_helper = |_| "no"
+}
+
+@component
+FeatureCount = |{ count }| {
+    <p class="feature-count">{count.to_str()} core ideas</p>
+}
+
+@render {
+    featureCount({ count: feature_count, caption: format_count(feature_count) })
+}
+"#;
+    let out = compile_islands_ok(src);
+    assert!(out.roc.contains("rocci_islands"), "{}", out.roc);
+    assert!(out.roc.contains("feature_count"), "{}", out.roc);
+    assert!(out.roc.contains("format_count"), "{}", out.roc);
+    assert!(!out.roc.contains("unused_helper"), "{}", out.roc);
 }
 
 #[test]
