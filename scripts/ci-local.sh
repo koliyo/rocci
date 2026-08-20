@@ -36,7 +36,7 @@ ubuntu/macos test matrix or release.yml cross-platform binary builds.
 Jobs (default: all):
   lint                 workspace deps, rustfmt, clippy
   test                 cargo test --workspace and --doc
-  fixtures-and-docs    AST fixture inspect and docs check
+  fixtures-and-docs    AST fixture inspect, site check, and docs check
   editors              VS Code lint/compile/tests and Zed WASM check
   knowledge            OKF tests, bundle check, deterministic build
 
@@ -148,6 +148,7 @@ job_fixtures_and_docs() {
   cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
   cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocci
   cargo run -q -p rocci-rocdown-cli -- inspect ast test/EmbeddedLanguages.rocdown
+  cargo run -q -p rocci-rocdown-cli -- check site
   cargo run -q -p rocci-rocdown-cli -- check docs
 }
 

@@ -76,8 +76,10 @@ jobs:
           cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
           cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocci
           cargo run -q -p rocci-rocdown-cli -- inspect ast test/EmbeddedLanguages.rocdown
-      - name: Validate documentation site
-        run: cargo run -q -p rocci-rocdown-cli -- check docs
+      - name: Validate site and documentation catalog
+        run: |
+          cargo run -q -p rocci-rocdown-cli -- check site
+          cargo run -q -p rocci-rocdown-cli -- check docs
 
   editors:
     name: Editor Extensions (VS Code & Zed)
