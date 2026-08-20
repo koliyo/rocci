@@ -4,7 +4,7 @@ title: Snapshot eval must not compile service-only @roc
 description: "Live Rocdown pages compile twice against two Roc platforms. lower_islands copies every @roc helper into the basic-cli snapshot module, so unused pf.Sqlite helpers fail CDN splice. Omit snapshot-unreachable @roc from that compile so authors keep one @roc block."
 tags: [domain/rocdown, domain/rocci, integration/roc, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T14:40:00Z }
+generated: { by: process:cursor, at: 2026-08-20T13:05:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -16,7 +16,7 @@ sources:
     last_modified: 2026-08-20
   - id: lower-rs
     resource: ../../crates/rocci-rocdown/src/lower.rs
-    title: lower_islands copies all @roc rest into the snapshot module
+    title: lower_islands filters snapshot-unreachable @roc
     author: process:git
     last_modified: 2026-08-20
   - id: service-rs
@@ -59,6 +59,11 @@ sources:
     title: Hybrid Rocdown islands plan
     author: process:cursor
     last_modified: 2026-08-19
+  - id: research
+    resource: ../research/island-snapshot-roc-reachability.md
+    title: Why snapshot eval cannot share pf.Sqlite with handlers
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: pure-render
     resource: ../decisions/pure-render-components.md
     title: Keep Rocci render components pure
@@ -76,9 +81,9 @@ sources:
 A live `.rocdown` page is compiled twice. CDN splice evaluates islands as a
 `basic-cli` stdout program. The island service compiles the same file as a
 `basic-webserver` app. `lower_islands` already drops `@on` / `@init` /
-`@context`, but it still copies **every** `@roc` statement into the snapshot
+`@context`. It used to copy **every** `@roc` statement into the snapshot
 module. Roc typechecks unused helpers. `import pf.Sqlite` therefore means two
-different APIs in one authoring file.[^islands-rs][^lower-rs][^service-rs][^dispatch-rs][^lib-rs]
+different APIs in one authoring file.[^islands-rs][^lower-rs][^service-rs][^dispatch-rs][^lib-rs][^research]
 
 That is a compiler leak. Authors must not learn “put Sqlite helpers in `@on`,
 not `@roc`.” `@roc` remains the place for Roc values **and** helpers. Snapshot
@@ -103,8 +108,8 @@ the service module and illegal in the snapshot module even when
 `rocci_islands` never calls it.[^dispatch-rs]
 
 `lower_islands` already omits handlers: rocci items are only `@component` /
-`@fixture` / `@css`. `@roc` rest is still appended in full before
-`rocci_islands`.[^lower-rs]
+`@fixture` / `@css`. Phase 2 then drops snapshot-unreachable `@roc` rest and
+imports.[^lower-rs]
 
 Document-root text that looks like Roc (`read_count! = |db| …` between
 directives) is Markdown, not a module item. Helpers belong in `@roc` or a
@@ -212,14 +217,15 @@ also the preview Build error page) is the signal that splice asked for
 handler IO.
 
 [^islands-rs]: CDN splice evaluates `rocci_islands({})` as a basic-cli stdout program.
-[^lower-rs]: `lower_islands` drops handlers but still appends every `@roc` statement.
+[^lower-rs]: `lower_islands` drops handlers; after Phase 2 it also omits snapshot-unreachable `@roc`.
 [^service-rs]: Island service compiles live modules as a basic-webserver app.
 [^dispatch-rs]: Generated `main.roc` uses basic-webserver; `pf.Sqlite` is connection-shaped.
 [^lib-rs]: `BASIC_CLI_PLATFORM` pins snapshot eval to basic-cli 0.22.
 [^hybrid-plan]: Hybrid islands: static CDN HTML plus a separate HTTP island service.
+[^research]: Optimal one-`pf.Sqlite` story is upstream or a Rocci facade; neither is available. Reachability is the lowering substitute.
 [^rocdown-ref]: `@roc` is the declaration for Roc values and helpers in a page.
 [^page-rs]: `split_roc_body` / `roc_binding_names` already exist for `@roc` rest.
 [^pure-render]: `@component` stays a pure render; handlers own IO.
-[^counter]: Hybrid counter currently inlines Sqlite queries in `@on` as a workaround.
+[^counter]: Hybrid counter declares Sqlite helpers in `@roc` and calls them from `@on`.
 [^compile-tests]: Existing hydrate test keeps `@roc` values used from island markup.
 [^pages-guide]: Authoring guide for `@roc` values on pages.
