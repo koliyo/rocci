@@ -4,7 +4,7 @@ title: Dedicated rocci-browser CLI and desktop host
 description: "Phased delivery of a product-blind project browser: registry of directories, two-stage fuzzy picker (Enter opens a target, Tab lists documents), persistent preview window, and out-of-process adapters that exec existing run --no-window servers. Complements the three product CLIs; does not add plugins on rocci or rocdown."
 tags: [domain/rocci, domain/desktop, domain/rocci-okf, domain/rocdown, concern/architecture, concern/tooling, concern/ui]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T07:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -501,7 +501,7 @@ plan](rocci-browser-macos-app.md) deletes it. Headless work is `open
 
 Desktop packaging is that same follow-on: an ad-hoc **Rocci Browser.app**
 around `preview()`, not `rocci bundle` of a Datastar gallery and not a switch
-to `run()`.[^macos-plan][^known-limitations][^root-readme]
+to `run()`. Production notarization stays later.[^macos-plan][^known-limitations][^root-readme]
 
 ## Window and session model
 
@@ -663,8 +663,9 @@ and `open site` / `open docs` reach the two Rocdown trees.
 - Point preview overlay Dev iframe at the session `inspectorUrl`; do not parse
   inspect JSON in the host.[^inspector-plan]
 - Root README and a public docs page: what rocci-browser is, Cmd-P vs Cmd-K,
-  registry file, that `rocci browse` is unrelated. Mark planned desktop
-  packaging as planned.
+  registry file, that `rocci browse` is unrelated. Ad-hoc Finder `.app`
+  assembly lives in the [macOS app plan](rocci-browser-macos-app.md); mark
+  production signing as planned.
 - Product CLIs keep one-shot preview. Do not default `run` to `--no-window`
   when a browser exists (gate 3).
 
@@ -678,7 +679,7 @@ Not in Phases 0–5:
 
 | Gate | Work |
 | --- | --- |
-| 3 | Product `run` defaults to `--no-window` when a browser session exists ([plan](browser-run-no-window.md)) |
+| 3 | Product `run` defaults to `--no-window` when a graphical preview window or **Rocci Browser.app** session exists ([plan](browser-run-no-window.md)). The lock is not a TUI lock. |
 | 4 | Author picker UI in Rocci instead of host HTML ([plan](browser-picker-in-rocci.md)) |
 | 5 | Native folder dialogs or a third-party plugin marketplace ([plan](browser-folder-dialogs-and-plugins.md)) |
 | 6 | Built-in `site` / `docs` / `knowledge` in host source (forbidden; belongs in the repo-local file) |
@@ -710,7 +711,8 @@ Human approval is required before:
 2. Treating out-of-process adapters as the approved plugin shape versus a
    static composition binary.
 3. Moving window ownership so product `run` defaults to `--no-window` when a
-   browser session exists.
+   graphical preview window or **Rocci Browser.app** session exists (not a
+   TUI).
 4. Authoring picker UI in Rocci instead of host HTML.
 5. Native folder dialogs or a third-party plugin marketplace.
 6. Encoding `site` / `docs` / `knowledge` as built-in targets in host source.
@@ -720,7 +722,9 @@ track for the research recommendation, not an approved schedule.
 
 ## Status
 
-Exploratory; Phase 0 freeze plus Phases 1–5 in this revision. Not CI-complete.
+Exploratory; Phase 0 freeze plus Phases 1–5 in this revision. The [macOS app
+plan](rocci-browser-macos-app.md) withdraws `tui` and sequences the ad-hoc
+`.app`. Not CI-complete.
 
 [^research]: Recommended split: product-blind host, stdio adapters, registry, two-stage picker.
 [^cli-plan]: Three-CLI split, rejection of plugin hosts on rocci/rocdown, exec-sibling dispatcher deferred.

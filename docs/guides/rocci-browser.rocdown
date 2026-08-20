@@ -56,8 +56,25 @@ and `[[project]]` rows as data. The host does not hardcode target ids.
 Switching targets reuses a still-warm server for the same root instead of
 rebuilding on every hop. The previous child is grace-stopped after about 30s.
 
+`open --no-window --json` prints `{ "url", "title" }` for agents and for
+machines without a display. There is no terminal picker.
+
 ## Packaging
 
-A signed `.app` for `rocci-browser` is **planned**. v1 is
-`cargo run -p rocci-browser`. Product `rocci bundle` still packages a Roc app
-gallery, not this host.
+On macOS, assemble an ad-hoc **Rocci Browser.app** around the same `preview()`
+binary:
+
+```sh
+./scripts/bundle-browser-macos.sh
+open "target/release/bundle/macos/Rocci Browser.app"
+```
+
+Adapters stay on `PATH` or as absolute plugin `bin` paths; the bundle does not
+copy `rocci`, `rocdown`, or `rocci-okf`. Finder launch repairs a sanitized GUI
+`PATH` (Homebrew, `/usr/local/bin`, `~/.local/bin`, `~/.cargo/bin` when those
+directories exist) and ignores cwd `/` for `.rocci/browser.toml`. `--root`
+still selects a repo file. A graphical session with a real repo root writes
+`last-root` for the next Dock launch.
+
+Product `rocci bundle` still packages a Roc app, not this host. Production
+signing and notarization of **Rocci Browser.app** are **planned**, not shipped.

@@ -4,7 +4,7 @@ title: Product run skips preview when rocci-browser is already open
 description: "Gate 3 follow-on after rocci-browser Phases 1–5: when a graphical browser session exists, rocci / rocdown / rocci-okf run (and view / browse) default to --no-window instead of opening a second one-shot preview. Exploratory; no phase started."
 tags: [domain/rocci, domain/desktop, domain/rocdown, domain/rocci-okf, concern/tooling, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T07:50:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -97,7 +97,9 @@ no lock file or other live-session signal in `browser_dir`.[^window-rs][^paths-r
 - Making product crates depend on `rocci-browser` (put the lock helper in
   `rocci-core` so base, Rocdown, and OKF CLIs share one check).[^core-readme]
 - Defaulting to `--no-window` when the host is *not* running.
-- Signed `.app` packaging (see [macOS app plan](rocci-browser-macos-app.md)).[^macos-plan]
+- Production signing of **Rocci Browser.app**. Ad-hoc assembly is the
+  [macOS app plan](rocci-browser-macos-app.md). The lock applies to graphical
+  `preview()` / that `.app` only; there is no TUI.[^macos-plan]
 
 ## Phase 1 — Live-session lock in rocci-core
 
@@ -105,8 +107,9 @@ no lock file or other live-session signal in `browser_dir`.[^window-rs][^paths-r
 `~/.rocci/browser`. Duplicate that directory rule in `rocci-core` (or export
 a tiny shared path helper) and add `session.pid` next to `projects.json`.[^paths-rs][^core-readme]
 
-- Graphical `rocci-browser` writes its pid on entering `preview()` and
-  removes the file on clean exit. Stale file plus dead pid is not live.
+- Graphical `rocci-browser` (no-args preview window or **Rocci Browser.app**)
+  writes its pid on entering `preview()` and removes the file on clean exit.
+  Stale file plus dead pid is not live.
 - `is_browser_session_live()` returns true only for that case. CLI commands
   including `open --no-window` do not write the lock. There is no TUI.
 - Tests: live pid, missing file, stale pid; no preview window.
