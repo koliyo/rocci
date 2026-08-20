@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 pub fn run(paths: Paths) -> Result<()> {
+    let persist = paths.clone();
     let host = Host::connect(paths)?;
     let launcher = spawn_launcher()?;
     let host = Arc::new(Mutex::new(host));
@@ -31,6 +32,7 @@ pub fn run(paths: Paths) -> Result<()> {
         picker: true,
         ..PreviewOptions::default()
     })?;
+    persist.persist_last_root()?;
     drop(launcher);
     drop(host);
     drop(sessions);
