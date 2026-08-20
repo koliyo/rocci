@@ -71,7 +71,7 @@ Parse examples live in their own directory so they cannot take this page down.
 From the repo root:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/errors/parse/Broken.rocdown
+cargo run -q -p rocci-cli -- run examples/rocdown/errors/parse/Broken.rocdown
 ```
 
 That still opens the window. The page is the diagnostic, with a source frame

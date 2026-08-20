@@ -1301,7 +1301,7 @@ fn rejects_on_inside_component() {
 
 #[test]
 fn counter_example_compiles_as_standalone_app() {
-    let src = include_str!("../../../examples/counter/Counter.rocci");
+    let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
     let out = compile_ok(src);
     assert_eq!(out.state_type.as_deref(), Some("{ db : Sqlite.Db }"));
     assert!(out.init.is_some());
@@ -1331,7 +1331,7 @@ fn counter_example_compiles_as_standalone_app() {
 
 #[test]
 fn styling_example_compiles() {
-    let src = include_str!("../../../examples/styling/Styling.rocci");
+    let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
     let out = compile_ok(src);
     assert!(out.state_type.is_none());
     assert!(out.init.is_none());

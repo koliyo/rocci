@@ -5,7 +5,7 @@ Datastar POST handlers. Increment and reset each return one patch of
 `#counter`. There is no authored `main.roc`.
 
 For page chrome, component isolation, and `@scope`, see
-[`examples/styling`](../styling).
+[`examples/rocci/standalone/styling`](../styling).
 
 Pinned together:
 
@@ -18,10 +18,10 @@ Pinned together:
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 ```
 
-This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/rocci/standalone/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
 
 Increment and reset call `Stderr.line!` so each action prints on the CLI and
 shows in the preview Dev Console (`source: runtime`).

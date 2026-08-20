@@ -118,7 +118,7 @@ fn hybrid_cdn_html_and_island_post_morph() {
         return;
     }
     let _lock = ROC_LOCK.lock().unwrap();
-    let root = repo_root().join("examples/rocdown-hybrid");
+    let root = repo_root().join("examples/rocdown/hybrid");
     let output = temp_dir("cdn");
     let bin = rocdown_bin();
 
@@ -248,7 +248,7 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
         return;
     }
     let _lock = ROC_LOCK.lock().unwrap();
-    let root = repo_root().join("examples/rocdown-hybrid");
+    let root = repo_root().join("examples/rocdown/hybrid");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
     let mut child = Command::new(&bin)
@@ -375,7 +375,7 @@ fn counter_run_proxies_actions_on_one_origin() {
         return;
     }
     let _lock = ROC_LOCK.lock().unwrap();
-    let root = repo_root().join("examples/rocdown-counter");
+    let root = repo_root().join("examples/rocdown/counter");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
     let mut child = Command::new(&bin)

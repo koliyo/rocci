@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn resolve_app_dir_joins_relative_bundle_app() {
         let dir = temp_dir("app");
-        let app = dir.join("examples/counter");
+        let app = dir.join("examples/rocci/standalone/counter");
         fs::create_dir_all(&app).unwrap();
         fs::write(app.join("main.roc"), "app").unwrap();
         fs::write(dir.join("rocci.toml"), "").unwrap();
@@ -529,7 +529,7 @@ mod tests {
             [app]
             identifier = "dev.rocci.counter"
             [bundle]
-            app = "examples/counter"
+            app = "examples/rocci/standalone/counter"
             "#,
         )
         .unwrap();
@@ -576,7 +576,7 @@ mod tests {
         }
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let root = manifest.parent().unwrap().parent().unwrap();
-        let app = root.join("examples/datastar");
+        let app = root.join("examples/rocci/custom/datastar");
         let output = env::temp_dir().join(format!(
             "rocci-server-pkg-{}-{}",
             std::process::id(),

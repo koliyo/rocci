@@ -80,7 +80,7 @@ sources:
     author: human:nils
     last_modified: 2026-08-16
   - id: interactive
-    resource: ../../examples/rocdown/Interactive.rocdown
+    resource: ../../examples/rocdown/pages/Interactive.rocdown
     title: Colocated @component and @on document
     author: process:git
     last_modified: 2026-08-18
@@ -150,7 +150,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: counter-example
-    resource: ../../examples/rocdown-counter/index.rocdown
+    resource: ../../examples/rocdown/counter/index.rocdown
     title: Hybrid SQLite counter site page
     author: process:cursor
     last_modified: 2026-08-19
@@ -386,7 +386,7 @@ diagnoses `live`.
   with `rocci-roc-host`. Stitch into the article blob in document
   order.[^lowerer][^catalog-shell][^generation-plan]
 - Allow file `@css` / `@roc` values used by those components.
-- Site fixture in the spirit of `examples/rocdown/Guide.rocdown`
+- Site fixture in the spirit of `examples/rocdown/pages/Guide.rocdown`
   (`@component` + `<FeatureCount />` + Markdown).
 - `static` catalog/check still does not require Roc.
 
@@ -517,7 +517,7 @@ splice islands at build time.
 `:note` bodies; compile Markdown to Roc.
 
 **Exit:** `rocdown build docs` still paints `:note` / `:tabs`.
-`examples/rocdown-hybrid` and `examples/rocdown-counter` build as
+`examples/rocdown/hybrid` and `examples/rocdown/counter` build as
 hydrate/live. Neighboring static pages have no Datastar.js.
 
 ### Phase 9 — Preview-as-site plus one-origin islands
@@ -537,7 +537,7 @@ proxy. No new island capabilities.
 **Does not:** serve Markdown from the island process.
 
 **Exit:** `rocdown run docs` previews the site. `rocdown run
-examples/rocdown-counter` proxies `/actions/` on that origin.
+examples/rocdown/counter` proxies `/actions/` on that origin.
 
 ### Phase 10 — Re-prove examples and public contract
 
@@ -548,7 +548,7 @@ examples/rocdown-counter` proxies `/actions/` on that origin.
 - Green `cargo test -p rocci-rocdown` and `cargo test -p rocci-rocdown-cli`
   including colon-syntax and island tests.
 - `rocdown check docs` and `rocdown build docs`.
-- Confirm `examples/rocdown-counter` and
+- Confirm `examples/rocdown/counter` and
   `docs/guides/hybrid-sites.rocdown` still match the dual-apply
   contract.[^counter-example][^hybrid-guide]
 - Align `docs/reference/rocdown.rocdown` so site builds describe

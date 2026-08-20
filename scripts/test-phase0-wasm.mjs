@@ -88,7 +88,7 @@ function check(label, condition, details = "") {
 
 // 1. Test Counter.rocci
 console.log("\n1. Testing Counter.rocci:");
-const counterSource = fs.readFileSync(path.join(ROOT, "examples/counter/Counter.rocci"), "utf-8");
+const counterSource = fs.readFileSync(path.join(ROOT, "examples/rocci/standalone/counter/Counter.rocci"), "utf-8");
 const t0 = performance.now();
 const counterResult = runCompile(compile_rocci_raw, counterSource);
 const counterDuration = performance.now() - t0;
@@ -115,7 +115,7 @@ check("formats all-syntax AST", allSyntaxRocciResult.ast.includes("(component"))
 
 // 3. Test Guide.rocdown
 console.log("\n3. Testing Guide.rocdown:");
-const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/Guide.rocdown"), "utf-8");
+const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/pages/Guide.rocdown"), "utf-8");
 const t2 = performance.now();
 const guideResult = runCompile(compile_rocdown_raw, guideSource);
 const guideDuration = performance.now() - t2;

@@ -22,7 +22,7 @@ A hybrid Rocdown site is two artifacts:
 
 `docs/` in this repository is a `static` catalog. The public `site/` tree is
 hybrid: home is `live` (the timezone counter island); mounted docs stay
-`static`. The worked example is `examples/rocdown-counter`.
+`static`. The worked example is `examples/rocdown/counter`.
 
 See [Rocdown site configuration](/docs/reference/rocdown-site/) for the field
 reference (`service_origin`, `--cdn-only`, `islands.json`).
@@ -46,7 +46,7 @@ with no service.
 
 ## Walk the counter
 
-`examples/rocdown-counter/index.rocdown` colocates `CounterCard` with SQLite
+`examples/rocdown/counter/index.rocdown` colocates `CounterCard` with SQLite
 `@context` / `@init` / `@on:post`. `@render` bakes `count: 0` into the CDN HTML. On load, `POST /actions/counter/sync`
 morphs the live count and last-twenty click feed (timezone atlas, no IP).
 Increment and reset POST `/actions/counter/increment` and
@@ -56,7 +56,7 @@ shows the build-time snapshot until sync or a mutation runs.
 `about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
 and `script-src 'self'`; it does not include Datastar.
 
-Do not set `[http].service` to `examples/counter/Counter.rocci`. That file is
+Do not set `[http].service` to `examples/rocci/standalone/counter/Counter.rocci`. That file is
 a full-page app; GET `/` is not an island route. A sibling `.rocci` service is
 allowed when it returns fragments only.
 
@@ -67,7 +67,7 @@ increment morphing. Use Compose later for Caddy same-origin proxy, published
 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and mounted-site path stamps.
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown/counter
 ```
 
 `inspect artifacts` does not invoke Roc. It reports page kinds, Datastar
@@ -75,14 +75,14 @@ emission, `service_origin`, and mutation routes. Expect `index` live, `about`
 static, and sync/increment/reset POSTs.
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
-grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown-counter/dist/index.html
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
+grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown/counter/dist/index.html
 ```
 
 That snapshot check does not start an island process.
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window \
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/counter --no-window \
   --output /tmp/rocdown-counter-preview
 ```
 
@@ -102,13 +102,13 @@ curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
 
 Open `/`, click Increment, and confirm `#counter output` morphs. Inspector:
 [http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev). The
-complete command list lives in `examples/rocdown-counter/README.md`.
+complete command list lives in `examples/rocdown/counter/README.md`.
 
 ## Build and serve separately
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
-cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown-counter --no-window
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
+cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter --no-window
 ```
 
 `build` writes the CDN tree (`dist/` in the example). `serve-islands` starts
@@ -158,8 +158,8 @@ Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
 
 ```sh
 # Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
-./docker/docker-serve-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
+./docker/docker-serve-hybrid.sh examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 `--target` follows the **container**, not the Mac host: Apple Silicon local
@@ -203,5 +203,5 @@ curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
 The POST body is a `datastar-patch-elements` event that morphs `#counter`.
 `serve-islands` on 8001 is the mutation process alone (no Markdown).
 
-The complete command list lives in `examples/rocdown-counter/README.md`. Handler
+The complete command list lives in `examples/rocdown/counter/README.md`. Handler
 syntax is in [Server actions](/docs/guides/server-actions/).

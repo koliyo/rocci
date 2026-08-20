@@ -6,7 +6,7 @@ Rocdown is a Markdown-first document and static documentation system. Ordinary d
 
 ```sh
 # Run a single interactive .rocdown document
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 
 # Build a documentation site to dist/
 cargo run -p rocci-rocdown-cli -- build docs --output dist
@@ -96,7 +96,7 @@ answer = 42
 ```
 ````
 
-See [`examples/rocdown/Guide.rocdown`](../../examples/rocdown/Guide.rocdown).
+See [`examples/rocdown/pages/Guide.rocdown`](../../examples/rocdown/pages/Guide.rocdown).
 
 ## Declarations
 

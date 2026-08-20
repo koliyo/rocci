@@ -11,10 +11,10 @@ page kinds with colocated `@on` (ephemeral show/hide, no SQLite).
 | [`about.rocdown`](about.rocdown) | static | Markdown-only neighbor |
 
 For a SQLite-backed counter and the CDN + `serve-islands` deploy runbook, use
-[`examples/rocdown-counter`](../rocdown-counter).
+[`examples/rocdown/counter`](../counter).
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-hybrid --no-window
-cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-hybrid
-cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown-hybrid --no-window
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/hybrid --no-window
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/hybrid
+cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown/hybrid --no-window
 ```

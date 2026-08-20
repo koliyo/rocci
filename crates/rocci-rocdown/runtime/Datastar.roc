@@ -1,15 +1,103 @@
-action = |method, uri| "@${method}('${uri}')"
+ActionOpt : [
+    OpenWhenHidden(Bool),
+    ContentType([Json, Form]),
+    Header(Str, Str),
+    Retry([Auto, Error, Always, Never]),
+    RequestCancellation([Auto, Cleanup, Disabled]),
+]
 
 Datastar := [].{
-    get = |uri| action("get", uri)
-    post = |uri| action("post", uri)
-    put = |uri| action("put", uri)
-    patch = |uri| action("patch", uri)
-    delete = |uri| action("delete", uri)
+    get = |uri| backend("get", uri, [])
+    post = |uri| backend("post", uri, [])
+    put = |uri| backend("put", uri, [])
+    patch = |uri| backend("patch", uri, [])
+    delete = |uri| backend("delete", uri, [])
 
-    get_with = |uri, _opts| action("get", uri)
-    post_with = |uri, _opts| action("post", uri)
-    put_with = |uri, _opts| action("put", uri)
-    patch_with = |uri, _opts| action("patch", uri)
-    delete_with = |uri, _opts| action("delete", uri)
+    get_with = |uri, opts| backend("get", uri, opts)
+    post_with = |uri, opts| backend("post", uri, opts)
+    put_with = |uri, opts| backend("put", uri, opts)
+    patch_with = |uri, opts| backend("patch", uri, opts)
+    delete_with = |uri, opts| backend("delete", uri, opts)
 }
+
+backend = |method, uri, opts| {
+    fields = option_fields(opts)
+    if List.is_empty(fields) {
+        "@${method}(${js_str(uri)})"
+    } else {
+        "@${method}(${js_str(uri)}, {${join_comma(fields)}})"
+    }
+}
+
+option_fields = |opts| {
+    fields = List.fold(
+        opts,
+        [],
+        |acc, opt|
+            match opt {
+                Header(_, _) => acc
+                other => List.append(acc, opt_field(other))
+            },
+    )
+    headers = List.fold(
+        opts,
+        [],
+        |acc, opt|
+            match opt {
+                Header(name, value) => List.append(acc, "${js_str(name)}: ${js_str(value)}")
+                _ => acc
+            },
+    )
+    if List.is_empty(headers) {
+        fields
+    } else {
+        List.append(fields, "headers: {${join_comma(headers)}}")
+    }
+}
+
+opt_field = |opt|
+    match opt {
+        OpenWhenHidden(value) => "openWhenHidden: ${js_bool(value)}"
+        ContentType(Json) => "contentType: 'json'"
+        ContentType(Form) => "contentType: 'form'"
+        Header(_, _) => ""
+        Retry(Auto) => "retry: 'auto'"
+        Retry(Error) => "retry: 'error'"
+        Retry(Always) => "retry: 'always'"
+        Retry(Never) => "retry: 'never'"
+        RequestCancellation(Auto) => "requestCancellation: 'auto'"
+        RequestCancellation(Cleanup) => "requestCancellation: 'cleanup'"
+        RequestCancellation(Disabled) => "requestCancellation: 'disabled'"
+    }
+
+js_bool = |value| if value { "true" } else { "false" }
+
+js_str = |text| "'${escape_js(text)}'"
+
+escape_js = |text|
+    List.fold(
+        Str.to_utf8(text),
+        "",
+        |acc, byte|
+            if byte == 39 or byte == 92 {
+                "${acc}\\${Str.from_utf8_lossy([byte])}"
+            } else if byte == 10 {
+                "${acc}\\n"
+            } else if byte == 13 {
+                "${acc}\\r"
+            } else {
+                "${acc}${Str.from_utf8_lossy([byte])}"
+            },
+    )
+
+join_comma = |items|
+    List.fold(
+        items,
+        "",
+        |acc, item|
+            if acc == "" {
+                item
+            } else {
+                "${acc}, ${item}"
+            },
+    )

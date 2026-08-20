@@ -169,7 +169,7 @@ fn inspect_artifacts_docs_is_static() {
 fn build_cdn_only_errors_on_live_hybrid_fixture() {
     let root = repo_root();
     let bin = rocdown_bin();
-    let hybrid = root.join("examples/rocdown-hybrid");
+    let hybrid = root.join("examples/rocdown/hybrid");
     let output = temp_dir("cdn-only");
     fs::write(output.join("keep.txt"), "preserve me").unwrap();
 
@@ -302,7 +302,7 @@ fn wait_for_homepage(port: u16, child: &mut Child) -> String {
 fn package_live_site_fails_with_rd2302() {
     let root = repo_root();
     let bin = rocdown_bin();
-    let hybrid = root.join("examples/rocdown-hybrid");
+    let hybrid = root.join("examples/rocdown/hybrid");
     let output = temp_dir("package-live");
     let archive = output.join("site.tgz");
     fs::write(&archive, b"previous-archive").unwrap();

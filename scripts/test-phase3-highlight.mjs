@@ -95,7 +95,7 @@ console.log(" Phase 3 Highlight Bridge Verification");
 console.log("=================================================");
 
 // 1. Counter.rocci highlights
-const counterSource = fs.readFileSync(path.join(ROOT, "examples/counter/Counter.rocci"), "utf-8");
+const counterSource = fs.readFileSync(path.join(ROOT, "examples/rocci/standalone/counter/Counter.rocci"), "utf-8");
 const counterResp = runCompileJson({
   protocol_version: 1,
   revision: 1,
@@ -108,7 +108,7 @@ check("AST highlights are valid and non-overlapping", verifySpans("ast", counter
 check("AST has token spans", counterResp.highlights.ast.length > 0);
 
 // 2. Guide.rocdown highlights
-const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/Guide.rocdown"), "utf-8");
+const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/pages/Guide.rocdown"), "utf-8");
 const guideResp = runCompileJson({
   protocol_version: 1,
   revision: 2,

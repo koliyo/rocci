@@ -56,7 +56,7 @@ page. Use this section with `rocdown run` at 320 CSS pixels.
 A long fence must also stay inside the article measure:
 
 ```
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Blocks.rocdown --no-window --port 8000 --theme rocci --color-scheme light
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Blocks.rocdown --no-window --port 8000 --theme rocci --color-scheme light
 ```
 
 ### Nested outline heading

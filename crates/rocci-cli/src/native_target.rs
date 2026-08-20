@@ -136,7 +136,7 @@ mod tests {
             .unwrap()
             .parent()
             .unwrap()
-            .join("examples/datastar");
+            .join("examples/rocci/custom/datastar");
         let out_dir = std::env::temp_dir().join(format!(
             "rocci-target-x64musl-{}-{}",
             std::process::id(),

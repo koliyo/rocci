@@ -125,8 +125,8 @@ if (fs.existsSync(allSyntaxRocdownPath)) {
 }
 
 // 3. Counter.rocci Parity
-console.log("\n3. Testing examples/counter/Counter.rocci:");
-const counterPath = path.join(ROOT, "examples/counter/Counter.rocci");
+console.log("\n3. Testing examples/rocci/standalone/counter/Counter.rocci:");
+const counterPath = path.join(ROOT, "examples/rocci/standalone/counter/Counter.rocci");
 if (fs.existsSync(counterPath)) {
   const source = fs.readFileSync(counterPath, "utf-8");
   const res = compileWasm({
@@ -142,8 +142,8 @@ if (fs.existsSync(counterPath)) {
 }
 
 // 4. Guide.rocdown Parity
-console.log("\n4. Testing examples/rocdown/Guide.rocdown:");
-const guidePath = path.join(ROOT, "examples/rocdown/Guide.rocdown");
+console.log("\n4. Testing examples/rocdown/pages/Guide.rocdown:");
+const guidePath = path.join(ROOT, "examples/rocdown/pages/Guide.rocdown");
 if (fs.existsSync(guidePath)) {
   const source = fs.readFileSync(guidePath, "utf-8");
   const res = compileWasm({

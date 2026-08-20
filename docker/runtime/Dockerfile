@@ -4,7 +4,7 @@
 # Build from the repository root:
 #   docker compose -f docker/compose.yml build
 # Run a mounted hybrid site:
-#   ./docker/docker-serve-site.sh examples/rocdown-counter
+#   ./docker/docker-serve-site.sh examples/rocdown/counter
 
 ARG UBUNTU_IMAGE=ubuntu:24.04
 

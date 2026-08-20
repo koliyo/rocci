@@ -339,7 +339,7 @@ Status: implemented. Default lowering emits a sibling `<details class="rd-toc-me
 **Exit:** README and this plan’s acceptance list match shipped chrome.
 
 Status: implemented at the contract layer. Fixture:
-`examples/rocdown/Blocks.rocdown` (wide table, long fence, `:tabs`, nested
+`examples/rocdown/pages/Blocks.rocdown` (wide table, long fence, `:tabs`, nested
 outline). Deep docs-tree sidebar coverage is a published `layout: "docs"`
 page such as `docs/reference/rocdown.rocdown`. 320 / 768 / 1280 CSS-pixel
 layout is a maintainer resize of the HTTP origin, not an automated pixel

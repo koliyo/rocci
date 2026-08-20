@@ -100,7 +100,7 @@ sources:
     author: human:nils
     last_modified: 2026-08-18
   - id: interactive
-    resource: ../../examples/rocdown/Interactive.rocdown
+    resource: ../../examples/rocdown/pages/Interactive.rocdown
     title: Standalone dynamic Rocdown document with Datastar patches
     author: process:git
     last_modified: 2026-08-18
@@ -231,7 +231,7 @@ state stays on that service.[^pure-render][^server-owned][^rendering-doc]
 Rocdown has two working pipelines that do not combine:[^rocdown-readme][^architecture-doc]
 
 1. **`rocdown run FILE`** (and `rocci run App.rocci`) lowers the program,
-   stages Datastar.js, and serves HTTP. `examples/rocdown/Interactive.rocdown`
+   stages Datastar.js, and serves HTTP. `examples/rocdown/pages/Interactive.rocdown`
    already has `@component`, `@on:get`, and `@on:post` Datastar morphs.
    The whole document is a Roc app. Prose is generated Roc. There is no
    CDN tree.[^interactive][^datastar-asset][^server-actions]
@@ -319,7 +319,7 @@ Rocci components or handlers.[^catalog-shell][^architecture-doc]
    CSP and no Datastar.js.[^plan-rs][^format-report][^site-rs]
 6. Catalog/check of pages with no Rocci still does not require Roc.
 
-`examples/rocdown/Interactive.rocdown` is the live fixture (toggles and
+`examples/rocdown/pages/Interactive.rocdown` is the live fixture (toggles and
 `@on:post` reveal). A page like `Guide.rocdown` (component, no handlers)
 is the pre-render-only fixture: CDN HTML, no service.[^interactive][^rocdown-readme]
 

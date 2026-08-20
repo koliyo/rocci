@@ -41,7 +41,7 @@ import Origin
     Sqlite.execute!(
         {
             db,
-            query: "CREATE TABLE IF NOT EXISTS clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, handle TEXT NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL)",
+            query: "CREATE TABLE IF NOT EXISTS clicks (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL)",
             params: {},
         },
     )?
@@ -59,7 +59,6 @@ import Origin
             limits: Sqlite.default_query_limits,
         },
     )?
-    now = now_row.now
     count_row : { value : I64 }
     count_row = Sqlite.query!(
         {
@@ -69,11 +68,11 @@ import Origin
             limits: Sqlite.default_query_limits,
         },
     )?
-    rows : List({ ts : I64, handle : Str, tz : Str, country : Str, city : Str, region : Str })
+    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT ts, handle, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
+            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -81,22 +80,21 @@ import Origin
     clicks = List.map(
         rows,
         |row| {
-            place = Origin.lookup(row.tz)
+            mapped = Origin.lookup(row.tz)
             {
-                handle: row.handle,
-                flag: place.flag,
+                flag: mapped.flag,
                 place: Origin.place_label({
                     country: row.country,
                     city: row.city,
                     region: row.region,
-                    flag: place.flag,
+                    flag: mapped.flag,
                 }),
-                ago: Origin.relative_ago(now, row.ts),
+                ago: Origin.relative_ago(now_row.now, row.ts),
                 ts: row.ts.to_str(),
             }
         },
     )
-    counterPanel({ count: count_row.value, clicks })
+    counterLive({ count: count_row.value, clicks })
 }
 
 @on:post("/actions/counter/increment") = |{ db }, request| {
@@ -106,9 +104,7 @@ import Origin
             Err(_) => ""
         }
     tz_raw = Origin.signal_str(body, "tz")
-    handle_raw = Origin.signal_str(body, "handle")
     tz = if tz_raw == "" { "UTC" } else { tz_raw }
-    handle = if handle_raw == "" { "Visitor" } else { handle_raw }
     place = Origin.lookup(tz)
     now_row : { now : I64 }
     now_row = Sqlite.query!(
@@ -120,54 +116,33 @@ import Origin
         },
     )?
     now = now_row.now
-    recent : List({ ts : I64 })
-    recent = Sqlite.query_many!(
+    Sqlite.execute!(
         {
             db,
-            query: "SELECT ts FROM clicks WHERE handle = :handle ORDER BY id DESC LIMIT 1",
-            params: { handle: handle },
-            limits: Sqlite.default_query_limits,
+            query: "INSERT INTO clicks (ts, tz, country, city, region) VALUES (:ts, :tz, :country, :city, :region)",
+            params: {
+                ts: now,
+                tz: tz,
+                country: place.country,
+                city: place.city,
+                region: place.region,
+            },
         },
     )?
-    last =
-        match List.get(recent, 0) {
-            Ok(row) => row.ts
-            Err(_) => 0.I64
-        }
-    _ =
-        if now - last < 1.I64 {
-            {}
-        } else {
-            Sqlite.execute!(
-                {
-                    db,
-                    query: "INSERT INTO clicks (ts, handle, tz, country, city, region) VALUES (:ts, :handle, :tz, :country, :city, :region)",
-                    params: {
-                        ts: now,
-                        handle: handle,
-                        tz: tz,
-                        country: place.country,
-                        city: place.city,
-                        region: place.region,
-                    },
-                },
-            )?
-            Sqlite.execute!(
-                {
-                    db,
-                    query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 20)",
-                    params: {},
-                },
-            )?
-            Sqlite.execute!(
-                {
-                    db,
-                    query: "UPDATE counter SET value = value + 1 WHERE id = 1",
-                    params: {},
-                },
-            )?
-            {}
-        }
+    Sqlite.execute!(
+        {
+            db,
+            query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 20)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
+            params: {},
+        },
+    )?
     count_row : { value : I64 }
     count_row = Sqlite.query!(
         {
@@ -177,11 +152,11 @@ import Origin
             limits: Sqlite.default_query_limits,
         },
     )?
-    rows : List({ ts : I64, handle : Str, tz : Str, country : Str, city : Str, region : Str })
+    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT ts, handle, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
+            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 20",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -191,7 +166,6 @@ import Origin
         |row| {
             mapped = Origin.lookup(row.tz)
             {
-                handle: row.handle,
                 flag: mapped.flag,
                 place: Origin.place_label({
                     country: row.country,
@@ -208,7 +182,7 @@ import Origin
         Ok({}) => {}
         Err(_) => {}
     }
-    counterPanel({ count: count_row.value, clicks })
+    counterLive({ count: count_row.value, clicks })
 }
 
 @on:post("/actions/counter/reset") = |{ db }| {
@@ -230,11 +204,11 @@ import Origin
         Ok({}) => {}
         Err(_) => {}
     }
-    counterPanel({ count: 0.I64, clicks: [] })
+    counterLive({ count: 0.I64, clicks: [] })
 }
 
 @component
-CounterPanel = |{ count, clicks }| {
+CounterPanel = |{ count }| {
     @css {
         .eyebrow {
             margin: 0 0 0.35rem;
@@ -253,6 +227,16 @@ CounterPanel = |{ count, clicks }| {
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.04em;
         }
+    }
+    <div id="counter-panel">
+        <p class="eyebrow">Shared count</p>
+        <output>{count.to_str()}</output>
+    </div>
+}
+
+@component
+CounterFeed = |{ clicks }| {
+    @css {
         .feed {
             margin: 1.35rem 0 0;
             padding: 0;
@@ -282,13 +266,9 @@ CounterPanel = |{ count, clicks }| {
             font-weight: 700;
             letter-spacing: 0.04em;
         }
-        .feed .who {
-            font-weight: 650;
-            color: var(--rd-color-text);
-        }
         .feed .where {
-            color: var(--rd-color-muted);
-            font-size: 0.85rem;
+            color: var(--rd-color-text);
+            font-size: 0.92rem;
         }
         .feed time {
             color: var(--rd-color-muted);
@@ -296,14 +276,12 @@ CounterPanel = |{ count, clicks }| {
             white-space: nowrap;
         }
         .empty {
-            margin: 1rem 0 0;
+            margin: 1.35rem 0 0;
             color: var(--rd-color-muted);
             font-size: 0.9rem;
         }
     }
-    <div id="counter-panel">
-        <p class="eyebrow">Shared count</p>
-        <output>{count.to_str()}</output>
+    <div id="counter-feed">
         @if List.is_empty(clicks) {
             <p class="empty">No clicks yet - be the first.</p>
         } @else {
@@ -311,10 +289,7 @@ CounterPanel = |{ count, clicks }| {
                 @for click in clicks {
                     <li>
                         <span class="flag" aria-hidden="true">{click.flag}</span>
-                        <div>
-                            <div class="who">{click.handle}</div>
-                            <div class="where">{click.place}</div>
-                        </div>
+                        <div class="where">{click.place}</div>
                         <time datetime={click.ts}>{click.ago}</time>
                     </li>
                 }
@@ -322,6 +297,13 @@ CounterPanel = |{ count, clicks }| {
         }
     </div>
 }
+
+@component
+CounterLive = |{ count, clicks }|
+    <>
+        <CounterPanel count={count} />
+        <CounterFeed clicks={clicks} />
+    </>
 
 @component
 CounterCard = |{ count, clicks }| {
@@ -362,13 +344,12 @@ CounterCard = |{ count, clicks }| {
             line-height: 1.45;
         }
     }
-    <section
-        id="counter"
-        class="counter-card"
-        data-signals="{tz: '', handle: ''}"
-        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
-    >
-        <CounterPanel count={count} clicks={clicks} />
+    <section id="counter" class="counter-card">
+        <div
+            data-signals="{tz: ''}"
+            data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; @post('/actions/counter/sync')"
+        ></div>
+        <CounterPanel count={count} />
         <div class="actions">
             <button type="button" data-on:click=@post("/actions/counter/increment")>
                 Increment
@@ -377,8 +358,9 @@ CounterCard = |{ count, clicks }| {
                 Reset
             </button>
         </div>
+        <CounterFeed clicks={clicks} />
         <p class="privacy">
-            Origin comes from your browser timezone and a session nickname - no IP address is stored.
+            Origin comes from your browser timezone - no IP address is stored.
         </p>
     </section>
 }
@@ -387,8 +369,9 @@ CounterCard = |{ count, clicks }| {
 
 Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
 time (`count` is `0` in that snapshot). On load, the island syncs the live
-count and last twenty clicks. Increment posts timezone and handle signals;
-the service maps IANA timezones to country and city, then morphs `#counter-panel`.
+count and last twenty clicks. Increment posts the browser timezone; the service
+maps IANA zones to country and city, then morphs `#counter-panel` and
+`#counter-feed`.
 
 See [About](/about/) for a neighboring page that stays static.
 

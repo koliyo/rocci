@@ -279,8 +279,8 @@ pattern, and the existing shared-driver library.[^product-boundary][^language-to
 The intended author commands become:
 
 ```text
-rocci run examples/counter/Counter.rocci
-rocdown run examples/rocdown/Guide.rocdown
+rocci run examples/rocci/standalone/counter/Counter.rocci
+rocdown run examples/rocdown/pages/Guide.rocdown
 rocdown run docs
 rocci-okf run knowledge
 rocci-okf run knowledge/plans/cli-entry-points.md

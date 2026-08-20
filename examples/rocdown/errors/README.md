@@ -18,7 +18,7 @@ compiled as siblings of `ErrorDemo.rocdown`.
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/errors/ErrorDemo.rocdown
+cargo run -q -p rocci-cli -- run examples/rocdown/errors/ErrorDemo.rocdown
 ```
 
 The window opens on `/error-demo/`. Click **Missing route** (`/missing`) for
@@ -27,14 +27,14 @@ to follow 308 to `/error-demo/`. Pass `--no-window` to serve on
 [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 The same 404 appears on any standalone `rocci run` app, including
-[`examples/rocdown/Guide.rocdown`](../rocdown/Guide.rocdown). Generated
+[`examples/rocdown/pages/Guide.rocdown`](../pages/Guide.rocdown). Generated
 dispatchers 308 the unregistered slash variant of a GET route by default
 (`http.redirect_trailing_slash` in `rocci.toml`).
 
 ## Parse error
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/errors/parse/Broken.rocdown
+cargo run -q -p rocci-cli -- run examples/rocdown/errors/parse/Broken.rocdown
 ```
 
 The CLI still prints a rustc-style frame on stderr. The preview stays up and
@@ -45,7 +45,7 @@ same: frames on stderr, error page in the preview, unless you pass `--quiet`.
 ## Roc compile error
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/errors/roc/BrokenRoc.rocdown
+cargo run -q -p rocci-cli -- run examples/rocdown/errors/roc/BrokenRoc.rocdown
 ```
 
 The document parses. Roc then rejects the generated program (a `Str` bound to

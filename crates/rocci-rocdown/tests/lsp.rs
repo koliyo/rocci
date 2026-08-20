@@ -11,7 +11,7 @@ use rocci_rocdown::RocdownAnalyzer;
 
 const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
 const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
-const BLOCKS_ROCDOWN: &str = include_str!("../../../examples/rocdown/Blocks.rocdown");
+const BLOCKS_ROCDOWN: &str = include_str!("../../../examples/rocdown/pages/Blocks.rocdown");
 
 use std::path::PathBuf;
 

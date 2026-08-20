@@ -83,8 +83,8 @@ the island binary (Debian, SQLite, no `rocci` / `rocdown` / `roc`):
 
 ```sh
 # Apple Silicon Docker → arm64musl; Intel / amd64 containers → x64musl
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
-./docker/docker-serve-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
+./docker/docker-serve-hybrid.sh examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 `package` writes `dist/`, `publish.json` (live routes and binary fingerprint),
@@ -116,7 +116,7 @@ weaken `rocci.toml` loopback validation).
 
 ```sh
 # Match the container CPU (Apple Silicon Docker → arm64musl)
-cargo run -q -p rocci-cli -- build --release examples/datastar --target arm64musl
+cargo run -q -p rocci-cli -- build --release examples/rocci/custom/datastar --target arm64musl
 ./docker/docker-serve-app.sh target/release/rocci-server
 ```
 
@@ -132,9 +132,9 @@ and WebKit, then compiles island `main.roc` at start. Use it only as a
 From the repository root:
 
 ```sh
-ROCCI_SITE="$(pwd)/examples/rocdown-counter" docker compose -f docker/compose.yml build
-./docker/docker-serve-site.sh examples/rocdown-counter
-./docker/docker-serve-site.sh examples/rocdown-hybrid
+ROCCI_SITE="$(pwd)/examples/rocdown/counter" docker compose -f docker/compose.yml build
+./docker/docker-serve-site.sh examples/rocdown/counter
+./docker/docker-serve-site.sh examples/rocdown/hybrid
 ./docker/docker-serve-site.sh /path/to/any/hybrid-site
 ```
 
@@ -191,5 +191,5 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`docker-serve-site.sh`](docker-serve-site.sh) | Absolutize `ROCCI_SITE` and toolchain `compose up` |
 
 The two-artifact production sketch (upload `dist/`, run `serve-islands`,
-reverse-proxy) is in [`examples/rocdown-counter/README.md`](../examples/rocdown-counter/README.md)
+reverse-proxy) is in [`examples/rocdown/counter/README.md`](../examples/rocdown/counter/README.md)
 and the [hybrid sites guide](../docs/guides/hybrid-sites.rocdown).

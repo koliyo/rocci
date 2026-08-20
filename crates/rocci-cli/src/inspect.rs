@@ -658,8 +658,8 @@ mod tests {
         use std::io::{Read, Write};
         use std::net::TcpStream;
 
-        let path =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/counter/Counter.rocci");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/rocci/standalone/counter/Counter.rocci");
         let page = InspectPage::from_rocci_file("/", &path).unwrap();
         assert_eq!(page.language, "rocci");
         assert!(page.path.ends_with("Counter.rocci"), "{}", page.path);

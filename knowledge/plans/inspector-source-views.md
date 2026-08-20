@@ -356,7 +356,7 @@ until a route→module map exists.
 Set `source_root` on `rocci-okf run` only if overlay Reveal should work
 there; inspect itself must not require it.[^okf-main][^source-rs]
 
-**Exit:** `--no-window` inspect JSON for `examples/counter`, a Rocdown
+**Exit:** `--no-window` inspect JSON for `examples/rocci/standalone/counter`, a Rocdown
 fixture, and a knowledge concept each matches the table. `cargo test -p
 rocci-cli`, `cargo test -p rocci-rocdown-cli` (or rocdown inspect reuse),
 and `cargo test -p rocci-okf` cover the new payload at the owning

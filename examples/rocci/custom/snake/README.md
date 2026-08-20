@@ -12,19 +12,19 @@ Pinned together:
 
 Open the start page, then spectate or join. Up to eight snakes share a **100×100** discrete grid. Walls kill; fruit grows you immediately; living snakes also gain a segment about every two seconds. The server ticks at about 8 Hz; each SSE client parks on `After(125)` and morphs the board, HUD, and minimap. WASD, arrow keys, or the on-screen pad steer. Death respawns after about two seconds.
 
-If you already ran an older build, delete `examples/snake/snake.db` (and `-wal`/`-shm`) so the `tick` column and bounded world can be created fresh.
+If you already ran an older build, delete `examples/rocci/custom/snake/snake.db` (and `-wal`/`-shm`) so the `tick` column and bounded world can be created fresh.
 
 ## Run
 
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/snake
+cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
 ```
 
-This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
+This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/rocci/custom/snake/snake.db` (created on first start). Set `DB_PATH` to use another file.
 
-`rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), stages `Html.roc` / `Datastar.roc` from the CLI runtime, copies the pinned Datastar JS into `examples/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
+`rocci run` compiles `Snake.rocci` to a Roc type module (`Snake.roc`, gitignored), stages `Html.roc` / `Datastar.roc` from the CLI runtime, copies the pinned Datastar JS into `examples/rocci/custom/snake/assets/`, and executes `main.roc`. `snake-input.js` is already in that assets folder.
 
 `Game.roc` owns ticks, collisions, food, growth, and the viewport. `main.roc` owns HTTP, cookies, SQLite, and SSE. `snake-input.js` sends `{direction, sequence}` to `POST /api/direction`.
 

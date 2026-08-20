@@ -726,7 +726,7 @@ fn semantic_tokens_malformed_and_incomplete_recovery() {
 
 #[test]
 fn semantic_tokens_counter_rocci_qualified_precision() {
-    let src = include_str!("../../../examples/counter/Counter.rocci");
+    let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
     for utf8 in [true, false] {
         let mut server = initialize(utf8);
         let uri = test_uri();

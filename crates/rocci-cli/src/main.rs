@@ -412,7 +412,7 @@ mod tests {
             "rocci",
             "build",
             "--release",
-            "examples/datastar",
+            "examples/rocci/custom/datastar",
             "--target",
             "x64musl",
             "-o",
@@ -426,7 +426,7 @@ mod tests {
                 release,
                 target,
             } => {
-                assert_eq!(input, PathBuf::from("examples/datastar"));
+                assert_eq!(input, PathBuf::from("examples/rocci/custom/datastar"));
                 assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
                 assert!(release);
                 assert_eq!(
@@ -437,8 +437,12 @@ mod tests {
             _ => panic!("expected build --release"),
         }
 
-        let cli =
-            Cli::try_parse_from(["rocci", "build", "examples/counter/Counter.rocci"]).unwrap();
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "build",
+            "examples/rocci/standalone/counter/Counter.rocci",
+        ])
+        .unwrap();
         match cli.command {
             Commands::Build {
                 release, target, ..
@@ -483,7 +487,7 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocci",
             "run",
-            "examples/counter/Counter.rocci",
+            "examples/rocci/standalone/counter/Counter.rocci",
             "--port",
             "auto",
         ])
@@ -584,13 +588,13 @@ mod tests {
             "playground",
             "--mode",
             "local",
-            "examples/rocdown/Guide.rocdown",
+            "examples/rocdown/pages/Guide.rocdown",
         ])
         .unwrap();
         match cli.command {
             Commands::Playground { mode, input, .. } => {
                 assert!(matches!(mode, PlaygroundModeArg::Local));
-                assert_eq!(input, PathBuf::from("examples/rocdown/Guide.rocdown"));
+                assert_eq!(input, PathBuf::from("examples/rocdown/pages/Guide.rocdown"));
             }
             _ => panic!("expected playground"),
         }
@@ -604,7 +608,7 @@ mod tests {
             "pin",
             "1.0.2",
             "--app",
-            "examples/datastar",
+            "examples/rocci/custom/datastar",
         ])
         .unwrap();
         match cli.command {
@@ -612,7 +616,7 @@ mod tests {
                 command: DatastarCmd::Pin { version, app },
             } => {
                 assert_eq!(version, "1.0.2");
-                assert_eq!(app, PathBuf::from("examples/datastar"));
+                assert_eq!(app, PathBuf::from("examples/rocci/custom/datastar"));
             }
             _ => panic!("unexpected command"),
         }

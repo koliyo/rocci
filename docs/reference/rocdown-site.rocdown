@@ -294,7 +294,7 @@ cargo run -p rocci-rocdown-cli -- build docs
 ```
 
 `docs/` is a `static` catalog. Hybrid fixtures such as
-`examples/rocdown-hybrid` and `examples/rocdown-counter` emit CDN HTML plus
+`examples/rocdown/hybrid` and `examples/rocdown/counter` emit CDN HTML plus
 `islands.json`; pass `--cdn-only` only when the publish has no island service.
 The SQLite counter runbook is [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/).
 
@@ -302,7 +302,7 @@ Preview with watch and live reload:
 
 ```sh
 cargo run -p rocci-rocdown-cli -- run docs
-cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid
 ```
 
 `rocdown run` writes to a temp directory by default so it does not replace

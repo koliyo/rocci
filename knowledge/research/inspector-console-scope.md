@@ -110,7 +110,7 @@ sources:
     author: process:git
     last_modified: 2026-08-20
   - id: counter
-    resource: ../../examples/counter/Counter.rocci
+    resource: ../../examples/rocci/standalone/counter/Counter.rocci
     title: Counter app handlers and pure CounterCard
     author: process:git
     last_modified: 2026-08-20
@@ -185,7 +185,7 @@ A render-time log would have to be an effect. That would:
 - Invent a product log language the original inspector plan explicitly
   refused.[^inspector-plan][^server-state]
 
-`examples/counter/Counter.rocci` shows the split already: `CounterCard` is
+`examples/rocci/standalone/counter/Counter.rocci` shows the split already: `CounterCard` is
 a pure view of `{ count }`; SQLite lives in `@on` / helpers with `!`.
 Putting `Stdout.line!` inside `CounterCard` is not expressible without
 changing lowering.[^counter][^pure-render]

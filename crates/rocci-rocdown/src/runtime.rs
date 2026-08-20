@@ -70,6 +70,8 @@ mod tests {
         assert!(!dir.join("Datastar.roc").exists());
         assert!(!DATASTAR.contains("import pf."));
         assert!(DATASTAR.contains("post ="));
+        assert!(DATASTAR.contains("post_with ="));
+        assert!(DATASTAR.contains("requestCancellation: 'disabled'"));
         assert!(dir.join("RocdownBuild.roc").is_file());
         assert!(!dir.join("RocdownModel.roc").exists());
         assert!(!dir.join("RocdownRoute.roc").exists());

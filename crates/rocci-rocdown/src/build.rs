@@ -1045,7 +1045,7 @@ pub(crate) mod tests {
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/site");
         let output = temp_dir("out");
         let report = build(&root, &output).unwrap();
         assert!(report.generated_roc_bytes > 0);
@@ -1762,7 +1762,7 @@ Static neighbor.
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-hybrid");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/hybrid");
         let first = temp_dir("hybrid-det-a");
         let second = temp_dir("hybrid-det-b");
         build(&root, &first).unwrap();
@@ -1778,7 +1778,7 @@ Static neighbor.
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-counter");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/counter");
         let output = temp_dir("counter-out");
         let report = build(&root, &output).unwrap();
         assert!(report.datastar);
@@ -1857,7 +1857,7 @@ Static neighbor.
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/site");
         let first = temp_dir("det-a");
         let second = temp_dir("det-b");
         build(&root, &first).unwrap();
@@ -1873,7 +1873,7 @@ Static neighbor.
             return;
         }
         let _lock = ROC_LOCK.lock().unwrap();
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown-site");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown/site");
         let output = temp_dir("session-out");
         let mut session = BuildSession::create().unwrap();
         let first = session.rebuild(&root, &output).unwrap();
