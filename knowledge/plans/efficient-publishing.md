@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Efficient publishing workflow for pre-built Rocdown sites and Rocci apps
-description: "Build once on a toolchain host, then host artifacts. Phase 1 serves pre-built static Rocdown trees with official Caddy and no rocci in the image. Later phases add packaging CLI, slim hybrid/app images, and musl cross-compile. Wasm stays a build-time apply host until a WASI-HTTP platform exists. Exploratory; no phase started."
+description: "Build once on a toolchain host, then host artifacts. Phase 1 serves pre-built static Rocdown trees with official Caddy and no rocci in the image. Keep rocdown build --host native|wasm. Later: package CLI, musl --target for Linux process binaries, slim hybrid/app images. Exploratory; no phase started."
 tags: [domain/rocdown, domain/rocci, concern/packaging, concern/publication, concern/architecture, integration/roc, concern/ci]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:40:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -14,6 +14,24 @@ sources:
     title: Efficient publishing of Rocdown sites and Rocci apps
     author: process:cursor
     last_modified: 2026-08-20
+  - id: host-rs
+    resource: ../../crates/rocci-roc-host/src/host.rs
+    title: HostChoice auto native wasm
+    author: process:git
+    last_modified: 2026-08-18
+  - id: dispatch-rs
+    resource: ../../crates/rocci-cli/src/dispatch.rs
+    title: Generated apps use basic-webserver 0.16.0
+    author: process:git
+    last_modified: 2026-08-19
+  - id: basic-cli-platform
+    resource: https://github.com/roc-lang/basic-cli/blob/main/platform/main.roc
+    title: basic-cli native targets without wasm32
+    author: organization:roc-lang
+  - id: roc-cross-ci
+    resource: https://github.com/roc-lang/roc/blob/main/.github/workflows/ci_cross_compile.yml
+    title: Roc compiler CI cross-compiles musl from macOS hosts
+    author: organization:roc-lang
   - id: docker-readme
     resource: ../../docker/README.md
     title: Hybrid Docker images
@@ -166,11 +184,18 @@ Phase 1 supports **pre-built static Rocdown sites only**.
 | Two artifacts stay two | When `live` packaging lands, CDN tree and island process stay separate. Do not fold Caddy into the process image as the default.[^hybrid-guide][^hosting-follow-ons] |
 | `--cdn-only` gate | A static publish errors on `live` pages (`RD2302`). No silent dead buttons.[^build-rs][^hybrid-plan] |
 | Three CLIs | No plugin host, no `rocci deploy` adapter lifecycle. Packaging emits files; operators upload them.[^cli-plan][^rocci-dev-site] |
+| `--host` stays dual | `rocdown build --host auto|native|wasm` is shipped and must remain. Native apply is not optional: `basic-cli` and `basic-webserver` have no `wasm32`.[^rocdown-cli][^host-rs][^basic-cli-platform] |
+| `--host` ≠ `--target` | `--host` is how apply runs on the build machine. `--target` (not a flag today) is the native ISA/OS for process binaries that will run elsewhere. Do not pass musl `--target` into Mac apply.[^research][^host-rs] |
 | Wasm is apply, not HTTP | `--host wasm` remains a renderer. Do not claim Wasm site hosting until a WASI-HTTP (or equivalent) platform exists.[^wasm-platform][^roc-host-readme][^generation-plan] |
 | OKF stays local-first | Do not add a public knowledge deploy or verbatim bundle archive here.[^publication] |
 | Hybrid Compose remains | Do not delete today's toolchain Compose until a replacement hybrid path exists. It is the live-island operator demo, not the static publish path.[^compose][^docker-readme] |
 
 ## Current evidence
+
+`rocdown build --host auto|native|wasm` already selects the apply runtime.
+Native uses `basic-cli` without `--target`. Wasm uses the custom wasm32
+platform. `[build].host` and `ROCCI_HOST` are the same enum. The public
+CLI reference does not yet document `--host`.[^rocdown-cli][^host-rs][^cli-docs][^build-rs]
 
 `rocdown build` already writes a complete `dist/`. `inspect artifacts`
 prints the publish report without Roc. `run` always rebuilds. There is no
@@ -283,38 +308,45 @@ apply hosts; add a fourth product CLI.
 - `cargo test -p rocci-rocdown` and `cargo test -p rocci-rocdown-cli`.
 - `cargo fmt --all -- --check`.
 
-### Phase 3 — Cross-compile native process artifacts for Linux
+### Phase 3 — Keep `--host`, add native `--target` for process binaries
 
 **Gate:** Phase 1 is the documented static host path, and either (a) a
 reviewer wants Linux island/app binaries produced on macOS, or (b)
 hosting-follow-ons Phase 2 is about to land and needs a target triple.
 
-**Bound:** `rocdown build` / island compile and `rocci` server compile can
-request a basic-cli native target (`x64musl`, `arm64musl`, and today's
-host) so the **process** artifact matches a Linux container. HTML output
-stays host-agnostic regardless of this flag.[^build-rs][^research]
+**Bound:** `rocdown build` keeps `--host auto|native|wasm` for apply.
+A separate native target flag (name bikesheddable: `--target`,
+`--native-target`) is passed through to `roc build --target=` for
+**island and app** `main.roc` only. Apply `--host native` always builds
+a binary the current OS can exec. HTML output stays host-agnostic
+regardless of process target.[^build-rs][^research][^host-rs][^roc-cross-ci]
 
 **Does:**
 
-- Document that `--host wasm` does not produce a hosted Wasm server.
-- Pass through `roc build --target` for island/app `main.roc` when a
-  publish target is set. Do not wait on `basic-cli` `wasm32`.[^wasm-platform]
+- Document `--host` on the public CLI and site references. State that
+  `--host wasm` does not produce a hosted Wasm server and that some
+  platforms cannot compile to wasm, so native remains required.[^cli-docs][^basic-cli-platform]
+- Pass `roc build --target=x64musl` (and `arm64musl` when the pinned
+  platform tarball actually ships that host) for island/app process
+  artifacts. On failure, error with the Roc output; do not fall back to
+  a Mac binary silently.[^dispatch-rs][^roc-cross-ci]
 - Record the triple in `publish.json` when a binary is emitted (Phase 4
-  will emit it; this phase may only land the flag and tests on a stub or
-  on `rocci bundle`'s `build_roc_server`).[^bundle-rs]
+  will emit it; this phase may land the flag on `rocci bundle`'s
+  `build_roc_server` first).[^bundle-rs]
+- Do not wait on `basic-cli` or `basic-webserver` `wasm32`.[^wasm-platform]
 
 **Does not:** add WASI-HTTP; put `components.wasm` in `dist/` as a
-runtime; change default local `run` target.
+runtime; change default local `run` to wasm; remove `--host native`.
 
 **Owner:** `rocci-cli` driver / `rocci-rocdown` island compile, plus
 docs.
 
 **Out of bound:** Docker slim hybrid (Phase 4); desktop notarization.
 
-**Tests / Exit:** On a machine with `roc`, a documented target builds a
-non-host binary or skips with a clear error if the nightly cannot
-cross-compile. README states musl is the Linux container target, Wasm is
-apply-only.
+**Tests / Exit:** `--host native` and `--host wasm` both still write
+`dist/` on the build OS. A documented `--target x64musl` either produces
+a Linux binary or fails clearly. README states musl is the Linux
+container process target; `--host` is apply-only.
 
 ### Phase 4 — Slim Docker for precompiled hybrid sites
 
@@ -430,7 +462,7 @@ that revision.
 - Reopening OKF public deployment.[^publication]
 - `@island` grammar.
 - Embedding the Roc compiler in Rust.
-- Making `--host wasm` the default site build.
+- Making `--host wasm` the default site build, or removing `--host native`.
 - One kitchen-sink image that is both builder and production server.
 - Production signing, notarization, and installers (desktop guide
   already names these as absent).[^desktop-guide]
@@ -442,21 +474,21 @@ that revision.
 - Replacing `rocdown run` preview. Preview still rebuilds; publish
   serving does not.
 
-[^research]: Artifact split, Docker toolchain cost, Wasm-as-apply, tooling gaps.
+[^research]: Artifact split; `--host` vs `--target`; native required; Mac apply cannot be musl.
 [^docker-readme]: Current images build and serve hybrid sites from mounted sources.
 [^runtime-dockerfile]: rustup, release CLIs, Roc nightly, WebKit.
 [^compose]: `site-build` / `islands` / `cdn`; `ROCCI_SITE` sources.
 [^caddyfile]: Hybrid reverse_proxy plus `file_server` of `dist/`.
-[^build-rs]: `dist/` apply, `--cdn-only`, `--host wasm`, publish report, musl named in wasm hint.
+[^build-rs]: `dist/` apply, `--cdn-only`, `--host wasm|native`, native apply omits `--target`.
 [^plan-rs]: `publish_pages`, `islands.json`.
 [^service-rs]: Islands still compile from site sources at start.
-[^rocdown-cli]: No package or serve-from-dist today.
+[^rocdown-cli]: `build --host auto|native|wasm`; no process `--target` or serve-from-dist today.
 [^rocdown-readme]: Build and inspect artifacts contracts.
 [^bundle-rs]: macOS-only bundle; compiled `server` inside the app.
 [^rocci-cli-readme]: Bundle and playground wasm.
 [^hybrid-guide]: Two-artifact production sketch; Compose is an operator check.
 [^desktop-guide]: Roc-free macOS runtime; other OS packaging absent.
-[^cli-docs]: Public `rocdown` command list.
+[^cli-docs]: Public `rocdown` command list omits `--host`.
 [^site-docs]: `--cdn-only`, `inspect artifacts`, `islands.json`.
 [^hosting-follow-ons]: Headless CLI, precompiled islands, CORS; not static-first Docker.
 [^hybrid-plan]: CDN-only vs live; `docs/` static.
@@ -467,3 +499,7 @@ that revision.
 [^rocci-dev-site]: No deploy-plugin product.
 [^cli-plan]: Three CLIs; no plugin host.
 [^docs-config]: `docs/` output `../dist/docs`.
+[^host-rs]: `HostChoice::{Auto,Native,Wasm}`; native cache key is host ARCH.
+[^dispatch-rs]: Generated HTTP apps pin basic-webserver 0.16.0.
+[^basic-cli-platform]: Native targets only; no wasm32.
+[^roc-cross-ci]: Compiler CI builds musl apps from macOS hosts.

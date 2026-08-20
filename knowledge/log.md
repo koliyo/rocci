@@ -2,6 +2,7 @@
 
 ## 2026-08-20
 
+- Revised [efficient publishing research](research/efficient-publishing.md) and [plan](plans/efficient-publishing.md): keep `rocdown build --host native|wasm` (native required; `basic-cli` / `basic-webserver` have no `wasm32`). Distinguish `--host` (apply on the build machine) from Roc `--target` (native ISA/OS for island/app binaries). Compiler CI can emit `x64musl` from macOS; do not musl-cross apply on a Mac. Exploratory; no phase started.
 - Added draft [native macOS app for rocci-browser](research/rocci-browser-macos-app.md) research and [implementation plan](plans/rocci-browser-macos-app.md): delete the crossterm `tui` front; keep graphical `preview()` plus headless `open --no-window`; assemble an ad-hoc Finder `Rocci Browser.app` that does not reuse `rocci bundle` or copy product adapters. GUI launch repairs PATH and ignores cwd `/` for repo-local files. Production notarization stays later. Exploratory; no phase started; Phase 3 waits on an ad-hoc-app gate.
 - Added draft [efficient publishing research](research/efficient-publishing.md) and [implementation plan](plans/efficient-publishing.md): build-once artifact hosting; Phase 1 is official Caddy over a host-built static Rocdown `dist/` (no `rocci`/`roc`/WebKit in the serve image). Later phases: `package` / serve-from-dist, musl cross-compile, slim hybrid and app images. Wasm remains a build-time apply host, not a portable HTTP runtime, until a WASI-HTTP gate. Does not reopen OKF public deploy. Exploratory; no phase started.
 
