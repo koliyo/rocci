@@ -9,7 +9,6 @@ use clap::{Parser, Subcommand};
 use rocci_browser::{Host, OpenRequest, Opened, Paths, Registry};
 use serde_json::json;
 
-mod tui;
 mod window;
 
 #[derive(Parser)]
@@ -37,19 +36,12 @@ enum Commands {
     Remove { query: String },
     /// List registered projects and probe labels.
     List,
-    /// Fuzzy-open a target without a TUI.
+    /// Fuzzy-open a target without a preview window.
     Open {
         query: String,
         #[arg(long)]
         document: Option<String>,
         /// Skip a preview window; print the origin and keep serving.
-        #[arg(long)]
-        no_window: bool,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Interactive two-stage picker.
-    Tui {
         #[arg(long)]
         no_window: bool,
         #[arg(long)]
@@ -125,13 +117,6 @@ fn main() -> Result<()> {
             })?;
             emit_open(&opened, no_window, json)?;
             keep_serving(&mut host, no_window)?;
-        }
-        Some(Commands::Tui { no_window, json }) => {
-            let mut host = Host::connect(paths)?;
-            print_warnings(&host.warnings);
-            if tui::run(&mut host, no_window, json)?.is_some() {
-                keep_serving(&mut host, no_window)?;
-            }
         }
     }
     Ok(())
