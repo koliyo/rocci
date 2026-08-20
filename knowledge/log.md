@@ -2,6 +2,7 @@
 
 ## 2026-08-20
 
+- Reordered [rocci.dev deploy](plans/rocci-dev-publish.md): CI artifact push (Phase 3) comes before Tunnel hostname routing (Phase 4). No manual `site.tgz` copy. Implemented `site.yml` deploy, `push-release.sh`, and `publish.sh`. Not logged complete until that workflow succeeds on `main`.
 - Implemented Phase 2 origin files for [rocci.dev deploy](plans/rocci-dev-publish.md): `docker/prod/` wrapper (absolute dist/islands context, `up.sh`, SQLite volume copy-out). Tunnel hostname route and first artifact unpack on the VPS remain operator steps. Not logged complete until off-box smoke curls succeed.
 - Fixed CI failures on `main` after Phase 1: clippy on generated `NodeKind` / duplicated `dead_code` allows; Git LFS checkout so the desktop icon PNG is a real file in Actions. Ubuntu `ld` bus errors looked like runner OOM, not a crate test.
 - Implemented Phase 1 of [rocci.dev deploy](plans/rocci-dev-publish.md): `check site` in fixtures-and-docs / `ci-local.sh`, package-only `.github/workflows/site.yml` (`package site --target x64musl`, linux/amd64 artifacts, no SSH), and README that names `site/` → `dist/rocci.dev`. Not logged complete until CI and Knowledge workflows succeed on this revision.

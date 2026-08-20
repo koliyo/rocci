@@ -1,4 +1,4 @@
-name: Site package
+name: Site
 
 on:
   push:
@@ -22,7 +22,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -45,6 +45,7 @@ jobs:
           link_dir="$HOME/.local/bin"
           mkdir -p "$prefix" "$link_dir"
           ROC_PREFIX="$prefix" ROC_LINK_DIR="$link_dir" ./docker/install-roc.sh
+          echo "$prefix" >> "$GITHUB_PATH"
           echo "$link_dir" >> "$GITHUB_PATH"
       - name: Package hybrid site
         run: cargo run -q -p rocci-rocdown-cli -- package site --target x64musl
@@ -57,3 +58,31 @@ jobs:
             dist/site.tgz
             dist/islands
             dist/rocci.dev/publish.json
+
+  deploy:
+    name: Push artifacts (production)
+    needs: package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: rocci-dev-linux-amd64
+          path: artifacts
+      - name: SSH and rsync to origin
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy"
+          chmod 600 "$HOME/.ssh/deploy"
+          ssh-keyscan -T 10 "$DEPLOY_HOST" >> "$HOME/.ssh/known_hosts"
+          export RSYNC_RSH="ssh -i $HOME/.ssh/deploy -o IdentitiesOnly=yes"
+          export DEPLOY_HOST DEPLOY_USER
+          ./docker/prod/push-release.sh artifacts "$GITHUB_SHA"
