@@ -71,6 +71,72 @@ fn parity_composite_rocci_snippet() {
 }
 
 #[test]
+fn page_record_highlights_fields_and_string_values() {
+    let src = include_str!("../../../test/AllSyntax.rocdown");
+    let spans = rocci_rocdown::highlight_rocdown(src);
+    let end = src.find("\n@roc").unwrap_or(src.len());
+    let page = &src[..end];
+    let texts: Vec<_> = spans
+        .iter()
+        .filter(|s| s.end() <= end)
+        .map(|s| (s.kind, &src[s.start()..s.end()]))
+        .collect();
+    assert!(
+        texts.iter().any(|(kind, text)| {
+            *kind == rocci_highlight::HighlightKind::Keyword && *text == "@page"
+        }),
+        "{texts:?}"
+    );
+    for field in [
+        "route",
+        "draft",
+        "theme",
+        "color_scheme",
+        "meta",
+        "title",
+        "description",
+    ] {
+        assert!(
+            texts.iter().any(|(kind, text)| {
+                *kind == rocci_highlight::HighlightKind::Property && *text == field
+            }),
+            "expected property {field}: {texts:?}"
+        );
+    }
+    for value in [
+        "\"/all-syntax/\"",
+        "\"paper\"",
+        "\"auto\"",
+        "\"All syntax\"",
+        "\"Rocdown kitchen sink\"",
+    ] {
+        assert!(
+            texts.iter().any(|(kind, text)| {
+                *kind == rocci_highlight::HighlightKind::String && *text == value
+            }),
+            "expected string {value}: {texts:?}"
+        );
+    }
+    assert!(
+        texts.iter().any(|(kind, text)| {
+            matches!(
+                *kind,
+                rocci_highlight::HighlightKind::Keyword
+                    | rocci_highlight::HighlightKind::EnumMember
+            ) && *text == "False"
+        }),
+        "{texts:?}"
+    );
+    assert!(
+        !texts
+            .iter()
+            .any(|(_, text)| page.contains("\"/all-syntax/\"")
+                && (*text == "all" || *text == "syntax")),
+        "path-like @page string was split: {texts:?}"
+    );
+}
+
+#[test]
 fn parity_composite_rocdown_snippet() {
     let snippet = "# Header\n\n```roc\nx = 1\n```\n";
     let spans = rocci_rocdown::highlight_rocdown(snippet);
