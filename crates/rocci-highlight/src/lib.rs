@@ -1,13 +1,16 @@
 pub mod composite;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
+pub mod html;
 pub mod language;
+pub mod markdown;
 pub mod regions;
 pub mod token;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod tree_sitter;
 
 pub use composite::{highlight, highlight_rocci, highlight_rocci_document};
+pub use html::{escape_html, render_spans};
 pub use language::LanguageId;
 pub use regions::{
     Region, RegionBuilder, RegionContext, RegionPurpose, RegionTree, RegionValidationError,
@@ -58,5 +61,22 @@ mod tests {
         );
         assert_eq!(lang, LanguageId::Rocci);
         assert!(!spans.is_empty());
+    }
+
+    #[test]
+    fn test_highlight_markdown_snippet() {
+        let (lang, spans) = highlight_source("markdown", "---\ntitle: Hi\n---\n\n# Hello\n");
+        assert_eq!(lang, LanguageId::Markdown);
+        assert!(!spans.is_empty());
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.kind.css_class() == "tok-property")
+        );
+        assert!(
+            spans
+                .iter()
+                .any(|span| span.kind.css_class() == "tok-keyword")
+        );
     }
 }
