@@ -656,13 +656,15 @@ mod tests {
         assert!(html.contains("min-height: 0"));
         assert!(html.contains("overflow: hidden"));
         assert!(html.contains(
-            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: auto;\n        overflow-y: auto;"
+            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: auto;\n        overflow-y: auto;\n        scrollbar-gutter: stable;"
         ));
         assert!(html.contains("padding: 0 88px 0 8px"));
         assert!(html.contains("visually-hidden"));
         assert!(html.contains("aria-label=\"View\""));
         assert!(html.contains(".inspector-body.tab-source {\n        padding: 8px 10px;"));
         assert!(html.contains("pre {\n        margin: 0;"));
+        assert!(html.contains("width: max-content"));
+        assert!(html.contains("min-width: 100%"));
         assert!(html.contains("overflow: visible"));
         assert!(html.contains("white-space: pre"));
         assert!(html.contains("expose"));

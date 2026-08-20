@@ -278,6 +278,7 @@ samplePage = {
         min-width: 0;
         overflow-x: auto;
         overflow-y: auto;
+        scrollbar-gutter: stable;
     }
     .inspector-body h1 {
         margin: 0 0 8px;
@@ -426,6 +427,9 @@ samplePage = {
         margin: 0;
         padding: 10px 12px;
         overflow: visible;
+        box-sizing: border-box;
+        width: max-content;
+        min-width: 100%;
         background: light-dark(#ececee, #15181e);
         border-radius: 6px;
         font-family: ui-monospace, Menlo, Consolas, monospace;
