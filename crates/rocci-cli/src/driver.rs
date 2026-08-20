@@ -2,6 +2,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::{Child, Command},
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -12,6 +13,7 @@ use sha2::{Digest, Sha256};
 use crate::datastar_asset;
 use crate::dispatch::{self, DispatchOptions, DispatchSource};
 use crate::error_page::{self, FailedFile, MappedModule};
+use crate::logs::{self, LogHub, LogLevel};
 use crate::profile::{ProfileSnapshot, ProfileSpan};
 use crate::roc_module::wrap_type_module;
 use crate::runtime_assets;
@@ -274,7 +276,8 @@ pub fn execute_resolved_entry(
     let url = format!("http://127.0.0.1:{port}/");
     let cmd = roc_command(&invocation, port);
     let roc_started = Instant::now();
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    let logs = Arc::new(LogHub::new());
+    let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
     match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
         serve::RocStart::Ready => {
             let compile_ms = roc_started.elapsed().as_millis();
@@ -286,9 +289,11 @@ pub fn execute_resolved_entry(
                     note: None,
                 }],
             });
-            println!(
-                "{}",
-                style::serving(&invocation.app_dir.display().to_string(), &url)
+            tee.flush_to_hub();
+            logs::tee(
+                &logs,
+                LogLevel::Info,
+                style::serving(&invocation.app_dir.display().to_string(), &url),
             );
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
@@ -300,6 +305,7 @@ pub fn execute_resolved_entry(
                 live_reload,
                 Some(inspect),
                 None,
+                Some(logs),
             )
         }
         serve::RocStart::Failed(output) => {
@@ -404,7 +410,8 @@ pub fn invoke_standalone(
         cmd.env("DB_PATH", db_path);
     }
     let roc_started = Instant::now();
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    let logs = Arc::new(LogHub::new());
+    let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
     match serve::wait_for_roc(&mut child, &mut tee, port, &path)? {
         serve::RocStart::Ready => {
             let compile_ms = roc_started.elapsed().as_millis();
@@ -416,7 +423,8 @@ pub fn invoke_standalone(
                     note: None,
                 }],
             });
-            println!("{}", style::serving(title, &url));
+            tee.flush_to_hub();
+            logs::tee(&logs, LogLevel::Info, style::serving(title, &url));
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
             serve::with_window_and_inspector(
@@ -427,6 +435,7 @@ pub fn invoke_standalone(
                 live_reload,
                 Some(inspect),
                 state_key,
+                Some(logs),
             )
         }
         serve::RocStart::Failed(output) => {

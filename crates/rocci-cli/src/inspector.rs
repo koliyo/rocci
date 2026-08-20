@@ -321,6 +321,13 @@ pub struct InspectorServer {
 
 impl InspectorServer {
     pub fn spawn(snapshot: impl Into<InspectSnapshot>) -> Result<Self> {
+        Self::spawn_with_logs(snapshot, Arc::new(LogHub::new()))
+    }
+
+    pub fn spawn_with_logs(
+        snapshot: impl Into<InspectSnapshot>,
+        logs: Arc<LogHub>,
+    ) -> Result<Self> {
         let listener = TcpListener::bind("127.0.0.1:0").context("failed to bind inspector")?;
         listener
             .set_nonblocking(true)
@@ -329,7 +336,6 @@ impl InspectorServer {
         let url = format!("http://127.0.0.1:{port}/__rocci/dev");
         let stop = Arc::new(AtomicBool::new(false));
         let store = Arc::new(Mutex::new(snapshot.into()));
-        let logs = Arc::new(LogHub::new());
         let thread_stop = stop.clone();
         let thread_store = store;
         let thread_logs = logs.clone();
@@ -835,6 +841,49 @@ mod tests {
         assert_eq!(value[0]["source"], "runtime");
         assert_eq!(value[0]["level"], "info");
 
+        for line in crate::serve::stderr_log_lines("Found 0 errors and 0 warnings for main.roc.\n")
+        {
+            server.logs.push_line(line);
+        }
+        crate::logs::tee(
+            &server.logs,
+            crate::logs::LogLevel::Info,
+            "serving counter at http://127.0.0.1:8000",
+        );
+        let mut flushed = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        flushed
+            .write_all(
+                b"GET /__rocci/logs HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+            )
+            .unwrap();
+        let mut flushed_response = String::new();
+        flushed.read_to_string(&mut flushed_response).unwrap();
+        let flushed_body = flushed_response.split("\r\n\r\n").nth(1).unwrap_or("");
+        let flushed_value: serde_json::Value = serde_json::from_str(flushed_body).unwrap();
+        let texts: Vec<&str> = flushed_value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| line["text"].as_str().unwrap())
+            .collect();
+        assert!(texts.contains(&"rebuild done"), "{flushed_value}");
+        assert!(
+            texts.contains(&"Found 0 errors and 0 warnings for main.roc."),
+            "{flushed_value}"
+        );
+        assert!(
+            texts.contains(&"serving counter at http://127.0.0.1:8000"),
+            "{flushed_value}"
+        );
+        assert!(
+            flushed_value
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|line| line["source"] == "runtime"),
+            "{flushed_value}"
+        );
+
         let mut panel = TcpStream::connect(("127.0.0.1", port)).unwrap();
         panel
             .write_all(b"GET /__rocci/dev?tab=console HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
@@ -856,6 +905,47 @@ mod tests {
         let head = String::from_utf8_lossy(&headers[..n]);
         assert!(head.contains("text/event-stream"), "{head}");
         assert!(head.contains("event: log") || head.contains("HTTP/1.1 200 OK"));
+    }
+
+    #[test]
+    fn inspector_server_serves_hub_created_before_spawn() {
+        use std::io::{Read, Write};
+
+        let logs = Arc::new(LogHub::new());
+        for line in crate::serve::stderr_log_lines("Found 0 errors and 0 warnings for main.roc.\n")
+        {
+            logs.push_line(line);
+        }
+        crate::logs::tee(
+            &logs,
+            crate::logs::LogLevel::Info,
+            "serving app at http://127.0.0.1:1",
+        );
+        let server = InspectorServer::spawn_with_logs(sample_inspect(), logs).unwrap();
+        let port: u16 = server
+            .url
+            .trim_start_matches("http://127.0.0.1:")
+            .trim_end_matches("/__rocci/dev")
+            .parse()
+            .unwrap();
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client
+            .write_all(
+                b"GET /__rocci/logs HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+            )
+            .unwrap();
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        let body = response.split("\r\n\r\n").nth(1).unwrap_or("");
+        let value: serde_json::Value = serde_json::from_str(body).unwrap();
+        assert_eq!(
+            value[0]["text"],
+            "Found 0 errors and 0 warnings for main.roc."
+        );
+        assert_eq!(value[0]["source"], "runtime");
+        assert_eq!(value[1]["text"], "serving app at http://127.0.0.1:1");
+        assert_eq!(value[1]["source"], "runtime");
+        assert_eq!(value[1]["level"], "info");
     }
 
     #[test]

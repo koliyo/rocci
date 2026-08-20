@@ -3,6 +3,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
 };
 
 use anyhow::{Context, Result, bail};
@@ -13,6 +14,7 @@ use rocci_template::{
 
 use crate::datastar_asset;
 use crate::error_page::{self, FailedFile, ListedRoute, MappedModule};
+use crate::logs::{self, LogHub, LogLevel};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
@@ -121,13 +123,16 @@ pub fn view(
     cmd.arg("main.roc")
         .current_dir(&workspace.path)
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
-    let (mut child, mut tee) = serve::spawn_roc(cmd)?;
+    let logs = Arc::new(LogHub::new());
+    let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
     let title = format!("rocci view · {}", info.name);
     match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
         serve::RocStart::Ready => {
-            println!(
-                "{}",
-                style::viewing(&format!("{} from {}", info.name, input.display()), &url)
+            tee.flush_to_hub();
+            logs::tee(
+                &logs,
+                LogLevel::Info,
+                style::viewing(&format!("{} from {}", info.name, input.display()), &url),
             );
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(
                 crate::profile::ProfileSnapshot::default(),
@@ -142,6 +147,7 @@ pub fn view(
                 live_reload,
                 Some(inspect),
                 None,
+                Some(logs),
             )
         }
         serve::RocStart::Failed(output) => {
