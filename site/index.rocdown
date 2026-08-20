@@ -94,7 +94,7 @@ import Origin
             }
         },
     )
-    counterCard({ count: count_row.value, clicks })
+    counterPanel({ count: count_row.value, clicks })
 }
 
 @on:post("/actions/counter/increment") = |{ db }, request| {
@@ -202,19 +202,12 @@ import Origin
             }
         },
     )
-    counterCard({ count: count_row.value, clicks })
+    counterPanel({ count: count_row.value, clicks })
 }
 
 @component
-CounterCard = |{ count, clicks }| {
+CounterPanel = |{ count, clicks }| {
     @css {
-        section {
-            margin: 1.25rem 0 0;
-            padding: 1.15rem 1.25rem;
-            border: 1px solid var(--line);
-            border-radius: 16px;
-            background: var(--surface);
-        }
         .eyebrow {
             margin: 0 0 0.35rem;
             color: var(--accent);
@@ -231,22 +224,6 @@ CounterCard = |{ count, clicks }| {
             font-weight: 650;
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.04em;
-        }
-        .actions {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1.25rem;
-        }
-        button {
-            appearance: none;
-            border: 0;
-            border-radius: 10px;
-            padding: 0.7rem 1rem;
-            background: var(--accent);
-            color: var(--canvas);
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
         }
         .feed {
             margin: 1.35rem 0 0;
@@ -290,31 +267,15 @@ CounterCard = |{ count, clicks }| {
             font-size: 0.8rem;
             white-space: nowrap;
         }
-        .privacy {
-            margin: 1rem 0 0;
-            color: var(--muted);
-            font-size: 0.8rem;
-            line-height: 1.45;
-        }
         .empty {
             margin: 1rem 0 0;
             color: var(--muted);
             font-size: 0.9rem;
         }
     }
-    <section
-        id="counter"
-        class="counter-card"
-        data-signals="{tz: '', handle: ''}"
-        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
-    >
+    <div id="counter-panel">
         <p class="eyebrow">Live shared count</p>
         <output>{count.to_str()}</output>
-        <div class="actions">
-            <button type="button" data-on:click=@post("/actions/counter/increment")>
-                Increment
-            </button>
-        </div>
         @if List.is_empty(clicks) {
             <p class="empty">No clicks yet - be the first visitor.</p>
         } @else {
@@ -331,6 +292,54 @@ CounterCard = |{ count, clicks }| {
                 }
             </ul>
         }
+    </div>
+}
+
+@component
+CounterCard = |{ count, clicks }| {
+    @css {
+        section {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--surface);
+        }
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--accent);
+            color: var(--canvas);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .privacy {
+            margin: 1rem 0 0;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+    }
+    <section
+        id="counter"
+        class="counter-card"
+        data-signals="{tz: '', handle: ''}"
+        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
+    >
+        <CounterPanel count={count} clicks={clicks} />
+        <div class="actions">
+            <button type="button" data-on:click=@post("/actions/counter/increment")>
+                Increment
+            </button>
+        </div>
         <p class="privacy">
             Origin comes from your browser timezone and a session nickname - no IP address is stored.
         </p>
@@ -358,8 +367,8 @@ The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last
 
 ```rocci
 @on:post("/actions/counter/increment") = |{ db }, request| {
-    # read tz + handle signals, insert click, morph #counter
-    counterCard({ count, clicks })
+    # read tz + handle signals, insert click, morph #counter-panel
+    counterPanel({ count, clicks })
 }
 ```
 

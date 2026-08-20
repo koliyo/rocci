@@ -75,7 +75,7 @@ curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
 ```
 
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment, and
-confirm `#counter output` morphs. Dev inspector:
+confirm `#counter-panel output` morphs (buttons stay outside the panel). Dev inspector:
 [http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev).
 While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
 `dist/` above.
