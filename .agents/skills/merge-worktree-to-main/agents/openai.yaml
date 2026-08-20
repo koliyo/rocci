@@ -1,0 +1,4 @@
+interface:
+  display_name: "Merge worktree to main"
+  short_description: "Commit leftover worktree changes, rebase onto main, then merge with a merge commit"
+  default_prompt: "Use $merge-worktree-to-main to commit remaining worktree changes, rebase onto main, and merge that branch into main with --no-ff."
