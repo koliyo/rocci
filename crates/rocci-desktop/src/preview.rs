@@ -144,6 +144,10 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::LiveReload(enabled)));
                     }
+                    Some(IpcMessage::Devtools(open)) => {
+                        let _ =
+                            ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Devtools(open)));
+                    }
                     Some(IpcMessage::InspectorPrefs(json)) => {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json)));
@@ -188,6 +192,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let mut modifiers = ModifiersState::empty();
     let save_key = state_key.clone();
     let source_root = options.source_root.clone();
+    let devtools_enabled = options.devtools;
     let mut last_persist = Instant::now() - Duration::from_secs(1);
     event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -273,6 +278,17 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::LiveReload(enabled))) => {
                 menu.set_live_reload_checked(enabled);
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Devtools(open))) => {
+                if devtools_enabled {
+                    if open {
+                        if !live.webview.is_devtools_open() {
+                            live.webview.open_devtools();
+                        }
+                    } else if live.webview.is_devtools_open() {
+                        live.webview.close_devtools();
+                    }
+                }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json))) => {
                 if let Some(state) = crate::state::parse_inspector_state_json(&json) {

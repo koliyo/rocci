@@ -239,7 +239,7 @@ samplePage = {
         display: flex;
         gap: 0;
         border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
-        padding: 0 88px 0 8px;
+        padding: 0 114px 0 8px;
     }
     .inspector-tabs a {
         padding: 10px 12px;

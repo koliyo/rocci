@@ -12,6 +12,7 @@ pub enum IpcMessage {
     Reveal(String),
     CopySource(String),
     LiveReload(bool),
+    Devtools(bool),
     InspectorPrefs(String),
 }
 
@@ -38,6 +39,9 @@ impl IpcMessage {
         }
         if let Some(value) = message.strip_prefix("live-reload:") {
             return Some(Self::LiveReload(value == "1"));
+        }
+        if let Some(value) = message.strip_prefix("devtools:") {
+            return Some(Self::Devtools(value == "1"));
         }
         if let Some(json) = message.strip_prefix("inspector-prefs:") {
             return Some(Self::InspectorPrefs(json.to_string()));
@@ -215,6 +219,14 @@ mod tests {
         assert_eq!(
             IpcMessage::parse("live-reload:1"),
             Some(IpcMessage::LiveReload(true))
+        );
+        assert_eq!(
+            IpcMessage::parse("devtools:1"),
+            Some(IpcMessage::Devtools(true))
+        );
+        assert_eq!(
+            IpcMessage::parse("devtools:0"),
+            Some(IpcMessage::Devtools(false))
         );
         assert_eq!(
             IpcMessage::parse(r#"inspector-prefs:{"open":true,"dock":"bottom"}"#),

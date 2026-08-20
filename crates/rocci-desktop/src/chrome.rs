@@ -207,6 +207,10 @@ mod tests {
             PREVIEW_NAV_JS.contains("rocci-preview-dev .rocci-dev-docks { position: absolute;")
         );
         assert!(PREVIEW_NAV_JS.contains("Open as page"));
+        assert!(PREVIEW_NAV_JS.contains("Web Inspector"));
+        assert!(PREVIEW_NAV_JS.contains("ICON_WEB_INSPECTOR"));
+        assert!(PREVIEW_NAV_JS.contains("devtools:1"));
+        assert!(PREVIEW_NAV_JS.contains("devtools:0"));
         assert!(PREVIEW_NAV_JS.contains("ICON_DOCK_RIGHT"));
         assert!(PREVIEW_NAV_JS.contains("persistPrefs"));
         assert!(PREVIEW_NAV_JS.contains("inspector-prefs:"));
@@ -346,6 +350,7 @@ mod tests {
         assert!(readme.contains("bottom"));
         assert!(readme.contains("inspector.json"));
         assert!(readme.contains("Open as page"));
+        assert!(readme.contains("Web Inspector"));
         assert!(readme.contains("DevTools-style icons"));
         assert!(readme.contains("does not assign `iframe.src` for a Source `view`-only change"));
         assert!(!readme.contains("undock"));
