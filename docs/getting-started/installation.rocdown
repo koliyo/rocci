@@ -37,7 +37,7 @@ Confirm that the configuration parser and template compiler run:
 
 ```sh
 cargo run -p rocci-cli -- validate
-cargo run -p rocci-cli -- build examples/styling/Styling.rocci
+cargo run -p rocci-cli -- build examples/rocci/standalone/styling/Styling.rocci
 ```
 
 ## Platform notes
@@ -62,7 +62,7 @@ yet, but development runs use the same local HTTP and window model.
 Run the starter counter:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 ```
 
 The command prints a local URL and opens a window. To use only your browser,

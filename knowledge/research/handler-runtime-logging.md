@@ -65,7 +65,7 @@ sources:
     author: process:git
     last_modified: 2026-08-20
   - id: counter
-    resource: ../../examples/counter/Counter.rocci
+    resource: ../../examples/rocci/standalone/counter/Counter.rocci
     title: Effectful @on helpers versus pure CounterCard
     author: process:git
     last_modified: 2026-08-20
@@ -256,8 +256,8 @@ stream. Different product.
    as the supported way to target the Rocci runtime Console and CLI. Discard
    `StderrErr` with `match` when the handler also uses other `?` errors
    (SQLite and stderr do not share one error type). Documented in the Rocci
-   reference and server-actions guide; demonstrated in `examples/counter` and
-   `examples/rocdown-counter`.
+   reference and server-actions guide; demonstrated in `examples/rocci/standalone/counter` and
+   `examples/rocdown/counter`.
 2. **Next implementation (if wanted):** option **B**, then optional **C**.
    Extend `LogLine` (or `push_line`) so Console can badge `app` without
    renaming JSON fields the pane already reads.
@@ -283,7 +283,7 @@ scheduled. Writing this report does not start that plan.
 Draft and exploratory on the **product** choices (prefix protocol, `log!`,
 `source: app`). **Shipped authoring path:** `pf.Stderr.line!` in `@on` /
 `@init` is documented in the Rocci reference and server-actions guide, and
-demonstrated in `examples/counter` and `examples/rocdown-counter`.
+demonstrated in `examples/rocci/standalone/counter` and `examples/rocdown/counter`.
 
 [^console-scope]: Runtime-only Console; component log rejected; handler Stdout sketched as later optional.
 [^console-plan]: Stderr feed and runtime-only freeze; `source: app` explicitly out of bound.

@@ -102,7 +102,7 @@ fn parity_build_output_matches_rocdown_lib_on_example_site() {
     }
     let _lock = ROC_LOCK.lock().unwrap();
     let root = repo_root();
-    let site_root = root.join("examples/rocdown-site");
+    let site_root = root.join("examples/rocdown/site");
 
     let lib_out = temp_dir("lib-out");
     let cli_out = temp_dir("cli-out");

@@ -41,8 +41,8 @@ otherwise print to stdout.
 cargo run -p rocci-cli -- build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
 ```
 
-`INPUT` is an app directory with `main.roc` (for example `examples/datastar`), a
-standalone `.rocci` file (`examples/counter/Counter.rocci`), or `rocci.toml`.
+`INPUT` is an app directory with `main.roc` (for example `examples/rocci/custom/datastar`), a
+standalone `.rocci` file (`examples/rocci/standalone/counter/Counter.rocci`), or `rocci.toml`.
 Writes `server` plus staged `assets/` (default `target/release/rocci-server`).
 This is **server packaging**, not a macOS `.app` (`rocci bundle` stays the
 desktop path). `--target` is the Linux container process target. Linux OCI is

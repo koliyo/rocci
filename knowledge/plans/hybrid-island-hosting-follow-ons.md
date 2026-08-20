@@ -25,7 +25,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-19
   - id: counter-readme
-    resource: ../../examples/rocdown-counter/README.md
+    resource: ../../examples/rocdown/counter/README.md
     title: Hybrid counter two-artifact runbook
     author: process:cursor
     last_modified: 2026-08-19
@@ -298,7 +298,7 @@ islands, CORS).[^publishing-plan]
 ## Out of scope
 
 - Publishing images to a registry.
-- Using `examples/rocdown-hybrid` as the Docker demonstrator (no SQLite).
+- Using `examples/rocdown/hybrid` as the Docker demonstrator (no SQLite).
 - One kitchen-sink image that runs Caddy and `serve-islands` in one
   process.
 - Vendor cache-header adapters beyond the generic Caddyfile.

@@ -162,7 +162,7 @@ fn standalone_mounts_document_relative_images() {
 #[test]
 fn guide_example_serves_interactive_route() {
     let guide = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/rocdown/Guide.rocdown")
+        .join("../../examples/rocdown/pages/Guide.rocdown")
         .canonicalize()
         .unwrap();
     let plan = plan_ready(&guide);
@@ -186,7 +186,7 @@ fn guide_example_serves_interactive_route() {
 #[test]
 fn errors_example_lists_error_demo_route_on_404() {
     let demo = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/errors/ErrorDemo.rocdown")
+        .join("../../examples/rocdown/errors/ErrorDemo.rocdown")
         .canonicalize()
         .unwrap();
     let plan = plan_ready(&demo);
@@ -206,7 +206,7 @@ fn errors_example_lists_error_demo_route_on_404() {
 #[test]
 fn errors_parse_example_builds_error_page() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/errors/parse/Broken.rocdown")
+        .join("../../examples/rocdown/errors/parse/Broken.rocdown")
         .canonicalize()
         .unwrap();
     let StandaloneReady::Failed(files) = plan_standalone(&path, &ThemeOptions::default()).unwrap()
@@ -235,7 +235,7 @@ fn errors_parse_example_builds_error_page() {
 #[test]
 fn errors_roc_example_compiles_as_template() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/errors/roc/BrokenRoc.rocdown")
+        .join("../../examples/rocdown/errors/roc/BrokenRoc.rocdown")
         .canonicalize()
         .unwrap();
     let plan = plan_ready(&path);

@@ -13,7 +13,7 @@ Executable name: `rocdown`
 # Relative links to other documents are compiled and served as extra routes.
 # Compile failures print rustc-style frames on stderr unless `--quiet`.
 # OKF knowledge records are refused with a pointer to `rocci-okf run`.
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 
 # A .rocdown file under a site root (ancestor `rocdown.toml`) previews the
 # whole site and opens that page. Includes, aliases, and `/docs/...` links
@@ -24,25 +24,25 @@ cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.
 # `--no-window` prints a URL; append `?reload=0` to pause auto-refresh.
 cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window] [--no-live-reload]
-cargo run -p rocci-rocdown-cli -- run examples/rocdown-hybrid [--port 8000] [--no-window]
-cargo run -p rocci-rocdown-cli -- run examples/rocdown-counter [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/counter [--port 8000] [--no-window]
 
 # Build a static documentation site to dist/
 # --host is apply on this machine; --target is Roc's process ISA/OS (see `rocdown package --help`).
 # Hybrid sites emit CDN HTML plus islands.json; --cdn-only errors on live pages.
 cargo run -p rocci-rocdown-cli -- build docs [--output dist] [--host auto|native|wasm]
-cargo run -p rocci-rocdown-cli -- build examples/rocdown-hybrid --cdn-only
+cargo run -p rocci-rocdown-cli -- build examples/rocdown/hybrid --cdn-only
 
 # Package: static CDN tree, or hybrid CDN plus sibling islands binary
 cargo run -p rocci-rocdown-cli -- package docs [--output dist] [--archive site.tgz]
-cargo run -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
+cargo run -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
 
 # Serve a previously built dist/ tree without rebuilding (no Roc, no watch)
 cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window]
 
 # Start the island HTTP service for live pages (colocated @on handlers)
-cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-hybrid [--port 8000] [--no-window]
-cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown-counter [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/hybrid [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter [--port 8000] [--no-window]
 
 # Check documentation catalog, routes, links, includes, and assets without compiling Roc
 cargo run -p rocci-rocdown-cli -- check docs [--format terminal|json]
@@ -55,11 +55,11 @@ cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 cargo run -p rocci-rocdown-cli -- inspect artifacts docs
 
 # Open the playground with a .rocdown or .rocci file
-cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown
-cargo run -p rocci-rocdown-cli -- playground examples/counter/Counter.rocci
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- playground examples/rocci/standalone/counter/Counter.rocci
 
 # Local mode: native parse/lower; Rocdown HTML snapshots are not available yet
-cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown --mode local
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdown --mode local
 
 # Speak the rocci-browser adapter protocol on stdio (probe / listDocuments / open)
 cargo run -p rocci-rocdown-cli -- browser-adapter

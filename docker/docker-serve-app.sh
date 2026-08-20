@@ -5,7 +5,7 @@ usage() {
     echo "usage: $0 SERVER_DIR [compose up args...]" >&2
     echo "  SERVER_DIR  output of \`rocci build --release\` (contains server + assets/)" >&2
     echo "  Build on the host first, e.g.:" >&2
-    echo "    cargo run -q -p rocci-cli -- build --release examples/datastar --target arm64musl" >&2
+    echo "    cargo run -q -p rocci-cli -- build --release examples/rocci/custom/datastar --target arm64musl" >&2
     echo "    (use --target x64musl on Intel Mac / amd64 Docker; see docker/README.md)" >&2
     exit 1
 }

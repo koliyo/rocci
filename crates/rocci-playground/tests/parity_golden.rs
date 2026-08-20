@@ -52,7 +52,7 @@ fn test_golden_all_syntax_rocdown() {
 
 #[test]
 fn test_golden_counter_rocci() {
-    let path = Path::new("../../examples/counter/Counter.rocci");
+    let path = Path::new("../../examples/rocci/standalone/counter/Counter.rocci");
     if !path.exists() {
         return;
     }

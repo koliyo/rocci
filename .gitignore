@@ -28,16 +28,16 @@ datastar.js
 
 # Generated Roc modules and examples artifacts
 **/generated/*.roc
-examples/counter/Counter.roc
-examples/styling/Styling.roc
-examples/snake/Snake.roc
-examples/datastar/Gallery.roc
-examples/datastar/Search.roc
-examples/datastar/Edit.roc
-examples/datastar/Todos.roc
-examples/datastar/Tabs.roc
-examples/datastar/Validate.roc
+examples/rocci/standalone/counter/Counter.roc
+examples/rocci/standalone/styling/Styling.roc
+examples/rocci/custom/snake/Snake.roc
+examples/rocci/custom/datastar/Gallery.roc
+examples/rocci/custom/datastar/Search.roc
+examples/rocci/custom/datastar/Edit.roc
+examples/rocci/custom/datastar/Todos.roc
+examples/rocci/custom/datastar/Tabs.roc
+examples/rocci/custom/datastar/Validate.roc
 
 # Host-built package artifacts (`rocdown package`)
-examples/*/islands
+examples/**/islands
 site.tgz

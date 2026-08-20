@@ -414,7 +414,7 @@ image; a plugin deploy command.
 **Owner:** `crates/rocci-cli` plus `docs/guides/desktop-app.rocdown` and
 CLI reference.
 
-**Tests / Exit:** `rocci build` of `examples/counter` (or datastar) on
+**Tests / Exit:** `rocci build` of `examples/rocci/standalone/counter` (or datastar) on
 Linux CI produces a binary that answers `GET /` without `roc` on PATH.
 `cargo test -p rocci-cli`. Docs state Linux OCI is opt-in.
 

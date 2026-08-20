@@ -78,7 +78,7 @@ change `[http].host` in `rocci.toml` (loopback validation stays). Linux OCI is
 opt-in. Windows installers are not implemented.
 
 ```sh
-cargo run -p rocci-cli -- build --release examples/datastar --target arm64musl
+cargo run -p rocci-cli -- build --release examples/rocci/custom/datastar --target arm64musl
 ./docker/docker-serve-app.sh target/release/rocci-server
 ```
 

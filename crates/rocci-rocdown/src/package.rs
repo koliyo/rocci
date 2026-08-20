@@ -489,7 +489,7 @@ mod tests {
             .unwrap()
             .parent()
             .unwrap()
-            .join("examples/rocdown-hybrid");
+            .join("examples/rocdown/hybrid");
         let parent = unique_temp("pkg-live-bin-parent").unwrap();
         let output = parent.join("dist");
         let report = package_configured(

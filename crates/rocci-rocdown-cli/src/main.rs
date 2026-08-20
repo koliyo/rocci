@@ -922,7 +922,7 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocdown",
             "package",
-            "examples/rocdown-counter",
+            "examples/rocdown/counter",
             "--target",
             "x64musl",
         ])
@@ -971,7 +971,7 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocdown",
             "run",
-            "examples/rocdown/Guide.rocdown",
+            "examples/rocdown/pages/Guide.rocdown",
             "--no-window",
             "--port",
             "8000",
@@ -987,7 +987,7 @@ mod tests {
                 output,
                 ..
             } => {
-                assert_eq!(path, PathBuf::from("examples/rocdown/Guide.rocdown"));
+                assert_eq!(path, PathBuf::from("examples/rocdown/pages/Guide.rocdown"));
                 assert!(no_window);
                 assert!(!quiet);
                 assert_eq!(port, PortArg::Exact(8000));
@@ -1000,7 +1000,7 @@ mod tests {
         let kept = Cli::try_parse_from([
             "rocdown",
             "run",
-            "examples/rocdown-counter",
+            "examples/rocdown/counter",
             "--no-window",
             "--output",
             "/tmp/rocdown-counter-preview",
@@ -1022,14 +1022,17 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocdown",
             "run",
-            "examples/errors/parse/Broken.rocdown",
+            "examples/rocdown/errors/parse/Broken.rocdown",
             "--quiet",
         ])
         .unwrap();
         match cli.command {
             Commands::Run { quiet, path, .. } => {
                 assert!(quiet);
-                assert_eq!(path, PathBuf::from("examples/errors/parse/Broken.rocdown"));
+                assert_eq!(
+                    path,
+                    PathBuf::from("examples/rocdown/errors/parse/Broken.rocdown")
+                );
             }
             _ => panic!("expected run"),
         }
@@ -1040,7 +1043,7 @@ mod tests {
         let cli = Cli::try_parse_from([
             "rocdown",
             "serve-islands",
-            "examples/rocdown-hybrid",
+            "examples/rocdown/hybrid",
             "--no-window",
             "--port",
             "9001",
@@ -1052,7 +1055,7 @@ mod tests {
                 no_window,
                 port,
             } => {
-                assert_eq!(root, PathBuf::from("examples/rocdown-hybrid"));
+                assert_eq!(root, PathBuf::from("examples/rocdown/hybrid"));
                 assert!(no_window);
                 assert_eq!(port, PortArg::Exact(9001));
             }

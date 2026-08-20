@@ -31,13 +31,13 @@ Rocci's desktop architecture combines:
 Running an interactive application in desktop mode is as simple as:
 
 ```sh
-rocci run examples/snake
+rocci run examples/rocci/custom/snake
 ```
 
 To create a standalone application bundle for distribution on macOS:
 
 ```sh
-rocci bundle examples/counter --output dist/Counter.app
+rocci bundle examples/rocci/standalone/counter --output dist/Counter.app
 ```
 
 ---

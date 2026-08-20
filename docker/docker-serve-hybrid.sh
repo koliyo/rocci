@@ -6,7 +6,7 @@ usage() {
     echo "  DIST_DIR      pre-built Rocdown dist (CDN tree)" >&2
     echo "  ISLANDS_BIN   precompiled island process binary" >&2
     echo "  Build on the host first, e.g.:" >&2
-    echo "    cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl" >&2
+    echo "    cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl" >&2
     echo "    (use --target x64musl on Intel Mac / amd64 Docker; see docker/README.md)" >&2
     exit 1
 }

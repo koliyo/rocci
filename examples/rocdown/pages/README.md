@@ -11,9 +11,9 @@ Markdown-first pages with colocated Roc and Rocci.
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Blocks.rocdown
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Interactive.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Blocks.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Interactive.rocdown
 ```
 
 Each command opens an embedded window on a free local TCP port and prints the
@@ -32,6 +32,6 @@ GET `/` serves the same document as the page route.
 
 While the server is up, a missing path such as `/missing` is an HTML 404 that
 lists these routes. Dedicated error-page examples live in
-[`examples/errors`](../errors).
+[`examples/rocdown/errors`](../errors).
 
 Language and compiler status: [`crates/rocci-rocdown`](../../crates/rocci-rocdown).

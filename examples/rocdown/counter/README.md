@@ -1,22 +1,22 @@
 # Hybrid counter
 
 A Rocdown site with one `live` page: Markdown plus a SQLite-backed counter
-island, the hybrid analog of [`examples/counter`](../counter). The CDN file is
+island, the hybrid analog of [`examples/rocci/standalone/counter`](../../rocci/standalone/counter). The CDN file is
 a snapshot (`count` is `0` at build). On load, `POST /actions/counter/sync`
-refreshes count and the last twenty clicks. Increment posts browser timezone
-and a session handle; the service maps IANA zones to country/city (no IP
-lookup). Reset clears count and clicks.
+refreshes count and the last twenty clicks. Increment posts browser timezone;
+the service maps IANA zones to country/city (no IP lookup). Reset clears count
+and clicks. The click feed lists location only (no nicknames).
 
 A neighboring [`about.rocdown`](about.rocdown) page stays `static`: no Datastar,
 no island routes.
 
 There is no authored `main.roc`. Handlers are colocated in
 [`index.rocdown`](index.rocdown). Do not point `[http].service` at
-`examples/counter/Counter.rocci`; that file is a full-page app, and GET `/`
+`examples/rocci/standalone/counter/Counter.rocci`; that file is a full-page app, and GET `/`
 is not an island route.
 
 For page-kind coverage without SQLite, see
-[`examples/rocdown-hybrid`](../rocdown-hybrid).
+[`examples/rocdown/hybrid`](../hybrid).
 
 ## Preview
 
@@ -28,7 +28,7 @@ path stamps.
 ### Catalog without Roc
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown/counter
 ```
 
 Expect `index` as `live` with Datastar, `about` as `static`, and
@@ -37,9 +37,9 @@ Expect `index` as `live` with Datastar, `about` as `static`, and
 ### Snapshot HTML and CSS
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
-grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown-counter/dist/index.html
-grep -l 'border-radius: 16px' examples/rocdown-counter/dist/assets/*.css
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
+grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown/counter/dist/index.html
+grep -l 'border-radius: 16px' examples/rocdown/counter/dist/assets/*.css
 ```
 
 No island process. Home HTML should include `rd-document`, `#counter`, and a
@@ -48,7 +48,7 @@ hashed stylesheet. The island CSS file should include the card radius.
 ### Interactive same-origin
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown-counter --no-window \
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/counter --no-window \
   --output /tmp/rocdown-counter-preview
 ```
 
@@ -71,11 +71,11 @@ curl -sf http://127.0.0.1:8000/health
 curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
 curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm","handle":"Coral Lynx"}'
+  -d '{"tz":"Europe/Stockholm"}'
 ```
 
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment, and
-confirm `#counter-panel output` morphs (buttons stay outside the panel). Dev inspector:
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment once, and
+confirm `#counter-panel` and `#counter-feed` morph (buttons stay outside). Dev inspector:
 [http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev).
 While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
 `dist/` above.
@@ -83,10 +83,10 @@ While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
 ## Build the CDN tree
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- build examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
 ```
 
-Writes `examples/rocdown-counter/dist/`: page HTML, hashed `/assets/`
+Writes `examples/rocdown/counter/dist/`: page HTML, hashed `/assets/`
 (including Datastar.js on the live page), `pages.json`, and `islands.json`.
 `--output DIR` overrides `[build].output`.
 
@@ -96,7 +96,7 @@ Writes `examples/rocdown-counter/dist/`: page HTML, hashed `/assets/`
 ## Run the island service
 
 ```sh
-cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown-counter --no-window
+cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter --no-window
 ```
 
 This process serves health and mutation routes only. It does not serve
@@ -105,7 +105,7 @@ Markdown or the CDN HTML. Default SQLite path is `index.db` next to the site
 
 ```sh
 DB_PATH=/var/lib/rocci/counter.db cargo run -q -p rocci-rocdown-cli -- \
-    serve-islands examples/rocdown-counter --no-window --port 8001
+    serve-islands examples/rocdown/counter --no-window --port 8001
 ```
 
 ## Two-artifact deploy
@@ -115,7 +115,7 @@ and POSTs `/actions/...` to that same origin. A reverse proxy forwards those
 paths to `serve-islands`. Leave `[http].service_origin` empty so action URLs
 stay relative and CSP `connect-src` is `'self'`.
 
-1. Build: `rocdown build examples/rocdown-counter`.
+1. Build: `rocdown build examples/rocdown/counter`.
 2. Upload `dist/` to the CDN or object store. Hashed `/assets/*` files can be
    cached indefinitely. HTML, `pages.json`, `islands.json`, and other
    discovery files should revalidate; they name the current hashes and
@@ -159,8 +159,8 @@ Package on the host, then Caddy plus a slim island process image (no `roc` /
 
 ```sh
 # Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
-cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
-./docker/docker-serve-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
+./docker/docker-serve-hybrid.sh examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 Then open
@@ -173,7 +173,7 @@ See [`docker/README.md`](../../docker/README.md) for choosing `--target`.
 curl -sf http://127.0.0.1:8080/health
 curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm","handle":"Coral Lynx"}'
+  -d '{"tz":"Europe/Stockholm"}'
 docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
@@ -185,8 +185,8 @@ demo. Operator notes are in [`docker/README.md`](../../docker/README.md).
 CDN tree after `build` (no service required):
 
 ```sh
-grep -E 'id="counter"|/assets/datastar' examples/rocdown-counter/dist/index.html
-grep -E '<script>|/assets/datastar' examples/rocdown-counter/dist/about/index.html || true
+grep -E 'id="counter"|/assets/datastar' examples/rocdown/counter/dist/index.html
+grep -E '<script>|/assets/datastar' examples/rocdown/counter/dist/about/index.html || true
 ```
 
 Home page HTML should include `#counter` and hashed Datastar.js. `about/` should
@@ -200,10 +200,10 @@ curl -s http://127.0.0.1:8001/health
 
 curl -s -X POST http://127.0.0.1:8001/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{"tz":"Europe/Stockholm","handle":"Coral Lynx"}'
+  -d '{"tz":"Europe/Stockholm"}'
 # event: datastar-patch-elements
-# data: elements <section id="counter" ...><output>1</output>...
-# Coral Lynx, SE, Stockholm, Sweden
+# data: elements <div id="counter-panel" ...><output>1</output>...
+# Stockholm, Sweden
 ```
 
 With `rocdown run --no-window` on port 8000, the same POST works on that

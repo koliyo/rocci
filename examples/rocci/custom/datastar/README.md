@@ -13,12 +13,12 @@ Pinned together:
 From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/datastar
+cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
 ```
 
-This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/datastar/gallery.db`. Set `DB_PATH` to use another file.
+This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/rocci/custom/datastar/gallery.db`. Set `DB_PATH` to use another file.
 
-`rocci run` compiles each `*.rocci` module to a gitignored Roc type module, stages `Html.roc` / `Datastar.roc` from the CLI runtime, and copies the pinned Datastar JS into `examples/datastar/assets/`. This example uses an authored `main.roc` for custom HTTP routing.
+`rocci run` compiles each `*.rocci` module to a gitignored Roc type module, stages `Html.roc` / `Datastar.roc` from the CLI runtime, and copies the pinned Datastar JS into `examples/rocci/custom/datastar/assets/`. This example uses an authored `main.roc` for custom HTTP routing.
 
 Package a desktop app from this directory with [`rocci.toml`](rocci.toml), or from the repository root where [`rocci.toml`](../../rocci.toml) points here.
 

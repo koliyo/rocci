@@ -91,7 +91,7 @@ function check(label, condition, details = "") {
 
 // 1. Test Counter.rocci
 console.log("\n1. Testing Counter.rocci via playground request:");
-const counterSource = fs.readFileSync(path.join(ROOT, "examples/counter/Counter.rocci"), "utf-8");
+const counterSource = fs.readFileSync(path.join(ROOT, "examples/rocci/standalone/counter/Counter.rocci"), "utf-8");
 const t0 = performance.now();
 const counterResult = runCompileJson({
   protocol_version: 1,
@@ -114,7 +114,7 @@ check("html capability is unavailable with reason", counterResult.capabilities?.
 
 // 2. Test Guide.rocdown
 console.log("\n2. Testing Guide.rocdown:");
-const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/Guide.rocdown"), "utf-8");
+const guideSource = fs.readFileSync(path.join(ROOT, "examples/rocdown/pages/Guide.rocdown"), "utf-8");
 const t1 = performance.now();
 const guideResult = runCompileJson({
   protocol_version: 1,

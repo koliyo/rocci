@@ -557,10 +557,10 @@ mod tests {
 
     #[test]
     fn generated_module_uses_stem() {
-        let input = Path::new("examples/snake/Snake.rocci");
+        let input = Path::new("examples/rocci/custom/snake/Snake.rocci");
         assert_eq!(
             generated_module_path(input),
-            PathBuf::from("examples/snake/Snake.roc")
+            PathBuf::from("examples/rocci/custom/snake/Snake.roc")
         );
         assert_eq!(type_name_from_path(input), "Snake");
     }

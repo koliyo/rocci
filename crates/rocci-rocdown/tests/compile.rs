@@ -640,10 +640,10 @@ fn heading_ids_disambiguate_duplicates() {
 
 #[test]
 fn guide_example_compiles() {
-    let src = include_str!("../../../examples/rocdown/Guide.rocdown");
+    let src = include_str!("../../../examples/rocdown/pages/Guide.rocdown");
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
     let out = compile(
-        SourceFile::new("examples/rocdown/Guide.rocdown", src),
+        SourceFile::new("examples/rocdown/pages/Guide.rocdown", src),
         &CompileOptions {
             pages: index_pages_in_dir(&dir),
             ..CompileOptions::default()
@@ -674,9 +674,9 @@ fn guide_example_compiles() {
 
 #[test]
 fn errors_demo_example_compiles() {
-    let src = include_str!("../../../examples/errors/ErrorDemo.rocdown");
+    let src = include_str!("../../../examples/rocdown/errors/ErrorDemo.rocdown");
     let out = compile(
-        SourceFile::new("examples/errors/ErrorDemo.rocdown", src),
+        SourceFile::new("examples/rocdown/errors/ErrorDemo.rocdown", src),
         &CompileOptions::default(),
     );
     assert!(
@@ -695,10 +695,10 @@ fn errors_demo_example_compiles() {
 
 #[test]
 fn blocks_example_contains_narrow_viewport_fixture() {
-    let src = include_str!("../../../examples/rocdown/Blocks.rocdown");
+    let src = include_str!("../../../examples/rocdown/pages/Blocks.rocdown");
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocdown");
     let out = compile(
-        SourceFile::new("examples/rocdown/Blocks.rocdown", src),
+        SourceFile::new("examples/rocdown/pages/Blocks.rocdown", src),
         &CompileOptions {
             pages: index_pages_in_dir(&dir),
             ..CompileOptions::default()

@@ -619,13 +619,13 @@ mod tests {
             [app]
             identifier = "dev.rocci.demo"
             [bundle]
-            app = "examples/counter"
+            app = "examples/rocci/standalone/counter"
             "#,
         )
         .unwrap();
         assert_eq!(
             config.bundle.app.as_deref(),
-            Some(Path::new("examples/counter"))
+            Some(Path::new("examples/rocci/standalone/counter"))
         );
     }
 

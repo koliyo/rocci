@@ -551,8 +551,8 @@ Exit gate: both commands below work without invoking `roc` and every edit is
 compiled in browser WASM:
 
 ```sh
-rocci playground examples/counter/Counter.rocci
-rocdown playground examples/rocdown/Guide.rocdown
+rocci playground examples/rocci/standalone/counter/Counter.rocci
+rocdown playground examples/rocdown/pages/Guide.rocdown
 ```
 
 ### Phase 11 — native/WASM behavior parity suite

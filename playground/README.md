@@ -22,13 +22,13 @@ The interactive, in-browser editor and workbench for experimenting with `.rocci`
 
 ```sh
 # WASM mode (default): parse/lower in compiler.wasm. HTML preview is unavailable.
-cargo run -p rocci-cli -- playground examples/counter/Counter.rocci
+cargo run -p rocci-cli -- playground examples/rocci/standalone/counter/Counter.rocci
 
 # Local mode: native compile plus a static Html.render snapshot when a fixture or defaultable component exists.
-cargo run -p rocci-cli -- playground examples/counter/Counter.rocci --mode local
+cargo run -p rocci-cli -- playground examples/rocci/standalone/counter/Counter.rocci --mode local
 
 # Run standalone playground with a local .rocdown or .rocci document
-cargo run -p rocci-cli -- playground examples/rocdown/Guide.rocdown --mode local
-cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown
-cargo run -p rocci-rocdown-cli -- playground examples/rocdown/Guide.rocdown --mode local
+cargo run -p rocci-cli -- playground examples/rocdown/pages/Guide.rocdown --mode local
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdown --mode local
 ```

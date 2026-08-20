@@ -19,20 +19,20 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 `PATH`. Then from the repository root:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/counter/Counter.rocci
-cargo run -q -p rocci-cli -- run examples/styling/Styling.rocci
-cargo run -q -p rocci-cli -- run examples/snake
-cargo run -q -p rocci-cli -- run examples/datastar
-cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
-cargo run -q -p rocci-rocdown-cli -- run examples/errors/ErrorDemo.rocdown
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling/Styling.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
+cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/errors/ErrorDemo.rocdown
 ```
 
-[`examples/counter`](examples/counter) is the starting app: SQLite, `@on`, and a
-Datastar patch. [`examples/styling`](examples/styling) is the same template
+[`examples/rocci/standalone/counter`](examples/rocci/standalone/counter) is the starting app: SQLite, `@on`, and a
+Datastar patch. [`examples/rocci/standalone/styling`](examples/rocci/standalone/styling) is the same template
 language with file-level and component `@css`.
-[`examples/rocdown`](examples/rocdown) is a Markdown page with explicit `@roc`,
+[`examples/rocdown/pages`](examples/rocdown/pages) is a Markdown page with explicit `@roc`,
 `@component`, and `@render` islands; see [`crates/rocci-rocdown`](crates/rocci-rocdown)
-for the format. [`examples/errors`](examples/errors) is the 404 and parse-error
+for the format. [`examples/rocdown/errors`](examples/rocdown/errors) is the 404 and parse-error
 preview: a working `/error-demo/` page plus a broken file that still opens in the window.
 
 `rocci run path/to/App.rocci` is a standalone app: compile that file, generate
@@ -67,9 +67,9 @@ Or:
 cargo run -p rocci-cli -- bundle --config rocci.toml
 ```
 
-The root [`rocci.toml`](rocci.toml) points at [`examples/datastar`](examples/datastar),
+The root [`rocci.toml`](rocci.toml) points at [`examples/rocci/custom/datastar`](examples/rocci/custom/datastar),
 the custom-`main.roc` gallery. That example also has its own
-`examples/datastar/rocci.toml` (`bundle.app = "."`) so you can package from the
+`examples/rocci/custom/datastar/rocci.toml` (`bundle.app = "."`) so you can package from the
 app directory the same way.
 
 Opening the `.app` starts the host with no arguments. It finds
@@ -86,19 +86,19 @@ Packaging is currently macOS-only.
 cargo run -p rocci-cli -- validate
 cargo run -p rocci-cli -- bundle --config rocci.toml
 cargo run -p rocci-cli -- build path/to/file.rocci
-cargo run -p rocci-cli -- run examples/counter/Counter.rocci
-cargo run -p rocci-cli -- view examples/counter/Counter.rocci --component CounterCard --arg count=3
+cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
+cargo run -p rocci-cli -- view examples/rocci/standalone/counter/Counter.rocci --component CounterCard --arg count=3
 cargo run -p rocci-cli -- browse examples
-cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
-cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar
-cargo run -p rocci-cli -- datastar update --app examples/datastar
+cargo run -p rocci-cli -- inspect --ast examples/rocci/standalone/counter/Counter.rocci
+cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/rocci/custom/datastar
+cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 ```
 
 ### Rocdown
 
 ```sh
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/Guide.rocdown
-cargo run -p rocci-rocdown-cli -- build examples/rocdown-site --output dist
+cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
+cargo run -p rocci-rocdown-cli -- build examples/rocdown/site --output dist
 cargo run -p rocci-rocdown-cli -- check docs
 cargo run -p rocci-rocdown-cli -- test docs
 cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown

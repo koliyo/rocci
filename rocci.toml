@@ -29,5 +29,5 @@ reload = false
 devtools = false
 
 [bundle]
-app = "examples/datastar"
+app = "examples/rocci/custom/datastar"
 macos_plist = "macos/Info.plist"
