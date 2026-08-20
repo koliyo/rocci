@@ -293,4 +293,12 @@ mod tests {
         assert!(script.contains("canBack:true"));
         assert!(script.contains("canForward:false"));
     }
+
+    #[test]
+    fn crate_has_no_theme_language_dependency() {
+        let manifest = include_str!("../Cargo.toml");
+        assert!(!manifest.contains("rocci-rocdown"));
+        assert!(!manifest.contains("rocci-okf"));
+        assert!(!manifest.contains("rocci-template"));
+    }
 }

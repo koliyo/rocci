@@ -126,7 +126,7 @@ import PageOutline
 
     .site-grid {
         width: min(100%, 94rem);
-        min-height: calc(100vh - var(--header-height));
+        min-height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px));
         margin: 0 auto;
         display: grid;
         grid-template-columns: 17rem minmax(0, 1fr) 13.5rem;
@@ -134,7 +134,7 @@ import PageOutline
     .sidebar {
         position: sticky;
         top: var(--header-height);
-        height: calc(100vh - var(--header-height));
+        height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px));
         padding: 2rem 1.35rem 3rem 1.5rem;
         overflow-y: auto;
         border-right: 1px solid var(--line);
@@ -195,7 +195,7 @@ import PageOutline
     .outline {
         position: sticky;
         top: var(--header-height);
-        height: calc(100vh - var(--header-height));
+        height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px));
         padding: 2.15rem 1.5rem 2rem 1.2rem;
         overflow-y: auto;
         user-select: none;
@@ -313,8 +313,8 @@ import PageOutline
             top: calc(var(--header-height) + env(safe-area-inset-top, 0px));
             right: 0;
             left: 0;
-            max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px));
-            max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px));
+            max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-bottom, 0px));
+            max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-bottom, 0px));
             padding: 1.3rem max(1rem, env(safe-area-inset-right, 0px)) max(2rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
             overflow-y: auto;
             border-bottom: 1px solid var(--line);
