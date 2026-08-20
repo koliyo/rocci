@@ -310,7 +310,7 @@ pub fn lower(
         let fn_name = route_fn_name("get", &page_route);
         emitter.emit("\n");
         emitter.emit(&fn_name);
-        emitter.emit(" = |_state| {\n");
+        emitter.emit(" = |_state, _request| {\n");
         emitter.indent += 1;
         emitter.push_indent();
         emitter.emit("rocci_value = {\n");
