@@ -13,7 +13,7 @@ pub mod review;
 pub mod search;
 pub mod validate;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -407,6 +407,9 @@ fn parse_concept(
                 Some(location(source, Span::point(0))),
                 message,
             ));
+            let body = Span::new(0, source.len());
+            let parsed = parse_markdown_body(relative, source, body, diagnostics);
+            push_partial_concept(relative, source, body, parsed, concepts);
             return;
         }
     };
@@ -419,6 +422,8 @@ fn parse_concept(
                 Some(location(source, frontmatter.yaml)),
                 message,
             ));
+            let parsed = parse_markdown_body(relative, source, frontmatter.body, diagnostics);
+            push_partial_concept(relative, source, frontmatter.body, parsed, concepts);
             return;
         }
     };
@@ -476,6 +481,29 @@ fn parse_concept(
         links: parsed.links,
         source_ids,
         footnote_ids,
+        article_html: parsed.article_html,
+    });
+}
+
+fn push_partial_concept(
+    relative: &str,
+    source: &str,
+    body: Span,
+    parsed: MarkdownOutput,
+    concepts: &mut Vec<Concept>,
+) {
+    let id = relative.strip_suffix(".md").unwrap_or(relative).to_string();
+    concepts.push(Concept {
+        id,
+        path: relative.to_string(),
+        metadata: BTreeMap::new(),
+        body_span: body,
+        body_location: location(source, body),
+        headings: parsed.headings,
+        heading_sections: parsed.heading_sections,
+        links: parsed.links,
+        source_ids: BTreeSet::new(),
+        footnote_ids: parsed.footnote_ids,
         article_html: parsed.article_html,
     });
 }
@@ -545,7 +573,7 @@ fn parse_index(
                 Some(location(source, Span::point(0))),
                 message,
             ));
-            return;
+            Span::new(0, source.len())
         }
     };
     let parsed = parse_markdown_body(relative, source, body, diagnostics);

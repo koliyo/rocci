@@ -1,10 +1,11 @@
 use std::{fs, path::Path, sync::Arc, time::Instant};
 
 use anyhow::{Context, Result, bail};
-use okf::{LoadOptions, LoadTimings, Profile};
+use okf::{LoadOptions, LoadTimings, Profile, Severity};
 pub use rocci_cli::dev_server::DevServer;
 use rocci_cli::dev_server::{StaticDevServerConfig, serve_static_site};
 use rocci_cli::inspect::InspectSnapshot;
+use rocci_cli::logs::{self, LogHub, LogLevel};
 use rocci_cli::profile::{ProfileSnapshot, ProfileSpan};
 
 use crate::inspect;
@@ -56,7 +57,7 @@ pub fn run_knowledge(
     let cache_dir = parse_cache_dir(&root);
     let mut cache = okf::ParseCache::load_dir(&cache_dir, profile);
     let mut apply_session: Option<ApplySession> = None;
-    serve_static_site(config, move |out_dir, _logs| {
+    serve_static_site(config, move |out_dir, logs| {
         let snapshot = rebuild_site(
             &build_root,
             out_dir,
@@ -65,6 +66,7 @@ pub fn run_knowledge(
             host,
             &mut cache,
             &mut apply_session,
+            &logs,
         )?;
         if let Err(error) = cache.save_dir(&cache_dir) {
             eprintln!("rocci-okf: failed to save parse cache: {error:#}");
@@ -89,6 +91,7 @@ fn parse_cache_dir(root: &Path) -> std::path::PathBuf {
         .join(hash)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn rebuild_site(
     root: &Path,
     output: &Path,
@@ -97,6 +100,7 @@ fn rebuild_site(
     host: Option<rocci_roc_host::HostChoice>,
     cache: &mut okf::ParseCache,
     apply_session: &mut Option<ApplySession>,
+    logs: &LogHub,
 ) -> Result<Option<InspectSnapshot>> {
     let load_started = Instant::now();
     let loaded = okf::load_with_cache(
@@ -105,9 +109,7 @@ fn rebuild_site(
         Some(cache),
     )?;
     let load_ms = load_started.elapsed().as_millis();
-    if loaded.bundle.has_errors() {
-        bail!("knowledge bundle has validation errors");
-    }
+    log_bundle_diagnostics(logs, &loaded.bundle);
     let mut snapshot = load_profile_snapshot(load_ms, &loaded.timings);
     let (mut built, next_session) =
         build_review_site_with_session(&loaded.bundle, output, host, apply_session.as_ref())?;
@@ -120,6 +122,16 @@ fn rebuild_site(
         output,
         snapshot,
     )))
+}
+
+fn log_bundle_diagnostics(logs: &LogHub, bundle: &okf::Bundle) {
+    for diagnostic in &bundle.diagnostics {
+        let level = match diagnostic.severity {
+            Severity::Error => LogLevel::Error,
+            Severity::Warning => LogLevel::Warn,
+        };
+        logs::tee(logs, level, format!("rocci-okf: {diagnostic}"));
+    }
 }
 
 fn load_profile_snapshot(load_ms: u128, timings: &LoadTimings) -> ProfileSnapshot {

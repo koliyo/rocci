@@ -46,10 +46,16 @@ pub fn classify_concept_action(
         .iter()
         .any(|d| d.severity == Severity::Error);
     if has_errors {
+        let detail = concept_diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity == Severity::Error)
+            .map(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+            .collect::<Vec<_>>()
+            .join(" · ");
         return ConceptAction {
             kind: ActionKind::FixErrors,
             label: "Fix Errors".into(),
-            detail: "Validation errors in record must be resolved".into(),
+            detail,
             is_action_required: true,
             pill_class: "pill-error",
         };
@@ -187,5 +193,56 @@ pub fn classify_concept_action(
         detail: "Archived or historical record".into(),
         is_action_required: false,
         pill_class: "pill-info",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Concept, Span};
+    use crate::diagnostic::{Diagnostic, SourceLocation};
+    use serde_json::json;
+    use std::collections::BTreeSet;
+
+    fn concept(id: &str, path: &str) -> Concept {
+        Concept {
+            id: id.into(),
+            path: path.into(),
+            metadata: serde_json::from_value(json!({
+                "type": "Architecture",
+                "title": id,
+                "status": "draft",
+                "authority": "descriptive"
+            }))
+            .unwrap(),
+            body_span: Span::new(0, 0),
+            body_location: SourceLocation {
+                start: 0,
+                end: 0,
+                line: 1,
+                column: 1,
+            },
+            headings: Vec::new(),
+            heading_sections: Vec::new(),
+            links: Vec::new(),
+            source_ids: BTreeSet::new(),
+            footnote_ids: BTreeSet::new(),
+            article_html: String::new(),
+        }
+    }
+
+    #[test]
+    fn fix_errors_action_includes_diagnostic_messages() {
+        let record = concept("plans/example", "plans/example.md");
+        let diagnostics = vec![Diagnostic::error(
+            "OKF2001",
+            "plans/example.md",
+            None,
+            "missing required field `tags`",
+        )];
+        let action = classify_concept_action(&record, &diagnostics);
+        assert_eq!(action.kind, ActionKind::FixErrors);
+        assert!(action.detail.contains("OKF2001"));
+        assert!(action.detail.contains("missing required field `tags`"));
     }
 }
