@@ -4,7 +4,7 @@ title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
 description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, bootstrap-SSH, GitHub Environment, and deploy-user preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T17:51:00Z }
+generated: { by: process:cursor, at: 2026-08-20T18:45:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -419,8 +419,10 @@ curl -sf -X POST https://rocci.dev/actions/counter/increment \
 `/assets/` responses include long cache headers. `docker run --rm --entrypoint
 /bin/sh rocci-islands:local -c 'which roc'` still fails.
 
-**Status:** origin prerequisites are human-prepared; Caddy, the production
-Tunnel route, and the manual first publish have not started.
+**Status:** origin layout is in `docker/prod/` (`up.sh`, SQLite backup, Tunnel
+ingress example). First publish on the VPS and the production Tunnel hostname
+route are still operator steps. Not logged complete until the Phase 2 curls
+succeed from off-box.
 
 ### Phase 3 — Deploy from `main`
 

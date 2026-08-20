@@ -1,0 +1,8 @@
+# Merge into the Tunnel's config (or Zero Trust Public Hostname UI).
+# Do not commit credentials.json or the tunnel token.
+ingress:
+  - hostname: rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: www.rocci.dev
+    service: http://127.0.0.1:8080
+  - service: http_status:404
