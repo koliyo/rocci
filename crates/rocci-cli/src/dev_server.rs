@@ -81,6 +81,9 @@ const RELOAD_JS: &str = r#"(function () {
 "#;
 
 const LIVE_RELOAD_TAG: &str = r#"<script src="/__rocci/reload.js" defer></script>"#;
+/// HTTP CSP for HTML responses that inject live-reload. Intersects with any
+/// page meta CSP; must keep `'unsafe-eval'` so Datastar can compile expressions.
+const PREVIEW_HTML_CSP: &str = "Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self'; frame-src 'self';\r\n";
 
 pub struct DevServer {
     pub url: String,
@@ -1128,11 +1131,7 @@ fn write_response(
         500 => "Internal Server Error",
         _ => "Status",
     };
-    let csp = if inject {
-        "Content-Security-Policy: default-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'self';\r\n"
-    } else {
-        ""
-    };
+    let csp = if inject { PREVIEW_HTML_CSP } else { "" };
     write!(
         stream,
         "HTTP/1.1 {status} {status_text}\r\nContent-Type: {mime}\r\nContent-Length: {}\r\nCache-Control: no-store\r\n{csp}Connection: close\r\n\r\n",
@@ -1225,6 +1224,14 @@ mod tests {
         hub.broadcast();
         assert_eq!(rx1.recv().unwrap(), 2);
         assert_eq!(rx2.recv().unwrap(), 2);
+    }
+
+    #[test]
+    fn preview_html_csp_allows_unsafe_eval_for_datastar() {
+        assert!(
+            PREVIEW_HTML_CSP.contains("'unsafe-eval'"),
+            "preview header CSP must allow Datastar Function() eval: {PREVIEW_HTML_CSP}"
+        );
     }
 
     #[test]
