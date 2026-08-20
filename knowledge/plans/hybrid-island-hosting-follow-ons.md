@@ -4,7 +4,7 @@ title: Hybrid island hosting follow-ons
 description: "Three deferred hosting steps after the local Docker same-origin demo: optional WebKit-free CLI builds, a precompiled island binary that does not need roc at runtime, and cross-origin CORS plus cookies for service_origin. Exploratory; no phase started."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/packaging, concern/security, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T21:15:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -109,6 +109,11 @@ sources:
     title: Server-owned durable state
     author: process:okf-migration
     last_modified: 2026-08-16
+  - id: publishing-plan
+    resource: efficient-publishing.md
+    title: Efficient publishing workflow
+    author: process:cursor
+    last_modified: 2026-08-20
 ---
 
 # Hybrid island hosting follow-ons
@@ -283,6 +288,13 @@ cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
 Do not log a phase complete until CI and Knowledge workflows succeed on
 that revision.
 
+## Related plans
+
+Static-first local Docker (official Caddy serving a host-built `dist/`, no
+`rocci` in the image) is [efficient publishing](efficient-publishing.md).
+This record stays the hybrid runtime follow-on (headless CLI, precompiled
+islands, CORS).[^publishing-plan]
+
 ## Out of scope
 
 - Publishing images to a registry.
@@ -311,3 +323,4 @@ that revision.
 [^plan-rs]: `islands.json` records `service_origin`.
 [^core-config]: `http.host` in `rocci.toml` must be loopback.
 [^server-owned]: Service owns durable state.
+[^publishing-plan]: Static-first Caddy-over-dist Docker; this record does not own that path.
