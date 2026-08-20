@@ -33,6 +33,7 @@ pub fn highlight(src: &str) -> Vec<HighlightSpan> {
     let raw_tokens = hl.highlight(src, map_roc_capture);
     let mut tokens = repair_roc_token_boundaries(src, raw_tokens);
     fill_roc_gap_tokens(src, &mut tokens);
+    overlay_roc_strings(src, &mut tokens);
     tokens
 }
 
@@ -85,6 +86,44 @@ fn fill_roc_gap_tokens(src: &str, tokens: &mut Vec<HighlightSpan>) {
     }
 
     tokens.extend(gap_tokens);
+}
+
+fn overlay_roc_strings(src: &str, tokens: &mut Vec<HighlightSpan>) {
+    let bytes = src.as_bytes();
+    let mut i = 0;
+    while i < src.len() {
+        match bytes[i] {
+            b'#' => {
+                while i < src.len() && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'"' => {
+                let start = i;
+                i += 1;
+                while i < src.len() {
+                    match bytes[i] {
+                        b'"' => {
+                            i += 1;
+                            break;
+                        }
+                        b'\\' if i + 1 < src.len() => i += 2,
+                        b'\n' => break,
+                        _ => i += 1,
+                    }
+                }
+                if i > start {
+                    tokens.push(HighlightSpan::new(
+                        rocci_template::Span::new(start, i),
+                        HighlightKind::String,
+                        0,
+                        55,
+                    ));
+                }
+            }
+            _ => i += 1,
+        }
+    }
 }
 
 fn scan_roc_gap(gap: &str, offset: usize, out: &mut Vec<HighlightSpan>) {
@@ -143,6 +182,29 @@ fn scan_roc_gap(gap: &str, offset: usize, out: &mut Vec<HighlightSpan>) {
                 HighlightKind::Punctuation,
                 0,
                 20,
+            ));
+        } else if ch == '"' {
+            cur.bump();
+            while let Some(c) = cur.peek() {
+                if c == '"' {
+                    cur.bump();
+                    break;
+                }
+                if c == '\\' {
+                    cur.bump();
+                    cur.bump();
+                    continue;
+                }
+                if c == '\n' {
+                    break;
+                }
+                cur.bump();
+            }
+            out.push(HighlightSpan::new(
+                rocci_template::Span::new(offset + start, offset + cur.pos),
+                HighlightKind::String,
+                0,
+                55,
             ));
         } else if ch == '.' || ch == '=' || ch == '!' || ch == '?' || ch == '|' {
             cur.bump();
@@ -217,6 +279,46 @@ fn map_roc_capture(capture: &str) -> Option<(HighlightKind, u32, u32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn roc_record_strings_stay_intact() {
+        let code = r#"{
+    route: "/all-syntax/",
+    draft: False,
+    theme: "paper",
+    title: "All syntax",
+}
+"#;
+        let spans = crate::highlight(crate::LanguageId::Roc, code);
+        let texts: Vec<_> = spans
+            .iter()
+            .map(|s| (s.kind, &code[s.start()..s.end()]))
+            .collect();
+        assert!(
+            texts
+                .iter()
+                .any(|(kind, text)| *kind == HighlightKind::String && *text == "\"/all-syntax/\""),
+            "{texts:?}"
+        );
+        assert!(
+            texts
+                .iter()
+                .any(|(kind, text)| *kind == HighlightKind::String && *text == "\"paper\""),
+            "{texts:?}"
+        );
+        assert!(
+            texts
+                .iter()
+                .any(|(kind, text)| *kind == HighlightKind::String && *text == "\"All syntax\""),
+            "{texts:?}"
+        );
+        assert!(
+            !texts
+                .iter()
+                .any(|(_, text)| *text == "all" || *text == "syntax"),
+            "path-like string was split: {texts:?}"
+        );
+    }
 
     #[test]
     fn test_roc_highlight_record() {

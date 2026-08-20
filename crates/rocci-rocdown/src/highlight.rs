@@ -5,7 +5,7 @@ use rocci_highlight::composite::{
 use rocci_highlight::language::LanguageId;
 use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, RegionTree};
 use rocci_highlight::token::{HighlightKind, HighlightSpan, resolve_and_sort_spans};
-use rocci_template::{SourceFile, Span};
+use rocci_template::{Cursor, SourceFile, Span};
 
 use crate::ast::{BlockCall, BlockContent, Document, HeadingInfo, Item, MdNode};
 
@@ -68,6 +68,7 @@ pub fn collect_rocdown(
             }
             Item::Page(page) => {
                 collect_keyword(src, collector, page.span, page.body.start, "@page");
+                collect_record_fields(src, collector, page.body);
             }
             Item::Roc(roc) => {
                 collect_keyword(src, collector, roc.span, roc.body.start, "@roc");
@@ -306,7 +307,7 @@ fn collect_rocdown_items(
                         LanguageId::Roc,
                         RegionContext::Body,
                         RegionPurpose::Metadata,
-                        page.body,
+                        enclosing_braces(text, page.body),
                         Some(page_id),
                         20,
                     );
@@ -845,6 +846,108 @@ fn collect_md_node_regions(
         | MdNode::FootnoteReference { .. }
         | MdNode::Image { .. }
         | MdNode::RawHtml { .. } => {}
+    }
+}
+
+fn enclosing_braces(src: &str, inner: Span) -> Span {
+    let bytes = src.as_bytes();
+    let mut start = inner.start as usize;
+    while start > 0 && bytes[start - 1].is_ascii_whitespace() {
+        start -= 1;
+    }
+    if start > 0 && bytes[start - 1] == b'{' {
+        start -= 1;
+    }
+    let mut end = (inner.end as usize).min(src.len());
+    while end < src.len() && bytes[end].is_ascii_whitespace() {
+        end += 1;
+    }
+    if end < src.len() && bytes[end] == b'}' {
+        end += 1;
+    }
+    Span::new(start, end)
+}
+
+fn collect_record_fields(src: &str, collector: &mut Vec<HighlightSpan>, span: Span) {
+    let mut cur = Cursor::at(src, span.start as usize);
+    let end = (span.end as usize).min(src.len());
+    while cur.pos < end && !cur.is_eof() {
+        let before = cur.pos;
+        cur.skip_trivia();
+        if cur.pos >= end {
+            break;
+        }
+        match cur.peek() {
+            Some('{' | '}' | ',' | ':') => {
+                let start = cur.pos;
+                cur.bump();
+                collector.push(HighlightSpan::new(
+                    Span::new(start, cur.pos),
+                    HighlightKind::Punctuation,
+                    0,
+                    50,
+                ));
+            }
+            Some('"') => {
+                let start = cur.pos;
+                cur.bump();
+                while let Some(ch) = cur.peek() {
+                    if ch == '"' {
+                        cur.bump();
+                        break;
+                    }
+                    if ch == '\\' {
+                        cur.bump();
+                        cur.bump();
+                        continue;
+                    }
+                    if ch == '\n' {
+                        break;
+                    }
+                    cur.bump();
+                }
+                collector.push(HighlightSpan::new(
+                    Span::new(start, cur.pos.min(end)),
+                    HighlightKind::String,
+                    0,
+                    56,
+                ));
+            }
+            Some(ch) if ch.is_ascii_alphabetic() || ch == '_' => {
+                let Some(name_span) = cur.scan_ident() else {
+                    cur.bump();
+                    continue;
+                };
+                let saved = cur.pos;
+                cur.skip_trivia();
+                if cur.peek() == Some(':') && cur.pos <= end {
+                    collector.push(HighlightSpan::new(
+                        name_span,
+                        HighlightKind::Property,
+                        0,
+                        56,
+                    ));
+                    cur.pos = saved;
+                } else {
+                    cur.pos = saved;
+                    let name = name_span.of(src);
+                    let kind = if name == "True" || name == "False" {
+                        HighlightKind::Keyword
+                    } else if name.starts_with(|ch: char| ch.is_ascii_uppercase()) {
+                        HighlightKind::EnumMember
+                    } else {
+                        HighlightKind::Variable
+                    };
+                    collector.push(HighlightSpan::new(name_span, kind, 0, 50));
+                }
+            }
+            _ => {
+                cur.bump();
+            }
+        }
+        if cur.pos <= before {
+            cur.bump();
+        }
     }
 }
 
