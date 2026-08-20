@@ -4,7 +4,7 @@ title: Extended preview-window inspector
 description: "Original dock/tabs/console specification for the preview Dev inspector. Those shells are in the tree; remaining investigation and repair is the inspector-repair plan. App-level Rocci logging is out of scope."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T08:25:00Z }
+generated: { by: process:cursor, at: 2026-08-20T10:31:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -389,7 +389,8 @@ works.
 
 ### Phase 5 — Page JavaScript console (optional, after 4)
 
-Only if gate 3 says yes.
+Gate 3 is closed runtime-only for this milestone. Skip unless a later
+milestone reopens page `console.*`.
 
 - Overlay initialization script wraps `console.*` in the **top** window,
   not in the inspector iframe (`window.frameElement` / host check).
@@ -472,7 +473,9 @@ normative:
 1. Tab strip in the iframe (recommended) vs overlay-owned tabs.
 2. v1 dock right+bottom only vs also left / undock.
 3. Console v1 runtime-only vs runtime plus page `console.*` in the same
-   milestone (Phase 5).
+   milestone (Phase 5). **Closed for this milestone:** runtime-only.
+   Page `console.*` remains original inspector Phase 5 / native Web
+   Inspector, not Console v1.[^console-scope]
 4. First-open default tab: `performance` vs `source`.
 5. Source switching: keep no-JS GET form (Phase 1) vs fetch JSON into
    the pane.
