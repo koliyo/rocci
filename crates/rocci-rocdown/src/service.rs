@@ -255,6 +255,10 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
         let compiled = compile(
             SourceFile::new(source_name, &src),
             &CompileOptions {
+                lower: rocci_template::LowerOptions {
+                    embed_css: false,
+                    ..rocci_template::LowerOptions::default()
+                },
                 check_assets: false,
                 ..CompileOptions::default()
             },
@@ -462,6 +466,59 @@ RevealTip = |{ open }| {
             "{main}"
         );
         assert!(!main.contains("(\"GET\", \"/\") =>"), "{main}");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn live_modules_do_not_embed_style_in_handler_patches() {
+        let root = temp("no-embed-css");
+        fs::write(
+            root.join("index.rocdown"),
+            r#"
+@page { route: "/", meta: { title: "Live" } }
+
+@component
+RevealTip = |{ open }| {
+    @css {
+        .reveal { color: red; }
+    }
+    <div id="reveal-tip" class="reveal">
+        @if open {
+            <button type="button" data-on:click=@post("/actions/reveal/hide")>Hide</button>
+        } @else {
+            <button type="button" data-on:click=@post("/actions/reveal/show")>Show</button>
+        }
+    </div>
+}
+
+@on:post("/actions/reveal/show") = |_, _request| {
+    revealTip({ open: True })
+}
+
+# Live
+
+@render {
+    revealTip({ open: False })
+}
+"#,
+        )
+        .unwrap();
+        let plan = plan_island_service(&root).unwrap();
+        assert_eq!(plan.modules.len(), 1);
+        let roc = &plan.modules[0].roc;
+        let tip = roc
+            .split("revealTip = ")
+            .nth(1)
+            .and_then(|rest| rest.split("on_post_").next())
+            .expect("revealTip component");
+        assert!(
+            tip.contains("data-rocci-css"),
+            "scoped stamps must remain:\n{tip}"
+        );
+        assert!(
+            !tip.contains("\"style\""),
+            "island service must not embed style elements in patches:\n{tip}"
+        );
         let _ = fs::remove_dir_all(root);
     }
 

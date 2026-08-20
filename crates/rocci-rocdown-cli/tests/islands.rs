@@ -302,6 +302,10 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
         response.contains("Hide tip"),
         "same-origin preview must proxy island POST:\n{response}"
     );
+    assert!(
+        !response.contains("<style"),
+        "island patches must not re-embed CSS:\n{response}"
+    );
 
     let alpha = http_exchange(
         port,
@@ -423,6 +427,10 @@ fn counter_run_proxies_actions_on_one_origin() {
     assert!(
         increment.contains("counter") && (increment.contains(">1<") || increment.contains(">1</")),
         "same-origin preview must proxy island POST:\n{increment}"
+    );
+    assert!(
+        !increment.contains("<style"),
+        "island patches must not re-embed CSS already on the CDN page:\n{increment}"
     );
     drop(child);
 }
