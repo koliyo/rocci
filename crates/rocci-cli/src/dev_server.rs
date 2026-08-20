@@ -881,6 +881,68 @@ fn remaining_body(initial: &[u8]) -> usize {
     length.saturating_sub(body.len())
 }
 
+fn force_connection_close(headers: &str) -> String {
+    let mut out = String::with_capacity(headers.len() + 24);
+    let mut saw_connection = false;
+    for line in headers.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let Some((name, _)) = line.split_once(':') else {
+            out.push_str(line);
+            out.push_str("\r\n");
+            continue;
+        };
+        if name.eq_ignore_ascii_case("connection") {
+            if !saw_connection {
+                out.push_str("Connection: close\r\n");
+                saw_connection = true;
+            }
+            continue;
+        }
+        if name.eq_ignore_ascii_case("keep-alive") {
+            continue;
+        }
+        out.push_str(line);
+        out.push_str("\r\n");
+    }
+    if !saw_connection {
+        out.push_str("Connection: close\r\n");
+    }
+    out
+}
+
+fn rewrite_message_connection_close(message: &[u8]) -> Vec<u8> {
+    let Some(idx) = message.windows(4).position(|window| window == b"\r\n\r\n") else {
+        return message.to_vec();
+    };
+    let headers = String::from_utf8_lossy(&message[..idx]);
+    let rewritten = force_connection_close(&headers);
+    let mut out = Vec::with_capacity(rewritten.len() + 4 + message.len() - idx - 4);
+    out.extend_from_slice(rewritten.as_bytes());
+    out.extend_from_slice(b"\r\n");
+    out.extend_from_slice(&message[idx + 4..]);
+    out
+}
+
+fn read_headers(stream: &mut TcpStream) -> io::Result<Vec<u8>> {
+    let mut buf = Vec::with_capacity(1024);
+    let mut byte = [0u8; 1];
+    loop {
+        stream.read_exact(&mut byte)?;
+        buf.push(byte[0]);
+        if buf.len() >= 4 && &buf[buf.len() - 4..] == b"\r\n\r\n" {
+            return Ok(buf);
+        }
+        if buf.len() > 64 * 1024 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "proxy response headers too large",
+            ));
+        }
+    }
+}
+
 fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Result<()> {
     let mut backend = match TcpStream::connect(("127.0.0.1", port)) {
         Ok(stream) => stream,
@@ -893,13 +955,17 @@ fn proxy_to_backend(client: &mut TcpStream, initial: &[u8], port: u16) -> io::Re
     };
     backend.set_read_timeout(Some(Duration::from_secs(30)))?;
     backend.set_write_timeout(Some(Duration::from_secs(30)))?;
-    backend.write_all(initial)?;
-    let remaining = remaining_body(initial);
+    let request = rewrite_message_connection_close(initial);
+    backend.write_all(&request)?;
+    let remaining = remaining_body(&request);
     if remaining > 0 {
         let mut rest = vec![0u8; remaining];
         client.read_exact(&mut rest)?;
         backend.write_all(&rest)?;
     }
+    let headers = read_headers(&mut backend)?;
+    let rewritten = rewrite_message_connection_close(&headers);
+    client.write_all(&rewritten)?;
     io::copy(&mut backend, client)?;
     Ok(())
 }
@@ -1453,6 +1519,21 @@ mod tests {
     }
 
     #[test]
+    fn force_connection_close_replaces_keep_alive() {
+        let headers = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n";
+        let rewritten = force_connection_close(headers);
+        assert!(rewritten.contains("Connection: close\r\n"), "{rewritten}");
+        assert!(!rewritten.to_ascii_lowercase().contains("keep-alive"));
+        assert_eq!(
+            rewritten
+                .lines()
+                .filter(|line| line.to_ascii_lowercase().starts_with("connection:"))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
     fn static_server_proxies_unmatched_posts() {
         let output = std::env::temp_dir().join(format!(
             "rocci-proxy-out-{}-{}",
@@ -1468,13 +1549,24 @@ mod tests {
         let backend_listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let backend_port = backend_listener.local_addr().unwrap().port();
         let backend = thread::spawn(move || {
-            let (mut stream, _) = backend_listener.accept().unwrap();
-            let mut buf = [0u8; 2048];
-            let n = stream.read(&mut buf).unwrap();
-            let request = String::from_utf8_lossy(&buf[..n]);
-            assert!(request.starts_with("POST /actions/x"), "{request}");
-            let body = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 21\r\nConnection: close\r\n\r\n<div id=\"slot-a\">ok</div>";
-            stream.write_all(body).unwrap();
+            for _ in 0..2 {
+                let (mut stream, _) = backend_listener.accept().unwrap();
+                let mut buf = [0u8; 2048];
+                let n = stream.read(&mut buf).unwrap();
+                let request = String::from_utf8_lossy(&buf[..n]);
+                assert!(request.starts_with("POST /actions/x"), "{request}");
+                assert!(
+                    request.to_ascii_lowercase().contains("connection: close"),
+                    "proxy must forward Connection: close:\n{request}"
+                );
+                let payload = b"event: datastar-patch-elements\ndata: elements ok\n\n";
+                let body = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\n\r\n",
+                    payload.len()
+                );
+                stream.write_all(body.as_bytes()).unwrap();
+                stream.write_all(payload).unwrap();
+            }
         });
 
         let port = crate::serve::free_port().unwrap();
@@ -1504,15 +1596,25 @@ mod tests {
             "{logged:?}"
         );
 
-        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
-        client
-            .write_all(
-                b"POST /actions/x HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-            )
-            .unwrap();
-        let mut response = String::new();
-        client.read_to_string(&mut response).unwrap();
-        assert!(response.contains("slot-a"), "{response}");
+        for _ in 0..2 {
+            let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+            client
+                .write_all(
+                    b"POST /actions/x HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\n\r\n",
+                )
+                .unwrap();
+            let mut response = String::new();
+            client.read_to_string(&mut response).unwrap();
+            assert!(response.contains("datastar-patch-elements"), "{response}");
+            assert!(
+                response.to_ascii_lowercase().contains("connection: close"),
+                "proxied response must advertise close, not keep-alive:\n{response}"
+            );
+            assert!(
+                !response.to_ascii_lowercase().contains("keep-alive"),
+                "{response}"
+            );
+        }
 
         let mut home = TcpStream::connect(("127.0.0.1", port)).unwrap();
         home.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
