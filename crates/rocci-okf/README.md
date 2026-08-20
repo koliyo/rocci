@@ -83,6 +83,11 @@ cargo run -p rocci-okf -- browser-adapter
 `run` (Rocci schema, no git provenance) for local authoring, and
 `check --profile rocci` when reviewing or in CI.
 
+`run` still builds the review site when the bundle has validation errors. The
+preview shows those diagnostics on the page and in the inspector console, and
+renders each document as far as it parsed. `check` and `build` keep failing on
+errors.
+
 `run` persists parsed Markdown under `ROCCI_CACHE` (default `~/.rocci/cache`)
 in `okf-parse/`, so a new process can reuse unchanged documents. `check` always
 parses the bundle fresh.

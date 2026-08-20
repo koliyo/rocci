@@ -49,6 +49,33 @@ fn test_okf_profile_matrix() {
 }
 
 #[test]
+fn invalid_yaml_still_captures_markdown_body() {
+    let root = temp("yaml-recovery");
+    fs::write(
+        root.join("broken.md"),
+        "---\ntype: Note\ntitle: [unclosed\n---\n\n# Broken\n\nRecovered body.\n",
+    )
+    .unwrap();
+
+    let bundle = load(&root, Profile::Base).expect("load");
+    assert!(bundle.has_errors(), "{:?}", bundle.diagnostics);
+    assert_eq!(bundle.concepts.len(), 1);
+    assert!(
+        bundle.concepts[0].article_html.contains("Recovered body"),
+        "{}",
+        bundle.concepts[0].article_html
+    );
+    assert!(
+        bundle
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "OKF1003")
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn test_okf_unknown_metadata_and_body_offsets() {
     let root = temp("metadata");
     fs::write(

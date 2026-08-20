@@ -40,6 +40,17 @@ pub fn from_bundle(
             html,
         ));
     }
+    for path in crate::presentation::diagnostic_only_concept_paths(bundle) {
+        let id = path.strip_suffix(".md").unwrap_or(path);
+        let source = fs::read_to_string(root.join(path)).unwrap_or_default();
+        let html = inspect_html(fs::read_to_string(output.join(id).join("index.html")).ok());
+        pages.push(InspectPage::from_okf(
+            &format!("/{}/", id.trim_matches('/')),
+            path,
+            source,
+            html,
+        ));
+    }
     let review_html =
         inspect_html(fs::read_to_string(output.join("review").join("index.html")).ok());
     pages.push(InspectPage::from_okf(
@@ -245,6 +256,50 @@ mod tests {
             review.source_highlighted
         );
         assert!(!review.html.contains("reload.js"), "{}", review.html);
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn snapshot_from_invalid_bundle_still_renders_html() {
+        let root = temp("bundle-errors");
+        fs::write(
+            root.join("index.md"),
+            "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("hello.md"),
+            "---\ntype: Note\ntitle: Hello\n---\n\n# Hello\n\nInspect this concept body.\n",
+        )
+        .unwrap();
+        let loaded = load_timed(
+            &root,
+            LoadOptions::new(Profile::Rocci).with_provenance(false),
+        )
+        .unwrap();
+        assert!(
+            loaded.bundle.has_errors(),
+            "{:?}",
+            loaded.bundle.diagnostics
+        );
+        let output = temp("out-errors");
+        build_review_site_pure_rust(&loaded.bundle, &output).unwrap();
+
+        let snapshot = from_bundle(&root, &loaded.bundle, &output, ProfileSnapshot::default());
+        let page = snapshot.resolve(Some("/hello/")).unwrap();
+        assert!(
+            page.source.contains("Inspect this concept body."),
+            "{}",
+            page.source
+        );
+        assert!(
+            page.html.contains("Inspect this concept body"),
+            "{}",
+            page.html
+        );
+        assert!(page.html.contains("okf-error-banner"), "{}", page.html);
+        assert!(page.capabilities.html.available);
         let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(output);
     }

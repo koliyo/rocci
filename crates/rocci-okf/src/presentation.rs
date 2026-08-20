@@ -1285,7 +1285,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
     let mut output_paths = Vec::new();
 
     for concept in &bundle.concepts {
-        let (stamped_article, headings) = stamp_and_collect_headings(&concept.article_html);
+        let article = article_with_validation(bundle, Some(&concept.path), &concept.article_html);
+        let (stamped_article, headings) = stamp_and_collect_headings(&article);
         let article_rel = format!("articles/{}.html", concept.id.replace('/', "-"));
         articles.push((article_rel.clone(), stamped_article));
         let out_path = format!("{}/index.html", concept.id);
@@ -1301,11 +1302,16 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
     }
 
     if let Some(index) = bundle.indexes.iter().find(|i| i.path == "index.md") {
-        let (stamped, headings) = stamp_and_collect_headings(&format!(
-            "{}{}",
-            render_home_page_governance(bundle),
-            index.article_html
-        ));
+        let home = article_with_validation(
+            bundle,
+            Some("index.md"),
+            &format!(
+                "{}{}",
+                render_home_page_governance(bundle),
+                index.article_html
+            ),
+        );
+        let (stamped, headings) = stamp_and_collect_headings(&home);
         let article_rel = "articles/index.html".to_string();
         articles.push((article_rel.clone(), stamped));
         output_paths.push("index.html".to_string());
@@ -1322,7 +1328,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         let Some(collection) = index.path.strip_suffix("/index.md") else {
             continue;
         };
-        let (stamped, headings) = stamp_and_collect_headings(&index.article_html);
+        let article = article_with_validation(bundle, Some(&index.path), &index.article_html);
+        let (stamped, headings) = stamp_and_collect_headings(&article);
         let article_rel = format!("articles/{collection}-index.html");
         articles.push((article_rel.clone(), stamped));
         let out_path = format!("{collection}/index.html");
@@ -1336,7 +1343,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         ));
     }
 
-    let (stamped, headings) = stamp_and_collect_headings(&render_review_page(bundle));
+    let review = article_with_validation(bundle, None, &render_review_page(bundle));
+    let (stamped, headings) = stamp_and_collect_headings(&review);
     let article_rel = "articles/review.html".to_string();
     articles.push((article_rel.clone(), stamped));
     output_paths.push("review/index.html".to_string());
@@ -1347,6 +1355,22 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         &headings,
         None,
     ));
+
+    for path in diagnostic_only_concept_paths(bundle) {
+        let id = concept_id_from_path(path);
+        let (stamped, headings) = stamp_and_collect_headings(&stub_article(bundle, path));
+        let article_rel = format!("articles/{}-unparsed.html", id.replace('/', "-"));
+        articles.push((article_rel.clone(), stamped));
+        let out_path = format!("{id}/index.html");
+        output_paths.push(out_path.clone());
+        pages.push(page_record(
+            out_path,
+            article_rel,
+            id.to_string(),
+            &headings,
+            None,
+        ));
+    }
 
     let json = serde_json::to_string(&OkfPagesFile { pages })
         .context("failed to serialize OKF page records")?;
@@ -1564,13 +1588,15 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         }
         let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
         let meta_header = render_concept_meta(concept, bundle);
-        let full_html = with_meta_and_article(&meta_header, &concept.article_html);
+        let article = article_with_validation(bundle, Some(&concept.path), &concept.article_html);
+        let full_html = with_meta_and_article(&meta_header, &article);
         fs::write(&destination, html_page(title, &full_html))
             .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
         let governance_header = render_home_page_governance(bundle);
-        let full_index = with_meta_and_article(&governance_header, &index.article_html);
+        let article = article_with_validation(bundle, Some("index.md"), &index.article_html);
+        let full_index = with_meta_and_article(&governance_header, &article);
         fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
             .context("failed to write knowledge index")?;
     }
@@ -1585,7 +1611,14 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         }
         fs::write(
             &destination,
-            html_page(collection, &select_root_article(&index.article_html)),
+            html_page(
+                collection,
+                &select_root_article(&article_with_validation(
+                    bundle,
+                    Some(&index.path),
+                    &index.article_html,
+                )),
+            ),
         )
         .with_context(|| format!("failed to write {}", destination.display()))?;
     }
@@ -1598,10 +1631,28 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         &review_dest,
         html_page(
             "Knowledge Governance & Review Queue",
-            &select_root_article(&render_review_page(bundle)),
+            &select_root_article(&article_with_validation(
+                bundle,
+                None,
+                &render_review_page(bundle),
+            )),
         ),
     )
     .context("failed to write knowledge review page")?;
+
+    for path in diagnostic_only_concept_paths(bundle) {
+        let id = concept_id_from_path(path);
+        let destination = site.join(id).join("index.html");
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create {}", parent.display()))?;
+        }
+        fs::write(
+            &destination,
+            html_page(id, &select_root_article(&stub_article(bundle, path))),
+        )
+        .with_context(|| format!("failed to write {}", destination.display()))?;
+    }
 
     let okf_static_dir = site.join("__rocci_okf");
     fs::create_dir_all(&okf_static_dir)
@@ -2047,6 +2098,10 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-auth-exploratory { background: rgba(198, 120, 221, 0.15); color: var(--rd-purple); border-color: var(--rd-purple); }
 .okf-auth-descriptive, .okf-trust-unverified { background: var(--rd-bg-subtle); color: var(--rd-muted); }
 .okf-alert-banner { display: flex; gap: 0.5rem; background: rgba(209, 154, 102, 0.12); border: 1px solid var(--rd-orange); padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0; }
+.okf-error-banner { display: flex; flex-direction: column; gap: 0.5rem; background: rgba(224, 108, 117, 0.12); border: 1px solid var(--rd-red); padding: 0.75rem 1rem; border-radius: 6px; margin: 0 0 1.25rem; }
+.okf-error-banner p, .okf-alert-banner p { margin: 0; }
+.okf-diagnostics-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.okf-diagnostic-item { font-size: 0.9rem; }
 .okf-concept-meta { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rd-border); user-select: none; }
 .okf-lead { color: var(--rd-muted); margin: 0 0 0.75rem; }
 .okf-provenance { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; padding: 0; margin: 0 0 0.75rem; font-size: 0.9rem; }
@@ -2091,6 +2146,107 @@ fn select_root_article(html: &str) -> String {
 
 fn with_meta_and_article(meta: &str, article: &str) -> String {
     format!("{meta}{}", select_root_article(article))
+}
+
+pub(crate) fn diagnostic_only_concept_paths(bundle: &Bundle) -> Vec<&str> {
+    let published: HashSet<&str> = bundle
+        .concepts
+        .iter()
+        .map(|concept| concept.path.as_str())
+        .chain(bundle.indexes.iter().map(|index| index.path.as_str()))
+        .chain(bundle.logs.iter().map(|log| log.path.as_str()))
+        .collect();
+    let mut paths: Vec<&str> = bundle
+        .diagnostics
+        .iter()
+        .map(|diagnostic| diagnostic.path.as_str())
+        .filter(|path| {
+            !published.contains(path)
+                && path.ends_with(".md")
+                && *path != "index.md"
+                && *path != "log.md"
+                && !path.ends_with("/index.md")
+                && !path.ends_with("/log.md")
+        })
+        .collect();
+    paths.sort_unstable();
+    paths.dedup();
+    paths
+}
+
+fn concept_id_from_path(path: &str) -> &str {
+    path.strip_suffix(".md").unwrap_or(path)
+}
+
+fn article_with_validation(bundle: &Bundle, path: Option<&str>, article: &str) -> String {
+    format!("{}{article}", render_validation_notice(bundle, path))
+}
+
+fn stub_article(bundle: &Bundle, path: &str) -> String {
+    format!(
+        "{}<p class=\"rd-paragraph\">This document could not be fully parsed. The viewer still shows the validation errors above.</p>\n",
+        render_validation_notice(bundle, Some(path))
+    )
+}
+
+pub fn render_validation_notice(bundle: &Bundle, current_path: Option<&str>) -> String {
+    let path_diagnostics: Vec<&Diagnostic> = current_path
+        .map(|path| {
+            bundle
+                .diagnostics
+                .iter()
+                .filter(|diagnostic| diagnostic.path == path)
+                .collect()
+        })
+        .unwrap_or_default();
+    let other_errors: Vec<&Diagnostic> = bundle
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic.severity == Severity::Error
+                && current_path.map_or(true, |path| diagnostic.path != path)
+        })
+        .collect();
+    if path_diagnostics.is_empty() && other_errors.is_empty() {
+        return String::new();
+    }
+    let has_error = path_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.severity == Severity::Error)
+        || !other_errors.is_empty();
+    let class = if has_error {
+        "okf-error-banner"
+    } else {
+        "okf-alert-banner"
+    };
+    let heading = if has_error {
+        "Validation errors"
+    } else {
+        "Validation warnings"
+    };
+    let mut out = format!("<div class=\"{class}\" role=\"alert\">\n");
+    out.push_str(&format!(
+        "  <p><strong>{}</strong> — the document below still renders as far as possible.</p>\n",
+        heading
+    ));
+    out.push_str("  <div class=\"okf-diagnostics-list\">\n");
+    for diagnostic in path_diagnostics.iter().chain(other_errors.iter()) {
+        let sev_badge = match diagnostic.severity {
+            Severity::Error => "<span class=\"okf-badge okf-status-deprecated\">Error</span>",
+            Severity::Warning => "<span class=\"okf-badge okf-status-draft\">Warning</span>",
+        };
+        out.push_str(&format!(
+            "    <div class=\"okf-diagnostic-item\">{} <code>{}</code> <strong>{}</strong>: {}</div>\n",
+            sev_badge,
+            escape(diagnostic.code),
+            escape(&diagnostic.path),
+            escape(&diagnostic.message)
+        ));
+    }
+    out.push_str("  </div>\n");
+    out.push_str("  <p><a href=\"/review/#diagnostics\">All bundle diagnostics</a></p>\n");
+    out.push_str("</div>\n");
+    out
 }
 
 const OKF_GLOBAL_NAV: &str = concat!(
@@ -2353,6 +2509,25 @@ mod tests {
         assert!(html.contains("preserved"));
         assert!(!html.contains("okf-meta-grid"));
         assert!(html.contains("okf-table-container"));
+    }
+
+    #[test]
+    fn validation_notice_lists_errors_and_keeps_empty_when_clean() {
+        let mut overview = concept_with(BTreeMap::new());
+        overview.path = "overview.md".into();
+        let mut bundle = bundle_with(vec![overview.clone()]);
+        assert!(render_validation_notice(&bundle, Some("overview.md")).is_empty());
+        bundle.diagnostics.push(Diagnostic::error(
+            "OKF2001",
+            "overview.md",
+            None,
+            "missing required field `tags`",
+        ));
+        let html = render_validation_notice(&bundle, Some("overview.md"));
+        assert!(html.contains("okf-error-banner"));
+        assert!(html.contains("OKF2001"));
+        assert!(html.contains("missing required field `tags`"));
+        assert!(html.contains("/review/#diagnostics"));
     }
 
     #[test]
@@ -2738,6 +2913,54 @@ mod tests {
         assert!(html.contains("href=\"/\""));
         assert!(html.contains("Home"));
         assert!(html.contains("<nav class=\"rd-toc\""));
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn preview_renders_document_when_bundle_has_errors() {
+        let site = unique_temp("site-with-errors").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "overview".into();
+        overview.path = "overview.md".into();
+        overview.article_html = "<h1>System Overview</h1>\n<p>Recovered body.</p>".into();
+        let mut bundle = bundle_with(vec![overview]);
+        bundle.diagnostics.push(Diagnostic::error(
+            "OKF2001",
+            "overview.md",
+            None,
+            "missing required field `tags`",
+        ));
+        build_review_site_pure_rust(&bundle, &site).unwrap();
+        let html = fs::read_to_string(site.join("overview").join("index.html")).unwrap();
+        assert!(html.contains("Recovered body"), "{html}");
+        assert!(html.contains("okf-error-banner"), "{html}");
+        assert!(html.contains("OKF2001"), "{html}");
+        assert!(html.contains("missing required field `tags`"), "{html}");
+        assert!(
+            !html.contains("knowledge bundle has validation errors"),
+            "{html}"
+        );
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn preview_writes_stub_page_for_unparsed_error_path() {
+        let site = unique_temp("site-stub").unwrap();
+        let bundle = Bundle {
+            diagnostics: vec![Diagnostic::error(
+                "OKF1001",
+                "plans/broken.md",
+                None,
+                "document is not valid UTF-8",
+            )],
+            ..bundle_with(Vec::new())
+        };
+        build_review_site_pure_rust(&bundle, &site).unwrap();
+        let html =
+            fs::read_to_string(site.join("plans").join("broken").join("index.html")).unwrap();
+        assert!(html.contains("okf-error-banner"), "{html}");
+        assert!(html.contains("OKF1001"), "{html}");
+        assert!(html.contains("document is not valid UTF-8"), "{html}");
         let _ = fs::remove_dir_all(&site);
     }
 
