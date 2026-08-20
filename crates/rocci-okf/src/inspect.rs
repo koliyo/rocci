@@ -121,6 +121,11 @@ mod tests {
             "{}",
             page.source
         );
+        assert!(
+            page.source_highlighted.contains("tok-"),
+            "{}",
+            page.source_highlighted
+        );
         assert!(page.capabilities.source.available);
         assert!(!page.capabilities.ast.available);
         assert!(
@@ -221,6 +226,11 @@ mod tests {
         let plans = snapshot.resolve(Some("/plans/")).unwrap();
         assert_eq!(plans.path, "plans/index.md");
         assert!(plans.source.contains("# plans"), "{}", plans.source);
+        assert!(
+            plans.source_highlighted.contains("tok-"),
+            "{}",
+            plans.source_highlighted
+        );
         assert!(!plans.html.contains("reload.js"), "{}", plans.html);
         let review = snapshot.resolve(Some("/review/")).unwrap();
         assert_eq!(review.path, "review");
@@ -228,6 +238,11 @@ mod tests {
             review.source.contains("Knowledge Governance"),
             "{}",
             review.source
+        );
+        assert!(
+            review.source_highlighted.contains("tok-"),
+            "{}",
+            review.source_highlighted
         );
         assert!(!review.html.contains("reload.js"), "{}", review.html);
         let _ = fs::remove_dir_all(root);

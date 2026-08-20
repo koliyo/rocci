@@ -442,37 +442,7 @@ fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) ->
         }
         _ => rocci_highlight::highlight(lang.clone(), literal),
     };
-    if spans.is_empty() {
-        return escape(literal);
-    }
-    let mut html = String::with_capacity(literal.len() * 2);
-    let mut prev_end = 0usize;
-    for span in spans {
-        let start = span.start().min(literal.len());
-        let end = span.end().min(literal.len());
-        if start > prev_end {
-            html.push_str(&escape(&literal[prev_end..start]));
-        }
-        if start < end {
-            let kind_class = span.kind.css_class();
-            let mod_classes = rocci_highlight::modifier_css_classes(span.modifiers);
-            let class_str = if mod_classes.is_empty() {
-                kind_class.to_string()
-            } else {
-                format!("{kind_class} {}", mod_classes.join(" "))
-            };
-            html.push_str("<span class=\"");
-            html.push_str(&class_str);
-            html.push_str("\">");
-            html.push_str(&escape(&literal[start..end]));
-            html.push_str("</span>");
-        }
-        prev_end = end;
-    }
-    if prev_end < literal.len() {
-        html.push_str(&escape(&literal[prev_end..]));
-    }
-    html
+    rocci_highlight::render_spans(literal, &spans)
 }
 
 #[cfg(test)]

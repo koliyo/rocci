@@ -32,6 +32,7 @@ pub fn snapshot_from_loaded(
         };
         let html_path = output.join(&page.output_path);
         let html = fs::read_to_string(&html_path).ok();
+        let highlighted = highlight_source(&draft.source);
         let inspect = InspectPage::from_rocdown(
             &page.route,
             &draft.source_path,
@@ -39,20 +40,28 @@ pub fn snapshot_from_loaded(
             draft.ast.clone(),
             draft.roc.clone(),
             html.clone(),
-        );
+        )
+        .with_highlighted_source(highlighted.clone());
         pages.push(inspect);
         for alias in &page.aliases {
-            pages.push(InspectPage::from_rocdown(
-                alias,
-                &draft.source_path,
-                draft.source.clone(),
-                draft.ast.clone(),
-                draft.roc.clone(),
-                html.clone(),
-            ));
+            pages.push(
+                InspectPage::from_rocdown(
+                    alias,
+                    &draft.source_path,
+                    draft.source.clone(),
+                    draft.ast.clone(),
+                    draft.roc.clone(),
+                    html.clone(),
+                )
+                .with_highlighted_source(highlighted.clone()),
+            );
         }
     }
     InspectSnapshot { pages, profile }
+}
+
+fn highlight_source(source: &str) -> String {
+    rocci_highlight::render_spans(source, &crate::highlight_rocdown(source))
 }
 
 #[cfg(test)]
@@ -118,6 +127,11 @@ mod tests {
         assert!(page.capabilities.roc.available);
         assert!(page.capabilities.html.available);
         assert!(page.html.contains("Hello inspect"), "{}", page.html);
+        assert!(
+            page.source_highlighted.contains("tok-"),
+            "{}",
+            page.source_highlighted
+        );
 
         let (status, body) = snapshot.inspect_json(Some("/"));
         assert_eq!(status, 200);

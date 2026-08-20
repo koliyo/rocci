@@ -91,6 +91,8 @@ pub struct InspectPage {
     pub ast: String,
     pub roc: String,
     pub html: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source_highlighted: String,
     pub capabilities: InspectCapabilities,
 }
 
@@ -116,6 +118,7 @@ impl InspectPage {
             ast,
             roc,
             html,
+            source_highlighted: String::new(),
             capabilities: InspectCapabilities {
                 source: source_cap,
                 ast: ast_cap,
@@ -184,6 +187,7 @@ impl InspectPage {
             Some(body) if !body.is_empty() => Ok(body),
             _ => Err(HTML_NOT_BUILT.to_string()),
         };
+        let highlighted = highlight_markdown_source(&source);
         Self::from_views(
             route,
             path,
@@ -193,6 +197,12 @@ impl InspectPage {
             Err(ROC_UNAVAILABLE_OKF.to_string()),
             html,
         )
+        .with_highlighted_source(highlighted)
+    }
+
+    pub fn with_highlighted_source(mut self, html: String) -> Self {
+        self.source_highlighted = html;
+        self
     }
 
     pub fn capture_html_from_origin(&mut self, origin: &str) {
@@ -338,6 +348,13 @@ pub fn language_for_path(path: &str) -> &'static str {
     }
 }
 
+fn highlight_markdown_source(source: &str) -> String {
+    rocci_highlight::render_spans(
+        source,
+        &rocci_highlight::highlight(rocci_highlight::LanguageId::Markdown, source),
+    )
+}
+
 fn html_capability_for_rocci(path: &str, compiled: &CompileOutput) -> Result<String, String> {
     if compiled.has_errors() {
         return Err("Fix template errors before HTML can be rendered.".into());
@@ -474,6 +491,7 @@ mod tests {
             ast: "(Document ...)".into(),
             roc: "app [html] {}".into(),
             html: String::new(),
+            source_highlighted: String::new(),
             capabilities: InspectCapabilities {
                 source: ViewCapability::available(),
                 ast: ViewCapability::available(),
@@ -497,6 +515,7 @@ mod tests {
                     ast: "(Rocdown ...)".into(),
                     roc: "module [] {}".into(),
                     html: "<h1>Guide</h1>".into(),
+                    source_highlighted: String::new(),
                     capabilities: InspectCapabilities::all_available(),
                 },
             ],

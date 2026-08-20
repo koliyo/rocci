@@ -35,8 +35,11 @@ pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
         #[cfg(target_arch = "wasm32")]
         LanguageId::Roc | LanguageId::Css | LanguageId::Html => Vec::new(),
         LanguageId::Rocci => highlight_rocci(source),
+        LanguageId::Markdown => {
+            let raw = crate::markdown::highlight_markdown(source);
+            resolve_and_sort_spans(source, &raw)
+        }
         LanguageId::Rocdown
-        | LanguageId::Markdown
         | LanguageId::Shell
         | LanguageId::Toml
         | LanguageId::PlainText

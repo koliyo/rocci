@@ -81,18 +81,18 @@ fn render_source_pane(
     let view = query.view;
     let route = query.route.as_deref().unwrap_or("/");
     let action = panel_form_action(target);
-    let (path, body, available, reason) =
-        match snapshot.and_then(|snapshot| snapshot.resolve(query.route.as_deref()).ok()) {
-            Some(page) => {
-                let capability = page.capability_for(view);
-                if capability.available {
-                    (page.path.as_str(), page.body_for(view), true, "")
-                } else {
-                    (page.path.as_str(), "", false, capability.reason.as_str())
-                }
+    let page = snapshot.and_then(|snapshot| snapshot.resolve(query.route.as_deref()).ok());
+    let (path, body, available, reason) = match page {
+        Some(page) => {
+            let capability = page.capability_for(view);
+            if capability.available {
+                (page.path.as_str(), page.body_for(view), true, "")
+            } else {
+                (page.path.as_str(), "", false, capability.reason.as_str())
             }
-            None => ("", "", false, "No inspect snapshot for this route."),
-        };
+        }
+        None => ("", "", false, "No inspect snapshot for this route."),
+    };
     let reason_html = if available {
         String::new()
     } else {
@@ -102,10 +102,11 @@ fn render_source_pane(
         )
     };
     let pane_html = if available {
-        format!(
-            "<div class=\"code-pane\"><pre><code>{}</code></pre></div>",
-            error_page::html_escape(body)
-        )
+        let inner = match page {
+            Some(page) => highlight_view(page, view, body),
+            None => error_page::html_escape(body),
+        };
+        format!("<div class=\"code-pane\"><pre><code>{inner}</code></pre></div>")
     } else {
         "<div class=\"code-pane\"></div>".to_string()
     };
@@ -115,6 +116,28 @@ fn render_source_pane(
         view_options(view),
         error_page::html_escape(path),
     )
+}
+
+fn highlight_view(page: &inspect::InspectPage, view: inspect::InspectView, body: &str) -> String {
+    if view == inspect::InspectView::Source && !page.source_highlighted.is_empty() {
+        return page.source_highlighted.clone();
+    }
+    let language = match view {
+        inspect::InspectView::Source => rocci_highlight::LanguageId::parse(&page.language),
+        inspect::InspectView::Roc => rocci_highlight::LanguageId::Roc,
+        inspect::InspectView::Html => rocci_highlight::LanguageId::Html,
+        inspect::InspectView::Ast => return error_page::html_escape(body),
+    };
+    match language {
+        rocci_highlight::LanguageId::Roc
+        | rocci_highlight::LanguageId::Html
+        | rocci_highlight::LanguageId::Css
+        | rocci_highlight::LanguageId::Rocci
+        | rocci_highlight::LanguageId::Markdown => {
+            rocci_highlight::render_spans(body, &rocci_highlight::highlight(language, body))
+        }
+        _ => error_page::html_escape(body),
+    }
 }
 
 fn render_tablist(selected: &str, action: &str, route: &str, view: &str) -> String {
@@ -469,10 +492,11 @@ mod tests {
                 route: "/".into(),
                 path: "App.rocci".into(),
                 language: "rocci".into(),
-                source: "<div class=\"x\">& more</div>".into(),
+                source: "@component Card = |{}| { <div>hi</div> }".into(),
                 ast: "(Document ...)".into(),
                 roc: "app [] {}".into(),
                 html: String::new(),
+                source_highlighted: String::new(),
                 capabilities: inspect::InspectCapabilities {
                     source: inspect::ViewCapability::available(),
                     ast: inspect::ViewCapability::available(),
@@ -559,7 +583,7 @@ mod tests {
         assert!(html.contains("Generated HTML"));
         assert!(html.contains("<option value=\"source\" selected=\"\">"));
         assert!(html.contains("App.rocci"));
-        assert!(html.contains("&lt;div class=&quot;x&quot;&gt;&amp; more&lt;/div&gt;"));
+        assert!(html.contains("tok-"));
         assert!(!html.contains("<p class=\"unavailable\">"));
         assert!(html.contains("action=\"/__rocci/dev\""));
         assert!(html.contains("name=\"tab\" value=\"source\""));
@@ -582,7 +606,7 @@ mod tests {
 
         let unknown = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=source&view=nope");
         assert!(unknown.contains("<option value=\"source\" selected=\"\">"));
-        assert!(unknown.contains("&lt;div class=&quot;x&quot;&gt;&amp; more&lt;/div&gt;"));
+        assert!(unknown.contains("tok-"));
 
         let alias = render_panel_html(
             Some(&snapshot),
@@ -604,6 +628,7 @@ mod tests {
                 ast: "(Document)".into(),
                 roc,
                 html: "<html></html>".into(),
+                source_highlighted: String::new(),
                 capabilities: inspect::InspectCapabilities {
                     source: inspect::ViewCapability::available(),
                     ast: inspect::ViewCapability::available(),
@@ -625,8 +650,70 @@ mod tests {
         assert!(html.contains("pre {\n        margin: 0;"));
         assert!(html.contains("overflow: visible"));
         assert!(html.contains("white-space: pre"));
-        assert!(html.contains("expose []"));
+        assert!(html.contains("expose"));
+        assert!(html.contains(".tok-keyword"));
+        assert!(html.contains("<span class=\"tok-"));
         assert!(!html.contains(".inspector-panel {"));
+    }
+
+    #[test]
+    fn panel_highlights_roc_html_and_leaves_unavailable_empty() {
+        let snapshot = InspectSnapshot {
+            pages: vec![inspect::InspectPage {
+                route: "/".into(),
+                path: "App.rocci".into(),
+                language: "rocci".into(),
+                source: "@component Card = |{}| { <div>hi</div> }".into(),
+                ast: "(Document)".into(),
+                roc: "main = {}".into(),
+                html: "<div class=\"x\"></div>".into(),
+                source_highlighted: String::new(),
+                capabilities: inspect::InspectCapabilities {
+                    source: inspect::ViewCapability::available(),
+                    ast: inspect::ViewCapability::available(),
+                    roc: inspect::ViewCapability::available(),
+                    html: inspect::ViewCapability::available(),
+                },
+            }],
+            profile: ProfileSnapshot::default(),
+        };
+        let source = render_panel_html(
+            Some(&snapshot),
+            "/__rocci/dev?tab=source&route=/&view=source",
+        );
+        assert!(source.contains("tok-"));
+        let roc = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=source&view=roc");
+        assert!(roc.contains("tok-"));
+        let html = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=source&view=html");
+        assert!(html.contains("tok-"));
+        let ast = render_panel_html(Some(&snapshot), "/__rocci/dev?tab=source&view=ast");
+        assert!(ast.contains("(Document)"));
+        assert!(!ast.contains("<span class=\"tok-"));
+
+        let unavailable = InspectSnapshot {
+            pages: vec![inspect::InspectPage {
+                route: "/".into(),
+                path: "index.md".into(),
+                language: "markdown".into(),
+                source: "# Hello\n".into(),
+                ast: String::new(),
+                roc: String::new(),
+                html: String::new(),
+                source_highlighted: "<span class=\"tok-keyword\">#</span> Hello\n".into(),
+                capabilities: inspect::InspectCapabilities {
+                    source: inspect::ViewCapability::available(),
+                    ast: inspect::ViewCapability::unavailable("not Rocci or Rocdown"),
+                    roc: inspect::ViewCapability::unavailable("no Roc"),
+                    html: inspect::ViewCapability::unavailable("no HTML"),
+                },
+            }],
+            profile: ProfileSnapshot::default(),
+        };
+        let missing_roc = render_panel_html(Some(&unavailable), "/__rocci/dev?tab=source&view=roc");
+        assert!(missing_roc.contains("<div class=\"code-pane\"></div>"));
+        assert!(!missing_roc.contains("<pre><code>"));
+        let markdown = render_panel_html(Some(&unavailable), "/__rocci/dev?tab=source&view=source");
+        assert!(markdown.contains("tok-keyword"));
     }
 
     #[test]
@@ -652,6 +739,7 @@ mod tests {
                 ast: "(Document)".into(),
                 roc: "app [] {}".into(),
                 html: String::new(),
+                source_highlighted: String::new(),
                 capabilities: inspect::InspectCapabilities {
                     source: inspect::ViewCapability::available(),
                     ast: inspect::ViewCapability::available(),

@@ -419,4 +419,25 @@ samplePage = {
     pre code {
         font: inherit;
     }
+    .tok-keyword { color: light-dark(#b92f19, #ff765a); font-weight: 600; }
+    .tok-string { color: light-dark(#0f766e, #2dd4bf); }
+    .tok-function { color: light-dark(#6d28d9, #a78bfa); font-weight: 600; }
+    .tok-type { color: light-dark(#2563eb, #60a5fa); }
+    .tok-namespace { color: light-dark(#2563eb, #60a5fa); font-style: italic; }
+    .tok-property { color: light-dark(#be185d, #f472b6); }
+    .tok-variable { color: light-dark(#201e1c, #f8f3ed); }
+    .tok-parameter { color: light-dark(#201e1c, #f8f3ed); }
+    .tok-number { color: light-dark(#b45309, #fbbf24); }
+    .tok-comment { color: light-dark(#78716c, #9c948c); font-style: italic; }
+    .tok-operator { color: light-dark(#57534e, #d7d0c7); }
+    .tok-tag { color: light-dark(#b92f19, #ff765a); font-weight: 600; }
+    .tok-punctuation { color: light-dark(#78716c, #a8a29e); }
+    .tok-enum-member { color: light-dark(#2563eb, #60a5fa); }
+    .tok-struct { color: light-dark(#2563eb, #60a5fa); }
+    .tok-macro { color: light-dark(#6d28d9, #a78bfa); }
+    .tok-decorator { color: light-dark(#be185d, #f472b6); }
+    .tok-definition { text-decoration: underline dotted color-mix(in srgb, light-dark(#e64b2f, #ff765a) 50%, transparent); }
+    .tok-readonly { opacity: 0.9; }
+    .tok-documentation { font-style: italic; }
+    .tok-default-library { font-weight: 500; }
 }
