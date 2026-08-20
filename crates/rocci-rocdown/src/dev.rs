@@ -13,6 +13,7 @@ use anyhow::{Context, Result, bail};
 pub use rocci_cli::dev_server::DevServer;
 use rocci_cli::dev_server::{StaticDevServerConfig, serve_static_site};
 use rocci_cli::driver::RunningApp;
+use rocci_cli::logs::{self, LogHub, LogLevel};
 
 use crate::build::{BuildSession, absolute};
 use crate::config::load_config;
@@ -115,7 +116,7 @@ pub fn run_with_host_at(
             &backend_port,
             Some(logs.clone()),
             log_handlers,
-        );
+        )?;
         Ok(Some(snapshot_from_loaded(
             &loaded,
             out_dir,
@@ -128,13 +129,14 @@ fn sync_island_backend(
     root: &Path,
     backend: &Mutex<Option<RunningApp>>,
     advertised: &AtomicU16,
-    logs: Option<Arc<rocci_cli::logs::LogHub>>,
+    logs: Option<Arc<LogHub>>,
     log_handlers: bool,
-) {
+) -> Result<()> {
     match crate::service::generated_island_plan(root) {
         Ok(None) => {
             *backend.lock().unwrap_or_else(|err| err.into_inner()) = None;
             advertised.store(0, Ordering::Relaxed);
+            Ok(())
         }
         Ok(Some(plan)) => {
             let app = plan.into_app_plan();
@@ -148,32 +150,30 @@ fn sync_island_backend(
                 .as_ref()
                 .is_some_and(|running| running.fingerprint == fingerprint)
             {
-                return;
+                return Ok(());
             }
             let port = match slot.as_ref() {
                 Some(running) => running.port,
-                None => match rocci_cli::serve::free_port() {
-                    Ok(port) => port,
-                    Err(err) => {
-                        eprintln!("rocdown: island service port: {err:#}");
-                        return;
-                    }
-                },
+                None => rocci_cli::serve::free_port()?,
             };
             advertised.store(0, Ordering::Relaxed);
             *slot = None;
-            match rocci_cli::driver::spawn_app_plan(&app, root, port, logs, log_handlers) {
-                Ok(running) => {
-                    advertised.store(running.port, Ordering::Relaxed);
-                    eprintln!("rocdown: island actions available on this origin");
-                    *slot = Some(running);
-                }
-                Err(err) => {
-                    eprintln!("rocdown: island service: {err:#}");
-                }
+            let running =
+                rocci_cli::driver::spawn_app_plan(&app, root, port, logs.clone(), log_handlers)?;
+            advertised.store(running.port, Ordering::Relaxed);
+            if let Some(hub) = &logs {
+                logs::tee(
+                    hub,
+                    LogLevel::Info,
+                    "rocdown: island actions available on this origin",
+                );
+            } else {
+                eprintln!("rocdown: island actions available on this origin");
             }
+            *slot = Some(running);
+            Ok(())
         }
-        Err(err) => eprintln!("rocdown: island service: {err:#}"),
+        Err(err) => Err(err).context("island service"),
     }
 }
 

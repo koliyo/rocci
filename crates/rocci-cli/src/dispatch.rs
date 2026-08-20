@@ -44,6 +44,7 @@ pub struct DispatchOptions {
     pub redirect_trailing_slash: bool,
     pub media_dirs: Vec<String>,
     pub log_handlers: bool,
+    pub log_handlers_color: bool,
 }
 
 impl Default for DispatchOptions {
@@ -52,6 +53,7 @@ impl Default for DispatchOptions {
             redirect_trailing_slash: true,
             media_dirs: Vec::new(),
             log_handlers: false,
+            log_handlers_color: false,
         }
     }
 }
@@ -186,14 +188,7 @@ pub fn generate_bound_main_roc(
         ""
     };
     let handler_log_helper = if options.log_handlers {
-        r#"
-handler_log! = |method, path, status| {
-    match Stderr.line!("${method} ${path} -> ${status}") {
-        Ok({}) => {}
-        Err(_) => {}
-    }
-}
-"#
+        handler_log_helper_roc(options.log_handlers_color)
     } else {
         ""
     };
@@ -276,6 +271,45 @@ patch_html! = |node| {{
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
+}
+
+fn handler_log_helper_roc(color: bool) -> &'static str {
+    if color {
+        r#"
+handler_log! = |method, path, status| {
+    reset = "\u(1b)[0m"
+    method_sgr =
+        match method {
+            "GET" => "\u(1b)[1;32m"
+            "HEAD" => "\u(1b)[32m"
+            "POST" => "\u(1b)[1;33m"
+            "PUT" => "\u(1b)[1;35m"
+            "PATCH" => "\u(1b)[1;35m"
+            "DELETE" => "\u(1b)[1;31m"
+            _ => "\u(1b)[1;36m"
+        }
+    status_sgr =
+        if status == "ok" {
+            "\u(1b)[1;32m"
+        } else {
+            "\u(1b)[1;31m"
+        }
+    match Stderr.line!("${method_sgr}${method}${reset} ${path} -> ${status_sgr}${status}${reset}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+}
+"#
+    } else {
+        r#"
+handler_log! = |method, path, status| {
+    match Stderr.line!("${method} ${path} -> ${status}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+}
+"#
+    }
 }
 
 fn media_root_id(dir: &str) -> String {
@@ -516,6 +550,39 @@ mod tests {
         );
         assert!(
             main.contains("handler_log!(\"POST\", \"/actions/counter/increment\", \"err\")"),
+            "{main}"
+        );
+        assert!(!main.contains("\\u(1b)"), "{main}");
+    }
+
+    #[test]
+    fn log_handlers_color_emits_ansi_escapes() {
+        let main = generate_bound_main_roc(
+            "Counter",
+            None,
+            None,
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Counter",
+                    routes: &[route(
+                        "POST",
+                        "/actions/counter/increment",
+                        "on_post_actions_counter_increment!",
+                    )],
+                },
+                &[],
+            ),
+            DispatchOptions {
+                log_handlers: true,
+                log_handlers_color: true,
+                ..DispatchOptions::default()
+            },
+        );
+        assert!(main.contains("\\u(1b)[1;33m"), "{main}");
+        assert!(main.contains("\\u(1b)[1;32m"), "{main}");
+        assert!(main.contains("\\u(1b)[1;31m"), "{main}");
+        assert!(
+            main.contains("handler_log!(\"POST\", \"/actions/counter/increment\", \"ok\")"),
             "{main}"
         );
     }

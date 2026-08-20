@@ -20,6 +20,7 @@ use crate::inspect::InspectSnapshot;
 use crate::inspector;
 use crate::logs::{self, LogHub, LogLevel};
 use crate::profile::ProfileSnapshot;
+use crate::style;
 
 const DEBOUNCE: Duration = Duration::from_millis(200);
 
@@ -809,7 +810,17 @@ fn handle_client(
             )
         }
         ServeTarget::Redirect(location) => write_redirect(&mut stream, &location),
-        ServeTarget::File { relative } => serve_file(&mut stream, output, &relative, 200),
+        ServeTarget::File { relative } => {
+            if is_html_file(&relative)
+                && let Some(error) = last_error
+                    .lock()
+                    .unwrap_or_else(|err| err.into_inner())
+                    .clone()
+            {
+                return write_error_html(&mut stream, &error);
+            }
+            serve_file(&mut stream, output, &relative, 200)
+        }
         ServeTarget::NotFound => {
             if has_build.load(Ordering::Relaxed) && output.join("404.html").is_file() {
                 serve_file(&mut stream, output, "404.html", 404)
@@ -837,6 +848,13 @@ fn missing_page_message(has_build: bool) -> &'static str {
     } else {
         "no built site yet"
     }
+}
+
+fn is_html_file(relative: &str) -> bool {
+    Path::new(relative)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("html"))
 }
 
 fn request_path(request: &str) -> Option<&str> {
@@ -974,7 +992,7 @@ fn proxy_to_backend(
                 logs::tee(
                     logs,
                     LogLevel::Warn,
-                    format!("{method} {path} -> island unavailable"),
+                    style::handler_unavailable(method, path),
                 );
             }
             return write_error_html(
@@ -1003,7 +1021,7 @@ fn proxy_to_backend(
                 logs::tee(
                     logs,
                     LogLevel::Info,
-                    format!("{method} {path} -> proxied ({ms}ms)"),
+                    style::handler_proxied(method, path, ms),
                 );
             }
             Ok(())
@@ -1013,7 +1031,7 @@ fn proxy_to_backend(
                 logs::tee(
                     logs,
                     LogLevel::Error,
-                    format!("{method} {path} -> proxy error: {err}"),
+                    style::handler_proxy_error(method, path, &err),
                 );
             }
             Err(err)
@@ -1513,6 +1531,14 @@ mod tests {
     }
 
     #[test]
+    fn html_files_are_document_routes() {
+        assert!(is_html_file("index.html"));
+        assert!(is_html_file("about/index.html"));
+        assert!(!is_html_file("theme.css"));
+        assert!(!is_html_file("assets/datastar.js"));
+    }
+
+    #[test]
     fn should_proxy_posts_and_missing_gets_to_backend() {
         assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 0));
         assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 9000));
@@ -1677,6 +1703,61 @@ mod tests {
 
         drop(server);
         let _ = backend.join();
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn static_server_serves_rebuild_error_instead_of_stale_html() {
+        let output = std::env::temp_dir().join(format!(
+            "rocci-rebuild-err-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        let port = crate::serve::free_port().unwrap();
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "rebuild-err".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: None,
+                log_handlers: false,
+                on_stop: None,
+            },
+            |out, _| {
+                fs::write(out.join("index.html"), "<h1>cdn</h1>").unwrap();
+                fs::write(out.join("theme.css"), "body{color:red}").unwrap();
+                anyhow::bail!("name not in scope: read_count!")
+            },
+        )
+        .unwrap();
+
+        let mut home = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        home.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut html = String::new();
+        home.read_to_string(&mut html).unwrap();
+        assert!(html.contains("HTTP/1.1 500"), "{html}");
+        assert!(html.contains("Build error"), "{html}");
+        assert!(html.contains("read_count!"), "{html}");
+        assert!(!html.contains("<h1>cdn</h1>"), "{html}");
+
+        let mut css = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        css.write_all(b"GET /theme.css HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut assets = String::new();
+        css.read_to_string(&mut assets).unwrap();
+        assert!(assets.contains("body{color:red}"), "{assets}");
+        assert!(!assets.contains("Build error"), "{assets}");
+
+        drop(server);
         let _ = fs::remove_dir_all(&output);
     }
 

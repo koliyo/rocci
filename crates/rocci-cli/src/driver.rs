@@ -76,6 +76,7 @@ impl GenericAppPlan {
                         .flat_map(|module| module.local_assets.iter()),
                 ),
                 log_handlers: self.log_handlers,
+                log_handlers_color: self.log_handlers && style::stderr_color(),
             },
         )
     }

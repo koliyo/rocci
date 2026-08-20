@@ -65,6 +65,10 @@ impl LogHub {
     }
 
     pub fn push_line(&self, line: LogLine) {
+        let line = LogLine {
+            text: crate::style::strip_ansi(&line.text),
+            ..line
+        };
         {
             let mut lines = self.lines.lock().unwrap_or_else(|err| err.into_inner());
             if lines.len() >= CAPACITY {
@@ -141,6 +145,16 @@ mod tests {
         assert_eq!(value[0]["source"], "runtime");
         assert_eq!(value[0]["text"], "watch failed");
         assert!(value[0]["t"].as_u64().unwrap() > 0);
+    }
+
+    #[test]
+    fn hub_stores_plain_text_without_ansi() {
+        let hub = LogHub::new();
+        hub.push(
+            LogLevel::Info,
+            "\x1b[1;33mPOST\x1b[0m /actions/x -> \x1b[1;32mok\x1b[0m",
+        );
+        assert_eq!(hub.snapshot()[0].text, "POST /actions/x -> ok");
     }
 
     #[test]
