@@ -12,6 +12,41 @@ import pf.Env
 import pf.Path
 import pf.Sqlite
 import pf.Stderr
+
+read_count! = |db| {
+    row : { value : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT value FROM counter WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.value)
+}
+
+increment_count! = |db| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
+            params: {},
+        },
+    )?
+    read_count!(db)
+}
+
+reset_count! = |db| {
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE counter SET value = 0 WHERE id = 1",
+            params: {},
+        },
+    )?
+    Ok(0.I64)
+}
 }
 
 @context { db : Sqlite.Db }
@@ -41,55 +76,26 @@ import pf.Stderr
 }
 
 @on:post("/actions/counter/sync") = |{ db }| {
-    count_row : { value : I64 }
-    count_row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT value FROM counter WHERE id = 1",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    counterCard({ count: count_row.value })
+    count = read_count!(db)?
+    counterCard({ count: count })
 }
 
 @on:post("/actions/counter/increment") = |{ db }| {
-    Sqlite.execute!(
-        {
-            db,
-            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
-            params: {},
-        },
-    )?
-    count_row : { value : I64 }
-    count_row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT value FROM counter WHERE id = 1",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    match Stderr.line!("counter increment count=${count_row.value.to_str()}") {
+    count = increment_count!(db)?
+    match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count_row.value })
+    counterCard({ count: count })
 }
 
 @on:post("/actions/counter/reset") = |{ db }| {
-    Sqlite.execute!(
-        {
-            db,
-            query: "UPDATE counter SET value = 0 WHERE id = 1",
-            params: {},
-        },
-    )?
-    match Stderr.line!("counter reset count=0") {
+    count = reset_count!(db)?
+    match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: 0.I64 })
+    counterCard({ count: count })
 }
 
 @component
