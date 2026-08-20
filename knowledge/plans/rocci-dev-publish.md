@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
-description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, and bootstrap-SSH preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
+description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running the existing hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel, bootstrap-SSH, GitHub Environment, and deploy-user preparation was reported complete on 2026-08-20; Caddy and the first publish remain. GitHub Actions packages site/ and deploys from main. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:codex, at: 2026-08-20T14:45:11Z }
+generated: { by: process:codex, at: 2026-08-20T17:49:09Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -223,8 +223,9 @@ Flexible SSL), Email Routing with a verified personal destination and tested
 `oss@rocci.dev` forwarding, the specified Hetzner VPS and firewall, a named
 Tunnel with `cloudflared` installed on the VPS, and bootstrap SSH as a
 sudo-capable user. The Tunnel has no production hostname route; Caddy and the
-first manual publish remain to be done. No deploy user exists yet, so Phase 3
-cannot start.[^human-preparation]
+first manual publish remain to be done. The GitHub Environment `production`
+is configured and a locked-down deploy user is in place; their secret values,
+host details, and keys are not recorded here.[^human-preparation]
 
 ## Human preparation (before an agent continues)
 
@@ -257,13 +258,13 @@ here.[^human-preparation]
 5. **Tunnel.** A named Tunnel exists and `cloudflared` is installed on the
    VPS. It has no production hostname route until Caddy is up.[^cf-tunnel]
 6. **Bootstrap SSH.** SSH as a sudo-capable user is confirmed. A locked-down
-   `deploy` user does not yet exist and is still required for Phase 3.
+   `deploy` user is in place for Phase 3.
 
-### Must do yourself before Phase 3 (CI deploy)
+### Phase 3 access preparation completed (reported 2026-08-20)
 
-7. **GitHub Environment `production`** on this repository. Restrict it to
-   the `main` branch. Add secrets (values only in GitHub, never in the
-   repo):[^gh-environments][^ci-workflow]
+7. **GitHub Environment `production`.** It is configured for this repository;
+   its secret values remain only in GitHub, never in the repository or this
+   record.[^gh-environments][^ci-workflow]
 
    | Secret | Value |
    | --- | --- |
@@ -271,8 +272,8 @@ here.[^human-preparation]
    | `DEPLOY_USER` | SSH user that may write the release directory |
    | `DEPLOY_SSH_KEY` | Private key for that user (ed25519) |
 
-   Put the matching **public** key on the VPS. Optional later: a Cloudflare
-   API token used only to purge cache, as `CLOUDFLARE_PURGE_TOKEN`.
+   The `deploy` user's matching public key is on the VPS. Optional later: a
+   Cloudflare API token used only to purge cache, as `CLOUDFLARE_PURGE_TOKEN`.
 
 8. **Smoke identity.** After Phase 2, you should be able to open
    `https://rocci.dev/` in a browser. The agent uses that as the Phase 3
@@ -289,9 +290,9 @@ Human prep for rocci-dev-publish:
 - NS at Cloudflare: yes
 - oss@rocci.dev: receives mail
 - VPS: Hetzner fsn1 (or nbg1), Debian 12, amd64, IPv4 [x.x.x.x]
-- SSH: user [name], public key installed (private key is GitHub secret, not chat)
+- SSH: locked-down deploy user and public key installed (private key is a GitHub secret, not chat)
 - Tunnel: name [name], cloudflared running, hostname not yet on production
-- GitHub Environment production: created / not yet (needed only for Phase 3)
+- GitHub Environment production: configured
 - Decision gates 2–4: keep live home island; deploy from GitHub main; no staging
 ```
 
@@ -446,7 +447,8 @@ deploy from contributor forks; store the SSH key in the repo.
 run. A failing `package` job does not touch the VPS. README or
 `docker/README.md` names the workflow and the Environment.
 
-**Status:** not started.
+**Status:** GitHub Environment and deploy-user prerequisites are reported
+ready; the package/deploy workflow has not started.
 
 ### Phase 4 — Public-OSS hardening
 
@@ -491,7 +493,8 @@ the deploy key. One fork-PR Actions run shows deploy skipped.
 **Exit:** A documented sentence: which forge produces `site.tgz` and which
 job SSHs. `rocci.dev` still resolves through Cloudflare.
 
-**Status:** not started.
+**Status:** deferred. GitHub remains the active repository, CI, and deploy
+path; do not begin this handoff without a new maintainer decision.
 
 ## Decision gates
 
@@ -500,7 +503,8 @@ Human approval is required before treating these as normative:
 1. Cloudflare + Hetzner Cost-Optimized x86 in Falkenstein/Nuremberg (OVH
    VPS-1 Germany is the fallback). Not Pages, not a second CDN, not ARM.
 2. Keep the live home island on first publish (versus a `--cdn-only` launch).
-3. Deploy from GitHub `main` until Tangled spindle is boringly green.
+3. Deploy from GitHub `main`; Tangled adoption is deferred and is not a
+   deployment or public-launch gate at this point.
 4. Skip `staging.rocci.dev` for the first publish.
 
 ## Validation
@@ -521,7 +525,6 @@ revision. Phase 0 is operator DNS and has no crate test.
 0 + VPS + Tunnel (human) before 2
 2 before 3 (needs GitHub Environment secrets)
 4 after a public origin exists
-5 after Tangled hosting Phase 2+
 ```
 
 [^research]: Cloudflare as CDN; Tunnel TLS; hybrid origin; GitHub Actions until Tangled.
