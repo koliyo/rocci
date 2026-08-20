@@ -72,14 +72,14 @@ runtime `PATH`.
 ## Linux server binary (opt-in OCI)
 
 `rocci build --release` writes a Roc `server` plus `assets/`, not a `.app`.
-Reuse that tree in a slim process image with `./docker/run-app.sh`. Compose
+Reuse that tree in a slim process image with `./docker/docker-serve-app.sh`. Compose
 sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so the container is reachable; do not
 change `[http].host` in `rocci.toml` (loopback validation stays). Linux OCI is
 opt-in. Windows installers are not implemented.
 
 ```sh
 cargo run -p rocci-cli -- build --release examples/datastar --target arm64musl
-./docker/run-app.sh target/release/rocci-server
+./docker/docker-serve-app.sh target/release/rocci-server
 ```
 
 Match the container CPU (`arm64musl` on Apple Silicon Docker; `x64musl` on

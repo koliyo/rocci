@@ -160,7 +160,7 @@ Package on the host, then Caddy plus a slim island process image (no `roc` /
 ```sh
 # Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
 cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target arm64musl
-./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
+./docker/docker-serve-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
 Then open
@@ -177,7 +177,7 @@ curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
 docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
-`which roc` must fail. `./docker/run-site.sh` remains the builder/dev toolchain
+`which roc` must fail. `./docker/docker-serve-site.sh` remains the builder/dev toolchain
 demo. Operator notes are in [`docker/README.md`](../../docker/README.md).
 
 ## Smoke checks

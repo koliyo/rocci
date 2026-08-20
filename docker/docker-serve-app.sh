@@ -37,8 +37,9 @@ cleanup() {
 trap cleanup EXIT
 
 cp "${script_dir}/app/Dockerfile" "${context}/Dockerfile"
+cp "${script_dir}/app/entrypoint.sh" "${context}/entrypoint.sh"
 cp "${server_dir}/server" "${context}/server"
-chmod +x "${context}/server"
+chmod +x "${context}/server" "${context}/entrypoint.sh"
 mkdir -p "${context}/assets"
 if [ -d "${server_dir}/assets" ]; then
     cp -R "${server_dir}/assets/." "${context}/assets/"
