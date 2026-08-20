@@ -3007,6 +3007,15 @@ Content here.
         assert!(theme.contains(".mobile-menu { position: relative; display: block"));
         assert!(theme.contains("100dvh"));
         assert!(theme.contains("env(safe-area-inset-top"));
+        assert!(theme.contains(
+            "min-height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px))"
+        ));
+        assert!(theme.contains(
+            "height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px))"
+        ));
+        assert!(theme.contains(
+            "max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-bottom, 0px))"
+        ));
         let panel = theme.find("class=\"mobile-panel\"").expect("mobile panel");
         let details_end = theme[panel..].find("</details>").expect("details close");
         assert!(

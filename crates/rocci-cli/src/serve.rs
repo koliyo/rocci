@@ -426,18 +426,19 @@ pub fn with_window_and_inspector(
     state_key: Option<String>,
 ) -> Result<()> {
     note_live_reload_paused(live_reload);
+    let inspector = match inspect {
+        Some(snapshot) => Some(crate::inspector::InspectorServer::spawn(snapshot)?),
+        None => None,
+    };
     if no_window {
         let status = child.wait().context("roc server exited unexpectedly")?;
+        drop(inspector);
         if !status.success() {
             bail!("roc exited with {status}");
         }
         return Ok(());
     }
 
-    let inspector = match inspect {
-        Some(snapshot) => Some(crate::inspector::InspectorServer::spawn(snapshot)?),
-        None => None,
-    };
     let preview_result = preview(PreviewOptions {
         url: url.to_string(),
         title: title.to_string(),
@@ -684,5 +685,19 @@ mod tests {
         assert_eq!(normalize_probe_path(""), "/");
         assert_eq!(normalize_probe_path("/all-syntax/"), "/all-syntax/");
         assert_eq!(normalize_probe_path("all-syntax/"), "/all-syntax/");
+    }
+
+    #[test]
+    fn no_window_spawns_sibling_inspector_before_wait() {
+        let src = include_str!("serve.rs");
+        let start = src
+            .find("pub fn with_window_and_inspector")
+            .expect("with_window_and_inspector");
+        let body = &src[start..];
+        let spawn = body.find("InspectorServer::spawn").expect("spawn");
+        let no_window = body.find("if no_window").expect("no_window");
+        let wait = body.find("child.wait()").expect("wait");
+        assert!(spawn < no_window);
+        assert!(no_window < wait);
     }
 }

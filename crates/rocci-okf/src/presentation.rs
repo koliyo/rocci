@@ -1865,7 +1865,7 @@ html.rd-document, body {
   background: var(--rd-bg);
   color: var(--rd-fg);
   margin: 0;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
   line-height: 1.65;
 }
 html.rd-document { scroll-behavior: smooth; }
@@ -1873,14 +1873,14 @@ html.rd-document { scroll-behavior: smooth; }
   display: grid;
   grid-template-columns: 16.5rem minmax(0, 1fr);
   align-items: start;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
 }
 .okf-chrome {
   position: sticky;
   top: var(--rocci-chrome-top, 0px);
   box-sizing: border-box;
   min-width: 0;
-  max-height: calc(100vh - var(--rocci-chrome-top, 0px));
+  max-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
   padding: 2.15rem 1.2rem 2rem 1.5rem;
   overflow-x: hidden;
   overflow-y: auto;
@@ -2434,6 +2434,13 @@ mod tests {
         assert!(!html.contains("okf-outline-menu"));
         assert_global_nav_outside_toc(&html);
         assert!(DEFAULT_CSS.contains(".okf-table-container { overflow-x: auto"));
+        assert!(DEFAULT_CSS.contains(
+            "min-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px))"
+        ));
+        assert!(DEFAULT_CSS.contains(
+            "max-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px))"
+        ));
+        assert!(!DEFAULT_CSS.contains("max-height: calc(100vh - var(--rocci-chrome-top, 0px));"));
         assert!(DEFAULT_CSS.contains(".okf-filter-bar { display: flex; flex-wrap: wrap"));
         assert!(DEFAULT_CSS.contains(".rd-toc { display: none; }"));
         assert!(DEFAULT_CSS.contains(".okf-outline-menu { display: block"));

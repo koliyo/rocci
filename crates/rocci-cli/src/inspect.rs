@@ -91,6 +91,8 @@ pub struct InspectPage {
     pub ast: String,
     pub roc: String,
     pub html: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source_highlighted: String,
     pub capabilities: InspectCapabilities,
 }
 
@@ -116,6 +118,7 @@ impl InspectPage {
             ast,
             roc,
             html,
+            source_highlighted: String::new(),
             capabilities: InspectCapabilities {
                 source: source_cap,
                 ast: ast_cap,
@@ -184,6 +187,7 @@ impl InspectPage {
             Some(body) if !body.is_empty() => Ok(body),
             _ => Err(HTML_NOT_BUILT.to_string()),
         };
+        let highlighted = highlight_markdown_source(&source);
         Self::from_views(
             route,
             path,
@@ -193,6 +197,12 @@ impl InspectPage {
             Err(ROC_UNAVAILABLE_OKF.to_string()),
             html,
         )
+        .with_highlighted_source(highlighted)
+    }
+
+    pub fn with_highlighted_source(mut self, html: String) -> Self {
+        self.source_highlighted = html;
+        self
     }
 
     pub fn capture_html_from_origin(&mut self, origin: &str) {
@@ -338,6 +348,13 @@ pub fn language_for_path(path: &str) -> &'static str {
     }
 }
 
+fn highlight_markdown_source(source: &str) -> String {
+    rocci_highlight::render_spans(
+        source,
+        &rocci_highlight::highlight(rocci_highlight::LanguageId::Markdown, source),
+    )
+}
+
 fn html_capability_for_rocci(path: &str, compiled: &CompileOutput) -> Result<String, String> {
     if compiled.has_errors() {
         return Err("Fix template errors before HTML can be rendered.".into());
@@ -474,6 +491,7 @@ mod tests {
             ast: "(Document ...)".into(),
             roc: "app [html] {}".into(),
             html: String::new(),
+            source_highlighted: String::new(),
             capabilities: InspectCapabilities {
                 source: ViewCapability::available(),
                 ast: ViewCapability::available(),
@@ -497,6 +515,7 @@ mod tests {
                     ast: "(Rocdown ...)".into(),
                     roc: "module [] {}".into(),
                     html: "<h1>Guide</h1>".into(),
+                    source_highlighted: String::new(),
                     capabilities: InspectCapabilities::all_available(),
                 },
             ],
@@ -683,5 +702,60 @@ mod tests {
         assert!(value["source"].as_str().unwrap().contains("@on:get(\"/\")"));
         assert!(value["ast"].as_str().unwrap().contains("(on"));
         assert!(value["roc"].as_str().unwrap().contains("counterPage"));
+    }
+
+    #[test]
+    fn capture_html_from_origin_fills_missing_standalone_html() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let body = "<html><body>standalone captured</body></html>";
+        let server = std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = [0u8; 2048];
+                let _ = stream.read(&mut buf);
+                let resp = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            }
+        });
+        let mut page = InspectPage::from_rocdown(
+            "/",
+            "Guide.rocdown",
+            "# Guide\n".into(),
+            "(rocdown)".into(),
+            "module [] {}".into(),
+            None,
+        );
+        assert!(!page.capabilities.html.available);
+        page.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
+        server.join().unwrap();
+        assert!(page.capabilities.html.available);
+        assert_eq!(page.html, body);
+    }
+
+    #[test]
+    fn capture_html_from_origin_keeps_disk_html() {
+        let mut page = InspectPage::from_okf(
+            "/",
+            "index.md",
+            "# Knowledge\n".into(),
+            Some("<html>disk</html>".into()),
+        );
+        page.capture_html_from_origin("http://127.0.0.1:1");
+        assert_eq!(page.html, "<html>disk</html>");
+    }
+
+    #[test]
+    fn html_capture_is_not_gated_on_window() {
+        for src in [include_str!("driver.rs"), include_str!("view.rs")] {
+            assert!(
+                !src.contains("if !no_window"),
+                "HTML capture must run after listen, including --no-window"
+            );
+            assert!(src.contains("inspect.capture_html_from_origin"));
+        }
     }
 }
