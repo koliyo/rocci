@@ -96,7 +96,7 @@ import Origin
             }
         },
     )
-    counterCard({ count: count_row.value, clicks })
+    counterPanel({ count: count_row.value, clicks })
 }
 
 @on:post("/actions/counter/increment") = |{ db }, request| {
@@ -208,7 +208,7 @@ import Origin
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count_row.value, clicks })
+    counterPanel({ count: count_row.value, clicks })
 }
 
 @on:post("/actions/counter/reset") = |{ db }| {
@@ -230,19 +230,12 @@ import Origin
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: 0.I64, clicks: [] })
+    counterPanel({ count: 0.I64, clicks: [] })
 }
 
 @component
-CounterCard = |{ count, clicks }| {
+CounterPanel = |{ count, clicks }| {
     @css {
-        section {
-            margin: 1.25rem 0 0;
-            padding: 1.15rem 1.25rem;
-            border: 1px solid var(--rd-color-border);
-            border-radius: 16px;
-            background: var(--rd-color-surface);
-        }
         .eyebrow {
             margin: 0 0 0.35rem;
             color: var(--rd-color-accent);
@@ -259,28 +252,6 @@ CounterCard = |{ count, clicks }| {
             font-weight: 650;
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.04em;
-        }
-        .actions {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1.25rem;
-            flex-wrap: wrap;
-        }
-        button {
-            appearance: none;
-            border: 0;
-            border-radius: 10px;
-            padding: 0.7rem 1rem;
-            background: var(--rd-color-accent);
-            color: var(--rd-color-bg);
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        button.secondary {
-            border: 1px solid var(--rd-color-border);
-            background: transparent;
-            color: var(--rd-color-muted);
         }
         .feed {
             margin: 1.35rem 0 0;
@@ -324,34 +295,15 @@ CounterCard = |{ count, clicks }| {
             font-size: 0.8rem;
             white-space: nowrap;
         }
-        .privacy {
-            margin: 1rem 0 0;
-            color: var(--rd-color-muted);
-            font-size: 0.8rem;
-            line-height: 1.45;
-        }
         .empty {
             margin: 1rem 0 0;
             color: var(--rd-color-muted);
             font-size: 0.9rem;
         }
     }
-    <section
-        id="counter"
-        class="counter-card"
-        data-signals="{tz: '', handle: ''}"
-        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
-    >
+    <div id="counter-panel">
         <p class="eyebrow">Shared count</p>
         <output>{count.to_str()}</output>
-        <div class="actions">
-            <button type="button" data-on:click=@post("/actions/counter/increment")>
-                Increment
-            </button>
-            <button class="secondary" type="button" data-on:click=@post("/actions/counter/reset")>
-                Reset
-            </button>
-        </div>
         @if List.is_empty(clicks) {
             <p class="empty">No clicks yet - be the first.</p>
         } @else {
@@ -368,6 +320,63 @@ CounterCard = |{ count, clicks }| {
                 }
             </ul>
         }
+    </div>
+}
+
+@component
+CounterCard = |{ count, clicks }| {
+    @css {
+        section {
+            margin: 1.25rem 0 0;
+            padding: 1.15rem 1.25rem;
+            border: 1px solid var(--rd-color-border);
+            border-radius: 16px;
+            background: var(--rd-color-surface);
+        }
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--rd-color-accent);
+            color: var(--rd-color-bg);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        button.secondary {
+            border: 1px solid var(--rd-color-border);
+            background: transparent;
+            color: var(--rd-color-muted);
+        }
+        .privacy {
+            margin: 1rem 0 0;
+            color: var(--rd-color-muted);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+    }
+    <section
+        id="counter"
+        class="counter-card"
+        data-signals="{tz: '', handle: ''}"
+        data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; $handle = sessionStorage.getItem('rocci-handle') || (sessionStorage.setItem('rocci-handle', ['Amber','Coral','Cedar','Indigo','Moss','Pearl','Sage','Sol'][Math.floor(Math.random()*8)] + ' ' + ['Lynx','Heron','Otter','Falcon','Cedar','Koi','Moth','Wren'][Math.floor(Math.random()*8)]), sessionStorage.getItem('rocci-handle')); @post('/actions/counter/sync')"
+    >
+        <CounterPanel count={count} clicks={clicks} />
+        <div class="actions">
+            <button type="button" data-on:click=@post("/actions/counter/increment")>
+                Increment
+            </button>
+            <button class="secondary" type="button" data-on:click=@post("/actions/counter/reset")>
+                Reset
+            </button>
+        </div>
         <p class="privacy">
             Origin comes from your browser timezone and a session nickname - no IP address is stored.
         </p>
@@ -379,7 +388,7 @@ CounterCard = |{ count, clicks }| {
 Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
 time (`count` is `0` in that snapshot). On load, the island syncs the live
 count and last twenty clicks. Increment posts timezone and handle signals;
-the service maps IANA timezones to country and city, then morphs `#counter`.
+the service maps IANA timezones to country and city, then morphs `#counter-panel`.
 
 See [About](/about/) for a neighboring page that stays static.
 
