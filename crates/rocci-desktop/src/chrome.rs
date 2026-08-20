@@ -189,6 +189,31 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("padding-bottom: var(--rocci-chrome-bottom)"));
         assert!(PREVIEW_NAV_JS.contains("dock-right"));
         assert!(PREVIEW_NAV_JS.contains("dock-bottom"));
+        assert!(
+            PREVIEW_NAV_JS
+                .contains("rocci-preview-dev.open { display: flex; flex-direction: column; }")
+        );
+        assert!(
+            PREVIEW_NAV_JS.contains(
+                "rocci-preview-dev iframe { display: block; flex: 1 1 auto; min-height: 0;"
+            )
+        );
+        assert!(
+            PREVIEW_NAV_JS.contains("rocci-preview-dev .rocci-dev-docks { position: relative;")
+        );
+        assert!(
+            !PREVIEW_NAV_JS
+                .contains("rocci-preview-dev.dock-right .rocci-dev-docks { top: 0; left: 8px; }")
+        );
+        assert!(
+            !PREVIEW_NAV_JS.contains(
+                "position: absolute; z-index: 2; display: flex; gap: 2px; padding: 4px; }"
+            )
+        );
+        assert!(PREVIEW_FIND_JS.contains("var(--rocci-chrome-right"));
+        assert!(PREVIEW_NAV_JS.contains(
+            "rocci-goto { right: var(--rocci-chrome-right, 0px); bottom: var(--rocci-chrome-bottom, 0px); }"
+        ));
         assert!(PREVIEW_NAV_JS.contains("rocci-dev-splitter"));
         assert!(PREVIEW_NAV_JS.contains("setPointerCapture"));
         assert!(PREVIEW_NAV_JS.contains("max-width: 80vw"));
