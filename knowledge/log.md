@@ -10,6 +10,7 @@
 ## 2026-08-19
 
 - Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.
+- Implemented Phase 4 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): Rocdown sticky columns and OKF `.okf-chrome` subtract `--rocci-chrome-bottom` so a docked Dev inset shrinks nav and article. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 3 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): overlay R/B sit in a flex chrome strip above the Dev iframe so they no longer cover inspector tabs. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 2 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): inspector panel root uses `:scope` flex column so long Source Roc/HTML scroll inside `.code-pane`. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Recorded Phase 1 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): wry/WKWebView matrix for `docs/`, OKF `knowledge/`, windowed `rocci run` Counter, and standalone `Guide.rocdown`. F1–F6 confirmed (WebKit does not apply scoped `.inspector-panel` to the scope root; right-dock R/B cover Performance). Not logged complete until CI and Knowledge workflows succeed on this revision.
