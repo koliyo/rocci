@@ -1,30 +1,55 @@
-# Hybrid Docker images
+# Host a Rocdown site with Docker
 
-Content-agnostic images for hybrid Rocdown sites: Ubuntu runs `rocdown`
-(`build` and `serve-islands`); official Caddy serves `dist/` and reverse-proxies
-`/actions/` plus `/health` on one origin.
+Build the site on a toolchain host. Local Docker then serves only the compiled
+artifacts. Official Caddy has no `rocci`, `rocdown`, `roc`, rustc, or WebKit.
 
-The images do not bake a site. Bind-mount any directory with `rocdown.toml` at
-`/src/site`.
+## Static site (default hosting)
 
-## Build the base images
+Host a pre-built Rocdown tree (`rocdown build --cdn-only`). There is no custom
+image and no island proxy.
+
+From the repository root, dogfood `docs/` (`build.output = "../dist/docs"`):
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- build docs --cdn-only
+./docker/run-static.sh dist/docs
+```
+
+The script absolutizes `ROCCI_DIST` and runs Compose. Extra arguments go to
+`compose up` (`-d`, …). Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/).
+
+`ROCCI_DIST` must be absolute. Interpolate it yourself if you call Compose
+directly:
+
+```sh
+ROCCI_DIST="$(cd dist/docs && pwd)" docker compose -f docker/compose.static.yml up
+```
+
+`docker compose -f docker/compose.static.yml build` does not compile Rocci; it
+is a no-op aside from pulling `caddy:2-alpine` if needed.
+
+Hashed `/assets/` files are immutable. HTML uses `no-cache`. `/actions/` is
+not proxied (Caddy 404). This path rejects `live` pages at build time
+(`RD2302`).
+
+## Hybrid live-island demo (toolchain-heavy)
+
+The original Compose file still builds Ubuntu images with Roc, the Rocci CLIs,
+and WebKit, then compiles island `main.roc` at start. Use it only as a
+**live-island operator demo** (Caddy same-origin proxy, published 8001,
+`ROC_BASIC_WEBSERVER_HOST=0.0.0.0`). It is not the static publish path.
 
 From the repository root:
 
 ```sh
 ROCCI_SITE="$(pwd)/examples/rocdown-counter" docker compose -f docker/compose.yml build
-```
-
-`ROCCI_SITE` is required even for `build` because Compose interpolates the
-volume path. It must be absolute.
-
-## Run a mounted site
-
-```sh
 ./docker/run-site.sh examples/rocdown-counter
 ./docker/run-site.sh examples/rocdown-hybrid
 ./docker/run-site.sh /path/to/any/hybrid-site
 ```
+
+`ROCCI_SITE` is required even for `build` because Compose interpolates the
+volume path. It must be absolute.
 
 The script absolutizes `SITE_DIR` and runs `docker compose up --build`. Extra
 arguments go to `compose up` (`-d`, `--no-build`, …).
@@ -44,7 +69,7 @@ First boot may spend a minute compiling generated `main.roc`. Image build needs
 Docker with BuildKit and network access for the pinned Roc nightly and
 crates.io.
 
-To run two sites at once, set a distinct project name and publish port:
+To run two hybrid sites at once, set a distinct project name and publish port:
 
 ```sh
 COMPOSE_PROJECT_NAME=hybrid-other \
@@ -52,16 +77,20 @@ COMPOSE_PROJECT_NAME=hybrid-other \
   docker compose -f docker/compose.yml up --build
 ```
 
-Override `8080:80` with a Compose override file if the host port is taken.
+Override `8080:80` with a Compose override file if the host port is taken
+(static hosting uses the same published port).
 
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| [`runtime/Dockerfile`](runtime/Dockerfile) | `builder`, `runtime` (`rocci` / `rocdown` / `roc`), `cdn` (Caddy) |
-| [`cdn/Caddyfile`](cdn/Caddyfile) | Same-origin proxy; `root * /src/site/dist` |
-| [`compose.yml`](compose.yml) | `site-build`, `islands`, `cdn` |
-| [`run-site.sh`](run-site.sh) | Absolutize `ROCCI_SITE` and `compose up` |
+| [`static/Caddyfile`](static/Caddyfile) | Static `file_server` of `/srv`; no island proxy |
+| [`compose.static.yml`](compose.static.yml) | Official `caddy:2-alpine`; bind-mount `ROCCI_DIST` |
+| [`run-static.sh`](run-static.sh) | Absolutize `ROCCI_DIST` and `compose up` |
+| [`runtime/Dockerfile`](runtime/Dockerfile) | Toolchain `builder` / `runtime` plus hybrid `cdn` |
+| [`cdn/Caddyfile`](cdn/Caddyfile) | Hybrid same-origin proxy; `root * /src/site/dist` |
+| [`compose.yml`](compose.yml) | Hybrid `site-build`, `islands`, `cdn` |
+| [`run-site.sh`](run-site.sh) | Absolutize `ROCCI_SITE` and hybrid `compose up` |
 
 The two-artifact production sketch (upload `dist/`, run `serve-islands`,
 reverse-proxy) is in [`examples/rocdown-counter/README.md`](../examples/rocdown-counter/README.md)
