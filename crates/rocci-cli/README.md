@@ -65,13 +65,19 @@ cargo run -p rocci-cli -- browser-adapter
 `templates/dev/MetricsPanel.rocci` is the preview-origin Dev inspector. It has
 tabs for Performance, Source, and Console. Source is a GET form (`tab`, `route`,
 `view`) for original source, formatted AST, generated Roc, and generated HTML.
-Console lists runtime messages teed from the session (`GET /__rocci/logs`, SSE
-`GET /__rocci/logs/events`); it is not an app-level Rocci log API. Static dev
-servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the current
-inspect snapshot; JSON for source views is `GET /__rocci/inspect?route=&view=`.
-`rocci run` hosts the same panel on a sibling loopback port. Overlay chrome
-docks that URL right or bottom; it does not embed compiler output. The panel is
-not a playground: there is no editor and no WASM compile.
+Long Source bodies scroll inside `.code-pane`. Original Rocci, Rocdown, and
+Markdown, plus generated Roc and HTML, highlight with `rocci-highlight` `tok-*`
+classes (playground token colors). AST stays escaped plaintext. OKF records
+show Markdown source and built HTML; AST and Roc stay unavailable with a
+reason. Console lists runtime messages teed from the session (`GET /__rocci/logs`,
+SSE `GET /__rocci/logs/events`); it is not an app-level Rocci log API. Static
+dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
+current inspect snapshot; JSON for source views is
+`GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a
+sibling loopback port, including `--no-window`. Overlay chrome docks that URL
+right or bottom; R/B sit in a strip above the iframe so they do not cover tabs.
+The overlay does not embed compiler output. The panel is not a playground:
+there is no editor and no WASM compile.
 
 ## Architectural Boundary
 

@@ -4,7 +4,7 @@ title: Investigate and repair the preview inspector
 description: "Phased investigation plus repair of the shipped Dev inspector. Tabs, dock, source views, and a runtime console already exist, but source modes do not scroll, overlay dock chrome covers the tab strip, several OKF routes have no snapshot, and source is unhighlighted. Phase 1 finishes the product/window matrix in the real preview window; later phases fix shell CSS, dock chrome, theme inset, snapshot coverage, and syntax highlighting."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
+generated: { by: process:cursor, at: 2026-08-19T21:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -212,8 +212,10 @@ dependency.[^metrics-panel][^inspector-rs][^desktop-readme][^chrome-rs]
 ## Current findings (2026-08-19 investigation)
 
 Code review plus live `--no-window` HTTP and a Chrome session against the
-inspector document. **Not yet repeated inside the Tao/Wry preview window.**
-Phase 1 must confirm or refute each row there.
+inspector document. Phase 1 (2026-08-19) repeated the CSS and dock rows
+inside Tao/Wry (WKWebView 605.1.15) and a same-engine WKWebView probe of
+the inspector document. Historical Chrome numbers below are kept; wry
+confirmations follow each finding.
 
 ### F1. Source pane cannot scroll (root cause)
 
@@ -236,6 +238,18 @@ no inner scrollbar.[^lower-rs][^metrics-panel][^inspector-rs]
 
 This is the primary reason source modes look broken on long artifacts.
 
+**Phase 1 wry: confirmed.** WebKit does **not** apply the scoped
+`.inspector-panel` rule to the scope root. On
+`/__rocci/dev?tab=source&route=/guides/rocci-browser/&view=roc` in WKWebView:
+panel `display: block`, `overflow: visible`, height **11972px**; `html`/`body`
+`height: 700px; overflow: hidden` (probe viewport); `.code-pane` `clientH`
+11818 ≈ `scrollH` 11835 (no useful vertical scrollbar) while `clientW` 855 <
+`scrollW` 1852 (horizontal scroll only). The same pattern held for docs
+generated HTML, OKF generated HTML, `rocci run` Counter Roc/HTML, and
+standalone `Guide.rocdown` Roc/HTML. Performance and Console descendant
+bodies *do* get `display: flex; overflow: auto` (scoped descendant match).
+Do not rewrite F1 before Phase 2.
+
 ### F2. Overlay dock chrome sits on the iframe
 
 `preview-nav.js` appends absolutely positioned **R** / **B** buttons
@@ -248,6 +262,17 @@ wry; the CSS already predicts Performance / Source (right dock) or Console
 `--no-window` has **no overlay**, so dock could not be screenshot-tested
 against a live preview window in this session.
 
+**Phase 1 wry: confirmed, with a bottom-dock nuance.** In a 1280×860 preview
+of `docs/` and `knowledge/`, opening Dev and measuring overlay vs iframe
+geometry: R/B sit in the iframe's top 44px tab band (`docksOverlapTabBand`).
+Right dock: both **R** and **B** overlap the **Performance** tab (page-space
+rects). Source and Console stay clear. Bottom dock: R/B sit at the **right**
+of the tab band and did **not** cover the Console *label* at this width
+(Console ends ~x=228, buttons start ~x=1201). They still intercept clicks in
+the empty right of the tab strip. Overlay tabs are **not** required; Phase 3
+should pad/reserve space in the overlay so in-iframe tabs stay. Dock toggle
+did not need `frame.src !== next` (existing tuple compare).
+
 ### F3. Page inset vs theme `100vh`
 
 Overlay sets `html { padding-right/bottom: var(--rocci-chrome-*) }`. Rocdown
@@ -256,6 +281,15 @@ theme sidebars use `height: calc(100vh - var(--header-height))` and ignore
 uses `--rocci-chrome-top` for sticky `max-height`, but not the right/bottom
 vars. Bottom dock in particular will leave sticky columns running **under**
 the inspector.[^theme-rocdown][^okf-chrome-css][^preview-nav-js]
+
+**Phase 1 wry: confirmed.** Right dock set `--rocci-chrome-right: 28rem`
+(padding-right 448px). Bottom dock set `--rocci-chrome-bottom: 36vh`
+(padding-bottom ~310px). Rocdown `.sidebar` height stayed **792px** with
+bottom dock (viewport 860): taller than the padded content box (~503px), so
+the sticky column runs under the inspector. OKF `.okf-chrome` `max-height`
+stayed **812px** (`100vh` minus `--rocci-chrome-top` only). Home nav content
+was short (~247px) so it did not visually overflow on `/`; the max-height
+bug still applies on taller chrome.
 
 ### F4. Source views by product (HTTP)
 
@@ -278,6 +312,13 @@ Empty pane plus reason is **correct** for OKF AST/Roc. It still reads as a
 broken mode unless Source chrome states that clearly (and highlighting does
 not apply).[^okf-inspect][^inspect-rs]
 
+**Phase 1: confirmed. Do not "fix" OKF AST/Roc unavailability.** Panel
+`view=ast` / `view=roc` on a concept shows the existing reason, empty
+`.code-pane`, and no `<pre>`. Rocdown site and `rocci run` Counter expose all
+four views. Standalone `Guide.rocdown` inspect route is `/guides/rocdown/`
+(not `/`). Dropdown `view=` is preserved on the GET form. Overlay stores
+`view` in `sessionStorage` and omits it from later tuple compares.
+
 ### F5. Missing OKF inspect routes
 
 `pages.json` lists `/review/` and collection indexes such as `/plans/`
@@ -291,6 +332,17 @@ bundle-root `index.md` as `/`. Live inspect:
 Navigating Home → Plans index or Governance & Review with Dev open therefore
 looks like Source is broken.[^okf-inspect][^okf-pages]
 
+**Phase 1: confirmed and expanded.** Live `pages.json` has 80 routes; inspect
+returns 200 for 70 concept pages plus `/`. The **10** chrome routes below
+404 with `{error:"route not found"}` and the panel reason "No inspect
+snapshot for this route.":
+
+`/architecture/`, `/audits/`, `/case-studies/`, `/decisions/`, `/design/`,
+`/plans/`, `/reference/`, `/research/`, `/review/`, `/status/`.
+
+Phase 5 must fill every collection `*/index.md` route and `/review/`, not
+only `/plans/` and `/review/`.
+
 ### F6. No syntax highlighting
 
 Source/Roc/HTML are escaped text in `<pre><code>`. Panel HTML contains no
@@ -301,6 +353,12 @@ in `rocci-rocdown` (`highlight_rocdown`); `rocci-rocdown` already depends on
 `rocci-cli`, so the inspector **must not** take a reverse
 `rocci-cli → rocci-rocdown` edge. Article fenced-code rendering already walks
 spans into `<span class="tok-…">`.[^cli-cargo][^highlight-lib][^highlight-composite][^rocdown-highlight][^article-highlight][^highlight-token][^inspector-rs]
+
+**Phase 1: confirmed.** Panel HTML for Rocci/Roc/HTML/Rocdown/Markdown
+fixtures contained no `tok-*`. Largest inspected bodies were tens of KB
+(`docs` `/reference/cli/` Roc 73957 bytes, OKF concept HTML 39278), not
+multi-megabyte; Phase 6 need not add a truncate marker unless later
+artifacts grow.
 
 ### F7. Other code defects to re-test
 
@@ -319,7 +377,28 @@ spans into `<span class="tok-…">`.[^cli-cargo][^highlight-lib][^highlight-comp
   Rebuild/watch lines exist at `logs::tee` sites but were not exercised with
   a file edit in this session.[^logs-rs]
 - `rocci-browser` computes `http://127.0.0.1:{port}/__rocci/dev` and
-  `Navigate` forwards `inspector_url`. Not click-tested.[^browser-adapter][^preview-rs][^serve-rs]
+  `Navigate` forwards `inspector_url`. Live picker switch was not
+  click-tested; unit tests already assert the Navigate payload.
+  [^browser-adapter][^preview-rs][^serve-rs]
+
+**Phase 1 wry / windowed CLIs:**
+
+- `capture_html_from_origin` **does** fill HTML when a window is opened:
+  standalone `Guide.rocdown` `/guides/rocdown/` HTML 16591 (capability true);
+  Counter `/` HTML 5992. `--no-window` `rocci run` / standalone **do not
+  spawn** `InspectorServer` at all (`/__rocci/dev` 404 on the product
+  origin). Phase 5 should pick capture-after-listen for `--no-window` if
+  those hosts need inspect without a window.
+- OKF inspect HTML on the live knowledge server **did** contain `reload.js`;
+  Rocdown `docs/` inspect HTML did not. Keep Phase 0 gate 5: snapshot
+  disk/emitted HTML, not live-reload-injected bytes.
+- `receivedInspectorMessage` remains assigned and unread.
+- Console: same-origin docs/OKF `/__rocci/logs` returned the serving tee
+  (`source: runtime`). Sibling `InspectorServer` (Counter, standalone)
+  returned `[]` — it owns a **new** `LogHub`, not the runtime tee. Rebuild
+  lines were not exercised with a file edit.
+- Overlay `setInspectorUrl` / Navigate forwarding remain as coded. Live
+  rocci-browser product switch was not click-tested.
 
 ### F8. What already works (do not "fix" these)
 
@@ -341,34 +420,27 @@ a better root cause from WKWebView.
 ### Matrix (required)
 
 For each host, open Dev, then walk tabs, the four Source views, dock right,
-dock bottom, resize, reload the preview window, and in-window navigation:
+dock bottom, resize, reload the preview window, and in-window navigation.
 
-| Host | Target | Notes |
-| --- | --- | --- |
-| `rocdown run` (window) | `docs/` and a standalone `.rocdown` | Overlay present |
-| `rocci-okf run` (window) | `knowledge/` home, a concept, `/plans/`, `/review/` | Overlay present |
-| `rocci run` / `view` | `examples/counter` | Sibling inspector origin |
-| `rocci-browser` | switch OKF → Rocdown (or reverse) | `setInspectorUrl` |
+| Host | Target | Overlay / inspector | Source scroll | Dock R/B vs tabs | Page inset | Console | Views |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `rocdown run` window | `docs/` (`/guides/rocci-browser/`) | pass — overlay iframe same origin `/__rocci/dev` | **fail** F1: panel `display:block`, long Roc/HTML clipped by `html` overflow; horizontal pane scroll only | **fail** F2: right dock R/B cover Performance; bottom R/B in tab-band right (Console label clear at 1280px) | **fail** F3: `--rocci-chrome-*` padding set; `.sidebar` still `100vh - header` (792px under bottom dock) | pass — serving tee `source: runtime`; rebuild not file-edit tested | pass — source/ast/roc/html 200; `view` on GET form; no `tok-*` |
+| `rocdown run` window | standalone `examples/rocdown/Guide.rocdown` | pass — sibling `InspectorServer` (not on product origin) | **fail** F1 same WebKit numbers on `/guides/rocdown/` Roc/HTML | same overlay as `docs/` (shared `preview-nav.js`) | n/a standalone document (no site sidebar) | **fail** sibling logs `[]` (separate `LogHub`) | pass — inspect route `/guides/rocdown/` all four views; HTML captured with window; `/` 404 |
+| `rocci-okf run` window | `knowledge/` `/`, a concept, `/plans/`, `/review/` | pass — overlay same origin | **fail** F1 on concept HTML/source; AST/Roc empty+reason (not a scroll bug) | **fail** F2 same as docs | **fail** F3: `.okf-chrome` max-height 812px ignores chrome-bottom | pass — serving tee; rebuild not file-edit tested | pass on concepts; **fail** `/plans/` `/review/` and 8 other indexes (F5); no `tok-*` |
+| `rocci run` window | `examples/counter` | pass — sibling origin; product origin `/__rocci/dev` 404 | **fail** F1 on Roc/HTML | same overlay | Counter app, not docs chrome | **fail** sibling logs `[]` | pass — `/` all four views; HTML captured with window |
+| `rocci run` `--no-window` | `examples/counter` | **fail** — no `InspectorServer` | blocked | blocked (no overlay) | n/a | blocked | blocked |
+| `rocci-browser` | switch OKF → Rocdown | **blocked** live picker; **pass** unit `navigate_event_forwards_inspector_url`; overlay `setInspectorUrl` present | same as product origin once iframe URL updates | same overlay | same as product theme | same as product origin | same as product origin |
 
-Record per cell: scroll (both axes), dropdown keeps `view`, tab keeps `tab`,
-dock insets the **page**, R/B vs tab hit-testing, Console lines after a
-rebuild, capability reason vs empty success.
+Legend: pass = observed good; fail = defect for a later phase; blocked = could not exercise that cell.
 
-### Methods
+Reload / in-window navigation: overlay tuple compare omits `view`; `sessionStorage` keeps `tab` / `view` / dock. Not re-tested with a manual window reload. Resize: dock clamp still in overlay JS; not pixel-hunted.
 
-- `--no-window` `curl` of `/__rocci/dev` and `/__rocci/inspect` for JSON/HTML
-  contracts (no window required).
-- Wry preview for overlay dock and WKWebView `@scope`.
-- Computed style of `.inspector-panel` (`display`, `height` vs viewport,
-  `.code-pane` `clientHeight` vs `scrollHeight`). If WebKit applies the
-  scoped `.inspector-panel` rule to the scope root, F1 must be rewritten
-  before Phase 2.
+### Methods used (Phase 1)
 
-### Exit
-
-A filled matrix in this plan (or a linked research revision) with
-pass/fail/blocked. F1–F6 either confirmed in wry or explicitly overturned.
-No pixel hunting in later phases for questions Phase 1 left blank.
+- `--no-window` `curl` of `/__rocci/dev` and `/__rocci/inspect` on `docs/` (`127.0.0.1:18765`) and `knowledge/` (`127.0.0.1:18766`).
+- Windowed `rocci run` / standalone `rocdown run` sibling inspectors (`InspectorServer` on loopback).
+- Tao/Wry preview (`rocci-desktop::preview`) with Dev opened, dock right then bottom, geometry of R/B vs tab strip, `--rocci-chrome-*`, sidebar/`okf-chrome` heights.
+- WKWebView (WebKit 605.1.15) computed styles of `.inspector-panel` / `.code-pane` on long Roc/HTML. Scoped `.inspector-panel` did **not** match the scope root; F1 stands.
 
 ## Inspector repair contract
 
@@ -396,8 +468,9 @@ Unchanged from the extended plan unless Phase 1 records a gate change:
 | `ast` | plaintext (optional cheap sexp later) | Escaped `<pre>` is acceptable for v1 |
 
 Cap or truncate very large Roc/HTML in the pane with an explicit marker if
-Phase 1 shows multi-megabyte bodies hanging the iframe. Reuse the playground
-`tok-*` colors (light-dark) in inspector CSS.[^playground-css][^highlight-token][^article-highlight]
+later artifacts are multi-megabyte. Phase 1 bodies were tens of KB; skip the
+marker in Phase 6 unless that changes. Reuse the playground `tok-*` colors
+(light-dark) in inspector CSS.[^playground-css][^highlight-token][^article-highlight]
 
 ### CSS shell fix (F1)
 
@@ -433,13 +506,15 @@ Roc fixture.
 
 Answer:
 
-1. Tab strip stays in the iframe (yes, unless Phase 1 shows overlay tabs are
-   the only way to dodge F2).
+1. Tab strip stays in the iframe (yes; Phase 1 F2 is overlay padding, not
+   overlay-owned tabs).
 2. OKF AST/Roc stay unavailable (yes).
 3. Highlighting is required, not optional polish.
-4. Console v1 remains runtime-only.
+4. Console v1 remains runtime-only. Wire sibling `InspectorServer` to the
+   same runtime `LogHub` as a leftover (Phase 7), not a new log API.
 5. Inspect HTML should be disk/emitted HTML, not live-reload-injected bytes
-   (confirm in Phase 1, then keep as a constraint).
+   (Phase 1: OKF inspect currently can include `reload.js`; docs site did
+   not).
 
 **Exit:** This section plus the findings table above are the working
 baseline. Phase 1 may amend F1–F7 with wry evidence.
@@ -453,9 +528,10 @@ WKWebView CSS.
 Update this record's findings (keep historical F1–F7; mark confirmed /
 overturned). Do not "fix" F4 OKF AST/Roc unavailability.
 
-**Exit:** Matrix filled. F1 confirmed or replaced. F2 click-tested in wry.
+**Exit:** Matrix filled. F1 confirmed in WKWebView (not rewritten). F2
+click-tested in wry (right dock covers Performance; keep tabs in iframe).
 Standalone Rocdown and `rocci run` sibling inspector included. `cargo test -p
-rocci-cli` / `rocci-desktop` unchanged except comments if any.
+rocci-cli` / `rocci-desktop` unchanged except this record.
 
 ### Phase 2 — Source DX: scrolling shell
 
@@ -506,7 +582,7 @@ Fix F5 and F7 capture gaps Phase 1 still cares about.
 
 - OKF: inspect pages for collection `*/index.md` routes and `/review/`
   (source from the index file or the review template; HTML from the built
-  path). Do not invent an AST.
+  path). Cover the ten 404 routes listed under F5. Do not invent an AST.
 - Standalone Rocdown: fill HTML from the served document or capture even for
   `--no-window` after listen (pick one in this phase; prefer capture once
   the origin is up, including `--no-window`).

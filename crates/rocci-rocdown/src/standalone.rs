@@ -118,14 +118,20 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             .map(|(url, _)| url)
             .collect();
 
-        inspect_pages.push(rocci_cli::inspect::InspectPage::from_rocdown(
-            &page.route,
-            &relative_inspect_path(input, &root),
-            src.clone(),
-            crate::format_ast(src, &compiled.document),
-            compiled.roc.clone(),
-            None,
-        ));
+        inspect_pages.push(
+            rocci_cli::inspect::InspectPage::from_rocdown(
+                &page.route,
+                &relative_inspect_path(input, &root),
+                src.clone(),
+                crate::format_ast(src, &compiled.document),
+                compiled.roc.clone(),
+                None,
+            )
+            .with_highlighted_source(rocci_highlight::render_spans(
+                &src,
+                &crate::highlight_rocdown(&src),
+            )),
+        );
 
         modules.push(StandaloneModule {
             type_name: type_name.clone(),

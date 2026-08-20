@@ -281,9 +281,7 @@ pub fn execute_resolved_entry(
                 style::serving(&invocation.app_dir.display().to_string(), &url)
             );
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
-            if !no_window {
-                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
-            }
+            inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
             serve::with_window_and_inspector(
                 &mut child,
                 &url,
@@ -410,9 +408,7 @@ pub fn invoke_standalone(
             });
             println!("{}", style::serving(title, &url));
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
-            if !no_window {
-                inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
-            }
+            inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
             serve::with_window_and_inspector(
                 &mut child,
                 &url,

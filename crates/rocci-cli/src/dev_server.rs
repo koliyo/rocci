@@ -1316,6 +1316,7 @@ mod tests {
                         ast: "(Document)".into(),
                         roc: "module [] {}".into(),
                         html: "<h1>home</h1>".into(),
+                        source_highlighted: String::new(),
                         capabilities: InspectCapabilities {
                             source: ViewCapability::available(),
                             ast: ViewCapability::available(),
