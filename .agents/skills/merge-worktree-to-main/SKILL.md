@@ -13,7 +13,8 @@ disable-model-invocation: true
 
 Land the current worktree (or a named one) on `main` with a merge commit.
 Invoking this skill is permission to commit leftover worktree changes, rebase
-the source branch onto `main`, and create the merge commit. Do not push. Do
+the source branch onto `main`, resolve conflicts whose correct outcome is
+clear, and create the merge commit. Do not push. Do
 not delete the worktree. Do not interactive-rebase, squash, fast-forward the
 merge, or amend unless the user already asked in this invocation.
 
@@ -73,21 +74,27 @@ EOF
 Working directory: `SOURCE_WT`. Conflicts must be resolved here, not on
 `main`.
 
-1. Confirm `git status --porcelain` is empty.
-2. If a rebase is already in progress:
-   - Unmerged paths remain: stop, list them, and wait for the user.
-   - All conflicts resolved: `GIT_EDITOR=true git rebase --continue`.
+1. If no rebase is in progress, confirm `git status --porcelain` is empty.
+2. If a rebase is already in progress with unmerged paths, resolve them
+   using the conflict rule below. If all conflicts are already resolved:
+   `GIT_EDITOR=true git rebase --continue`.
 3. Otherwise rebase onto local `main` (never `-i`):
 
 ```sh
 git rebase main
 ```
 
-4. On conflict: stop, list conflicted files, and leave the rebase in
-   progress in `SOURCE_WT`. Do not `--abort` unless the user asks. Do not
-   merge into `main` until the rebase finishes.
-5. After a successful rebase, `git merge-base --is-ancestor main HEAD` must
-   succeed and the worktree must be clean.
+4. On conflict, inspect each file and both sides. If the correct resolution
+   is clear, apply it, `git add` the files, and
+   `GIT_EDITOR=true git rebase --continue`. Repeat until the rebase
+   finishes or a conflict is not understood. Do not use `-X ours` / `-X
+   theirs` as a blanket strategy.
+5. Pause only when the resolution is ambiguous or would guess at intent.
+   Then list the remaining files, explain what is unclear, and leave the
+   rebase in progress in `SOURCE_WT`. Do not `--abort` unless the user asks.
+6. Do not merge into `main` until the rebase finishes. After it succeeds,
+   `git merge-base --is-ancestor main HEAD` must succeed and the worktree
+   must be clean.
 
 ## 4. Merge into main with a merge commit
 
@@ -108,9 +115,11 @@ EOF
 )"
 ```
 
-4. A merge conflict here is unexpected after a successful rebase. Stop,
-   report the files, and leave the merge in progress. Do not `--abort` or
-   `--continue` unless the user asks.
+4. A merge conflict here is unexpected after a successful rebase. Resolve
+   it in `MAIN_WT` if the correct resolution is clear, then
+   `GIT_EDITOR=true git merge --continue`. Pause only when the resolution
+   is ambiguous; then leave the merge in progress. Do not `--abort` unless
+   the user asks.
 5. Verify with `git status -sb` and `git log -1 --format='%H %P %s'` in
    `MAIN_WT`. The merge commit must have two parents.
 
@@ -122,7 +131,7 @@ Report:
 
 - Source worktree path and branch
 - Leftover commit created, or that the worktree was already clean
-- Rebase onto `main` succeeded, or that it stopped on conflicts in the
-  worktree
+- Rebase onto `main` succeeded, including conflicts resolved in the
+  worktree, or that it paused on an ambiguous conflict
 - Merge commit SHA on `main` (if the merge ran)
 - That the worktree is still present and nothing was pushed
