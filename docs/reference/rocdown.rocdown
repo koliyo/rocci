@@ -26,7 +26,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | Form | Meaning |
 | --- | --- |
 | `@page { ... }` | Route, draft, layout, theme, color scheme, and metadata |
-| `@roc { ... }` | Roc imports, types, and values |
+| `@roc { ... }` | Roc imports, types, values, and helpers |
 | `@render { expr }` | Insert one Roc `Html` expression |
 | `@component` | Declare a Rocci component |
 | `@fixture` | Tag preview or test data |
@@ -40,6 +40,10 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 
 `@island` is reserved in the design but not parsed yet. Hybrid sites use
 `@component` hosts and `@on` handlers instead.
+
+`@roc` is the place for Roc values and helpers. Live pages may `import pf.Sqlite`
+there and call those helpers from `@on` / `@init`. Document-root text that looks
+like Roc is Markdown, not a module item.
 
 ## `:img` native images
 
