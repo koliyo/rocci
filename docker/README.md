@@ -180,7 +180,7 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`docker-serve-static.sh`](docker-serve-static.sh) | Absolutize `ROCCI_DIST` and `compose up` |
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
-| [`prod/`](prod/) | Origin wrapper, bootstrap rsync, CI `push-release.sh` / `publish.sh` |
+| [`prod/`](prod/) | Origin wrapper, bootstrap scp, CI `push-release.sh` / `publish.sh` |
 | [`docker-serve-hybrid.sh`](docker-serve-hybrid.sh) | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
@@ -196,6 +196,8 @@ reverse-proxy) is in [`examples/rocdown/counter/README.md`](../examples/rocdown/
 and the [hybrid sites guide](../docs/guides/hybrid-sites.rocdown).
 
 `rocci.dev` origin deploys from GitHub Actions `site.yml` on `main` via the
-`production` Environment (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`).
-Fork pull requests cannot read those secrets and do not run the deploy job.
-See [`prod/README.md`](prod/README.md).
+`production` Environment (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
+`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`). SSH goes through
+Cloudflare Access (`ssh.rocci.dev`), not port 22. Fork pull requests cannot
+read those secrets and do not run the deploy job. See
+[`prod/README.md`](prod/README.md).

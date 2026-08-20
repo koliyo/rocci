@@ -24,25 +24,32 @@ hand.
 Copy Compose/Caddy/`prod/` (not `site.tgz` / `islands`):
 
 ```sh
-DEPLOY_HOST=… DEPLOY_USER=deploy ./docker/prod/bootstrap-rsync.sh
+DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy ./docker/prod/bootstrap-scp.sh
 ```
 
 Default remote dir is `/srv/rocci/docker`. The `deploy` user must be able to
-`docker compose` and write `/srv/rocci/{incoming,releases,current}`. SSH from
-GitHub-hosted runners must be allowed on the provider firewall (key-only).
+`docker compose` and write `/srv/rocci/{incoming,releases,current}`. Provider
+firewall should keep 22 and 80/443 closed; CI SSHs through Cloudflare Access
+(`ssh.rocci.dev`). From a laptop with Access, export `CF_ACCESS_CLIENT_ID`,
+`CF_ACCESS_CLIENT_SECRET`, and `CF_SSH_HOSTNAME=ssh.rocci.dev` so `scp`/`ssh`
+use [`access-ssh-proxy.sh`](access-ssh-proxy.sh) as `ProxyCommand`.
 
 ## Deploy from `main`
 
-Do not scp artifacts by hand. `.github/workflows/site.yml` packages on
+Do not copy artifacts by hand. `.github/workflows/site.yml` packages on
 linux/amd64, then the `deploy` job (Environment `production` only, never
-`pull_request`) runs [`push-release.sh`](push-release.sh). That rsyncs the
-origin kit plus `site.tgz` / `islands` and runs [`publish.sh`](publish.sh)
+`pull_request`) probes SSH ([`check-ssh.sh`](check-ssh.sh)), bootstraps the
+origin kit, scps `site.tgz` / `islands`, and runs [`publish.sh`](publish.sh)
 on the box: unpack to `releases/<sha>/`, `compose up -d --build`, curl
 `http://127.0.0.1:8080/health`, then flip `current`. A failed health check
-leaves the previous symlink and restores that release.
+leaves the previous symlink and restores that release. CI sets
+`ROCCI_SSH_VERBOSE=1` (`ssh -vv`, `scp -v`, cloudflared `--loglevel debug`).
+Laptop one-shot: [`push-release.sh`](push-release.sh).
 
-Secrets (names only): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`. Fork
-PRs cannot read them.
+Secrets (names only): `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`,
+`DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`. Fork PRs
+cannot read them. The deploy job runs `cloudflared access ssh --hostname
+ssh.rocci.dev` as SSH `ProxyCommand`.
 
 Caddy listens on `127.0.0.1:8080` via
 [`compose.hybrid.yml`](../compose.hybrid.yml) and
