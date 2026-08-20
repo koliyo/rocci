@@ -40,7 +40,7 @@ enum Commands {
         /// Error if the site has `live` pages (CDN-only publish with no island service).
         #[arg(long)]
         cdn_only: bool,
-        /// Native ISA/OS for island/app process binaries (`x64musl`, `arm64musl`).
+        /// Roc `roc build --target=` for island/app process binaries (see possible values).
         /// Not passed to `--host native` apply on the build machine.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
@@ -67,7 +67,7 @@ enum Commands {
         /// Error if the site has `live` pages (static CDN package only).
         #[arg(long)]
         cdn_only: bool,
-        /// Native ISA/OS for island process binaries (`x64musl`, `arm64musl`).
+        /// Roc `roc build --target=` for island process binaries (see possible values).
         /// Not passed to `--host native` apply on the build machine.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,

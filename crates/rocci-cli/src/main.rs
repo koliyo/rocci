@@ -28,7 +28,7 @@ enum Commands {
     Bundle {
         #[arg(long, default_value = "rocci.toml")]
         config: PathBuf,
-        /// Native ISA/OS for the Roc process binary (`x64musl`, `arm64musl`).
+        /// Roc `roc build --target=` for the process binary (see possible values).
         /// Apply `--host` is separate. macOS `.app` bundles stay host-native.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
@@ -42,7 +42,7 @@ enum Commands {
         /// Package a Roc server binary plus assets (not a macOS `.app`).
         #[arg(long)]
         release: bool,
-        /// Native ISA/OS for the Roc process binary (`x64musl`, `arm64musl`).
+        /// Roc `roc build --target=` for the process binary (see possible values).
         /// Requires `--release`. macOS `.app` bundling stays on `rocci bundle`.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,

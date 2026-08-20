@@ -3,12 +3,36 @@ use std::{fs, path::Path, process::Command};
 use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
 
+/// Roc `roc build --target=` names for process binaries.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum NativeTarget {
+    /// Linux x86_64 with musl (static linking)
     #[value(name = "x64musl")]
     X64Musl,
+    /// Linux ARM64 with musl (static linking)
     #[value(name = "arm64musl")]
     Arm64Musl,
+    /// Linux x86_64 with glibc (dynamic linking)
+    #[value(name = "x64glibc")]
+    X64Glibc,
+    /// Linux ARM64 with glibc (dynamic linking)
+    #[value(name = "arm64glibc")]
+    Arm64Glibc,
+    /// macOS x86_64
+    #[value(name = "x64mac")]
+    X64Mac,
+    /// macOS ARM64 (Apple Silicon)
+    #[value(name = "arm64mac")]
+    Arm64Mac,
+    /// Windows x86_64
+    #[value(name = "x64win")]
+    X64Win,
+    /// Windows ARM64
+    #[value(name = "arm64win")]
+    Arm64Win,
+    /// WebAssembly (WASI / freestanding wasm32)
+    #[value(name = "wasm32")]
+    Wasm32,
 }
 
 impl NativeTarget {
@@ -16,6 +40,13 @@ impl NativeTarget {
         match self {
             Self::X64Musl => "x64musl",
             Self::Arm64Musl => "arm64musl",
+            Self::X64Glibc => "x64glibc",
+            Self::Arm64Glibc => "arm64glibc",
+            Self::X64Mac => "x64mac",
+            Self::Arm64Mac => "arm64mac",
+            Self::X64Win => "x64win",
+            Self::Arm64Win => "arm64win",
+            Self::Wasm32 => "wasm32",
         }
     }
 }
@@ -83,6 +114,16 @@ mod tests {
         );
         let host_native = roc_build_args("main.roc", &output, None);
         assert!(!host_native.iter().any(|arg| arg.starts_with("--target=")));
+    }
+
+    #[test]
+    fn all_roc_targets_round_trip_through_as_roc_target() {
+        for target in NativeTarget::value_variants() {
+            assert_eq!(
+                NativeTarget::from_str(target.as_roc_target(), true),
+                Ok(*target)
+            );
+        }
     }
 
     #[test]
