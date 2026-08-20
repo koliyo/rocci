@@ -24,16 +24,36 @@ pub fn emit_node_kind(ir: &Ir, sidecar: &Sidecar) -> String {
         out.push_str(name);
         out.push_str(",\n");
     }
-    out.push_str(
-        "    ];\n\n    pub(crate) fn highlight_omitted(self) -> bool {\n        match self {\n",
-    );
-    for name in &names {
-        if sidecar.highlight.omit.contains_key(*name) {
-            out.push_str("            NodeKind::");
-            out.push_str(name);
-            out.push_str(" => true,\n");
+    out.push_str("    ];\n\n    pub(crate) fn highlight_omitted(self) -> bool {\n");
+    let omitted: Vec<&str> = names
+        .iter()
+        .copied()
+        .filter(|name| sidecar.highlight.omit.contains_key(*name))
+        .collect();
+    if omitted.is_empty() {
+        out.push_str("        false\n");
+    } else {
+        out.push_str("        matches!(\n            self,\n");
+        let arms: Vec<String> = omitted
+            .iter()
+            .map(|name| format!("NodeKind::{name}"))
+            .collect();
+        let one_line = arms.join(" | ");
+        if 12 + one_line.len() <= 100 {
+            out.push_str("            ");
+            out.push_str(&one_line);
+            out.push('\n');
+        } else {
+            out.push_str("            ");
+            out.push_str(&arms[0]);
+            for arm in &arms[1..] {
+                out.push_str("\n                | ");
+                out.push_str(arm);
+            }
+            out.push('\n');
         }
+        out.push_str("        )\n");
     }
-    out.push_str("            _ => false,\n        }\n    }\n}\n");
+    out.push_str("    }\n}\n");
     out
 }

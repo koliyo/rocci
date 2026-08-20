@@ -43,15 +43,15 @@ impl NodeKind {
     ];
 
     pub(crate) fn highlight_omitted(self) -> bool {
-        match self {
-            NodeKind::BracketRecord => true,
-            NodeKind::ParamField => true,
-            NodeKind::ParamValue => true,
-            NodeKind::BracketList => true,
-            NodeKind::LineContent => true,
-            NodeKind::BraceSection => true,
-            NodeKind::EndSection => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            NodeKind::BracketRecord
+                | NodeKind::ParamField
+                | NodeKind::ParamValue
+                | NodeKind::BracketList
+                | NodeKind::LineContent
+                | NodeKind::BraceSection
+                | NodeKind::EndSection
+        )
     }
 }

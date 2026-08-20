@@ -9,7 +9,6 @@ mod ast_generated;
 pub use ast_generated::*;
 
 #[path = "node_kind.generated.rs"]
-#[allow(dead_code)]
 mod node_kind;
 #[cfg(test)]
 pub(crate) use node_kind::NodeKind;

@@ -59,11 +59,9 @@ impl NodeKind {
     ];
 
     pub(crate) fn highlight_omitted(self) -> bool {
-        match self {
-            NodeKind::Ident => true,
-            NodeKind::TextNode => true,
-            NodeKind::Interpolation => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            NodeKind::Ident | NodeKind::TextNode | NodeKind::Interpolation
+        )
     }
 }
