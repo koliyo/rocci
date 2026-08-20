@@ -47,7 +47,7 @@ enum Commands {
         #[command(flatten)]
         theme: ThemeArgs,
     },
-    /// Package a static site for hosting: `--cdn-only` build, `publish.json`, and `site.tgz`.
+    /// Package a site for hosting: static CDN tree, or hybrid CDN plus island binary.
     Package {
         /// Site root directory.
         #[arg(default_value = ".")]
@@ -64,6 +64,9 @@ enum Commands {
         /// Write `dist/` and `publish.json` without a tarball.
         #[arg(long)]
         no_archive: bool,
+        /// Error if the site has `live` pages (static CDN package only).
+        #[arg(long)]
+        cdn_only: bool,
         /// Native ISA/OS for island process binaries (`x64musl`, `arm64musl`).
         /// Not passed to `--host native` apply on the build machine.
         #[arg(long, value_enum)]
@@ -395,13 +398,13 @@ fn try_main() -> Result<()> {
             host,
             archive,
             no_archive,
+            cdn_only,
             target,
         } => {
             if is_document_file(&path) {
                 bail!("`rocdown package` builds a site directory, not a single .rocdown file");
             }
             refuse_okf_input(&path, "package")?;
-            let _native_target = target;
             let report = rocci_rocdown::package_configured(
                 &path,
                 output.as_deref(),
@@ -409,6 +412,8 @@ fn try_main() -> Result<()> {
                     host: Some(host.into()),
                     archive: Some(archive),
                     write_archive: !no_archive,
+                    cdn_only,
+                    native_target: target,
                 },
             )?;
             print!("{}", report.render());
@@ -910,6 +915,27 @@ mod tests {
         match cli.command {
             Commands::Package { no_archive, .. } => assert!(no_archive),
             _ => panic!("expected package --no-archive"),
+        }
+
+        let cli = Cli::try_parse_from([
+            "rocdown",
+            "package",
+            "examples/rocdown-counter",
+            "--target",
+            "x64musl",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Package {
+                cdn_only, target, ..
+            } => {
+                assert!(!cdn_only);
+                assert_eq!(
+                    target,
+                    Some(rocci_cli::native_target::NativeTarget::X64Musl)
+                );
+            }
+            _ => panic!("expected package --target"),
         }
     }
 

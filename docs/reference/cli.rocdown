@@ -171,18 +171,18 @@ native ISA/OS for **island and app** `main.roc` process binaries
 (`x64musl` / `arm64musl` for Linux containers). Do not pass musl `--target`
 into `--host native` on a Mac.
 
-### Package a static site
+### Package a site
 
 ```sh
 cargo run -p rocci-rocdown-cli -- package [ROOT] [--output DIRECTORY] [--archive site.tgz] [--target x64musl|arm64musl]
 ```
 
-Implies `--cdn-only`: `live` pages fail with `RD2302` and leave the previous
-`site.tgz` in place. Writes the CDN tree, `publish.json` (page kinds, Datastar,
-empty `service_origin`, output hash, file list, and `rocdown` / `roc` versions
-when known), and a gzip tarball whose root is that tree plus `publish.json`.
-`--no-archive` skips the tarball. This is the artifact `rocdown serve` and the
-static Docker host consume.
+Implies `--cdn-only` for static catalogs. `live` pages fail with `RD2302`
+when `--cdn-only` is set. Otherwise a hybrid package compiles the island
+process binary (sibling `islands` file) and records live routes plus the
+binary fingerprint in `publish.json`. `--target x64musl` / `arm64musl` is
+the Linux container process target. Failed package leaves the previous
+`site.tgz`. `--no-archive` skips the tarball.
 
 ### Serve a built tree
 

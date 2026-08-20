@@ -37,3 +37,7 @@ examples/datastar/Edit.roc
 examples/datastar/Todos.roc
 examples/datastar/Tabs.roc
 examples/datastar/Validate.roc
+
+# Host-built package artifacts (`rocdown package`)
+examples/*/islands
+site.tgz

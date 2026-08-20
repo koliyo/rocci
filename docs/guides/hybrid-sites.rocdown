@@ -150,27 +150,19 @@ example.com {
 
 Static Rocdown trees (`docs/` in this repository, or any `--cdn-only` `dist/`)
 use official Caddy with no Rocci toolchain: build on the host, then
-`./docker/run-static.sh dist/docs`. Operator notes are in `docker/README.md`.
-Hybrid sites still use the host preview above; `./docker/run-site.sh` remains
-the live-island operator demo until a pre-built hybrid image exists.
+`./docker/run-static.sh dist/docs`.
 
-Use the hybrid Compose after that host preview is green. It checks Caddy
-same-origin proxy, published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and
-mounted-site path stamps — not HTML, CSS, or increment morphing.
-
-Content-agnostic images in `docker/` run `rocdown serve-islands` and official
-Caddy, which serves `dist/` and proxies island routes on one origin. Mount any
-hybrid site (this counter, `examples/rocdown-hybrid`, or another directory
-with `rocdown.toml`). From the repository root:
+Pre-built hybrid sites package the CDN tree plus an island binary, then
+Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
 
 ```sh
-./docker/run-site.sh examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
-Browse [http://127.0.0.1:8080/](http://127.0.0.1:8080/). The islands process
-listens on `0.0.0.0` via `ROC_BASIC_WEBSERVER_HOST` so the Caddy container can
-reach it. Commands and smoke curls are in
-`examples/rocdown-counter/README.md`. Operator notes are in `docker/README.md`.
+Use `--target arm64musl` when the container is arm64. Operator notes are in
+`docker/README.md`. `./docker/run-site.sh` remains the **builder/dev**
+toolchain demo (Ubuntu + Roc + WebKit, compile at start), not hosting.
 
 ## Cross-origin service
 
