@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Efficient publishing of Rocdown sites and Rocci apps
-description: "Evidence for a build-once, host-the-artifact publishing workflow. Local Docker should serve pre-built trees, not compile Rocci. Wasm is a build-time apply host, not a portable HTTP runtime. Exploratory; not an approved product contract."
+description: "Evidence for a build-once, host-the-artifact publishing workflow. Local Docker should serve pre-built trees, not compile Rocci. Keep native apply and native process binaries; Wasm is optional apply only. Roc --target can emit Linux musl from macOS when the platform ships that host. Exploratory; not an approved product contract."
 tags: [domain/rocdown, domain/rocci, concern/packaging, concern/publication, concern/architecture, integration/roc]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T05:40:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -44,6 +44,28 @@ sources:
     title: Rocdown site build, apply host, and publish report
     author: process:git
     last_modified: 2026-08-19
+  - id: host-rs
+    resource: ../../crates/rocci-roc-host/src/host.rs
+    title: HostChoice auto native wasm
+    author: process:git
+    last_modified: 2026-08-18
+  - id: dispatch-rs
+    resource: ../../crates/rocci-cli/src/dispatch.rs
+    title: Generated apps use basic-webserver 0.16.0
+    author: process:git
+    last_modified: 2026-08-19
+  - id: basic-cli-platform
+    resource: https://github.com/roc-lang/basic-cli/blob/main/platform/main.roc
+    title: basic-cli native targets without wasm32
+    author: organization:roc-lang
+  - id: basic-webserver-platform
+    resource: https://github.com/roc-lang/basic-webserver/blob/main/platform/main.roc
+    title: basic-webserver native targets without wasm32
+    author: organization:roc-lang
+  - id: roc-cross-ci
+    resource: https://github.com/roc-lang/roc/blob/main/.github/workflows/ci_cross_compile.yml
+    title: Roc compiler CI cross-compiles musl from macOS hosts
+    author: organization:roc-lang
   - id: service-rs
     resource: ../../crates/rocci-rocdown/src/service.rs
     title: serve-islands regenerates and compiles from sources
@@ -207,32 +229,85 @@ flowchart TB
   end
 ```
 
+## `--host` versus `--target`
+
+These are different knobs. Conflating them is how Wasm-only publishing gets
+oversold.[^host-rs][^rocdown-cli][^build-rs]
+
+**`--host` (apply runtime, shipped).** `rocdown build --host auto|native|wasm`
+selects how the *theme applicator* runs on the machine that is writing
+`dist/`. Native compiles `apply` with `basic-cli` and execs it. Wasm compiles
+`--target=wasm32` against Rocci's embedded WASI platform and runs it in
+Wasmtime. `[build].host` in `rocdown.toml` and `ROCCI_HOST` are the same
+enum. This flag must stay; a wasm-only apply path cannot replace it while
+`basic-cli` refuses `wasm32`.[^rocdown-cli][^host-rs][^build-rs][^basic-cli-platform]
+
+**`--target` (native ISA/OS, not a `rocdown` flag today).** The Roc compiler
+accepts `roc build --target=<name>` (`x64musl`, `arm64musl`, `x64glibc`,
+and similar). Native `rocdown build` does **not** pass `--target`; it
+builds for the host. Island and app `main.roc` use `basic-webserver` the
+same way: host-native, no `--target`.[^build-rs][^dispatch-rs][^host-rs]
+
+**Platforms decide which targets exist.** A target works only when that
+platform ships link inputs (`libhost.a`, musl `crt1.o`, and so on).
+`basic-cli` 0.22 (Rocdown apply) and `basic-webserver` 0.16 (apps and
+islands) list `x64mac`, `arm64mac`, `x64win`, `x64musl`, `arm64musl`.
+Neither lists `wasm32`. Rocci's custom apply platform is the wasm32
+exception, and it has no HTTP.[^basic-cli-platform][^basic-webserver-platform][^wasm-platform][^dispatch-rs]
+
+So native binaries stay first-class. Wasm apply is optional. Wasm cannot
+be the island or app runtime until a different HTTP platform exists.
+
+## Can a Mac build Linux binaries?
+
+The compiler can. Roc CI builds `x64musl` and `arm64musl` apps from
+`macos-15` and `macos-15-intel` hosts using `roc build --target=…`. That
+is a compiler test against a tiny int platform, not a guarantee that
+every Rocci-pinned platform tarball contains working musl hosts.[^roc-cross-ci]
+
+For generated Rocci/Rocdown code the practical split is:
+
+| Artifact | Must run where | From a Mac |
+| --- | --- | --- |
+| Apply (`--host native`) | On the Mac, to write `dist/` | Host-native `apply` only. A musl `apply` would not exec on macOS. |
+| Apply (`--host wasm`) | On the Mac, in Wasmtime | `wasm32` via the custom platform. HTML is still portable. |
+| Island / app server | On Linux (Docker, VPS) | `roc build --target=x64musl` (or `arm64musl` if that host is in the pinned tarball). Not `--host wasm`. |
+
+A Mac site build that also wants a Linux island binary is therefore two
+compiles: native or wasm **apply** for HTML, plus a musl **process**
+binary for the service. Do not pass `--target=x64musl` into `--host
+native` apply on macOS; that binary cannot generate `dist/` locally.
+
+Whether the pinned `basic-webserver` 0.16.0 tarball actually links
+`x64musl` from Darwin is unproven in this repository. Treat Mac→Linux as
+the intended Roc mechanism, and make a failed `--target` a clear error
+rather than a silent host build.[^dispatch-rs][^roc-cross-ci]
+
 ## Wasm versus host-agnostic hosting
 
 Two different embeddings are easy to conflate.[^generation-research][^roc-host-readme]
 
-**Build-time apply (shipped).** `roc build --target wasm32` against the
-embedded WASI platform, then Wasmtime, is a renderer host. `--host wasm`
-writes the same kind of `dist/` as native apply. The `.wasm` stays on the
-build machine. Serving that `dist/` does not load Wasm.[^build-rs][^roc-host-readme]
+**Build-time apply (shipped, optional).** `roc build --target wasm32`
+against the embedded WASI platform, then Wasmtime, is a renderer host.
+`--host wasm` writes the same kind of `dist/` as native apply. The
+`.wasm` stays on the build machine. Serving that `dist/` does not load
+Wasm.[^build-rs][^roc-host-readme]
 
 **Runtime HTTP (not available).** The wasm platform is `main! : {} =>
 Result` with no HTTP. `basic-cli` / `basic-webserver` do not support
-`wasm32`. Island and app servers cannot be that module.[^wasm-platform][^build-rs][^generation-research]
+`wasm32`. Island and app servers cannot be that module.[^wasm-platform][^build-rs][^generation-research][^basic-cli-platform][^basic-webserver-platform]
 
 So:
 
 - Static and hydrate sites are already host-agnostic: HTML, CSS, and
   hashed JS. Wasm does not make them more portable.
+- Native apply must remain selectable because several platforms Rocci
+  uses do not compile to wasm.
 - Cross-compiling **apply** to wasm does not remove `roc` from the build
-  host; it only changes how HTML is generated.
-- Cross-compiling an **island or app** to wasm would make one artifact
-  runnable on any Wasmtime/WASI-HTTP host. That needs a new HTTP
-  platform, not a flag on today's apply host.
-- The realistic Linux-container path for live islands and apps is native
-  `roc build` to `x64musl` / `arm64musl` (basic-cli targets already named
-  in the wasm-fallback hint), then a slim process image with no
-  `roc`.[^build-rs][^hosting-follow-ons]
+  host; it only changes how HTML is generated on that host.
+- Cross-compiling an **island or app** to wasm would need a WASI-HTTP
+  platform. Until then, Linux process artifacts are native musl
+  `--target`, not `--host wasm`.[^build-rs][^hosting-follow-ons]
 
 Playground `--mode wasm` is a browser authoring worker. It is not a
 publish format.[^rocci-cli-readme]
@@ -271,9 +346,12 @@ does not need the current Compose file.[^rocci-dev-site][^hybrid-plan]
    Caddy tag is enough.
 3. **Treat `static` and `hydrate` as one publish class.** `--cdn-only` is
    the gate. `live` waits on a precompiled island binary.
-4. **Do not use Wasm as the v1 hosting story.** Keep it as an apply host.
-   Use musl cross-compile for Linux processes. Revisit WASI-HTTP only
-   after native precompiled islands exist.
+4. **Keep `--host native` and `--host wasm` as apply choices.** Do not
+   drop native because some Roc platforms (`basic-cli`,
+   `basic-webserver`) have no `wasm32`. Wasm apply is optional. Linux
+   island/app binaries use `roc build --target=x64musl` (or arm64musl),
+   not `--host wasm`. Revisit WASI-HTTP only after native precompiled
+   islands exist.[^basic-cli-platform][^basic-webserver-platform]
 5. **Add packaging commands, not deploy plugins.** A site archive plus
    `publish.json`, and a way to serve that tree locally, cover the
    missing product surface. CDN and PaaS upload stay operator choice.
@@ -299,6 +377,9 @@ flowchart LR
 
 ## Open questions for a reviewer
 
+- Does the pinned `basic-webserver` 0.16.0 tarball actually link
+  `x64musl` when `roc build --target=x64musl` runs on Darwin, or must
+  islands be compiled on Linux until a newer platform pin?
 - Is official Caddy the only first-party local host, or should `rocdown
   serve --from-dist` exist for machines without Docker?
 - Should a fat builder image remain for reproducible Linux `rocdown
@@ -315,10 +396,10 @@ flowchart LR
 [^caddyfile]: `/actions/` and `/health` reverse_proxy to `islands`; `root * /src/site/dist`.
 [^linux-deps]: Runtime apt list includes `libwebkit2gtk-4.1-0` and GTK.
 [^install-roc]: Downloads pinned `roc_nightly-linux_*` into `/opt/roc`.
-[^build-rs]: Apply to `dist/`; `--host wasm` uses `wasm32`; `render_publish`; `--cdn-only`; basic-cli wasm32 hint names musl targets.
+[^build-rs]: Apply to `dist/`; `--host wasm` uses `wasm32`; native apply omits `--target`; `--cdn-only`; stale basic-cli wasm32 hint names musl targets.
 [^service-rs]: `serve_islands` loads the site and `execute_app_plan`; no prebuilt-binary exec.
 [^islands-rs]: NativeHost evaluates island HTML for the CDN snapshot during build.
-[^rocdown-cli]: `build`, `run`, `serve-islands`, `inspect artifacts`; no `package` or serve-from-dist.
+[^rocdown-cli]: `build --host auto|native|wasm`; `run`, `serve-islands`, `inspect artifacts`; no `--target`, `package`, or serve-from-dist.
 [^bundle-rs]: macOS `.app` only; `build_roc_server` into Resources; other OS bail.
 [^rocci-cli-readme]: `bundle` is ad-hoc macOS; playground wasm is authoring.
 [^rocdown-readme]: `build` emits CDN HTML plus `islands.json` for hybrid; `--cdn-only` errors on live.
@@ -332,3 +413,8 @@ flowchart LR
 [^publication]: No public knowledge deploy or verbatim bundle archive.
 [^rocci-dev-site]: One static rocci.dev tree; no deployment adapters or plugin lifecycle.
 [^release-workflow]: Releases `rocci`, `rocdown`, `rocci-okf` binaries, not site trees.
+[^host-rs]: `HostChoice::{Auto,Native,Wasm}`; native cache key is `native:{ARCH}` with no `--target`.
+[^dispatch-rs]: Generated HTTP apps pin basic-webserver 0.16.0; no wasm32.
+[^basic-cli-platform]: Targets x64mac, arm64mac, x64win, x64musl, arm64musl; no wasm32.
+[^basic-webserver-platform]: Same native target names as basic-cli; no wasm32.
+[^roc-cross-ci]: Compiler CI matrix: macOS hosts build x64musl and arm64musl test apps.
