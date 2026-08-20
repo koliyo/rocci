@@ -2,6 +2,7 @@
 
 ## 2026-08-20
 
+- Added draft [handler logging into the Rocci runtime console](research/handler-runtime-logging.md): `@on` / `@init` already reach Dev Console and CLI via platform `Stderr.line!` as `source: runtime`; recommend documenting that path, then a stderr prefix / optional `log!` for `source: app`. Rejects component `@log` and HTTP ingest as primary. Follow-on to [console scope](research/inspector-console-scope.md); no plan started.
 - Added draft [preview inspector console scope](research/inspector-console-scope.md) research and [implementation plan](plans/inspector-console-scope.md): Console stays a host runtime stream (CLI, watch, Roc stderr). Reject logging from Rocci `@component` (pure render). Remaining work is feeding `rocci run` `StderrTee` into sibling `InspectorServer`, not a language `log` API. Exploratory; no phase started.
 - Added draft [optional request argument on Rocci service handlers](research/optional-handler-request.md): one-parameter `@on` lists inject unused `_request` at lowering; dispatch arity and request-as-handler-input-field stay exploratory. Not a new architecture decision.
 - Added draft audit [worktree landings and origin/main push conflicts](audits/worktree-main-push-conflicts.md): non-fast-forward pushes after landing Cursor worktrees came from rewritten `main` (detached HEAD, rebase of `main` onto features, cherry-pick then merge) plus `pull.rebase`; resolution is named plan branches in the phased runner and rebase-feature-then-merge via merge-worktree-to-main. Residual: stale bases and delayed pushes.
