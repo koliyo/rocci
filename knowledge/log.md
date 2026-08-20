@@ -10,6 +10,7 @@
 ## 2026-08-19
 
 - Pointed [hybrid island hosting follow-ons](plans/hybrid-island-hosting-follow-ons.md) at generic `docker/compose.yml` and `docker/cdn/Caddyfile` after the runtime images stopped baking `examples/rocdown-counter`.
+- Implemented Phase 7 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): CLI and desktop READMEs plus the public CLI reference describe scrolling Source, right/bottom dock chrome, OKF unavailable AST/Roc, and `tok-*` languages. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 6 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): Source Rocci/Roc/HTML and Markdown/Rocdown original source render `tok-*` spans via `rocci-highlight`; AST stays plain. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 5 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): OKF inspect snapshots cover collection indexes and `/review/` from disk HTML; `--no-window` captures HTML after listen and keeps the sibling inspector. Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phase 4 of [investigate and repair the preview inspector](plans/preview-inspector-repair.md): Rocdown sticky columns and OKF `.okf-chrome` subtract `--rocci-chrome-bottom` so a docked Dev inset shrinks nav and article. Not logged complete until CI and Knowledge workflows succeed on this revision.
