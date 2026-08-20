@@ -309,8 +309,8 @@ record. The preview window supports current-document find and `Cmd/Ctrl-K`
 jump-to-record using `/catalog.json`. The Dev control opens a panel at
 `/__rocci/dev` with Performance, Source, and Console tabs for the current
 route. Collection indexes and `/review/` have inspect snapshots. Original
-Markdown and built HTML highlight with `tok-*` classes. Unavailable OKF AST
-and Roc views show a reason on the Source tab.
+Markdown and built HTML highlight with `tok-*` classes. The Source dropdown
+omits AST and Generated Roc for OKF Markdown records.
 
 ### Build static review artifacts
 

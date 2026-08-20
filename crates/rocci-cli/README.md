@@ -76,8 +76,8 @@ tabs for Performance, Source, and Console. Source is a GET form (`tab`, `route`,
 Long Source bodies scroll inside `.code-pane`. Original Rocci, Rocdown, and
 Markdown, plus generated Roc and HTML, highlight with `rocci-highlight` `tok-*`
 classes (playground token colors). AST stays escaped plaintext. OKF records
-show Markdown source and built HTML; AST and Roc stay unavailable with a
-reason. Console lists runtime messages teed from the session (`GET /__rocci/logs`,
+show Markdown source and built HTML; the Source dropdown omits AST and Generated Roc.
+Console lists runtime messages teed from the session (`GET /__rocci/logs`,
 SSE `GET /__rocci/logs/events`); it is not an app-level Rocci log API. Static
 dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
