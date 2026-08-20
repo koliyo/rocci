@@ -65,8 +65,10 @@ published = "2026-08-16"
 <Byline date={published} />
 ````
 
-Document-root component tags and directives are explicit islands in the
-Markdown stream. Inline HTML in a Markdown paragraph is disabled by default.
+`@roc` holds Roc values and helpers. On `live` pages, import `pf.Sqlite` in
+`@roc` and call those helpers from `@on` / `@init`. Document-root component
+tags and directives are explicit islands in the Markdown stream. Inline HTML in
+a Markdown paragraph is disabled by default.
 
 `rocdown build` accepts `static` pages (Markdown, `@page`, and article blocks),
 splices pure Rocci on `hydrate` pages, and emits Datastar plus an island
