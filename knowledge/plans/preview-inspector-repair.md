@@ -4,7 +4,7 @@ title: Investigate and repair the preview inspector
 description: "Phased investigation plus repair of the shipped Dev inspector. Tabs, dock, source views, and a runtime console already exist, but source modes do not scroll, overlay dock chrome covers the tab strip, several OKF routes have no snapshot, and source is unhighlighted. Phase 1 finishes the product/window matrix in the real preview window; later phases fix shell CSS, dock chrome, theme inset, snapshot coverage, and syntax highlighting."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T21:40:00Z }
+generated: { by: process:cursor, at: 2026-08-20T08:25:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -13,7 +13,7 @@ sources:
     resource: preview-inspector.md
     title: Extended preview-window inspector implementation plan
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
   - id: source-plan
     resource: inspector-source-views.md
     title: Preview inspector source views
@@ -23,7 +23,12 @@ sources:
     resource: ../research/preview-inspector.md
     title: Extended preview-window inspector research
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
+  - id: console-scope-plan
+    resource: inspector-console-scope.md
+    title: Runtime console without a component log API
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: preview-nav-js
     resource: ../../crates/rocci-desktop/assets/preview-nav.js
     title: Preview chrome host script, Dev iframe, dock, and postMessage
@@ -511,7 +516,9 @@ Answer:
 2. OKF AST/Roc stay unavailable (yes).
 3. Highlighting is required, not optional polish.
 4. Console v1 remains runtime-only. Wire sibling `InspectorServer` to the
-   same runtime `LogHub` as a leftover (Phase 7), not a new log API.
+   same runtime `LogHub` as a leftover — owned by [runtime console without
+   a component log API](inspector-console-scope.md), not a new log API and
+   not this plan's remaining phases.[^console-scope-plan]
 5. Inspect HTML should be disk/emitted HTML, not live-reload-injected bytes
    (Phase 1: OKF inspect currently can include `reload.js`; docs site did
    not).
@@ -657,6 +664,7 @@ Human approval before treating these as normative:
 5. `--no-window` HTML capture for `rocci run` / standalone.
 
 [^old-plan]: Original dock/tabs/console plan; leftover optional highlight phase.
+[^console-scope-plan]: Console-scope follow-on: Roc stderr into the sibling hub; no @component log API.
 [^source-plan]: Inspect JSON and dropdown contract; artifact fill shipped.
 [^research]: Earlier DX research (src clobber, cover dock); shells have since landed.
 [^preview-nav-js]: Overlay dock, tuple sync, R/B buttons, iframe 100% size.

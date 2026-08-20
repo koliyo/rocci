@@ -4,7 +4,7 @@ title: Extended preview-window inspector
 description: "Code-backed DX investigation of the shipped Dev inspector. Dock/tabs/console shells landed; Source still does not scroll, overlay dock chrome covers tabs, and several OKF routes have no snapshot. Repair plan: investigate and repair the preview inspector."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T08:25:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -123,7 +123,12 @@ sources:
     resource: ../plans/preview-inspector-repair.md
     title: Investigate and repair the preview inspector
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
+  - id: console-scope
+    resource: inspector-console-scope.md
+    title: Preview inspector console scope
+    author: process:cursor
+    last_modified: 2026-08-20
 ---
 
 # Extended preview-window inspector
@@ -140,7 +145,9 @@ contract.[^preview-decision][^chrome-research][^source-plan]
 `log` API for `@on` handlers or components. v1 Console is runtime and
 host-originated messages (compile, watch, serve, rebuild, preview errors)
 plus, in a later phase, the inspected page's JavaScript `console.*`. It is
-not a product logger.
+not a product logger. The [console-scope research](inspector-console-scope.md)
+keeps that split and treats `rocci run` Roc stderr as the same runtime class,
+not as component logging.[^repair-plan][^inspector-plan][^console-scope]
 
 Implementation plan for remaining work: [Investigate and repair the
 preview inspector](../plans/preview-inspector-repair.md). The original
@@ -439,7 +446,8 @@ Human approval before treating these as normative:
 1. Tab strip inside the iframe (recommended) vs overlay-owned tabs.
 2. v1 dock: right and bottom only, or also left / undock.
 3. Console v1: runtime-only, or runtime plus page `console.*` in the
-   same milestone.
+   same milestone. **Recommendation (2026-08-20):** runtime-only;
+   [console scope](inspector-console-scope.md). Page JS stays later.
 4. Default tab on first open: Performance (current primary) or Source.
 5. Source view switching: keep no-JS GET form (fixed) vs fetch JSON
    into the code pane.
@@ -475,3 +483,4 @@ JSON.
 [^desktop-cargo]: wry 0.55 with `devtools`.
 [^inspector-plan]: Original dock/tabs/console specification.
 [^repair-plan]: Investigate-and-repair plan; includes 2026-08-19 findings.
+[^console-scope]: Runtime-only Console; reject @component logs; feed rocci run stderr.

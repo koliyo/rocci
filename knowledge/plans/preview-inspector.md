@@ -4,7 +4,7 @@ title: Extended preview-window inspector
 description: "Original dock/tabs/console specification for the preview Dev inspector. Those shells are in the tree; remaining investigation and repair is the inspector-repair plan. App-level Rocci logging is out of scope."
 tags: [domain/rocci, domain/desktop, domain/runtime, domain/rocdown, domain/rocci-okf, concern/ui, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T21:20:00Z }
+generated: { by: process:cursor, at: 2026-08-20T08:25:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -33,7 +33,12 @@ sources:
     resource: preview-inspector-repair.md
     title: Investigate and repair the preview inspector
     author: process:cursor
-    last_modified: 2026-08-19
+    last_modified: 2026-08-20
+  - id: console-scope
+    resource: ../research/inspector-console-scope.md
+    title: Preview inspector console scope
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: desktop-readme
     resource: ../../crates/rocci-desktop/README.md
     title: rocci-desktop crate contract
@@ -209,6 +214,10 @@ language.
 
 **Out of bound:** Rocci app `log` APIs, Datastar `data-log`, structured
 spans beyond today's `ProfileSnapshot`, network waterfall, DOM picker.
+Remaining console work (feed `rocci run` stderr into the sibling hub;
+keep `@component` logging undesigned) is
+[runtime console without a component log API](inspector-console-scope.md).
+Do not start original Phase 5 page-JS wrap from this record.[^repair-plan][^console-scope]
 
 ### Query and persistence
 
@@ -476,6 +485,7 @@ normative:
 [^chrome-research]: Overlay HTML versus preview-origin inspector Rocci.
 [^source-plan]: Shipped inspect JSON and dropdown; remaining UX moved to the repair plan.
 [^repair-plan]: Investigate-and-repair follow-on: scroll, dock chrome, OKF routes, highlighting.
+[^console-scope]: Console stays runtime-only; sibling hub feed is a follow-on plan, not a component log API.
 [^desktop-readme]: Overlay assets; 28rem column; compiler panels on the preview origin.
 [^preview-nav-js]: Dev iframe, cover layout, `frame.src` sync.
 [^preview-nav-html]: Dev button only.
