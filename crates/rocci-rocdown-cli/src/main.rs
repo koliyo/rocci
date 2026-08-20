@@ -40,6 +40,10 @@ enum Commands {
         /// Error if the site has `live` pages (CDN-only publish with no island service).
         #[arg(long)]
         cdn_only: bool,
+        /// Native ISA/OS for island/app process binaries (`x64musl`, `arm64musl`).
+        /// Not passed to `--host native` apply on the build machine.
+        #[arg(long, value_enum)]
+        target: Option<rocci_cli::native_target::NativeTarget>,
         #[command(flatten)]
         theme: ThemeArgs,
     },
@@ -60,6 +64,10 @@ enum Commands {
         /// Write `dist/` and `publish.json` without a tarball.
         #[arg(long)]
         no_archive: bool,
+        /// Native ISA/OS for island process binaries (`x64musl`, `arm64musl`).
+        /// Not passed to `--host native` apply on the build machine.
+        #[arg(long, value_enum)]
+        target: Option<rocci_cli::native_target::NativeTarget>,
     },
     /// Run an interactive document or serve a documentation site with live reload.
     /// Hybrid sites proxy the island service on the same origin.
@@ -347,12 +355,18 @@ fn try_main() -> Result<()> {
             output,
             host,
             cdn_only,
+            target,
             theme,
         } => {
             if is_document_file(&path) {
                 refuse_okf_input(&path, "build")?;
                 if cdn_only {
                     bail!("`--cdn-only` applies to site builds, not a single .rocdown file");
+                }
+                if target.is_some() {
+                    bail!(
+                        "`--target` applies to island/app process binaries, not a single .rocdown file"
+                    );
                 }
                 build_single_doc(&path, output.as_deref(), &theme)
             } else if path.is_file() {
@@ -362,6 +376,7 @@ fn try_main() -> Result<()> {
                 );
             } else {
                 refuse_okf_input(&path, "build")?;
+                let _native_target = target;
                 let report = rocci_rocdown::build_configured_with_options(
                     &path,
                     output.as_deref(),
@@ -380,11 +395,13 @@ fn try_main() -> Result<()> {
             host,
             archive,
             no_archive,
+            target,
         } => {
             if is_document_file(&path) {
                 bail!("`rocdown package` builds a site directory, not a single .rocdown file");
             }
             refuse_okf_input(&path, "package")?;
+            let _native_target = target;
             let report = rocci_rocdown::package_configured(
                 &path,
                 output.as_deref(),
@@ -840,6 +857,24 @@ mod tests {
         match cli.command {
             Commands::Build { cdn_only, .. } => assert!(cdn_only),
             _ => panic!("expected build --cdn-only"),
+        }
+    }
+
+    #[test]
+    fn build_parses_host_and_process_target() {
+        let cli = Cli::try_parse_from([
+            "rocdown", "build", "docs", "--host", "wasm", "--target", "x64musl",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Build { host, target, .. } => {
+                assert!(matches!(host, HostArg::Wasm));
+                assert_eq!(
+                    target,
+                    Some(rocci_cli::native_target::NativeTarget::X64Musl)
+                );
+            }
+            _ => panic!("expected build --host wasm --target x64musl"),
         }
     }
 

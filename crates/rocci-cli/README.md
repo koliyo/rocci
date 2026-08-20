@@ -51,8 +51,11 @@ cargo run -p rocci-cli -- inspect --ast examples/counter/Counter.rocci
 # Preview the profiling panel fixture
 cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci --component MetricsPanel
 
-# Bundle an ad-hoc signed macOS application
+# Bundle an ad-hoc signed macOS application (host-native server; not --target musl)
 cargo run -p rocci-cli -- bundle --config rocci.toml
+
+# Linux process `--target` (x64musl / arm64musl) is for island/app binaries, not apply
+# and not macOS .app bundles. Musl is the Linux container process target.
 
 # Pin or update Datastar JavaScript assets
 cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/datastar

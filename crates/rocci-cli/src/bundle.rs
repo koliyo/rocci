@@ -13,7 +13,10 @@ use crate::runtime_assets;
 
 const SERVER_NAME: &str = "server";
 
-pub fn bundle(config_path: &Path) -> Result<()> {
+pub fn bundle(
+    config_path: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<()> {
     let config = Config::from_file(config_path)?;
     let root = workspace_root(config_path)?;
     let app_dir = resolve_app_dir(config_path, &config)?;
@@ -23,12 +26,18 @@ pub fn bundle(config_path: &Path) -> Result<()> {
     run::compile_rocci_modules(&app_dir)?;
 
     match env::consts::OS {
-        "macos" => bundle_macos(&root, &app_dir, &config, config_path),
+        "macos" => bundle_macos(&root, &app_dir, &config, config_path, target),
         other => bail!("development bundling is not implemented for {other} yet"),
     }
 }
 
-fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path) -> Result<()> {
+fn bundle_macos(
+    root: &Path,
+    app_dir: &Path,
+    config: &Config,
+    config_path: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<()> {
     let host_name = host_binary_name(&config.app.name)?;
     let bundle_dir = root
         .join("target/release/bundle/macos")
@@ -46,7 +55,12 @@ fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path
     fs::create_dir_all(&bundled_app)?;
 
     let server = bundled_app.join(SERVER_NAME);
-    build_roc_server(app_dir, &server)?;
+    if target.is_some() {
+        bail!(
+            "macOS .app bundles require a host-native server; pass --target only for Linux process binaries"
+        );
+    }
+    crate::native_target::build_roc_server(app_dir, &server, target)?;
     let host = build_host(root)?;
     fs::copy(&host, macos.join(&host_name))
         .with_context(|| format!("failed to copy {}", host.display()))?;
@@ -86,26 +100,6 @@ fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path
         "{}",
         crate::style::success_text(&bundle_dir.display().to_string())
     );
-    Ok(())
-}
-
-fn build_roc_server(app_dir: &Path, output: &Path) -> Result<()> {
-    if let Some(parent) = output.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let status = Command::new("roc")
-        .current_dir(app_dir)
-        .arg("build")
-        .arg("main.roc")
-        .arg(format!("--output={}", output.display()))
-        .status()
-        .context("failed to run `roc build`; is roc on PATH?")?;
-    if !status.success() {
-        bail!("roc build failed");
-    }
-    if !output.is_file() {
-        bail!("roc build did not write {}", output.display());
-    }
     Ok(())
 }
 
