@@ -1,0 +1,10 @@
+name: rocci-static
+
+services:
+  cdn:
+    image: caddy:2-alpine
+    volumes:
+      - ${ROCCI_DIST:?ROCCI_DIST must be an absolute path to a built Rocdown dist}:/srv:ro
+      - ./static/Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "8080:80"

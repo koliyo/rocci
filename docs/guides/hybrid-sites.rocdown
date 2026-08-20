@@ -148,7 +148,13 @@ example.com {
 
 ## Local Docker
 
-Use Compose after the host preview above is green. It checks Caddy
+Static Rocdown trees (`docs/` in this repository, or any `--cdn-only` `dist/`)
+use official Caddy with no Rocci toolchain: build on the host, then
+`./docker/run-static.sh dist/docs`. Operator notes are in `docker/README.md`.
+Hybrid sites still use the host preview above; `./docker/run-site.sh` remains
+the live-island operator demo until a pre-built hybrid image exists.
+
+Use the hybrid Compose after that host preview is green. It checks Caddy
 same-origin proxy, published 8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and
 mounted-site path stamps — not HTML, CSS, or increment morphing.
 
