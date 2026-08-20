@@ -24,6 +24,92 @@ pub struct WindowState {
     pub is_maximized: bool,
 }
 
+/// Saved Dev inspector panel preferences for a preview window.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InspectorState {
+    #[serde(default)]
+    pub open: bool,
+    #[serde(default = "default_dock")]
+    pub dock: String,
+    #[serde(default = "default_right")]
+    pub right: String,
+    #[serde(default = "default_bottom")]
+    pub bottom: String,
+    #[serde(default = "default_tab")]
+    pub tab: String,
+    #[serde(default = "default_view")]
+    pub view: String,
+}
+
+fn default_dock() -> String {
+    "right".into()
+}
+
+fn default_right() -> String {
+    "28rem".into()
+}
+
+fn default_bottom() -> String {
+    "36vh".into()
+}
+
+fn default_tab() -> String {
+    "performance".into()
+}
+
+fn default_view() -> String {
+    "source".into()
+}
+
+impl Default for InspectorState {
+    fn default() -> Self {
+        Self {
+            open: false,
+            dock: default_dock(),
+            right: default_right(),
+            bottom: default_bottom(),
+            tab: default_tab(),
+            view: default_view(),
+        }
+    }
+}
+
+impl InspectorState {
+    pub fn sanitized(self) -> Self {
+        let dock = match self.dock.as_str() {
+            "bottom" => "bottom",
+            _ => "right",
+        }
+        .to_string();
+        let tab = match self.tab.as_str() {
+            "source" | "console" => self.tab.clone(),
+            _ => default_tab(),
+        };
+        let view = match self.view.as_str() {
+            "ast" | "roc" | "html" => self.view.clone(),
+            _ => default_view(),
+        };
+        let right = if self.right.trim().is_empty() {
+            default_right()
+        } else {
+            self.right
+        };
+        let bottom = if self.bottom.trim().is_empty() {
+            default_bottom()
+        } else {
+            self.bottom
+        };
+        Self {
+            open: self.open,
+            dock,
+            right,
+            bottom,
+            tab,
+            view,
+        }
+    }
+}
+
 impl WindowState {
     pub fn new(x: f64, y: f64, width: f64, height: f64, is_maximized: bool) -> Self {
         Self {
@@ -47,6 +133,13 @@ pub struct WindowStateStore {
     pub windows: HashMap<String, WindowState>,
 }
 
+/// Store of Dev inspector preferences, keyed like [`WindowStateStore`].
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct InspectorStateStore {
+    #[serde(flatten)]
+    pub panels: HashMap<String, InspectorState>,
+}
+
 /// Return the path to the user's `.rocci/state` directory.
 pub fn state_dir() -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("ROCCI_STATE_DIR")
@@ -66,6 +159,11 @@ pub fn state_dir() -> Option<PathBuf> {
 /// Return the path to the `windows.json` state file.
 pub fn window_state_path() -> Option<PathBuf> {
     Some(state_dir()?.join("windows.json"))
+}
+
+/// Return the path to the `inspector.json` state file.
+pub fn inspector_state_path() -> Option<PathBuf> {
+    Some(state_dir()?.join("inspector.json"))
 }
 
 /// Load the full window state store from a specific file path.
@@ -121,6 +219,70 @@ pub fn save_window_state(key: &str, state: WindowState) {
     if let Err(err) = save_window_state_to(&path, key, state) {
         tracing::warn!(%err, key, path = %path.display(), "failed to save window state");
     }
+}
+
+/// Load the full inspector state store from a specific file path.
+pub fn load_all_inspector_states_from(path: &Path) -> InspectorStateStore {
+    let Ok(content) = fs::read_to_string(path) else {
+        return InspectorStateStore::default();
+    };
+    serde_json::from_str(&content).unwrap_or_default()
+}
+
+/// Load the saved inspector prefs for a specific key from a given file path.
+pub fn load_inspector_state_from(path: &Path, key: &str) -> Option<InspectorState> {
+    load_all_inspector_states_from(path)
+        .panels
+        .remove(key)
+        .map(InspectorState::sanitized)
+}
+
+/// Save inspector prefs to a file path atomically.
+pub fn save_inspector_state_to(
+    path: &Path,
+    key: &str,
+    state: InspectorState,
+) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut store = load_all_inspector_states_from(path);
+    store.panels.insert(key.to_string(), state.sanitized());
+
+    let json = serde_json::to_string_pretty(&store)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))?;
+
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, json.as_bytes())?;
+    fs::rename(&tmp_path, path)?;
+    Ok(())
+}
+
+/// Load inspector prefs for a key from the default `.rocci/state/inspector.json`.
+pub fn load_inspector_state(key: &str) -> Option<InspectorState> {
+    let path = inspector_state_path()?;
+    load_inspector_state_from(&path, key)
+}
+
+/// Save inspector prefs to the default state location atomically.
+pub fn save_inspector_state(key: &str, state: InspectorState) {
+    let Some(path) = inspector_state_path() else {
+        tracing::warn!(
+            key,
+            "cannot resolve state directory to save inspector state"
+        );
+        return;
+    };
+    if let Err(err) = save_inspector_state_to(&path, key, state) {
+        tracing::warn!(%err, key, path = %path.display(), "failed to save inspector state");
+    }
+}
+
+/// Parse inspector prefs JSON from an IPC payload.
+pub fn parse_inspector_state_json(value: &str) -> Option<InspectorState> {
+    serde_json::from_str::<InspectorState>(value)
+        .ok()
+        .map(InspectorState::sanitized)
 }
 
 /// Capture live window geometry and persist it when the size is still usable.
@@ -240,6 +402,10 @@ mod tests {
 
         assert_eq!(state_dir().unwrap(), temp_dir);
         assert_eq!(window_state_path().unwrap(), temp_dir.join("windows.json"));
+        assert_eq!(
+            inspector_state_path().unwrap(),
+            temp_dir.join("inspector.json")
+        );
 
         match original {
             Some(val) => unsafe { env::set_var("ROCCI_STATE_DIR", val) },
@@ -344,5 +510,68 @@ mod tests {
             LogicalPosition::new(18.0, 51.0),
         );
         assert_eq!(size, LogicalSize::new(800.0, 600.0));
+    }
+
+    #[test]
+    fn save_and_load_inspector_state_round_trip() {
+        let temp_file = env::temp_dir().join(format!(
+            "rocci-test-{}/inspector.json",
+            uuid::Uuid::new_v4()
+        ));
+
+        let state = InspectorState {
+            open: true,
+            dock: "bottom".into(),
+            right: "30rem".into(),
+            bottom: "40vh".into(),
+            tab: "source".into(),
+            view: "roc".into(),
+        };
+        save_inspector_state_to(&temp_file, "preview", state.clone()).unwrap();
+        assert_eq!(
+            load_inspector_state_from(&temp_file, "preview"),
+            Some(state)
+        );
+        assert_eq!(load_inspector_state_from(&temp_file, "missing"), None);
+
+        if let Some(parent) = temp_file.parent() {
+            let _ = fs::remove_dir_all(parent);
+        }
+    }
+
+    #[test]
+    fn inspector_state_sanitizes_unknown_fields() {
+        let dirty = InspectorState {
+            open: true,
+            dock: "left".into(),
+            right: String::new(),
+            bottom: "  ".into(),
+            tab: "metrics".into(),
+            view: "wasm".into(),
+        };
+        assert_eq!(
+            dirty.sanitized(),
+            InspectorState {
+                open: true,
+                dock: "right".into(),
+                right: "28rem".into(),
+                bottom: "36vh".into(),
+                tab: "performance".into(),
+                view: "source".into(),
+            }
+        );
+        assert_eq!(
+            parse_inspector_state_json(
+                r#"{"open":true,"dock":"bottom","right":"32rem","bottom":"30vh","tab":"console","view":"html"}"#
+            ),
+            Some(InspectorState {
+                open: true,
+                dock: "bottom".into(),
+                right: "32rem".into(),
+                bottom: "30vh".into(),
+                tab: "console".into(),
+                view: "html".into(),
+            })
+        );
     }
 }

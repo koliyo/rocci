@@ -12,6 +12,7 @@ pub enum IpcMessage {
     Reveal(String),
     CopySource(String),
     LiveReload(bool),
+    InspectorPrefs(String),
 }
 
 impl NavCommand {
@@ -37,6 +38,9 @@ impl IpcMessage {
         }
         if let Some(value) = message.strip_prefix("live-reload:") {
             return Some(Self::LiveReload(value == "1"));
+        }
+        if let Some(json) = message.strip_prefix("inspector-prefs:") {
+            return Some(Self::InspectorPrefs(json.to_string()));
         }
         NavCommand::parse(message).map(Self::Nav)
     }
@@ -211,6 +215,12 @@ mod tests {
         assert_eq!(
             IpcMessage::parse("live-reload:1"),
             Some(IpcMessage::LiveReload(true))
+        );
+        assert_eq!(
+            IpcMessage::parse(r#"inspector-prefs:{"open":true,"dock":"bottom"}"#),
+            Some(IpcMessage::InspectorPrefs(
+                r#"{"open":true,"dock":"bottom"}"#.into()
+            ))
         );
         assert_eq!(
             IpcMessage::parse("home"),

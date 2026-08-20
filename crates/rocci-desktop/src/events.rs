@@ -20,6 +20,7 @@ pub enum PreviewEvent {
     Reveal(String),
     CopySource(String),
     LiveReload(bool),
+    InspectorPrefs(String),
     Loaded(String),
     Title(String),
     Navigate {

@@ -3,12 +3,12 @@
     return;
   }
   const HEIGHT = "48px";
-  const STORAGE_KEY = "rocci-dev-panel";
   const LIVE_RELOAD_KEY = "rocci-live-reload";
-  const VIEW_KEY = "rocci-dev-view";
-  const TAB_KEY = "rocci-dev-tab";
-  const DOCK_KEY = "rocci-dev-dock";
-  const DOCK_SIZE_KEY = "rocci-dev-dock-size";
+  const LEGACY_PANEL_KEY = "rocci-dev-panel";
+  const LEGACY_VIEW_KEY = "rocci-dev-view";
+  const LEGACY_TAB_KEY = "rocci-dev-tab";
+  const LEGACY_DOCK_KEY = "rocci-dev-dock";
+  const LEGACY_DOCK_SIZE_KEY = "rocci-dev-dock-size";
   const VIEWS = { source: true, ast: true, roc: true, html: true };
   const TABS = { performance: true, source: true, console: true };
   const DOCKS = { right: true, bottom: true };
@@ -46,25 +46,105 @@
       window.ipc.postMessage(command);
     }
   };
-  const prefGet = (key) => {
+  const legacyGet = (key) => {
     try {
       let value = localStorage.getItem(key);
       if (value === null) {
         value = sessionStorage.getItem(key);
-        if (value !== null) {
-          localStorage.setItem(key, value);
-          sessionStorage.removeItem(key);
-        }
       }
       return value;
     } catch (err) {
       return null;
     }
   };
-  const prefSet = (key, value) => {
+  const legacyClear = (key) => {
     try {
-      localStorage.setItem(key, value);
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
     } catch (err) {}
+  };
+  const prefs = {
+    open: false,
+    dock: "right",
+    right: DEFAULT_RIGHT,
+    bottom: DEFAULT_BOTTOM,
+    tab: "performance",
+    view: "source",
+  };
+  const applyPrefSeed = (seed) => {
+    if (!seed || typeof seed !== "object") {
+      return false;
+    }
+    if (typeof seed.open === "boolean") {
+      prefs.open = seed.open;
+    }
+    if (typeof seed.dock === "string" && DOCKS[seed.dock]) {
+      prefs.dock = seed.dock;
+    }
+    if (typeof seed.right === "string" && seed.right) {
+      prefs.right = seed.right;
+    }
+    if (typeof seed.bottom === "string" && seed.bottom) {
+      prefs.bottom = seed.bottom;
+    }
+    if (typeof seed.tab === "string" && TABS[seed.tab]) {
+      prefs.tab = seed.tab;
+    }
+    if (typeof seed.view === "string" && VIEWS[seed.view]) {
+      prefs.view = seed.view;
+    }
+    return true;
+  };
+  if (!applyPrefSeed(typeof __ROCCI_INSPECTOR_PREFS__ === "undefined" ? null : __ROCCI_INSPECTOR_PREFS__)) {
+    const legacyOpen = legacyGet(LEGACY_PANEL_KEY);
+    const legacyDock = legacyGet(LEGACY_DOCK_KEY);
+    const legacyTab = legacyGet(LEGACY_TAB_KEY);
+    const legacyView = legacyGet(LEGACY_VIEW_KEY);
+    let legacySizes = null;
+    try {
+      legacySizes = JSON.parse(legacyGet(LEGACY_DOCK_SIZE_KEY) || "null");
+    } catch (err) {}
+    if (legacyOpen !== null || legacyDock || legacyTab || legacyView || legacySizes) {
+      applyPrefSeed({
+        open: legacyOpen === "1",
+        dock: legacyDock,
+        right: legacySizes && legacySizes.right,
+        bottom: legacySizes && legacySizes.bottom,
+        tab: legacyTab,
+        view: legacyView,
+      });
+      [
+        LEGACY_PANEL_KEY,
+        LEGACY_VIEW_KEY,
+        LEGACY_TAB_KEY,
+        LEGACY_DOCK_KEY,
+        LEGACY_DOCK_SIZE_KEY,
+      ].forEach(legacyClear);
+      send(
+        "inspector-prefs:" +
+          JSON.stringify({
+            open: prefs.open,
+            dock: prefs.dock,
+            right: prefs.right,
+            bottom: prefs.bottom,
+            tab: prefs.tab,
+            view: prefs.view,
+          })
+      );
+    }
+  }
+  const persistPrefs = () => {
+    send(
+      "inspector-prefs:" +
+        JSON.stringify({
+          open: prefs.open,
+          dock: prefs.dock,
+          right: prefs.right,
+          bottom: prefs.bottom,
+          tab: prefs.tab,
+          view: prefs.view,
+        })
+    );
   };
   back.addEventListener("click", () => send("back"));
   forward.addEventListener("click", () => send("forward"));
@@ -117,32 +197,22 @@
   let dockRightBtn = null;
   let dockBottomBtn = null;
   let expandBtn = null;
-  const panelOpen = () => prefGet(STORAGE_KEY) === "1";
-  const storedView = () => {
-    const value = prefGet(VIEW_KEY);
-    if (value && VIEWS[value]) {
-      return value;
-    }
-    return "source";
-  };
+  const panelOpen = () => !!prefs.open;
+  const storedView = () => (VIEWS[prefs.view] ? prefs.view : "source");
   const setStoredView = (value) => {
     if (!VIEWS[value]) {
       return;
     }
-    prefSet(VIEW_KEY, value);
+    prefs.view = value;
+    persistPrefs();
   };
-  const storedTab = () => {
-    const value = prefGet(TAB_KEY);
-    if (value && TABS[value]) {
-      return value;
-    }
-    return "performance";
-  };
+  const storedTab = () => (TABS[prefs.tab] ? prefs.tab : "performance");
   const setStoredTab = (value) => {
     if (!TABS[value]) {
       return;
     }
-    prefSet(TAB_KEY, value);
+    prefs.tab = value;
+    persistPrefs();
   };
   const normalizeRoute = (value) => {
     let route = value || "/";
@@ -203,36 +273,27 @@
   };
   let lastTuple = null;
   let receivedInspectorMessage = false;
-  const storedDock = () => {
-    const value = prefGet(DOCK_KEY);
-    if (value && DOCKS[value]) {
-      return value;
-    }
-    return "right";
-  };
+  const storedDock = () => (DOCKS[prefs.dock] ? prefs.dock : "right");
   const setStoredDock = (value) => {
     if (!DOCKS[value]) {
       return;
     }
-    prefSet(DOCK_KEY, value);
+    prefs.dock = value;
+    persistPrefs();
   };
-  const storedSizes = () => {
-    const sizes = { right: DEFAULT_RIGHT, bottom: DEFAULT_BOTTOM };
-    try {
-      const parsed = JSON.parse(prefGet(DOCK_SIZE_KEY) || "null");
-      if (parsed && typeof parsed.right === "string" && parsed.right) {
-        sizes.right = parsed.right;
-      }
-      if (parsed && typeof parsed.bottom === "string" && parsed.bottom) {
-        sizes.bottom = parsed.bottom;
-      }
-    } catch (err) {}
-    return sizes;
-  };
+  const storedSizes = () => ({
+    right: prefs.right || DEFAULT_RIGHT,
+    bottom: prefs.bottom || DEFAULT_BOTTOM,
+  });
   const setStoredSize = (side, value) => {
-    const sizes = storedSizes();
-    sizes[side] = value;
-    prefSet(DOCK_SIZE_KEY, JSON.stringify(sizes));
+    if (side === "right") {
+      prefs.right = value;
+    } else if (side === "bottom") {
+      prefs.bottom = value;
+    } else {
+      return;
+    }
+    persistPrefs();
   };
   const remPx = () => {
     const size = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -286,7 +347,8 @@
     assignFrame(next, true);
   };
   const setPanelOpen = (open) => {
-    prefSet(STORAGE_KEY, open ? "1" : "0");
+    prefs.open = !!open;
+    persistPrefs();
     if (panel) {
       panel.classList.toggle("open", open);
     }

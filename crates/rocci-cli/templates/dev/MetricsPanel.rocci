@@ -263,7 +263,7 @@ samplePage = {
         padding: 16px 14px 20px;
     }
     .inspector-body.tab-source {
-        padding: 8px 10px;
+        padding: 0;
     }
     .inspector-body.tab-performance,
     .inspector-body.tab-console {
@@ -271,6 +271,8 @@ samplePage = {
     }
     .source-chrome {
         flex: 0 0 auto;
+        padding: 6px 10px;
+        border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
     }
     .code-pane {
         flex: 1 1 auto;
@@ -278,7 +280,7 @@ samplePage = {
         min-width: 0;
         overflow-x: auto;
         overflow-y: auto;
-        scrollbar-gutter: stable;
+        background: light-dark(#ececee, #15181e);
     }
     .inspector-body h1 {
         margin: 0 0 8px;
@@ -377,7 +379,7 @@ samplePage = {
         flex-wrap: nowrap;
         align-items: center;
         gap: 8px;
-        margin: 0 0 6px;
+        margin: 0;
         min-width: 0;
     }
     .view-label {
@@ -420,7 +422,7 @@ samplePage = {
         white-space: nowrap;
     }
     .unavailable {
-        margin: 0 0 6px;
+        margin: 6px 0 0;
         color: light-dark(#b45309, #e5c07b);
     }
     pre {
@@ -430,8 +432,9 @@ samplePage = {
         box-sizing: border-box;
         width: max-content;
         min-width: 100%;
-        background: light-dark(#ececee, #15181e);
-        border-radius: 6px;
+        min-height: 100%;
+        background: transparent;
+        border-radius: 0;
         font-family: ui-monospace, Menlo, Consolas, monospace;
         font-size: 12px;
         line-height: 1.45;
