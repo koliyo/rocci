@@ -1,0 +1,65 @@
+---
+description: >-
+  Write reports, plans, research, audits, and other durable project writing as
+  OKF records in knowledge/. Use when the user says write a report, write a
+  plan, write research, author an audit, add a knowledge record, or otherwise
+  wants a plan or report in the knowledge database instead of a chat dump or a
+  loose Markdown file.
+alwaysApply: false
+---
+
+# Write to the knowledge database
+
+Default destination is an OKF Markdown record under `knowledge/`. Do not leave
+the document in chat, at the repo root, in `reports/`, or as `.rocdown`, unless
+the user names that location.
+
+Follow `.agents/skills/manage-rocci-knowledge/SKILL.md`. Search
+`knowledge/**/*.md` first and revise or link an existing record when one
+already covers the topic.
+
+## Collection by intent
+
+| User says | Collection | `type` | Default `authority` |
+| --- | --- | --- | --- |
+| write a plan / implementation plan | `knowledge/plans/` | Implementation Plan | exploratory |
+| write a report / research | `knowledge/research/` | Research Report | exploratory |
+| audit / findings vs current behavior | `knowledge/audits/` | Audit | descriptive |
+| status snapshot / results | `knowledge/status/` | Status | descriptive |
+
+Architecture and decisions are existing canonical records. Revise them only
+when the claim belongs there. Do not mint a new Decision as approved.
+
+A report plus a plan is two records that cite each other, not one file.
+
+Writing a plan is not executing it. Do not start phases unless the user asks.
+
+## Record shape
+
+- kebab-case filename next to siblings; YAML frontmatter; inert Markdown body
+- `status: draft`, `generated.by: process:cursor`, `owners: [human:nils]`
+- Unique source `id`s, paths relative to the record, keyed footnotes on claims
+- Plans: Goal, Out of bound, Constraints that do not move, phased Bound/Exit
+- New records: update the collection `index.md` and `knowledge/log.md`
+
+```yaml
+type: Research Report
+title: Concise title
+description: One-sentence claim
+tags: [domain/rocci, concern/architecture]
+status: draft
+generated: { by: process:cursor, at: 2026-08-20T00:00:00Z }
+stale_after: 2026-11-20
+authority: exploratory
+owners: [human:nils]
+sources: []
+```
+
+## Validate
+
+```sh
+cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+```
+
+Report check errors separately from lifecycle warnings. Do not invent human
+verification events.
