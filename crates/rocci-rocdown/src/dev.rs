@@ -282,6 +282,7 @@ mod tests {
             datastar: false,
             service_origin: String::new(),
             service_routes: Vec::new(),
+            artifacts: Vec::new(),
         });
         let names: Vec<_> = snapshot
             .spans

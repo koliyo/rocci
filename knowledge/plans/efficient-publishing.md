@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Efficient publishing workflow for pre-built Rocdown sites and Rocci apps
-description: "Build once on a toolchain host, then host artifacts. Phase 1 serves pre-built static Rocdown trees with official Caddy and no rocci in the image. Keep rocdown build --host native|wasm. Later: package CLI, musl --target for Linux process binaries, slim hybrid/app images. Exploratory; no phase started."
+description: "Build once on a toolchain host, then host artifacts. Phases 1–5 implemented on this branch (static Caddy, package/serve, musl --target, slim hybrid and app images). Phase 6 is a no-go: musl remains the portable process story; Wasm remains apply. Exploratory until CI and Knowledge workflows succeed."
 tags: [domain/rocdown, domain/rocci, concern/packaging, concern/publication, concern/architecture, integration/roc, concern/ci]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T05:40:00Z }
+generated: { by: process:cursor, at: 2026-08-20T07:22:49Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -127,6 +127,16 @@ sources:
     title: Minimal wasm32 apply platform
     author: process:git
     last_modified: 2026-08-18
+  - id: native-target-rs
+    resource: ../../crates/rocci-cli/src/native_target.rs
+    title: Native process --target for musl island and app binaries
+    author: process:git
+    last_modified: 2026-08-20
+  - id: islands-dockerfile
+    resource: ../../docker/islands/Dockerfile
+    title: Slim hybrid island process image
+    author: process:cursor
+    last_modified: 2026-08-20
   - id: roc-host-readme
     resource: ../../crates/rocci-roc-host/README.md
     title: Native and wasm apply hosts
@@ -431,6 +441,30 @@ meaning for `rocdown build`.
 if unstarted: musl remains the portable **process** story; Wasm remains
 apply.
 
+**Status (2026-08-20): no-go.** The Phase 6 gate is native precompiled
+islands **and** musl cross-compile insufficient. Phase 4 packages a
+colocated musl island binary into a Debian process image with no `roc`
+at runtime.[^islands-dockerfile][^native-target-rs] That path is enough
+for local hybrid hosting. There is no current need for one
+`components.wasm`-class HTTP module on macOS, Linux, and a Wasm edge
+host without rebuild.
+
+Comparison recorded here, not as a new platform plan:
+
+- **musl per arch** — `roc build --target=x64musl|arm64musl` is the Linux
+  container process target. Failed musl builds do not fall back to a
+  host-native binary.[^native-target-rs][^roc-cross-ci]
+- **one Wasm HTTP module** — would need WASI-HTTP (or equivalent) plus
+  SQLite/WASI capabilities. The apply wasm32 platform has no HTTP; do
+  not extend it with fake HTTP.[^wasm-platform][^generation-plan]
+- **Wasmtime vs Wasm edge** — Wasmtime stays the apply host. Edge Wasm
+  hosting is not required while musl containers work.
+
+Wasm remains apply (`--host wasm` is a renderer, not a hosted
+server).[^host-rs][^wasm-platform] A new plan would own any later
+WASI-HTTP platform; this phase does not implement it and does not
+change `--host wasm`.
+
 ## Suggested order
 
 1 → 2 → (3 as needed) → 4 (after hosting-follow-ons Phase 2) → 5.
@@ -494,6 +528,8 @@ that revision.
 [^hybrid-plan]: CDN-only vs live; `docs/` static.
 [^generation-plan]: Wasmtime apply host; later glue; no compiler embed.
 [^wasm-platform]: No HTTP on the embedded wasm32 platform.
+[^native-target-rs]: `x64musl` / `arm64musl` for island and app `roc build`; no host-native fallback.
+[^islands-dockerfile]: Slim `debian:bookworm-slim` image copies the precompiled `islands` binary only.
 [^roc-host-readme]: Native vs wasm apply; cached `apply` / `components.wasm`.
 [^publication]: Knowledge stays local; no public archive.
 [^rocci-dev-site]: No deploy-plugin product.

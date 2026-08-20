@@ -13,7 +13,10 @@ use crate::runtime_assets;
 
 const SERVER_NAME: &str = "server";
 
-pub fn bundle(config_path: &Path) -> Result<()> {
+pub fn bundle(
+    config_path: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<()> {
     let config = Config::from_file(config_path)?;
     let root = workspace_root(config_path)?;
     let app_dir = resolve_app_dir(config_path, &config)?;
@@ -23,12 +26,18 @@ pub fn bundle(config_path: &Path) -> Result<()> {
     run::compile_rocci_modules(&app_dir)?;
 
     match env::consts::OS {
-        "macos" => bundle_macos(&root, &app_dir, &config, config_path),
+        "macos" => bundle_macos(&root, &app_dir, &config, config_path, target),
         other => bail!("development bundling is not implemented for {other} yet"),
     }
 }
 
-fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path) -> Result<()> {
+fn bundle_macos(
+    root: &Path,
+    app_dir: &Path,
+    config: &Config,
+    config_path: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<()> {
     let host_name = host_binary_name(&config.app.name)?;
     let bundle_dir = root
         .join("target/release/bundle/macos")
@@ -46,7 +55,12 @@ fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path
     fs::create_dir_all(&bundled_app)?;
 
     let server = bundled_app.join(SERVER_NAME);
-    build_roc_server(app_dir, &server)?;
+    if target.is_some() {
+        bail!(
+            "macOS .app bundles require a host-native server; pass --target only for Linux process binaries"
+        );
+    }
+    crate::native_target::build_roc_server(app_dir, &server, target)?;
     let host = build_host(root)?;
     fs::copy(&host, macos.join(&host_name))
         .with_context(|| format!("failed to copy {}", host.display()))?;
@@ -86,26 +100,6 @@ fn bundle_macos(root: &Path, app_dir: &Path, config: &Config, config_path: &Path
         "{}",
         crate::style::success_text(&bundle_dir.display().to_string())
     );
-    Ok(())
-}
-
-fn build_roc_server(app_dir: &Path, output: &Path) -> Result<()> {
-    if let Some(parent) = output.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let status = Command::new("roc")
-        .current_dir(app_dir)
-        .arg("build")
-        .arg("main.roc")
-        .arg(format!("--output={}", output.display()))
-        .status()
-        .context("failed to run `roc build`; is roc on PATH?")?;
-    if !status.success() {
-        bail!("roc build failed");
-    }
-    if !output.is_file() {
-        bail!("roc build did not write {}", output.display());
-    }
     Ok(())
 }
 
@@ -202,6 +196,129 @@ fn resolve_app_dir(config_path: &Path, config: &Config) -> Result<PathBuf> {
         bail!("bundle.app {} has no main.roc", app.display());
     }
     Ok(app)
+}
+
+#[derive(Debug, Clone)]
+pub struct ServerPackage {
+    pub output: PathBuf,
+    pub server: PathBuf,
+}
+
+pub fn package_server(
+    input: &Path,
+    output: Option<&Path>,
+    target: Option<crate::native_target::NativeTarget>,
+) -> Result<ServerPackage> {
+    let cwd = env::current_dir()?;
+    let input = if input.is_absolute() {
+        input.to_path_buf()
+    } else {
+        cwd.join(input)
+    };
+    let output = match output {
+        Some(path) if path.is_absolute() => path.to_path_buf(),
+        Some(path) => cwd.join(path),
+        None => cwd.join("target/release/rocci-server"),
+    };
+    if input.starts_with(&output) {
+        bail!(
+            "`--output {}` would delete the input tree {}",
+            output.display(),
+            input.display()
+        );
+    }
+    if output.exists() {
+        fs::remove_dir_all(&output)
+            .with_context(|| format!("failed to replace {}", output.display()))?;
+    }
+    fs::create_dir_all(&output)
+        .with_context(|| format!("failed to create {}", output.display()))?;
+    let server = output.join(SERVER_NAME);
+    let assets = output.join("assets");
+    fs::create_dir_all(&assets)?;
+
+    match resolve_server_input(&input)? {
+        ServerInput::AppDir(app_dir) => {
+            datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
+            runtime_assets::stage_into(&app_dir)?;
+            run::compile_rocci_modules(&app_dir)?;
+            crate::native_target::build_roc_server(&app_dir, &server, target)?;
+            copy_app_assets(&app_dir, &output)?;
+        }
+        ServerInput::Standalone(file) => {
+            let src_dir = file
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| cwd.clone());
+            let plan = run::standalone_app_plan(&file)?;
+            crate::driver::compile_app_plan(&plan, &src_dir, &server, target)?;
+            if src_dir.join("assets").is_dir() {
+                copy_tree(&src_dir.join("assets"), &assets)?;
+            }
+            let version = datastar_asset::stage_version_for_dir(&src_dir)
+                .unwrap_or_else(|| datastar_asset::DEFAULT_VERSION.to_string());
+            datastar_asset::stage_into(&assets, &version)?;
+        }
+    }
+    fs::create_dir_all(&assets)?;
+    if !server.is_file() {
+        bail!("server package did not write {}", server.display());
+    }
+    Ok(ServerPackage { output, server })
+}
+
+enum ServerInput {
+    AppDir(PathBuf),
+    Standalone(PathBuf),
+}
+
+fn resolve_server_input(input: &Path) -> Result<ServerInput> {
+    if input.is_file() {
+        if input.extension().and_then(|ext| ext.to_str()) == Some("rocci") {
+            return Ok(ServerInput::Standalone(input.to_path_buf()));
+        }
+        if input.file_name().and_then(|name| name.to_str()) == Some("rocci.toml") {
+            let config = Config::from_file(input)?;
+            return Ok(ServerInput::AppDir(resolve_app_dir(input, &config)?));
+        }
+        bail!(
+            "`rocci build --release` expected a .rocci file, app directory, or rocci.toml; got {}",
+            input.display()
+        );
+    }
+    if !input.is_dir() {
+        bail!("no such path: {}", input.display());
+    }
+    if input.join("main.roc").is_file() {
+        return Ok(ServerInput::AppDir(input.to_path_buf()));
+    }
+    let config_path = input.join("rocci.toml");
+    if config_path.is_file() {
+        let config = Config::from_file(&config_path)?;
+        return Ok(ServerInput::AppDir(resolve_app_dir(&config_path, &config)?));
+    }
+    let mut rocci = Vec::new();
+    for entry in
+        fs::read_dir(input).with_context(|| format!("failed to read {}", input.display()))?
+    {
+        let path = entry?.path();
+        if path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("rocci") {
+            rocci.push(path);
+        }
+    }
+    rocci.sort();
+    match rocci.len() {
+        1 => Ok(ServerInput::Standalone(rocci.remove(0))),
+        0 => bail!(
+            "no main.roc or .rocci file in {}; run `rocci build --release FILE.rocci` or add main.roc",
+            input.display()
+        ),
+        _ => bail!(
+            "no main.roc in {}; pass one .rocci file to `rocci build --release`",
+            input.display()
+        ),
+    }
 }
 
 fn config_file_dir(config_path: &Path) -> Result<PathBuf> {
@@ -419,5 +536,129 @@ mod tests {
         let resolved = resolve_app_dir(&dir.join("rocci.toml"), &config).unwrap();
         assert_eq!(resolved, app);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_server_input_prefers_main_roc_then_standalone() {
+        let dir = temp_dir("server-input");
+        fs::write(dir.join("App.rocci"), "").unwrap();
+        match resolve_server_input(&dir).unwrap() {
+            ServerInput::Standalone(path) => assert_eq!(path, dir.join("App.rocci")),
+            ServerInput::AppDir(_) => panic!("expected standalone"),
+        }
+        fs::write(dir.join("main.roc"), "app").unwrap();
+        match resolve_server_input(&dir).unwrap() {
+            ServerInput::AppDir(path) => assert_eq!(path, dir),
+            ServerInput::Standalone(_) => panic!("expected app dir"),
+        }
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn package_server_refuses_output_inside_input_tree() {
+        let dir = temp_dir("server-unsafe");
+        fs::write(dir.join("App.rocci"), "").unwrap();
+        let err = package_server(&dir, Some(&dir), None).unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("would delete"), "{message}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn package_datastar_answers_get_without_roc_on_path() {
+        if !Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false)
+        {
+            return;
+        }
+        let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let root = manifest.parent().unwrap().parent().unwrap();
+        let app = root.join("examples/datastar");
+        let output = env::temp_dir().join(format!(
+            "rocci-server-pkg-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let report = package_server(&app, Some(&output), None).unwrap();
+        assert!(report.server.is_file());
+        assert!(output.join("assets").is_dir());
+
+        let spy = output.join("roc-spy");
+        fs::create_dir_all(&spy).unwrap();
+        let spy_log = spy.join("invoked.log");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let roc = spy.join("roc");
+            fs::write(
+                &roc,
+                format!(
+                    "#!/bin/sh\necho ROC_INVOKED >> \"{}\"\nexit 42\n",
+                    spy_log.display()
+                ),
+            )
+            .unwrap();
+            let mut perms = fs::metadata(&roc).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&roc, perms).unwrap();
+        }
+        let port = crate::serve::free_port().unwrap();
+        let mut path = spy.display().to_string();
+        if let Ok(existing) = env::var("PATH") {
+            path.push(':');
+            path.push_str(&existing);
+        }
+        let mut child = Command::new(&report.server)
+            .current_dir(&output)
+            .env("PATH", &path)
+            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+            .spawn()
+            .unwrap();
+        let start = std::time::Instant::now();
+        let body = loop {
+            if let Ok(Some(status)) = child.try_wait() {
+                panic!("server exited before GET / ({status})");
+            }
+            if let Ok(mut stream) = std::net::TcpStream::connect(("127.0.0.1", port)) {
+                use std::io::{Read, Write};
+                let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(2)));
+                let req = format!(
+                    "GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+                );
+                if stream.write_all(req.as_bytes()).is_ok() {
+                    let mut buf = Vec::new();
+                    let _ = stream.read_to_end(&mut buf);
+                    let text = String::from_utf8_lossy(&buf).into_owned();
+                    if text.contains("200") || text.contains("<html") || text.contains("<!doctype")
+                    {
+                        break text;
+                    }
+                }
+            }
+            if start.elapsed() > std::time::Duration::from_secs(15) {
+                let _ = child.kill();
+                panic!("timed out waiting for packaged server on {port}");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        let _ = child.kill();
+        let _ = child.wait();
+        assert!(
+            body.contains("200") || body.contains("<html") || body.contains("<!doctype"),
+            "{body}"
+        );
+        assert!(
+            !spy_log.exists(),
+            "packaged server must not invoke roc: {}",
+            fs::read_to_string(&spy_log).unwrap_or_default()
+        );
+        let _ = fs::remove_dir_all(&output);
     }
 }

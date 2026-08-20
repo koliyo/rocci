@@ -1,0 +1,23 @@
+name: rocci-app-prebuilt
+
+services:
+  app:
+    image: rocci-app:local
+    build: ${ROCCI_APP_CONTEXT:?ROCCI_APP_CONTEXT must be a directory containing server, assets/, and Dockerfile}
+    environment:
+      ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
+      ROC_BASIC_WEBSERVER_PORT: "8000"
+      DB_PATH: /var/lib/rocci/app.db
+    volumes:
+      - app-db:/var/lib/rocci
+    ports:
+      - "${ROCCI_HTTP_PORT:-8080}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  app-db:

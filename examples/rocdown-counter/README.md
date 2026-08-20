@@ -151,38 +151,28 @@ and must not rely on GET `/` (the CDN owns page GET).
 
 ## Local Docker
 
-Use Compose after the host `run` loop above is green. It is the check for
-Caddy same-origin proxy vs hashed assets, published 8001, `0.0.0.0` bind, and
-mounted-site path stamps — not the day-to-day increment/CSS loop.
-
-Same-origin two-image layout: Caddy serves the CDN tree and reverse-proxies
-`/actions/` plus `/health` to `serve-islands`. Base images are defined in
-[`docker/runtime/Dockerfile`](../../docker/runtime/Dockerfile) and do not bake
-this site. From the repository root:
+Package on the host, then Caddy plus a slim island process image (no `roc` /
+`rocdown` at runtime):
 
 ```sh
-./docker/run-site.sh examples/rocdown-counter
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown-counter --target x64musl
+./docker/run-hybrid.sh examples/rocdown-counter/dist examples/rocdown-counter/islands
 ```
 
-Then open [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
-[/about/](http://127.0.0.1:8080/about/) (static). That origin is the same-origin
-demo: Caddy serves the CDN tree and proxies `/actions/` plus `/health`. The
-islands process is also published at [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
-for direct smoke curls; the browser should stay on 8080. SQLite state is the
-`islands-db` volume (`DB_PATH=/var/lib/rocci/site.db`). The islands
-container sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` so Caddy can reach it.
+Use `--target arm64musl` when the container is arm64. Then open
+[http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
+[/about/](http://127.0.0.1:8080/about/) (static). Caddy serves the CDN tree and
+proxies `/actions/` plus `/health`. SQLite state is the `islands-db` volume.
 
 ```sh
-curl -s http://127.0.0.1:8080/health
-curl -s http://127.0.0.1:8001/health
-curl -s -X POST http://127.0.0.1:8080/actions/counter/increment
-curl -s http://127.0.0.1:8080/about/ | grep -E '<script>|datastar' || true
+curl -sf http://127.0.0.1:8080/health
+curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
+docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
-First boot may spend a minute compiling generated `main.roc`. Image build
-needs Docker with BuildKit and network access for the pinned Roc nightly and
-crates.io. Operator notes for other mounted sites are in
-[`docker/README.md`](../../docker/README.md).
+`which roc` must fail. `./docker/run-site.sh` remains the builder/dev toolchain
+demo. Operator notes are in [`docker/README.md`](../../docker/README.md).
 
 ## Smoke checks
 

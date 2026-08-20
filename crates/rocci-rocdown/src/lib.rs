@@ -16,6 +16,7 @@ mod links;
 mod lower;
 pub mod lsp;
 mod markdown;
+mod package;
 mod page;
 mod params;
 mod parse;
@@ -63,8 +64,11 @@ pub use img::{
 };
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
 pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
+pub use package::{
+    PackageManifest, PackageOptions, PackageReport, ensure_built_tree, package_configured,
+};
 pub use parse::{MarkdownBodyOptions, ParseOutput};
-pub use plan::{BuildPlan, DEFAULT_CSP, PublishPage, PublishReport, plan};
+pub use plan::{ArtifactInspect, BuildPlan, DEFAULT_CSP, PublishPage, PublishReport, plan};
 pub use pprint::format_ast;
 pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};

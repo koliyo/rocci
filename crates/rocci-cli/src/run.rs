@@ -280,6 +280,19 @@ fn plan_standalone(
     ))
 }
 
+pub(crate) fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
+    match plan_standalone(primary)? {
+        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Failed(files), _, _) => {
+            let name = files
+                .first()
+                .map(|file| file.name.as_str())
+                .unwrap_or("template");
+            bail!("template compilation failed for {name}")
+        }
+    }
+}
+
 fn redirect_trailing_slash_for(dir: &Path) -> bool {
     let path = dir.join("rocci.toml");
     if !path.is_file() {
