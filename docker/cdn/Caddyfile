@@ -1,4 +1,10 @@
 :80 {
+	handle /play/blocks/* {
+		reverse_proxy blocks:8000 {
+			flush_interval -1
+		}
+		header Cache-Control "no-cache"
+	}
 	handle /actions/* {
 		reverse_proxy islands:8001 {
 			flush_interval -1
