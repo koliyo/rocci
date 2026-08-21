@@ -235,6 +235,7 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
         if let Some(layout) = &mount.layout {
             const VALID_LAYOUTS: &[&str] = &[
                 "home",
+                "faq",
                 "product",
                 "section",
                 "docs",

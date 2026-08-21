@@ -92,18 +92,12 @@ import PageOutline
                                     }
                                 }
                             </nav>
-                            @match view.layout {
-                                "home" => <></>
-                                "product" => <></>
-                                "section" => <></>
-                                "news-index" => <></>
-                                "news-post" => <></>
-                                "plain" => <></>
-                                "not-found" => <></>
-                                _ => <>
-                                    <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
-                                    <PageOutline.pageOutline outline={view.outline} />
-                                </>
+                            @if !List.is_empty(view.sidebar) {
+                                <p class="mobile-nav-label">In this section</p>
+                                <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
+                            }
+                            @if !List.is_empty(view.outline) {
+                                <PageOutline.pageOutline outline={view.outline} />
                             }
                         </div>
                     </details>
@@ -112,6 +106,7 @@ import PageOutline
             <div class="site-container">
                 @match view.layout {
                     "home" => <Layouts.Home view={view}>{content}</Layouts.Home>
+                    "faq" => <Layouts.Faq view={view}>{content}</Layouts.Faq>
                     "product" => <Layouts.Product view={view}>{content}</Layouts.Product>
                     "section" => <Layouts.Section view={view}>{content}</Layouts.Section>
                     "news-index" => <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
@@ -294,6 +289,14 @@ import PageOutline
             min-height: 2.75rem;
             display: flex;
             align-items: center;
+        }
+        .mobile-nav-label {
+            margin: 1rem 0 0.5rem;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
         .mobile-panel .outline {
             position: static;

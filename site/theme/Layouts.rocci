@@ -35,49 +35,70 @@ import PageOutline
     </div>
 }
 
-@component Product = |{ view }, content| {
-    <div class="layout-product">
-        <main class="product-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
-}
-
-@component Section = |{ view }, content| {
-    <div class="layout-section">
-        <main class="section-main" id="main-content">
-            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
-            <article class="article">{content}</article>
-        </main>
-    </div>
-}
-
-@component Docs = |{ view }, content| {
-    <div class="layout-docs">
+@component NavigatedFrame = |{ view, show_journey }, content| {
+    <div class="layout-navigated">
         <aside class="sidebar">
-            <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
+            <p class="nav-label">In this section</p>
+            <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
         </aside>
         <main class="content-column" id="main-content">
             <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
+            @if !List.is_empty(view.outline) {
+                <details class="outline-fallback">
+                    <summary>On this page</summary>
+                    <PageOutline.pageOutline outline={view.outline} />
+                </details>
+            }
             <article class="article">{content}</article>
-            <nav class="journey" aria-label="Page journey">
-                @if view.previous.href != "" {
-                    <a class="journey-prev" href={view.previous.href}>← {view.previous.title}</a>
-                }
-                @if view.next.href != "" {
-                    <a class="journey-next" href={view.next.href}>{view.next.title} →</a>
-                }
-            </nav>
+            @if show_journey {
+                <nav class="journey" aria-label="Page journey">
+                    @if view.previous.href != "" {
+                        <a class="journey-prev" href={view.previous.href}>← {view.previous.title}</a>
+                    }
+                    @if view.next.href != "" {
+                        <a class="journey-next" href={view.next.href}>{view.next.title} →</a>
+                    }
+                </nav>
+            }
             <ArticleFooter view={view} />
         </main>
-        <PageOutline.pageOutline outline={view.outline} />
+        @if !List.is_empty(view.outline) {
+            <PageOutline.pageOutline outline={view.outline} />
+        }
+    </div>
+}
+
+@component Product = |{ view }, content| {
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
+}
+
+@component Section = |{ view }, content| {
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
+}
+
+@component Docs = |{ view }, content| {
+    <NavigatedFrame view={view} show_journey={True}>{content}</NavigatedFrame>
+}
+
+@component Faq = |{ view }, content| {
+    <div class="layout-faq">
+        <main class="faq-main" id="main-content">
+            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
+            @if !List.is_empty(view.outline) {
+                <details class="faq-contents">
+                    <summary>Questions on this page</summary>
+                    <PageOutline.pageOutline outline={view.outline} />
+                </details>
+            }
+            <article class="article">{content}</article>
+            <ArticleFooter view={view} />
+        </main>
     </div>
 }
 
 @component NewsIndex = |{ view }, content| {
-    <div class="layout-news-index">
-        <main class="news-main" id="main-content">
+    <NavigatedFrame view={view} show_journey={False}>
+        <div class="news-main">
             <article class="article">{content}</article>
             <div class="collection-feed">
                 <div class="collection-feed-header">
@@ -98,14 +119,13 @@ import PageOutline
                     }
                 </div>
             </div>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+        </div>
+    </NavigatedFrame>
 }
 
 @component NewsPost = |{ view }, content| {
-    <div class="layout-news-post">
-        <main class="news-post-main" id="main-content">
+    <NavigatedFrame view={view} show_journey={True}>
+        <div class="news-post-main">
             <header class="post-header">
                 @if view.published != "" {
                     <time class="post-date">{view.published}</time>
@@ -115,30 +135,20 @@ import PageOutline
             <div class="post-footer">
                 <a class="back-link" href="/news/">← Back to news</a>
             </div>
-        </main>
-    </div>
+        </div>
+    </NavigatedFrame>
 }
 
 @component Plain = |{ view }, content| {
-    <div class="layout-plain">
-        <main class="plain-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={True}>{content}</NavigatedFrame>
 }
 
 @component NotFound = |{ view }, content| {
-    <div class="layout-not-found">
-        <main class="not-found-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
 @css {
-    :scope.layout-docs {
+    :scope.layout-navigated {
         display: grid;
         grid-template-columns: 16rem minmax(0, 1fr) 14rem;
         gap: 2rem;
@@ -147,21 +157,22 @@ import PageOutline
         padding: 1.5rem 1rem;
     }
     @media (max-width: 64rem) {
-        :scope.layout-docs {
+        :scope.layout-navigated {
             grid-template-columns: 14rem minmax(0, 1fr);
         }
-        .outline {
+        :scope.layout-navigated > .outline {
             display: none;
         }
+        :scope.layout-navigated .outline-fallback { display: block; }
     }
     @media (max-width: 48rem) {
-        :scope.layout-docs {
+        :scope.layout-navigated {
             grid-template-columns: minmax(0, 1fr);
         }
         .sidebar {
             display: none;
         }
-        .outline {
+        :scope.layout-navigated .outline-fallback, :scope.layout-navigated > .outline {
             display: none;
         }
         .mobile-panel .outline {
@@ -171,7 +182,7 @@ import PageOutline
             display: none;
         }
     }
-    .layout-home, .layout-product, .layout-section, .layout-news-index, .layout-news-post, .layout-plain, .layout-not-found {
+    .layout-home, .layout-faq {
         max-width: 54rem;
         margin: 0 auto;
         padding: 2rem 1rem 4rem;
@@ -182,6 +193,26 @@ import PageOutline
         height: calc(100vh - 5rem);
         overflow-y: auto;
     }
+    .nav-label, .outline-fallback > summary, .faq-contents > summary {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+    .outline-fallback { display: none; margin: 0 0 1.5rem; }
+    .layout-navigated > .outline:not(:has(.outline-link)) { display: none; }
+    .outline-fallback > summary, .faq-contents > summary {
+        min-height: 2.75rem;
+        cursor: pointer;
+    }
+    .outline-fallback .outline, .faq-contents .outline {
+        position: static;
+        height: auto;
+        overflow: visible;
+        padding: 0.5rem 0 1rem;
+    }
+    .faq-contents { margin: 0 0 1.5rem; }
     .nav-section { margin: 0; }
     .nav-section + .nav-section { margin-top: 0.28rem; }
     .nav-section summary {
@@ -276,7 +307,7 @@ import PageOutline
         color: var(--muted);
         text-decoration: none;
     }
-    .breadcrumbs a.crumb-current {
+    .breadcrumbs .crumb-current {
         color: inherit;
         font-weight: 500;
     }
