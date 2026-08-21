@@ -128,7 +128,7 @@ badgeClass = |tone| {
     }
 }
 
-@on:get("/") {
+@view("/") {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }
 
@@ -136,6 +136,6 @@ badgeClass = |tone| {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }
 
-@on:post("/actions/increment") json {
+@command("/actions/increment") {
     "{\"count\": 0}"
 }

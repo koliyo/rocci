@@ -1,6 +1,7 @@
 use rocci_template::{
-    AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document as RocciDocument,
-    Element, FixtureDecl, InitDecl, LiveDecl, ModuleItem, OnDecl, SourceFile, Span, TemplateItem,
+    AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl,
+    Document as RocciDocument, Element, FixtureDecl, InitDecl, LiveDecl, ModuleItem, PatchDecl,
+    SourceFile, Span, TemplateItem, ViewDecl,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -164,7 +165,9 @@ pub fn collect_rocci_document(
             ModuleItem::Context(context) => collect_context(src, collector, context),
             ModuleItem::Init(init) => collect_init(src, collector, init),
             ModuleItem::Live(live) => collect_live(src, collector, live),
-            ModuleItem::On(on) => collect_on(src, collector, on),
+            ModuleItem::View(view) => collect_view(src, collector, view),
+            ModuleItem::Patch(patch) => collect_patch(src, collector, patch),
+            ModuleItem::Command(command) => collect_command(src, collector, command),
         }
     }
 }
@@ -220,22 +223,63 @@ pub fn collect_live(src: &str, collector: &mut Vec<HighlightSpan>, live: &LiveDe
     }
 }
 
-pub fn collect_on(src: &str, collector: &mut Vec<HighlightSpan>, on: &OnDecl) {
-    if let Some(span) = ident_between(src, on.span.start, on.method.span.start, "@on") {
+pub fn collect_view(src: &str, collector: &mut Vec<HighlightSpan>, view: &ViewDecl) {
+    if let Some(span) = ident_between(src, view.span.start, view.path_span.start, "@view") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
     collector.push(HighlightSpan::new(
-        on.method.span,
-        HighlightKind::Keyword,
-        0,
-        50,
-    ));
-    collector.push(HighlightSpan::new(
-        on.path_span,
+        view.path_span,
         HighlightKind::String,
         0,
         50,
     ));
+}
+
+pub fn collect_patch(src: &str, collector: &mut Vec<HighlightSpan>, patch: &PatchDecl) {
+    collect_mutation(
+        src,
+        collector,
+        patch.span.start,
+        patch.method.as_ref(),
+        patch.path_span,
+        "@patch",
+    );
+}
+
+pub fn collect_command(src: &str, collector: &mut Vec<HighlightSpan>, command: &CommandDecl) {
+    collect_mutation(
+        src,
+        collector,
+        command.span.start,
+        command.method.as_ref(),
+        command.path_span,
+        "@command",
+    );
+}
+
+fn collect_mutation(
+    src: &str,
+    collector: &mut Vec<HighlightSpan>,
+    start: u32,
+    method: Option<&rocci_template::Ident>,
+    path_span: Span,
+    word: &str,
+) {
+    let before = method
+        .map(|ident| ident.span.start)
+        .unwrap_or(path_span.start);
+    if let Some(span) = ident_between(src, start, before, word) {
+        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
+    }
+    if let Some(method) = method {
+        collector.push(HighlightSpan::new(
+            method.span,
+            HighlightKind::Keyword,
+            0,
+            50,
+        ));
+    }
+    collector.push(HighlightSpan::new(path_span, HighlightKind::String, 0, 50));
 }
 
 pub fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, component: &ComponentDecl) {

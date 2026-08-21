@@ -367,6 +367,33 @@ impl<'a> Cursor<'a> {
             }
         }
     }
+
+    pub fn skip_balanced_brackets(&mut self) {
+        if self.peek() != Some('[') {
+            return;
+        }
+        let mut depth = 0;
+        while !self.is_eof() {
+            match self.peek() {
+                Some('"') => self.skip_string(),
+                Some('#') => self.skip_comment(),
+                Some('[') => {
+                    self.bump();
+                    depth += 1;
+                }
+                Some(']') => {
+                    self.bump();
+                    depth -= 1;
+                    if depth == 0 {
+                        return;
+                    }
+                }
+                _ => {
+                    self.bump();
+                }
+            }
+        }
+    }
 }
 
 pub fn is_ident_start(ch: char) -> bool {

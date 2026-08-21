@@ -1095,7 +1095,7 @@ fn rejects_css_after_markup_and_inside_if() {
 }
 
 #[test]
-fn lowers_context_init_and_on_handlers() {
+fn lowers_context_init_and_handlers() {
     let src = r#"
 import pf.Sqlite
 import Html
@@ -1107,11 +1107,11 @@ import Html
             { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     counterPage({ count: 0 })
 }
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     counterCard({ count: 1 })
 }
 
@@ -1144,18 +1144,18 @@ import Html
     );
     assert!(!out.roc.contains("@context"));
     assert!(!out.roc.contains("@init"));
-    assert!(!out.roc.contains("@on:"));
+    assert!(!out.roc.contains("@view("));
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(context"));
     assert!(ast.contains("(init"));
-    assert!(ast.contains("(on GET"));
-    assert!(ast.contains("(on POST"));
+    assert!(ast.contains("(view \"/\""));
+    assert!(ast.contains("(patch POST"));
 }
 
 #[test]
-fn on_without_params_defaults_to_state_and_request() {
+fn view_without_params_defaults_to_state_and_request() {
     let src = r#"
-@on:get("/") {
+@view("/") {
     Html.text("ok")
 }
 
@@ -1169,17 +1169,17 @@ fn on_without_params_defaults_to_state_and_request() {
 }
 
 #[test]
-fn on_one_param_injects_unused_request() {
+fn handler_one_param_injects_unused_request() {
     let src = r#"
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     Html.text("ok")
 }
 
-@on:post("/actions/x") = |_| {
+@patch("/actions/x") = |_| {
     Html.text("x")
 }
 
-@on:put("/y") = || {
+@patch:put("/y") = || {
     Html.text("y")
 }
 
@@ -1200,9 +1200,9 @@ fn on_one_param_injects_unused_request() {
 }
 
 #[test]
-fn on_two_params_keep_authored_request() {
+fn handler_two_params_keep_authored_request() {
     let src = r#"
-@on:post("/actions/save") = |{ db }, request| {
+@patch("/actions/save") = |{ db }, request| {
     _ = request
     Html.text("ok")
 }
@@ -1225,10 +1225,10 @@ fn on_two_params_keep_authored_request() {
 }
 
 #[test]
-fn rejects_on_with_more_than_two_params() {
+fn rejects_handler_with_more_than_two_params() {
     let errors = compile_err(
         r#"
-@on:post("/x") = |state, request, extra| {
+@patch("/x") = |state, request, extra| {
     Html.text("x")
 }
 "#,
@@ -1259,14 +1259,14 @@ fn rejects_init_without_context() {
 }
 
 #[test]
-fn rejects_duplicate_on_handlers() {
+fn rejects_duplicate_handlers() {
     let errors = compile_err(
         r#"
-@on:post("/x") {
+@patch("/x") {
     Html.text("a")
 }
 
-@on:post("/x") {
+@patch("/x") {
     Html.text("b")
 }
 "#,
@@ -1274,17 +1274,17 @@ fn rejects_duplicate_on_handlers() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@on:post")),
+            .any(|msg| msg.contains("duplicate") && msg.contains("@patch(\"/x\")")),
         "{errors:?}"
     );
 }
 
 #[test]
-fn rejects_on_inside_component() {
+fn rejects_view_inside_component() {
     let errors = compile_err(
         r#"
 @component Hello = |{}| {
-    @on:get("/") {
+    @view("/") {
         Html.text("no")
     }
     <p>Hi</p>
@@ -1294,7 +1294,7 @@ fn rejects_on_inside_component() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@on` is only valid at document root")),
+            .any(|msg| msg.contains("`@view` is only valid at document root")),
         "{errors:?}"
     );
 }
@@ -1306,11 +1306,11 @@ fn lowers_live_and_json_post() {
     Html.text("live")
 }
 
-@on:post("/actions/increment") json = |state| {
+@command("/actions/increment") = |state| {
     "{\"count\": 0}"
 }
 
-@on:post("/actions/reset") = |state| {
+@patch("/actions/reset") = |state| {
     Html.text("reset")
 }
 
@@ -1326,7 +1326,7 @@ fn lowers_live_and_json_post() {
     assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Patch);
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(live"));
-    assert!(ast.contains("(on POST \"/actions/increment\" json"));
+    assert!(ast.contains("(command POST \"/actions/increment\""));
 }
 
 #[test]
@@ -1351,7 +1351,7 @@ fn rejects_duplicate_live() {
 }
 
 #[test]
-fn rejects_json_on_get() {
+fn rejects_removed_on_get_json() {
     let errors = compile_err(
         r#"
 @on:get("/") json {
@@ -1362,13 +1362,13 @@ fn rejects_json_on_get() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`json` is not valid on GET")),
+            .any(|msg| msg.contains("`@on` was removed") && msg.contains("@view")),
         "{errors:?}"
     );
 }
 
 #[test]
-fn rejects_unknown_respond_ident() {
+fn rejects_removed_on_unknown_respond() {
     let errors = compile_err(
         r#"
 @on:post("/x") stream {
@@ -1377,9 +1377,7 @@ fn rejects_unknown_respond_ident() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown respond kind `stream`")),
+        errors.iter().any(|msg| msg.contains("`@on` was removed")),
         "{errors:?}"
     );
 }
@@ -1436,7 +1434,7 @@ fn rejects_live_and_authored_sse_route() {
     Html.text("live")
 }
 
-@on:get("/sse") {
+@view("/sse") {
     Html.text("authored")
 }
 "#,
@@ -1444,7 +1442,7 @@ fn rejects_live_and_authored_sse_route() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@on:get(\"/sse\")` conflicts with generated `@live` stream")),
+            .any(|msg| msg.contains("`@view(\"/sse\")` conflicts with generated `@live` stream")),
         "{errors:?}"
     );
 }

@@ -30,12 +30,12 @@ import Html
     { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
@@ -44,7 +44,7 @@ import Html
     counterCard({ count: count })
 }
 
-@on:post("/actions/counter/reset") = |{ db }| {
+@patch("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
