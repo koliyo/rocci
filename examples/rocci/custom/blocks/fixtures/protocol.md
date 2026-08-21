@@ -20,7 +20,7 @@ implement them; they do not change the numbers without a new freeze.
 | Target | next living seat in ring order from the cursor |
 | Cursor advance | only after a non-zero residual attack |
 | Seats | 8, ring order 0–7 |
-| Spectator leases | design ceiling 50; public cap is the measured value |
+| Spectator leases | design ceiling 50; public default cap **20** until a 30-minute 8+50 soak |
 | Countdown | 10 s after ≥2 ready players |
 | Round timeout | 5 min, then rank by stack height then lines sent |
 | Result display | 10 s |

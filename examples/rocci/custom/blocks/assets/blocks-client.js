@@ -159,7 +159,7 @@ function applyAck(data) {
 }
 
 async function postLock() {
-    if (locking || eliminated) {
+    if (locking || eliminated || isWatching()) {
         return
     }
     locking = true
@@ -197,8 +197,12 @@ async function resetBoard() {
     applyAck(data)
 }
 
+function isWatching() {
+    return !document.querySelector('#blocks-arena-state [data-you="1"]')
+}
+
 function tryMove(dx, dy) {
-    if (locking || eliminated) {
+    if (locking || eliminated || isWatching()) {
         return false
     }
     if (fits(current.piece, current.rot, current.x + dx, current.y + dy)) {
@@ -209,7 +213,7 @@ function tryMove(dx, dy) {
 }
 
 function tryRotate(dir) {
-    if (locking || eliminated) {
+    if (locking || eliminated || isWatching()) {
         return
     }
     const rot = (current.rot + dir + 4) % 4
@@ -226,7 +230,7 @@ function softDrop() {
 }
 
 function hardDrop() {
-    if (locking || eliminated) {
+    if (locking || eliminated || isWatching()) {
         return
     }
     current = { ...current, y: ghostY() }
@@ -250,7 +254,7 @@ function paint() {
             ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2)
         }
     }
-    if (!eliminated && OFFSETS[current.piece]) {
+    if (!eliminated && !isWatching() && OFFSETS[current.piece]) {
         const gy = ghostY()
         ctx.globalAlpha = 0.28
         for (const cell of cellsOf(current.piece, current.rot, current.x, gy) ?? []) {
