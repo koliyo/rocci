@@ -1,3 +1,4 @@
+const BASE = '/play/blocks'
 const COLS = 10
 const ROWS = 20
 const COLORS = {
@@ -171,7 +172,7 @@ async function postLock() {
         sequence: sequence + 1,
     }
     try {
-        const response = await fetch('/command/lock', {
+        const response = await fetch(`${BASE}/command/lock`, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'content-type': 'application/json' },
@@ -185,7 +186,7 @@ async function postLock() {
 }
 
 async function resetBoard() {
-    const response = await fetch('/command/reset', {
+    const response = await fetch(`${BASE}/command/reset`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },

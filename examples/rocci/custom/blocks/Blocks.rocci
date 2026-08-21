@@ -1,280 +1,5 @@
-import pf.Env
-import pf.Path
-import pf.Sqlite
 import Game
 import Html
-
-## SQLite handle opened in `@init`. Solo board only; no room tables.
-@context { db : Sqlite.Db }
-
-## Open `blocks.db` (`DB_PATH` override) and seed one solo bag.
-@init {
-    db_path =
-        match Env.var!("DB_PATH") {
-            Ok(path) => Path.from_os_str(path)
-            Err(_) => Path.utf8("./blocks.db")
-        }
-    db = Sqlite.open!(Sqlite.default_config(db_path))?
-    Sqlite.execute!(
-        {
-            db,
-            query: "CREATE TABLE IF NOT EXISTS solo (id INTEGER PRIMARY KEY CHECK (id = 1), board TEXT NOT NULL, piece TEXT NOT NULL, bag TEXT NOT NULL, seed INTEGER NOT NULL, board_revision INTEGER NOT NULL, sequence INTEGER NOT NULL, back_to_back INTEGER NOT NULL, eliminated INTEGER NOT NULL)",
-            params: {},
-        },
-    )?
-    opened = Game.draw_piece([], 1)
-    params : SoloInsert
-    params = {
-        board: Game.empty_board,
-        piece: opened.piece,
-        bag: Game.encode_bag(opened.bag),
-        seed: opened.seed,
-    }
-    Sqlite.execute!(
-        {
-            db,
-            query: "INSERT OR IGNORE INTO solo (id, board, piece, bag, seed, board_revision, sequence, back_to_back, eliminated) VALUES (1, :board, :piece, :bag, :seed, 0, 0, 0, 0)",
-            params,
-        },
-    )?
-    { db: db }
-}
-
-SoloInsert : { board : Str, piece : Str, bag : Str, seed : I64 }
-SoloRow : { board : Str, piece : Str, bag : Str, seed : I64, board_revision : I64, sequence : I64, back_to_back : I64, eliminated : I64 }
-LockParams : { board : Str, piece : Str, bag : Str, seed : I64, board_revision : I64, sequence : I64, back_to_back : I64, eliminated : I64 }
-
-## Solo play document. Shared room HTTP lives in `main.roc` from Phase 2.
-@view("/") = |{ db }| {
-    row = load_solo!(db)?
-    playPage({ view: view_from_row(row) })
-}
-
-## JSON lock acknowledgement for the canvas island. Does not morph `#blocks-arena-state`.
-@command("/command/lock") = |{ db }, request| {
-    json = read_json_body!(request)
-    apply_lock!(db, json)?
-}
-
-## Restart the solo board from a fresh bag.
-@command("/command/reset") = |{ db }| {
-    reset_solo!(db)?
-}
-
-load_solo! = |db| {
-    row : SoloRow
-    row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT board, piece, bag, seed, board_revision, sequence, back_to_back, eliminated FROM solo WHERE id = 1",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    Ok(row)
-}
-
-save_solo! = |db, row| {
-    params : LockParams
-    params = row
-    Sqlite.execute!(
-        {
-            db,
-            query: "UPDATE solo SET board = :board, piece = :piece, bag = :bag, seed = :seed, board_revision = :board_revision, sequence = :sequence, back_to_back = :back_to_back, eliminated = :eliminated WHERE id = 1",
-            params,
-        },
-    )
-}
-
-reset_solo! = |db| {
-    opened = Game.draw_piece([], 1)
-    save_solo!(
-        db,
-        {
-            board: Game.empty_board,
-            piece: opened.piece,
-            bag: Game.encode_bag(opened.bag),
-            seed: opened.seed,
-            board_revision: 0,
-            sequence: 0,
-            back_to_back: 0,
-            eliminated: 0,
-        },
-    )?
-    load_solo!(db).map_ok(ack_from_row)
-}
-
-apply_lock! = |db, json| {
-    row = load_solo!(db)?
-    sequence = json_i64(json, "sequence")
-    if sequence == row.sequence and sequence != 0 {
-        Ok(ack_from_row(row))
-    } else if sequence != row.sequence + 1 {
-        Ok(conflict(row, "DuplicateSequence"))
-    } else if row.eliminated != 0 {
-        Ok(conflict(row, "WrongPhase"))
-    } else if json_i64(json, "board_revision") != row.board_revision {
-        Ok(conflict(row, "StaleRevision"))
-    } else {
-        piece = json_str(json, "piece")
-        if piece != row.piece {
-            Ok(conflict(row, "UnknownPiece"))
-        } else {
-            rot = json_i64(json, "rotation")
-            x = json_i64(json, "x")
-            y = json_i64(json, "y")
-            b2b = row.back_to_back != 0
-            match Game.lock(row.board, piece, rot, x, y, b2b) {
-                Err(UnknownPiece) => Ok(conflict(row, "UnknownPiece"))
-                Err(BadRotation) => Ok(conflict(row, "BadRotation"))
-                Err(InvalidGeometry) => Ok(conflict(row, "InvalidGeometry"))
-                Ok(placed) => {
-                    bag = Game.decode_bag(row.bag)
-                    drawn = Game.draw_piece(bag, row.seed)
-                    eliminated = if Game.spawn_ok(placed.board, drawn.piece) { 0 } else { 1 }
-                    next = {
-                        board: placed.board,
-                        piece: drawn.piece,
-                        bag: Game.encode_bag(drawn.bag),
-                        seed: drawn.seed,
-                        board_revision: row.board_revision + 1,
-                        sequence,
-                        back_to_back: if placed.back_to_back { 1 } else { 0 },
-                        eliminated,
-                    }
-                    save_solo!(db, next)?
-                    Ok(ack_from_row(next))
-                }
-            }
-        }
-    }
-}
-
-ack_from_row = |row|
-    {
-        ok: 1.I64,
-        error: "",
-        board: row.board,
-        revision: row.board_revision,
-        piece: row.piece,
-        sequence: row.sequence,
-        eliminated: row.eliminated,
-    }
-
-conflict = |row, error|
-    {
-        ok: 0.I64,
-        error,
-        board: row.board,
-        revision: row.board_revision,
-        piece: row.piece,
-        sequence: row.sequence,
-        eliminated: row.eliminated,
-    }
-
-view_from_row = |row| {
-    status = if row.eliminated != 0 { "eliminated" } else { "alive" }
-    {
-        phase: "round",
-        revision: row.board_revision,
-        deadline_ms: 0.I64,
-        round: 1.I64,
-        piece: row.piece,
-        winner: "",
-        reason: "",
-        seats: [
-            {
-                seat: 0.I64,
-                status,
-                board: row.board,
-                target: 0.I64,
-                queue: 0.I64,
-                ready: 0.I64,
-                piece: row.piece,
-                you: 1.I64,
-            },
-        ],
-    }
-}
-
-read_json_body! = |request| {
-    match request.body().with_limit(4 * 1024).read_all!() {
-        Ok(bytes) => Str.from_utf8_lossy(bytes)
-        Err(_) => "{}"
-    }
-}
-
-json_str = |json, key| {
-    needle = "\"${key}\":"
-    parts = Str.split_on(json, needle)
-    match List.get(parts, 1) {
-        Ok(after) => json_string_value(skip_ws(after))
-        Err(_) => ""
-    }
-}
-
-json_i64 = |json, key| {
-    needle = "\"${key}\":"
-    parts = Str.split_on(json, needle)
-    match List.get(parts, 1) {
-        Ok(after) =>
-            match I64.from_str(take_num(skip_ws(after))) {
-                Ok(n) => n
-                Err(_) => 0
-            }
-        Err(_) => 0
-    }
-}
-
-skip_ws = |text| skip_ws_bytes(Str.to_utf8(text))
-
-skip_ws_bytes = |bytes|
-    match List.get(bytes, 0) {
-        Ok(byte) if byte == 32 or byte == 9 or byte == 10 or byte == 13 =>
-            skip_ws_bytes(List.drop_first(bytes, 1))
-        _ => Str.from_utf8_lossy(bytes)
-    }
-
-json_string_value = |text|
-    if Str.starts_with(text, "\"") {
-        read_json_string(Str.to_utf8(Str.drop_prefix(text, "\"")), 0, [], False)
-    } else {
-        ""
-    }
-
-read_json_string = |bytes, index, acc, escape|
-    match List.get(bytes, index) {
-        Err(_) => Str.from_utf8_lossy(acc)
-        Ok(34) if escape == False => Str.from_utf8_lossy(acc)
-        Ok(92) if escape == False => read_json_string(bytes, index + 1, acc, True)
-        Ok(byte) if escape =>
-            read_json_string(
-                bytes,
-                index + 1,
-                List.append(
-                    acc,
-                    match byte {
-                        34 => 34
-                        92 => 92
-                        110 => 10
-                        116 => 9
-                        114 => 13
-                        _ => byte
-                    },
-                ),
-                False,
-            )
-        Ok(byte) => read_json_string(bytes, index + 1, List.append(acc, byte), False)
-    }
-
-take_num = |text| take_num_bytes(Str.to_utf8(text), [])
-
-take_num_bytes = |bytes, acc|
-    match List.get(bytes, 0) {
-        Ok(head) if (head >= 48 and head <= 57) or (head == 45 and List.is_empty(acc)) =>
-            take_num_bytes(List.drop_first(bytes, 1), List.append(acc, head))
-        _ => Str.from_utf8_lossy(acc)
-    }
 
 empty_board = Game.empty_board
 
@@ -335,6 +60,7 @@ sample_result = {
     seats: [{ ..sample_seat, status: "alive" }],
 }
 
+## Lobby document. Join/leave live in `main.roc`.
 @component
 Lobby = |{ player_count, full }|
     <html lang="en">
@@ -342,7 +68,7 @@ Lobby = |{ player_count, full }|
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>Rocci Blocks</title>
-            <link rel="stylesheet" href="/assets/blocks.css" />
+            <link rel="stylesheet" href="/play/blocks/assets/blocks.css" />
         </head>
         <body>
             <main class="lobby">
@@ -353,14 +79,16 @@ Lobby = |{ player_count, full }|
                 <header>
                     <p class="eyebrow">Rocci Blocks</p>
                     <h1>Falling-block arena.</h1>
-                    <p class="lede">One public room, eight seats, lock-driven authority. This preview is solo: motion stays in the browser, each lock is validated in Roc.</p>
+                    <p class="lede">One public room. Roc validates every lock. Two to eight players; late arrivals wait for the next round.</p>
                 </header>
-                <p class="count">{player_count.to_str()} ready, 8 max.</p>
+                <p class="count">{player_count.to_str()} seated, 8 max.</p>
                 <div class="actions">
                     @if full {
-                        <p class="count">Seats full — spectate instead.</p>
+                        <p class="count">Seats full this round.</p>
                     } @else {
-                        <a class="button" href="/">Play</a>
+                        <form method="post" action="/play/blocks/join">
+                            <button type="submit">Join</button>
+                        </form>
                     }
                 </div>
             </main>
@@ -405,6 +133,9 @@ Hud = |{ view }|
                 Seat {seat.seat.to_str()} · {seat.status} · queue {seat.queue.to_str()}
             </p>
         }
+        <form method="post" action="/play/blocks/leave">
+            <button class="secondary" type="submit">Leave</button>
+        </form>
     </aside>
 
 @component
@@ -431,26 +162,38 @@ SteerPad = |{}|
     </div>
 
 @component
+GamePatch = |{ view }|
+    <>
+        <ArenaState view={view} />
+        <Hud view={view} />
+        @match view.phase {
+            "result" => <ResultCard winner={view.winner} reason={view.reason} />
+            _ => <section id="blocks-result" class="result" hidden></section>
+        }
+    </>
+
+@component
 PlayPage = |{ view }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>Rocci Blocks</title>
-            <link rel="stylesheet" href="/assets/blocks.css" />
-            <script type="module" src="/assets/blocks-client.js"></script>
+            <link rel="stylesheet" href="/play/blocks/assets/blocks.css" />
+            <script type="module" src="/play/blocks/assets/datastar.js"></script>
+            <script type="module" src="/play/blocks/assets/blocks-client.js"></script>
         </head>
-        <body>
+        <body data-init=@get("/play/blocks/stream")>
             <main class="play">
                 <nav>
                     <strong>ROC</strong>
-                    <span>Solo preview · lock-validated</span>
+                    <span>Lock-validated arena</span>
                 </nav>
                 <div class="stage">
                     <canvas id="blocks-canvas" width="300" height="600" aria-label="Board"></canvas>
                     <SteerPad />
                     @match (List.get(view.seats, 0)) {
-                        Ok(seat) if seat.status == "eliminated" => <EliminatedBanner />
+                        Ok(seat) if seat.status == "eliminated" and seat.you != 0 => <EliminatedBanner />
                         _ => <></>
                     }
                 </div>
@@ -458,10 +201,14 @@ PlayPage = |{ view }|
                     <Hud view={view} />
                     @match view.phase {
                         "result" => <ResultCard winner={view.winner} reason={view.reason} />
-                        _ => <></>
+                        _ => <section id="blocks-result" class="result" hidden></section>
                     }
                     <ArenaState view={view} />
-                    <button class="secondary" type="button" data-reset>Reset</button>
+                    @if view.phase == "lobby" {
+                        <form method="post" action="/play/blocks/command/ready">
+                            <button type="submit">Ready</button>
+                        </form>
+                    }
                 </div>
             </main>
         </body>
@@ -499,3 +246,6 @@ playEliminatedTest = { view: sample_eliminated }
 
 @fixture{target: PlayPage}
 playResultTest = { view: sample_result }
+
+@fixture{target: GamePatch}
+gamePatchTest = { view: sample_active }
