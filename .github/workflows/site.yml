@@ -1,19 +1,9 @@
 name: Site
 
 on:
+  workflow_dispatch:
   push:
-    paths:
-      - "site/**"
-      - "docs/**"
-      - "docker/**"
-      - "crates/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "tools/rocci-ops/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/site.yml"
-  pull_request:
+    branches: [main]
     paths:
       - "site/**"
       - "docs/**"

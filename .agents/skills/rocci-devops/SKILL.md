@@ -14,13 +14,17 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
    drawing CI provenance conclusions or editing code. Preserve unrelated
    work.
 2. Understand the repository's GitHub Actions workflows in `.github/workflows/`:
-   - `ci.yml`: Main validation pipeline running on every push/PR:
+   - `ci.yml` and `knowledge.yml`: **not** on push/PR. Queue them with a `/ci`
+     comment on a pull request (owner/member/collaborator) or Actions
+     **Run workflow**. `ci.yml` jobs:
      - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), and clippy (`cargo clippy -D warnings`) on `ubuntu-latest`.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest`.
      - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest`.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check.
    - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs.
+   - `site.yml`: Packages and deploys `site/` from `main` only (credits). Use **Run workflow** for other refs.
    - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation.
+   - `ci-command.yml`: Listens for `/ci` on PR comments and dispatches `ci.yml` plus `knowledge.yml` at the PR head.
 3. Note that `gh` commands communicate with `https://api.github.com`. When running
    in sandboxed environments, run `gh` with unsandboxed execution permissions
    (e.g., `BypassSandbox: true`).
@@ -75,7 +79,10 @@ gh run rerun RUN_ID --failed
 gh run rerun RUN_ID
 
 # Trigger a workflow dispatch
-gh workflow run ci.yml --ref main
+gh workflow run ci.yml --ref BRANCH
+gh workflow run knowledge.yml --ref BRANCH
+
+# On a pull request, comment `/ci` (after `ci-command.yml` is on the default branch)
 
 # Download artifacts produced by a run
 gh run download RUN_ID --dir target/ci-artifacts
