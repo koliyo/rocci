@@ -28,14 +28,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - name: Check workspace dependency direction
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops check-deps
-      - name: Check generated AST is current
-        run: cargo run -q -p rocci-ungram -- check
-      - name: Check code formatting
-        run: cargo fmt --all -- --check
-      - name: Run clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Run lint job
+        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci lint
 
   test:
     name: Test Workspace (${{ matrix.os }})
@@ -52,15 +46,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.os }}
+      - uses: astral-sh/setup-uv@v6
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Run workspace tests
-        run: cargo test --workspace
-      - name: Run doc tests
-        run: cargo test --workspace --doc
+        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci test
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
@@ -69,20 +62,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v6
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - name: Inspect AST syntax fixtures
-        run: |
-          cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci
-          cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
-          cargo run -q -p rocci-cli -- inspect --ast test/EmbeddedLanguages.rocci
-          cargo run -q -p rocci-rocdown-cli -- inspect ast test/EmbeddedLanguages.rocdown
-      - name: Validate site and documentation catalog
-        run: |
-          cargo run -q -p rocci-rocdown-cli -- check site
-          cargo run -q -p rocci-rocdown-cli -- check docs
+      - name: Inspect fixtures and validate docs
+        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci fixtures-and-docs
 
   editors:
     name: Editor Extensions (VS Code & Zed)
@@ -93,25 +79,12 @@ jobs:
         with:
           targets: wasm32-wasip1,wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v6
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: editors/vscode/package-lock.json
-      - name: Build composed language server
-        run: cargo build -p rocci-rocdown-lsp
-      - name: Lint and compile VS Code extension
-        run: |
-          npm --prefix editors/vscode ci
-          npm --prefix editors/vscode run lint
-          npm --prefix editors/vscode run compile
-          npm --prefix editors/vscode run vscode:prepublish
-      - name: Run VS Code extension-host tests
-        run: npm --prefix editors/vscode test
-      - name: Check Zed extension (WebAssembly)
-        run: |
-          cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1
-          cargo check --manifest-path editors/zed/Cargo.toml
-      - name: Verify Zed extension manifest and language server
-        run: ./scripts/test-zed-extension.sh
+      - name: Run editor checks
+        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci editors
