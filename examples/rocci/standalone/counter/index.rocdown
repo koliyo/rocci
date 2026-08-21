@@ -8,8 +8,8 @@
 
 # Counter
 
-The first Rocci app: one `.rocci` file, SQLite state, a page at `/`, and two
-POST patches that morph `#counter`. Increment and reset each return the
+The first Rocci app: one `.rocci` file, SQLite state, `@view("/")`, and two
+`@patch` handlers that morph `#counter`. Increment and reset each return the
 `CounterCard` component. A second browser tab stays stale until you click or
 reload. For two windows that share a stream, use the
 [live counter](/examples/live-counter/).

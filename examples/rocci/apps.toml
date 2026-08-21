@@ -15,6 +15,14 @@ entry = "LiveCounter.rocci"
 hosting = "live"
 
 [[app]]
+id = "handler-matrix"
+path = "standalone/handler-matrix"
+title = "Handler matrix"
+summary = "Every accepted @view, @patch, @command, and @live construct"
+entry = "HandlerMatrix.rocci"
+hosting = "docs"
+
+[[app]]
 id = "styling"
 path = "standalone/styling"
 title = "Styling"
