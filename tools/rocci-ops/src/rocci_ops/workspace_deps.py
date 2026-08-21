@@ -15,6 +15,7 @@ from rocci_ops.paths import repo_root
 
 BASE_ROCCI = {
     "rocci-core",
+    "rocci-docs",
     "rocci-template",
     "rocci-ungram",
     "rocci-desktop",
