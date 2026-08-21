@@ -51,6 +51,16 @@ pub struct AppEntry {
     pub hosting: Hosting,
     #[serde(default)]
     pub files: Vec<String>,
+    #[serde(default)]
+    pub audience: String,
+    #[serde(default)]
+    pub purpose: String,
+    #[serde(default)]
+    pub complexity: String,
+    #[serde(default)]
+    pub persistence: String,
+    #[serde(default)]
+    pub support: String,
 }
 
 #[derive(Debug, Clone)]

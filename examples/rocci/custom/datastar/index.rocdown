@@ -8,6 +8,10 @@
 
 # Datastar gallery
 
+**Audience:** application author.
+**Prerequisites:** [custom main tutorial](/docs/tutorials/custom-main/).
+**Concepts:** [Datastar as transport](/docs/concepts/datastar-as-transport/).
+
 Ports of official Datastar interaction patterns. The server still owns HTML.
 Datastar is the transport. The gallery uses an authored `main.roc` for custom
 HTTP routing and SQLite for durable state.

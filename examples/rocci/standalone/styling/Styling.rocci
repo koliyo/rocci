@@ -1,9 +1,11 @@
 import Html
 
+## GET the styling document. `count` comes from this handler, not a database.
 @view("/") {
     stylePage({ count: 3.I64 })
 }
 
+## Greeting with an experimental `name` default. Pure; used by view and fixtures.
 @component
 Hello = |{ name ?? "Roc" }| {
     @css {
@@ -19,6 +21,7 @@ Hello = |{ name ?? "Roc" }| {
     <p class="greeting">Hello, <strong>{name}</strong></p>
 }
 
+## Feature card with component-scoped CSS. `count` must already be `Str`-converted in the template.
 @component
 FeatureCard = |{ count }| {
     @css {
@@ -54,6 +57,7 @@ FeatureCard = |{ count }| {
     </section>
 }
 
+## Full HTML document. File-level `@css` styles `body`, not `html`.
 @component
 StylePage = |{ count }|
     <html lang="en">

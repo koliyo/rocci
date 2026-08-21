@@ -4,8 +4,10 @@ import pf.Sqlite
 import pf.Stderr
 import Html
 
+## SQLite handle opened in `@init`. Shared with `@live` and commands.
 @context { db : Sqlite.Db }
 
+## Open or create `counter.db` (`DB_PATH` override). Failure exits the process.
 @init {
     db_path =
         match Env.var!("DB_PATH") {
@@ -30,16 +32,19 @@ import Html
     { db: db }
 }
 
+## Document GET `/`. Renders the page; the live card is a separate `@live` fragment.
 @view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
 
+## Shared `#counter` fragment for generated `GET /sse`.
 @live = |{ db }| {
     count = read_count!(db)?
     counterCard({ count: count })
 }
 
+## Increment; Datastar gets 204, other clients get `{ count }`.
 @command("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
@@ -49,6 +54,7 @@ import Html
     { count }
 }
 
+## Reset to zero; same 204 / JSON split as increment.
 @command("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
