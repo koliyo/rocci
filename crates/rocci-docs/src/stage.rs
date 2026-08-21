@@ -17,6 +17,13 @@ pub fn live_demo_url(id: &str) -> String {
     format!("https://{id}.examples.rocci.dev")
 }
 
+pub fn app_play_url(app: &AppEntry) -> String {
+    match &app.live_url {
+        Some(url) if !url.is_empty() => url.clone(),
+        _ => live_demo_url(&app.id),
+    }
+}
+
 pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
     let parent = output.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|source| DocsError::Io {
@@ -231,7 +238,12 @@ fn catalog_index(catalog: &Catalog) -> String {
     let mut rows = String::new();
     for app in &catalog.apps {
         let live = if app.hosting == Hosting::Live {
-            format!(" · [Open live demo]({}) (planned)", live_demo_url(&app.id))
+            let planned = if app.live_url.as_deref().unwrap_or("").is_empty() {
+                " (planned)"
+            } else {
+                ""
+            };
+            format!(" · [Open live demo]({}){planned}", app_play_url(app))
         } else {
             String::new()
         };
@@ -357,4 +369,31 @@ fn write_file(path: PathBuf, contents: &str) -> Result<(), DocsError> {
         })?;
     }
     fs::write(&path, contents).map_err(|source| DocsError::Io { path, source })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn explicit_live_url_overrides_example_hostname() {
+        let app = crate::catalog::AppEntry {
+            id: "blocks".into(),
+            path: "custom/blocks".into(),
+            title: "Rocci Blocks".into(),
+            summary: "demo".into(),
+            entry: ".".into(),
+            hosting: crate::catalog::Hosting::Live,
+            files: Vec::new(),
+            audience: String::new(),
+            purpose: String::new(),
+            complexity: String::new(),
+            persistence: String::new(),
+            support: String::new(),
+            live_url: Some("https://rocci.dev/play/blocks/".into()),
+        };
+        assert_eq!(super::app_play_url(&app), "https://rocci.dev/play/blocks/");
+        assert_eq!(
+            super::live_demo_url("blocks"),
+            "https://blocks.examples.rocci.dev"
+        );
+    }
 }

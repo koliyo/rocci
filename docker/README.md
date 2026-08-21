@@ -96,7 +96,9 @@ apply-only.
 the binary into a build context. The image creates an empty `assets/` directory
 so basic-webserver can start; hashed site files stay on the CDN mount. When the
 CDN container starts it prints `Open http://127.0.0.1:8080/` (honors
-`ROCCI_HTTP_PORT`). Smoke:
+`ROCCI_HTTP_PORT`). Caddy proxies `/play/blocks/*` to an optional `blocks`
+service (`docker compose --profile blocks`); hybrid island smoke does not
+start it. Smoke:
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
@@ -127,13 +129,16 @@ Override the published port with `ROCCI_HTTP_PORT`. The app container prints
 
 Catalog rows with `hosting = "live"` (`live-counter`, `datastar`) are separate
 processes and hostnames. They do **not** share the rocci.dev hybrid island
-`/actions/` or `/sse`. Docs-only apps (counter, styling, snake) are absent
-from this Compose file.
+process or steal `/actions/` or `/sse`. Rocci Blocks is the exception: it is a
+first-party `/play/blocks/` route on the main hostname. Origin publish enables
+Compose profile `blocks`; local `rocci-ops serve hybrid` does not. Docs-only
+apps (counter, styling, snake) are absent from this Compose file.
 
 ```sh
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
 # live-counter	standalone/live-counter	LiveCounter.rocci
 # datastar	custom/datastar	.
+# blocks	custom/blocks	.
 ```
 
 Package each live app with `rocci build --release --target x64musl` (or
@@ -209,6 +214,7 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`compose.static.yml`](compose.static.yml) | `rocci-cdn` + bind-mount `ROCCI_DIST` |
 | `rocci-ops serve static` | Absolutize `ROCCI_DIST` and `compose up` |
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
+| [`blocks/Dockerfile`](blocks/Dockerfile) | Slim Rocci Blocks process (`server` + `assets/`) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
 | [`prod/`](prod/) | Origin docs, Access SSH proxy, env examples |
 | `rocci-ops serve hybrid` | Absolutize `ROCCI_DIST` and islands binary, `compose up` |

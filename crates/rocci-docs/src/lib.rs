@@ -8,7 +8,7 @@ mod stage;
 pub use catalog::{AppEntry, Catalog, DocsError, Hosting, load_catalog};
 pub use extract::{DeclDoc, declarations_markdown, documented_declarations};
 pub use inventory::{PublishedFile, inventory_app, is_published_rel};
-pub use stage::{StageReport, live_demo_url, stage};
+pub use stage::{StageReport, app_play_url, live_demo_url, stage};
 
 use std::path::Path;
 

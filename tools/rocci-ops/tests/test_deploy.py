@@ -37,6 +37,8 @@ def test_push_invokes_bootstrap_scp_and_publish(monkeypatch, tmp_path: Path) -> 
     artifact.mkdir()
     (artifact / "site.tgz").write_bytes(b"tgz")
     (artifact / "islands").write_bytes(b"bin")
+    (artifact / "blocks").write_bytes(b"blocks-bin")
+    (artifact / "blocks-assets.tgz").write_bytes(b"assets")
     monkeypatch.setenv("DEPLOY_HOST", "ssh.rocci.dev")
     monkeypatch.setenv("DEPLOY_USER", "deploy")
     calls: list[list[str]] = []
@@ -53,4 +55,6 @@ def test_push_invokes_bootstrap_scp_and_publish(monkeypatch, tmp_path: Path) -> 
     flat = [" ".join(call) for call in calls]
     assert any("mkdir -p" in item and "/srv/rocci/tools/rocci-ops" in item for item in flat)
     assert any(str(artifact / "site.tgz") in item for item in flat)
+    assert any(str(artifact / "blocks") in item for item in flat)
     assert any("origin publish 'abc123'" in item for item in flat)
+    assert any("docker/blocks" in item or "/blocks/" in item for item in flat)
