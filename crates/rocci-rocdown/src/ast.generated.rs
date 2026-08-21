@@ -3,7 +3,8 @@
 use super::MdNode;
 use rocci_template::ComponentPath;
 use rocci_template::{
-    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem,
+    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, LiveDecl, OnDecl, Span,
+    TemplateItem,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,6 +24,7 @@ pub enum Item {
     Css(CssDecl),
     Context(ContextDecl),
     Init(InitDecl),
+    Live(LiveDecl),
     On(OnDecl),
     Use(UseDecl),
     Template(TemplateItem),
@@ -41,6 +43,7 @@ impl Item {
             Self::Css(item) => item.span,
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
+            Self::Live(item) => item.span,
             Self::On(item) => item.span,
             Self::Use(item) => item.span,
             Self::Template(item) => item.span(),

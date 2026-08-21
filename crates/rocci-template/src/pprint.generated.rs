@@ -16,6 +16,7 @@ fn write_module_item(w: &mut Writer<'_>, src: &str, item: &ModuleItem) {
         ModuleItem::Css(item) => write_css(w, src, item),
         ModuleItem::Context(item) => write_context(w, src, item),
         ModuleItem::Init(item) => write_init(w, src, item),
+        ModuleItem::Live(item) => write_live(w, src, item),
         ModuleItem::On(item) => write_on(w, src, item),
     }
 }

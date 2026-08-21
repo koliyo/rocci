@@ -13,6 +13,7 @@ pub enum Reserved {
     Css,
     Context,
     Init,
+    Live,
     On,
     Use,
     If,
@@ -32,6 +33,7 @@ impl Reserved {
             "css" => Self::Css,
             "context" => Self::Context,
             "init" => Self::Init,
+            "live" => Self::Live,
             "on" => Self::On,
             "use" => Self::Use,
             "if" => Self::If,
@@ -52,6 +54,7 @@ impl Reserved {
             Self::Css => "css",
             Self::Context => "context",
             Self::Init => "init",
+            Self::Live => "live",
             Self::On => "on",
             Self::Use => "use",
             Self::If => "if",
@@ -64,7 +67,13 @@ impl Reserved {
     fn is_rocci(self) -> bool {
         matches!(
             self,
-            Self::Component | Self::Fixture | Self::Css | Self::Context | Self::Init | Self::On
+            Self::Component
+                | Self::Fixture
+                | Self::Css
+                | Self::Context
+                | Self::Init
+                | Self::Live
+                | Self::On
         )
     }
 
@@ -684,6 +693,10 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
         Reserved::Fixture | Reserved::Context => {
             cur.skip_trivia();
             matches!(cur.peek(), Some('{')) || cur.peek().is_some_and(is_ident_start)
+        }
+        Reserved::Live => {
+            cur.skip_trivia();
+            matches!(cur.peek(), Some('=') | Some('{'))
         }
         Reserved::Page | Reserved::Roc | Reserved::Css | Reserved::Init => {
             cur.skip_trivia();

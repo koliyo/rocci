@@ -19,6 +19,7 @@ fn write_item(w: &mut Writer<'_>, src: &str, item: &Item) {
         Item::Css(item) => write_css_leaf(w, src, item),
         Item::Context(item) => write_context_leaf(w, src, item),
         Item::Init(item) => write_init_leaf(w, src, item),
+        Item::Live(item) => write_live_leaf(w, src, item),
         Item::On(item) => write_on_leaf(w, src, item),
         Item::Use(item) => write_use(w, src, item),
         Item::Template(item) => write_template_island(w, src, item),

@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Datastar SSE is a per-request transport; generated apps do not fan out
-description: "Datastar morphs from each request's response. Generated Rocci one-shot POST patches do not fan out. Multi-client push is Tao CQRS. Rocci should generate the SSE unfold; authors opt in with a live render, not handwritten Wait/Emit. Keep the simple counter as a one-shot tutorial and add a live counter for shared views."
+description: "Datastar morphs from each request's response. Generated Rocci one-shot POST patches do not fan out. Multi-client push is Tao CQRS. The companion plan generates the SSE unfold behind @live; keep the simple counter as a one-shot tutorial and live-counter for shared views."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T08:29:00Z }
+generated: { by: process:cursor, at: 2026-08-21T09:02:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -28,12 +28,12 @@ sources:
     resource: ../../examples/rocci/standalone/counter/README.md
     title: First-app counter documents one-shot patch and curl SSE
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: hybrid-counter
     resource: ../../examples/rocdown/counter/index.rocdown
-    title: Hybrid counter island with sync and increment POSTs
+    title: Hybrid counter island with @live and json commands
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: snake-main
     resource: ../../examples/rocci/custom/snake/main.roc
     title: Authored CQRS - GET /sse stream and POST /api/direction empty SSE
@@ -51,34 +51,34 @@ sources:
     last_modified: 2026-08-20
   - id: server-actions
     resource: ../../docs/guides/server-actions.rocdown
-    title: Public server-actions guide documents one-shot patches
+    title: Public server-actions guide covers one-shot and @live
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: rendering-doc
     resource: ../../docs/concepts/rendering-model.rocdown
-    title: Published rendering model
+    title: Rendering model includes generated @live /sse
     author: process:git
-    last_modified: 2026-08-18
+    last_modified: 2026-08-21
   - id: template-readme
     resource: ../../crates/rocci-template/README.md
-    title: POC left long-lived SSE in authored main.roc
+    title: Standalone HTTP documents @live and json
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: rocci-ref
     resource: ../../docs/reference/rocci.rocdown
-    title: Public @on handler contract
+    title: Public @on, @live, and json contract
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: lower-rs
     resource: ../../crates/rocci-template/src/lower.rs
-    title: RouteInfo is method, path, fn_name only
+    title: RouteInfo respond kind and live data-init injection
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: ungram
     resource: ../../crates/rocci-template/Rocci.AST.ungram
-    title: OnDecl is method plus path with no respond kind
+    title: LiveDecl and OnDecl optional json respond ident
     author: process:git
-    last_modified: 2026-08-19
+    last_modified: 2026-08-21
   - id: service-rs
     resource: ../../crates/rocci-rocdown/src/service.rs
     title: Live islands reuse rocci-cli generated dispatch
@@ -409,17 +409,17 @@ true in-process pub/sub is out of scope until the platform grows one.
 
 The increment SSE body is working as generated. It is the wrong pattern for
 a **shared** view and the **right** pattern for the first-app counter.
-Datastar best practice for fan-out is CQRS. Rocci should generate the
-stream machinery and ask authors only for an opt-in live render plus
-command responses. Keep `examples/rocci/standalone/counter` one-shot; add a
-live-counter sibling; make the hybrid island live. Snake stays the
-hand-written ceiling.[^dispatch-rs][^snake-main][^counter-readme][^plan]
+Datastar best practice for fan-out is CQRS. The companion plan generates the
+stream machinery: authors write `@live` plus `json` commands. On
+`datastar-cqrs-action-responses` (not CI-complete), `examples/rocci/standalone/counter`
+stays one-shot; `live-counter` and the hybrid island share the stream. Snake
+stays the hand-written ceiling.[^dispatch-rs][^snake-main][^counter-readme][^plan]
 
 [^dispatch-rs]: Non-GET arms call `Ok(patch_html!(html))`; `patch_html!` unfolds one event then `End`. GET is always `html_ok`.
 [^datastar-roc]: `patch_elements` is `Sse.Event.keyed("datastar-patch-elements", "elements", ...)`.
 [^counter]: Increment/reset return `counterCard`; buttons use `@post("/actions/counter/...")`; lede text says one HTML patch.
 [^counter-readme]: First-app README documents curl of the POST SSE patch and single-event morph of `#counter`.
-[^hybrid-counter]: `data-init=@post("/actions/counter/sync")` plus increment/reset POSTs; no `/sse`.
+[^hybrid-counter]: Converted to `@live` plus `json` increment/reset; `/actions/counter/sync` removed.
 [^snake-main]: `GET /sse` → `stream_game!` revision poll; `POST /api/direction` → `empty_sse!`.
 [^snake-rocci]: `<body data-init=@get("/sse")>` on the play page.
 [^snake-readme]: Documents long-lived SSE patches and JSON `POST /api/direction`.
@@ -427,13 +427,13 @@ hand-written ceiling.[^dispatch-rs][^snake-main][^counter-readme][^plan]
 [^rendering-doc]: Table lists authored long-lived SSE separately from POST fragments.
 [^template-readme]: "Custom long-lived SSE stays in an authored `main.roc`"; JSON `/api/` is convention only.
 [^rocci-ref]: `@on` dispatch is `handler!(context, request)`; bodies illustrated as Html fragments.
-[^lower-rs]: `RouteInfo` has no respond/stream field.
-[^ungram]: `OnDecl` is `@` `on` method path params body.
+[^lower-rs]: `RouteInfo` gained `respond: Patch | Json` in the companion plan.
+[^ungram]: `OnDecl` gained optional respond ident `json`; `LiveDecl` is a module item.
 [^service-rs]: `IslandServicePlan.into_app_plan` feeds `rocci_cli` generic dispatch.
 [^server-state]: Backend remains authoritative; Datastar transports intent and server HTML.
 [^runtime-report]: Direct POST patch versus CQRS GET stream; do not double-patch one boundary.
 [^snake-study]: Multiplayer patches on a long-lived GET; commands are separate.
-[^author-skill]: Long-lived SSE row still says authored `main.roc`.
+[^author-skill]: Server-app table lists `@live` and `json` on this branch.
 [^ds-backend]: Zero or more SSE events per response; SDKs format `PatchElements` / `PatchSignals`.
 [^ds-tao]: CQRS long-lived GET plus short writes; 0–n SSE events; signals for interaction not domain.
 [^ds-sse]: `datastar-patch-elements` morphs by id; events end with a blank line.

@@ -1,9 +1,10 @@
 # Hybrid counter
 
 A Rocdown site with one `live` page: Markdown plus a SQLite-backed counter
-island, the hybrid analog of [`examples/rocci/standalone/counter`](../../rocci/standalone/counter). The CDN file is
-a snapshot (`count` is `0` at build). On load, `POST /actions/counter/sync`
-refreshes the live count. Increment and reset morph `#counter`.
+island, the hybrid analog of [`examples/rocci/standalone/live-counter`](../../rocci/standalone/live-counter). The CDN file is
+a snapshot (`count` is `0` at build). On load, generated `GET /sse` replaces
+that snapshot and keeps two browsers in sync. Increment and reset are `json`
+commands (204 to Datastar; JSON to `curl`).
 
 A neighboring [`about.rocdown`](about.rocdown) page stays `static`: no Datastar,
 no island routes.
@@ -30,7 +31,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown/counter
 ```
 
 Expect `index` as `live` with Datastar, `about` as `static`, and
-`POST /actions/counter/sync`, `increment`, and `reset`.
+`POST /actions/counter/increment` and `reset` (no `/actions/counter/sync`).
 
 ### Snapshot HTML and CSS
 
@@ -50,7 +51,7 @@ cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/counter --no-window \
   --output /tmp/rocdown-counter-preview
 ```
 
-Serves the CDN tree and proxies `/actions/` on one origin
+Serves the CDN tree and proxies `/actions/` and `/sse` on one origin
 ([http://127.0.0.1:8000](http://127.0.0.1:8000) by default). Logs
 `rocdown: preview files at …`. `--output` keeps that tree after stop; without
 it the files live in a temp directory that is deleted when the process exits.
@@ -70,13 +71,12 @@ Smoke on 8000:
 ```sh
 curl -sf http://127.0.0.1:8000/health
 curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
-curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
-  -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{}'
+curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment
+# {"count":1}
 ```
 
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/), click Increment once, and
-confirm `#counter` morphs (buttons stay outside). Dev inspector:
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in two windows, click Increment once, and
+confirm `#counter` morphs in both (the stream, not the POST). Dev inspector:
 [http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev).
 While the server is up, grep `/tmp/rocdown-counter-preview` the same way as
 `dist/` above.
@@ -122,7 +122,7 @@ stay relative and CSP `connect-src` is `'self'`.
    discovery files should revalidate; they name the current hashes and
    routes.
 3. Run `rocdown serve-islands` on a host with a persistent `DB_PATH`.
-4. Reverse-proxy `/actions/` and `/health` to that process. Serve the rest of
+4. Reverse-proxy `/actions/`, `/sse`, and `/health` to that process. Serve the rest of
    the URL space from the CDN tree (including `/` and `/about/`).
 
 Sketch (Caddy):
@@ -130,6 +130,9 @@ Sketch (Caddy):
 ```caddy
 example.com {
     handle /actions/* {
+        reverse_proxy 127.0.0.1:8001
+    }
+    handle /sse {
         reverse_proxy 127.0.0.1:8001
     }
     handle /health {
@@ -167,14 +170,13 @@ uv run rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/cou
 Then open
 [http://127.0.0.1:8080/](http://127.0.0.1:8080/) (live counter) and
 [/about/](http://127.0.0.1:8080/about/) (static). Caddy serves the CDN tree and
-proxies `/actions/` plus `/health`. SQLite state is the `islands-db` volume.
+proxies `/actions/`, `/sse`, plus `/health`. SQLite state is the `islands-db` volume.
 See [`docker/README.md`](../../docker/README.md) for choosing `--target`.
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
-curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment \
-  -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{}'
+curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment
+# {"count":1}
 docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
@@ -199,12 +201,10 @@ With `serve-islands` on port 8001:
 curl -s http://127.0.0.1:8001/health
 # ok
 
-curl -s -X POST http://127.0.0.1:8001/actions/counter/increment \
-  -H 'datastar-request: true' -H 'content-type: application/json' \
-  -d '{}'
-# event: datastar-patch-elements
-# data: elements <section id="counter" ...><output>1</output>...
+curl -s -X POST http://127.0.0.1:8001/actions/counter/increment
+# {"count":1}
 ```
 
 With `rocdown run --no-window` on port 8000, the same POST works on that
-origin, and `GET /` is the CDN snapshot rather than a SQLite read.
+origin, and `GET /` is the CDN snapshot rather than a SQLite read. The first
+`GET /sse` event replaces snapshot `0` with the live count.

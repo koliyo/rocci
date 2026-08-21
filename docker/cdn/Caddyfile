@@ -4,6 +4,11 @@
 			flush_interval -1
 		}
 	}
+	handle /sse {
+		reverse_proxy islands:8001 {
+			flush_interval -1
+		}
+	}
 	handle /health {
 		reverse_proxy islands:8001
 	}

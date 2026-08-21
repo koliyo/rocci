@@ -2,6 +2,7 @@ module CounterPage exposing [counterPage]
 
 import pf.Html
 import Design
+import Datastar
 
 Tone : [Neutral, Positive]
 
@@ -349,6 +350,22 @@ badgeClass = |tone| {
 on_get_root! = |state, _request| {
     rocci_value = {
         counterPage({ person: { name: "Roc" }, count: 0 })
+    }
+    Ok(rocci_value)
+}
+
+
+live! = |state, _request| {
+    rocci_value = {
+        counterPage({ person: { name: "Roc" }, count: 0 })
+    }
+    Ok(rocci_value)
+}
+
+
+on_post_actions_increment! = |state, _request| {
+    rocci_value = {
+        "{\"count\": 0}"
     }
     Ok(rocci_value)
 }

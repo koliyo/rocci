@@ -1,8 +1,8 @@
 use rocci_template::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem,
-    TextNode,
+    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock,
+    TemplateItem, TextNode,
 };
 
 fn ungram_productions(src: &str) -> Vec<String> {
@@ -58,6 +58,7 @@ fn classify_module_item(item: &ModuleItem) -> &'static str {
         ModuleItem::Css(_) => "css",
         ModuleItem::Context(_) => "context",
         ModuleItem::Init(_) => "init",
+        ModuleItem::Live(_) => "live",
         ModuleItem::On(_) => "on",
     }
 }
@@ -125,6 +126,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
                 "CssDecl",
                 "ContextDecl",
                 "InitDecl",
+                "LiveDecl",
                 "OnDecl",
                 "TemplateBlock",
                 "TemplateItem",
@@ -154,6 +156,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<CssDecl>();
     let _ = std::any::type_name::<ContextDecl>();
     let _ = std::any::type_name::<InitDecl>();
+    let _ = std::any::type_name::<LiveDecl>();
     let _ = std::any::type_name::<OnDecl>();
     let _ = std::any::type_name::<TemplateBlock>();
     let _ = std::any::type_name::<TemplateItem>();

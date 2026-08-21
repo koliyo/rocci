@@ -75,27 +75,27 @@ reset_count! = |db| {
     { db: db }
 }
 
-@on:post("/actions/counter/sync") = |{ db }| {
+@live = |{ db }| {
     count = read_count!(db)?
     counterCard({ count: count })
 }
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@on:post("/actions/counter/increment") json = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count })
+    "{\"count\":${count.to_str()}}"
 }
 
-@on:post("/actions/counter/reset") = |{ db }| {
+@on:post("/actions/counter/reset") json = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count })
+    "{\"count\":${count.to_str()}}"
 }
 
 @component
@@ -159,7 +159,7 @@ CounterIsland = |{ count }| {
         }
     }
     <>
-        <div data-init=@post("/actions/counter/sync")></div>
+        <div data-init=@get("/sse", [OpenWhenHidden(Bool.true)])></div>
         <CounterCard count={count} />
         <div class="actions">
             <button type="button" data-on:click=@post("/actions/counter/increment")>
@@ -175,8 +175,9 @@ CounterIsland = |{ count }| {
 # Hybrid counter
 
 Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
-time (`count` is `0` in that snapshot). On load, the island syncs the live
-count. Increment and reset morph `#counter`.
+time (`count` is `0` in that snapshot). On load, generated `GET /sse` replaces
+that snapshot with the live count and keeps two browsers in sync. Increment and
+reset return JSON (204 to Datastar); they do not patch `#counter`.
 
 See [About](/about/) for a neighboring page that stays static.
 

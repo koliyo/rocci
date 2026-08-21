@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use rocci_template::{InitInfo, RouteInfo};
+use rocci_template::{InitInfo, LiveInfo, RouteInfo};
 use sha2::{Digest, Sha256};
 
 use crate::datastar_asset;
@@ -26,6 +26,7 @@ pub struct GenericModule {
     pub roc: String,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub mapped: MappedModule,
     pub local_assets: Vec<String>,
@@ -67,6 +68,7 @@ impl GenericAppPlan {
             &primary.type_name,
             primary.state_type.as_deref(),
             primary.init.as_ref(),
+            primary.live.as_ref(),
             &bound,
             DispatchOptions {
                 redirect_trailing_slash: self.redirect_trailing_slash,

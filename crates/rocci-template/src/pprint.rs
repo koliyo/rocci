@@ -1,7 +1,7 @@
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
     FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation, LetDirective,
-    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, TextNode,
+    LiveDecl, MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, TextNode,
 };
 use crate::span::Span;
 
@@ -139,11 +139,24 @@ fn write_init(w: &mut Writer<'_>, src: &str, init: &InitDecl) {
     w.close();
 }
 
+fn write_live(w: &mut Writer<'_>, src: &str, live: &LiveDecl) {
+    let mut atoms = Vec::new();
+    if let Some(params) = live.params {
+        atoms.push(atom(params.of(src).trim()));
+    }
+    w.open("live", &atoms);
+    write_roc(w, live.body.of(src));
+    w.close();
+}
+
 fn write_on(w: &mut Writer<'_>, src: &str, on: &OnDecl) {
     let mut atoms = vec![
         atom(&on.method.name.to_ascii_uppercase()),
         string_atom(&on.path),
     ];
+    if let Some(respond) = &on.respond {
+        atoms.push(atom(&respond.name));
+    }
     if let Some(params) = on.params {
         atoms.push(atom(params.of(src).trim()));
     }

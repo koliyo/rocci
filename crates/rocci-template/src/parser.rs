@@ -1,11 +1,11 @@
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem,
-    TextNode,
+    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock,
+    TemplateItem, TextNode,
 };
 use crate::diagnostic::Diagnostic;
-use crate::lexer::{self, Cursor};
+use crate::lexer::{self, Cursor, is_ident_start};
 use crate::resolve::{component_name_error, component_roc_name, is_ambiguous_pascal};
 use crate::span::{SourceFile, Span};
 
@@ -43,6 +43,8 @@ pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput
         ModuleItem::Context(decl)
     } else if let Some(decl) = parser.try_parse_init() {
         ModuleItem::Init(decl)
+    } else if let Some(decl) = parser.try_parse_live() {
+        ModuleItem::Live(decl)
     } else if let Some(decl) = parser.try_parse_on() {
         ModuleItem::On(decl)
     } else if let Some(decl) = parser.try_parse_component() {
@@ -131,6 +133,16 @@ impl<'a> Parser<'a> {
                     }
                     opaque_start = self.cur.pos;
                     items.push(ModuleItem::Init(init));
+                    continue;
+                }
+                if let Some(live) = self.try_parse_live() {
+                    if opaque_start < live.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, live.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Live(live));
                     continue;
                 }
                 if let Some(on) = self.try_parse_on() {
@@ -321,6 +333,43 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn try_parse_live(&mut self) -> Option<LiveDecl> {
+        let start = self.cur.pos;
+        self.scan_at_keyword("live")?;
+        Some(self.parse_live_after_keyword(start))
+    }
+
+    fn parse_live_after_keyword(&mut self, start: usize) -> LiveDecl {
+        self.cur.skip_trivia();
+        let mut params = None;
+        if self.cur.eat('=') {
+            self.cur.skip_trivia();
+            params = self.scan_params();
+            if params.is_none() {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected `|params|` after `@live =`",
+                );
+            }
+            self.cur.skip_trivia();
+        }
+        let body = match self.scan_roc_block_inner() {
+            Some(span) => span,
+            None => {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected `{` to open an `@live` body",
+                );
+                Span::point(self.cur.pos)
+            }
+        };
+        LiveDecl {
+            params,
+            body,
+            span: Span::new(start, self.cur.pos),
+        }
+    }
+
     fn try_parse_on(&mut self) -> Option<OnDecl> {
         let start = self.cur.pos;
         self.scan_at_keyword("on")?;
@@ -370,6 +419,7 @@ impl<'a> Parser<'a> {
                 method,
                 path: String::new(),
                 path_span: Span::point(self.cur.pos),
+                respond: None,
                 params: None,
                 body: Span::point(self.cur.pos),
                 span: Span::new(start, self.cur.pos),
@@ -386,6 +436,16 @@ impl<'a> Parser<'a> {
             }
         };
         self.cur.skip_trivia();
+        let mut respond = None;
+        if self.cur.peek().is_some_and(is_ident_start)
+            && let Some(span) = self.cur.scan_ident()
+        {
+            respond = Some(Ident {
+                span,
+                name: self.cur.ident_text(span).to_string(),
+            });
+            self.cur.skip_trivia();
+        }
         let mut params = None;
         if self.cur.eat('=') {
             self.cur.skip_trivia();
@@ -412,6 +472,7 @@ impl<'a> Parser<'a> {
             method,
             path,
             path_span,
+            respond,
             params,
             body,
             span: Span::new(start, self.cur.pos),
@@ -1463,7 +1524,8 @@ impl<'a> Parser<'a> {
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
             "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
-            "component" | "fixture" | "context" | "init" | "on" | "page" | "roc" | "render" => {
+            "component" | "fixture" | "context" | "init" | "live" | "on" | "page" | "roc"
+            | "render" => {
                 self.error(
                     Span::new(start, name_span.end as usize),
                     format!("`@{name}` is only valid at document root, not inside a template body"),
@@ -1943,6 +2005,7 @@ fn empty_on(start: usize, pos: usize) -> OnDecl {
         },
         path: String::new(),
         path_span: Span::point(pos),
+        respond: None,
         params: None,
         body: Span::point(pos),
         span: Span::new(start, pos),
@@ -2085,8 +2148,8 @@ fn first_non_trivia_char(text: &str) -> Option<char> {
 }
 
 fn suggest_directive(name: &str) -> Option<&'static str> {
-    const KNOWN: [&str; 9] = [
-        "if", "for", "match", "let", "else", "css", "context", "init", "on",
+    const KNOWN: [&str; 10] = [
+        "if", "for", "match", "let", "else", "css", "context", "init", "live", "on",
     ];
     KNOWN
         .into_iter()

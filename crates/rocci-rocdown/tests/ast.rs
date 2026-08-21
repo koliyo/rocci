@@ -135,6 +135,7 @@ fn classify_item(item: &rocci_rocdown::Item) -> &'static str {
         rocci_rocdown::Item::Css(_) => "css",
         rocci_rocdown::Item::Context(_) => "context",
         rocci_rocdown::Item::Init(_) => "init",
+        rocci_rocdown::Item::Live(_) => "live",
         rocci_rocdown::Item::On(_) => "on",
         rocci_rocdown::Item::Use(_) => "use",
         rocci_rocdown::Item::Template(_) => "template",

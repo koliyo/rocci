@@ -42,6 +42,7 @@ Item =
 | CssDecl
 | ContextDecl
 | InitDecl
+| LiveDecl
 | OnDecl
 | UseDecl
 | TemplateItem
@@ -57,6 +58,7 @@ ModuleItem =
 | CssDecl
 | ContextDecl
 | InitDecl
+| LiveDecl
 | OnDecl
 | UseDecl
 
@@ -78,6 +80,8 @@ CssDecl = 'rocci-css'
 ContextDecl = 'rocci-context'
 /// foreign → rocci_template::InitDecl
 InitDecl = 'rocci-init'
+/// foreign → rocci_template::LiveDecl
+LiveDecl = 'rocci-live'
 /// foreign → rocci_template::OnDecl
 OnDecl = 'rocci-on'
 /// foreign → rocci_template::TemplateItem

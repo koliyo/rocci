@@ -38,6 +38,7 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `InitDecl` | `init` | generated |
 | `Interpolation` | `interp` | generated |
 | `LetDirective` | `let` | generated |
+| `LiveDecl` | `live` | generated |
 | `MatchArm` | `arm` | generated |
 | `MatchDirective` | `match` | generated |
 | `ModuleItem` | omit | generated |
