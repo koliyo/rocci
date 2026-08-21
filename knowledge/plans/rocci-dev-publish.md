@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
-description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, and origin docker kit were reported in place. CI packages site/ and deploys from main before the production Tunnel hostname is routed. Exploratory."
+description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, origin docker kit, and Access-gated staging route were reported in place. CI packages site/ and deploys from main before the production Tunnel hostname is routed. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T20:55:00Z }
+generated: { by: process:cursor, at: 2026-08-21T08:15:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -224,7 +224,9 @@ Flexible SSL), Email Routing with a verified personal destination and tested
 Tunnel with `cloudflared` installed on the VPS, bootstrap SSH, GitHub
 Environment `production`, a locked-down deploy user, and the origin docker
 kit at `/srv/rocci/docker`. The Tunnel has no production hostname route.
-Artifacts are pushed by CI, not copied by hand.[^human-preparation]
+`staging.rocci.dev` is routed to the loopback Caddy origin and guarded by
+Cloudflare Access: the maintainer can use a browser login and CI can use its
+existing service token. Artifacts are pushed by CI, not copied by hand.[^human-preparation]
 
 ## Human preparation (before an agent continues)
 
@@ -254,8 +256,12 @@ here.[^human-preparation]
    address.[^cf-email-routing][^tangled-plan]
 4. **Hetzner Cloud.** The specified Cost-Optimized **x86** Debian 12 VPS,
    IPv6, Primary IPv4, and SSH-only provider firewall are in place.[^hetzner-cloud][^hetzner-servers]
-5. **Tunnel.** A named Tunnel exists and `cloudflared` is installed on the
-   VPS. It has no production hostname route until Caddy is up.[^cf-tunnel]
+5. **Tunnel and private staging.** A named Tunnel exists and `cloudflared` is
+   installed on the VPS. `staging.rocci.dev` routes to loopback Caddy behind a
+   Cloudflare Access application. The maintainer's email is allowed for
+   browser testing, and the GitHub deployment service token has a Service
+   Auth policy for CI tests. `rocci.dev` and `www.rocci.dev` remain unrouted
+   until a public launch decision.[^cf-tunnel][^human-preparation]
 6. **Bootstrap SSH.** SSH as a sudo-capable user is confirmed. A locked-down
    `deploy` user is in place for CI artifact push.
 
@@ -294,7 +300,7 @@ Human prep for rocci-dev-publish:
 - SSH: locked-down deploy user and public key installed (private key is a GitHub secret, not chat)
 - Tunnel: name [name], cloudflared running, hostname not yet on production
 - GitHub Environment production: configured
-- Decision gates 2–4: keep live home island; deploy from GitHub main; no staging
+- Decision gates 2–4: keep live home island; deploy from GitHub main; private staging is Access-gated
 ```
 
 ### What the agent still must not invent
@@ -483,8 +489,9 @@ robots/security.txt page that Rocdown already supports.
 - Confirm `security@rocci.dev` forwards before the repository lists it.
 - After the repo is public: verify a fork PR cannot read `production`
   secrets and cannot trigger deploy.
-- Optional `staging.rocci.dev` Tunnel hostname only if Phase 4 left it
-  open.
+- Keep `staging.rocci.dev` protected by Cloudflare Access. Its human policy
+  admits only the maintainer; its Service Auth policy admits the GitHub CI
+  service token for non-interactive tests.[^human-preparation]
 
 **Does not:** OKF public deploy; product hosting adapters; stripping the
 home island unless the reviewer chose `--cdn-only` launch.
@@ -525,7 +532,9 @@ Human approval is required before treating these as normative:
 2. Keep the live home island on first publish (versus a `--cdn-only` launch).
 3. Deploy from GitHub `main`; Tangled adoption is deferred and is not a
    deployment or public-launch gate at this point.
-4. Skip `staging.rocci.dev` for the first publish.
+4. Keep `staging.rocci.dev` private behind Cloudflare Access before the first
+   public publish; allow the maintainer's browser identity and the GitHub CI
+   service token only.[^human-preparation]
 
 ## Validation
 

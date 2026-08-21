@@ -21,6 +21,40 @@ hand.
 
 ## Bootstrap (once)
 
+### Provision the `deploy` user
+
+Run these commands on the Debian VPS while logged in as the existing
+sudo-capable administrator. `authorized_keys` receives the **public** half of
+the dedicated GitHub deployment key; never paste the private key onto the
+server.
+
+```sh
+sudo adduser --disabled-password --gecos "" deploy
+sudo install -d -o deploy -g deploy -m 0700 /home/deploy/.ssh
+sudo vi /home/deploy/.ssh/authorized_keys
+sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+
+sudo install -d -o deploy -g deploy -m 0750 \
+  /srv/rocci/docker \
+  /srv/rocci/incoming \
+  /srv/rocci/releases
+sudo usermod -aG docker deploy
+```
+
+Open a new SSH session after `usermod`; supplementary group membership is set
+at login. Confirm Docker access before giving CI the deployment key:
+
+```sh
+sudo -iu deploy docker compose version
+```
+
+The current deployment scripts run `docker compose` as `deploy`, so Docker
+group membership is intentional here. The Docker group is effectively
+root-equivalent: protect the GitHub Environment, the deployment private key,
+and the `deploy` account accordingly. A later hardening pass can replace this
+with a root-owned, narrowly scoped deployment service.
+
 Copy Compose/Caddy/`prod/` (not `site.tgz` / `islands`):
 
 ```sh
@@ -29,12 +63,10 @@ DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy ./docker/prod/bootstrap-scp.sh
 
 Default remote dir is `/srv/rocci/docker`. The `deploy` user must write
 `/srv/rocci/{incoming,releases,current}` and call `docker compose` without
-sudo: `sudo usermod -aG docker deploy`, then a **new** SSH session (group
-membership is not picked up by an existing login). Confirm with
-`docker compose version` as `deploy`. Provider firewall should keep 22 and
-80/443 closed; CI SSHs through Cloudflare Access (`ssh.rocci.dev`). From a
-laptop with Access, export `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`,
-and `CF_SSH_HOSTNAME=ssh.rocci.dev` so `scp`/`ssh` use
+sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
+Cloudflare Access (`ssh.rocci.dev`). From a laptop with Access, export
+`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, and `CF_SSH_HOSTNAME=ssh.rocci.dev`
+so `scp`/`ssh` use
 [`access-ssh-proxy.sh`](access-ssh-proxy.sh) as `ProxyCommand`.
 
 ## Deploy from `main`
@@ -72,6 +104,30 @@ After origin health succeeds, point the named Tunnel at Caddy (Zero
 Trust Public Hostname UI, or merge [`cloudflared-ingress.yml.example`](cloudflared-ingress.yml.example)
 into the service config). Map `rocci.dev` and `www.rocci.dev` to
 `http://127.0.0.1:8080`. Do not open provider firewall 80/443.
+
+### Private staging
+
+`staging.rocci.dev` is the pre-production route. It resolves publicly, but
+Cloudflare Access must deny every request unless it matches an Access policy;
+DNS alone does not make the origin reachable. Configure it in Zero Trust as
+follows:
+
+1. Create a **Self-hosted** Access application for `staging.rocci.dev`.
+2. Add an **Allow** policy for the maintainer's personal email address, so a
+   Mac browser can sign in normally.
+3. Add a **Service Auth** policy for the existing GitHub deployment service
+   token. This permits non-interactive CI smoke tests without giving CI an
+   SSH login or making the site anonymous.
+4. Add the Tunnel published application `staging.rocci.dev` ->
+   `http://127.0.0.1:8080`, and attach the Access application.
+
+Keep the Access application in place whenever this hostname is enabled. Test
+in a private browser window: Cloudflare Access should require the maintainer
+login before it serves the site. CI must pass the service token as
+`CF-Access-Client-Id` and `CF-Access-Client-Secret`; do not put either value
+in the repository. This hostname is a first-level subdomain so it is covered
+by Cloudflare's normal `*.rocci.dev` certificate; a per-build
+`<uuid>.staging.rocci.dev` name is not.
 
 ## Cloudflare cache
 

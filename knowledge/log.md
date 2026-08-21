@@ -1,5 +1,13 @@
 # Knowledge log
 
+## 2026-08-21
+
+- Revised [rocci.dev deploy](plans/rocci-dev-publish.md):
+  `staging.rocci.dev` is now an implemented, Cloudflare Access-gated Tunnel
+  route to loopback Caddy. The maintainer may test in a browser and GitHub CI
+  may test through its existing Service Auth token; production hostnames remain
+  deliberately unrouted. Exploratory; no delivery phase is CI-complete.
+
 ## 2026-08-20
 
 - Pointed [rocci.dev deploy](plans/rocci-dev-publish.md) CI SSH through Cloudflare Access (`ssh.rocci.dev` service token); public port 22 stays closed. Not logged complete until `site.yml` deploy succeeds on `main`.
