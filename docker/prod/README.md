@@ -55,15 +55,18 @@ root-equivalent: protect the GitHub Environment, the deployment private key,
 and the `deploy` account accordingly. A later hardening pass can replace this
 with a root-owned, narrowly scoped deployment service.
 
-Copy Compose/Caddy/`prod/` (not `site.tgz` / `islands`):
+Copy Compose/Caddy/`prod/` docs plus the `tools/rocci-ops` uv project (not
+`site.tgz` / `islands`):
 
 ```sh
-DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy ./docker/prod/bootstrap-scp.sh
+DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy \
+  uv run --project tools/rocci-ops rocci-ops deploy bootstrap
 ```
 
-Default remote dir is `/srv/rocci/docker`. The `deploy` user must write
-`/srv/rocci/{incoming,releases,current}` and call `docker compose` without
-sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
+The origin needs Python 3.12 and `uv` on `PATH`. Default remote docker dir is
+`/srv/rocci/docker`; ops live at `/srv/rocci/tools/rocci-ops`. The `deploy`
+user must write `/srv/rocci/{incoming,releases,current}` and call `docker compose`
+without sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
 Cloudflare Access (`ssh.rocci.dev`). From a laptop with Access, export
 `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, and `CF_SSH_HOSTNAME=ssh.rocci.dev`
 so `scp`/`ssh` use
@@ -73,13 +76,16 @@ so `scp`/`ssh` use
 
 Do not copy artifacts by hand. `.github/workflows/site.yml` packages on
 linux/amd64, then the `deploy` job (Environment `production` only, never
-`pull_request`) probes SSH ([`check-ssh.sh`](check-ssh.sh)), bootstraps the
-origin kit, scps `site.tgz` / `islands`, and runs [`publish.sh`](publish.sh)
-on the box: unpack to `releases/<sha>/`, `compose up -d --build`, curl
-`http://127.0.0.1:8080/health`, then flip `current`. A failed health check
-leaves the previous symlink and restores that release. CI sets
-`ROCCI_SSH_VERBOSE=1` (`ssh -vv`, `scp -v`, cloudflared `--loglevel debug`).
-Laptop one-shot: [`push-release.sh`](push-release.sh).
+`pull_request`) probes SSH (`uv run --project tools/rocci-ops rocci-ops deploy probe`),
+bootstraps the origin kit, scps `site.tgz` / `islands`, and runs
+`uv run rocci-ops origin publish SHA` on the box: unpack to `releases/<sha>/`,
+`compose up -d --build`, GET `http://127.0.0.1:8080/health`, then flip `current`.
+A failed health check leaves the previous symlink and restores that release.
+Laptop one-shot:
+
+```sh
+uv run --project tools/rocci-ops rocci-ops deploy push ARTIFACT_DIR SHA
+```
 
 Secrets (names only): `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`,
 `DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`. Fork PRs
@@ -138,7 +144,7 @@ equals `/health`. Hashed `/assets/` already send
 ## SQLite backup
 
 ```sh
-sudo ./docker/prod/backup-sqlite.sh /var/backups/rocci
+sudo uv run --project /srv/rocci/tools/rocci-ops rocci-ops origin backup /var/backups/rocci
 ```
 
 That copies `site.db` out of volume `rocci-prod_islands-db`. Restore by
