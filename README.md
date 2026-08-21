@@ -169,9 +169,9 @@ on `run`.
 
 ```sh
 cargo test --workspace
-./scripts/ci-local.sh
+uv run --project tools/rocci-ops rocci-ops ci
 ```
 
-`cargo test --workspace` is the fast crate suite. `./scripts/ci-local.sh` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `./scripts/ci-local.sh lint test`.
+`cargo test --workspace` is the fast crate suite. `uv run --project tools/rocci-ops rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run --project tools/rocci-ops rocci-ops ci lint test`.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.
