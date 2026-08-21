@@ -36,7 +36,7 @@ pub use parser::{
     ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
     parse_template_item_from,
 };
-pub use pprint::format_ast;
+pub use pprint::{HandlerInspect, format_ast, inspect_handlers};
 pub use remap::{MappedModule, remap_roc_output};
 pub use resolve::{
     camel_to_pascal, component_matches, component_roc_name, is_ambiguous_pascal, pascal_to_camel,

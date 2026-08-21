@@ -1,4 +1,4 @@
-use rocci_template::{LowerOptions, SourceFile, compile, format_ast};
+use rocci_template::{LowerOptions, SourceFile, compile, format_ast, inspect_handlers};
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
     let out = compile(SourceFile::new("test.rocci", src), &LowerOptions::default());
@@ -83,6 +83,11 @@ fn accepts_every_canonical_header() {
         } else {
             assert!(out.live.is_some(), "{header}");
         }
+        let again = format_ast(&src, &out.document);
+        assert_eq!(
+            ast, again,
+            "format_ast must be two-pass idempotent for {header}"
+        );
     }
 }
 
@@ -287,5 +292,35 @@ fn missing_equals_and_path_are_diagnosed() {
     assert!(
         errors.iter().any(|msg| msg.contains("expected `|params|`")),
         "{errors:?}"
+    );
+}
+
+#[test]
+fn inspects_kind_method_path_and_role() {
+    let src = r#"
+@view("/") { Html.text("v") }
+@patch("/p") { Html.text("p") }
+@patch:patch("/pp") { Html.text("pp") }
+@command:delete("/c") { { n: 1 } }
+@live { Html.text("l") }
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#;
+    let out = compile_ok(src);
+    let lines: Vec<_> = inspect_handlers(&out.document)
+        .into_iter()
+        .map(|handler| handler.line())
+        .collect();
+    assert_eq!(
+        lines,
+        vec![
+            "view GET \"/\" document",
+            "patch POST \"/p\" patch",
+            "patch PATCH \"/pp\" patch",
+            "command DELETE \"/c\" command",
+            "live GET \"/sse\" live",
+        ]
     );
 }

@@ -166,6 +166,6 @@ UserDirectory = |{ users, query, status }| {
     initAppState
 }
 
-@on:get("/api/users") {
+@view("/api/users") {
     jsonResponse(users)
 }
