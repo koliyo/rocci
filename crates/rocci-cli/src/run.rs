@@ -470,7 +470,6 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     } else {
         serve::PortArg::Exact(config.http.port).resolve()?
     };
-    let url = format!("http://127.0.0.1:{port}/");
     let window = config.windows.first();
     let title = window
         .map(|window| window.title.as_str())
@@ -478,6 +477,13 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
         .to_string();
     let width = window.map(|window| window.width).unwrap_or(1040.0);
     let height = window.map(|window| window.height).unwrap_or(760.0);
+    let path = window.map(|window| window.url.as_str()).unwrap_or("/");
+    let path = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    };
+    let url = format!("http://127.0.0.1:{port}{path}");
 
     let mut cmd = Command::new(&server);
     cmd.current_dir(&app_dir)

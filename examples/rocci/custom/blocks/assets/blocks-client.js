@@ -1,4 +1,5 @@
 const BASE = '/play/blocks'
+const DEBUG = new URLSearchParams(location.search).has('debug')
 const COLS = 10
 const ROWS = 20
 const COLORS = {
@@ -71,7 +72,8 @@ const KICKS = [
 let sequence = 0
 let revision = 0
 let board = '.'.repeat(200)
-let current = { piece: 'T', rot: 0, x: 3, y: 0 }
+let current = { piece: '', rot: 0, x: 3, y: 0 }
+let lastPhase = ''
 let locking = false
 let eliminated = false
 let gravityMs = 800
@@ -79,6 +81,12 @@ let gravityTimer = 0
 let das = { dir: 0, delay: 0 }
 let lastTs = 0
 let gamepadPrev = { left: false, right: false, down: false, rot: false, ccw: false, drop: false }
+
+function debug(event, detail) {
+    if (DEBUG) {
+        console.debug(`[blocks] ${event}`, detail)
+    }
+}
 
 function cellsOf(piece, rot, x, y) {
     const shape = OFFSETS[piece]?.[rot]
@@ -124,42 +132,70 @@ function ghostY() {
     return y
 }
 
+function phase() {
+    return document.getElementById('blocks-arena-state')?.getAttribute('data-phase') ?? ''
+}
+
+function inRound() {
+    return phase() === 'round'
+}
+
+function isWatching() {
+    return !document.querySelector('#blocks-arena-state [data-you="1"]')
+}
+
+function canControl() {
+    return inRound() && !locking && !eliminated && !isWatching()
+}
+
 function readManifest() {
     const root = document.getElementById('blocks-arena-state')
     const you = root?.querySelector('[data-you="1"]') ?? root?.querySelector('[data-seat]')
     if (!root || !you) {
         return
     }
-    revision = Number(root.getAttribute('data-revision') ?? '0')
+    const manifestRevision = Number(root.getAttribute('data-revision') ?? '0')
+    const boardRevision = Number(you.getAttribute('data-board-revision') ?? '-1')
+    if (boardRevision < revision) {
+        debug('ignored stale manifest', { manifestRevision, boardRevision, revision })
+        lastPhase = phase()
+        return
+    }
+    revision = boardRevision
     board = you.getAttribute('data-board') ?? board
     eliminated = you.getAttribute('data-status') === 'eliminated'
     const piece = you.getAttribute('data-piece')
-    if (piece && piece !== current.piece && !locking) {
+    const round = inRound()
+    if (round && piece && !locking && (piece !== current.piece || lastPhase !== 'round')) {
         current = { piece, rot: 0, x: 3, y: 0 }
     }
+    debug('applied manifest', { manifestRevision, boardRevision, piece: current.piece, phase: phase() })
+    lastPhase = phase()
 }
 
 function applyAck(data) {
     const ok = data.ok === 1 || data.ok === true
+    locking = false
+    if (!ok && (data.error === 'WrongPhase' || data.error === 'Unauthenticated')) {
+        return
+    }
     board = data.board ?? board
     revision = data.revision ?? revision
     sequence = data.sequence ?? sequence
     eliminated = data.eliminated === 1 || data.eliminated === true
-    current = { piece: data.piece ?? current.piece, rot: 0, x: 3, y: 0 }
-    locking = false
+    current = { piece: data.piece || current.piece, rot: 0, x: 3, y: 0 }
     const you = document.querySelector('#blocks-arena-state [data-you="1"]')
     if (you) {
         you.setAttribute('data-board', board)
         you.setAttribute('data-piece', current.piece)
+        you.setAttribute('data-board-revision', String(revision))
         you.setAttribute('data-status', eliminated ? 'eliminated' : 'alive')
     }
-    if (!ok) {
-        current = { piece: data.piece ?? current.piece, rot: 0, x: 3, y: 0 }
-    }
+    debug('lock acknowledgement', { ok, error: data.error ?? '', revision, piece: current.piece, eliminated })
 }
 
 async function postLock() {
-    if (locking || eliminated || isWatching()) {
+    if (!canControl()) {
         return
     }
     locking = true
@@ -197,12 +233,8 @@ async function resetBoard() {
     applyAck(data)
 }
 
-function isWatching() {
-    return !document.querySelector('#blocks-arena-state [data-you="1"]')
-}
-
 function tryMove(dx, dy) {
-    if (locking || eliminated || isWatching()) {
+    if (!canControl()) {
         return false
     }
     if (fits(current.piece, current.rot, current.x + dx, current.y + dy)) {
@@ -213,7 +245,7 @@ function tryMove(dx, dy) {
 }
 
 function tryRotate(dir) {
-    if (locking || eliminated || isWatching()) {
+    if (!canControl()) {
         return
     }
     const rot = (current.rot + dir + 4) % 4
@@ -230,7 +262,7 @@ function softDrop() {
 }
 
 function hardDrop() {
-    if (locking || eliminated || isWatching()) {
+    if (!canControl()) {
         return
     }
     current = { ...current, y: ghostY() }
@@ -254,7 +286,7 @@ function paint() {
             ctx.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2)
         }
     }
-    if (!eliminated && !isWatching() && OFFSETS[current.piece]) {
+    if (!eliminated && !isWatching() && inRound() && OFFSETS[current.piece]) {
         const gy = ghostY()
         ctx.globalAlpha = 0.28
         for (const cell of cellsOf(current.piece, current.rot, current.x, gy) ?? []) {

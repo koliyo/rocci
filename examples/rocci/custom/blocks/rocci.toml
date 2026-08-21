@@ -6,7 +6,7 @@ version = "0.1.0"
 [[windows]]
 label = "main"
 title = "Rocci Blocks"
-url = "/"
+url = "/play/blocks/"
 width = 980
 height = 820
 min_width = 360

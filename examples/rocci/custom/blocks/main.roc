@@ -451,7 +451,7 @@ join_player! = |db, player_id| {
         seat = next_seat(players)
         id = new_id!(seat)
         status = if room.phase == "lobby" or room.phase == "countdown" {
-            "seated"
+            "ready"
         } else {
             "queued"
         }
@@ -479,6 +479,7 @@ join_player! = |db, player_id| {
         )
             ? |err| ServerErr("Failed to join: ${Str.inspect(err)}")
         bump_revision!(db) ? |err| ServerErr("Failed to join: ${Str.inspect(err)}")
+        tick_room!(db) ? |err| ServerErr("Failed to join: ${Str.inspect(err)}")
         redirect(
             303,
             "${prefix}/",
@@ -642,16 +643,21 @@ tick_room! = |db| {
     players = load_players!(db)?
     ready = List.len(List.keep_if(players, |p| p.status == "ready" or p.status == "playing")).to_i64_wrap()
     living = List.len(List.keep_if(players, |p| p.status == "playing")).to_i64_wrap()
+    starters = List.len(List.keep_if(players, |p| p.status == "playing" or p.status == "eliminated")).to_i64_wrap()
     match room.phase {
-        "lobby" if ready >= 2 and room.deadline_ms == 0 =>
-            set_phase!(db, "countdown", now + countdown_ms!({}), room.round, room.seed, "")
+        "lobby" if ready >= 1 and room.deadline_ms == 0 =>
+            if ready == 1 {
+                start_round!(db, room, players, now)
+            } else {
+                set_phase!(db, "countdown", now + countdown_ms!({}), room.round, room.seed, "")
+            }
         "countdown" if now >= room.deadline_ms =>
-            if ready >= 2 {
+            if ready >= 1 {
                 start_round!(db, room, players, now)
             } else {
                 set_phase!(db, "lobby", 0, room.round, room.seed, "")
             }
-        "round" if living <= 1 or (room.deadline_ms != 0 and now >= room.deadline_ms) => {
+        "round" if living == 0 or (starters >= 2 and living <= 1) or (room.deadline_ms != 0 and now >= room.deadline_ms) => {
             reason = if living <= 1 { "Last player standing" } else { "Timeout" }
             set_phase!(db, "result", now + result_ms!({}), room.round, room.seed, reason)
         }
@@ -859,6 +865,7 @@ build_view = |room, players, player_id, now, watching| {
                 queue: Game.queue_rows(player.garbage),
                 ready: Game.ready_rows_now(player.garbage, now),
                 piece: player.piece,
+                board_revision: player.board_revision,
                 you: if player.id == player_id { 1.I64 } else { 0.I64 },
             }
         },
