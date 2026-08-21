@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from rocci_ops import ci, workspace_deps
+from rocci_ops import ci, release, workspace_deps
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
@@ -10,6 +10,7 @@ usage: rocci-ops <command> [args...]
 commands:
   check-deps    check workspace package edges against the product boundary
   ci            run GitHub Actions validation jobs on this machine
+  release       package binaries, wait for CI, or publish a GitHub release
 """
 
 
@@ -25,6 +26,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(workspace_deps.main())
     if command == "ci":
         raise SystemExit(ci.main(rest))
+    if command == "release":
+        raise SystemExit(release.main(rest))
     sys.stderr.write(f"unknown command: {command}\n")
     sys.stderr.write(USAGE)
     raise SystemExit(2)
