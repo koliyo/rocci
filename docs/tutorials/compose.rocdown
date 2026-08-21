@@ -1,0 +1,88 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Compose a small application",
+        description: "Split components, render lists and variants, add forms and assets, and keep semantic HTML without writing main.roc yet.",
+    },
+}
+
+# Compose a small application
+
+**Prerequisites:** [First standalone app](/docs/tutorials/first-app/).
+**You will learn:** composition, `@if` / `@for` / `@match`, forms, assets, and
+multiple views — still inside generated standalone apps.
+**Time:** about twenty-five minutes.
+**Verify:** you can point at a cataloged module that uses each construct.
+**Next:** [Add commands and live updates](/docs/tutorials/commands-and-live/).
+
+Stay on generated `@view` / `@patch` until the next tutorials. Custom
+`main.roc` is a later ownership step, not a requirement for composition.
+
+## Components and bodies
+
+There is no magic `children` field. Pass nested markup as a second parameter:
+
+```rocci
+@component Card = |{ title }, content|
+    <section>
+        <h2>{title}</h2>
+        {content}
+    </section>
+```
+
+Call it with a paired tag. Self-closing tags pass only props. Qualified calls
+such as `<Design.Button />` use an imported module.
+
+## Lists, conditions, variants
+
+Use directives when branches **produce markup**:
+
+```rocci
+@if List.is_empty(items) {
+    <p>Nothing yet.</p>
+} else {
+    <ul>
+        @for item in items {
+            <li>{item.label}</li>
+        }
+    </ul>
+}
+
+@match ({ status }) {
+    Ready => <p>Ready</p>
+    Failed => <p role="alert">Failed</p>
+}
+```
+
+Ordinary Roc `if` / `match` belong in helpers and in `{expr}` interpolations,
+not around tags. Markup is invalid inside a Roc interpolation.
+
+`@let name = expr` binds derived data before the render items.
+
+## Forms and names
+
+Use `<form>` and labeled inputs. Buttons that submit mutations should say what
+they do (`Increment`, `Save`). Put `role="alert"` on error text. Keyboard and
+zoom are part of correctness for these examples.
+
+The [Datastar gallery](/examples/datastar/) shows search, click-to-edit, todos,
+tabs, and validation as complete source. Read those pages after this tutorial
+when you want a pattern; they use custom `main.roc`, so treat them as a
+preview of the later ownership tutorial.
+
+## Assets and extra views
+
+File-level `@css` styles the document (`body`, not `html`). Application files
+under `assets/` are served from `/assets`. Additional `@view("/path")`
+handlers are extra documents. Keep route shapes canonical (trailing slash
+policy is in `rocci.toml`).
+
+## Ability checklist
+
+- Compose with a body parameter instead of `children`
+- Choose `@if` / `@for` / `@match` for markup-producing branches
+- Keep labels, buttons, and alerts meaningful
+- Add a second `@view` without introducing `main.roc`
+
+Next: [commands and live updates](/docs/tutorials/commands-and-live/).
+Reference: [Rocci language](/docs/reference/rocci/).

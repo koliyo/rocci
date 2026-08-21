@@ -44,8 +44,9 @@ Browser  --POST /actions/…-->  @patch -->  <div id="counter">…</div>
 | PUT, PATCH, DELETE | Explicit when the mutation is an update or delete |
 
 Success for a document is `200` `text/html`. A Datastar patch is an event
-stream of `datastar-patch-elements`. A `@command` is **204** for Datastar and
-`200 application/json` for `curl`. Handler `?` failures become `500`.
+stream of `datastar-patch-elements`. A `@command` is **empty SSE** for Datastar
+(HTTP 200 `text/event-stream`, zero events) and `200 application/json` for
+`curl`. Handler `?` failures become `500`.
 
 ## One real handler
 

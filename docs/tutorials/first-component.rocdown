@@ -116,6 +116,5 @@ After this tutorial you can:
 
 - Continue learning: the first standalone app uses
   [Counter](/examples/counter/) (SQLite and a one-shot `@patch`).
-- Related task: the existing
-  [server actions](/docs/guides/server-actions/) guide.
+- Next tutorial: [Build your first standalone app](/docs/tutorials/first-app/).
 - Reference: [Rocci language reference](/docs/reference/rocci/).

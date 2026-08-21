@@ -28,17 +28,21 @@ items = [
 [[nav]]
 label = "Tutorials"
 items = [
+    "tutorials/index",
     "tutorials/first-component",
+    "tutorials/first-app",
+    "tutorials/compose",
+    "tutorials/commands-and-live",
+    "tutorials/custom-main",
+    "tutorials/ship",
 ]
 
 [[nav]]
 label = "Build"
 items = [
-    "guides/server-actions",
     "guides/rocdown-pages",
     "guides/hybrid-sites",
     "guides/docs-components",
-    "guides/desktop-app",
     "guides/rocci-browser",
 ]
 
