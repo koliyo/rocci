@@ -425,10 +425,10 @@ hostname requirement. No second origin stack.
 - Environment secrets: `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`, SSH
   private key, Cloudflare Access service token id/secret. CI uses
   `cloudflared access ssh` as `ProxyCommand`; public 22 stays closed.
-- `deploy` job: `if: github.event_name == 'push' && (github.ref ==
-  'refs/heads/staging' || github.ref == 'refs/heads/production')`. Needs
-  the package job. Environment name is the branch. Never runs on
-  `pull_request` or on `main`.
+- `deploy` job: `if: github.ref == 'refs/heads/staging' || github.ref ==
+  'refs/heads/production'`. Needs the package job. Environment name is
+  the branch. Runs on push and **Run workflow** on those branches. Never
+  runs on `pull_request` or on `main`.
 - Scp the origin kit plus `site.tgz` and `islands`. Atomic publish:
   unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
   `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
@@ -438,8 +438,8 @@ hostname requirement. No second origin stack.
   fork PRs cannot deploy. Promote with `git push origin
   origin/main:staging` then `origin/staging:production`.
 
-**Does not:** `workflow_dispatch` to production without the same origin
-health; deploy from contributor forks; store the SSH key in the repo;
+**Does not:** `workflow_dispatch` deploy from a non-promote branch;
+deploy from contributor forks; store the SSH key in the repo;
 Cloudflare Tunnel hostname routing; the public `https://rocci.dev/` curls;
 a separate staging Compose stack or SQLite volume.
 
