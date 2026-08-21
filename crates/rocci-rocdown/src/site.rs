@@ -751,12 +751,23 @@ fn snippet_roots(root: &Path, config: &SiteConfig) -> Result<Vec<PathBuf>> {
     }
     for mount in &config.mounts {
         let mount_dir = root.join(&mount.source);
-        let mount_snippets = mount_dir.join("snippets");
-        if mount_snippets.is_dir() && !roots.contains(&mount_snippets) {
-            roots.push(mount_snippets);
+        push_snippet_dir(&mut roots, mount_dir.join("snippets"));
+        if let Ok(entries) = std::fs::read_dir(&mount_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    push_snippet_dir(&mut roots, path.join("snippets"));
+                }
+            }
         }
     }
     Ok(roots)
+}
+
+fn push_snippet_dir(roots: &mut Vec<PathBuf>, dir: PathBuf) {
+    if dir.is_dir() && !roots.contains(&dir) {
+        roots.push(dir);
+    }
 }
 
 fn collect_image_urls(document: &Document) -> Vec<String> {
@@ -1146,6 +1157,87 @@ debug = true
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].code, "RD2302");
         assert!(errors[0].message.contains("`counter`"), "{:?}", errors[0]);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn mounted_example_source_include_emits_tok_spans() {
+        let root = temp("app-docs-hl");
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Docs"
+
+[[mount]]
+source = "example-docs"
+prefix = "examples"
+layout = "docs"
+"#,
+        )
+        .unwrap();
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        let counter = root.join("example-docs/counter");
+        fs::create_dir_all(counter.join("snippets")).unwrap();
+        fs::create_dir_all(counter.join("source")).unwrap();
+        fs::write(
+            counter.join("index.rocdown"),
+            "@page { layout: \"docs\", meta: { title: \"Counter\" } }\n\n# Counter\n",
+        )
+        .unwrap();
+        fs::write(
+            counter.join("snippets/Counter.rocci"),
+            "@component Card = |{ title }| {\n    <div>{title}</div>\n}\n\n@on:get(\"/\") = || {\n    <html/>\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            counter.join("source/Counter.rocci.rocdown"),
+            "@page { layout: \"docs\", meta: { title: \"Counter.rocci\" } }\n\n# Counter.rocci\n\n:include[path: \"Counter.rocci\"]\n",
+        )
+        .unwrap();
+
+        let report = check(&root).unwrap();
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
+        let resolved = resolve_loaded(&load_site(&root).unwrap());
+        let ids: Vec<_> = resolved
+            .site
+            .pages
+            .iter()
+            .map(|page| page.id.as_str())
+            .collect();
+        assert!(
+            ids.contains(&"examples/counter/index"),
+            "{ids:?}"
+        );
+        assert!(
+            ids.iter()
+                .any(|id| id.contains("Counter.rocci")),
+            "{ids:?}"
+        );
+        assert!(!ids.iter().any(|id| id.contains("unlisted")));
+
+        let source_page = resolved
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id.contains("Counter.rocci"))
+            .unwrap();
+        assert!(
+            source_page.article_html.contains("tok-keyword"),
+            "{}",
+            source_page.article_html
+        );
+        assert!(
+            source_page
+                .article_html
+                .contains("<span class=\"tok-keyword\">@component</span>"),
+            "{}",
+            source_page.article_html
+        );
         let _ = fs::remove_dir_all(root);
     }
 }
