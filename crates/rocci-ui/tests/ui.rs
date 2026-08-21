@@ -29,7 +29,12 @@ fn test_view_constructors_and_serialization() {
                 current: false,
             },
         ],
-        sidebar: vec![NavItemView::new("Intro", "/guide/", "nav-link is-current")],
+        sidebar: vec![NavGroupView::new(
+            "Guide",
+            "/guide/",
+            true,
+            vec![NavItemView::new("Intro", "/guide/", "nav-link is-current")],
+        )],
         route: "/guide/".into(),
         title: "Guide".into(),
         description: "Getting started".into(),

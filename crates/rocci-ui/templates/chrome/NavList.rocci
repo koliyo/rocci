@@ -2,22 +2,104 @@ import Html
 
 @css {
     .nav-items { display: grid; }
-    .nav-link {
+    .nav-link, .nav-category {
         display: block;
         text-decoration: none;
     }
+    .nav-section { margin: 0; }
+    .nav-section + .nav-section { margin-top: 0.28rem; }
+    .nav-section summary {
+        list-style: none;
+        cursor: pointer;
+        position: relative;
+        padding-right: 1.75rem;
+    }
+    .nav-section summary::-webkit-details-marker { display: none; }
+    .nav-section summary::after {
+        content: "+";
+        position: absolute;
+        right: 0.68rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: 500;
+    }
+    .nav-section[open] > summary::after { content: "−"; }
+}
+
+@component NavGroupInner = |{ group, route }| {
+    <summary class="nav-category">
+        @if group.href != "" {
+            <a
+                class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
+                href={group.href}
+                aria-current={if group.href == route { "page" } else { "false" }}
+            >{group.title}</a>
+        } @else {
+            <span class="nav-link nav-category">{group.title}</span>
+        }
+    </summary>
+    <div class="nav-items">
+        @for item in group.items {
+            <a
+                class={item.class_name}
+                href={item.href}
+                aria-current={if item.href == route { "page" } else { "false" }}
+            >{item.title}</a>
+        }
+    </div>
 }
 
 @component NavList = |{ items, route, aria_label }| {
     <nav aria-label={aria_label}>
         <div class="nav-items">
-            @for item in items {
-                <a
-                    class={item.class_name}
-                    href={item.href}
-                    aria-current={if item.href == route { "page" } else { "false" }}
-                >{item.title}</a>
+            @for group in items {
+                @if List.is_empty(group.items) {
+                    <a
+                        class={if group.href == route { "nav-link is-current" } else { "nav-link" }}
+                        href={group.href}
+                        aria-current={if group.href == route { "page" } else { "false" }}
+                    >{group.title}</a>
+                } @else if group.open {
+                    <details class="nav-section" open>
+                        <NavGroupInner group={group} route={route} />
+                    </details>
+                } @else {
+                    <details class="nav-section">
+                        <NavGroupInner group={group} route={route} />
+                    </details>
+                }
             }
         </div>
     </nav>
+}
+
+@fixture{target: NavList}
+navListOpen = {
+    items: [
+        {
+            title: "Start",
+            href: "/",
+            open: False,
+            items: [
+                { title: "What is Rocci", href: "/start/what-is-rocci/", class_name: "nav-link nav-child" },
+            ],
+        },
+        {
+            title: "Tutorials",
+            href: "/tutorials/",
+            open: True,
+            items: [
+                { title: "Build your first component", href: "/tutorials/first-component/", class_name: "nav-link nav-child is-current" },
+                { title: "Build your first standalone app", href: "/tutorials/first-app/", class_name: "nav-link nav-child" },
+            ],
+        },
+        {
+            title: "Status",
+            href: "/status/",
+            open: False,
+            items: [],
+        },
+    ],
+    route: "/tutorials/first-component/",
+    aria_label: "Site navigation",
 }

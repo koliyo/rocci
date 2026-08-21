@@ -43,6 +43,30 @@ impl NavItemView {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct NavGroupView {
+    pub title: String,
+    pub href: String,
+    pub open: bool,
+    pub items: Vec<NavItemView>,
+}
+
+impl NavGroupView {
+    pub fn new(
+        title: impl Into<String>,
+        href: impl Into<String>,
+        open: bool,
+        items: Vec<NavItemView>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            href: href.into(),
+            open,
+            items,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct BreadcrumbView {
     pub title: String,
     pub href: String,
@@ -102,7 +126,7 @@ pub struct CollectionItemView {
 pub struct PageView {
     pub site: SiteView,
     pub lanes: Vec<LaneView>,
-    pub sidebar: Vec<NavItemView>,
+    pub sidebar: Vec<NavGroupView>,
     pub route: String,
     pub title: String,
     pub description: String,
