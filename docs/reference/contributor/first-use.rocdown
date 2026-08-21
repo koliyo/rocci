@@ -1,0 +1,70 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "First-use measurement protocol",
+        description: "How maintainers run Roc-first and web-first newcomer sessions and record failures without collecting personal data.",
+    },
+}
+
+# First-use measurement protocol
+
+**Prerequisites:** a clean machine or VM with only the [install](/docs/start/install/)
+toolchain, not a developer checkout already on `PATH`.
+**Kind:** contributor reference.
+**Status:** the protocol is current; live session results are **not** filled in
+by this implementation. Do not invent completion times.
+
+## Why this exists
+
+Phase 7 of the documentation plan requires two distinct newcomer entry states
+to complete the first-success path without a maintainer sitting next to them,
+plus a retrieval query set with an agreed threshold. The query set is
+`docs/search-queries.toml` (CI checks that expected pages exist). Live
+sessions are a human activity. Record them in `docs/first-use-sessions.toml`
+when they happen.
+
+Do not optimize for page views or tutorial-completion counts.
+
+## Entry states
+
+| Id | Starting knowledge | First pages |
+| --- | --- | --- |
+| `roc-first` | Roc syntax and effects; little server-driven UI | [Choose your path](/docs/start/choose-your-path/) → [five minutes](/docs/start/five-minutes/) → [first component](/docs/tutorials/first-component/) |
+| `web-first` | HTML/HTTP; little Roc | [Roc for Rocci](/docs/start/roc-for-rocci/) → [five minutes](/docs/start/five-minutes/) → [first component](/docs/tutorials/first-component/) |
+
+Stop after a visible `Hello` preview (`rocci view` or `rocci run` on styling).
+Do not require the counter in the same sitting unless the participant wants to
+continue.
+
+## Metrics (no personal data)
+
+Record only:
+
+- entry state id
+- date (`YYYY-MM-DD`)
+- success (`true` / `false`)
+- minutes to first visible component (integer, or empty if failed)
+- failed step (page route or command), or empty
+- notes as anonymous phrases (`"roc not on PATH"`, not names or emails)
+
+Do not record keystrokes, screen recordings, or identity. Issues filed from a
+session should cite the route and diagnostic, not the person.
+
+## Retrieval threshold
+
+`docs/search-queries.toml` is the offline query set. CI (`rocci-ops check-docs`)
+requires every `expect` route to exist. After the public site search is live,
+maintainers should sample zero-result queries and add rows here. Agreed
+threshold for the fixture set: **every listed query has a page** (100% of the
+file). Live search quality is a later sample, not a number invented in git.
+
+## After a session
+
+1. Write one `[[session]]` table in `docs/first-use-sessions.toml`.
+2. For each failed step: fix a page, open a product issue, or mark an explicit
+   non-goal on [status](/docs/status/).
+3. Do not log the plan complete in `knowledge/log.md` until CI and Knowledge
+   workflows succeed on the revision that contains the session evidence.
+
+**Related:** [Contributor checklist](/docs/reference/contributor/checklist/),
+[Install](/docs/start/install/).

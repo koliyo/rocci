@@ -59,4 +59,7 @@ page. Set `ROCCI_REQUIRE_ROC=1` when Roc must not be skipped.
 Blocking broken examples or missing canonical pages fail CI. Theme contrast
 bugs belong in the Rocdown theme, not a second checker.
 
-**Related:** [Status](/docs/status/). Search fixtures: `docs/search-queries.toml`.
+**Related:** [Status](/docs/status/),
+[first-use protocol](/docs/reference/contributor/first-use/).
+Search fixtures: `docs/search-queries.toml`. Session log:
+`docs/first-use-sessions.toml`.

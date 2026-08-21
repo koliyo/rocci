@@ -9,7 +9,7 @@ usage: rocci-ops <command> [args...]
 
 commands:
   check-deps    check workspace package edges against the product boundary
-  check-docs    check coverage.toml and search-queries.toml against pages
+  check-docs    check coverage.toml, search-queries.toml, and first-use-sessions.toml
   ci            run GitHub Actions validation jobs on this machine
   release       package binaries, wait for CI, or publish a GitHub release
   deploy        probe, bootstrap, or push origin artifacts over SSH

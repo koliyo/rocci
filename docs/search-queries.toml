@@ -1,9 +1,12 @@
 # Maintained search queries for the Rocci manual.
 # Expected routes are canonical pages (aliases also resolve).
-# Phase 7 records live-user protocol; this file is the offline query set.
+# Threshold: every row's `expect` page must exist (`rocci-ops check-docs`).
+# Live zero-result search samples are added as new rows after public search exists.
+# First-use sessions: docs/reference/contributor/first-use.rocdown
 
 schema_version = 1
 product = "rocci"
+threshold = "every listed query resolves to an existing page"
 
 [[query]]
 q = "what is rocci"
@@ -103,4 +106,54 @@ group = "beginner"
 [[query]]
 q = "glossary patch"
 expect = "/docs/glossary/"
+group = "beginner"
+
+[[query]]
+q = "sqlite standalone counter"
+expect = "/docs/tutorials/first-app/"
+group = "beginner"
+
+[[query]]
+q = "@view"
+expect = "/docs/reference/language/server/"
+group = "syntax"
+
+[[query]]
+q = "html tags fragments"
+expect = "/docs/reference/language/tags/"
+group = "syntax"
+
+[[query]]
+q = "error boundary"
+expect = "/docs/concepts/error-boundaries/"
+group = "runtime"
+
+[[query]]
+q = "windows support"
+expect = "/docs/reference/compatibility/"
+group = "beginner"
+
+[[query]]
+q = "one-shot versus live"
+expect = "/docs/concepts/one-shot-versus-live/"
+group = "runtime"
+
+[[query]]
+q = "custom main ability"
+expect = "/docs/tutorials/custom-main/"
+group = "cli"
+
+[[query]]
+q = "styling first component"
+expect = "/examples/"
+group = "beginner"
+
+[[query]]
+q = "handler matrix"
+expect = "/docs/reference/runtime/#handler-matrix"
+group = "runtime"
+
+[[query]]
+q = "first-use newcomer session"
+expect = "/docs/reference/contributor/first-use/"
 group = "beginner"
