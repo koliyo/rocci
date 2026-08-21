@@ -2,7 +2,7 @@
 //!
 //! This crate owns the bounded template grammar only. It does not invoke the
 //! Roc compiler, type-check Roc, spawn HTTP, or depend on desktop runtimes.
-//! `@context` / `@init` / `@on` are lowered to Roc functions plus route
+//! `@context` / `@init` / `@view` / `@patch` / `@command` are lowered to Roc functions plus route
 //! metadata for the CLI dispatcher.
 
 mod ast;
@@ -19,23 +19,24 @@ mod span;
 mod validate;
 
 pub use ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams,
-    TemplateBlock, TemplateItem, TextNode, parse_component_params, strip_param_defaults,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
+    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, ParsedParams,
+    PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl, parse_component_params,
+    strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
 pub use lower::{
     ComponentInfo, FixtureInfo, InitInfo, LiveInfo, LowerOptions, LoweredModule, LoweredTemplate,
-    RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, file_scope_id,
-    lower_template_items, route_fn_name, template_items_have_action,
+    RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, command_json_fn_name,
+    file_scope_id, lower_template_items, route_fn_name, template_items_have_action,
 };
 pub use parser::{
     ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
     parse_template_item_from,
 };
-pub use pprint::format_ast;
+pub use pprint::{HandlerInspect, format_ast, inspect_handlers};
 pub use remap::{MappedModule, remap_roc_output};
 pub use resolve::{
     camel_to_pascal, component_matches, component_roc_name, is_ambiguous_pascal, pascal_to_camel,

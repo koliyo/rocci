@@ -11,7 +11,7 @@ In Rocci projects, structure directories according to the semantic role of each 
 | --- | --- | --- | --- |
 | **`components/`** | Reusable UI widgets and design primitives | `Button.rocci`, `StatusCard.rocci`, `NavList.rocci` | `@component`, `@fixture`, scoped `@css` |
 | **`theme/`** or **`layouts/`** | Document frames, site chrome, and responsive shells | `SiteShell.rocci`, `Layouts.rocci`, `RocdownTheme.rocci` | `@component Layout = \|{ view }, content\|`, global CSS tokens |
-| **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `Todos.rocci`, `Edit.rocci` | `@context`, `@init`, `@on:get`, `@on:post` |
+| **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `Todos.rocci`, `Edit.rocci` | `@context`, `@init`, `@view`, `@patch` |
 | **`docs/`** | Documentation pages and guides | `overview.rocdown`, `quickstart.rocdown` | Markdown, `@page`, `:note`, `:img` |
 
 ### Why `components/` instead of `templates/`
@@ -129,7 +129,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 | Kind | Convention | Example |
 | --- | --- | --- |
 | `@component` / tag | PascalCase | `StatusCard`, `<StatusCard />` |
-| Lowered component value | camelCase | `statusCard` in `@on` and `exposing` |
+| Lowered component value | camelCase | `statusCard` in `@view` and `exposing` |
 | Ordinary Roc helper / field | snake_case | `read_count!`, `has_completed` |
 | Type / tag union payload | PascalCase | `Status : [Ready, Working, Failed]` |
 | Effectful function | `snake_case!` | `write_page!`, `from_request!` |
@@ -137,7 +137,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 Call the component from Roc with the lowered name:
 
 ```rocci
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count })
 }
@@ -245,10 +245,10 @@ answer = 42
 
 ## Server handlers and purity
 
-Keep rendering pure. Put I/O in `@init` and `@on` (or an authored `main.roc`).
+Keep rendering pure. Put I/O in `@init`, `@view`, `@patch`, and `@command` (or an authored `main.roc`).
 
 ```rocci
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     counterCard({ count })
 }

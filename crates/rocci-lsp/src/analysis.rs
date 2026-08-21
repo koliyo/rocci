@@ -4,9 +4,9 @@ use lsp_types::{
     MarkupContent, MarkupKind, Position, Range, SymbolKind,
 };
 use rocci_template::{
-    CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl, InitDecl,
-    LiveDecl, LowerOptions, ModuleItem, OnDecl, PositionEncoding, Severity, SourceFile, Span,
-    TemplateItem, compile, component_matches,
+    CommandDecl, CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl,
+    InitDecl, LiveDecl, LowerOptions, ModuleItem, PatchDecl, PositionEncoding, Severity,
+    SourceFile, Span, TemplateItem, ViewDecl, compile, component_matches,
 };
 
 #[rustfmt::skip]
@@ -18,7 +18,8 @@ const HTML_TAGS: &[&str] = &[
 ];
 
 const DIRECTIVES: &[&str] = &[
-    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "live", "on",
+    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "live", "view",
+    "patch", "command",
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
@@ -78,7 +79,9 @@ pub fn document_symbols(
             ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
             ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
             ModuleItem::Live(live) => Some(live_symbol(source, live, encoding)),
-            ModuleItem::On(on) => Some(on_symbol(source, on, encoding)),
+            ModuleItem::View(view) => Some(view_symbol(source, view, encoding)),
+            ModuleItem::Patch(patch) => Some(patch_symbol(source, patch, encoding)),
+            ModuleItem::Command(command) => Some(command_symbol(source, command, encoding)),
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => None,
         })
         .collect();
@@ -92,6 +95,10 @@ pub fn hover(
     offset: u32,
     encoding: PositionEncoding,
 ) -> Option<Hover> {
+    let source = SourceFile::new(name, text);
+    if let Some(hover) = handler_hover(source, &compiled.document, offset, encoding) {
+        return Some(hover);
+    }
     let components: Vec<_> = components(&compiled.document).collect();
     hover_components(name, text, &components, &[], offset, encoding)
 }
@@ -283,6 +290,144 @@ pub fn live_symbol(
     }
 }
 
+pub fn view_symbol(
+    source: SourceFile<'_>,
+    view: &ViewDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    named_symbol(
+        &format!("GET {}", view.path),
+        Some(format!("@view(\"{}\")", view.path)),
+        SymbolKind::FUNCTION,
+        source,
+        view.span,
+        view.path_span,
+        encoding,
+    )
+}
+
+pub fn patch_symbol(
+    source: SourceFile<'_>,
+    patch: &PatchDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    mutation_symbol(
+        "patch",
+        source,
+        patch.method.as_ref(),
+        &patch.path,
+        patch.span,
+        patch.path_span,
+        encoding,
+    )
+}
+
+pub fn command_symbol(
+    source: SourceFile<'_>,
+    command: &CommandDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    mutation_symbol(
+        "command",
+        source,
+        command.method.as_ref(),
+        &command.path,
+        command.span,
+        command.path_span,
+        encoding,
+    )
+}
+
+fn mutation_symbol(
+    kind: &str,
+    source: SourceFile<'_>,
+    method: Option<&rocci_template::Ident>,
+    path: &str,
+    span: Span,
+    path_span: Span,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    let method_name = method
+        .map(|ident| ident.name.to_ascii_uppercase())
+        .unwrap_or_else(|| "POST".to_string());
+    let detail = match method {
+        Some(ident) => format!("@{kind}:{}(\"{path}\")", ident.name),
+        None => format!("@{kind}(\"{path}\")"),
+    };
+    let selection = method.map(|ident| ident.span).unwrap_or(path_span);
+    named_symbol(
+        &format!("{method_name} {path}"),
+        Some(detail),
+        SymbolKind::FUNCTION,
+        source,
+        span,
+        selection,
+        encoding,
+    )
+}
+
+fn handler_hover(
+    source: SourceFile<'_>,
+    document: &Document,
+    offset: u32,
+    encoding: PositionEncoding,
+) -> Option<Hover> {
+    for item in &document.items {
+        let (header, detail) = match item {
+            ModuleItem::View(view) => (
+                Span {
+                    start: view.span.start,
+                    end: view.body.start,
+                },
+                format!("@view(\"{}\")", view.path),
+            ),
+            ModuleItem::Patch(patch) => (
+                Span {
+                    start: patch.span.start,
+                    end: patch.body.start,
+                },
+                patch_header(patch),
+            ),
+            ModuleItem::Command(command) => (
+                Span {
+                    start: command.span.start,
+                    end: command.body.start,
+                },
+                command_header(command),
+            ),
+            ModuleItem::Live(live) => (
+                Span {
+                    start: live.span.start,
+                    end: live.body.start,
+                },
+                "@live".into(),
+            ),
+            _ => continue,
+        };
+        if header.contains(offset) {
+            return Some(Hover {
+                contents: markdown(detail),
+                range: Some(lsp_range(source, header, encoding)),
+            });
+        }
+    }
+    None
+}
+
+fn patch_header(patch: &PatchDecl) -> String {
+    match &patch.method {
+        Some(ident) => format!("@patch:{}(\"{}\")", ident.name, patch.path),
+        None => format!("@patch(\"{}\")", patch.path),
+    }
+}
+
+fn command_header(command: &CommandDecl) -> String {
+    match &command.method {
+        Some(ident) => format!("@command:{}(\"{}\")", ident.name, command.path),
+        None => format!("@command(\"{}\")", command.path),
+    }
+}
+
 pub fn css_symbol(
     source: SourceFile<'_>,
     css: &rocci_template::CssDecl,
@@ -321,24 +466,6 @@ pub fn named_symbol(
     }
 }
 
-pub fn on_symbol(
-    source: SourceFile<'_>,
-    on: &OnDecl,
-    encoding: PositionEncoding,
-) -> DocumentSymbol {
-    DocumentSymbol {
-        name: format!("{} {}", on.method.name.to_ascii_uppercase(), on.path),
-        detail: Some(format!("@on:{}(\"{}\")", on.method.name, on.path)),
-        kind: SymbolKind::FUNCTION,
-        tags: None,
-        #[allow(deprecated)]
-        deprecated: None,
-        range: lsp_range(source, on.span, encoding),
-        selection_range: lsp_range(source, on.method.span, encoding),
-        children: None,
-    }
-}
-
 fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> String {
     format!(
         "@component {} = {}",
@@ -366,7 +493,9 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
         | ModuleItem::Context(_)
         | ModuleItem::Init(_)
         | ModuleItem::Live(_)
-        | ModuleItem::On(_) => None,
+        | ModuleItem::View(_)
+        | ModuleItem::Patch(_)
+        | ModuleItem::Command(_) => None,
     })
 }
 

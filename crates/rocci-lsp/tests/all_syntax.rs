@@ -80,6 +80,14 @@ fn test_lsp_all_syntax_rocci() {
                 syms.iter().any(|s| s.name == "CounterPage"),
                 "missing CounterPage symbol"
             );
+            assert!(
+                syms.iter().any(|s| s.name == "GET /"),
+                "missing @view symbol"
+            );
+            assert!(
+                syms.iter().any(|s| s.name == "PATCH /actions/patch"),
+                "missing @patch:patch symbol"
+            );
         }
         DocumentSymbolResponse::Flat(_) => panic!("expected nested symbols"),
     }

@@ -99,7 +99,7 @@ See [[About]]
         r#"
 @page { route: "/about/" }
 
-@on:get("/") = |_, _request| {
+@view("/") = |_, _request| {
     rocci_page({})
 }
 

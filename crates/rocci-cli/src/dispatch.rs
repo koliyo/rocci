@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
+use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo, command_json_fn_name};
 
 use crate::error_page::{self, ListedRoute};
 use crate::serve;
@@ -324,11 +324,102 @@ datastar_request = |request|
     out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(
         r#"
+ApiError : { error : Str }
+
 json_error_body = |err| {
-    bs = html_join(Str.split_on(err, "\\"), "\\\\")
-    escaped = html_join(Str.split_on(bs, "\""), "\\\"")
-    "{\"error\":\"${escaped}\"}"
+    payload : ApiError
+    payload = { error: err }
+    Encoding.Json.to_str_try(payload) ?? "{\"error\":\"encoding failed\"}"
 }
+"#,
+    );
+    out.push_str(serve::ROC_LISTEN_PORT_HELPER);
+    out.push_str(serve::ROC_LISTEN_HOST_HELPER);
+    out
+}
+
+pub fn json_encoder_probe_main_roc() -> String {
+    let mut out = format!(
+        r#"app [Context, program] {{
+    pf: platform "{PLATFORM}",
+    http: "{HTTP_PKG}",
+}}
+
+import pf.Env
+import pf.Path
+import pf.Server
+import pf.Sse
+import http.Method
+import http.Response
+import Datastar
+import Html
+
+Probe : {{
+    name : Str,
+    ok : Bool,
+    count : I64,
+    maybe : [Some(Str), None],
+    items : List(Str),
+}}
+
+Context : {{}}
+
+program = {{ init!, respond!, shutdown! }}
+
+init! : () => Try({{ config : Server.Config, context : Context }}, [Exit(I64), ..])
+init! = || {{
+    context = {{}}
+    assets = Server.file_root({{
+        id: "assets",
+        path: Path.utf8("assets"),
+    }})
+    config =
+        Server.default_config
+        .with_listen({{ host: listen_host!({{}}), port: listen_port!({{}}) }})
+        .with_file_roots([assets])
+        .with_native_routes({{
+            files: [
+                Server.static_mount({{ at: "/assets", files: assets }}),
+            ],
+            liveness: [],
+            readiness: [],
+        }})
+    Ok({{ config, context }})
+}}
+
+respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])
+respond! = |_request, _context| {{
+    name =
+        match Env.var_str!("PROBE_NAME") {{
+            Ok(value) if value != "" => value
+            _ => "handler"
+        }}
+    probe : Probe
+    probe = {{
+        name: name,
+        ok: True,
+        count: 42,
+        maybe: Some("x"),
+        items: ["a", "b"],
+    }}
+    total_record = Encoding.Json.to_str(probe)
+    total_str = Encoding.Json.to_str("plain")
+    record_body = Encoding.Json.to_str_try(probe) ?? total_record
+    str_body = Encoding.Json.to_str_try("plain") ?? total_str
+    json_ok("${{record_body}},${{str_body}}")
+}}
+
+shutdown! : Server.ShutdownReason, Context => Try({{}}, [Exit(I64), ..])
+shutdown! = |_reason, _context| Ok({{}})
+
+json_ok = |body|
+    Ok(
+        Server.respond(
+            Response.from_status(200)
+            .with_headers([{{ name: "Content-Type", value: "application/json" }}])
+            .with_body(Str.to_utf8(body)),
+        ),
+    )
 "#,
     );
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
@@ -531,29 +622,35 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             ok_log = ok_log,
             err_log = err_log,
         )
-    } else if route.respond == RespondKind::Json {
+    } else if route.respond == RespondKind::Command {
+        let json_handler = format!("{type_name}.{}", command_json_fn_name(&route.fn_name));
+        let json_call = format!("{json_handler}(context, request)");
         format!(
             r#"        ("{method}", "{path}") =>
-            match {call} {{
-                Ok(body) => {{
-                {ok_log}if datastar_request(request) {{
-                    no_content
-                }} else {{
-                    json_ok(body)
+            if datastar_request(request) {{
+                match {call} {{
+                    Ok(_data) => {{
+                    {ok_log}no_content
+                    }}
+                    Err(err) => {{
+                    {err_log}Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                    }}
                 }}
-                }}
-                Err(err) => {{
-                {err_log}if datastar_request(request) {{
-                    Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
-                }} else {{
-                    json_status(500, json_error_body(Str.inspect(err)))
-                }}
+            }} else {{
+                match {json_call} {{
+                    Ok(body) => {{
+                    {ok_log}json_ok(body)
+                    }}
+                    Err(err) => {{
+                    {err_log}json_status(500, json_error_body(Str.inspect(err)))
+                    }}
                 }}
             }}
 "#,
             method = route.method,
             path = route.path,
             call = call,
+            json_call = json_call,
             handler = handler,
             ok_log = ok_log,
             err_log = err_log,
@@ -584,6 +681,12 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
 mod tests {
     use super::*;
     use rocci_template::Span;
+    use std::env;
+    use std::fs;
+    use std::process::Command;
+    use std::sync::Mutex;
+
+    static ROC_LOCK: Mutex<()> = Mutex::new(());
 
     fn route(method: &str, path: &str, fn_name: &str) -> RouteInfo {
         RouteInfo {
@@ -595,12 +698,12 @@ mod tests {
         }
     }
 
-    fn route_json(method: &str, path: &str, fn_name: &str) -> RouteInfo {
+    fn route_command(method: &str, path: &str, fn_name: &str) -> RouteInfo {
         RouteInfo {
             method: method.to_string(),
             path: path.to_string(),
             fn_name: fn_name.to_string(),
-            respond: rocci_template::RespondKind::Json,
+            respond: rocci_template::RespondKind::Command,
             span: Span::new(0, 0),
         }
     }
@@ -924,12 +1027,12 @@ mod tests {
     }
 
     #[test]
-    fn json_post_checks_datastar_request_header() {
+    fn command_encodes_data_and_negotiates_204() {
         let main = generate_main_roc(
             "Counter",
             None,
             None,
-            &[route_json(
+            &[route_command(
                 "POST",
                 "/actions/counter/increment",
                 "on_post_actions_counter_increment!",
@@ -938,9 +1041,25 @@ mod tests {
         assert!(main.contains("Datastar-Request"), "{main}");
         assert!(main.contains("datastar_request(request)"), "{main}");
         assert!(main.contains("no_content"), "{main}");
+        assert!(
+            main.contains("Counter.on_post_actions_counter_increment!(context, request)"),
+            "{main}"
+        );
+        assert!(
+            main.contains("Counter.on_post_actions_counter_increment_json!(context, request)"),
+            "{main}"
+        );
+        assert!(!main.contains("Encoding.Json.to_str_try(data)"), "{main}");
         assert!(main.contains("json_ok(body)"), "{main}");
+        assert!(
+            main.contains("json_status(500, json_error_body(Str.inspect(err)))"),
+            "{main}"
+        );
+        assert!(main.contains("ApiError : { error : Str }"), "{main}");
+        assert!(main.contains("Encoding.Json.to_str_try(payload)"), "{main}");
         assert!(main.contains("application/json"), "{main}");
         assert!(!main.contains("Ok(patch_html!(html))"), "{main}");
+        assert!(!main.contains("{\"error\":\"${escaped}\"}"), "{main}");
     }
 
     #[test]
@@ -988,5 +1107,61 @@ mod tests {
         assert_eq!(main.matches("(\"GET\", \"/sse\")").count(), 1, "{main}");
         assert!(main.contains("App.on_get_sse!(context, request)"), "{main}");
         assert!(!main.contains("App.live!(context, request)"), "{main}");
+    }
+
+    #[test]
+    fn json_encoder_probe_uses_platform_imports_and_both_encoders() {
+        let main = json_encoder_probe_main_roc();
+        assert!(main.contains(PLATFORM), "{main}");
+        assert!(main.contains(HTTP_PKG), "{main}");
+        assert!(main.contains("import pf.Server"), "{main}");
+        assert!(main.contains("import Datastar"), "{main}");
+        assert!(main.contains("import Html"), "{main}");
+        assert!(main.contains("Encoding.Json.to_str(probe)"), "{main}");
+        assert!(main.contains("Encoding.Json.to_str_try(probe)"), "{main}");
+        assert!(main.contains("Encoding.Json.to_str(\"plain\")"), "{main}");
+        assert!(
+            main.contains("Encoding.Json.to_str_try(\"plain\")"),
+            "{main}"
+        );
+        assert!(!main.contains("{\\\"count\\\""), "{main}");
+        assert!(!main.contains("${count.to_str()}"), "{main}");
+    }
+
+    #[test]
+    fn json_encoder_probe_compiles_through_rocci_platform() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let workspace =
+            crate::driver::TempDir::create("json-encoder-probe").expect("create probe workspace");
+        crate::runtime_assets::stage_into(&workspace.path).expect("stage Html and Datastar");
+        fs::create_dir_all(workspace.path.join("assets")).expect("create assets");
+        fs::write(
+            workspace.path.join("main.roc"),
+            json_encoder_probe_main_roc(),
+        )
+        .expect("write probe main.roc");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("json encoder probe roc build failed: {err:#}"));
+        assert!(output.is_file(), "probe roc build did not write a server");
+    }
+
+    fn skip_without_roc() -> bool {
+        let help_ok = Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if !help_ok {
+            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
+                panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+            }
+            eprintln!("skipping: roc not on PATH");
+            return true;
+        }
+        false
     }
 }

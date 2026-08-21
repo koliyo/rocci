@@ -26,7 +26,7 @@ This opens an embedded window on a free local TCP port and prints the URL. Pass 
 Increment and reset call `Stderr.line!` so each action prints on the CLI and
 shows in the preview Dev Console (`source: runtime`).
 
-`rocci view` and `rocci browse` render components from fixtures; they do not run `@init` or `@on` handlers.
+`rocci view` and `rocci browse` render components from fixtures; they do not run `@init` or route handlers.
 
 ## Smoke checks
 

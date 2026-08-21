@@ -3,6 +3,7 @@ Action	omit	printed as attr
 Attr	tag	attr
 AttrValue	omit	flattened onto attr
 Boolean	omit	printed as attr
+CommandDecl	tag	command
 ComponentCall	tag	call
 ComponentDecl	tag	component
 ComponentPath	omit	flattened onto call atoms
@@ -21,11 +22,12 @@ IfDirective	tag	if
 InitDecl	tag	init
 Interpolation	tag	interp
 LetDirective	tag	let
+LiveDecl	tag	live
 MatchArm	tag	arm
 MatchDirective	tag	match
 ModuleItem	omit	enum wrapper; variants print their own heads
-OnDecl	tag	on
 ParamList	tag	params
+PatchDecl	tag	patch
 RocExpr	leaf	—
 RocPattern	leaf	—
 RocRegion	tag	roc
@@ -35,3 +37,4 @@ StringLit	leaf	—
 TemplateBlock	omit	items printed without a wrapper tag
 TemplateItem	omit	enum wrapper; variants print their own heads
 TextNode	tag	text
+ViewDecl	tag	view

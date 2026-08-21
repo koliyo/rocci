@@ -325,7 +325,9 @@ mod node_kind_highlight {
             | NodeKind::ContextDecl
             | NodeKind::InitDecl
             | NodeKind::LiveDecl
-            | NodeKind::OnDecl
+            | NodeKind::ViewDecl
+            | NodeKind::PatchDecl
+            | NodeKind::CommandDecl
             | NodeKind::TemplateBlock
             | NodeKind::TemplateItem
             | NodeKind::Element

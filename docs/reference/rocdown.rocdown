@@ -31,7 +31,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `@component` | Declare a Rocci component |
 | `@fixture` | Tag preview or test data |
 | `@css { ... }` | Add file-scoped CSS |
-| `@context`, `@init`, `@on` | Declare a standalone server app |
+| `@context`, `@init`, `@view`, `@patch`, `@command` | Declare a standalone server app |
 | `@if`, `@for`, `@match`, `@let` | Insert document-root Rocci template regions |
 | `@use "./Module.rocci"` | Interactive only: import `@component` exports as `:kind` article blocks |
 | `<Tag />` | Instantiate a document-root Rocci component or element |
@@ -39,10 +39,10 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 | `:img[src: "...", alt: "..."]` | Native image element; `alt` or `decorative` required; see below |
 
 `@island` is reserved in the design but not parsed yet. Hybrid sites use
-`@component` hosts and `@on` handlers instead.
+`@component` hosts and `@patch` / `@command` handlers instead.
 
 `@roc` is the place for Roc values and helpers. Live pages may `import pf.Sqlite`
-there and call those helpers from `@on` / `@init`. Document-root text that looks
+there and call those helpers from `@patch` / `@command` / `@init`. Document-root text that looks
 like Roc is Markdown, not a module item.
 
 ## `:img` native images
@@ -231,7 +231,7 @@ on the Markdown-first path; they do not make a page hydrate or live.
 | --- | --- | --- | --- |
 | `static` | Markdown, `@page`, `:name[params]` | Widget forest (`DocsComponents`) | No |
 | `hydrate` | plus `@component`, `@render`, document-root tags, `@css`, `@roc` | Island Html spliced at build | No |
-| `live` | plus `@on` / `@context` / `@init` or `import Datastar` | Same splice plus Datastar.js | Yes |
+| `live` | plus `@view` / `@patch` / `@command` / `@context` / `@init` or `import Datastar` | Same splice plus Datastar.js | Yes |
 
 `@use` stays a site-build error. `@render`, handlers, and HTML islands inside a
 `:note` (or other article-block) body are errors. `docs/` is a `static` catalog.

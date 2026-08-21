@@ -8,7 +8,9 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use rocci_core::Config;
-use rocci_template::{LowerOptions, SourceFile, compile, format_ast, format_diagnostic};
+use rocci_template::{
+    LowerOptions, SourceFile, compile, format_ast, format_diagnostic, inspect_handlers,
+};
 
 #[derive(Parser)]
 #[command(name = "rocci", about = "Rocci desktop runtime and template tooling")]
@@ -326,6 +328,11 @@ fn inspect_rocci(input: &Path, ast: bool, src: &str, source: SourceFile<'_>) -> 
     println!("# fixtures ({})", compiled.fixtures.len());
     for fixture in &compiled.fixtures {
         println!("- {} -> {}", fixture.name, fixture.target);
+    }
+    let handlers = inspect_handlers(&compiled.document);
+    println!("# handlers ({})", handlers.len());
+    for handler in &handlers {
+        println!("- {}", handler.line());
     }
     if ast {
         println!("\n# ast\n{}", format_ast(src, &compiled.document));

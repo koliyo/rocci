@@ -136,7 +136,9 @@ fn classify_item(item: &rocci_rocdown::Item) -> &'static str {
         rocci_rocdown::Item::Context(_) => "context",
         rocci_rocdown::Item::Init(_) => "init",
         rocci_rocdown::Item::Live(_) => "live",
-        rocci_rocdown::Item::On(_) => "on",
+        rocci_rocdown::Item::View(_) => "view",
+        rocci_rocdown::Item::Patch(_) => "patch",
+        rocci_rocdown::Item::Command(_) => "command",
         rocci_rocdown::Item::Use(_) => "use",
         rocci_rocdown::Item::Template(_) => "template",
         rocci_rocdown::Item::Block(_) => "block",
@@ -296,7 +298,7 @@ fn all_syntax_covers_document_and_block_kinds() {
         "fixture",
         "context",
         "init",
-        "on",
+        "patch",
         "render",
         "template",
         "block",
@@ -337,5 +339,5 @@ fn all_syntax_covers_document_and_block_kinds() {
     }
     assert!(ast.contains("(context"), "{ast}");
     assert!(ast.contains("(init)"), "{ast}");
-    assert!(ast.contains("(on "), "{ast}");
+    assert!(ast.contains("(patch "), "{ast}");
 }

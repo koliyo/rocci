@@ -56,11 +56,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_, _request| {
+@patch("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@on:post("/actions/reveal/hide") = |_, _request| {
+@patch("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
