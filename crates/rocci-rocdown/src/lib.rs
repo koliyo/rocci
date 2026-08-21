@@ -74,8 +74,8 @@ pub use pprint::format_ast;
 pub use rocci_roc_host::HostChoice;
 pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
 pub use service::{
-    IslandRoute, IslandServicePlan, island_routes, live_csp, plan_island_service,
-    prefix_action_urls, serve_islands,
+    IslandRoute, IslandServicePlan, island_routes, island_routes_with_service, live_csp,
+    plan_island_service, prefix_action_urls, serve_islands,
 };
 pub use site::{
     CheckFormat, CheckReport, InspectKind, cdn_only_live_errors, check, find_site_root, inspect,

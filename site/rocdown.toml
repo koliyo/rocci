@@ -181,3 +181,6 @@ items = [
     "project/roadmap",
     "project/contributing",
 ]
+
+[http]
+service = "../examples/rocci/standalone/live-counter/LiveCounter.rocci"

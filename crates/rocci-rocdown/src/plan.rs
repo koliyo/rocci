@@ -12,7 +12,7 @@ use crate::article::PageKind;
 use crate::catalog::{self, NavLink, NavSection, PageHeading, ResolvedPage, ResolvedSite};
 use crate::config::SiteConfig;
 use crate::runtime;
-use crate::service::{IslandRoute, island_routes, live_csp};
+use crate::service::{IslandRoute, island_routes_with_service, live_csp};
 
 pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
@@ -297,7 +297,7 @@ fn plan_with_preview(
         None
     };
     let service_routes = if has_live {
-        island_routes(root, site)?
+        island_routes_with_service(root, site, &config.http.service)?
     } else {
         Vec::new()
     };

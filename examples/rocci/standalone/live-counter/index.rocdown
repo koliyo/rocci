@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Live counter",
-        description: "Commands plus a shared @live stream",
+        description: "Commands plus a shared @live stream with click origins",
     },
 }
 
@@ -16,7 +16,11 @@ The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
 but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
 receives **empty SSE** (200 `text/event-stream`, zero events), and `curl` without
 `Datastar-Request` receives `{"count":N}`.
-The stream morphs `#counter` in every connected tab.
+The stream morphs `#counter` (count plus recent click origins) in every connected tab.
+
+This same app is composed into the [rocci.dev home page](/) via
+`@render LiveCounterUi.CounterIsland(...)` (UI module) and
+`[http].service` → `LiveCounter.rocci` (SQLite, `@live`, commands).
 
 This catalog row is `hosting = "live"`. The public demo origin is planned at
 [live-counter.examples.rocci.dev](https://live-counter.examples.rocci.dev)
@@ -34,7 +38,7 @@ cargo run -q -p rocci-cli -- run examples/rocci/standalone/live-counter/LiveCoun
 ```
 
 Open the printed URL in two windows. Click Increment in one; the other updates
-without a refresh.
+the count and the click feed without a refresh.
 
 ## Smoke
 
