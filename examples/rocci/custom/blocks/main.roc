@@ -32,9 +32,25 @@ PlayerRow : {
     last_lock_ms : I64,
     locks_window : I64,
     disconnect_deadline : I64,
+    garbage : Str,
+    cursor_seat : I64,
+    last_hole : I64,
+    lines_sent : I64,
 }
 IdParams : { id : Str }
-SeatParams : { id : Str, seat : I64, status : Str, board : Str, piece : Str, bag : Str, seed : I64 }
+SeatParams : {
+    id : Str,
+    seat : I64,
+    status : Str,
+    board : Str,
+    piece : Str,
+    bag : Str,
+    seed : I64,
+    garbage : Str,
+    cursor_seat : I64,
+    last_hole : I64,
+    lines_sent : I64,
+}
 ReadyParams : { id : Str, status : Str }
 PhaseParams : { phase : Str, deadline_ms : I64, round : I64, seed : I64, reason : Str }
 LockSave : {
@@ -49,7 +65,11 @@ LockSave : {
     status : Str,
     last_lock_ms : I64,
     locks_window : I64,
+    garbage : Str,
+    cursor_seat : I64,
+    lines_sent : I64,
 }
+TargetSave : { id : Str, garbage : Str, last_hole : I64 }
 AckRow : { ok : I64, error : Str, board : Str, revision : I64, piece : Str, sequence : I64, eliminated : I64 }
 AckInsert : { player_id : Str, sequence : I64, ok : I64, error : Str, board : Str, revision : I64, piece : Str, eliminated : I64 }
 RateParams : { id : Str, last_lock_ms : I64, locks_window : I64 }
@@ -140,6 +160,12 @@ respond! = |request, { db }| {
 shutdown! : Server.ShutdownReason, Context => Try({}, [Exit(I64), ..])
 shutdown! = |_reason, _context| Ok({})
 
+try_column! = |db, query|
+    match Sqlite.execute!({ db, query, params: {} }) {
+        Ok({}) => Ok({})
+        Err(_) => Ok({})
+    }
+
 setup_db! = |db| {
     Sqlite.execute!(
         {
@@ -158,10 +184,14 @@ setup_db! = |db| {
     Sqlite.execute!(
         {
             db,
-            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, seat INTEGER NOT NULL, status TEXT NOT NULL, board TEXT NOT NULL, piece TEXT NOT NULL, bag TEXT NOT NULL, seed INTEGER NOT NULL, board_revision INTEGER NOT NULL, sequence INTEGER NOT NULL, back_to_back INTEGER NOT NULL, last_lock_ms INTEGER NOT NULL, locks_window INTEGER NOT NULL, disconnect_deadline INTEGER NOT NULL)",
+            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, seat INTEGER NOT NULL, status TEXT NOT NULL, board TEXT NOT NULL, piece TEXT NOT NULL, bag TEXT NOT NULL, seed INTEGER NOT NULL, board_revision INTEGER NOT NULL, sequence INTEGER NOT NULL, back_to_back INTEGER NOT NULL, last_lock_ms INTEGER NOT NULL, locks_window INTEGER NOT NULL, disconnect_deadline INTEGER NOT NULL, garbage TEXT NOT NULL DEFAULT '', cursor_seat INTEGER NOT NULL DEFAULT 0, last_hole INTEGER NOT NULL DEFAULT -1, lines_sent INTEGER NOT NULL DEFAULT 0)",
             params: {},
         },
     )?
+    try_column!(db, "ALTER TABLE players ADD COLUMN garbage TEXT NOT NULL DEFAULT ''")?
+    try_column!(db, "ALTER TABLE players ADD COLUMN cursor_seat INTEGER NOT NULL DEFAULT 0")?
+    try_column!(db, "ALTER TABLE players ADD COLUMN last_hole INTEGER NOT NULL DEFAULT -1")?
+    try_column!(db, "ALTER TABLE players ADD COLUMN lines_sent INTEGER NOT NULL DEFAULT 0")?
     Sqlite.execute!(
         {
             db,
@@ -186,7 +216,7 @@ document! = |db, player_id| {
     players = load_players!(db) ? |err| ServerErr("Failed to load players: ${Str.inspect(err)}")
     count = List.len(players).to_i64_wrap()
     if player_id != "" and player_exists(players, player_id) {
-        html_ok(Html.render(Blocks.playPage({ view: build_view(room, players, player_id) })))
+        html_ok(Html.render(Blocks.playPage({ view: build_view(room, players, player_id, now_ms!()) })))
     } else {
         html_ok(Html.render(Blocks.lobby({ player_count: count, full: count >= 8 })))
     }
@@ -211,7 +241,7 @@ stream_room! = |db, player_id|
                                         match load_players!(db) {
                                             Err(_) => Ok(End)
                                             Ok(players) => {
-                                                view = build_view(room, players, state.player_id)
+                                                view = build_view(room, players, state.player_id, now)
                                                 event = Datastar.patch_elements(Blocks.gamePatch({ view: view }))
                                                 Ok(
                                                     Emit(
@@ -262,11 +292,15 @@ join_player! = |db, player_id| {
             piece: opened.piece,
             bag: Game.encode_bag(opened.bag),
             seed: opened.seed,
+            garbage: "",
+            cursor_seat: (seat + 1).rem_by(8),
+            last_hole: -1,
+            lines_sent: 0,
         }
         Sqlite.execute!(
             {
                 db,
-                query: "INSERT INTO players (id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline) VALUES (:id, :seat, :status, :board, :piece, :bag, :seed, 0, 0, 0, 0, 0, 0)",
+                query: "INSERT INTO players (id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline, garbage, cursor_seat, last_hole, lines_sent) VALUES (:id, :seat, :status, :board, :piece, :bag, :seed, 0, 0, 0, 0, 0, 0, :garbage, :cursor_seat, :last_hole, :lines_sent)",
                 params,
             },
         )
@@ -356,12 +390,22 @@ apply_lock! = |db, player_id, json| {
                         Err(BadRotation) => json_status(409, ack_json(player_ack(player, "BadRotation")))
                         Err(InvalidGeometry) => json_status(409, ack_json(player_ack(player, "InvalidGeometry")))
                         Ok(placed) => {
+                            players = load_players!(db)?
+                            cancelled = Game.cancel_incoming(Game.decode_queue(player.garbage), placed.attack)
+                            living =
+                                List.map(
+                                    List.keep_if(players, |row| row.status == "playing" and row.id != player.id),
+                                    |row| row.seat,
+                                )
+                            resolved = Game.resolve_residual(cancelled, player.seat, player.cursor_seat, living)
+                            ready = Game.apply_ready(resolved.incoming, now)
+                            boarded = Game.insert_garbage(placed.board, ready.applied)
                             drawn = Game.draw_piece(Game.decode_bag(player.bag), player.seed)
-                            eliminated = if Game.spawn_ok(placed.board, drawn.piece) { 0 } else { 1 }
+                            eliminated = if Game.spawn_ok(boarded, drawn.piece) { 0 } else { 1 }
                             status = if eliminated != 0 { "eliminated" } else { "playing" }
                             next = {
                                 id: player.id,
-                                board: placed.board,
+                                board: boarded,
                                 piece: drawn.piece,
                                 bag: Game.encode_bag(drawn.bag),
                                 seed: drawn.seed,
@@ -371,8 +415,34 @@ apply_lock! = |db, player_id, json| {
                                 status,
                                 last_lock_ms: now,
                                 locks_window: window,
+                                garbage: Game.encode_queue(ready.remaining),
+                                cursor_seat: resolved.cursor,
+                                lines_sent: player.lines_sent + resolved.residual,
                             }
                             save_lock!(db, next)?
+                            victims = List.keep_if(players, |row| row.seat == resolved.target)
+                            match victims {
+                                [victim, ..] if resolved.writes == 1 => {
+                                    victim_queue = Game.decode_queue(victim.garbage)
+                                    hole = Game.next_hole(victim.last_hole)
+                                    packet = {
+                                        rows: resolved.residual,
+                                        ready_at_ms: now + Game.garbage_delay_ms,
+                                        hole,
+                                        order: Game.next_order(victim_queue),
+                                    }
+                                    save_target!(
+                                        db,
+                                        {
+                                            id: victim.id,
+                                            garbage: Game.encode_queue(List.append(victim_queue, packet)),
+                                            last_hole: hole,
+                                        },
+                                    )?
+                                    {}
+                                }
+                                _ => {}
+                            }
                             ack = {
                                 ok: 1.I64,
                                 error: "",
@@ -419,7 +489,8 @@ tick_room! = |db| {
 }
 
 start_round! = |db, room, players, now| {
-    deal_players!(db, players, room.seed)?
+    seated = List.keep_if(players, |player| player.status != "queued")
+    deal_players!(db, seated, room.seed)?
     set_phase!(db, "round", now + round_ms!({}), room.round + 1, room.seed, "")
 }
 
@@ -437,11 +508,15 @@ deal_players! = |db, players, seed|
                 piece: opened.piece,
                 bag: Game.encode_bag(opened.bag),
                 seed: opened.seed,
+                garbage: "",
+                cursor_seat: (player.seat + 1).rem_by(8),
+                last_hole: -1,
+                lines_sent: 0,
             }
             Sqlite.execute!(
                 {
                     db,
-                    query: "UPDATE players SET seat = :seat, status = :status, board = :board, piece = :piece, bag = :bag, seed = :seed, board_revision = 0, sequence = 0, back_to_back = 0 WHERE id = :id",
+                    query: "UPDATE players SET seat = :seat, status = :status, board = :board, piece = :piece, bag = :bag, seed = :seed, board_revision = 0, sequence = 0, back_to_back = 0, garbage = :garbage, cursor_seat = :cursor_seat, last_hole = :last_hole, lines_sent = :lines_sent WHERE id = :id",
                     params,
                 },
             )?
@@ -473,7 +548,19 @@ save_lock! = |db, row| {
     Sqlite.execute!(
         {
             db,
-            query: "UPDATE players SET board = :board, piece = :piece, bag = :bag, seed = :seed, board_revision = :board_revision, sequence = :sequence, back_to_back = :back_to_back, status = :status, last_lock_ms = :last_lock_ms, locks_window = :locks_window WHERE id = :id",
+            query: "UPDATE players SET board = :board, piece = :piece, bag = :bag, seed = :seed, board_revision = :board_revision, sequence = :sequence, back_to_back = :back_to_back, status = :status, last_lock_ms = :last_lock_ms, locks_window = :locks_window, garbage = :garbage, cursor_seat = :cursor_seat, lines_sent = :lines_sent WHERE id = :id",
+            params,
+        },
+    )
+}
+
+save_target! = |db, row| {
+    params : TargetSave
+    params = row
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE players SET garbage = :garbage, last_hole = :last_hole WHERE id = :id",
             params,
         },
     )
@@ -543,11 +630,15 @@ load_players! = |db| {
         last_lock_ms : I64,
         locks_window : I64,
         disconnect_deadline : I64,
+        garbage : Str,
+        cursor_seat : I64,
+        last_hole : I64,
+        lines_sent : I64,
     })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline FROM players ORDER BY seat",
+            query: "SELECT id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline, garbage, cursor_seat, last_hole, lines_sent FROM players ORDER BY seat",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -562,7 +653,7 @@ load_player! = |db, player_id| {
     row = Sqlite.query!(
         {
             db,
-            query: "SELECT id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline FROM players WHERE id = :id",
+            query: "SELECT id, seat, status, board, piece, bag, seed, board_revision, sequence, back_to_back, last_lock_ms, locks_window, disconnect_deadline, garbage, cursor_seat, last_hole, lines_sent FROM players WHERE id = :id",
             params,
             limits: Sqlite.default_query_limits,
         },
@@ -573,7 +664,7 @@ load_player! = |db, player_id| {
 bump_revision! = |db|
     Sqlite.execute!({ db, query: "UPDATE room SET revision = revision + 1 WHERE id = 1", params: {} })
 
-build_view = |room, players, player_id| {
+build_view = |room, players, player_id, now| {
     seats = List.map(
         players,
         |player| {
@@ -585,13 +676,15 @@ build_view = |room, players, player_id| {
                     "queued" => "queued"
                     _ => "seated"
                 }
+            living = List.map(List.keep_if(players, |row| row.status == "playing"), |row| row.seat)
+            target = Game.select_target(living, player.seat, player.cursor_seat)
             {
                 seat: player.seat,
                 status,
                 board: player.board,
-                target: 0.I64,
-                queue: 0.I64,
-                ready: 0.I64,
+                target: if target < 0 { player.cursor_seat } else { target },
+                queue: Game.queue_rows(player.garbage),
+                ready: Game.ready_rows_now(player.garbage, now),
                 piece: player.piece,
                 you: if player.id == player_id { 1.I64 } else { 0.I64 },
             }

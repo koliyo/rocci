@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–2 implemented on multiplayer-falling-block-demonstrator."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–3 implemented on multiplayer-falling-block-demonstrator."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T15:40:00Z }
+generated: { by: process:cursor, at: 2026-08-21T15:50:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -445,7 +445,12 @@ authoritative player snapshot in JSON (`ok: 0`) so the island resynchronizes.
 Phase 2 is implemented: custom `main.roc` owns SQLite seats, lobby/countdown/round/result,
 idempotent lock acknowledgements, reconnect-grace columns, and `/play/blocks/` routes.
 Duplicate POSTs replay the stored ack; restarting during a round writes `Result(Interrupted)`
-then returns to lobby. Attacks, spectators, and origin routing remain later phases.
+then returns to lobby.
+
+Phase 3 is implemented: `Game.roc` owns oldest-first cancellation, one residual write, rotating
+targets, 600 ms delay, eight-row insertion, and spawn top-out. The lock transaction updates at
+most one opponent queue. Fixture tests cover two, three, and eight living seats; eight synthetic
+clients complete a local round. Spectators and origin routing remain later phases.
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 
