@@ -1,0 +1,37 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Runtime failures",
+        description: "Recover from Datastar no-ops, trailing-slash redirects, handler 404/500, and method mismatches.",
+    },
+}
+
+# Runtime failures
+
+**Prerequisites:** [Update the UI](/docs/how-to/update-the-ui/).
+
+## A Datastar button does nothing
+
+Check four boundaries:
+
+1. The page includes the staged `/assets/datastar.js` module.
+2. The attribute is a Rocci action (`@post("/path")`) or an explicitly quoted Datastar expression.
+3. The handler route and HTTP method match (`--log-handlers`).
+4. The returned fragment reuses an `id` already in the document.
+
+Row-specific URLs must be Roc expressions. A static quoted string does not
+interpolate a `@for` binder.
+
+## `/page` returns 308 or 404
+
+With `redirect_trailing_slash = true`, GET 308s between `/page` and `/page/`.
+When false, the wrong form is 404 with a hint. Rocci preserves registered
+route shape.
+
+## HTTP 500 from a handler
+
+`?` in a handler is a 500. Datastar gets an HTML overlay; other clients get
+`{"error":"…"}`. `@init` failure exits the process instead.
+
+**Related:** [Runtime](/docs/reference/runtime/),
+[Handle requests](/docs/how-to/handle-requests-and-errors/).

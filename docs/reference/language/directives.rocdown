@@ -29,4 +29,5 @@ records in headers: `@match ({ status, items }) {`.
 **Invalid:** markup inside arbitrary Roc expressions; unparenthesized record
 headers; `@fixture` inside a component body.
 
-**Related:** [File structure](/docs/reference/language/file-structure/).
+**Related:** [File structure](/docs/reference/language/file-structure/),
+[Use directives](/docs/how-to/use-directives/).

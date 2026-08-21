@@ -1,0 +1,106 @@
+# Maintained search queries for the Rocci manual.
+# Expected routes are canonical pages (aliases also resolve).
+# Phase 7 records live-user protocol; this file is the offline query set.
+
+schema_version = 1
+product = "rocci"
+
+[[query]]
+q = "what is rocci"
+expect = "/docs/start/what-is-rocci/"
+group = "beginner"
+
+[[query]]
+q = "install rocci"
+expect = "/docs/start/install/"
+group = "beginner"
+
+[[query]]
+q = "@component"
+expect = "/docs/reference/language/components/"
+group = "syntax"
+
+[[query]]
+q = "component body parameter"
+expect = "/docs/how-to/author-components/"
+group = "beginner"
+
+[[query]]
+q = "@if"
+expect = "/docs/reference/language/directives/"
+group = "syntax"
+
+[[query]]
+q = "@match"
+expect = "/docs/reference/language/directives/"
+group = "syntax"
+
+[[query]]
+q = "@patch"
+expect = "/docs/reference/language/server/"
+group = "runtime"
+
+[[query]]
+q = "@command 204"
+expect = "/docs/reference/runtime/"
+group = "runtime"
+
+[[query]]
+q = "@live sse"
+expect = "/docs/concepts/one-shot-versus-live/"
+group = "runtime"
+
+[[query]]
+q = "rocci run --no-window"
+expect = "/docs/reference/cli/#run"
+group = "cli"
+
+[[query]]
+q = "rocci inspect"
+expect = "/docs/reference/cli/#inspect"
+group = "cli"
+
+[[query]]
+q = "rocci.toml host"
+expect = "/docs/reference/configuration/#http"
+group = "config"
+
+[[query]]
+q = "allowed_origins"
+expect = "/docs/reference/configuration/#security"
+group = "config"
+
+[[query]]
+q = "datastar pin"
+expect = "/docs/reference/cli/#datastar"
+group = "cli"
+
+[[query]]
+q = "preview window does not open"
+expect = "/docs/troubleshooting/preview/"
+group = "failure"
+
+[[query]]
+q = "button does nothing"
+expect = "/docs/troubleshooting/runtime/"
+group = "failure"
+
+[[query]]
+q = "@on"
+expect = "/docs/reference/language/grammar/"
+group = "syntax"
+
+[[query]]
+q = "playground wasm"
+expect = "/docs/how-to/use-the-playground/"
+group = "cli"
+
+[[query]]
+q = "vscode extension"
+expect = "/docs/how-to/set-up-editors/"
+group = "beginner"
+
+[[query]]
+q = "glossary patch"
+expect = "/docs/glossary/"
+group = "beginner"

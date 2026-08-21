@@ -38,11 +38,42 @@ items = [
 ]
 
 [[nav]]
+label = "How to"
+items = [
+    "how-to/index",
+    "how-to/author-components",
+    "how-to/write-markup",
+    "how-to/use-directives",
+    "how-to/update-the-ui",
+    "how-to/handle-requests-and-errors",
+    "how-to/develop-and-inspect",
+    "how-to/use-the-playground",
+    "how-to/use-the-project-browser",
+    "how-to/set-up-editors",
+    "how-to/configure-and-secure",
+    "how-to/package-and-deploy",
+]
+
+[[nav]]
 label = "Understand"
 items = [
-    "concepts/architecture",
+    "concepts/compilation-model",
+    "concepts/pure-components",
+    "concepts/props-bodies-composition",
+    "concepts/structural-control-flow",
+    "concepts/styles-and-ownership",
+    "concepts/standalone-versus-custom",
+    "concepts/state-and-effects",
+    "concepts/documents-fragments-commands-streams",
+    "concepts/datastar-as-transport",
+    "concepts/one-shot-versus-live",
+    "concepts/html-and-identity",
+    "concepts/error-boundaries",
+    "concepts/development-and-delivery",
+    "concepts/security-model",
+    "concepts/performance-model",
     "concepts/why-roc",
-    "concepts/rendering-model",
+    "glossary",
 ]
 
 [[nav]]
@@ -71,10 +102,17 @@ items = [
 ]
 
 [[nav]]
-label = "Resources"
+label = "Troubleshooting"
 items = [
-    "guides/rocci-browser",
-    "playground",
-    "troubleshooting",
+    "troubleshooting/index",
+    "troubleshooting/install",
+    "troubleshooting/compile",
+    "troubleshooting/runtime",
+    "troubleshooting/preview",
+]
+
+[[nav]]
+label = "Status"
+items = [
     "status",
 ]

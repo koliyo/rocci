@@ -1,0 +1,36 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Glossary",
+        description: "Rocci, Roc, HTML, HTTP, Datastar, and host terms used in this manual.",
+    },
+}
+
+# Glossary
+
+**Prerequisites:** none.
+**Kind:** reference companion.
+
+Terms appear here when a reader meets them on more than one path. Canonical
+behavior stays in [reference](/docs/reference/).
+
+| Term | Meaning |
+| --- | --- |
+| Component | A PascalCase `@component` that lowers to a pure Roc `Html` function. |
+| Standalone app | A `.rocci` module with `@context` / `@init` / `@view` that `rocci run` compiles into a generated server. |
+| Custom app | A directory with authored `main.roc` that reuses `.rocci` modules. |
+| Patch | A one-shot HTML fragment from `@patch`; Datastar morphs the acting tab. |
+| Command | A `@command` handler that returns Roc data: empty SSE to Datastar, JSON to other clients. |
+| Live | A module-level `@live` render that generates `GET /sse` for shared HTML updates. |
+| Datastar | Browser transport for intent and morphing. Not a client application framework. |
+| Fixture | `@fixture` preview data for `rocci view` / `browse`. |
+| Lowering | Translating template regions to ordinary Roc (`Html.*`, camelCase functions). |
+| Source map | Segments that map generated Roc back to `.rocci` spans. |
+| Preview | The Tao/Wry window that loads the same local HTTP origin as a browser. |
+| `rocci browse` | Component gallery. |
+| `rocci-browser` | Project picker host. Not part of the `rocci` CLI reference. |
+| Rocdown | Separate Markdown-first document product. Not part of the Rocci learning path. |
+| Loopback | `127.0.0.1` / `localhost` only in `rocci.toml` `[http].host`. |
+| `??` default | Experimental field default in `.rocci` params; stripped for current Roc nightly. |
+
+**Related:** [Status](/docs/status/) for current / experimental / planned / removed.

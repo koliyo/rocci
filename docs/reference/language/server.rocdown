@@ -38,4 +38,5 @@ legal. `@view("/sse")` plus `@live` is a diagnostic.
 
 Complete matrix: [Handler matrix](/examples/handler-matrix/).
 
-**Related:** [Runtime](/docs/reference/runtime/).
+**Related:** [Runtime](/docs/reference/runtime/),
+[Update the UI](/docs/how-to/update-the-ui/).

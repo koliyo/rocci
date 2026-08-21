@@ -20,7 +20,7 @@
 
 This page documents the `rocci` binary only. `rocdown`, `rocci-okf`, and
 `rocci-browser` are other products; see [Rocdown](/rocdown/) and
-[Project browser](/docs/guides/rocci-browser/).
+[Project browser](/docs/how-to/use-the-project-browser/).
 
 Examples use a source checkout. Until a distribution exists, the spelling is
 `cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo

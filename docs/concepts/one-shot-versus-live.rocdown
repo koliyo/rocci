@@ -1,0 +1,26 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "One-shot versus shared live UI",
+        description: "When a direct @patch is enough, and when a @live stream justifies its cost.",
+    },
+}
+
+# One-shot versus shared live UI
+
+**Prerequisites:** [commands and live tutorial](/docs/tutorials/commands-and-live/).
+**Kind:** concept.
+**Next:** [Update the UI](/docs/how-to/update-the-ui/).
+
+**One-shot `@patch`:** the acting tab morphs. A second tab stays stale until it
+clicks or reloads. That is the correct default (the [counter](/examples/counter/)).
+
+**Shared `@live`:** generated `GET /sse` polls; unchanged HTML is skipped.
+Every open tab morphs the region. Use it when two clients must see the same
+HTML without a full reload (the [live counter](/examples/live-counter/)).
+
+Cost: an extra route, poll traffic, and conflict rules (`@view("/sse")` is
+illegal beside `@live`). Prefer one-shot until a second tab is a real
+requirement.
+
+**Related:** [Runtime](/docs/reference/runtime/).

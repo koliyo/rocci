@@ -19,7 +19,8 @@ checkout.
 **Verify:** `Hello` previews, the full page serves, and inspect output lists
 components and fixtures.
 **Next:** continue learning with the first standalone app, or look up
-[language reference](/docs/reference/rocci/).
+[language reference](/docs/reference/rocci/). Task recipe:
+[Author components](/docs/how-to/author-components/).
 
 The canonical complete source is the cataloged styling app. This tutorial
 does not paste a divergent copy under `docs/`. Open
@@ -117,4 +118,5 @@ After this tutorial you can:
 - Continue learning: the first standalone app uses
   [Counter](/examples/counter/) (SQLite and a one-shot `@patch`).
 - Next tutorial: [Build your first standalone app](/docs/tutorials/first-app/).
+- Task: [Author components](/docs/how-to/author-components/).
 - Reference: [Rocci language reference](/docs/reference/rocci/).

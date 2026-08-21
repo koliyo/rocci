@@ -1,0 +1,30 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Performance model",
+        description: "What work happens on edit, compile, request, patch, stream poll, and bundle — and what authors should measure.",
+    },
+}
+
+# Performance model
+
+**Prerequisites:** [Development and delivery](/docs/concepts/development-and-delivery/).
+**Kind:** concept.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
+
+| Moment | Work |
+| --- | --- |
+| Edit | Watch rebuilds the lowered module |
+| Compile | Roc toolchain on generated source |
+| Document GET | `@view` returns a full document |
+| One-shot mutation | `@patch` HTML over SSE; Datastar morphs one tab |
+| Command | Empty SSE or a small JSON body — no HTML morph |
+| Live poll | `GET /sse`; unchanged HTML is skipped |
+| Bundle | Native compile plus resource copy |
+
+Measure the preview Dev **Performance** panel and HTTP timings on the same
+origin. Do not optimize for tutorial completion counts. Prefer a smaller
+fragment over a document shell on every click. Prefer `@command` when the DOM
+should not change.
+
+**Related:** [Runtime](/docs/reference/runtime/).

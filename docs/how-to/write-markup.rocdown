@@ -1,0 +1,49 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Write markup",
+        description: "Write HTML tags, fragments, void elements, attributes, ARIA names, and string interpolations in .rocci files.",
+    },
+}
+
+# Write markup
+
+**Prerequisites:** [Author components](/docs/how-to/author-components/).
+**You will do:** mix intrinsic tags, fragments, and interpolations without JSX extras.
+**Verify:** `rocci build FILE` succeeds; inspect shows `Html.element` / `Html.fragment`.
+**Next:** [Use directives](/docs/how-to/use-directives/) or
+[Tags reference](/docs/reference/language/tags/).
+
+## Tags and fragments
+
+| You write | Meaning |
+| --- | --- |
+| `<div>…</div>` | Intrinsic HTML |
+| `<Hello />` | Local component |
+| `<>…</>` | Fragment (no wrapper node) |
+| `<br>` / `<img />` | Void HTML |
+
+Unknown PascalCase tags still lower to calls; Roc reports a missing function
+later. Dynamic tag names and prop spreading are not supported.
+
+## Attributes
+
+```rocci
+<button class="primary" disabled data-on:click=@post("/actions/save")>
+    Save
+</button>
+```
+
+`class={expr}` is a Roc expression. Valueless `disabled` is a boolean
+attribute. Hyphenated names (`aria-current`, `data-on:click`) are legal.
+Preserve accessible names: `alt` on images, visible labels on buttons, and
+stable `id`s on regions you will morph.
+
+## Interpolation
+
+Text `{expr}` must be `Str` (`{count.to_str()}`). A body parameter already typed
+`Html` is inserted as-is. Markup inside `{…}` is rejected; use `@if` or a
+named render function. `@@` is a literal `@`.
+
+**Related:** [Attributes](/docs/reference/language/attributes/),
+[HTML and identity](/docs/concepts/html-and-identity/).

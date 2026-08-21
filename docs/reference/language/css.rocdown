@@ -23,4 +23,4 @@ writing `class="card"`. Document chrome belongs on `body` or `:scope`, not
 
 **Limits:** no `:deep` yet.
 
-**Related:** [Rendering model](/docs/concepts/rendering-model/).
+**Related:** [Styles and ownership](/docs/concepts/styles-and-ownership/).

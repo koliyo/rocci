@@ -4,7 +4,7 @@
 
     meta: {
         title: "Why Roc fits Rocci",
-        description: "Why pure rendering, platform-controlled effects, one host boundary, and Roc's interpreted and compiled execution paths suit a UI and document toolchain.",
+        description: "Why pure rendering, platform-controlled effects, one host boundary, and Roc's interpreted and compiled execution paths suit Rocci applications.",
     },
 }
 
@@ -80,9 +80,9 @@ write_page! = |staging, item| {
 }
 ```
 
-The example is simplified, but the split is real in Rocdown today:
-`RocdownTheme.siteShell` is a pure Rocci-generated function, while
-`RocdownBuild.run!` performs environment, file-read, and file-write operations.
+The example is simplified, but the split is real in Rocci applications:
+components stay pure `Html` functions, while `@init` and handlers perform
+SQLite, HTTP, and stderr operations.
 
 ### Why this matters for UI code
 
@@ -119,7 +119,6 @@ That is unusually well matched to Rocci's possible hosts:
 
 | Host | Useful platform surface |
 | --- | --- |
-| Static Rocdown site build | Read staged articles, render the Rocdown theme, write output |
 | Local web application | Receive HTTP input, query application storage, return documents or SSE patches |
 | Desktop application | Web server operations plus explicitly selected dialogs, notifications, and filesystem access |
 | Component preview | Load fixtures and render `Html`, ideally with no production capabilities |
@@ -150,8 +149,6 @@ For Rocci this means a host can own the parts that are inherently environmental:
 - a Rust server can convert an HTTP request into a Roc record and send the
   returned document or fragment;
 - Tao and Wry can own native windows while Roc owns application data and views;
-- a static generator can own discovery, routing, and atomic output commits while
-  a Rocci theme owns the visible shell;
 - a constrained preview host can expose fixture rendering without exposing
   production storage or native capabilities.
 
@@ -204,15 +201,14 @@ That would give Rocci several useful modes:
    against the real platform for handlers and I/O.
 3. **Production build:** compile and optimize the application and host contract
    for distribution.
-4. **Static generation:** let Rust resolve content and routes, then invoke the
-   compiled Rocdown theme at the narrow build boundary.
 
-Only the last mode is how Rocdown site generation works today. Current `rocci run`, component view,
-and bundle paths invoke the Roc toolchain; Rocci does not yet embed Roc's
-interpreter. Interpreter-backed preview is a design opportunity, not a shipped
-feature. It would require a stable embedding API, compatible value and `Html`
-representations, source-map-aware diagnostics, cache invalidation, and tests
-that compare interpreted and compiled results.
+Only the last two modes are how `rocci run` and `rocci build --release` work
+today. Current `rocci run`, component view, and bundle paths invoke the Roc
+toolchain; Rocci does not yet embed Roc's interpreter. Interpreter-backed
+preview is a design opportunity, not a shipped feature. It would require a
+stable embedding API, compatible value and `Html` representations, source-map-
+aware diagnostics, cache invalidation, and tests that compare interpreted and
+compiled results.
 
 ## Errors are values before they become pages
 
@@ -233,21 +229,11 @@ Rocci can generate ordinary Roc without making authors repeat every intermediate
 type, while still leaving the Roc compiler—not the template lowerer—as the
 authority on records, tags, functions, and effects.
 
-## Why Rocdown does not put everything in Roc
+## Why this page does not teach Rocdown
 
-Choosing Roc does not mean every byte must pass through the Roc compiler. The
-Rocdown architecture deliberately keeps content discovery, link validation,
-navigation compilation, Markdown rendering, and atomic filesystem commits in
-Rust. Those jobs already operate on Rocdown's span-preserving syntax tree and
-would make Roc compilation scale with prose rather than executable behavior.
-
-Roc is used where its properties are valuable: typed theme data, pure UI
-composition, authored dynamic regions, and controlled application effects. Rust
-is used where the current toolchain has the stronger catalog, filesystem, and
-incremental-build machinery. HTML is the explicit artifact between them.
-
-This is not a retreat from Roc; it is the same functional-core/effectful-shell
-principle applied at toolchain scale.
+Rocdown is a separate product. Catalog, Markdown, and site generation are out
+of this manual. Rocci uses Roc where typed UI and effects matter; it does not
+require every adjacent tool to compile prose through Roc.
 
 ## Costs and open questions
 
@@ -295,6 +281,7 @@ This page was reviewed against current first-party material in August 2026:
 - [Roc repository](https://github.com/roc-lang/roc) is the authoritative status
   reference and explicitly identifies the language as a work in progress.
 
-Continue with [Architecture](/docs/concepts/architecture/) to see where these
-boundaries live in the repository, or [Rendering model](/docs/concepts/rendering-model/)
+Continue with [Rocci's compilation model](/docs/concepts/compilation-model/) to
+see where these boundaries live while authoring, or
+[Documents, fragments, commands, and streams](/docs/concepts/documents-fragments-commands-streams/)
 to follow `Html` from a component to the browser.

@@ -71,5 +71,6 @@ reuse the command body.
 - Discriminate Datastar with `Datastar-Request: true`, not `Accept`
 - Explain why a second counter tab stays stale
 
-Next: [custom main.roc](/docs/tutorials/custom-main/). Handler matrix (every
-accepted form, not a beginner app): [Handler matrix](/examples/handler-matrix/).
+Next: [custom main.roc](/docs/tutorials/custom-main/).
+Task: [Update the UI](/docs/how-to/update-the-ui/).
+Handler matrix (every accepted form, not a beginner app): [Handler matrix](/examples/handler-matrix/).
