@@ -42,11 +42,11 @@ import LiveCounterUi
     counterPage({ count, clicks })
 }
 
-## Shared `#counter` fragment for generated `GET /sse`.
+## Shared `#counter` and `#counter-feed` fragments for generated `GET /sse`.
 @live = |{ db }| {
     count = read_count!(db)?
     clicks = read_clicks!(db)?
-    LiveCounterUi.counterCard({ count, clicks })
+    LiveCounterUi.liveSlice({ count, clicks })
 }
 
 ## Increment and record click origin; Datastar gets empty SSE, curl gets `{ count }`.
@@ -56,20 +56,32 @@ import LiveCounterUi
             Ok(bytes) => Str.from_utf8_lossy(bytes)
             Err(_) => ""
         }
-    tz_raw = Origin.signal_str(body, "tz")
-    tz = if tz_raw == "" { "UTC" } else { tz_raw }
+    origin_pick = Origin.signal_str(body, "origin")
+    tz_browser = Origin.signal_str(body, "tz")
+    chosen = origin_pick != ""
+    tz =
+        if chosen {
+            origin_pick
+        } else if tz_browser == "" {
+            "UTC"
+        } else {
+            tz_browser
+        }
     place = Origin.lookup(tz)
     now = now_secs!(db)?
+    chosen_flag : I64
+    chosen_flag = if chosen { 1.I64 } else { 0.I64 }
     Sqlite.execute!(
         {
             db,
-            query: "INSERT INTO clicks (ts, tz, country, city, region) VALUES (:ts, :tz, :country, :city, :region)",
+            query: "INSERT INTO clicks (ts, tz, country, city, region, chosen) VALUES (:ts, :tz, :country, :city, :region, :chosen)",
             params: {
                 ts: now,
                 tz: tz,
                 country: place.country,
                 city: place.city,
                 region: place.region,
+                chosen: chosen_flag,
             },
         },
     )?
@@ -98,7 +110,7 @@ import LiveCounterUi
     { count }
 }
 
-clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL"
+clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL, chosen INTEGER NOT NULL DEFAULT 0"
 
 ensure_clicks! = |db| {
     create = "CREATE TABLE IF NOT EXISTS clicks (${clicks_ddl})"
@@ -112,7 +124,7 @@ ensure_clicks! = |db| {
             limits: Sqlite.default_query_limits,
         },
     )?
-    if Str.contains(row.sql, clicks_ddl) {
+    if Str.contains(row.sql, "chosen INTEGER") {
         Ok({})
     } else {
         Sqlite.execute!({ db, query: "DROP TABLE IF EXISTS clicks", params: {} })?
@@ -149,11 +161,11 @@ read_count! = |db| {
 
 read_clicks! = |db| {
     now = now_secs!(db)?
-    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
+    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str, chosen : I64 })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 50",
+            query: "SELECT ts, tz, country, city, region, chosen FROM clicks ORDER BY id DESC LIMIT 50",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -173,6 +185,7 @@ read_clicks! = |db| {
                     }),
                     ago: Origin.relative_ago(now, row.ts),
                     ts: row.ts.to_str(),
+                    chosen: row.chosen != 0.I64,
                 }
             },
         ),
@@ -218,20 +231,13 @@ CounterPage = |{ count, clicks }|
                 </nav>
                 <header>
                     <h1>Live counter</h1>
-                    <p class="lede">Two browsers share one SQLite count and recent click origins over a generated stream. Increment and reset return JSON; GET /sse morphs #counter in every tab.</p>
+                    <p class="lede">Two browsers share one SQLite count and recent click origins over a generated stream. Increment returns JSON; GET /sse morphs the count and feed in every tab. Reset is optional on the island.</p>
                 </header>
-                <div
-                    data-signals="{tz: ''}"
-                    data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone"
-                ></div>
-                <LiveCounterUi.CounterCard count={count} clicks={clicks} />
-                <div class="actions">
-                    <button data-on:click=@post("/actions/counter/increment")>Increment</button>
-                    <button class="secondary" data-on:click=@post("/actions/counter/reset")>Reset</button>
-                </div>
-                <p class="privacy">
-                    Origin comes from your browser timezone - no IP address is stored.
-                </p>
+                <LiveCounterUi.CounterIsland
+                    count={count}
+                    clicks={clicks}
+                    show_reset={True}
+                />
                 <footer>The count is stored in SQLite and shared by every visitor.</footer>
             </main>
         </body>
@@ -290,34 +296,6 @@ counterPageTest = { count: 3.I64, clicks: LiveCounterUi.empty_clicks }
         color: #a8bbb3;
         font-size: 1.05rem;
         line-height: 1.55;
-    }
-    .actions {
-        display: flex;
-        gap: 0.75rem;
-        margin-top: 1.25rem;
-    }
-    button {
-        appearance: none;
-        border: 0;
-        border-radius: 10px;
-        padding: 0.75rem 1.1rem;
-        background: #48eda4;
-        color: #06100c;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-    }
-    button:hover { background: #79f4bd; }
-    button.secondary {
-        border: 1px solid #29493b;
-        background: transparent;
-        color: #bfd0c8;
-    }
-    .privacy {
-        margin: 1rem 0 0;
-        color: #8da39a;
-        font-size: 0.8rem;
-        line-height: 1.45;
     }
     footer {
         margin-top: 3rem;

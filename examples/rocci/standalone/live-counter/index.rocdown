@@ -16,7 +16,10 @@ The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
 but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
 receives **empty SSE** (200 `text/event-stream`, zero events), and `curl` without
 `Datastar-Request` receives `{"count":N}`.
-The stream morphs `#counter` (count plus recent click origins) in every connected tab.
+The stream morphs `#counter` and `#counter-feed` in every connected tab.
+Reset is optional on the island (`show_reset`); the home page omits it.
+Place may come from the browser timezone or a chosen picker value (marked
+**chosen** in the feed). Clients can set either freely — this is not verified.
 
 This same app is composed into the [rocci.dev home page](/) via
 `@render LiveCounterUi.CounterIsland(...)` (UI module) and

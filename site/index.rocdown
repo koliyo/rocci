@@ -24,7 +24,7 @@ Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a smal
 
 ## Try a live island
 
-The card below is the [live counter](/examples/live-counter/) app composed into this page: CDN snapshot HTML, then `GET /sse` keeps the shared count and recent click origins in sync across tabs. Origin comes from your browser timezone — no IP address is stored. Same-origin [Rocci Blocks](/play/blocks/) is an experimental falling-block arena (eight seats, spectator cap 20).
+The card below is the [live counter](/examples/live-counter/) app composed into this page: CDN snapshot HTML, then `GET /sse` keeps the shared count and recent click origins in sync across tabs. Place comes from your browser timezone or a chosen override — neither is verified. Same-origin [Rocci Blocks](/play/blocks/) is an experimental falling-block arena (eight seats, spectator cap 20).
 
-@render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks })
+@render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
 See [Rocci in five minutes](/docs/start/five-minutes/) to run a component locally, or [Publish a hybrid Rocdown site](/rocdown/hybrid/) for CDN plus `serve-islands`.
