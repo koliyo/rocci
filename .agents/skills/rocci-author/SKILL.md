@@ -123,7 +123,7 @@ A one-parameter list such as `|{ db }|` lowers with `_request` appended.
 | --- | --- | --- |
 | Document | `/`, `/todos` | Full `<html>` |
 | HTML/SSE patch | `/actions/...` | Fragment with a **stable `id`** (one-shot; acting tab only) |
-| JSON command | `/actions/...` via `@command` | Record or list; **204** to Datastar, JSON to `curl` (signals, not the DOM) |
+| JSON command | `/actions/...` via `@command` | Record or list; **empty SSE** to Datastar, JSON to `curl` (signals, not the DOM) |
 | Long-lived SSE | `/sse` | Generated from `@live`; do not author `GET /sse` in the same module |
 
 Use unquoted Rocci actions: `data-on:click=@post("/actions/x")` with Roc

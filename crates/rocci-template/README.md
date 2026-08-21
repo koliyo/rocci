@@ -210,16 +210,19 @@ onto basic-webserver: authors never write `Context`, `ServerErr`, `Exit`, or
 - `@live = |state, request| { ... }` (optional params, same arity as other
   handlers) lowers to `live!`. One per module. The CLI dispatcher emits
   `GET /sse` as a poll unfold (`After(100)`) that calls
-  `Type.live!(context, request)` and skips emit when `Html.render` bytes are
-  unchanged. In an `@live` module, a root `<body>` without `data-init` gets
+  `Type.live!(context, request)`, emits `datastar-patch-elements` when
+  `Html.render` bytes change, and emits a non-Datastar keepalive (`Sse.Event.data("")`)
+  when unchanged so the host response-idle timeout cannot kill the stream. In an
+  `@live` module, a root `<body>` without `data-init` gets
   `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@view("/sse")`
   plus `@live` is a diagnostic.
 - `@view("literal-path")` is always GET and returns an HTML document.
   `@patch[:method]("literal-path")` returns an HTML fragment encoded as a
   one-shot `datastar-patch-elements` event. `@command[:method]("literal-path")`
   returns Roc data; generated dispatch encodes it with
-  `Encoding.Json.to_str_try`. Datastar (`Datastar-Request: true`) gets **204**
-  and no morph; an ordinary client gets **200** `application/json`. A command
+  `Encoding.Json.to_str_try`. Datastar (`Datastar-Request: true`) gets **empty
+  SSE** (HTTP 200 `text/event-stream` that ends immediately) and no morph; an
+  ordinary client gets **200** `application/json`. A command
   that returns `Str` encodes as a JSON string; return a record or list for a
   JSON object or array. POST is the omitted default (`@patch:post` is
   rejected). GET is rejected on `@patch` and `@command`. `@patch:patch` is
@@ -243,7 +246,7 @@ Paths are free-form. The convention is:
 | --- | --- | --- | --- |
 | HTML document | `@view(path)` | Full `<html>` | `text/html` |
 | One-shot patch | `@patch`, `@patch:put`, `@patch:patch`, `@patch:delete` | Fragment with a stable `id` | `datastar-patch-elements` in the acting tab |
-| JSON command | `@command` and friends | Record or list | **204** for Datastar; `application/json` otherwise |
+| JSON command | `@command` and friends | Record or list | **Empty SSE** for Datastar; `application/json` otherwise |
 | Live stream | `@live` | Fragment with a stable `id` | Generated `GET /sse` |
 
 `@on:METHOD` and trailing `json` are a removal, not a deprecation. Diagnostics rewrite:

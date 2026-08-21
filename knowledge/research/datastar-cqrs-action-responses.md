@@ -1,19 +1,19 @@
 ---
 type: Research Report
 title: Datastar SSE is a per-request transport; generated apps do not fan out
-description: "Datastar morphs from each request's response. Generated Rocci one-shot POST patches do not fan out. Multi-client push is Tao CQRS. The companion plan generates the SSE unfold behind @live; keep the simple counter as a one-shot tutorial and live-counter for shared views."
+description: "Datastar morphs from each request's response. Generated Rocci one-shot POST patches do not fan out. Multi-client push is Tao CQRS. Generated @live polls with keepalives; Datastar @command success is empty SSE (not 204); ordinary clients get JSON. Platform idle-timeout limits are in basic-webserver-sse-http."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T09:02:00Z }
+generated: { by: process:cursor, at: 2026-08-21T13:08:32Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
 sources:
   - id: dispatch-rs
     resource: ../../crates/rocci-cli/src/dispatch.rs
-    title: Generated main.roc wraps non-GET Html in one-shot patch_html SSE
+    title: Generated empty_sse commands and live keepalive Emit
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
   - id: datastar-roc
     resource: ../../crates/rocci-cli/runtime/Datastar.roc
     title: Datastar.patch_elements emits datastar-patch-elements
@@ -61,12 +61,12 @@ sources:
     last_modified: 2026-08-21
   - id: template-readme
     resource: ../../crates/rocci-template/README.md
-    title: Standalone HTTP documents @live and json
+    title: Standalone HTTP documents @live and empty SSE commands
     author: process:git
     last_modified: 2026-08-21
   - id: rocci-ref
     resource: ../../docs/reference/rocci.rocdown
-    title: Public @on, @live, and json contract
+    title: Public @view, @patch, @command, and @live contract
     author: process:git
     last_modified: 2026-08-21
   - id: lower-rs
@@ -76,7 +76,7 @@ sources:
     last_modified: 2026-08-21
   - id: ungram
     resource: ../../crates/rocci-template/Rocci.AST.ungram
-    title: LiveDecl and OnDecl optional json respond ident
+    title: LiveDecl and handler grammar
     author: process:git
     last_modified: 2026-08-21
   - id: service-rs
@@ -101,9 +101,14 @@ sources:
     last_modified: 2026-08-16
   - id: author-skill
     resource: ../../.agents/skills/rocci-author/SKILL.md
-    title: Authoring table still routes long-lived SSE to authored main.roc
+    title: Authoring table for handlers and empty SSE commands
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
+  - id: bws-limits
+    resource: basic-webserver-sse-http.md
+    title: basic-webserver 0.16 SSE idle timeout and HTTP/1.1 limits
+    author: process:cursor
+    last_modified: 2026-08-21
   - id: ds-backend
     resource: https://data-star.dev/guide/backend_requests
     title: Datastar backend requests and SSE events
@@ -118,7 +123,7 @@ sources:
     author: organization:star-federation
   - id: ds-actions
     resource: https://data-star.dev/reference/actions
-    title: Backend actions, 204 empty body, response content types
+    title: Backend actions, empty body, response content types
     author: organization:star-federation
   - id: ds-docs
     resource: https://data-star.dev/docs.md
@@ -136,12 +141,14 @@ sources:
 ## Scope and authority
 
 This record explains the counter's observed network shape against Datastar 1.0
-and Rocci's generated dispatcher. It recommends a product direction. It does
-not approve a new architecture decision and does not change shipped
-behavior.[^server-state][^plan]
+and Rocci's generated dispatcher. Generated `@live` and `@command` negotiation
+(empty SSE for Datastar, JSON for ordinary clients, keepalives on unchanged
+polls) are shipped in dispatch; platform idle-timeout limits remain
+documented separately.[^server-state][^plan][^dispatch-rs][^bws-limits]
 
-Exploratory. Implementation is the companion
-[plan](../plans/datastar-cqrs-action-responses.md).
+Exploratory on further fan-out ceilings. Companion
+[plan](../plans/datastar-cqrs-action-responses.md). Platform limits:
+[basic-webserver SSE and HTTP](basic-webserver-sse-http.md).
 
 ## Observation
 
@@ -249,10 +256,13 @@ action. Discriminate on `Datastar-Request`:[^ds-docs]
 
 | Client | Header | Recommended command response |
 | --- | --- | --- |
-| Datastar `@post` | `Datastar-Request: true` | **204** (or empty SSE). Stream morphs HTML. |
+| Datastar `@post` | `Datastar-Request: true` | **Empty SSE** (HTTP 200 `text/event-stream`, zero events). Stream morphs HTML. |
 | `curl`, API, tests | absent | **200** `application/json` with the new resource (for a counter, `{ "count": N }`) |
 
-Same `@on` path, two encodings. The handler returns data; dispatch chooses
+Datastar also accepts **204**. Generated Rocci prefers empty SSE so Safari
+inspector and basic-webserver stay quiet; Snake already used that shape.[^snake-main][^bws-limits][^dispatch-rs]
+
+Same `@command` path, two encodings. The handler returns data; dispatch chooses
 status and content type. That is how action endpoints stay usable as a
 normal API without teaching Datastar that JSON is HTML.
 
@@ -267,8 +277,8 @@ read and write:[^server-state][^runtime-report][^ds-tao]
 
 ```text
 GET  /                         document (initial HTML)
-GET  /sse                      generated long-lived patches of the live region
-POST /actions/counter/increment command: write + 204 or JSON (not a second patch)
+GET  /sse                      generated long-lived patches of the live region (keepalives when unchanged)
+POST /actions/counter/increment command: write + empty SSE or JSON (not a second patch)
 POST /actions/counter/reset     same
 ```
 
@@ -318,14 +328,17 @@ Ship an opt-in **live render**, not a second handwritten route:
 
 Rocci then:
 
-1. Generates `GET /sse` as a Snake-style poll of that Html.
+1. Generates `GET /sse` as a Snake-style poll of that Html, emitting
+   `datastar-patch-elements` when render bytes change and a non-Datastar
+   keepalive when unchanged (so the host 30s response idle timeout cannot kill
+   a silent `Wait`).[^dispatch-rs][^bws-limits]
 2. Injects `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])` on document
    `body` when the module has `@live` and the body has no `data-init`.
-3. Leaves unmarked POST as today’s one-shot patch (forms keep working).
-4. Lets a POST marked `json` return a `Str` body: 204 for Datastar-Request,
-   JSON for everyone else.
+3. Leaves unmarked `@patch` POST as today’s one-shot patch (forms keep working).
+4. Lets `@command` return Roc data: empty SSE for Datastar-Request, JSON for
+   everyone else.
 
-An explicit `@on:get("/sse") stream` remains an escape hatch, not the
+An explicit authored `GET /sse` remains an escape hatch, not the
 tutorial. Snake keeps authored `main.roc` (ticks, cookies, custom JSON
 API).[^snake-main]
 
@@ -378,6 +391,12 @@ Snake fans out by parking `Wait({ wake: After(125) })` and rereading a
 SQLite `revision`. There is no cross-request mailbox to wake other
 streams.[^snake-main][^runtime-report]
 
+A pure `Wait` with no bytes also hits the host **30s response idle timeout**.
+Generated `@live` therefore keepalive-Emits on the unchanged path. Further
+host shortcomings (HTTP/1.1 on plaintext `rocci run`, opaque Body-stream
+logs, shared SQLite with blocking handlers) are catalogued in
+[basic-webserver SSE and HTTP](basic-webserver-sse-http.md).[^bws-limits][^dispatch-rs]
+
 A generated `/sse` handler can use the same loop: render the fragment,
 emit when the bytes (or a revision column) change, otherwise wait ~100 ms.
 That is push from the browser's point of view and poll inside the host. A
@@ -415,28 +434,29 @@ stream machinery: authors write `@live` plus `json` commands. On
 stays one-shot; `live-counter` and the hybrid island share the stream. Snake
 stays the hand-written ceiling.[^dispatch-rs][^snake-main][^counter-readme][^plan]
 
-[^dispatch-rs]: Non-GET arms call `Ok(patch_html!(html))`; `patch_html!` unfolds one event then `End`. GET is always `html_ok`.
+[^dispatch-rs]: `@patch` arms call `Ok(patch_html!(html))`. `@command` Datastar success is `empty_sse!`; ordinary clients get `json_ok`. `@live` emits patch-elements or keepalive `Sse.Event.data("")`.
 [^datastar-roc]: `patch_elements` is `Sse.Event.keyed("datastar-patch-elements", "elements", ...)`.
 [^counter]: Increment/reset return `counterCard`; buttons use `@post("/actions/counter/...")`; lede text says one HTML patch.
 [^counter-readme]: First-app README documents curl of the POST SSE patch and single-event morph of `#counter`.
-[^hybrid-counter]: Converted to `@live` plus `json` increment/reset; `/actions/counter/sync` removed.
+[^hybrid-counter]: Converted to `@live` plus `@command` increment/reset; `/actions/counter/sync` removed.
 [^snake-main]: `GET /sse` → `stream_game!` revision poll; `POST /api/direction` → `empty_sse!`.
 [^snake-rocci]: `<body data-init=@get("/sse")>` on the play page.
 [^snake-readme]: Documents long-lived SSE patches and JSON `POST /api/direction`.
-[^server-actions]: "Non-GET handlers return one-shot `datastar-patch-elements` events"; two windows verify SQLite sharing.
-[^rendering-doc]: Table lists authored long-lived SSE separately from POST fragments.
-[^template-readme]: "Custom long-lived SSE stays in an authored `main.roc`"; JSON `/api/` is convention only.
-[^rocci-ref]: `@on` dispatch is `handler!(context, request)`; bodies illustrated as Html fragments.
-[^lower-rs]: `RouteInfo` gained `respond: Patch | Json` in the companion plan.
-[^ungram]: `OnDecl` gained optional respond ident `json`; `LiveDecl` is a module item.
+[^server-actions]: Live CQRS commands return empty SSE or JSON; `@patch` stays one-shot.
+[^rendering-doc]: Table lists `@live` stream and `@command` empty SSE separately from POST fragments.
+[^template-readme]: Documents `@live` keepalives and empty SSE for Datastar commands.
+[^rocci-ref]: `@command` encodes empty SSE for Datastar and JSON otherwise.
+[^lower-rs]: `RouteInfo` respond kind and live `data-init` injection.
+[^ungram]: Handler and `LiveDecl` grammar.
 [^service-rs]: `IslandServicePlan.into_app_plan` feeds `rocci_cli` generic dispatch.
 [^server-state]: Backend remains authoritative; Datastar transports intent and server HTML.
 [^runtime-report]: Direct POST patch versus CQRS GET stream; do not double-patch one boundary.
 [^snake-study]: Multiplayer patches on a long-lived GET; commands are separate.
-[^author-skill]: Server-app table lists `@live` and `json` on this branch.
+[^author-skill]: Server-app table lists empty SSE for Datastar `@command`.
+[^bws-limits]: Silent `Wait` vs 30s idle timeout; HTTP/1.1 on plaintext `rocci run`; opaque Body-stream logs.
 [^ds-backend]: Zero or more SSE events per response; SDKs format `PatchElements` / `PatchSignals`.
 [^ds-tao]: CQRS long-lived GET plus short writes; 0–n SSE events; signals for interaction not domain.
 [^ds-sse]: `datastar-patch-elements` morphs by id; events end with a blank line.
-[^ds-actions]: 204 allowed for empty body; `openWhenHidden`; JSON content type patches signals.
+[^ds-actions]: 204 or empty SSE allowed for empty morph; `openWhenHidden`; JSON content type patches signals.
 [^ds-docs]: CQRS snippet; Accept lists html, json, and event-stream together.
-[^plan]: Phased `@live` generation, JSON/204 commands, live-counter example; first-app counter stays one-shot.
+[^plan]: Phased `@live` generation, empty SSE / JSON commands, live-counter example; first-app counter stays one-shot.

@@ -118,7 +118,7 @@ state, `@init` creates it, and `@view` / `@patch` / `@command` declare route
 handlers. `@live` is an optional module-level render (one per module) that
 lowers to `live!`; the CLI generates `GET /sse` and injects `data-init` on
 `<body>` when that attribute is absent. `@command` returns Roc data (a record
-or list). Generated dispatch encodes it: **204** to Datastar, **200**
+or list). Generated dispatch encodes it: **empty SSE** to Datastar, **200**
 `application/json` otherwise. A command returning `Str` encodes as a JSON
 string. `@on` and trailing `json` are removed. Generated dispatch calls each
 handler as `handler!(context, request)`. Write `|{ db }, request|` when you
