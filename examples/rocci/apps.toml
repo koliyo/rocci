@@ -1,0 +1,47 @@
+[[app]]
+id = "counter"
+path = "standalone/counter"
+title = "Counter"
+summary = "SQLite document plus one-shot HTML patches"
+entry = "Counter.rocci"
+hosting = "docs"
+
+[[app]]
+id = "live-counter"
+path = "standalone/live-counter"
+title = "Live counter"
+summary = "Commands plus a shared @live stream"
+entry = "LiveCounter.rocci"
+hosting = "live"
+
+[[app]]
+id = "handler-matrix"
+path = "standalone/handler-matrix"
+title = "Handler matrix"
+summary = "Every accepted @view, @patch, @command, and @live construct"
+entry = "HandlerMatrix.rocci"
+hosting = "docs"
+
+[[app]]
+id = "styling"
+path = "standalone/styling"
+title = "Styling"
+summary = "File-level and component-scoped CSS"
+entry = "Styling.rocci"
+hosting = "docs"
+
+[[app]]
+id = "datastar"
+path = "custom/datastar"
+title = "Datastar gallery"
+summary = "Search, edit, todos, tabs, and validation"
+entry = "."
+hosting = "live"
+
+[[app]]
+id = "snake"
+path = "custom/snake"
+title = "Snake"
+summary = "Custom main.roc multiplayer stress demo"
+entry = "."
+hosting = "docs"

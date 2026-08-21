@@ -1,0 +1,32 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Handler matrix",
+        description: "Every accepted @view, @patch, @command, and @live construct",
+    },
+}
+
+# Handler matrix
+
+One standalone app that lists every accepted handler construct. `@patch`
+handlers return uniquely identified HTML fragments. `@command` handlers return
+records. `@live` owns `#live-tick` so the stream never races a one-shot patch.
+
+This catalog row is **docs-only**. Do not expose it as a public origin; use
+local `curl` against `rocci run`.
+
+See [source](/examples/handler-matrix/source/).
+
+## Run locally
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci
+```
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s -X POST http://127.0.0.1:8000/actions/post-frag
+curl -s -X POST http://127.0.0.1:8000/actions/post-cmd
+```

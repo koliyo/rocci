@@ -97,6 +97,7 @@ cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 ### Rocdown
 
 ```sh
+cargo run -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 cargo run -p rocci-rocdown-cli -- build examples/rocdown/site --output dist
 cargo run -p rocci-rocdown-cli -- check site
@@ -149,8 +150,12 @@ The public `rocci.dev` tree is [`site`](site), configured by
 the hybrid site (CDN archive plus musl `islands` binary) with:
 
 ```sh
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -p rocci-rocdown-cli -- package site --target x64musl
 ```
+
+`rocci-docs` must run first so `site/rocdown.toml` can mount `dist/example-docs`
+at `/examples/`. `rocci-rocdown` does not import `rocci-docs`.
 
 That writes `dist/rocci.dev`, `dist/site.tgz`, `dist/islands`, and
 `publish.json`. GitHub Actions workflow `site.yml` packages on linux/amd64

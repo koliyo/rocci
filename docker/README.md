@@ -123,6 +123,36 @@ uv run rocci-ops serve app target/release/rocci-server
 Override the published port with `ROCCI_HTTP_PORT`. The app container prints
 `Open http://127.0.0.1:8080/` (or that override) on start.
 
+## Live example origins (planned hostnames)
+
+Catalog rows with `hosting = "live"` (`live-counter`, `datastar`) are separate
+processes and hostnames. They do **not** share the rocci.dev hybrid island
+`/actions/` or `/sse`. Docs-only apps (counter, styling, snake) are absent
+from this Compose file.
+
+```sh
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
+# live-counter	standalone/live-counter	LiveCounter.rocci
+# datastar	custom/datastar	.
+```
+
+Package each live app with `rocci build --release --target x64musl` (or
+`arm64musl` for Apple Silicon Docker), then point
+`ROCCI_LIVE_COUNTER_CONTEXT` and `ROCCI_DATASTAR_CONTEXT` at directories that
+contain `server`, `assets/`, and `docker/app/Dockerfile`.
+
+```sh
+docker compose -f docker/compose.examples.yml up
+```
+
+Caddy matches `Host` to `<id>.examples.rocci.dev`,
+`<id>.examples.staging.rocci.dev`, and `<id>.examples.localhost`. Cloudflare
+DNS/Tunnel for those names is operator work. Until a staging deploy has served
+them, treat the live demo links as planned.
+
+The hybrid site Caddy (`docker/cdn/Caddyfile`) still sends `/actions/*` to the
+home-page island. Example origins never steal that path.
+
 ## Hybrid builder/dev demo (toolchain-heavy)
 
 The original Compose file still builds Ubuntu images with Roc, the Rocci CLIs,
@@ -184,6 +214,8 @@ Override `8080:80` with a Compose override file if the host port is taken
 | `rocci-ops serve hybrid` | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
+| [`compose.examples.yml`](compose.examples.yml) | Live example origins (`live-counter`, `datastar`) |
+| [`examples/Caddyfile`](examples/Caddyfile) | Host routing for `<id>.examples.rocci.dev`; no `/actions/` |
 | `rocci-ops serve app` | Absolutize server dir and app `compose up` |
 | [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain (no CDN stage) |
 | [`cdn/Dockerfile`](cdn/Dockerfile) | Thin Caddy image; prints host URL on start |

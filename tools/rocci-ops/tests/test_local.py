@@ -6,6 +6,17 @@ def test_cli_crates() -> None:
     assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown", "rocci-okf"}
 
 
+def test_package_site_usage() -> None:
+    from rocci_ops.local import main
+
+    try:
+        main(["package"])
+    except SystemExit as exc:
+        assert "site" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
 def test_parse_worktrees() -> None:
     porcelain = """\
 worktree /repo

@@ -14,7 +14,7 @@ commands:
   deploy        probe, bootstrap, or push origin artifacts over SSH
   origin        publish, up, or backup on the origin host
   install-cli   build and install rocci, rocdown, and rocci-okf
-  package       package vscode or zed extension
+  package       package vscode, zed, or the rocci.dev site (docs + live apps)
   verify-zed    check Zed manifest and build the language server WASM
   bundle        macOS app bundles
   install-cursor-extension
