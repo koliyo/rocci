@@ -38,15 +38,6 @@ items = [
 ]
 
 [[nav]]
-label = "Build"
-items = [
-    "guides/rocdown-pages",
-    "guides/hybrid-sites",
-    "guides/docs-components",
-    "guides/rocci-browser",
-]
-
-[[nav]]
 label = "Understand"
 items = [
     "concepts/architecture",
@@ -57,18 +48,33 @@ items = [
 [[nav]]
 label = "Reference"
 items = [
-    "reference/rocci",
-    "reference/rocci-tree",
-    "reference/rocdown",
-    "reference/rocdown-tree",
+    "reference/index",
+    "reference/language/index",
+    "reference/language/file-structure",
+    "reference/language/components",
+    "reference/language/tags",
+    "reference/language/attributes",
+    "reference/language/text",
+    "reference/language/directives",
+    "reference/language/css",
+    "reference/language/fixtures",
+    "reference/language/server",
+    "reference/language/comments",
+    "reference/language/generated-roc",
+    "reference/language/grammar",
+    "reference/runtime",
     "reference/cli",
     "reference/configuration",
-    "reference/rocdown-site",
+    "reference/compatibility",
+    "reference/diagnostics",
+    "reference/contributor/rocci-tree",
 ]
 
 [[nav]]
 label = "Resources"
 items = [
+    "guides/rocci-browser",
     "playground",
     "troubleshooting",
+    "status",
 ]

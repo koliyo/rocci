@@ -1,349 +1,156 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/cli/"],
-
+    aliases: [
+        "/reference/cli/",
+        "/docs/reference/cli/",
+        "/docs/cli/validate/",
+        "/docs/cli/build/",
+        "/docs/cli/run/",
+        "/docs/cli/bundle/",
+    ],
     meta: {
-        title: "CLI reference",
-        description: "Look up rocci and rocdown commands for validation, compilation, inspection, preview, serving, bundling, and documentation builds.",
+        title: "Rocci CLI reference",
+        description: "Look up rocci commands: validate, build, run, view, browse, playground, render, inspect, bundle, and datastar.",
     },
 }
 
-# CLI reference
+# Rocci CLI reference
 
-The workspace provides `rocci` for template modules and runtime applications, `rocdown` for Markdown documents and static sites, `rocci-okf` for knowledge bundle review, and `rocci-browser` for a persistent project picker. Direct `run` still opens a one-shot preview window.
+**Status:** current.
 
-Examples below use `cargo run` from a source checkout. Installed binaries use
-the same arguments without the Cargo prefix.
+This page documents the `rocci` binary only. `rocdown`, `rocci-okf`, and
+`rocci-browser` are other products; see [Rocdown](/rocdown/) and
+[Project browser](/docs/guides/rocci-browser/).
 
-## Rocci CLI
+Examples use a source checkout. Until a distribution exists, the spelling is
+`cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo
+prefix.
 
-### Validate configuration
-
-```sh
-cargo run -p rocci-cli -- validate [rocci.toml]
-```
-
-Parse and validate the application configuration. Unknown fields and unsafe
-runtime settings are errors.
-
-### Build .rocci template to Roc
+## Validate
 
 ```sh
-cargo run -p rocci-cli -- build INPUT [-o OUTPUT]
+cargo run -q -p rocci-cli -- validate [rocci.toml]
 ```
 
-Compile a single `.rocci` template to Roc. With `-o`, write to the given path;
-otherwise print to stdout.
+Parse and validate configuration. Unknown fields and unsafe hosts are errors.
+Default path `rocci.toml`. Exit non-zero on failure.
 
-### Package a Linux server binary
+## Build
 
 ```sh
-cargo run -p rocci-cli -- build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
+cargo run -q -p rocci-cli -- build INPUT [-o OUTPUT]
 ```
 
-`INPUT` is an app directory with `main.roc` (for example `examples/rocci/custom/datastar`), a
-standalone `.rocci` file (`examples/rocci/standalone/counter/Counter.rocci`), or `rocci.toml`.
-Writes `server` plus staged `assets/` (default `target/release/rocci-server`).
-This is **server packaging**, not a macOS `.app` (`rocci bundle` stays the
-desktop path). `--target` is the Linux container process target. Linux OCI is
-opt-in: `uv run rocci-ops serve app` sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose
-and does not change `rocci.toml` loopback validation.
+Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
 
-Without `--release`, `rocci build FILE.rocci` still lowers a single template to
-Roc. `--target` requires `--release`.
-
-### Inspect template source and AST
+## Build release
 
 ```sh
-cargo run -p rocci-cli -- inspect INPUT [--ast] [--segments]
+cargo run -q -p rocci-cli -- build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
 ```
 
-Inspect compiled information: component signatures, fixtures, styles, handlers,
-and source map segments. `--ast` prints the parsed AST as an S-expression.
+Package a Linux **server** plus `assets/` (not a macOS `.app`). `INPUT` may be
+an app directory, a standalone `.rocci`, or `rocci.toml`. `--target` requires
+`--release`.
 
-### Run a single component
+## Run
 
 ```sh
-cargo run -p rocci-cli -- view INPUT [--component NAME] [--arg name=val] [--port PORT] [--no-window]
+cargo run -q -p rocci-cli -- run [ENTRY] [serve options]
 ```
 
-Run a component with mock arguments and an optional state type. The component
-is wrapped in a minimal application and launched in a native window.
+Standalone `.rocci` or directory/`main.roc`. Starts HTTP and opens a preview
+window by default. Extra args after the entry go to the Roc binary.
 
-### Browse components
+## View
 
 ```sh
-cargo run -p rocci-cli -- browse [DIRECTORY] [--port PORT] [--no-window]
+cargo run -q -p rocci-cli -- view INPUT --component NAME [--arg name=val]
 ```
 
-Discover and interactively browse all `.rocci` components and fixtures in a directory.
+Preview one component. HTTP declarations are ignored. `--component Hello` and
+`--component hello` both work.
 
-### Run an application
+## Browse
 
 ```sh
-cargo run -p rocci-cli -- run [ENTRY] [--port PORT] [--no-window] [--args...]
+cargo run -q -p rocci-cli -- browse [ROOTS…]
 ```
 
-Run the entry template or directory. The application server starts and opens a
-preview window by default. The preview overlay supports current-document find
-(`Cmd/Ctrl-F`, `E` for selection, `G` / `Shift-G` to move, wrapping at the
-ends) and go-to-file (`Cmd/Ctrl-K`). Static site and knowledge review servers
-expose a Dev control that docks an inspector with Performance, Source, and
-Console tabs (original source, AST, generated Roc, generated HTML, plus
-runtime session logs including Roc stderr). Source scrolls long Roc/HTML and highlights Rocci,
-Rocdown, Markdown, Roc, and HTML with `tok-*` classes. Dock is right or
-bottom only. `rocci run` serves that
-panel on a sibling loopback port so it is not injected into the authored app's
-routes. `--no-window` still keeps the sibling inspector and captures HTML
-after listen; it prints timings on stderr instead of opening a window.
+Component gallery. Not `rocci-browser`.
 
-| Option | Effect |
-| --- | --- |
-| `--no-window` | Serve without opening the preview window |
-| `--port PORT` | Override the listening port (defaults to a free port, or 8000 with `--no-window`) |
-| `--args...` | Extra arguments forwarded to the Roc binary |
-
-### Bundle a macOS app
+## Playground
 
 ```sh
-cargo run -p rocci-cli -- bundle [--config rocci.toml] [--target x64musl|arm64musl]
+cargo run -q -p rocci-cli -- playground INPUT [--mode wasm|local]
 ```
 
-Build a local ad-hoc-signed macOS app bundle. `--target` is the Roc native
-ISA/OS for Linux process binaries (`x64musl` is the Linux container target).
-macOS `.app` bundles stay host-native and reject `--target`. `--host` on
-`rocdown build` is apply-only and is not this flag.
+`--mode wasm` (default) runs in a worker and does not snapshot HTML.
+`--mode local` can snapshot through native Roc.
 
-### Datastar asset management
+## Render
 
 ```sh
-cargo run -p rocci-cli -- datastar pin [VERSION] [--app PATH]
-cargo run -p rocci-cli -- datastar update [--app PATH]
+cargo run -q -p rocci-cli -- render INPUT [--fragment] [-o OUTPUT]
 ```
 
-Pin or update the Datastar JavaScript runtime asset in an application directory.
+`Html.render` snapshot. `--fragment` skips the document wrapper.
 
----
-
-## Rocdown CLI
-
-### Run an interactive document or documentation site
+## Inspect
 
 ```sh
-# Run a single interactive document
-cargo run -p rocci-rocdown-cli -- run report.rocdown
-
-# Preview a page that lives inside a documentation site
-cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
-
-# Run a documentation site directory with live reload
-cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--output DIRECTORY]
+cargo run -q -p rocci-cli -- inspect INPUT [--ast]
 ```
 
-Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
-with live reload. Hybrid sites with colocated handlers also start the
-generated island service and proxy `/actions/` on this same origin so Datastar
-posts work locally. Sibling `[http].service` apps still run with
-`rocdown serve-islands` or `rocci run`. The default root is the current
-directory. A `.rocdown` file under an ancestor `rocdown.toml` uses that site
-root and opens the page route, so includes and `/docs/...` links resolve the
-same way as `rocdown run docs`. A file with no ancestor config stays a
-standalone document. Preview output
-goes to a temp directory unless `--output` is set. The preview window supports
-current-document find and `Cmd/Ctrl-K` jump-to-page using `/pages.json`. The
-Dev control opens a panel at `/__rocci/dev` with Performance, Source, and
-Console tabs for the current route (`?tab=`, `?route=`, and `?view=`). Long
-Source Roc and HTML scroll inside the pane. Original Rocci/Rocdown/Markdown,
-generated Roc, and generated HTML use `tok-*` highlighting; AST stays plain.
-Console shows runtime session messages (host notes and Roc stderr). From
-`@patch` / `@command` / `@init`, `pf.Stderr.line!` reaches that pane under `rocci run` (discard
-`StderrErr` when mixing with other `?` errors); there is no Rocci `@log`.
-`rocdown run` and `rocdown build` refuse OKF knowledge records and bundles and
-point to `rocci-okf run`.
+Components, fixtures, styles, handlers, generated Roc, and source-map
+segments. Segments always print; there is no `--segments` flag. `--ast` adds
+the S-expression tree.
 
-| Option | Effect |
-| --- | --- |
-| `--no-window` | Serve without opening the preview window |
-| `--port PORT` | Override the listening port |
-| `--output DIRECTORY` | Write preview files here instead of a temp directory |
-
-### Build documentation
+## Ast
 
 ```sh
-cargo run -p rocci-rocdown-cli -- build [ROOT] [--output DIRECTORY] [--cdn-only] [--host auto|native|wasm] [--target x64musl|arm64musl]
+cargo run -q -p rocci-cli -- ast INPUT
 ```
 
-The default root is the current directory. `ROOT` may be a documentation
-directory or a `.rocdown` file. `rocdown.toml` is optional. `--output` overrides
-`build.output`. OKF knowledge records are refused here as well. `--cdn-only`
-errors (`RD2302`) when any published page is `live`, so a CDN-only publish cannot
-ship Datastar actions without the island service. Default hybrid build accepts
-`live` pages and prints page kinds, whether Datastar was emitted, and service
-routes.
+Parse tree only.
 
-`--host` selects how **apply** runs on the build machine (`native` uses
-`basic-cli` without a Roc `--target`; `wasm` uses the embedded wasm32 renderer).
-`--host wasm` does not produce a hosted Wasm server. Some Roc platforms cannot
-compile to wasm, so native apply remains required. `--target` is a separate
-native ISA/OS for **island and app** `main.roc` process binaries. For Linux
-Docker, match the **container** CPU (`arm64musl` on Apple Silicon Docker
-Desktop by default; `x64musl` on Intel Mac / most CI). Musl is Linux; do not
-use `arm64mac` for containers, and do not pass musl `--target` into `--host
-native` on a Mac. See `docker/README.md`.
-
-### Package a site
+## Bundle
 
 ```sh
-cargo run -p rocci-rocdown-cli -- package [ROOT] [--output DIRECTORY] [--archive site.tgz] [--target x64musl|arm64musl]
+cargo run -q -p rocci-cli -- bundle [--config rocci.toml] [--target …]
 ```
 
-Implies `--cdn-only` for static catalogs. `live` pages fail with `RD2302`
-when `--cdn-only` is set. Otherwise a hybrid package compiles the island
-process binary (sibling `islands` file) and records live routes plus the
-binary fingerprint in `publish.json`. `--target` is the Linux container
-process target (`arm64musl` on Apple Silicon Docker by default; `x64musl` on
-amd64). See `docker/README.md`. Failed package leaves the previous
-`site.tgz`. `--no-archive` skips the tarball.
-
-### Serve a built tree
-
-```sh
-cargo run -p rocci-rocdown-cli -- serve [DIST] [--port PORT] [--no-window]
-```
-
-Serve an existing `dist/` on loopback without Roc, watch, or rebuild. `DIST`
-must contain `index.html`. Preview window follows the same `--no-window` rules
-as `rocdown run`. This checks that a package is self-contained; it is not
-`rocdown run` (which rebuilds from sources) and not `serve-islands` (island
-process only).
-
-Local `:img` and Markdown image paths resolve against the source file. Missing
-local files fail the catalog (`RD2103`). Files under `build.assets` are
-content-hashed whether the authored URL is `/assets/foo.png` or `assets/foo.png`.
-
-### Check documentation
-
-```sh
-cargo run -p rocci-rocdown-cli -- check [ROOT] [--format terminal|json]
-```
-
-Validate the catalog, including article-block content models, includes, page links,
-and local assets, without compiling Roc or writing output.
-
-### Test documented examples
-
-```sh
-cargo run -p rocci-rocdown-cli -- test [ROOT] [--update] [--format terminal|json]
-```
-
-Run `:example` commands that declare `test`. `--update` rewrites golden
-files named by `expect`.
-
-### Inspect Rocdown AST and planned artifacts
-
-```sh
-cargo run -p rocci-rocdown-cli -- inspect ast FILE.rocdown
-cargo run -p rocci-rocdown-cli -- inspect artifacts [ROOT]
-```
-
-`inspect artifacts` reports page kinds, Datastar emission, island service
-routes, and the planned output tree.
-
-### Serve island actions
-
-```sh
-cargo run -p rocci-rocdown-cli -- serve-islands [ROOT] [--port PORT] [--no-window]
-```
-
-Start the island HTTP service for `live` pages by itself. Colocated handlers
-handlers compile into one dispatcher. A sibling `[http].service` `.rocci` app
-is run with `rocci run` instead. The process serves `/health` and mutation
-routes; it does not serve Markdown or the CDN HTML tree. Use this beside a
-published `rocdown build` output. Local preview that needs both artifacts on
-one origin is `rocdown run DIR`.
-
-See [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) for the
-two-artifact deploy.
-
----
-
-## Rocci OKF CLI
-
-### Validate knowledge bundle
-
-```sh
-cargo run -p rocci-okf -- check [ROOT] [--profile base|rocci] [--format terminal|json]
-```
-
-Base mode checks OKF v0.2. Rocci mode additionally validates approved types,
-tags, lifecycle, provenance, authority, and owner fields.
-
-### Inspect knowledge catalog, concept, and graph
-
-```sh
-cargo run -p rocci-okf -- inspect concept ID [ROOT] [--profile base|rocci]
-cargo run -p rocci-okf -- inspect catalog [ROOT] [--profile base|rocci]
-cargo run -p rocci-okf -- inspect graph [ROOT] [--profile base|rocci]
-```
-
-### Search knowledge records
-
-```sh
-cargo run -p rocci-okf -- search QUERY [ROOT] [--profile base|rocci]
-```
-
-### Retrieval benchmarks
-
-```sh
-cargo run -p rocci-okf -- benchmark BENCHMARK_FILE [ROOT] [--profile base|rocci]
-```
-
-Measures top-5 hit rate and mean reciprocal rank against versioned questions and
-enforces passing thresholds.
-
-### Live review preview server
-
-```sh
-cargo run -p rocci-okf -- run [PATH] [--profile base|rocci] [--port PORT] [--no-window]
-```
-
-`PATH` may be a bundle directory, a concept Markdown file inside a bundle, or
-the bundle-root `index.md`. A concept file opens the review site on that
-record. The preview window supports current-document find and `Cmd/Ctrl-K`
-jump-to-record using `/catalog.json`. The Dev control opens a panel at
-`/__rocci/dev` with Performance, Source, and Console tabs for the current
-route. Collection indexes and `/review/` have inspect snapshots. Original
-Markdown and built HTML highlight with `tok-*` classes. The Source dropdown
-omits AST and Generated Roc for OKF Markdown records.
-
-### Build static review artifacts
-
-```sh
-cargo run -p rocci-okf -- build [ROOT] [--output DIRECTORY] [--profile base|rocci]
-```
-
----
-
-## Project browser
-
-`rocci-browser` is a fourth binary, not a `rocci` subcommand. See
-[Project browser](/docs/guides/rocci-browser/) for Cmd-P versus Cmd-K, the
-registry file, and that `rocci browse` is the component gallery.
-
-This repo's `.rocci/browser.toml` execs `target/debug` product CLIs with
-`browser-adapter`. Build those binaries before the host:
-
-```sh
-cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
-cargo run -q -p rocci-browser
-cargo run -q -p rocci-browser -- add ./my-project
-cargo run -q -p rocci-browser -- open TARGET [--document ID] [--no-window] [--json]
-```
-
-`--no-window --json` prints `{ "url", "title" }` for agents and for machines
-without a display. There is no `tui` command.
-
-On macOS, `uv run rocci-ops bundle browser-macos` (or `rocci-browser package`)
-assembles an ad-hoc **Rocci Browser.app**. That wrapper is not `rocci bundle`.
+Ad-hoc signed macOS `.app`. Host-native; `--target` is rejected for `.app`.
+`--target` on this command is for Linux process binaries in other flows.
 Production signing is planned.
 
+## Datastar
+
+```sh
+cargo run -q -p rocci-cli -- datastar pin VERSION [--app PATH]
+cargo run -q -p rocci-cli -- datastar update [--app PATH]
+```
+
+Pin or upgrade the Datastar JS asset. `run` does not auto-upgrade.
+
+## Browser adapter
+
+```sh
+cargo run -q -p rocci-cli -- browser-adapter
+```
+
+Stdio protocol for `rocci-browser`. Not an author-facing daily command.
+
+## Serve options
+
+Shared by `run`, `view`, `browse`, and `playground`:
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `--no-window` | off | Serve without the preview window |
+| `--no-live-reload` | off | Pause automatic refresh; watch still rebuilds |
+| `--log-handlers` | off | Log matched handlers to stderr / Dev Console |
+| `-v` / `--verbose` | off | Compile and wait phases |
+| `--port PORT\|auto` | `auto` with a window; `8000` with `--no-window` | Also `ROC_BASIC_WEBSERVER_PORT` |
+
+**Related:** [Configuration](/docs/reference/configuration/), [Install](/docs/start/install/).

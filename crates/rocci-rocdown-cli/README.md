@@ -18,7 +18,7 @@ cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 # A .rocdown file under a site root (ancestor `rocdown.toml`) previews the
 # whole site and opens that page. Includes, aliases, and `/docs/...` links
 # resolve the same way as `rocdown run docs`.
-cargo run -p rocci-rocdown-cli -- run docs/guides/docs-components.rocdown
+cargo run -p rocci-rocdown-cli -- run site/rocdown/article-blocks.rocdown
 
 # Run/preview a documentation site directory with watch and live reload.
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.

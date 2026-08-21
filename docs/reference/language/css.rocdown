@@ -1,0 +1,26 @@
+@page {
+    layout: "docs",
+    aliases: ["/docs/reference/@css/"],
+    meta: {
+        title: "CSS",
+        description: "File-level versus component @css, scoping transformation, selector behavior, and limits.",
+    },
+}
+
+# CSS
+
+**Status:** current. `:deep` piercing is **planned** (not shipped).
+
+`@css { … }` is raw CSS (no interpolations). File-level and component-level
+blocks concatenate in source order at that scope. Component CSS is a preamble
+item like `@let`.
+
+Lowering stamps `data-rocci-css` and wraps rules in CSS `@scope`. Authors keep
+writing `class="card"`. Document chrome belongs on `body` or `:scope`, not
+`html { … }`. Patch fragments should not carry a sibling `<style>`.
+
+**Example:** [Styling](/examples/styling/).
+
+**Limits:** no `:deep` yet.
+
+**Related:** [Rendering model](/docs/concepts/rendering-model/).

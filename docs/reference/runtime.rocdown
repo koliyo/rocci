@@ -1,0 +1,62 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Runtime and HTTP",
+        description: "Handler matrix, request access, standalone lifecycle, Datastar responses, assets, and logging.",
+    },
+}
+
+# Runtime and HTTP
+
+**Status:** current. `@log` is **planned**.
+
+Owner: generated dispatch in `rocci-cli` (`dispatch.rs`) plus lowering in
+`rocci-template`. Custom `main.roc` apps skip this dispatcher.
+
+## Handler matrix
+
+| Declaration | Default / allowed methods | Success | Datastar | Ordinary client | Route |
+| --- | --- | --- | --- | --- | --- |
+| `@view` | GET | `text/html` document | load/navigation | same | authored path |
+| `@patch` | POST; PUT/PATCH/DELETE via `:method` | fragment | one-shot `datastar-patch-elements` | same SSE body | authored path |
+| `@command` | POST; PUT/PATCH/DELETE via `:method` | Roc data | **empty SSE**, no morph | `200 application/json` | authored path |
+| `@live` | generated GET | fragment | `GET /sse` poll, skip unchanged HTML | event-stream | `/sse` |
+
+GET is rejected on `@patch` and `@command`. Duplicate paths conflict.
+`@view("/sse")` plus `@live` conflicts. Discriminate Datastar with
+`Datastar-Request: true`, not `Accept`. Empty SSE is HTTP 200
+`text/event-stream` that ends immediately with zero events (not 204).
+
+Complete examples: [Handler matrix](/examples/handler-matrix/).
+
+## Request access
+
+Generated calls are `handler!(context, request)`. Read the body, headers, and
+route data from `request` when the handler lists that parameter.
+
+## Standalone lifecycle
+
+1. `@init` — failure exits the process
+2. Listen on loopback (`rocci.toml` / `--port`)
+3. Own state in `@context` (typically SQLite)
+4. Dispatch `@view` / `@patch` / `@command` / generated `/sse`
+5. `?` in handlers → HTTP 500 (HTML overlay for Datastar; JSON `{"error":"…"}` otherwise)
+6. Shutdown with the process
+
+## Datastar asset
+
+Pinned JS is staged under `/assets`. Version comes from `[assets].datastar`
+or `rocci datastar pin`. Upstream expression language:
+[data-star.dev](https://data-star.dev/). Rocci documents only what it generates
+or pins.
+
+## Assets, health, logging
+
+`/assets` serves application files. Generated `/health` exists for smoke
+checks. `pf.Stderr.line!` is teed to the CLI and Dev Console under `rocci run`.
+Do not log from `@component`. There is no `@log`.
+
+Environment: `ROC_BASIC_WEBSERVER_PORT`, `ROC_BASIC_WEBSERVER_HOST` (container
+override; not a `rocci.toml` field), `DB_PATH` in examples, `ROCCI_CONFIG`.
+
+**Related:** [Server declarations](/docs/reference/language/server/), [CLI run](/docs/reference/cli/#run).

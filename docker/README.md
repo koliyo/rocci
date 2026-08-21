@@ -225,7 +225,7 @@ Override `8080:80` with a Compose override file if the host port is taken
 
 The two-artifact production sketch (upload `dist/`, run `serve-islands`,
 reverse-proxy) is in [`examples/rocdown/counter/README.md`](../examples/rocdown/counter/README.md)
-and the [hybrid sites guide](../docs/guides/hybrid-sites.rocdown).
+and the [hybrid sites guide](../site/rocdown/hybrid.rocdown).
 
 `rocci.dev` origin deploys from GitHub Actions `site.yml` on `staging` or
 `production` via the matching Environment (`DEPLOY_HOST`, `DEPLOY_USER`,

@@ -10,6 +10,7 @@ ComponentPath	omit	flattened onto call atoms
 ContextDecl	tag	context
 CssDecl	tag	css
 CssPayload	leaf	—
+DocComment	omit	printed under leading as docs
 Document	tag	module
 Element	tag	element
 ElseIf	tag	else-if
@@ -21,7 +22,9 @@ Ident	omit	atom; no inspect head
 IfDirective	tag	if
 InitDecl	tag	init
 Interpolation	tag	interp
+LeadingComments	tag	leading
 LetDirective	tag	let
+LineComment	omit	printed under leading as comment
 LiveDecl	tag	live
 MatchArm	tag	arm
 MatchDirective	tag	match

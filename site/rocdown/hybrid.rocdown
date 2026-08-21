@@ -1,6 +1,6 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/hybrid-sites/"],
+    aliases: ["/guides/hybrid-sites/", "/docs/guides/hybrid-sites/"],
 
     meta: {
         title: "Publish a hybrid Rocdown site",
@@ -24,7 +24,7 @@ A hybrid Rocdown site is two artifacts:
 hybrid: home is `live` (the SQLite counter island); mounted docs stay
 `static`. The worked example is `examples/rocdown/counter`.
 
-See [Rocdown site configuration](/docs/reference/rocdown-site/) for the field
+See [Rocdown site configuration](/rocdown/site-config/) for the field
 reference (`service_origin`, `--cdn-only`, `islands.json`).
 
 ## Page kinds

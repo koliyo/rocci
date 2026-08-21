@@ -56,10 +56,10 @@ path until island splicing lands.
 2. Read the closest existing file of the same kind (`components/`, `examples/`, `site/theme/`,
    or the page being edited) before inventing a new shape.
 3. Look up exact syntax in:
-   - `docs/reference/rocci.rocdown` and `crates/rocci-template/README.md`
-   - `docs/reference/rocdown.rocdown` and `crates/rocci-rocdown/README.md`
-   - `docs/guides/build-a-component.rocdown`, `docs/guides/rocdown-pages.rocdown`,
-     `docs/guides/docs-components.rocdown`, `docs/guides/server-actions.rocdown`
+   - `docs/reference/language/index.rocdown` and `crates/rocci-template/README.md`
+   - `site/rocdown/language.rocdown` and `crates/rocci-rocdown/README.md`
+   - `docs/tutorials/first-component.rocdown`, `site/rocdown/pages.rocdown`,
+     `site/rocdown/article-blocks.rocdown`, `docs/tutorials/first-app.rocdown`
 4. Treat `test/AllSyntax.rocci` as a compiler fixture, not as a style guide.
    Prefer `examples/`, `site/theme/`, and current Roc nightly snake_case
    (`List.is_empty`, `to_str()`, `split_on`).
