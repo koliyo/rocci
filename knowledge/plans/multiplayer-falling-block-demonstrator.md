@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; no phase started."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phase 0 freeze implemented on multiplayer-falling-block-demonstrator."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T14:28:49Z }
+generated: { by: process:cursor, at: 2026-08-21T14:45:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -430,6 +430,12 @@ empty” or “lease has expired.” Components stay pure; effects remain in
 
 Writing this plan does not start a phase. Each phase should be one reviewable
 change and preserve the previous deploy on failure.
+
+Phase 0 is implemented: working name **Rocci Blocks**, the v1 constants, command
+schema, error tags, and input/output tables live under
+`examples/rocci/custom/blocks/fixtures/` (`protocol.md` plus JSON families for
+placement, row clear, cancellation, target rotation, garbage holes, top-out,
+duplicate sequence, reconnect, and snapshot budget).
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "cancel-oldest-partial-no-cursor-advance",
+    "input": {
+      "incoming": [
+        {
+          "rows": 2,
+          "order": 0,
+          "ready": true
+        },
+        {
+          "rows": 2,
+          "order": 1,
+          "ready": false
+        }
+      ],
+      "attack": 3,
+      "cursor": 4
+    },
+    "output": {
+      "incoming": [
+        {
+          "rows": 1,
+          "order": 1,
+          "ready": false
+        }
+      ],
+      "residual": 0,
+      "cursor": 4,
+      "cursor_advanced": false
+    }
+  },
+  {
+    "id": "cancel-exact-no-residual",
+    "input": {
+      "incoming": [
+        {
+          "rows": 2,
+          "order": 0,
+          "ready": true
+        }
+      ],
+      "attack": 2,
+      "cursor": 1
+    },
+    "output": {
+      "incoming": [],
+      "residual": 0,
+      "cursor": 1,
+      "cursor_advanced": false
+    }
+  },
+  {
+    "id": "residual-appends-and-advances-cursor",
+    "input": {
+      "incoming": [
+        {
+          "rows": 1,
+          "order": 0,
+          "ready": false
+        }
+      ],
+      "attack": 4,
+      "cursor": 2,
+      "living": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "self": 0
+    },
+    "output": {
+      "incoming": [],
+      "residual": 3,
+      "target": 2,
+      "cursor": 3,
+      "cursor_advanced": true
+    }
+  },
+  {
+    "id": "empty-queue-full-attack-is-residual",
+    "input": {
+      "incoming": [],
+      "attack": 1,
+      "cursor": 1,
+      "living": [
+        0,
+        1
+      ],
+      "self": 0
+    },
+    "output": {
+      "incoming": [],
+      "residual": 1,
+      "target": 1,
+      "cursor": 1,
+      "cursor_advanced": true
+    }
+  }
+]
