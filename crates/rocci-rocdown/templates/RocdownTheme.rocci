@@ -824,6 +824,12 @@ import PageOutline
                 <meta property="og:image" content={"${site.base_url}${site.social_image}"} />
                 <meta name="twitter:card" content="summary_large_image" />
             }
+            @if site.favicon != "" {
+                <link rel="icon" href={site.favicon} type="image/svg+xml" />
+            }
+            @if site.apple_touch_icon != "" {
+                <link rel="apple-touch-icon" href={site.apple_touch_icon} />
+            }
             @if published != "" {
                 <meta property="article:published_time" content={published} />
             }

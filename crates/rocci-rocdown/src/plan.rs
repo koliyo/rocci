@@ -239,6 +239,8 @@ fn plan_with_preview(
         config.site.csp.clone()
     };
     let social_image = rewrite_urls(&config.site.social_image, &rewrite);
+    let favicon = rewrite_urls(&config.site.favicon, &rewrite);
+    let apple_touch_icon = rewrite_urls(&config.site.apple_touch_icon, &rewrite);
     let site_view = SiteView {
         title: config.site.title.clone(),
         description: config.site.description.clone(),
@@ -246,6 +248,8 @@ fn plan_with_preview(
         language: config.site.language.clone(),
         repository: config.site.repository.clone(),
         social_image,
+        favicon,
+        apple_touch_icon,
         subtitle: config.site.subtitle.clone(),
         footer: config.site.footer.clone(),
     };
@@ -1714,6 +1718,10 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.site.repository);
         out.push_str(",\n                    social_image: ");
         push_roc_string(&mut out, &page.view.site.social_image);
+        out.push_str(",\n                    favicon: ");
+        push_roc_string(&mut out, &page.view.site.favicon);
+        out.push_str(",\n                    apple_touch_icon: ");
+        push_roc_string(&mut out, &page.view.site.apple_touch_icon);
         out.push_str(",\n                    subtitle: ");
         push_roc_string(&mut out, &page.view.site.subtitle);
         out.push_str(",\n                    footer: ");
@@ -1936,6 +1944,12 @@ mod tests {
     fn write_site(root: &Path) {
         fs::create_dir_all(root.join("assets/icons")).unwrap();
         fs::write(root.join("assets/og.png"), b"og-bytes").unwrap();
+        fs::write(
+            root.join("assets/favicon.svg"),
+            b"<svg xmlns='http://www.w3.org/2000/svg'/>",
+        )
+        .unwrap();
+        fs::write(root.join("assets/apple-touch-icon.png"), b"touch-bytes").unwrap();
         fs::write(root.join("assets/icons/logo.png"), b"logo-bytes").unwrap();
         fs::write(
             root.join("rocdown.toml"),
@@ -1944,6 +1958,8 @@ mod tests {
 title = "Rocci"
 base_url = "https://rocci.dev"
 social_image = "/assets/og.png"
+favicon = "/assets/favicon.svg"
+apple_touch_icon = "/assets/apple-touch-icon.png"
 subtitle = "Tools"
 footer = "Experimental."
 
@@ -2004,6 +2020,18 @@ items = ["index", "guide"]
         assert!(!home.article_html.contains("/assets/og.png"));
         assert!(home.view.site.social_image.starts_with("/assets/og."));
         assert_ne!(home.view.site.social_image, "/assets/og.png");
+        assert!(home.view.site.favicon.starts_with("/assets/favicon."));
+        assert_ne!(home.view.site.favicon, "/assets/favicon.svg");
+        assert!(
+            home.view
+                .site
+                .apple_touch_icon
+                .starts_with("/assets/apple-touch-icon.")
+        );
+        assert_ne!(
+            home.view.site.apple_touch_icon,
+            "/assets/apple-touch-icon.png"
+        );
         let guide = planned
             .pages
             .iter()
