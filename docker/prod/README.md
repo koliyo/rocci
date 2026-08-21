@@ -117,8 +117,9 @@ the box: unpack to `releases/<sha>/`, `compose up -d --build`, GET
 `http://127.0.0.1:8080/health`, then flip `current`. A failed health check
 leaves the previous symlink and restores that release. Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
-serialized so they cannot interleave. **Run workflow** still packages any
-ref for inspection; it does not deploy.
+serialized so they cannot interleave. **Run workflow** on `staging` or
+`production` packages and deploys the same way as a push; on any other
+ref it packages only.
 Laptop one-shot:
 
 ```sh
