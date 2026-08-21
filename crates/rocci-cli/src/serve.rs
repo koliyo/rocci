@@ -182,10 +182,7 @@ impl StderrHubFeed {
             state.remainder.push_str(&buf[offset..]);
             state.offset = buf.len();
         }
-        loop {
-            let Some(idx) = state.remainder.find('\n') else {
-                break;
-            };
+        while let Some(idx) = state.remainder.find('\n') {
             let mut line: String = state.remainder[..idx].to_string();
             state.remainder.replace_range(..=idx, "");
             if line.ends_with('\r') {
@@ -233,9 +230,10 @@ pub fn stderr_log_lines(text: &str) -> Vec<LogLine> {
 
 fn level_for_stderr_line(line: &str) -> LogLevel {
     let line = style::strip_ansi(line);
-    if roc_output_is_failure(&line) {
-        LogLevel::Error
-    } else if line.ends_with(" -> err") || line.contains(" -> proxy error:") {
+    if roc_output_is_failure(&line)
+        || line.ends_with(" -> err")
+        || line.contains(" -> proxy error:")
+    {
         LogLevel::Error
     } else if line.to_ascii_lowercase().contains("warning")
         || line.ends_with(" -> island unavailable")

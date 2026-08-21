@@ -160,8 +160,8 @@ pub fn plan_standalone_with_progress(
                 None,
             )
             .with_highlighted_source(rocci_highlight::render_spans(
-                &src,
-                &crate::highlight_rocdown(&src),
+                src,
+                &crate::highlight_rocdown(src),
             )),
         );
 

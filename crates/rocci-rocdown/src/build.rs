@@ -603,6 +603,7 @@ impl BuildReport {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn report_from_plan(
     plan: &BuildPlan,
     generated_roc_bytes: usize,

@@ -149,6 +149,7 @@ fn param_display(src: &str, value: &ParamValue) -> String {
     }
 }
 
+#[allow(clippy::only_used_in_recursion)]
 fn write_md(w: &mut Writer<'_>, src: &str, node: &MdNode) {
     match node {
         MdNode::Heading {
