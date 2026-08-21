@@ -74,7 +74,7 @@ def bootstrap(*, runner=subprocess.run) -> int:
     rocci_ssh(
         [
             target,
-            f"mkdir -p '{dest}/cdn' '{dest}/islands' '{dest}/prod' '{ops_dest}/src'",
+            f"mkdir -p '{dest}/cdn' '{dest}/islands' '{dest}/blocks' '{dest}/prod' '{ops_dest}/src'",
         ],
         runner=runner,
     )
@@ -90,6 +90,10 @@ def bootstrap(*, runner=subprocess.run) -> int:
     )
     rocci_scp(
         [str(docker / "islands" / "Dockerfile"), f"{target}:{dest}/islands/"],
+        runner=runner,
+    )
+    rocci_scp(
+        [str(docker / "blocks" / "Dockerfile"), f"{target}:{dest}/blocks/"],
         runner=runner,
     )
     rocci_scp(
@@ -135,15 +139,19 @@ def push(artifact_dir: Path, sha: str, *, runner=subprocess.run) -> int:
         raise SystemExit(f"error: not a directory: {artifact_dir}")
     tgz = artifact_dir / "site.tgz"
     islands = artifact_dir / "islands"
+    blocks = artifact_dir / "blocks"
+    blocks_assets = artifact_dir / "blocks-assets.tgz"
     if not tgz.is_file() or not islands.is_file():
         raise SystemExit(f"error: {artifact_dir} must contain site.tgz and islands")
+    if not blocks.is_file() or not blocks_assets.is_file():
+        raise SystemExit(f"error: {artifact_dir} must contain blocks and blocks-assets.tgz")
     origin_root = os.environ.get("ROCCI_ORIGIN_ROOT", ORIGIN_ROOT_DEFAULT)
     target = ssh_target()
     incoming = f"{origin_root}/incoming/{sha}"
     bootstrap(runner=runner)
     rocci_ssh([target, f"mkdir -p '{incoming}'"], runner=runner)
     rocci_scp(
-        [str(tgz), str(islands), f"{target}:{incoming}/"],
+        [str(tgz), str(islands), str(blocks), str(blocks_assets), f"{target}:{incoming}/"],
         runner=runner,
     )
     rocci_ssh([target, origin_publish_cmd(sha, origin_root)], runner=runner)

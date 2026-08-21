@@ -64,6 +64,20 @@ persistence = "sqlite"
 support = "current"
 
 [[app]]
+id = "blocks"
+path = "custom/blocks"
+title = "Rocci Blocks"
+summary = "Same-origin falling-block arena with server-validated locks"
+entry = "."
+hosting = "live"
+live_url = "https://rocci.dev/play/blocks/"
+audience = "experienced Rocci author"
+purpose = "First-party main-hostname demonstrator, not a generic app mount"
+complexity = "advanced"
+persistence = "sqlite"
+support = "current"
+
+[[app]]
 id = "snake"
 path = "custom/snake"
 title = "Snake"

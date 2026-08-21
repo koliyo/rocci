@@ -61,6 +61,8 @@ pub struct AppEntry {
     pub persistence: String,
     #[serde(default)]
     pub support: String,
+    #[serde(default)]
+    pub live_url: Option<String>,
 }
 
 #[derive(Debug, Clone)]

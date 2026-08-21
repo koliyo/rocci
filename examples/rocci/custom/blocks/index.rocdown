@@ -1,0 +1,41 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Rocci Blocks",
+        description: "Same-origin falling-block arena with server-validated locks",
+    },
+}
+
+# Rocci Blocks
+
+**Audience:** experienced Rocci author.
+**Prerequisites:** [standalone versus custom](/docs/concepts/standalone-versus-custom/).
+**Role:** first-party falling-block arena on the main hostname, not a generic app mount.
+
+Play lives at `/play/blocks/` on rocci.dev. Ordinary live examples use
+`<id>.examples.rocci.dev`; this demonstrator is a Caddy prefix exception.
+Public copy says “falling-block arena.” The arena is **experimental**: spectator
+admission starts at 20; a 24-hour public observation is operator work after
+the origin route is enabled.
+
+Roc validates every committed lock. The browser owns falling-piece motion.
+Attacks go to one rotating opponent. Spectator leases default to 20 (design
+ceiling 50).
+
+See the [source tree](/examples/blocks/source/) or
+[open the live arena](https://rocci.dev/play/blocks/).
+
+## Run locally
+
+```sh
+cargo run -q -p rocci-cli -- inspect --ast examples/rocci/custom/blocks/Blocks.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/custom/blocks
+```
+
+`--no-window` serves `http://127.0.0.1:8000/play/blocks/`.
+
+Package a musl binary for the origin image (no Roc or Rust in the runtime):
+
+```sh
+cargo run -q -p rocci-cli -- build --release --target x64musl examples/rocci/custom/blocks
+```

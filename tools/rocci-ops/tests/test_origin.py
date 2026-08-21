@@ -1,5 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
+import io
+import tarfile
 
 from rocci_ops.origin import publish, wait_health
 
@@ -45,9 +47,14 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     (previous / "dist").mkdir()
     (incoming / "site.tgz").write_bytes(b"")
     (incoming / "islands").write_bytes(b"bin")
-
-    import io
-    import tarfile
+    (incoming / "blocks").write_bytes(b"blocks-bin")
+    assets_buf = io.BytesIO()
+    with tarfile.open(fileobj=assets_buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("assets/blocks-client.js")
+        data = b"/* test */"
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    (incoming / "blocks-assets.tgz").write_bytes(assets_buf.getvalue())
 
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
@@ -60,6 +67,9 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     docker = tmp_path / "repo" / "docker" / "islands"
     docker.mkdir(parents=True)
     (docker / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    blocks_docker = tmp_path / "repo" / "docker" / "blocks"
+    blocks_docker.mkdir(parents=True)
+    (blocks_docker / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
     (tmp_path / "repo" / "docker").mkdir(exist_ok=True)
     (tmp_path / "repo" / "docker" / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
     (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
@@ -72,9 +82,11 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     monkeypatch.setenv("ROCCI_REPO_ROOT", str(tmp_path / "repo"))
 
     compose_roots: list[str] = []
+    compose_argv: list[list[str]] = []
 
     def runner(argv, **kwargs):
         compose_roots.append(kwargs.get("env", {}).get("ROCCI_DIST", ""))
+        compose_argv.append(list(argv))
         return SimpleNamespace(returncode=0)
 
     def fetch(_url, timeout=5):
@@ -89,3 +101,6 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     assert len(compose_roots) >= 2
     assert compose_roots[0].endswith("/releases/abc/dist")
     assert compose_roots[-1].endswith("/releases/old/dist")
+    assert "--profile" in compose_argv[0]
+    assert "blocks" in compose_argv[0]
+    assert "--profile" not in compose_argv[-1]

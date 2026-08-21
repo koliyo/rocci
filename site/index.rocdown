@@ -358,7 +358,7 @@ Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a smal
 
 ## Try a live island
 
-The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last twenty clicks, and origin from your IANA timezone. The same pattern lives in `examples/rocdown/counter`.
+The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last twenty clicks, and origin from your IANA timezone. The same pattern lives in `examples/rocdown/counter`. Same-origin [Rocci Blocks](/play/blocks/) is an experimental falling-block arena (eight seats, spectator cap 20).
 
 @render CounterCard({ count: 0.I64, clicks: [] })
 

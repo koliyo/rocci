@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; no phase started."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–6 implemented on multiplayer-falling-block-demonstrator. Staging soak and 24-hour public observation are operator gates."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T14:28:49Z }
+generated: { by: process:cursor, at: 2026-08-21T17:00:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -430,6 +430,44 @@ empty” or “lease has expired.” Components stay pure; effects remain in
 
 Writing this plan does not start a phase. Each phase should be one reviewable
 change and preserve the previous deploy on failure.
+
+Phase 0 is implemented: working name **Rocci Blocks**, the v1 constants, command
+schema, error tags, and input/output tables live under
+`examples/rocci/custom/blocks/fixtures/` (`protocol.md` plus JSON families for
+placement, row clear, cancellation, target rotation, garbage holes, top-out,
+duplicate sequence, reconnect, and snapshot budget).
+
+Phase 1 is implemented: `Game.roc` owns board, bag, rotation, lock, and clears;
+`Blocks.rocci` hosts the document, canvas, HUD, and solo lock/reset commands;
+`assets/blocks-client.js` owns local motion. Rejected locks return the
+authoritative player snapshot in JSON (`ok: 0`) so the island resynchronizes.
+
+Phase 2 is implemented: custom `main.roc` owns SQLite seats, lobby/countdown/round/result,
+idempotent lock acknowledgements, reconnect-grace columns, and `/play/blocks/` routes.
+Duplicate POSTs replay the stored ack; restarting during a round writes `Result(Interrupted)`
+then returns to lobby.
+
+Phase 3 is implemented: `Game.roc` owns oldest-first cancellation, one residual write, rotating
+targets, 600 ms delay, eight-row insertion, and spawn top-out. The lock transaction updates at
+most one opponent queue. Fixture tests cover two, three, and eight living seats; eight synthetic
+clients complete a local round.
+
+Phase 4 is implemented: spectator leases are separate from the eight player seats, the public
+default cap is **20** (`BLOCKS_SPECTATOR_CAP`, design ceiling 50) because the 30-minute 8+50 soak
+was not run, streams coalesce at 5 Hz with a 10 s keepalive, and reconnect restores from one
+full snapshot. Origin packaging remains later phases.
+
+Phase 5 is implemented in-repo: catalog `live_url` for `/play/blocks/`, `index.rocdown`,
+`docker/blocks/Dockerfile`, Compose profile `blocks` with a 512 MiB limit, and Caddy
+`/play/blocks/*` before static fallback (island `/actions/*` and `/sse` unchanged).
+The Access-gated staging Tunnel soak is an operator gate and was not run.
+
+Phase 6 is implemented in-repo: origin publish unpacks a musl Blocks server,
+enables Compose profile `blocks` when that release contains it, waits on
+`/health` and `/health/blocks`, links the arena from the home page and
+`/examples/`, and documents experimental controls at spectator cap 20. The
+24-hour public observation and Cloudflare UI cache/rate rules are operator
+gates and were not run.
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 

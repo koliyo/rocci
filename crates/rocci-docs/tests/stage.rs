@@ -95,9 +95,14 @@ fn repo_catalog_live_ids_exclude_docs_only() {
         .iter()
         .map(|app| app.id.as_str())
         .collect();
-    assert_eq!(ids, ["live-counter", "datastar"]);
+    assert_eq!(ids, ["live-counter", "datastar", "blocks"]);
     assert!(!ids.contains(&"counter"));
     assert!(!ids.contains(&"snake"));
+    let blocks = catalog.apps.iter().find(|app| app.id == "blocks").unwrap();
+    assert_eq!(
+        rocci_docs::app_play_url(blocks),
+        "https://rocci.dev/play/blocks/"
+    );
 }
 
 #[test]
@@ -249,6 +254,7 @@ fn failed_stage_keeps_previous_tree() {
         complexity: String::new(),
         persistence: String::new(),
         support: String::new(),
+        live_url: None,
     });
     assert!(stage(&catalog, &out).is_err());
     assert_eq!(collect_rel(&out), previous);
