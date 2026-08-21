@@ -7,10 +7,14 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
+use rocci_cli::dev_server::{StaticDevServerConfig, preview_static_site};
 use rocci_cli::driver::{DriverOptions, GenericAppPlan, GenericModule};
 use rocci_cli::path_hint;
 use rocci_cli::serve::{PortArg, parse_port_arg};
-use rocci_rocdown::{SourceFile, StandaloneReady, ThemeArgs, format_diagnostic};
+use rocci_rocdown::{
+    PageKind, SourceFile, StandaloneReady, ThemeArgs, document_page_kind, format_diagnostic, parse,
+    write_static_document_preview,
+};
 
 mod browser;
 
@@ -695,6 +699,50 @@ fn run_standalone_doc(
 
     let compile_opts = theme.compile_options(Some(&path));
     let progress = rocci_cli::logs::Progress { verbose, quiet };
+    let src =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+    let source_name = path.display().to_string();
+    let source = SourceFile::new(&source_name, &src);
+    progress.step(format!("rocdown: parsing {}", path.display()));
+    let parsed = parse(source, compile_opts.raw_html);
+    if parsed
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.is_error())
+    {
+        let failed = vec![rocci_cli::error_page::FailedFile {
+            name: source_name,
+            src,
+            diagnostics: parsed.diagnostics,
+        }];
+        if !quiet {
+            rocci_cli::error_page::eprint_template_errors(&failed);
+        }
+        return rocci_cli::driver::serve_template_errors(
+            &failed,
+            port,
+            no_window,
+            live_reload,
+            &title,
+        );
+    }
+    let kind = document_page_kind(&parsed.document);
+    progress.detail(format!("rocdown: {} is {}", path.display(), kind.as_str()));
+    if kind == PageKind::Static {
+        progress.step("rocdown: static document, rendering HTML without roc");
+        return run_static_standalone_preview(
+            &path,
+            &src_dir,
+            &title,
+            no_window,
+            live_reload,
+            quiet,
+            verbose,
+            port,
+            &compile_opts,
+        );
+    }
+
     let parse_started = Instant::now();
     let plan =
         match rocci_rocdown::plan_standalone_with_progress(&path, &compile_opts.theme, progress)? {
@@ -758,6 +806,54 @@ fn run_standalone_doc(
     };
 
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)
+}
+
+fn run_static_standalone_preview(
+    path: &Path,
+    src_dir: &Path,
+    title: &str,
+    no_window: bool,
+    live_reload: bool,
+    quiet: bool,
+    verbose: bool,
+    port: PortArg,
+    options: &rocci_rocdown::CompileOptions,
+) -> Result<()> {
+    let port = port.resolve()?;
+    let progress = rocci_cli::logs::Progress { verbose, quiet };
+    let watch_file = path.to_path_buf();
+    let assets = src_dir.join("assets");
+    let custom_filter = Arc::new(move |candidate: &Path| {
+        candidate == watch_file.as_path()
+            || candidate.starts_with(&assets)
+            || candidate
+                .extension()
+                .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
+    });
+    let input = path.to_path_buf();
+    let compile_opts = options.clone();
+    preview_static_site(
+        StaticDevServerConfig {
+            title: title.to_string(),
+            port,
+            open_path: "/".to_string(),
+            output: None,
+            watch_paths: vec![src_dir.to_path_buf()],
+            custom_filter: Some(custom_filter),
+            log_prefix: "rocdown".into(),
+            backend_port: None,
+            log_handlers: false,
+            on_stop: None,
+        },
+        no_window,
+        live_reload,
+        Some("rocdown".to_string()),
+        move |out_dir, _logs| {
+            progress.step(format!("rocdown: rendering {}", input.display()));
+            write_static_document_preview(&input, out_dir, &compile_opts)?;
+            Ok(None)
+        },
+    )
 }
 
 fn run_site_dev(
