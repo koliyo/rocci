@@ -2,6 +2,11 @@
 
 ## 2026-08-21
 
+- Established the root Apache-2.0 setup: added the full `LICENSE`, configured
+  every workspace crate to package it, and documented the project and
+  third-party-license boundary in the root README. The public-preview plan now
+  records the completed license portion of Phase 0; its remaining publication
+  gates are unchanged.
 - Removed `rocci-browser` (crate, product adapters, `.rocci/browser.toml`, public how-to, and related plans/research indexes). Product preview remains `rocci run`, `rocdown run`, `rocci-okf run`, and `rocci-desktop`. `rocci browse` stays the component gallery only.
 - Removed the root `scripts/` directory: playground WASM harnesses live under `test/wasm/*.mjs`; `check-deps` / local CI already live in `rocci-ops`; brand icon rendering is `uv run rocci-ops render-brand-icons`. Knowledge source paths that pointed at the old scripts were retargeted.
 - Added the draft [multiplayer falling-block demonstrator plan](plans/multiplayer-falling-block-demonstrator.md): one same-origin `/play/blocks/` arena, up to eight active players, rotating one-target cancellable garbage, lock-driven authoritative Roc state, a compact Datastar snapshot manifest, and a staging-measured target of fifty spectator streams on the existing small VPS. Fifty is a load-test gate, not a current capacity claim. Exploratory; no phase started.

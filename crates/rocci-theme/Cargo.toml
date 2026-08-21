@@ -2,7 +2,7 @@
 name = "rocci-theme"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Rocdown CSS themes: builtins, ~/.rocci/themes, and path resolution"
 
 [lib]
@@ -12,4 +12,3 @@ path = "src/lib.rs"
 [dependencies]
 rocci-ui = { workspace = true }
 thiserror = { workspace = true }
-

@@ -2,7 +2,7 @@
 name = "rocci-highlight"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Shared lexical highlighting library for Roc, HTML, CSS, Rocci, and Rocdown"
 
 [lib]
