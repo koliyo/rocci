@@ -89,12 +89,25 @@ pub fn render_static_preview_html(
         page_meta.theme.as_deref(),
         page_meta.color_scheme.as_deref(),
         &options.theme,
-    )
-    .ok();
+    )?;
     rocci_cli::logs::emit(format!(
         "rocdown: resolved theme in {}ms",
         started.elapsed().as_millis()
     ));
+
+    let mut asset_diags = Vec::new();
+    crate::img::check_document_assets(source, document, options, &mut asset_diags);
+    if asset_diags.iter().any(Diagnostic::is_error) {
+        bail!(
+            "{}",
+            asset_diags
+                .iter()
+                .filter(|diagnostic| diagnostic.is_error())
+                .map(|diagnostic| diagnostic.message.clone())
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
 
     let started = Instant::now();
     let mut catalog_diags = Vec::new();
@@ -146,7 +159,7 @@ pub fn render_static_preview_html(
         .title
         .clone()
         .unwrap_or_else(|| "Rocdown".to_string());
-    Ok(wrap_document(&title, theme.as_ref(), &article))
+    Ok(wrap_document(&title, &theme, &article))
 }
 
 fn page_title(document: &Document, src: &str, input: &Path) -> String {
@@ -166,19 +179,24 @@ fn page_title(document: &Document, src: &str, input: &Path) -> String {
         .to_string()
 }
 
-fn wrap_document(title: &str, theme: Option<&rocci_theme::ResolvedTheme>, article: &str) -> String {
-    let mut theme_attr = String::new();
-    let mut scheme_attr = String::new();
+fn wrap_document(title: &str, theme: &rocci_theme::ResolvedTheme, article: &str) -> String {
+    let mut html_attrs = String::from(" lang=\"en\"");
+    let mut scheme_meta = String::new();
     let mut css = String::new();
-    if let Some(theme) = theme.filter(|theme| !theme.is_none()) {
-        theme_attr = format!(" data-rd-theme=\"{}\"", escape(theme.id.as_str()));
+    if !theme.is_none() {
+        html_attrs.push_str(" class=\"rd-document\"");
+        html_attrs.push_str(&format!(" data-rd-theme=\"{}\"", escape(theme.id.as_str())));
         if let Some(scheme) = theme.policy.html_attr() {
-            scheme_attr = format!(" data-rd-color-scheme=\"{scheme}\"");
+            html_attrs.push_str(&format!(" data-rd-color-scheme=\"{scheme}\""));
         }
+        scheme_meta = format!(
+            "<meta name=\"color-scheme\" content=\"{}\">\n",
+            escape(theme.policy.meta_content())
+        );
         css = theme.css.clone();
     }
     format!(
-        "<!DOCTYPE html>\n<html lang=\"en\"{theme_attr}{scheme_attr}>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>\n{css}\n</style>\n</head>\n<body>\n<main class=\"rd-article\">\n{article}\n</main>\n</body>\n</html>\n",
+        "<!DOCTYPE html>\n<html{html_attrs}>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n{scheme_meta}<title>{}</title>\n<style>\n{css}\n</style>\n</head>\n<body>\n<main class=\"rd-article\">\n{article}\n</main>\n</body>\n</html>\n",
         escape(title)
     )
 }
@@ -246,8 +264,15 @@ mod tests {
         let title = write_static_document_preview(&input, &out, &options).unwrap();
         assert_eq!(title, "Report");
         let html = fs::read_to_string(out.join("index.html")).unwrap();
+        assert!(
+            html.contains("class=\"rd-document\""),
+            "theme CSS requires html.rd-document\n{html}"
+        );
         assert!(html.contains("data-rd-theme=\"paper\""));
+        assert!(html.contains("name=\"color-scheme\""));
         assert!(html.contains("--rd-color-bg"));
+        assert!(html.contains("class=\"rd-header-1\"") || html.contains("<h1"));
+        assert!(html.contains("<img"));
         assert!(html.contains("Hello"));
         assert!(html.contains("Read this"));
         assert!(html.contains("assets/mark.png"));
@@ -264,12 +289,19 @@ mod tests {
         }
         let dir = temp_dir("branding-report");
         let started = Instant::now();
-        write_static_document_preview(&input, &dir, &CompileOptions::default()).unwrap();
+        let mut options = CompileOptions::default();
+        options.theme.source_dir = input.parent().map(|parent| parent.to_path_buf());
+        write_static_document_preview(&input, &dir, &options).unwrap();
         let ms = started.elapsed().as_millis();
         eprintln!("branding static preview {ms}ms");
         assert!(ms < 5_000, "static preview of branding report took {ms}ms");
         let html = fs::read_to_string(dir.join("index.html")).unwrap();
         assert!(html.contains("Rocci branding"));
+        assert!(
+            html.contains("class=\"rd-document\""),
+            "branding preview must stamp html.rd-document"
+        );
+        assert!(html.contains("assets/rocci-logo-folded-r.png"));
         let _ = fs::remove_dir_all(&dir);
     }
 
