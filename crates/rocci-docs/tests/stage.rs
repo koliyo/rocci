@@ -32,7 +32,7 @@ fn fixture_app(root: &Path) {
     );
     write(
         &root.join("listed/App.rocci"),
-        "@component Card = |{ title }| {\n    @css { .card { padding: 1rem; } }\n    <div class=\"card\">{title}</div>\n}\n\n@view(\"/\") = || {\n    <html><body>ok</body></html>\n}\n",
+        "## Card used by the listing fixture.\n@component Card = |{ title }| {\n    @css { .card { padding: 1rem; } }\n    <div class=\"card\">{title}</div>\n}\n\n## GET the demo page.\n@view(\"/\") = || {\n    <html><body>ok</body></html>\n}\n",
     );
     write(&root.join("listed/README.md"), "local only\n");
     write(&root.join("listed/skip.db"), "not published");
@@ -123,6 +123,11 @@ fn stages_expected_tree_and_skips_non_catalog() {
     assert!(!files.iter().any(|f| f.contains("notes.txt")));
     let page = fs::read_to_string(out.join("listed/source/App-rocci.rocdown")).unwrap();
     assert!(page.contains(":include[path: \"App.rocci\"]"));
+    assert!(page.contains("## Declarations"));
+    assert!(page.contains("### `@component Card`"));
+    assert!(page.contains("Card used by the listing fixture."));
+    assert!(page.contains("### `@view(\"/\")`"));
+    assert!(page.contains("GET the demo page."));
     assert!(!page.contains(".."));
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
     assert!(index.contains("/examples/listed/"));

@@ -1,10 +1,12 @@
 //! Inventory cataloged Rocci apps and stage a Rocdown documentation tree.
 
 mod catalog;
+mod extract;
 mod inventory;
 mod stage;
 
 pub use catalog::{AppEntry, Catalog, DocsError, Hosting, load_catalog};
+pub use extract::{DeclDoc, declarations_markdown, documented_declarations};
 pub use inventory::{PublishedFile, inventory_app, is_published_rel};
 pub use stage::{StageReport, live_demo_url, stage};
 
