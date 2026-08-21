@@ -1187,7 +1187,7 @@ layout = "docs"
         .unwrap();
         fs::write(
             counter.join("snippets/Counter.rocci"),
-            "@component Card = |{ title }| {\n    <div>{title}</div>\n}\n\n@on:get(\"/\") = || {\n    <html/>\n}\n",
+            "@component Card = |{ title }| {\n    <div>{title}</div>\n}\n\n@view(\"/\") = || {\n    <html/>\n}\n",
         )
         .unwrap();
         fs::write(

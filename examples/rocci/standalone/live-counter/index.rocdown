@@ -9,7 +9,7 @@
 # Live counter
 
 The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
-but `@live` generates `GET /sse`. Increment and reset are commands: Datastar
+but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
 receives **204**, and `curl` without `Datastar-Request` receives `{"count":N}`.
 The stream morphs `#counter` in every connected tab.
 
