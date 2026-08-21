@@ -1,0 +1,33 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Install failures",
+        description: "Recover when roc is missing, the nightly pin does not match, or the preview host cannot start on this OS.",
+    },
+}
+
+# Install failures
+
+**Prerequisites:** [Install Rocci](/docs/start/install/).
+
+## `roc` was not found
+
+**Cause:** the Roc compiler is missing from `PATH` in the same shell as Cargo.
+
+**Fix:** install or activate nightly-2026-08-10 (`7df8509`) as pinned in
+`docker/install-roc.sh`, then `roc help`.
+
+## Rust edition or crate compile errors while building the workspace
+
+**Cause:** the toolchain cannot compile edition 2024 workspace crates.
+
+**Fix:** use a current stable Rust (`dtolnay/rust-toolchain@stable` in CI).
+Do not invent a crates.io or Homebrew install path; source-build is the
+documented channel. GitHub Release tarballs are **experimental**.
+
+## Windows-only surprises
+
+Windows development uses the system webview and is **not** in the CI matrix.
+Treat failures there as unverified. Prefer macOS or Linux for first success.
+
+**Related:** [Compatibility](/docs/reference/compatibility/).

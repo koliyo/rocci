@@ -1,0 +1,27 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Components are pure Roc functions",
+        description: "Why render functions are predictable, composable, and unsuitable for logging or effects.",
+    },
+}
+
+# Components are pure Roc functions
+
+**Prerequisites:** [first component](/docs/tutorials/first-component/).
+**Kind:** concept.
+**Next:** [Author components](/docs/how-to/author-components/).
+
+`@component` lowers to a function that returns `Html`. Given the same props and
+body, it produces the same markup. That is why fixtures, `rocci view`, and HTTP
+handlers can share one renderer.
+
+Effects belong in `@init` and handlers: SQLite, `Stderr.line!`, reading
+`request`. A component that logged or wrote the database would make preview,
+tests, and live streams lie about their inputs.
+
+There is no runtime component registry and no implicit instance state. Compose
+by calling functions, including qualified imports.
+
+**Related:** [Why Roc](/docs/concepts/why-roc/),
+[State and effects](/docs/concepts/state-and-effects/).

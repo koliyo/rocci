@@ -1,0 +1,50 @@
+@page {
+    layout: "docs",
+    aliases: ["/getting-started/overview/", "/getting-started/", "/docs/getting-started/overview/"],
+    meta: {
+        title: "What is Rocci?",
+        description: "Understand .rocci as Roc plus bounded HTML templates, the compile-to-Roc model, supported app shapes, and deliberate limits.",
+    },
+}
+
+# What is Rocci?
+
+**Prerequisites:** none beyond the [docs prerequisites](/docs/start/prerequisites/).
+**You will learn:** what a `.rocci` file is, what Rocci generates, and when not to use it.
+**Time:** about five minutes of reading.
+**Next:** [Choose your path](/docs/start/choose-your-path/).
+
+A `.rocci` module is mostly Roc. `@component` marks the regions that use a
+bounded HTML template grammar. The compiler lowers those regions to ordinary
+Roc calls such as `Html.element`, `Html.attribute`, and `Html.text`. Roc
+type-checking starts after that lowering. Rocci does not replace Roc.
+
+## Supported shapes
+
+| Shape | What you author | What `rocci run` does |
+| --- | --- | --- |
+| Component module | `@component`, `@css`, `@fixture` | Preview with `rocci view` / `rocci browse` |
+| Standalone app | `@context`, `@init`, `@view`, optional `@patch` / `@command` / `@live` | Generate a server and serve it |
+| Custom app | `main.roc` plus `.rocci` modules | Compile sibling modules and start your Roc program |
+| Desktop bundle | `rocci.toml` plus an app entry | Wrap the server in an ad-hoc macOS `.app` (`rocci bundle`) |
+
+## Compile-to-Roc
+
+Rocci is a compiler input, not a second runtime component system. You keep
+writing Roc for types, helpers, SQLite, and effects. You write Rocci where
+markup, scoped CSS, fixtures, and HTTP declarations are the shorter spelling.
+
+Datastar is the **browser transport**: it sends intent and morphs HTML. It is
+not a client application framework and not a Rocci language feature.
+
+## Deliberate limits
+
+- Not JSX embedded throughout Roc.
+- No runtime component registry and no magic `children` field.
+- No markup inside arbitrary Roc expressions; use `@if` / `@for` / `@match`.
+- No dynamic tag names or prop spreading.
+- Rocdown is a [separate content product](/rocdown/), not a fourth piece of Rocci.
+
+Continue with [choose your path](/docs/start/choose-your-path/) or jump to
+[Rocci in five minutes](/docs/start/five-minutes/) if the toolchain is already
+installed.

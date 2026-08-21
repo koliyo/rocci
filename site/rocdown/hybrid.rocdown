@@ -1,0 +1,207 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/hybrid-sites/", "/docs/guides/hybrid-sites/"],
+
+    meta: {
+        title: "Publish a hybrid Rocdown site",
+        description: "Build CDN-static Rocdown HTML with live Rocci islands, then deploy the island HTTP service beside it.",
+    },
+}
+
+# Publish a hybrid Rocdown site
+
+A hybrid Rocdown site is two artifacts:
+
+1. **CDN tree** — HTML documents, hashed CSS/images, discovery files, and the
+   Cmd/Ctrl-K palette (`goto.js`). Pages without handlers do not include
+   Datastar. `live` pages include initial island HTML and Datastar.js pointed
+   at the island service.
+2. **Island service** — `rocdown serve-islands` (colocated handlers) or `rocci run`
+   on `[http].service`. Mutation handlers return Datastar patches. The CDN file
+   is a snapshot; the service owns durable state.
+
+`docs/` in this repository is a `static` catalog. The public `site/` tree is
+hybrid: home is `live` (the SQLite counter island); mounted docs stay
+`static`. The worked example is `examples/rocdown/counter`.
+
+See [Rocdown site configuration](/rocdown/site-config/) for the field
+reference (`service_origin`, `--cdn-only`, `islands.json`).
+
+## Page kinds
+
+| Kind | Meaning | Datastar |
+| --- | --- | --- |
+| `static` | Markdown / `@page` / `:name[params]` | No |
+| `hydrate` | Pure Rocci spliced at build | No |
+| `live` | Rocci plus `@view` / `@patch` / `@command` / `@context` / `@init` or `import Datastar` | Yes |
+
+Apply keeps the `:note` / `:tabs` widget forest on `static` pages. The counter
+home page splices island Html; `/about/` has no Datastar. `@render` is not
+legal inside a `:note` body.
+
+`rocdown check` accepts all three. Default `rocdown build` accepts `live` and
+emits `islands.json`. `rocdown build --cdn-only` errors (`RD2302`) when any
+published page is `live`, so a CDN-only publish cannot ship action buttons
+with no service.
+
+## Walk the counter
+
+`examples/rocdown/counter/index.rocdown` puts SQLite helpers in `@roc` next to
+`import pf.Sqlite`, then calls them from `@command`. `@render` bakes `count: 0`
+into the CDN HTML. On load, `POST /actions/counter/sync`
+morphs the live count. Increment and reset POST `/actions/counter/increment` and
+`/actions/counter/reset`. There is no island GET in v1: opening the CDN file
+shows the build-time snapshot until sync or a mutation runs.
+
+`about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
+and `script-src 'self'`; it does not include Datastar.
+
+Do not set `[http].service` to `examples/rocci/standalone/counter/Counter.rocci`. That file is
+a full-page app; GET `/` is not an island route. A sibling `.rocci` service is
+allowed when it returns fragments only.
+
+## Local preview
+
+Debug hybrid sites on the host. Docker is not required for HTML, CSS, or
+increment morphing. Use Compose later for Caddy same-origin proxy, published
+8001, `ROC_BASIC_WEBSERVER_HOST=0.0.0.0`, and mounted-site path stamps.
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown/counter
+```
+
+`inspect artifacts` does not invoke Roc. It reports page kinds, Datastar
+emission, `service_origin`, and mutation routes. Expect `index` live, `about`
+static, and sync/increment/reset POSTs.
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
+grep -E 'rd-document|id="counter"|href="/assets/' examples/rocdown/counter/dist/index.html
+```
+
+That snapshot check does not start an island process.
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/counter --no-window \
+  --output /tmp/rocdown-counter-preview
+```
+
+`rocdown run DIR` rebuilds the CDN tree, serves it, and proxies colocated
+`/actions/` on the same origin ([http://127.0.0.1:8000](http://127.0.0.1:8000)
+with `--no-window`). It logs `preview files at …`. `--output` keeps that tree;
+without it the files are temp and deleted on stop. Preview SQLite is
+ephemeral. `--no-window` serves in the browser only.
+
+```sh
+curl -sf http://127.0.0.1:8000/health
+curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
+curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' \
+  -d '{}'
+```
+
+Open `/`, click Increment, and confirm `#counter output` morphs. Inspector:
+[http://127.0.0.1:8000/__rocci/dev](http://127.0.0.1:8000/__rocci/dev). The
+complete command list lives in `examples/rocdown/counter/README.md`.
+
+## Build and serve separately
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
+cargo run -q -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter --no-window
+```
+
+`build` writes the CDN tree (`dist/` in the example). `serve-islands` starts
+the mutation process only: `/health` and `/actions/...`. It does not serve
+Markdown. Default SQLite path is `{primary}.db` next to the site root (`index.db`
+for this example). Set `DB_PATH` to a persistent file in production.
+
+Hashed `/assets/*` files (theme CSS, Datastar.js) are content-addressed and
+can be cached indefinitely. HTML, `pages.json`, and `islands.json` should
+revalidate.
+
+## Same-origin deploy
+
+Leave `[http].service_origin` empty. The browser POSTs relative `/actions/`
+URLs; CSP `connect-src` is `'self'`. Reverse-proxy `/actions/` and `/health`
+to `serve-islands`; serve the rest from the CDN tree.
+
+```caddy
+example.com {
+    handle /actions/* {
+        reverse_proxy 127.0.0.1:8001
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:8001
+    }
+    handle {
+        root * /var/www/site
+        try_files {path} {path}/index.html
+        file_server
+    }
+}
+```
+
+1. `rocdown build` the site.
+2. Upload `dist/` to the CDN or object store.
+3. Run `rocdown serve-islands` with a persistent `DB_PATH`.
+4. Point the reverse proxy at that process for `/actions/` and `/health`.
+
+## Local Docker
+
+Static Rocdown trees (`docs/` in this repository, or any `--cdn-only` `dist/`)
+use official Caddy with no Rocci toolchain: build on the host, then
+`uv run rocci-ops serve static dist/docs`.
+
+Pre-built hybrid sites package the CDN tree plus an island binary, then
+Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
+
+```sh
+# Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
+cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
+uv run rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/counter/islands
+```
+
+`--target` follows the **container**, not the Mac host: Apple Silicon local
+Docker defaults to `arm64musl`; use `x64musl` only when you also run amd64
+images (for example `DOCKER_DEFAULT_PLATFORM=linux/amd64`). Compose does not
+auto-select the image arch from `--target`. Do not use `arm64mac` for Linux
+images. Operator notes and a short table are in `docker/README.md`.
+`uv run rocci-ops serve site` remains the **builder/dev** toolchain demo (Ubuntu +
+Roc + WebKit, compile at start), not hosting.
+
+## Cross-origin service
+
+Set an absolute origin and rebuild so action URLs and CSP match:
+
+```toml
+[http]
+service_origin = "https://islands.example.com"
+```
+
+CORS and cookies for that layout are not shipped. Prefer the same-origin
+proxy until those details exist.
+
+## Sibling service apps
+
+`[http].service = "Islands.rocci"` skips the generated dispatcher.
+`rocdown serve-islands` runs that file with `rocci run`. Routes stay explicit
+strings. The app must return Datastar element patches for mutation methods.
+
+## Smoke checks
+
+After `build`, the home page HTML includes `#counter` and Datastar; `about/`
+does not. With `rocdown run --no-window` on 8000:
+
+```sh
+curl -sf http://127.0.0.1:8000/health
+curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' \
+  -d '{}'
+```
+
+The POST body is a `datastar-patch-elements` event that morphs `#counter`.
+`serve-islands` on 8001 is the mutation process alone (no Markdown).
+
+The complete command list lives in `examples/rocdown/counter/README.md`. Handler
+syntax is in [Build your first standalone app](/docs/tutorials/first-app/).

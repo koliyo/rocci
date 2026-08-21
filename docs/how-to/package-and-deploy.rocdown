@@ -1,0 +1,46 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Package and deploy",
+        description: "Build a release Linux server, run the supported production shape, and optionally assemble an ad-hoc macOS .app.",
+    },
+}
+
+# Package and deploy
+
+**Prerequisites:** [Configure and secure](/docs/how-to/configure-and-secure/) and
+the [ship tutorial](/docs/tutorials/ship/).
+**You will do:** produce a server tree or a local macOS bundle from a working app.
+**Verify:** `build --release` writes a `server` plus `assets/`.
+**Next:** [Compatibility](/docs/reference/compatibility/) or
+[CLI bundle](/docs/reference/cli/#bundle).
+
+Rocci is **development** `main`. Production signing, notarization, and OS
+installers are not shipped.
+
+## Release server
+
+```sh
+cargo run -q -p rocci-cli -- build --release examples/rocci/standalone/counter
+cargo run -q -p rocci-cli -- build --release examples/rocci/standalone/counter --target x64musl
+```
+
+This packages a Linux **server** process plus `assets/`, not a macOS `.app`.
+`--target` requires `--release`. Run the artifact behind your own reverse proxy;
+do not expose the preview window as production.
+
+Container sketches live under `docker/` (`rocci-ops serve app`). They consume
+the release tree; they do not invent a new install channel.
+
+## Ad-hoc macOS `.app`
+
+```sh
+cargo run -q -p rocci-cli -- bundle --config examples/rocci/standalone/counter/rocci.toml
+```
+
+Host-native only. `--target` is rejected for `.app`. The bundle is ad-hoc
+signed. Standalone `.rocci` versus a directory with `main.roc` is the same
+packaging choice as [custom main](/docs/tutorials/custom-main/): generated
+dispatch versus owned routing.
+
+**Related:** [Development and delivery](/docs/concepts/development-and-delivery/).

@@ -1,0 +1,76 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Add commands and live updates",
+        description: "Convert a mutation to @command, add @live, compare one-shot counter with live-counter, and inspect empty SSE versus JSON.",
+    },
+}
+
+# Add commands and live updates
+
+**Prerequisites:** [First standalone app](/docs/tutorials/first-app/).
+**You will learn:** when a one-shot `@patch` is enough, and when `@command` plus
+`@live` justifies a shared stream.
+**Starting files:** [Counter](/examples/counter/) and
+[Live counter](/examples/live-counter/).
+**Time:** about twenty minutes.
+**Verify:** Datastar POST is empty SSE; `curl` POST is JSON; a second tab morphs on
+the live app.
+**Next:** [Take ownership with main.roc](/docs/tutorials/custom-main/).
+
+Open both generated source pages:
+
+- [Counter.rocci](/examples/counter/source/Counter-rocci/) — `@patch` returns
+  `counterCard`
+- [LiveCounter.rocci](/examples/live-counter/source/LiveCounter-rocci/) —
+  `@command` returns `{ count }`, `@live` returns `counterCard`
+
+## One-shot versus live
+
+| | Counter | Live counter |
+| --- | --- | --- |
+| Mutation | `@patch` | `@command` |
+| Acting tab | Morphs from the POST body | Receives **empty SSE**, no morph from POST |
+| Other tabs | Stale until click/reload | Morph from `GET /sse` |
+| Return value | Html fragment | Roc record |
+
+Use one-shot when only the acting tab should change (search, click-to-edit,
+validation). Use live when every open client should see the same region.
+Do not patch the same `id` from both a command and the stream.
+
+`@live` is one per module. Rocci generates `GET /sse` and injects
+`data-init=@get("/sse", …)` on `<body>` when that attribute is absent. Do not
+author `GET /sse` yourself in the same module.
+
+## HTTP verification
+
+```sh
+cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/live-counter/LiveCounter.rocci --no-window
+```
+
+```sh
+curl -s http://127.0.0.1:8000/ | grep -E 'id="counter"|/sse'
+curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
+# JSON {"count":N}
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment \
+  -H 'Datastar-Request: true'
+# HTTP/1.1 200 OK  Content-Type: text/event-stream  (empty body / zero events)
+```
+
+**Verify:** ordinary clients get JSON; Datastar gets empty SSE (not 204). Open the printed URL
+in two browsers: increment in one, the other `#counter` updates without a
+reload. That two-client check is the definition of live for this tutorial.
+
+JSON does **not** morph the DOM. Do not bind the visible count to `$count` to
+reuse the command body.
+
+## Ability checklist
+
+- Choose `@patch` vs `@command` + `@live` for a given flow
+- Discriminate Datastar with `Datastar-Request: true`, not `Accept`
+- Explain why a second counter tab stays stale
+
+Next: [custom main.roc](/docs/tutorials/custom-main/).
+Task: [Update the UI](/docs/how-to/update-the-ui/).
+Handler matrix (every accepted form, not a beginner app): [Handler matrix](/examples/handler-matrix/).

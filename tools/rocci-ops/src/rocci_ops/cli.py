@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import sys
 
-from rocci_ops import ci, deploy, local, origin, release, workspace_deps
+from rocci_ops import ci, deploy, docs_coverage, local, origin, release, workspace_deps
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
 
 commands:
   check-deps    check workspace package edges against the product boundary
+  check-docs    check coverage.toml, search-queries.toml, and first-use-sessions.toml
   ci            run GitHub Actions validation jobs on this machine
   release       package binaries, wait for CI, or publish a GitHub release
   deploy        probe, bootstrap, or push origin artifacts over SSH
@@ -45,6 +46,8 @@ def main(argv: list[str] | None = None) -> None:
     command, rest = args[0], args[1:]
     if command == "check-deps":
         raise SystemExit(workspace_deps.main())
+    if command == "check-docs":
+        raise SystemExit(docs_coverage.main(rest))
     if command == "ci":
         raise SystemExit(ci.main(rest))
     if command == "release":

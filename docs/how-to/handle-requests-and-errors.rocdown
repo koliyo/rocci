@@ -1,0 +1,50 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Handle requests and errors",
+        description: "Read the HTTP request, propagate handler failures, log from effectful code, and use SQLite in a generated app.",
+    },
+}
+
+# Handle requests and errors
+
+**Prerequisites:** [Update the UI](/docs/how-to/update-the-ui/).
+**You will do:** read `request` when needed, keep `?` at the effectful edge, and log without touching `@component`.
+**Verify:** a failing handler returns HTTP 500; `rocci run --log-handlers` prints the matched route.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/) or
+[Runtime](/docs/reference/runtime/).
+
+## Request access
+
+Generated dispatch calls `handler!(context, request)`. List `request` in the
+parameter list when you read the body, headers, or route data:
+
+```rocci
+@patch("/actions/save") = |{ db }, request| {
+    # decode body from request, then return a fragment
+}
+```
+
+One-parameter lists append `_request`. Omit params for `|state, _request|`.
+
+## Failures
+
+`?` in `@init` exits the process. `?` in a handler becomes HTTP 500: an HTML
+overlay for Datastar, `{"error":"…"}` JSON otherwise. Model expected absence
+with tags (`Err`, `None`) and render those states on purpose.
+
+## Logging
+
+`pf.Stderr.line!` from handlers is teed to the CLI and the preview Dev Console
+under `rocci run`. Components are pure: do not log from `@component`. There is
+no `@log` (**planned**).
+
+## SQLite in the generated boundary
+
+The beginner [counter](/examples/counter/) owns a connection in `@context` and
+opens it in `@init`. Keep SQL in handlers, not in components. Example apps
+honor `DB_PATH` when they need a file path; that is application convention, not
+a `rocci.toml` field.
+
+**Related:** [State and effects](/docs/concepts/state-and-effects/),
+[Error boundaries](/docs/concepts/error-boundaries/).

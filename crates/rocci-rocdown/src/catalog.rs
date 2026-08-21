@@ -221,6 +221,13 @@ pub fn with_trailing_slash(route: &str) -> String {
     }
 }
 
+fn is_sibling_product_lane(route: &str) -> bool {
+    route == "/examples/"
+        || route.starts_with("/examples/")
+        || route == "/rocdown/"
+        || route.starts_with("/rocdown/")
+}
+
 pub fn page_route(page: &SourcePage) -> String {
     with_trailing_slash(&match &page.route_hint {
         RouteHint::Explicit(route) => route.clone(),
@@ -534,6 +541,9 @@ fn resolve_ref(
             }
         });
         let Some(target) = target else {
+            if is_sibling_product_lane(&route) {
+                return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
+            }
             return Err(CatalogDiagnostic::error(
                 "RD2101",
                 &page.source_path,
@@ -1282,6 +1292,27 @@ mod tests {
                 .graph
                 .iter()
                 .any(|edge| edge.kind == EdgeKind::Heading && edge.target == "guide#install")
+        );
+    }
+
+    #[test]
+    fn allows_missing_sibling_product_lanes() {
+        let mut home = page("index", "index.rocdown", RouteHint::Derived, "Home");
+        home.outgoing_links = vec![
+            "/examples/styling/".into(),
+            "/rocdown/".into(),
+            "/missing/".into(),
+        ];
+        let result = resolved(&[home]);
+        assert!(result.error_summary().contains("/missing/"));
+        assert!(!result.error_summary().contains("/examples/styling/"));
+        assert!(!result.error_summary().contains("/rocdown/"));
+        assert!(
+            result
+                .site
+                .graph
+                .iter()
+                .any(|edge| edge.kind == EdgeKind::Asset && edge.raw == "/examples/styling/")
         );
     }
 

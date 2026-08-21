@@ -1,5 +1,6 @@
 import Html
 
+## Lobby document. Join/spectate live in `main.roc`, not this component.
 @component
 LobbyPage = |{ player_count, full }|
     <html lang="en">

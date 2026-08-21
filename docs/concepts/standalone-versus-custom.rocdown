@@ -1,0 +1,28 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Standalone versus custom applications",
+        description: "What Rocci generates for a .rocci entry, and when an author should own main.roc.",
+    },
+}
+
+# Standalone versus custom applications
+
+**Prerequisites:** [first app](/docs/tutorials/first-app/).
+**Kind:** concept.
+**Next:** [custom main tutorial](/docs/tutorials/custom-main/).
+
+A **standalone** module declares `@context`, `@init`, `@view`, and mutations.
+`rocci run` generates dispatch, `/assets`, `/health`, and optional `/sse`.
+You do not write `main`.
+
+A **custom** app is a directory with authored `main.roc` that imports `.rocci`
+modules. You own routing and platform effects. Reuse components; do not
+re-implement `Html`.
+
+Stay standalone until generated dispatch is in the way: extra routes, a
+different platform, or a runtime the dispatcher does not express. Snake is an
+explicitly advanced stress example, not the second tutorial.
+
+**Related:** [Runtime](/docs/reference/runtime/),
+[Datastar gallery](/examples/datastar/).

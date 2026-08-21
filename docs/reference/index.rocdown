@@ -1,0 +1,31 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Reference",
+        description: "Look up Rocci language, runtime, CLI, configuration, diagnostics, and status contracts.",
+    },
+}
+
+# Reference
+
+**Prerequisites:** none beyond the [docs prerequisites](/docs/start/prerequisites/).
+**Kind:** reference landing.
+**Status:** development `main`.
+
+Each contract has one owner. Tutorials and how-tos summarize and link here.
+
+- [Language](/docs/reference/language/) — `.rocci` syntax
+- [Runtime and HTTP](/docs/reference/runtime/) — handler responses and lifecycle
+- [CLI](/docs/reference/cli/) — `rocci` commands only
+- [Configuration](/docs/reference/configuration/) — `rocci.toml`
+- [Compatibility](/docs/reference/compatibility/) — platforms and toolchains
+- [Diagnostics](/docs/reference/diagnostics/) — failure phases and messages
+- [Status](/docs/status/) — experimental labels and known limits
+- [Contributor tree appendix](/docs/reference/contributor/rocci-tree/) — AST inspect tags
+- [Contributor checklist](/docs/reference/contributor/checklist/) — local CI path for docs PRs
+- [First-use protocol](/docs/reference/contributor/first-use/) — newcomer sessions and search queries
+
+Task recipes: [How to](/docs/how-to/). Mental models: [compilation](/docs/concepts/compilation-model/).
+Terms: [Glossary](/docs/glossary/).
+
+Rocdown language, site config, and `rocdown` CLI live on the [Rocdown product lane](/rocdown/).

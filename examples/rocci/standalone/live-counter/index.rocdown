@@ -8,6 +8,10 @@
 
 # Live counter
 
+**Audience:** application author.
+**Prerequisites:** [commands and live tutorial](/docs/tutorials/commands-and-live/).
+**Concepts:** [one-shot versus live](/docs/concepts/one-shot-versus-live/).
+
 The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
 but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
 receives **empty SSE** (200 `text/event-stream`, zero events), and `curl` without

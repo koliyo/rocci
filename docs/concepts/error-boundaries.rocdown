@@ -1,0 +1,26 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Error boundaries and source maps",
+        description: "Which failures belong to Rocci parsing, Roc compilation, application effects, HTTP dispatch, or the webview.",
+    },
+}
+
+# Error boundaries and source maps
+
+**Prerequisites:** [Diagnostics](/docs/reference/diagnostics/).
+**Kind:** concept.
+**Next:** [Troubleshooting](/docs/troubleshooting/).
+
+| Phase | Typical command | What to trust |
+| --- | --- | --- |
+| Rocci parse / lower | `rocci build` / `inspect` | Template diagnostics and source maps |
+| Roc compile | `roc` after lowering | Mapped frames when segments exist |
+| Application effects | `@init` / handlers | Process exit or HTTP 500 |
+| HTTP dispatch | wrong method or path | `--log-handlers` |
+| Webview | window does not open | `--no-window` then a browser |
+
+Rocci does not yet publish stable diagnostic codes. Quote the leading message.
+`@on` rewrites are migrations, not deprecation warnings.
+
+**Related:** [Develop and inspect](/docs/how-to/develop-and-inspect/).

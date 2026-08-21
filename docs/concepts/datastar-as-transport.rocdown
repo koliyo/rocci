@@ -1,0 +1,32 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Datastar as transport",
+        description: "What happens from a declarative browser action to the server response and DOM morph.",
+    },
+}
+
+# Datastar as transport
+
+**Prerequisites:** [Documents, fragments, commands, and streams](/docs/concepts/documents-fragments-commands-streams/).
+**Kind:** concept.
+**Next:** [Attributes](/docs/reference/language/attributes/).
+
+Datastar is the browser **transport** for intent and morphing. It is not a
+client application framework and not where domain data lives.
+
+```text
+data-on:click=@post("/actions/inc")
+        │  HTTP POST, Datastar-Request: true
+        ▼
+@patch or @command
+        │
+        ├─ HTML fragment → datastar-patch-elements
+        └─ Roc data → empty SSE (Datastar) or application/json (other clients)
+```
+
+Rocci generates the action helpers and pins the JS asset. Discriminate Datastar
+with the request header, not `Accept`. Upstream expression language:
+[data-star.dev](https://data-star.dev/).
+
+**Related:** [Update the UI](/docs/how-to/update-the-ui/).

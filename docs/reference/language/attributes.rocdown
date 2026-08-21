@@ -1,0 +1,40 @@
+@page {
+    layout: "docs",
+    aliases: [
+        "/docs/reference/@get/",
+        "/docs/reference/@post/",
+        "/docs/reference/datastar-actions/",
+    ],
+    meta: {
+        title: "Attributes and actions",
+        description: "Static, dynamic, and boolean attributes, props records, hyphenated names, and Datastar actions.",
+    },
+}
+
+# Attributes and actions
+
+**Status:** current.
+
+| Form | Meaning |
+| --- | --- |
+| `class="card"` | Static string |
+| `class={expr}` | Roc expression |
+| `disabled` | Boolean attribute |
+| `data-on:click=@post("/actions/x")` | Datastar backend action |
+
+Hyphenated names are legal (`aria-current`, `data-on:click`). Prop spreading
+and dynamic attribute names are **not** supported.
+
+On HTML, attributes become `Html.attribute` / `Html.boolean_attribute`. On
+component tags they become a props record.
+
+## Datastar actions
+
+`@get`, `@post`, `@put`, `@patch`, `@delete` in attribute position take Roc
+arguments (`"/path"`, not `'/path'`). Using an action injects `import Datastar`
+when missing. A second argument is a `List` of option tags and lowers to
+`*_with`. Quoted `"@post('…')"` is opaque Datastar JS, not a Rocci action.
+
+**Errors:** `@post('/x')` with single quotes is a parse error.
+
+**Related:** [Server declarations](/docs/reference/language/server/), [Runtime](/docs/reference/runtime/).

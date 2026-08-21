@@ -141,7 +141,7 @@ in-page Go to File. `rocci browse` is still the component gallery. On macOS,
 `uv run rocci-ops bundle browser-macos` assembles an ad-hoc **Rocci Browser.app**
 around that same host; it does not use `rocci bundle`. Production signing is
 planned. See
-[`docs/guides/rocci-browser.rocdown`](docs/guides/rocci-browser.rocdown).
+[`docs/how-to/use-the-project-browser.rocdown`](docs/how-to/use-the-project-browser.rocdown).
 
 The public `rocci.dev` tree is [`site`](site), configured by
 [`site/rocdown.toml`](site/rocdown.toml) and written to `dist/rocci.dev`.
