@@ -180,7 +180,7 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`docker-serve-static.sh`](docker-serve-static.sh) | Absolutize `ROCCI_DIST` and `compose up` |
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
-| [`prod/`](prod/) | Origin wrapper, bootstrap scp, CI `push-release.sh` / `publish.sh` |
+| [`prod/`](prod/) | Origin docs, Access SSH proxy, env examples |
 | [`docker-serve-hybrid.sh`](docker-serve-hybrid.sh) | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
