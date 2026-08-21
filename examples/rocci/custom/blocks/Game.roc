@@ -347,4 +347,225 @@ Game := [].{
                     _ => try_kicks_help(board, piece, rot, x, y, rest)
                 }
         }
+
+    garbage_delay_ms = 600.I64
+    insert_cap = 8.I64
+    seat_count = 8.I64
+    first_hole = 3.I64
+
+    next_hole = |last|
+        if last < 0 {
+            first_hole
+        } else {
+            (last + 3).rem_by(width)
+        }
+
+    garbage_row = |hole| {
+        bytes = range(width)
+        Str.from_utf8_lossy(
+            List.map(
+                bytes,
+                |x| if x == hole { empty_cell } else { garbage_cell },
+            ),
+        )
+    }
+
+    select_target = |living, self, cursor|
+        List.fold(
+            range(seat_count),
+            -1,
+            |acc, i|
+                if acc >= 0 {
+                    acc
+                } else {
+                    seat = (cursor + i).rem_by(seat_count)
+                    if seat != self and List.contains(living, seat) {
+                        seat
+                    } else {
+                        acc
+                    }
+                },
+        )
+
+    advance_cursor = |living, self, target|
+        select_target(living, self, (target + 1).rem_by(seat_count))
+
+    insert_ordered = |acc, packet| {
+        before = List.keep_if(
+            acc,
+            |item| item.order < packet.order or (item.order == packet.order and item.ready_at_ms <= packet.ready_at_ms),
+        )
+        after = List.keep_if(
+            acc,
+            |item| item.order > packet.order or (item.order == packet.order and item.ready_at_ms > packet.ready_at_ms),
+        )
+        List.concat(List.append(before, packet), after)
+    }
+
+    sort_packets = |packets|
+        List.fold(packets, [], insert_ordered)
+
+    cancel_incoming = |incoming, attack| {
+        sorted = sort_packets(incoming)
+        folded =
+            List.fold(
+                sorted,
+                { leftover: attack, kept: [] },
+                |acc, packet|
+                    if acc.leftover <= 0 {
+                        { leftover: 0, kept: List.append(acc.kept, packet) }
+                    } else if acc.leftover >= packet.rows {
+                        { leftover: acc.leftover - packet.rows, kept: acc.kept }
+                    } else {
+                        {
+                            leftover: 0,
+                            kept: List.append(acc.kept, { ..packet, rows: packet.rows - acc.leftover }),
+                        }
+                    },
+            )
+        { incoming: folded.kept, residual: folded.leftover, cursor_advanced: folded.leftover > 0 }
+    }
+
+    resolve_residual = |cancelled, self, cursor, living| {
+        if cancelled.residual <= 0 {
+            {
+                incoming: cancelled.incoming,
+                residual: 0,
+                target: -1,
+                cursor,
+                writes: 0,
+            }
+        } else {
+            target = select_target(living, self, cursor)
+            if target < 0 {
+                {
+                    incoming: cancelled.incoming,
+                    residual: cancelled.residual,
+                    target: -1,
+                    cursor,
+                    writes: 0,
+                }
+            } else {
+                {
+                    incoming: cancelled.incoming,
+                    residual: cancelled.residual,
+                    target,
+                    cursor: advance_cursor(living, self, target),
+                    writes: 1,
+                }
+            }
+        }
+    }
+
+    packet_rows = |packets|
+        List.fold(packets, 0, |acc, packet| acc + packet.rows)
+
+    apply_ready = |packets, now| {
+        sorted = sort_packets(packets)
+        ready = List.keep_if(sorted, |packet| packet.ready_at_ms <= now)
+        folded =
+            List.fold(
+                sorted,
+                { applied: 0.I64, taken: [], rest: [] },
+                |acc, packet|
+                    if packet.ready_at_ms > now {
+                        { applied: acc.applied, taken: acc.taken, rest: List.append(acc.rest, packet) }
+                    } else if acc.applied >= insert_cap {
+                        { applied: acc.applied, taken: acc.taken, rest: List.append(acc.rest, packet) }
+                    } else {
+                        room = insert_cap - acc.applied
+                        if packet.rows <= room {
+                            {
+                                applied: acc.applied + packet.rows,
+                                taken: List.append(acc.taken, packet),
+                                rest: acc.rest,
+                            }
+                        } else {
+                            {
+                                applied: insert_cap,
+                                taken: List.append(acc.taken, { ..packet, rows: room }),
+                                rest: List.append(acc.rest, { ..packet, rows: packet.rows - room }),
+                            }
+                        }
+                    },
+            )
+        {
+            ready_rows: packet_rows(ready),
+            applied_rows: folded.applied,
+            remaining: folded.rest,
+            applied: folded.taken,
+        }
+    }
+
+    insert_garbage = |board, packets| {
+        rows =
+            List.fold(
+                packets,
+                [],
+                |acc, packet|
+                    List.concat(acc, List.map(range(packet.rows), |_| garbage_row(packet.hole))),
+            )
+        drop = List.len(rows).to_i64_wrap() * width
+        bytes = drop_n(Str.to_utf8(board), drop)
+        extra = List.fold(rows, [], |acc, row| List.concat(acc, Str.to_utf8(row)))
+        Str.from_utf8_lossy(List.concat(bytes, extra))
+    }
+
+    next_order = |packets|
+        List.fold(packets, -1, |acc, packet| if packet.order > acc { packet.order } else { acc }) + 1
+
+    encode_queue = |packets|
+        List.fold(
+            packets,
+            "",
+            |acc, packet| {
+                part = "${packet.rows.to_str()},${packet.ready_at_ms.to_str()},${packet.hole.to_str()},${packet.order.to_str()}"
+                if acc == "" {
+                    part
+                } else {
+                    "${acc}|${part}"
+                }
+            },
+        )
+
+    parse_i64 = |text|
+        match I64.from_str(text) {
+            Ok(n) => n
+            Err(_) => 0
+        }
+
+    decode_packet = |text| {
+        parts = Str.split_on(text, ",")
+        match (nth(parts, 0, 0), nth(parts, 1, 0), nth(parts, 2, 0), nth(parts, 3, 0)) {
+            (Ok(rows), Ok(ready_at), Ok(hole), Ok(order)) =>
+                Ok({
+                    rows: parse_i64(rows),
+                    ready_at_ms: parse_i64(ready_at),
+                    hole: parse_i64(hole),
+                    order: parse_i64(order),
+                })
+            _ => Err(InvalidGeometry)
+        }
+    }
+
+    decode_queue = |text|
+        if text == "" {
+            []
+        } else {
+            List.fold(
+                Str.split_on(text, "|"),
+                [],
+                |acc, part|
+                    match decode_packet(part) {
+                        Ok(packet) if packet.rows > 0 => List.append(acc, packet)
+                        _ => acc
+                    },
+            )
+        }
+
+    queue_rows = |text|
+        packet_rows(decode_queue(text))
+
+    ready_rows_now = |text, now|
+        packet_rows(List.keep_if(decode_queue(text), |packet| packet.ready_at_ms <= now))
 }
