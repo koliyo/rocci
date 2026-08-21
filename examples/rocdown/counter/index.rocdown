@@ -177,7 +177,7 @@ CounterIsland = |{ count }| {
 Prose stays Markdown. The card below is pre-rendered into the CDN HTML at build
 time (`count` is `0` in that snapshot). On load, generated `GET /sse` replaces
 that snapshot with the live count and keeps two browsers in sync. Increment and
-reset return JSON (204 to Datastar); they do not patch `#counter`.
+reset return JSON (empty SSE to Datastar); they do not patch `#counter`.
 
 See [About](/about/) for a neighboring page that stays static.
 

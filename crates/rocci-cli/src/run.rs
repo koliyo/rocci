@@ -712,7 +712,11 @@ mod tests {
                 "POST /actions/post-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
             ),
         );
-        assert!(datastar_cmd.contains("204"), "{datastar_cmd}");
+        assert!(
+            datastar_cmd.contains("200") && datastar_cmd.contains("text/event-stream"),
+            "{datastar_cmd}"
+        );
+        assert!(!datastar_cmd.contains("204"), "{datastar_cmd}");
         assert!(
             !datastar_cmd.contains("datastar-patch-elements"),
             "{datastar_cmd}"
