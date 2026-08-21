@@ -292,11 +292,8 @@ def _git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProc
     return subprocess.run(["git", "-C", str(root), *args], check=check, capture_output=True, text=True)
 
 
-def package_site(*, target: str) -> int:
+def stage_example_docs() -> None:
     root = repo_root()
-    catalog = root / "examples/rocci/apps.toml"
-    docs_out = root / "dist/example-docs"
-    live_root = root / "dist/examples-live"
     run(
         [
             "cargo",
@@ -306,12 +303,29 @@ def package_site(*, target: str) -> int:
             "rocci-docs",
             "--",
             "--catalog",
-            str(catalog),
+            str(root / "examples/rocci/apps.toml"),
             "--output",
-            str(docs_out),
+            str(root / "dist/example-docs"),
         ],
         cwd=root,
     )
+
+
+def build_site() -> int:
+    root = repo_root()
+    stage_example_docs()
+    for action in ("check", "test", "build"):
+        run(
+            ["cargo", "run", "-q", "-p", "rocci-rocdown-cli", "--", action, "site"],
+            cwd=root,
+        )
+    return 0
+
+
+def package_site(*, target: str) -> int:
+    root = repo_root()
+    live_root = root / "dist/examples-live"
+    stage_example_docs()
     listed = subprocess.run(
         [
             "cargo",
@@ -454,6 +468,10 @@ def main(argv: list[str]) -> int:
     rest = argv[1:]
     if command == "install-cli":
         return install_cli()
+    if command == "site":
+        if rest:
+            raise SystemExit("usage: rocci-ops site")
+        return build_site()
     if command == "package":
         if rest == ["vscode"]:
             return package_vscode()

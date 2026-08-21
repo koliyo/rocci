@@ -24,6 +24,7 @@ layout = "docs"
 source = "../dist/example-docs"
 prefix = "examples"
 layout = "docs"
+visibility = "linked-detail"
 
 [[nav]]
 label = "Docs"

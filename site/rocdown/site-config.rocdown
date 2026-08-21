@@ -245,6 +245,7 @@ layout = "docs"
 source = "../dist/example-docs"
 prefix = "examples"
 layout = "docs"
+visibility = "linked-detail"
 ```
 
 `dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
@@ -256,6 +257,10 @@ layout. `/docs/examples/` is an alias of `/examples/` during the move.
 - `source`: Relative path to the mounted content directory.
 - `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `getting-started/quickstart` to ID `docs/getting-started/quickstart` and route `/docs/getting-started/quickstart/`).
 - `layout`: Optional default layout applied to pages in this mount.
+- `visibility`: `navigable` by default. `linked-detail` keeps intentionally
+  linked generated details out of navigation without `RD2202` warning noise;
+  inspection still reports them as unlisted. Do not use it to hide authored
+  pages that should be discoverable.
 
 ## Navigation
 
@@ -269,7 +274,8 @@ path without `.rocdown`:
 | `guides/build.rocdown` | `guides/build` | `/guides/build/` |
 
 Navigation order is explicit. Unknown IDs and duplicate items fail the build.
-Published pages may remain unlisted when that is intentional.
+Published authored pages omitted from navigation emit `RD2202`. Generated
+detail mounts may opt into the explicit `linked-detail` policy above.
 
 Use `[[nav.groups]]` under a top-level `[[nav]]` when a product lane (for example
 Docs) should keep one header link while the left rail folds into Start,
@@ -280,6 +286,36 @@ Each page also gets a right-hand “On this page” outline from heading levels 
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
 with `rocdown run` uses the standalone left navigator instead; see
 [Rocdown](/rocdown/language/).
+
+## Layout and site-surface ownership
+
+The catalog validates layout names and supplies page, navigation, breadcrumb,
+journey, and outline data. The project theme owns the visible frame. On
+rocci.dev, `home` and `faq` are the only sidebar-free layouts; every other
+published page uses the shared navigated frame. FAQ uses an inline question
+outline, while Home keeps authored path cards and its live island in source
+order.
+
+rocci.dev has no News collection, feed, lane, card, or route in the generated
+site. Historical URL redirects and terminal `410` responses are configured at
+the production origin, not encoded as catalog prose or theme behavior.
+
+## Repository validation
+
+From the repository root, the complete local content workflow is:
+
+```sh
+uv run rocci-ops site
+```
+
+It stages `dist/example-docs`, then runs `rocdown check site`, `rocdown test
+site`, and `rocdown build site`. Use those focused commands directly while
+iterating. Rust changes also require `cargo fmt --all -- --check` and the
+narrow owning-crate tests; cross-cutting changes require `cargo test
+--workspace`. Knowledge changes require `cargo run -q -p rocci-okf -- check
+knowledge --profile rocci`. Build and rebuild failure tests assert that an
+existing output tree remains intact when catalog validation, CDN-only policy,
+or a watched rebuild fails.
 
 ## Generated artifacts
 

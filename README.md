@@ -132,7 +132,16 @@ The public `rocci.dev` tree is [`site`](site), configured by
 [`site/rocdown.toml`](site/rocdown.toml) and written to `dist/rocci.dev`.
 [`docs`](docs) remains the mounted documentation catalog and a standalone
 `check docs` / `test docs` target. With `roc` and `cargo` on `PATH`, package
-the hybrid site (CDN archive plus musl `islands` binary) with:
+the complete local site with:
+
+```sh
+uv run rocci-ops site
+```
+
+That repository-level command stages generated example documentation, checks
+links and catalog policy, runs documented examples, and builds
+`dist/rocci.dev`. The focused `rocci-rocdown-cli` commands remain available.
+To package the hybrid site (CDN archive plus musl `islands` binary), use:
 
 ```sh
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
