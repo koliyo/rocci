@@ -2967,6 +2967,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocci-docs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde",
+ "thiserror 2.0.20",
+ "toml",
+]
+
+[[package]]
 name = "rocci-highlight"
 version = "0.1.0"
 dependencies = [

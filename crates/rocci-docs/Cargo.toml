@@ -1,0 +1,21 @@
+[package]
+name = "rocci-docs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Stage colocated Rocdown and published source for cataloged Rocci apps"
+
+[lib]
+name = "rocci_docs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rocci-docs"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
