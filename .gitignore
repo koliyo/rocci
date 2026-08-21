@@ -1,5 +1,8 @@
-/target
-.DS_Store
+# Python / uv
+.venv
+**/__pycache__/
+*.py[cod]
+
 .zig-cache
 .worktrees
 dist
