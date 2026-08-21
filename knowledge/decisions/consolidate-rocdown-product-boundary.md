@@ -49,7 +49,7 @@ sources:
     author: process:git
     last_modified: 2026-08-16
   - id: architecture-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction check
     author: process:cursor
     last_modified: 2026-08-17
@@ -164,7 +164,7 @@ series.[^refactor-plan]
    routing, graph, lifecycle, and validation rules remain with their domains.
 
 These rules reverse the previous base-tooling dependencies. Direct workspace
-edges are checked mechanically by `scripts/check-workspace-deps.py` with zero
+edges are checked mechanically by `tools/rocci-ops/src/rocci_ops/workspace_deps.py` with zero
 allowlisted reverse edges.[^architecture-check]
 
 7. As a purely user-facing convenience, `rocci run` emits a helpful diagnostic

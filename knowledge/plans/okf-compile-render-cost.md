@@ -105,7 +105,7 @@ sources:
     author: process:okf-migration
     last_modified: 2026-08-17
   - id: deps-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Mechanical one-way workspace dependency check
     author: process:cursor
     last_modified: 2026-08-18

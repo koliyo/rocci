@@ -1,7 +1,7 @@
 # Rocci and Rocdown client-side playground implementation plan
 
 > [!NOTE]
-> **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`scripts/check-workspace-deps.py`) reflect the current post-split architecture.
+> **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`tools/rocci-ops/src/rocci_ops/workspace_deps.py`) reflect the current post-split architecture.
 
 **Status:** in progress — Phase 0 complete; desktop `--mode local` HTML snapshots are implemented
 
@@ -255,9 +255,8 @@ playground/
 docs/
 └── playground.rocdown             # or an embedded home-page section
 
-scripts/
-├── build-playground.sh            # reproducible Rust/WASM + web bundle
-└── check-workspace-deps.py        # package classification and dependency-rule enforcement
+tools/rocci-ops/
+└── src/rocci_ops/workspace_deps.py  # package classification; `uv run rocci-ops build-playground` for the WASM/web bundle
 ```
 
 Do not check `playground/dist` in as the source of truth unless packaging
@@ -265,7 +264,7 @@ constraints later require release artifacts. Rust, TypeScript, CSS, example
 manifest, and lockfiles are authoritative.
 
 Classify `rocci-playground` and `rocci-playground-wasm` in
-`scripts/check-workspace-deps.py` under the appropriate class so CI dependency
+`tools/rocci-ops/src/rocci_ops/workspace_deps.py` under the appropriate class so CI dependency
 checks enforce one-way layering: base Rocci packages (`rocci-core`,
 `rocci-template`, `rocci-cli`, etc.) have zero dependencies on Rocdown packages.
 Because `rocci-playground` compiles both `.rocci` and `.rocdown`, it is classified
@@ -409,7 +408,7 @@ Highlighting decision gate outcome:
 
 - **Selected: Option 2 (`web-tree-sitter` sidecar)**. Native C Tree-sitter parsers require C standard library headers (`<stdio.h>`) that are not present on bare `wasm32-unknown-unknown`. `rocci-highlight` and `rocci-lsp` have been target-gated so the pure Rust types (`LanguageId`, `HighlightSpan`, `HighlightKind`, `regions`) compile cleanly for WASM while C Tree-sitter remains native-only. Highlighting in the browser will be driven by `web-tree-sitter` in Phase 3, mapping to the exact canonical `HighlightSpan` schema without blocking parser/lowerer WASM delivery.
 
-Exit gate: `scripts/test-phase0-wasm.mjs` verifies that compiled browser-target WASM executes in Node.js and returns valid generated Roc, formatted AST, and diagnostics for `.rocci` and `.rocdown` fixtures (`Counter.rocci`, `AllSyntax.rocci`, `Guide.rocdown`, `AllSyntax.rocdown`); all workspace tests pass 100%.
+Exit gate: `test/wasm/test-phase0-wasm.mjs` verifies that compiled browser-target WASM executes in Node.js and returns valid generated Roc, formatted AST, and diagnostics for `.rocci` and `.rocdown` fixtures (`Counter.rocci`, `AllSyntax.rocci`, `Guide.rocdown`, `AllSyntax.rocdown`); all workspace tests pass 100%.
 
 ### Phase 1 — target-neutral playground facade
 
@@ -677,12 +676,12 @@ regressions fail with the measured values.
 - Add one top-level build command for Rust/WASM/web assets.
 - Pin tool versions and document prerequisites.
 - Add CI lanes for Rust tests, WASM build/parity, web unit tests, browser E2E,
-  Rocdown docs build, dependency direction checks (`python3 scripts/check-workspace-deps.py`),
+  Rocdown docs build, dependency direction checks (`uv run rocci-ops check-deps`),
   and `cargo fmt --all -- --check`.
 - Update the root README, `rocci` CLI reference, `rocdown` CLI reference,
   project status, and owning crate READMEs.
 - Classify `rocci-playground` and `rocci-playground-wasm` in
-  `scripts/check-workspace-deps.py` under the appropriate dependency rules.
+  `tools/rocci-ops/src/rocci_ops/workspace_deps.py` under the appropriate dependency rules.
 - Mark HTML rendering as unavailable everywhere it is described.
 - Add third-party notices and verify license compatibility.
 - Add the built asset manifest to release packaging for the `rocci` and `rocdown` binaries.
@@ -739,7 +738,7 @@ cargo test -p rocci-playground-wasm
 cargo test -p rocci-cli
 cargo test -p rocci-rocdown-cli
 cargo fmt --all -- --check
-python3 scripts/check-workspace-deps.py
+uv run rocci-ops check-deps
 cargo test --workspace
 cargo run -q -p rocci-rocdown-cli -- build docs
 ```

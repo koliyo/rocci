@@ -1,4 +1,4 @@
-from rocci_ops.local import CLI_CRATES, parse_worktrees, require_darwin
+from rocci_ops.local import CLI_CRATES, parse_worktrees, render_brand_icons, require_darwin
 
 
 def test_cli_crates() -> None:
@@ -46,3 +46,43 @@ def test_require_darwin_rejects_other(monkeypatch) -> None:
         assert "macOS" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
+
+
+def test_render_brand_icons_requires_rsvg(monkeypatch) -> None:
+    monkeypatch.setattr("rocci_ops.local.shutil.which", lambda _: None)
+    try:
+        render_brand_icons()
+    except SystemExit as exc:
+        assert "rsvg-convert" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_render_brand_icons_invokes_rsvg(monkeypatch, tmp_path) -> None:
+    brand = tmp_path / "brand"
+    brand.mkdir()
+    (brand / "rocci-app.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-file.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-mark.svg").write_text("<svg/>", encoding="utf-8")
+    (tmp_path / "crates/rocci-desktop/assets").mkdir(parents=True)
+    (tmp_path / "site/assets").mkdir(parents=True)
+    calls: list[list[str]] = []
+    copies: list[tuple[str, str]] = []
+
+    monkeypatch.setattr("rocci_ops.local.shutil.which", lambda _: "/usr/bin/rsvg-convert")
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.shutil.copy2",
+        lambda src, dst: copies.append((str(src), str(dst))),
+    )
+
+    assert render_brand_icons() == 0
+    assert len(calls) == 3
+    assert all(call[0] == "rsvg-convert" for call in calls)
+    assert any("rocci-icon.png" in call[-1] for call in calls)
+    assert any("apple-touch-icon.png" in call[-1] for call in calls)
+    assert len(copies) == 3

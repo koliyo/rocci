@@ -55,7 +55,7 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: deps-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Mechanical one-way workspace dependency check
     author: process:cursor
     last_modified: 2026-08-19
@@ -613,7 +613,7 @@ not call it `rocci browse`, `rocci-okf-cli`, or `rocci` subcommand
 `browser`. A `rocci browser` subcommand would turn the Rocci binary into the
 multiplexer the CLI plan rejected.[^cli-plan][^cli-readme]
 
-Classify the package as **base Rocci** in `scripts/check-workspace-deps.py`
+Classify the package as **base Rocci** in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`
 so it cannot depend on Rocdown or OKF. First-party adapter code lives in
 `rocci-cli`, `rocci-rocdown-cli`, and `rocci-okf` (their classes already
 allow depending on base Rocci). Adding the workspace member must update
@@ -738,6 +738,6 @@ Do not keep a TUI. An ad-hoc **Rocci Browser.app** is a follow-on, not
 [^site-config]: `site/` mounts `../docs` as the docs prefix.
 [^docs-config]: Standalone `docs/rocdown.toml` site.
 [^root-readme]: Public commands for rocci, rocdown, and rocci-okf.
-[^agents]: New workspace members must be classified in check-workspace-deps.py.
+[^agents]: New workspace members must be classified in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`.
 [^compile-research]: OKF first-open dominated by Roc compile and render.
 [^lsp-spec]: JSON-RPC process model for a generic host plus adapters.

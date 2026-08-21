@@ -45,7 +45,7 @@ sources:
     author: process:okf-migration
     last_modified: 2026-08-18
   - id: deps-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Mechanical one-way workspace dependency check
     author: process:cursor
     last_modified: 2026-08-19
@@ -593,7 +593,7 @@ question, including gates 1–2.
 - Tests: protocol round-trip against the fixture; registry file under a temp
   `ROCCI_BROWSER_DIR`; two adapters claiming one path appear as two targets;
   `cargo test -p rocci-browser` does not invoke `rocci-okf` or `rocdown`.
-- `scripts/check-workspace-deps.py` stays green.
+- `tools/rocci-ops/src/rocci_ops/workspace_deps.py` stays green.
 
 Exit when `rocci-browser open fixture --no-window --json` prints the fixture
 URL, and Tab-then-Enter via `--document` prints a document URL, with no
@@ -733,7 +733,7 @@ plan](rocci-browser-macos-app.md) withdraws `tui` and sequences the ad-hoc
 [^chrome-research]: Overlay HTML/JS versus preview-origin Rocci inspector UI.
 [^system-overview]: Current workspace and preview-window contract.
 [^deps-check]: Mechanical CLASSES forbidding base Rocci → Rocdown/OKF.
-[^agents]: New workspace members must be classified in check-workspace-deps.py.
+[^agents]: New workspace members must be classified in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`.
 [^cargo-toml]: Current workspace member list; rocci-browser is not a member yet.
 [^desktop-readme]: Desktop host has no language-crate dependencies; chrome is assets.
 [^preview-rs]: Blocking `preview()`, Home uses `webview.load_url`.

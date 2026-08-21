@@ -23,5 +23,5 @@ cargo build -p rocci-playground-wasm --target wasm32-unknown-unknown --release
 
 ```sh
 # Run browser and Node verification harness
-node scripts/test-phase2-wasm.mjs
+node test/wasm/test-phase2-wasm.mjs
 ```

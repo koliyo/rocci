@@ -45,7 +45,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: deps-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction check
     author: process:git
     last_modified: 2026-08-18
@@ -174,7 +174,7 @@ tokens. Sharing markup is not sharing a theme.[^theming]
 files there is source ownership only. `rocci-template` already lives in base
 Rocci; product CLIs compile the templates. If `rocci-ui` must not grow a
 template story, a sibling `rocci-components` crate is the alternative, still
-classified as base Rocci in `scripts/check-workspace-deps.py`.[^deps-check]
+classified as base Rocci in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`.[^deps-check]
 
 Do not embed templates with `include_str!` as the v1 integration. Product
 builders already stage `.rocci` sources into a Roc workspace. Embedding is
@@ -223,7 +223,7 @@ in/out rather than giving the module a filesystem. Do not reuse
 `basic-cli` as the wasm platform. Do not put Wasmtime in `rocci-core`
 (that crate is configuration and session contracts). A new base-Rocci
 crate such as `rocci-roc-host`, classified in
-`scripts/check-workspace-deps.py`, owns cache lookup, native spawn, and an
+`tools/rocci-ops/src/rocci_ops/workspace_deps.py`, owns cache lookup, native spawn, and an
 optional `wasmtime` feature so catalog-only tests do not link the
 engine.[^deps-check]
 
@@ -462,7 +462,7 @@ work in this plan.
 - Cache tests cover hash identity, fingerprint skip, mtime-lie rehash,
   artifact checksum mismatch, and atomic manifest publication without
   invoking Roc.
-- `scripts/check-workspace-deps.py` still forbids OKF → Rocdown.
+- `tools/rocci-ops/src/rocci_ops/workspace_deps.py` still forbids OKF → Rocdown.
 - `rocci-okf check knowledge --profile rocci` after knowledge edits.
 - Roc-gated tests for host A and host B apply the same fixture view and
   compare structure; they do not require byte-identical HTML with the
