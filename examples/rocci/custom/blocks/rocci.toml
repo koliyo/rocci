@@ -28,4 +28,4 @@ reload = false
 devtools = false
 
 [bundle]
-app = "Blocks.rocci"
+app = "."

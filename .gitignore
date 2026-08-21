@@ -36,6 +36,7 @@ examples/rocci/standalone/counter/Counter.roc
 examples/rocci/standalone/live-counter/LiveCounter.roc
 examples/rocci/standalone/styling/Styling.roc
 examples/rocci/custom/snake/Snake.roc
+examples/rocci/custom/blocks/Blocks.roc
 examples/rocci/custom/datastar/Gallery.roc
 examples/rocci/custom/datastar/Search.roc
 examples/rocci/custom/datastar/Edit.roc
