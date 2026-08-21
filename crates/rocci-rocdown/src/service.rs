@@ -118,7 +118,19 @@ pub fn generated_island_plan(root: &Path) -> Result<Option<IslandServicePlan>> {
 }
 
 pub fn island_routes(root: &Path, site: &ResolvedSite) -> Result<Vec<IslandRoute>> {
-    let modules = compile_live_modules(root, site)?;
+    island_routes_with_service(root, site, "")
+}
+
+pub fn island_routes_with_service(
+    root: &Path,
+    site: &ResolvedSite,
+    service: &str,
+) -> Result<Vec<IslandRoute>> {
+    let modules = if service.is_empty() {
+        compile_live_modules(root, site)?
+    } else {
+        compile_service_module(root, site, service)?
+    };
     let mut routes: Vec<IslandRoute> = modules
         .into_iter()
         .flat_map(|module| module.routes)
@@ -134,6 +146,72 @@ pub fn island_routes(root: &Path, site: &ResolvedSite) -> Result<Vec<IslandRoute
     });
     routes.dedup();
     Ok(routes)
+}
+
+fn compile_service_module(
+    root: &Path,
+    site: &ResolvedSite,
+    service: &str,
+) -> Result<Vec<StandaloneModule>> {
+    let path = root.join(service);
+    if !path.is_file() {
+        bail!("configured [http].service `{service}` does not exist");
+    }
+    let src =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+    let source_name = service;
+    let compiled = compile(
+        SourceFile::new(source_name, &src),
+        &CompileOptions {
+            lower: rocci_template::LowerOptions {
+                embed_css: false,
+                ..rocci_template::LowerOptions::default()
+            },
+            check_assets: false,
+            ..CompileOptions::default()
+        },
+    );
+    if compiled.has_errors() {
+        let messages: Vec<_> = compiled
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.is_error())
+            .map(|diagnostic| diagnostic.message.as_str())
+            .collect();
+        bail!(
+            "failed to compile [http].service `{service}`: {}",
+            messages.join("; ")
+        );
+    }
+    let page_paths = site_page_paths(site);
+    let routes: Vec<RouteInfo> = compiled
+        .routes
+        .into_iter()
+        .filter(|route| keep_island_route(route, &page_paths))
+        .collect();
+    let has_mutation = routes
+        .iter()
+        .any(|route| route.method != "GET" && route.method != "HEAD");
+    if !has_mutation {
+        bail!("[http].service `{service}` has no mutation `@patch` or `@command` handlers");
+    }
+    let type_name = type_name_from_path(&path);
+    Ok(vec![StandaloneModule {
+        type_name: type_name.clone(),
+        roc: compiled.roc.clone(),
+        state_type: compiled.state_type,
+        init: compiled.init,
+        live: compiled.live,
+        routes,
+        mapped: rocci_template::MappedModule {
+            type_name,
+            generated: compiled.roc,
+            source_name: source_name.to_string(),
+            source_src: src,
+            segments: compiled.segments,
+        },
+        local_assets: Vec::new(),
+    }])
 }
 
 pub fn plan_island_service_from(

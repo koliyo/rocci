@@ -1,0 +1,155 @@
+import Html
+
+Click : { flag : Str, place : Str, ago : Str, ts : Str }
+
+empty_clicks : List(Click)
+empty_clicks = []
+
+## Morph target: count + scrollable recent-click feed (up to 50 rows, five visible).
+@component
+CounterCard = |{ count, clicks }| {
+    @css {
+        .counter-card {
+            margin-top: 2rem;
+            padding: 1.5rem 1.75rem;
+            border: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            border-radius: 16px;
+            background: var(--surface, rgba(11, 30, 24, 0.72));
+        }
+        .eyebrow {
+            margin: 0 0 0.35rem;
+            color: var(--accent, #48eda4);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        output {
+            display: block;
+            color: var(--ink, #f8fffb);
+            font-family: ui-monospace, monospace;
+            font-size: 3.5rem;
+            font-weight: 650;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.04em;
+        }
+        .feed-scroll {
+            margin: 1.35rem 0 0;
+            max-height: 11rem;
+            overflow-y: auto;
+        }
+        .feed {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .feed li {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.65rem 0.85rem;
+            align-items: baseline;
+            padding: 0.55rem 0;
+            border-top: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            font-size: 0.92rem;
+        }
+        .feed .flag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2rem;
+            padding: 0.15rem 0.35rem;
+            border-radius: 6px;
+            background: var(--canvas, rgba(7, 17, 14, 0.9));
+            border: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            color: var(--ink, #f8fffb);
+            font-family: ui-monospace, monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .feed .where {
+            color: var(--ink, #f8fffb);
+            font-size: 0.92rem;
+        }
+        .feed time {
+            color: var(--muted, #8da39a);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .empty {
+            margin: 1.35rem 0 0;
+            color: var(--muted, #8da39a);
+            font-size: 0.9rem;
+        }
+    }
+    <section id="counter" class="counter-card">
+        <p class="eyebrow">Live shared count</p>
+        <output>{count.to_str()}</output>
+        @if List.is_empty(clicks) {
+            <p class="empty">No clicks yet - be the first visitor.</p>
+        } @else {
+            <div class="feed-scroll">
+                <ul class="feed" aria-label="Recent increments">
+                    @for click in clicks {
+                        <li>
+                            <span class="flag" aria-hidden="true">{click.flag}</span>
+                            <div class="where">{click.place}</div>
+                            <time datetime={click.ts}>{click.ago}</time>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </section>
+}
+
+## Island fragment for hybrid pages: tz signal, SSE, increment only (no Reset).
+@component
+CounterIsland = |{ count, clicks }| {
+    @css {
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            background: var(--accent, #48eda4);
+            color: var(--canvas, #06100c);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .privacy {
+            margin: 1rem 0 0;
+            color: var(--muted, #8da39a);
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+    }
+    <>
+        <div
+            data-signals="{tz: ''}"
+            data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; @get('/sse', [OpenWhenHidden(True)])"
+        ></div>
+        <CounterCard count={count} clicks={clicks} />
+        <div class="actions">
+            <button type="button" data-on:click=@post("/actions/counter/increment")>
+                Increment
+            </button>
+        </div>
+        <p class="privacy">
+            Origin comes from your browser timezone - no IP address is stored.
+        </p>
+    </>
+}
+
+@fixture{target: CounterCard}
+counterCardTest = { count: 3.I64, clicks: empty_clicks }
+
+@fixture{target: CounterIsland}
+counterIslandTest = { count: 3.I64, clicks: empty_clicks }

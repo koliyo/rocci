@@ -238,7 +238,15 @@ fn plan_standalone(
     let primary = primary
         .canonicalize()
         .unwrap_or_else(|_| primary.to_path_buf());
-    let inputs = vec![primary.clone()];
+    let mut inputs = vec![primary.clone()];
+    if let Some(dir) = primary.parent() {
+        for path in discover_standalone(dir)? {
+            let path = path.canonicalize().unwrap_or(path);
+            if path != primary {
+                inputs.push(path);
+            }
+        }
+    }
     for input in inputs {
         let src = rec.span("read", || {
             fs::read_to_string(&input)
@@ -283,6 +291,13 @@ fn plan_standalone(
     if !failures.is_empty() {
         return Ok((StandaloneReady::Failed(failures), profile, inspect_pages));
     }
+    // Primary first so dispatch / @init / @live come from the entry file.
+    if let Some(index) = modules
+        .iter()
+        .position(|module| module.type_name == type_name_from_path(&primary))
+    {
+        modules.swap(0, index);
+    }
     Ok((
         StandaloneReady::Ready(GenericAppPlan {
             primary_name: type_name_from_path(&primary),
@@ -297,7 +312,7 @@ fn plan_standalone(
     ))
 }
 
-pub(crate) fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
+pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
     match plan_standalone(primary)? {
         (StandaloneReady::Ready(plan), _, _) => Ok(plan),
         (StandaloneReady::Failed(files), _, _) => {

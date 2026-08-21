@@ -374,7 +374,12 @@ fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Resu
         let src = fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
         let source_name = page.source_path.as_str();
-        let evaluated = crate::islands::evaluate_page(&path, source_name, &src)
+        let service = if loaded.config.http.service.is_empty() {
+            None
+        } else {
+            Some(loaded.root.join(&loaded.config.http.service))
+        };
+        let evaluated = crate::islands::evaluate_page(&path, source_name, &src, service.as_deref())
             .with_context(|| format!("failed to evaluate islands in {}", page.source_path))?;
         page.article_html = crate::islands::fill_placeholders(&page.article_html, &evaluated.html)
             .with_context(|| format!("failed to splice islands into {}", page.source_path))?;
