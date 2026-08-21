@@ -2,6 +2,7 @@
 
 ## 2026-08-21
 
+- Added the draft [rocci.dev UX and authoring DX review](audits/rocci-dev-site-ux-dx.md) and revised the [site improvement plan](plans/rocci-dev-site.md): Home and FAQ are the only sidebar-free pages; every non-home page gets compact breadcrumbs; News is marked for removal from rocci.dev without removing generic Rocdown collections. The review also records two P0 regressions (hybrid Home drops its authored path cards; Go to page expands in document flow), inconsistent responsive outlines, duplicated titles/stale public claims, 54 expected unlisted-example warnings, and a six-phase repair/removal/content/DX verification sequence. Exploratory; no phase started.
 - Established the root Apache-2.0 setup: added the full `LICENSE`, configured
   every workspace crate to package it, and documented the project and
   third-party-license boundary in the root README. The public-preview plan now
