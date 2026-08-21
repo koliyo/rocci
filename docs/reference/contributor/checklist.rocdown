@@ -1,0 +1,62 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Documentation contributor checklist",
+        description: "Public-contract checks for a documentation-only change before CI.",
+    },
+}
+
+# Documentation contributor checklist
+
+**Prerequisites:** a source checkout that can run Cargo and `uv`.
+**Kind:** contributor reference.
+**Status:** development `main`.
+
+A documentation-only pull request has one local path that matches CI
+`fixtures-and-docs`:
+
+```sh
+uv run rocci-ops check-docs
+cargo test -p rocci-docs
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
+cargo run -q -p rocci-rocdown-cli -- check site
+cargo run -q -p rocci-rocdown-cli -- check docs
+uv run rocci-ops ci fixtures-and-docs
+```
+
+`check site` / `check docs` already fail on broken links, unknown nav ids,
+missing includes/assets, and duplicate routes or aliases. Staging is atomic:
+a failed `rocci-docs` run keeps the previous `dist/example-docs` tree.
+
+## Public contract
+
+When behavior changes, update **one** canonical reference (or coverage row) in
+the same change. `docs/coverage.toml` must keep every `current` and
+`experimental` author-facing feature owned. `status = "removed"` stays
+removed; do not relabel `@on` as current.
+
+Do not duplicate generated `/examples/` source. Link the cataloged app.
+
+Do not teach Rocdown, OKF, or planned work as shipped Rocci.
+
+## Examples
+
+Staging does not compile Roc. Cataloged standalone apps have `rocci-cli` build
+tests that run when `roc` is on `PATH` (`counter_generated_app_roc_builds`,
+`live_counter_generated_app_roc_builds`). Smoke `curl` lines live on each app
+page. Set `ROCCI_REQUIRE_ROC=1` when Roc must not be skipped.
+
+## Accessibility
+
+`check site` does not replace a visual pass. Before merge, spot-check:
+
+- code and tables scroll instead of overflowing the article at 320px width
+- keyboard order follows the heading outline; Cmd/Ctrl-K is extra
+- print and no-JavaScript still show article bodies (`:tabs` stacks)
+- forced colors and `prefers-reduced-motion` do not hide text
+- 200% zoom keeps nav usable
+
+Blocking broken examples or missing canonical pages fail CI. Theme contrast
+bugs belong in the Rocdown theme, not a second checker.
+
+**Related:** [Status](/docs/status/). Search fixtures: `docs/search-queries.toml`.

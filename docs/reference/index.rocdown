@@ -22,6 +22,7 @@ Each contract has one owner. Tutorials and how-tos summarize and link here.
 - [Diagnostics](/docs/reference/diagnostics/) — failure phases and messages
 - [Status](/docs/status/) — experimental labels and known limits
 - [Contributor tree appendix](/docs/reference/contributor/rocci-tree/) — AST inspect tags
+- [Contributor checklist](/docs/reference/contributor/checklist/) — local CI path for docs PRs
 
 Task recipes: [How to](/docs/how-to/). Mental models: [compilation](/docs/concepts/compilation-model/).
 Terms: [Glossary](/docs/glossary/).
