@@ -541,20 +541,20 @@ fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
 fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
     let handler = format!("{type_name}.live!");
     let ok_log = if log_handlers {
-        "handler_log!(\"GET\", \"/sse\", \"ok\")\n                ".to_string()
+        "handler_log!(\"GET\", \"/sse\", \"ok\")\n            ".to_string()
     } else {
         String::new()
     };
     format!(
-        r#"        ("GET", "/sse") =>
-            Ok(
+        r#"        ("GET", "/sse") => {{
+            {ok_log}Ok(
                 Server.stream(
                     Sse.unfold!(
                         "",
                         |prev| {{
                             match {handler}(context, request) {{
                                 Ok(html) => {{
-                                {ok_log}rendered = Html.render(html)
+                                rendered = Html.render(html)
                                     if rendered == prev {{
                                         event = Sse.Event.data("")
                                         Ok(Emit({{ event, state: prev, wake: After(100) }}))
@@ -572,6 +572,7 @@ fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
                     ),
                 ),
             )
+        }}
 "#,
         handler = handler,
         ok_log = ok_log,
@@ -1023,6 +1024,37 @@ mod tests {
         assert!(main.contains("Sse.Event.data(\"\")"), "{main}");
         assert!(
             !main.contains("Ok(Wait({ state: prev, wake: After(100) }))"),
+            "{main}"
+        );
+    }
+
+    #[test]
+    fn live_logs_once_when_the_stream_opens() {
+        let live = LiveInfo {
+            span: Span::new(0, 0),
+        };
+        let main = generate_bound_main_roc(
+            "Counter",
+            None,
+            None,
+            Some(&live),
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Counter",
+                    routes: &[route("GET", "/", "on_get_root!")],
+                },
+                &[],
+            ),
+            DispatchOptions {
+                log_handlers: true,
+                ..DispatchOptions::default()
+            },
+        );
+        let log = "handler_log!(\"GET\", \"/sse\", \"ok\")";
+        let stream = "Sse.unfold!";
+        assert_eq!(main.matches(log).count(), 1, "{main}");
+        assert!(
+            main.find(log).unwrap() < main.find(stream).unwrap(),
             "{main}"
         );
     }
