@@ -144,12 +144,12 @@ fn rejects_removed_on_and_action_experiments() {
         (
             r#"@on:post("/x") json { "{\"a\":1}" }"#,
             "`@on` was removed",
-            "@command",
+            "Json.to_str",
         ),
         (
             r#"@on:delete("/x") json { "{\"a\":1}" }"#,
-            "`@on` was removed",
-            "@command:delete",
+            "`@command:delete",
+            "Json.to_str",
         ),
         (
             r#"@action[patch]:delete("/x") { Html.text("x") }"#,

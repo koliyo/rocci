@@ -129,7 +129,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 | Kind | Convention | Example |
 | --- | --- | --- |
 | `@component` / tag | PascalCase | `StatusCard`, `<StatusCard />` |
-| Lowered component value | camelCase | `statusCard` in `@on` and `exposing` |
+| Lowered component value | camelCase | `statusCard` in `@view` and `exposing` |
 | Ordinary Roc helper / field | snake_case | `read_count!`, `has_completed` |
 | Type / tag union payload | PascalCase | `Status : [Ready, Working, Failed]` |
 | Effectful function | `snake_case!` | `write_page!`, `from_request!` |
@@ -245,7 +245,7 @@ answer = 42
 
 ## Server handlers and purity
 
-Keep rendering pure. Put I/O in `@init` and `@on` (or an authored `main.roc`).
+Keep rendering pure. Put I/O in `@init`, `@view`, `@patch`, and `@command` (or an authored `main.roc`).
 
 ```rocci
 @patch("/actions/counter/increment") = |{ db }| {

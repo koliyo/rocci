@@ -154,7 +154,7 @@ fn freezes_patch_versus_fragment_naming_gate() {
         !ACCEPTED_HEADERS
             .iter()
             .any(|header| header.contains("fragment")),
-        "do not substitute @fragment unless complete-example testing shows method confusion"
+        "do not substitute @fragment; complete examples keep @patch as the fragment noun"
     );
 }
 

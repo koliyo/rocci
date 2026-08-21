@@ -40,7 +40,7 @@ the composition rules.
 | --- | --- | --- |
 | **Markdown** (Rocdown) | Prose, headings, links, fences, `:kind` | Client models, Datastar, grammar of `.rocci` |
 | **Rocdown** | Catalog, routes, static HTML, islands splice | Interpreting templates in Rust to skip a theme |
-| **Rocci** | `@component`, `@css`, `@on`, `@live`, `@context` | Parser/ungram; browser domain stores |
+| **Rocci** | `@component`, `@css`, `@view`, `@patch`, `@command`, `@live`, `@context` | Parser/ungram; browser domain stores |
 | **Roc** | Types, helpers, SQLite, `!` effects | Markup in interpolations; Datastar event framing |
 | **HTML** | Documents (`GET`) and patch fragments (stable `id`) | A second copy of the domain in JS |
 | **CSS** | Colocated `@css` / `@scope`; document chrome on `body` | Riding `<style>` on SSE patches |
@@ -85,7 +85,7 @@ without versions.
 **CQRS / live (Datastar Tao; generated `@live` plus Snake).**
 A long-lived `GET /sse` is the read channel. Authors write `@live` returning
 Html; Rocci generates the poll unfold and injects `data-init` on `<body>` when
-absent. POSTs marked `json` are commands: **204** for Datastar, JSON for API
+absent. `@command` handlers are writes: **204** for Datastar, JSON for API
 clients. Do not also patch the same `id` from the command. Put an authored
 `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])` only when injection
 cannot see a `<body>` (island fragments). `basic-webserver` polls
@@ -97,15 +97,15 @@ not infer live mode from “there is a POST.”
 
 Examples: `examples/rocci/standalone/counter` is one-shot;
 `examples/rocci/standalone/live-counter` and hybrid `examples/rocdown/counter`
-are `@live` + `json`; Snake is authored CQRS.
+are `@live` + `@command`; Snake is authored CQRS.
 
 ## File and language fit
 
 - **Reusable widgets:** `components/*.rocci` — pure `@component`, scoped CSS,
-  `@fixture`. No `@on`.
+  `@fixture`. No route handlers.
 - **HTTP app:** `pages/*.rocci` or app-root `.rocci` — `@context` / `@init` /
-  `@on` / optional `@live`. GET returns `<html>`; unmarked mutations return a
-  fragment; `json` mutations return a `Str` (204 vs JSON).
+  `@view` / `@patch` / `@command` / optional `@live`. `@view` returns `<html>`;
+  `@patch` returns a fragment; `@command` returns Roc data (204 vs JSON).
 - **Docs / prose:** `.rocdown` — Markdown first. Executable `@` / `:` only at
   document root. Static `rocdown build` rejects `@use` and live handlers;
   islands are a separate live origin.

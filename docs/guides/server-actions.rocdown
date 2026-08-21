@@ -4,7 +4,7 @@
 
     meta: {
         title: "Server actions and Datastar",
-        description: "Add server-owned state and targeted HTML updates with @context, @init, @on, optional @live, and Datastar actions.",
+        description: "Add server-owned state and targeted HTML updates with @context, @init, @view, @patch, @command, optional @live, and Datastar actions.",
     },
 }
 
@@ -20,7 +20,7 @@ Two shipped patterns:
 | Pattern | Author writes | What updates |
 | --- | --- | --- |
 | One-shot patch | `@patch` returning Html | The acting tab, via one `datastar-patch-elements` |
-| Live CQRS | `@live` returning Html; commands marked `json` | Every tab on `GET /sse`; POSTs return 204 (Datastar) or JSON (`curl`) |
+| Live CQRS | `@live` returning Html; `@command` returning data | Every tab on `GET /sse`; commands return 204 (Datastar) or JSON (`curl`) |
 
 The first-app counter (`examples/rocci/standalone/counter`) stays one-shot. Two
 browsers that should stay in sync use `examples/rocci/standalone/live-counter`
@@ -71,15 +71,15 @@ parameter when the handler reads `Server.Request`; omit it otherwise.
     </section>
 ```
 
-Non-GET handlers without a respond ident return one-shot
-`datastar-patch-elements` events. The stable `id` lets Datastar target the
-existing fragment. Only the tab that posted updates.
+Non-GET `@patch` handlers return one-shot `datastar-patch-elements` events.
+The stable `id` lets Datastar target the existing fragment. Only the tab that
+posted updates.
 
 ## Share a live region
 
 `@live` is the opt-in for a generated shared stream. One per module, same
-parameter rules as `@on`. Rocci emits `GET /sse` (poll + patch) and, when the
-document `<body>` has no `data-init`, injects
+parameter rules as `@view` / `@patch` / `@command`. Rocci emits `GET /sse`
+(poll + patch) and, when the document `<body>` has no `data-init`, injects
 `data-init=@get("/sse", [OpenWhenHidden(True)])`.
 
 ```rocci
@@ -94,19 +94,21 @@ document `<body>` has no `data-init`, injects
 }
 ```
 
-Mark mutating commands `json`. When the request has `Datastar-Request: true`,
-the dispatcher answers **204** (no morph). Otherwise it answers **200**
-`application/json` with the handler `Str`. Do not return `counterCard` from a
-`json` POST: that would patch `#counter` from both the command and the stream.
-JSON `{ "count": N }` patches Datastar **signals**, not the DOM; bind the
-visible count in HTML from the server, not `$count`.
+`@command` is the mutating write that does not morph HTML. When the request
+has `Datastar-Request: true`, the dispatcher answers **204** (no morph).
+Otherwise it answers **200** `application/json` from `Encoding.Json.to_str_try`
+on the returned value. Return a record such as `{ count }` for a JSON object.
+A command that returns `Str` encodes as a JSON string. Do not return
+`counterCard` from a command: that would patch `#counter` from both the
+command and the stream. JSON `{ "count": N }` patches Datastar **signals**,
+not the DOM; bind the visible count in HTML from the server, not `$count`.
 
 `curl -X POST` without `Datastar-Request` prints JSON, not
 `datastar-patch-elements`.
 
 ## Log from a handler
 
-`@on` and `@init` are effectful Roc. Import `pf.Stderr` and write lines with
+`@patch`, `@command`, and `@init` are effectful Roc. Import `pf.Stderr` and write lines with
 `Stderr.line!`. Under `rocci run`, those lines show on the CLI and in the
 preview Dev Console (`source: runtime`). Do not put prints in `@component`
 bodies; keep components pure. Match away `StderrErr` instead of using `?` when
@@ -150,7 +152,7 @@ double-quoted Roc strings.
 | --- | --- | --- |
 | HTML document | Resource path | `GET /todos` |
 | HTML or SSE patch | `/actions/...` | `POST /actions/todos/add` |
-| JSON command (`json`) | `/actions/...` | `POST /actions/counter/increment` → 204 or `{"count":N}` |
+| JSON command | `/actions/...` via `@command` | `POST /actions/counter/increment` → 204 or `{"count":N}` |
 | Long-lived SSE | `/sse` | Generated from `@live`; custom unfold stays in authored `main.roc` |
 
 ## Run the examples
@@ -167,5 +169,5 @@ windows morph `#counter` from the stream. See
 documents, patches, JSON, and streams.
 
 The hybrid site form of this card (`examples/rocdown/counter`) is live: the
-document is CDN HTML (snapshot `0`), `@live` plus `json` commands run on
+document is CDN HTML (snapshot `0`), `@live` plus `@command` handlers run on
 `rocdown serve-islands`, and the first stream event replaces the snapshot.
