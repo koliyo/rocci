@@ -315,7 +315,7 @@ mod tests {
 
     #[test]
     fn interactive_document_is_not_static() {
-        let src = "@on:get(\"/\") = |_, _request| {\n    Html.text(\"hi\")\n}\n";
+        let src = "@view(\"/\") = |_, _request| {\n    Html.text(\"hi\")\n}\n";
         let source = SourceFile::new("Live.rocdown", src);
         let parsed = parse(source, false);
         assert_eq!(document_page_kind(&parsed.document), PageKind::Live);

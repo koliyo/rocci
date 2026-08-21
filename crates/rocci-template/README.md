@@ -70,7 +70,7 @@ handlers, helpers—uses that camelCase name, because those regions are Roc:
 ```rocci
 module CounterPage exposing [hello]
 
-@on:get("/") = |{}| {
+@view("/") = |{}| {
     hello({ name: "Roc" })
 }
 
@@ -180,7 +180,7 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
     { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     count = read_count!(db)?
     page({ count })
 }
@@ -190,12 +190,12 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
     card({ count })
 }
 
-@on:post("/actions/increment") json = |{ db }| {
+@command("/actions/increment") = |{ db }| {
     count = increment_count!(db)?
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 
-@on:post("/actions/reset") = |{ db }| {
+@patch("/actions/reset") = |{ db }| {
     count = reset_count!(db)?
     card({ count })
 }
@@ -210,9 +210,10 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   poll unfold (`After(100)`) that calls `Type.live!(context, request)` and
   skips emit when `Html.render` bytes are unchanged. In an `@live` module, a
   root `<body>` without `data-init` gets
-  `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@on:get("/sse")`
+  `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@view("/sse")`
   plus `@live` is a diagnostic.
-- `@on:METHOD("literal-path") json? = |state, request| { ... }` lowers to a named
+- `@view("literal-path")`, `@patch[:method]("literal-path")`, and
+  `@command[:method]("literal-path")` lower to a named
   function (`on_get_root!`, `on_post_actions_increment!`). Generated
   dispatch calls `handler!(context, request)`. Write `|{ db }, request|`
   when the handler reads the request. A one-parameter list such as

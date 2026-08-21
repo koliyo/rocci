@@ -14,6 +14,9 @@ pub enum Reserved {
     Context,
     Init,
     Live,
+    View,
+    Patch,
+    Command,
     On,
     Use,
     If,
@@ -34,6 +37,9 @@ impl Reserved {
             "context" => Self::Context,
             "init" => Self::Init,
             "live" => Self::Live,
+            "view" => Self::View,
+            "patch" => Self::Patch,
+            "command" => Self::Command,
             "on" => Self::On,
             "use" => Self::Use,
             "if" => Self::If,
@@ -55,6 +61,9 @@ impl Reserved {
             Self::Context => "context",
             Self::Init => "init",
             Self::Live => "live",
+            Self::View => "view",
+            Self::Patch => "patch",
+            Self::Command => "command",
             Self::On => "on",
             Self::Use => "use",
             Self::If => "if",
@@ -73,6 +82,9 @@ impl Reserved {
                 | Self::Context
                 | Self::Init
                 | Self::Live
+                | Self::View
+                | Self::Patch
+                | Self::Command
                 | Self::On
         )
     }
@@ -685,6 +697,14 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
         Reserved::On => {
             cur.skip_trivia();
             cur.peek() == Some(':')
+        }
+        Reserved::View => {
+            cur.skip_trivia();
+            cur.peek() == Some('(')
+        }
+        Reserved::Patch | Reserved::Command => {
+            cur.skip_trivia();
+            matches!(cur.peek(), Some('(') | Some(':'))
         }
         Reserved::Component => {
             cur.skip_trivia();

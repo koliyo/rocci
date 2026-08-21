@@ -1,6 +1,7 @@
 use rocci_highlight::composite::{
-    collect_component, collect_context, collect_css, collect_embedded_regions, collect_fixture,
-    collect_init, collect_items, collect_keyword, collect_live, collect_on, heading_marker,
+    collect_command, collect_component, collect_context, collect_css, collect_embedded_regions,
+    collect_fixture, collect_init, collect_items, collect_keyword, collect_live, collect_patch,
+    collect_view, heading_marker,
 };
 use rocci_highlight::language::LanguageId;
 use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, RegionTree};
@@ -84,7 +85,9 @@ pub fn collect_rocdown(
             Item::Context(context) => collect_context(src, collector, context),
             Item::Init(init) => collect_init(src, collector, init),
             Item::Live(live) => collect_live(src, collector, live),
-            Item::On(on) => collect_on(src, collector, on),
+            Item::View(view) => collect_view(src, collector, view),
+            Item::Patch(patch) => collect_patch(src, collector, patch),
+            Item::Command(command) => collect_command(src, collector, command),
             Item::Use(used) => {
                 collect_keyword(src, collector, used.span, used.path_span.start, "@use");
             }
@@ -487,38 +490,19 @@ fn collect_rocdown_items(
                     );
                 }
             }
-            Item::On(on) => {
-                let on_id = builder.add(
-                    LanguageId::Rocdown,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    on.span,
-                    Some(parent_id),
-                    10,
-                );
-                if let Some(params) = on.params
-                    && !params.is_empty()
-                {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Params,
-                        RegionPurpose::Executable,
-                        params,
-                        Some(on_id),
-                        20,
-                    );
-                }
-                if !on.body.is_empty() {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Body,
-                        RegionPurpose::Executable,
-                        on.body,
-                        Some(on_id),
-                        20,
-                    );
-                }
+            Item::View(view) => {
+                add_handler_regions(builder, parent_id, view.span, view.params, view.body)
             }
+            Item::Patch(patch) => {
+                add_handler_regions(builder, parent_id, patch.span, patch.params, patch.body)
+            }
+            Item::Command(command) => add_handler_regions(
+                builder,
+                parent_id,
+                command.span,
+                command.params,
+                command.body,
+            ),
             Item::Use(used) => {
                 builder.add(
                     LanguageId::Rocdown,
@@ -553,6 +537,45 @@ fn collect_rocdown_items(
                 }
             }
         }
+    }
+}
+
+fn add_handler_regions(
+    builder: &mut RegionBuilder,
+    parent_id: usize,
+    span: Span,
+    params: Option<Span>,
+    body: Span,
+) {
+    let host_id = builder.add(
+        LanguageId::Rocdown,
+        RegionContext::Body,
+        RegionPurpose::HostStructure,
+        span,
+        Some(parent_id),
+        10,
+    );
+    if let Some(params) = params
+        && !params.is_empty()
+    {
+        builder.add(
+            LanguageId::Roc,
+            RegionContext::Params,
+            RegionPurpose::Executable,
+            params,
+            Some(host_id),
+            20,
+        );
+    }
+    if !body.is_empty() {
+        builder.add(
+            LanguageId::Roc,
+            RegionContext::Body,
+            RegionPurpose::Executable,
+            body,
+            Some(host_id),
+            20,
+        );
     }
 }
 

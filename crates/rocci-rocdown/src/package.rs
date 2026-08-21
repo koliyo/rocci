@@ -454,7 +454,7 @@ mod tests {
         write_page(
             &root,
             "index.rocdown",
-            "@page { route: \"/\", meta: { title: \"Live\" } }\n\n@on:post(\"/actions/x\") = |_| {\n    Html.text(\"x\")\n}\n\n# Live\n",
+            "@page { route: \"/\", meta: { title: \"Live\" } }\n\n@patch(\"/actions/x\") = |_| {\n    Html.text(\"x\")\n}\n\n# Live\n",
         );
         let parent = unique_temp("pkg-live-parent").unwrap();
         let output = parent.join("dist");

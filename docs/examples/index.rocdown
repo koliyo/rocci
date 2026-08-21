@@ -38,7 +38,7 @@ flow. It creates SQLite state, serves a document, and returns the same
 `CounterCard` component after increment and reset actions.
 
 `examples/rocdown/counter` is the hybrid form of that card: Markdown on a CDN
-page, colocated `@on:post` handlers, and `rocdown serve-islands` for SQLite.
+page, colocated `@command` handlers, and `rocdown serve-islands` for SQLite.
 See [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/).
 
 ## Datastar gallery

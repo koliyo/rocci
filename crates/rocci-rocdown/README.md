@@ -273,7 +273,7 @@ Markdown lowers to `Html.element` / `void_element` / `text` / `fragment`. File
 `@css` is wrapped in `@scope ([data-rocci-css~="id"])` using the same file-scope
 id as `.rocci`. Component CSS keeps a per-component id.
 
-If the file has no `@on:get` for the page route, lowering synthesizes a GET
+If the file has no `@view` for the page route, lowering synthesizes a GET
 handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
 registered to the same handler so `rocdown run` can open a preview.
 

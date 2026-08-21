@@ -1,9 +1,9 @@
 # Live counter
 
 The shared-view sibling of [`../counter`](../counter). Same SQLite card, but
-`@live` opts into a generated `GET /sse` poll. Increment and reset are marked
-`json`: Datastar receives **204**, and `curl` without `Datastar-Request`
-receives `{"count":N}`. There is no authored `main.roc`.
+`@live` opts into a generated `GET /sse` poll. Increment and reset are
+`@command` handlers: Datastar receives **204**, and `curl` without
+`Datastar-Request` receives `{"count":N}`. There is no authored `main.roc`.
 
 Open the URL in two windows. Click Increment in one; the other updates without
 refresh. The first-app counter stays one-shot: a second tab there stays stale

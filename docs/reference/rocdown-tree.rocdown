@@ -26,6 +26,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `BracketList` | omit | generated |
 | `BracketRecord` | omit | generated |
 | `CodeBlock` | — | doc-only |
+| `CommandDecl` | `command` | foreign |
 | `ComponentDecl` | `component` | foreign |
 | `ComponentPath` | — | foreign |
 | `ContextDecl` | `context` | foreign |
@@ -56,12 +57,12 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `MdNode.Text` | `text` | opaque |
 | `ModuleItem` | — | doc-only |
 | `NumberLit` | — | leaf |
-| `OnDecl` | `on` | foreign |
 | `PageDecl` | `page` | generated |
 | `Paragraph` | — | doc-only |
 | `ParamField` | omit | generated |
 | `ParamValue` | omit | generated |
 | `ParenPayload` | — | leaf |
+| `PatchDecl` | `patch` | foreign |
 | `RenderDecl` | `render` | generated |
 | `RocDecl` | `roc` | generated |
 | `StringLit` | — | leaf |
@@ -79,6 +80,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `TemplateSplice` | — | doc-only |
 | `ThematicBreak` | — | doc-only |
 | `UseDecl` | `use` | generated |
+| `ViewDecl` | `view` | foreign |
 
 ## Markdown projection
 

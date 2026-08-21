@@ -43,7 +43,9 @@ Item =
 | ContextDecl
 | InitDecl
 | LiveDecl
-| OnDecl
+| ViewDecl
+| PatchDecl
+| CommandDecl
 | UseDecl
 | TemplateItem
 | BlockCall
@@ -59,7 +61,9 @@ ModuleItem =
 | ContextDecl
 | InitDecl
 | LiveDecl
-| OnDecl
+| ViewDecl
+| PatchDecl
+| CommandDecl
 | UseDecl
 
 PageDecl = '@' 'page' body:BracePayload
@@ -82,8 +86,12 @@ ContextDecl = 'rocci-context'
 InitDecl = 'rocci-init'
 /// foreign → rocci_template::LiveDecl
 LiveDecl = 'rocci-live'
-/// foreign → rocci_template::OnDecl
-OnDecl = 'rocci-on'
+/// foreign → rocci_template::ViewDecl
+ViewDecl = 'rocci-view'
+/// foreign → rocci_template::PatchDecl
+PatchDecl = 'rocci-patch'
+/// foreign → rocci_template::CommandDecl
+CommandDecl = 'rocci-command'
 /// foreign → rocci_template::TemplateItem
 TemplateItem = 'rocci-template-item'
 
