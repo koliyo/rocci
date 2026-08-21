@@ -68,6 +68,10 @@ import Html
         border-color: var(--accent);
         transform: translateY(-1px);
     }
+    @media (prefers-reduced-motion: reduce) {
+        .rd-card { transition: none; }
+        .rd-card:hover { transform: none; }
+    }
     .rd-card-link {
         text-decoration: none;
         color: inherit;

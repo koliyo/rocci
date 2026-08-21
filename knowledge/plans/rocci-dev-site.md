@@ -500,6 +500,13 @@ open, site checks have no unexplained warnings, and required CI/Knowledge/site
 workflows are green for the revision. Human first-use feedback remains a
 separate launch gate and is not invented from automated tests.
 
+**Phase 6 local verification recorded 2026-08-22:** the browser, responsive,
+media-policy, artifact, determinism, lint, workspace, Knowledge, and complete
+site gates passed as recorded in the audit. No P0/P1 finding remains open.
+There is no GitHub Actions run for the unpublished branch, so remote CI,
+Knowledge, and site workflow status remains an explicit post-push launch gate;
+this phase runner does not push. Human first-use feedback remains separate.
+
 ## Validation commands
 
 Use the narrowest checks while iterating, then the integrated gates:
