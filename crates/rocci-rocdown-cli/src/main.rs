@@ -100,6 +100,9 @@ enum Commands {
         /// Log each matched `@on` handler to stderr (CLI and Dev Console).
         #[arg(long)]
         log_handlers: bool,
+        /// Print compile, inspect, and wait phases to stderr.
+        #[arg(short, long)]
+        verbose: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -435,6 +438,7 @@ fn try_main() -> Result<()> {
             no_live_reload,
             quiet,
             log_handlers,
+            verbose,
             port,
             theme,
             args,
@@ -450,6 +454,7 @@ fn try_main() -> Result<()> {
                         no_window,
                         live_reload,
                         log_handlers,
+                        verbose,
                         port,
                         host.into(),
                         Some(&route),
@@ -462,6 +467,7 @@ fn try_main() -> Result<()> {
                         live_reload,
                         log_handlers,
                         quiet,
+                        verbose,
                         port,
                         &theme,
                     )
@@ -479,6 +485,7 @@ fn try_main() -> Result<()> {
                     no_window,
                     live_reload,
                     log_handlers,
+                    verbose,
                     port,
                     host.into(),
                     None,
@@ -666,6 +673,7 @@ fn run_standalone_doc(
     live_reload: bool,
     log_handlers: bool,
     quiet: bool,
+    verbose: bool,
     port: PortArg,
     theme: &ThemeArgs,
 ) -> Result<()> {
@@ -686,30 +694,32 @@ fn run_standalone_doc(
         .to_string();
 
     let compile_opts = theme.compile_options(Some(&path));
+    let progress = rocci_cli::logs::Progress { verbose, quiet };
     let parse_started = Instant::now();
-    let plan = match rocci_rocdown::plan_standalone(&path, &compile_opts.theme)? {
-        StandaloneReady::Failed(files) => {
-            let failed_files: Vec<rocci_cli::error_page::FailedFile> = files
-                .into_iter()
-                .map(|f| rocci_cli::error_page::FailedFile {
-                    name: f.name,
-                    src: f.src,
-                    diagnostics: f.diagnostics,
-                })
-                .collect();
-            if !quiet {
-                rocci_cli::error_page::eprint_template_errors(&failed_files);
+    let plan =
+        match rocci_rocdown::plan_standalone_with_progress(&path, &compile_opts.theme, progress)? {
+            StandaloneReady::Failed(files) => {
+                let failed_files: Vec<rocci_cli::error_page::FailedFile> = files
+                    .into_iter()
+                    .map(|f| rocci_cli::error_page::FailedFile {
+                        name: f.name,
+                        src: f.src,
+                        diagnostics: f.diagnostics,
+                    })
+                    .collect();
+                if !quiet {
+                    rocci_cli::error_page::eprint_template_errors(&failed_files);
+                }
+                return rocci_cli::driver::serve_template_errors(
+                    &failed_files,
+                    port,
+                    no_window,
+                    live_reload,
+                    &title,
+                );
             }
-            return rocci_cli::driver::serve_template_errors(
-                &failed_files,
-                port,
-                no_window,
-                live_reload,
-                &title,
-            );
-        }
-        StandaloneReady::Ready(plan) => plan,
-    };
+            StandaloneReady::Ready(plan) => plan,
+        };
     let parse_ms = parse_started.elapsed().as_millis();
     let mut profile = rocci_cli::profile::SpanRecorder::new();
     profile.push("parse", parse_ms, None);
@@ -756,14 +766,22 @@ fn run_site_dev(
     no_window: bool,
     live_reload: bool,
     log_handlers: bool,
+    verbose: bool,
     port: PortArg,
     host: rocci_rocdown::HostChoice,
     open_path: Option<&str>,
 ) -> Result<()> {
     let port = port.resolve()?;
     let open_path = open_path.unwrap_or("/");
-    let server =
-        rocci_rocdown::run_with_host_at(root, output, port, Some(host), open_path, log_handlers)?;
+    let server = rocci_rocdown::run_with_host_at(
+        root,
+        output,
+        port,
+        Some(host),
+        open_path,
+        log_handlers,
+        verbose,
+    )?;
     rocci_cli::logs::tee(
         &server.logs,
         rocci_cli::logs::LogLevel::Info,
@@ -1020,6 +1038,17 @@ mod tests {
                 assert_eq!(output, None);
             }
             _ => panic!("expected run"),
+        }
+
+        let verbose = Cli::try_parse_from(["rocdown", "run", "docs", "-v"]).unwrap();
+        match verbose.command {
+            Commands::Run { verbose, .. } => assert!(verbose),
+            _ => panic!("expected run -v"),
+        }
+        let long = Cli::try_parse_from(["rocdown", "run", "docs", "--verbose"]).unwrap();
+        match long.command {
+            Commands::Run { verbose, .. } => assert!(verbose),
+            _ => panic!("expected run --verbose"),
         }
 
         let kept = Cli::try_parse_from([
