@@ -1,0 +1,82 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Web foundations for Roc authors",
+        description: "Semantic HTML, HTTP methods, fragments, DOM ids, SSE, and same-origin behavior as Rocci uses them.",
+    },
+}
+
+# Web foundations for Roc authors
+
+**Prerequisites:** you can read Roc. HTML expertise is not required.
+**You will learn:** the web subset Rocci apps rely on.
+**Time:** about fifteen minutes.
+**Next:** [Rocci in five minutes](/docs/start/five-minutes/).
+
+Rocci serves HTML over local HTTP. Datastar is the browser transport, not a
+client framework. Durable state stays on the server.
+
+## Semantic HTML and identity
+
+Use real elements (`button`, `output`, `main`, `form`) so keyboard, zoom, and
+assistive tech have something to work with. Datastar morphs elements by `id`.
+Give the region you intend to replace a **stable id**. Changing that id
+between responses makes patches miss.
+
+## Documents versus fragments
+
+A GET document is a complete `<html>…</html>`. A patch is a fragment: the
+element that should replace the current node with the same `id`. Do not wrap
+every patch in a full document shell.
+
+```text
+Browser  --GET /-->  @view          -->  <html>…<div id="counter">…</div>…</html>
+Browser  --POST /actions/…-->  @patch -->  <div id="counter">…</div>
+                                         (Datastar morphs #counter in this tab)
+```
+
+## HTTP methods and status codes
+
+| Method | Typical Rocci use |
+| --- | --- |
+| GET | `@view` documents and the generated `@live` `GET /sse` |
+| POST | Default `@patch` / `@command` mutations |
+| PUT, PATCH, DELETE | Explicit when the mutation is an update or delete |
+
+Success for a document is `200` `text/html`. A Datastar patch is an event
+stream of `datastar-patch-elements`. A `@command` is **empty SSE** for Datastar
+(HTTP 200 `text/event-stream`, zero events) and `200 application/json` for
+`curl`. Handler `?` failures become `500`.
+
+## One real handler
+
+The cataloged counter increments SQLite and returns the card fragment:
+
+```rocci
+@patch("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    counterCard({ count: count })
+}
+```
+
+The button that calls it uses an unquoted Rocci action, not a JS click
+handler:
+
+```rocci
+<button type="button" data-on:click=@post("/actions/counter/increment")>
+    Increment
+</button>
+```
+
+Complete source: [Counter.rocci](/examples/counter/source/Counter-rocci/).
+
+## SSE and same origin
+
+`@live` generates a long-lived `GET /sse`. The preview window and your
+browser load the **same** loopback origin. `rocci.toml` rejects binding
+`0.0.0.0`. Cross-origin requests need an explicit allowed origin.
+
+Signals (`$count`) are for ephemeral UI, not the domain. A JSON body that
+sets `$count` does not morph `#counter`.
+
+Continue with [Rocci in five minutes](/docs/start/five-minutes/).

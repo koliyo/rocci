@@ -1,0 +1,42 @@
+@page {
+    layout: "docs",
+    aliases: [
+        "/docs/reference/@context/",
+        "/docs/reference/@init/",
+        "/docs/reference/@view/",
+        "/docs/reference/@patch/",
+        "/docs/reference/@command/",
+        "/docs/reference/@live/",
+    ],
+    meta: {
+        title: "Server declarations",
+        description: "@context, @init, @view, @patch, @command, @live, request injection, methods, and conflicts.",
+    },
+}
+
+# Server declarations
+
+**Status:** current. `@on` and trailing `json` are **removed**.
+
+Bodies are Roc, not templates. Module-level only.
+
+| Declaration | Default method | Success | Notes |
+| --- | --- | --- | --- |
+| `@context { … }` | — | `State` type | One per module |
+| `@init { … }` | — | context value | `?` → process exit |
+| `@view("path")` | GET | HTML document | Always GET |
+| `@patch("path")` | POST | Fragment → patch-elements | GET rejected; `:put` `:patch` `:delete` allowed |
+| `@command("path")` | POST | Roc data → empty SSE or JSON | GET rejected |
+| `@live` | generated GET `/sse` | Fragment stream | One per module |
+
+Dispatch calls `handler!(context, request)`. Write `|{ db }, request|` when
+you read the request. One-parameter lists append `_request`. Omit params for
+`|state, _request|`.
+
+`@patch:post` is rejected (POST is already the default). `@patch:patch` is
+legal. `@view("/sse")` plus `@live` is a diagnostic.
+
+Complete matrix: [Handler matrix](/examples/handler-matrix/).
+
+**Related:** [Runtime](/docs/reference/runtime/),
+[Update the UI](/docs/how-to/update-the-ui/).

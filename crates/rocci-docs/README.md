@@ -23,6 +23,13 @@ does not compile Roc or render HTML.
 this tool before `rocdown check site`, `rocdown run site`, or
 `rocdown package site`. `rocci-rocdown` does not depend on this crate.
 
+Staging writes a complete sibling tree and replaces the previous output only
+after success. A failed catalog copy or write leaves the previous tree in
+place.
+
+The generated `/examples/` index lists cataloged Rocci apps only. Rocdown
+examples belong on the Rocdown product lane.
+
 Live demo links use `<id>.examples.rocci.dev` (staging:
 `<id>.examples.staging.rocci.dev`). Those hostnames are **planned** until a
 staging origin deploy has served them.

@@ -1,0 +1,45 @@
+@page {
+    layout: "docs",
+    aliases: ["/concepts/architecture/", "/docs/concepts/architecture/"],
+    meta: {
+        title: "Rocci's compilation model",
+        description: "What stays Roc, what Rocci parses, what lowering generates, and where Roc type-checking begins.",
+    },
+}
+
+# Rocci's compilation model
+
+**Prerequisites:** [What is Rocci?](/docs/start/what-is-rocci/).
+**Kind:** concept.
+**Next:** [Generated Roc](/docs/reference/language/generated-roc/) or
+[pure components](/docs/concepts/pure-components/).
+
+A `.rocci` file is a Roc module. Rocci recognizes a closed set of `@`
+declarations at the start of a top-level definition. Everything else is copied
+into generated Roc unchanged.
+
+```text
+authored .rocci
+    │ parse template regions, copy Roc regions
+    ▼
+generated .roc  ── Roc type-check and compile ── native host
+    │
+    └── source-map segments point diagnostics back at the template
+```
+
+Rocci does **not** type-check Roc expressions in interpolations, params, or
+directive headers. A template can parse and still fail in `roc`. Inspect
+source-map segments with `rocci inspect`.
+
+Lowering is syntax, not a component runtime. Tags become `Html.*` calls.
+Component tags become ordinary Roc functions. Datastar actions inject
+`import Datastar` when missing.
+
+The template crate does not start HTTP or open a window. `rocci-cli` compiles
+the generated module and serves it. The preview webview loads that same origin.
+
+Contributor crate maps and AST inspect tags live in
+[the tree appendix](/docs/reference/contributor/rocci-tree/), not this page.
+
+**Related:** [File structure](/docs/reference/language/file-structure/),
+[Why Roc](/docs/concepts/why-roc/).

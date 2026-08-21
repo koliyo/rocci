@@ -1,0 +1,34 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Grammar and deliberate limits",
+        description: "Reserved forms, unsupported JSX-like features, removals, and compatibility notes.",
+    },
+}
+
+# Grammar and deliberate limits
+
+**Status:** current.
+
+Rocci does **not** provide:
+
+- Arbitrary JSX or tagged template HTML
+- Dynamic tag names or prop spreading
+- A runtime component registry
+- Magic `children`
+- Markup embedded in arbitrary Roc expressions
+- `:deep` CSS piercing (**planned**)
+- `@log` (**planned**)
+
+## Removed (not deprecated)
+
+`@on:METHOD` and trailing `json` never lower. Diagnostics rewrite:
+
+- `@on:get(path)` → `@view(path)`
+- `@on:post(path)` → `@patch(path)`
+- `@on:delete(path) json` → `@command:delete(path)`
+
+The public grammar view is this reference plus `Rocci.AST.ungram` for
+contributors. `AllSyntax.rocci` is coverage, not prose.
+
+**Related:** [Contributor tree](/docs/reference/contributor/rocci-tree/).

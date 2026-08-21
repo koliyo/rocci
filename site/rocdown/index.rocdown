@@ -17,10 +17,10 @@ Rocdown is the document language and static-site compiler. Write pages in Markdo
 ## What to author next
 
 :card-grid.begin
-    :link-card[page: "docs/guides/rocdown-pages", title: "Rocdown pages", summary: "Declarations, islands, and page links."]
-    :link-card[page: "docs/guides/docs-components", title: "Docs components", summary: "Notes, tabs, figures, and includes."]
-    :link-card[page: "docs/reference/rocdown-site", title: "Site configuration", summary: "rocdown.toml, navigation, and assets."]
-    :link-card[page: "docs/reference/cli", title: "CLI", summary: "check, build, run, and inspect."]
+    :link-card[page: "rocdown/pages", title: "Rocdown pages", summary: "Declarations, islands, and page links."]
+    :link-card[page: "rocdown/article-blocks", title: "Docs components", summary: "Notes, tabs, figures, and includes."]
+    :link-card[page: "rocdown/site-config", title: "Site configuration", summary: "rocdown.toml, navigation, and assets."]
+    :link-card[page: "rocdown/cli", title: "CLI", summary: "check, build, run, and inspect."]
 :card-grid.end
 
 ## Page metadata

@@ -1,0 +1,31 @@
+@page {
+    layout: "docs",
+    aliases: ["/playground/", "/docs/playground/"],
+    meta: {
+        title: "Use the playground",
+        description: "Try a .rocci module in WASM or local mode and know which results the browser cannot produce.",
+    },
+}
+
+# Use the playground
+
+**Prerequisites:** [Install](/docs/start/install/) for `--mode local`; WASM mode
+runs in the browser worker without a Roc compiler.
+**You will do:** open a `.rocci` file and read generated Roc / AST, not HTML.
+**Verify:** WASM mode shows lowered Roc; it does not snapshot HTML.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/) or
+[CLI playground](/docs/reference/cli/#playground).
+
+```sh
+cargo run -q -p rocci-cli -- playground examples/rocci/standalone/styling/Styling.rocci
+cargo run -q -p rocci-cli -- playground examples/rocci/standalone/styling/Styling.rocci --mode local
+```
+
+`--mode wasm` (default) parses and lowers inside a Web Worker. HTML preview is
+unavailable there: generating HTML requires `roc`, which cannot run client-side.
+`--mode local` can snapshot component HTML through native Roc.
+
+This page is Rocci-only. `rocdown playground` is a different binary for
+`.rocdown` files.
+
+**Related:** [Generated Roc](/docs/reference/language/generated-roc/).

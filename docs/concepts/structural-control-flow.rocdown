@@ -1,0 +1,25 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Structural control flow",
+        description: "Why markup-producing branches use @if, @for, and @match rather than arbitrary embedded markup.",
+    },
+}
+
+# Structural control flow
+
+**Prerequisites:** [Use directives](/docs/how-to/use-directives/).
+**Kind:** concept.
+**Next:** [Directives](/docs/reference/language/directives/).
+
+Rocci parses a template tree. `{expr}` is a Roc expression, not a nested
+template. `{if active { <Icon /> }}` is rejected because the parser would have
+to treat Roc as markup.
+
+`@if`, `@for`, and `@match` are template forms whose arms are template items.
+They lower to ordinary Roc (`if`, `List.map`, `match`) after the structure is
+known. `@let` binds derived values in that same template region.
+
+Use Roc for data decisions; use directives for markup-producing branches.
+
+**Related:** [Text and interpolation](/docs/reference/language/text/).

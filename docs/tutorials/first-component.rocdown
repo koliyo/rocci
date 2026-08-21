@@ -1,0 +1,122 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/build-a-component/", "/docs/guides/build-a-component/"],
+    meta: {
+        title: "Build your first component",
+        description: "Preview, inspect, and explain the cataloged styling module: typed components, defaults, scoped CSS, fixtures, and lowering.",
+    },
+}
+
+# Build your first component
+
+**Prerequisites:** [Install Rocci](/docs/start/install/) and
+[Rocci in five minutes](/docs/start/five-minutes/).
+**You will build:** a mental model of the styling example, not a second copy
+of it.
+**Starting files:** `examples/rocci/standalone/styling/Styling.rocci` in the
+checkout.
+**Time:** about twenty minutes.
+**Verify:** `Hello` previews, the full page serves, and inspect output lists
+components and fixtures.
+**Next:** continue learning with the first standalone app, or look up
+[language reference](/docs/reference/rocci/). Task recipe:
+[Author components](/docs/how-to/author-components/).
+
+The canonical complete source is the cataloged styling app. This tutorial
+does not paste a divergent copy under `docs/`. Open
+[Styling](/examples/styling/) and
+[Styling.rocci](/examples/styling/source/Styling-rocci/) beside this page.
+
+## 1. Read the Hello component
+
+`Hello` takes a props record. `name ?? "Roc"` is a defaulted field. A
+self-closing `<Hello />` uses the default; `<Hello name="Foo"/>` overrides it.
+The `@css` block is component-scoped: lowering stamps `data-rocci-css` and
+wraps rules in CSS `@scope`.
+
+That component is **pure**. It cannot log, open SQLite, or read the request.
+
+## 2. Fixtures are preview data
+
+```rocci
+@fixture{target: Hello}
+helloTest = { name: "Ada" }
+```
+
+Fixtures are ordinary Roc bindings tagged for `rocci view` and `rocci browse`.
+They do not change the generated component function.
+
+## 3. Inspect lowering
+
+```sh
+cargo run -q -p rocci-cli -- inspect --ast \
+  examples/rocci/standalone/styling/Styling.rocci
+```
+
+**Verify:** the output names `Hello`, `FeatureCard`, and `StylePage`, lists
+the fixtures, and prints source-map segments. `--ast` adds the parse tree.
+There is no `--segments` flag; segments always print.
+
+```sh
+cargo run -q -p rocci-cli -- build \
+  examples/rocci/standalone/styling/Styling.rocci
+```
+
+**Verify:** generated Roc contains `hello`, `featureCard`, and `stylePage`.
+
+## 4. Preview the fixture
+
+```sh
+cargo run -q -p rocci-cli -- view \
+  examples/rocci/standalone/styling/Styling.rocci \
+  --component Hello
+```
+
+**Verify:** **Hello, Ada** from `helloTest`. Pass `--arg name=Roc` to override.
+
+`rocci view` ignores HTTP declarations. `@view("/")` in this file is for
+`rocci run`, not for `--component Hello`.
+
+## 5. Run the document
+
+```sh
+cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/styling/Styling.rocci
+```
+
+**Verify:** a full page with file-level dark chrome, two Hello greetings, and
+a feature card whose `output` shows `3`. File-level `@css` styles `body`, not
+`html`. Headless:
+
+```sh
+cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/styling/Styling.rocci \
+  --no-window
+curl -s http://127.0.0.1:8000/ | grep -E 'data-rocci-css|hello-list|feature-card'
+```
+
+## Ability checklist
+
+After this tutorial you can:
+
+- Point `rocci view` at a PascalCase component and a fixture
+- Explain that lowering produced Roc, not a custom runtime
+- Distinguish file-level CSS from component-scoped CSS
+- Find the complete source on the generated examples page
+
+## What Rocci did
+
+| You wrote | Rocci produced |
+| --- | --- |
+| `@component Hello` | `hello` returning `Html` |
+| `@css` beside the markup | Scoped style metadata and a `<style>` inject for preview |
+| `@fixture` | Indexed preview data |
+| `@view("/")` | A GET document handler for `rocci run` |
+
+## Next
+
+- Continue learning: the first standalone app uses
+  [Counter](/examples/counter/) (SQLite and a one-shot `@patch`).
+- Next tutorial: [Build your first standalone app](/docs/tutorials/first-app/).
+- Task: [Author components](/docs/how-to/author-components/).
+- Reference: [Rocci language reference](/docs/reference/rocci/).

@@ -8,6 +8,10 @@
 
 # Snake
 
+**Audience:** experienced Rocci author.
+**Prerequisites:** [standalone versus custom](/docs/concepts/standalone-versus-custom/).
+**Role:** advanced stress demo, not a second tutorial.
+
 A multiplayer stress demo: lobby and board in `Snake.rocci`, ticks and
 collisions in `Game.roc`, HTTP and SSE in `main.roc`. Keyboard and touch
 steering live in `snake-input.js`. This is **docs-only** on the public origin

@@ -18,12 +18,38 @@ pub fn live_demo_url(id: &str) -> String {
 }
 
 pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
-    if output.exists() {
-        fs::remove_dir_all(output).map_err(|source| DocsError::Io {
-            path: output.to_path_buf(),
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(parent).map_err(|source| DocsError::Io {
+        path: parent.to_path_buf(),
+        source,
+    })?;
+    let staging = parent.join(format!(
+        ".{}.staging-{}",
+        output
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_else(|| "example-docs".into()),
+        std::process::id()
+    ));
+    if staging.exists() {
+        fs::remove_dir_all(&staging).map_err(|source| DocsError::Io {
+            path: staging.clone(),
             source,
         })?;
     }
+    match stage_into(catalog, &staging) {
+        Ok(report) => {
+            replace_dir(&staging, output)?;
+            Ok(report)
+        }
+        Err(err) => {
+            let _ = fs::remove_dir_all(&staging);
+            Err(err)
+        }
+    }
+}
+
+fn stage_into(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
     fs::create_dir_all(output).map_err(|source| DocsError::Io {
         path: output.to_path_buf(),
         source,
@@ -41,6 +67,43 @@ pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError>
         apps: catalog.apps.len(),
         files,
     })
+}
+
+fn replace_dir(staging: &Path, output: &Path) -> Result<(), DocsError> {
+    let backup = output.with_file_name(format!(
+        ".{}.old-{}",
+        output
+            .file_name()
+            .map(|name| name.to_string_lossy())
+            .unwrap_or_else(|| "example-docs".into()),
+        std::process::id()
+    ));
+    if backup.exists() {
+        fs::remove_dir_all(&backup).map_err(|source| DocsError::Io {
+            path: backup.clone(),
+            source,
+        })?;
+    }
+    if output.exists() {
+        fs::rename(output, &backup).map_err(|source| DocsError::Io {
+            path: output.to_path_buf(),
+            source,
+        })?;
+        if let Err(source) = fs::rename(staging, output) {
+            let _ = fs::rename(&backup, output);
+            return Err(DocsError::Io {
+                path: output.to_path_buf(),
+                source,
+            });
+        }
+        let _ = fs::remove_dir_all(&backup);
+    } else {
+        fs::rename(staging, output).map_err(|source| DocsError::Io {
+            path: output.to_path_buf(),
+            source,
+        })?;
+    }
+    Ok(())
 }
 
 fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, DocsError> {
@@ -168,12 +231,22 @@ fn catalog_index(catalog: &Catalog) -> String {
     let mut rows = String::new();
     for app in &catalog.apps {
         let live = if app.hosting == Hosting::Live {
-            format!(" · [Open live demo]({})", live_demo_url(&app.id))
+            format!(" · [Open live demo]({}) (planned)", live_demo_url(&app.id))
         } else {
             String::new()
         };
+        let role = if app.complexity.is_empty() {
+            "—"
+        } else {
+            app.complexity.as_str()
+        };
+        let persistence = if app.persistence.is_empty() {
+            "—"
+        } else {
+            app.persistence.as_str()
+        };
         rows.push_str(&format!(
-            "| [{title}](/examples/{id}/) | {summary} | `{hosting}` · [source](/examples/{id}/source/){live} |\n",
+            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` · [source](/examples/{id}/source/){live} |\n",
             title = app.title,
             id = app.id,
             summary = app.summary,
@@ -193,24 +266,19 @@ fn catalog_index(catalog: &Catalog) -> String {
 # Examples
 
 These pages come from `examples/rocci/apps.toml`. Each app has authored docs
-and a complete highlighted source tree. Live demos use a separate hostname
-when hosting is `live`; those origins are planned until a staging deploy has
-served them.
+and a complete highlighted source tree. Source and local run paths stay useful
+without a public demo.
 
-Rocdown site examples are not generated here. Run them locally from the
-repository:
+Rocdown examples are a separate product. See [Rocdown](/rocdown/).
 
-| Example | Run |
-| --- | --- |
-| `rocdown/pages` | `rocdown run examples/rocdown/pages/Guide.rocdown` |
-| `rocdown/pages` blocks | `rocdown run examples/rocdown/pages/Blocks.rocdown` |
-| `rocdown/errors` | `rocdown run examples/rocdown/errors/ErrorDemo.rocdown` |
-| `rocdown/site` | `rocdown build examples/rocdown/site --output dist` |
-| `rocdown/counter` | `rocdown run examples/rocdown/counter` |
-| `rocdown/hybrid` | `rocdown run examples/rocdown/hybrid` |
+Live demo hostnames (`<id>.examples.rocci.dev`) are **planned** until a staging
+deploy has served them. Only catalog `live` apps advertise those URLs.
 
-| App | Summary | Hosting |
-| --- | --- | --- |
+Roles: **learning** (first component and first app), **reference** (handler
+matrix), **pattern** (Datastar gallery), **advanced** (Snake stress demo).
+
+| App | Role | Persistence | Summary | Hosting |
+| --- | --- | --- | --- | --- |
 {rows}"#
     )
 }

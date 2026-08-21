@@ -1,0 +1,33 @@
+@page {
+    layout: "docs",
+    aliases: [
+        "/docs/reference/@let/",
+        "/docs/reference/@if/",
+        "/docs/reference/@for/",
+        "/docs/reference/@match/",
+    ],
+    meta: {
+        title: "Template directives",
+        description: "Exact @let, @if, @for, and @match grammar, scope, guards, and invalid markup contexts.",
+    },
+}
+
+# Template directives
+
+**Status:** current.
+
+The body-opening `{` must be on the same logical header line. Parenthesize
+records in headers: `@match ({ status, items }) {`.
+
+| Directive | Contract |
+| --- | --- |
+| `@let name = expr` | Bind before render-producing items. Expression ends at a depth-zero newline. |
+| `@if cond { } @else if { } @else { }` | Missing else → `Html.empty`. |
+| `@for item in items { }` | One lowercase binder. Lowers to `List.map`. |
+| `@match value { Pat => … }` | Arm is element, call, fragment, interpolation, or nested directive. Bare text is not an arm; wrap it. Guards and `\|` alternatives are Roc. |
+
+**Invalid:** markup inside arbitrary Roc expressions; unparenthesized record
+headers; `@fixture` inside a component body.
+
+**Related:** [File structure](/docs/reference/language/file-structure/),
+[Use directives](/docs/how-to/use-directives/).

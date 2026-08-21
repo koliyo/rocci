@@ -1,0 +1,881 @@
+# Rocci author-facing coverage manifest.
+# CI (Phase 6) fails when a current/experimental feature has no canonical
+# page, a removed feature is labeled current, or a canonical route is missing.
+
+schema_version = 1
+product = "rocci"
+version_label = "development"
+
+# --- Language -------------------------------------------------------------
+
+[[feature]]
+id = "syntax.module-roc-passthrough"
+name = "File structure and Roc regions"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; crates/rocci-template/tests/compile.rs"
+canonical = "/docs/reference/language/file-structure/"
+example = "/docs/tutorials/first-component/"
+status = "current"
+
+[[feature]]
+id = "syntax.component"
+name = "@component"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/src/lower.rs"
+contract = "test/AllSyntax.rocci; crates/rocci-template/tests/compile.rs"
+canonical = "/docs/reference/language/components/"
+example = "/docs/tutorials/first-component/"
+status = "current"
+
+[[feature]]
+id = "syntax.component-body-param"
+name = "Component body parameter"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/components/"
+example = "/docs/how-to/author-components/"
+status = "current"
+
+[[feature]]
+id = "syntax.param-field-defaults"
+name = "?? field defaults in component params"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/src/lower.rs"
+contract = "test/AllSyntax.rocci; crates/rocci-template/tests/compile.rs"
+canonical = "/docs/reference/language/components/"
+example = "/examples/styling/"
+status = "experimental"
+
+[[feature]]
+id = "syntax.tags-html"
+name = "HTML tags and void elements"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/tags/"
+example = "/docs/how-to/write-markup/"
+status = "current"
+
+[[feature]]
+id = "syntax.tags-component-call"
+name = "Local and qualified component calls"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/tags/"
+example = "/docs/how-to/author-components/"
+status = "current"
+
+[[feature]]
+id = "syntax.tags-fragment"
+name = "Fragments"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/tags/"
+example = "/docs/how-to/write-markup/"
+status = "current"
+
+[[feature]]
+id = "syntax.attrs-static-dynamic-bool"
+name = "Static, dynamic, and boolean attributes"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/attributes/"
+example = "/docs/how-to/write-markup/"
+status = "current"
+
+[[feature]]
+id = "syntax.datastar-actions"
+name = "@get / @post / @put / @patch / @delete action attributes"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "examples/rocci/standalone/counter/Counter.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
+canonical = "/docs/reference/language/attributes/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "syntax.interpolation"
+name = "Text interpolation"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/text/"
+example = "/docs/tutorials/first-component/"
+status = "current"
+
+[[feature]]
+id = "syntax.let"
+name = "@let"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/directives/"
+example = "/docs/how-to/use-directives/"
+status = "current"
+
+[[feature]]
+id = "syntax.if"
+name = "@if / @else if / @else"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/directives/"
+example = "/docs/how-to/use-directives/"
+status = "current"
+
+[[feature]]
+id = "syntax.for"
+name = "@for"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/directives/"
+example = "/docs/how-to/use-directives/"
+status = "current"
+
+[[feature]]
+id = "syntax.match"
+name = "@match"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/directives/"
+example = "/docs/how-to/use-directives/"
+status = "current"
+
+[[feature]]
+id = "syntax.css"
+name = "File-level and component @css"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "examples/rocci/standalone/styling/Styling.rocci; test/AllSyntax.rocci"
+canonical = "/docs/reference/language/css/"
+example = "/examples/styling/"
+status = "current"
+
+[[feature]]
+id = "syntax.css-deep"
+name = ":deep CSS piercing"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = ""
+canonical = "/docs/reference/language/css/"
+example = ""
+status = "planned"
+
+[[feature]]
+id = "syntax.fixture"
+name = "@fixture"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/fixtures/"
+example = "/docs/tutorials/first-component/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.context"
+name = "@context"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "examples/rocci/standalone/counter/Counter.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.init"
+name = "@init"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "examples/rocci/standalone/counter/Counter.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.view"
+name = "@view"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.patch"
+name = "@patch"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.command"
+name = "@command"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/commands-and-live/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.live"
+name = "@live"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; examples/rocci/standalone/live-counter/LiveCounter.rocci"
+canonical = "/docs/reference/language/server/"
+example = "/docs/tutorials/commands-and-live/"
+status = "current"
+
+[[feature]]
+id = "syntax.handler.on-removed"
+name = "@on and trailing json"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = ""
+canonical = "/docs/reference/language/grammar/"
+example = ""
+status = "removed"
+
+[[feature]]
+id = "syntax.comments-escape"
+name = "Comments, @@ escaping, and whitespace"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/comments/"
+example = "/docs/reference/language/comments/"
+status = "current"
+
+[[feature]]
+id = "syntax.generated-roc"
+name = "Generated Roc and source maps"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "crates/rocci-template/tests/compile.rs"
+canonical = "/docs/reference/language/generated-roc/"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "syntax.limits.no-jsx"
+name = "Deliberate language limits"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/grammar/"
+example = "/docs/concepts/compilation-model/"
+status = "current"
+
+[[feature]]
+id = "syntax.ungram-tree"
+name = "Rocci AST tree appendix"
+area = "syntax"
+owner = "rocci-ungram"
+source = "crates/rocci-template/Rocci.AST.ungram"
+contract = "docs/reference/contributor/rocci-tree.rocdown"
+canonical = "/docs/reference/contributor/rocci-tree/"
+example = ""
+status = "current"
+
+# --- Runtime --------------------------------------------------------------
+
+[[feature]]
+id = "runtime.view-html"
+name = "@view HTML document response"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/dispatch.rs"
+contract = "examples/rocci/standalone/handler-matrix"
+canonical = "/docs/reference/runtime/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "runtime.patch-sse-oneshot"
+name = "@patch Datastar patch-elements"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/dispatch.rs"
+contract = "examples/rocci/standalone/handler-matrix"
+canonical = "/docs/reference/runtime/"
+example = "/docs/tutorials/first-app/"
+status = "current"
+
+[[feature]]
+id = "runtime.command-json-or-204"
+name = "@command empty SSE versus JSON"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/dispatch.rs"
+contract = "examples/rocci/standalone/handler-matrix"
+canonical = "/docs/reference/runtime/"
+example = "/docs/tutorials/commands-and-live/"
+status = "current"
+
+[[feature]]
+id = "runtime.live-sse-poll"
+name = "Generated GET /sse from @live"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/dispatch.rs"
+contract = "examples/rocci/standalone/live-counter"
+canonical = "/docs/reference/runtime/"
+example = "/docs/tutorials/commands-and-live/"
+status = "current"
+
+[[feature]]
+id = "runtime.handler-arity"
+name = "Handler request injection"
+area = "runtime"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix"
+canonical = "/docs/reference/language/server/"
+example = "/docs/how-to/handle-requests-and-errors/"
+status = "current"
+
+[[feature]]
+id = "runtime.errors-500"
+name = "Handler failure overlay"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/dispatch.rs"
+contract = "crates/rocci-cli tests"
+canonical = "/docs/reference/runtime/"
+example = "/docs/how-to/handle-requests-and-errors/"
+status = "current"
+
+[[feature]]
+id = "runtime.stderr-tee"
+name = "Stderr.line! teed to Dev Console"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/README.md"
+contract = "crates/rocci-cli tests"
+canonical = "/docs/reference/runtime/"
+example = "/docs/how-to/handle-requests-and-errors/"
+status = "current"
+
+[[feature]]
+id = "runtime.assets-mount"
+name = "/assets and pinned Datastar JS"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/run.rs"
+contract = "examples/rocci/standalone/counter"
+canonical = "/docs/reference/runtime/"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "runtime.authored-main"
+name = "Custom main.roc applications"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/run.rs"
+contract = "examples/rocci/custom/datastar"
+canonical = "/docs/reference/runtime/"
+example = "/docs/tutorials/custom-main/"
+status = "current"
+
+[[feature]]
+id = "runtime.no-at-log"
+name = "@log"
+area = "runtime"
+owner = "rocci-cli"
+source = "crates/rocci-cli/README.md"
+contract = ""
+canonical = "/docs/reference/runtime/"
+example = ""
+status = "planned"
+
+# --- CLI ------------------------------------------------------------------
+
+[[feature]]
+id = "cli.validate"
+name = "rocci validate"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/cli/#validate"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "cli.build.template"
+name = "rocci build (template to Roc)"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "crates/rocci-template/tests/compile.rs"
+canonical = "/docs/reference/cli/#build"
+example = "/docs/start/five-minutes/"
+status = "current"
+
+[[feature]]
+id = "cli.build.release-server"
+name = "rocci build --release"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "docker/README.md"
+canonical = "/docs/reference/cli/#build-release"
+example = "/docs/tutorials/ship/"
+status = "current"
+
+[[feature]]
+id = "cli.run"
+name = "rocci run"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/run.rs"
+contract = "examples/rocci/standalone/counter"
+canonical = "/docs/reference/cli/#run"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.view"
+name = "rocci view"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/view.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#view"
+example = "/docs/tutorials/first-component/"
+status = "current"
+
+[[feature]]
+id = "cli.browse"
+name = "rocci browse"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/browse.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#browse"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.playground"
+name = "rocci playground"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/playground.rs"
+contract = "crates/rocci-playground"
+canonical = "/docs/reference/cli/#playground"
+example = "/docs/how-to/use-the-playground/"
+status = "current"
+
+[[feature]]
+id = "cli.render"
+name = "rocci render"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#render"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.inspect"
+name = "rocci inspect"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "crates/rocci-template"
+canonical = "/docs/reference/cli/#inspect"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.ast"
+name = "rocci ast"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/main.rs"
+contract = "crates/rocci-template"
+canonical = "/docs/reference/cli/#ast"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.bundle"
+name = "rocci bundle"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/bundle.rs"
+contract = "docs/how-to/package-and-deploy.rocdown"
+canonical = "/docs/reference/cli/#bundle"
+example = "/docs/tutorials/ship/"
+status = "current"
+
+[[feature]]
+id = "cli.datastar.pin"
+name = "rocci datastar pin"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/datastar_asset.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#datastar"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "cli.datastar.update"
+name = "rocci datastar update"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/datastar_asset.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#datastar"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "cli.browser-adapter"
+name = "rocci browser-adapter"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/browser.rs"
+contract = "crates/rocci-cli/tests/browser_adapter.rs"
+canonical = "/docs/reference/cli/#browser-adapter"
+example = "/docs/how-to/use-the-project-browser/"
+status = "current"
+
+[[feature]]
+id = "cli.serve.no-window"
+name = "--no-window"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/serve.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#serve-options"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.serve.no-live-reload"
+name = "--no-live-reload"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/serve.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#serve-options"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.serve.log-handlers"
+name = "--log-handlers"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/serve.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#serve-options"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "cli.serve.port"
+name = "--port and ROC_BASIC_WEBSERVER_PORT"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/serve.rs"
+contract = "crates/rocci-cli"
+canonical = "/docs/reference/cli/#serve-options"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+# --- Config ---------------------------------------------------------------
+
+[[feature]]
+id = "config.app"
+name = "[app] identity"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#app"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "config.windows"
+name = "[[windows]]"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#windows"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "config.http"
+name = "[http] host, port, trailing slash"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#http"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "config.security"
+name = "[security] origins and CSP"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#security"
+example = "/docs/concepts/security-model/"
+status = "current"
+
+[[feature]]
+id = "config.assets"
+name = "[assets] directory, embed, datastar pin"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#assets"
+example = "/docs/how-to/configure-and-secure/"
+status = "current"
+
+[[feature]]
+id = "config.development"
+name = "[development] reload and devtools"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#development"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "config.bundle"
+name = "[bundle] packaging"
+area = "config"
+owner = "rocci-core"
+source = "crates/rocci-core/src/config.rs"
+contract = "crates/rocci-core/src/config.rs"
+canonical = "/docs/reference/configuration/#bundle"
+example = "/docs/how-to/package-and-deploy/"
+status = "current"
+
+# --- Desktop / packaging --------------------------------------------------
+
+[[feature]]
+id = "desktop.preview-window"
+name = "Preview window"
+area = "desktop"
+owner = "rocci-desktop"
+source = "crates/rocci-desktop/src/preview.rs"
+contract = "crates/rocci-desktop/README.md"
+canonical = "/docs/how-to/develop-and-inspect/"
+example = "/docs/start/five-minutes/"
+status = "current"
+
+[[feature]]
+id = "desktop.chrome.dev-dock"
+name = "Dev panel Performance, Source, Console"
+area = "desktop"
+owner = "rocci-desktop"
+source = "crates/rocci-desktop/README.md"
+contract = "crates/rocci-cli/src/inspector.rs"
+canonical = "/docs/how-to/develop-and-inspect/"
+example = "/docs/how-to/develop-and-inspect/"
+status = "current"
+
+[[feature]]
+id = "desktop.bundle-macos"
+name = "Ad-hoc macOS .app"
+area = "packaging"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/bundle.rs"
+contract = "docs/how-to/package-and-deploy.rocdown"
+canonical = "/docs/reference/cli/#bundle"
+example = "/docs/tutorials/ship/"
+status = "current"
+
+[[feature]]
+id = "desktop.package-linux-server"
+name = "Linux release server"
+area = "packaging"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/bundle.rs"
+contract = "docker/README.md"
+canonical = "/docs/reference/cli/#build-release"
+example = "/docs/tutorials/ship/"
+status = "current"
+
+[[feature]]
+id = "desktop.windows-linux-installers"
+name = "Windows and Linux installers"
+area = "packaging"
+owner = "rocci-cli"
+source = "ROADMAP.md"
+contract = ""
+canonical = "/docs/status/"
+example = ""
+status = "planned"
+
+[[feature]]
+id = "desktop.production-signing"
+name = "Production signing and notarization"
+area = "packaging"
+owner = "rocci-cli"
+source = "ROADMAP.md"
+contract = ""
+canonical = "/docs/status/"
+example = ""
+status = "planned"
+
+# --- Editors --------------------------------------------------------------
+
+[[feature]]
+id = "editor.lsp"
+name = "rocci-language-server"
+area = "editor"
+owner = "rocci-rocdown-lsp"
+source = "crates/rocci-rocdown-lsp/README.md"
+contract = "crates/rocci-lsp"
+canonical = "/docs/how-to/set-up-editors/"
+example = "/docs/how-to/set-up-editors/"
+status = "current"
+
+[[feature]]
+id = "editor.vscode"
+name = "VS Code extension"
+area = "editor"
+owner = "editors/vscode"
+source = "editors/vscode"
+contract = "editors/vscode"
+canonical = "/docs/how-to/set-up-editors/"
+example = "/docs/how-to/set-up-editors/"
+status = "current"
+
+[[feature]]
+id = "editor.zed"
+name = "Zed extension"
+area = "editor"
+owner = "editors/zed"
+source = "editors/zed"
+contract = "editors/zed"
+canonical = "/docs/how-to/set-up-editors/"
+example = "/docs/how-to/set-up-editors/"
+status = "current"
+
+# --- Install --------------------------------------------------------------
+
+[[feature]]
+id = "install.source-build"
+name = "Build Rocci from source"
+area = "install"
+owner = "docs"
+source = "docs/start/install.rocdown"
+contract = "README.md"
+canonical = "/docs/start/install/"
+example = "/docs/start/five-minutes/"
+status = "current"
+
+[[feature]]
+id = "install.github-releases"
+name = "GitHub Release archives"
+area = "install"
+owner = "tools/rocci-ops"
+source = ".github/workflows/release.yml"
+contract = ""
+canonical = "/docs/start/install/"
+example = ""
+status = "experimental"
+
+[[feature]]
+id = "install.crates-io"
+name = "crates.io install"
+area = "install"
+owner = "docs"
+source = ""
+contract = ""
+canonical = "/docs/start/install/"
+example = ""
+status = "removed"
+
+# --- Example docs tooling -------------------------------------------------
+
+[[feature]]
+id = "docs.stage-catalog"
+name = "rocci-docs catalog staging"
+area = "docs-tooling"
+owner = "rocci-docs"
+source = "crates/rocci-docs/src/stage.rs"
+contract = "crates/rocci-docs/tests/stage.rs"
+canonical = "/examples/"
+example = "/examples/"
+status = "current"
+
+[[feature]]
+id = "docs.extract-doc-comments"
+name = "Attached ## declaration docs"
+area = "docs-tooling"
+owner = "rocci-docs"
+source = "crates/rocci-docs/src/extract.rs"
+contract = "crates/rocci-docs/tests/stage.rs"
+canonical = "/examples/"
+example = "/examples/counter/source/Counter-rocci/"
+status = "current"
+
+[[feature]]
+id = "docs.live-demo-hostnames"
+name = "Live example hostnames"
+area = "docs-tooling"
+owner = "rocci-docs"
+source = "crates/rocci-docs/src/stage.rs"
+contract = "crates/rocci-docs/README.md"
+canonical = "/examples/"
+example = "/examples/live-counter/"
+status = "planned"

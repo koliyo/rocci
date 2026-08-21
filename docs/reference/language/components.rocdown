@@ -1,0 +1,35 @@
+@page {
+    layout: "docs",
+    aliases: ["/docs/reference/@component/"],
+    meta: {
+        title: "Components",
+        description: "Declaration grammar, PascalCase mapping, params, defaults, body parameter, and generated function shape.",
+    },
+}
+
+# Components
+
+**Status:** current. `??` field defaults are **experimental**.
+
+```text
+@component Name = |params| html
+@component Name = |params| { template }
+```
+
+| Rule | Contract |
+| --- | --- |
+| Name | PascalCase. Consecutive leading capitals (`HTMLShell`) rejected; write `HtmlShell`. |
+| Generated name | camelCase Roc function (`StatusCard` → `statusCard`). |
+| One root | Braces optional for a single tag, call, or fragment. |
+| Braces required | `@let`, `@css`, `@if`/`@for`/`@match`, or multiple roots. |
+| First param | Normally a props record. |
+| Extra param | Default body; paired tags pass nested markup as `Html`. |
+| `??` defaults | Allowed in `.rocci`; lowering strips them for current Roc nightly and fills omitted fields at call sites. |
+
+There is no magic `children` field and no runtime component registry.
+`rocci view --component Hello` and `--component hello` both select the function.
+
+**Example:** [Styling Hello](/examples/styling/source/Styling-rocci/).
+
+**Related:** [Tags](/docs/reference/language/tags/), [First component](/docs/tutorials/first-component/),
+[Author components](/docs/how-to/author-components/).

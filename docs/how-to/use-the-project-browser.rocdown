@@ -1,0 +1,85 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/rocci-browser/", "/docs/guides/rocci-browser/"],
+
+    meta: {
+        title: "Use the project browser",
+        description: "Register directories, fuzzy-pick a target, and keep one preview window across product origins.",
+    },
+}
+
+# Use the project browser
+
+**Prerequisites:** built `rocci`, `rocdown`, `rocci-okf`, and `rocci-browser` binaries.
+**You will do:** open the host picker, not the component gallery.
+**Verify:** `cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json` prints a URL.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
+
+`rocci-browser` is a fourth CLI: a product-blind host that registers project
+directories, fuzzy-picks a **target**, and `load_url`s whatever HTTP origin an
+adapter opened. It does not replace `rocci`, `rocdown`, or `rocci-okf`. Direct
+`run` on those binaries still opens today's one-shot preview window.
+
+:note[title: "Not `rocci browse`"] `rocci browse` is the component gallery over
+`.rocci` files. `rocci-browser` is a project launcher. They share a word, not a
+command surface.
+
+## Run it
+
+`.rocci/browser.toml` in this repo points at `target/debug/rocdown`,
+`target/debug/rocci-okf`, and `target/debug/rocci` with
+`browser-adapter`. Build all four packages; `cargo run -p rocci-browser` does
+not rebuild the plugins. A stale binary prints `unrecognized subcommand
+'browser-adapter'`.
+
+```sh
+cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
+cargo run -q -p rocci-browser
+cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json
+```
+
+`--root` selects the directory that contains `.rocci/browser.toml`. With no
+arguments, the host opens one persistent preview window.
+
+## Keys
+
+| Shortcut | What it does |
+| --- | --- |
+| **Cmd/Ctrl-P** | Host picker: filter registered targets. Enter opens the target home. Tab lists adapter documents, then Enter opens one. |
+| **Cmd/Ctrl-K** | In-page Go to File (`goto.js`) on the visible origin. The host does not steal this. |
+| **Cmd/Ctrl-F** | Find in the current preview page. |
+
+The Dev panel iframe follows the current session's inspector URL. The host does
+not parse inspect JSON.
+
+## Registry
+
+User projects live in `projects.json` under `ROCCI_BROWSER_DIR`, `$ROCCI_HOME/.rocci/browser`,
+or `~/.rocci/browser`. Repo-local `.rocci/browser.toml` can add `[[plugin]]`
+and `[[project]]` rows as data. The host does not hardcode target ids.
+
+Switching targets reuses a still-warm server for the same root instead of
+rebuilding on every hop. The previous child is grace-stopped after about 30s.
+
+`open --no-window --json` prints `{ "url", "title" }` for agents and for
+machines without a display. There is no terminal picker.
+
+## Packaging
+
+On macOS, assemble an ad-hoc **Rocci Browser.app** around the same `preview()`
+binary:
+
+```sh
+uv run rocci-ops bundle browser-macos
+open "target/release/bundle/macos/Rocci Browser.app"
+```
+
+Adapters stay on `PATH` or as absolute plugin `bin` paths; the bundle does not
+copy `rocci`, `rocdown`, or `rocci-okf`. Finder launch repairs a sanitized GUI
+`PATH` (Homebrew, `/usr/local/bin`, `~/.local/bin`, `~/.cargo/bin` when those
+directories exist) and ignores cwd `/` for `.rocci/browser.toml`. `--root`
+still selects a repo file. A graphical session with a real repo root writes
+`last-root` for the next Dock launch.
+
+Product `rocci bundle` still packages a Roc app, not this host. Production
+signing and notarization of **Rocci Browser.app** are **planned**, not shipped.

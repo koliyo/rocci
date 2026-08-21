@@ -1093,7 +1093,7 @@ debug = true
     #[test]
     fn docs_guide_previews_at_derived_site_route() {
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let file = manifest.join("../../docs/guides/docs-components.rocdown");
+        let file = manifest.join("../../docs/how-to/use-the-project-browser.rocdown");
         let expected = manifest.join("../../docs");
         let found = find_site_root(&file).expect("docs/rocdown.toml");
         assert_eq!(
@@ -1102,7 +1102,7 @@ debug = true
         );
         assert_eq!(
             site_preview_route(&found, &file),
-            "/guides/docs-components/"
+            "/how-to/use-the-project-browser/"
         );
     }
 

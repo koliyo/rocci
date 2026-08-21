@@ -1,0 +1,60 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Author components",
+        description: "Define, call, pass props and bodies, add fixtures, and organize a reusable component library.",
+    },
+}
+
+# Author components
+
+**Prerequisites:** [first component](/docs/tutorials/first-component/).
+**You will do:** declare a component, call it, pass a body, and preview a fixture.
+**Verify:** `rocci view FILE --component Name` shows the fixture.
+**Next:** [Write markup](/docs/how-to/write-markup/) or
+[Components reference](/docs/reference/language/components/).
+
+Canonical source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
+
+## Declare and call
+
+Names are PascalCase. Consecutive leading capitals (`HTMLShell`) are rejected;
+write `HtmlShell`. A self-closing tag is a one-argument call. A paired tag
+passes nested markup as the extra `Html` parameter — there is no magic
+`children` field.
+
+```rocci
+@component Card = |{ title }, content|
+    <section>
+        <h2>{title}</h2>
+        {content}
+    </section>
+
+@component Page = |_|
+    <Card title="Hello">
+        <p>Body is Html, not a string.</p>
+    </Card>
+```
+
+`??` field defaults are **experimental**. Omit the field at the call site;
+lowering fills it. Do not treat defaults as a shipped Roc language feature.
+
+Qualified calls use the imported module: `<Design.Button />` → `Design.button`.
+
+## Fixtures
+
+```rocci
+@fixture{target: Card}
+cardExample = { title: "Preview" }
+```
+
+`rocci view` and `rocci browse` consume fixtures. HTTP declarations are ignored
+in `view`. Keep fixtures next to the component they target.
+
+## Library layout
+
+Put reusable widgets in `components/`. Keep page-private helpers in the same
+`.rocci` module. `rocci browse components/` lists fixtures across a directory.
+
+**Related:** [Tags](/docs/reference/language/tags/), [Fixtures](/docs/reference/language/fixtures/),
+[pure components](/docs/concepts/pure-components/).

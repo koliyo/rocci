@@ -350,7 +350,7 @@ CounterCard = |{ count, clicks }| {
 Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a small desktop host. This site is the working tree for public docs: add pages under `site/`, keep chrome in `site/theme/`, and preview with `rocdown run site`.
 
 :card-grid.begin
-    :link-card[page: "docs/getting-started/overview", title: "Getting started", summary: "Install the CLI and learn the four layers."]
+    :link-card[page: "docs/start/what-is-rocci", title: "Getting started", summary: "Install from source and preview a first Rocci component."]
     :link-card[page: "rocdown/index", title: "Rocdown", summary: "Markdown-first documents and static sites."]
     :link-card[page: "news/index", title: "News", summary: "Announcements and project updates."]
     :link-card[page: "project/index", title: "Project", summary: "Status, roadmap, and how to contribute."]
@@ -369,4 +369,4 @@ The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last
 }
 ```
 
-See [Quickstart](/docs/getting-started/quickstart/) to run this locally, or [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) for CDN plus `serve-islands`.
+See [Rocci in five minutes](/docs/start/five-minutes/) to run a component locally, or [Publish a hybrid Rocdown site](/rocdown/hybrid/) for CDN plus `serve-islands`.

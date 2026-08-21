@@ -25,7 +25,7 @@ the composition rules.
 ## Establish context
 
 1. Inspect `git status --short`. Preserve unrelated work.
-2. Read `docs/concepts/rendering-model.rocdown`.
+2. Read `docs/concepts/documents-fragments-commands-streams.rocdown`.
 3. For durable state, `knowledge/decisions/server-owned-state.md`. For
    `@component`, `knowledge/decisions/pure-render-components.md`.
 4. For shared-view SSE vs one-shot POST, start at

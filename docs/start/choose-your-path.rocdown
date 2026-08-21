@@ -1,0 +1,44 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Choose your path",
+        description: "Pick the missing foundation for Roc-first, web-first, or mixed backgrounds, then join the same first-component tutorial.",
+    },
+}
+
+# Choose your path
+
+**Prerequisites:** you can use a terminal and read code.
+**You will do:** skip the foundation you already have.
+**Time:** one page.
+**Next:** the matching primer, then [Rocci in five minutes](/docs/start/five-minutes/).
+
+Every path converges on the same first component. Do not start the
+application tutorial until that component previews.
+
+## I know Roc
+
+You already write modules, records, tags, and `!` effects. Read
+[Web foundations for Roc authors](/docs/start/web-foundations/) so HTML, HTTP
+methods, fragments, and Datastar morphing are not surprises. Then
+[install](/docs/start/install/) if needed and run
+[Rocci in five minutes](/docs/start/five-minutes/).
+
+## I know web development
+
+You already know HTML, CSS, forms, and HTTP. Read
+[Roc for Rocci authors](/docs/start/roc-for-rocci/) for the Roc subset later
+examples use. Then [install](/docs/start/install/) and
+[Rocci in five minutes](/docs/start/five-minutes/).
+
+## I know both
+
+Skip the primers. [Install](/docs/start/install/) if this machine has no
+checkout, then [Rocci in five minutes](/docs/start/five-minutes/) and
+[Build your first component](/docs/tutorials/first-component/).
+
+## After the first component
+
+The next controlled project is a standalone counter with SQLite and a one-shot
+`@patch`. That tutorial ships in the application journey. Until then, the
+canonical complete source is [Styling](/examples/styling/).

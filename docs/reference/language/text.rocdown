@@ -1,0 +1,25 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Text and interpolation",
+        description: "String interpolations, bare Html body values, conversions, and literal delimiters.",
+    },
+}
+
+# Text and interpolation
+
+**Status:** current.
+
+`{expr}` in text or attribute position is a Roc expression. Markup is not
+allowed inside it.
+
+| Case | Requirement |
+| --- | --- |
+| Text `{expr}` | Must be `Str` (`{count.to_str()}`) |
+| Bare body param typed `Html` | Inserted as-is (`{content}`) |
+| `@@` | Literal `@` in a template body |
+
+**Errors:** `{if active { <Icon /> }}` is rejected. Use `@if` or a named
+render function.
+
+**Related:** [Directives](/docs/reference/language/directives/).

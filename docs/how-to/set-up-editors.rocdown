@@ -1,0 +1,49 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Set up editors",
+        description: "Install VS Code or Zed language support for .rocci files against rocci-language-server.",
+    },
+}
+
+# Set up editors
+
+**Prerequisites:** [Install](/docs/start/install/) so Cargo can build the language server.
+**You will do:** load the first-party extension and point it at a built server.
+**Verify:** opening a `.rocci` file shows diagnostics and semantic highlighting.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
+
+Editor support is **current** in this repository. There is no Marketplace /
+extension-store install path yet. Build from the checkout.
+
+The server binary is `rocci-language-server` (`cargo build -p rocci-rocdown-lsp`).
+The VS Code and Zed extensions are thin LSP clients.
+
+## VS Code
+
+```sh
+cargo build -p rocci-rocdown-lsp
+uv run rocci-ops package vscode
+code --install-extension editors/vscode/rocci-*.vsix
+```
+
+For a debug session, press **F5** in `editors/vscode` after building the server.
+Setting `rocci.lsp.serverPath` overrides the packaged or `target/debug` binary.
+
+Do not treat the README completion list as a language contract: `@on` is
+**removed**. Author `@view` / `@patch` / `@command` / `@live`.
+
+## Zed
+
+```sh
+cargo build -p rocci-rocdown-lsp
+```
+
+In Zed, **zed: install dev extension** and choose `editors/zed`. Zed does not
+bundle the server WASM. Lookup order: `lsp.rocci-language-server.binary.path`,
+then `PATH`, then `{worktree}/target/debug/rocci-language-server`.
+
+Enable semantic tokens for the Rocci language. File icons are an optional
+**Rocci** icon theme in the same extension.
+
+**Related:** `editors/vscode/README.md`, `editors/zed/README.md`.
