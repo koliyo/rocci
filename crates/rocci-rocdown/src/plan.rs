@@ -19,8 +19,8 @@ pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'self'; style-src 
 const HASH_LEN: usize = 16;
 
 pub use rocci_ui::{
-    BreadcrumbView, CollectionItemView, LaneView, NavItemView, OutlineView, PageView, ResourceView,
-    SiteView,
+    BreadcrumbView, CollectionItemView, LaneView, NavGroupView, NavItemView, OutlineView, PageView,
+    ResourceView, SiteView,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -338,7 +338,6 @@ fn plan_with_preview(
             page,
             &site_view,
             &site.navigation,
-            config.sidebar_tree,
             &stylesheet_url,
             &csp,
             &chrome_script_url,
@@ -354,7 +353,6 @@ fn plan_with_preview(
     pages.push(not_found_page(
         &site_view,
         &site.navigation,
-        config.sidebar_tree,
         &stylesheet_url,
         &csp,
         &chrome_script_url,
@@ -1024,7 +1022,6 @@ fn planned_page(
     page: &ResolvedPage,
     site: &SiteView,
     navigation: &[NavSection],
-    sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
     chrome_script: &str,
@@ -1041,7 +1038,7 @@ fn planned_page(
     } else {
         Some(page.id.as_str())
     };
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id, sidebar_tree);
+    let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id);
     let canonical = if not_found || site.base_url.is_empty() {
         String::new()
     } else {
@@ -1146,17 +1143,12 @@ fn planned_page(
 fn not_found_page(
     site: &SiteView,
     navigation: &[NavSection],
-    sidebar_tree: bool,
     stylesheet: &str,
     csp: &str,
     chrome_script: &str,
 ) -> PlannedPage {
-    let home = navigation
-        .iter()
-        .find(|section| section.items.iter().any(|item| item.route == "/"))
-        .and_then(|section| section.items.iter().find(|item| item.route == "/"))
-        .map(|item| item.id.as_str());
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, home, sidebar_tree);
+    let home = find_route_id(navigation, "/");
+    let (lanes, sidebar) = lanes_and_sidebar(navigation, home);
     PlannedPage {
         article_path: "articles/NotFound.html".into(),
         output_path: "404.html".into(),
@@ -1212,80 +1204,109 @@ fn not_found_html() -> String {
 fn lanes_and_sidebar(
     navigation: &[NavSection],
     current_id: Option<&str>,
-    sidebar_tree: bool,
-) -> (Vec<LaneView>, Vec<NavItemView>) {
-    let current_section = current_id.and_then(|id| {
+) -> (Vec<LaneView>, Vec<NavGroupView>) {
+    let has_nested = navigation
+        .iter()
+        .any(|section| !section.children.is_empty());
+    let current_top = current_id.and_then(|id| {
         navigation
             .iter()
-            .find(|section| section.items.iter().any(|item| item.id == id))
+            .find(|section| catalog::section_contains(section, id))
     });
-    let lanes = if sidebar_tree {
-        Vec::new()
-    } else {
+    let lanes = if has_nested {
         navigation
             .iter()
             .map(|section| LaneView {
                 label: section.label.clone(),
-                href: section
-                    .items
-                    .first()
+                href: catalog::first_nav_item(section)
                     .map(|item| item.route.clone())
                     .unwrap_or_else(|| "/".into()),
-                current: current_section.is_some_and(|current| current.label == section.label),
+                current: current_top.is_some_and(|current| current.label == section.label),
             })
             .collect()
-    };
-    let sidebar = if sidebar_tree {
-        let mut items = Vec::new();
-        for section in navigation {
-            let Some(category) = section.items.first() else {
-                continue;
-            };
-            let expanded = current_section.is_some_and(|current| current.label == section.label);
-            let category_current = current_id == Some(category.id.as_str());
-            let class_name = match (expanded, category_current) {
-                (true, true) => "nav-link nav-category is-expanded is-current",
-                (true, false) => "nav-link nav-category is-expanded",
-                (false, _) => "nav-link nav-category",
-            };
-            items.push(NavItemView {
-                title: section.label.clone(),
-                href: category.route.clone(),
-                class_name: class_name.into(),
-            });
-            if expanded {
-                items.extend(section.items.iter().skip(1).map(|item| NavItemView {
-                    title: item.title.clone(),
-                    href: item.route.clone(),
-                    class_name: if current_id == Some(item.id.as_str()) {
-                        "nav-link nav-child is-current".into()
-                    } else {
-                        "nav-link nav-child".into()
-                    },
-                }));
-            }
-        }
-        items
     } else {
-        current_section
+        Vec::new()
+    };
+    let groups: Vec<&NavSection> = if has_nested {
+        current_top
             .map(|section| {
-                section
-                    .items
-                    .iter()
-                    .map(|item| NavItemView {
-                        title: item.title.clone(),
-                        href: item.route.clone(),
-                        class_name: if current_id == Some(item.id.as_str()) {
-                            "nav-link is-current".into()
-                        } else {
-                            "nav-link".into()
-                        },
-                    })
-                    .collect()
+                if section.children.is_empty() {
+                    vec![section]
+                } else {
+                    section.children.iter().collect()
+                }
             })
             .unwrap_or_default()
+    } else {
+        navigation.iter().collect()
     };
+    let sidebar = groups
+        .into_iter()
+        .filter_map(|section| nav_group_view(section, current_id))
+        .collect();
     (lanes, sidebar)
+}
+
+fn find_route_id<'a>(navigation: &'a [NavSection], route: &str) -> Option<&'a str> {
+    for section in navigation {
+        if let Some(item) = section.items.iter().find(|item| item.route == route) {
+            return Some(item.id.as_str());
+        }
+        if let Some(id) = find_route_id(&section.children, route) {
+            return Some(id);
+        }
+    }
+    None
+}
+
+fn nav_leaf(item: &catalog::NavItem, current_id: Option<&str>) -> NavItemView {
+    NavItemView {
+        title: item.title.clone(),
+        href: item.route.clone(),
+        class_name: if current_id == Some(item.id.as_str()) {
+            "nav-link nav-child is-current".into()
+        } else {
+            "nav-link nav-child".into()
+        },
+    }
+}
+
+fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavGroupView> {
+    let open = current_id.is_some_and(|id| catalog::section_contains(section, id));
+    match section.items.as_slice() {
+        [] => None,
+        [only] => Some(NavGroupView {
+            title: section.label.clone(),
+            href: only.route.clone(),
+            open: false,
+            items: Vec::new(),
+        }),
+        items => {
+            let (href, rest) = match items.first() {
+                Some(first) if first.title == section.label => (
+                    first.route.clone(),
+                    items
+                        .iter()
+                        .skip(1)
+                        .map(|item| nav_leaf(item, current_id))
+                        .collect(),
+                ),
+                _ => (
+                    String::new(),
+                    items
+                        .iter()
+                        .map(|item| nav_leaf(item, current_id))
+                        .collect(),
+                ),
+            };
+            Some(NavGroupView {
+                title: section.label.clone(),
+                href,
+                open,
+                items: rest,
+            })
+        }
+    }
 }
 
 fn outline_view(heading: &PageHeading) -> OutlineView {
@@ -1737,14 +1758,24 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
             out.push_str(" },\n");
         }
         out.push_str("                ],\n                sidebar: [\n");
-        for item in &page.view.sidebar {
+        for group in &page.view.sidebar {
             out.push_str("                    { title: ");
-            push_roc_string(&mut out, &item.title);
+            push_roc_string(&mut out, &group.title);
             out.push_str(", href: ");
-            push_roc_string(&mut out, &item.href);
-            out.push_str(", class_name: ");
-            push_roc_string(&mut out, &item.class_name);
-            out.push_str(" },\n");
+            push_roc_string(&mut out, &group.href);
+            out.push_str(", open: ");
+            out.push_str(if group.open { "True" } else { "False" });
+            out.push_str(", items: [\n");
+            for item in &group.items {
+                out.push_str("                        { title: ");
+                push_roc_string(&mut out, &item.title);
+                out.push_str(", href: ");
+                push_roc_string(&mut out, &item.href);
+                out.push_str(", class_name: ");
+                push_roc_string(&mut out, &item.class_name);
+                out.push_str(" },\n");
+            }
+            out.push_str("                    ] },\n");
         }
         out.push_str("                ],\n                route: ");
         push_roc_string(&mut out, &page.view.route);
@@ -1939,6 +1970,103 @@ mod tests {
         let _ = fs::remove_dir_all(&path);
         fs::create_dir_all(&path).unwrap();
         path
+    }
+
+    fn nav_item(id: &str, title: &str, route: &str) -> catalog::NavItem {
+        catalog::NavItem {
+            id: id.into(),
+            title: title.into(),
+            route: route.into(),
+        }
+    }
+
+    fn nav_section(
+        label: &str,
+        items: Vec<catalog::NavItem>,
+        children: Vec<NavSection>,
+    ) -> NavSection {
+        NavSection {
+            label: label.into(),
+            items,
+            children,
+        }
+    }
+
+    #[test]
+    fn sidebar_lists_all_flat_sections_and_opens_current() {
+        let navigation = vec![
+            nav_section(
+                "Start",
+                vec![
+                    nav_item("index", "Home", "/"),
+                    nav_item("start/install", "Install", "/start/install/"),
+                ],
+                vec![],
+            ),
+            nav_section(
+                "Tutorials",
+                vec![
+                    nav_item("tutorials/index", "Tutorials", "/tutorials/"),
+                    nav_item(
+                        "tutorials/first-component",
+                        "Build your first component",
+                        "/tutorials/first-component/",
+                    ),
+                ],
+                vec![],
+            ),
+        ];
+        let (lanes, sidebar) = lanes_and_sidebar(&navigation, Some("tutorials/first-component"));
+        assert!(lanes.is_empty());
+        assert_eq!(sidebar.len(), 2);
+        assert!(!sidebar[0].open);
+        assert!(sidebar[1].open);
+        assert_eq!(sidebar[1].href, "/tutorials/");
+        assert_eq!(sidebar[1].items[0].title, "Build your first component");
+        assert!(sidebar[1].items[0].class_name.contains("is-current"));
+    }
+
+    #[test]
+    fn nested_groups_keep_lanes_and_current_docs_sidebar() {
+        let navigation = vec![
+            nav_section(
+                "Docs",
+                vec![],
+                vec![
+                    nav_section(
+                        "Tutorials",
+                        vec![
+                            nav_item("docs/tutorials/index", "Tutorials", "/docs/tutorials/"),
+                            nav_item(
+                                "docs/tutorials/first-component",
+                                "Build your first component",
+                                "/docs/tutorials/first-component/",
+                            ),
+                        ],
+                        vec![],
+                    ),
+                    nav_section(
+                        "Status",
+                        vec![nav_item("docs/status", "Status", "/docs/status/")],
+                        vec![],
+                    ),
+                ],
+            ),
+            nav_section(
+                "News",
+                vec![nav_item("news/index", "News", "/news/")],
+                vec![],
+            ),
+        ];
+        let (lanes, sidebar) =
+            lanes_and_sidebar(&navigation, Some("docs/tutorials/first-component"));
+        assert_eq!(lanes.len(), 2);
+        assert!(lanes[0].current);
+        assert!(!lanes[1].current);
+        assert_eq!(sidebar[0].title, "Tutorials");
+        assert!(sidebar[0].open);
+        assert_eq!(sidebar[1].title, "Status");
+        assert!(sidebar[1].items.is_empty());
     }
 
     fn write_site(root: &Path) {

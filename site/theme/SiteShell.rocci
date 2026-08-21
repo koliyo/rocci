@@ -62,12 +62,14 @@ import PageOutline
                         <span class="header-subtitle">{view.site.subtitle}</span>
                     }
                     <nav class="lanes" aria-label="Sections">
-                        @for lane in view.lanes {
-                            <a
-                                class={if lane.current { "lane-link is-current" } else { "lane-link" }}
-                                href={lane.href}
-                                aria-current={if lane.current { "true" } else { "false" }}
-                            >{lane.label}</a>
+                        @if !List.is_empty(view.lanes) {
+                            @for lane in view.lanes {
+                                <a
+                                    class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                    href={lane.href}
+                                    aria-current={if lane.current { "true" } else { "false" }}
+                                >{lane.label}</a>
+                            }
                         }
                     </nav>
                     <div class="header-actions">
@@ -80,12 +82,14 @@ import PageOutline
                         <summary>Menu</summary>
                         <div class="mobile-panel">
                             <nav class="mobile-lanes" aria-label="Sections">
-                                @for lane in view.lanes {
-                                    <a
-                                        class={if lane.current { "lane-link is-current" } else { "lane-link" }}
-                                        href={lane.href}
-                                        aria-current={if lane.current { "true" } else { "false" }}
-                                    >{lane.label}</a>
+                                @if !List.is_empty(view.lanes) {
+                                    @for lane in view.lanes {
+                                        <a
+                                            class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                            href={lane.href}
+                                            aria-current={if lane.current { "true" } else { "false" }}
+                                        >{lane.label}</a>
+                                    }
                                 }
                             </nav>
                             @match view.layout {

@@ -27,7 +27,9 @@ layout = "docs"
 
 [[nav]]
 label = "Docs"
-directory = "docs"
+
+[[nav.groups]]
+label = "Start"
 items = [
     "docs/index",
     "docs/start/what-is-rocci",
@@ -37,6 +39,11 @@ items = [
     "docs/start/roc-for-rocci",
     "docs/start/web-foundations",
     "docs/start/five-minutes",
+]
+
+[[nav.groups]]
+label = "Tutorials"
+items = [
     "docs/tutorials/index",
     "docs/tutorials/first-component",
     "docs/tutorials/first-app",
@@ -44,6 +51,11 @@ items = [
     "docs/tutorials/commands-and-live",
     "docs/tutorials/custom-main",
     "docs/tutorials/ship",
+]
+
+[[nav.groups]]
+label = "How to"
+items = [
     "docs/how-to/index",
     "docs/how-to/author-components",
     "docs/how-to/write-markup",
@@ -56,6 +68,11 @@ items = [
     "docs/how-to/set-up-editors",
     "docs/how-to/configure-and-secure",
     "docs/how-to/package-and-deploy",
+]
+
+[[nav.groups]]
+label = "Understand"
+items = [
     "docs/concepts/compilation-model",
     "docs/concepts/pure-components",
     "docs/concepts/props-bodies-composition",
@@ -73,6 +90,11 @@ items = [
     "docs/concepts/performance-model",
     "docs/concepts/why-roc",
     "docs/glossary",
+]
+
+[[nav.groups]]
+label = "Reference"
+items = [
     "docs/reference/index",
     "docs/reference/language/index",
     "docs/reference/language/file-structure",
@@ -95,11 +117,21 @@ items = [
     "docs/reference/contributor/rocci-tree",
     "docs/reference/contributor/checklist",
     "docs/reference/contributor/first-use",
+]
+
+[[nav.groups]]
+label = "Troubleshooting"
+items = [
     "docs/troubleshooting/index",
     "docs/troubleshooting/install",
     "docs/troubleshooting/compile",
     "docs/troubleshooting/runtime",
     "docs/troubleshooting/preview",
+]
+
+[[nav.groups]]
+label = "Status"
+items = [
     "docs/status",
 ]
 
