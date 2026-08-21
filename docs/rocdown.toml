@@ -48,7 +48,6 @@ items = [
     "how-to/handle-requests-and-errors",
     "how-to/develop-and-inspect",
     "how-to/use-the-playground",
-    "how-to/use-the-project-browser",
     "how-to/set-up-editors",
     "how-to/configure-and-secure",
     "how-to/package-and-deploy",

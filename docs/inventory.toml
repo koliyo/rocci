@@ -49,8 +49,7 @@ live = "A module-level @live render that generates GET /sse for shared HTML upda
 datastar = "Browser transport for intent and morphing. Not a client application framework."
 rocdown = "Separate Markdown-first document product. Not part of the Rocci learning path."
 preview = "The Tao/Wry window that loads the same local HTTP origin as a browser."
-rocci_browse = "Component gallery (rocci browse). Distinct from rocci-browser."
-rocci_browser = "Project picker host binary. Linked as a tool, not part of the rocci CLI reference."
+rocci_browse = "Component gallery (rocci browse)."
 
 [ownership]
 manual = "docs/"
@@ -128,10 +127,9 @@ aliases = ["/guides/desktop-app/"]
 
 [[page]]
 path = "docs/guides/rocci-browser.rocdown"
-disposition = "move"
-target = "docs/how-to/use-the-project-browser.rocdown"
+disposition = "retire"
 aliases = ["/guides/rocci-browser/"]
-notes = "Tool how-to. Not a rocci CLI reference entry."
+notes = "Project browser product removed; no replacement how-to."
 
 [[page]]
 path = "docs/guides/rocdown-pages.rocdown"
