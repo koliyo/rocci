@@ -1,0 +1,19 @@
+# Example app origins. Host routing only.
+# Do not proxy /actions/*, /sse, or /health for rocci.dev here — those stay
+# on docker/cdn/Caddyfile for the hybrid site island.
+
+http:// {
+	@live-counter host live-counter.examples.rocci.dev live-counter.examples.staging.rocci.dev live-counter.examples.localhost
+	handle @live-counter {
+		reverse_proxy live-counter:8000 {
+			flush_interval -1
+		}
+	}
+
+	@datastar host datastar.examples.rocci.dev datastar.examples.staging.rocci.dev datastar.examples.localhost
+	handle @datastar {
+		reverse_proxy datastar:8000 {
+			flush_interval -1
+		}
+	}
+}
