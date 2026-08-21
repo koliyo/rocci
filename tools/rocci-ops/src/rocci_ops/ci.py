@@ -115,7 +115,17 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     )
                 ),
                 Step(("cargo", "check", "--manifest-path", "editors/zed/Cargo.toml")),
-                Step((str(root / "scripts" / "test-zed-extension.sh"),)),
+                Step(
+                    (
+                        "uv",
+                        "run",
+                        "--project",
+                        "tools/rocci-ops",
+                        "--no-dev",
+                        "rocci-ops",
+                        "verify-zed",
+                    )
+                ),
             ]
         )
         return steps
