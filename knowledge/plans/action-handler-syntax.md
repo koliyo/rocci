@@ -4,7 +4,7 @@ title: Semantic view, patch, command, and live handlers
 description: "Replace @on with @view, @patch, and @command beside @live; default mutations to POST; encode command result data with Roc; convert every existing source without compatibility aliases; and build a complete syntax matrix with the pinned Roc compiler."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/language-design, concern/developer-experience]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T10:43:01Z }
+generated: { by: process:cursor, at: 2026-08-21T10:54:09Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -236,6 +236,21 @@ name) so no generated path suggests that handlers return JSON text. A returned
 - The plan records the exact encoder API used by generated dispatch.
 - No author-written JSON interpolation remains in the proposed examples.
 
+**Encoder API (frozen)**
+
+The Phase 0 probe compiled both builtins through the same `basic-webserver`
+0.16.0 / `http` 1.0.0 platform imports as generated apps:
+
+| Call | Result | Use in generated dispatch |
+| --- | --- | --- |
+| `Encoding.Json.to_str(data)` | `Str` | total encoders only |
+| `Encoding.Json.to_str_try(data)` | `Try(Str, err)` | ordinary-client command success and host API error objects |
+
+Prefer `Encoding.Json.to_str_try(data) ?? fallback` (or an explicit `match` on
+the `Try`) so fallible encoders have an error path. No `import` is required;
+the names are Roc builtins. A returned `Str` encodes as a JSON string. Do not
+author `"{\"count\":...}"` interpolation in command bodies.[^roc-json]
+
 ## Phase 1 — AST, parser, recovery, and validation
 
 **Bound**
@@ -305,7 +320,7 @@ name) so no generated path suggests that handlers return JSON text. A returned
    ```text
    handler success
        +-- Datastar-Request: true --> 204, no serialization
-       `-- ordinary client --------> Json.to_str_try(data)
+       `-- ordinary client --------> Encoding.Json.to_str_try(data)
                                       +-- Ok --> 200 application/json
                                       `-- Err -> 500 JSON error
    ```
@@ -526,4 +541,4 @@ JSON-text branch or reinterpret `@command` data as wire bytes.
 [^hybrid-counter]: The Rocdown counter proves that islands consume the same generated handler dispatcher.
 [^template-readme]: The owning crate README documents the public standalone handler contract.
 [^server-actions]: The public guide teaches direct patches separately from live commands and is the primary DX migration surface.
-[^roc-json]: Roc documents `Json.to_str` for total encoders and `Json.to_str_try` for fallible encoders.
+[^roc-json]: Roc builtins `Encoding.Json.to_str` (total) and `Encoding.Json.to_str_try` (fallible `Try(Str, err)`) compiled against the pinned nightly and the Rocci generated-app platform.
