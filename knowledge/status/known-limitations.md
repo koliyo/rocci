@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T07:50:00Z }
+generated: { by: process:cursor, at: 2026-08-21T13:08:32Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -66,13 +66,18 @@ sources:
     title: rocci-browser macOS app and TUI removal plan
     author: process:cursor
     last_modified: 2026-08-20
+  - id: bws-sse
+    resource: ../research/basic-webserver-sse-http.md
+    title: basic-webserver 0.16 SSE and HTTP limits
+    author: process:cursor
+    last_modified: 2026-08-21
 ---
 
 # Known Rocci limitations
 
 ## Snapshot date
 
-2026-08-20.
+2026-08-21.
 
 ## Static documentation
 
@@ -85,6 +90,8 @@ Cmd/Ctrl-K fuzzy page navigation ships on Rocdown sites, rocci.dev, OKF review H
 Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed macOS `.app`. `rocci-browser` can assemble a separate ad-hoc **Rocci Browser.app** around `preview()`; that wrapper does not reuse `rocci bundle` or embed product adapters. Production signing, notarization, update delivery, Windows and Linux installers, tray and deep-link integration, and full platform CI remain absent.[^roadmap][^browser-guide][^macos-plan]
 
 The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^roadmap]
+
+Pinned **basic-webserver 0.16** still logs opaque HTTP/1.1 Body-stream errors on client abort of an open SSE, and plaintext `rocci run` stays on HTTP/1.1 (browsers do not use cleartext HTTP/2). Generated `@live` keepalives and empty SSE `@command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; Rocci does not fork the platform. Details: [basic-webserver SSE and HTTP](../research/basic-webserver-sse-http.md).[^bws-sse]
 
 ## Language and client behavior
 
@@ -105,3 +112,4 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^site-ref]: Pack-inferred custom kinds default to any children; helpers must not live in the pack.
 [^browser-guide]: rocci-browser ad-hoc .app is documented; production signing is planned.
 [^macos-plan]: Ad-hoc Rocci Browser.app; notarization stays later.
+[^bws-sse]: Host idle timeout, HTTP/1.1 on plaintext run, and disconnect log noise; Rocci keepalives and empty SSE are workarounds.

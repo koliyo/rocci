@@ -34,7 +34,7 @@ const ROLES: &[HandlerRole] = &[
         default_method: "POST",
         allowed_overrides: &["PUT", "PATCH", "DELETE"],
         success_value: "JSON-encodable data",
-        generated_response: "Datastar 204; otherwise encoded JSON",
+        generated_response: "Datastar empty SSE; otherwise encoded JSON",
     },
     HandlerRole {
         noun: "live",
@@ -105,7 +105,7 @@ fn freezes_four_declaration_roles() {
     assert_eq!(command.default_method, "POST");
     assert_eq!(command.allowed_overrides, ["PUT", "PATCH", "DELETE"]);
     assert_eq!(command.success_value, "JSON-encodable data");
-    assert!(command.generated_response.contains("204"));
+    assert!(command.generated_response.contains("empty SSE"));
     assert!(command.generated_response.contains("JSON"));
 
     let live = role("live");

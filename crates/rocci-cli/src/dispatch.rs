@@ -277,13 +277,8 @@ patch_html! = |node| {{
     )
 }}
 
-no_content =
-    Ok(
-        Server.respond(
-            Response.from_status(204)
-            .with_body([]),
-        ),
-    )
+empty_sse! = ||
+    Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
 
 json_ok = |body|
     Ok(
@@ -561,7 +556,8 @@ fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
                                 Ok(html) => {{
                                 {ok_log}rendered = Html.render(html)
                                     if rendered == prev {{
-                                        Ok(Wait({{ state: prev, wake: After(100) }}))
+                                        event = Sse.Event.data("")
+                                        Ok(Emit({{ event, state: prev, wake: After(100) }}))
                                     }} else {{
                                         event = Datastar.patch_elements(html)
                                         Ok(Emit({{ event, state: rendered, wake: After(100) }}))
@@ -630,7 +626,7 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             if datastar_request(request) {{
                 match {call} {{
                     Ok(_data) => {{
-                    {ok_log}no_content
+                    {ok_log}empty_sse!()
                     }}
                     Err(err) => {{
                     {err_log}Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
@@ -1024,10 +1020,15 @@ mod tests {
         assert!(main.contains("(\"GET\", \"/sse\")"), "{main}");
         assert!(main.contains("Counter.live!(context, request)"), "{main}");
         assert!(main.contains("Datastar.patch_elements"), "{main}");
+        assert!(main.contains("Sse.Event.data(\"\")"), "{main}");
+        assert!(
+            !main.contains("Ok(Wait({ state: prev, wake: After(100) }))"),
+            "{main}"
+        );
     }
 
     #[test]
-    fn command_encodes_data_and_negotiates_204() {
+    fn command_encodes_data_and_negotiates_empty_sse() {
         let main = generate_main_roc(
             "Counter",
             None,
@@ -1040,7 +1041,10 @@ mod tests {
         );
         assert!(main.contains("Datastar-Request"), "{main}");
         assert!(main.contains("datastar_request(request)"), "{main}");
-        assert!(main.contains("no_content"), "{main}");
+        assert!(main.contains("empty_sse!()"), "{main}");
+        assert!(main.contains("Ok(End)"), "{main}");
+        assert!(!main.contains("from_status(204)"), "{main}");
+        assert!(!main.contains("no_content"), "{main}");
         assert!(
             main.contains("Counter.on_post_actions_counter_increment!(context, request)"),
             "{main}"

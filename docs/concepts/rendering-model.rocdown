@@ -38,7 +38,7 @@ return fragments that the generated server encodes as Datastar patch events.
 | --- | --- | --- |
 | `@view` | `<html>...</html>` | Load or navigate a document |
 | `@patch` / `:put` / `:patch` / `:delete` | Element with a stable target | Patch matching DOM in the acting tab |
-| `@command` | Record or list | **204** when `Datastar-Request: true`; else `application/json` (signals, not the DOM) |
+| `@command` | Record or list | **Empty SSE** when `Datastar-Request: true`; else `application/json` (signals, not the DOM) |
 | `@live` | Fragment with a stable `id` | Generated `GET /sse` poll; every open tab morphs the region |
 
 This distinction prevents every fragment from carrying a document shell, CSS,
@@ -59,10 +59,11 @@ asset pipeline can extract the same `StyleArtifact` values and include them once
 
 An attribute such as `data-on:click=@post("/actions/save")` declares a browser
 event and backend request. `@patch` handlers return HTML; Datastar patches the
-matching element. `@command` returns Roc data; Datastar treats **204** as
-success with no morph and `application/json` as a **signal** patch. Shared
-multi-tab HTML updates use `@live`, which generates `GET /sse` (not an
-authored `main.roc` unfold).
+matching element. `@command` returns Roc data; Datastar treats **empty SSE**
+(or historically **204**) as success with no morph and `application/json` as a
+**signal** patch. Shared multi-tab HTML updates use `@live`, which generates
+`GET /sse` with keepalives on unchanged polls (not an authored `main.roc`
+unfold).
 
 This gives server-owned data one authoritative representation. It also means
 stable element IDs and focused fragment boundaries matter. Do not bind a
