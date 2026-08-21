@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
+use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo, command_json_fn_name};
 
 use crate::error_page::{self, ListedRoute};
 use crate::serve;
@@ -324,10 +324,12 @@ datastar_request = |request|
     out.push_str(&error_page::roc_runtime_helpers(&listed));
     out.push_str(
         r#"
+ApiError : { error : Str }
+
 json_error_body = |err| {
-    bs = html_join(Str.split_on(err, "\\"), "\\\\")
-    escaped = html_join(Str.split_on(bs, "\""), "\\\"")
-    "{\"error\":\"${escaped}\"}"
+    payload : ApiError
+    payload = { error: err }
+    Encoding.Json.to_str_try(payload) ?? "{\"error\":\"encoding failed\"}"
 }
 "#,
     );
@@ -620,29 +622,35 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             ok_log = ok_log,
             err_log = err_log,
         )
-    } else if route.respond == RespondKind::Json {
+    } else if route.respond == RespondKind::Command {
+        let json_handler = format!("{type_name}.{}", command_json_fn_name(&route.fn_name));
+        let json_call = format!("{json_handler}(context, request)");
         format!(
             r#"        ("{method}", "{path}") =>
-            match {call} {{
-                Ok(body) => {{
-                {ok_log}if datastar_request(request) {{
-                    no_content
-                }} else {{
-                    json_ok(body)
+            if datastar_request(request) {{
+                match {call} {{
+                    Ok(_data) => {{
+                    {ok_log}no_content
+                    }}
+                    Err(err) => {{
+                    {err_log}Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                    }}
                 }}
-                }}
-                Err(err) => {{
-                {err_log}if datastar_request(request) {{
-                    Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
-                }} else {{
-                    json_status(500, json_error_body(Str.inspect(err)))
-                }}
+            }} else {{
+                match {json_call} {{
+                    Ok(body) => {{
+                    {ok_log}json_ok(body)
+                    }}
+                    Err(err) => {{
+                    {err_log}json_status(500, json_error_body(Str.inspect(err)))
+                    }}
                 }}
             }}
 "#,
             method = route.method,
             path = route.path,
             call = call,
+            json_call = json_call,
             handler = handler,
             ok_log = ok_log,
             err_log = err_log,
@@ -690,12 +698,12 @@ mod tests {
         }
     }
 
-    fn route_json(method: &str, path: &str, fn_name: &str) -> RouteInfo {
+    fn route_command(method: &str, path: &str, fn_name: &str) -> RouteInfo {
         RouteInfo {
             method: method.to_string(),
             path: path.to_string(),
             fn_name: fn_name.to_string(),
-            respond: rocci_template::RespondKind::Json,
+            respond: rocci_template::RespondKind::Command,
             span: Span::new(0, 0),
         }
     }
@@ -1019,12 +1027,12 @@ mod tests {
     }
 
     #[test]
-    fn json_post_checks_datastar_request_header() {
+    fn command_encodes_data_and_negotiates_204() {
         let main = generate_main_roc(
             "Counter",
             None,
             None,
-            &[route_json(
+            &[route_command(
                 "POST",
                 "/actions/counter/increment",
                 "on_post_actions_counter_increment!",
@@ -1033,9 +1041,25 @@ mod tests {
         assert!(main.contains("Datastar-Request"), "{main}");
         assert!(main.contains("datastar_request(request)"), "{main}");
         assert!(main.contains("no_content"), "{main}");
+        assert!(
+            main.contains("Counter.on_post_actions_counter_increment!(context, request)"),
+            "{main}"
+        );
+        assert!(
+            main.contains("Counter.on_post_actions_counter_increment_json!(context, request)"),
+            "{main}"
+        );
+        assert!(!main.contains("Encoding.Json.to_str_try(data)"), "{main}");
         assert!(main.contains("json_ok(body)"), "{main}");
+        assert!(
+            main.contains("json_status(500, json_error_body(Str.inspect(err)))"),
+            "{main}"
+        );
+        assert!(main.contains("ApiError : { error : Str }"), "{main}");
+        assert!(main.contains("Encoding.Json.to_str_try(payload)"), "{main}");
         assert!(main.contains("application/json"), "{main}");
         assert!(!main.contains("Ok(patch_html!(html))"), "{main}");
+        assert!(!main.contains("{\"error\":\"${escaped}\"}"), "{main}");
     }
 
     #[test]

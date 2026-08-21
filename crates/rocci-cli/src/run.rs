@@ -577,6 +577,104 @@ mod tests {
     }
 
     #[test]
+    fn command_without_json_encoder_fails_roc_build() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-no-encoder");
+        fs::write(
+            dir.join("NoEncoder.rocci"),
+            r#"
+import Html
+
+@command("/x") {
+    Html.text("nope")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("NoEncoder.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        let err = crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .expect_err("command returning Html must fail JSON encoding");
+        let message = format!("{err:#}");
+        assert!(
+            message.contains("encoder")
+                || message.contains("Json")
+                || message.contains("Encoding")
+                || message.contains("to_str_try"),
+            "failure should mention JSON encoding, got {message}"
+        );
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn command_record_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-record");
+        fs::write(
+            dir.join("Cmd.rocci"),
+            r#"
+import Html
+
+@command("/x") = |_state| {
+    { count: 0.I64 }
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("Cmd.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("command record roc build failed: {err:#}"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn command_str_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-str");
+        fs::write(
+            dir.join("Cmd.rocci"),
+            r#"
+import Html
+
+@command("/x") = |_state| {
+    "ok"
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("Cmd.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("command str roc build failed: {err:#}"));
+        cleanup(&dir);
+    }
+
+    #[test]
     fn resolve_entry_uses_file_name_and_parent_dir() {
         let dir = temp_app("file");
         let main = dir.join("main.roc");

@@ -365,8 +365,15 @@ live! = |state, _request| {
 
 on_post_actions_increment! = |state, _request| {
     rocci_value = {
-        "{\"count\": 0}"
+        { count: 0 }
     }
     Ok(rocci_value)
+}
+
+on_post_actions_increment_json! = |state, request| {
+    match on_post_actions_increment!(state, request) {
+        Ok(data) => Encoding.Json.to_str_try(data)
+        Err(err) => Err(err)
+    }
 }
 

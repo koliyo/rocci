@@ -46,7 +46,7 @@ import Html
         Ok({}) => {}
         Err(_) => {}
     }
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 
 @command("/actions/counter/reset") = |{ db }| {
@@ -55,7 +55,7 @@ import Html
         Ok({}) => {}
         Err(_) => {}
     }
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 
 read_count! = |db| {

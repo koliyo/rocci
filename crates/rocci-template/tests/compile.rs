@@ -1307,7 +1307,7 @@ fn lowers_live_and_json_post() {
 }
 
 @command("/actions/increment") = |state| {
-    "{\"count\": 0}"
+    { count: 0 }
 }
 
 @patch("/actions/reset") = |state| {
@@ -1322,8 +1322,17 @@ fn lowers_live_and_json_post() {
     assert!(out.live.is_some());
     assert!(out.roc.contains("live! = |state, _request| {"));
     assert_eq!(out.routes.len(), 2);
-    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Json);
+    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Command);
     assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Patch);
+    assert!(
+        out.roc
+            .contains("on_post_actions_increment! = |state, _request| {")
+    );
+    assert!(
+        out.roc
+            .contains("on_post_actions_increment_json! = |state, request| {")
+    );
+    assert!(out.roc.contains("Encoding.Json.to_str_try(data)"));
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(live"));
     assert!(ast.contains("(command POST \"/actions/increment\""));
@@ -1492,12 +1501,12 @@ fn live_counter_example_compiles_as_standalone_app() {
     assert!(out.routes.iter().any(|route| {
         route.method == "POST"
             && route.path == "/actions/counter/increment"
-            && route.respond == rocci_template::RespondKind::Json
+            && route.respond == rocci_template::RespondKind::Command
     }));
     assert!(out.routes.iter().any(|route| {
         route.method == "POST"
             && route.path == "/actions/counter/reset"
-            && route.respond == rocci_template::RespondKind::Json
+            && route.respond == rocci_template::RespondKind::Command
     }));
     assert!(out.roc.contains(
         "Html.attribute(\"data-init\", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])),"
