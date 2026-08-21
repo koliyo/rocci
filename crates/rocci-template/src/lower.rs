@@ -1027,7 +1027,7 @@ impl<'a> Emitter<'a> {
         self.emit_html(".attribute(");
         self.emit_string("data-init", Span::point(0), OriginKind::Scaffolding);
         self.emit(", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])");
-        self.emit(",\n");
+        self.emit("),\n");
     }
 
     fn lower_call(&mut self, call: &ComponentCall, body_params: &[String]) {
