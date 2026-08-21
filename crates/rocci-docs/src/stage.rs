@@ -78,7 +78,7 @@ fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, 
         })?;
         written += 1;
 
-        let page_rel = format!("{}.rocdown", file.relative);
+        let page_rel = source_page_rel(&file.relative);
         let page_path = app_out.join("source").join(page_rel);
         if let Some(parent) = page_path.parent() {
             fs::create_dir_all(parent).map_err(|source| DocsError::Io {
@@ -210,7 +210,7 @@ fn source_index(app: &AppEntry, files: &[PublishedFile]) -> String {
         let href = format!(
             "/examples/{id}/source/{path}/",
             id = app.id,
-            path = file.relative
+            path = source_page_id(&file.relative)
         );
         items.push_str(&format!("- [{name}]({href})\n", name = file.relative));
     }
@@ -251,6 +251,14 @@ See the [{title} tutorial](/examples/{id}/) for context.
         id = app.id,
         include = file.relative,
     )
+}
+
+fn source_page_rel(relative: &str) -> String {
+    format!("{}.rocdown", source_page_id(relative))
+}
+
+fn source_page_id(relative: &str) -> String {
+    relative.replace('/', "--").replace('.', "-")
 }
 
 fn escape_text(text: &str) -> String {

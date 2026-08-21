@@ -1,0 +1,15 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Snake",
+        description: "Custom main.roc multiplayer stress demo",
+    },
+}
+
+# Snake
+
+Docs-only stress demo. See [source](/examples/snake/source/).
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
+```

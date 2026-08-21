@@ -1209,15 +1209,8 @@ layout = "docs"
             .iter()
             .map(|page| page.id.as_str())
             .collect();
-        assert!(
-            ids.contains(&"examples/counter/index"),
-            "{ids:?}"
-        );
-        assert!(
-            ids.iter()
-                .any(|id| id.contains("Counter.rocci")),
-            "{ids:?}"
-        );
+        assert!(ids.contains(&"examples/counter/index"), "{ids:?}");
+        assert!(ids.iter().any(|id| id.contains("Counter.rocci")), "{ids:?}");
         assert!(!ids.iter().any(|id| id.contains("unlisted")));
 
         let source_page = resolved

@@ -1,0 +1,15 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Styling",
+        description: "File-level and component-scoped CSS",
+    },
+}
+
+# Styling
+
+Colocated CSS isolation. See [source](/examples/styling/source/).
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling/Styling.rocci
+```

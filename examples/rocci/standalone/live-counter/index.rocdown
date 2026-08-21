@@ -1,0 +1,16 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Live counter",
+        description: "Commands plus a shared stream",
+    },
+}
+
+# Live counter
+
+Shared-stream sibling of the [counter](/examples/counter/). See
+[source](/examples/live-counter/source/).
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/live-counter/LiveCounter.rocci
+```

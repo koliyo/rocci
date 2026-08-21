@@ -20,6 +20,11 @@ source = "../docs"
 prefix = "docs"
 layout = "docs"
 
+[[mount]]
+source = "../dist/example-docs"
+prefix = "examples"
+layout = "docs"
+
 [[nav]]
 label = "Docs"
 directory = "docs"
@@ -43,8 +48,14 @@ items = [
     "docs/reference/configuration",
     "docs/reference/rocdown-site",
     "docs/playground",
-    "docs/examples/index",
     "docs/troubleshooting",
+]
+
+[[nav]]
+label = "Examples"
+directory = "examples"
+items = [
+    "examples/index",
 ]
 
 [[nav]]
