@@ -57,6 +57,5 @@ items = [
 label = "Resources"
 items = [
     "playground",
-    "examples/index",
     "troubleshooting",
 ]

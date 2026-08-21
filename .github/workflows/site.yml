@@ -44,6 +44,24 @@ jobs:
           ROC_PREFIX="$prefix" ROC_LINK_DIR="$link_dir" ./docker/install-roc.sh
           echo "$prefix" >> "$GITHUB_PATH"
           echo "$link_dir" >> "$GITHUB_PATH"
+      - name: Stage example docs
+        run: cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
+      - name: Build live example apps
+        run: |
+          set -euo pipefail
+          cargo run -q -p rocci-cli -- build --release \
+            examples/rocci/standalone/live-counter/LiveCounter.rocci \
+            --target x64musl \
+            --output dist/examples-live/live-counter
+          cargo run -q -p rocci-cli -- build --release \
+            examples/rocci/custom/datastar \
+            --target x64musl \
+            --output dist/examples-live/datastar
+          test -f dist/examples-live/live-counter/server
+          test -f dist/examples-live/datastar/server
+          test ! -e dist/examples-live/counter
+          test ! -e dist/examples-live/snake
+          test ! -e dist/examples-live/styling
       - name: Package hybrid site
         run: cargo run -q -p rocci-rocdown-cli -- package site --target x64musl
       - name: Upload linux/amd64 artifacts
@@ -55,6 +73,8 @@ jobs:
             dist/site.tgz
             dist/islands
             dist/rocci.dev/publish.json
+            dist/examples-live/live-counter/server
+            dist/examples-live/datastar/server
 
   deploy:
     name: Push artifacts (${{ github.ref_name }})
