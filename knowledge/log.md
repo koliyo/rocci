@@ -2,6 +2,11 @@
 
 ## 2026-08-21
 
+- Moved `site.yml` package and origin deploy off `main` onto `staging` and
+  `production` so `main` can land PRs without publishing. Promote with
+  `git push origin origin/main:staging` then
+  `origin/staging:production`. Not logged complete until a `staging` push
+  succeeds.
 - Implemented Phases 1–6 of the [Python and uv operator pipeline](plans/python-uv-ops-pipeline.md) on `python-uv-ops-pipeline`: `tools/rocci-ops` owns CI jobs, release packaging, deploy/origin, and local maintainer commands. POSIX remains for container entrypoints, `install-roc.sh`, and `access-ssh-proxy.sh`. Findings: [Python uv migration](research/python-uv-ops-pipeline.md). Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Implemented Phases 1–5 of [generated CQRS / `@live`](plans/datastar-cqrs-action-responses.md) on `datastar-cqrs-action-responses`: grammar, generated `/sse` and `data-init`, live-counter plus hybrid island, public docs and author skill. Phase 6 aligns `$rocci-stack` and knowledge indexes. Not logged complete until CI and Knowledge workflows succeed on that revision.
 - Added draft [Datastar SSE vs multi-client fan-out](research/datastar-cqrs-action-responses.md) research and [generated CQRS / JSON commands plan](plans/datastar-cqrs-action-responses.md): generated `@post` is a one-shot patch to the acting tab; Datastar CQRS is a long-lived `GET /sse` plus 204 or JSON commands; domain JSON must not be sent to Datastar as a HTML morph. Exploratory; no phase started.
