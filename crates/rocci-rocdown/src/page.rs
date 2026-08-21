@@ -688,10 +688,7 @@ pub fn import_local_name(src: &str, span: Span) -> Option<String> {
     cur.eat_str("import");
     cur.skip_trivia();
     let mut last = None;
-    loop {
-        let Some(ident) = cur.scan_ident() else {
-            break;
-        };
+    while let Some(ident) = cur.scan_ident() {
         last = Some(cur.ident_text(ident).to_string());
         cur.skip_trivia();
         if cur.peek() == Some('.') {

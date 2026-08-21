@@ -81,10 +81,12 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             }
             ModuleItem::View(view) => {
                 validate_route_handler(
-                    src,
-                    diagnostics,
-                    &mut has_record_handler,
-                    &mut routes,
+                    &mut RouteValidation {
+                        src,
+                        diagnostics,
+                        has_record_handler: &mut has_record_handler,
+                        routes: &mut routes,
+                    },
                     "view",
                     "get",
                     &view.path,
@@ -99,10 +101,12 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                     .map(|ident| ident.name.as_str())
                     .unwrap_or("post");
                 validate_route_handler(
-                    src,
-                    diagnostics,
-                    &mut has_record_handler,
-                    &mut routes,
+                    &mut RouteValidation {
+                        src,
+                        diagnostics,
+                        has_record_handler: &mut has_record_handler,
+                        routes: &mut routes,
+                    },
                     "patch",
                     method,
                     &patch.path,
@@ -117,10 +121,12 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                     .map(|ident| ident.name.as_str())
                     .unwrap_or("post");
                 validate_route_handler(
-                    src,
-                    diagnostics,
-                    &mut has_record_handler,
-                    &mut routes,
+                    &mut RouteValidation {
+                        src,
+                        diagnostics,
+                        has_record_handler: &mut has_record_handler,
+                        routes: &mut routes,
+                    },
                     "command",
                     method,
                     &command.path,
@@ -194,11 +200,15 @@ fn handler_has_record_params(src: &str, params: Option<Span>) -> bool {
     parse_component_params(src, params).first_param_is_record
 }
 
-fn validate_route_handler<'a>(
+struct RouteValidation<'a, 'd> {
     src: &'a str,
-    diagnostics: &mut Vec<Diagnostic>,
-    has_record_handler: &mut bool,
-    routes: &mut Vec<(&'a str, &'a str, Span)>,
+    diagnostics: &'d mut Vec<Diagnostic>,
+    has_record_handler: &'d mut bool,
+    routes: &'d mut Vec<(&'a str, &'a str, Span)>,
+}
+
+fn validate_route_handler<'a, 'd>(
+    validation: &mut RouteValidation<'a, 'd>,
     noun: &str,
     method: &'a str,
     path: &'a str,
@@ -206,29 +216,33 @@ fn validate_route_handler<'a>(
     span: Span,
 ) {
     if let Some(params) = params
-        && handler_param_arity(params.of(src)) > 2
+        && handler_param_arity(params.of(validation.src)) > 2
     {
-        diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error(
             params,
             format!("`@{noun}` handlers take at most two parameters: state and request"),
         ));
     }
-    if handler_has_record_params(src, params) {
-        *has_record_handler = true;
+    if handler_has_record_params(validation.src, params) {
+        *validation.has_record_handler = true;
     }
     if path.is_empty() {
         return;
     }
-    if let Some((_, _, _)) = routes.iter().find(|(existing_method, existing_path, _)| {
-        *existing_method == method && *existing_path == path
-    }) {
+    if let Some((_, _, _)) = validation
+        .routes
+        .iter()
+        .find(|(existing_method, existing_path, _)| {
+            *existing_method == method && *existing_path == path
+        })
+    {
         let header = route_header(noun, method, path);
-        diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error(
             span,
             format!("duplicate `{header}` handler"),
         ));
     } else {
-        routes.push((method, path, span));
+        validation.routes.push((method, path, span));
     }
 }
 

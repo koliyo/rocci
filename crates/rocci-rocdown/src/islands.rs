@@ -53,8 +53,10 @@ pub fn evaluate_page(
     src: &str,
     service: Option<&Path>,
 ) -> Result<EvaluatedIslands> {
-    let mut lower = LowerOptions::default();
-    lower.embed_css = false;
+    let lower = LowerOptions {
+        embed_css: false,
+        ..LowerOptions::default()
+    };
     let compiled = compile_islands(
         SourceFile::new(source_name, src),
         &CompileOptions {
@@ -180,21 +182,21 @@ fn render_islands(
             crate::runtime::DATASTAR.as_bytes(),
         ));
     }
-    if let Some(service_path) = service {
-        if let Some(dir) = service_path.parent() {
-            for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
-                let path = entry.path();
-                if path.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
-                    continue;
-                }
-                let name = type_name_from_path(&path);
-                let staged = workspace.join(format!("{name}.roc"));
-                if !staged.is_file() {
-                    continue;
-                }
-                if let Ok(bytes) = fs::read(&staged) {
-                    fingerprints.push(InputFingerprint::from_bytes(&format!("{name}.roc"), &bytes));
-                }
+    if let Some(service_path) = service
+        && let Some(dir) = service_path.parent()
+    {
+        for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+                continue;
+            }
+            let name = type_name_from_path(&path);
+            let staged = workspace.join(format!("{name}.roc"));
+            if !staged.is_file() {
+                continue;
+            }
+            if let Ok(bytes) = fs::read(&staged) {
+                fingerprints.push(InputFingerprint::from_bytes(&format!("{name}.roc"), &bytes));
             }
         }
     }

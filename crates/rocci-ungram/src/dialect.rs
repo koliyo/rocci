@@ -148,10 +148,10 @@ fn production_names(grammar: &Grammar) -> Vec<String> {
 
 fn check_rule_shape(grammar: &Grammar, node: Node) -> Result<(), Error> {
     let name = &grammar[node].name;
-    check_rule(grammar, name, &grammar[node].rule, false)
+    check_rule(name, &grammar[node].rule, false)
 }
 
-fn check_rule(grammar: &Grammar, name: &str, rule: &Rule, in_alt: bool) -> Result<(), Error> {
+fn check_rule(name: &str, rule: &Rule, in_alt: bool) -> Result<(), Error> {
     match rule {
         Rule::Alt(alts) => {
             if in_alt {
@@ -170,7 +170,7 @@ fn check_rule(grammar: &Grammar, name: &str, rule: &Rule, in_alt: bool) -> Resul
                             "nested anonymous alternative in {name}"
                         )));
                     }
-                    other => check_rule(grammar, name, other, true)?,
+                    other => check_rule(name, other, true)?,
                 }
             }
             if saw_node && saw_token {
@@ -180,16 +180,14 @@ fn check_rule(grammar: &Grammar, name: &str, rule: &Rule, in_alt: bool) -> Resul
             }
             Ok(())
         }
-        Rule::Rep(inner) => check_rule(grammar, name, inner, in_alt),
+        Rule::Rep(inner) => check_rule(name, inner, in_alt),
         Rule::Seq(rules) => {
             for rule in rules {
-                check_rule(grammar, name, rule, in_alt)?;
+                check_rule(name, rule, in_alt)?;
             }
             Ok(())
         }
-        Rule::Opt(inner) | Rule::Labeled { rule: inner, .. } => {
-            check_rule(grammar, name, inner, in_alt)
-        }
+        Rule::Opt(inner) | Rule::Labeled { rule: inner, .. } => check_rule(name, inner, in_alt),
         Rule::Node(_) | Rule::Token(_) => Ok(()),
     }
 }
@@ -380,7 +378,7 @@ fn lower_struct(
             fields: leaf_struct_fields(leaf)?,
         });
     }
-    if is_token_leaf_rule(rule) && sidecar.leaves.get(name).is_none() {
+    if is_token_leaf_rule(rule) && !sidecar.leaves.contains_key(name) {
         return Err(Error::Dialect(format!(
             "leaf {name} has no [leaves] rust type"
         )));
