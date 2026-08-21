@@ -110,7 +110,7 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: deps-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Mechanical one-way workspace dependency check
     author: process:cursor
     last_modified: 2026-08-19
@@ -279,9 +279,9 @@ Requires research gate 1.
   `target/release/bundle/macos/Rocci Browser.app`, writes `Info.plist` /
   `PkgInfo`, installs `AppIcon.icns` generated from
   `rocci-desktop`'s 1024 PNG (`iconutil` on Darwin), and ad-hoc codesigns.[^icon-rs][^desktop-readme]
-- Maintainer script `scripts/bundle-browser-macos.sh`: Darwin-only; `cargo
+- Maintainer script `uv run rocci-ops bundle browser-macos`: Darwin-only; `cargo
   build --release -p rocci-browser`; invoke the package command. Mirror
-  `scripts/bundle-macos.sh` without calling `rocci bundle`.
+  `uv run rocci-ops bundle macos` without calling `rocci bundle`.
 - Plist keys: `CFBundleDisplayName` Rocci Browser, `CFBundleExecutable`
   `rocci-browser`, `CFBundleIdentifier` `dev.rocci.browser`,
   `CFBundleIconFile`, `LSMinimumSystemVersion` 12.0, `NSHighResolutionCapable`.

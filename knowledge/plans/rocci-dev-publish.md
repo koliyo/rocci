@@ -65,7 +65,7 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: ci-local
-    resource: ../../scripts/ci-local.sh
+    resource: ../../tools/rocci-ops/src/rocci_ops/ci.py
     title: Local CI job runner
     author: process:git
     last_modified: 2026-08-19
@@ -347,13 +347,13 @@ origin Caddy from CI deploy.
 
 ### Phase 1 — CI packages `site/` without deploying
 
-**Bound:** GitHub Actions, `scripts/ci-local.sh`, README. No VPS, no secrets
+**Bound:** GitHub Actions, `uv run rocci-ops ci`, README. No VPS, no secrets
 beyond the existing checkout.
 
 **Does:**
 
 - Add `rocdown check site` next to `check docs` in `fixtures-and-docs` and
-  `ci-local.sh`.[^ci-workflow][^ci-local]
+  `uv run rocci-ops ci`.[^ci-workflow][^ci-local]
 - Add `.github/workflows/site.yml`:
   - `on: pull_request` and `push` (or path filters on `site/`, `docs/`,
     theme crates, `docker/`).
@@ -377,11 +377,11 @@ beyond the existing checkout.
 ```text
 cargo run -q -p rocci-rocdown-cli -- check site
 cargo run -q -p rocci-rocdown-cli -- check docs
-./scripts/ci-local.sh fixtures-and-docs
+uv run rocci-ops ci fixtures-and-docs
 ```
 
 A GitHub `site.yml` run on the same revision uploads linux/amd64 artifacts.
-`package` is not required in `ci-local.sh` unless Roc is on `PATH`.
+`package` is not required in `uv run rocci-ops ci` unless Roc is on `PATH`.
 
 **Status:** implemented in this revision (`check site`, `site.yml` package-only
 artifacts, README). Not logged complete until CI and Knowledge succeed on the

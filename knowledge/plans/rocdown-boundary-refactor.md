@@ -35,7 +35,7 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: architecture-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction check
     author: process:cursor
     last_modified: 2026-08-17
@@ -134,7 +134,7 @@ day.[^boundary]
 3. No compatibility period: no dual `rocs.toml` parser, no `rocs` shim, and no
    published deprecation release. Branch-local overlap is allowed only until
    parity, then `rocs` names are deleted in the same series.
-4. Encode dependency rules in `scripts/check-workspace-deps.py` over
+4. Encode dependency rules in `tools/rocci-ops/src/rocci_ops/workspace_deps.py` over
    `cargo metadata`, with today's reverse edges allowlisted until Phase 3.[^architecture-check]
 5. Freeze diagnostic-code policy: keep existing `RDxxxx` allocations; change
    user-facing "Rocs" strings only at the Phase 4 product switch.
@@ -234,7 +234,7 @@ apart from approved naming, metadata, and asset-path changes.
    `rocci-rocdown-cli`, and any in-flight tools to consume `rocci-desktop`.
 3. Update module-level docs and Rust import paths (`use rocci_desktop::...`)
    across the codebase.
-4. Update `scripts/check-workspace-deps.py` so `BASE_ROCCI` classifies
+4. Update `tools/rocci-ops/src/rocci_ops/workspace_deps.py` so `BASE_ROCCI` classifies
    `rocci-desktop`.
 5. Update repository documentation, contributor guides, and agent instructions
    (`AGENTS.md`) referencing `rocci-wry`.
