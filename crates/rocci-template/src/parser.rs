@@ -1,8 +1,8 @@
 use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
     CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
-    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, PatchDecl,
-    TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem,
+    PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor, is_ident_start};
@@ -201,15 +201,20 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_css(&mut self) -> Option<CssDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         self.scan_at_keyword("css")?;
-        Some(self.parse_css_after_keyword(start))
+        let mut decl = self.parse_css_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn parse_css_after_keyword(&mut self, start: usize) -> CssDecl {
         self.cur.skip_trivia();
         let body = self.scan_css_block();
         CssDecl {
+            leading: None,
             body,
             span: Span::new(start, self.cur.pos),
         }
@@ -280,9 +285,13 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_context(&mut self) -> Option<ContextDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         self.scan_at_keyword("context")?;
-        Some(self.parse_context_after_keyword(start))
+        let mut decl = self.parse_context_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn parse_context_after_keyword(&mut self, start: usize) -> ContextDecl {
@@ -295,6 +304,7 @@ impl<'a> Parser<'a> {
             );
         }
         ContextDecl {
+            leading: None,
             ty,
             span: Span::new(start, self.cur.pos),
         }
@@ -314,9 +324,13 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_init(&mut self) -> Option<InitDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         self.scan_at_keyword("init")?;
-        Some(self.parse_init_after_keyword(start))
+        let mut decl = self.parse_init_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn parse_init_after_keyword(&mut self, start: usize) -> InitDecl {
@@ -332,15 +346,20 @@ impl<'a> Parser<'a> {
             }
         };
         InitDecl {
+            leading: None,
             body,
             span: Span::new(start, self.cur.pos),
         }
     }
 
     fn try_parse_live(&mut self) -> Option<LiveDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         self.scan_at_keyword("live")?;
-        Some(self.parse_live_after_keyword(start))
+        let mut decl = self.parse_live_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn parse_live_after_keyword(&mut self, start: usize) -> LiveDecl {
@@ -368,6 +387,7 @@ impl<'a> Parser<'a> {
             }
         };
         LiveDecl {
+            leading: None,
             params,
             body,
             span: Span::new(start, self.cur.pos),
@@ -375,7 +395,7 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_route(&mut self) -> Option<ModuleItem> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         let saved = Snapshot::from(&self.cur);
         if !self.cur.eat('@') {
             return None;
@@ -393,7 +413,8 @@ impl<'a> Parser<'a> {
                 return None;
             }
         };
-        Some(self.parse_route_after_keyword(start, kind))
+        let item = self.parse_route_after_keyword(at, kind);
+        Some(self.attach_route_leading(at, item))
     }
 
     fn parse_route_after_keyword(&mut self, start: usize, kind: RouteKind) -> ModuleItem {
@@ -805,9 +826,13 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_fixture(&mut self) -> Option<FixtureDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         self.scan_at_keyword("fixture")?;
-        Some(self.parse_fixture_after_keyword(start))
+        let mut decl = self.parse_fixture_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn parse_fixture_after_keyword(&mut self, start: usize) -> FixtureDecl {
@@ -838,6 +863,7 @@ impl<'a> Parser<'a> {
             );
         }
         FixtureDecl {
+            leading: None,
             span: Span::new(start, self.cur.pos),
             name,
             target,
@@ -1000,6 +1026,7 @@ impl<'a> Parser<'a> {
     fn empty_fixture(&mut self, start: usize, target: ComponentPath) -> FixtureDecl {
         let pos = self.cur.pos;
         FixtureDecl {
+            leading: None,
             name: Ident {
                 span: Span::point(pos),
                 name: String::new(),
@@ -1011,9 +1038,13 @@ impl<'a> Parser<'a> {
     }
 
     fn try_parse_component(&mut self) -> Option<ComponentDecl> {
-        let start = self.cur.pos;
+        let at = self.cur.pos;
         if self.scan_at_component().is_some() {
-            return Some(self.parse_component_after_keyword(start));
+            let mut decl = self.parse_component_after_keyword(at);
+            let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+            decl.leading = leading;
+            decl.span = span;
+            return Some(decl);
         }
 
         let name_span = self.cur.scan_ident()?;
@@ -1030,7 +1061,11 @@ impl<'a> Parser<'a> {
             name_span,
             "expected `@component` at the start of the declaration; write `@component Name = |params|`",
         );
-        Some(self.parse_component_rest(start, name_span, name))
+        let mut decl = self.parse_component_rest(at, name_span, name);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
     }
 
     fn scan_at_component(&mut self) -> Option<Span> {
@@ -1081,6 +1116,7 @@ impl<'a> Parser<'a> {
             );
             self.sync_to_next_top_level();
             return ComponentDecl {
+                leading: None,
                 name: Ident {
                     span: Span::point(self.cur.pos),
                     name: String::new(),
@@ -1120,6 +1156,7 @@ impl<'a> Parser<'a> {
                 );
                 self.sync_to_next_top_level();
                 return ComponentDecl {
+                    leading: None,
                     name: Ident {
                         span: name_span,
                         name,
@@ -1137,6 +1174,7 @@ impl<'a> Parser<'a> {
         self.cur.skip_trivia();
         let body = self.parse_component_body();
         ComponentDecl {
+            leading: None,
             span: Span::new(start, self.cur.pos),
             name: Ident {
                 span: name_span,
@@ -2292,6 +2330,40 @@ impl<'a> Parser<'a> {
                 | "action"
         )
     }
+
+    fn finish_leading(&self, at: usize, end: usize) -> (Option<LeadingComments>, Span) {
+        match lexer::leading_comments_before(self.src(), at) {
+            Some(leading) => {
+                let span = Span::new(leading.span.start as usize, end);
+                (Some(leading), span)
+            }
+            None => (None, Span::new(at, end)),
+        }
+    }
+
+    fn attach_route_leading(&self, at: usize, item: ModuleItem) -> ModuleItem {
+        match item {
+            ModuleItem::View(mut decl) => {
+                let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+                decl.leading = leading;
+                decl.span = span;
+                ModuleItem::View(decl)
+            }
+            ModuleItem::Patch(mut decl) => {
+                let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+                decl.leading = leading;
+                decl.span = span;
+                ModuleItem::Patch(decl)
+            }
+            ModuleItem::Command(mut decl) => {
+                let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+                decl.leading = leading;
+                decl.span = span;
+                ModuleItem::Command(decl)
+            }
+            other => other,
+        }
+    }
 }
 
 fn empty_path(pos: usize) -> ComponentPath {
@@ -2329,6 +2401,7 @@ impl RouteKind {
     fn to_item(self, parsed: ParsedRoute) -> ModuleItem {
         match self {
             Self::View => ModuleItem::View(ViewDecl {
+                leading: None,
                 path: parsed.path,
                 path_span: parsed.path_span,
                 params: parsed.params,
@@ -2336,6 +2409,7 @@ impl RouteKind {
                 span: parsed.span,
             }),
             Self::Patch => ModuleItem::Patch(PatchDecl {
+                leading: None,
                 method: parsed.method,
                 path: parsed.path,
                 path_span: parsed.path_span,
@@ -2344,6 +2418,7 @@ impl RouteKind {
                 span: parsed.span,
             }),
             Self::Command => ModuleItem::Command(CommandDecl {
+                leading: None,
                 method: parsed.method,
                 path: parsed.path,
                 path_span: parsed.path_span,

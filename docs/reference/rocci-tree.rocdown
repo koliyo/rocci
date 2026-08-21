@@ -27,6 +27,7 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `ContextDecl` | `context` | generated |
 | `CssDecl` | `css` | generated |
 | `CssPayload` | — | leaf |
+| `DocComment` | omit | leaf |
 | `Document` | `module` | generated |
 | `Element` | `element` | generated |
 | `ElseIf` | `else-if` | inline |
@@ -38,7 +39,9 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `IfDirective` | `if` | generated |
 | `InitDecl` | `init` | generated |
 | `Interpolation` | `interp` | generated |
+| `LeadingComments` | `leading` | generated |
 | `LetDirective` | `let` | generated |
+| `LineComment` | omit | leaf |
 | `LiveDecl` | `live` | generated |
 | `MatchArm` | `arm` | generated |
 | `MatchDirective` | `match` | generated |
