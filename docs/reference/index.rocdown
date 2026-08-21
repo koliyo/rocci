@@ -23,4 +23,7 @@ Each contract has one owner. Tutorials and how-tos summarize and link here.
 - [Status](/docs/status/) — experimental labels and known limits
 - [Contributor tree appendix](/docs/reference/contributor/rocci-tree/) — AST inspect tags
 
+Task recipes: [How to](/docs/how-to/). Mental models: [compilation](/docs/concepts/compilation-model/).
+Terms: [Glossary](/docs/glossary/).
+
 Rocdown language, site config, and `rocdown` CLI live on the [Rocdown product lane](/rocdown/).

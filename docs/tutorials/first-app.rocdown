@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/server-actions/", "/docs/guides/server-actions/"],
     meta: {
         title: "Build your first standalone app",
         description: "Add @context, @init, @view, a one-shot @patch, persistent SQLite state, errors, and logging in the cataloged counter.",
@@ -116,5 +115,6 @@ Generated dispatch calls `init!`, serves the document, wraps the patch in one
 SSE event, and closes. It did not open `/sse`. That is the live-counter
 tutorial.
 
-Next: [compose](/docs/tutorials/compose/) or compare with
+Next: [compose](/docs/tutorials/compose/),
+[Update the UI](/docs/how-to/update-the-ui/), or compare with
 [live-counter](/examples/live-counter/).

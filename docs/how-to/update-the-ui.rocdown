@@ -1,0 +1,53 @@
+@page {
+    layout: "docs",
+    aliases: ["/guides/server-actions/", "/docs/guides/server-actions/"],
+    meta: {
+        title: "Update the UI",
+        description: "Choose a one-shot @patch, a @command data response, or a shared @live stream for a mutation.",
+    },
+}
+
+# Update the UI
+
+**Prerequisites:** [first standalone app](/docs/tutorials/first-app/).
+**You will do:** pick the handler kind that matches the intended browser result.
+**Verify:** counter increment patches `#counter`; a `@command` returns empty SSE to Datastar.
+**Next:** [Handle requests and errors](/docs/how-to/handle-requests-and-errors/) or
+[Runtime](/docs/reference/runtime/).
+
+`@on` is **removed**. Write `@view`, `@patch`, `@command`, or `@live`.
+
+## Choose a shape
+
+| Goal | Declaration | Browser result |
+| --- | --- | --- |
+| Replace HTML in the acting tab | `@patch("path")` | One-shot `datastar-patch-elements` |
+| Return data, no morph | `@command("path")` | **empty SSE** to Datastar; JSON to other clients |
+| Shared HTML for every open tab | `@live` | Generated `GET /sse` |
+
+Default mutation method is POST. Spell `:put`, `:patch`, or `:delete` when the
+verb must differ. `@patch:post` is rejected. GET is rejected on `@patch` and
+`@command`.
+
+Canonical one-shot: [Counter](/examples/counter/).
+Canonical stream: [Live counter](/examples/live-counter/).
+Complete matrix: [Handler matrix](/examples/handler-matrix/).
+
+## Wire the button
+
+```rocci
+<button data-on:click=@post("/actions/inc")>Inc</button>
+```
+
+`@post("/path")` is a Rocci action (Roc string, double quotes). A second
+argument is a list of Datastar options. Quoted `"@post('…')"` is opaque
+Datastar JS, not a Rocci action.
+
+For row-specific URLs, make the attribute a Roc expression. A static quoted
+string does not interpolate a `@for` binder.
+
+Do not morph the same `id` from both a `@command` and `@live`. Do not bind a
+visible count to `$count` to “reuse” JSON; HTML is the document, JSON is data.
+
+**Related:** [Datastar as transport](/docs/concepts/datastar-as-transport/),
+[One-shot versus live](/docs/concepts/one-shot-versus-live/).

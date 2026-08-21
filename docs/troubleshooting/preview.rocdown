@@ -1,0 +1,35 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Preview failures",
+        description: "Recover when the preview window does not open, Linux WebKitGTK is missing, or the Dev Console is empty.",
+    },
+}
+
+# Preview failures
+
+**Prerequisites:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
+
+## The preview window does not open
+
+Run the same app with `--no-window` and open the printed URL in a browser. If
+the browser works, the HTTP server is fine: check platform Wry dependencies.
+On Linux, WebKitGTK 4.1 development libraries are the usual gap.
+
+## Dev Console shows nothing from a component
+
+Components are pure. Log with `Stderr.line!` from handlers under `rocci run`.
+There is no `@log`.
+
+## Live reload did not refresh
+
+`--no-live-reload` pauses automatic refresh on purpose; watch still rebuilds.
+Hard-reload the browser tab after a failed compile.
+
+## Confused with `rocci-browser`
+
+`rocci browse` is the component gallery. `rocci-browser` is the project
+launcher. They do not share a command surface.
+
+**Related:** [Compatibility](/docs/reference/compatibility/),
+[Project browser](/docs/how-to/use-the-project-browser/).

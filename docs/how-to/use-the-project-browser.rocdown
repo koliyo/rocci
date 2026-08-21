@@ -1,14 +1,19 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/rocci-browser/"],
+    aliases: ["/guides/rocci-browser/", "/docs/guides/rocci-browser/"],
 
     meta: {
-        title: "Project browser",
+        title: "Use the project browser",
         description: "Register directories, fuzzy-pick a target, and keep one preview window across product origins.",
     },
 }
 
-# Project browser
+# Use the project browser
+
+**Prerequisites:** built `rocci`, `rocdown`, `rocci-okf`, and `rocci-browser` binaries.
+**You will do:** open the host picker, not the component gallery.
+**Verify:** `cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json` prints a URL.
+**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
 
 `rocci-browser` is a fourth CLI: a product-blind host that registers project
 directories, fuzzy-picks a **target**, and `load_url`s whatever HTTP origin an

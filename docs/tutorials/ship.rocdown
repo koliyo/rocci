@@ -68,4 +68,5 @@ missing WebKitGTK on Linux there, not here.
 - Distinguish `build --release` (server) from `bundle` (macOS `.app`)
 - Keep loopback in config; override bind address only in the container environment
 
-Standalone versus custom entry: [compilation / delivery concepts](/docs/concepts/architecture/).
+Standalone versus custom entry: [standalone versus custom](/docs/concepts/standalone-versus-custom/).
+Task: [Package and deploy](/docs/how-to/package-and-deploy/).

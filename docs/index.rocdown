@@ -79,6 +79,7 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
     :link-card[href: "/docs/reference/rocci/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
     :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
     :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
+    :link-card[href: "/docs/how-to/", title: "How to", summary: "Task recipes after the tutorials: components, handlers, inspect, package."]
     :link-card[href: "/docs/troubleshooting/", title: "Troubleshooting", summary: "Install, compile, runtime, and preview failures."]
 :card-grid.end
 
@@ -88,7 +89,7 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
 | --- | --- |
 | Evaluate | [Rocci in five minutes](/docs/start/five-minutes/) |
 | Learn | [Build your first component](/docs/tutorials/first-component/) |
-| Understand | [Rendering model](/docs/concepts/rendering-model/) |
+| Understand | [Compilation model](/docs/concepts/compilation-model/) |
 | Applications | [Examples](/examples/) |
 
 The examples portal is generated from `examples/rocci/apps.toml`. Styling is

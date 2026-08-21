@@ -1,0 +1,32 @@
+@page {
+    layout: "docs",
+    aliases: ["/troubleshooting/", "/docs/troubleshooting/"],
+    meta: {
+        title: "Troubleshooting",
+        description: "Recover from Rocci install, compile, runtime, and preview failures using the smallest reproducing command.",
+    },
+}
+
+# Troubleshooting
+
+**Prerequisites:** none beyond [docs prerequisites](/docs/start/prerequisites/).
+**Kind:** troubleshooting landing.
+**Next:** [Diagnostics](/docs/reference/diagnostics/).
+
+Start with the exact error and the smallest command that reproduces it. Rocci
+maps parser diagnostics to source; Roc type errors map back from generated
+code where source-map segments exist.
+
+| Symptom | Page |
+| --- | --- |
+| `roc` missing, Cargo/Roc version skew, Windows unverified | [Install](/docs/troubleshooting/install/) |
+| Parse, lower, or Roc type-check failures | [Compile](/docs/troubleshooting/compile/) |
+| Handler 404/308/500, Datastar no-op, trailing slash | [Runtime](/docs/troubleshooting/runtime/) |
+| Preview window, WebKitGTK, Dev Console empty | [Preview](/docs/troubleshooting/preview/) |
+
+Rocdown catalog codes (`RD2101`, …) and `rocdown check` failures belong on the
+[Rocdown](/rocdown/) lane, not here.
+
+If the issue persists, reduce it to one `.rocci` file and include the command,
+platform, Roc nightly (`docker/install-roc.sh`), and complete diagnostic in a
+repository issue.

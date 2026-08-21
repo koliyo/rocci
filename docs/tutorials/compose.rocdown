@@ -85,4 +85,5 @@ policy is in `rocci.toml`).
 - Add a second `@view` without introducing `main.roc`
 
 Next: [commands and live updates](/docs/tutorials/commands-and-live/).
+Task: [Use directives](/docs/how-to/use-directives/).
 Reference: [Rocci language](/docs/reference/rocci/).

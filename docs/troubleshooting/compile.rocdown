@@ -1,0 +1,36 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Compile failures",
+        description: "Recover from Rocci parse/lower errors and Roc type errors in generated modules.",
+    },
+}
+
+# Compile failures
+
+**Prerequisites:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
+
+## Generated Roc does not type-check
+
+**Cause:** Rocci parses Roc regions but does not type-check them.
+
+**Fix:** `rocci build FILE`, then use the mapped frame from `rocci run` /
+`inspect` segments. Correct the authored expression, not the generated file.
+
+## A directive is rendered as text or a parse error
+
+**Cause:** the `@` form is not at the start of a top-level definition, the
+header `{` is on the next line, or markup sits inside `{expr}`.
+
+**Fix:** `rocci inspect --ast FILE`. Compare the header with
+[directives](/docs/reference/language/directives/) and
+[file structure](/docs/reference/language/file-structure/).
+
+## Still writing `@on`
+
+**Cause:** `@on:METHOD` and trailing `json` are **removed**.
+
+**Fix:** rewrite to `@view` / `@patch` / `@command` as in
+[grammar](/docs/reference/language/grammar/).
+
+**Related:** [Error boundaries](/docs/concepts/error-boundaries/).
