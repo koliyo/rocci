@@ -80,7 +80,7 @@ existing fragment. Only the tab that posted updates.
 `@live` is the opt-in for a generated shared stream. One per module, same
 parameter rules as `@on`. Rocci emits `GET /sse` (poll + patch) and, when the
 document `<body>` has no `data-init`, injects
-`data-init=@get("/sse", [OpenWhenHidden(Bool.true)])`.
+`data-init=@get("/sse", [OpenWhenHidden(True)])`.
 
 ```rocci
 @live = |{ db }| {

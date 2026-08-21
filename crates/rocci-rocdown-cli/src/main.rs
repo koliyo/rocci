@@ -621,6 +621,7 @@ fn try_main() -> Result<()> {
                 no_window,
                 no_live_reload: false,
                 log_handlers: false,
+                verbose: false,
                 port,
             };
             let hook = match mode {
@@ -797,6 +798,7 @@ fn run_standalone_doc(
         no_window,
         live_reload,
         log_handlers,
+        verbose,
         port,
         db_path: None,
         title,
