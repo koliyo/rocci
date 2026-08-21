@@ -168,6 +168,59 @@ def build_playground() -> int:
     return 0
 
 
+def render_brand_icons() -> int:
+    root = repo_root()
+    if shutil.which("rsvg-convert") is None:
+        raise SystemExit("rsvg-convert is required (librsvg).")
+    brand = root / "brand"
+    run(
+        [
+            "rsvg-convert",
+            "-w",
+            "1024",
+            "-h",
+            "1024",
+            str(brand / "rocci-app.svg"),
+            "-o",
+            str(root / "crates/rocci-desktop/assets/rocci-icon.png"),
+        ],
+        cwd=root,
+    )
+    run(
+        [
+            "rsvg-convert",
+            "-w",
+            "1024",
+            "-h",
+            "1024",
+            str(brand / "rocci-file.svg"),
+            "-o",
+            str(brand / "rocci-file.png"),
+        ],
+        cwd=root,
+    )
+    run(
+        [
+            "rsvg-convert",
+            "-w",
+            "180",
+            "-h",
+            "180",
+            str(brand / "rocci-app.svg"),
+            "-o",
+            str(root / "site/assets/apple-touch-icon.png"),
+        ],
+        cwd=root,
+    )
+    shutil.copy2(brand / "rocci-mark.svg", root / "site/assets/favicon.svg")
+    (root / "editors/vscode/icons").mkdir(parents=True, exist_ok=True)
+    (root / "editors/zed/icons").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(brand / "rocci-file.svg", root / "editors/vscode/icons/rocci-file.svg")
+    shutil.copy2(brand / "rocci-file.svg", root / "editors/zed/icons/rocci-file.svg")
+    print(f"Rendered brand icons from {brand}")
+    return 0
+
+
 def _compose(file_name: str, extra: list[str], env: dict[str, str]) -> int:
     root = repo_root()
     merged = os.environ.copy()
@@ -434,6 +487,8 @@ def main(argv: list[str]) -> int:
         return install_cursor_extension()
     if command == "build-playground":
         return build_playground()
+    if command == "render-brand-icons":
+        return render_brand_icons()
     if command == "serve":
         if len(rest) < 2:
             raise SystemExit("usage: rocci-ops serve hybrid|static|site|app ...")

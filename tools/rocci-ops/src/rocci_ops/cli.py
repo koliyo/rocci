@@ -20,6 +20,7 @@ commands:
   bundle        macOS app bundles
   install-cursor-extension
   build-playground
+  render-brand-icons
   serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
 """
@@ -31,6 +32,7 @@ LOCAL_COMMANDS = {
     "bundle",
     "install-cursor-extension",
     "build-playground",
+    "render-brand-icons",
     "serve",
     "push-worktrees",
 }

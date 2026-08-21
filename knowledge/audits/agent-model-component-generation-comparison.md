@@ -40,7 +40,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: dependency-check
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction checker
     author: process:git
     last_modified: 2026-08-18
