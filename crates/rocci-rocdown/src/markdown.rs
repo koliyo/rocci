@@ -439,17 +439,39 @@ fn source_span(synthetic: &str, map: &OffsetMap, pos: comrak::nodes::Sourcepos) 
 
 fn line_col_offset(src: &str, line: usize, column: usize) -> usize {
     let mut cur_line = 1usize;
-    let mut cur_col = 1usize;
+    let mut line_start = 0usize;
     for (i, ch) in src.char_indices() {
-        if cur_line == line && cur_col == column {
-            return i;
-        }
         if ch == '\n' {
+            if cur_line == line {
+                return offset_on_line(line_start, i, column);
+            }
             cur_line += 1;
-            cur_col = 1;
-        } else {
-            cur_col += 1;
+            line_start = i + 1;
         }
     }
+    if cur_line == line {
+        return offset_on_line(line_start, src.len(), column);
+    }
     src.len()
+}
+
+fn offset_on_line(line_start: usize, line_end: usize, column: usize) -> usize {
+    let col = column.max(1) - 1;
+    line_start + col.min(line_end.saturating_sub(line_start))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn line_col_offset_uses_utf8_byte_columns() {
+        let src = "### Snapshot — 17\nnext\n";
+        let dash = src.find('—').unwrap();
+        assert_eq!(src.as_bytes()[dash..dash + 3], "—".as_bytes()[..]);
+        let start_of_dash = dash + 1;
+        assert_eq!(line_col_offset(src, 1, start_of_dash as usize), dash);
+        assert_eq!(line_col_offset(src, 1, (dash + 3 + 1) as usize), dash + 3);
+        assert_eq!(line_col_offset(src, 2, 1), src.find('\n').unwrap() + 1);
+    }
 }

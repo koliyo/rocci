@@ -302,6 +302,14 @@ mod tests {
             "branding preview must stamp html.rd-document"
         );
         assert!(html.contains("assets/rocci-logo-folded-r.png"));
+        assert!(
+            html.contains("<h2 class=\"rd-header-2\" id=\"searchability-and-seo\">"),
+            "headings must render as elements, not raw markdown"
+        );
+        assert!(
+            !html.contains("\n## Searchability"),
+            "ATX heading source must not leak into the article HTML\n"
+        );
         let _ = fs::remove_dir_all(&dir);
     }
 
