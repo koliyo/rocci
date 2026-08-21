@@ -1,5 +1,6 @@
 import Html
 
+## Gallery document chrome. `content` is the page body Html.
 @component
 Page = |{ title, eyebrow, lede, current }, content|
     <html lang="en">

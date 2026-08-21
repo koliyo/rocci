@@ -132,6 +132,8 @@ fn stages_expected_tree_and_skips_non_catalog() {
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
     assert!(index.contains("/examples/listed/"));
     assert!(index.contains("`docs`"));
+    assert!(index.contains("/rocdown/"));
+    assert!(!index.contains("rocdown run"));
 }
 
 #[test]
@@ -224,4 +226,32 @@ fn staging_is_deterministic() {
         let right = fs::read(b.join(&rel)).unwrap();
         assert_eq!(left, right, "{rel}");
     }
+}
+
+#[test]
+fn failed_stage_keeps_previous_tree() {
+    let root = scratch("atomic");
+    fixture_app(&root);
+    let out = root.join("out");
+    let mut catalog = load_catalog(&root.join("apps.toml")).unwrap();
+    stage(&catalog, &out).unwrap();
+    let previous = collect_rel(&out);
+    catalog.apps.push(rocci_docs::AppEntry {
+        id: "ghost".into(),
+        path: "ghost".into(),
+        title: "Ghost".into(),
+        summary: "Missing on purpose".into(),
+        entry: "Ghost.rocci".into(),
+        hosting: rocci_docs::Hosting::Docs,
+        files: Vec::new(),
+        audience: String::new(),
+        purpose: String::new(),
+        complexity: String::new(),
+        persistence: String::new(),
+        support: String::new(),
+    });
+    assert!(stage(&catalog, &out).is_err());
+    assert_eq!(collect_rel(&out), previous);
+    let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("/examples/listed/"));
 }
