@@ -129,11 +129,6 @@ sources:
     title: rocci-cli already depends on rocci-highlight
     author: process:git
     last_modified: 2026-08-19
-  - id: browser-adapter
-    resource: ../../crates/rocci-browser/src/adapter.rs
-    title: Browser host inspector_url_for /__rocci/dev
-    author: process:git
-    last_modified: 2026-08-19
   - id: preview-rs
     resource: ../../crates/rocci-desktop/src/preview.rs
     title: Preview Navigate forwards inspector_url to overlay
@@ -381,10 +376,10 @@ artifacts grow.
 - Console on both products returned the serving tee line (`source: runtime`).
   Rebuild/watch lines exist at `logs::tee` sites but were not exercised with
   a file edit in this session.[^logs-rs]
-- `rocci-browser` computes `http://127.0.0.1:{port}/__rocci/dev` and
-  `Navigate` forwards `inspector_url`. Live picker switch was not
-  click-tested; unit tests already assert the Navigate payload.
-  [^browser-adapter][^preview-rs][^serve-rs]
+- Product CLIs compute `http://127.0.0.1:{port}/__rocci/dev` and
+  `Navigate` forwards `inspector_url` (historical note: a former
+  `rocci-browser` host did the same for adapter sessions).
+  [^preview-rs][^serve-rs]
 
 **Phase 1 wry / windowed CLIs:**
 
@@ -687,7 +682,6 @@ Human approval before treating these as normative:
 [^desktop-readme]: Overlay docks; no compiler output in chrome.
 [^cli-readme]: Tabs, GET form, Console runtime-only.
 [^cli-cargo]: `rocci-highlight` already a `rocci-cli` dependency.
-[^browser-adapter]: `inspector_url_for` appends `/__rocci/dev`.
 [^preview-rs]: Navigate event updates overlay inspector URL.
 [^serve-rs]: Sibling inspector for `rocci run`.
 [^logs-rs]: Runtime log tee.

@@ -1,5 +1,4 @@
 pub mod browse;
-pub mod browser;
 pub mod bundle;
 pub mod datastar_asset;
 pub mod dev_server;

@@ -436,7 +436,7 @@ needed.
 - [Preview-window naming](../decisions/preview-window.md): keep **dev
   panel**; "inspector" in this record means that panel, not wry native
   DevTools.
-- [rocci-browser](rocci-browser.md): still forwards
+- Product CLIs (`rocci`, `rocdown`, `rocci-okf`) forward
   `PreviewOptions.inspector_url` into the same overlay.
 
 ## Open questions (decision gates)

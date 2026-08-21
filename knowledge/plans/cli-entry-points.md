@@ -9,11 +9,6 @@ stale_after: 2026-11-18
 authority: exploratory
 owners: [human:nils]
 sources:
-  - id: browser-plan
-    resource: rocci-browser.md
-    title: Dedicated rocci-browser implementation plan
-    author: process:cursor
-    last_modified: 2026-08-19
   - id: product-boundary
     resource: ../decisions/consolidate-rocdown-product-boundary.md
     title: Approved Rocdown product-boundary decision
@@ -418,9 +413,9 @@ land. It requires a separate decision: the `rocci` binary would learn sibling
 command names without importing their packages. It is not a plugin system and
 is not required to close the metadata-preview gap.
 
-A dedicated `rocci-browser` host that execs sibling adapters is a different
-question: session and selection, not format dispatch. It must not become a
-`rocci browser` subcommand. See [rocci-browser](rocci-browser.md).[^browser-plan]
+A dedicated project-browser host was explored and removed. Product preview
+remains the three CLIs (`rocci`, `rocdown`, `rocci-okf`) plus `rocci-desktop`;
+it must not become a `rocci browser` subcommand.
 
 ## Acceptance criteria
 
@@ -445,7 +440,6 @@ Human review is required before:
 
 Until those gates open, implement option D.
 
-[^browser-plan]: Dedicated product-blind host with out-of-process adapters; not a `rocci` multiplexer.
 [^product-boundary]: Approved three-CLI split, one-way dependencies, and the `rocci run` extension-hint exception.
 [^static-okf]: Canonical records are inert OKF Markdown; Rocdown must not own OKF policy.
 [^okf-app-plan]: `rocci-okf` is the approved application and Cargo namespace; `okf` is the portable engine.

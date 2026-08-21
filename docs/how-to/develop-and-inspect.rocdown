@@ -45,7 +45,7 @@ work.
 cargo run -q -p rocci-cli -- browse examples/rocci/standalone/styling
 ```
 
-This is the component gallery. It is not [`rocci-browser`](/docs/how-to/use-the-project-browser/).
+This is the component gallery.
 
 ## Inspect lowering
 
