@@ -4,7 +4,7 @@ title: Rocci public-preview branding and community plan
 description: Prepare a reversible Rocci public preview for a near-term open-source repository, collect Roc and Datastar feedback, and turn the results into explicit naming, visual, and governance decisions.
 tags: [domain/rocci, domain/rocdown, domain/rocs, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:05:00Z }
+generated: { by: process:cursor, at: 2026-08-21T00:00:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -28,7 +28,7 @@ sources:
     resource: ../../Cargo.toml
     title: Workspace package metadata including license
     author: process:git
-    last_modified: 2026-08-19
+    last_modified: 2026-08-21
   - id: roc-community
     resource: https://roc-lang.org/community
     title: Roc community
@@ -65,10 +65,10 @@ as permanent brand decisions.[^branding-report][^branding-research]
 
 ## Working position
 
-The repository is intended to become public open source shortly. Cargo already
-declares `MIT OR Apache-2.0`, but root license texts, conduct, contribution,
-and the rest of Phase 0 are still the publication gate. This record does not
-flip the repository public and does not set a calendar date.[^cargo-workspace][^root-readme]
+The repository is intended to become public open source shortly. The root
+`LICENSE` is Apache-2.0 and every workspace crate packages that text. Conduct,
+contribution, and the rest of Phase 0 are still the publication gate. This
+record does not flip the repository public and does not set a calendar date.[^cargo-workspace][^root-readme]
 
 Use Rocci as the preview masterbrand, Rocdown as the endorsed document format,
 and Rocci Docs as the public label for the current Rocs engine and command. Use
@@ -78,8 +78,7 @@ compatibility during the feedback period.[^branding-research]
 
 ## Phase 0: repository launch gate
 
-- Add root license texts matching the declared Cargo license or correct the
-  package metadata.
+- Root Apache-2.0 license text is present and is packaged with every workspace crate.
 - Add enforceable conduct, contribution, security, support, and governance
   documents plus focused issue/discussion forms.[^github-health]
 - Publish one support matrix for Roc revision, Datastar pin, operating systems,
@@ -166,7 +165,7 @@ complete.[^branding-report]
 [^branding-report]: Detailed recommendation, evidence, launch blockers, four-week sequence, measures, and investigation backlog.
 [^branding-research]: Canonical exploratory hierarchy, naming, SEO, design, and community synthesis.
 [^root-readme]: Current shipped and planned workspace behavior used to bound public claims.
-[^cargo-workspace]: Declared workspace license `MIT OR Apache-2.0` without checked-in root license texts.
+[^cargo-workspace]: Workspace package metadata makes the root `LICENSE` available to every crate; that file contains the Apache License 2.0 text.
 [^roc-community]: Current Roc participation and community-venue guidance.
 [^datastar-community]: Current Datastar community-support venue and ecosystem framing.
 [^github-health]: Supported GitHub community-health artifacts and their purpose.

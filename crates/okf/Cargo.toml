@@ -2,7 +2,7 @@
 name = "okf"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Portable Open Knowledge Format (OKF) parsing, validation, search, graph, and artifact engine"
 
 [lib]

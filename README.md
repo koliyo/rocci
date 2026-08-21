@@ -167,3 +167,11 @@ uv run rocci-ops ci
 `cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`. GitHub Actions CI and Knowledge do not run on every push or PR; comment `/ci` on a pull request or use **Run workflow**.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.
+
+## License
+
+Copyright 2026 Nils Hjelte.
+
+Rocci is licensed under the [Apache License, Version 2.0](LICENSE).
+Third-party components retain their own licenses; see
+[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

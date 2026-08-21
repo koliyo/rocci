@@ -2,7 +2,7 @@
 name = "rocci-lsp"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Generic language-server core and Rocci analyzer for .rocci templates"
 
 [lib]
