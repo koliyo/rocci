@@ -2,6 +2,7 @@
 
 ## 2026-08-21
 
+- Added draft [semantic handler syntax research](research/action-handler-syntax.md) and [implementation plan](plans/action-handler-syntax.md): recommend four nouns—`@view`, `@patch`, `@command`, and `@live`—with POST implicit for mutations. Commands return Roc data; generated dispatch encodes it for ordinary clients while preserving Datastar 204 and live HTML rendering. The research compares the three proposed `@action` selector orders, records `@patch` versus HTTP PATCH as a naming gate, and details Datastar signal JSON versus pure API JSON. The plan is a repository-wide cutover with no `@on` or pre-encoded JSON compatibility; it covers grammar, lowering, generated encoding, tooling, conversion of all existing code, a complete handler-matrix example, and real Roc build gates. Exploratory; no phase started and no language change approved.
 - Moved `site.yml` package and origin deploy off `main` onto `staging` and
   `production` so `main` can land PRs without publishing. Promote with
   `git push origin origin/main:staging` then
