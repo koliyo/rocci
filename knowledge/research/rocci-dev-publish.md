@@ -4,7 +4,7 @@ title: Publishing rocci.dev with Cloudflare, a small origin, and CI
 description: "Evidence for putting Cloudflare in front of a small VPS origin that serves the existing hybrid Rocdown artifacts. Universal SSL plus a Tunnel covers .dev HSTS; GitHub Actions packages and deploys until Tangled owns Linux CI. Exploratory; not an approved hosting contract."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T08:55:00Z }
+generated: { by: process:cursor, at: 2026-08-21T09:26:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -407,10 +407,11 @@ Needed jobs, not present today:
    package site --target x64musl`, upload `dist/` / `site.tgz` and the
    `islands` binary as Actions artifacts. Roc is required here; current CI
    never installs it.[^install-roc][^rocdown-readme][^ci-workflow]
-3. **Deploy** only from `main` (and later `v*` if wanted), using a GitHub
-   Environment so the SSH key is not available to ordinary jobs. Rsync or
-   `scp` into a new directory on the VPS, flip a symlink, `compose up -d`.
-   Failed package must not swap the live tree.
+3. **Deploy** only from `staging` or `production` (and later `v*` if
+   wanted), using a GitHub Environment named after the branch so the SSH
+   key is not available to ordinary jobs. `main` lands pull requests and
+   does not publish. Rsync or `scp` into a new directory on the VPS, flip
+   a symlink, `compose up -d`. Failed package must not swap the live tree.
 4. **Smoke** `https://rocci.dev/health` and one counter POST after deploy.
 
 Do not fold this into `release.yml`. Binary GitHub Releases and the website
@@ -431,8 +432,8 @@ wait on Tangled Sites.[^tangled-plan]
 3. **TLS: Tunnel + Universal SSL.** Caddy stays HTTP on the private side.
 4. **Dynamic: same-origin island process** with persistent SQLite. Do not
    split `islands.rocci.dev` until CORS ships.
-5. **CI: GitHub Actions packages `site/` and deploys from `main`.** Check
-   both `docs/` and `site/`. No product deploy command.
+5. **CI: GitHub Actions packages `site/` and deploys from `staging` or
+   `production`.** Check both `docs/` and `site/`. No product deploy command.
 6. **Keep OKF unpublished** and keep Tangled as the future git host, not the
    website host.
 

@@ -195,9 +195,10 @@ The two-artifact production sketch (upload `dist/`, run `serve-islands`,
 reverse-proxy) is in [`examples/rocdown/counter/README.md`](../examples/rocdown/counter/README.md)
 and the [hybrid sites guide](../docs/guides/hybrid-sites.rocdown).
 
-`rocci.dev` origin deploys from GitHub Actions `site.yml` on `main` via the
-`production` Environment (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
-`CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`). SSH goes through
-Cloudflare Access (`ssh.rocci.dev`), not port 22. Fork pull requests cannot
-read those secrets and do not run the deploy job. See
+`rocci.dev` origin deploys from GitHub Actions `site.yml` on `staging` or
+`production` via the matching Environment (`DEPLOY_HOST`, `DEPLOY_USER`,
+`DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`). `main`
+is the PR landing branch and does not package or publish the site. SSH goes
+through Cloudflare Access (`ssh.rocci.dev`), not port 22. Fork pull requests
+cannot read those secrets and do not run the deploy job. See
 [`prod/README.md`](prod/README.md).

@@ -3,7 +3,7 @@ name: Site
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [staging, production]
     paths:
       - "site/**"
       - "docs/**"
@@ -18,7 +18,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/staging' && github.ref != 'refs/heads/production' }}
 
 permissions:
   contents: read
@@ -56,11 +56,14 @@ jobs:
             dist/rocci.dev/publish.json
 
   deploy:
-    name: Push artifacts (production)
+    name: Push artifacts (${{ github.ref_name }})
     needs: package
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production')
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.ref_name }}
+    concurrency:
+      group: rocci-dev-origin
+      cancel-in-progress: false
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
