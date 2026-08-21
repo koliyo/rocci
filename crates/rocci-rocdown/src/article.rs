@@ -496,6 +496,29 @@ mod tests {
     }
 
     #[test]
+    fn heading_with_multibyte_dash_does_not_swallow_following_markdown() {
+        let rendered = html(
+            "### Snapshot — 17 August 2026\n\nA paragraph.\n\n## Next section\n\n**Bold** here.\n",
+        );
+        assert!(rendered.contains(
+            "<h3 class=\"rd-header-3\" id=\"snapshot-17-august-2026\">Snapshot — 17 August 2026</h3>"
+        ));
+        assert!(
+            rendered.contains("<h2 class=\"rd-header-2\" id=\"next-section\">Next section</h2>")
+        );
+        assert!(rendered.contains("<p class=\"rd-paragraph\">A paragraph.</p>"));
+        assert!(rendered.contains("<strong class=\"rd-strong\">Bold</strong>"));
+        assert!(
+            !rendered.contains("## Next"),
+            "following ATX source leaked into the heading: {rendered}"
+        );
+        assert!(
+            !rendered.contains("**Bold**"),
+            "following markdown leaked as text: {rendered}"
+        );
+    }
+
+    #[test]
     fn renders_lists_code_task_and_table() {
         let rendered = html(
             "\

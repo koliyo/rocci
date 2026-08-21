@@ -8,7 +8,7 @@ use rocci_template::{SourceFile, Span, TemplateItem};
 use serde::Serialize;
 
 use crate::article::{render_md, render_static_image};
-use crate::ast::{BlockCall, BlockContent, BracketRecord, Document, Item, MdNode, ParamValue};
+use crate::ast::{BlockCall, BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 use crate::img::{StaticImage, img_fields_from_params};
 use crate::page::{bool_literal, string_list, string_literal};
@@ -752,42 +752,33 @@ fn heading_from_call(
         ..Default::default()
     };
 
-    let content = call
-        .content_span()
-        .unwrap_or_else(|| Span::point(call.span.end as usize));
-    let children = match &call.content {
-        Some(BlockContent::Line(line)) if !line.span.is_empty() => {
-            vec![ArticleNode::Markdown(MdNode::Text {
-                value: line.span.of(ctx.source.src).to_string(),
-                span: line.span,
-            })]
-        }
-        Some(BlockContent::Line(_)) | None => Vec::new(),
-        Some(_) => {
-            let parsed = parse_fragment(ctx.source, content, false);
-            for diagnostic in parsed.diagnostics {
-                let code = if diagnostic.is_error() {
-                    "RD1001"
+    let content = heading_content_span(ctx.source.src, call);
+    let children = if content.is_empty() {
+        Vec::new()
+    } else {
+        let parsed = parse_fragment(ctx.source, content, false);
+        for diagnostic in parsed.diagnostics {
+            let code = if diagnostic.is_error() {
+                "RD1001"
+            } else {
+                "RD1002"
+            };
+            ctx.diagnostics.push(CatalogDiagnostic {
+                code,
+                severity: if diagnostic.is_error() {
+                    Severity::Error
                 } else {
-                    "RD1002"
-                };
-                ctx.diagnostics.push(CatalogDiagnostic {
-                    code,
-                    severity: if diagnostic.is_error() {
-                        Severity::Error
-                    } else {
-                        Severity::Warning
-                    },
-                    path: ctx.source_path.to_string(),
-                    message: format!("line {line}: {}", diagnostic.message),
-                });
-            }
-            unwrap_heading_children(nodes_from_items(
-                ctx,
-                &parsed.document.items,
-                Some(&call.name),
-            ))
+                    Severity::Warning
+                },
+                path: ctx.source_path.to_string(),
+                message: format!("line {line}: {}", diagnostic.message),
+            });
         }
+        unwrap_heading_children(nodes_from_items(
+            ctx,
+            &parsed.document.items,
+            Some(&call.name),
+        ))
     };
     let node = DocsNode {
         kind: call.name.clone(),
@@ -798,6 +789,39 @@ fn heading_from_call(
     };
     validate_model(ctx, &node, parent_kind);
     ArticleNode::Block(node)
+}
+
+fn heading_content_span(src: &str, call: &BlockCall) -> Span {
+    let span = call
+        .content_span()
+        .unwrap_or_else(|| Span::point(call.span.end as usize));
+    if atx_heading(src, call.span) {
+        clamp_span_to_first_line(src, span)
+    } else {
+        span
+    }
+}
+
+fn clamp_span_to_first_line(src: &str, span: Span) -> Span {
+    let start = floor_char_boundary(src, span.start as usize);
+    let end = floor_char_boundary(src, span.end as usize).max(start);
+    if start >= end {
+        return Span::new(start, start);
+    }
+    let line_len = src[start..end].find('\n').unwrap_or(end - start);
+    let mut line_end = start + line_len;
+    if line_end > start && src.as_bytes()[line_end - 1] == b'\r' {
+        line_end -= 1;
+    }
+    Span::new(start, line_end)
+}
+
+fn floor_char_boundary(src: &str, mut index: usize) -> usize {
+    index = index.min(src.len());
+    while index > 0 && !src.is_char_boundary(index) {
+        index -= 1;
+    }
+    index
 }
 
 fn unwrap_heading_children(nodes: Vec<ArticleNode>) -> Vec<ArticleNode> {
