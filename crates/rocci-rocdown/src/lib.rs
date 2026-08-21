@@ -83,6 +83,7 @@ pub use site::{
 pub use standalone::{
     StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
     discover_rocdown_files, linked_standalone_inputs, plan_standalone,
+    plan_standalone_with_progress,
 };
 pub use theme::{ThemeArgs, compile_options as theme_compile_options};
 

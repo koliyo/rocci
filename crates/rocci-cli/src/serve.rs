@@ -18,6 +18,22 @@ use crate::logs::{LogHub, LogLevel, LogLine};
 use crate::style;
 
 const SERVER_WAIT: Duration = Duration::from_secs(120);
+const LISTEN_HEARTBEAT: Duration = Duration::from_secs(2);
+
+pub fn wait_listen_starting(port: u16) -> String {
+    format!("waiting for roc on :{port}")
+}
+
+pub fn wait_listen_heartbeat(port: u16, elapsed: Duration) -> String {
+    format!("waiting for roc on :{port} ({}s)", elapsed.as_secs())
+}
+
+pub fn wait_listen_timeout_message(port: u16, elapsed: Duration, still_running: bool) -> String {
+    format!(
+        "timed out waiting for roc server on port {port} after {}s (process still running: {still_running})",
+        elapsed.as_secs()
+    )
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PortArg {
@@ -304,6 +320,8 @@ pub fn spawn_roc_with_logs(
 
 pub fn wait_for_listen(child: &mut Child, port: u16) -> Result<ListenWait> {
     let start = Instant::now();
+    let mut last_beat = start;
+    crate::logs::emit(wait_listen_starting(port));
     loop {
         match child.try_wait() {
             Ok(Some(status)) => return Ok(ListenWait::Exited(status)),
@@ -313,8 +331,17 @@ pub fn wait_for_listen(child: &mut Child, port: u16) -> Result<ListenWait> {
         if TcpStream::connect(("127.0.0.1", port)).is_ok() {
             return Ok(ListenWait::Ready);
         }
-        if start.elapsed() > SERVER_WAIT {
-            bail!("timed out waiting for roc server on port {port}");
+        let elapsed = start.elapsed();
+        if elapsed > SERVER_WAIT {
+            let still_running = matches!(child.try_wait(), Ok(None));
+            bail!(
+                "{}",
+                wait_listen_timeout_message(port, elapsed, still_running)
+            );
+        }
+        if last_beat.elapsed() >= LISTEN_HEARTBEAT {
+            crate::logs::emit(wait_listen_heartbeat(port, elapsed));
+            last_beat = Instant::now();
         }
         thread::sleep(Duration::from_millis(100));
     }
@@ -827,6 +854,20 @@ mod tests {
         assert_eq!(normalize_probe_path(""), "/");
         assert_eq!(normalize_probe_path("/all-syntax/"), "/all-syntax/");
         assert_eq!(normalize_probe_path("all-syntax/"), "/all-syntax/");
+    }
+
+    #[test]
+    fn wait_listen_messages_include_port_and_elapsed() {
+        assert_eq!(wait_listen_starting(8123), "waiting for roc on :8123");
+        assert_eq!(
+            wait_listen_heartbeat(8123, Duration::from_secs(4)),
+            "waiting for roc on :8123 (4s)"
+        );
+        let timeout = wait_listen_timeout_message(8123, Duration::from_secs(120), true);
+        assert!(timeout.contains("waiting for roc"));
+        assert!(timeout.contains("8123"));
+        assert!(timeout.contains("120s"));
+        assert!(timeout.contains("process still running: true"));
     }
 
     #[test]

@@ -30,7 +30,7 @@ pub fn run_with_host(
     port: u16,
     host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<DevServer> {
-    run_with_host_at(root, output, port, host, "/", false)
+    run_with_host_at(root, output, port, host, "/", false, false)
 }
 
 pub fn run_with_host_at(
@@ -40,6 +40,7 @@ pub fn run_with_host_at(
     host: Option<rocci_roc_host::HostChoice>,
     open_path: &str,
     log_handlers: bool,
+    verbose: bool,
 ) -> Result<DevServer> {
     let root = absolute(root)?;
     if !root.is_dir() {
@@ -104,12 +105,23 @@ pub fn run_with_host_at(
     };
 
     let session_root = root.clone();
+    let progress = rocci_cli::logs::Progress {
+        verbose,
+        quiet: false,
+    };
     serve_static_site(config, move |out_dir, logs| {
+        progress.step("rocdown: loading site");
         let load_started = Instant::now();
         let loaded = load_site(&session_root)?;
         let load_ms = load_started.elapsed().as_millis();
+        progress.detail(format!("rocdown: load {load_ms}ms"));
+        progress.step("rocdown: rebuilding site");
         let mut report = session.rebuild_loaded(&loaded, out_dir)?;
         report.load_ms = load_ms;
+        progress.detail(format!(
+            "rocdown: rebuild parse={}ms generate={}ms compile={}ms render={}ms",
+            report.plan_ms, report.generate_ms, report.compile_ms, report.roc_ms
+        ));
         sync_island_backend(
             &session_root,
             &backend,
