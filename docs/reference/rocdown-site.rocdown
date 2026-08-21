@@ -240,7 +240,18 @@ Sites can mount external documentation catalogs or content trees using `[[mount]
 source = "../docs"
 prefix = "docs"
 layout = "docs"
+
+[[mount]]
+source = "../dist/example-docs"
+prefix = "examples"
+layout = "docs"
 ```
+
+`dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
+--catalog examples/rocci/apps.toml --output dist/example-docs`). Run that
+before `rocdown check site`, `rocdown run site`, or `rocdown package site`.
+Rocdown does not import `rocci-docs`. Generated example pages use the docs
+layout. `/docs/examples/` is an alias of `/examples/` during the move.
 
 - `source`: Relative path to the mounted content directory.
 - `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `getting-started/quickstart` to ID `docs/getting-started/quickstart` and route `/docs/getting-started/quickstart/`).

@@ -1,0 +1,44 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Datastar gallery",
+        description: "Search, edit, todos, tabs, and validation",
+    },
+}
+
+# Datastar gallery
+
+Ports of official Datastar interaction patterns. The server still owns HTML.
+Datastar is the transport. The gallery uses an authored `main.roc` for custom
+HTTP routing and SQLite for durable state.
+
+This catalog row is `hosting = "live"`. The public demo origin is planned at
+[datastar.examples.rocci.dev](https://datastar.examples.rocci.dev) until a
+staging deploy has served it.
+
+[Open live demo](https://datastar.examples.rocci.dev) (planned).
+
+See the [source tree](/examples/datastar/source/).
+
+## Pages
+
+| Path | Pattern |
+| --- | --- |
+| `/search` | Active search with `@let`, `@if`, `@for` |
+| `/edit` | Click to edit with `@match` |
+| `/todos` | TodoMVC filters and lists |
+| `/tabs` | Lazy tabs |
+| `/validate` | Inline validation |
+
+## Run locally
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
+```
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/search | grep -E 'data-bind:search|Carli'
+```

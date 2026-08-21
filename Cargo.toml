@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/rocci-core",
+    "crates/rocci-docs",
     "crates/rocci-desktop",
     "crates/rocci-cli",
     "crates/rocci-template",
@@ -38,6 +39,7 @@ rocci-ui = { path = "crates/rocci-ui" }
 rocci-roc-host = { path = "crates/rocci-roc-host" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }
+rocci-docs = { path = "crates/rocci-docs" }
 rocci-browser = { path = "crates/rocci-browser" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }

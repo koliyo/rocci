@@ -33,6 +33,12 @@ def test_knowledge_redirects_validation_json() -> None:
     assert "target/knowledge-ci/retrieval.json" in paths
 
 
+def test_fixtures_and_docs_stages_example_docs() -> None:
+    argv_lists = [s.argv for s in steps_for("fixtures-and-docs", repo_root())]
+    assert any("rocci-docs" in argv for argv in argv_lists)
+    assert any(argv[-2:] == ("check", "site") for argv in argv_lists)
+
+
 def test_editors_job_uses_verify_zed() -> None:
     argv_lists = [s.argv for s in steps_for("editors", repo_root())]
     assert any(argv[-1] == "verify-zed" for argv in argv_lists)
