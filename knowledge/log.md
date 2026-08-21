@@ -2,6 +2,8 @@
 
 ## 2026-08-21
 
+- Revised [Datastar SSE vs fan-out](research/datastar-cqrs-action-responses.md) and [CQRS plan](plans/datastar-cqrs-action-responses.md): Rocci generates the stream unfold; authors opt in with `@live` rather than a handwritten `/sse` handler. Keep `examples/rocci/standalone/counter` as the one-shot first app; add `live-counter`; convert the hybrid island. Medium term: toml fat-morph of `GET /`. Long term: named regions and platform wake. Exploratory; no phase started.
+- Added draft [Datastar SSE vs multi-client fan-out](research/datastar-cqrs-action-responses.md) research and [generated CQRS / JSON commands plan](plans/datastar-cqrs-action-responses.md): generated `@post` is a one-shot patch to the acting tab; Datastar CQRS is a long-lived `GET /sse` plus 204 or JSON commands; domain JSON must not be sent to Datastar as a HTML morph. Exploratory; no phase started.
 - Revised [rocci.dev deploy](plans/rocci-dev-publish.md):
   `staging.rocci.dev` is now an implemented, Cloudflare Access-gated Tunnel
   route to loopback Caddy. The maintainer may test in a browser and GitHub CI

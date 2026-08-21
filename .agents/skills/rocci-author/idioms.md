@@ -260,9 +260,10 @@ Keep rendering pure. Put I/O in `@init` and `@on` (or an authored `main.roc`).
 ```
 
 GET returns a document. Mutations return the fragment Datastar will patch; the
-target element needs a stable `id`. Use `@post("/actions/...")` (Roc strings),
-not single-quoted JS, unless the attribute is intentionally an opaque Datastar
-expression.
+target element needs a stable `id`. That POST updates **this tab only**. Shared
+live views and JSON-vs-HTML Datastar responses are `$rocci-stack`. Use
+`@post("/actions/...")` (Roc strings), not single-quoted JS, unless the
+attribute is intentionally an opaque Datastar expression.
 
 ## Fixtures
 

@@ -7,12 +7,15 @@ description: >-
   handlers, Datastar actions, fixtures, scoped CSS, or Roc helpers in template
   modules. Prefer match over chained if/else. Do not use for changing Rocci or
   Rocdown grammar, parsers, lowering, or diagnostics — that is rocci-language-dev.
+  For one-shot vs live SSE, JSON-vs-HTML Datastar responses, or which of Roc /
+  Markdown / CSS / Datastar should own a change, use rocci-stack first.
 ---
 
 # Rocci Author
 
 Write programs and pages **in** Rocci, Rocdown, and Roc. Do not change the
-languages themselves; that is `$rocci-language-dev`.
+languages themselves; that is `$rocci-language-dev`. If the task is choosing
+how Roc, Datastar, Markdown, HTML, and CSS fit together, that is `$rocci-stack`.
 
 Keep facts in the public references. This skill is the authoring workflow,
 gotchas, and style. For match vs if/else, naming, purity, and worked examples,
@@ -117,14 +120,15 @@ A one-parameter list such as `|{ db }|` lowers with `_request` appended.
 | Kind | Path | Returns |
 | --- | --- | --- |
 | Document | `/`, `/todos` | Full `<html>` |
-| HTML/SSE patch | `/actions/...` | Fragment with a **stable `id`** |
-| JSON / data | `/api/...` | Data |
-| Long-lived SSE | `/sse` | Authored `main.roc` |
+| HTML/SSE patch | `/actions/...` | Fragment with a **stable `id`** (one-shot; acting tab only) |
+| JSON / data | `/api/...` | Data (Datastar JSON patches **signals**, not the DOM) |
+| Long-lived SSE | `/sse` | Authored `main.roc` today; generated `@live` is planned |
 
 Use unquoted Rocci actions: `data-on:click=@post("/actions/x")` with Roc
 double-quoted strings. A quoted `"@post('/x')"` is opaque Datastar JS. Prefer
 file-level `@css` on page modules or shared CSS for patch components; injected
-sibling `<style>` should not ride on SSE patches.
+sibling `<style>` should not ride on SSE patches. Shared multi-tab updates need
+a long-lived GET stream (`$rocci-stack`); do not expect a POST patch to fan out.
 
 ## Roc used from Rocci
 
