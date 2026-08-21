@@ -74,6 +74,11 @@ AckRow : { ok : I64, error : Str, board : Str, revision : I64, piece : Str, sequ
 AckInsert : { player_id : Str, sequence : I64, ok : I64, error : Str, board : Str, revision : I64, piece : Str, eliminated : I64 }
 RateParams : { id : Str, last_lock_ms : I64, locks_window : I64 }
 DeadParams : { id : Str, disconnect_deadline : I64 }
+LeaseSave : { id : Str, role : Str, expiry_ms : I64 }
+RefreshLease : { id : Str, expiry_ms : I64 }
+NowParams : { now : I64 }
+CountRow : { n : I64 }
+LeaseRow : { id : Str }
 
 program = { init!, respond!, shutdown! }
 
@@ -120,11 +125,16 @@ respond! = |request, { db }| {
     tick_room!(db) ? |err| ServerErr("Failed to tick room: ${Str.inspect(err)}")
 
     match (method, path) {
-        ("GET", "/play/blocks") => document!(db, player_id)
-        ("GET", "/play/blocks/") => document!(db, player_id)
+        ("GET", "/play/blocks") => document!(db, request, player_id, False)
+        ("GET", "/play/blocks/") => document!(db, request, player_id, False)
+        ("GET", "/play/blocks/watch") => document!(db, request, player_id, True)
         ("GET", "/health") => text_ok("ok")
         ("GET", "/health/blocks") => text_ok("ok")
-        ("GET", "/play/blocks/stream") => stream_room!(db, player_id)
+        ("GET", "/play/blocks/stream") =>
+            match stream_room!(db, request, player_id) {
+                Ok(out) => Ok(out)
+                Err(err) => Err(ServerErr("Failed to stream: ${Str.inspect(err)}"))
+            }
         ("POST", "/play/blocks/join") =>
             if origin_ok(request.headers()) {
                 join_player!(db, player_id)
@@ -198,6 +208,13 @@ setup_db! = |db| {
             query: "CREATE TABLE IF NOT EXISTS commands (player_id TEXT NOT NULL, sequence INTEGER NOT NULL, ok INTEGER NOT NULL, error TEXT NOT NULL, board TEXT NOT NULL, revision INTEGER NOT NULL, piece TEXT NOT NULL, eliminated INTEGER NOT NULL, PRIMARY KEY (player_id, sequence))",
             params: {},
         },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS viewer_leases (id TEXT PRIMARY KEY, role TEXT NOT NULL, expiry_ms INTEGER NOT NULL)",
+            params: {},
+        },
     )
 }
 
@@ -211,61 +228,217 @@ interrupt_if_active! = |db| {
     }
 }
 
-document! = |db, player_id| {
+expire_leases! = |db, at| {
+    params : NowParams
+    params = { now: at }
+    Sqlite.execute!({ db, query: "DELETE FROM viewer_leases WHERE expiry_ms < :now", params })
+}
+
+spectator_count! = |db, at| {
+    params : NowParams
+    params = { now: at }
+    row : CountRow
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT COUNT(*) AS n FROM viewer_leases WHERE role = 'spectator' AND expiry_ms >= :now",
+            params,
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.n)
+}
+
+load_lease! = |db, lease_id| {
+    params : IdParams
+    params = { id: lease_id }
+    row : LeaseRow
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT id FROM viewer_leases WHERE id = :id",
+            params,
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row)
+}
+
+refresh_lease! = |db, lease_id, at| {
+    params : RefreshLease
+    params = { id: lease_id, expiry_ms: at + lease_ttl_ms }
+    Sqlite.execute!({ db, query: "UPDATE viewer_leases SET expiry_ms = :expiry_ms WHERE id = :id", params })
+}
+
+insert_lease! = |db, lease_id, role, at| {
+    params : LeaseSave
+    params = { id: lease_id, role, expiry_ms: at + lease_ttl_ms }
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR REPLACE INTO viewer_leases (id, role, expiry_ms) VALUES (:id, :role, :expiry_ms)",
+            params,
+        },
+    )
+}
+
+insert_spectator! = |db, at| {
+    count = spectator_count!(db, at) ? |_| Capacity
+    if count >= spectator_cap!({}) {
+        Err(Capacity)
+    } else {
+        id = "w-${at.to_str()}-${count.to_str()}"
+        insert_lease!(db, id, "spectator", at) ? |_| Capacity
+        Ok(id)
+    }
+}
+
+admit_spectator! = |db, watch_id, at| {
+    expire_leases!(db, at) ? |_| Capacity
+    if watch_id == "" {
+        insert_spectator!(db, at)
+    } else {
+        match load_lease!(db, watch_id) {
+            Ok(_) => {
+                refresh_lease!(db, watch_id, at) ? |_| Capacity
+                Ok(watch_id)
+            }
+            Err(_) => insert_spectator!(db, at)
+        }
+    }
+}
+
+admit_stream! = |db, seated, player_id, watch_id, at| {
+    expire_leases!(db, at) ? |_| Capacity
+    if seated and player_id != "" {
+        insert_lease!(db, player_id, "player", at) ? |_| Capacity
+        Ok(player_id)
+    } else {
+        admit_spectator!(db, watch_id, at)
+    }
+}
+
+document! = |db, request, player_id, force_watch| {
     room = load_room!(db) ? |err| ServerErr("Failed to load room: ${Str.inspect(err)}")
     players = load_players!(db) ? |err| ServerErr("Failed to load players: ${Str.inspect(err)}")
     count = List.len(players).to_i64_wrap()
-    if player_id != "" and player_exists(players, player_id) {
-        html_ok(Html.render(Blocks.playPage({ view: build_view(room, players, player_id, now_ms!()) })))
+    seated = player_id != "" and player_exists(players, player_id)
+    late = room.phase == "round" or room.phase == "countdown" or room.phase == "result"
+    if seated {
+        html_ok(Html.render(Blocks.playPage({ view: build_view(room, players, player_id, now_ms!(), 0) })))
+    } else if force_watch or late {
+        now = now_ms!()
+        watch_id = cookie_value_in(request.headers(), "blocks_watch")
+        match admit_spectator!(db, watch_id, now) {
+            Ok(lease_id) =>
+                html_cookie(
+                    Html.render(Blocks.playPage({ view: build_view(room, players, "", now, 1) })),
+                    "blocks_watch=${lease_id}; Path=/play/blocks; HttpOnly; SameSite=Lax",
+                )
+            Err(_) => html_ok(Html.render(Blocks.capacityReached({})))
+        }
     } else {
         html_ok(Html.render(Blocks.lobby({ player_count: count, full: count >= 8 })))
     }
 }
 
-stream_room! = |db, player_id|
-    Ok(
-        Server.stream(
-            Sse.unfold!(
-                { revision: -1.I64, last_emit: 0.I64, player_id },
-                |state| {
-                    match tick_room!(db) {
-                        Err(_) => Ok(End)
-                        Ok({}) =>
-                            match load_room!(db) {
+stream_room! = |db, request, player_id| {
+    now = now_ms!()
+    watch_id = cookie_value_in(request.headers(), "blocks_watch")
+    seated = player_id != ""
+    match admit_stream!(db, seated, player_id, watch_id, now) {
+        Err(_) =>
+            Ok(
+                Server.stream(
+                    Sse.unfold!(
+                        0,
+                        |state|
+                            if state != 0 {
+                                Ok(End)
+                            } else {
+                                Ok(
+                                    Emit(
+                                        {
+                                            event: Datastar.patch_elements(Blocks.capacityReached({})),
+                                            state: 1,
+                                            wake: After(0),
+                                        },
+                                    ),
+                                )
+                            },
+                    ),
+                ),
+            )
+        Ok(lease_id) =>
+            Ok(
+                Server.stream(
+                    Sse.unfold!(
+                        { revision: -1.I64, last_emit: 0.I64, player_id, lease_id, seated: if seated { 1 } else { 0 } },
+                        |state| {
+                            match tick_room!(db) {
                                 Err(_) => Ok(End)
-                                Ok(room) => {
-                                    now = now_ms!()
-                                    if room.revision == state.revision and now - state.last_emit < 10000 {
-                                        Ok(Wait({ state, wake: After(200) }))
-                                    } else {
-                                        match load_players!(db) {
-                                            Err(_) => Ok(End)
-                                            Ok(players) => {
-                                                view = build_view(room, players, state.player_id, now)
-                                                event = Datastar.patch_elements(Blocks.gamePatch({ view: view }))
+                                Ok({}) =>
+                                    match load_room!(db) {
+                                        Err(_) => Ok(End)
+                                        Ok(room) => {
+                                            tick = now_ms!()
+                                            match refresh_lease!(db, state.lease_id, tick) {
+                                                Ok({}) => {}
+                                                Err(_) => {}
+                                            }
+                                            if room.revision == state.revision and tick - state.last_emit < 10000 {
+                                                Ok(Wait({ state, wake: After(200) }))
+                                            } else if room.revision == state.revision {
+                                                event = Datastar.patch_elements(Blocks.keepAlive({ ts: tick }))
                                                 Ok(
                                                     Emit(
                                                         {
                                                             event,
                                                             state: {
-                                                                revision: room.revision,
-                                                                last_emit: now,
+                                                                revision: state.revision,
+                                                                last_emit: tick,
                                                                 player_id: state.player_id,
+                                                                lease_id: state.lease_id,
+                                                                seated: state.seated,
                                                             },
                                                             wake: After(200),
                                                         },
                                                     ),
                                                 )
+                                            } else {
+                                                match load_players!(db) {
+                                                    Err(_) => Ok(End)
+                                                    Ok(players) => {
+                                                        watching = if state.seated == 0 { 1 } else { 0 }
+                                                        view = build_view(room, players, state.player_id, tick, watching)
+                                                        event = Datastar.patch_elements(Blocks.gamePatch({ view: view }))
+                                                        Ok(
+                                                            Emit(
+                                                                {
+                                                                    event,
+                                                                    state: {
+                                                                        revision: room.revision,
+                                                                        last_emit: tick,
+                                                                        player_id: state.player_id,
+                                                                        lease_id: state.lease_id,
+                                                                        seated: state.seated,
+                                                                    },
+                                                                    wake: After(200),
+                                                                },
+                                                            ),
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                }
                             }
-                    }
-                },
-            ),
-        ),
-    )
+                        },
+                    ),
+                ),
+            )
+    }
+}
 
 join_player! = |db, player_id| {
     players = load_players!(db) ? |err| ServerErr("Failed to join: ${Str.inspect(err)}")
@@ -664,7 +837,7 @@ load_player! = |db, player_id| {
 bump_revision! = |db|
     Sqlite.execute!({ db, query: "UPDATE room SET revision = revision + 1 WHERE id = 1", params: {} })
 
-build_view = |room, players, player_id, now| {
+build_view = |room, players, player_id, now, watching| {
     seats = List.map(
         players,
         |player| {
@@ -710,6 +883,8 @@ build_view = |room, players, player_id, now| {
         piece: "",
         winner,
         reason: room.reason,
+        now_ms: now,
+        watching,
         seats,
     }
 }
@@ -763,6 +938,20 @@ html_ok = |body|
         Server.respond(
             Response.from_status(200)
             .with_headers([{ name: "Content-Type", value: "text/html; charset=utf-8" }])
+            .with_body(Str.to_utf8(body)),
+        ),
+    )
+
+html_cookie = |body, cookie|
+    Ok(
+        Server.respond(
+            Response.from_status(200)
+            .with_headers(
+                [
+                    { name: "Content-Type", value: "text/html; charset=utf-8" },
+                    { name: "Set-Cookie", value: cookie },
+                ],
+            )
             .with_body(Str.to_utf8(body)),
         ),
     )
@@ -951,6 +1140,16 @@ env_ms! = |name, fallback|
 countdown_ms! = |_| env_ms!("BLOCKS_COUNTDOWN_MS", 10000)
 result_ms! = |_| env_ms!("BLOCKS_RESULT_MS", 10000)
 round_ms! = |_| env_ms!("BLOCKS_ROUND_MS", 300000)
+lease_ttl_ms = 15000.I64
+
+spectator_cap! = |_| {
+    n = env_ms!("BLOCKS_SPECTATOR_CAP", 20)
+    if n > 50 {
+        50
+    } else {
+        n
+    }
+}
 
 listen_port! : {} => U16
 listen_port! = |_| {

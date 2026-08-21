@@ -24,6 +24,8 @@ sample_active = {
     piece: "T",
     winner: "",
     reason: "",
+    now_ms: 0.I64,
+    watching: 0.I64,
     seats: [sample_seat],
 }
 
@@ -35,6 +37,8 @@ sample_queued = {
     piece: "I",
     winner: "",
     reason: "",
+    now_ms: 0.I64,
+    watching: 0.I64,
     seats: [{ ..sample_seat, queue: 3.I64, ready: 1.I64, piece: "I" }],
 }
 
@@ -46,6 +50,8 @@ sample_eliminated = {
     piece: "O",
     winner: "",
     reason: "",
+    now_ms: 0.I64,
+    watching: 0.I64,
     seats: [{ ..sample_seat, status: "eliminated", piece: "O" }],
 }
 
@@ -57,6 +63,8 @@ sample_result = {
     piece: "T",
     winner: "Seat 0",
     reason: "Last player standing",
+    now_ms: 0.I64,
+    watching: 0.I64,
     seats: [{ ..sample_seat, status: "alive" }],
 }
 
@@ -83,6 +91,7 @@ Lobby = |{ player_count, full }|
                 </header>
                 <p class="count">{player_count.to_str()} seated, 8 max.</p>
                 <div class="actions">
+                    <a class="button secondary" href="/play/blocks/watch">Spectate</a>
                     @if full {
                         <p class="count">Seats full this round.</p>
                     } @else {
@@ -133,9 +142,13 @@ Hud = |{ view }|
                 Seat {seat.seat.to_str()} · {seat.status} · queue {seat.queue.to_str()}
             </p>
         }
-        <form method="post" action="/play/blocks/leave">
-            <button class="secondary" type="submit">Leave</button>
-        </form>
+        @if view.watching != 0 {
+            <a class="button secondary" href="/play/blocks/">Back</a>
+        } @else {
+            <form method="post" action="/play/blocks/leave">
+                <button class="secondary" type="submit">Leave</button>
+            </form>
+        }
     </aside>
 
 @component
@@ -162,10 +175,20 @@ SteerPad = |{}|
     </div>
 
 @component
+KeepAlive = |{ ts }|
+    <span id="blocks-keepalive" hidden data-ts={ts.to_str()}></span>
+
+@component
+CapacityReached = |{}|
+    <p id="blocks-capacity">Spectator capacity reached. Try again later.</p>
+
+@component
 GamePatch = |{ view }|
     <>
         <ArenaState view={view} />
         <Hud view={view} />
+        <KeepAlive ts={view.now_ms} />
+        <p id="blocks-capacity" hidden></p>
         @match view.phase {
             "result" => <ResultCard winner={view.winner} reason={view.reason} />
             _ => <section id="blocks-result" class="result" hidden></section>
@@ -191,7 +214,9 @@ PlayPage = |{ view }|
                 </nav>
                 <div class="stage">
                     <canvas id="blocks-canvas" width="300" height="600" aria-label="Board"></canvas>
-                    <SteerPad />
+                    @if view.watching == 0 {
+                        <SteerPad />
+                    }
                     @match (List.get(view.seats, 0)) {
                         Ok(seat) if seat.status == "eliminated" and seat.you != 0 => <EliminatedBanner />
                         _ => <></>
@@ -204,7 +229,9 @@ PlayPage = |{ view }|
                         _ => <section id="blocks-result" class="result" hidden></section>
                     }
                     <ArenaState view={view} />
-                    @if view.phase == "lobby" {
+                    <KeepAlive ts={view.now_ms} />
+                    <p id="blocks-capacity" hidden></p>
+                    @if view.phase == "lobby" and view.watching == 0 {
                         <form method="post" action="/play/blocks/command/ready">
                             <button type="submit">Ready</button>
                         </form>
@@ -249,3 +276,9 @@ playResultTest = { view: sample_result }
 
 @fixture{target: GamePatch}
 gamePatchTest = { view: sample_active }
+
+@fixture{target: KeepAlive}
+keepAliveTest = { ts: 10000.I64 }
+
+@fixture{target: CapacityReached}
+capacityReachedTest = {}
