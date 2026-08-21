@@ -43,4 +43,4 @@ curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
 # data: elements <section id="counter" ...><output>1</output>...
 ```
 
-Increment and reset should update `<output>` in the browser via a single `datastar-patch-elements` event that morphs `#counter`.
+Increment and reset should update `<output>` in the browser via a single `datastar-patch-elements` event that morphs `#counter`. A second tab stays stale until you click or refresh; for two windows that share a stream, see [`examples/rocci/standalone/live-counter`](../live-counter).
