@@ -108,8 +108,8 @@ Seven-bag: shuffle `IJLOSTZ` with the room LCG (`seed = (seed * 1103515245 + 123
 
 ## Round lifecycle
 
-1. **Lobby** — seats fill; spectators watch. ≥2 ready players start a 10 s countdown.
-2. **Countdown** — roster frozen if still ≥2 ready at fire; otherwise return to Lobby.
+1. **Lobby** — seats fill; spectators watch. The first ready player starts a solo round immediately; a multi-player lobby uses a 10 s countdown.
+2. **Countdown** — roster frozen if still ≥1 ready at fire; otherwise return to Lobby.
 3. **Round** — late arrivals spectate or queue. Mid-round join as a player is forbidden.
 4. **Eliminated** — topped-out player keeps the player stream; does not take a spectator lease.
 5. **Result** — one survivor, or 5-minute timeout ranking by lower occupied rows then lines sent.
@@ -121,13 +121,16 @@ Process restart moves the active round to `Result(Interrupted)` and opens a fres
 
 One Datastar patch of `#blocks-arena-state`. Every event is a full snapshot.
 Attributes on the root: `data-revision`, `data-phase`, `data-deadline-ms`,
-`data-round`. One child per occupied seat:
+`data-round`. Each seat also carries its monotonic `data-board-revision`; the
+client ignores an older board snapshot that arrives after a lock acknowledgement.
+One child per occupied seat:
 
 ```html
 <div id="blocks-arena-state" data-revision="12" data-phase="round"
      data-deadline-ms="0" data-round="3">
   <div data-seat="0" data-status="alive" data-board="..." data-target="2"
-       data-queue="3" data-ready="1" data-piece="T" data-you="1"></div>
+       data-queue="3" data-ready="1" data-piece="T" data-board-revision="4"
+       data-you="1"></div>
 </div>
 ```
 

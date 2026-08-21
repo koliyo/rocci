@@ -294,18 +294,36 @@ Game := [].{
 
     seven = ["I", "J", "L", "O", "S", "T", "Z"]
 
-    scramble = |items, seed|
+    replace_at = |items, target, value, index, acc|
         match items {
-            [] => { pieces: [], seed }
+            [] => acc
             [head, .. as tail] => {
-                rolled = rand_range(seed, 0, 1)
-                inner = scramble(tail, rolled.seed)
-                if rolled.value == 0 {
-                    { pieces: List.prepend(inner.pieces, head), seed: inner.seed }
-                } else {
-                    { pieces: List.append(inner.pieces, head), seed: inner.seed }
-                }
+                next = if index == target { value } else { head }
+                replace_at(tail, target, value, index + 1, List.append(acc, next))
             }
+        }
+
+    swap_index = |items, i, j|
+        if i == j {
+            items
+        } else {
+            match (nth(items, i, 0), nth(items, j, 0)) {
+                (Ok(a), Ok(b)) => replace_at(replace_at(items, i, b, 0, []), j, a, 0, [])
+                _ => items
+            }
+        }
+
+    scramble = |items, seed| {
+        n = List.len(items).to_i64_wrap()
+        fisher(items, seed, n - 1)
+    }
+
+    fisher = |items, seed, i|
+        if i <= 0 {
+            { pieces: items, seed }
+        } else {
+            rolled = rand_range(seed, 0, i)
+            fisher(swap_index(items, i, rolled.value), rolled.seed, i - 1)
         }
 
     refill_bag = |seed|

@@ -122,6 +122,7 @@ ArenaState = |{ view }|
                 data-queue={seat.queue.to_str()}
                 data-ready={seat.ready.to_str()}
                 data-piece={seat.piece}
+                data-board-revision={seat.board_revision.to_str()}
                 data-you={seat.you.to_str()}
             ></div>
         }

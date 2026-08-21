@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
+use rocci_core::Config;
 use rocci_template::{InitInfo, LiveInfo, RouteInfo};
 use sha2::{Digest, Sha256};
 
@@ -313,7 +314,8 @@ pub fn execute_resolved_entry(
     let title = title.unwrap_or(&default_title);
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
-    let url = format!("http://127.0.0.1:{port}/");
+    let start_path = app_start_path(&resolved.app_dir);
+    let url = format!("http://127.0.0.1:{port}{start_path}");
     let cmd = roc_command(&invocation, port);
     let roc_started = Instant::now();
     let logs = Arc::new(LogHub::new());
@@ -322,7 +324,7 @@ pub fn execute_resolved_entry(
         &mut child,
         &mut tee,
         port,
-        "/",
+        &start_path,
         logs::Progress::from_verbose(verbose),
     )? {
         serve::RocStart::Ready => {
@@ -342,7 +344,7 @@ pub fn execute_resolved_entry(
                 style::serving(&invocation.app_dir.display().to_string(), &url),
             );
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
-            inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
+            inspect.capture_html_from_origin(&url);
             serve::with_window_and_inspector(
                 &mut child,
                 &url,
@@ -372,6 +374,19 @@ pub fn preview_path(routes: &[RouteInfo]) -> String {
             }
         })
         .unwrap_or_else(|| "/".to_string())
+}
+
+pub(crate) fn app_start_path(app_dir: &Path) -> String {
+    let from_toml = Config::from_file(app_dir.join("rocci.toml"))
+        .ok()
+        .and_then(|config| config.windows.into_iter().next())
+        .map(|window| window.url)
+        .filter(|url| !url.is_empty());
+    match from_toml {
+        Some(url) if url.starts_with('/') => url,
+        Some(url) => format!("/{url}"),
+        None => "/".into(),
+    }
 }
 
 pub fn serve_template_errors(
@@ -555,5 +570,24 @@ impl TempDir {
 impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn app_start_path_reads_window_url() {
+        let dir = env::temp_dir().join(format!("rocci-start-path-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("rocci.toml"),
+            "[app]\nname = \"t\"\nidentifier = \"dev.rocci.t\"\n\n[[windows]]\nlabel = \"main\"\nurl = \"/play/blocks/\"\n",
+        )
+        .unwrap();
+        assert_eq!(app_start_path(&dir), "/play/blocks/");
+        let _ = fs::remove_dir_all(&dir);
     }
 }

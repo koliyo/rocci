@@ -32,7 +32,15 @@ cargo run -q -p rocci-cli -- inspect --ast examples/rocci/custom/blocks/Blocks.r
 cargo run -q -p rocci-cli -- run examples/rocci/custom/blocks
 ```
 
-`--no-window` serves `http://127.0.0.1:8000/play/blocks/`.
+`--no-window` serves `http://127.0.0.1:8000/play/blocks/` (`[[windows]].url`).
+Join starts a solo round immediately.
+
+For a running local server, verify a solo join, the initial piece, and one
+complete seven-bag with:
+
+```sh
+BLOCKS_BASE=http://127.0.0.1:8000 DB_PATH=./blocks.db python3 scripts/piece-flow.py
+```
 
 Package a musl binary for the origin image (no Roc or Rust in the runtime):
 
