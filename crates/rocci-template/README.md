@@ -4,7 +4,7 @@ Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
 `@component Name = |params| ...` bodies use a bounded HTML template
-grammar. Top-level `@context`, `@init`, `@on`, and `@live` declare standalone HTTP
+grammar. Top-level `@context`, `@init`, `@view`, `@patch`, `@command`, and `@live` declare standalone HTTP
 apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
 expressions, or spawn servers.
 
@@ -47,8 +47,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, `@on`,
-and `@live` are recognized only at the start of a top-level definition.
+module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, `@view`,
+`@patch`, `@command`, and `@live` are recognized only at the start of a top-level definition.
 
 ## Components
 
@@ -64,8 +64,8 @@ A body that is one HTML tag, component call, or fragment does not need braces.
 Component names are PascalCase, matching the tags that call them. Roc values
 cannot start with an uppercase letter, so lowering emits the corresponding
 camelCase function. Write `@component Hello` and `<Hello />`; the generated
-module binds `hello`. Ordinary Roc in the same file—`exposing` lists, `@on`
-handlers, helpers—uses that camelCase name, because those regions are Roc:
+module binds `hello`. Ordinary Roc in the same file—`exposing` lists, handlers,
+helpers—uses that camelCase name, because those regions are Roc:
 
 ```rocci
 module CounterPage exposing [hello]
@@ -167,10 +167,12 @@ are left for the Roc compiler and later project-level tools.
 
 ## Standalone HTTP
 
-Top-level `@context`, `@init`, `@on`, and `@live` declare app state and HTTP
-handlers for `rocci run File.rocci`. Bodies are Roc, not templates. The generated
-dispatcher (not this crate) maps them onto basic-webserver: authors never
-write `Context`, `ServerErr`, `Exit`, or `respond!`.
+Top-level `@context`, `@init`, `@view`, `@patch`, `@command`, and `@live`
+declare app state and HTTP handlers for `rocci run File.rocci`. Bodies are
+Roc, not templates. `@on` and the trailing `json` marker are removed; old
+source never lowers. The generated dispatcher (not this crate) maps handlers
+onto basic-webserver: authors never write `Context`, `ServerErr`, `Exit`, or
+`respond!`.
 
 ```rocci
 @context { db : Sqlite.Db }
@@ -205,44 +207,56 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   `main.roc` uses `Context : Module.State`.
 - `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
   generated app maps failures to process exit.
-- `@live = |state, request| { ... }` (optional params, same arity as `@on`)
-  lowers to `live!`. One per module. The CLI dispatcher emits `GET /sse` as a
-  poll unfold (`After(100)`) that calls `Type.live!(context, request)` and
-  skips emit when `Html.render` bytes are unchanged. In an `@live` module, a
-  root `<body>` without `data-init` gets
+- `@live = |state, request| { ... }` (optional params, same arity as other
+  handlers) lowers to `live!`. One per module. The CLI dispatcher emits
+  `GET /sse` as a poll unfold (`After(100)`) that calls
+  `Type.live!(context, request)` and skips emit when `Html.render` bytes are
+  unchanged. In an `@live` module, a root `<body>` without `data-init` gets
   `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@view("/sse")`
   plus `@live` is a diagnostic.
-- `@view("literal-path")`, `@patch[:method]("literal-path")`, and
-  `@command[:method]("literal-path")` lower to a named
-  function (`on_get_root!`, `on_post_actions_increment!`). Generated
-  dispatch calls `handler!(context, request)`. Write `|{ db }, request|`
-  when the handler reads the request. A one-parameter list such as
-  `|{ db }|` or `|_|` lowers with an unused `_request` appended. Omit the
-  parameter list to get `|state, _request|`. `GET` responses are HTML
-  documents; unmarked other methods are one-shot `datastar-patch-elements` SSE
-  events. The optional `json` ident (mutating methods only) returns a `Str`:
-  **204** when `Datastar-Request: true`, else **200** `application/json`.
-  Unknown idents and `json` on GET are diagnostics. Generated `respond!` maps
-  `?` failures to HTTP 500 (HTML overlay for Datastar; JSON `{"error":"..."}`
-  for API). Bodies may call platform effects such as `pf.Stderr.line!`; under
-  `rocci run` those lines are teed to the CLI and Dev Console. Do not print
-  from `@component`.
+- `@view("literal-path")` is always GET and returns an HTML document.
+  `@patch[:method]("literal-path")` returns an HTML fragment encoded as a
+  one-shot `datastar-patch-elements` event. `@command[:method]("literal-path")`
+  returns Roc data; generated dispatch encodes it with
+  `Encoding.Json.to_str_try`. Datastar (`Datastar-Request: true`) gets **204**
+  and no morph; an ordinary client gets **200** `application/json`. A command
+  that returns `Str` encodes as a JSON string; return a record or list for a
+  JSON object or array. POST is the omitted default (`@patch:post` is
+  rejected). GET is rejected on `@patch` and `@command`. `@patch:patch` is
+  legal: the noun is the fragment role, `:patch` is the HTTP method. Complete
+  examples did not show method confusion, so the name stays `@patch` rather
+  than `@fragment`.
+- Generated functions keep names such as `on_get_root!` and
+  `on_post_actions_increment!`. Dispatch calls `handler!(context, request)`.
+  Write `|{ db }, request|` when the handler reads the request. A one-parameter
+  list such as `|{ db }|` or `|_|` lowers with an unused `_request` appended.
+  Omit the parameter list to get `|state, _request|`. Generated `respond!`
+  maps `?` failures to HTTP 500 (HTML overlay for Datastar; JSON
+  `{"error":"..."}` for API). Bodies may call platform effects such as
+  `pf.Stderr.line!`; under `rocci run` those lines are teed to the CLI and Dev
+  Console. Do not print from `@component`.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
 
 Paths are free-form. The convention is:
 
-| Kind | Path | Example |
-| --- | --- | --- |
-| HTML document | resource, no prefix | `GET /`, `GET /todos` |
-| Datastar HTML/SSE patch | `/actions/...` | `POST /actions/increment` |
-| JSON command (`json`) | `/actions/...` | `POST /actions/increment` → 204 or JSON |
-| Long-lived SSE | `/sse` | Generated from `@live` |
+| Kind | Declaration | Body | Response |
+| --- | --- | --- | --- |
+| HTML document | `@view(path)` | Full `<html>` | `text/html` |
+| One-shot patch | `@patch`, `@patch:put`, `@patch:patch`, `@patch:delete` | Fragment with a stable `id` | `datastar-patch-elements` in the acting tab |
+| JSON command | `@command` and friends | Record or list | **204** for Datastar; `application/json` otherwise |
+| Live stream | `@live` | Fragment with a stable `id` | Generated `GET /sse` |
+
+`@on:METHOD` and trailing `json` are a removal, not a deprecation. Diagnostics rewrite:
+
+- `@on:get(path)` → `@view(path)` for a document
+- `@on:post(path)` → `@patch(path)`
+- `@on:delete(path) json` → `@command:delete(path)` and delete any `Json.to_str` from the body
 
 Handler return alternatives not taken: returning `Server.Outcome` from the
 body, or branching on `Html` vs `Sse.Event`. A custom unfold can still live in
 an authored `main.roc`.
 
-`@context` / `@init` / `@on` / `@live` are module-level only.
+`@context` / `@init` / `@view` / `@patch` / `@command` / `@live` are module-level only.
 
 ## Tags
 
@@ -556,7 +570,7 @@ include the `self-closing` atom after the tag name.
 - Dynamic tags, prop spreading, or a runtime component registry
 - Spawning HTTP servers, Datastar JS, file watching, or process management
 
-Route metadata from `@on` is emitted for the CLI. Dispatch lives in generated
+Route metadata from `@view` / `@patch` / `@command` is emitted for the CLI. Dispatch lives in generated
 `main.roc`, not this crate.
 
 The language design and open questions live in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md).

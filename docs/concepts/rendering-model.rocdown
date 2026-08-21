@@ -30,9 +30,9 @@ tag passes its body as an additional `Html` argument.
 
 ## Documents and fragments are distinct
 
-GET handlers are expected to return complete HTML documents. Unmarked mutation
-handlers return fragments that the generated server encodes as Datastar patch
-events. `@live` returns the shared fragment for a generated `/sse` stream.
+GET handlers (`@view`) return complete HTML documents. `@patch` handlers
+return fragments that the generated server encodes as Datastar patch events.
+`@live` returns the shared fragment for a generated `/sse` stream.
 
 | Handler | Typical result | Browser behavior |
 | --- | --- | --- |
@@ -42,9 +42,8 @@ events. `@live` returns the shared fragment for a generated `/sse` stream.
 | `@live` | Fragment with a stable `id` | Generated `GET /sse` poll; every open tab morphs the region |
 
 This distinction prevents every fragment from carrying a document shell, CSS,
-or script setup. `@live` does not change unmarked GET (document) or unmarked
-POST (one-shot patch). Do not patch the same `id` from both a `json` command
-and the stream.
+or script setup. `@live` does not change `@view` (document) or `@patch`
+(one-shot). Do not patch the same `id` from both a `@command` and the stream.
 
 ## CSS is colocated and scoped
 
@@ -59,11 +58,11 @@ asset pipeline can extract the same `StyleArtifact` values and include them once
 ## Datastar transports intent and HTML
 
 An attribute such as `data-on:click=@post("/actions/save")` declares a browser
-event and backend request. Unmarked mutation handlers return HTML; Datastar
-patches the matching element. A `json` handler returns a `Str`; Datastar
-treats **204** as success with no morph and `application/json` as a **signal**
-patch. Shared multi-tab HTML updates use `@live`, which generates `GET /sse`
-(not an authored `main.roc` unfold).
+event and backend request. `@patch` handlers return HTML; Datastar patches the
+matching element. `@command` returns Roc data; Datastar treats **204** as
+success with no morph and `application/json` as a **signal** patch. Shared
+multi-tab HTML updates use `@live`, which generates `GET /sse` (not an
+authored `main.roc` unfold).
 
 This gives server-owned data one authoritative representation. It also means
 stable element IDs and focused fragment boundaries matter. Do not bind a

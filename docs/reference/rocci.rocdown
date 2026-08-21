@@ -29,7 +29,7 @@ label = |tone| ...
 ```
 
 Recognized top-level forms are `@component`, `@fixture`, `@css`, `@context`,
-`@init`, `@on`, and `@live`.
+`@init`, `@view`, `@patch`, `@command`, and `@live`.
 
 ## Components
 
@@ -114,16 +114,17 @@ Unqualified targets must name a local component.
 ```
 
 These forms apply to standalone apps. Bodies are Roc. `@context` declares
-state, `@init` creates it, and `@on` defines route handlers. `@live` is an
-optional module-level render (one per module) that lowers to `live!`; the CLI
-generates `GET /sse` and injects `data-init` on `<body>` when that attribute is
-absent. An optional `json` ident after the `@on` path marks a mutating handler
-as returning a JSON `Str` (204 to Datastar, 200 JSON otherwise). `json` on GET
-and unknown idents are errors. Generated dispatch calls each handler as
-`handler!(context, request)`. Write `|{ db }, request|` when you need the
-request body or headers. A one-parameter list such as `|{ db }|` lowers with
-an unused `_request` appended. Handlers without an explicit parameter list
-lower to `|state, _request|`.
+state, `@init` creates it, and `@view` / `@patch` / `@command` declare route
+handlers. `@live` is an optional module-level render (one per module) that
+lowers to `live!`; the CLI generates `GET /sse` and injects `data-init` on
+`<body>` when that attribute is absent. `@command` returns Roc data (a record
+or list). Generated dispatch encodes it: **204** to Datastar, **200**
+`application/json` otherwise. A command returning `Str` encodes as a JSON
+string. `@on` and trailing `json` are removed. Generated dispatch calls each
+handler as `handler!(context, request)`. Write `|{ db }, request|` when you
+need the request body or headers. A one-parameter list such as `|{ db }|`
+lowers with an unused `_request` appended. Handlers without an explicit
+parameter list lower to `|state, _request|`.
 
 Handlers and `@init` may use platform effects such as `pf.Stderr`. Under
 `rocci run`, each `Stderr.line!` line is printed on the CLI and appears in

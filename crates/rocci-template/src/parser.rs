@@ -2373,10 +2373,16 @@ fn removed_on_rewrite(method: &str, json: bool, path: &str) -> String {
     match (method, json) {
         ("get", _) => format!("`@view({quoted})`"),
         ("post" | "", false) => format!("`@patch({quoted})`"),
-        ("post" | "", true) => format!("`@command({quoted})`"),
+        ("post" | "", true) => {
+            format!("`@command({quoted})` and return Roc data (do not call `Json.to_str`)")
+        }
         ("put" | "patch" | "delete", false) => format!("`@patch:{method}({quoted})`"),
-        ("put" | "patch" | "delete", true) => format!("`@command:{method}({quoted})`"),
-        (_, true) => format!("`@command({quoted})`"),
+        ("put" | "patch" | "delete", true) => {
+            format!("`@command:{method}({quoted})` and return Roc data (do not call `Json.to_str`)")
+        }
+        (_, true) => {
+            format!("`@command({quoted})` and return Roc data (do not call `Json.to_str`)")
+        }
         _ => format!("`@view({quoted})`, `@patch({quoted})`, or `@command({quoted})`"),
     }
 }

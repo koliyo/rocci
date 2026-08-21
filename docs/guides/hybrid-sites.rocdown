@@ -16,7 +16,7 @@ A hybrid Rocdown site is two artifacts:
    Cmd/Ctrl-K palette (`goto.js`). Pages without handlers do not include
    Datastar. `live` pages include initial island HTML and Datastar.js pointed
    at the island service.
-2. **Island service** — `rocdown serve-islands` (colocated `@on`) or `rocci run`
+2. **Island service** — `rocdown serve-islands` (colocated handlers) or `rocci run`
    on `[http].service`. Mutation handlers return Datastar patches. The CDN file
    is a snapshot; the service owns durable state.
 
@@ -33,7 +33,7 @@ reference (`service_origin`, `--cdn-only`, `islands.json`).
 | --- | --- | --- |
 | `static` | Markdown / `@page` / `:name[params]` | No |
 | `hydrate` | Pure Rocci spliced at build | No |
-| `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Yes |
+| `live` | Rocci plus `@view` / `@patch` / `@command` / `@context` / `@init` or `import Datastar` | Yes |
 
 Apply keeps the `:note` / `:tabs` widget forest on `static` pages. The counter
 home page splices island Html; `/about/` has no Datastar. `@render` is not

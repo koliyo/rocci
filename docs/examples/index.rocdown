@@ -16,7 +16,9 @@ runtime boundary that is easy to inspect in source.
 
 | Example | What it demonstrates | Run |
 | --- | --- | --- |
-| `rocci/standalone/counter` | Standalone state, SQLite, GET document, POST patches | `rocci run examples/rocci/standalone/counter/Counter.rocci` |
+| `rocci/standalone/counter` | Standalone state, SQLite, `@view` document, `@patch` fragments | `rocci run examples/rocci/standalone/counter/Counter.rocci` |
+| `rocci/standalone/live-counter` | `@view` + `@command` + `@live` shared stream | `rocci run examples/rocci/standalone/live-counter/LiveCounter.rocci` |
+| `rocci/standalone/handler-matrix` | Every accepted handler construct and HTTP method | `rocci run examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci` |
 | `rocci/standalone/styling` | File-level and component-scoped `@css` | `rocci run examples/rocci/standalone/styling/Styling.rocci` |
 | `rocdown/pages` | Markdown, page metadata, Roc values, components, links | `rocdown run examples/rocdown/pages/Guide.rocdown` |
 | `rocdown/pages` blocks | `:note`, `:tabs`, `:figure`, a wide table, and a long fence | `rocdown run examples/rocdown/pages/Blocks.rocdown` |

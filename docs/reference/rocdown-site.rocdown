@@ -128,7 +128,7 @@ Each published page is one of:
 | --- | --- | --- | --- |
 | `static` | Markdown / `@page` / `:name[params]` only | Widget forest HTML and hashed assets | No |
 | `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) | Initial island HTML spliced at build | No |
-| `live` | Rocci plus `@on` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
+| `live` | Rocci plus `@view` / `@patch` / `@command` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
 
 `rocdown check` accepts all three. Default `rocdown build` accepts `live` and
 emits the island service manifest. `rocdown build --cdn-only` errors with
@@ -144,7 +144,7 @@ A hybrid site emits:
    `script-src 'self'; connect-src 'self'`. They do not include Datastar.
    `live` pages include hashed Datastar.js and a loosened CSP (`connect-src`
    is `'self'` or `http.service_origin`).
-2. **Island service** — `rocdown serve-islands DIR` for colocated `@on`
+2. **Island service** — `rocdown serve-islands DIR` for colocated handlers
    handlers, or `rocci run` on `[http].service`. The CDN file is a snapshot; the
    service owns durable state.
 
@@ -311,7 +311,7 @@ cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid
 `rocdown run` writes to a temp directory by default so it does not replace
 `build.output`. Pass `--output` to keep the preview files. `--no-window` serves
 in the browser only. Static content reloads after a successful rebuild. Hybrid
-sites with colocated `@on` proxy the island service on the same origin, and
+sites with colocated handlers proxy the island service on the same origin, and
 handler edits restart that service. A sibling `[http].service` app is still
 started with `rocdown serve-islands` or `rocci run`.
 
