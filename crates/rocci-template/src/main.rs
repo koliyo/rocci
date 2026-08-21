@@ -7,7 +7,8 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use rocci_template::{
-    CompileOutput, LowerOptions, SourceFile, compile, format_ast, format_diagnostic, supports_ansi,
+    CompileOutput, LowerOptions, SourceFile, compile, format_ast, format_diagnostic,
+    inspect_handlers, supports_ansi,
 };
 
 #[derive(Parser)]
@@ -113,6 +114,11 @@ fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
     println!("# fixtures ({})", compiled.fixtures.len());
     for fixture in &compiled.fixtures {
         println!("- {} -> {}", fixture.name, fixture.target);
+    }
+    let handlers = inspect_handlers(&compiled.document);
+    println!("# handlers ({})", handlers.len());
+    for handler in &handlers {
+        println!("- {}", handler.line());
     }
     println!("# styles ({})", compiled.styles.len());
     for style in &compiled.styles {

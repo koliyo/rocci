@@ -8,9 +8,9 @@ use lsp_types::{
     Uri, WorkDoneProgressParams,
 };
 use rocci_lsp::{
-    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_FUNCTION,
-    TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, TOKEN_VARIABLE, extract_rocci_regions,
-    method_inspect_regions,
+    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_ENUM_MEMBER,
+    TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, TOKEN_VARIABLE,
+    extract_rocci_regions, method_inspect_regions,
 };
 use rocci_template::{PositionEncoding, SourceFile};
 
@@ -102,6 +102,10 @@ fn kitchen_sink_has_no_error_diagnostics_and_component_symbols() {
     assert!(names.contains(&"Badge"));
     assert!(names.contains(&"Hello"));
     assert!(names.contains(&"CounterPage"));
+    assert!(names.contains(&"GET /"));
+    assert!(names.contains(&"PATCH /actions/patch"));
+    assert!(names.contains(&"POST /actions/increment"));
+    assert!(names.contains(&"live!"));
 }
 
 #[test]
@@ -372,6 +376,7 @@ fn embedded_languages_rocci_symbols_tokens_and_regions() {
     assert!(names.contains(&"sampleUser"), "{names:?}");
     assert!(names.contains(&"State"), "{names:?}");
     assert!(names.contains(&"init!"), "{names:?}");
+    assert!(names.contains(&"GET /api/users"), "{names:?}");
 
     let result = server
         .semantic_tokens_full(SemanticTokensParams {
@@ -594,7 +599,8 @@ fn malformed_and_unclosed_syntax_produces_valid_regions() {
         INCOMPLETE_TAG,
         "@component Foo = |{}| { <p>{user. </p> }",
         "@css { .foo { color: ",
-        "@on:get(\"/api\") { let x = ",
+        "@patch(\"/api\") { let x = ",
+        include_str!("../../../test/MalformedHandlers.rocci"),
         "@init {",
     ];
     for src in broken_rocci_inputs {
@@ -702,7 +708,8 @@ fn semantic_tokens_malformed_and_incomplete_recovery() {
         INCOMPLETE_TAG,
         "@component Broken = |{}| { <p>{person. </p> }",
         "@css { .card { color: #fff; width: ",
-        "@on:get(\"/api\") { let result = ",
+        "@patch(\"/api\") { let result = ",
+        include_str!("../../../test/MalformedHandlers.rocci"),
     ];
 
     for src in broken_inputs {
@@ -783,4 +790,78 @@ fn semantic_tokens_counter_rocci_qualified_precision() {
             "did not match Sqlite.default_query_limits"
         );
     }
+}
+
+#[test]
+fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
+    let src = r#"
+@view("/") { Html.text("v") }
+@patch:patch("/x") { Html.text("p") }
+@command("/c") { { n: 1 } }
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#;
+    let mut server = initialize(true);
+    open(&mut server, src);
+    let symbols = server
+        .document_symbol(DocumentSymbolParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("symbols");
+    let DocumentSymbolResponse::Nested(symbols) = symbols else {
+        panic!("expected nested document symbols");
+    };
+    let names: Vec<_> = symbols.iter().map(|symbol| symbol.name.as_str()).collect();
+    assert!(names.contains(&"GET /"), "{names:?}");
+    assert!(names.contains(&"PATCH /x"), "{names:?}");
+    assert!(names.contains(&"POST /c"), "{names:?}");
+
+    let view_at = src.find("@view").expect("@view");
+    let (line, character) = line_col(src, view_at);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("view hover");
+    let lsp_types::HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("@view(\"/\")"), "{}", markup.value);
+
+    let at_view = src.find("@view").expect("@view") + 1;
+    let (line, character) = line_col(src, at_view);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("directive completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert!(items.iter().any(|item| item.label == "view"));
+    assert!(items.iter().any(|item| item.label == "patch"));
+    assert!(items.iter().any(|item| item.label == "command"));
+
+    let result = server
+        .semantic_tokens_full(SemanticTokensParams {
+            text_document: identifier(),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("semantic tokens");
+    let lsp_types::SemanticTokensResult::Tokens(tokens) = result else {
+        panic!("expected full semantic tokens");
+    };
+    let patch_kw = src.find("@patch").expect("@patch");
+    assert_eq!(token_type_at(src, &tokens, patch_kw), Some(TOKEN_KEYWORD));
+    let method = src.find("@patch:").expect("method") + "@patch:".len();
+    assert_eq!(token_type_at(src, &tokens, method), Some(TOKEN_ENUM_MEMBER));
 }

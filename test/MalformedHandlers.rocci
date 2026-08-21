@@ -1,0 +1,14 @@
+@patch("/broken"
+@css { .x { color: red; } }
+
+@view("/") {
+    Html.text("ok")
+}
+
+@command("/c") {
+    { count: 1 }
+}
+
+@component Survives = |{}| {
+    <p>ok</p>
+}

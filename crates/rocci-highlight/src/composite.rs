@@ -274,7 +274,7 @@ fn collect_mutation(
     if let Some(method) = method {
         collector.push(HighlightSpan::new(
             method.span,
-            HighlightKind::Keyword,
+            HighlightKind::EnumMember,
             0,
             50,
         ));

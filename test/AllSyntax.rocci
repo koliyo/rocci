@@ -132,10 +132,38 @@ badgeClass = |tone| {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }
 
-@live {
-    counterPage({ person: { name: "Roc" }, count: 0 })
+@patch("/actions/card") {
+    counterCard({ count: 0 })
+}
+
+@patch:put("/actions/put") = |_state, _request| {
+    counterCard({ count: 1 })
+}
+
+@patch:patch("/actions/patch") {
+    counterCard({ count: 2 })
+}
+
+@patch:delete("/actions/delete-card") {
+    counterCard({ count: 3 })
 }
 
 @command("/actions/increment") {
     { count: 0 }
+}
+
+@command:put("/actions/command-put") = |_state| {
+    { count: 1 }
+}
+
+@command:patch("/actions/command-patch") {
+    { items: ["a"] }
+}
+
+@command:delete("/actions/command-delete") {
+    { remaining: 0 }
+}
+
+@live {
+    counterPage({ person: { name: "Roc" }, count: 0 })
 }

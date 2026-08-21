@@ -349,6 +349,63 @@ fn is_bare_atom(text: &str) -> bool {
     chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | ':' | '-'))
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HandlerInspect {
+    pub kind: &'static str,
+    pub method: String,
+    pub path: String,
+    pub role: &'static str,
+}
+
+impl HandlerInspect {
+    pub fn line(&self) -> String {
+        format!(
+            "{} {} \"{}\" {}",
+            self.kind, self.method, self.path, self.role
+        )
+    }
+}
+
+pub fn inspect_handlers(document: &Document) -> Vec<HandlerInspect> {
+    document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::View(view) => Some(HandlerInspect {
+                kind: "view",
+                method: "GET".to_string(),
+                path: view.path.clone(),
+                role: "document",
+            }),
+            ModuleItem::Patch(patch) => Some(HandlerInspect {
+                kind: "patch",
+                method: mutation_method(patch.method.as_ref()),
+                path: patch.path.clone(),
+                role: "patch",
+            }),
+            ModuleItem::Command(command) => Some(HandlerInspect {
+                kind: "command",
+                method: mutation_method(command.method.as_ref()),
+                path: command.path.clone(),
+                role: "command",
+            }),
+            ModuleItem::Live(_) => Some(HandlerInspect {
+                kind: "live",
+                method: "GET".to_string(),
+                path: "/sse".to_string(),
+                role: "live",
+            }),
+            _ => None,
+        })
+        .collect()
+}
+
+fn mutation_method(method: Option<&crate::ast::Ident>) -> String {
+    method
+        .map(|ident| ident.name.to_ascii_uppercase())
+        .unwrap_or_else(|| "POST".to_string())
+}
+
 fn string_atom(text: &str) -> String {
     let mut out = String::from("\"");
     for ch in text.chars() {
