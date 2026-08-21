@@ -1050,16 +1050,13 @@ fn planned_page(
     } else {
         format!("Page{}", &hex_sha256(page.id.as_bytes())[..HASH_LEN])
     };
-    let hybrid = matches!(page.kind, PageKind::Hydrate | PageKind::Live);
-    let (segments, fragments) = if hybrid {
-        let path = format!("articles/{article_name}.html");
-        (
-            vec![crate::docs::PlannedNode::Html { path: path.clone() }],
-            vec![(path, article_html.clone())],
-        )
-    } else {
-        let (segments, fragments) =
-            crate::docs::plan_segments(&article_name, &page.article, rewrite);
+    let (segments, fragments) = {
+        let (segments, fragments) = crate::docs::plan_segments_with_islands(
+            &article_name,
+            &page.article,
+            rewrite,
+            &page.island_html,
+        );
         let fragments = if fragments.is_empty() {
             vec![(
                 format!("articles/{article_name}.html"),
@@ -2395,7 +2392,7 @@ items = ["index", "guide"]
     }
 
     #[test]
-    fn static_pages_keep_widget_forest_hybrid_pages_use_one_htmlfile() {
+    fn hybrid_pages_keep_static_widgets_and_islands_in_authored_order() {
         let root = temp("dual-apply");
         fs::write(
             root.join("rocdown.toml"),
@@ -2429,6 +2426,11 @@ FeatureCount = |_| {
 }
 
 # Widgets
+
+:card-grid.begin
+    :link-card[href: "/", title: "Start", summary: "First path."]
+    :link-card[href: "/widgets/", title: "Project", summary: "Second path."]
+:card-grid.end
 
 @render FeatureCount({})
 "#,
@@ -2472,9 +2474,13 @@ FeatureCount = |_| {
             .iter()
             .find(|page| page.view.route == "/widgets/")
             .unwrap();
-        assert_eq!(widgets.segments.len(), 1);
+        let card_segment = widgets
+            .segments
+            .iter()
+            .position(|node| node.widget_kind() == Some("card-grid"))
+            .expect("card-grid segment");
         assert!(
-            matches!(widgets.segments[0], crate::docs::PlannedNode::Html { .. }),
+            card_segment + 1 < widgets.segments.len(),
             "{:?}",
             widgets.segments
         );
@@ -2486,6 +2492,13 @@ FeatureCount = |_| {
             "{:?}",
             widgets.fragments
         );
+        let roc = planned.pages_roc();
+        let card_at = roc.find("CardGrid({").expect("card-grid in generated Roc");
+        let island_at = roc[card_at..]
+            .find("HtmlFile({ path:")
+            .map(|offset| card_at + offset)
+            .expect("island fragment after card-grid");
+        assert!(card_at < island_at, "{roc}");
         assert!(widgets.view.resources.module_script.is_empty());
         assert!(widgets.view.resources.chrome_script.contains("goto."));
         let _ = fs::remove_dir_all(root);
