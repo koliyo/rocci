@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{Diagnostic, SourceFile};
@@ -83,13 +84,19 @@ pub fn render_static_preview_html(
         );
     }
 
+    let started = Instant::now();
     let theme = rocci_theme::resolve(
         page_meta.theme.as_deref(),
         page_meta.color_scheme.as_deref(),
         &options.theme,
     )
     .ok();
+    rocci_cli::logs::emit(format!(
+        "rocdown: resolved theme in {}ms",
+        started.elapsed().as_millis()
+    ));
 
+    let started = Instant::now();
     let mut catalog_diags = Vec::new();
     let docs = load_page_docs(
         source,
@@ -117,12 +124,23 @@ pub fn render_static_preview_html(
                 .join("\n")
         );
     }
+    rocci_cli::logs::emit(format!(
+        "rocdown: article tree in {}ms ({} nodes)",
+        started.elapsed().as_millis(),
+        docs.article.len()
+    ));
 
+    let started = Instant::now();
     let article = if docs.article.is_empty() {
         crate::render_document(document)
     } else {
         render_article(&docs.article)
     };
+    rocci_cli::logs::emit(format!(
+        "rocdown: article HTML in {}ms ({} bytes)",
+        started.elapsed().as_millis(),
+        article.len()
+    ));
 
     let title = page_meta
         .title
@@ -234,6 +252,24 @@ mod tests {
         assert!(html.contains("Read this"));
         assert!(html.contains("assets/mark.png"));
         assert!(out.join("assets/mark.png").is_file());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn branding_report_static_preview_completes_quickly() {
+        let input = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown");
+        if !input.is_file() {
+            return;
+        }
+        let dir = temp_dir("branding-report");
+        let started = Instant::now();
+        write_static_document_preview(&input, &dir, &CompileOptions::default()).unwrap();
+        let ms = started.elapsed().as_millis();
+        eprintln!("branding static preview {ms}ms");
+        assert!(ms < 5_000, "static preview of branding report took {ms}ms");
+        let html = fs::read_to_string(dir.join("index.html")).unwrap();
+        assert!(html.contains("Rocci branding"));
         let _ = fs::remove_dir_all(&dir);
     }
 
