@@ -1,0 +1,99 @@
+[
+  {
+    "id": "packet-not-ready-before-600ms",
+    "input": {
+      "now_ms": 1000,
+      "packets": [
+        {
+          "rows": 4,
+          "ready_at_ms": 1600,
+          "hole": 3
+        }
+      ]
+    },
+    "output": {
+      "ready_rows": 0,
+      "applied_rows": 0,
+      "remaining": [
+        {
+          "rows": 4,
+          "ready_at_ms": 1600,
+          "hole": 3
+        }
+      ]
+    }
+  },
+  {
+    "id": "packet-ready-at-600ms-applied-on-lock",
+    "input": {
+      "now_ms": 1600,
+      "packets": [
+        {
+          "rows": 4,
+          "ready_at_ms": 1600,
+          "hole": 3
+        }
+      ]
+    },
+    "output": {
+      "ready_rows": 4,
+      "applied_rows": 4,
+      "remaining": []
+    }
+  },
+  {
+    "id": "apply-at-most-eight-rows",
+    "input": {
+      "now_ms": 5000,
+      "packets": [
+        {
+          "rows": 4,
+          "ready_at_ms": 1000,
+          "hole": 3
+        },
+        {
+          "rows": 4,
+          "ready_at_ms": 1200,
+          "hole": 6
+        },
+        {
+          "rows": 4,
+          "ready_at_ms": 1400,
+          "hole": 9
+        }
+      ]
+    },
+    "output": {
+      "ready_rows": 12,
+      "applied_rows": 8,
+      "remaining": [
+        {
+          "rows": 4,
+          "ready_at_ms": 1400,
+          "hole": 9
+        }
+      ]
+    }
+  },
+  {
+    "id": "second-packet-uses-different-hole",
+    "input": {
+      "previous_hole": 3,
+      "next_hole_formula": "(hole + 3) mod 10"
+    },
+    "output": {
+      "hole": 6
+    }
+  },
+  {
+    "id": "garbage-row-has-single-hole",
+    "input": {
+      "width": 10,
+      "hole": 3,
+      "fill": "G"
+    },
+    "output": {
+      "row": "GGG.GGGGGG"
+    }
+  }
+]
