@@ -1,0 +1,308 @@
+# Phase 0 truth map for the Rocci manual.
+# Not a public page. Public routes live in .rocdown files; this file records
+# dispositions, aliases, generator ownership, and accepted decision gates.
+
+schema_version = 1
+product = "rocci"
+docs_root = "docs"
+site_docs_prefix = "/docs/"
+
+[approvals]
+# Accepted with the implementation plan on 2026-08-21.
+rocci_first_docs = true
+rocdown_lane = "/rocdown/"
+nav_labels = [
+    "Start",
+    "Tutorials",
+    "How to",
+    "Understand",
+    "Reference",
+    "Troubleshooting",
+    "Status",
+]
+examples_lane = "/examples/"
+install_channel = "source-build"
+install_experimental = "github-prerelease-archives"
+install_absent = ["crates.io", "homebrew", "install-script"]
+version_label = "development"
+first_component_example = "examples/rocci/standalone/styling"
+first_app_example = "examples/rocci/standalone/counter"
+sqlite_in_beginner_path = true
+coverage_path = "docs/coverage.toml"
+coverage_fail_on = [
+    "unowned-current-feature",
+    "removed-labeled-current",
+    "missing-canonical-page",
+]
+example_filter_metadata = "examples/rocci/apps.toml"
+platform_verified = ["macos", "linux"]
+platform_documented_unverified = ["windows"]
+new_rocdown_features = false
+
+[vocabulary]
+component = "A PascalCase @component that lowers to a pure Roc Html function."
+standalone_app = "A .rocci module with @context / @init / @view that rocci run compiles into a generated server."
+custom_app = "A directory with authored main.roc that reuses .rocci modules."
+patch = "A one-shot HTML fragment response from @patch; Datastar morphs the acting tab."
+command = "A @command handler that returns Roc data: 204 to Datastar, JSON to other clients."
+live = "A module-level @live render that generates GET /sse for shared HTML updates."
+datastar = "Browser transport for intent and morphing. Not a client application framework."
+rocdown = "Separate Markdown-first document product. Not part of the Rocci learning path."
+preview = "The Tao/Wry window that loads the same local HTTP origin as a browser."
+rocci_browse = "Component gallery (rocci browse). Distinct from rocci-browser."
+rocci_browser = "Project picker host binary. Linked as a tool, not part of the rocci CLI reference."
+
+[ownership]
+manual = "docs/"
+examples_catalog = "examples/rocci/apps.toml"
+examples_prose = "examples/rocci/**/index.rocdown"
+examples_declaration_docs = "attached ## comments on top-level @ declarations"
+examples_source = "checked-in .rocci, authored .roc, rocci.toml, and selected assets"
+examples_staged = "dist/example-docs (derived; never edited)"
+staging_tool = "crates/rocci-docs"
+
+[install]
+primary = "Clone the repository and cargo-build the workspace."
+roc_nightly = "nightly-2026-08-10-7df8509"
+roc_pin_source = "docker/install-roc.sh"
+rust = "A Rust toolchain that compiles edition 2024 workspace crates."
+github_releases = "Optional prerelease archives from GitHub Releases (tag v* / dev). Experimental; not the documented first path."
+
+# --- Existing pages -------------------------------------------------------
+
+[[page]]
+path = "docs/index.rocdown"
+disposition = "rewrite"
+target = "docs/index.rocdown"
+aliases = ["/documentation/"]
+notes = "Rocci-only portal. Rocdown goes to /rocdown/."
+
+[[page]]
+path = "docs/getting-started/overview.rocdown"
+disposition = "rewrite"
+target = "docs/start/what-is-rocci.rocdown"
+aliases = ["/getting-started/overview/", "/getting-started/"]
+notes = "Drop the four-product definition. Rocdown is a separate-product link."
+
+[[page]]
+path = "docs/getting-started/installation.rocdown"
+disposition = "split"
+target = "docs/start/prerequisites.rocdown"
+also = ["docs/start/install.rocdown"]
+aliases = ["/getting-started/installation/"]
+notes = "Install page stays the alias owner; prerequisites is a new sibling."
+
+[[page]]
+path = "docs/getting-started/quickstart.rocdown"
+disposition = "split"
+target = "docs/start/five-minutes.rocdown"
+also = ["docs/tutorials/first-component.rocdown"]
+aliases = ["/getting-started/quickstart/"]
+notes = "Five-minutes is evaluative; first-component is the tutorial."
+
+[[page]]
+path = "docs/guides/build-a-component.rocdown"
+disposition = "rewrite"
+target = "docs/tutorials/first-component.rocdown"
+aliases = ["/guides/build-a-component/"]
+notes = "Canonical source is examples/rocci/standalone/styling, not a pasted copy."
+
+[[page]]
+path = "docs/guides/server-actions.rocdown"
+disposition = "split"
+target = "docs/how-to/update-the-ui.rocdown"
+also = [
+    "docs/tutorials/first-app.rocdown",
+    "docs/tutorials/commands-and-live.rocdown",
+    "docs/concepts/datastar-as-transport.rocdown",
+]
+aliases = ["/guides/server-actions/"]
+notes = "Task recipe owns the alias. Tutorials and concepts link instead of restating the matrix."
+
+[[page]]
+path = "docs/guides/desktop-app.rocdown"
+disposition = "split"
+target = "docs/tutorials/ship.rocdown"
+also = ["docs/how-to/package-and-deploy.rocdown"]
+aliases = ["/guides/desktop-app/"]
+
+[[page]]
+path = "docs/guides/rocci-browser.rocdown"
+disposition = "move"
+target = "docs/how-to/use-the-project-browser.rocdown"
+aliases = ["/guides/rocci-browser/"]
+notes = "Tool how-to. Not a rocci CLI reference entry."
+
+[[page]]
+path = "docs/guides/rocdown-pages.rocdown"
+disposition = "move"
+target = "site/rocdown/pages.rocdown"
+aliases = ["/guides/rocdown-pages/", "/docs/guides/rocdown-pages/"]
+notes = "Leaves the Rocci manual."
+
+[[page]]
+path = "docs/guides/docs-components.rocdown"
+disposition = "move"
+target = "site/rocdown/article-blocks.rocdown"
+aliases = ["/guides/docs-components/", "/docs/guides/docs-components/"]
+
+[[page]]
+path = "docs/guides/hybrid-sites.rocdown"
+disposition = "move"
+target = "site/rocdown/hybrid.rocdown"
+aliases = ["/guides/hybrid-sites/", "/docs/guides/hybrid-sites/"]
+
+[[page]]
+path = "docs/concepts/architecture.rocdown"
+disposition = "rewrite"
+target = "docs/concepts/compilation-model.rocdown"
+also = ["docs/concepts/development-and-delivery.rocdown"]
+aliases = ["/concepts/architecture/"]
+notes = "Author-visible compilation and delivery. Crate-map internals stay contributor-only."
+
+[[page]]
+path = "docs/concepts/why-roc.rocdown"
+disposition = "keep"
+target = "docs/concepts/why-roc.rocdown"
+aliases = ["/concepts/why-roc/"]
+notes = "Revise to Rocci-only; drop Rocdown site generator discussion."
+
+[[page]]
+path = "docs/concepts/rendering-model.rocdown"
+disposition = "split"
+target = "docs/concepts/documents-fragments-commands-streams.rocdown"
+also = [
+    "docs/concepts/pure-components.rocdown",
+    "docs/concepts/datastar-as-transport.rocdown",
+    "docs/concepts/styles-and-ownership.rocdown",
+]
+aliases = ["/concepts/rendering-model/"]
+
+[[page]]
+path = "docs/reference/rocci.rocdown"
+disposition = "split"
+target = "docs/reference/language/index.rocdown"
+aliases = ["/reference/rocci/"]
+notes = "Landing page plus subpages for each language area."
+
+[[page]]
+path = "docs/reference/rocci-tree.rocdown"
+disposition = "move"
+target = "docs/reference/contributor/rocci-tree.rocdown"
+aliases = ["/reference/rocci-tree/"]
+notes = "Contributor appendix. Not between language and CLI reference."
+
+[[page]]
+path = "docs/reference/cli.rocdown"
+disposition = "split"
+target = "docs/reference/cli/index.rocdown"
+also = ["site/rocdown/cli.rocdown"]
+aliases = ["/reference/cli/"]
+notes = "Rocci-only CLI in the manual. Rocdown/OKF/browser commands leave this page."
+
+[[page]]
+path = "docs/reference/configuration.rocdown"
+disposition = "rewrite"
+target = "docs/reference/configuration.rocdown"
+aliases = ["/reference/configuration/"]
+notes = "Field tables become canonical; complete-shape example stays illustrative."
+
+[[page]]
+path = "docs/reference/rocdown.rocdown"
+disposition = "move"
+target = "site/rocdown/language.rocdown"
+aliases = ["/reference/rocdown/", "/docs/reference/rocdown/"]
+
+[[page]]
+path = "docs/reference/rocdown-tree.rocdown"
+disposition = "move"
+target = "site/rocdown/tree.rocdown"
+aliases = ["/reference/rocdown-tree/", "/docs/reference/rocdown-tree/"]
+
+[[page]]
+path = "docs/reference/rocdown-site.rocdown"
+disposition = "move"
+target = "site/rocdown/site-config.rocdown"
+aliases = ["/reference/rocdown-site/", "/docs/reference/rocdown-site/"]
+
+[[page]]
+path = "docs/playground.rocdown"
+disposition = "move"
+target = "docs/how-to/use-the-playground.rocdown"
+aliases = ["/playground/"]
+
+[[page]]
+path = "docs/troubleshooting.rocdown"
+disposition = "rewrite"
+target = "docs/troubleshooting/index.rocdown"
+aliases = ["/troubleshooting/"]
+notes = "Rocci-only symptoms. Split focused routes for install, compile, runtime, preview."
+
+[[page]]
+path = "docs/examples/index.rocdown"
+disposition = "retire"
+target = "/examples/"
+aliases = ["/docs/examples/"]
+notes = "Page does not exist in this tree. Generator already emits alias /docs/examples/."
+
+# --- Cataloged apps -------------------------------------------------------
+
+[[app]]
+id = "styling"
+path = "examples/rocci/standalone/styling"
+entry = "Styling.rocci"
+hosting = "docs"
+role = "learning"
+prose = "examples/rocci/standalone/styling/index.rocdown"
+generated = ["/examples/styling/", "/examples/styling/source/", "/examples/styling/source/Styling-rocci/"]
+notes = "First-component complete source. No parallel copy under docs/."
+
+[[app]]
+id = "counter"
+path = "examples/rocci/standalone/counter"
+entry = "Counter.rocci"
+hosting = "docs"
+role = "learning"
+prose = "examples/rocci/standalone/counter/index.rocdown"
+generated = ["/examples/counter/", "/examples/counter/source/", "/examples/counter/source/Counter-rocci/"]
+notes = "First standalone app. SQLite is in the beginner path. Has attached ## docs."
+
+[[app]]
+id = "live-counter"
+path = "examples/rocci/standalone/live-counter"
+entry = "LiveCounter.rocci"
+hosting = "live"
+role = "learning"
+prose = "examples/rocci/standalone/live-counter/index.rocdown"
+generated = ["/examples/live-counter/", "/examples/live-counter/source/", "/examples/live-counter/source/LiveCounter-rocci/"]
+notes = "Command plus shared stream. Compare with counter. Live hostname planned."
+
+[[app]]
+id = "handler-matrix"
+path = "examples/rocci/standalone/handler-matrix"
+entry = "HandlerMatrix.rocci"
+hosting = "docs"
+role = "reference"
+prose = "examples/rocci/standalone/handler-matrix/index.rocdown"
+generated = ["/examples/handler-matrix/", "/examples/handler-matrix/source/", "/examples/handler-matrix/source/HandlerMatrix-rocci/"]
+notes = "Exhaustive handler contract. Not a beginner tutorial."
+
+[[app]]
+id = "datastar"
+path = "examples/rocci/custom/datastar"
+entry = "."
+hosting = "live"
+role = "pattern-gallery"
+prose = "examples/rocci/custom/datastar/index.rocdown"
+generated = ["/examples/datastar/", "/examples/datastar/source/"]
+notes = "Custom main.roc gallery. Live hostname planned."
+
+[[app]]
+id = "snake"
+path = "examples/rocci/custom/snake"
+entry = "."
+hosting = "docs"
+role = "advanced-stress"
+prose = "examples/rocci/custom/snake/index.rocdown"
+generated = ["/examples/snake/", "/examples/snake/source/"]
+notes = "Advanced custom runtime. Docs-only; not a live site package."
