@@ -22,3 +22,13 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "dist/examples-live/live-counter/server" in workflow
     assert "dist/examples-live/datastar/server" in workflow
     assert Path(root / "examples/rocci/apps.toml").is_file()
+
+
+def test_retired_news_urls_have_exact_origin_dispositions() -> None:
+    hybrid = (repo_root() / "docker/cdn/Caddyfile").read_text(encoding="utf-8")
+    assert "redir /news/introducing-rocci/ /docs/start/what-is-rocci/ 308" in hybrid
+    assert "redir /news/rocdown-static-collections/ /rocdown/site-config/ 308" in hybrid
+    assert "redir /news/rocci-desktop-apps/ /docs/tutorials/ship/ 308" in hybrid
+    assert "@retired_news path /news/ /news/feed.xml" in hybrid
+    assert "respond @retired_news 410" in hybrid
+    assert "path /news/*" not in hybrid

@@ -38,9 +38,6 @@ No. Rocci applications run as compiled native processes (or server backends) tha
 ### How do custom themes work in Rocdown?
 Rocdown decouples documentation prose from site chrome. You place `.rocci` templates in your project's `theme/` directory (e.g. `SiteShell.rocci`, `Layouts.rocci`, `Components.rocci`). Rocdown compiles the theme once, resolves the content catalog in Rust, and renders the static site without type-checking Markdown prose in Roc.
 
-### Does Rocdown support RSS and Atom feeds?
-Yes! Rocdown supports typed static collections (such as `news`). When collection posts are present, Rocdown automatically generates an Atom 1.0 feed at `/news/feed.xml` with RFC 3339 timestamps and feed autodiscovery headers.
-
 ---
 
 ## Desktop & Runtime

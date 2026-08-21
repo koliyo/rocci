@@ -43,7 +43,6 @@ import PageOutline
             @if view.site.apple_touch_icon != "" {
                 <link rel="apple-touch-icon" href={view.site.apple_touch_icon} />
             }
-            <link rel="alternate" type="application/atom+xml" title={"${view.site.title} News"} href="/news/feed.xml" />
         </head>
         <body>
             <a class="skip-link" href="#main-content">Skip to content</a>
@@ -109,8 +108,6 @@ import PageOutline
                     "faq" => <Layouts.Faq view={view}>{content}</Layouts.Faq>
                     "product" => <Layouts.Product view={view}>{content}</Layouts.Product>
                     "section" => <Layouts.Section view={view}>{content}</Layouts.Section>
-                    "news-index" => <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
-                    "news-post" => <Layouts.NewsPost view={view}>{content}</Layouts.NewsPost>
                     "plain" => <Layouts.Plain view={view}>{content}</Layouts.Plain>
                     "not-found" => <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
                     _ => <Layouts.Docs view={view}>{content}</Layouts.Docs>
