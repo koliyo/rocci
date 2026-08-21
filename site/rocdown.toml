@@ -94,6 +94,7 @@ items = [
     "docs/reference/diagnostics",
     "docs/reference/contributor/rocci-tree",
     "docs/reference/contributor/checklist",
+    "docs/reference/contributor/first-use",
     "docs/troubleshooting/index",
     "docs/troubleshooting/install",
     "docs/troubleshooting/compile",

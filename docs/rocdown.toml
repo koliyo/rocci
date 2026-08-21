@@ -100,6 +100,7 @@ items = [
     "reference/diagnostics",
     "reference/contributor/rocci-tree",
     "reference/contributor/checklist",
+    "reference/contributor/first-use",
 ]
 
 [[nav]]

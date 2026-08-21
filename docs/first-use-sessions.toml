@@ -1,0 +1,16 @@
+# Live first-use sessions. Privacy-preserving: no names, emails, or recordings.
+# Maintainers append [[session]] rows after running
+# docs/reference/contributor/first-use.rocdown. Do not invent rows.
+
+schema_version = 1
+product = "rocci"
+
+# [[session]]
+# id = "roc-first-YYYYMMDD"
+# entry = "roc-first"  # or web-first
+# date = "YYYY-MM-DD"
+# success = false
+# minutes_to_visible = 0
+# failed_step = "/docs/start/install/"
+# disposition = "page-fix"  # page-fix | product-issue | non-goal
+# notes = "anonymous phrase only"

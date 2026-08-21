@@ -95,6 +95,43 @@ def check_coverage(root: Path) -> list[str]:
     return errors
 
 
+ALLOWED_ENTRY = {"roc-first", "web-first"}
+ALLOWED_DISPOSITION = {"page-fix", "product-issue", "non-goal"}
+
+
+def check_first_use_sessions(root: Path) -> list[str]:
+    path = root / "docs" / "first-use-sessions.toml"
+    if not path.is_file():
+        return ["missing docs/first-use-sessions.toml"]
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    errors: list[str] = []
+    if data.get("schema_version") != 1:
+        errors.append("first-use-sessions: schema_version must be 1")
+    if data.get("product") != "rocci":
+        errors.append("first-use-sessions: product must be rocci")
+    for session in data.get("session", []):
+        sid = session.get("id", "")
+        prefix = f"session `{sid}`" if sid else "session"
+        entry = session.get("entry", "")
+        if entry not in ALLOWED_ENTRY:
+            errors.append(f"{prefix}: entry must be roc-first or web-first")
+        if not session.get("date"):
+            errors.append(f"{prefix}: missing date")
+        if "success" not in session:
+            errors.append(f"{prefix}: missing success")
+            continue
+        if session["success"] is True:
+            if session.get("minutes_to_visible") in (None, ""):
+                errors.append(f"{prefix}: successful session needs minutes_to_visible")
+        else:
+            if not session.get("failed_step"):
+                errors.append(f"{prefix}: failed session needs failed_step")
+            disposition = session.get("disposition", "")
+            if disposition not in ALLOWED_DISPOSITION:
+                errors.append(f"{prefix}: disposition must be page-fix, product-issue, or non-goal")
+    return errors
+
+
 def check_search_queries(root: Path) -> list[str]:
     path = root / "docs" / "search-queries.toml"
     data = tomllib.loads(path.read_text(encoding="utf-8"))
@@ -118,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rocci-ops check-docs")
     parser.parse_args([] if argv is None else argv)
     root = repo_root()
-    errors = check_coverage(root) + check_search_queries(root)
+    errors = check_coverage(root) + check_search_queries(root) + check_first_use_sessions(root)
     if errors:
         sys.stderr.write("docs coverage failed:\n")
         for err in errors:
