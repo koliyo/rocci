@@ -90,6 +90,8 @@ def verify_zed() -> int:
         root / "editors" / "zed" / "extension.toml",
         root / "editors" / "zed" / "languages" / "rocci" / "config.toml",
         root / "editors" / "zed" / "languages" / "rocdown" / "config.toml",
+        root / "editors" / "zed" / "icons" / "rocci-file.svg",
+        root / "editors" / "zed" / "icon_themes" / "rocci.json",
     ]
     for path in required:
         if not path.is_file():
@@ -97,6 +99,11 @@ def verify_zed() -> int:
     text = (root / "editors" / "zed" / "extension.toml").read_text(encoding="utf-8")
     if 'languages = ["Rocci", "Rocdown"]' not in text:
         raise SystemExit("extension.toml must attach the language server to Rocci and Rocdown")
+    theme = (root / "editors" / "zed" / "icon_themes" / "rocci.json").read_text(
+        encoding="utf-8"
+    )
+    if '"rocci"' not in theme or '"rocdown"' not in theme:
+        raise SystemExit("icon theme must map the rocci and rocdown suffixes")
     run(["cargo", "build", "-p", "rocci-rocdown-lsp"], cwd=root)
     ls_dir = Path(os.environ.get("CARGO_TARGET_DIR") or root / "target")
     if not (ls_dir / "debug" / "rocci-language-server").is_file():
