@@ -421,16 +421,22 @@ fn counter_run_proxies_actions_on_one_origin() {
     let increment = http_exchange(
         port,
         &format!(
+            "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        increment.contains("{\"count\":") && !increment.contains("datastar-patch-elements"),
+        "json POST without Datastar-Request must return JSON:\n{increment}"
+    );
+    let datastar_increment = http_exchange(
+        port,
+        &format!(
             "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
         ),
     );
     assert!(
-        increment.contains("counter") && (increment.contains(">1<") || increment.contains(">1</")),
-        "same-origin preview must proxy island POST:\n{increment}"
-    );
-    assert!(
-        !increment.contains("<style"),
-        "island patches must not re-embed CSS already on the CDN page:\n{increment}"
+        datastar_increment.contains("204"),
+        "json POST from Datastar returns 204:\n{datastar_increment}"
     );
     drop(child);
 }

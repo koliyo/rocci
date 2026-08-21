@@ -1479,6 +1479,34 @@ fn counter_example_compiles_as_standalone_app() {
 }
 
 #[test]
+fn live_counter_example_compiles_as_standalone_app() {
+    let src = include_str!("../../../examples/rocci/standalone/live-counter/LiveCounter.rocci");
+    let out = compile_ok(src);
+    assert!(out.live.is_some());
+    assert!(out.roc.contains("live! = |{ db }, _request|"));
+    assert_eq!(out.routes.len(), 3);
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/")
+    );
+    assert!(out.routes.iter().any(|route| {
+        route.method == "POST"
+            && route.path == "/actions/counter/increment"
+            && route.respond == rocci_template::RespondKind::Json
+    }));
+    assert!(out.routes.iter().any(|route| {
+        route.method == "POST"
+            && route.path == "/actions/counter/reset"
+            && route.respond == rocci_template::RespondKind::Json
+    }));
+    assert!(
+        out.roc
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])")
+    );
+}
+
+#[test]
 fn styling_example_compiles() {
     let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
     let out = compile_ok(src);

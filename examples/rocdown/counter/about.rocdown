@@ -13,4 +13,4 @@ This page is static CDN HTML. It has no Rocci components, no Datastar.js, and
 no `connect-src` to the island service.
 
 The [counter](/) on the home page is a `live` island: the CDN file is a
-snapshot, and increment/reset POST to `rocdown serve-islands`.
+snapshot, and `@live` plus `json` commands talk to `rocdown serve-islands`.
