@@ -146,6 +146,16 @@ pub fn execute_app_plan(
         roc_file: PathBuf::from("main.roc"),
     };
     let write_ms = write_started.elapsed().as_millis();
+    let generated = plan
+        .modules
+        .iter()
+        .map(|module| module.roc.len())
+        .sum::<usize>()
+        + plan.main_roc().len();
+    crate::logs::emit(format!(
+        "starting roc ({} bytes of generated Roc)",
+        generated
+    ));
     let mut profile = options.profile.clone();
     profile.merge(ProfileSnapshot {
         total_ms: write_ms,

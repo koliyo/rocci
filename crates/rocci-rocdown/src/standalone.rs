@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
+use rocci_cli::logs::Progress;
 use rocci_template::{
     Diagnostic, InitInfo, LiveInfo, MappedModule, RouteInfo, SourceFile, type_name_from_path,
 };
@@ -49,6 +50,14 @@ pub enum StandaloneReady {
 }
 
 pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<StandaloneReady> {
+    plan_standalone_with_progress(primary, theme, Progress::default())
+}
+
+pub fn plan_standalone_with_progress(
+    primary: &Path,
+    theme: &ThemeOptions,
+    progress: Progress,
+) -> Result<StandaloneReady> {
     let primary = if primary.is_absolute() {
         primary.to_path_buf()
     } else {
@@ -83,6 +92,19 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
         .collect();
     let type_names = unique_type_names(&root, &inputs);
 
+    progress.step(format!(
+        "rocdown: compiling {} standalone document(s)",
+        inputs.len()
+    ));
+    progress.detail(format!(
+        "rocdown: inputs: {}",
+        inputs
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    ));
+
     for (((input, src), page), type_name) in inputs
         .iter()
         .zip(sources.iter())
@@ -103,7 +125,15 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             default_route,
             ..CompileOptions::default()
         };
+        progress.step(format!("rocdown: compiling {}", input.display()));
         let compiled = compile(source, &options);
+        progress.detail(format!(
+            "rocdown: {} parse={}ms lower={}ms roc={} bytes",
+            input.display(),
+            compiled.timings.parse_ms,
+            compiled.timings.lower_ms,
+            compiled.roc.len()
+        ));
 
         if compiled.has_errors() {
             failures.push(StandaloneFailedFile {
@@ -119,6 +149,7 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             .map(|(url, _)| url)
             .collect();
 
+        progress.step(format!("rocdown: inspect snapshot {}", input.display()));
         inspect_pages.push(
             rocci_cli::inspect::InspectPage::from_rocdown(
                 &page.route,

@@ -5,6 +5,7 @@ use rocci_template::{Cursor, Diagnostic, Span};
 use crate::ast::{BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::page::{bool_literal, skip_value, string_literal};
 use crate::parse::parse_fragment;
+use crate::registry;
 use crate::{CompileOptions, SourceFile};
 
 const ALLOWED_FIELDS: &[&str] = &[
@@ -541,6 +542,7 @@ fn collect_media_in(source: SourceFile<'_>, document: &Document, urls: &mut Vec<
                     urls.push((url.clone(), *span));
                 }
             }),
+            Item::Block(call) if registry::heading_level(&call.name).is_some() => {}
             Item::Block(call) => {
                 if let Some(content) = call.content_span() {
                     let parsed = parse_fragment(source, content, false);

@@ -1,5 +1,6 @@
 use std::{
     collections::VecDeque,
+    io::{self, Write},
     sync::{Mutex, mpsc},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -120,8 +121,35 @@ impl Default for LogHub {
 
 pub fn tee(hub: &LogHub, level: LogLevel, text: impl AsRef<str>) {
     let text = text.as_ref();
-    eprintln!("{text}");
+    emit(text);
     hub.push(level, text);
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Progress {
+    pub verbose: bool,
+    pub quiet: bool,
+}
+
+impl Progress {
+    pub fn step(self, message: impl AsRef<str>) {
+        if self.quiet {
+            return;
+        }
+        emit(message);
+    }
+
+    pub fn detail(self, message: impl AsRef<str>) {
+        if self.quiet || !self.verbose {
+            return;
+        }
+        emit(message);
+    }
+}
+
+pub fn emit(message: impl AsRef<str>) {
+    eprintln!("{}", message.as_ref());
+    let _ = io::stderr().flush();
 }
 
 fn now_millis() -> u64 {
@@ -176,5 +204,23 @@ mod tests {
         hub.clear();
         assert!(hub.snapshot().is_empty());
         assert_eq!(hub.to_json(), "[]");
+    }
+
+    #[test]
+    fn progress_quiet_skips_steps_and_verbose_requires_flag() {
+        let quiet = Progress {
+            verbose: true,
+            quiet: true,
+        };
+        quiet.step("should not print");
+        quiet.detail("should not print");
+        let verbose = Progress {
+            verbose: true,
+            quiet: false,
+        };
+        assert!(verbose.verbose);
+        let terse = Progress::default();
+        assert!(!terse.verbose);
+        assert!(!terse.quiet);
     }
 }
