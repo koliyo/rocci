@@ -219,7 +219,7 @@ pub fn serve_islands(
                 loaded.config.http.service
             );
         }
-        return rocci_cli::run::run(&service, &[], no_window, port, true, log_handlers);
+        return rocci_cli::run::run(&service, &[], no_window, port, true, log_handlers, false);
     }
 
     let plan = plan_island_service(&loaded.root)?;
@@ -231,6 +231,7 @@ pub fn serve_islands(
         no_window,
         live_reload: true,
         log_handlers,
+        verbose: false,
         port,
         db_path: None,
         title,

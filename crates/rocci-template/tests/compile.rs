@@ -710,13 +710,13 @@ fn lowers_datastar_action_interpolated_uri() {
 fn lowers_datastar_action_options_record() {
     let src = r#"
 @component Page = |{}| {
-    <body data-init=@get("/sse", [OpenWhenHidden(Bool.true)])></body>
+    <body data-init=@get("/sse", [OpenWhenHidden(True)])></body>
 }
 "#;
     let out = compile_ok(src);
     assert!(
         out.roc
-            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])")
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])")
     );
 }
 
@@ -1404,7 +1404,7 @@ fn injects_data_init_on_body_when_live() {
     assert!(out.roc.contains("import Datastar"));
     assert!(
         out.roc
-            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])"),
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])"),
         "{}",
         out.roc
     );
@@ -1502,7 +1502,7 @@ fn live_counter_example_compiles_as_standalone_app() {
     }));
     assert!(
         out.roc
-            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])")
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])")
     );
 }
 

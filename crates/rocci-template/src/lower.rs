@@ -1026,7 +1026,7 @@ impl<'a> Emitter<'a> {
         self.push_indent();
         self.emit_html(".attribute(");
         self.emit_string("data-init", Span::point(0), OriginKind::Scaffolding);
-        self.emit(", Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)]))");
+        self.emit(", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])");
         self.emit(",\n");
     }
 
