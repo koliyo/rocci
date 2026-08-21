@@ -396,6 +396,41 @@ remain unless a separate product decision removes those Rocdown capabilities.
 The implementation sequence and exit gates are in the linked
 [rocci.dev UX and authoring improvement plan](../plans/rocci-dev-site.md).
 
+## Remediation verification — 2026-08-22
+
+All P0/P1 findings in this audit are closed in the local revision. The finder
+is a bounded modal with focus restoration; hybrid planning preserves authored
+static widgets and islands; every non-Home/non-FAQ route uses the shared
+navigated frame; breadcrumbs follow the approved hierarchy; and the retired
+News surface has explicit redirects or terminal `410` responses.
+
+Browser verification covered 390, 768, 900, 1024, and 1280 CSS-pixel widths.
+Representative Docs pages had one `h1`, named landmarks, current-state
+annotations, no horizontal overflow, the expected mobile/sidebar/outline
+transition, and 44 CSS-pixel mobile controls. Home retained all four path cards
+before its proof and maturity sections. FAQ exposed six linked questions.
+The finder moved focus into its shadow-root search input, closed with Escape,
+restored focus to its opener, and restored body scrolling. The theme includes
+light/dark color-scheme support plus explicit forced-colors, reduced-motion,
+and print rules.
+
+Two consecutive complete site builds produced the same aggregate SHA-256,
+`86d3c8b12a2dbc64485db22e58a117fa88878554ad0d839b2697a104b087d28e`.
+The built tree contained 140 catalog pages, parseable sitemap XML, canonical
+metadata and one `h1` on representative Home/FAQ/Docs/generated-detail routes,
+the generated 404, and no News page or feed. Production Caddy policy retains
+the three approved `308` redirects and exact `/news/` and `/news/feed.xml`
+`410` responses.
+
+Local release gates passed: `uv run rocci-ops site`, `uv run rocci-ops ci
+lint`, `cargo test --workspace`, and the OKF profile check. OKF emitted only
+pre-existing lifecycle/provenance warnings. Workspace verification also
+corrected stale integration expectations for empty SSE command responses and
+the current standalone Docs title/route fixture. No remote run exists for the
+unpublished `rocci-dev-site` branch; CI, Knowledge, and site workflow status
+for the final revision remains a post-push launch gate because the phase runner
+forbids pushing.
+
 [^site-config]: Current global lanes, per-lane page lists, mounted Docs/examples catalogs, News entries, and build inputs.
 [^site-shell]: Current title composition, feed discovery, header, duplicated mobile layout match, skip link, and responsive menu.
 [^layouts]: Current layout-specific rendering of sidebar, breadcrumbs, outline, journey, News, and responsive breakpoints.
