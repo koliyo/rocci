@@ -4,7 +4,7 @@ title: rocci.dev UX and authoring improvements
 description: Repair the landing and page finder, make section sidebar navigation universal except on Home and FAQ, make breadcrumbs consistent, remove the rocci.dev News surface, improve public copy, and reduce site-authoring friction without changing the Rocdown ownership boundary.
 tags: [domain/rocci, domain/rocdown, concern/ux, concern/tooling, concern/publication, concern/navigation, concern/accessibility]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T21:53:49Z }
+generated: { by: process:codex, at: 2026-08-21T22:06:52Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -69,6 +69,11 @@ sources:
     title: Comprehensive Rocci documentation plan
     author: process:cursor
     last_modified: 2026-08-21
+  - id: phase-0-contract
+    resource: ../../site/tests/rocci-dev-site-ux-contract.toml
+    title: Approved rocci.dev route, chrome, viewport, and News disposition contract
+    author: process:codex
+    last_modified: 2026-08-22
 ---
 
 # rocci.dev UX and authoring improvements
@@ -157,6 +162,20 @@ route one of:
 The feed route `/news/feed.xml` is retired with the collection. Remove feed
 autodiscovery at the same time. Sitemap and `pages.json` must agree with the
 chosen redirects/retirements.
+
+The Phase 0 disposition was approved by `human:nils` on 2026-08-22:
+
+| Current URL | Disposition | Canonical target / response |
+| --- | --- | --- |
+| `/news/` | Retire | `410 Gone` |
+| `/news/feed.xml` | Retire | `410 Gone` |
+| `/news/introducing-rocci/` | Fold and redirect | `308` to `/docs/start/what-is-rocci/` |
+| `/news/rocdown-static-collections/` | Fold and redirect | `308` to `/rocdown/site-config/` |
+| `/news/rocci-desktop-apps/` | Fold and redirect | `308` to `/docs/tutorials/ship/` |
+
+Later phases must retain only current durable facts at those canonical owners;
+the announcement framing and stale commands or platform claims do not move.
+The same dispositions are machine-readable in the Phase 0 contract fixture.[^phase-0-contract]
 
 ## Target page-chrome contract
 
@@ -318,6 +337,12 @@ iteration. The wrapper is orchestration, not a fourth product CLI.[^root-readme]
 
 ### Phase 0 — freeze routes, chrome, and evidence fixtures
 
+The approved route, DOM, viewport, title, News-absence, and URL-disposition
+expectations are recorded in
+`site/tests/rocci-dev-site-ux-contract.toml`.[^phase-0-contract] Later phases
+consume this inert fixture in built-site tests; Phase 0 does not change the
+current site output.
+
 #### Bound
 
 - Approve the post-News lane map and URL disposition categories.
@@ -333,6 +358,11 @@ iteration. The wrapper is orchestration, not a fourth product CLI.[^root-readme]
 Exit when every representative route has one canonical page class, expected
 sidebar state, breadcrumb sequence, outline behavior at 1280/900/390 CSS
 pixels, and News URL disposition.
+
+**Phase 0 exit recorded 2026-08-22:** the approved fixture covers Home, FAQ,
+Docs index, Docs detail, Rocdown index, Project detail, generated Example
+source, and 404 at all three target widths, with exact breadcrumb sequences and
+the complete five-URL News disposition.
 
 ### Phase 1 — repair the two navigation regressions
 
@@ -524,5 +554,6 @@ direction.
 [^layouts]: Current layout-specific sidebar/breadcrumb/outline/journey behavior and responsive breakpoints.
 [^catalog]: Current breadcrumbs and ordered journey derive from the resolved navigation tree.
 [^planner]: Current sidebar groups, page views, hybrid plan path, and empty 404 navigation data.
+[^phase-0-contract]: Phase 0 route classes, viewport-specific chrome assertions, exact breadcrumb sequences, title and News-absence assertions, and the human-approved News URL dispositions.
 [^goto]: Current shared palette styling, host mounting, focus, results, and History API navigation.
 [^docs-plan]: Separate exhaustive Rocci documentation coverage, learning paths, reference, and first-use measurement work.
