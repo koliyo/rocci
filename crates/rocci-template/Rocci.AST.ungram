@@ -42,42 +42,61 @@ ModuleItem =
 /// there is no exported `RocRegion` type.
 RocRegion = 'roc-region'
 
+/// `#` line comment or failed-doc `##` line attached above a declaration.
+LineComment = 'line-comment'
+
+/// `## ` / bare `##` doc line attached immediately above a declaration.
+DocComment = 'doc-comment'
+
+/// Leading `#` / `## ` trivia attached to a top-level `@` declaration.
+LeadingComments =
+  comments:LineComment*
+  docs:DocComment*
+
 ComponentDecl =
+  leading:LeadingComments?
   '@' 'component'
   name:Ident
   params:ParamList
   body:TemplateBlock
 
 FixtureDecl =
+  leading:LeadingComments?
   '@' 'fixture'
   name:Ident
   target:ComponentPath
   value:RocExpr
 
 CssDecl =
+  leading:LeadingComments?
   '@' 'css'
   body:CssPayload
 
 ContextDecl =
+  leading:LeadingComments?
   '@' 'context'
   ty:RocType
 
 InitDecl =
+  leading:LeadingComments?
   '@' 'init'
   body:RocExpr
 
 LiveDecl =
+  leading:LeadingComments?
   '@' 'live'
   params:RocExpr?
   body:RocExpr
 
 ViewDecl =
+  leading:LeadingComments?
   '@' 'view'
   path:StringLit
   params:RocExpr?
   body:RocExpr
 
 PatchDecl =
+  leading:LeadingComments?
   '@' 'patch'
   method:Ident?
   path:StringLit
@@ -85,6 +104,7 @@ PatchDecl =
   body:RocExpr
 
 CommandDecl =
+  leading:LeadingComments?
   '@' 'command'
   method:Ident?
   path:StringLit

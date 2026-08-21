@@ -486,8 +486,12 @@ Inside a template body:
 - `<!-- ... -->` is an HTML comment and is dropped.
 - `@@` emits a literal `@` (`@@if` is the text `@if`, not a directive).
 
-Ordinary Roc `#` comments remain valid outside `@component` bodies and inside Roc
-regions.
+Immediately above a top-level `@` declaration, Roc `#` line comments and `## `
+doc comments attach to that declaration and lower onto the generated Roc
+assignment (no blank line between the last `## ` line and `@`). A blank line, or
+a non-doc `#` line between `## ` lines and `@`, leaves those comments in the
+opaque Roc region instead. Ordinary Roc `#` comments also remain valid inside
+Roc regions.
 
 ## Whitespace
 

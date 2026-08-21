@@ -121,7 +121,97 @@ impl<'a> Cursor<'a> {
             break;
         }
     }
+}
 
+/// Collect consecutive column-0 `#` / `## ` lines immediately above `at_pos` (`@`).
+///
+/// Docs attach only when a trailing run of doc lines sits on the lines before `@`
+/// with no blank line. A blank line, indented `#`, or non-comment line breaks the
+/// run. `##foo` is an ordinary comment line, not a doc line.
+pub fn leading_comments_before(src: &str, at_pos: usize) -> Option<crate::ast::LeadingComments> {
+    let at_pos = at_pos.min(src.len());
+    let at_line_start = line_start(src, at_pos);
+    let prefix = &src[at_line_start..at_pos];
+    if prefix.chars().any(|ch| ch != ' ' && ch != '\t') {
+        return None;
+    }
+
+    let mut lines: Vec<(usize, usize)> = Vec::new();
+    let mut cursor = at_line_start;
+    loop {
+        if cursor == 0 {
+            break;
+        }
+        let mut prev_end = cursor - 1;
+        if src.as_bytes().get(prev_end) != Some(&b'\n') {
+            break;
+        }
+        if prev_end > 0 && src.as_bytes()[prev_end - 1] == b'\r' {
+            prev_end -= 1;
+        }
+        let prev_start = line_start(src, prev_end);
+        if prev_start >= cursor {
+            break;
+        }
+        let line = &src[prev_start..prev_end];
+        if is_blank_line(line) || !is_comment_line(line) {
+            break;
+        }
+        lines.push((prev_start, prev_end));
+        cursor = prev_start;
+    }
+    if lines.is_empty() {
+        return None;
+    }
+    lines.reverse();
+
+    let mut docs_from = lines.len();
+    while docs_from > 0 {
+        let (start, end) = lines[docs_from - 1];
+        if is_doc_line(&src[start..end]) {
+            docs_from -= 1;
+        } else {
+            break;
+        }
+    }
+
+    let comments = lines[..docs_from]
+        .iter()
+        .map(|&(start, end)| Span::new(start, end))
+        .collect();
+    let docs = lines[docs_from..]
+        .iter()
+        .map(|&(start, end)| Span::new(start, end))
+        .collect();
+    Some(crate::ast::LeadingComments {
+        comments,
+        docs,
+        span: Span::new(lines[0].0, at_line_start),
+    })
+}
+
+fn line_start(src: &str, pos: usize) -> usize {
+    match src[..pos].rfind('\n') {
+        Some(i) => i + 1,
+        None => 0,
+    }
+}
+
+fn is_blank_line(line: &str) -> bool {
+    line.trim().is_empty()
+}
+
+fn is_comment_line(line: &str) -> bool {
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    line.starts_with('#')
+}
+
+fn is_doc_line(line: &str) -> bool {
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    line == "##" || line.starts_with("## ")
+}
+
+impl<'a> Cursor<'a> {
     pub fn skip_html_comment(&mut self) -> bool {
         if !self.eat_str("<!--") {
             return false;
@@ -448,5 +538,42 @@ mod tests {
         let mut cur = Cursor::at(unclosed, 0);
         cur.skip_balanced_parens();
         assert!(cur.is_eof());
+    }
+
+    #[test]
+    fn leading_comments_before_attaches_line_and_doc_comments() {
+        let src = "# note\n## docs\n##\n## more\n@component Hello = |_|\n    <p/>\n";
+        let at = src.find('@').unwrap();
+        let leading = leading_comments_before(src, at).expect("leading");
+        assert_eq!(leading.comments.len(), 1);
+        assert_eq!(
+            &src[leading.comments[0].start as usize..leading.comments[0].end as usize],
+            "# note"
+        );
+        assert_eq!(leading.docs.len(), 3);
+        assert!(leading.span.of(src).ends_with('\n'));
+    }
+
+    #[test]
+    fn leading_comments_before_rejects_blank_line() {
+        let src = "## docs\n\n@component Hello = |_|\n    <p/>\n";
+        let at = src.find('@').unwrap();
+        assert!(leading_comments_before(src, at).is_none());
+    }
+
+    #[test]
+    fn leading_comments_before_treats_docs_then_hash_as_ordinary() {
+        let src = "## docs\n# ordinary\n@component Hello = |_|\n    <p/>\n";
+        let at = src.find('@').unwrap();
+        let leading = leading_comments_before(src, at).expect("leading");
+        assert!(leading.docs.is_empty());
+        assert_eq!(leading.comments.len(), 2);
+    }
+
+    #[test]
+    fn leading_comments_before_rejects_indented_hash() {
+        let src = "  # indented\n@component Hello = |_|\n    <p/>\n";
+        let at = src.find('@').unwrap();
+        assert!(leading_comments_before(src, at).is_none());
     }
 }

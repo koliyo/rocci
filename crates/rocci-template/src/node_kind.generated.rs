@@ -15,6 +15,7 @@ pub(crate) enum NodeKind {
     ViewDecl,
     PatchDecl,
     CommandDecl,
+    LeadingComments,
     Ident,
     TemplateBlock,
     ComponentPath,
@@ -46,6 +47,7 @@ impl NodeKind {
         NodeKind::ViewDecl,
         NodeKind::PatchDecl,
         NodeKind::CommandDecl,
+        NodeKind::LeadingComments,
         NodeKind::Ident,
         NodeKind::TemplateBlock,
         NodeKind::ComponentPath,
@@ -67,7 +69,10 @@ impl NodeKind {
     pub(crate) fn highlight_omitted(self) -> bool {
         matches!(
             self,
-            NodeKind::Ident | NodeKind::TextNode | NodeKind::Interpolation
+            NodeKind::LeadingComments
+                | NodeKind::Ident
+                | NodeKind::TextNode
+                | NodeKind::Interpolation
         )
     }
 }

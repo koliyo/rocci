@@ -341,7 +341,10 @@ mod node_kind_highlight {
             | NodeKind::LetDirective
             | NodeKind::Attr
             | NodeKind::AttrValue => true,
-            NodeKind::Ident | NodeKind::Interpolation | NodeKind::TextNode => false,
+            NodeKind::Ident
+            | NodeKind::Interpolation
+            | NodeKind::TextNode
+            | NodeKind::LeadingComments => false,
         }
     }
 
