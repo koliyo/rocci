@@ -1,8 +1,8 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock,
-    TemplateItem, TextNode,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
+    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, PatchDecl,
+    TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor, is_ident_start};
@@ -45,8 +45,8 @@ pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput
         ModuleItem::Init(decl)
     } else if let Some(decl) = parser.try_parse_live() {
         ModuleItem::Live(decl)
-    } else if let Some(decl) = parser.try_parse_on() {
-        ModuleItem::On(decl)
+    } else if let Some(item) = parser.try_parse_route() {
+        item
     } else if let Some(decl) = parser.try_parse_component() {
         ModuleItem::Component(decl)
     } else {
@@ -145,14 +145,18 @@ impl<'a> Parser<'a> {
                     items.push(ModuleItem::Live(live));
                     continue;
                 }
-                if let Some(on) = self.try_parse_on() {
-                    if opaque_start < on.span.start as usize {
+                if let Some(item) = self.try_parse_route() {
+                    if opaque_start < item.span().start as usize {
                         items.push(ModuleItem::Roc {
-                            span: Span::new(opaque_start, on.span.start as usize),
+                            span: Span::new(opaque_start, item.span().start as usize),
                         });
                     }
                     opaque_start = self.cur.pos;
-                    items.push(ModuleItem::On(on));
+                    items.push(item);
+                    continue;
+                }
+                if self.try_recover_removed_handler() {
+                    opaque_start = self.cur.pos;
                     continue;
                 }
                 if let Some(component) = self.try_parse_component() {
@@ -370,82 +374,118 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn try_parse_on(&mut self) -> Option<OnDecl> {
+    fn try_parse_route(&mut self) -> Option<ModuleItem> {
         let start = self.cur.pos;
-        self.scan_at_keyword("on")?;
-        Some(self.parse_on_after_keyword(start))
+        let saved = Snapshot::from(&self.cur);
+        if !self.cur.eat('@') {
+            return None;
+        }
+        let Some(kw) = self.cur.scan_ident() else {
+            saved.restore(&mut self.cur);
+            return None;
+        };
+        let kind = match self.cur.ident_text(kw) {
+            "view" => RouteKind::View,
+            "patch" => RouteKind::Patch,
+            "command" => RouteKind::Command,
+            _ => {
+                saved.restore(&mut self.cur);
+                return None;
+            }
+        };
+        Some(self.parse_route_after_keyword(start, kind))
     }
 
-    fn parse_on_after_keyword(&mut self, start: usize) -> OnDecl {
+    fn parse_route_after_keyword(&mut self, start: usize, kind: RouteKind) -> ModuleItem {
         self.cur.skip_trivia();
-        if !self.cur.eat(':') {
+        if self.cur.peek() == Some('[') {
+            let bracket_start = self.cur.pos;
+            self.cur.skip_balanced_brackets();
             self.error(
-                Span::new(start, self.cur.pos),
-                "expected `@on:method(\"path\")`; write `@on:post(\"/actions/...\")`",
-            );
-            self.sync_to_next_top_level();
-            return empty_on(start, self.cur.pos);
-        }
-        self.cur.skip_trivia();
-        let Some(method_span) = self.cur.scan_ident() else {
-            self.error(
-                Span::new(start, self.cur.pos),
-                "expected HTTP method after `@on:`; write `@on:get` or `@on:post`",
-            );
-            self.sync_to_next_top_level();
-            return empty_on(start, self.cur.pos);
-        };
-        let method_name = self.cur.ident_text(method_span).to_string();
-        if !is_http_method(&method_name) {
-            self.error(
-                method_span,
+                Span::new(bracket_start, self.cur.pos),
                 format!(
-                    "unknown HTTP method `{method_name}`; expected get, post, put, patch, or delete"
+                    "selector brackets are not part of `@{}`; write `@{}(path)` or `@{}:delete(path)`",
+                    kind.noun(),
+                    kind.noun(),
+                    kind.noun()
                 ),
             );
+            self.cur.skip_trivia();
         }
-        let method = Ident {
-            span: method_span,
-            name: method_name,
-        };
+
+        let method = self.parse_route_method(kind);
+
         self.cur.skip_trivia();
         let Some(args) = self.scan_paren_inner() else {
             self.error(
                 Span::point(self.cur.pos),
-                "expected `(\"path\")` after `@on:method`",
+                format!(
+                    "expected `(\"path\")` after `@{}`",
+                    kind.header_without_path()
+                ),
             );
             self.sync_to_next_top_level();
-            return OnDecl {
+            return kind.to_item(ParsedRoute {
                 method,
                 path: String::new(),
                 path_span: Span::point(self.cur.pos),
-                respond: None,
                 params: None,
                 body: Span::point(self.cur.pos),
                 span: Span::new(start, self.cur.pos),
-            };
+            });
         };
         let (path, path_span) = match string_literal(args.of(self.src()), args) {
             Some((path, path_span)) => (path, path_span),
             None => {
                 self.error(
                     args,
-                    "expected a string literal path, e.g. `@on:post(\"/actions/...\")`",
+                    format!(
+                        "expected a string literal path, e.g. `@{}(\"/actions/...\")`",
+                        kind.noun()
+                    ),
                 );
                 (String::new(), args)
             }
         };
+
         self.cur.skip_trivia();
-        let mut respond = None;
+        if self.cur.peek() == Some('-')
+            && self.src().as_bytes().get(self.cur.pos + 1) == Some(&b'>')
+        {
+            let arrow_start = self.cur.pos;
+            self.cur.pos += 2;
+            self.cur.skip_trivia();
+            if let Some(span) = self.cur.scan_ident() {
+                let _ = span;
+            }
+            self.error(
+                Span::new(arrow_start, self.cur.pos),
+                format!(
+                    "`->` does not select a response; write `@{}(path)` or `@command(path)`",
+                    kind.noun()
+                ),
+            );
+            self.cur.skip_trivia();
+        }
+
         if self.cur.peek().is_some_and(is_ident_start)
             && let Some(span) = self.cur.scan_ident()
         {
-            respond = Some(Ident {
-                span,
-                name: self.cur.ident_text(span).to_string(),
-            });
+            let name = self.cur.ident_text(span).to_string();
+            if name == "json" {
+                self.error(
+                    span,
+                    "`json` was removed; write `@command(path)` and return Roc data",
+                );
+            } else {
+                self.error(
+                    span,
+                    format!("unexpected `{name}` after `@{}` path", kind.noun()),
+                );
+            }
             self.cur.skip_trivia();
         }
+
         let mut params = None;
         if self.cur.eat('=') {
             self.cur.skip_trivia();
@@ -453,7 +493,10 @@ impl<'a> Parser<'a> {
             if params.is_none() {
                 self.error(
                     Span::point(self.cur.pos),
-                    "expected `|params|` after `@on:method(\"path\") =`",
+                    format!(
+                        "expected `|params|` after `@{} =`",
+                        kind.header_without_path()
+                    ),
                 );
             }
             self.cur.skip_trivia();
@@ -463,19 +506,201 @@ impl<'a> Parser<'a> {
             None => {
                 self.error(
                     Span::point(self.cur.pos),
-                    "expected `{` to open an `@on` handler body",
+                    format!("expected `{{` to open an `@{}` handler body", kind.noun()),
                 );
                 Span::point(self.cur.pos)
             }
         };
-        OnDecl {
+        kind.to_item(ParsedRoute {
             method,
             path,
             path_span,
-            respond,
             params,
             body,
             span: Span::new(start, self.cur.pos),
+        })
+    }
+
+    fn parse_route_method(&mut self, kind: RouteKind) -> Option<Ident> {
+        if kind == RouteKind::View {
+            if self.cur.eat(':') {
+                let method_span = self.cur.scan_ident();
+                let end = method_span
+                    .map(|span| span.end as usize)
+                    .unwrap_or(self.cur.pos);
+                self.error(
+                    Span::new(self.cur.pos.saturating_sub(1), end),
+                    "`@view` has no method suffix; GET is implied",
+                );
+            }
+            return None;
+        }
+        if !self.cur.eat(':') {
+            return None;
+        }
+        self.cur.skip_trivia();
+        let Some(method_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::point(self.cur.pos),
+                format!(
+                    "expected HTTP method after `@{}:`; write `:put`, `:patch`, or `:delete`",
+                    kind.noun()
+                ),
+            );
+            return None;
+        };
+        let method_name = self.cur.ident_text(method_span).to_string();
+        match method_name.as_str() {
+            "post" => {
+                self.error(
+                    method_span,
+                    format!(
+                        "POST is the default; write `@{}(path)` instead of `@{}:post`",
+                        kind.noun(),
+                        kind.noun()
+                    ),
+                );
+                None
+            }
+            "get" => {
+                self.error(
+                    method_span,
+                    format!(
+                        "`@{}` cannot use GET; write `@view(path)` for documents",
+                        kind.noun()
+                    ),
+                );
+                None
+            }
+            "put" | "patch" | "delete" => Some(Ident {
+                span: method_span,
+                name: method_name,
+            }),
+            other => {
+                self.error(
+                    method_span,
+                    format!("unknown HTTP method `{other}`; expected put, patch, or delete"),
+                );
+                None
+            }
+        }
+    }
+
+    fn try_recover_removed_handler(&mut self) -> bool {
+        let start = self.cur.pos;
+        let saved = Snapshot::from(&self.cur);
+        if !self.cur.eat('@') {
+            return false;
+        }
+        let Some(kw) = self.cur.scan_ident() else {
+            saved.restore(&mut self.cur);
+            return false;
+        };
+        match self.cur.ident_text(kw) {
+            "on" => {
+                self.recover_removed_on(start);
+                true
+            }
+            "action" => {
+                self.recover_removed_action(start);
+                true
+            }
+            _ => {
+                saved.restore(&mut self.cur);
+                false
+            }
+        }
+    }
+
+    fn recover_removed_on(&mut self, start: usize) {
+        self.cur.skip_trivia();
+        let mut method = String::new();
+        if self.cur.eat(':') {
+            self.cur.skip_trivia();
+            if let Some(span) = self.cur.scan_ident() {
+                method = self.cur.ident_text(span).to_string();
+            }
+        }
+        self.cur.skip_trivia();
+        if self.cur.peek() == Some('[') {
+            self.cur.skip_balanced_brackets();
+            self.cur.skip_trivia();
+        }
+        let mut path = String::new();
+        if let Some(args) = self.scan_paren_inner()
+            && let Some((value, _)) = string_literal(args.of(self.src()), args)
+        {
+            path = value;
+        }
+        self.cur.skip_trivia();
+        if self.cur.peek() == Some('-')
+            && self.src().as_bytes().get(self.cur.pos + 1) == Some(&b'>')
+        {
+            self.cur.pos += 2;
+            self.cur.skip_trivia();
+            let _ = self.cur.scan_ident();
+            self.cur.skip_trivia();
+        }
+        let mut json = false;
+        if self.cur.peek().is_some_and(is_ident_start)
+            && let Some(span) = self.cur.scan_ident()
+        {
+            json = self.cur.ident_text(span) == "json";
+            self.cur.skip_trivia();
+        }
+        if self.cur.eat('=') {
+            self.cur.skip_trivia();
+            let _ = self.scan_params();
+            self.cur.skip_trivia();
+        }
+        let _ = self.scan_roc_block_inner();
+        let rewrite = removed_on_rewrite(&method, json, &path);
+        self.error(
+            Span::new(start, self.cur.pos.max(start + 1)),
+            format!("`@on` was removed; write {rewrite}"),
+        );
+        if self.cur.pos == start {
+            self.cur.bump();
+        }
+    }
+
+    fn recover_removed_action(&mut self, start: usize) {
+        self.cur.skip_trivia();
+        if self.cur.peek() == Some('[') {
+            self.cur.skip_balanced_brackets();
+            self.cur.skip_trivia();
+        }
+        if self.cur.eat(':') {
+            self.cur.skip_trivia();
+            let _ = self.cur.scan_ident();
+            self.cur.skip_trivia();
+        }
+        if self.cur.peek() == Some('[') {
+            self.cur.skip_balanced_brackets();
+            self.cur.skip_trivia();
+        }
+        let _ = self.scan_paren_inner();
+        self.cur.skip_trivia();
+        if self.cur.peek() == Some('-')
+            && self.src().as_bytes().get(self.cur.pos + 1) == Some(&b'>')
+        {
+            self.cur.pos += 2;
+            self.cur.skip_trivia();
+            let _ = self.cur.scan_ident();
+            self.cur.skip_trivia();
+        }
+        if self.cur.eat('=') {
+            self.cur.skip_trivia();
+            let _ = self.scan_params();
+            self.cur.skip_trivia();
+        }
+        let _ = self.scan_roc_block_inner();
+        self.error(
+            Span::new(start, self.cur.pos.max(start + 1)),
+            "`@action` was not adopted; write `@patch(path)` for HTML patches or `@command(path)` for command data",
+        );
+        if self.cur.pos == start {
+            self.cur.bump();
         }
     }
 
@@ -487,6 +712,9 @@ impl<'a> Parser<'a> {
         self.cur.bump();
         let mut depth = 1usize;
         while !self.cur.is_eof() && depth > 0 {
+            if self.at_column_zero_at_decl() {
+                break;
+            }
             match self.cur.peek() {
                 Some('"') => self.cur.skip_string(),
                 Some('#') => self.cur.skip_comment(),
@@ -506,7 +734,7 @@ impl<'a> Parser<'a> {
         if depth != 0 {
             self.error(
                 Span::new(inner_start.saturating_sub(1), self.cur.pos),
-                "unterminated `@on` path; expected `)`",
+                "unterminated handler path; expected `)`",
             );
             return Some(Span::new(inner_start, self.cur.pos));
         }
@@ -522,7 +750,40 @@ impl<'a> Parser<'a> {
             return None;
         }
         let start = self.cur.pos;
-        self.cur.skip_balanced_braces();
+        let mut depth = 0usize;
+        while !self.cur.is_eof() {
+            if depth > 0 && self.at_column_zero_at_decl() {
+                break;
+            }
+            match self.cur.peek() {
+                Some('"') => self.cur.skip_string(),
+                Some('#') => self.cur.skip_comment(),
+                Some('{') => {
+                    self.cur.bump();
+                    depth += 1;
+                }
+                Some('}') => {
+                    self.cur.bump();
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                _ => {
+                    self.cur.bump();
+                }
+            }
+        }
+        if depth != 0 {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "unterminated block; expected `}`",
+            );
+            return Some(lexer::trim_span(
+                self.src(),
+                Span::new(start + 1, self.cur.pos),
+            ));
+        }
         if self.cur.pos <= start + 1 {
             return Some(Span::point(start + 1));
         }
@@ -1524,8 +1785,8 @@ impl<'a> Parser<'a> {
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
             "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
-            "component" | "fixture" | "context" | "init" | "live" | "on" | "page" | "roc"
-            | "render" => {
+            "component" | "fixture" | "context" | "init" | "live" | "view" | "patch"
+            | "command" | "on" | "action" | "page" | "roc" | "render" => {
                 self.error(
                     Span::new(start, name_span.end as usize),
                     format!("`@{name}` is only valid at document root, not inside a template body"),
@@ -1978,7 +2239,17 @@ impl<'a> Parser<'a> {
             };
             return matches!(
                 look.ident_text(kw),
-                "component" | "fixture" | "css" | "context" | "init" | "on"
+                "component"
+                    | "fixture"
+                    | "css"
+                    | "context"
+                    | "init"
+                    | "live"
+                    | "view"
+                    | "patch"
+                    | "command"
+                    | "on"
+                    | "action"
             );
         }
         let Some(_) = look.scan_ident() else {
@@ -1986,6 +2257,40 @@ impl<'a> Parser<'a> {
         };
         look.skip_trivia();
         look.peek() == Some('=')
+    }
+
+    fn at_column_zero_at_decl(&self) -> bool {
+        if self.cur.pos == 0 {
+            return false;
+        }
+        if self.src().as_bytes().get(self.cur.pos.wrapping_sub(1)) != Some(&b'\n') {
+            return false;
+        }
+        let mut look = Cursor::new(self.src());
+        look.pos = self.cur.pos;
+        if look.peek().is_some_and(|ch| ch == ' ' || ch == '\t') {
+            return false;
+        }
+        if !look.eat('@') {
+            return false;
+        }
+        let Some(kw) = look.scan_ident() else {
+            return false;
+        };
+        matches!(
+            look.ident_text(kw),
+            "component"
+                | "fixture"
+                | "css"
+                | "context"
+                | "init"
+                | "live"
+                | "view"
+                | "patch"
+                | "command"
+                | "on"
+                | "action"
+        )
     }
 }
 
@@ -1997,23 +2302,83 @@ fn empty_path(pos: usize) -> ComponentPath {
     }
 }
 
-fn empty_on(start: usize, pos: usize) -> OnDecl {
-    OnDecl {
-        method: Ident {
-            span: Span::point(pos),
-            name: String::new(),
-        },
-        path: String::new(),
-        path_span: Span::point(pos),
-        respond: None,
-        params: None,
-        body: Span::point(pos),
-        span: Span::new(start, pos),
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RouteKind {
+    View,
+    Patch,
+    Command,
+}
+
+impl RouteKind {
+    fn noun(self) -> &'static str {
+        match self {
+            Self::View => "view",
+            Self::Patch => "patch",
+            Self::Command => "command",
+        }
+    }
+
+    fn header_without_path(self) -> &'static str {
+        match self {
+            Self::View => "view",
+            Self::Patch => "patch",
+            Self::Command => "command",
+        }
+    }
+
+    fn to_item(self, parsed: ParsedRoute) -> ModuleItem {
+        match self {
+            Self::View => ModuleItem::View(ViewDecl {
+                path: parsed.path,
+                path_span: parsed.path_span,
+                params: parsed.params,
+                body: parsed.body,
+                span: parsed.span,
+            }),
+            Self::Patch => ModuleItem::Patch(PatchDecl {
+                method: parsed.method,
+                path: parsed.path,
+                path_span: parsed.path_span,
+                params: parsed.params,
+                body: parsed.body,
+                span: parsed.span,
+            }),
+            Self::Command => ModuleItem::Command(CommandDecl {
+                method: parsed.method,
+                path: parsed.path,
+                path_span: parsed.path_span,
+                params: parsed.params,
+                body: parsed.body,
+                span: parsed.span,
+            }),
+        }
     }
 }
 
-fn is_http_method(name: &str) -> bool {
-    matches!(name, "get" | "post" | "put" | "patch" | "delete")
+struct ParsedRoute {
+    method: Option<Ident>,
+    path: String,
+    path_span: Span,
+    params: Option<Span>,
+    body: Span,
+    span: Span,
+}
+
+fn removed_on_rewrite(method: &str, json: bool, path: &str) -> String {
+    let quoted = if path.is_empty() {
+        "path".to_string()
+    } else {
+        format!("\"{path}\"")
+    };
+    match (method, json) {
+        ("get", _) => format!("`@view({quoted})`"),
+        ("post" | "", false) => format!("`@patch({quoted})`"),
+        ("post" | "", true) => format!("`@command({quoted})`"),
+        ("put" | "patch" | "delete", false) => format!("`@patch:{method}({quoted})`"),
+        ("put" | "patch" | "delete", true) => format!("`@command:{method}({quoted})`"),
+        (_, true) => format!("`@command({quoted})`"),
+        _ => format!("`@view({quoted})`, `@patch({quoted})`, or `@command({quoted})`"),
+    }
 }
 
 fn string_literal(text: &str, span: Span) -> Option<(String, Span)> {
@@ -2148,8 +2513,9 @@ fn first_non_trivia_char(text: &str) -> Option<char> {
 }
 
 fn suggest_directive(name: &str) -> Option<&'static str> {
-    const KNOWN: [&str; 10] = [
-        "if", "for", "match", "let", "else", "css", "context", "init", "live", "on",
+    const KNOWN: [&str; 13] = [
+        "if", "for", "match", "let", "else", "css", "context", "init", "live", "view", "patch",
+        "command", "on",
     ];
     KNOWN
         .into_iter()

@@ -20,6 +20,7 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `Attr` | `attr` | generated |
 | `AttrValue` | omit | generated |
 | `Boolean` | omit | inline |
+| `CommandDecl` | `command` | generated |
 | `ComponentCall` | `call` | generated |
 | `ComponentDecl` | `component` | generated |
 | `ComponentPath` | omit | generated |
@@ -42,8 +43,8 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `MatchArm` | `arm` | generated |
 | `MatchDirective` | `match` | generated |
 | `ModuleItem` | omit | generated |
-| `OnDecl` | `on` | generated |
 | `ParamList` | `params` | leaf |
+| `PatchDecl` | `patch` | generated |
 | `RocExpr` | — | leaf |
 | `RocPattern` | — | leaf |
 | `RocRegion` | `roc` | inline |
@@ -53,3 +54,4 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `TemplateBlock` | omit | generated |
 | `TemplateItem` | omit | generated |
 | `TextNode` | `text` | generated |
+| `ViewDecl` | `view` | generated |

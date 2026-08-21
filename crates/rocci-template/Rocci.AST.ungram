@@ -34,7 +34,9 @@ ModuleItem =
 | ContextDecl
 | InitDecl
 | LiveDecl
-| OnDecl
+| ViewDecl
+| PatchDecl
+| CommandDecl
 
 /// Opaque Roc between declarations. Shipped as `ModuleItem::Roc { span }` —
 /// there is no exported `RocRegion` type.
@@ -69,11 +71,23 @@ LiveDecl =
   params:RocExpr?
   body:RocExpr
 
-OnDecl =
-  '@' 'on'
-  method:Ident
+ViewDecl =
+  '@' 'view'
   path:StringLit
-  respond:Ident?
+  params:RocExpr?
+  body:RocExpr
+
+PatchDecl =
+  '@' 'patch'
+  method:Ident?
+  path:StringLit
+  params:RocExpr?
+  body:RocExpr
+
+CommandDecl =
+  '@' 'command'
+  method:Ident?
+  path:StringLit
   params:RocExpr?
   body:RocExpr
 

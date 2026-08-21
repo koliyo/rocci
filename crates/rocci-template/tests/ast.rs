@@ -1,8 +1,8 @@
 use rocci_template::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, TemplateBlock,
-    TemplateItem, TextNode,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
+    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, PatchDecl,
+    TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 
 fn ungram_productions(src: &str) -> Vec<String> {
@@ -59,7 +59,9 @@ fn classify_module_item(item: &ModuleItem) -> &'static str {
         ModuleItem::Context(_) => "context",
         ModuleItem::Init(_) => "init",
         ModuleItem::Live(_) => "live",
-        ModuleItem::On(_) => "on",
+        ModuleItem::View(_) => "view",
+        ModuleItem::Patch(_) => "patch",
+        ModuleItem::Command(_) => "command",
     }
 }
 
@@ -127,7 +129,9 @@ fn ungram_generated_productions_exist_as_rust_types() {
                 "ContextDecl",
                 "InitDecl",
                 "LiveDecl",
-                "OnDecl",
+                "ViewDecl",
+                "PatchDecl",
+                "CommandDecl",
                 "TemplateBlock",
                 "TemplateItem",
                 "Element",
@@ -157,7 +161,9 @@ fn ungram_generated_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<ContextDecl>();
     let _ = std::any::type_name::<InitDecl>();
     let _ = std::any::type_name::<LiveDecl>();
-    let _ = std::any::type_name::<OnDecl>();
+    let _ = std::any::type_name::<ViewDecl>();
+    let _ = std::any::type_name::<PatchDecl>();
+    let _ = std::any::type_name::<CommandDecl>();
     let _ = std::any::type_name::<TemplateBlock>();
     let _ = std::any::type_name::<TemplateItem>();
     let _ = std::any::type_name::<Element>();

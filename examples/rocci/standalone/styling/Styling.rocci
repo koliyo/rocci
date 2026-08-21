@@ -1,6 +1,6 @@
 import Html
 
-@on:get("/") {
+@view("/") {
     stylePage({ count: 3.I64 })
 }
 

@@ -2,7 +2,7 @@
 //!
 //! This crate owns the bounded template grammar only. It does not invoke the
 //! Roc compiler, type-check Roc, spawn HTTP, or depend on desktop runtimes.
-//! `@context` / `@init` / `@on` are lowered to Roc functions plus route
+//! `@context` / `@init` / `@view` / `@patch` / `@command` are lowered to Roc functions plus route
 //! metadata for the CLI dispatcher.
 
 mod ast;
@@ -19,10 +19,11 @@ mod span;
 mod validate;
 
 pub use ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams,
-    TemplateBlock, TemplateItem, TextNode, parse_component_params, strip_param_defaults,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
+    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, ParsedParams,
+    PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl, parse_component_params,
+    strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
