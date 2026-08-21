@@ -226,7 +226,11 @@ pub fn spawn_app_plan(
     }
 }
 
-fn stage_app_workspace(plan: &GenericAppPlan, src_dir: &Path, kind: &str) -> Result<TempDir> {
+pub(crate) fn stage_app_workspace(
+    plan: &GenericAppPlan,
+    src_dir: &Path,
+    kind: &str,
+) -> Result<TempDir> {
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create(kind)?;
     runtime_assets::stage_into(&workspace.path)?;
