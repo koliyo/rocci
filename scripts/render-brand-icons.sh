@@ -13,5 +13,8 @@ rsvg-convert -w 1024 -h 1024 "$brand/rocci-app.svg" \
   -o "$project_dir/crates/rocci-desktop/assets/rocci-icon.png"
 rsvg-convert -w 1024 -h 1024 "$brand/rocci-file.svg" \
   -o "$brand/rocci-file.png"
+rsvg-convert -w 180 -h 180 "$brand/rocci-app.svg" \
+  -o "$project_dir/site/assets/apple-touch-icon.png"
+cp "$brand/rocci-mark.svg" "$project_dir/site/assets/favicon.svg"
 
 echo "Rendered brand icons from $brand"

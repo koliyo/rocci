@@ -44,6 +44,8 @@ pub struct SiteMeta {
     pub language: String,
     pub repository: String,
     pub social_image: String,
+    pub favicon: String,
+    pub apple_touch_icon: String,
     pub subtitle: String,
     pub footer: String,
     pub csp: String,
@@ -58,6 +60,8 @@ impl Default for SiteMeta {
             language: "en".into(),
             repository: String::new(),
             social_image: String::new(),
+            favicon: String::new(),
+            apple_touch_icon: String::new(),
             subtitle: String::new(),
             footer: String::new(),
             csp: String::new(),
@@ -359,6 +363,25 @@ items = ["index", "quickstart"]
         assert_eq!(config.site.base_url, "https://rocci.dev");
         assert_eq!(config.build.output, "../dist/docs");
         assert_eq!(config.navigation[0].items[1], "quickstart");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_favicon_and_apple_touch_icon() {
+        let root = temp("icons");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+favicon = "/assets/favicon.svg"
+apple_touch_icon = "/assets/apple-touch-icon.png"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.site.favicon, "/assets/favicon.svg");
+        assert_eq!(config.site.apple_touch_icon, "/assets/apple-touch-icon.png");
         let _ = fs::remove_dir_all(root);
     }
 

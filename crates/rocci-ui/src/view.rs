@@ -8,6 +8,8 @@ pub struct SiteView {
     pub language: String,
     pub repository: String,
     pub social_image: String,
+    pub favicon: String,
+    pub apple_touch_icon: String,
     pub subtitle: String,
     pub footer: String,
 }
