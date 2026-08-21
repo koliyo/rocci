@@ -543,8 +543,12 @@ mod tests {
             .to_path_buf()
     }
 
-    fn roc_build_staged_standalone(relative: &str) {
+    fn roc_build_staged_standalone(relative: &str) -> crate::driver::TempDir {
         let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        roc_build_staged_standalone_locked(relative)
+    }
+
+    fn roc_build_staged_standalone_locked(relative: &str) -> crate::driver::TempDir {
         let primary = repo_root().join(relative);
         let src_dir = primary.parent().unwrap();
         let plan = standalone_app_plan(&primary).expect("plan standalone app");
@@ -558,6 +562,7 @@ mod tests {
             "roc build did not write {}",
             output.display()
         );
+        workspace
     }
 
     #[test]
@@ -565,7 +570,8 @@ mod tests {
         if skip_without_roc() {
             return;
         }
-        roc_build_staged_standalone("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        let _workspace =
+            roc_build_staged_standalone("examples/rocci/standalone/live-counter/LiveCounter.rocci");
     }
 
     #[test]
@@ -573,7 +579,245 @@ mod tests {
         if skip_without_roc() {
             return;
         }
-        roc_build_staged_standalone("examples/rocci/standalone/counter/Counter.rocci");
+        let _workspace =
+            roc_build_staged_standalone("examples/rocci/standalone/counter/Counter.rocci");
+    }
+
+    #[test]
+    fn handler_matrix_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _workspace = roc_build_staged_standalone(
+            "examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci",
+        );
+    }
+
+    fn http_exchange(port: u16, request: &str) -> String {
+        use std::io::{Read, Write};
+        use std::net::TcpStream;
+        use std::time::Duration;
+
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        stream
+            .set_read_timeout(Some(Duration::from_secs(10)))
+            .unwrap();
+        stream.write_all(request.as_bytes()).unwrap();
+        let _ = stream.flush();
+        let mut body = Vec::new();
+        let _ = stream.read_to_end(&mut body);
+        String::from_utf8_lossy(&body).into_owned()
+    }
+
+    #[test]
+    fn handler_matrix_http_smoke() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let workspace = roc_build_staged_standalone_locked(
+            "examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci",
+        );
+        let server = workspace.path.join("server");
+        let port = crate::serve::free_port().expect("free port");
+        let mut child = Command::new(&server)
+            .current_dir(&workspace.path)
+            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .expect("spawn handler-matrix server");
+        if let Err(err) =
+            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("handler-matrix server did not listen: {err:#}");
+        }
+
+        let document = http_exchange(
+            port,
+            &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+        );
+        assert!(document.contains("200"), "{document}");
+        assert!(
+            document.contains("text/html") || document.contains("<html"),
+            "{document}"
+        );
+        assert!(document.contains("id=\"frag-post\""), "{document}");
+        assert!(document.contains("id=\"live-tick\""), "{document}");
+
+        for (method, path, marker) in [
+            ("POST", "/actions/post-frag", "frag-post"),
+            ("PUT", "/actions/put-frag", "frag-put"),
+            ("PATCH", "/actions/patch-frag", "frag-patch"),
+            ("DELETE", "/actions/delete-frag", "frag-delete"),
+        ] {
+            let response = http_exchange(
+                port,
+                &format!(
+                    "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                ),
+            );
+            assert!(
+                response.contains("datastar-patch-elements") && response.contains(marker),
+                "{method} {path}: {response}"
+            );
+        }
+
+        let post_json = http_exchange(
+            port,
+            &format!(
+                "POST /actions/post-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+        );
+        assert!(post_json.contains("200"), "{post_json}");
+        assert!(
+            post_json.contains("application/json") && post_json.contains("\"n\":"),
+            "{post_json}"
+        );
+        assert!(
+            !post_json.contains("datastar-patch-elements"),
+            "{post_json}"
+        );
+
+        let put_json = http_exchange(
+            port,
+            &format!(
+                "PUT /actions/put-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+        );
+        assert!(put_json.contains("\"n\":"), "{put_json}");
+
+        let patch_json = http_exchange(
+            port,
+            &format!(
+                "PATCH /actions/patch-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+        );
+        assert!(patch_json.contains("\"items\""), "{patch_json}");
+
+        let delete_json = http_exchange(
+            port,
+            &format!(
+                "DELETE /actions/delete-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+        );
+        assert!(delete_json.contains("\"deleted\":"), "{delete_json}");
+
+        let datastar_cmd = http_exchange(
+            port,
+            &format!(
+                "POST /actions/post-cmd HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            ),
+        );
+        assert!(datastar_cmd.contains("204"), "{datastar_cmd}");
+        assert!(
+            !datastar_cmd.contains("datastar-patch-elements"),
+            "{datastar_cmd}"
+        );
+
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+
+    #[test]
+    fn command_without_json_encoder_fails_roc_build() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-no-encoder");
+        fs::write(
+            dir.join("NoEncoder.rocci"),
+            r#"
+import Html
+
+@command("/x") {
+    Html.text("nope")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("NoEncoder.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        let err = crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .expect_err("command returning Html must fail JSON encoding");
+        let message = format!("{err:#}");
+        assert!(
+            message.contains("encoder")
+                || message.contains("Json")
+                || message.contains("Encoding")
+                || message.contains("to_str_try"),
+            "failure should mention JSON encoding, got {message}"
+        );
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn command_record_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-record");
+        fs::write(
+            dir.join("Cmd.rocci"),
+            r#"
+import Html
+
+@command("/x") = |_state| {
+    { count: 0.I64 }
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("Cmd.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("command record roc build failed: {err:#}"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn command_str_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let dir = temp_app("command-str");
+        fs::write(
+            dir.join("Cmd.rocci"),
+            r#"
+import Html
+
+@command("/x") = |_state| {
+    "ok"
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&dir.join("Cmd.rocci")).expect("plan app");
+        let workspace = stage_app_workspace(&plan, &dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("command str roc build failed: {err:#}"));
+        cleanup(&dir);
     }
 
     #[test]

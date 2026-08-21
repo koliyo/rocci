@@ -663,9 +663,9 @@ mod tests {
         let page = InspectPage::from_rocci_file("/", &path).unwrap();
         assert_eq!(page.language, "rocci");
         assert!(page.path.ends_with("Counter.rocci"), "{}", page.path);
-        assert!(page.source.contains("@on:get(\"/\")"), "{}", page.source);
+        assert!(page.source.contains("@view(\"/\")"), "{}", page.source);
         assert!(page.ast.contains("(module"), "{}", page.ast);
-        assert!(page.ast.contains("(on"), "{}", page.ast);
+        assert!(page.ast.contains("(view"), "{}", page.ast);
         assert!(page.roc.contains("counterPage"), "{}", page.roc);
         assert!(!page.capabilities.html.available);
         assert!(
@@ -699,8 +699,8 @@ mod tests {
         assert_eq!(value["capabilities"]["ast"]["available"], true);
         assert_eq!(value["capabilities"]["roc"]["available"], true);
         assert_eq!(value["capabilities"]["html"]["available"], false);
-        assert!(value["source"].as_str().unwrap().contains("@on:get(\"/\")"));
-        assert!(value["ast"].as_str().unwrap().contains("(on"));
+        assert!(value["source"].as_str().unwrap().contains("@view(\"/\")"));
+        assert!(value["ast"].as_str().unwrap().contains("(view"));
         assert!(value["roc"].as_str().unwrap().contains("counterPage"));
     }
 

@@ -43,7 +43,9 @@ pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass 
             Item::Context(_) => (PageKind::Live, "@context"),
             Item::Init(_) => (PageKind::Live, "@init"),
             Item::Live(_) => (PageKind::Live, "@live"),
-            Item::On(_) => (PageKind::Live, "@on"),
+            Item::View(_) => (PageKind::Live, "@view"),
+            Item::Patch(_) => (PageKind::Live, "@patch"),
+            Item::Command(_) => (PageKind::Live, "@command"),
         };
         if kind > class.kind {
             class.kind = kind;
@@ -69,7 +71,9 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
             Item::Context(_) => return Err("@context"),
             Item::Init(_) => return Err("@init"),
             Item::Live(_) => return Err("@live"),
-            Item::On(_) => return Err("@on"),
+            Item::View(_) => return Err("@view"),
+            Item::Patch(_) => return Err("@patch"),
+            Item::Command(_) => return Err("@command"),
             Item::Use(_) => return Err("@use"),
             Item::Template(_) => return Err("Rocci template"),
         }
@@ -651,11 +655,11 @@ Text in rocdown.
     }
 
     #[test]
-    fn classifies_on_as_live() {
+    fn classifies_patch_as_live() {
         let class =
-            classify("# Hi\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n");
+            classify("# Hi\n\n@patch(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n");
         assert_eq!(class.kind, PageKind::Live);
-        assert_eq!(class.reason, "@on");
+        assert_eq!(class.reason, "@patch");
     }
 
     #[test]
@@ -667,10 +671,10 @@ Text in rocdown.
     #[test]
     fn live_wins_over_hydrate() {
         let class = classify(
-            "@component Box = || { <div /> }\n\n@on:post(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
+            "@component Box = || { <div /> }\n\n@patch(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
         );
         assert_eq!(class.kind, PageKind::Live);
-        assert_eq!(class.reason, "@on");
+        assert_eq!(class.reason, "@patch");
     }
 
     #[test]

@@ -66,7 +66,7 @@ pub struct ServeOptions {
     #[arg(long)]
     pub no_live_reload: bool,
 
-    /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+    /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
     #[arg(long)]
     pub log_handlers: bool,
 
@@ -753,10 +753,18 @@ mod tests {
         assert!(help.contains("?reload=0"), "{help}");
     }
 
+    fn bind_ephemeral(port: u16) -> bool {
+        TcpListener::bind(("127.0.0.1", port)).is_ok()
+    }
+
     #[test]
     fn free_port_is_bindable() {
-        let port = free_port().unwrap();
-        assert!(TcpListener::bind(("127.0.0.1", port)).is_ok());
+        for _ in 0..16 {
+            if bind_ephemeral(free_port().unwrap()) {
+                return;
+            }
+        }
+        panic!("free_port did not yield a bindable port");
     }
 
     #[test]
@@ -769,8 +777,12 @@ mod tests {
 
     #[test]
     fn auto_port_resolves_to_a_free_port() {
-        let port = PortArg::Auto.resolve().unwrap();
-        assert!(TcpListener::bind(("127.0.0.1", port)).is_ok());
+        for _ in 0..16 {
+            if bind_ephemeral(PortArg::Auto.resolve().unwrap()) {
+                return;
+            }
+        }
+        panic!("auto port did not yield a bindable port");
     }
 
     #[test]

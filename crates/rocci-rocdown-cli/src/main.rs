@@ -101,7 +101,7 @@ enum Commands {
         /// Do not print compile diagnostics on stderr; the error page still serves.
         #[arg(long)]
         quiet: bool,
-        /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+        /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
         #[arg(long)]
         log_handlers: bool,
         /// Print compile, inspect, and wait phases to stderr.
@@ -154,7 +154,7 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
-        /// Log each matched `@on` handler to stderr (CLI and Dev Console).
+        /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
         #[arg(long)]
         log_handlers: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,

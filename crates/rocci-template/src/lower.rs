@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation, LiveDecl,
-    MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, ensure_handler_request_param,
-    parse_component_params, strip_param_defaults,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
+    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
+    LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock, TemplateItem, ViewDecl,
+    ensure_handler_request_param, parse_component_params, strip_param_defaults,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -95,7 +95,7 @@ pub struct LiveInfo {
 pub enum RespondKind {
     #[default]
     Patch,
-    Json,
+    Command,
 }
 
 #[derive(Clone, Debug)]
@@ -189,6 +189,10 @@ pub fn route_fn_name(method: &str, path: &str) -> String {
             .collect::<String>()
     };
     format!("on_{method}_{path_part}!")
+}
+
+pub fn command_json_fn_name(fn_name: &str) -> String {
+    format!("{}_json!", fn_name.trim_end_matches('!'))
 }
 
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
@@ -303,7 +307,9 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
             ModuleItem::Live(live) => emitter.lower_live(live),
-            ModuleItem::On(on) => emitter.lower_on(on),
+            ModuleItem::View(view) => emitter.lower_view(view),
+            ModuleItem::Patch(patch) => emitter.lower_patch(patch),
+            ModuleItem::Command(command) => emitter.lower_command(command),
         }
     }
     if !emitter.roc.ends_with('\n') && !emitter.roc.is_empty() {
@@ -505,39 +511,97 @@ impl<'a> Emitter<'a> {
         self.emit("}\n");
     }
 
-    fn lower_on(&mut self, on: &OnDecl) {
-        let method = on.method.name.to_ascii_uppercase();
-        let fn_name = route_fn_name(&on.method.name, &on.path);
-        let respond = match on.respond.as_ref().map(|ident| ident.name.as_str()) {
-            Some("json") => RespondKind::Json,
-            _ => RespondKind::Patch,
-        };
-        self.routes.push(RouteInfo {
+    fn lower_view(&mut self, view: &ViewDecl) {
+        self.lower_route(
+            "GET",
+            &view.path,
+            RespondKind::Patch,
+            view.params,
+            view.body,
+            view.span,
+        );
+    }
+
+    fn lower_patch(&mut self, patch: &PatchDecl) {
+        let method = patch
+            .method
+            .as_ref()
+            .map(|ident| ident.name.as_str())
+            .unwrap_or("post");
+        self.lower_route(
             method,
-            path: on.path.clone(),
+            &patch.path,
+            RespondKind::Patch,
+            patch.params,
+            patch.body,
+            patch.span,
+        );
+    }
+
+    fn lower_command(&mut self, command: &CommandDecl) {
+        let method = command
+            .method
+            .as_ref()
+            .map(|ident| ident.name.as_str())
+            .unwrap_or("post");
+        self.lower_route(
+            method,
+            &command.path,
+            RespondKind::Command,
+            command.params,
+            command.body,
+            command.span,
+        );
+    }
+
+    fn lower_route(
+        &mut self,
+        method: &str,
+        path: &str,
+        respond: RespondKind,
+        params: Option<Span>,
+        body: Span,
+        span: Span,
+    ) {
+        let method_upper = method.to_ascii_uppercase();
+        let fn_name = route_fn_name(method, path);
+        self.routes.push(RouteInfo {
+            method: method_upper,
+            path: path.to_string(),
             fn_name: fn_name.clone(),
             respond,
-            span: on.span,
+            span,
         });
-        let params = on
-            .params
-            .map(|span| {
-                ensure_handler_request_param(&strip_param_defaults(span.of(self.src).trim()))
+        let adapted = params
+            .map(|param_span| {
+                ensure_handler_request_param(&strip_param_defaults(param_span.of(self.src).trim()))
             })
             .unwrap_or_else(|| "|state, _request|".to_string());
-        self.emit_mapped(&fn_name, on.span, OriginKind::OrdinaryRoc);
+        self.emit_mapped(&fn_name, span, OriginKind::OrdinaryRoc);
         self.emit(" = ");
-        if let Some(span) = on.params {
-            self.emit_mapped(&params, span, OriginKind::OrdinaryRoc);
+        if let Some(param_span) = params {
+            self.emit_mapped(&adapted, param_span, OriginKind::OrdinaryRoc);
         } else {
-            self.emit(&params);
+            self.emit(&adapted);
         }
         self.emit(" {\n");
         self.indent += 1;
-        self.emit_try_block(on.body, "rocci_value");
+        self.emit_try_block(body, "rocci_value");
         self.indent -= 1;
         self.push_indent();
         self.emit("}\n");
+        if respond == RespondKind::Command {
+            self.emit("\n");
+            self.emit(&command_json_fn_name(&fn_name));
+            self.emit(" = |state, request| {\n");
+            self.emit("    match ");
+            self.emit(&fn_name);
+            self.emit("(state, request) {\n");
+            self.emit("        Ok(data) => Encoding.Json.to_str_try(data)\n");
+            self.emit("        Err(err) => Err(err)\n");
+            self.emit("    }\n");
+            self.emit("}\n");
+        }
     }
 
     fn emit_try_block(&mut self, body: Span, result_name: &str) {

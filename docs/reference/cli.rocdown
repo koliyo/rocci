@@ -141,7 +141,7 @@ cargo run -p rocci-rocdown-cli -- run [ROOT] [--port PORT] [--no-window] [--outp
 ```
 
 Watch `.rocdown` sources, `rocdown.toml`, and assets, rebuild, and serve the site
-with live reload. Hybrid sites with colocated `@on` handlers also start the
+with live reload. Hybrid sites with colocated handlers also start the
 generated island service and proxy `/actions/` on this same origin so Datastar
 posts work locally. Sibling `[http].service` apps still run with
 `rocdown serve-islands` or `rocci run`. The default root is the current
@@ -156,7 +156,7 @@ Console tabs for the current route (`?tab=`, `?route=`, and `?view=`). Long
 Source Roc and HTML scroll inside the pane. Original Rocci/Rocdown/Markdown,
 generated Roc, and generated HTML use `tok-*` highlighting; AST stays plain.
 Console shows runtime session messages (host notes and Roc stderr). From
-`@on` / `@init`, `pf.Stderr.line!` reaches that pane under `rocci run` (discard
+`@patch` / `@command` / `@init`, `pf.Stderr.line!` reaches that pane under `rocci run` (discard
 `StderrErr` when mixing with other `?` errors); there is no Rocci `@log`.
 `rocdown run` and `rocdown build` refuse OKF knowledge records and bundles and
 point to `rocci-okf run`.
@@ -255,7 +255,7 @@ routes, and the planned output tree.
 cargo run -p rocci-rocdown-cli -- serve-islands [ROOT] [--port PORT] [--no-window]
 ```
 
-Start the island HTTP service for `live` pages by itself. Colocated `@on`
+Start the island HTTP service for `live` pages by itself. Colocated handlers
 handlers compile into one dispatcher. A sibling `[http].service` `.rocci` app
 is run with `rocci run` instead. The process serves `/health` and mutation
 routes; it does not serve Markdown or the CDN HTML tree. Use this beside a

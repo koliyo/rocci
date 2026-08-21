@@ -9,6 +9,7 @@ BraceSection	omit	nested items are reparsed; no inspect head
 BracketList	omit	flattened onto param atoms
 BracketRecord	omit	flattened onto block param atoms
 CodeBlock	doc_only	—
+CommandDecl	tag	command
 ComponentDecl	tag	component
 ComponentPath	foreign	—
 ContextDecl	tag	context
@@ -25,6 +26,7 @@ Item	omit	enum wrapper; variants print their own heads
 LineContent	omit	opaque span; nested items are reparsed
 List	doc_only	—
 ListItem	doc_only	—
+LiveDecl	tag	live
 MdNode	fallback	md
 MdNode.Code	tag	code
 MdNode.CodeBlock	tag	fence
@@ -38,12 +40,12 @@ MdNode.Strong	tag	strong
 MdNode.Text	tag	text
 ModuleItem	doc_only	—
 NumberLit	leaf	—
-OnDecl	tag	on
 PageDecl	tag	page
 Paragraph	doc_only	—
 ParamField	omit	flattened onto block param atoms
 ParamValue	omit	flattened onto block param atoms
 ParenPayload	leaf	—
+PatchDecl	tag	patch
 RenderDecl	tag	render
 RocDecl	tag	roc
 StringLit	leaf	—
@@ -61,3 +63,4 @@ TemplateItem.Match	tag	match
 TemplateSplice	doc_only	—
 ThematicBreak	doc_only	—
 UseDecl	tag	use
+ViewDecl	tag	view

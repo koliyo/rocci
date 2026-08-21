@@ -364,42 +364,62 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                     );
                 }
             }
-            ModuleItem::On(on) => {
-                let on_id = builder.add(
-                    LanguageId::Rocci,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    on.span,
-                    Some(root),
-                    10,
-                );
-                if let Some(params) = on.params
-                    && !params.is_empty()
-                {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Params,
-                        RegionPurpose::Executable,
-                        params,
-                        Some(on_id),
-                        20,
-                    );
-                }
-                if !on.body.is_empty() {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Body,
-                        RegionPurpose::Executable,
-                        on.body,
-                        Some(on_id),
-                        20,
-                    );
-                }
+            ModuleItem::View(view) => {
+                add_route_regions(&mut builder, root, view.span, view.params, view.body)
             }
+            ModuleItem::Patch(patch) => {
+                add_route_regions(&mut builder, root, patch.span, patch.params, patch.body)
+            }
+            ModuleItem::Command(command) => add_route_regions(
+                &mut builder,
+                root,
+                command.span,
+                command.params,
+                command.body,
+            ),
         }
     }
 
     RegionTree::new(builder.regions)
+}
+
+fn add_route_regions(
+    builder: &mut RegionBuilder,
+    root: usize,
+    span: Span,
+    params: Option<Span>,
+    body: Span,
+) {
+    let route_id = builder.add(
+        LanguageId::Rocci,
+        RegionContext::Body,
+        RegionPurpose::HostStructure,
+        span,
+        Some(root),
+        10,
+    );
+    if let Some(params) = params
+        && !params.is_empty()
+    {
+        builder.add(
+            LanguageId::Roc,
+            RegionContext::Params,
+            RegionPurpose::Executable,
+            params,
+            Some(route_id),
+            20,
+        );
+    }
+    if !body.is_empty() {
+        builder.add(
+            LanguageId::Roc,
+            RegionContext::Body,
+            RegionPurpose::Executable,
+            body,
+            Some(route_id),
+            20,
+        );
+    }
 }
 
 fn collect_template_items(builder: &mut RegionBuilder, items: &[TemplateItem], parent_id: usize) {

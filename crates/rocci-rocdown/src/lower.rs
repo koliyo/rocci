@@ -102,7 +102,9 @@ pub fn lower(
             Item::Context(decl) => rocci_items.push(ModuleItem::Context(decl.clone())),
             Item::Init(decl) => rocci_items.push(ModuleItem::Init(decl.clone())),
             Item::Live(decl) => rocci_items.push(ModuleItem::Live(decl.clone())),
-            Item::On(decl) => rocci_items.push(ModuleItem::On(decl.clone())),
+            Item::View(decl) => rocci_items.push(ModuleItem::View(decl.clone())),
+            Item::Patch(decl) => rocci_items.push(ModuleItem::Patch(decl.clone())),
+            Item::Command(decl) => rocci_items.push(ModuleItem::Command(decl.clone())),
             _ => {}
         }
     }
@@ -2682,7 +2684,9 @@ fn illegal_docs_item(item: &Item) -> Option<&'static str> {
         Item::Context(_) => Some("context"),
         Item::Init(_) => Some("init"),
         Item::Live(_) => Some("live"),
-        Item::On(_) => Some("on"),
+        Item::View(_) => Some("view"),
+        Item::Patch(_) => Some("patch"),
+        Item::Command(_) => Some("command"),
         Item::Use(_) => Some("use"),
         Item::Template(_) => Some("template"),
     }

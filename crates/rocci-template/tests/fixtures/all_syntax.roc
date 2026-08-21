@@ -355,9 +355,33 @@ on_get_root! = |state, _request| {
 }
 
 
-live! = |state, _request| {
+on_post_actions_card! = |state, _request| {
     rocci_value = {
-        counterPage({ person: { name: "Roc" }, count: 0 })
+        counterCard({ count: 0 })
+    }
+    Ok(rocci_value)
+}
+
+
+on_put_actions_put! = |_state, _request| {
+    rocci_value = {
+        counterCard({ count: 1 })
+    }
+    Ok(rocci_value)
+}
+
+
+on_patch_actions_patch! = |state, _request| {
+    rocci_value = {
+        counterCard({ count: 2 })
+    }
+    Ok(rocci_value)
+}
+
+
+on_delete_actions_delete_card! = |state, _request| {
+    rocci_value = {
+        counterCard({ count: 3 })
     }
     Ok(rocci_value)
 }
@@ -365,7 +389,67 @@ live! = |state, _request| {
 
 on_post_actions_increment! = |state, _request| {
     rocci_value = {
-        "{\"count\": 0}"
+        { count: 0 }
+    }
+    Ok(rocci_value)
+}
+
+on_post_actions_increment_json! = |state, request| {
+    match on_post_actions_increment!(state, request) {
+        Ok(data) => Encoding.Json.to_str_try(data)
+        Err(err) => Err(err)
+    }
+}
+
+
+on_put_actions_command_put! = |_state, _request| {
+    rocci_value = {
+        { count: 1 }
+    }
+    Ok(rocci_value)
+}
+
+on_put_actions_command_put_json! = |state, request| {
+    match on_put_actions_command_put!(state, request) {
+        Ok(data) => Encoding.Json.to_str_try(data)
+        Err(err) => Err(err)
+    }
+}
+
+
+on_patch_actions_command_patch! = |state, _request| {
+    rocci_value = {
+        { items: ["a"] }
+    }
+    Ok(rocci_value)
+}
+
+on_patch_actions_command_patch_json! = |state, request| {
+    match on_patch_actions_command_patch!(state, request) {
+        Ok(data) => Encoding.Json.to_str_try(data)
+        Err(err) => Err(err)
+    }
+}
+
+
+on_delete_actions_command_delete! = |state, _request| {
+    rocci_value = {
+        { remaining: 0 }
+    }
+    Ok(rocci_value)
+}
+
+on_delete_actions_command_delete_json! = |state, request| {
+    match on_delete_actions_command_delete!(state, request) {
+        Ok(data) => Encoding.Json.to_str_try(data)
+        Err(err) => Err(err)
+    }
+}
+
+
+live! = |state, _request| {
+    rocci_value = {
+        counterPage({ person: { name: "Roc" }, count: 0 })
     }
     Ok(rocci_value)
 }

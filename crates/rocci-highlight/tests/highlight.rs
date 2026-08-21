@@ -221,3 +221,29 @@ fn assert_invariants(src: &str, spans: &[HighlightSpan]) {
         prev_end = span.end();
     }
 }
+
+#[test]
+fn patch_noun_and_patch_method_use_distinct_kinds() {
+    let src = r#"
+@patch:patch("/x") {
+    Html.text("ok")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#;
+    let (lang, spans) = highlight_source("rocci", src);
+    assert_eq!(lang, LanguageId::Rocci);
+    assert_invariants(src, &spans);
+    assert!(
+        spans
+            .iter()
+            .any(|s| s.kind == HighlightKind::Keyword && &src[s.start()..s.end()] == "@patch")
+    );
+    assert!(
+        spans
+            .iter()
+            .any(|s| s.kind == HighlightKind::EnumMember && &src[s.start()..s.end()] == "patch")
+    );
+}

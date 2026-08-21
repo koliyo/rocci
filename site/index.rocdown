@@ -63,7 +63,7 @@ ensure_clicks! = |db| {
     { db: db }
 }
 
-@on:post("/actions/counter/sync") = |{ db }, request| {
+@patch("/actions/counter/sync") = |{ db }, request| {
     _ = request
     now_row : { now : I64 }
     now_row = Sqlite.query!(
@@ -112,7 +112,7 @@ ensure_clicks! = |db| {
     counterLive({ count: count_row.value, clicks })
 }
 
-@on:post("/actions/counter/increment") = |{ db }, request| {
+@patch("/actions/counter/increment") = |{ db }, request| {
     body =
         match request.body().with_limit(8 * 1024).read_all!() {
             Ok(bytes) => Str.from_utf8_lossy(bytes)
@@ -363,7 +363,7 @@ The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last
 @render CounterCard({ count: 0.I64, clicks: [] })
 
 ```rocci
-@on:post("/actions/counter/increment") = |{ db }, request| {
+@patch("/actions/counter/increment") = |{ db }, request| {
     # read tz signal, insert click, morph #counter-panel and #counter-feed
     counterLive({ count, clicks })
 }

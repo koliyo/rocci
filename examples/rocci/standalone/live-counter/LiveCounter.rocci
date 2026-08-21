@@ -30,7 +30,7 @@ import Html
     { db: db }
 }
 
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
@@ -40,22 +40,22 @@ import Html
     counterCard({ count: count })
 }
 
-@on:post("/actions/counter/increment") json = |{ db }| {
+@command("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 
-@on:post("/actions/counter/reset") json = |{ db }| {
+@command("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 
 read_count! = |db| {

@@ -17,7 +17,9 @@ fn write_module_item(w: &mut Writer<'_>, src: &str, item: &ModuleItem) {
         ModuleItem::Context(item) => write_context(w, src, item),
         ModuleItem::Init(item) => write_init(w, src, item),
         ModuleItem::Live(item) => write_live(w, src, item),
-        ModuleItem::On(item) => write_on(w, src, item),
+        ModuleItem::View(item) => write_view(w, src, item),
+        ModuleItem::Patch(item) => write_patch(w, src, item),
+        ModuleItem::Command(item) => write_command(w, src, item),
     }
 }
 

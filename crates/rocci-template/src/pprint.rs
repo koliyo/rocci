@@ -1,7 +1,8 @@
 use crate::ast::{
-    Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation, LetDirective,
-    LiveDecl, MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, TextNode,
+    Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
+    Element, FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation,
+    LetDirective, LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock, TemplateItem,
+    TextNode, ViewDecl,
 };
 use crate::span::Span;
 
@@ -149,19 +150,61 @@ fn write_live(w: &mut Writer<'_>, src: &str, live: &LiveDecl) {
     w.close();
 }
 
-fn write_on(w: &mut Writer<'_>, src: &str, on: &OnDecl) {
-    let mut atoms = vec![
-        atom(&on.method.name.to_ascii_uppercase()),
-        string_atom(&on.path),
-    ];
-    if let Some(respond) = &on.respond {
-        atoms.push(atom(&respond.name));
-    }
-    if let Some(params) = on.params {
+fn write_view(w: &mut Writer<'_>, src: &str, view: &ViewDecl) {
+    let mut atoms = vec![string_atom(&view.path)];
+    if let Some(params) = view.params {
         atoms.push(atom(params.of(src).trim()));
     }
-    w.open("on", &atoms);
-    write_roc(w, on.body.of(src));
+    w.open("view", &atoms);
+    write_roc(w, view.body.of(src));
+    w.close();
+}
+
+fn write_patch(w: &mut Writer<'_>, src: &str, patch: &PatchDecl) {
+    write_mutation(
+        w,
+        src,
+        "patch",
+        patch.method.as_ref(),
+        &patch.path,
+        patch.params,
+        patch.body,
+    );
+}
+
+fn write_command(w: &mut Writer<'_>, src: &str, command: &CommandDecl) {
+    write_mutation(
+        w,
+        src,
+        "command",
+        command.method.as_ref(),
+        &command.path,
+        command.params,
+        command.body,
+    );
+}
+
+fn write_mutation(
+    w: &mut Writer<'_>,
+    src: &str,
+    head: &str,
+    method: Option<&crate::ast::Ident>,
+    path: &str,
+    params: Option<Span>,
+    body: Span,
+) {
+    let mut atoms = Vec::new();
+    if let Some(method) = method {
+        atoms.push(atom(&method.name.to_ascii_uppercase()));
+    } else {
+        atoms.push(atom("POST"));
+    }
+    atoms.push(string_atom(path));
+    if let Some(params) = params {
+        atoms.push(atom(params.of(src).trim()));
+    }
+    w.open(head, &atoms);
+    write_roc(w, body.of(src));
     w.close();
 }
 
@@ -304,6 +347,63 @@ fn is_bare_atom(text: &str) -> bool {
         return false;
     }
     chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | ':' | '-'))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HandlerInspect {
+    pub kind: &'static str,
+    pub method: String,
+    pub path: String,
+    pub role: &'static str,
+}
+
+impl HandlerInspect {
+    pub fn line(&self) -> String {
+        format!(
+            "{} {} \"{}\" {}",
+            self.kind, self.method, self.path, self.role
+        )
+    }
+}
+
+pub fn inspect_handlers(document: &Document) -> Vec<HandlerInspect> {
+    document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::View(view) => Some(HandlerInspect {
+                kind: "view",
+                method: "GET".to_string(),
+                path: view.path.clone(),
+                role: "document",
+            }),
+            ModuleItem::Patch(patch) => Some(HandlerInspect {
+                kind: "patch",
+                method: mutation_method(patch.method.as_ref()),
+                path: patch.path.clone(),
+                role: "patch",
+            }),
+            ModuleItem::Command(command) => Some(HandlerInspect {
+                kind: "command",
+                method: mutation_method(command.method.as_ref()),
+                path: command.path.clone(),
+                role: "command",
+            }),
+            ModuleItem::Live(_) => Some(HandlerInspect {
+                kind: "live",
+                method: "GET".to_string(),
+                path: "/sse".to_string(),
+                role: "live",
+            }),
+            _ => None,
+        })
+        .collect()
+}
+
+fn mutation_method(method: Option<&crate::ast::Ident>) -> String {
+    method
+        .map(|ident| ident.name.to_ascii_uppercase())
+        .unwrap_or_else(|| "POST".to_string())
 }
 
 fn string_atom(text: &str) -> String {

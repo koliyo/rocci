@@ -17,7 +17,9 @@ pub enum ModuleItem {
     Context(ContextDecl),
     Init(InitDecl),
     Live(LiveDecl),
-    On(OnDecl),
+    View(ViewDecl),
+    Patch(PatchDecl),
+    Command(CommandDecl),
 }
 
 impl ModuleItem {
@@ -30,7 +32,9 @@ impl ModuleItem {
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
             Self::Live(item) => item.span,
-            Self::On(item) => item.span,
+            Self::View(item) => item.span,
+            Self::Patch(item) => item.span,
+            Self::Command(item) => item.span,
         }
     }
 }
@@ -77,11 +81,29 @@ pub struct LiveDecl {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct OnDecl {
-    pub method: Ident,
+pub struct ViewDecl {
     pub path: String,
     pub path_span: Span,
-    pub respond: Option<Ident>,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PatchDecl {
+    pub method: Option<Ident>,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CommandDecl {
+    pub method: Option<Ident>,
+    pub path: String,
+    pub path_span: Span,
     pub params: Option<Span>,
     pub body: Span,
     pub span: Span,

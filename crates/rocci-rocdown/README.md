@@ -108,7 +108,7 @@ See [`examples/rocdown/pages/Guide.rocdown`](../../examples/rocdown/pages/Guide.
 | `@component` | Rocci template | same grammar as `.rocci` |
 | `@fixture` | Roc binding | preview/test sample; not rendered into the article |
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
-| `@context` / `@init` / `@on` | Roc | standalone HTTP, same as `.rocci` |
+| `@context` / `@init` / `@view` / `@patch` / `@command` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 | `@use "./Module.rocci"` | path string | interactive only: import `@component` exports as article kinds (`Callout` → `:callout`) |
 | `:kind[params]` | line, `{{ }}`, or `:kind.begin` ... `:kind.end` | article block; kinds are a closed builtin registry, plus `@use` on `rocdown run`. Do not mix `.begin` with `{{ }}` |
@@ -137,7 +137,7 @@ Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
 `@for`, `@match`, `@let`, and component-local `@css`.
 
 `@island` is reserved in the design and is **not** parsed yet. v1 hybrid sites
-use existing `@component` / `@on` hosts; they do not add `@island` grammar.
+use existing `@component` / handler hosts; they do not add `@island` grammar.
 
 ### `:img`
 
@@ -273,7 +273,7 @@ Markdown lowers to `Html.element` / `void_element` / `text` / `fragment`. File
 `@css` is wrapped in `@scope ([data-rocci-css~="id"])` using the same file-scope
 id as `.rocci`. Component CSS keeps a per-component id.
 
-If the file has no `@on:get` for the page route, lowering synthesizes a GET
+If the file has no `@view` for the page route, lowering synthesizes a GET
 handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
 registered to the same handler so `rocdown run` can open a preview.
 
@@ -320,7 +320,7 @@ while building as part of `rocdown build site`.
 
 - `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
 - `rocdown run DIR`: Run/preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
-- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@on` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
+- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@patch` / `@command` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
 - `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target` is the Linux container process ISA/OS for island/app binaries (`arm64musl` on Apple Silicon Docker; `x64musl` on amd64)—never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target` matches the Linux container CPU (see `docker/README.md`).
 - `rocdown serve DIST`: Serve a previously built tree on loopback without Roc, watch, or rebuild.
@@ -371,7 +371,7 @@ not a substitute for the syntax above.
   `hydrate` pages splice pure Rocci components into CDN HTML at build time.
   `live` pages splice initial island Html, hash Datastar.js, and loosen
   per-page CSP. Every site page also hashes `goto.js` (Cmd/Ctrl-K fuzzy
-  navigation) with `script-src 'self'; connect-src 'self'`. `rocdown serve-islands DIR` compiles colocated `@on` handlers
+  navigation) with `script-src 'self'; connect-src 'self'`. `rocdown serve-islands DIR` compiles colocated handlers
   into one island HTTP service. Hybrid builds emit `pages.json` kinds,
   `islands.json` service routes, and a publish report. `--cdn-only` refuses
   `live` pages so a CDN publish cannot ship dead actions. `rocdown package DIR`
