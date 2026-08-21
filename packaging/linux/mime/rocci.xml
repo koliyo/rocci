@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-rocci">
+    <comment>Rocci template</comment>
+    <glob pattern="*.rocci"/>
+  </mime-type>
+  <mime-type type="text/x-rocdown">
+    <comment>Rocdown document</comment>
+    <glob pattern="*.rocdown"/>
+  </mime-type>
+</mime-info>

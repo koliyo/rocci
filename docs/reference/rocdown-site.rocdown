@@ -95,6 +95,8 @@ JavaScript tablist.
 | `language` | `en` | Document language |
 | `repository` | Empty | Source link in the header |
 | `social_image` | Empty | Site-relative Open Graph image path |
+| `favicon` | Empty | Site-relative favicon path, typically an SVG |
+| `apple_touch_icon` | Empty | Site-relative Apple touch icon path |
 | `subtitle` | Empty | Short header tagline beside the brand |
 | `footer` | Empty | Article footer text |
 | `csp` | Strict static default | Content-Security-Policy for generated HTML |
@@ -163,7 +165,8 @@ fuzzy navigation; it is not full-text site search.
 it. `assets` names a directory whose files are content-hashed into `/assets/`
 in the published tree (`og.png` becomes `og.<hash>.png`). Markdown and `:img`
 URLs under that tree are rewritten whether they are authored as
-`/assets/foo.png` or `assets/foo.png`. `social_image` is rewritten the same way.
+`/assets/foo.png` or `assets/foo.png`. `social_image`, `favicon`, and
+`apple_touch_icon` are rewritten the same way.
 
 Local image paths resolve against the source file directory. Missing files fail
 `rocdown check` with `RD2103`. Validated page and heading links are rewritten to

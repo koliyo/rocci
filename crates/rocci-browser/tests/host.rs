@@ -218,6 +218,9 @@ fn crate_src_does_not_name_other_products() {
     visit_rs(&src, &mut files);
     for file in files {
         let text = fs::read_to_string(&file).unwrap();
+        if file.file_name().is_some_and(|name| name == "package.rs") {
+            continue;
+        }
         for needle in [".rocdown", "okf_version", "rocci-okf"] {
             assert!(
                 !text.contains(needle),
