@@ -1,13 +1,14 @@
 import Html
+import Origin
 
-Click : { flag : Str, place : Str, ago : Str, ts : Str }
+Click : { flag : Str, place : Str, ago : Str, ts : Str, chosen : Bool }
 
 empty_clicks : List(Click)
 empty_clicks = []
 
-## Morph target: count + scrollable recent-click feed (up to 50 rows, five visible).
+## Morph target for the shared count (buttons and feed stay outside so SSE does not remount them).
 @component
-CounterCard = |{ count, clicks }| {
+CounterCount = |{ count }| {
     @css {
         .counter-card {
             margin-top: 2rem;
@@ -33,6 +34,17 @@ CounterCard = |{ count, clicks }| {
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.04em;
         }
+    }
+    <section id="counter" class="counter-card">
+        <p class="eyebrow">Live shared count</p>
+        <output>{count.to_str()}</output>
+    </section>
+}
+
+## Morph target: recent clicks (up to 50 rows, five visible).
+@component
+CounterFeed = |{ clicks }| {
+    @css {
         .feed-scroll {
             margin: 1.35rem 0 0;
             max-height: 11rem;
@@ -68,8 +80,24 @@ CounterCard = |{ count, clicks }| {
             letter-spacing: 0.04em;
         }
         .feed .where {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem 0.5rem;
+            align-items: baseline;
             color: var(--ink, #f8fffb);
             font-size: 0.92rem;
+        }
+        .feed .chosen {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.1rem 0.4rem;
+            border-radius: 999px;
+            border: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            color: var(--accent, #48eda4);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
         .feed time {
             color: var(--muted, #8da39a);
@@ -82,9 +110,7 @@ CounterCard = |{ count, clicks }| {
             font-size: 0.9rem;
         }
     }
-    <section id="counter" class="counter-card">
-        <p class="eyebrow">Live shared count</p>
-        <output>{count.to_str()}</output>
+    <div id="counter-feed">
         @if List.is_empty(clicks) {
             <p class="empty">No clicks yet - be the first visitor.</p>
         } @else {
@@ -93,25 +119,54 @@ CounterCard = |{ count, clicks }| {
                     @for click in clicks {
                         <li>
                             <span class="flag" aria-hidden="true">{click.flag}</span>
-                            <div class="where">{click.place}</div>
+                            <div class="where">
+                                <span>{click.place}</span>
+                                @if click.chosen {
+                                    <span class="chosen">chosen</span>
+                                }
+                            </div>
                             <time datetime={click.ts}>{click.ago}</time>
                         </li>
                     }
                 </ul>
             </div>
         }
-    </section>
+    </div>
 }
 
-## Island fragment for hybrid pages: tz signal, SSE, increment only (no Reset).
+## Island fragment: count, controls (optional Reset), then feed. SSE morphs `#counter` and `#counter-feed` only.
 @component
-CounterIsland = |{ count, clicks }| {
+CounterIsland = |{ count, clicks, show_reset ?? False }| {
     @css {
-        .actions {
+        .controls {
             display: flex;
-            gap: 0.75rem;
-            margin-top: 1.25rem;
             flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: end;
+            margin-top: 1.25rem;
+        }
+        .place-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 12rem;
+            flex: 1 1 12rem;
+        }
+        .place-field span {
+            color: var(--muted, #8da39a);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .place-field select {
+            appearance: none;
+            border: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            border-radius: 10px;
+            padding: 0.7rem 0.9rem;
+            background: var(--canvas, rgba(7, 17, 14, 0.9));
+            color: var(--ink, #f8fffb);
+            font: inherit;
         }
         button {
             appearance: none;
@@ -124,6 +179,11 @@ CounterIsland = |{ count, clicks }| {
             font-weight: 700;
             cursor: pointer;
         }
+        button.secondary {
+            border: 1px solid var(--line, rgba(109, 236, 177, 0.2));
+            background: transparent;
+            color: var(--muted, #8da39a);
+        }
         .privacy {
             margin: 1rem 0 0;
             color: var(--muted, #8da39a);
@@ -133,23 +193,68 @@ CounterIsland = |{ count, clicks }| {
     }
     <>
         <div
-            data-signals="{tz: ''}"
+            data-signals="{tz: '', origin: ''}"
             data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone; @get('/sse', [OpenWhenHidden(True)])"
         ></div>
-        <CounterCard count={count} clicks={clicks} />
-        <div class="actions">
+        <CounterCount count={count} />
+        <div class="controls">
+            <label class="place-field">
+                <span>Place</span>
+                <select data-bind:origin aria-label="Optional place override">
+                    <option value="">From browser</option>
+                    @for item in Origin.choices {
+                        <option value={item.tz}>{item.label}</option>
+                    }
+                </select>
+            </label>
             <button type="button" data-on:click=@post("/actions/counter/increment")>
                 Increment
             </button>
+            @if show_reset {
+                <button
+                    class="secondary"
+                    type="button"
+                    data-on:click=@post("/actions/counter/reset")
+                >
+                    Reset
+                </button>
+            }
         </div>
+        <CounterFeed clicks={clicks} />
         <p class="privacy">
-            Origin comes from your browser timezone - no IP address is stored.
+            Place comes from your browser timezone or a place you choose above.
+            Either can be set by the client and is not verified — including
+            without using this picker. No IP address is stored.
         </p>
     </>
 }
 
-@fixture{target: CounterCard}
-counterCardTest = { count: 3.I64, clicks: empty_clicks }
+@fixture{target: CounterCount}
+counterCountTest = { count: 3.I64 }
+
+@fixture{target: CounterFeed}
+counterFeedTest = {
+    clicks: [
+        {
+            flag: "SE",
+            place: "Stockholm, Sweden",
+            ago: "just now",
+            ts: "0",
+            chosen: True,
+        },
+    ],
+}
 
 @fixture{target: CounterIsland}
-counterIslandTest = { count: 3.I64, clicks: empty_clicks }
+counterIslandTest = { count: 3.I64, clicks: empty_clicks, show_reset: False }
+
+## Returned from `@live`: count and feed morph by id; controls stay on the page.
+@component
+LiveSlice = |{ count, clicks }|
+    <>
+        <CounterCount count={count} />
+        <CounterFeed clicks={clicks} />
+    </>
+
+@fixture{target: LiveSlice}
+liveSliceTest = { count: 3.I64, clicks: empty_clicks }

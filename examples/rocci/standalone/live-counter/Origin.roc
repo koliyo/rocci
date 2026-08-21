@@ -109,6 +109,24 @@ Origin := [].{
             Err(_) => ""
         }
     }
+
+    Choice : { tz : Str, label : Str }
+
+    ## Curated places for the optional origin picker (values must match `lookup`).
+    choices : List(Choice)
+    choices = [
+        { tz: "America/New_York", label: "New York" },
+        { tz: "America/Los_Angeles", label: "Los Angeles" },
+        { tz: "America/Sao_Paulo", label: "Sao Paulo" },
+        { tz: "Europe/London", label: "London" },
+        { tz: "Europe/Berlin", label: "Berlin" },
+        { tz: "Europe/Stockholm", label: "Stockholm" },
+        { tz: "Africa/Johannesburg", label: "Johannesburg" },
+        { tz: "Asia/Tokyo", label: "Tokyo" },
+        { tz: "Asia/Singapore", label: "Singapore" },
+        { tz: "Australia/Sydney", label: "Sydney" },
+        { tz: "Pacific/Auckland", label: "Auckland" },
+    ]
 }
 
 fallback = |tz| {
