@@ -18,6 +18,7 @@ Badge = |{ tone ?? Neutral }, content|
         {content}
     </span>
 
+## Simple greeting used by CounterPage.
 @component
 Hello = |{ name ?? "World" }|
     <p>Hello, {name}</p>

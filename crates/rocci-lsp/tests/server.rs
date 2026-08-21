@@ -792,6 +792,7 @@ fn semantic_tokens_counter_rocci_qualified_precision() {
     }
 }
 
+
 #[test]
 fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     let src = r#"
@@ -864,4 +865,29 @@ fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     assert_eq!(token_type_at(src, &tokens, patch_kw), Some(TOKEN_KEYWORD));
     let method = src.find("@patch:").expect("method") + "@patch:".len();
     assert_eq!(token_type_at(src, &tokens, method), Some(TOKEN_ENUM_MEMBER));
+}
+
+#[test]
+fn hover_includes_component_doc_comments() {
+    let src = r#"module [Hello]
+
+## Greeting card.
+@component Hello = |{ name }|
+    <p>{name}</p>
+"#;
+    let mut server = initialize(true);
+    open(&mut server, src);
+    let hello = src.find("Hello =").expect("hello");
+    let (line, character) = line_col(src, hello);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("hover");
+    let lsp_types::HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("@component Hello ="), "{markup:?}");
+    assert!(markup.value.contains("Greeting card."), "{markup:?}");
 }

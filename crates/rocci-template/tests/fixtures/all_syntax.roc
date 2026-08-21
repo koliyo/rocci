@@ -36,6 +36,7 @@ badge = |{ tone }, content| {
 }
 
 
+## Simple greeting used by CounterPage.
 hello = |{ name }| {
     Html.fragment(
         [

@@ -1,8 +1,8 @@
 use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation,
-    LetDirective, LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock, TemplateItem,
-    TextNode, ViewDecl,
+    LeadingComments, LetDirective, LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock,
+    TemplateItem, TextNode, ViewDecl,
 };
 use crate::span::Span;
 
@@ -95,8 +95,26 @@ fn write_roc(w: &mut Writer<'_>, text: &str) {
     w.close();
 }
 
+fn write_leading(w: &mut Writer<'_>, src: &str, leading: &LeadingComments) {
+    w.open("leading", &[]);
+    for span in &leading.comments {
+        w.leaf("comment", &[string_atom(span.of(src).trim_end())]);
+    }
+    for span in &leading.docs {
+        w.leaf("docs", &[string_atom(span.of(src).trim_end())]);
+    }
+    w.close();
+}
+
+fn write_optional_leading(w: &mut Writer<'_>, src: &str, leading: &Option<LeadingComments>) {
+    if let Some(leading) = leading {
+        write_leading(w, src, leading);
+    }
+}
+
 fn write_component(w: &mut Writer<'_>, src: &str, component: &ComponentDecl) {
     w.open("component", &[atom(&component.name.name)]);
+    write_optional_leading(w, src, &component.leading);
     w.leaf("params", &[atom(component.params.of(src).trim())]);
     write_template_block(w, src, &component.body);
     w.close();
@@ -110,6 +128,7 @@ fn write_fixture(w: &mut Writer<'_>, src: &str, fixture: &FixtureDecl) {
             format!("target:{}", fixture.target.source_name()),
         ],
     );
+    write_optional_leading(w, src, &fixture.leading);
     write_roc(w, fixture.value.of(src));
     w.close();
 }
@@ -127,15 +146,30 @@ fn write_let(w: &mut Writer<'_>, src: &str, dir: &LetDirective) {
 }
 
 fn write_css(w: &mut Writer<'_>, src: &str, css: &CssDecl) {
-    w.leaf("css", &[string_atom(css.body.of(src).trim())]);
+    if css.leading.is_some() {
+        w.open("css", &[]);
+        write_optional_leading(w, src, &css.leading);
+        w.leaf("body", &[string_atom(css.body.of(src).trim())]);
+        w.close();
+    } else {
+        w.leaf("css", &[string_atom(css.body.of(src).trim())]);
+    }
 }
 
 fn write_context(w: &mut Writer<'_>, src: &str, context: &ContextDecl) {
-    w.leaf("context", &[roc_atom(src, context.ty)]);
+    if context.leading.is_some() {
+        w.open("context", &[]);
+        write_optional_leading(w, src, &context.leading);
+        w.leaf("ty", &[roc_atom(src, context.ty)]);
+        w.close();
+    } else {
+        w.leaf("context", &[roc_atom(src, context.ty)]);
+    }
 }
 
 fn write_init(w: &mut Writer<'_>, src: &str, init: &InitDecl) {
     w.open("init", &[]);
+    write_optional_leading(w, src, &init.leading);
     write_roc(w, init.body.of(src));
     w.close();
 }
@@ -146,6 +180,7 @@ fn write_live(w: &mut Writer<'_>, src: &str, live: &LiveDecl) {
         atoms.push(atom(params.of(src).trim()));
     }
     w.open("live", &atoms);
+    write_optional_leading(w, src, &live.leading);
     write_roc(w, live.body.of(src));
     w.close();
 }
@@ -156,6 +191,7 @@ fn write_view(w: &mut Writer<'_>, src: &str, view: &ViewDecl) {
         atoms.push(atom(params.of(src).trim()));
     }
     w.open("view", &atoms);
+    write_optional_leading(w, src, &view.leading);
     write_roc(w, view.body.of(src));
     w.close();
 }
@@ -169,6 +205,7 @@ fn write_patch(w: &mut Writer<'_>, src: &str, patch: &PatchDecl) {
         &patch.path,
         patch.params,
         patch.body,
+        &patch.leading,
     );
 }
 
@@ -181,6 +218,7 @@ fn write_command(w: &mut Writer<'_>, src: &str, command: &CommandDecl) {
         &command.path,
         command.params,
         command.body,
+        &command.leading,
     );
 }
 
@@ -192,6 +230,7 @@ fn write_mutation(
     path: &str,
     params: Option<Span>,
     body: Span,
+    leading: &Option<LeadingComments>,
 ) {
     let mut atoms = Vec::new();
     if let Some(method) = method {
@@ -204,6 +243,7 @@ fn write_mutation(
         atoms.push(atom(params.of(src).trim()));
     }
     w.open(head, &atoms);
+    write_optional_leading(w, src, leading);
     write_roc(w, body.of(src));
     w.close();
 }

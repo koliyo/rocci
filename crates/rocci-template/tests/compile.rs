@@ -1794,3 +1794,19 @@ fn lowers_css_leading_comments_as_ordinary_roc() {
     let hello = out.roc.find("hello = ").expect("component");
     assert!(note < hello);
 }
+
+#[test]
+fn inspect_ast_prints_leading_docs() {
+    let src = r#"module [hello]
+
+# note
+## Greeting.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(leading"), "{ast}");
+    assert!(ast.contains("(comment \"# note\")"), "{ast}");
+    assert!(ast.contains("(docs \"## Greeting.\")"), "{ast}");
+}
