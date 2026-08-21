@@ -502,7 +502,10 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::driver::{roc_command, roc_invocation, window_title};
+    use crate::driver::{roc_command, roc_invocation, stage_app_workspace, window_title};
+    use std::sync::Mutex;
+
+    static ROC_LOCK: Mutex<()> = Mutex::new(());
 
     fn temp_app(name: &str) -> PathBuf {
         let dir = env::temp_dir().join(format!("rocci-run-{}-{}", name, std::process::id()));
@@ -513,6 +516,64 @@ mod tests {
 
     fn cleanup(dir: &Path) {
         let _ = fs::remove_dir_all(dir);
+    }
+
+    fn skip_without_roc() -> bool {
+        let help_ok = Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if !help_ok {
+            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
+                panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+            }
+            eprintln!("skipping: roc not on PATH");
+            return true;
+        }
+        false
+    }
+
+    fn repo_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
+
+    fn roc_build_staged_standalone(relative: &str) {
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let primary = repo_root().join(relative);
+        let src_dir = primary.parent().unwrap();
+        let plan = standalone_app_plan(&primary).expect("plan standalone app");
+        let workspace =
+            stage_app_workspace(&plan, src_dir, "roc-build").expect("stage generated app");
+        let output = workspace.path.join("server");
+        crate::native_target::build_roc_server(&workspace.path, &output, None)
+            .unwrap_or_else(|err| panic!("roc build failed for {relative}: {err:#}"));
+        assert!(
+            output.is_file(),
+            "roc build did not write {}",
+            output.display()
+        );
+    }
+
+    #[test]
+    fn live_counter_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        roc_build_staged_standalone("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+    }
+
+    #[test]
+    fn counter_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        roc_build_staged_standalone("examples/rocci/standalone/counter/Counter.rocci");
     }
 
     #[test]
