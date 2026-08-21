@@ -10,7 +10,8 @@
 
 The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
 but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
-receives **204**, and `curl` without `Datastar-Request` receives `{"count":N}`.
+receives **empty SSE** (200 `text/event-stream`, zero events), and `curl` without
+`Datastar-Request` receives `{"count":N}`.
 The stream morphs `#counter` in every connected tab.
 
 This catalog row is `hosting = "live"`. The public demo origin is planned at
@@ -40,5 +41,5 @@ curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
 # {"count":1}
 curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment \
   -H 'Datastar-Request: true'
-# HTTP/1.1 204
+# HTTP/1.1 200 OK  Content-Type: text/event-stream  (empty body / zero events)
 ```

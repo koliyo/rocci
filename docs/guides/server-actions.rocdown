@@ -20,7 +20,7 @@ Two shipped patterns:
 | Pattern | Author writes | What updates |
 | --- | --- | --- |
 | One-shot patch | `@patch` returning Html | The acting tab, via one `datastar-patch-elements` |
-| Live CQRS | `@live` returning Html; `@command` returning data | Every tab on `GET /sse`; commands return 204 (Datastar) or JSON (`curl`) |
+| Live CQRS | `@live` returning Html; `@command` returning data | Every tab on `GET /sse`; commands return empty SSE (Datastar) or JSON (`curl`) |
 
 The first-app counter (`examples/rocci/standalone/counter`) stays one-shot. Two
 browsers that should stay in sync use `examples/rocci/standalone/live-counter`
@@ -95,9 +95,10 @@ parameter rules as `@view` / `@patch` / `@command`. Rocci emits `GET /sse`
 ```
 
 `@command` is the mutating write that does not morph HTML. When the request
-has `Datastar-Request: true`, the dispatcher answers **204** (no morph).
-Otherwise it answers **200** `application/json` from `Encoding.Json.to_str_try`
-on the returned value. Return a record such as `{ count }` for a JSON object.
+has `Datastar-Request: true`, the dispatcher answers **empty SSE** (HTTP 200
+`text/event-stream` that ends immediately, zero events). Otherwise it answers
+**200** `application/json` from `Encoding.Json.to_str_try` on the returned
+value. Return a record such as `{ count }` for a JSON object.
 A command that returns `Str` encodes as a JSON string. Do not return
 `counterCard` from a command: that would patch `#counter` from both the
 command and the stream. JSON `{ "count": N }` patches Datastar **signals**,
@@ -152,7 +153,7 @@ double-quoted Roc strings.
 | --- | --- | --- |
 | HTML document | Resource path | `GET /todos` |
 | HTML or SSE patch | `/actions/...` | `POST /actions/todos/add` |
-| JSON command | `/actions/...` via `@command` | `POST /actions/counter/increment` → 204 or `{"count":N}` |
+| JSON command | `/actions/...` via `@command` | `POST /actions/counter/increment` → empty SSE or `{"count":N}` |
 | Long-lived SSE | `/sse` | Generated from `@live`; custom unfold stays in authored `main.roc` |
 
 ## Run the examples

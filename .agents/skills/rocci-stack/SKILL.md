@@ -65,7 +65,7 @@ Shipped response types Datastar understands:
 | `text/event-stream` | 0–n patch-elements / patch-signals events |
 | `text/html` | Morph top-level elements by `id` |
 | `application/json` | **Patch signals**, not the DOM |
-| `204` | Success, no morph |
+| `204` | Success, no morph (Datastar accepts this; Rocci commands use empty SSE instead) |
 
 `application/json` `{ "count": 5 }` sets `$count`. It does not morph
 `<output>` inside `#counter`. Do not bind the visible count to `$count` to
@@ -84,9 +84,10 @@ without versions.
 
 **CQRS / live (Datastar Tao; generated `@live` plus Snake).**
 A long-lived `GET /sse` is the read channel. Authors write `@live` returning
-Html; Rocci generates the poll unfold and injects `data-init` on `<body>` when
-absent. `@command` handlers are writes: **204** for Datastar, JSON for API
-clients. Do not also patch the same `id` from the command. Put an authored
+Html; Rocci generates the poll unfold (with keepalives on unchanged polls) and
+injects `data-init` on `<body>` when absent. `@command` handlers are writes:
+**empty SSE** for Datastar, JSON for API clients. Do not also patch the same
+`id` from the command. Put an authored
 `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])` only when injection
 cannot see a `<body>` (island fragments). `basic-webserver` polls
 (`Wait` + `After`); it has no cross-request pub/sub. Copy Snake’s unfold only
@@ -105,7 +106,7 @@ are `@live` + `@command`; Snake is authored CQRS.
   `@fixture`. No route handlers.
 - **HTTP app:** `pages/*.rocci` or app-root `.rocci` — `@context` / `@init` /
   `@view` / `@patch` / `@command` / optional `@live`. `@view` returns `<html>`;
-  `@patch` returns a fragment; `@command` returns Roc data (204 vs JSON).
+  `@patch` returns a fragment; `@command` returns Roc data (empty SSE vs JSON).
 - **Docs / prose:** `.rocdown` — Markdown first. Executable `@` / `:` only at
   document root. Static `rocdown build` rejects `@use` and live handlers;
   islands are a separate live origin.
@@ -134,7 +135,7 @@ Before implementing, answer:
 
 ## Do not
 
-- Encode Datastar SSE policy, CQRS, or 204/JSON negotiation in the `.rocci`
+- Encode Datastar SSE policy, CQRS, or empty-SSE/JSON negotiation in the `.rocci`
   parser. That is dispatch/runtime (`rocci-cli`). `@live` and `json` are
   shipped; further declarations still need `$rocci-stack` and a plan.
 - Mirror the domain in Datastar signals or a client store.
