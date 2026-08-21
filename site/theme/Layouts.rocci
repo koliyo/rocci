@@ -182,7 +182,25 @@ import PageOutline
         height: calc(100vh - 5rem);
         overflow-y: auto;
     }
-    .nav-items { gap: 0.08rem; }
+    .nav-section { margin: 0; }
+    .nav-section + .nav-section { margin-top: 0.28rem; }
+    .nav-section summary {
+        list-style: none;
+        cursor: pointer;
+        position: relative;
+        padding-right: 1.75rem;
+    }
+    .nav-section summary::-webkit-details-marker { display: none; }
+    .nav-section summary::after {
+        content: "+";
+        position: absolute;
+        right: 0.68rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--faint);
+        font-weight: 500;
+    }
+    .nav-section[open] > summary::after { content: "−"; }
     .nav-link {
         padding: 0.42rem 0.68rem;
         border-radius: 0.45rem;
@@ -197,23 +215,12 @@ import PageOutline
         font-weight: 680;
     }
     .nav-category {
-        position: relative;
-        padding-right: 1.75rem;
         color: var(--ink);
         font-weight: 680;
     }
-    .nav-category::after {
-        content: "+";
-        position: absolute;
-        right: 0.68rem;
-        color: var(--faint);
-        font-weight: 500;
-    }
-    .nav-category.is-expanded::after { content: "−"; }
-    .nav-category.is-expanded:not(.is-current) {
+    .nav-section[open] > summary .nav-category:not(.is-current) {
         color: var(--accent-strong);
     }
-    .nav-category:not(:first-child) { margin-top: 0.28rem; }
     .nav-child {
         margin-left: 0.7rem;
         padding-left: 1rem;

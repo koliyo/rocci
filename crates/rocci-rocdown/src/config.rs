@@ -22,8 +22,6 @@ pub struct SiteConfig {
     pub http: HttpConfig,
     #[serde(default)]
     pub blocks: BlocksConfig,
-    #[serde(skip)]
-    pub sidebar_tree: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
@@ -97,6 +95,8 @@ pub struct NavConfig {
     pub label: String,
     pub items: Vec<String>,
     pub directory: Option<String>,
+    #[serde(default, rename = "groups")]
+    pub groups: Vec<NavConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
@@ -255,34 +255,7 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
         }
     }
     for (index, section) in config.navigation.iter().enumerate() {
-        if section.label.trim().is_empty() {
-            bail!(
-                "nav section {} has an empty label in {}",
-                index + 1,
-                path.display()
-            );
-        }
-        let directory = section
-            .directory
-            .as_deref()
-            .map(str::trim)
-            .filter(|value| !value.is_empty());
-        if section.items.is_empty() && directory.is_none() {
-            bail!(
-                "nav section `{}` has no items or directory in {}",
-                section.label,
-                path.display()
-            );
-        }
-        if let Some(directory) = directory
-            && (directory.contains("..") || directory.starts_with('/'))
-        {
-            bail!(
-                "nav section `{}` has an invalid directory `{directory}` in {}",
-                section.label,
-                path.display()
-            );
-        }
+        validate_nav_section(section, index + 1, path)?;
     }
     for (index, root) in config.snippets.roots.iter().enumerate() {
         if root.trim().is_empty() || root.contains('\0') || Path::new(root).is_absolute() {
@@ -315,6 +288,41 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 path.display()
             );
         }
+    }
+    Ok(())
+}
+
+fn validate_nav_section(section: &NavConfig, index: usize, path: &Path) -> Result<()> {
+    if section.label.trim().is_empty() {
+        bail!(
+            "nav section {} has an empty label in {}",
+            index,
+            path.display()
+        );
+    }
+    let directory = section
+        .directory
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if section.items.is_empty() && directory.is_none() && section.groups.is_empty() {
+        bail!(
+            "nav section `{}` has no items, directory, or groups in {}",
+            section.label,
+            path.display()
+        );
+    }
+    if let Some(directory) = directory
+        && (directory.contains("..") || directory.starts_with('/'))
+    {
+        bail!(
+            "nav section `{}` has an invalid directory `{directory}` in {}",
+            section.label,
+            path.display()
+        );
+    }
+    for (group_index, group) in section.groups.iter().enumerate() {
+        validate_nav_section(group, group_index + 1, path)?;
     }
     Ok(())
 }
@@ -363,6 +371,33 @@ items = ["index", "quickstart"]
         assert_eq!(config.site.base_url, "https://rocci.dev");
         assert_eq!(config.build.output, "../dist/docs");
         assert_eq!(config.navigation[0].items[1], "quickstart");
+        assert!(config.navigation[0].groups.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_nested_nav_groups() {
+        let root = temp("groups");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[[nav]]
+label = "Docs"
+
+[[nav.groups]]
+label = "Tutorials"
+items = ["docs/tutorials/index", "docs/tutorials/first-component"]
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.navigation[0].label, "Docs");
+        assert!(config.navigation[0].items.is_empty());
+        assert_eq!(config.navigation[0].groups[0].label, "Tutorials");
+        assert_eq!(
+            config.navigation[0].groups[0].items[1],
+            "docs/tutorials/first-component"
+        );
         let _ = fs::remove_dir_all(root);
     }
 
