@@ -1,7 +1,9 @@
 name: Site
 
 on:
+  workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "site/**"
       - "docs/**"
@@ -9,15 +11,9 @@ on:
       - "crates/**"
       - "Cargo.toml"
       - "Cargo.lock"
-      - ".github/workflows/site.yml"
-  pull_request:
-    paths:
-      - "site/**"
-      - "docs/**"
-      - "docker/**"
-      - "crates/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
+      - "tools/rocci-ops/**"
+      - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/site.yml"
 
 concurrency:
@@ -75,6 +71,7 @@ jobs:
       # ROCCI_SSH_VERBOSE: "1"
     steps:
       - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
       - uses: actions/download-artifact@v8
         with:
           name: rocci-dev-linux-amd64
@@ -107,24 +104,8 @@ jobs:
           fi
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy"
           chmod 600 "$HOME/.ssh/deploy"
-          chmod +x docker/prod/*.sh
+          chmod +x docker/prod/access-ssh-proxy.sh
       - name: Probe Access SSH
-        run: ./docker/prod/check-ssh.sh
-      - name: Bootstrap origin kit
-        run: ./docker/prod/bootstrap-scp.sh
-      - name: Copy site.tgz and islands
-        run: |
-          set -euo pipefail
-          . docker/prod/ssh-opts.sh
-          user="${DEPLOY_USER:-deploy}"
-          incoming="/srv/rocci/incoming/${GITHUB_SHA}"
-          ssh_target="${user}@${DEPLOY_HOST}"
-          rocci_ssh "${ssh_target}" "mkdir -p '${incoming}'"
-          rocci_scp artifacts/site.tgz artifacts/islands "${ssh_target}:${incoming}/"
-          rocci_ssh "${ssh_target}" "ls -l '${incoming}'"
-      - name: Publish on origin
-        run: |
-          set -euo pipefail
-          . docker/prod/ssh-opts.sh
-          user="${DEPLOY_USER:-deploy}"
-          rocci_ssh "${user}@${DEPLOY_HOST}" "/srv/rocci/docker/prod/publish.sh '${GITHUB_SHA}'"
+        run: uv run --no-dev rocci-ops deploy probe
+      - name: Push artifacts and publish
+        run: uv run --no-dev rocci-ops deploy push artifacts "${GITHUB_SHA}"

@@ -59,11 +59,11 @@ Highlighting comes from LSP semantic tokens. Enable them for Rocci and Rocdown (
 Verify the Zed extension build and configuration:
 
 ```sh
-./scripts/test-zed-extension.sh
+uv run rocci-ops verify-zed
 ```
 
 Package the release WASM extension artifact:
 
 ```sh
-./scripts/package-zed.sh
+uv run rocci-ops package zed
 ```

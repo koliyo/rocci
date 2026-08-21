@@ -4,7 +4,7 @@ title: Rocci language-tooling boundary
 description: Generic rocci-lsp analyzers are composed by rocci-rocdown-lsp into the shipped rocci-language-server; VS Code and Zed attach that binary to .rocci and .rocdown.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T22:15:00Z }
+generated: { by: process:cursor, at: 2026-08-21T10:00:00Z }
 stale_after: 2027-02-13
 authority: descriptive
 owners: [human:nils]
@@ -110,7 +110,7 @@ tests cover analyzer dispatch. Default `cargo test -p rocci-lsp` completes in
 under two seconds with unit, server, and invariant smoke checks, while deep
 mutation fuzzing and release latency benchmarks remain `#[ignore]`. Editor-host
 evidence is the VS Code integration suite plus the Zed manifest assertion in
-`scripts/test-zed-extension.sh`.[^lsp-tests][^composition][^vscode-client]
+`uv run rocci-ops verify-zed`.[^lsp-tests][^composition][^vscode-client]
 
 ## Planned evolution
 

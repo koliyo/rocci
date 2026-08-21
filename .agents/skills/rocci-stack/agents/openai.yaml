@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rocci Stack"
+  short_description: "Fit Roc, Datastar, Rocci, Rocdown, HTML, and CSS together"
+  default_prompt: "Use $rocci-stack to choose the idiomatic layering of Roc, Datastar, Rocci, Rocdown, Markdown, HTML, and CSS before implementing."

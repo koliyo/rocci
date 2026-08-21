@@ -110,8 +110,8 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: bundle-script
-    resource: ../../scripts/bundle-macos.sh
-    title: Maintainer script for rocci bundle
+    resource: ../../tools/rocci-ops/src/rocci_ops/local.py
+    title: Maintainer rocci-ops bundle macos command
     author: process:git
     last_modified: 2026-08-13
   - id: desktop-readme
