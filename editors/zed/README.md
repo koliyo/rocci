@@ -10,6 +10,14 @@ Zed does not bundle the language server binary into the extension WASM. Build or
 - **Embedded Languages**: Highlighting for `@css`, `@roc`, inline Roc expressions, and display-only code fences.
 - **Diagnostics**: Compiler diagnostics and recovery on syntax errors.
 
+## File icons
+
+This extension also ships a **Rocci** icon theme. Select it in
+**icon theme selector: toggle** to show the folded-R document mark on `.rocci`
+and `.rocdown` files. The theme is intentionally small: it only adds those two
+suffixes plus simple folder/default glyphs. To keep another icon pack, copy the
+`rocci` / `rocdown` suffix mappings from `icon_themes/rocci.json` into that pack.
+
 ## Development
 
 From the rocci repository:
