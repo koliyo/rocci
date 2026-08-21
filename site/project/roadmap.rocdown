@@ -21,12 +21,11 @@ This document tracks the phased milestones for Rocci and Rocdown.
 - Canonical route tree under `site/`.
 - Branded shell and named layout templates in `.rocci`.
 - Route aliases preserving backwards compatibility.
-- Structural pages across Home, Rocdown, Docs, News, FAQ, and Project portals.
+- Structural pages across Home, Rocdown, Docs, Examples, FAQ, and Project portals.
 
-### Phase 3: Typed collections & feeds
+### Phase 3: Typed collections and publication metadata
 - First-class collection definitions in Rocdown.
-- Automated `news` catalog queries and Atom / RSS feed generation.
-- Recent-news integration into Home and Section views.
+- Deterministic collection ordering and reusable feed generation.
 
 ### Phase 4: Extended capabilities
 - Static client-side search indexing with zero runtime dependencies.

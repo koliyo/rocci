@@ -156,16 +156,6 @@ items = [
 ]
 
 [[nav]]
-label = "News"
-directory = "news"
-items = [
-    "news/index",
-    "news/introducing-rocci",
-    "news/rocdown-static-collections",
-    "news/rocci-desktop-apps",
-]
-
-[[nav]]
 label = "FAQ"
 directory = "faq"
 items = [

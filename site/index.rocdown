@@ -18,7 +18,7 @@ Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a smal
 :card-grid.begin
     :link-card[page: "docs/start/what-is-rocci", title: "Getting started", summary: "Install from source and preview a first Rocci component."]
     :link-card[page: "rocdown/index", title: "Rocdown", summary: "Markdown-first documents and static sites."]
-    :link-card[page: "news/index", title: "News", summary: "Announcements and project updates."]
+    :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
     :link-card[page: "project/index", title: "Project", summary: "Status, roadmap, and how to contribute."]
 :card-grid.end
 
