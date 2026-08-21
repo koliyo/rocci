@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
-description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, origin docker kit, and Access-gated staging route were reported in place. CI packages site/ and deploys from main before the production Tunnel hostname is routed. Exploratory."
+description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, origin docker kit, and Access-gated staging route were reported in place. CI packages site/ and deploys from staging or production; main lands PRs. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T08:15:00Z }
+generated: { by: process:cursor, at: 2026-08-21T09:26:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -179,8 +179,9 @@ owns **DNS, TLS, the origin VPS, Cloudflare as CDN, and CI that publishes
 Serve `https://rocci.dev` from Cloudflare in front of a Hetzner Cost-Optimized
 x86 VPS (Falkenstein or Nuremberg) that runs the existing hybrid Compose stack
 (Caddy plus a precompiled island binary). GitHub Actions packages `site/` with
-Roc and deploys only from `main`, including after the repository becomes
-public.
+Roc and deploys only from `staging` or `production`. `main` lands pull
+requests and does not publish. Promote `main` → `staging` (Access-gated
+`staging.rocci.dev`) then `staging` → `production`.
 
 ## Out of bound
 
@@ -299,8 +300,8 @@ Human prep for rocci-dev-publish:
 - VPS: Hetzner fsn1 (or nbg1), Debian 12, amd64, IPv4 [x.x.x.x]
 - SSH: locked-down deploy user and public key installed (private key is a GitHub secret, not chat)
 - Tunnel: name [name], cloudflared running, hostname not yet on production
-- GitHub Environment production: configured
-- Decision gates 2–4: keep live home island; deploy from GitHub main; private staging is Access-gated
+- GitHub Environments staging and production: configured
+- Decision gates 2–4: keep live home island; deploy from GitHub staging/production; private staging is Access-gated
 ```
 
 ### What the agent still must not invent
@@ -413,30 +414,38 @@ Tunnel hostname or cache bypass (Phase 4); rate limits (Phase 5).
 
 **Status:** complete. Origin kit is on the VPS; no artifacts yet.
 
-### Phase 3 — CI pushes artifacts from `main`
+### Phase 3 — CI pushes artifacts from `staging` and `production`
 
-**Bound:** `site.yml` deploy job, GitHub Environment `production`, SSH as a
-locked-down deploy user. No Kubernetes. No public hostname requirement.
+**Bound:** `site.yml` deploy job, GitHub Environments `staging` and
+`production`, SSH as a locked-down deploy user. No Kubernetes. No public
+hostname requirement. No second origin stack.
 
 **Does:**
 
 - Environment secrets: `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`, SSH
   private key, Cloudflare Access service token id/secret. CI uses
   `cloudflared access ssh` as `ProxyCommand`; public 22 stays closed.
-- `deploy` job: `if: github.ref == 'refs/heads/main' && github.event_name ==
-  'push'`. Needs the package job. Never runs on `pull_request`.
+- `deploy` job: `if: github.event_name == 'push' && (github.ref ==
+  'refs/heads/staging' || github.ref == 'refs/heads/production')`. Needs
+  the package job. Environment name is the branch. Never runs on
+  `pull_request` or on `main`.
 - Scp the origin kit plus `site.tgz` and `islands`. Atomic publish:
   unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
   `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
-  release. Failed health restores the previous release.
-- Document the Environment and that fork PRs cannot deploy.
+  release. Failed health restores the previous release. Both branches
+  publish `/srv/rocci`; deploys serialize.
+- Document the Environments, that `main` is the landing branch, and that
+  fork PRs cannot deploy. Promote with `git push origin
+  origin/main:staging` then `origin/staging:production`.
 
 **Does not:** `workflow_dispatch` to production without the same origin
 health; deploy from contributor forks; store the SSH key in the repo;
-Cloudflare Tunnel hostname routing; the public `https://rocci.dev/` curls.
+Cloudflare Tunnel hostname routing; the public `https://rocci.dev/` curls;
+a separate staging Compose stack or SQLite volume.
 
-**Exit:** A push to `main` that runs `site.yml` publishes artifacts in that
-Actions run. A failing `package` job does not touch the VPS. On the origin:
+**Exit:** A push to `staging` or `production` that runs `site.yml` publishes
+artifacts in that Actions run. A failing `package` job does not touch the
+VPS. On the origin:
 
 ```text
 curl -sf http://127.0.0.1:8080/health
@@ -445,7 +454,7 @@ curl -sf http://127.0.0.1:8080/health
 README or `docker/README.md` names the workflow and the Environment.
 
 **Status:** implementing (`push-release.sh`, `publish.sh`, `site.yml` deploy
-job). Not logged complete until that workflow succeeds on `main`.
+job). Not logged complete until that workflow succeeds on `staging`.
 
 ### Phase 4 — Tunnel hostname and public smoke
 

@@ -22,7 +22,7 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
      - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest`.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check.
    - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs.
-   - `site.yml`: Packages and deploys `site/` from `main` only (credits). Use **Run workflow** for other refs.
+   - `site.yml`: Packages and deploys `site/` from `staging` or `production` (credits; matching GitHub Environment). `main` lands PRs and does not publish. Use **Run workflow** for other refs (package only).
    - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation.
    - `ci-command.yml`: Listens for `/ci` on PR comments and dispatches `ci.yml` plus `knowledge.yml` at the PR head.
 3. Note that `gh` commands communicate with `https://api.github.com`. When running

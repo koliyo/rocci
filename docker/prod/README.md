@@ -96,15 +96,29 @@ Cloudflare Access (`ssh.rocci.dev`). From a laptop with Access, export
 so `scp`/`ssh` use
 [`access-ssh-proxy.sh`](access-ssh-proxy.sh) as `ProxyCommand`.
 
-## Deploy from `main`
+## Deploy from `staging` and `production`
 
-Do not copy artifacts by hand. `.github/workflows/site.yml` packages on
-linux/amd64, then the `deploy` job (Environment `production` only, never
-`pull_request`) probes SSH (`uv run rocci-ops deploy probe`),
-bootstraps the origin kit, scps `site.tgz` / `islands`, and runs
-`uv run rocci-ops origin publish SHA` on the box: unpack to `releases/<sha>/`,
-`compose up -d --build`, GET `http://127.0.0.1:8080/health`, then flip `current`.
-A failed health check leaves the previous symlink and restores that release.
+Do not copy artifacts by hand. Land pull requests on `main`. Promote in
+two steps: `staging` first (Access-gated `staging.rocci.dev`), then
+`production` (public hostname once the Tunnel route exists):
+
+```sh
+git fetch origin
+git push origin origin/main:staging
+git push origin origin/staging:production
+```
+
+A push to either branch runs `.github/workflows/site.yml`: it packages on
+linux/amd64, then the `deploy` job (GitHub Environment named after the
+branch, never `pull_request` and never `main`) probes SSH
+(`uv run rocci-ops deploy probe`), bootstraps the origin kit, scps
+`site.tgz` / `islands`, and runs `uv run rocci-ops origin publish SHA` on
+the box: unpack to `releases/<sha>/`, `compose up -d --build`, GET
+`http://127.0.0.1:8080/health`, then flip `current`. A failed health check
+leaves the previous symlink and restores that release. Both branches
+currently publish the same `/srv/rocci` origin; origin deploys are
+serialized so they cannot interleave. **Run workflow** still packages any
+ref for inspection; it does not deploy.
 Laptop one-shot:
 
 ```sh
@@ -113,8 +127,12 @@ uv run rocci-ops deploy push ARTIFACT_DIR SHA
 
 Secrets (names only): `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`,
 `DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`. Fork PRs
-cannot read them. The deploy job runs `cloudflared access ssh --hostname
-ssh.rocci.dev` as SSH `ProxyCommand`.
+cannot read them. Create GitHub Environments `staging` and `production`
+with those same names. Restrict each Environment to its matching branch so
+a workflow_dispatch on another ref cannot use those secrets. Copy the
+values into `staging` even while both lanes share one VPS. The deploy job
+runs `cloudflared access ssh --hostname ssh.rocci.dev` as SSH
+`ProxyCommand`.
 
 Caddy listens on `127.0.0.1:8080` via
 [`compose.hybrid.yml`](../compose.hybrid.yml) and
@@ -137,9 +155,9 @@ into the service config). Map `rocci.dev` and `www.rocci.dev` to
 
 ### Private staging
 
-`staging.rocci.dev` is the pre-production route. It resolves publicly, but
-Cloudflare Access must deny every request unless it matches an Access policy;
-DNS alone does not make the origin reachable. Configure it in Zero Trust as
+`staging.rocci.dev` is the pre-production route for the `staging` branch.
+It resolves publicly, but Cloudflare Access must deny every request unless
+it matches an Access policy; DNS alone does not make the origin reachable. Configure it in Zero Trust as
 follows:
 
 1. Create a **Self-hosted** Access application for `staging.rocci.dev`.
