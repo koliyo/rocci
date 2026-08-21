@@ -86,6 +86,21 @@ fn collect_rel(dir: &Path) -> Vec<String> {
 }
 
 #[test]
+fn repo_catalog_live_ids_exclude_docs_only() {
+    let catalog = load_catalog(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocci/apps.toml"),
+    )
+    .unwrap();
+    let ids: Vec<_> = rocci_docs::live_apps(&catalog)
+        .iter()
+        .map(|app| app.id.as_str())
+        .collect();
+    assert_eq!(ids, ["live-counter", "datastar"]);
+    assert!(!ids.contains(&"counter"));
+    assert!(!ids.contains(&"snake"));
+}
+
+#[test]
 fn stages_expected_tree_and_skips_non_catalog() {
     let root = scratch("stage");
     fixture_app(&root);
