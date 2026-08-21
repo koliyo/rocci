@@ -303,7 +303,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             }
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
-            ModuleItem::Css(_) => {}
+            ModuleItem::Css(css) => emitter.emit_css_leading(css),
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
             ModuleItem::Live(live) => emitter.lower_live(live),
@@ -355,7 +355,18 @@ struct Emitter<'a> {
 }
 
 impl<'a> Emitter<'a> {
+    fn emit_leading(&mut self, leading: &Option<crate::ast::LeadingComments>) {
+        if let Some(leading) = leading {
+            self.emit_source(leading.span, OriginKind::OrdinaryRoc);
+        }
+    }
+
+    fn emit_css_leading(&mut self, css: &CssDecl) {
+        self.emit_leading(&css.leading);
+    }
+
     fn lower_component(&mut self, component: &ComponentDecl) {
+        self.emit_leading(&component.leading);
         let parsed = parse_component_params(self.src, component.params);
         let body_params = parsed.body_params.clone();
         let roc_name = pascal_to_camel(&component.name.name);
@@ -446,6 +457,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_fixture(&mut self, fixture: &FixtureDecl) {
+        self.emit_leading(&fixture.leading);
         let value = fixture.value.of(self.src).trim();
         self.fixtures.push(FixtureInfo {
             name: fixture.name.name.clone(),
@@ -469,6 +481,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_context(&mut self, context: &ContextDecl) {
+        self.emit_leading(&context.leading);
         let ty = context.ty.of(self.src).trim();
         if self.state_type.is_none() {
             self.state_type = Some(ty.to_string());
@@ -479,6 +492,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_init(&mut self, init: &InitDecl) {
+        self.emit_leading(&init.leading);
         self.init = Some(InitInfo { span: init.span });
         self.emit("init! = || {\n");
         self.indent += 1;
@@ -489,6 +503,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_live(&mut self, live: &LiveDecl) {
+        self.emit_leading(&live.leading);
         self.live = Some(LiveInfo { span: live.span });
         let params = live
             .params
@@ -512,6 +527,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_view(&mut self, view: &ViewDecl) {
+        self.emit_leading(&view.leading);
         self.lower_route(
             "GET",
             &view.path,
@@ -523,6 +539,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_patch(&mut self, patch: &PatchDecl) {
+        self.emit_leading(&patch.leading);
         let method = patch
             .method
             .as_ref()
@@ -539,6 +556,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_command(&mut self, command: &CommandDecl) {
+        self.emit_leading(&command.leading);
         let method = command
             .method
             .as_ref()

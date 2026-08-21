@@ -1730,3 +1730,67 @@ module [hello]
         other => panic!("expected Roc region first, got {other:?}"),
     }
 }
+
+#[test]
+fn lowers_leading_docs_immediately_before_assignment() {
+    let src = r#"module [hello]
+
+# note
+## Greeting.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let idx_note = out.roc.find("# note\n").expect("line comment");
+    let idx_docs = out.roc.find("## Greeting.\n").expect("docs");
+    let idx_hello = out.roc.find("hello = ").expect("assignment");
+    assert!(idx_note < idx_docs);
+    assert!(idx_docs < idx_hello);
+    assert_eq!(&out.roc[idx_docs..idx_hello], "## Greeting.\n");
+    assert!(
+        out.segments.iter().any(|seg| {
+            seg.origin == OriginKind::OrdinaryRoc && seg.source.of(src).contains("## Greeting.")
+        }),
+        "source map should cover doc comment span"
+    );
+}
+
+#[test]
+fn datastar_import_does_not_split_docs_from_assignment() {
+    let src = r#"module [page]
+
+## Documented page.
+@component Page = |{}| {
+    <button data-on:click=@post("/x")>Go</button>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("import Datastar"));
+    let docs = out.roc.find("## Documented page.\n").expect("docs");
+    let assign = out.roc.find("page = ").expect("assignment");
+    assert_eq!(&out.roc[docs..assign], "## Documented page.\n");
+    let import = out.roc.find("import Datastar").expect("import");
+    assert!(
+        import < docs,
+        "Datastar import must come before attached docs, not between docs and assignment"
+    );
+}
+
+#[test]
+fn lowers_css_leading_comments_as_ordinary_roc() {
+    let src = r#"module []
+
+# keep me
+@css {
+    body { color: red; }
+}
+
+@component Hello = |{}|
+    <p>Hi</p>
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("# keep me\n"));
+    let note = out.roc.find("# keep me\n").expect("css leading");
+    let hello = out.roc.find("hello = ").expect("component");
+    assert!(note < hello);
+}
