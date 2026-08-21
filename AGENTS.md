@@ -88,5 +88,8 @@
   when the task invokes one or clearly matches its description.
 - Author `.rocci`, `.rocdown`, and Roc used from those files with
   `rocci-author`. Change the languages themselves with `rocci-language-dev`.
+  Fit Roc, Datastar, Rocci, Rocdown, Markdown, HTML, and CSS together with
+  `rocci-stack` (Datastar is the browser transport; do not put that policy in
+  the parser).
 - Keep workflow detail in focused skills and canonical domain facts in the
   repository documentation or knowledge bundle; do not duplicate them here.

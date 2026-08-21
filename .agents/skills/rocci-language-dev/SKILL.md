@@ -1,6 +1,6 @@
 ---
 name: rocci-language-dev
-description: Develop and review Rocci's `.rocci` template language and `.rocdown` document language. Use for grammar, scanning, parsing, AST, validation, lowering, generated Roc, diagnostics, recovery, source maps, syntax fixtures, or language-reference changes in `rocci-template` and `rocci-rocdown`. Do not use for pure runtime, desktop, Rocdown-site, or knowledge-bundle work unless the language change directly requires it.
+description: Develop and review Rocci's `.rocci` template language and `.rocdown` document language. Use for grammar, scanning, parsing, AST, validation, lowering, generated Roc, diagnostics, recovery, source maps, syntax fixtures, or language-reference changes in `rocci-template` and `rocci-rocdown`. Do not use for Datastar CQRS, SSE fan-out, or Roc/Markdown/HTML/CSS layering (rocci-stack), or for pure runtime, desktop, Rocdown-site, or knowledge-bundle work unless the language change directly requires it.
 ---
 
 # Rocci Language Development
@@ -43,6 +43,11 @@ scripts.
 - Keep Roc compilation, type checking, servers, desktop hosting, and static-site
   catalog policy outside the two language crates. Change consumers only when
   their public integration contract is affected.
+- Datastar is the **runtime transport** (morph HTML, optional SSE), not a
+  grammar concern. `@get` / `@post` in attributes lower to Roc strings; do not
+  put CQRS, 204-vs-JSON, or `datastar-patch-elements` policy in the parser.
+  Stack fit is `$rocci-stack`. A new declaration such as `@live` is language
+  work only after that skill (and the implementation plan) chose the shape.
 
 ## Preserve language invariants
 
