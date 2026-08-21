@@ -55,6 +55,29 @@ root-equivalent: protect the GitHub Environment, the deployment private key,
 and the `deploy` account accordingly. A later hardening pass can replace this
 with a root-owned, narrowly scoped deployment service.
 
+### Install Python and `uv`
+
+The origin runs the `rocci-ops` operator package, which requires Python 3.12
+or later. Install the base Python tooling and `uv` as the sudo-capable
+administrator:
+
+```sh
+sudo apt install -y python3 python3-pip python3-venv
+sudo env UV_INSTALL_DIR="/usr/local/bin" sh -c "$(curl -LsSf https://astral.sh/uv/install.sh)"
+```
+
+Debian 12's system `python3` can be older than the required version. If required, install
+the managed Python for the account that will run deployment commands:
+
+```sh
+sudo -iu deploy uv python install 3.12
+sudo -iu deploy uv python find 3.12
+```
+
+`uv` is installed system-wide; its managed Python is deliberately stored for
+`deploy`, not in `/srv/rocci`. This does not put the Rocci/Roc toolchain on the
+VPS.
+
 Copy Compose/Caddy/`prod/` docs plus the `tools/rocci-ops` uv project (not
 `site.tgz` / `islands`):
 
