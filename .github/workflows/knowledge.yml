@@ -1,10 +1,7 @@
 name: Knowledge
 
 on:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: ["**"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,18 +20,6 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Test knowledge implementation
-        run: |
-          cargo test -p okf
-          cargo test -p rocci-okf
-      - name: Validate profile, graph, provenance, freshness, and source drift
-        run: |
-          mkdir -p target/knowledge-ci
-          cargo run -q -p rocci-okf -- check knowledge --profile rocci --format json > target/knowledge-ci/validation.json
-          cargo run -q -p rocci-okf -- inspect --profile rocci graph knowledge > target/knowledge-ci/graph.json
-          cargo run -q -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge --profile rocci > target/knowledge-ci/retrieval.json
-      - name: Verify deterministic publication artifacts
-        run: |
-          cargo run -q -p rocci-okf -- build knowledge --output target/knowledge-ci/build-a --profile rocci
-          cargo run -q -p rocci-okf -- build knowledge --output target/knowledge-ci/build-b --profile rocci
-          diff -qr target/knowledge-ci/build-a target/knowledge-ci/build-b
+      - uses: astral-sh/setup-uv@v6
+      - name: Validate knowledge bundle
+        run: uv run --no-dev rocci-ops ci knowledge

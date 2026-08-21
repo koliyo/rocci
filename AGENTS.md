@@ -51,7 +51,7 @@
 - Treat `dist/` and other generated output as derived artifacts, not sources of
   truth.
 - When adding a workspace member in the root `Cargo.toml`, classify it in the
-  same change in `scripts/check-workspace-deps.py` under the matching
+  same change in `tools/rocci-ops/src/rocci_ops/workspace_deps.py` under the matching
   `CLASSES` set. CI runs that checker in the lint job.
 
 ## Validate proportionally
@@ -88,5 +88,8 @@
   when the task invokes one or clearly matches its description.
 - Author `.rocci`, `.rocdown`, and Roc used from those files with
   `rocci-author`. Change the languages themselves with `rocci-language-dev`.
+  Fit Roc, Datastar, Rocci, Rocdown, Markdown, HTML, and CSS together with
+  `rocci-stack` (Datastar is the browser transport; do not put that policy in
+  the parser).
 - Keep workflow detail in focused skills and canonical domain facts in the
   repository documentation or knowledge bundle; do not duplicate them here.

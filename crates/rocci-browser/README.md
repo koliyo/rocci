@@ -103,7 +103,7 @@ On macOS, wrap the same graphical `preview()` binary in an ad-hoc **Rocci
 Browser.app**:
 
 ```sh
-./scripts/bundle-browser-macos.sh
+uv run rocci-ops bundle browser-macos
 open "target/release/bundle/macos/Rocci Browser.app"
 ```
 

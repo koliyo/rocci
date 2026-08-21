@@ -46,7 +46,7 @@ standalone `.rocci` file (`examples/rocci/standalone/counter/Counter.rocci`), or
 Writes `server` plus staged `assets/` (default `target/release/rocci-server`).
 This is **server packaging**, not a macOS `.app` (`rocci bundle` stays the
 desktop path). `--target` is the Linux container process target. Linux OCI is
-opt-in: `./docker/docker-serve-app.sh` sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose
+opt-in: `uv run rocci-ops serve app` sets `ROC_BASIC_WEBSERVER_HOST=0.0.0.0` in Compose
 and does not change `rocci.toml` loopback validation.
 
 Without `--release`, `rocci build FILE.rocci` still lowers a single template to
@@ -343,7 +343,7 @@ cargo run -q -p rocci-browser -- open TARGET [--document ID] [--no-window] [--js
 `--no-window --json` prints `{ "url", "title" }` for agents and for machines
 without a display. There is no `tui` command.
 
-On macOS, `./scripts/bundle-browser-macos.sh` (or `rocci-browser package`)
+On macOS, `uv run rocci-ops bundle browser-macos` (or `rocci-browser package`)
 assembles an ad-hoc **Rocci Browser.app**. That wrapper is not `rocci bundle`.
 Production signing is planned.
 

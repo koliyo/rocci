@@ -37,6 +37,8 @@ jobs:
         with:
           key: release-${{ matrix.target }}
 
+      - uses: astral-sh/setup-uv@v6
+
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -48,38 +50,14 @@ jobs:
 
       - name: Determine version
         id: version
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          else
-            short_sha="${GITHUB_SHA::7}"
-            echo "version=dev-${short_sha}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: uv run --no-dev rocci-ops release version
 
       - name: Package archive
         id: archive
-        run: |
-          version="${{ steps.version.outputs.version }}"
-          target="${{ matrix.target }}"
-          archive_name="rocci-${version}-${target}"
-
-          mkdir -p "staging/${archive_name}"
-          cp target/release/rocci "staging/${archive_name}/"
-          cp target/release/rocdown "staging/${archive_name}/"
-          cp target/release/rocci-language-server "staging/${archive_name}/"
-          cp target/release/rocci-okf "staging/${archive_name}/"
-          cp README.md "staging/${archive_name}/"
-
-          tar -czf "${archive_name}.tar.gz" -C staging "${archive_name}"
-          if command -v sha256sum &>/dev/null; then
-            sha256sum "${archive_name}.tar.gz" > "${archive_name}.tar.gz.sha256"
-          else
-            shasum -a 256 "${archive_name}.tar.gz" > "${archive_name}.tar.gz.sha256"
-          fi
-          echo "archive=${archive_name}.tar.gz" >> "$GITHUB_OUTPUT"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+        run: >
+          uv run --no-dev rocci-ops release package
+          --version "${{ steps.version.outputs.version }}"
+          --target "${{ matrix.target }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -94,35 +72,12 @@ jobs:
     name: Wait for CI
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
       - name: Wait for CI checks
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          checks=("Test Workspace (macos-latest)" "Test Workspace (ubuntu-latest)")
-          for check in "${checks[@]}"; do
-            echo "Waiting for: $check"
-            while true; do
-              result=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs" \
-                --jq ".check_runs[] | select(.name == \"${check}\") | .status + \" \" + (.conclusion // \"pending\")")
-              if [ -z "$result" ]; then
-                echo "  Check not found yet, waiting..."
-              else
-                status=$(echo "$result" | head -1 | cut -d' ' -f1)
-                conclusion=$(echo "$result" | head -1 | cut -d' ' -f2)
-                echo "  Status: $status, Conclusion: $conclusion"
-                if [ "$status" = "completed" ]; then
-                  if [ "$conclusion" = "success" ]; then
-                    echo "  ✓ $check passed"
-                    break
-                  else
-                    echo "  ✗ $check failed ($conclusion)"
-                    exit 1
-                  fi
-                fi
-              fi
-              sleep 30
-            done
-          done
+        run: uv run --no-dev rocci-ops release wait-ci
 
   release:
     name: Publish Release
@@ -130,6 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
@@ -142,39 +98,15 @@ jobs:
 
       - name: Determine release parameters
         id: params
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          else
-            short_sha="${GITHUB_SHA::7}"
-            echo "tag=dev" >> "$GITHUB_OUTPUT"
-            echo "name=Development Build (${short_sha})" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # For dev builds, delete the old release so we can recreate it with new assets.
-      - name: Delete existing dev release
-        if: steps.params.outputs.prerelease == 'true'
-        run: gh release delete dev --yes --cleanup-tag 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run --no-dev rocci-ops release params
 
       - name: Create release
-        run: |
-          if [[ "${{ steps.params.outputs.prerelease }}" == "true" ]]; then
-            gh release create "${{ steps.params.outputs.tag }}" \
-              --title "${{ steps.params.outputs.name }}" \
-              --prerelease \
-              --generate-notes \
-              --target "${{ github.sha }}" \
-              artifacts/*.tar.gz artifacts/*.sha256
-          else
-            gh release create "${{ steps.params.outputs.tag }}" \
-              --title "${{ steps.params.outputs.name }}" \
-              --generate-notes \
-              artifacts/*.tar.gz artifacts/*.sha256
-          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          uv run --no-dev rocci-ops release publish
+          --tag "${{ steps.params.outputs.tag }}"
+          --title "${{ steps.params.outputs.name }}"
+          --target-sha "${{ github.sha }}"
+          --artifact-dir artifacts
+          ${{ steps.params.outputs.prerelease == 'true' && '--prerelease' || '' }}
