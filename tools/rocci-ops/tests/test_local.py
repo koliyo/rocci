@@ -1,4 +1,4 @@
-from rocci_ops.local import CLI_CRATES, parse_worktrees, render_brand_icons, require_darwin
+from rocci_ops.local import CLI_CRATES, build_site, parse_worktrees, render_brand_icons, require_darwin
 
 
 def test_cli_crates() -> None:
@@ -15,6 +15,20 @@ def test_package_site_usage() -> None:
         assert "site" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
+
+
+def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+
+    assert build_site() == 0
+    assert calls[0][4] == "rocci-docs"
+    assert [call[-2] for call in calls[1:]] == ["check", "test", "build"]
+    assert all(call[-1] == "site" for call in calls[1:])
 
 
 def test_parse_worktrees() -> None:

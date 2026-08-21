@@ -73,6 +73,7 @@ pub struct SourcePage {
     pub route_hint: RouteHint,
     pub aliases: Vec<String>,
     pub draft: bool,
+    pub suppress_unlisted_warning: bool,
     pub layout: String,
     pub published: String,
     pub updated: String,
@@ -128,6 +129,8 @@ pub struct ResolvedPage {
     pub output_path: String,
     pub aliases: Vec<String>,
     pub draft: bool,
+    #[serde(skip)]
+    pub suppress_unlisted_warning: bool,
     pub unlisted: bool,
     pub breadcrumbs: Vec<NavLink>,
     pub previous: Option<NavLink>,
@@ -304,6 +307,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
             route,
             aliases,
             draft: page.draft,
+            suppress_unlisted_warning: page.suppress_unlisted_warning,
             unlisted: false,
             breadcrumbs: Vec::new(),
             previous: None,
@@ -977,7 +981,7 @@ fn apply_journey(
 
     for page in pages.iter_mut() {
         page.unlisted = !page.draft && page.route != "/" && !listed_ids.contains(page.id.as_str());
-        if page.unlisted {
+        if page.unlisted && !page.suppress_unlisted_warning {
             diagnostics.push(CatalogDiagnostic::warning(
                 "RD2202",
                 &page.source_path,
@@ -1037,6 +1041,7 @@ mod tests {
             route_hint: hint,
             aliases: Vec::new(),
             draft: false,
+            suppress_unlisted_warning: false,
             layout: "docs".to_string(),
             published: String::new(),
             updated: String::new(),
@@ -1262,6 +1267,55 @@ mod tests {
         assert!(home.next.is_some());
         assert!(result.site.unlisted.is_empty());
         assert_eq!(guide.breadcrumbs.last().unwrap().title, "Guide");
+    }
+
+    #[test]
+    fn linked_detail_is_unlisted_without_warning_noise() {
+        let home = page("index", "index.rocdown", RouteHint::Derived, "Home");
+        let mut detail = page(
+            "generated/detail",
+            "generated/detail.rocdown",
+            RouteHint::Derived,
+            "Generated detail",
+        );
+        detail.suppress_unlisted_warning = true;
+        let result = resolve(
+            &[home, detail],
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Start".into(),
+                    items: vec!["index".into()],
+                    directory: None,
+                    groups: Vec::new(),
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+
+        assert!(result.site.unlisted.contains(&"generated/detail".into()));
+        assert!(!codes(&result).contains(&"RD2202"));
+    }
+
+    #[test]
+    fn authored_unlisted_page_still_warns() {
+        let pages = [
+            page("index", "index.rocdown", RouteHint::Derived, "Home"),
+            page("orphan", "orphan.rocdown", RouteHint::Derived, "Orphan"),
+        ];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Start".into(),
+                    items: vec!["index".into()],
+                    directory: None,
+                    groups: Vec::new(),
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+
+        assert!(codes(&result).contains(&"RD2202"));
     }
 
     #[test]

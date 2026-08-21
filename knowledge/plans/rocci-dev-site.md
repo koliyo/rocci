@@ -471,6 +471,14 @@ documented command, expected generated pages no longer create warning noise,
 and a deliberately unlisted authored page still fails or warns according to
 policy.
 
+**Phase 5 exit recorded 2026-08-22:** `uv run rocci-ops site` stages seven
+generated example apps, checks the catalog without warnings, runs declared
+examples, and builds all 140 pages. The generated examples mount declares
+`visibility = "linked-detail"`; those pages remain machine-visible as unlisted
+without `RD2202`, while a catalog regression proves an authored orphan still
+warns. The owning README and public site reference record layout, navigation,
+News-removal, validation, and failure-preservation contracts.
+
 ### Phase 6 — accessibility, responsive, and release verification
 
 #### Bound

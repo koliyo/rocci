@@ -314,6 +314,20 @@ For example, `site/` mounts `../docs` at prefix `docs` with `layout = "docs"`,
 allowing `docs/` to remain at repository root for standalone `rocdown run docs`
 while building as part of `rocdown build site`.
 
+Mounts default to `visibility = "navigable"`: published pages omitted from
+navigation emit `RD2202`. Use `visibility = "linked-detail"` only for a
+generated detail catalog whose pages are intentionally reached from authored
+links. Those pages remain marked unlisted in inspection and machine output,
+but do not emit expected warning noise. Authored pages and ordinary mounts
+still warn.
+
+The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
+Project `.rocci` layouts own the visible frame. A site may validate named
+layouts such as `home`, `faq`, `product`, `section`, `docs`, `plain`, and
+`not-found`; their visual behavior is a theme contract, not catalog policy.
+Removed content surfaces should be deleted from navigation and authored pages;
+deployment-level redirects or terminal responses remain an origin concern.
+
 ## CLI
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).

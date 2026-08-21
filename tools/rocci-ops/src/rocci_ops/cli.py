@@ -16,6 +16,7 @@ commands:
   origin        publish, up, or backup on the origin host
   install-cli   build and install rocci, rocdown, and rocci-okf
   package       package vscode, zed, or the rocci.dev site (docs + live apps)
+  site          stage generated examples, check, test, and build rocci.dev
   verify-zed    check Zed manifest and build the language server WASM
   bundle        macOS app bundles
   install-cursor-extension
@@ -28,6 +29,7 @@ commands:
 LOCAL_COMMANDS = {
     "install-cli",
     "package",
+    "site",
     "verify-zed",
     "bundle",
     "install-cursor-extension",

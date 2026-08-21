@@ -31,6 +31,16 @@ pub struct MountConfig {
     pub prefix: String,
     #[serde(default)]
     pub layout: Option<String>,
+    #[serde(default)]
+    pub visibility: MountVisibility,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MountVisibility {
+    #[default]
+    Navigable,
+    LinkedDetail,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -476,6 +486,7 @@ title = "Rocci"
 source = "../docs"
 prefix = "docs"
 layout = "docs"
+visibility = "linked-detail"
 
 [[nav]]
 label = "Docs"
@@ -488,6 +499,7 @@ items = ["docs/index"]
         assert_eq!(config.mounts[0].source, "../docs");
         assert_eq!(config.mounts[0].prefix, "docs");
         assert_eq!(config.mounts[0].layout.as_deref(), Some("docs"));
+        assert_eq!(config.mounts[0].visibility, MountVisibility::LinkedDetail);
         let _ = fs::remove_dir_all(root);
     }
 
