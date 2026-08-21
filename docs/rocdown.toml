@@ -13,18 +13,27 @@ output = "../dist/docs"
 assets = "assets"
 
 [[nav]]
-label = "Start here"
+label = "Start"
 items = [
     "index",
-    "getting-started/overview",
-    "getting-started/installation",
-    "getting-started/quickstart",
+    "start/what-is-rocci",
+    "start/choose-your-path",
+    "start/prerequisites",
+    "start/install",
+    "start/roc-for-rocci",
+    "start/web-foundations",
+    "start/five-minutes",
+]
+
+[[nav]]
+label = "Tutorials"
+items = [
+    "tutorials/first-component",
 ]
 
 [[nav]]
 label = "Build"
 items = [
-    "guides/build-a-component",
     "guides/server-actions",
     "guides/rocdown-pages",
     "guides/hybrid-sites",

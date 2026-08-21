@@ -2,20 +2,94 @@
     layout: "section",
     aliases: ["/documentation/"],
     meta: {
-        title: "Documentation",
-        description: "Browse guides, architecture concepts, tutorials, and API reference for Rocci and Rocdown.",
+        title: "Rocci documentation",
+        description: "Learn Rocci from first contact through production authoring, with searchable reference for every stable contract.",
     },
 }
 
-# Documentation Portal
+# Rocci documentation
 
-Welcome to the Rocci documentation.
+Rocci is a `.rocci` template language and runtime for Roc. You author HTML
+components and HTTP handlers, Rocci lowers them to ordinary Roc, and Datastar
+transports browser intent over the same local HTTP origin the preview window
+uses.
 
-## Sections
+This manual describes **development** `main`. Behavior is experimental; verify
+commands against the source you built.
 
-- [What is Rocci?](/docs/getting-started/overview/)
-- [Installation](/docs/getting-started/installation/)
-- [Quickstart Tutorial](/docs/getting-started/quickstart/)
-- [Implementation Guides](/docs/guides/build-a-component/)
-- [Architecture Concepts](/docs/concepts/architecture/)
-- [Reference Manuals](/docs/reference/rocci/)
+Rocdown is a separate Markdown-first product. It does not belong in this
+learning path. Start at [Rocdown](/rocdown/) if you are writing documentation
+sites instead of Rocci applications.
+
+## What can I build?
+
+Standalone `.rocci` apps, custom `main.roc` servers that reuse components, and
+ad-hoc macOS desktop bundles around the same HTTP server. Durable state stays
+on the server. The browser morphs HTML; it does not own the domain model.
+
+:note[title: "Maturity"] {{
+    macOS and Linux development are tested in CI. Windows development uses the
+    system webview and is documented only to that level. Production signing,
+    installers, and a versioned release channel are not the install path yet.
+}}
+
+## Where should I start?
+
+:card-grid.begin
+    :link-card[href: "/docs/start/what-is-rocci/", title: "New to Rocci", summary: "Five-minute evaluation, then a visible component from a clean checkout."]
+    :link-card[href: "/docs/reference/rocci/", title: "I know the basics", summary: "Jump to the language reference, CLI, configuration, or troubleshooting."]
+:card-grid.end
+
+Prefer a track based on what you already know:
+
+- [Choose your path](/docs/start/choose-your-path/) if you know Roc, the web, or both.
+- [Install Rocci](/docs/start/install/) if the toolchain is not on this machine yet.
+
+## What does the code feel like?
+
+A component is a PascalCase `@component` that lowers to a pure Roc function
+returning `Html`. This `Hello` is from the cataloged styling example:
+
+```rocci
+@component
+Hello = |{ name ?? "Roc" }| {
+    @css {
+        .greeting {
+            margin: 0;
+            color: #c9d8d2;
+        }
+    }
+    <p class="greeting">Hello, <strong>{name}</strong></p>
+}
+```
+
+Preview it after [install](/docs/start/install/):
+
+```sh
+cargo run -q -p rocci-cli -- view \
+  examples/rocci/standalone/styling/Styling.rocci \
+  --component Hello --arg name=Ada
+```
+
+Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
+
+## Where is the exact answer?
+
+:card-grid.begin
+    :link-card[href: "/docs/reference/rocci/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
+    :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
+    :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
+    :link-card[href: "/docs/troubleshooting/", title: "Troubleshooting", summary: "Install, compile, runtime, and preview failures."]
+:card-grid.end
+
+## Tracks and examples
+
+| Track | First page |
+| --- | --- |
+| Evaluate | [Rocci in five minutes](/docs/start/five-minutes/) |
+| Learn | [Build your first component](/docs/tutorials/first-component/) |
+| Understand | [Rendering model](/docs/concepts/rendering-model/) |
+| Applications | [Examples](/examples/) |
+
+The examples portal is generated from `examples/rocci/apps.toml`. Styling is
+the first static component; Counter is the first stateful app.

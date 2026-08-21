@@ -1,0 +1,74 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Roc for Rocci authors",
+        description: "Learn the Roc subset later Rocci examples use: modules, records, tags, functions, match, effects, and the selected platform.",
+    },
+}
+
+# Roc for Rocci authors
+
+**Prerequisites:** [Prerequisites](/docs/start/prerequisites/). You do not need to be a Roc expert.
+**You will learn:** the Roc you will read in `.rocci` files outside template bodies.
+**Time:** about fifteen minutes.
+**Next:** [Install](/docs/start/install/) if needed, then [Rocci in five minutes](/docs/start/five-minutes/).
+
+This page is not a Roc language manual. Full coverage lives at
+[roc-lang.org](https://www.roc-lang.org/). Here is the subset later Rocci
+examples actually use.
+
+## Modules and imports
+
+A `.rocci` file is a Roc module. You may write a `module` header, `import`
+lines, types, and helpers. Everything outside a recognized `@` declaration is
+copied into generated Roc unchanged.
+
+```roc
+module CounterPage exposing [hello]
+
+import pf.Html
+```
+
+Rocci component names are PascalCase in source (`Hello`). Generated Roc values
+are camelCase (`hello`). `exposing` lists and handler bodies use the lowered
+name.
+
+## Records, tags, and functions
+
+Props are Roc records: `{ name: "Ada", count: 3 }`. Closed sets use tags:
+`[Ready, Working, Failed]` or `[Ok value, Err err]`. Functions are
+`name = |args| body`. Pipelines (`value |> f`) appear in helpers.
+
+```roc
+Status : [Ready, Working, Failed]
+
+status_label = |status|
+    match status {
+        Ready => "Ready"
+        Working => "Working"
+        Failed => "Failed"
+    }
+```
+
+Prefer `match` when the input is a tag union. Use `if` for a true/false
+condition.
+
+## Effects and `?`
+
+Functions that perform I/O end in `!`. `?` unwraps a `Result` and forwards
+`Err`. `@component` bodies are pure: no `!`, no logging, no SQLite. Put
+effects in `@init` and handlers.
+
+The selected platform for generated standalone apps is the webserver platform
+Rocci stages for you (`pf.Html`, `pf.Sqlite`, `pf.Stderr`, and friends). You
+do not pick a platform to preview a component.
+
+## What stays Rocci
+
+Markup, `@if` / `@for` / `@match` that produce HTML, `@css`, `@fixture`, and
+`@view` / `@patch` / `@command` / `@live` are Rocci syntax. Do not put tags
+inside a Roc `{ expr }` interpolation. Convert numbers at the interpolation
+site: `{count.to_str()}`.
+
+Continue with [web foundations](/docs/start/web-foundations/) if HTML-over-the-wire
+is new, otherwise [Rocci in five minutes](/docs/start/five-minutes/).

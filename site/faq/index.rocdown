@@ -56,7 +56,7 @@ Yes. `rocci run` compiles your application and serves it inside a native window 
 
 ## Next Steps
 
-- [Read the Overview](/docs/getting-started/overview/)
-- [Follow the Quickstart](/docs/getting-started/quickstart/)
+- [Read What is Rocci?](/docs/start/what-is-rocci/)
+- [Follow Rocci in five minutes](/docs/start/five-minutes/)
 - [Explore the Architecture Concepts](/docs/concepts/architecture/)
 - [Check Project Status & Roadmap](/project/status/)

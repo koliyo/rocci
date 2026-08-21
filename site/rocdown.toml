@@ -30,10 +30,14 @@ label = "Docs"
 directory = "docs"
 items = [
     "docs/index",
-    "docs/getting-started/overview",
-    "docs/getting-started/installation",
-    "docs/getting-started/quickstart",
-    "docs/guides/build-a-component",
+    "docs/start/what-is-rocci",
+    "docs/start/choose-your-path",
+    "docs/start/prerequisites",
+    "docs/start/install",
+    "docs/start/roc-for-rocci",
+    "docs/start/web-foundations",
+    "docs/start/five-minutes",
+    "docs/tutorials/first-component",
     "docs/guides/server-actions",
     "docs/guides/rocdown-pages",
     "docs/guides/docs-components",
