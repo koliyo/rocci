@@ -1,5 +1,5 @@
 @page {
-    layout: "plain",
+    layout: "faq",
     meta: {
         title: "Frequently Asked Questions · Rocci",
         description: "Answers to common questions about Rocci, Rocdown, performance, Datastar integration, desktop apps, and comparisons with other frameworks.",

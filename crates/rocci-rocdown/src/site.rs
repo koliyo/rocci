@@ -249,6 +249,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         let class = classify_document(&compiled.document, roc_imports_datastar(&compiled.roc));
         const VALID_LAYOUTS: &[&str] = &[
             "home",
+            "faq",
             "product",
             "section",
             "docs",
