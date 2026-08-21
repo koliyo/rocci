@@ -57,7 +57,7 @@ ad-hoc signed macOS `.app`. The bundled app does not need `roc` on `PATH` at
 runtime. From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-./scripts/bundle-macos.sh
+uv run --project tools/rocci-ops rocci-ops bundle macos
 open "target/release/bundle/macos/Datastar.app"
 ```
 
@@ -137,7 +137,7 @@ cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-point
 
 `rocci-browser` keeps one preview window and a Cmd-P target picker. Cmd-K stays
 in-page Go to File. `rocci browse` is still the component gallery. On macOS,
-`./scripts/bundle-browser-macos.sh` assembles an ad-hoc **Rocci Browser.app**
+`uv run --project tools/rocci-ops rocci-ops bundle browser-macos` assembles an ad-hoc **Rocci Browser.app**
 around that same host; it does not use `rocci bundle`. Production signing is
 planned. See
 [`docs/guides/rocci-browser.rocdown`](docs/guides/rocci-browser.rocdown).

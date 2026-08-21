@@ -24,11 +24,11 @@ On Apple Silicon you can run either path:
 ```sh
 # Native arm64 containers (default, fastest)
 cargo run -q -p rocci-rocdown-cli -- package SITE --target arm64musl
-./docker/docker-serve-hybrid.sh DIST ISLANDS
+uv run --project tools/rocci-ops rocci-ops serve hybrid DIST ISLANDS
 
 # amd64 containers via Docker’s x86_64 emulation (Rosetta/QEMU)
 cargo run -q -p rocci-rocdown-cli -- package SITE --target x64musl
-DOCKER_DEFAULT_PLATFORM=linux/amd64 ./docker/docker-serve-hybrid.sh DIST ISLANDS
+DOCKER_DEFAULT_PLATFORM=linux/amd64 uv run --project tools/rocci-ops rocci-ops serve hybrid DIST ISLANDS
 ```
 
 A mismatch (`x64musl` binary in an arm64 image, or the reverse) fails at
@@ -55,7 +55,7 @@ From the repository root, dogfood `docs/` (`build.output = "../dist/docs"`):
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- build docs --cdn-only
-./docker/docker-serve-static.sh dist/docs
+uv run --project tools/rocci-ops rocci-ops serve static dist/docs
 ```
 
 The script absolutizes `ROCCI_DIST` and runs Compose. Extra arguments go to
@@ -84,7 +84,7 @@ the island binary (Debian, SQLite, no `rocci` / `rocdown` / `roc`):
 ```sh
 # Apple Silicon Docker → arm64musl; Intel / amd64 containers → x64musl
 cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
-./docker/docker-serve-hybrid.sh examples/rocdown/counter/dist examples/rocdown/counter/islands
+uv run --project tools/rocci-ops rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 `package` writes `dist/`, `publish.json` (live routes and binary fingerprint),
@@ -117,7 +117,7 @@ weaken `rocci.toml` loopback validation).
 ```sh
 # Match the container CPU (Apple Silicon Docker → arm64musl)
 cargo run -q -p rocci-cli -- build --release examples/rocci/custom/datastar --target arm64musl
-./docker/docker-serve-app.sh target/release/rocci-server
+uv run --project tools/rocci-ops rocci-ops serve app target/release/rocci-server
 ```
 
 Override the published port with `ROCCI_HTTP_PORT`. The app container prints
@@ -133,9 +133,9 @@ From the repository root:
 
 ```sh
 ROCCI_SITE="$(pwd)/examples/rocdown/counter" docker compose -f docker/compose.yml build
-./docker/docker-serve-site.sh examples/rocdown/counter
-./docker/docker-serve-site.sh examples/rocdown/hybrid
-./docker/docker-serve-site.sh /path/to/any/hybrid-site
+uv run --project tools/rocci-ops rocci-ops serve site examples/rocdown/counter
+uv run --project tools/rocci-ops rocci-ops serve site examples/rocdown/hybrid
+uv run --project tools/rocci-ops rocci-ops serve site /path/to/any/hybrid-site
 ```
 
 `ROCCI_SITE` is required even for `build` because Compose interpolates the
@@ -177,19 +177,19 @@ Override `8080:80` with a Compose override file if the host port is taken
 | --- | --- |
 | [`static/Caddyfile`](static/Caddyfile) | Static `file_server` of `/srv`; no island proxy |
 | [`compose.static.yml`](compose.static.yml) | `rocci-cdn` + bind-mount `ROCCI_DIST` |
-| [`docker-serve-static.sh`](docker-serve-static.sh) | Absolutize `ROCCI_DIST` and `compose up` |
+| `rocci-ops serve static` | Absolutize `ROCCI_DIST` and `compose up` |
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
 | [`prod/`](prod/) | Origin docs, Access SSH proxy, env examples |
-| [`docker-serve-hybrid.sh`](docker-serve-hybrid.sh) | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
+| `rocci-ops serve hybrid` | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
-| [`docker-serve-app.sh`](docker-serve-app.sh) | Absolutize server dir and app `compose up` |
+| `rocci-ops serve app` | Absolutize server dir and app `compose up` |
 | [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain (no CDN stage) |
 | [`cdn/Dockerfile`](cdn/Dockerfile) | Thin Caddy image; prints host URL on start |
 | [`cdn/Caddyfile`](cdn/Caddyfile) | Hybrid same-origin proxy; `root * /src/site/dist` |
 | [`compose.yml`](compose.yml) | **Builder/dev** hybrid `site-build`, `islands`, `cdn` |
-| [`docker-serve-site.sh`](docker-serve-site.sh) | Absolutize `ROCCI_SITE` and toolchain `compose up` |
+| `rocci-ops serve site` | Absolutize `ROCCI_SITE` and toolchain `compose up` |
 
 The two-artifact production sketch (upload `dist/`, run `serve-islands`,
 reverse-proxy) is in [`examples/rocdown/counter/README.md`](../examples/rocdown/counter/README.md)

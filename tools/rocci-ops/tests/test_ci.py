@@ -33,6 +33,8 @@ def test_knowledge_redirects_validation_json() -> None:
     assert "target/knowledge-ci/retrieval.json" in paths
 
 
-def test_lint_includes_check_deps() -> None:
+def test_editors_job_uses_verify_zed() -> None:
+    argv_lists = [s.argv for s in steps_for("editors", repo_root())]
+    assert any(argv[-1] == "verify-zed" for argv in argv_lists)
     argv_lists = [s.argv for s in steps_for("lint", repo_root())]
     assert any(argv[-2:] == ("rocci-ops", "check-deps") for argv in argv_lists)

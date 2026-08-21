@@ -151,7 +151,7 @@ example.com {
 
 Static Rocdown trees (`docs/` in this repository, or any `--cdn-only` `dist/`)
 use official Caddy with no Rocci toolchain: build on the host, then
-`./docker/docker-serve-static.sh dist/docs`.
+`uv run --project tools/rocci-ops rocci-ops serve static dist/docs`.
 
 Pre-built hybrid sites package the CDN tree plus an island binary, then
 Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
@@ -159,7 +159,7 @@ Compose Caddy with a slim process image (no `roc` / `rocdown` at runtime):
 ```sh
 # Match the Linux container CPU (Apple Silicon Docker → arm64musl; amd64 → x64musl)
 cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
-./docker/docker-serve-hybrid.sh examples/rocdown/counter/dist examples/rocdown/counter/islands
+uv run --project tools/rocci-ops rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 `--target` follows the **container**, not the Mac host: Apple Silicon local
@@ -167,7 +167,7 @@ Docker defaults to `arm64musl`; use `x64musl` only when you also run amd64
 images (for example `DOCKER_DEFAULT_PLATFORM=linux/amd64`). Compose does not
 auto-select the image arch from `--target`. Do not use `arm64mac` for Linux
 images. Operator notes and a short table are in `docker/README.md`.
-`./docker/docker-serve-site.sh` remains the **builder/dev** toolchain demo (Ubuntu +
+`uv run --project tools/rocci-ops rocci-ops serve site` remains the **builder/dev** toolchain demo (Ubuntu +
 Roc + WebKit, compile at start), not hosting.
 
 ## Cross-origin service
