@@ -8,8 +8,28 @@
 
 # Snake
 
-Docs-only stress demo. See [source](/examples/snake/source/).
+A multiplayer stress demo: lobby and board in `Snake.rocci`, ticks and
+collisions in `Game.roc`, HTTP and SSE in `main.roc`. Keyboard and touch
+steering live in `snake-input.js`. This is **docs-only** on the public origin
+(not a live hostname).
+
+Up to eight snakes share a 100×100 grid. The server ticks at about 8 Hz and
+morphs `#board`, `#hud`, and `#minimap`.
+
+See the [source tree](/examples/snake/source/).
+
+## Run locally
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
+```
+
+If you already ran an older build, delete `examples/rocci/custom/snake/snake.db`
+so the world schema can be created fresh.
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/ | grep -E 'Join game|Spectate'
 ```

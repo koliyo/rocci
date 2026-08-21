@@ -1,46 +1,14 @@
 # Counter
 
-The first Rocci app: one `.rocci` file with SQLite state, a page, and two
-Datastar POST handlers. Increment and reset each return one patch of
-`#counter`. There is no authored `main.roc`.
-
-For page chrome, component isolation, and `@scope`, see
-[`examples/rocci/standalone/styling`](../styling).
-
-Pinned together:
-
-- Roc nightly **2026-08-08** (the platform release was built against 2026-08-10)
-- `basic-webserver` **0.16.0** (an implementation detail of `rocci run`)
-- Datastar **1.0.2** (CLI cache)
-
-## Run
-
-From the repository root, with `roc` and `cargo` on `PATH`:
+Local run notes. Published tutorial: https://rocci.dev/examples/counter/
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 ```
 
-This opens an embedded window on a free local TCP port and prints the URL. Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000) without a window (then open that URL yourself, or curl it). Override the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`. SQLite state lives in `examples/rocci/standalone/counter/counter.db` (created on first start). Set `DB_PATH` to use another file.
-
-Increment and reset call `Stderr.line!` so each action prints on the CLI and
-shows in the preview Dev Console (`source: runtime`).
-
-`rocci view` and `rocci browse` render components from fixtures; they do not run `@init` or route handlers.
-
-## Smoke checks
-
-With the server running (`--no-window` if you do not want an embedded window):
+`--no-window` serves http://127.0.0.1:8000. `DB_PATH` overrides the SQLite file.
 
 ```sh
 curl -s http://127.0.0.1:8000/health
-# ok
-
-curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|Increment'
-
 curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
-# event: datastar-patch-elements
-# data: elements <section id="counter" ...><output>1</output>...
 ```
-
-Increment and reset should update `<output>` in the browser via a single `datastar-patch-elements` event that morphs `#counter`. A second tab stays stale until you click or refresh; for two windows that share a stream, see [`examples/rocci/standalone/live-counter`](../live-counter).

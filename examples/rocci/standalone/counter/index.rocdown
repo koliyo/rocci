@@ -8,9 +8,34 @@
 
 # Counter
 
-Standalone SQLite document with increment and reset patches. See
-[source](/examples/counter/source/).
+The first Rocci app: one `.rocci` file, SQLite state, a page at `/`, and two
+POST patches that morph `#counter`. Increment and reset each return the
+`CounterCard` component. A second browser tab stays stale until you click or
+reload. For two windows that share a stream, use the
+[live counter](/examples/live-counter/).
+
+This app is **docs-only** on rocci.dev. The home page already hosts a live
+hybrid island counter; this page is the tutorial source.
+
+Full file: [Counter.rocci](/examples/counter/source/Counter-rocci/).
+
+## Run locally
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 ```
+
+Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000).
+SQLite state is `examples/rocci/standalone/counter/counter.db` unless `DB_PATH`
+is set.
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|Increment'
+curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
+```
+
+The POST returns a `datastar-patch-elements` event. For page chrome and
+`@scope`, see [Styling](/examples/styling/).

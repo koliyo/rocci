@@ -2,15 +2,43 @@
     layout: "docs",
     meta: {
         title: "Live counter",
-        description: "Commands plus a shared stream",
+        description: "Commands plus a shared @live stream",
     },
 }
 
 # Live counter
 
-Shared-stream sibling of the [counter](/examples/counter/). See
-[source](/examples/live-counter/source/).
+The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
+but `@live` generates `GET /sse`. Increment and reset are commands: Datastar
+receives **204**, and `curl` without `Datastar-Request` receives `{"count":N}`.
+The stream morphs `#counter` in every connected tab.
+
+This catalog row is `hosting = "live"`. The public demo origin is planned at
+[live-counter.examples.rocci.dev](https://live-counter.examples.rocci.dev)
+until a staging deploy has served it. It is a separate hostname so it does not
+share `/actions/` or `/sse` with the rocci.dev home island.
+
+[Open live demo](https://live-counter.examples.rocci.dev) (planned).
+
+Full file: [LiveCounter.rocci](/examples/live-counter/source/LiveCounter-rocci/).
+
+## Run locally
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/standalone/live-counter/LiveCounter.rocci
+```
+
+Open the printed URL in two windows. Click Increment in one; the other updates
+without a refresh.
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|/sse'
+curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
+# {"count":1}
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment \
+  -H 'Datastar-Request: true'
+# HTTP/1.1 204
 ```
