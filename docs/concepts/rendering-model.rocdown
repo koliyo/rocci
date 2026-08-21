@@ -30,17 +30,21 @@ tag passes its body as an additional `Html` argument.
 
 ## Documents and fragments are distinct
 
-GET handlers are expected to return complete HTML documents. Mutation handlers
-return fragments that the generated server encodes as Datastar patch events.
+GET handlers are expected to return complete HTML documents. Unmarked mutation
+handlers return fragments that the generated server encodes as Datastar patch
+events. `@live` returns the shared fragment for a generated `/sse` stream.
 
 | Handler | Typical result | Browser behavior |
 | --- | --- | --- |
 | `@on:get` | `<html>...</html>` | Load or navigate a document |
-| `@on:post` / `put` / `patch` / `delete` | Element with a stable target | Patch matching DOM |
-| Authored long-lived SSE | Stream of events | Update over time |
+| `@on:post` / `put` / `patch` / `delete` | Element with a stable target | Patch matching DOM in the acting tab |
+| `@on:… json` | `Str` JSON body | **204** when `Datastar-Request: true`; else `application/json` (signals, not the DOM) |
+| `@live` | Fragment with a stable `id` | Generated `GET /sse` poll; every open tab morphs the region |
 
 This distinction prevents every fragment from carrying a document shell, CSS,
-or script setup.
+or script setup. `@live` does not change unmarked GET (document) or unmarked
+POST (one-shot patch). Do not patch the same `id` from both a `json` command
+and the stream.
 
 ## CSS is colocated and scoped
 
@@ -55,11 +59,15 @@ asset pipeline can extract the same `StyleArtifact` values and include them once
 ## Datastar transports intent and HTML
 
 An attribute such as `data-on:click=@post("/actions/save")` declares a browser
-event and backend request. The handler returns HTML, not a client-state diff.
-Datastar patches the matching element.
+event and backend request. Unmarked mutation handlers return HTML; Datastar
+patches the matching element. A `json` handler returns a `Str`; Datastar
+treats **204** as success with no morph and `application/json` as a **signal**
+patch. Shared multi-tab HTML updates use `@live`, which generates `GET /sse`
+(not an authored `main.roc` unfold).
 
 This gives server-owned data one authoritative representation. It also means
-stable element IDs and focused fragment boundaries matter.
+stable element IDs and focused fragment boundaries matter. Do not bind a
+visible count to `$count` to “reuse” JSON.
 
 ## Rocdown is static until made explicit
 

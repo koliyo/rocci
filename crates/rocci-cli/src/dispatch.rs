@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use rocci_template::{InitInfo, RouteInfo};
+use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
 
 use crate::error_page::{self, ListedRoute};
 use crate::serve;
@@ -62,6 +62,7 @@ pub fn generate_bound_main_roc(
     type_name: &str,
     state_type: Option<&str>,
     init: Option<&InitInfo>,
+    live: Option<&LiveInfo>,
     bound: &[(&str, &RouteInfo)],
     options: DispatchOptions,
 ) -> String {
@@ -94,6 +95,17 @@ pub fn generate_bound_main_roc(
     let mut arms = String::new();
     let mut listed = Vec::new();
     let mut has_health = false;
+    let has_sse = bound
+        .iter()
+        .any(|(_, route)| route.method == "GET" && route.path == "/sse");
+    if live.is_some() && !has_sse {
+        listed.push(ListedRoute::new(
+            "GET",
+            "/sse",
+            format!("{type_name}.live!"),
+        ));
+        arms.push_str(&live_sse_arm(type_name, options.log_handlers));
+    }
     for (module, route) in bound {
         if route.method == "GET" && route.path == "/health" {
             has_health = true;
@@ -264,10 +276,61 @@ patch_html! = |node| {{
         ),
     )
 }}
+
+no_content =
+    Ok(
+        Server.respond(
+            Response.from_status(204)
+            .with_body([]),
+        ),
+    )
+
+json_ok = |body|
+    Ok(
+        Server.respond(
+            Response.from_status(200)
+            .with_headers([{{ name: "Content-Type", value: "application/json" }}])
+            .with_body(Str.to_utf8(body)),
+        ),
+    )
+
+json_status = |status, body|
+    Ok(
+        Server.respond(
+            Response.from_status(status)
+            .with_headers([{{ name: "Content-Type", value: "application/json" }}])
+            .with_body(Str.to_utf8(body)),
+        ),
+    )
+
+datastar_request = |request|
+    List.any(
+        request.headers(),
+        |header|
+            (
+                header.name == "datastar-request"
+                or header.name == "Datastar-Request"
+                or header.name == "DATASTAR-REQUEST"
+            )
+            and (
+                header.value == "true"
+                or header.value == "True"
+                or header.value == "TRUE"
+            ),
+    )
 "#,
         not_found = error_page::roc_not_found_arm(),
     );
     out.push_str(&error_page::roc_runtime_helpers(&listed));
+    out.push_str(
+        r#"
+json_error_body = |err| {
+    bs = html_join(Str.split_on(err, "\\"), "\\\\")
+    escaped = html_join(Str.split_on(bs, "\""), "\\\"")
+    "{\"error\":\"${escaped}\"}"
+}
+"#,
+    );
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
@@ -389,6 +452,45 @@ fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
     )
 }
 
+fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
+    let handler = format!("{type_name}.live!");
+    let ok_log = if log_handlers {
+        "handler_log!(\"GET\", \"/sse\", \"ok\")\n                ".to_string()
+    } else {
+        String::new()
+    };
+    format!(
+        r#"        ("GET", "/sse") =>
+            Ok(
+                Server.stream(
+                    Sse.unfold!(
+                        "",
+                        |prev| {{
+                            match {handler}(context, request) {{
+                                Ok(html) => {{
+                                {ok_log}rendered = Html.render(html)
+                                    if rendered == prev {{
+                                        Ok(Wait({{ state: prev, wake: After(100) }}))
+                                    }} else {{
+                                        event = Datastar.patch_elements(html)
+                                        Ok(Emit({{ event, state: rendered, wake: After(100) }}))
+                                    }}
+                                }}
+                                Err(err) => {{
+                                    event = Datastar.patch_elements(error_overlay_html("GET", "/sse", "{handler}", Str.inspect(err)))
+                                    Ok(Emit({{ event, state: prev, wake: After(100) }}))
+                                }}
+                            }}
+                        }},
+                    ),
+                ),
+            )
+"#,
+        handler = handler,
+        ok_log = ok_log,
+    )
+}
+
 fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
     let handler = format!("{type_name}.{}!", route.fn_name.trim_end_matches('!'));
     let call = format!("{handler}(context, request)");
@@ -419,6 +521,33 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
                 }}
                 Err(err) => {{
                 {err_log}html_status(500, handler_error_html("{method}", "{path}", "{handler}", Str.inspect(err)))
+                }}
+            }}
+"#,
+            method = route.method,
+            path = route.path,
+            call = call,
+            handler = handler,
+            ok_log = ok_log,
+            err_log = err_log,
+        )
+    } else if route.respond == RespondKind::Json {
+        format!(
+            r#"        ("{method}", "{path}") =>
+            match {call} {{
+                Ok(body) => {{
+                {ok_log}if datastar_request(request) {{
+                    no_content
+                }} else {{
+                    json_ok(body)
+                }}
+                }}
+                Err(err) => {{
+                {err_log}if datastar_request(request) {{
+                    Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                }} else {{
+                    json_status(500, json_error_body(Str.inspect(err)))
+                }}
                 }}
             }}
 "#,
@@ -461,6 +590,17 @@ mod tests {
             method: method.to_string(),
             path: path.to_string(),
             fn_name: fn_name.to_string(),
+            respond: rocci_template::RespondKind::Patch,
+            span: Span::new(0, 0),
+        }
+    }
+
+    fn route_json(method: &str, path: &str, fn_name: &str) -> RouteInfo {
+        RouteInfo {
+            method: method.to_string(),
+            path: path.to_string(),
+            fn_name: fn_name.to_string(),
+            respond: rocci_template::RespondKind::Json,
             span: Span::new(0, 0),
         }
     }
@@ -475,6 +615,7 @@ mod tests {
             type_name,
             state_type,
             init,
+            None,
             &merge_standalone_routes(DispatchSource { type_name, routes }, &[]),
             DispatchOptions::default(),
         )
@@ -526,6 +667,7 @@ mod tests {
             "Counter",
             None,
             None,
+            None,
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Counter",
@@ -559,6 +701,7 @@ mod tests {
     fn log_handlers_color_emits_ansi_escapes() {
         let main = generate_bound_main_roc(
             "Counter",
+            None,
             None,
             None,
             &merge_standalone_routes(
@@ -635,7 +778,8 @@ mod tests {
             ]
         );
 
-        let main = generate_bound_main_roc("Home", None, None, &bound, DispatchOptions::default());
+        let main =
+            generate_bound_main_roc("Home", None, None, None, &bound, DispatchOptions::default());
         assert!(main.contains("import Home"));
         assert!(main.contains("import About"));
         assert!(main.contains("Home.on_get_root!(context, request)"));
@@ -653,6 +797,7 @@ mod tests {
     fn slash_redirect_can_be_disabled() {
         let main = generate_bound_main_roc(
             "Dx",
+            None,
             None,
             None,
             &merge_standalone_routes(
@@ -728,6 +873,7 @@ mod tests {
             "Page",
             None,
             None,
+            None,
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Page",
@@ -749,5 +895,98 @@ mod tests {
             main.contains("Server.static_mount({ at: \"/all-syntax/img\", files: media_img })"),
             "{main}"
         );
+    }
+
+    #[test]
+    fn live_emits_sse_unfold_and_poll() {
+        let live = LiveInfo {
+            span: Span::new(0, 0),
+        };
+        let main = generate_bound_main_roc(
+            "Counter",
+            None,
+            None,
+            Some(&live),
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "Counter",
+                    routes: &[route("GET", "/", "on_get_root!")],
+                },
+                &[],
+            ),
+            DispatchOptions::default(),
+        );
+        assert!(main.contains("Sse.unfold!"), "{main}");
+        assert!(main.contains("After(100)"), "{main}");
+        assert!(main.contains("(\"GET\", \"/sse\")"), "{main}");
+        assert!(main.contains("Counter.live!(context, request)"), "{main}");
+        assert!(main.contains("Datastar.patch_elements"), "{main}");
+    }
+
+    #[test]
+    fn json_post_checks_datastar_request_header() {
+        let main = generate_main_roc(
+            "Counter",
+            None,
+            None,
+            &[route_json(
+                "POST",
+                "/actions/counter/increment",
+                "on_post_actions_counter_increment!",
+            )],
+        );
+        assert!(main.contains("Datastar-Request"), "{main}");
+        assert!(main.contains("datastar_request(request)"), "{main}");
+        assert!(main.contains("no_content"), "{main}");
+        assert!(main.contains("json_ok(body)"), "{main}");
+        assert!(main.contains("application/json"), "{main}");
+        assert!(!main.contains("Ok(patch_html!(html))"), "{main}");
+    }
+
+    #[test]
+    fn unmarked_post_still_uses_patch_html() {
+        let main = generate_main_roc(
+            "Counter",
+            None,
+            None,
+            &[route(
+                "POST",
+                "/actions/counter/increment",
+                "on_post_actions_counter_increment!",
+            )],
+        );
+        assert!(main.contains("Ok(patch_html!(html))"), "{main}");
+        assert!(!main.contains("json_ok(body)"), "{main}");
+    }
+
+    #[test]
+    fn without_live_omits_sse_arm() {
+        let main = generate_main_roc("Page", None, None, &[route("GET", "/", "on_get_root!")]);
+        assert!(!main.contains("(\"GET\", \"/sse\")"), "{main}");
+        assert!(!main.contains("Page.live!"), "{main}");
+    }
+
+    #[test]
+    fn live_does_not_duplicate_authored_sse_route() {
+        let live = LiveInfo {
+            span: Span::new(0, 0),
+        };
+        let main = generate_bound_main_roc(
+            "App",
+            None,
+            None,
+            Some(&live),
+            &merge_standalone_routes(
+                DispatchSource {
+                    type_name: "App",
+                    routes: &[route("GET", "/sse", "on_get_sse!")],
+                },
+                &[],
+            ),
+            DispatchOptions::default(),
+        );
+        assert_eq!(main.matches("(\"GET\", \"/sse\")").count(), 1, "{main}");
+        assert!(main.contains("App.on_get_sse!(context, request)"), "{main}");
+        assert!(!main.contains("App.live!(context, request)"), "{main}");
     }
 }

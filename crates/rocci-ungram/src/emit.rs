@@ -42,9 +42,23 @@ fn emit_use(out: &mut String, path: &str) {
         if single.len() > 100 && !names.is_empty() {
             out.push_str("use ");
             out.push_str(head);
-            out.push_str("::{\n    ");
-            out.push_str(&names.join(", "));
-            out.push_str(",\n};\n");
+            out.push_str("::{\n");
+            let mut line = String::from("    ");
+            for (i, name) in names.iter().enumerate() {
+                let item = if i + 1 == names.len() {
+                    format!("{name},")
+                } else {
+                    format!("{name}, ")
+                };
+                if line.len() + item.len() > 100 && line != "    " {
+                    out.push_str(line.trim_end());
+                    out.push('\n');
+                    line = String::from("    ");
+                }
+                line.push_str(&item);
+            }
+            out.push_str(&line);
+            out.push_str("\n};\n");
             return;
         }
     }

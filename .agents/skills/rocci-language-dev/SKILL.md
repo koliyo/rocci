@@ -46,8 +46,8 @@ scripts.
 - Datastar is the **runtime transport** (morph HTML, optional SSE), not a
   grammar concern. `@get` / `@post` in attributes lower to Roc strings; do not
   put CQRS, 204-vs-JSON, or `datastar-patch-elements` policy in the parser.
-  Stack fit is `$rocci-stack`. A new declaration such as `@live` is language
-  work only after that skill (and the implementation plan) chose the shape.
+  Stack fit is `$rocci-stack`. `@live` and the `json` respond ident are shipped.
+  Further declarations still need that skill and an implementation plan.
 
 ## Preserve language invariants
 

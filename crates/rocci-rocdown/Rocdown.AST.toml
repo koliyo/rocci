@@ -7,7 +7,7 @@ ungram = "Rocdown.AST.ungram"
 uses = [
     "super::MdNode",
     "rocci_template::ComponentPath",
-    "rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, Span, TemplateItem}",
+    "rocci_template::{ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, LiveDecl, OnDecl, Span, TemplateItem}",
 ]
 
 # Emit a struct or enum matching `rust`.
@@ -36,6 +36,7 @@ FixtureDecl = "rocci_template::FixtureDecl"
 CssDecl = "rocci_template::CssDecl"
 ContextDecl = "rocci_template::ContextDecl"
 InitDecl = "rocci_template::InitDecl"
+LiveDecl = "rocci_template::LiveDecl"
 OnDecl = "rocci_template::OnDecl"
 TemplateItem = "rocci_template::TemplateItem"
 ComponentPath = "rocci_template::ComponentPath"
@@ -83,6 +84,7 @@ FixtureDecl = "Fixture"
 CssDecl = "Css"
 ContextDecl = "Context"
 InitDecl = "Init"
+LiveDecl = "Live"
 OnDecl = "On"
 UseDecl = "Use"
 TemplateItem = "Template"
@@ -143,6 +145,7 @@ FixtureDecl = "fixture"
 CssDecl = "css"
 ContextDecl = "context"
 InitDecl = "init"
+LiveDecl = "live"
 OnDecl = "on"
 UseDecl = "use"
 BlockCall = "block"
@@ -191,6 +194,7 @@ FixtureDecl = "write_fixture_leaf"
 CssDecl = "write_css_leaf"
 ContextDecl = "write_context_leaf"
 InitDecl = "write_init_leaf"
+LiveDecl = "write_live_leaf"
 OnDecl = "write_on_leaf"
 UseDecl = "write_use"
 TemplateItem = "write_template_island"

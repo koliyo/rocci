@@ -1,5 +1,5 @@
 use rocci_template::{
-    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, OnDecl, TemplateItem,
+    ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, LiveDecl, OnDecl, TemplateItem,
 };
 
 use crate::ast::{
@@ -61,6 +61,10 @@ fn write_context_leaf(w: &mut Writer<'_>, _src: &str, _context: &ContextDecl) {
 
 fn write_init_leaf(w: &mut Writer<'_>, _src: &str, _init: &InitDecl) {
     w.leaf("init", &[]);
+}
+
+fn write_live_leaf(w: &mut Writer<'_>, _src: &str, _live: &LiveDecl) {
+    w.leaf("live", &[]);
 }
 
 fn write_on_leaf(w: &mut Writer<'_>, _src: &str, on: &OnDecl) {

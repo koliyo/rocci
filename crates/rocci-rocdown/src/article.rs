@@ -42,6 +42,7 @@ pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass 
             Item::Template(_) => (PageKind::Hydrate, "Rocci template"),
             Item::Context(_) => (PageKind::Live, "@context"),
             Item::Init(_) => (PageKind::Live, "@init"),
+            Item::Live(_) => (PageKind::Live, "@live"),
             Item::On(_) => (PageKind::Live, "@on"),
         };
         if kind > class.kind {
@@ -67,6 +68,7 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
             Item::Css(_) => return Err("@css"),
             Item::Context(_) => return Err("@context"),
             Item::Init(_) => return Err("@init"),
+            Item::Live(_) => return Err("@live"),
             Item::On(_) => return Err("@on"),
             Item::Use(_) => return Err("@use"),
             Item::Template(_) => return Err("Rocci template"),

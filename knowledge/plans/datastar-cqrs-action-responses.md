@@ -4,7 +4,7 @@ title: Generated CQRS streams and JSON command responses
 description: "Generate Datastar CQRS machinery (SSE unfold, data-init, 204 vs JSON) behind an opt-in @live render. Keep the first-app counter as one-shot patches. Add a live-counter example and convert the hybrid island. Do not require authors to write Wait/Emit or a /sse handler."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T08:29:00Z }
+generated: { by: process:cursor, at: 2026-08-21T09:02:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -83,7 +83,17 @@ sources:
     resource: ../../.agents/skills/rocci-author/SKILL.md
     title: Authoring server-app table
     author: process:git
-    last_modified: 2026-08-20
+    last_modified: 2026-08-21
+  - id: stack-skill
+    resource: ../../.agents/skills/rocci-stack/SKILL.md
+    title: One-shot versus live CQRS composition rules
+    author: process:git
+    last_modified: 2026-08-21
+  - id: language-dev
+    resource: ../../.agents/skills/rocci-language-dev/SKILL.md
+    title: Grammar skill notes shipped @live and json
+    author: process:git
+    last_modified: 2026-08-21
   - id: service-rs
     resource: ../../crates/rocci-rocdown/src/service.rs
     title: Islands reuse generated dispatch
@@ -122,7 +132,9 @@ does not mint a new architecture decision; it applies
 [server-owned state](../decisions/server-owned-state.md) and Datastar's
 published CQRS guidance.[^research][^server-state][^ds-tao]
 
-Exploratory. Do not start a phase until the user asks.
+Exploratory. Phases 1–5 are implemented on `datastar-cqrs-action-responses`;
+not CI-complete. Phase 6 aligns composition skills and knowledge indexes with
+that branch. Do not start a residual item until the user asks.
 
 ## Goal
 
@@ -273,6 +285,23 @@ live-counter README (no new Roc CI job unless one already runs the counter).
 **Exit:** Those files agree with Phase 1. `cargo test -p rocci-template`.
 `cargo fmt --all -- --check`.
 
+## Phase 6 — Stack skill and knowledge records
+
+Bound:
+
+- `.agents/skills/rocci-stack/SKILL.md`: `@live` and `json` are shipped
+  composition, not planned. Hybrid counter is live. Do not tell authors to
+  copy Snake’s unfold.[^stack-skill]
+- `.agents/skills/rocci-language-dev/SKILL.md`: `@live` / `json` exist; further
+  declarations still need `$rocci-stack` and a plan.[^language-dev]
+- This plan, the companion research disposition, collection indexes, and
+  `knowledge/log.md`: Phases 1–5 executed on this branch, not CI-complete.
+
+Out of this phase: new grammar, dispatcher changes, examples, public Rocdown
+rewrites already done in Phase 5.
+
+**Exit:** Those files agree that generated `@live` is on this branch. `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+
 ## Residual (not this plan)
 
 - Explicit `@on:get("/sse") stream` escape hatch.
@@ -299,6 +328,8 @@ live-counter README (no new Roc CI job unless one already runs the counter).
 [^template-readme]: Documents the POC skip this plan closes for `/sse`.
 [^rocci-ref]: `@on` public contract.
 [^author-skill]: Server-app kind table.
+[^stack-skill]: Stack skill still said generated `@live` was planned after Phase 5.
+[^language-dev]: Grammar skill still treated `@live` as a future declaration.
 [^service-rs]: `into_app_plan` reuses CLI dispatch.
 [^server-state]: Canonical reread and HTML morph; no client domain store.
 [^compile-tests]: Lowering tests for `@on` and Datastar `@post`.

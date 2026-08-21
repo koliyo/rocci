@@ -29,8 +29,9 @@ the composition rules.
 3. For durable state, `knowledge/decisions/server-owned-state.md`. For
    `@component`, `knowledge/decisions/pure-render-components.md`.
 4. For shared-view SSE vs one-shot POST, start at
-   `knowledge/research/datastar-cqrs-action-responses.md` (exploratory; `@live`
-   is planned, not shipped).
+   `knowledge/research/datastar-cqrs-action-responses.md`. Generated `@live`
+   and `json` commands are on `datastar-cqrs-action-responses` (not CI-complete
+   on `main`). Snake remains the hand-written ceiling.
 5. Prefer nearby `examples/` over inventing a new layering.
 
 ## Who owns what
@@ -39,7 +40,7 @@ the composition rules.
 | --- | --- | --- |
 | **Markdown** (Rocdown) | Prose, headings, links, fences, `:kind` | Client models, Datastar, grammar of `.rocci` |
 | **Rocdown** | Catalog, routes, static HTML, islands splice | Interpreting templates in Rust to skip a theme |
-| **Rocci** | `@component`, `@css`, `@on`, `@context` | Parser/ungram; browser domain stores |
+| **Rocci** | `@component`, `@css`, `@on`, `@live`, `@context` | Parser/ungram; browser domain stores |
 | **Roc** | Types, helpers, SQLite, `!` effects | Markup in interpolations; Datastar event framing |
 | **HTML** | Documents (`GET`) and patch fragments (stable `id`) | A second copy of the domain in JS |
 | **CSS** | Colocated `@css` / `@scope`; document chrome on `body` | Riding `<style>` on SSE patches |
@@ -81,26 +82,30 @@ tab updates. Correct for the first-app counter, search, click-to-edit,
 validation. Stable `id` on the fragment. Do not also stream the same `id`
 without versions.
 
-**CQRS / live (Datastar Tao; Snake ships it; generated `@live` is planned).**
-A long-lived `GET` (today: authored `main.roc` `GET /sse`; planned: generated
-from `@live`) is the read channel. POSTs are commands: **204** for Datastar,
-JSON for API clients. Put `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])`
-on `body`, not on the button (`requestCancellation`). `basic-webserver` polls
-(`Wait` + `After`); it has no cross-request pub/sub.
+**CQRS / live (Datastar Tao; generated `@live` plus Snake).**
+A long-lived `GET /sse` is the read channel. Authors write `@live` returning
+Html; Rocci generates the poll unfold and injects `data-init` on `<body>` when
+absent. POSTs marked `json` are commands: **204** for Datastar, JSON for API
+clients. Do not also patch the same `id` from the command. Put an authored
+`data-init=@get("/sse", [OpenWhenHidden(Bool.true)])` only when injection
+cannot see a `<body>` (island fragments). `basic-webserver` polls
+(`Wait` + `After`); it has no cross-request pub/sub. Copy Snake’s unfold only
+when you need a custom ceiling the generator does not cover.
 
 Do not treat “Datastar architecture” as “every POST is a broadcast bus.” Do
 not infer live mode from “there is a POST.”
 
-Examples: `examples/rocci/standalone/counter` is one-shot; Snake is CQRS;
-hybrid `examples/rocdown/counter` is shared state with one-shot POSTs today.
+Examples: `examples/rocci/standalone/counter` is one-shot;
+`examples/rocci/standalone/live-counter` and hybrid `examples/rocdown/counter`
+are `@live` + `json`; Snake is authored CQRS.
 
 ## File and language fit
 
 - **Reusable widgets:** `components/*.rocci` — pure `@component`, scoped CSS,
   `@fixture`. No `@on`.
 - **HTTP app:** `pages/*.rocci` or app-root `.rocci` — `@context` / `@init` /
-  `@on`. GET returns `<html>`; mutations return a fragment or (planned live)
-  JSON/`{}`.
+  `@on` / optional `@live`. GET returns `<html>`; unmarked mutations return a
+  fragment; `json` mutations return a `Str` (204 vs JSON).
 - **Docs / prose:** `.rocdown` — Markdown first. Executable `@` / `:` only at
   document root. Static `rocdown build` rejects `@use` and live handlers;
   islands are a separate live origin.
@@ -130,14 +135,14 @@ Before implementing, answer:
 ## Do not
 
 - Encode Datastar SSE policy, CQRS, or 204/JSON negotiation in the `.rocci`
-  parser. That is dispatch/runtime (`rocci-cli`), with language work only if a
-  new declaration (`@live`, respond ident) is approved and implemented.
+  parser. That is dispatch/runtime (`rocci-cli`). `@live` and `json` are
+  shipped; further declarations still need `$rocci-stack` and a plan.
 - Mirror the domain in Datastar signals or a client store.
 - Put `@component` I/O, logging, or request lifecycle in the render function.
 - Use raw Markdown HTML; use `:note`, `:img`, a document-root tag, or
   `@render`.
-- Copy Snake’s `Sse.unfold!` into generated apps; that loop belongs in
-  generated `main.roc` once live ships.
+- Copy Snake’s `Sse.unfold!` into ordinary apps; generated `@live` already
+  emits the poll loop.
 
 ## Validate
 

@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
-    Diagnostic, InitInfo, MappedModule, RouteInfo, SourceFile, type_name_from_path,
+    Diagnostic, InitInfo, LiveInfo, MappedModule, RouteInfo, SourceFile, type_name_from_path,
 };
 use rocci_theme::ThemeOptions;
 
@@ -22,6 +22,7 @@ pub struct StandaloneModule {
     pub roc: String,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub mapped: MappedModule,
     pub local_assets: Vec<String>,
@@ -138,6 +139,7 @@ pub fn plan_standalone(primary: &Path, theme: &ThemeOptions) -> Result<Standalon
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
+            live: compiled.live,
             routes: compiled.routes,
             mapped: MappedModule {
                 type_name: type_name.clone(),

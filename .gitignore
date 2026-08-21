@@ -33,6 +33,7 @@ datastar.js
 # Generated Roc modules and examples artifacts
 **/generated/*.roc
 examples/rocci/standalone/counter/Counter.roc
+examples/rocci/standalone/live-counter/LiveCounter.roc
 examples/rocci/standalone/styling/Styling.roc
 examples/rocci/custom/snake/Snake.roc
 examples/rocci/custom/datastar/Gallery.roc

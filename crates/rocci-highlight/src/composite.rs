@@ -1,6 +1,6 @@
 use rocci_template::{
     AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document as RocciDocument,
-    Element, FixtureDecl, InitDecl, ModuleItem, OnDecl, SourceFile, Span, TemplateItem,
+    Element, FixtureDecl, InitDecl, LiveDecl, ModuleItem, OnDecl, SourceFile, Span, TemplateItem,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -163,6 +163,7 @@ pub fn collect_rocci_document(
             ModuleItem::Css(css) => collect_css(src, collector, css),
             ModuleItem::Context(context) => collect_context(src, collector, context),
             ModuleItem::Init(init) => collect_init(src, collector, init),
+            ModuleItem::Live(live) => collect_live(src, collector, live),
             ModuleItem::On(on) => collect_on(src, collector, on),
         }
     }
@@ -205,6 +206,16 @@ pub fn collect_context(src: &str, collector: &mut Vec<HighlightSpan>, context: &
 
 pub fn collect_init(src: &str, collector: &mut Vec<HighlightSpan>, init: &InitDecl) {
     if let Some(span) = ident_between(src, init.span.start, init.body.start, "@init") {
+        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
+    }
+}
+
+pub fn collect_live(src: &str, collector: &mut Vec<HighlightSpan>, live: &LiveDecl) {
+    let before = live
+        .params
+        .map(|params| params.start)
+        .unwrap_or(live.body.start);
+    if let Some(span) = ident_between(src, live.span.start, before, "@live") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
