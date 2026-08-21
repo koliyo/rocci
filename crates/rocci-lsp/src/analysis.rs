@@ -5,8 +5,8 @@ use lsp_types::{
 };
 use rocci_template::{
     CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl, InitDecl,
-    LowerOptions, ModuleItem, OnDecl, PositionEncoding, Severity, SourceFile, Span, TemplateItem,
-    compile, component_matches,
+    LiveDecl, LowerOptions, ModuleItem, OnDecl, PositionEncoding, Severity, SourceFile, Span,
+    TemplateItem, compile, component_matches,
 };
 
 #[rustfmt::skip]
@@ -18,7 +18,7 @@ const HTML_TAGS: &[&str] = &[
 ];
 
 const DIRECTIVES: &[&str] = &[
-    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "on",
+    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "live", "on",
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
@@ -77,6 +77,7 @@ pub fn document_symbols(
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
             ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
             ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
+            ModuleItem::Live(live) => Some(live_symbol(source, live, encoding)),
             ModuleItem::On(on) => Some(on_symbol(source, on, encoding)),
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => None,
         })
@@ -264,6 +265,24 @@ pub fn init_symbol(
     }
 }
 
+pub fn live_symbol(
+    source: SourceFile<'_>,
+    live: &LiveDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    DocumentSymbol {
+        name: "live!".to_string(),
+        detail: Some("@live".to_string()),
+        kind: SymbolKind::FUNCTION,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, live.span, encoding),
+        selection_range: lsp_range(source, live.span, encoding),
+        children: None,
+    }
+}
+
 pub fn css_symbol(
     source: SourceFile<'_>,
     css: &rocci_template::CssDecl,
@@ -346,6 +365,7 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
         | ModuleItem::Css(_)
         | ModuleItem::Context(_)
         | ModuleItem::Init(_)
+        | ModuleItem::Live(_)
         | ModuleItem::On(_) => None,
     })
 }

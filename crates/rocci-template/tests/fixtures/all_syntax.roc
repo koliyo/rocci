@@ -353,3 +353,19 @@ on_get_root! = |state, _request| {
     Ok(rocci_value)
 }
 
+
+live! = |state, _request| {
+    rocci_value = {
+        counterPage({ person: { name: "Roc" }, count: 0 })
+    }
+    Ok(rocci_value)
+}
+
+
+on_post_actions_increment! = |state, _request| {
+    rocci_value = {
+        "{\"count\": 0}"
+    }
+    Ok(rocci_value)
+}
+

@@ -767,6 +767,7 @@ pub fn module_collision(name: &str) -> bool {
             | "css"
             | "context"
             | "init"
+            | "live"
             | "on"
             | "use"
             | "if"

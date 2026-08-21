@@ -21,15 +21,15 @@ mod validate;
 pub use ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ComponentPath, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LetDirective, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams, TemplateBlock,
-    TemplateItem, TextNode, parse_component_params, strip_param_defaults,
+    LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, OnDecl, ParsedParams,
+    TemplateBlock, TemplateItem, TextNode, parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, trim_span};
 pub use lower::{
-    ComponentInfo, FixtureInfo, InitInfo, LowerOptions, LoweredModule, LoweredTemplate, RouteInfo,
-    StyleArtifact, StyleKind, TemplateValueCtx, file_scope_id, lower_template_items, route_fn_name,
-    template_items_have_action,
+    ComponentInfo, FixtureInfo, InitInfo, LiveInfo, LowerOptions, LoweredModule, LoweredTemplate,
+    RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, file_scope_id,
+    lower_template_items, route_fn_name, template_items_have_action,
 };
 pub use parser::{
     ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
@@ -65,6 +65,7 @@ pub struct CompileOutput {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub document: Document,
     pub timings: CompileTimings,
@@ -102,6 +103,7 @@ pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput 
         styles: lowered.styles,
         state_type: lowered.state_type,
         init: lowered.init,
+        live: lowered.live,
         routes: lowered.routes,
         document: parsed.document,
         diagnostics,

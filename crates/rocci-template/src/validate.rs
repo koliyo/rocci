@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::ast::{
-    Document, FixtureDecl, ModuleItem, OnDecl, TemplateItem, handler_param_arity,
+    Document, FixtureDecl, LiveDecl, ModuleItem, OnDecl, TemplateItem, handler_param_arity,
     parse_component_params,
 };
 use crate::diagnostic::Diagnostic;
@@ -24,6 +24,7 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
 
     let mut context_span = None;
     let mut init_span = None;
+    let mut live_span = None;
     let mut routes: Vec<(&str, &str, crate::span::Span)> = Vec::new();
     let mut has_record_handler = false;
 
@@ -56,6 +57,27 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                     init_span = Some(init.span);
                 }
             }
+            ModuleItem::Live(live) => {
+                if live_span.is_some() {
+                    diagnostics.push(Diagnostic::error(
+                        live.span,
+                        "duplicate `@live`; a module may declare one live render",
+                    ));
+                } else {
+                    live_span = Some(live.span);
+                }
+                if let Some(params) = live.params
+                    && handler_param_arity(params.of(src)) > 2
+                {
+                    diagnostics.push(Diagnostic::error(
+                        params,
+                        "`@live` takes at most two parameters: state and request",
+                    ));
+                }
+                if live_has_record_params(src, live) {
+                    has_record_handler = true;
+                }
+            }
             ModuleItem::On(on) => {
                 if let Some(params) = on.params
                     && handler_param_arity(params.of(src)) > 2
@@ -70,6 +92,24 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                 }
                 if on.path.is_empty() || on.method.name.is_empty() {
                     continue;
+                }
+                if let Some(respond) = &on.respond {
+                    match respond.name.as_str() {
+                        "json" => {
+                            if on.method.name == "get" {
+                                diagnostics.push(Diagnostic::error(
+                                    respond.span,
+                                    "`json` is not valid on GET; mark a mutating `@on` instead",
+                                ));
+                            }
+                        }
+                        other => {
+                            diagnostics.push(Diagnostic::error(
+                                respond.span,
+                                format!("unknown respond kind `{other}`; expected `json`"),
+                            ));
+                        }
+                    }
                 }
                 if let Some((_, _, _)) = routes
                     .iter()
@@ -108,14 +148,22 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             .iter()
             .find_map(|item| match item {
                 ModuleItem::On(on) if handler_has_record_params(src, on) => Some(on.span),
+                ModuleItem::Live(live) if live_has_record_params(src, live) => Some(live.span),
                 _ => None,
             })
             .unwrap_or(document.span);
         diagnostics.push(Diagnostic::error(
             span,
-            "`@on` handlers that destructure a record require `@context`",
+            "`@on` and `@live` handlers that destructure a record require `@context`",
         ));
     }
+}
+
+fn live_has_record_params(src: &str, live: &LiveDecl) -> bool {
+    let Some(params) = live.params else {
+        return false;
+    };
+    parse_component_params(src, params).first_param_is_record
 }
 
 fn handler_has_record_params(src: &str, on: &OnDecl) -> bool {

@@ -100,6 +100,7 @@ pub fn lower(
             Item::Css(decl) => rocci_items.push(ModuleItem::Css(decl.clone())),
             Item::Context(decl) => rocci_items.push(ModuleItem::Context(decl.clone())),
             Item::Init(decl) => rocci_items.push(ModuleItem::Init(decl.clone())),
+            Item::Live(decl) => rocci_items.push(ModuleItem::Live(decl.clone())),
             Item::On(decl) => rocci_items.push(ModuleItem::On(decl.clone())),
             _ => {}
         }
@@ -329,6 +330,7 @@ pub fn lower(
             method: "GET".to_string(),
             path: page_route.clone(),
             fn_name: fn_name.clone(),
+            respond: rocci_template::RespondKind::Patch,
             span: document.span,
         });
         if page_route != "/"
@@ -340,6 +342,7 @@ pub fn lower(
                 method: "GET".to_string(),
                 path: "/".to_string(),
                 fn_name,
+                respond: rocci_template::RespondKind::Patch,
                 span: document.span,
             });
         }
@@ -2675,6 +2678,7 @@ fn illegal_docs_item(item: &Item) -> Option<&'static str> {
         Item::Css(_) => Some("css"),
         Item::Context(_) => Some("context"),
         Item::Init(_) => Some("init"),
+        Item::Live(_) => Some("live"),
         Item::On(_) => Some("on"),
         Item::Use(_) => Some("use"),
         Item::Template(_) => Some("template"),

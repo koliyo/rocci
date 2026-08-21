@@ -461,6 +461,7 @@ mod tests {
             method: method.to_string(),
             path: path.to_string(),
             fn_name: fn_name.to_string(),
+            respond: rocci_template::RespondKind::Patch,
             span: Span::new(0, 0),
         }
     }

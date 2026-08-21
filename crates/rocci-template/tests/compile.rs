@@ -1300,6 +1300,91 @@ fn rejects_on_inside_component() {
 }
 
 #[test]
+fn lowers_live_and_json_post() {
+    let src = r#"
+@live = |state| {
+    Html.text("live")
+}
+
+@on:post("/actions/increment") json = |state| {
+    "{\"count\": 0}"
+}
+
+@on:post("/actions/reset") = |state| {
+    Html.text("reset")
+}
+
+@component Unused = |{}| {
+    <p>x</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.live.is_some());
+    assert!(out.roc.contains("live! = |state, _request| {"));
+    assert_eq!(out.routes.len(), 2);
+    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Json);
+    assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Patch);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(live"));
+    assert!(ast.contains("(on POST \"/actions/increment\" json"));
+}
+
+#[test]
+fn rejects_duplicate_live() {
+    let errors = compile_err(
+        r#"
+@live {
+    Html.text("a")
+}
+
+@live {
+    Html.text("b")
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("duplicate") && msg.contains("@live")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_json_on_get() {
+    let errors = compile_err(
+        r#"
+@on:get("/") json {
+    "{\"count\": 0}"
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`json` is not valid on GET")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_unknown_respond_ident() {
+    let errors = compile_err(
+        r#"
+@on:post("/x") stream {
+    Html.text("x")
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown respond kind `stream`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
 fn counter_example_compiles_as_standalone_app() {
     let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
     let out = compile_ok(src);
