@@ -122,6 +122,8 @@ pub struct ResolvedPage {
     pub article_html: String,
     #[serde(skip)]
     pub island_css: String,
+    #[serde(skip)]
+    pub island_html: Vec<String>,
     pub route: String,
     pub output_path: String,
     pub aliases: Vec<String>,
@@ -293,6 +295,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
             outgoing_links: page.outgoing_links.clone(),
             article_html: page.article_html.clone(),
             island_css: page.island_css.clone(),
+            island_html: Vec::new(),
             output_path: if route.starts_with('/') && !route.contains("..") {
                 route_output_path(&route)
             } else {

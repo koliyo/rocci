@@ -12,30 +12,35 @@
 
   const CACHE_KEY = "rocci-goto-catalog";
   const CSS =
-    ':host{all:initial;color-scheme:inherit;display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#d7dae0;color:light-dark(#18181b,#d7dae0)}.backdrop{box-sizing:border-box;display:flex;justify-content:center;align-items:flex-start;width:100%;height:100%;padding:12vh 16px 16px;background:rgba(0,0,0,.42);background:light-dark(rgba(24,24,27,.28),rgba(0,0,0,.42))}.palette{box-sizing:border-box;width:min(560px,100%);max-height:min(70vh,480px);display:flex;flex-direction:column;border:1px solid #3e4451;border-color:light-dark(#e4e4e7,#3e4451);border-radius:12px;background:#21252b;background:light-dark(#f7f7f8,#21252b);box-shadow:0 16px 48px rgba(0,0,0,.35);overflow:hidden}input{box-sizing:border-box;width:100%;height:44px;margin:0;padding:0 14px;border:0;border-bottom:1px solid #3e4451;border-bottom-color:light-dark(#e4e4e7,#3e4451);background:transparent;color:inherit;font:inherit;font-size:15px}input:focus{outline:none}#results{margin:0;padding:6px;list-style:none;overflow-y:auto;flex:1 1 auto}.item{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;cursor:pointer}.item.is-selected,.item:hover{background:rgba(97,175,239,.16);background:light-dark(rgba(59,130,246,.12),rgba(97,175,239,.16))}.title{font-size:13.5px;font-weight:600}.path{color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:12px;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.empty{margin:0;padding:18px 14px;color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:13px}mark{background:transparent;color:#61afef;color:light-dark(#2563eb,#61afef);font-weight:700;padding:0}';
+    ':host{all:initial;color-scheme:inherit;display:none;position:fixed;inset:0 var(--rocci-chrome-right,0px) var(--rocci-chrome-bottom,0px) 0;z-index:2147483646;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#d7dae0;color:light-dark(#18181b,#d7dae0)}:host(.open){display:block}.backdrop{box-sizing:border-box;display:flex;justify-content:center;align-items:flex-start;width:100%;height:100%;padding:12vh 16px 16px;background:rgba(0,0,0,.42);background:light-dark(rgba(24,24,27,.28),rgba(0,0,0,.42))}.palette{box-sizing:border-box;width:min(560px,100%);max-height:min(70vh,480px);display:flex;flex-direction:column;border:1px solid #3e4451;border-color:light-dark(#e4e4e7,#3e4451);border-radius:12px;background:#21252b;background:light-dark(#f7f7f8,#21252b);box-shadow:0 16px 48px rgba(0,0,0,.35);overflow:hidden}input{box-sizing:border-box;width:100%;height:44px;margin:0;padding:0 14px;border:0;border-bottom:1px solid #3e4451;border-bottom-color:light-dark(#e4e4e7,#3e4451);background:transparent;color:inherit;font:inherit;font-size:15px}input:focus{outline:2px solid currentColor;outline-offset:-2px}#results{margin:0;padding:6px;list-style:none;overflow-y:auto;flex:1 1 auto}.item{display:flex;flex-direction:column;gap:2px;min-height:44px;box-sizing:border-box;padding:8px 10px;border-radius:8px;cursor:pointer}.item.is-selected,.item:hover{background:rgba(97,175,239,.16);background:light-dark(rgba(59,130,246,.12),rgba(97,175,239,.16))}.title{font-size:13.5px;font-weight:600}.path{color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:12px;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.empty{margin:0;padding:18px 14px;color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:13px}mark{background:transparent;color:#61afef;color:light-dark(#2563eb,#61afef);font-weight:700;padding:0}@media(max-width:480px){.backdrop{padding:8vh 8px 8px}.palette{max-height:84vh;border-radius:10px}}';
   const HTML =
     '<div class="backdrop" id="backdrop"><div class="palette" role="dialog" aria-modal="true" aria-label="Go to page"><input type="search" id="query" placeholder="Go to page" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Go to page" aria-controls="results"/><ul id="results" role="listbox" aria-label="Matching documents"></ul><p id="empty" class="empty" hidden>No matching documents</p></div></div>';
 
   const host = document.createElement("rocci-goto");
   const shadow = host.attachShadow({ mode: "open" });
-  const sheet = document.createElement("style");
-  sheet.textContent = CSS;
+  if (typeof CSSStyleSheet !== "undefined" && "adoptedStyleSheets" in shadow) {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(CSS);
+    shadow.adoptedStyleSheets = [sheet];
+  } else {
+    const sheet = document.createElement("style");
+    sheet.textContent = CSS;
+    shadow.appendChild(sheet);
+  }
   const tpl = document.createElement("template");
   tpl.innerHTML = HTML;
-  shadow.append(sheet, tpl.content);
+  shadow.append(tpl.content);
   const queryInput = shadow.getElementById("query");
   const resultsEl = shadow.getElementById("results");
   const emptyEl = shadow.getElementById("empty");
-  const hostSheet = document.createElement("style");
-  hostSheet.textContent =
-    "rocci-goto{display:none;position:fixed;top:0;left:0;right:var(--rocci-chrome-right,0px);bottom:var(--rocci-chrome-bottom,0px);z-index:2147483646}rocci-goto.open{display:block}";
-
   let catalog = null;
   let catalogPromise = null;
   let filtered = [];
   let selected = 0;
   let lastAction = { name: "", at: 0 };
   let navigating = false;
+  let lastFocused = null;
+  let previousBodyOverflow = "";
 
   const once = (name, fn) => {
     const now = Date.now();
@@ -522,6 +527,11 @@
         finder.close();
       }
       host.classList.add("open");
+      lastFocused = document.activeElement;
+      if (document.body) {
+        previousBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+      }
       queryInput.value = "";
       queryInput.focus();
       loadCatalog().then(filter);
@@ -533,6 +543,13 @@
     filtered = [];
     resultsEl.textContent = "";
     emptyEl.hidden = true;
+    if (document.body) {
+      document.body.style.overflow = previousBodyOverflow;
+    }
+    if (lastFocused && lastFocused.focus) {
+      lastFocused.focus();
+    }
+    lastFocused = null;
   };
 
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || "");
@@ -590,9 +607,6 @@
   });
 
   const mount = () => {
-    if (hostSheet.isConnected === false && document.documentElement) {
-      document.documentElement.appendChild(hostSheet);
-    }
     if (!host.isConnected && document.documentElement) {
       document.documentElement.appendChild(host);
     }

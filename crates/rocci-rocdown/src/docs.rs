@@ -1871,9 +1871,27 @@ pub fn plan_segments(
     nodes: &[ArticleNode],
     rewrite: &BTreeMap<String, String>,
 ) -> (Vec<PlannedNode>, Vec<(String, String)>) {
+    plan_segments_with_islands(article_name, nodes, rewrite, &[])
+}
+
+pub fn plan_segments_with_islands(
+    article_name: &str,
+    nodes: &[ArticleNode],
+    rewrite: &BTreeMap<String, String>,
+    islands: &[String],
+) -> (Vec<PlannedNode>, Vec<(String, String)>) {
     let mut files = Vec::new();
     let mut counter = 0u32;
-    let segments = plan_nodes(article_name, nodes, rewrite, &mut files, &mut counter);
+    let mut island_index = 0usize;
+    let segments = plan_nodes(
+        article_name,
+        nodes,
+        rewrite,
+        islands,
+        &mut island_index,
+        &mut files,
+        &mut counter,
+    );
     (segments, files)
 }
 
@@ -1881,6 +1899,8 @@ fn plan_nodes(
     article_name: &str,
     nodes: &[ArticleNode],
     rewrite: &BTreeMap<String, String>,
+    islands: &[String],
+    island_index: &mut usize,
     files: &mut Vec<(String, String)>,
     counter: &mut u32,
 ) -> Vec<PlannedNode> {
@@ -1908,7 +1928,18 @@ fn plan_nodes(
     for node in nodes {
         match node {
             ArticleNode::Markdown(md) => markdown.push(md.clone()),
-            ArticleNode::Island => {}
+            ArticleNode::Island => {
+                flush(&mut markdown, files, counter, &mut segments);
+                let path = format!("articles/{article_name}.{counter}.html");
+                *counter += 1;
+                let html = islands
+                    .get(*island_index)
+                    .cloned()
+                    .unwrap_or_else(|| crate::islands::PLACEHOLDER.to_string());
+                *island_index += 1;
+                files.push((path.clone(), html));
+                segments.push(PlannedNode::Html { path });
+            }
             ArticleNode::Image(image) => {
                 flush(&mut markdown, files, counter, &mut segments);
                 let html = rewrite_urls(&render_static_image(image), rewrite);
@@ -1921,7 +1952,15 @@ fn plan_nodes(
                 if registry::lookup(&docs.kind).is_some_and(|spec| spec.paints_as_widget()) =>
             {
                 flush(&mut markdown, files, counter, &mut segments);
-                segments.push(widget_node(article_name, docs, rewrite, files, counter));
+                segments.push(widget_node(
+                    article_name,
+                    docs,
+                    rewrite,
+                    islands,
+                    island_index,
+                    files,
+                    counter,
+                ));
             }
             ArticleNode::Block(docs) => {
                 flush(&mut markdown, files, counter, &mut segments);
@@ -1941,12 +1980,22 @@ fn widget_node(
     article_name: &str,
     docs: &DocsNode,
     rewrite: &BTreeMap<String, String>,
+    islands: &[String],
+    island_index: &mut usize,
     files: &mut Vec<(String, String)>,
     counter: &mut u32,
 ) -> PlannedNode {
     let spec = registry::lookup(&docs.kind).expect("validated widget kind");
     let children = if spec.paint_content() {
-        plan_nodes(article_name, &docs.children, rewrite, files, counter)
+        plan_nodes(
+            article_name,
+            &docs.children,
+            rewrite,
+            islands,
+            island_index,
+            files,
+            counter,
+        )
     } else {
         Vec::new()
     };
