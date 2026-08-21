@@ -30,7 +30,6 @@ goal. Exact syntax lives in [reference](/docs/reference/).
 
 - [Develop and inspect](/docs/how-to/develop-and-inspect/) — run, view, browse, inspect, Dev panel
 - [Use the playground](/docs/how-to/use-the-playground/) — WASM versus local mode
-- [Use the project browser](/docs/how-to/use-the-project-browser/) — `rocci-browser`, not `rocci browse`
 - [Set up editors](/docs/how-to/set-up-editors/) — VS Code and Zed
 
 ## Configuration and shipping

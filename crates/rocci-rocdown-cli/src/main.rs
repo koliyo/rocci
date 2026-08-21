@@ -16,8 +16,6 @@ use rocci_rocdown::{
     write_static_document_preview,
 };
 
-mod browser;
-
 #[derive(Parser)]
 #[command(
     name = "rocdown",
@@ -124,8 +122,6 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
-    /// Speak the rocci-browser adapter protocol on stdio.
-    BrowserAdapter,
     /// Serve a previously built site tree without rebuilding.
     Serve {
         /// Built `dist/` directory (must contain `index.html`).
@@ -630,7 +626,6 @@ fn try_main() -> Result<()> {
             };
             rocci_cli::playground::run_playground_cli(&input, serve, "rocdown", mode.into(), hook)
         }
-        Commands::BrowserAdapter => browser::run(),
     }
 }
 
@@ -1292,12 +1287,6 @@ mod tests {
             }
             _ => panic!("expected inspect roc"),
         }
-    }
-
-    #[test]
-    fn browser_adapter_parses() {
-        let cli = Cli::try_parse_from(["rocdown", "browser-adapter"]).unwrap();
-        assert!(matches!(cli.command, Commands::BrowserAdapter));
     }
 
     #[test]

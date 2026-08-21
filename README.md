@@ -11,7 +11,7 @@ The workspace is organized into focused packages with strictly enforced one-way 
 - **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
 - **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).
 - **Open Knowledge Format:** `okf` (portable, UI-neutral knowledge engine), `rocci-okf` (`rocci-okf` application binary and review server).
-- **Tooling:** `rocci-lsp` (generic language-server core and Rocci analyzer), `rocci-rocdown-lsp` (shipped `rocci-language-server` for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library), `rocci-browser` (product-blind project picker and persistent preview window).
+- **Tooling:** `rocci-lsp` (generic language-server core and Rocci analyzer), `rocci-rocdown-lsp` (shipped `rocci-language-server` for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
 
 ## Run an example
 
@@ -127,21 +127,6 @@ The separate OKF knowledge path validates, inspects, searches, benchmarks, and r
 `knowledge/`. Its fixed lexical retrieval questions are measured by
 `rocci-okf benchmark`; the command reports hit rate and mean reciprocal
 rank and fails when the checked-in threshold is missed.
-
-### Project browser
-
-```sh
-cargo build -p rocci-browser -p rocci-cli -p rocci-rocdown-cli -p rocci-okf
-cargo run -q -p rocci-browser
-cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-points --no-window --json
-```
-
-`rocci-browser` keeps one preview window and a Cmd-P target picker. Cmd-K stays
-in-page Go to File. `rocci browse` is still the component gallery. On macOS,
-`uv run rocci-ops bundle browser-macos` assembles an ad-hoc **Rocci Browser.app**
-around that same host; it does not use `rocci bundle`. Production signing is
-planned. See
-[`docs/how-to/use-the-project-browser.rocdown`](docs/how-to/use-the-project-browser.rocdown).
 
 The public `rocci.dev` tree is [`site`](site), configured by
 [`site/rocdown.toml`](site/rocdown.toml) and written to `dist/rocci.dev`.

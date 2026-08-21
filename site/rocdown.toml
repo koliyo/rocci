@@ -52,7 +52,6 @@ items = [
     "docs/how-to/handle-requests-and-errors",
     "docs/how-to/develop-and-inspect",
     "docs/how-to/use-the-playground",
-    "docs/how-to/use-the-project-browser",
     "docs/how-to/set-up-editors",
     "docs/how-to/configure-and-secure",
     "docs/how-to/package-and-deploy",

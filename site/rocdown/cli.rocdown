@@ -30,8 +30,7 @@ cargo run -q -p rocci-rocdown-cli -- COMMAND
 | `inspect ast FILE` | Rocdown AST |
 | `inspect artifacts [ROOT]` | Planned output and page kinds |
 
-`rocdown` refuses OKF knowledge records; use `rocci-okf`. Project picker is
-`rocci-browser`, not this CLI.
+`rocdown` refuses OKF knowledge records; use `rocci-okf`.
 
 See [Write Rocdown pages](/rocdown/pages/), [Article blocks](/rocdown/article-blocks/),
 and [Site configuration](/rocdown/site-config/).

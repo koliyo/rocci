@@ -574,17 +574,6 @@ example = "/docs/how-to/configure-and-secure/"
 status = "current"
 
 [[feature]]
-id = "cli.browser-adapter"
-name = "rocci browser-adapter"
-area = "cli"
-owner = "rocci-cli"
-source = "crates/rocci-cli/src/browser.rs"
-contract = "crates/rocci-cli/tests/browser_adapter.rs"
-canonical = "/docs/reference/cli/#browser-adapter"
-example = "/docs/how-to/use-the-project-browser/"
-status = "current"
-
-[[feature]]
 id = "cli.serve.no-window"
 name = "--no-window"
 area = "cli"

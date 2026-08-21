@@ -1,4 +1,4 @@
-use rocci_cli::{browse, browser, bundle, datastar_asset, render_file, run, serve, style, view};
+use rocci_cli::{browse, bundle, datastar_asset, render_file, run, serve, style, view};
 
 use std::{
     env, fs,
@@ -115,8 +115,6 @@ enum Commands {
         #[command(subcommand)]
         command: DatastarCmd,
     },
-    /// Speak the rocci-browser adapter protocol on stdio.
-    BrowserAdapter,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
@@ -246,7 +244,6 @@ fn try_main() -> Result<()> {
             DatastarCmd::Update { app } => datastar_asset::update_app(&app),
             DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),
         },
-        Commands::BrowserAdapter => browser::run(),
     }
 }
 
@@ -664,12 +661,6 @@ mod tests {
             } => assert_eq!(app, PathBuf::from(".")),
             _ => panic!("unexpected command"),
         }
-    }
-
-    #[test]
-    fn browser_adapter_parses() {
-        let cli = Cli::try_parse_from(["rocci", "browser-adapter"]).unwrap();
-        assert!(matches!(cli.command, Commands::BrowserAdapter));
     }
 
     #[test]

@@ -21,7 +21,6 @@ members = [
     "crates/rocci-playground-spike",
     "crates/rocci-playground",
     "crates/rocci-playground-wasm",
-    "crates/rocci-browser",
 ]
 exclude = ["editors/zed"]
 default-members = ["crates/rocci-cli"]
@@ -40,7 +39,6 @@ rocci-roc-host = { path = "crates/rocci-roc-host" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }
 rocci-docs = { path = "crates/rocci-docs" }
-rocci-browser = { path = "crates/rocci-browser" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
 rocci-template = { path = "crates/rocci-template" }
