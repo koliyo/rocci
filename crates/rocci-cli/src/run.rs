@@ -255,6 +255,7 @@ fn plan_standalone(
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
+            live: compiled.live,
             routes: compiled.routes,
             mapped: MappedModule {
                 type_name,
@@ -395,6 +396,7 @@ struct CompiledSource {
     roc: String,
     state_type: Option<String>,
     init: Option<rocci_template::InitInfo>,
+    live: Option<rocci_template::LiveInfo>,
     routes: Vec<rocci_template::RouteInfo>,
     failed: bool,
     diagnostics: Vec<Diagnostic>,
@@ -417,6 +419,7 @@ fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
         roc: compiled.roc,
         state_type: compiled.state_type,
         init: compiled.init,
+        live: compiled.live,
         routes: compiled.routes,
         failed,
         diagnostics: compiled.diagnostics,
