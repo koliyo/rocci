@@ -792,7 +792,6 @@ fn semantic_tokens_counter_rocci_qualified_precision() {
     }
 }
 
-
 #[test]
 fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     let src = r#"
