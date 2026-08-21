@@ -264,11 +264,11 @@ boundaries by default:
   README documents substantially more author-visible behavior: defaulted
   fields, component calling, action attributes, whitespace, generated Roc,
   server handler semantics, and deliberate limits.[^rocci-reference][^template-readme]
-- The public CLI page combines `rocci`, `rocdown`, `rocci-okf`, and
-  `rocci-browser`. The Rocci CLI README already describes a richer Rocci-only
-  development surface, including build, run, view, browse, playground,
-  rendering, inspection, release packaging, bundling, Datastar assets, and the
-  preview inspector.[^cli-reference][^cli-readme]
+- The public CLI page combines `rocci`, `rocdown`, and `rocci-okf`. The Rocci
+  CLI README already describes a richer Rocci-only development surface,
+  including build, run, view, browse, playground, rendering, inspection,
+  release packaging, bundling, Datastar assets, and the preview
+  inspector.[^cli-reference][^cli-readme]
 - Configuration has a useful complete-shape page, but the eventual reference
   needs field types, defaults, requirements, platform support, interactions,
   validation failures, and task links for every supported field.[^configuration-reference]

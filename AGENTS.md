@@ -22,7 +22,6 @@
 | Shared runtime configuration | `crates/rocci-core` |
 | Application documentation staging | `crates/rocci-docs` |
 | CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-desktop` |
-| CLI/desktop host behavior for the project browser | `crates/rocci-browser` |
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
 | Portable OKF parsing, validation, search, and artifacts | `crates/okf` |
 | Knowledge review CLI, desktop preview, and bundle tools | `crates/rocci-okf` |

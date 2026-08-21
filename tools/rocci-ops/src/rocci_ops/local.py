@@ -118,13 +118,6 @@ def bundle_macos() -> int:
     return 0
 
 
-def bundle_browser_macos() -> int:
-    require_darwin("Rocci Browser.app")
-    run(["cargo", "build", "--release", "-p", "rocci-browser"])
-    run(["cargo", "run", "--release", "-q", "-p", "rocci-browser", "--", "package"])
-    return 0
-
-
 def install_cursor_extension() -> int:
     root = repo_root()
     vsix = list((root / "editors" / "vscode").glob("rocci-*.vsix"))
@@ -480,9 +473,7 @@ def main(argv: list[str]) -> int:
     if command == "bundle":
         if rest == ["macos"]:
             return bundle_macos()
-        if rest == ["browser-macos"]:
-            return bundle_browser_macos()
-        raise SystemExit("usage: rocci-ops bundle macos|browser-macos")
+        raise SystemExit("usage: rocci-ops bundle macos")
     if command == "install-cursor-extension":
         return install_cursor_extension()
     if command == "build-playground":

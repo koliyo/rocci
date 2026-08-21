@@ -15,7 +15,6 @@ clap = { workspace = true }
 rocci-cli = { workspace = true }
 rocci-playground = { workspace = true }
 rocci-rocdown = { workspace = true }
-rocci-browser = { workspace = true }
 rocci-desktop = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

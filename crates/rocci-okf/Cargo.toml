@@ -19,7 +19,6 @@ rocci-desktop = { workspace = true }
 rocci-roc-host = { workspace = true, features = ["wasmtime"] }
 rocci-template = { workspace = true }
 rocci-ui = { workspace = true }
-rocci-browser = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10"

@@ -18,9 +18,8 @@
 
 **Status:** current.
 
-This page documents the `rocci` binary only. `rocdown`, `rocci-okf`, and
-`rocci-browser` are other products; see [Rocdown](/rocdown/) and
-[Project browser](/docs/how-to/use-the-project-browser/).
+This page documents the `rocci` binary only. `rocdown` and `rocci-okf` are
+other products; see [Rocdown](/rocdown/).
 
 Examples use a source checkout. Until a distribution exists, the spelling is
 `cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo
@@ -77,7 +76,7 @@ Preview one component. HTTP declarations are ignored. `--component Hello` and
 cargo run -q -p rocci-cli -- browse [ROOTS…]
 ```
 
-Component gallery. Not `rocci-browser`.
+Component gallery.
 
 ## Playground
 
@@ -132,14 +131,6 @@ cargo run -q -p rocci-cli -- datastar update [--app PATH]
 ```
 
 Pin or upgrade the Datastar JS asset. `run` does not auto-upgrade.
-
-## Browser adapter
-
-```sh
-cargo run -q -p rocci-cli -- browser-adapter
-```
-
-Stdio protocol for `rocci-browser`. Not an author-facing daily command.
 
 ## Serve options
 
