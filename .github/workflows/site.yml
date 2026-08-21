@@ -57,8 +57,16 @@ jobs:
             examples/rocci/custom/datastar \
             --target x64musl \
             --output dist/examples-live/datastar
+          cargo run -q -p rocci-cli -- build --release \
+            examples/rocci/custom/blocks \
+            --target x64musl \
+            --output dist/examples-live/blocks
           test -f dist/examples-live/live-counter/server
           test -f dist/examples-live/datastar/server
+          test -f dist/examples-live/blocks/server
+          test -d dist/examples-live/blocks/assets
+          cp dist/examples-live/blocks/server dist/blocks
+          tar -C dist/examples-live/blocks -czf dist/blocks-assets.tgz assets
           test ! -e dist/examples-live/counter
           test ! -e dist/examples-live/snake
           test ! -e dist/examples-live/styling
@@ -75,6 +83,8 @@ jobs:
             dist/rocci.dev/publish.json
             dist/examples-live/live-counter/server
             dist/examples-live/datastar/server
+            dist/blocks
+            dist/blocks-assets.tgz
 
   deploy:
     name: Push artifacts (${{ github.ref_name }})
@@ -106,8 +116,10 @@ jobs:
           ls -la artifacts
           test -f artifacts/site.tgz
           test -f artifacts/islands
-          wc -c artifacts/site.tgz artifacts/islands
-          file artifacts/islands || true
+          test -f artifacts/blocks
+          test -f artifacts/blocks-assets.tgz
+          wc -c artifacts/site.tgz artifacts/islands artifacts/blocks artifacts/blocks-assets.tgz
+          file artifacts/islands artifacts/blocks || true
       - name: Install cloudflared
         run: |
           set -euo pipefail

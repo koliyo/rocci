@@ -18,6 +18,9 @@
 	handle /health {
 		reverse_proxy islands:8001
 	}
+	handle /health/blocks {
+		reverse_proxy blocks:8000
+	}
 	@hashed path /assets/*
 	handle @hashed {
 		root * /src/site/dist
