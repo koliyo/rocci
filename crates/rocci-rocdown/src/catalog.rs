@@ -158,6 +158,8 @@ pub struct Edge {
 pub struct NavSection {
     pub label: String,
     pub items: Vec<NavItem>,
+    #[serde(default)]
+    pub children: Vec<NavSection>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -789,57 +791,13 @@ fn resolve_navigation(
 ) -> Vec<NavSection> {
     let by_id: BTreeMap<&str, &ResolvedPage> =
         pages.iter().map(|page| (page.id.as_str(), page)).collect();
-    let mut seen = BTreeMap::<&str, &str>::new();
+    let mut seen = BTreeMap::<String, String>::new();
     let mut navigation = Vec::new();
 
     for section in configured {
-        let ids = if section.items.is_empty() {
-            directory_ids(pages, section.directory.as_deref().unwrap_or_default())
-        } else {
-            section.items.clone()
-        };
-        if ids.is_empty() {
-            diagnostics.push(CatalogDiagnostic::error(
-                "RD2204",
-                "rocdown.toml",
-                format!("navigation section `{}` has no pages", section.label),
-            ));
-            continue;
-        }
-        let mut items = Vec::new();
-        for id in ids {
-            let Some(page) = by_id.get(id.as_str()) else {
-                diagnostics.push(CatalogDiagnostic::error(
-                    "RD2201",
-                    "rocdown.toml",
-                    format!(
-                        "navigation section `{}` references unknown page id `{id}`",
-                        section.label
-                    ),
-                ));
-                continue;
-            };
-            if let Some(previous) = seen.insert(page.id.as_str(), section.label.as_str()) {
-                diagnostics.push(CatalogDiagnostic::error(
-                    "RD2203",
-                    &page.source_path,
-                    format!(
-                        "navigation page `{id}` appears in both `{previous}` and `{}`",
-                        section.label
-                    ),
-                ));
-            }
-            items.push(NavItem {
-                id: page.id.clone(),
-                title: page.title.clone(),
-                route: page.route.clone(),
-            });
-        }
-        if !items.is_empty() {
-            navigation.push(NavSection {
-                label: section.label.clone(),
-                items,
-            });
+        if let Some(resolved) = resolve_nav_section(section, pages, &by_id, &mut seen, diagnostics)
+        {
+            navigation.push(resolved);
         }
     }
 
@@ -855,10 +813,120 @@ fn resolve_navigation(
                     route: page.route.clone(),
                 })
                 .collect(),
+            children: Vec::new(),
         });
     }
 
     navigation
+}
+
+fn resolve_nav_section(
+    section: &NavConfig,
+    pages: &[ResolvedPage],
+    by_id: &BTreeMap<&str, &ResolvedPage>,
+    seen: &mut BTreeMap<String, String>,
+    diagnostics: &mut Vec<CatalogDiagnostic>,
+) -> Option<NavSection> {
+    let ids = if section.items.is_empty() && section.groups.is_empty() {
+        directory_ids(pages, section.directory.as_deref().unwrap_or_default())
+    } else {
+        section.items.clone()
+    };
+    let mut items = Vec::new();
+    for id in ids {
+        let Some(page) = by_id.get(id.as_str()) else {
+            diagnostics.push(CatalogDiagnostic::error(
+                "RD2201",
+                "rocdown.toml",
+                format!(
+                    "navigation section `{}` references unknown page id `{id}`",
+                    section.label
+                ),
+            ));
+            continue;
+        };
+        if let Some(previous) = seen.insert(page.id.clone(), section.label.clone()) {
+            diagnostics.push(CatalogDiagnostic::error(
+                "RD2203",
+                &page.source_path,
+                format!(
+                    "navigation page `{id}` appears in both `{previous}` and `{}`",
+                    section.label
+                ),
+            ));
+        }
+        items.push(NavItem {
+            id: page.id.clone(),
+            title: page.title.clone(),
+            route: page.route.clone(),
+        });
+    }
+    let mut children = Vec::new();
+    for group in &section.groups {
+        if let Some(child) = resolve_nav_section(group, pages, by_id, seen, diagnostics) {
+            children.push(child);
+        }
+    }
+    if items.is_empty() && children.is_empty() {
+        diagnostics.push(CatalogDiagnostic::error(
+            "RD2204",
+            "rocdown.toml",
+            format!("navigation section `{}` has no pages", section.label),
+        ));
+        return None;
+    }
+    Some(NavSection {
+        label: section.label.clone(),
+        items,
+        children,
+    })
+}
+
+fn nav_section_links(section: &NavSection) -> Vec<NavLink> {
+    let mut links: Vec<NavLink> = section
+        .items
+        .iter()
+        .map(|item| NavLink {
+            id: item.id.clone(),
+            title: item.title.clone(),
+            route: item.route.clone(),
+        })
+        .collect();
+    for child in &section.children {
+        links.extend(nav_section_links(child));
+    }
+    links
+}
+
+fn collect_section_crumbs<'a>(
+    section: &'a NavSection,
+    map: &mut BTreeMap<&'a str, (&'a str, String)>,
+) {
+    for child in &section.children {
+        collect_section_crumbs(child, map);
+    }
+    let href = first_nav_item(section)
+        .map(|item| item.route.clone())
+        .unwrap_or_default();
+    for item in &section.items {
+        map.entry(item.id.as_str())
+            .or_insert((section.label.as_str(), href.clone()));
+    }
+}
+
+pub(crate) fn first_nav_item(section: &NavSection) -> Option<&NavItem> {
+    section
+        .items
+        .first()
+        .or_else(|| section.children.iter().find_map(first_nav_item))
+}
+
+pub(crate) fn section_contains(section: &NavSection, id: &str) -> bool {
+    section.items.iter().any(|item| item.id == id)
+        || section
+            .children
+            .iter()
+            .any(|child| section_contains(child, id))
 }
 
 fn directory_ids(pages: &[ResolvedPage], directory: &str) -> Vec<String> {
@@ -889,16 +957,7 @@ fn apply_journey(
     navigation: &[NavSection],
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) {
-    let listed: Vec<NavLink> = navigation
-        .iter()
-        .flat_map(|section| {
-            section.items.iter().map(|item| NavLink {
-                id: item.id.clone(),
-                title: item.title.clone(),
-                route: item.route.clone(),
-            })
-        })
-        .collect();
+    let listed: Vec<NavLink> = navigation.iter().flat_map(nav_section_links).collect();
     let listed_ids: BTreeSet<&str> = listed.iter().map(|item| item.id.as_str()).collect();
     let home = pages
         .iter()
@@ -908,15 +967,10 @@ fn apply_journey(
             title: page.title.clone(),
             route: page.route.clone(),
         });
-    let section_for: BTreeMap<&str, &str> = navigation
-        .iter()
-        .flat_map(|section| {
-            section
-                .items
-                .iter()
-                .map(move |item| (item.id.as_str(), section.label.as_str()))
-        })
-        .collect();
+    let mut section_for = BTreeMap::<&str, (&str, String)>::new();
+    for section in navigation {
+        collect_section_crumbs(section, &mut section_for);
+    }
 
     for page in pages.iter_mut() {
         page.unlisted = !page.draft && page.route != "/" && !listed_ids.contains(page.id.as_str());
@@ -931,19 +985,13 @@ fn apply_journey(
         if let Some(home) = &home {
             crumbs.push(home.clone());
         }
-        if let Some(label) = section_for.get(page.id.as_str())
+        if let Some((label, section_href)) = section_for.get(page.id.as_str())
             && home.as_ref().is_none_or(|home| home.id != page.id)
         {
-            let section_href = navigation
-                .iter()
-                .find(|section| section.label == *label)
-                .and_then(|section| section.items.first())
-                .map(|item| item.route.clone())
-                .unwrap_or_default();
             crumbs.push(NavLink {
                 id: String::new(),
                 title: (*label).to_string(),
-                route: section_href,
+                route: section_href.clone(),
             });
         }
         if home.as_ref().is_none_or(|home| home.id != page.id) {
@@ -1187,6 +1235,7 @@ mod tests {
                     label: "Start".into(),
                     items: vec!["index".into(), "guide".into()],
                     directory: None,
+                    groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
             },
@@ -1236,6 +1285,7 @@ mod tests {
                     label: "Guides".into(),
                     items: Vec::new(),
                     directory: Some("guides".into()),
+                    groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
             },
@@ -1250,6 +1300,76 @@ mod tests {
         assert!(!result.site.unlisted.contains(&"index".to_string()));
         assert!(!codes(&result).contains(&"RD2202"));
         assert!(!result.has_errors());
+    }
+
+    #[test]
+    fn resolves_nested_navigation_groups() {
+        let pages = [
+            page(
+                "docs/index",
+                "docs/index.rocdown",
+                RouteHint::Derived,
+                "Docs",
+            ),
+            page(
+                "docs/tutorials/index",
+                "docs/tutorials/index.rocdown",
+                RouteHint::Derived,
+                "Tutorials",
+            ),
+            page(
+                "docs/tutorials/first-component",
+                "docs/tutorials/first-component.rocdown",
+                RouteHint::Derived,
+                "Build your first component",
+            ),
+        ];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Docs".into(),
+                    items: Vec::new(),
+                    directory: None,
+                    groups: vec![NavConfig {
+                        label: "Tutorials".into(),
+                        items: vec![
+                            "docs/tutorials/index".into(),
+                            "docs/tutorials/first-component".into(),
+                        ],
+                        directory: None,
+                        groups: Vec::new(),
+                    }],
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+        assert!(!result.has_errors(), "{}", result.error_summary());
+        assert_eq!(result.site.navigation[0].label, "Docs");
+        assert!(result.site.navigation[0].items.is_empty());
+        assert_eq!(result.site.navigation[0].children[0].label, "Tutorials");
+        assert_eq!(
+            result.site.navigation[0].children[0].items[1].title,
+            "Build your first component"
+        );
+        let tutorial = result
+            .site
+            .pages
+            .iter()
+            .find(|page| page.id == "docs/tutorials/first-component")
+            .unwrap();
+        assert!(
+            tutorial
+                .breadcrumbs
+                .iter()
+                .any(|crumb| crumb.title == "Tutorials")
+        );
+        assert!(
+            !result
+                .site
+                .unlisted
+                .contains(&"docs/tutorials/first-component".to_string())
+        );
     }
 
     #[test]

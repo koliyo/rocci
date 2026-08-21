@@ -139,7 +139,25 @@ import PageOutline
         overflow-y: auto;
         border-right: 1px solid var(--line);
     }
-    .nav-section + .nav-section { margin-top: 1.65rem; }
+    .nav-section { margin: 0; }
+    .nav-section + .nav-section { margin-top: .28rem; }
+    .nav-section summary {
+        list-style: none;
+        cursor: pointer;
+        position: relative;
+        padding-right: 1.75rem;
+    }
+    .nav-section summary::-webkit-details-marker { display: none; }
+    .nav-section summary::after {
+        content: "+";
+        position: absolute;
+        right: .68rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--faint);
+        font-weight: 500;
+    }
+    .nav-section[open] > summary::after { content: "−"; }
     .nav-label {
         margin: 0 0 .42rem .68rem;
         color: var(--faint);
@@ -165,23 +183,12 @@ import PageOutline
         font-weight: 680;
     }
     .nav-category {
-        position: relative;
-        padding-right: 1.75rem;
         color: var(--ink);
         font-weight: 680;
     }
-    .nav-category::after {
-        content: "+";
-        position: absolute;
-        right: .68rem;
-        color: var(--faint);
-        font-weight: 500;
-    }
-    .nav-category.is-expanded::after { content: "−"; }
-    .nav-category.is-expanded:not(.is-current) {
+    .nav-section[open] > summary .nav-category:not(.is-current) {
         color: var(--accent-strong);
     }
-    .nav-category:not(:first-child) { margin-top: .28rem; }
     .nav-child {
         margin-left: .7rem;
         padding-left: 1rem;
@@ -859,12 +866,14 @@ import PageOutline
                         <span class="header-subtitle">{site.subtitle}</span>
                     }
                     <nav class="lanes" aria-label="Sections">
-                        @for lane in lanes {
-                            <a
-                                class={if lane.current { "lane-link is-current" } else { "lane-link" }}
-                                href={lane.href}
-                                aria-current={if lane.current { "true" } else { "false" }}
-                            >{lane.label}</a>
+                        @if !List.is_empty(lanes) {
+                            @for lane in lanes {
+                                <a
+                                    class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                    href={lane.href}
+                                    aria-current={if lane.current { "true" } else { "false" }}
+                                >{lane.label}</a>
+                            }
                         }
                     </nav>
                     <div class="header-actions">
@@ -877,12 +886,14 @@ import PageOutline
                         <summary>Menu</summary>
                         <div class="mobile-panel">
                             <nav aria-label="Sections">
-                                @for lane in lanes {
-                                    <a
-                                        class={if lane.current { "lane-link is-current" } else { "lane-link" }}
-                                        href={lane.href}
-                                        aria-current={if lane.current { "true" } else { "false" }}
-                                    >{lane.label}</a>
+                                @if !List.is_empty(lanes) {
+                                    @for lane in lanes {
+                                        <a
+                                            class={if lane.current { "lane-link is-current" } else { "lane-link" }}
+                                            href={lane.href}
+                                            aria-current={if lane.current { "true" } else { "false" }}
+                                        >{lane.label}</a>
+                                    }
                                 }
                             </nav>
                             <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
