@@ -444,6 +444,13 @@ Exit when a first-time visitor can choose a task from the first screen, no
 generated title repeats `Rocci`, FAQ questions deep-link and point to canonical
 owners, and public status terms match current implementation evidence.
 
+**Phase 4 exit recorded 2026-08-22:** Home now presents task paths before proof
+and maturity, FAQ exposes six deep-linkable questions with canonical follow-up
+pages, the planned view carries an explicitly composed document title, and all
+141 rendered page titles contain the brand exactly once. Project Status and
+Roadmap now distinguish the shipped hybrid path from reserved `@island` syntax
+and bound desktop and cross-platform claims to the verified repository state.
+
 ### Phase 5 — reduce authoring noise and unify the local workflow
 
 #### Bound

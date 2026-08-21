@@ -1,8 +1,8 @@
 @page {
     layout: "home",
     meta: {
-        title: "Rocci · Roc-native interfaces & Markdown-first documents",
-        description: "Build Roc-native interfaces, Markdown-first documents, and lightweight desktop apps with functional purity and the open web platform.",
+        title: "Roc-native interfaces and Markdown-first documents",
+        description: "Choose a path into Rocci applications, Rocdown documentation sites, working examples, or the project's experimental status.",
     },
 }
 
@@ -11,20 +11,30 @@ import Datastar
 import LiveCounterUi
 }
 
-# Roc-native interfaces and Markdown-first documents
+# Build interfaces and documentation with Roc
 
-Rocci connects Roc's compile-time guarantees with ordinary HTML, CSS, and a small desktop host. This site is the working tree for public docs: add pages under `site/`, keep chrome in `site/theme/`, and preview with `rocdown run site`.
+Rocci compiles Roc-native interfaces to ordinary HTML. Rocdown adds Markdown-first pages and static or hybrid documentation sites. Pick the path that matches what you want to make.
 
 :card-grid.begin
     :link-card[page: "docs/start/what-is-rocci", title: "Getting started", summary: "Install from source and preview a first Rocci component."]
     :link-card[page: "rocdown/index", title: "Rocdown", summary: "Markdown-first documents and static sites."]
     :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
-    :link-card[page: "project/index", title: "Project", summary: "Status, roadmap, and how to contribute."]
+    :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
 :card-grid.end
 
-## Try a live island
+## See the model in one minute
+
+Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Datastar actions only where an interaction needs them. For prose-led work, keep articles in `.rocdown` and presentation in a project theme.
+
+- [Build your first component](/docs/start/five-minutes/)
+- [Author a Rocdown page](/rocdown/pages/)
+- [Study complete examples](/examples/)
+
+## Try the shipped hybrid path
 
 The card below is the [live counter](/examples/live-counter/) app composed into this page: CDN snapshot HTML, then `GET /sse` keeps the shared count and recent click origins in sync across tabs. Place comes from your browser timezone or a chosen override — neither is verified.
 
 @render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
-See [Rocci in five minutes](/docs/start/five-minutes/) to run a component locally, or [Publish a hybrid Rocdown site](/rocdown/hybrid/) for CDN plus `serve-islands`.
+## Know the maturity boundary
+
+Rocci is an active experiment. The compiler, local runtime, Rocdown site generator, hybrid serving path, editor integration, and local macOS bundling work today. Production distribution and broad cross-platform validation are not complete. Read [Project status](/project/status/) before adopting it.

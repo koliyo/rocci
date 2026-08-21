@@ -10,7 +10,7 @@ import PageOutline
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <meta name="color-scheme" content="light dark" />
             <meta http-equiv="Content-Security-Policy" content={view.resources.csp} />
-            <title>{view.title} · {view.site.title}</title>
+            <title>{view.document_title}</title>
             <link rel="stylesheet" href={view.resources.stylesheet} />
             @if view.description != "" {
                 <meta name="description" content={view.description} />

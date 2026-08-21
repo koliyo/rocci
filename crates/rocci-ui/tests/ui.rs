@@ -37,6 +37,7 @@ fn test_view_constructors_and_serialization() {
         )],
         route: "/guide/".into(),
         title: "Guide".into(),
+        document_title: "Guide · Documentation".into(),
         description: "Getting started".into(),
         layout: "docs".into(),
         published: "2026-08-18".into(),
