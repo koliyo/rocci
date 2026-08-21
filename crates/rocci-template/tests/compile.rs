@@ -1403,8 +1403,9 @@ fn injects_data_init_on_body_when_live() {
     assert!(out.live.is_some());
     assert!(out.roc.contains("import Datastar"));
     assert!(
-        out.roc
-            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])"),
+        out.roc.contains(
+            "Html.attribute(\"data-init\", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])),"
+        ),
         "{}",
         out.roc
     );
@@ -1500,10 +1501,9 @@ fn live_counter_example_compiles_as_standalone_app() {
             && route.path == "/actions/counter/reset"
             && route.respond == rocci_template::RespondKind::Json
     }));
-    assert!(
-        out.roc
-            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])")
-    );
+    assert!(out.roc.contains(
+        "Html.attribute(\"data-init\", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])),"
+    ));
 }
 
 #[test]
