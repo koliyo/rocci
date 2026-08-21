@@ -39,6 +39,8 @@ def compose_env(root: Path) -> dict[str, str]:
     env["COMPOSE_PROJECT_NAME"] = env.get("COMPOSE_PROJECT_NAME") or "rocci-prod"
     env["ROCCI_DIST"] = str(root / "dist")
     env["ROCCI_ISLANDS_CONTEXT"] = str(root / "islands-context")
+    env["ROCCI_BLOCKS_CONTEXT"] = str(root / "blocks-context")
+    env.setdefault("BLOCKS_SPECTATOR_CAP", "20")
     env["ROCCI_HTTP_PORT"] = http_port()
     return env
 
@@ -52,10 +54,10 @@ def compose_up(root: Path, *, runner=subprocess.run) -> None:
         str(compose_file()),
         "--project-directory",
         str(compose_project_dir()),
-        "up",
-        "-d",
-        "--build",
     ]
+    if (root / "blocks-context" / "server").is_file():
+        argv.extend(["--profile", "blocks"])
+    argv.extend(["up", "-d", "--build"])
     result = runner(argv, env=env, check=False)
     if result.returncode != 0:
         raise SystemExit("error: docker compose failed")
@@ -69,15 +71,40 @@ def health_ok(url: str, *, fetch=urllib.request.urlopen) -> bool:
         return False
 
 
+def health_urls() -> list[str]:
+    port = http_port()
+    return [
+        f"http://127.0.0.1:{port}/health",
+        f"http://127.0.0.1:{port}/health/blocks",
+    ]
+
+
 def wait_health(*, attempts: int = 36, delay: float = 5.0, fetch=urllib.request.urlopen, sleeper=time.sleep) -> bool:
-    url = f"http://127.0.0.1:{http_port()}/health"
+    urls = health_urls()
     for index in range(1, attempts + 1):
-        ok = health_ok(url, fetch=fetch)
+        ok = all(health_ok(url, fetch=fetch) for url in urls)
         print(f"health {index}/{attempts} {'200' if ok else 'fail'}", flush=True)
         if ok:
             return True
         sleeper(delay)
     return False
+
+
+def install_blocks_context(release: Path, binary: Path, assets_tgz: Path) -> None:
+    if not binary.is_file():
+        raise SystemExit(f"error: missing {binary}")
+    if not assets_tgz.is_file():
+        raise SystemExit(f"error: missing {assets_tgz}")
+    context = release / "blocks-context"
+    context.mkdir(parents=True, exist_ok=True)
+    docker = repo_root() / "docker"
+    shutil.copy2(docker / "blocks" / "Dockerfile", context / "Dockerfile")
+    shutil.copy2(binary, context / "server")
+    (context / "server").chmod(0o755)
+    with tarfile.open(assets_tgz) as archive:
+        archive.extractall(context, filter="data")
+    if not (context / "assets").is_dir():
+        raise SystemExit("error: blocks-assets.tgz did not contain assets/")
 
 
 def unpack_release(sha: str, incoming: Path, release: Path) -> None:
@@ -97,6 +124,7 @@ def unpack_release(sha: str, incoming: Path, release: Path) -> None:
     shutil.copy2(docker / "islands" / "Dockerfile", context / "Dockerfile")
     shutil.copy2(binary, context / "islands")
     (context / "islands").chmod(0o755)
+    install_blocks_context(release, incoming / "blocks", incoming / "blocks-assets.tgz")
 
 
 def prune_releases(releases: Path, keep_n: int) -> None:
@@ -136,7 +164,14 @@ def publish(sha: str, *, runner=subprocess.run, fetch=urllib.request.urlopen, sl
     return 0
 
 
-def up(dist_arg: Path, bin_arg: Path, *, runner=subprocess.run) -> int:
+def up(
+    dist_arg: Path,
+    bin_arg: Path,
+    blocks_bin: Path,
+    blocks_assets_tgz: Path,
+    *,
+    runner=subprocess.run,
+) -> int:
     if not dist_arg.is_dir():
         raise SystemExit(f"error: not a directory: {dist_arg}")
     if not bin_arg.is_file():
@@ -157,6 +192,7 @@ def up(dist_arg: Path, bin_arg: Path, *, runner=subprocess.run) -> int:
     shutil.copy2(docker / "islands" / "Dockerfile", context / "Dockerfile")
     shutil.copy2(bin_arg, context / "islands")
     (context / "islands").chmod(0o755)
+    install_blocks_context(current, blocks_bin, blocks_assets_tgz)
     compose_up(current, runner=runner)
     print(f"origin up: http://127.0.0.1:{http_port()}/", flush=True)
     return 0
@@ -185,6 +221,25 @@ def backup(dest_dir: Path, *, runner=subprocess.run) -> int:
         check=True,
     )
     print(f"wrote {dest_dir / dest_name}", flush=True)
+    blocks_volume = os.environ.get("ROCCI_BLOCKS_VOLUME") or f"{project}_blocks-db"
+    blocks_name = f"blocks-{stamp}.db"
+    runner(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            f"{blocks_volume}:/data:ro",
+            "-v",
+            f"{dest_dir}:/backup",
+            "debian:bookworm-slim",
+            "cp",
+            "/data/blocks.db",
+            f"/backup/{blocks_name}",
+        ],
+        check=True,
+    )
+    print(f"wrote {dest_dir / blocks_name}", flush=True)
     return 0
 
 
@@ -196,13 +251,20 @@ def main(argv: list[str]) -> int:
     up_p = sub.add_parser("up")
     up_p.add_argument("dist_dir")
     up_p.add_argument("islands_bin")
+    up_p.add_argument("blocks_bin")
+    up_p.add_argument("blocks_assets_tgz")
     bak = sub.add_parser("backup")
     bak.add_argument("dest_dir", nargs="?", default="/var/backups/rocci")
     ns = parser.parse_args(argv)
     if ns.command == "publish":
         return publish(ns.sha)
     if ns.command == "up":
-        return up(Path(ns.dist_dir), Path(ns.islands_bin))
+        return up(
+            Path(ns.dist_dir),
+            Path(ns.islands_bin),
+            Path(ns.blocks_bin),
+            Path(ns.blocks_assets_tgz),
+        )
     if ns.command == "backup":
         return backup(Path(ns.dest_dir))
     raise SystemExit(2)

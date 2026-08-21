@@ -296,6 +296,16 @@ generated = ["/examples/datastar/", "/examples/datastar/source/"]
 notes = "Custom main.roc gallery. Live hostname planned."
 
 [[app]]
+id = "blocks"
+path = "examples/rocci/custom/blocks"
+entry = "."
+hosting = "live"
+role = "advanced-stress"
+prose = "examples/rocci/custom/blocks/index.rocdown"
+generated = ["/examples/blocks/", "/examples/blocks/source/"]
+notes = "First-party same-origin falling-block arena. Live URL is /play/blocks/."
+
+[[app]]
 id = "snake"
 path = "examples/rocci/custom/snake"
 entry = "."

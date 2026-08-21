@@ -14,13 +14,16 @@
 
 Play lives at `/play/blocks/` on rocci.dev. Ordinary live examples use
 `<id>.examples.rocci.dev`; this demonstrator is a Caddy prefix exception.
-Public copy says “falling-block arena.”
+Public copy says “falling-block arena.” The arena is **experimental**: spectator
+admission starts at 20; a 24-hour public observation is operator work after
+the origin route is enabled.
 
 Roc validates every committed lock. The browser owns falling-piece motion.
 Attacks go to one rotating opponent. Spectator leases default to 20 (design
 ceiling 50).
 
-See the [source tree](/examples/blocks/source/).
+See the [source tree](/examples/blocks/source/) or
+[open the live arena](https://rocci.dev/play/blocks/).
 
 ## Run locally
 

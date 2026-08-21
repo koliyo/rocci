@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–5 implemented on multiplayer-falling-block-demonstrator. Staging Tunnel soak is an operator gate."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–6 implemented on multiplayer-falling-block-demonstrator. Staging soak and 24-hour public observation are operator gates."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T16:45:00Z }
+generated: { by: process:cursor, at: 2026-08-21T17:00:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -461,6 +461,13 @@ Phase 5 is implemented in-repo: catalog `live_url` for `/play/blocks/`, `index.r
 `docker/blocks/Dockerfile`, Compose profile `blocks` with a 512 MiB limit, and Caddy
 `/play/blocks/*` before static fallback (island `/actions/*` and `/sse` unchanged).
 The Access-gated staging Tunnel soak is an operator gate and was not run.
+
+Phase 6 is implemented in-repo: origin publish unpacks a musl Blocks server,
+enables Compose profile `blocks` when that release contains it, waits on
+`/health` and `/health/blocks`, links the arena from the home page and
+`/examples/`, and documents experimental controls at spectator cap 20. The
+24-hour public observation and Cloudflare UI cache/rate rules are operator
+gates and were not run.
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 
