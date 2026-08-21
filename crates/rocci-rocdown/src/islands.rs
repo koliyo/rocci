@@ -47,7 +47,12 @@ pub fn fill_placeholders(article_html: &str, islands: &[String]) -> Result<Strin
     Ok(out)
 }
 
-pub fn evaluate_page(source_path: &Path, source_name: &str, src: &str) -> Result<EvaluatedIslands> {
+pub fn evaluate_page(
+    source_path: &Path,
+    source_name: &str,
+    src: &str,
+    service: Option<&Path>,
+) -> Result<EvaluatedIslands> {
     let mut lower = LowerOptions::default();
     lower.embed_css = false;
     let compiled = compile_islands(
@@ -102,6 +107,7 @@ pub fn evaluate_page(source_path: &Path, source_name: &str, src: &str) -> Result
         src,
         &compiled.roc,
         &compiled.segments,
+        service,
     )?;
     Ok(EvaluatedIslands { html, css })
 }
@@ -112,6 +118,7 @@ fn render_islands(
     src: &str,
     roc: &str,
     segments: &[rocci_template::Segment],
+    service: Option<&Path>,
 ) -> Result<Vec<String>> {
     let type_name = type_name_from_path(source_path);
     let workspace = unique_temp("islands")?;
@@ -125,6 +132,15 @@ fn render_islands(
     if let Some(src_dir) = source_path.parent() {
         rocci_cli::driver::copy_sibling_roc(src_dir, &workspace, &type_name)?;
     }
+    if let Some(service_path) = service {
+        stage_service_imports(&workspace, service_path, roc)?;
+    }
+    // Staged service UI modules often import Datastar for @get/@post even when
+    // the page island roc does not list that import itself.
+    if !uses_datastar && workspace_imports_datastar(&workspace)? {
+        fs::write(workspace.join("Datastar.roc"), crate::runtime::DATASTAR)
+            .with_context(|| format!("failed to write {}/Datastar.roc", workspace.display()))?;
+    }
     let wrapped = wrap_type_module(roc, &type_name);
     fs::write(workspace.join(format!("{type_name}.roc")), &wrapped)
         .with_context(|| format!("failed to write {type_name}.roc"))?;
@@ -136,7 +152,7 @@ fn render_islands(
         (type_file.as_str(), wrapped.as_bytes()),
         ("main.roc", main.as_bytes()),
     ];
-    if uses_datastar {
+    if uses_datastar || workspace.join("Datastar.roc").is_file() {
         generated.push(("Datastar.roc", crate::runtime::DATASTAR.as_bytes()));
     }
     let gen_hash = compute_gen_hash(
@@ -158,11 +174,29 @@ fn render_islands(
         InputFingerprint::from_bytes("main.roc", main.as_bytes()),
         InputFingerprint::from_bytes("Html.roc", crate::runtime::HTML.as_bytes()),
     ];
-    if uses_datastar {
+    if workspace.join("Datastar.roc").is_file() {
         fingerprints.push(InputFingerprint::from_bytes(
             "Datastar.roc",
             crate::runtime::DATASTAR.as_bytes(),
         ));
+    }
+    if let Some(service_path) = service {
+        if let Some(dir) = service_path.parent() {
+            for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+                    continue;
+                }
+                let name = type_name_from_path(&path);
+                let staged = workspace.join(format!("{name}.roc"));
+                if !staged.is_file() {
+                    continue;
+                }
+                if let Ok(bytes) = fs::read(&staged) {
+                    fingerprints.push(InputFingerprint::from_bytes(&format!("{name}.roc"), &bytes));
+                }
+            }
+        }
     }
 
     let host = NativeHost::default();
@@ -203,6 +237,101 @@ fn render_islands(
         bail!("island renderer produced no HTML for {source_name}");
     }
     Ok(body.split(BREAK).map(str::to_string).collect())
+}
+
+fn workspace_imports_datastar(workspace: &Path) -> Result<bool> {
+    for entry in fs::read_dir(workspace)
+        .with_context(|| format!("failed to read {}", workspace.display()))?
+    {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("roc") {
+            continue;
+        }
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if name == "Html.roc" || name == "Datastar.roc" || name == "main.roc" {
+            continue;
+        }
+        let src = fs::read_to_string(&path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        if crate::roc_imports_datastar(&src) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn stage_service_imports(workspace: &Path, service_path: &Path, page_roc: &str) -> Result<()> {
+    let Some(dir) = service_path.parent() else {
+        return Ok(());
+    };
+    let service_name = type_name_from_path(service_path);
+    let mut staged = Vec::new();
+    for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+            continue;
+        }
+        let name = type_name_from_path(&path);
+        if name == service_name {
+            continue;
+        }
+        let import_line = format!("import {name}");
+        if !page_roc.lines().any(|line| line.trim() == import_line) {
+            continue;
+        }
+        stage_service_module(workspace, &path)?;
+        staged.push(name);
+    }
+    if staged.is_empty() {
+        // Snapshot may still import the service module name when UI lives there.
+        let import_line = format!("import {service_name}");
+        if page_roc.lines().any(|line| line.trim() == import_line) {
+            stage_service_module(workspace, service_path)?;
+        }
+    }
+    Ok(())
+}
+
+fn stage_service_module(workspace: &Path, service_path: &Path) -> Result<()> {
+    if !service_path.is_file() {
+        bail!(
+            "configured [http].service `{}` does not exist",
+            service_path.display()
+        );
+    }
+    let src = fs::read_to_string(service_path)
+        .with_context(|| format!("failed to read {}", service_path.display()))?;
+    let type_name = type_name_from_path(service_path);
+    let source_name = service_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("service.rocci");
+    let compiled = rocci_template::compile(
+        SourceFile::new(source_name, &src),
+        &rocci_template::LowerOptions {
+            embed_css: false,
+            ..rocci_template::LowerOptions::default()
+        },
+    );
+    if compiled.has_errors() {
+        let messages: Vec<_> = compiled
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.is_error())
+            .map(|diagnostic| diagnostic.message.as_str())
+            .collect();
+        bail!(
+            "failed to lower [http].service `{source_name}`: {}",
+            messages.join("; ")
+        );
+    }
+    let wrapped = wrap_type_module(&compiled.roc, &type_name);
+    fs::write(workspace.join(format!("{type_name}.roc")), &wrapped)
+        .with_context(|| format!("failed to write {type_name}.roc"))?;
+    if let Some(src_dir) = service_path.parent() {
+        rocci_cli::driver::copy_sibling_roc(src_dir, workspace, &type_name)?;
+    }
+    Ok(())
 }
 
 fn island_main(type_name: &str) -> String {

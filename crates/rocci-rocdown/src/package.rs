@@ -145,18 +145,30 @@ fn compile_island_binary(
     output: &Path,
     target: Option<rocci_cli::native_target::NativeTarget>,
 ) -> Result<PathBuf> {
-    let Some(plan) = generated_island_plan(root)? else {
-        bail!(
-            "hybrid package needs a colocated island binary; [http].service sites are not packaged here"
-        );
-    };
+    let loaded = load_site(root)?;
     let binary = absolute(
         &output
             .parent()
             .unwrap_or_else(|| Path::new("."))
             .join(ISLANDS_BIN),
     )?;
-    rocci_cli::driver::compile_app_plan(&plan.into_app_plan(), root, &binary, target)?;
+    if !loaded.config.http.service.is_empty() {
+        let service = loaded.root.join(&loaded.config.http.service);
+        if !service.is_file() {
+            bail!(
+                "configured [http].service `{}` does not exist",
+                loaded.config.http.service
+            );
+        }
+        let plan = rocci_cli::run::standalone_app_plan(&service)?;
+        let src_dir = service.parent().unwrap_or_else(|| Path::new("."));
+        rocci_cli::driver::compile_app_plan(&plan, src_dir, &binary, target)?;
+    } else {
+        let Some(plan) = generated_island_plan(root)? else {
+            bail!("hybrid package needs a colocated island binary or [http].service");
+        };
+        rocci_cli::driver::compile_app_plan(&plan.into_app_plan(), root, &binary, target)?;
+    }
     if !binary.is_file() {
         bail!("island compile did not write {}", binary.display());
     }

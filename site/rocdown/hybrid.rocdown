@@ -48,17 +48,23 @@ with no service.
 
 `examples/rocdown/counter/index.rocdown` puts SQLite helpers in `@roc` next to
 `import pf.Sqlite`, then calls them from `@command`. `@render` bakes `count: 0`
-into the CDN HTML. On load, `POST /actions/counter/sync`
-morphs the live count. Increment and reset POST `/actions/counter/increment` and
-`/actions/counter/reset`. There is no island GET in v1: opening the CDN file
-shows the build-time snapshot until sync or a mutation runs.
+into the CDN HTML. On load, generated `GET /sse` replaces that snapshot and
+keeps tabs in sync. Increment and reset are `@command` handlers (empty SSE to
+Datastar; JSON to `curl`). Opening the CDN file shows the build-time snapshot
+until the stream connects.
+
+The public [rocci.dev](/) home page uses the same live pattern, but composes the
+standalone [live counter](/examples/live-counter/) app: Markdown plus
+`@render LiveCounterUi.CounterIsland(...)`, with
+`[http].service` pointing at `LiveCounter.rocci` (handlers + `@live`).
 
 `about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
 and `script-src 'self'`; it does not include Datastar.
 
-Do not set `[http].service` to `examples/rocci/standalone/counter/Counter.rocci`. That file is
-a full-page app; GET `/` is not an island route. A sibling `.rocci` service is
-allowed when it returns fragments only.
+Do not set `[http].service` to `examples/rocci/standalone/counter/Counter.rocci`.
+That one-shot app has no `@live` stream. A sibling `.rocci` service is allowed
+when island routes (commands / live) match what the page posts to; document
+`GET /` stays on the CDN.
 
 ## Local preview
 
@@ -72,7 +78,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect artifacts examples/rocdown/counter
 
 `inspect artifacts` does not invoke Roc. It reports page kinds, Datastar
 emission, `service_origin`, and mutation routes. Expect `index` live, `about`
-static, and sync/increment/reset POSTs.
+static, and increment/reset POSTs.
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- build examples/rocdown/counter
@@ -186,7 +192,10 @@ proxy until those details exist.
 
 `[http].service = "Islands.rocci"` skips the generated dispatcher.
 `rocdown serve-islands` runs that file with `rocci run`. Routes stay explicit
-strings. The app must return Datastar element patches for mutation methods.
+strings. The app should expose `@live` and mutation `@command` / `@patch`
+handlers the page posts to. Document `GET /` may exist for standalone runs;
+the CDN still owns page GET in a hybrid deploy. The rocci.dev home page uses
+this shape with `LiveCounter.rocci`.
 
 ## Smoke checks
 
