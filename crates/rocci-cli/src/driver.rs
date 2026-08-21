@@ -120,6 +120,7 @@ pub struct DriverOptions {
     pub no_window: bool,
     pub live_reload: bool,
     pub log_handlers: bool,
+    pub verbose: bool,
     pub port: serve::PortArg,
     pub db_path: Option<PathBuf>,
     pub title: String,
@@ -152,7 +153,7 @@ pub fn execute_app_plan(
         .map(|module| module.roc.len())
         .sum::<usize>()
         + plan.main_roc().len();
-    crate::logs::emit(format!(
+    logs::Progress::from_verbose(options.verbose).detail(format!(
         "starting roc ({} bytes of generated Roc)",
         generated
     ));
@@ -181,6 +182,7 @@ pub fn execute_app_plan(
         profile,
         options.inspect_pages.clone(),
         options.state_key.clone(),
+        options.verbose,
     )
 }
 
@@ -204,7 +206,13 @@ pub fn spawn_app_plan(
     let mut cmd = roc_command(&invocation, port);
     cmd.env("DB_PATH", &db_path);
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, logs)?;
-    match serve::wait_for_roc(&mut child, &mut tee, port, "/health")? {
+    match serve::wait_for_roc(
+        &mut child,
+        &mut tee,
+        port,
+        "/health",
+        logs::Progress::default(),
+    )? {
         serve::RocStart::Ready => Ok(RunningApp {
             port,
             fingerprint,
@@ -295,6 +303,7 @@ pub fn execute_resolved_entry(
     title: Option<&str>,
     mut profile: ProfileSnapshot,
     inspect_pages: Vec<crate::inspect::InspectPage>,
+    verbose: bool,
 ) -> Result<()> {
     let default_title = window_title(resolved);
     let title = title.unwrap_or(&default_title);
@@ -305,7 +314,13 @@ pub fn execute_resolved_entry(
     let roc_started = Instant::now();
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
-    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+    match serve::wait_for_roc(
+        &mut child,
+        &mut tee,
+        port,
+        "/",
+        logs::Progress::from_verbose(verbose),
+    )? {
         serve::RocStart::Ready => {
             let compile_ms = roc_started.elapsed().as_millis();
             profile.merge(ProfileSnapshot {
@@ -428,6 +443,7 @@ pub fn invoke_standalone(
     mut profile: ProfileSnapshot,
     inspect_pages: Vec<crate::inspect::InspectPage>,
     state_key: Option<String>,
+    verbose: bool,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
@@ -439,7 +455,13 @@ pub fn invoke_standalone(
     let roc_started = Instant::now();
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
-    match serve::wait_for_roc(&mut child, &mut tee, port, &path)? {
+    match serve::wait_for_roc(
+        &mut child,
+        &mut tee,
+        port,
+        &path,
+        logs::Progress::from_verbose(verbose),
+    )? {
         serve::RocStart::Ready => {
             let compile_ms = roc_started.elapsed().as_millis();
             profile.merge(ProfileSnapshot {

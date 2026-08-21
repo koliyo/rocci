@@ -14,7 +14,7 @@ use anyhow::{Context, Result, bail};
 use clap::Args;
 use rocci_desktop::{PreviewOptions, preview};
 
-use crate::logs::{LogHub, LogLevel, LogLine};
+use crate::logs::{LogHub, LogLevel, LogLine, Progress};
 use crate::style;
 
 const SERVER_WAIT: Duration = Duration::from_secs(120);
@@ -69,6 +69,10 @@ pub struct ServeOptions {
     /// Log each matched `@on` handler to stderr (CLI and Dev Console).
     #[arg(long)]
     pub log_handlers: bool,
+
+    /// Print compile, inspect, and wait phases to stderr.
+    #[arg(short, long)]
+    pub verbose: bool,
 
     /// TCP port to listen on. Defaults to a free port with the preview window,
     /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
@@ -318,10 +322,10 @@ pub fn spawn_roc_with_logs(
     ))
 }
 
-pub fn wait_for_listen(child: &mut Child, port: u16) -> Result<ListenWait> {
+pub fn wait_for_listen(child: &mut Child, port: u16, progress: Progress) -> Result<ListenWait> {
     let start = Instant::now();
     let mut last_beat = start;
-    crate::logs::emit(wait_listen_starting(port));
+    progress.detail(wait_listen_starting(port));
     loop {
         match child.try_wait() {
             Ok(Some(status)) => return Ok(ListenWait::Exited(status)),
@@ -340,15 +344,15 @@ pub fn wait_for_listen(child: &mut Child, port: u16) -> Result<ListenWait> {
             );
         }
         if last_beat.elapsed() >= LISTEN_HEARTBEAT {
-            crate::logs::emit(wait_listen_heartbeat(port, elapsed));
+            progress.detail(wait_listen_heartbeat(port, elapsed));
             last_beat = Instant::now();
         }
         thread::sleep(Duration::from_millis(100));
     }
 }
 
-pub fn wait_for_server(child: &mut Child, port: u16) -> Result<()> {
-    match wait_for_listen(child, port)? {
+pub fn wait_for_server(child: &mut Child, port: u16, progress: Progress) -> Result<()> {
+    match wait_for_listen(child, port, progress)? {
         ListenWait::Ready => Ok(()),
         ListenWait::Exited(status) => bail!("roc exited before serving ({status})"),
     }
@@ -390,8 +394,9 @@ pub fn wait_for_roc(
     tee: &mut StderrTee,
     port: u16,
     probe_path: &str,
+    progress: Progress,
 ) -> Result<RocStart> {
-    match wait_for_listen(child, port)? {
+    match wait_for_listen(child, port, progress)? {
         ListenWait::Exited(_) => Ok(RocStart::Failed(tee.finish())),
         ListenWait::Ready => {
             let output = wait_for_roc_diagnostics(tee);
@@ -706,6 +711,16 @@ mod tests {
         assert!(cli.serve.log_handlers);
         let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
         assert!(!cli.serve.log_handlers);
+    }
+
+    #[test]
+    fn clap_accepts_verbose() {
+        let cli = ServeCli::try_parse_from(["rocci", "--verbose"]).unwrap();
+        assert!(cli.serve.verbose);
+        let cli = ServeCli::try_parse_from(["rocci", "-v"]).unwrap();
+        assert!(cli.serve.verbose);
+        let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
+        assert!(!cli.serve.verbose);
     }
 
     #[test]

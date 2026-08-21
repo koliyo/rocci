@@ -210,7 +210,7 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   poll unfold (`After(100)`) that calls `Type.live!(context, request)` and
   skips emit when `Html.render` bytes are unchanged. In an `@live` module, a
   root `<body>` without `data-init` gets
-  `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])`. Authored `@on:get("/sse")`
+  `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@on:get("/sse")`
   plus `@live` is a diagnostic.
 - `@on:METHOD("literal-path") json? = |state, request| { ... }` lowers to a named
   function (`on_get_root!`, `on_post_actions_increment!`). Generated
@@ -294,7 +294,7 @@ attribute position. They generate Datastar backend actions. Arguments are Roc
     Delete
 </button>
 
-<body data-init=@get("/sse", [OpenWhenHidden(Bool.true)])>
+<body data-init=@get("/sse", [OpenWhenHidden(True)])>
 ```
 
 This is not Datastar JS. `@post('/x')` with single quotes is a parse error;

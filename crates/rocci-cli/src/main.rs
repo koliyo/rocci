@@ -196,6 +196,7 @@ fn try_main() -> Result<()> {
             serve.port,
             serve.live_reload(),
             serve.log_handlers,
+            serve.verbose,
         ),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
@@ -216,10 +217,15 @@ fn try_main() -> Result<()> {
             serve.no_window,
             serve.port,
             serve.live_reload(),
+            serve.verbose,
         ),
-        Commands::Browse { roots, serve } => {
-            browse::browse(&roots, serve.no_window, serve.port, serve.live_reload())
-        }
+        Commands::Browse { roots, serve } => browse::browse(
+            &roots,
+            serve.no_window,
+            serve.port,
+            serve.live_reload(),
+            serve.verbose,
+        ),
         Commands::Playground { input, serve, mode } => {
             let hook = match mode {
                 PlaygroundModeArg::Local => {
@@ -546,6 +552,28 @@ mod tests {
         assert!(!no_live_reload_of(
             &Cli::try_parse_from(["rocci", "run"]).unwrap()
         ));
+    }
+
+    fn verbose_of(cli: &Cli) -> bool {
+        match &cli.command {
+            Commands::Run { serve, .. }
+            | Commands::View { serve, .. }
+            | Commands::Browse { serve, .. } => serve.verbose,
+            _ => panic!("expected a hosting command"),
+        }
+    }
+
+    #[test]
+    fn hosting_commands_accept_verbose() {
+        for args in [
+            ["rocci", "run", "--verbose"].as_slice(),
+            ["rocci", "run", "-v"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--verbose"].as_slice(),
+            ["rocci", "browse", "--verbose"].as_slice(),
+        ] {
+            assert!(verbose_of(&Cli::try_parse_from(args).unwrap()));
+        }
+        assert!(!verbose_of(&Cli::try_parse_from(["rocci", "run"]).unwrap()));
     }
 
     #[test]
