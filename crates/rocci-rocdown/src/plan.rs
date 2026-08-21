@@ -392,6 +392,17 @@ fn plan_with_preview(
     })
 }
 
+fn document_title(title: &str, site_title: &str) -> String {
+    let title = title.trim();
+    let site_title = site_title.trim();
+
+    if title.contains(site_title) {
+        title.to_string()
+    } else {
+        format!("{title} · {site_title}")
+    }
+}
+
 fn compile_theme_with_painters(
     root: &Path,
     config: &SiteConfig,
@@ -1124,6 +1135,7 @@ fn planned_page(
             sidebar,
             route: page.route.clone(),
             title: page.title.clone(),
+            document_title: document_title(&page.title, &site.title),
             description: page.description.clone(),
             layout: page.layout.clone(),
             published: page.published.clone(),
@@ -1189,6 +1201,7 @@ fn not_found_page(
             sidebar,
             route: "/404.html".into(),
             title: "Page not found".into(),
+            document_title: document_title("Page not found", &site.title),
             description: "This page does not exist.".into(),
             layout: "not-found".into(),
             published: String::new(),
@@ -1908,6 +1921,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.route);
         out.push_str(",\n                title: ");
         push_roc_string(&mut out, &page.view.title);
+        out.push_str(",\n                document_title: ");
+        push_roc_string(&mut out, &page.view.document_title);
         out.push_str(",\n                description: ");
         push_roc_string(&mut out, &page.view.description);
         out.push_str(",\n                layout: ");
@@ -2091,6 +2106,19 @@ mod tests {
     use super::*;
     use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
     use std::{env, fs, path::PathBuf};
+
+    #[test]
+    fn document_title_adds_the_brand_exactly_once() {
+        assert_eq!(document_title("Guide", "Rocci"), "Guide · Rocci");
+        assert_eq!(
+            document_title("Contributing to Rocci", "Rocci"),
+            "Contributing to Rocci"
+        );
+        assert_eq!(
+            document_title("Rocci · Native interfaces", "Rocci"),
+            "Rocci · Native interfaces"
+        );
+    }
 
     fn temp(name: &str) -> PathBuf {
         let path = env::temp_dir().join(format!("rocdown-plan-{}-{name}", std::process::id()));
