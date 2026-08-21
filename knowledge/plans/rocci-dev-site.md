@@ -1,420 +1,528 @@
 ---
 type: Implementation Plan
-title: rocci.dev site architecture and Rocdown evolution
-description: Plan the main rocci.dev site, its route and layout structure, the division between Rocdown content and Rocci presentation, and the product boundary for future site-building capabilities.
-tags: [domain/rocci, domain/rocdown, concern/architecture, concern/publication, concern/rendering]
+title: rocci.dev UX and authoring improvements
+description: Repair the landing and page finder, make section sidebar navigation universal except on Home and FAQ, make breadcrumbs consistent, remove the rocci.dev News surface, improve public copy, and reduce site-authoring friction without changing the Rocdown ownership boundary.
+tags: [domain/rocci, domain/rocdown, concern/ux, concern/tooling, concern/publication, concern/navigation, concern/accessibility]
 status: draft
-generated: { by: process:codex, at: 2026-08-18T10:07:17Z }
-stale_after: 2026-11-18
+generated: { by: process:cursor, at: 2026-08-21T21:53:49Z }
+stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: audit
+    resource: ../audits/rocci-dev-site-ux-dx.md
+    title: rocci.dev site UX and authoring DX review
+    author: process:cursor
+    last_modified: 2026-08-21
   - id: root-readme
     resource: ../../README.md
-    title: Rocci workspace overview and current rocci.dev build
+    title: Current workspace and public-site workflow
     author: human:nils
-    last_modified: 2026-08-17
+    last_modified: 2026-08-21
   - id: rocdown-readme
     resource: ../../crates/rocci-rocdown/README.md
-    title: Shipped Rocdown format and site behavior
+    title: Shipped Rocdown format, theme, mount, and site behavior
     author: process:git
-    last_modified: 2026-08-17
-  - id: generator
-    resource: ../architecture/rocdown-documentation-compiler.md
-    title: Rocdown documentation generator architecture
-    author: process:codex
-    last_modified: 2026-08-17
-  - id: format
-    resource: ../architecture/rocdown-format.md
-    title: Rocdown format boundary
-    author: process:cursor
-    last_modified: 2026-08-17
+    last_modified: 2026-08-21
   - id: product-boundary
     resource: ../decisions/consolidate-rocdown-product-boundary.md
     title: Rocdown product-boundary decision
     author: process:cursor
     last_modified: 2026-08-17
-  - id: shell
-    resource: ../../crates/rocci-rocdown/templates/RocdownTheme.rocci
-    title: Current Rocci-authored site shell
-    author: process:git
-    last_modified: 2026-08-17
+  - id: catalog-decision
+    resource: ../decisions/rust-catalog-rocci-shell.md
+    title: Rust catalog and Rocci shell decision
+    author: process:cursor
+    last_modified: 2026-08-18
   - id: config
-    resource: ../../crates/rocci-rocdown/src/config.rs
-    title: Current Rocdown site configuration
-    author: process:git
-    last_modified: 2026-08-17
-  - id: current-site
-    resource: ../../docs/rocdown.toml
-    title: Current rocci.dev site configuration
+    resource: ../../site/rocdown.toml
+    title: Current rocci.dev catalog, mounts, and navigation
     author: human:nils
-    last_modified: 2026-08-17
-  - id: preview-plan
-    resource: public-preview-community.md
-    title: Rocci public-preview branding and community plan
-    author: process:codex
-    last_modified: 2026-08-17
+    last_modified: 2026-08-21
+  - id: shell
+    resource: ../../site/theme/SiteShell.rocci
+    title: Current rocci.dev site shell
+    author: process:git
+    last_modified: 2026-08-21
+  - id: layouts
+    resource: ../../site/theme/Layouts.rocci
+    title: Current rocci.dev named layouts
+    author: process:git
+    last_modified: 2026-08-21
+  - id: catalog
+    resource: ../../crates/rocci-rocdown/src/catalog.rs
+    title: Current navigation and breadcrumb resolution
+    author: process:git
+    last_modified: 2026-08-21
+  - id: planner
+    resource: ../../crates/rocci-rocdown/src/plan.rs
+    title: Current page planning and normalized view construction
+    author: process:git
+    last_modified: 2026-08-21
+  - id: goto
+    resource: ../../crates/rocci-ui/assets/goto.js
+    title: Shared go-to-page palette
+    author: process:git
+    last_modified: 2026-08-21
+  - id: docs-plan
+    resource: comprehensive-rocci-documentation.md
+    title: Comprehensive Rocci documentation plan
+    author: process:cursor
+    last_modified: 2026-08-21
 ---
 
-# rocci.dev site architecture and Rocdown evolution
+# rocci.dev UX and authoring improvements
 
-## Goal and scope
+## Goal
 
-Build `rocci.dev` as the first complete public site made with Rocci and
-Rocdown, while using that work to establish a reusable boundary for other
-content-first sites. The site should combine a distinct product landing page,
-technical documentation, news, FAQ, and project information in one static,
-accessible, inspectable build.
+Make rocci.dev easy to enter, orient within, and author by establishing one
+visible navigation contract across the existing catalog:
 
-This plan covers information architecture, source structure, layouts,
-rendering ownership, metadata, collections, generated artifacts, and phased
-implementation. It deliberately does not choose final copy, documentation
-coverage, news topics, visual identity, or launch messaging. Those remain in a
-separate content and public-preview process.[^preview-plan]
+- Home and FAQ are the only pages without a persistent section sidebar.
+- Every non-home page has compact, correctly ordered breadcrumbs.
+- Every other page, including section indexes, product indexes, Project
+  articles, generated example/source pages, and 404 recovery, has useful
+  section navigation.
+- Page outlines remain reachable at desktop, tablet, and phone widths.
+- The landing page presents a clear path to first success before interactive
+  proof or repository implementation detail.
+- News is removed from rocci.dev after an explicit URL and content disposition.
+- Authors get a smaller layout contract, low-noise checks, and one supported
+  command for the complete site pipeline.
 
-## Established baseline
+The evidence and prioritized defects are recorded separately in the
+[site UX/DX audit](../audits/rocci-dev-site-ux-dx.md).[^audit]
 
-The repository already treats `docs/` plus `docs/rocdown.toml` as the source of
-the publishable `rocci.dev` tree. `rocdown build` discovers pages, resolves
-routes and links, renders Markdown, hashes assets, compiles the Rocci shell,
-and emits the static artifact set.[^root-readme][^current-site]
+## Out of bound
 
-The shipped ownership boundary is sound and should remain: Rust owns catalog,
-navigation, route, graph, validation, rendering-data, and artifact work;
-Rocci owns the visible shell; and Rocdown owns the complete document and
-static-site product above base Rocci.[^generator][^product-boundary][^shell]
+- A visual-identity or logo redesign.
+- A wholesale rewrite of the Rocci manual; that remains in the comprehensive
+  documentation plan.[^docs-plan]
+- Full-text search, localization, analytics, personalization, pagination, or a
+  client application router.
+- A new `.rocdown` grammar form merely to control site chrome.
+- A second `rocci-site` catalog, renderer, configuration format, or CLI.
+- Removal of Rocdown's generic collections, deterministic sorting, or Atom
+  generation. Only the rocci.dev News product surface is being removed.
+- Deployment-provider, VPS, Cloudflare, or release-channel changes.
+- Executing any phase as part of writing this plan.
 
-Two current limitations shape the plan. Static site pages reject authored
-Roc/Rocci islands and project layouts, and Rocdown does not yet implement
-content collections. The existing site configuration also exposes one site
-shell and documentation-oriented navigation rather than named project-local
-layouts.[^rocdown-readme][^generator][^format][^config]
+## Constraints that do not move
 
-## Recommendation
+1. Rust continues to own discovery, routes, aliases, catalog validation,
+   navigation, breadcrumbs, headings, collections, and artifacts. Rocci owns
+   visible shell and layout composition. Rocdown remains the Markdown-first
+   content owner.[^product-boundary][^catalog-decision]
+2. `docs/` remains the canonical Rocci manual and is mounted into `site/`;
+   generated application docs remain a separate staged mount. Do not duplicate
+   their prose into `site/`.[^config][^root-readme]
+3. Navigation uses real links and works without client JavaScript. The page
+   finder is an enhancement, not the only path to content.
+4. Static content and site metadata stay inspectable without evaluating
+   arbitrary Roc. Presentation changes belong in the project theme unless a
+   demonstrated shared defect is in `rocci-ui` or Rocdown planning.
+5. Failed site builds preserve the previous output tree.[^rocdown-readme]
+6. The existing user modification to `site/index.rocdown` is preserved and
+   reconciled deliberately when the landing-content phase begins.
+7. Public behavior claims are verified against current code, tests, or current
+   package documentation; exploratory plans do not become public “working
+   today” copy.
 
-1. **Keep one site and one build.** Landing pages, docs, news, FAQ, and project
-   pages should share one Rocdown catalog, route graph, asset pipeline,
-   canonical metadata policy, and static output tree.
-2. **Evolve Rocdown from a documentation generator into an opinionated
-   content-first site builder.** Documentation remains its strongest preset,
-   but named layouts, typed page metadata, and collections should be general
-   enough for product sites, blogs/news, changelogs, reports, and knowledge
-   portals.
-3. **Use project-local `.rocci` files for presentation.** They define the site
-   shell, named layouts, and reusable visual components from normalized view
-   records. They do not discover files, query collections, resolve routes, or
-   write artifacts.
-4. **Use `.rocdown` for every authored content page.** Markdown remains the
-   main body format. `@page` supplies statically extractable metadata, while
-   bounded Rocdown components express semantic content patterns.
-5. **Do not create a separate `rocci-site` engine now.** If that name becomes
-   useful, initially use it for a starter, scaffold, or opinionated profile
-   powered by Rocdown. Split a product only after multiple real sites require
-   capabilities that do not belong in a content-first Rocdown build.
+## Target information architecture
 
-## Site map and route policy
+After News removal, global navigation is:
 
-The primary navigation should stay small and task-oriented:
+| Lane | Canonical entry | Sidebar contents |
+| --- | --- | --- |
+| Docs | `/docs/` | Start, Tutorials, How to, Understand, Reference, Troubleshooting, Status |
+| Examples | `/examples/` | Example catalog and the current example context |
+| Rocdown | `/rocdown/` | Overview, Pages, Article blocks, Hybrid, Language, Site config, CLI, Tree |
+| FAQ | `/faq/` | None; inline question index only |
+| Project | `/project/` | Overview, Status, Roadmap, Contributing |
 
-| Area | Canonical route | Layout | Purpose |
-| --- | --- | --- | --- |
-| Home | `/` | `home` | Product proposition, primary paths, proof, and current calls to action |
-| Rocdown | `/rocdown/` | `product` | Focused product landing page for the document and site system |
-| Docs | `/docs/` | `section` | Documentation portal and learning-path entry |
-| Getting started | `/docs/getting-started/…` | `docs` | Installation, orientation, and first success |
-| Guides | `/docs/guides/…` | `docs` | Task-oriented implementation guides |
-| Concepts | `/docs/concepts/…` | `docs` | Architecture, rationale, and mental models |
-| Reference | `/docs/reference/…` | `docs` | Rocci, Rocdown, CLI, configuration, and generated reference |
-| Examples | `/docs/examples/…` | `docs` or `section` | Runnable examples and pattern discovery |
-| News | `/news/` and `/news/<slug>/` | `news-index`, `news-post` | Announcements, releases, and project updates |
-| FAQ | `/faq/` | `plain` | Short cross-cutting answers with links into canonical docs |
-| Project | `/project/…` | `plain` or `section` | Status, roadmap, contribution, governance, and support |
+Home remains reachable through the brand, skip-link target, breadcrumbs, and
+page finder. It is not duplicated as a global lane.
 
-Route rules:
+### News URL disposition
 
-- Prefer stable topic routes over dates in news URLs; keep publication dates in
-  metadata and feeds.
-- Use page IDs for internal catalog identity and canonical routes for output.
-- Preserve existing public documentation routes with `@page.aliases` during a
-  move under `/docs/`.
-- Keep one canonical page for each fact. FAQ, landing pages, and news may
-  summarize and link, but should not become competing reference sources.
-- Reserve interactive tools such as a future playground as separate Rocci
-  applications mounted or deployed beside the static site, not as an excuse to
-  make the whole site dynamic.
+Do not blanket-redirect every News URL to Home. Before deletion, assign each
+route one of:
 
-## Page and layout model
+- **Move and redirect:** retain durable technical content under its canonical
+  Docs, Rocdown, or Project owner and emit a permanent redirect.
+- **Fold and redirect:** merge only still-accurate facts into an existing
+  canonical page, then redirect to that page.
+- **Retire:** emit 410 when the announcement has no durable replacement.
 
-Rocdown should pass a normalized page view into one project shell. The shell
-selects a named layout from a closed, inspectable set:
+The feed route `/news/feed.xml` is retired with the collection. Remove feed
+autodiscovery at the same time. Sitemap and `pages.json` must agree with the
+chosen redirects/retirements.
 
-| Layout | Chrome and slots |
-| --- | --- |
-| `home` | Global header/footer; full-width hero, proof, feature, code, path, and update slots; no docs sidebar |
-| `product` | Global header/footer; product summary, use cases, example, capability, and next-step slots |
-| `section` | Global header/footer; section introduction plus generated or authored card groups |
-| `docs` | Global header plus docs sidebar, breadcrumbs, article, outline, previous/next, and article footer |
-| `news-index` | Global chrome plus generated collection listing and feed discovery |
-| `news-post` | Global chrome plus title, summary, publication metadata, article, related links, and feed link |
-| `plain` | Global chrome plus a readable single-column article; suitable for FAQ and project pages |
-| `not-found` | Global chrome plus recovery links and optional site search |
+## Target page-chrome contract
 
-Layout selection must be static and validated. A page may request a supported
-layout, but arbitrary executable layout expressions should not become a
-catalog hook. The renderer should pass serializable view data to `.rocci`
-rather than asking templates to read the filesystem or infer page types.
+| Page class | Left section navigation | Breadcrumbs | On-page outline | Journey |
+| --- | --- | --- | --- | --- |
+| Home | No | No | No | No |
+| FAQ | No | `Rocci / FAQ` | Inline/collapsible question list | No |
+| Section/product index | Yes | Root / lane / page | When headings warrant | Optional |
+| Article/reference/guide | Yes | Root / lane / group / page | Wide right rail, responsive fallback | Previous/next when ordered |
+| Generated example/source | Yes | Root / Examples / example / page | When headings warrant | Within defined example order |
+| 404 | Recovery navigation | Recovery context | No | No |
 
-The global shell should own document structure, metadata tags, header, footer,
-favicon and social resources, responsive behavior, accessibility affordances,
-and the layout switch. Each layout owns only its page-shaped chrome. Reusable
-components own visual patterns such as buttons, cards, code showcases, badges,
-metadata rows, and link groups.
+The section sidebar and page outline are different controls. “Only Home and
+FAQ without sidebar” refers to the persistent left section navigation; FAQ's
+inline question index is still required.
 
-## Proposed source tree
+## Breadcrumb contract
 
-Once project-local shells ship, rename the content root from `docs/` to
-`site/` so the filesystem describes the full public site rather than only one
-section:
+Breadcrumbs are catalog data rendered consistently, not handwritten in each
+Rocdown page.
 
-```text
-site/
-├── rocdown.toml
-├── index.rocdown
-├── rocdown/
-│   └── index.rocdown
-├── docs/
-│   ├── index.rocdown
-│   ├── getting-started/
-│   ├── guides/
-│   ├── concepts/
-│   ├── reference/
-│   └── examples/
-├── news/
-│   ├── index.rocdown
-│   └── <slug>.rocdown
-├── faq/
-│   └── index.rocdown
-├── project/
-│   ├── index.rocdown
-│   ├── status.rocdown
-│   ├── roadmap.rocdown
-│   └── contributing.rocdown
-├── theme/
-│   ├── SiteShell.rocci
-│   ├── Layouts.rocci
-│   └── Components.rocci
-└── assets/
-    ├── brand/
-    ├── images/
-    └── fonts/
-```
+1. Use the short site title `Rocci` for the root crumb, never the home page's
+   SEO title.
+2. Include the active global lane.
+3. Include a nested group such as Start only when it adds hierarchy.
+4. Remove adjacent crumbs with the same normalized title or destination.
+5. Render the current page with `aria-current="page"` as text or a
+   non-redundant current element, not an ordinary self-navigation action.
+6. Home renders no breadcrumbs. FAQ renders `Rocci / FAQ` despite omitting the
+   section sidebar.
 
-Start with a few cohesive `.rocci` modules. Split components into more files
-only when their contracts and compilation boundaries are real; the site should
-not become a directory of tiny markup fragments.
-
-## Responsibility of each format
-
-### `.rocdown`
-
-- Authored prose, headings, tables, lists, code, images, footnotes, and links.
-- Page identity, canonical route, aliases, draft state, layout name, title,
-  description, and collection metadata.
-- Semantic documentation components such as notes, steps, figures, examples,
-  and link cards.
-- Manual section introductions and editorial ordering where generated order is
-  not appropriate.
-
-Rocdown pages should not define global navigation, site chrome, filesystem
-queries, collection loops, or deployment behavior.
-
-### `.rocci`
-
-- `SiteShell`: document root, head resources, global header/footer, and layout
-  dispatch.
-- `Layouts`: home, product, docs, news, plain, and error-page composition.
-- `Components`: reusable typed visual primitives and site-specific content
-  presentation.
-- Scoped styles colocated with the component or layout that owns them.
-
-Project `.rocci` files should compile once per build when possible. Content
-changes should not turn every Markdown page into a generated Roc module.
-
-### Rust in Rocdown
-
-- Discovery, parsing, static metadata extraction, route and alias resolution,
-  navigation, links, headings, assets, and diagnostics.
-- Collection indexing, filtering, sorting, pagination, related-page selection,
-  and feed data.
-- Markdown and semantic-component rendering data.
-- Search, sitemap, feed, `llms.txt`, redirect, 404, CSP, and atomic artifact
-  planning.
-- Construction of the serializable view records passed to the Rocci shell.
-
-### `rocdown.toml`
-
-- Site identity and default metadata.
-- Build output, assets, canonical URL, CSP, and selected project shell.
-- Global navigation and the docs navigation tree.
-- Named layout availability and defaults.
-- Collection schemas and generated artifact policy.
-- Validation policy, without arbitrary executable hooks.
-
-## Metadata and collections
-
-Keep the existing `@page` record, but standardize a statically extractable site
-subset. Conceptually, each catalog page should gain:
+Examples:
 
 ```text
-id, route, aliases, draft
-layout, content_type
-title, description, short_title
-published, updated, authors, tags
+Rocci / Docs / Start / Install Rocci
+Rocci / Rocdown / Rocdown language reference
+Rocci / Project / Project status
+Rocci / FAQ
 ```
 
-The exact syntax should be decided with the Rocdown language owner. The
-important contract is that site-critical fields are compile-time literals,
-validated without Roc, available to inspection and editor tooling, and not
-hidden in arbitrary runtime values.
+The existing catalog currently derives home and section crumbs from listed
+page titles and group labels, so the root label, lane inclusion, and duplicate
+suppression need focused catalog/planner tests.[^catalog][^planner]
 
-Add collections after the layout seam is stable. A `news` collection is the
-first concrete requirement and should prove:
+## Theme composition
 
-- required metadata and useful diagnostics;
-- deterministic date ordering with an explicit tie-breaker;
-- draft exclusion;
-- a generated collection view available to `news-index` and `home`;
-- RSS or Atom plus feed-discovery metadata;
-- pagination only when the real corpus requires it;
-- one canonical URL per post and stable aliases on change.
+### One navigated frame
 
-FAQ does not need a collection initially. One well-structured Rocdown page is
-simpler until its size or reuse demonstrates a need for item-level metadata.
+Create one `NavigatedFrame` (name provisional) in `site/theme/Layouts.rocci`.
+It owns:
 
-## Product boundary: Rocdown versus `rocci-site`
+- left `NavList`;
+- breadcrumb row;
+- readable content column;
+- optional right `PageOutline`;
+- optional previous/next journey;
+- responsive substitutions.
 
-The near-term product model should be:
+`Docs`, `Section`, `Product`, ordinary Project articles, Example pages, and
+Not Found reuse that frame with body-specific options. `Home` and `Faq` are
+the only independent frames. `plain` must not continue to mean “silently omit
+navigation.”[^layouts]
 
-```text
-Rocci
-├── application/runtime framework and .rocci templates
-└── Rocdown
-    ├── .rocdown content language
-    ├── content catalog and static builder
-    ├── layouts, themes, and semantic components
-    └── docs/news/report/knowledge-portal profiles
-```
+### One responsive decision
 
-This preserves the approved one-way dependency: Rocdown uses Rocci; base Rocci
-does not learn Rocdown site semantics.[^product-boundary]
+`SiteShell` must not repeat an allowlist of layout names to decide whether the
+mobile menu gets navigation. The same semantic decision that renders the
+desktop sidebar supplies “In this section” in the mobile menu. Prefer a small
+Roc helper or a frame-owned component over two drifting `match` blocks.[^shell]
 
-`rocci-site` should not be a second catalog, renderer, CLI, or configuration
-language. Reconsider the name only when at least two non-rocci.dev sites show a
-repeated need for one of these boundaries:
+At widths where the right outline is removed but the phone menu has not yet
+appeared, render a compact inline `details` outline. On phones, label and order
+the panel as global Sections, In this section, and On this page; keep the
+current group expanded and targets at least 44 CSS pixels high.
 
-- a scaffold and upgradeable starter with a strong product-site convention;
-- non-content data sources and page generation that would distort Rocdown;
-- server-rendered application routes combined with the static content graph;
-- deployment adapters or a plugin lifecycle beyond static artifact generation;
-- a stable set of general-site concepts that deserves a separately versioned
-  user experience.
+### 404 recovery
 
-Even then, prefer a profile or package built on the Rocdown facade. A separate
-engine is justified only if the ownership boundary is genuinely different.
+The generated 404 currently receives no useful current section. Give it a
+bounded recovery sidebar, such as the global lane entries plus Docs Start and
+Project Status, without pretending it has a current catalog page. This needs a
+focused `not_found_page` view test in the planner rather than filesystem logic
+in the theme.[^planner]
+
+## Landing-page direction
+
+The landing page should answer, in this order:
+
+1. What Rocci is and the user outcome it improves.
+2. Whether the visitor wants to build a Rocci app, write a Rocdown site,
+   inspect examples, or evaluate project maturity.
+3. What a minimal authored input and rendered result feel like.
+4. Why the architecture is different: pure Roc views, HTML/CSS, server-owned
+   state, Datastar as transport, and a small desktop preview.
+5. What is experimental and what works now.
+6. A live island as proof, after the primary paths.
+
+Restore the authored path cards by fixing the hybrid block/island planning
+regression first. Remove the News card and Latest Updates section. Do not
+replace them with an unmaintained pseudo-changelog. A small “Current status”
+link to Project Status is sufficient until a release source exists.[^audit]
+
+## FAQ direction
+
+- Give FAQ the explicit `faq` layout and keep it single-column.
+- Add `Rocci / FAQ` breadcrumbs.
+- Generate an inline collapsed question index from h2/h3 outline data.
+- Shorten answers and link to canonical Docs/Project owners.
+- Replace broad comparisons and performance claims with bounded, sourced
+  language.
+- Remove the News/feed question when the rocci.dev News surface is retired;
+  generic collection support belongs in Rocdown reference documentation.
+
+## Authoring and operator DX
+
+### Layout vocabulary
+
+The target public vocabulary is about body intent, not navigation side
+effects:
+
+- `home`: unique landing page, no sidebar.
+- `faq`: unique FAQ, no sidebar, inline outline.
+- `docs`: navigated article/reference/guide.
+- `section`: navigated section index.
+- `product`: navigated product overview when its body truly differs.
+- `not-found`: navigated recovery page.
+
+Remove `news-index` and `news-post`. Either retire `plain` or redefine it as a
+navigated ordinary article; do not leave it as a third sidebar-free escape.
+Document each layout with its chrome contract.[^rocdown-readme]
+
+### Discoverability policy
+
+Mounted generated example/source pages are legitimate destinations but produce
+54 unlisted-page warnings in the current check. Choose one explicit model:
+
+1. generate an Examples sidebar with nested example/source context; or
+2. add a validated “linked detail, intentionally omitted from global nav”
+   policy that suppresses `RD2202` only for declared generated detail pages.
+
+Prefer model 1 where the resulting sidebar remains usable. If source trees are
+too large, use model 2 with a visible local example navigator. Never globally
+disable unlisted-page warnings.[^audit]
+
+### One repository command
+
+Provide one supported command, probably under `rocci-ops`, that:
+
+1. stages application documentation;
+2. checks Docs and site catalogs;
+3. runs declared documentation tests when requested;
+4. builds or packages rocci.dev;
+5. reports warnings by source class;
+6. leaves deployment as a separate authorized operation.
+
+Direct `rocci-docs` and `rocdown` commands remain documented for focused
+iteration. The wrapper is orchestration, not a fourth product CLI.[^root-readme]
 
 ## Phased implementation
 
-### Phase 0 — freeze the site contract
+### Phase 0 — freeze routes, chrome, and evidence fixtures
 
-- Approve the route map, layout names, ownership rules, and source-root move.
-- Define redirects from current routes into `/docs/`.
-- Define the minimal normalized view records for global, docs, landing, news,
-  plain, and not-found layouts.
-- Keep content and visual-identity decisions explicitly outside this phase.
+#### Bound
 
-Exit when every planned route has one owner, layout, canonical URL, and source
-location, with no implementation required to infer the structure from prose.
+- Approve the post-News lane map and URL disposition categories.
+- Approve the page-chrome and breadcrumb matrices above.
+- Record representative fixtures/routes for Home, FAQ, Docs index, Docs
+  detail, Rocdown index, Project detail, Example source, and 404.
+- Capture DOM assertions for sidebar, breadcrumbs, outline fallback, page
+  title, and News absence.
+- Do not change site content or delete News in this phase.
 
-### Phase 1 — add the Rocdown project-shell seam
+#### Exit
 
-- Let `rocdown.toml` select a project-local `.rocci` shell entry point.
-- Add static named layouts without enabling arbitrary filesystem access from
-  templates.
-- Extend page views with layout/content type and typed layout-specific data.
-- Compile shell and shared components once, preserving Rust catalog ownership.
-- Add focused tests for layout selection, missing layouts, source maps,
-  deterministic output, asset dependencies, and static safety.
+Exit when every representative route has one canonical page class, expected
+sidebar state, breadcrumb sequence, outline behavior at 1280/900/390 CSS
+pixels, and News URL disposition.
 
-Exit when a fixture site renders at least `home`, `docs`, `plain`, and
-`not-found` from one shell without recompiling prose as Roc.
+### Phase 1 — repair the two navigation regressions
 
-### Phase 2 — build the first complete rocci.dev structure
+#### Bound
 
-- Move the content root to `site/` and existing documentation under
-  `site/docs/`.
-- Add aliases for existing public documentation routes.
-- Implement the branded shell and the initial layout set in `.rocci`.
-- Add structural Rocdown pages for home, Rocdown, docs portal, news index, FAQ,
-  and project portal; final copy remains a separate workstream.
-- Keep the news index authored manually until collection support ships.
+- Fix hybrid page planning so static article blocks and Rocci islands coexist
+  in authored order.
+- Add the lowest-boundary Rocdown planner/build regression test using a
+  `:card-grid` plus island fixture.
+- Fix the shared `rocci-goto` host so the opened palette is fixed to the
+  viewport and does not extend document flow.[^goto]
+- Add focused shared-asset browser/DOM coverage for open, initial focus,
+  Escape, backdrop close, result bounds, and phone/desktop geometry.
+- Verify the Home path cards render before changing landing copy.
 
-Exit when the full route tree builds, checks, previews, and works without
-JavaScript at mobile, wide, keyboard, forced-color, dark/light, and print
-baselines appropriate to each layout.
+#### Exit
 
-### Phase 3 — add the first typed collection
+Exit when the built Home contains every authored path card and its live island,
+and the page finder is a bounded modal at phone and desktop widths with no
+horizontal or document-height regression.
 
-- Implement static collection metadata and catalog queries in Rocdown.
-- Generate the news index data and RSS or Atom feed.
-- Supply recent-news view data to the home layout.
-- Add inspection output, link/feed validation, and deterministic fixtures.
+### Phase 2 — unify sidebar, breadcrumbs, outline, and journey chrome
 
-Exit when adding one valid news `.rocdown` file updates the index, home view,
-feed, sitemap, and machine indexes without editing a `.rocci` file.
+#### Bound
 
-### Phase 4 — generalize only from measured needs
+- Add the shared navigated frame and explicit FAQ frame.
+- Route `section`, `product`, ordinary articles, generated example pages, and
+  404 through the shared navigation policy.
+- Render the sidebar on every page except Home and FAQ.
+- Correct breadcrumb root/lane/group construction and suppress duplicates.
+- Add tablet outline fallback and labeled phone navigation sections.
+- Remove the duplicated desktop/mobile layout allowlist.
+- Add planner/catalog tests and built-site DOM assertions for the Phase 0
+  matrix.
 
-- Extract a reusable starter or profile if a second site validates it.
-- Add search, localization, pagination, additional feeds, or richer layout
-  packages only from demonstrated requirements.
-- Decide whether the user-facing name remains simply Rocdown or gains a
-  `rocci-site` starter/profile; do not change the compiler boundary by naming
-  alone.
+#### Exit
+
+Exit when Home and FAQ are the only sidebar-free routes in the fixture matrix;
+all non-home routes have exact expected breadcrumbs; current pages are visible
+in desktop and mobile section navigation; and page headings remain reachable
+at all three target widths without JavaScript.
+
+### Phase 3 — remove News from rocci.dev
+
+#### Bound
+
+- Apply the approved move/fold/retire disposition to every `/news/` URL.
+- Remove News from `site/rocdown.toml`, Home cards, Home layout, header feed
+  discovery, named layouts, theme CSS, source pages, site docs, sitemap, and
+  page-finder index.
+- Remove the site-level News collection query and feed output.
+- Preserve and test generic Rocdown collection/feed behavior in the owning
+  crate.
+- Add redirect/410 and no-stale-link checks.
+
+#### Exit
+
+Exit when the built site has no News lane, home promotion, News layout, feed
+autodiscovery, or accidental News page; every former public route has its
+approved response; and generic Rocdown collection tests still pass.
+
+### Phase 4 — rewrite first contact and public trust surfaces
+
+#### Bound
+
+- Rework Home in the agreed outcome/path/proof/maturity order.
+- Rework FAQ into concise answers with an inline question index and canonical
+  links.
+- Fix document-title composition so the brand appears once.
+- Reconcile Project Status and Roadmap with current code, README, and canonical
+  knowledge; remove stale handler and phase language.
+- Verify every quantified or cross-platform claim or replace it with bounded
+  wording.
+- Preserve stable routes and aliases.
+
+#### Exit
+
+Exit when a first-time visitor can choose a task from the first screen, no
+generated title repeats `Rocci`, FAQ questions deep-link and point to canonical
+owners, and public status terms match current implementation evidence.
+
+### Phase 5 — reduce authoring noise and unify the local workflow
+
+#### Bound
+
+- Implement the chosen generated-page discoverability policy.
+- Reduce `check site` to zero expected `RD2202` warnings; real unlisted pages
+  must still warn.
+- Add the one-command staging/check/build wrapper without hiding focused CLI
+  commands.
+- Document layout contracts, navigation ownership, News removal, and the full
+  local validation matrix in the owning README/public site reference.
+- Add failure tests that preserve the previous output tree.
+
+#### Exit
+
+Exit when a clean checkout can produce the complete local site with one
+documented command, expected generated pages no longer create warning noise,
+and a deliberately unlisted authored page still fails or warns according to
+policy.
+
+### Phase 6 — accessibility, responsive, and release verification
+
+#### Bound
+
+- Run keyboard-only navigation through skip link, global lanes, sidebar,
+  breadcrumbs, page outline, journey, mobile menu, and Go to page.
+- Test 390, 768, 900/1024, and 1280 CSS-pixel widths; light, dark, forced
+  colors, reduced motion, and print.
+- Check semantic landmarks, one h1, accessible names, `aria-current`, focus
+  restoration, no horizontal overflow, and target sizes.
+- Run site check/build twice and compare deterministic static artifacts where
+  expected; separate the live island binary/hash from static equality.
+- Validate redirects/410s, sitemap, pages index, canonical metadata, and 404.
+
+#### Exit
+
+Exit when the matrix passes with recorded evidence, no P0/P1 audit finding is
+open, site checks have no unexplained warnings, and required CI/Knowledge/site
+workflows are green for the revision. Human first-use feedback remains a
+separate launch gate and is not invented from automated tests.
+
+## Validation commands
+
+Use the narrowest checks while iterating, then the integrated gates:
+
+```sh
+cargo test -p rocci-ui
+cargo test -p rocci-rocdown
+cargo run -q -p rocci-rocdown-cli -- check docs
+cargo run -q -p rocci-rocdown-cli -- check site
+cargo run -q -p rocci-rocdown-cli -- build site
+cargo fmt --all -- --check
+cargo test --workspace
+cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+```
+
+For theme changes, inspect the built representative routes rather than only
+the generated source. Failed static builds must leave the previous output tree
+in place.[^rocdown-readme]
 
 ## Acceptance criteria
 
-- One command checks, builds, and previews the whole site.
-- All authored content bodies are `.rocdown`; all site presentation code is
-  `.rocci`; all catalog and artifact logic remains in Rocdown's Rust layer.
-- A prose-only edit does not require per-page Roc compilation.
-- Landing, docs, news, FAQ, project, redirect, and 404 pages share one canonical
-  route graph and asset pipeline.
-- Layout selection and collection metadata are statically inspectable and
-  produce actionable diagnostics.
-- The generated site is useful with no client JavaScript; later enhancement is
-  explicit and capability-scoped.
-- Failed builds preserve the previous output tree.
-- `rocdown check`, internal links, aliases, sitemap, feed, `llms.txt`, and any
-  future search projection consume the same resolved catalog.
+- Only `/` and `/faq/` omit the persistent section sidebar.
+- Every non-home page has breadcrumbs matching the approved hierarchy with no
+  duplicated site or section title.
+- FAQ has an inline question index; detailed pages retain an outline at wide,
+  tablet, and phone widths.
+- The Home path cards and live island both render in authored order.
+- Go to page is a bounded, keyboard-operable modal and does not expand the
+  document.
+- News content, global navigation, layouts, feed discovery, and site-specific
+  collection output are removed with explicit URL dispositions.
+- Rocdown's generic collection and Atom behavior remains tested and documented.
+- Page titles include the Rocci brand exactly once.
+- Public status and comparison claims are current, bounded, and linked to
+  canonical owners.
+- Generated example/source pages are discoverable without 54 expected
+  unlisted warnings.
+- One documented repository command stages, checks, and builds the complete
+  site; focused product commands remain available.
+- The site remains usable without JavaScript; JS enhances Go to page and live
+  islands without becoming the only navigation path.
 
 ## Decision gates
 
-Human approval is required before treating any of these exploratory choices as
-normative:
+Human approval is required before implementation treats these exploratory
+choices as normative:
 
-1. Move public documentation beneath `/docs/` rather than preserving the
-   current top-level route families. (Approved: aliases preserve old routes)
-2. Rename the source root from `docs/` to `site/`. (Approved with composable mounts: `docs/` remains at the project root as the canonical documentation catalog; `site/` mounts `../docs` at prefix `docs` for the unified `rocci.dev` build)
-3. Adopt the proposed named-layout and project-shell contract.
-4. Standardize collection metadata in `@page`.
-5. Introduce `rocci-site` as any public name, even if only for a starter.
+1. The exact redirect/410 disposition for each current News URL.
+2. Whether `plain` is removed or redefined as a navigated article layout.
+3. Whether generated source pages receive nested Example sidebar entries or an
+   explicit linked-detail visibility class.
+4. Final Home messaging and primary call to action.
+5. Whether 404 uses global lane recovery only or also a small curated subset
+   of Docs/Project links.
 
-[^root-readme]: Current workspace overview, Rocdown commands, and configured `rocci.dev` output.
-[^rocdown-readme]: Shipped format, site workflow, static capabilities, and deferred project layouts and collections.
-[^generator]: Implemented Rust-catalog/Rocci-shell boundary, static feature gate, artifacts, and missing collection/search/island work.
-[^format]: Current language boundary and explicit statement that content collections are not implemented.
-[^product-boundary]: Approved ownership symmetry and one-way dependency between base Rocci and Rocdown.
-[^shell]: Current once-compiled Rocci shell and its documentation-oriented view contract.
-[^config]: Current closed TOML schema for site metadata, output, assets, navigation, snippets, and examples.
-[^current-site]: Existing rocci.dev metadata, build output, asset root, and curated navigation.
-[^preview-plan]: Separate public-preview work for message, identity, launch readiness, and community feedback.
+The requested sidebar, breadcrumb, and News-removal direction is already an
+input to this plan; the gates above refine execution without reopening that
+direction.
+
+[^audit]: Current source/build/browser evidence, route matrix, prioritized findings, and News-removal inventory.
+[^root-readme]: Current two-step application-doc staging plus site build/package workflow and public product/platform boundaries.
+[^rocdown-readme]: Current Rocdown project themes, mounts, page building, responsive-menu requirement, atomic output, and CLI contract.
+[^product-boundary]: Approved one-way ownership between base Rocci and the Rocdown product.
+[^catalog-decision]: Approved Rust-catalog/Rocci-shell split and shared chrome boundary.
+[^config]: Current source mounts, global lanes, curated navigation, News pages, and live service.
+[^shell]: Current global document composition, title rule, feed link, desktop lanes, and mobile layout allowlist.
+[^layouts]: Current layout-specific sidebar/breadcrumb/outline/journey behavior and responsive breakpoints.
+[^catalog]: Current breadcrumbs and ordered journey derive from the resolved navigation tree.
+[^planner]: Current sidebar groups, page views, hybrid plan path, and empty 404 navigation data.
+[^goto]: Current shared palette styling, host mounting, focus, results, and History API navigation.
+[^docs-plan]: Separate exhaustive Rocci documentation coverage, learning paths, reference, and first-use measurement work.
