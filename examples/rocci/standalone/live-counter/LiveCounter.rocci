@@ -3,6 +3,8 @@ import pf.Path
 import pf.Sqlite
 import pf.Stderr
 import Html
+import Origin
+import LiveCounterUi
 
 ## SQLite handle opened in `@init`. Shared with `@live` and commands.
 @context { db : Sqlite.Db }
@@ -29,23 +31,55 @@ import Html
             params: {},
         },
     )?
+    ensure_clicks!(db)?
     { db: db }
 }
 
 ## Document GET `/`. Renders the page; the live card is a separate `@live` fragment.
 @view("/") = |{ db }| {
     count = read_count!(db)?
-    counterPage({ count: count })
+    clicks = read_clicks!(db)?
+    counterPage({ count, clicks })
 }
 
 ## Shared `#counter` fragment for generated `GET /sse`.
 @live = |{ db }| {
     count = read_count!(db)?
-    counterCard({ count: count })
+    clicks = read_clicks!(db)?
+    LiveCounterUi.counterCard({ count, clicks })
 }
 
-## Increment; Datastar gets 204, other clients get `{ count }`.
-@command("/actions/counter/increment") = |{ db }| {
+## Increment and record click origin; Datastar gets empty SSE, curl gets `{ count }`.
+@command("/actions/counter/increment") = |{ db }, request| {
+    body =
+        match request.body().with_limit(8 * 1024).read_all!() {
+            Ok(bytes) => Str.from_utf8_lossy(bytes)
+            Err(_) => ""
+        }
+    tz_raw = Origin.signal_str(body, "tz")
+    tz = if tz_raw == "" { "UTC" } else { tz_raw }
+    place = Origin.lookup(tz)
+    now = now_secs!(db)?
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT INTO clicks (ts, tz, country, city, region) VALUES (:ts, :tz, :country, :city, :region)",
+            params: {
+                ts: now,
+                tz: tz,
+                country: place.country,
+                city: place.city,
+                region: place.region,
+            },
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 50)",
+            params: {},
+        },
+    )?
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
@@ -54,7 +88,7 @@ import Html
     { count }
 }
 
-## Reset to zero; same 204 / JSON split as increment.
+## Reset count to zero (keeps click history); same empty SSE / JSON split as increment.
 @command("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
@@ -62,6 +96,42 @@ import Html
         Err(_) => {}
     }
     { count }
+}
+
+clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL"
+
+ensure_clicks! = |db| {
+    create = "CREATE TABLE IF NOT EXISTS clicks (${clicks_ddl})"
+    Sqlite.execute!({ db, query: create, params: {} })?
+    row : { sql : Str }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'clicks'",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    if Str.contains(row.sql, clicks_ddl) {
+        Ok({})
+    } else {
+        Sqlite.execute!({ db, query: "DROP TABLE IF EXISTS clicks", params: {} })?
+        Sqlite.execute!({ db, query: create, params: {} })?
+        Ok({})
+    }
+}
+
+now_secs! = |db| {
+    row : { now : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.now)
 }
 
 read_count! = |db| {
@@ -75,6 +145,38 @@ read_count! = |db| {
         },
     )?
     Ok(row.value)
+}
+
+read_clicks! = |db| {
+    now = now_secs!(db)?
+    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts, tz, country, city, region FROM clicks ORDER BY id DESC LIMIT 50",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(
+        List.map(
+            rows,
+            |row| {
+                mapped = Origin.lookup(row.tz)
+                {
+                    flag: mapped.flag,
+                    place: Origin.place_label({
+                        country: row.country,
+                        city: row.city,
+                        region: row.region,
+                        flag: mapped.flag,
+                    }),
+                    ago: Origin.relative_ago(now, row.ts),
+                    ts: row.ts.to_str(),
+                }
+            },
+        ),
+    )
 }
 
 increment_count! = |db| {
@@ -100,41 +202,7 @@ reset_count! = |db| {
 }
 
 @component
-CounterCard = |{ count }| {
-    @css {
-        .counter-card {
-            margin-top: 2rem;
-            padding: 1.5rem 1.75rem;
-            border: 1px solid rgba(109, 236, 177, 0.2);
-            border-radius: 16px;
-            background: rgba(11, 30, 24, 0.72);
-        }
-        .counter-card p {
-            margin: 0 0 0.35rem;
-            color: #48eda4;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-        .counter-card output {
-            display: block;
-            color: #f8fffb;
-            font-family: ui-monospace, monospace;
-            font-size: 4rem;
-            font-weight: 650;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -0.04em;
-        }
-    }
-    <section id="counter" class="counter-card">
-        <p>Shared count</p>
-        <output>{count.to_str()}</output>
-    </section>
-}
-
-@component
-CounterPage = |{ count }|
+CounterPage = |{ count, clicks }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -150,23 +218,27 @@ CounterPage = |{ count }|
                 </nav>
                 <header>
                     <h1>Live counter</h1>
-                    <p class="lede">Two browsers share one SQLite count over a generated stream. Increment and reset return JSON; the open GET /sse morphs #counter in every tab.</p>
+                    <p class="lede">Two browsers share one SQLite count and recent click origins over a generated stream. Increment and reset return JSON; GET /sse morphs #counter in every tab.</p>
                 </header>
-                <CounterCard count={count} />
+                <div
+                    data-signals="{tz: ''}"
+                    data-init="$tz = Intl.DateTimeFormat().resolvedOptions().timeZone"
+                ></div>
+                <LiveCounterUi.CounterCard count={count} clicks={clicks} />
                 <div class="actions">
                     <button data-on:click=@post("/actions/counter/increment")>Increment</button>
                     <button class="secondary" data-on:click=@post("/actions/counter/reset")>Reset</button>
                 </div>
+                <p class="privacy">
+                    Origin comes from your browser timezone - no IP address is stored.
+                </p>
                 <footer>The count is stored in SQLite and shared by every visitor.</footer>
             </main>
         </body>
     </html>
 
-@fixture{target: CounterCard}
-counterCardTest = { count: 3.I64 }
-
 @fixture{target: CounterPage}
-counterPageTest = { count: 3.I64 }
+counterPageTest = { count: 3.I64, clicks: LiveCounterUi.empty_clicks }
 
 @css {
     * { box-sizing: border-box; }
@@ -179,6 +251,12 @@ counterPageTest = { count: 3.I64 }
         background:
             radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
             linear-gradient(145deg, #0a1713, #07110e);
+        --accent: #48eda4;
+        --ink: #f8fffb;
+        --muted: #8da39a;
+        --line: rgba(109, 236, 177, 0.2);
+        --surface: rgba(11, 30, 24, 0.72);
+        --canvas: #06100c;
     }
     main {
         width: min(40rem, calc(100% - 2rem));
@@ -234,6 +312,12 @@ counterPageTest = { count: 3.I64 }
         border: 1px solid #29493b;
         background: transparent;
         color: #bfd0c8;
+    }
+    .privacy {
+        margin: 1rem 0 0;
+        color: #8da39a;
+        font-size: 0.8rem;
+        line-height: 1.45;
     }
     footer {
         margin-top: 3rem;
