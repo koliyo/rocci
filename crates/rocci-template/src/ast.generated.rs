@@ -41,6 +41,7 @@ impl ModuleItem {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComponentDecl {
+    pub leading: Option<LeadingComments>,
     pub name: Ident,
     pub params: Span,
     pub body: TemplateBlock,
@@ -49,6 +50,7 @@ pub struct ComponentDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FixtureDecl {
+    pub leading: Option<LeadingComments>,
     pub name: Ident,
     pub target: ComponentPath,
     pub value: Span,
@@ -57,24 +59,28 @@ pub struct FixtureDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CssDecl {
+    pub leading: Option<LeadingComments>,
     pub body: Span,
     pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ContextDecl {
+    pub leading: Option<LeadingComments>,
     pub ty: Span,
     pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InitDecl {
+    pub leading: Option<LeadingComments>,
     pub body: Span,
     pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LiveDecl {
+    pub leading: Option<LeadingComments>,
     pub params: Option<Span>,
     pub body: Span,
     pub span: Span,
@@ -82,6 +88,7 @@ pub struct LiveDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ViewDecl {
+    pub leading: Option<LeadingComments>,
     pub path: String,
     pub path_span: Span,
     pub params: Option<Span>,
@@ -91,6 +98,7 @@ pub struct ViewDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PatchDecl {
+    pub leading: Option<LeadingComments>,
     pub method: Option<Ident>,
     pub path: String,
     pub path_span: Span,
@@ -101,11 +109,19 @@ pub struct PatchDecl {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CommandDecl {
+    pub leading: Option<LeadingComments>,
     pub method: Option<Ident>,
     pub path: String,
     pub path_span: Span,
     pub params: Option<Span>,
     pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LeadingComments {
+    pub comments: Vec<Span>,
+    pub docs: Vec<Span>,
     pub span: Span,
 }
 

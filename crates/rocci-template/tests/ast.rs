@@ -1,8 +1,8 @@
 use rocci_template::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
     CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
-    Interpolation, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem, PatchDecl,
-    TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem,
+    PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 
 fn ungram_productions(src: &str) -> Vec<String> {
@@ -132,6 +132,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
                 "ViewDecl",
                 "PatchDecl",
                 "CommandDecl",
+                "LeadingComments",
                 "TemplateBlock",
                 "TemplateItem",
                 "Element",
@@ -164,6 +165,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<ViewDecl>();
     let _ = std::any::type_name::<PatchDecl>();
     let _ = std::any::type_name::<CommandDecl>();
+    let _ = std::any::type_name::<LeadingComments>();
     let _ = std::any::type_name::<TemplateBlock>();
     let _ = std::any::type_name::<TemplateItem>();
     let _ = std::any::type_name::<Element>();
