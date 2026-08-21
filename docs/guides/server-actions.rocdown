@@ -4,18 +4,27 @@
 
     meta: {
         title: "Server actions and Datastar",
-        description: "Add server-owned state and targeted HTML updates to a Rocci component with @context, @init, @on, and Datastar actions.",
+        description: "Add server-owned state and targeted HTML updates with @context, @init, @on, optional @live, and Datastar actions.",
     },
 }
 
 # Add server actions with Datastar
 
 Rocci uses Datastar as a transport for server-rendered updates. The browser
-declares an action, the Roc handler changes state, and the response replaces a
-targeted HTML fragment.
+declares an action, the Roc handler changes state, and the response either
+morphs a fragment in **this tab** or, with `@live`, lets a generated stream
+morph a shared region in every open tab.
 
-This guide sketches the counter included in `examples/rocci/standalone/counter`. The same
-card on a Rocdown CDN page is `examples/rocdown/counter`; see
+Two shipped patterns:
+
+| Pattern | Author writes | What updates |
+| --- | --- | --- |
+| One-shot patch | `@on:post` returning Html | The acting tab, via one `datastar-patch-elements` |
+| Live CQRS | `@live` returning Html; commands marked `json` | Every tab on `GET /sse`; POSTs return 204 (Datastar) or JSON (`curl`) |
+
+The first-app counter (`examples/rocci/standalone/counter`) stays one-shot. Two
+browsers that should stay in sync use `examples/rocci/standalone/live-counter`
+or the hybrid island `examples/rocdown/counter`. Hybrid hosting notes are in
 [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/).
 
 ## Declare application state
@@ -62,8 +71,38 @@ parameter when the handler reads `Server.Request`; omit it otherwise.
     </section>
 ```
 
-Non-GET handlers return one-shot `datastar-patch-elements` events. The stable
-`id` lets Datastar target the existing fragment.
+Non-GET handlers without a respond ident return one-shot
+`datastar-patch-elements` events. The stable `id` lets Datastar target the
+existing fragment. Only the tab that posted updates.
+
+## Share a live region
+
+`@live` is the opt-in for a generated shared stream. One per module, same
+parameter rules as `@on`. Rocci emits `GET /sse` (poll + patch) and, when the
+document `<body>` has no `data-init`, injects
+`data-init=@get("/sse", [OpenWhenHidden(Bool.true)])`.
+
+```rocci
+@live = |{ db }| {
+    count = read_count!(db)?
+    counterCard({ count })
+}
+
+@on:post("/actions/counter/increment") json = |{ db }| {
+    count = increment_count!(db)?
+    "{\"count\":${count.to_str()}}"
+}
+```
+
+Mark mutating commands `json`. When the request has `Datastar-Request: true`,
+the dispatcher answers **204** (no morph). Otherwise it answers **200**
+`application/json` with the handler `Str`. Do not return `counterCard` from a
+`json` POST: that would patch `#counter` from both the command and the stream.
+JSON `{ "count": N }` patches Datastar **signals**, not the DOM; bind the
+visible count in HTML from the server, not `$count`.
+
+`curl -X POST` without `Datastar-Request` prints JSON, not
+`datastar-patch-elements`.
 
 ## Log from a handler
 
@@ -111,19 +150,22 @@ double-quoted Roc strings.
 | --- | --- | --- |
 | HTML document | Resource path | `GET /todos` |
 | HTML or SSE patch | `/actions/...` | `POST /actions/todos/add` |
-| JSON API | `/api/...` | `POST /api/direction` |
-| Long-lived SSE | `/sse` | `GET /sse` in an authored `main.roc` |
+| JSON command (`json`) | `/actions/...` | `POST /actions/counter/increment` → 204 or `{"count":N}` |
+| Long-lived SSE | `/sse` | Generated from `@live`; custom unfold stays in authored `main.roc` |
 
-## Run the complete example
+## Run the examples
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/live-counter/LiveCounter.rocci
 ```
 
-Increment the counter in two browser windows to verify that SQLite-backed
-state is shared. See [the rendering model](/docs/concepts/rendering-model/) for the
-boundary between documents, patches, and client behavior.
+In the first-app counter, increment in two windows: SQLite is shared, but the
+second tab stays stale until you click or refresh. In live-counter, both
+windows morph `#counter` from the stream. See
+[the rendering model](/docs/concepts/rendering-model/) for the boundary between
+documents, patches, JSON, and streams.
 
-The hybrid site form of this card (`examples/rocdown/counter`) puts the
-document on the CDN and the POST handlers on `rocdown serve-islands`. GET `/`
-stays a build-time snapshot; the service owns SQLite.
+The hybrid site form of this card (`examples/rocdown/counter`) is live: the
+document is CDN HTML (snapshot `0`), `@live` plus `json` commands run on
+`rocdown serve-islands`, and the first stream event replaces the snapshot.
