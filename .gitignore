@@ -1,4 +1,5 @@
-# Python / uv
+/target
+.DS_Store
 .venv
 **/__pycache__/
 *.py[cod]
