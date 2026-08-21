@@ -45,7 +45,7 @@ sources:
 
 ## Goal
 
-Give CI, the origin VPS, and localhost one `uv run --project tools/rocci-ops rocci-ops`
+Give CI, the origin VPS, and localhost one `uv run rocci-ops`
 surface so job lists and deploy steps cannot drift across YAML and bash.[^ops-cli][^ops-ci]
 
 ## Out of bound
@@ -62,12 +62,12 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 ## Phase 1 — uv package and workspace-deps
 
 **Bound:** `tools/rocci-ops` scaffold; workspace-deps in Python; lint uses uv.
-**Exit:** `uv run --project tools/rocci-ops rocci-ops check-deps`
+**Exit:** `uv run rocci-ops check-deps`
 
 ## Phase 2 — CI job runner
 
 **Bound:** Job bodies in `rocci_ops.ci`; thin `ci.yml` / `knowledge.yml`.
-**Exit:** `uv run --project tools/rocci-ops rocci-ops ci --list`; pytest
+**Exit:** `uv run rocci-ops ci --list`; pytest
 
 ## Phase 3 — Release packaging and ci-gate
 

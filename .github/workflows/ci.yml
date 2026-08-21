@@ -29,7 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Run lint job
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci lint
+        run: uv run --no-dev rocci-ops ci lint
 
   test:
     name: Test Workspace (${{ matrix.os }})
@@ -53,7 +53,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Run workspace tests
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci test
+        run: uv run --no-dev rocci-ops ci test
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
@@ -68,7 +68,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Inspect fixtures and validate docs
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci fixtures-and-docs
+        run: uv run --no-dev rocci-ops ci fixtures-and-docs
 
   editors:
     name: Editor Extensions (VS Code & Zed)
@@ -87,4 +87,4 @@ jobs:
           cache: npm
           cache-dependency-path: editors/vscode/package-lock.json
       - name: Run editor checks
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci editors
+        run: uv run --no-dev rocci-ops ci editors

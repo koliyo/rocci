@@ -60,11 +60,12 @@ Copy Compose/Caddy/`prod/` docs plus the `tools/rocci-ops` uv project (not
 
 ```sh
 DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy \
-  uv run --project tools/rocci-ops rocci-ops deploy bootstrap
+  uv run rocci-ops deploy bootstrap
 ```
 
-The origin needs Python 3.12 and `uv` on `PATH`. Default remote docker dir is
-`/srv/rocci/docker`; ops live at `/srv/rocci/tools/rocci-ops`. The `deploy`
+The origin needs Python 3.12 and `uv` on `PATH`. Bootstrap copies the root
+`pyproject.toml` / `uv.lock` plus `tools/rocci-ops` to `/srv/rocci`. Default
+remote docker dir is `/srv/rocci/docker`. The `deploy`
 user must write `/srv/rocci/{incoming,releases,current}` and call `docker compose`
 without sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
 Cloudflare Access (`ssh.rocci.dev`). From a laptop with Access, export
@@ -76,7 +77,7 @@ so `scp`/`ssh` use
 
 Do not copy artifacts by hand. `.github/workflows/site.yml` packages on
 linux/amd64, then the `deploy` job (Environment `production` only, never
-`pull_request`) probes SSH (`uv run --project tools/rocci-ops rocci-ops deploy probe`),
+`pull_request`) probes SSH (`uv run rocci-ops deploy probe`),
 bootstraps the origin kit, scps `site.tgz` / `islands`, and runs
 `uv run rocci-ops origin publish SHA` on the box: unpack to `releases/<sha>/`,
 `compose up -d --build`, GET `http://127.0.0.1:8080/health`, then flip `current`.
@@ -84,7 +85,7 @@ A failed health check leaves the previous symlink and restores that release.
 Laptop one-shot:
 
 ```sh
-uv run --project tools/rocci-ops rocci-ops deploy push ARTIFACT_DIR SHA
+uv run rocci-ops deploy push ARTIFACT_DIR SHA
 ```
 
 Secrets (names only): `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`,
@@ -144,7 +145,7 @@ equals `/health`. Hashed `/assets/` already send
 ## SQLite backup
 
 ```sh
-sudo uv run --project /srv/rocci/tools/rocci-ops rocci-ops origin backup /var/backups/rocci
+cd /srv/rocci && sudo uv run --no-dev rocci-ops origin backup /var/backups/rocci
 ```
 
 That copies `site.db` out of volume `rocci-prod_islands-db`. Restore by
