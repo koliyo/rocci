@@ -28,7 +28,7 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 | Reusable UI widgets & design primitives | `components/*.rocci` | Composable `@component` declarations, scoped `@css`, and `@fixture` |
 | Markdown-first page or docs | `docs/*.rocdown` or `*.rocdown` | Prose is Markdown; `@` and `:` only at document root |
 | Site chrome / document layouts | `theme/*.rocci` or `layouts/*.rocci` | Article is a **body parameter**, not a prop (`|{ view }, content|`) |
-| Standalone HTTP apps / route modules | `pages/*.rocci` or root `*.rocci` | App state (`@context`, `@init`), routes (`@on`), and full-page HTML |
+| Standalone HTTP apps / route modules | `pages/*.rocci` or root `*.rocci` | App state (`@context`, `@init`), routes (`@on`), optional `@live`, and full-page HTML |
 | Shared Roc helpers / domain modules | `*.roc` | Import from `.rocci`; ordinary Roc functions/types without template grammar |
 
 > [!NOTE]
@@ -67,7 +67,7 @@ path until island splicing lands.
 ## Rocci essentials
 
 - Ordinary Roc stays Roc. Recognized top-level forms: `@component`, `@fixture`,
-  `@css`, `@context`, `@init`, `@on`.
+  `@css`, `@context`, `@init`, `@on`, `@live`.
 - Component names are PascalCase (`StatusCard`). Lowering emits camelCase Roc
   (`statusCard`). Handlers and `exposing` lists use the lowered name.
 - One root tag needs no braces. Directives, `@let`, `@css`, or multiple roots
@@ -113,6 +113,8 @@ path until island splicing lands.
 @init { ... }
 @on:get("/") = |{ db }| { page({ count }) }
 @on:post("/actions/save") = |{ db }, request| { fragment({ count }) }
+@live = |{ db }| { fragment({ count }) }
+@on:post("/actions/increment") json = |{ db }| { "{\"count\":${count.to_str()}}" }
 ```
 
 Generated dispatch passes `(context, request)`. Omit `request` when unused.
@@ -121,14 +123,14 @@ A one-parameter list such as `|{ db }|` lowers with `_request` appended.
 | --- | --- | --- |
 | Document | `/`, `/todos` | Full `<html>` |
 | HTML/SSE patch | `/actions/...` | Fragment with a **stable `id`** (one-shot; acting tab only) |
-| JSON / data | `/api/...` | Data (Datastar JSON patches **signals**, not the DOM) |
-| Long-lived SSE | `/sse` | Authored `main.roc` today; generated `@live` is planned |
+| JSON command | `/actions/...` marked `json` | `Str`; **204** to Datastar, JSON to `curl` (signals, not the DOM) |
+| Long-lived SSE | `/sse` | Generated from `@live`; do not author `GET /sse` in the same module |
 
 Use unquoted Rocci actions: `data-on:click=@post("/actions/x")` with Roc
 double-quoted strings. A quoted `"@post('/x')"` is opaque Datastar JS. Prefer
 file-level `@css` on page modules or shared CSS for patch components; injected
-sibling `<style>` should not ride on SSE patches. Shared multi-tab updates need
-a long-lived GET stream (`$rocci-stack`); do not expect a POST patch to fan out.
+sibling `<style>` should not ride on SSE patches. Shared multi-tab updates use
+`@live` (`$rocci-stack`); do not expect a POST patch to fan out.
 
 ## Roc used from Rocci
 

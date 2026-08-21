@@ -4,7 +4,7 @@ Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
 `@component Name = |params| ...` bodies use a bounded HTML template
-grammar. Top-level `@context`, `@init`, and `@on` declare standalone HTTP
+grammar. Top-level `@context`, `@init`, `@on`, and `@live` declare standalone HTTP
 apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
 expressions, or spawn servers.
 
@@ -47,8 +47,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
-`@on` are recognized only at the start of a top-level definition.
+module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, `@on`,
+and `@live` are recognized only at the start of a top-level definition.
 
 ## Components
 
@@ -167,8 +167,8 @@ are left for the Roc compiler and later project-level tools.
 
 ## Standalone HTTP
 
-Top-level `@context`, `@init`, and `@on` declare app state and HTTP handlers
-for `rocci run File.rocci`. Bodies are Roc, not templates. The generated
+Top-level `@context`, `@init`, `@on`, and `@live` declare app state and HTTP
+handlers for `rocci run File.rocci`. Bodies are Roc, not templates. The generated
 dispatcher (not this crate) maps them onto basic-webserver: authors never
 write `Context`, `ServerErr`, `Exit`, or `respond!`.
 
@@ -185,8 +185,18 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
     page({ count })
 }
 
-@on:post("/actions/increment") = |{ db }| {
+@live = |{ db }| {
+    count = read_count!(db)?
+    card({ count })
+}
+
+@on:post("/actions/increment") json = |{ db }| {
     count = increment_count!(db)?
+    "{\"count\":${count.to_str()}}"
+}
+
+@on:post("/actions/reset") = |{ db }| {
+    count = reset_count!(db)?
     card({ count })
 }
 ```
@@ -195,16 +205,27 @@ write `Context`, `ServerErr`, `Exit`, or `respond!`.
   `main.roc` uses `Context : Module.State`.
 - `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
   generated app maps failures to process exit.
-- `@on:METHOD("literal-path") = |state, request| { ... }` lowers to a named
+- `@live = |state, request| { ... }` (optional params, same arity as `@on`)
+  lowers to `live!`. One per module. The CLI dispatcher emits `GET /sse` as a
+  poll unfold (`After(100)`) that calls `Type.live!(context, request)` and
+  skips emit when `Html.render` bytes are unchanged. In an `@live` module, a
+  root `<body>` without `data-init` gets
+  `data-init=@get("/sse", [OpenWhenHidden(Bool.true)])`. Authored `@on:get("/sse")`
+  plus `@live` is a diagnostic.
+- `@on:METHOD("literal-path") json? = |state, request| { ... }` lowers to a named
   function (`on_get_root!`, `on_post_actions_increment!`). Generated
   dispatch calls `handler!(context, request)`. Write `|{ db }, request|`
   when the handler reads the request. A one-parameter list such as
   `|{ db }|` or `|_|` lowers with an unused `_request` appended. Omit the
   parameter list to get `|state, _request|`. `GET` responses are HTML
-  documents; other methods are one-shot `datastar-patch-elements` SSE
-  events. Generated `respond!` maps `?` failures to HTTP 500. Bodies may
-  call platform effects such as `pf.Stderr.line!`; under `rocci run` those
-  lines are teed to the CLI and Dev Console. Do not print from `@component`.
+  documents; unmarked other methods are one-shot `datastar-patch-elements` SSE
+  events. The optional `json` ident (mutating methods only) returns a `Str`:
+  **204** when `Datastar-Request: true`, else **200** `application/json`.
+  Unknown idents and `json` on GET are diagnostics. Generated `respond!` maps
+  `?` failures to HTTP 500 (HTML overlay for Datastar; JSON `{"error":"..."}`
+  for API). Bodies may call platform effects such as `pf.Stderr.line!`; under
+  `rocci run` those lines are teed to the CLI and Dev Console. Do not print
+  from `@component`.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
 
 Paths are free-form. The convention is:
@@ -213,14 +234,14 @@ Paths are free-form. The convention is:
 | --- | --- | --- |
 | HTML document | resource, no prefix | `GET /`, `GET /todos` |
 | Datastar HTML/SSE patch | `/actions/...` | `POST /actions/increment` |
-| JSON / data API | `/api/...` | `POST /api/direction` |
-| Long-lived SSE | `/sse` | `GET /sse` |
+| JSON command (`json`) | `/actions/...` | `POST /actions/increment` → 204 or JSON |
+| Long-lived SSE | `/sse` | Generated from `@live` |
 
-Handler return alternatives not taken for this POC: returning
-`Server.Outcome` from the body, or branching on `Html` vs `Sse.Event`.
-Custom long-lived SSE stays in an authored `main.roc`.
+Handler return alternatives not taken: returning `Server.Outcome` from the
+body, or branching on `Html` vs `Sse.Event`. A custom unfold can still live in
+an authored `main.roc`.
 
-`@context` / `@init` / `@on` are module-level only.
+`@context` / `@init` / `@on` / `@live` are module-level only.
 
 ## Tags
 
