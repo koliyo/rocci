@@ -8,7 +8,7 @@ use rocci_template::{SourceFile, Span, TemplateItem};
 use serde::Serialize;
 
 use crate::article::{render_md, render_static_image};
-use crate::ast::{BlockCall, BracketRecord, Document, Item, MdNode, ParamValue};
+use crate::ast::{BlockCall, BlockContent, BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 use crate::img::{StaticImage, img_fields_from_params};
 use crate::page::{bool_literal, string_list, string_literal};
@@ -755,30 +755,40 @@ fn heading_from_call(
     let content = call
         .content_span()
         .unwrap_or_else(|| Span::point(call.span.end as usize));
-    let parsed = parse_fragment(ctx.source, content, false);
-    for diagnostic in parsed.diagnostics {
-        let code = if diagnostic.is_error() {
-            "RD1001"
-        } else {
-            "RD1002"
-        };
-        ctx.diagnostics.push(CatalogDiagnostic {
-            code,
-            severity: if diagnostic.is_error() {
-                Severity::Error
-            } else {
-                Severity::Warning
-            },
-            path: ctx.source_path.to_string(),
-            message: format!("line {line}: {}", diagnostic.message),
-        });
-    }
-
-    let children = unwrap_heading_children(nodes_from_items(
-        ctx,
-        &parsed.document.items,
-        Some(&call.name),
-    ));
+    let children = match &call.content {
+        Some(BlockContent::Line(line)) if !line.span.is_empty() => {
+            vec![ArticleNode::Markdown(MdNode::Text {
+                value: line.span.of(ctx.source.src).to_string(),
+                span: line.span,
+            })]
+        }
+        Some(BlockContent::Line(_)) | None => Vec::new(),
+        Some(_) => {
+            let parsed = parse_fragment(ctx.source, content, false);
+            for diagnostic in parsed.diagnostics {
+                let code = if diagnostic.is_error() {
+                    "RD1001"
+                } else {
+                    "RD1002"
+                };
+                ctx.diagnostics.push(CatalogDiagnostic {
+                    code,
+                    severity: if diagnostic.is_error() {
+                        Severity::Error
+                    } else {
+                        Severity::Warning
+                    },
+                    path: ctx.source_path.to_string(),
+                    message: format!("line {line}: {}", diagnostic.message),
+                });
+            }
+            unwrap_heading_children(nodes_from_items(
+                ctx,
+                &parsed.document.items,
+                Some(&call.name),
+            ))
+        }
+    };
     let node = DocsNode {
         kind: call.name.clone(),
         attrs,
