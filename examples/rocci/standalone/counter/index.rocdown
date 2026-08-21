@@ -1,0 +1,16 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Counter",
+        description: "SQLite document plus one-shot HTML patches",
+    },
+}
+
+# Counter
+
+Standalone SQLite document with increment and reset patches. See
+[source](/examples/counter/source/).
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
+```

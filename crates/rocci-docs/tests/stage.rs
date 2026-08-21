@@ -96,8 +96,8 @@ fn stages_expected_tree_and_skips_non_catalog() {
     assert!(files.contains(&"listed/index.rocdown".into()));
     assert!(files.contains(&"listed/extra.rocdown".into()));
     assert!(files.contains(&"listed/source/index.rocdown".into()));
-    assert!(files.contains(&"listed/source/App.rocci.rocdown".into()));
-    assert!(files.contains(&"listed/source/assets/ok.css.rocdown".into()));
+    assert!(files.contains(&"listed/source/App-rocci.rocdown".into()));
+    assert!(files.contains(&"listed/source/assets--ok-css.rocdown".into()));
     assert!(files.contains(&"listed/snippets/App.rocci".into()));
     assert!(files.contains(&"listed/snippets/assets/ok.css".into()));
     assert!(!files.iter().any(|f| f.contains("unlisted")));
@@ -106,7 +106,7 @@ fn stages_expected_tree_and_skips_non_catalog() {
     assert!(!files.iter().any(|f| f.contains("generated")));
     assert!(!files.iter().any(|f| f.contains(".gitkeep")));
     assert!(!files.iter().any(|f| f.contains("notes.txt")));
-    let page = fs::read_to_string(out.join("listed/source/App.rocci.rocdown")).unwrap();
+    let page = fs::read_to_string(out.join("listed/source/App-rocci.rocdown")).unwrap();
     assert!(page.contains(":include[path: \"App.rocci\"]"));
     assert!(!page.contains(".."));
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();

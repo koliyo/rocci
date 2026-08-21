@@ -44,6 +44,11 @@ cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/hybrid [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter [--port 8000] [--no-window]
 
+# Package/check the rocci.dev site after staging generated example docs
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
+cargo run -p rocci-rocdown-cli -- check site
+cargo run -p rocci-rocdown-cli -- package site --target x64musl
+
 # Check documentation catalog, routes, links, includes, and assets without compiling Roc
 cargo run -p rocci-rocdown-cli -- check docs [--format terminal|json]
 

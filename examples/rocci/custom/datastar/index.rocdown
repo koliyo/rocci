@@ -1,0 +1,15 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Datastar gallery",
+        description: "Search, edit, todos, tabs, and validation",
+    },
+}
+
+# Datastar gallery
+
+Multi-page interaction gallery. See [source](/examples/datastar/source/).
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
+```
