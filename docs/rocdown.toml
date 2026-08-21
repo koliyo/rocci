@@ -99,6 +99,7 @@ items = [
     "reference/compatibility",
     "reference/diagnostics",
     "reference/contributor/rocci-tree",
+    "reference/contributor/checklist",
 ]
 
 [[nav]]

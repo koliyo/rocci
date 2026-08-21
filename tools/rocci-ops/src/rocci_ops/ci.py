@@ -89,6 +89,8 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "test/EmbeddedLanguages.rocdown",
                 )
             ),
+            Step(("uv", "run", "--no-dev", "rocci-ops", "check-docs")),
+            Step(("cargo", "test", "-p", "rocci-docs")),
             Step(
                 (
                     "cargo",
