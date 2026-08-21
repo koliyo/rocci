@@ -4,6 +4,7 @@ import pf.Sqlite
 import pf.Stderr
 import Html
 
+## SQLite handle opened in `@init`.
 @context { db : Sqlite.Db }
 
 @init {
@@ -30,11 +31,13 @@ import Html
     { db: db }
 }
 
+## Read the stored count and render `CounterPage`.
 @view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
 
+## Add one to the stored count and morph `#counter`.
 @patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
@@ -44,6 +47,7 @@ import Html
     counterCard({ count: count })
 }
 
+## Set the stored count to zero and morph `#counter`.
 @patch("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
@@ -88,6 +92,7 @@ reset_count! = |db| {
     read_count!(db)
 }
 
+## Shared SQLite count shown after increment and reset patches.
 @component
 CounterCard = |{ count }| {
     @css {
@@ -122,6 +127,7 @@ CounterCard = |{ count }| {
     </section>
 }
 
+## Full HTML document for GET `/`.
 @component
 CounterPage = |{ count }|
     <html lang="en">

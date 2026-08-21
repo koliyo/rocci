@@ -13,6 +13,12 @@ cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
 `--print-live` lists `id`, catalog-relative `path`, and `entry` for
 `hosting = "live"` rows. Docs-only ids are omitted.
 
+For each published `.rocci` file, `rocci-docs` parses attached `## ` doc
+comments (same attachment rules as Roc: no blank line before `@`) and writes
+them onto the generated source page above `:include`. Tutorial prose stays in
+colocated `.rocdown`. This crate depends on `rocci-template` for parse only; it
+does not compile Roc or render HTML.
+
 `site/rocdown.toml` mounts `../dist/example-docs` at prefix `examples`. Run
 this tool before `rocdown check site`, `rocdown run site`, or
 `rocdown package site`. `rocci-rocdown` does not depend on this crate.

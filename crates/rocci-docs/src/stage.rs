@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::catalog::{AppEntry, Catalog, DocsError, Hosting};
+use crate::extract::declarations_markdown;
 use crate::inventory::{PublishedFile, inventory_app};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,7 +87,17 @@ fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, 
                 source,
             })?;
         }
-        write_file(page_path, &source_page(app, file))?;
+        let rocci_src = if file.relative.ends_with(".rocci") {
+            Some(
+                fs::read_to_string(&file.absolute).map_err(|source| DocsError::Io {
+                    path: file.absolute.clone(),
+                    source,
+                })?,
+            )
+        } else {
+            None
+        };
+        write_file(page_path, &source_page(app, file, rocci_src.as_deref()))?;
         written += 1;
     }
     Ok(written)
@@ -230,7 +241,11 @@ fn source_index(app: &AppEntry, files: &[PublishedFile]) -> String {
     )
 }
 
-fn source_page(app: &AppEntry, file: &PublishedFile) -> String {
+fn source_page(app: &AppEntry, file: &PublishedFile, rocci_src: Option<&str>) -> String {
+    let docs = rocci_src
+        .map(declarations_markdown)
+        .filter(|md| !md.is_empty())
+        .unwrap_or_default();
     format!(
         r#"@page {{
     layout: "docs",
@@ -244,12 +259,13 @@ fn source_page(app: &AppEntry, file: &PublishedFile) -> String {
 
 See the [{title} tutorial](/examples/{id}/) for context.
 
-:include[path: "{include}"]
+{docs}:include[path: "{include}"]
 "#,
         name = escape_text(&file.relative),
         title = escape_text(&app.title),
         id = app.id,
         include = file.relative,
+        docs = docs,
     )
 }
 

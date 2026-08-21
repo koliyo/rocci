@@ -197,7 +197,6 @@ serves that app.
 ## Out of bound
 
 - A documentation generator for Rocdown sites, pages, or hybrid islands.
-- rustdoc-style extraction from comments or `@component` signatures.
 - A second article renderer, highlighter, or site catalog inside `rocci-docs`.
 - `rocci-docs` depending on `rocci-rocdown` or `rocci-cli`; `rocci-rocdown`
   depending on `rocci-docs` or `rocci-cli`.
@@ -214,7 +213,7 @@ serves that app.
 | Constraint | Required behavior |
 | --- | --- |
 | Ownership | `rocci-docs` inventories apps and writes the staging tree; Rocdown mounts and renders pages. Base Rocci must not depend on Rocdown.[^catalog-shell][^workspace-deps] |
-| Authored docs | Prose is `.rocdown`, not README-as-site and not comments in `.rocci`. |
+| Authored docs | Tutorial prose is `.rocdown`, not README-as-site. Attached Roc `## ` docs on top-level `@` declarations are staged onto source pages. |
 | Highlighting | `.rocci` / `.roc` / HTML / CSS use `rocci-highlight` `tok-*` spans already used by fences and `:include`.[^article][^highlight] |
 | Include safety | Generated includes never use `..`, NUL, or absolute paths; staged files sit inside allowed snippet roots.[^include][^rocdown-site-ref] |
 | Syntax | Published example source uses `@view` / `@patch` / `@command` / `@live`; `@on` remains only in removal diagnostics and historical records.[^handlers] |
