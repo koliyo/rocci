@@ -159,7 +159,7 @@ CounterIsland = |{ count }| {
         }
     }
     <>
-        <div data-init=@get("/sse", [OpenWhenHidden(Bool.true)])></div>
+        <div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
         <CounterCard count={count} />
         <div class="actions">
             <button type="button" data-on:click=@post("/actions/counter/increment")>

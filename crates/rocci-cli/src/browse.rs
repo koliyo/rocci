@@ -13,6 +13,7 @@ use rocci_template::{
 
 use crate::datastar_asset;
 use crate::error_page::{self, ListedRoute};
+use crate::logs::Progress;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
@@ -39,6 +40,7 @@ pub fn browse(
     no_window: bool,
     port: serve::PortArg,
     live_reload: bool,
+    verbose: bool,
 ) -> Result<()> {
     let files = discover_rocci_files(roots)?;
     if files.is_empty() {
@@ -107,7 +109,13 @@ pub fn browse(
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
 
-    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+    match serve::wait_for_roc(
+        &mut child,
+        &mut tee,
+        port,
+        "/",
+        Progress::from_verbose(verbose),
+    )? {
         serve::RocStart::Ready => {}
         serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(&output, &[]);

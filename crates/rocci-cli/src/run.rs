@@ -24,9 +24,18 @@ pub fn run(
     port: serve::PortArg,
     live_reload: bool,
     log_handlers: bool,
+    verbose: bool,
 ) -> Result<()> {
     if is_standalone_file(file) {
-        return run_standalone(file, args, no_window, port, live_reload, log_handlers);
+        return run_standalone(
+            file,
+            args,
+            no_window,
+            port,
+            live_reload,
+            log_handlers,
+            verbose,
+        );
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
@@ -51,6 +60,7 @@ pub fn run(
         None,
         compiled.profile,
         compiled.inspect_pages,
+        verbose,
     )
 }
 
@@ -164,6 +174,7 @@ fn run_standalone(
     port: serve::PortArg,
     live_reload: bool,
     log_handlers: bool,
+    verbose: bool,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -196,6 +207,7 @@ fn run_standalone(
         no_window,
         live_reload,
         log_handlers,
+        verbose,
         port,
         db_path: None,
         title,
@@ -461,7 +473,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     let mut child = cmd
         .spawn()
         .with_context(|| format!("failed to start {}", server.display()))?;
-    if let Err(err) = serve::wait_for_server(&mut child, port) {
+    if let Err(err) = serve::wait_for_server(&mut child, port, crate::logs::Progress::default()) {
         let _ = child.kill();
         let _ = child.wait();
         return Err(err);

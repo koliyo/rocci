@@ -14,7 +14,7 @@ use rocci_template::{
 
 use crate::datastar_asset;
 use crate::error_page::{self, FailedFile, ListedRoute, MappedModule};
-use crate::logs::{self, LogHub, LogLevel};
+use crate::logs::{self, LogHub, LogLevel, Progress};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
@@ -30,6 +30,7 @@ pub fn view(
     no_window: bool,
     port: serve::PortArg,
     live_reload: bool,
+    verbose: bool,
 ) -> Result<()> {
     if !input.is_file() {
         bail!("no such file: {}", input.display());
@@ -126,7 +127,13 @@ pub fn view(
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
     let title = format!("rocci view · {}", info.name);
-    match serve::wait_for_roc(&mut child, &mut tee, port, "/")? {
+    match serve::wait_for_roc(
+        &mut child,
+        &mut tee,
+        port,
+        "/",
+        Progress::from_verbose(verbose),
+    )? {
         serve::RocStart::Ready => {
             tee.flush_to_hub();
             logs::tee(
@@ -242,10 +249,10 @@ pub(crate) fn assign_args(
 pub(crate) fn encode_roc_value(value: &str) -> String {
     let trimmed = value.trim();
     if trimmed == "true" {
-        return "Bool.true".to_string();
+        return "True".to_string();
     }
     if trimmed == "false" {
-        return "Bool.false".to_string();
+        return "False".to_string();
     }
     if is_number(trimmed) {
         return trimmed.to_string();
@@ -580,8 +587,8 @@ mod tests {
         assert_eq!(encode_roc_value("5"), "5");
         assert_eq!(encode_roc_value("-3"), "-3");
         assert_eq!(encode_roc_value("1.5"), "1.5");
-        assert_eq!(encode_roc_value("true"), "Bool.true");
-        assert_eq!(encode_roc_value("false"), "Bool.false");
+        assert_eq!(encode_roc_value("true"), "True");
+        assert_eq!(encode_roc_value("false"), "False");
         assert_eq!(encode_roc_value("\"already\""), "\"already\"");
         assert_eq!(encode_roc_value("{ name: \"x\" }"), "{ name: \"x\" }");
         assert_eq!(encode_roc_value("[1, 2]"), "[1, 2]");
@@ -658,9 +665,17 @@ mod tests {
         let _ = fs::create_dir_all(&temp_dir);
         let md_file = temp_dir.join("test.md");
         fs::write(&md_file, "# Hello").unwrap();
-        let err = view(&md_file, "main", &[], true, serve::PortArg::Auto, true)
-            .unwrap_err()
-            .to_string();
+        let err = view(
+            &md_file,
+            "main",
+            &[],
+            true,
+            serve::PortArg::Auto,
+            true,
+            false,
+        )
+        .unwrap_err()
+        .to_string();
         assert!(err.contains("unsupported file extension for `rocci view`"));
         assert!(err.contains("expected a .rocci file"));
         let _ = fs::remove_dir_all(&temp_dir);

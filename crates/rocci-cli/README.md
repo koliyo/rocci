@@ -22,6 +22,9 @@ cargo run -p rocci-cli -- build --release examples/rocci/standalone/counter/Coun
 # Run a standalone template application with live reload and embedded preview
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 
+# Print compile and wait phases to stderr
+cargo run -p rocci-cli -- run --verbose examples/rocci/standalone/live-counter/LiveCounter.rocci
+
 # Pause automatic page refresh (watch/rebuild still runs)
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --no-live-reload
 

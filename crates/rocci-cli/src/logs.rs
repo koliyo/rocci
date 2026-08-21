@@ -132,6 +132,13 @@ pub struct Progress {
 }
 
 impl Progress {
+    pub fn from_verbose(verbose: bool) -> Self {
+        Self {
+            verbose,
+            quiet: false,
+        }
+    }
+
     pub fn step(self, message: impl AsRef<str>) {
         if self.quiet {
             return;
