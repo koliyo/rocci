@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phase 0 freeze implemented on multiplayer-falling-block-demonstrator."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–1 implemented on multiplayer-falling-block-demonstrator."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T14:45:00Z }
+generated: { by: process:cursor, at: 2026-08-21T15:10:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -436,6 +436,11 @@ schema, error tags, and input/output tables live under
 `examples/rocci/custom/blocks/fixtures/` (`protocol.md` plus JSON families for
 placement, row clear, cancellation, target rotation, garbage holes, top-out,
 duplicate sequence, reconnect, and snapshot budget).
+
+Phase 1 is implemented: `Game.roc` owns board, bag, rotation, lock, and clears;
+`Blocks.rocci` hosts the document, canvas, HUD, and solo lock/reset commands;
+`assets/blocks-client.js` owns local motion. Rejected locks return the
+authoritative player snapshot in JSON (`ok: 0`) so the island resynchronizes.
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 

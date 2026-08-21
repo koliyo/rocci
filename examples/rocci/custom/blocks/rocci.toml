@@ -1,0 +1,31 @@
+[app]
+name = "Rocci Blocks"
+identifier = "dev.rocci.blocks"
+version = "0.1.0"
+
+[[windows]]
+label = "main"
+title = "Rocci Blocks"
+url = "/"
+width = 980
+height = 820
+min_width = 360
+min_height = 560
+
+[http]
+host = "127.0.0.1"
+port = 0
+
+[security]
+allowed_origins = []
+
+[assets]
+directory = "assets"
+embed = true
+
+[development]
+reload = false
+devtools = false
+
+[bundle]
+app = "Blocks.rocci"
