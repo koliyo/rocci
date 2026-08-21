@@ -246,6 +246,96 @@ def _git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProc
     return subprocess.run(["git", "-C", str(root), *args], check=check, capture_output=True, text=True)
 
 
+def package_site(*, target: str) -> int:
+    root = repo_root()
+    catalog = root / "examples/rocci/apps.toml"
+    docs_out = root / "dist/example-docs"
+    live_root = root / "dist/examples-live"
+    run(
+        [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "rocci-docs",
+            "--",
+            "--catalog",
+            str(catalog),
+            "--output",
+            str(docs_out),
+        ],
+        cwd=root,
+    )
+    listed = subprocess.run(
+        [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "rocci-docs",
+            "--",
+            "--catalog",
+            str(catalog),
+            "--print-live",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    if live_root.exists():
+        shutil.rmtree(live_root)
+    live_root.mkdir(parents=True)
+    for raw in listed.stdout.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        app_id, rel, entry = line.split("\t")
+        src = root / "examples/rocci" / rel
+        if entry != ".":
+            src = src / entry
+        dest = live_root / app_id
+        run(
+            [
+                "cargo",
+                "run",
+                "-q",
+                "-p",
+                "rocci-cli",
+                "--",
+                "build",
+                "--release",
+                str(src),
+                "--target",
+                target,
+                "--output",
+                str(dest),
+            ],
+            cwd=root,
+        )
+        if not (dest / "server").is_file():
+            raise SystemExit(f"error: live app `{app_id}` did not write {dest / 'server'}")
+    for docs_only in ("counter", "styling", "snake"):
+        if (live_root / docs_only).exists():
+            raise SystemExit(f"error: docs-only id `{docs_only}` must not be in {live_root}")
+    run(
+        [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "rocci-rocdown-cli",
+            "--",
+            "package",
+            "site",
+            "--target",
+            target,
+        ],
+        cwd=root,
+    )
+    return 0
+
+
 def parse_worktrees(porcelain: str) -> list[tuple[str, str | None]]:
     entries: list[tuple[str, str | None]] = []
     path = ""
@@ -323,7 +413,15 @@ def main(argv: list[str]) -> int:
             return package_vscode()
         if rest == ["zed"]:
             return package_zed()
-        raise SystemExit("usage: rocci-ops package vscode|zed")
+        if rest and rest[0] == "site":
+            target = "x64musl"
+            extra = rest[1:]
+            if extra[:1] == ["--target"] and len(extra) >= 2:
+                target = extra[1]
+            elif extra:
+                raise SystemExit("usage: rocci-ops package site [--target x64musl]")
+            return package_site(target=target)
+        raise SystemExit("usage: rocci-ops package vscode|zed|site")
     if command == "verify-zed":
         return verify_zed()
     if command == "bundle":

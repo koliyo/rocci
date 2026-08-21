@@ -17,4 +17,8 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "datastar:" in compose
     assert "live-counter:" in compose
     assert "snake" not in compose
+    workflow = (root / ".github/workflows/site.yml").read_text(encoding="utf-8")
+    assert '"examples/**"' in workflow or "- \"examples/**\"" in workflow
+    assert "dist/examples-live/live-counter/server" in workflow
+    assert "dist/examples-live/datastar/server" in workflow
     assert Path(root / "examples/rocci/apps.toml").is_file()
