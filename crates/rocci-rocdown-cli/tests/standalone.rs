@@ -31,6 +31,7 @@ fn plan_ready(path: &Path) -> GenericAppPlan {
                     roc: m.roc,
                     state_type: m.state_type,
                     init: m.init,
+                    live: m.live,
                     routes: m.routes,
                     mapped: m.mapped,
                     local_assets: m.local_assets,

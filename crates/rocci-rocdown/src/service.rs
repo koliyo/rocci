@@ -41,6 +41,7 @@ impl IslandServicePlan {
                     roc: module.roc,
                     state_type: module.state_type,
                     init: module.init,
+                    live: module.live,
                     routes: module.routes,
                     mapped: module.mapped,
                     local_assets: module.local_assets,
@@ -294,6 +295,7 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
+            live: compiled.live,
             routes,
             mapped: rocci_template::MappedModule {
                 type_name,

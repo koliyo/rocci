@@ -153,6 +153,7 @@ pub fn lower_template_items(
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
+        inject_live_init: false,
     };
     match items {
         [] => emitter.emit_html(".empty"),
@@ -274,6 +275,10 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
+        inject_live_init: document
+            .items
+            .iter()
+            .any(|item| matches!(item, ModuleItem::Live(_))),
     };
     let inject_datastar =
         document_has_action(document) && !document_imports_datastar(source.src, document);
@@ -340,6 +345,7 @@ struct Emitter<'a> {
     theme_id: Option<String>,
     color_scheme_attr: Option<String>,
     embed_css: bool,
+    inject_live_init: bool,
 }
 
 impl<'a> Emitter<'a> {
@@ -648,7 +654,7 @@ impl<'a> Emitter<'a> {
         self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
         self.emit(",\n");
         self.push_indent();
-        self.lower_html_attrs_with_theme(&el.attrs);
+        self.lower_html_attrs_with_theme(&el.name.name, &el.attrs);
         self.emit(",\n");
         self.push_indent();
         self.emit("[\n");
@@ -696,7 +702,7 @@ impl<'a> Emitter<'a> {
         self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
         self.emit(",\n");
         self.push_indent();
-        self.lower_html_attrs(&el.attrs);
+        self.lower_html_attrs(&el.name.name, &el.attrs);
         self.emit(",\n");
         self.push_indent();
         self.emit("List.concat(\n");
@@ -727,7 +733,7 @@ impl<'a> Emitter<'a> {
         self.push_indent();
         self.emit("\"head\",\n");
         self.push_indent();
-        self.lower_html_attrs(&[]);
+        self.lower_html_attrs("head", &[]);
         self.emit(",\n");
         self.push_indent();
         self.emit("[\n");
@@ -820,7 +826,7 @@ impl<'a> Emitter<'a> {
         self.emit_string(&el.name.name, el.name.span, OriginKind::StaticMarkup);
         self.emit(",\n");
         self.push_indent();
-        self.lower_html_attrs(&el.attrs);
+        self.lower_html_attrs(&el.name.name, &el.attrs);
         if !void_el {
             self.emit(",\n");
             self.push_indent();
@@ -840,12 +846,13 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    fn lower_html_attrs_with_theme(&mut self, attrs: &[Attr]) {
+    fn lower_html_attrs_with_theme(&mut self, tag: &str, attrs: &[Attr]) {
         let mut class_emitted = false;
         let stamp = self.css_stamp.clone();
         let theme_id = self.theme_id.clone();
         let scheme = self.color_scheme_attr.clone();
-        if attrs.is_empty() && stamp.is_none() && theme_id.is_none() {
+        let inject = self.should_inject_live_init(tag, attrs);
+        if attrs.is_empty() && stamp.is_none() && theme_id.is_none() && !inject {
             self.emit("[]");
             return;
         }
@@ -941,14 +948,18 @@ impl<'a> Emitter<'a> {
             self.emit(")");
             self.emit(",\n");
         }
+        if inject {
+            self.emit_live_init_attr();
+        }
         self.indent -= 1;
         self.push_indent();
         self.emit("]");
     }
 
-    fn lower_html_attrs(&mut self, attrs: &[Attr]) {
+    fn lower_html_attrs(&mut self, tag: &str, attrs: &[Attr]) {
         let stamp = self.css_stamp.clone();
-        if attrs.is_empty() && stamp.is_none() {
+        let inject = self.should_inject_live_init(tag, attrs);
+        if attrs.is_empty() && stamp.is_none() && !inject {
             self.emit("[]");
             return;
         }
@@ -997,9 +1008,26 @@ impl<'a> Emitter<'a> {
             self.emit(")");
             self.emit(",\n");
         }
+        if inject {
+            self.emit_live_init_attr();
+        }
         self.indent -= 1;
         self.push_indent();
         self.emit("]");
+    }
+
+    fn should_inject_live_init(&self, tag: &str, attrs: &[Attr]) -> bool {
+        self.inject_live_init
+            && tag.eq_ignore_ascii_case("body")
+            && !attrs.iter().any(|attr| attr.name.name == "data-init")
+    }
+
+    fn emit_live_init_attr(&mut self) {
+        self.push_indent();
+        self.emit_html(".attribute(");
+        self.emit_string("data-init", Span::point(0), OriginKind::Scaffolding);
+        self.emit(", Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)]))");
+        self.emit(",\n");
     }
 
     fn lower_call(&mut self, call: &ComponentCall, body_params: &[String]) {
@@ -1478,6 +1506,7 @@ fn is_void(name: &str) -> bool {
 fn document_has_action(document: &Document) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(component) => items_have_action(&component.body.items),
+        ModuleItem::Live(_) => true,
         _ => false,
     })
 }

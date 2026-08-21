@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use rocci_template::{
-    ComponentInfo, Diagnostic, Document as RocciDocument, FixtureInfo, InitInfo, LowerOptions,
-    LoweredTemplate, ModuleItem, OriginKind, RouteInfo, Segment, SourceFile, Span, StyleArtifact,
-    TemplateItem, TemplateValueCtx, file_scope_id, lower_template_items, pascal_to_camel,
-    route_fn_name, template_items_have_action, validate, validate_template_items,
+    ComponentInfo, Diagnostic, Document as RocciDocument, FixtureInfo, InitInfo, LiveInfo,
+    LowerOptions, LoweredTemplate, ModuleItem, OriginKind, RouteInfo, Segment, SourceFile, Span,
+    StyleArtifact, TemplateItem, TemplateValueCtx, file_scope_id, lower_template_items,
+    pascal_to_camel, route_fn_name, template_items_have_action, validate, validate_template_items,
 };
 
 use crate::CompileOptions;
@@ -48,6 +48,7 @@ pub struct Lowered {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub page_meta: PageMeta,
     pub theme: Option<rocci_theme::ResolvedTheme>,
@@ -377,6 +378,7 @@ pub fn lower(
         styles,
         state_type: lowered_rocci.state_type,
         init: lowered_rocci.init,
+        live: lowered_rocci.live,
         routes,
         page_meta,
         theme: resolved_theme,
@@ -573,6 +575,7 @@ pub fn lower_islands(
         styles: lowered_rocci.styles,
         state_type: None,
         init: None,
+        live: None,
         routes: Vec::new(),
         page_meta,
         theme: None,

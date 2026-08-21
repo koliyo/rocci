@@ -87,9 +87,10 @@ pub use standalone::{
 pub use theme::{ThemeArgs, compile_options as theme_compile_options};
 
 pub use rocci_template::{
-    ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LowerOptions, MappedModule,
-    OriginKind, RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact, StyleKind,
-    TemplateItem, format_diagnostic, supports_ansi, type_name_from_path, wrap_type_module,
+    ComponentInfo, Diagnostic, DiagnosticFrame, FixtureInfo, InitInfo, LiveInfo, LowerOptions,
+    MappedModule, OriginKind, RouteInfo, Segment, Severity, SourceFile, Span, StyleArtifact,
+    StyleKind, TemplateItem, format_diagnostic, supports_ansi, type_name_from_path,
+    wrap_type_module,
 };
 pub use rocci_theme::{
     ColorSchemePolicy, ResolvedTheme, ThemeOptions, ThemeOrigin, builtin_ids, discovered_ids,
@@ -138,6 +139,7 @@ pub struct CompileOutput {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub document: Document,
     pub page_meta: PageMeta,
@@ -207,6 +209,7 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         styles: lowered.styles,
         state_type: lowered.state_type,
         init: lowered.init,
+        live: lowered.live,
         routes: lowered.routes,
         document: parsed.document,
         page_meta: lowered.page_meta,
@@ -234,6 +237,7 @@ pub fn compile_islands(source: SourceFile<'_>, options: &CompileOptions) -> Comp
         styles: lowered.styles,
         state_type: lowered.state_type,
         init: lowered.init,
+        live: lowered.live,
         routes: lowered.routes,
         document: parsed.document,
         page_meta: lowered.page_meta,

@@ -130,6 +130,17 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
         }
     }
 
+    if live_span.is_some()
+        && let Some((_, _, span)) = routes
+            .iter()
+            .find(|(method, path, _)| *method == "get" && *path == "/sse")
+    {
+        diagnostics.push(Diagnostic::error(
+            *span,
+            "`@on:get(\"/sse\")` conflicts with generated `@live` stream",
+        ));
+    }
+
     if let (Some(init), None) = (init_span, context_span) {
         diagnostics.push(Diagnostic::error(
             init,

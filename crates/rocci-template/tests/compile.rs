@@ -1385,6 +1385,70 @@ fn rejects_unknown_respond_ident() {
 }
 
 #[test]
+fn injects_data_init_on_body_when_live() {
+    let src = r#"
+@live {
+    Html.text("live")
+}
+
+@component Page = |{}| {
+    <html>
+        <body>
+            <p>hi</p>
+        </body>
+    </html>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.live.is_some());
+    assert!(out.roc.contains("import Datastar"));
+    assert!(
+        out.roc
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(Bool.true)])"),
+        "{}",
+        out.roc
+    );
+    assert!(out.roc.contains("\"data-init\""));
+}
+
+#[test]
+fn live_does_not_merge_existing_data_init() {
+    let src = r#"
+@live {
+    Html.text("live")
+}
+
+@component Page = |{}| {
+    <body data-init=@get("/custom")></body>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("Datastar.get(\"/custom\")"));
+    assert!(!out.roc.contains("Datastar.get_with(\"/sse\""));
+}
+
+#[test]
+fn rejects_live_and_authored_sse_route() {
+    let errors = compile_err(
+        r#"
+@live {
+    Html.text("live")
+}
+
+@on:get("/sse") {
+    Html.text("authored")
+}
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`@on:get(\"/sse\")` conflicts with generated `@live` stream")),
+        "{errors:?}"
+    );
+}
+
+#[test]
 fn counter_example_compiles_as_standalone_app() {
     let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
     let out = compile_ok(src);

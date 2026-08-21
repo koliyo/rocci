@@ -724,6 +724,7 @@ fn run_standalone_doc(
                 roc: module.roc,
                 state_type: module.state_type,
                 init: module.init,
+                live: module.live,
                 routes: module.routes,
                 mapped: module.mapped,
                 local_assets: module.local_assets,
