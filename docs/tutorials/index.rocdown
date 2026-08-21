@@ -1,0 +1,20 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Tutorials",
+        description: "Controlled Rocci learning projects from a first component through a packaged application.",
+    },
+}
+
+# Tutorials
+
+Each tutorial starts from a checked-in example so you can join later. Finish
+[your first component](/docs/tutorials/first-component/) before the
+application sequence.
+
+1. [Build your first component](/docs/tutorials/first-component/) — styling example
+2. [Build your first standalone app](/docs/tutorials/first-app/) — counter
+3. [Compose a small application](/docs/tutorials/compose/) — modules, lists, forms
+4. [Add commands and live updates](/docs/tutorials/commands-and-live/) — live-counter
+5. [Take ownership with main.roc](/docs/tutorials/custom-main/) — datastar gallery
+6. [Ship the application](/docs/tutorials/ship/) — release server and macOS bundle

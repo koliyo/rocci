@@ -342,7 +342,7 @@ status = "current"
 
 [[feature]]
 id = "runtime.command-json-or-204"
-name = "@command 204 versus JSON"
+name = "@command empty SSE versus JSON"
 area = "runtime"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"

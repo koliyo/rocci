@@ -83,4 +83,4 @@ ordinary static documents. Navigation and reading remain functional without
 client JavaScript.
 
 See [Architecture](/docs/concepts/architecture/) for crate ownership or build a
-working patch flow in [Server actions](/docs/guides/server-actions/).
+working patch flow in [Build your first standalone app](/docs/tutorials/first-app/).
