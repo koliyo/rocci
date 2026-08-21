@@ -35,7 +35,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: ci-local
-    resource: ../../scripts/ci-local.sh
+    resource: ../../tools/rocci-ops/src/rocci_ops/ci.py
     title: Local CI job runner
     author: process:git
     last_modified: 2026-08-19
@@ -151,7 +151,7 @@ Those jobs do not all need macOS:
 | release `x86_64-unknown-linux-gnu` | `ubuntu-latest` | No |
 | release `aarch64-apple-darwin` | `macos-latest` | Yes |
 
-`scripts/ci-local.sh` already encodes the OS-neutral job bodies. Spindle
+`uv run rocci-ops ci` already encodes the OS-neutral job bodies. Spindle
 workflows should call those same commands rather than forking a third copy of
 lint, test, fixture, and knowledge steps.[^ci-local]
 

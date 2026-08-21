@@ -50,7 +50,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: ci-local
-    resource: ../../scripts/ci-local.sh
+    resource: ../../tools/rocci-ops/src/rocci_ops/ci.py
     title: Local CI job runner
     author: process:git
     last_modified: 2026-08-19
@@ -153,7 +153,7 @@ land on the canonical Tangled surface.[^preview-plan][^research]
   `aarch64-apple-darwin` archives.
 - Contributors open Tangled pull requests. GitHub pull requests are redirected
   and never merged as the source of truth.
-- `scripts/ci-local.sh` remains the local job list. Spindle and the slimmed
+- `uv run rocci-ops ci` remains the local job list. Spindle and the slimmed
   GitHub workflows call those commands instead of diverging.[^ci-local][^research]
 
 ## Job ownership
@@ -377,7 +377,7 @@ Update `rocci-devops` to inspect spindle pipelines and GitHub Darwin runs.
 Change the knowledge completion rule from "GitHub CI and Knowledge
 workflows" to "required Tangled Linux pipelines and GitHub Darwin jobs on
 that revision," citing pipeline IDs and GitHub run IDs. README's
-`ci-local.sh` sentence should mention both forges.[^devops-skill][^knowledge-skill][^root-readme]
+Local CI docs should mention both forges.[^devops-skill][^knowledge-skill][^root-readme]
 
 **Done when:** an agent following the skills can find the blocking Linux
 pipeline and the blocking macOS run without reading this plan.
@@ -399,7 +399,7 @@ pipeline and the blocking macOS run without reading this plan.
 ## Validation
 
 Phase 0 is a live spindle smoke run, not a Rocci unit test. Later phases
-still run `./scripts/ci-local.sh` locally. After Phase 2, do not log a
+still run `uv run rocci-ops ci` locally. After Phase 2, do not log a
 phase complete in `knowledge/log.md` until the then-required Tangled Linux
 pipelines and, once Darwin is mirrored, GitHub macOS jobs are green on that
 revision. Do not set `ROCCI_REQUIRE_ROC=1`.

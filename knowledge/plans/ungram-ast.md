@@ -80,7 +80,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: workspace-deps
-    resource: ../../scripts/check-workspace-deps.py
+    resource: ../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace package class and edge checker
     author: process:git
     last_modified: 2026-08-18
@@ -220,7 +220,7 @@ committed like rust-analyzer’s codegen output rather than produced by
 | Document ungram, foreign map, generated nodes | `crates/rocci-rocdown` |
 | Scanners, parsers, lowering | unchanged owning files |
 | `format_ast` | `pprint.rs` in each crate |
-| Workspace class | `scripts/check-workspace-deps.py` `BASE_ROCCI` |
+| Workspace class | `tools/rocci-ops/src/rocci_ops/workspace_deps.py` `BASE_ROCCI` |
 | Language-dev loop | crate README plus ungram; still run `inspect --ast` |
 
 ## Delivery phases
