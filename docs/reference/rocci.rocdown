@@ -153,6 +153,9 @@ import pf.Stderr
 - `#` begins a template line comment at the start of an item.
 - `<!-- ... -->` is dropped as an HTML comment.
 - `@@` emits a literal `@` inside a template body.
+- Immediately above a top-level `@` declaration, Roc `#` comments and `## ` doc
+  comments attach and lower onto the generated assignment (Roc rules: no blank
+  line; `## ` must sit immediately above the declaration).
 - Ordinary Roc comments remain valid in Roc regions.
 
 ## Deliberate limits

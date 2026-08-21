@@ -247,3 +247,34 @@ fn patch_noun_and_patch_method_use_distinct_kinds() {
             .any(|s| s.kind == HighlightKind::EnumMember && &src[s.start()..s.end()] == "patch")
     );
 }
+
+#[test]
+fn highlight_rocci_leading_doc_comments() {
+    let src = r#"module [Hello]
+
+# note
+## Greeting.
+@component Hello = |{ name }|
+    <p>{name}</p>
+"#;
+    let (lang, spans) = highlight_source("rocci", src);
+    assert_eq!(lang, LanguageId::Rocci);
+    assert_invariants(src, &spans);
+    let comments: Vec<_> = spans
+        .iter()
+        .filter(|s| s.kind == HighlightKind::Comment)
+        .collect();
+    assert!(
+        comments
+            .iter()
+            .any(|s| &src[s.start()..s.end()] == "# note"),
+        "{comments:?}"
+    );
+    assert!(
+        comments
+            .iter()
+            .any(|s| &src[s.start()..s.end()] == "## Greeting."
+                && s.modifiers & MOD_DOCUMENTATION != 0),
+        "{comments:?}"
+    );
+}
