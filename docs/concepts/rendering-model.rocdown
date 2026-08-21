@@ -36,9 +36,9 @@ events. `@live` returns the shared fragment for a generated `/sse` stream.
 
 | Handler | Typical result | Browser behavior |
 | --- | --- | --- |
-| `@on:get` | `<html>...</html>` | Load or navigate a document |
-| `@on:post` / `put` / `patch` / `delete` | Element with a stable target | Patch matching DOM in the acting tab |
-| `@on:… json` | `Str` JSON body | **204** when `Datastar-Request: true`; else `application/json` (signals, not the DOM) |
+| `@view` | `<html>...</html>` | Load or navigate a document |
+| `@patch` / `:put` / `:patch` / `:delete` | Element with a stable target | Patch matching DOM in the acting tab |
+| `@command` | Record or list | **204** when `Datastar-Request: true`; else `application/json` (signals, not the DOM) |
 | `@live` | Fragment with a stable `id` | Generated `GET /sse` poll; every open tab morphs the region |
 
 This distinction prevents every fragment from carrying a document shell, CSS,

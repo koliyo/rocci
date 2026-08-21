@@ -47,7 +47,7 @@ with no service.
 ## Walk the counter
 
 `examples/rocdown/counter/index.rocdown` puts SQLite helpers in `@roc` next to
-`import pf.Sqlite`, then calls them from `@on:post`. `@render` bakes `count: 0`
+`import pf.Sqlite`, then calls them from `@command`. `@render` bakes `count: 0`
 into the CDN HTML. On load, `POST /actions/counter/sync`
 morphs the live count. Increment and reset POST `/actions/counter/increment` and
 `/actions/counter/reset`. There is no island GET in v1: opening the CDN file

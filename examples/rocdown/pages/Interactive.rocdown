@@ -44,11 +44,11 @@ PageShell = |{ title }, content|
         </body>
     </html>
 
-@on:get("/guides/rocdown-interactive/") = |_, _request| {
+@view("/guides/rocdown-interactive/") = |_, _request| {
     pageShell({ title: rocci_meta.title }, rocci_content({}))
 }
 
-@on:get("/") = |_, _request| {
+@view("/") = |_, _request| {
     pageShell({ title: rocci_meta.title }, rocci_content({}))
 }
 
@@ -180,11 +180,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@on:post("/actions/reveal/show") = |_, _request| {
+@patch("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@on:post("/actions/reveal/hide") = |_, _request| {
+@patch("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -237,7 +237,7 @@ local and never round-trip to the server.
 
 @render ToggleSection({
         title: "How do server patches fit?",
-        summary: "Use @on:post for actions. GET stays the document; other methods stream a Datastar morph of the returned Html.",
+        summary: "Use @patch for actions. GET stays the document; other methods stream a Datastar morph of the returned Html.",
         open: False,
     })
 
@@ -257,7 +257,7 @@ Fences are documentation only — never evaluated:
 ```
 
 ```rocci
-@on:post("/actions/reveal/show") = |_, _request| {
+@patch("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 ```

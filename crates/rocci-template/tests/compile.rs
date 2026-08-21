@@ -1514,6 +1514,71 @@ fn live_counter_example_compiles_as_standalone_app() {
 }
 
 #[test]
+fn handler_matrix_example_compiles_as_standalone_app() {
+    let src = include_str!("../../../examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci");
+    let out = compile_ok(src);
+    assert!(out.live.is_some());
+    assert_eq!(out.routes.len(), 9);
+    assert!(
+        out.routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/")
+    );
+    for (method, path, respond) in [
+        (
+            "POST",
+            "/actions/post-frag",
+            rocci_template::RespondKind::Patch,
+        ),
+        (
+            "PUT",
+            "/actions/put-frag",
+            rocci_template::RespondKind::Patch,
+        ),
+        (
+            "PATCH",
+            "/actions/patch-frag",
+            rocci_template::RespondKind::Patch,
+        ),
+        (
+            "DELETE",
+            "/actions/delete-frag",
+            rocci_template::RespondKind::Patch,
+        ),
+        (
+            "POST",
+            "/actions/post-cmd",
+            rocci_template::RespondKind::Command,
+        ),
+        (
+            "PUT",
+            "/actions/put-cmd",
+            rocci_template::RespondKind::Command,
+        ),
+        (
+            "PATCH",
+            "/actions/patch-cmd",
+            rocci_template::RespondKind::Command,
+        ),
+        (
+            "DELETE",
+            "/actions/delete-cmd",
+            rocci_template::RespondKind::Command,
+        ),
+    ] {
+        assert!(
+            out.routes.iter().any(|route| {
+                route.method == method && route.path == path && route.respond == respond
+            }),
+            "missing {method} {path} {respond:?}"
+        );
+    }
+    assert!(out.roc.contains("on_post_actions_post_cmd_json!"));
+    assert!(out.roc.contains("Html.attribute(\"id\", \"frag-post\")"));
+    assert!(out.roc.contains("Html.attribute(\"id\", \"live-tick\")"));
+}
+
+#[test]
 fn styling_example_compiles() {
     let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
     let out = compile_ok(src);

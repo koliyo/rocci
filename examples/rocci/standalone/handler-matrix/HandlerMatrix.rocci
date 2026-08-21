@@ -1,0 +1,147 @@
+import Html
+
+@view("/") = |_| {
+    matrixPage({})
+}
+
+@patch("/actions/post-frag") = |_| {
+    fragPost({ label: "post" })
+}
+
+@patch:put("/actions/put-frag") = |_| {
+    fragPut({ label: "put" })
+}
+
+@patch:patch("/actions/patch-frag") = |_| {
+    fragPatch({ label: "patch" })
+}
+
+@patch:delete("/actions/delete-frag") = |_| {
+    fragDelete({ label: "delete" })
+}
+
+@command("/actions/post-cmd") = |_| {
+    { n: 1.I64, label: "post" }
+}
+
+@command:put("/actions/put-cmd") = |_| {
+    { n: 2.I64, label: "put" }
+}
+
+@command:patch("/actions/patch-cmd") = |_| {
+    { items: ["a", "b"] }
+}
+
+@command:delete("/actions/delete-cmd") = |_| {
+    { deleted: 1.I64 }
+}
+
+@live = |_| {
+    liveTick({ label: "0" })
+}
+
+@component
+FragPost = |{ label }|
+    <p id="frag-post">{label}</p>
+
+@component
+FragPut = |{ label }|
+    <p id="frag-put">{label}</p>
+
+@component
+FragPatch = |{ label }|
+    <p id="frag-patch">{label}</p>
+
+@component
+FragDelete = |{ label }|
+    <p id="frag-delete">{label}</p>
+
+@component
+LiveTick = |{ label }|
+    <output id="live-tick">{label}</output>
+
+@component
+MatrixPage = |{}|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Handler matrix</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>
+                <h1>Handler matrix</h1>
+                <p class="lede">
+                    One-shot patches own <code>frag-*</code> ids. Commands return data.
+                    The live stream owns <code>live-tick</code> only.
+                </p>
+                <section>
+                    <h2>Patches</h2>
+                    <FragPost label="idle" />
+                    <FragPut label="idle" />
+                    <FragPatch label="idle" />
+                    <FragDelete label="idle" />
+                    <div class="actions">
+                        <button data-on:click=@post("/actions/post-frag")>POST patch</button>
+                        <button data-on:click=@put("/actions/put-frag")>PUT patch</button>
+                        <button data-on:click=@patch("/actions/patch-frag")>PATCH patch</button>
+                        <button data-on:click=@delete("/actions/delete-frag")>DELETE patch</button>
+                    </div>
+                </section>
+                <section>
+                    <h2>Commands</h2>
+                    <div class="actions">
+                        <button data-on:click=@post("/actions/post-cmd")>POST command</button>
+                        <button data-on:click=@put("/actions/put-cmd")>PUT command</button>
+                        <button data-on:click=@patch("/actions/patch-cmd")>PATCH command</button>
+                        <button data-on:click=@delete("/actions/delete-cmd")>DELETE command</button>
+                    </div>
+                </section>
+                <section>
+                    <h2>Live</h2>
+                    <LiveTick label="0" />
+                </section>
+            </main>
+        </body>
+    </html>
+
+@fixture{target: MatrixPage}
+matrixPageTest = {}
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        background: #07110e;
+    }
+    main {
+        width: min(40rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+    }
+    .lede { color: #a8bbb3; }
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 0.75rem 0 1.5rem;
+    }
+    button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.6rem 0.9rem;
+        background: #48eda4;
+        color: #06100c;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    p, output {
+        font-family: ui-monospace, monospace;
+    }
+}

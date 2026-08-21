@@ -19,7 +19,7 @@ Two shipped patterns:
 
 | Pattern | Author writes | What updates |
 | --- | --- | --- |
-| One-shot patch | `@on:post` returning Html | The acting tab, via one `datastar-patch-elements` |
+| One-shot patch | `@patch` returning Html | The acting tab, via one `datastar-patch-elements` |
 | Live CQRS | `@live` returning Html; commands marked `json` | Every tab on `GET /sse`; POSTs return 204 (Datastar) or JSON (`curl`) |
 
 The first-app counter (`examples/rocci/standalone/counter`) stays one-shot. Two
@@ -46,7 +46,7 @@ that state once when the standalone app starts.
 ## Serve the document
 
 ```rocci
-@on:get("/") = |{ db }| {
+@view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count })
 }
@@ -59,7 +59,7 @@ parameter when the handler reads `Server.Request`; omit it otherwise.
 ## Return a targeted patch
 
 ```rocci
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     counterCard({ count })
 }
@@ -88,9 +88,9 @@ document `<body>` has no `data-init`, injects
     counterCard({ count })
 }
 
-@on:post("/actions/counter/increment") json = |{ db }| {
+@command("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
-    "{\"count\":${count.to_str()}}"
+    { count }
 }
 ```
 
@@ -115,7 +115,7 @@ the handler already propagates other error types (for example SQLite):
 ```rocci
 import pf.Stderr
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}

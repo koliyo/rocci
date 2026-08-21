@@ -8,9 +8,9 @@ use lsp_types::{
     SemanticTokensResult, SymbolKind, Uri,
 };
 use rocci_lsp::analysis::{
-    completion_in_template, completion_item, component_symbol, context_symbol, css_symbol,
-    fixture_symbol, goto_definition_components, hover_components, init_symbol, live_symbol,
-    lsp_range, map_diagnostics, named_symbol, offset_at, on_symbol,
+    command_symbol, completion_in_template, completion_item, component_symbol, context_symbol,
+    css_symbol, fixture_symbol, goto_definition_components, hover_components, init_symbol,
+    live_symbol, lsp_range, map_diagnostics, named_symbol, offset_at, patch_symbol, view_symbol,
 };
 use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
@@ -32,6 +32,9 @@ const ROOT_DECLARATIONS: &[&str] = &[
     "css",
     "context",
     "init",
+    "view",
+    "patch",
+    "command",
     "on",
     "use",
     "if",
@@ -261,7 +264,9 @@ pub fn document_symbols(
             Item::Context(context) => context_symbol(source, context, encoding),
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::Live(live) => live_symbol(source, live, encoding),
-            Item::On(on) => on_symbol(source, on, encoding),
+            Item::View(view) => view_symbol(source, view, encoding),
+            Item::Patch(patch) => patch_symbol(source, patch, encoding),
+            Item::Command(command) => command_symbol(source, command, encoding),
             Item::Use(used) => named_symbol(
                 "@use",
                 Some(used.path.clone()),

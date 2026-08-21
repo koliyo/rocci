@@ -6,7 +6,7 @@
   (css)
   (component Hello)
   (fixture helloSample)
-  (on post:/actions/all-syntax/ping)
+  (patch post:/actions/all-syntax/ping)
   (block h1 line id all-syntax
     (p
       (text All syntax)))

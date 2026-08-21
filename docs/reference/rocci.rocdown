@@ -107,10 +107,10 @@ Unqualified targets must name a local component.
 ```rocci
 @context { db : Sqlite.Db }
 @init { ... }
-@on:get("/") = |{ db }| { ... }
+@view("/") = |{ db }| { ... }
 @live = |{ db }| { ... }
-@on:post("/actions/save") = |{ db }, request| { ... }
-@on:post("/actions/increment") json = |{ db }| { "{\"count\":${n.to_str()}}" }
+@patch("/actions/save") = |{ db }, request| { ... }
+@command("/actions/increment") = |{ db }| { { count: n } }
 ```
 
 These forms apply to standalone apps. Bodies are Roc. `@context` declares
@@ -137,7 +137,7 @@ stay compatible:
 ```rocci
 import pf.Stderr
 
-@on:post("/actions/counter/increment") = |{ db }| {
+@patch("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}

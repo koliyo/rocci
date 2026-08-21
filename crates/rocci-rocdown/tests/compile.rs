@@ -438,7 +438,7 @@ fn site_chrome_layout_is_not_emitted_as_a_roc_call() {
     meta: { title: "Counter" },
 }
 
-@on:post("/actions/x") = |_, _request| {
+@patch("/actions/x") = |_, _request| {
     <p>ok</p>
 }
 
@@ -1282,7 +1282,7 @@ read_count! = |db|
     )
 }
 
-@on:post("/actions/counter/sync") = |_, _request| {
+@patch("/actions/counter/sync") = |_, _request| {
     count = read_count!(db)?
     counterCard({ count: count.value })
 }
