@@ -114,16 +114,16 @@ pub fn hover_components(
     let source = SourceFile::new(name, text);
     match hit_at(components, extra_items, offset)? {
         Hit::ComponentName(component) => Some(Hover {
-            contents: markdown(component_signature(source, component)),
+            contents: component_hover(source, component),
             range: Some(lsp_range(source, component.name.span, encoding)),
         }),
         Hit::ComponentCall(call) => {
             let contents = match local_component(components, &call.path.roc_name) {
-                Some(component) => component_signature(source, component),
-                None => call.path.roc_name.clone(),
+                Some(component) => component_hover(source, component),
+                None => markdown(call.path.roc_name.clone()),
             };
             Some(Hover {
-                contents: markdown(contents),
+                contents,
                 range: Some(lsp_range(source, call.path.span, encoding)),
             })
         }
@@ -472,6 +472,37 @@ fn component_signature(source: SourceFile<'_>, component: &ComponentDecl) -> Str
         component.name.name,
         source.slice(component.params).trim()
     )
+}
+
+fn strip_doc_line(line: &str) -> &str {
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    if line == "##" {
+        ""
+    } else if let Some(rest) = line.strip_prefix("## ") {
+        rest
+    } else {
+        line
+    }
+}
+
+fn component_hover(source: SourceFile<'_>, component: &ComponentDecl) -> HoverContents {
+    let sig = component_signature(source, component);
+    let Some(leading) = &component.leading else {
+        return markdown(sig);
+    };
+    if leading.docs.is_empty() {
+        return markdown(sig);
+    }
+    let docs = leading
+        .docs
+        .iter()
+        .map(|span| strip_doc_line(span.of(source.src)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    HoverContents::Markup(MarkupContent {
+        kind: MarkupKind::Markdown,
+        value: format!("```rocci\n{sig}\n```\n\n{docs}"),
+    })
 }
 
 fn local_component<'a>(

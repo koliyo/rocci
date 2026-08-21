@@ -1,5 +1,5 @@
 use rocci_template::{
-    LowerOptions, OriginKind, SourceFile, Span, StyleKind, compile, format_ast,
+    LowerOptions, ModuleItem, OriginKind, SourceFile, Span, StyleKind, compile, format_ast,
     parse_component_params, strip_param_defaults,
 };
 
@@ -1604,4 +1604,209 @@ fn styling_example_compiles() {
     let style_at = page.find("\"style\"").expect("style");
     assert!(html_at < head_at);
     assert!(head_at < style_at);
+}
+
+#[test]
+fn attaches_leading_comments_to_component_and_excludes_from_roc_region() {
+    let src = r#"module [hello]
+
+# note
+## Greeting card.
+##
+## Used on the home page.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let component = out
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            ModuleItem::Component(c) => Some(c),
+            _ => None,
+        })
+        .expect("component");
+    let leading = component.leading.as_ref().expect("leading");
+    assert_eq!(leading.comments.len(), 1);
+    assert_eq!(leading.comments[0].of(src), "# note");
+    assert_eq!(leading.docs.len(), 3);
+    assert_eq!(leading.docs[0].of(src), "## Greeting card.");
+    for item in &out.document.items {
+        if let ModuleItem::Roc { span } = item {
+            assert!(
+                !span.of(src).contains("## Greeting card."),
+                "doc comment must not remain in Roc region: {:?}",
+                span.of(src)
+            );
+            assert!(
+                !span.of(src).contains("# note"),
+                "line comment must not remain in Roc region: {:?}",
+                span.of(src)
+            );
+        }
+    }
+    assert!(component.span.of(src).contains("## Greeting card."));
+}
+
+#[test]
+fn blank_line_before_decl_does_not_attach_docs() {
+    let src = r#"module [hello]
+
+## Orphan docs.
+
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let component = out
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            ModuleItem::Component(c) => Some(c),
+            _ => None,
+        })
+        .expect("component");
+    assert!(component.leading.is_none());
+    let roc = out
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            ModuleItem::Roc { span } => Some(span.of(src)),
+            _ => None,
+        })
+        .expect("roc");
+    assert!(roc.contains("## Orphan docs."));
+}
+
+#[test]
+fn docs_then_ordinary_comment_before_decl_are_not_docs() {
+    let src = r#"module [hello]
+
+## almost docs
+# ordinary
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let component = out
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            ModuleItem::Component(c) => Some(c),
+            _ => None,
+        })
+        .expect("component");
+    let leading = component.leading.as_ref().expect("leading");
+    assert!(leading.docs.is_empty());
+    assert_eq!(leading.comments.len(), 2);
+}
+
+#[test]
+fn shebang_before_module_stays_in_roc_region() {
+    let src = r#"#!/usr/bin/env roc
+module [hello]
+
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let component = out
+        .document
+        .items
+        .iter()
+        .find_map(|item| match item {
+            ModuleItem::Component(c) => Some(c),
+            _ => None,
+        })
+        .expect("component");
+    assert!(component.leading.is_none());
+    let first = &out.document.items[0];
+    match first {
+        ModuleItem::Roc { span } => assert!(span.of(src).starts_with("#!/usr/bin/env roc")),
+        other => panic!("expected Roc region first, got {other:?}"),
+    }
+}
+
+#[test]
+fn lowers_leading_docs_immediately_before_assignment() {
+    let src = r#"module [hello]
+
+# note
+## Greeting.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let idx_note = out.roc.find("# note\n").expect("line comment");
+    let idx_docs = out.roc.find("## Greeting.\n").expect("docs");
+    let idx_hello = out.roc.find("hello = ").expect("assignment");
+    assert!(idx_note < idx_docs);
+    assert!(idx_docs < idx_hello);
+    assert_eq!(&out.roc[idx_docs..idx_hello], "## Greeting.\n");
+    assert!(
+        out.segments.iter().any(|seg| {
+            seg.origin == OriginKind::OrdinaryRoc && seg.source.of(src).contains("## Greeting.")
+        }),
+        "source map should cover doc comment span"
+    );
+}
+
+#[test]
+fn datastar_import_does_not_split_docs_from_assignment() {
+    let src = r#"module [page]
+
+## Documented page.
+@component Page = |{}| {
+    <button data-on:click=@post("/x")>Go</button>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("import Datastar"));
+    let docs = out.roc.find("## Documented page.\n").expect("docs");
+    let assign = out.roc.find("page = ").expect("assignment");
+    assert_eq!(&out.roc[docs..assign], "## Documented page.\n");
+    let import = out.roc.find("import Datastar").expect("import");
+    assert!(
+        import < docs,
+        "Datastar import must come before attached docs, not between docs and assignment"
+    );
+}
+
+#[test]
+fn lowers_css_leading_comments_as_ordinary_roc() {
+    let src = r#"module []
+
+# keep me
+@css {
+    body { color: red; }
+}
+
+@component Hello = |{}|
+    <p>Hi</p>
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("# keep me\n"));
+    let note = out.roc.find("# keep me\n").expect("css leading");
+    let hello = out.roc.find("hello = ").expect("component");
+    assert!(note < hello);
+}
+
+#[test]
+fn inspect_ast_prints_leading_docs() {
+    let src = r#"module [hello]
+
+# note
+## Greeting.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+"#;
+    let out = compile_ok(src);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(leading"), "{ast}");
+    assert!(ast.contains("(comment \"# note\")"), "{ast}");
+    assert!(ast.contains("(docs \"## Greeting.\")"), "{ast}");
 }

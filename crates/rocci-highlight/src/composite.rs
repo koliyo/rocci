@@ -1,7 +1,7 @@
 use rocci_template::{
     AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl,
-    Document as RocciDocument, Element, FixtureDecl, InitDecl, LiveDecl, ModuleItem, PatchDecl,
-    SourceFile, Span, TemplateItem, ViewDecl,
+    Document as RocciDocument, Element, FixtureDecl, InitDecl, LeadingComments, LiveDecl,
+    ModuleItem, PatchDecl, SourceFile, Span, TemplateItem, ViewDecl,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -13,7 +13,8 @@ use crate::regions::{RegionTree, extract_rocci_regions};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::token::floor_char_boundary;
 use crate::token::{
-    HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, resolve_and_sort_spans,
+    HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION,
+    resolve_and_sort_spans,
 };
 
 pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
@@ -195,25 +196,46 @@ pub fn heading_marker(src: &str, span: Span, level: u8) -> Option<Span> {
     Some(Span::new(start, start + hashes.min(level as usize)))
 }
 
+pub fn collect_leading(collector: &mut Vec<HighlightSpan>, leading: &Option<LeadingComments>) {
+    let Some(leading) = leading else {
+        return;
+    };
+    for span in &leading.comments {
+        collector.push(HighlightSpan::new(*span, HighlightKind::Comment, 0, 40));
+    }
+    for span in &leading.docs {
+        collector.push(HighlightSpan::new(
+            *span,
+            HighlightKind::Comment,
+            MOD_DOCUMENTATION,
+            40,
+        ));
+    }
+}
+
 pub fn collect_css(src: &str, collector: &mut Vec<HighlightSpan>, css: &CssDecl) {
+    collect_leading(collector, &css.leading);
     if let Some(span) = ident_between(src, css.span.start, css.body.start, "@css") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
 pub fn collect_context(src: &str, collector: &mut Vec<HighlightSpan>, context: &ContextDecl) {
+    collect_leading(collector, &context.leading);
     if let Some(span) = ident_between(src, context.span.start, context.ty.start, "@context") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
 pub fn collect_init(src: &str, collector: &mut Vec<HighlightSpan>, init: &InitDecl) {
+    collect_leading(collector, &init.leading);
     if let Some(span) = ident_between(src, init.span.start, init.body.start, "@init") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
 }
 
 pub fn collect_live(src: &str, collector: &mut Vec<HighlightSpan>, live: &LiveDecl) {
+    collect_leading(collector, &live.leading);
     let before = live
         .params
         .map(|params| params.start)
@@ -224,6 +246,7 @@ pub fn collect_live(src: &str, collector: &mut Vec<HighlightSpan>, live: &LiveDe
 }
 
 pub fn collect_view(src: &str, collector: &mut Vec<HighlightSpan>, view: &ViewDecl) {
+    collect_leading(collector, &view.leading);
     if let Some(span) = ident_between(src, view.span.start, view.path_span.start, "@view") {
         collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
     }
@@ -236,6 +259,7 @@ pub fn collect_view(src: &str, collector: &mut Vec<HighlightSpan>, view: &ViewDe
 }
 
 pub fn collect_patch(src: &str, collector: &mut Vec<HighlightSpan>, patch: &PatchDecl) {
+    collect_leading(collector, &patch.leading);
     collect_mutation(
         src,
         collector,
@@ -247,6 +271,7 @@ pub fn collect_patch(src: &str, collector: &mut Vec<HighlightSpan>, patch: &Patc
 }
 
 pub fn collect_command(src: &str, collector: &mut Vec<HighlightSpan>, command: &CommandDecl) {
+    collect_leading(collector, &command.leading);
     collect_mutation(
         src,
         collector,
@@ -283,6 +308,7 @@ fn collect_mutation(
 }
 
 pub fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, component: &ComponentDecl) {
+    collect_leading(collector, &component.leading);
     collector.push(HighlightSpan::new(
         component.name.span,
         HighlightKind::Function,
@@ -301,6 +327,7 @@ pub fn collect_component(src: &str, collector: &mut Vec<HighlightSpan>, componen
 }
 
 pub fn collect_fixture(src: &str, collector: &mut Vec<HighlightSpan>, fixture: &FixtureDecl) {
+    collect_leading(collector, &fixture.leading);
     collector.push(HighlightSpan::new(
         fixture.name.span,
         HighlightKind::Function,
