@@ -9,6 +9,8 @@ fn test_view_constructors_and_serialization() {
         language: "en".into(),
         repository: "https://github.com/koliyo/rocci".into(),
         social_image: "/assets/og.png".into(),
+        favicon: "/assets/favicon.svg".into(),
+        apple_touch_icon: "/assets/apple-touch-icon.png".into(),
         subtitle: "Tools".into(),
         footer: "MIT License".into(),
     };

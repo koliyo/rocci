@@ -123,3 +123,23 @@ on the next bundled launch.
 There is no `tui` command. Agents and machines without a display use
 `open --no-window`. Production signing and notarization are **planned**, not
 shipped; the `.app` is ad-hoc signed only.
+
+The packaged app exports Finder UTIs for `.rocci` and `.rocdown` as an
+**Alternate** viewer so it can supply document icons without becoming the
+default opener. Rebuild and open `Rocci Browser.app` once for Launch Services
+to pick up the types.
+
+## Linux file types
+
+Optional shared-MIME and icon files live under `packaging/linux/`:
+
+```sh
+xdg-mime install --mode user packaging/linux/mime/rocci.xml
+mkdir -p ~/.local/share/icons/hicolor/scalable/mimetypes
+cp packaging/linux/icons/hicolor/scalable/mimetypes/text-x-rocci.svg \
+   packaging/linux/icons/hicolor/scalable/mimetypes/text-x-rocdown.svg \
+   ~/.local/share/icons/hicolor/scalable/mimetypes/
+gtk-update-icon-cache -f ~/.local/share/icons/hicolor 2>/dev/null || true
+```
+
+Windows file associations are not shipped (no installer).

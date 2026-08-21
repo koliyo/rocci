@@ -12,6 +12,7 @@ pub const APP_DISPLAY_NAME: &str = "Rocci Browser";
 pub const EXECUTABLE_NAME: &str = "rocci-browser";
 pub const BUNDLE_IDENTIFIER: &str = "dev.rocci.browser";
 pub const ICON_FILE: &str = "AppIcon";
+pub const DOCUMENT_ICON_FILE: &str = "RocciDocument";
 
 pub struct AssembleOptions {
     pub executable: PathBuf,
@@ -89,6 +90,13 @@ pub fn assemble(options: AssembleOptions) -> Result<()> {
     if let Some(png) = icon_png {
         install_icns(&png, &resources.join(format!("{ICON_FILE}.icns")))?;
     }
+    let document_png = document_icon_png();
+    if document_png.is_file() {
+        install_icns(
+            &document_png,
+            &resources.join(format!("{DOCUMENT_ICON_FILE}.icns")),
+        )?;
+    }
     Ok(())
 }
 
@@ -144,10 +152,84 @@ pub fn info_plist() -> String {
   <string>12.0</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>dev.rocci.source</string>
+      <key>UTTypeDescription</key>
+      <string>Rocci Template</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.source-code</string>
+        <string>public.plain-text</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>rocci</string>
+        </array>
+      </dict>
+    </dict>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>dev.rocci.document</string>
+      <key>UTTypeDescription</key>
+      <string>Rocdown Document</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.source-code</string>
+        <string>public.plain-text</string>
+      </array>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array>
+          <string>rocdown</string>
+        </array>
+      </dict>
+    </dict>
+  </array>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Rocci Template</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>dev.rocci.source</string>
+      </array>
+      <key>CFBundleTypeIconFile</key>
+      <string>{DOCUMENT_ICON_FILE}</string>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Rocdown Document</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>dev.rocci.document</string>
+      </array>
+      <key>CFBundleTypeIconFile</key>
+      <string>{DOCUMENT_ICON_FILE}</string>
+    </dict>
+  </array>
 </dict>
 </plist>
 "#
     )
+}
+
+fn document_icon_png() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../brand/rocci-file.png")
 }
 
 #[cfg(target_os = "macos")]
@@ -183,10 +265,14 @@ fn install_icns(png: &Path, dest: &Path) -> Result<()> {
     }
     #[cfg(target_os = "macos")]
     {
+        let stem = dest
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("AppIcon");
         let staging = dest
             .parent()
             .unwrap_or(Path::new("."))
-            .join("AppIcon.iconset");
+            .join(format!("{stem}.iconset"));
         if staging.exists() {
             fs::remove_dir_all(&staging)?;
         }
@@ -291,6 +377,12 @@ mod tests {
         assert!(plist.contains("<string>dev.rocci.browser</string>"));
         assert!(plist.contains("<key>CFBundleIconFile</key>"));
         assert!(plist.contains("<string>AppIcon</string>"));
+        assert!(plist.contains("<string>dev.rocci.source</string>"));
+        assert!(plist.contains("<string>dev.rocci.document</string>"));
+        assert!(plist.contains("<string>Alternate</string>"));
+        assert!(plist.contains("<string>rocci</string>"));
+        assert!(plist.contains("<string>rocdown</string>"));
+        assert!(plist.contains(&format!("<string>{DOCUMENT_ICON_FILE}</string>")));
         assert!(plist.contains("<key>LSMinimumSystemVersion</key>"));
         assert!(plist.contains("<string>12.0</string>"));
         assert!(plist.contains("<key>NSHighResolutionCapable</key>"));

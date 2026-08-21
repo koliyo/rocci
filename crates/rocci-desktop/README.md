@@ -8,7 +8,7 @@ Native windowing and webview host built on [tao](https://github.com/tauri-apps/t
 - **Preview chrome**: Overlay HTML/JS plus optional extra initialization scripts and host IPC (`PreviewOptions.on_ipc`) so a long-lived window can `load_url` a new origin without leaving `preview()`. Cmd-P is an optional **Open Target** menu for the project browser; Cmd-K remains Go to File.
 - **Window state persistence**: Automatically restores and saves window size and position across sessions.
 - **Packaging runtime**: Acts as the desktop container in ad-hoc signed macOS application bundles.
-- **Host icon**: Embeds `assets/rocci-icon.png` and applies it as the macOS Dock image for `preview()` and `run()`. Windows and Linux use the same PNG as the window icon. macOS ignores Tao window icons; the Dock tile comes from `NSApplication.setApplicationIconImage`.
+- **Host icon**: Embeds `assets/rocci-icon.png` (1024px folded-R, rendered from `brand/rocci-app.svg`) and applies it as the macOS Dock image for `preview()` and `run()`. Windows and Linux use the same PNG as the window icon. macOS ignores Tao window icons; the Dock tile comes from `NSApplication.setApplicationIconImage`.
 
 ## Preview chrome
 

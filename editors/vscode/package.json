@@ -63,6 +63,10 @@
         "extensions": [
           ".rocci"
         ],
+        "icon": {
+          "light": "./icons/rocci-file.svg",
+          "dark": "./icons/rocci-file.svg"
+        },
         "configuration": "./language-configuration.json"
       },
       {
@@ -73,6 +77,10 @@
         "extensions": [
           ".rocdown"
         ],
+        "icon": {
+          "light": "./icons/rocci-file.svg",
+          "dark": "./icons/rocci-file.svg"
+        },
         "configuration": "./rocdown-language-configuration.json"
       }
     ],
