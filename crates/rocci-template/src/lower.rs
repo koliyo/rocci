@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::{
     Attr, AttrValue, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document, Element,
-    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
+    FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation, LiveDecl,
     MatchDirective, ModuleItem, OnDecl, TemplateBlock, TemplateItem, ensure_handler_request_param,
     parse_component_params, strip_param_defaults,
 };
@@ -42,6 +42,7 @@ pub struct LoweredModule {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
+    pub live: Option<LiveInfo>,
     pub routes: Vec<RouteInfo>,
 }
 
@@ -86,10 +87,23 @@ pub struct InitInfo {
 }
 
 #[derive(Clone, Debug)]
+pub struct LiveInfo {
+    pub span: Span,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RespondKind {
+    #[default]
+    Patch,
+    Json,
+}
+
+#[derive(Clone, Debug)]
 pub struct RouteInfo {
     pub method: String,
     pub path: String,
     pub fn_name: String,
+    pub respond: RespondKind,
     pub span: Span,
 }
 
@@ -129,6 +143,7 @@ pub fn lower_template_items(
         styles: Vec::new(),
         state_type: None,
         init: None,
+        live: None,
         routes: Vec::new(),
         field_defaults: field_defaults.clone(),
         file_css: String::new(),
@@ -249,6 +264,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         styles,
         state_type: None,
         init: None,
+        live: None,
         routes: Vec::new(),
         field_defaults,
         file_css,
@@ -281,6 +297,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             ModuleItem::Css(_) => {}
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
+            ModuleItem::Live(live) => emitter.lower_live(live),
             ModuleItem::On(on) => emitter.lower_on(on),
         }
     }
@@ -295,6 +312,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         styles: emitter.styles,
         state_type: emitter.state_type,
         init: emitter.init,
+        live: emitter.live,
         routes: emitter.routes,
     }
 }
@@ -312,6 +330,7 @@ struct Emitter<'a> {
     styles: Vec<StyleArtifact>,
     state_type: Option<String>,
     init: Option<InitInfo>,
+    live: Option<LiveInfo>,
     routes: Vec<RouteInfo>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
     file_css: String,
@@ -457,13 +476,41 @@ impl<'a> Emitter<'a> {
         self.emit("}\n");
     }
 
+    fn lower_live(&mut self, live: &LiveDecl) {
+        self.live = Some(LiveInfo { span: live.span });
+        let params = live
+            .params
+            .map(|span| {
+                ensure_handler_request_param(&strip_param_defaults(span.of(self.src).trim()))
+            })
+            .unwrap_or_else(|| "|state, _request|".to_string());
+        self.emit_mapped("live!", live.span, OriginKind::OrdinaryRoc);
+        self.emit(" = ");
+        if let Some(span) = live.params {
+            self.emit_mapped(&params, span, OriginKind::OrdinaryRoc);
+        } else {
+            self.emit(&params);
+        }
+        self.emit(" {\n");
+        self.indent += 1;
+        self.emit_try_block(live.body, "rocci_value");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("}\n");
+    }
+
     fn lower_on(&mut self, on: &OnDecl) {
         let method = on.method.name.to_ascii_uppercase();
         let fn_name = route_fn_name(&on.method.name, &on.path);
+        let respond = match on.respond.as_ref().map(|ident| ident.name.as_str()) {
+            Some("json") => RespondKind::Json,
+            _ => RespondKind::Patch,
+        };
         self.routes.push(RouteInfo {
             method,
             path: on.path.clone(),
             fn_name: fn_name.clone(),
+            respond,
             span: on.span,
         });
         let params = on

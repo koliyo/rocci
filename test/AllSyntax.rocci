@@ -131,3 +131,11 @@ badgeClass = |tone| {
 @on:get("/") {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }
+
+@live {
+    counterPage({ person: { name: "Roc" }, count: 0 })
+}
+
+@on:post("/actions/increment") json {
+    "{\"count\": 0}"
+}

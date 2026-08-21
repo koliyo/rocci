@@ -673,6 +673,7 @@ fn nodes_from_items(
             | Item::Css(_)
             | Item::Context(_)
             | Item::Init(_)
+            | Item::Live(_)
             | Item::On(_)
                 if parent_kind.is_none() => {}
             Item::Roc(_) => illegal(ctx, item, "roc"),
@@ -682,6 +683,7 @@ fn nodes_from_items(
             Item::Css(_) => illegal(ctx, item, "css"),
             Item::Context(_) => illegal(ctx, item, "context"),
             Item::Init(_) => illegal(ctx, item, "init"),
+            Item::Live(_) => illegal(ctx, item, "live"),
             Item::On(_) => illegal(ctx, item, "on"),
             Item::Use(_) if parent_kind.is_some() => illegal(ctx, item, "use"),
             Item::Use(_) => {}

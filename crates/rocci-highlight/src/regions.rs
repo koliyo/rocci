@@ -332,6 +332,38 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                     );
                 }
             }
+            ModuleItem::Live(live) => {
+                let live_id = builder.add(
+                    LanguageId::Rocci,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    live.span,
+                    Some(root),
+                    10,
+                );
+                if let Some(params) = live.params
+                    && !params.is_empty()
+                {
+                    builder.add(
+                        LanguageId::Roc,
+                        RegionContext::Params,
+                        RegionPurpose::Executable,
+                        params,
+                        Some(live_id),
+                        20,
+                    );
+                }
+                if !live.body.is_empty() {
+                    builder.add(
+                        LanguageId::Roc,
+                        RegionContext::Body,
+                        RegionPurpose::Executable,
+                        live.body,
+                        Some(live_id),
+                        20,
+                    );
+                }
+            }
             ModuleItem::On(on) => {
                 let on_id = builder.add(
                     LanguageId::Rocci,

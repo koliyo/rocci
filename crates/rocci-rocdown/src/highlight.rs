@@ -1,6 +1,6 @@
 use rocci_highlight::composite::{
     collect_component, collect_context, collect_css, collect_embedded_regions, collect_fixture,
-    collect_init, collect_items, collect_keyword, collect_on, heading_marker,
+    collect_init, collect_items, collect_keyword, collect_live, collect_on, heading_marker,
 };
 use rocci_highlight::language::LanguageId;
 use rocci_highlight::regions::{RegionBuilder, RegionContext, RegionPurpose, RegionTree};
@@ -83,6 +83,7 @@ pub fn collect_rocdown(
             Item::Css(css) => collect_css(src, collector, css),
             Item::Context(context) => collect_context(src, collector, context),
             Item::Init(init) => collect_init(src, collector, init),
+            Item::Live(live) => collect_live(src, collector, live),
             Item::On(on) => collect_on(src, collector, on),
             Item::Use(used) => {
                 collect_keyword(src, collector, used.span, used.path_span.start, "@use");
@@ -450,6 +451,38 @@ fn collect_rocdown_items(
                         RegionPurpose::Executable,
                         init.body,
                         Some(init_id),
+                        20,
+                    );
+                }
+            }
+            Item::Live(live) => {
+                let live_id = builder.add(
+                    LanguageId::Rocdown,
+                    RegionContext::Body,
+                    RegionPurpose::HostStructure,
+                    live.span,
+                    Some(parent_id),
+                    10,
+                );
+                if let Some(params) = live.params
+                    && !params.is_empty()
+                {
+                    builder.add(
+                        LanguageId::Roc,
+                        RegionContext::Params,
+                        RegionPurpose::Executable,
+                        params,
+                        Some(live_id),
+                        20,
+                    );
+                }
+                if !live.body.is_empty() {
+                    builder.add(
+                        LanguageId::Roc,
+                        RegionContext::Body,
+                        RegionPurpose::Executable,
+                        live.body,
+                        Some(live_id),
                         20,
                     );
                 }

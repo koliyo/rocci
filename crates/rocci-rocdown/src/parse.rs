@@ -780,6 +780,7 @@ fn fill_at_decl(
         | Reserved::Css
         | Reserved::Context
         | Reserved::Init
+        | Reserved::Live
         | Reserved::On => match parse_declaration_from(src, decl.at) {
             Some(parsed) => {
                 diagnostics.extend(parsed.diagnostics);
@@ -789,6 +790,7 @@ fn fill_at_decl(
                     ModuleItem::Css(item) => Item::Css(item),
                     ModuleItem::Context(item) => Item::Context(item),
                     ModuleItem::Init(item) => Item::Init(item),
+                    ModuleItem::Live(item) => Item::Live(item),
                     ModuleItem::On(item) => Item::On(item),
                     ModuleItem::Roc { .. } => Item::Roc(RocDecl {
                         body: Span::new(decl.at, decl.end),

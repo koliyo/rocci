@@ -388,12 +388,14 @@ mod tests {
             method: "GET".into(),
             path: path.into(),
             fn_name: "on_get".into(),
+            respond: rocci_template::RespondKind::Patch,
             span: rocci_template::Span::new(0, 0),
         };
         let post = |path: &str| RouteInfo {
             method: "POST".into(),
             path: path.into(),
             fn_name: "on_post".into(),
+            respond: rocci_template::RespondKind::Patch,
             span: rocci_template::Span::new(0, 0),
         };
         assert!(!keep_island_route(&get("/"), &pages));
