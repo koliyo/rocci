@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–4 implemented on multiplayer-falling-block-demonstrator."
+description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–5 implemented on multiplayer-falling-block-demonstrator. Staging Tunnel soak is an operator gate."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T16:35:00Z }
+generated: { by: process:cursor, at: 2026-08-21T16:45:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -456,6 +456,11 @@ Phase 4 is implemented: spectator leases are separate from the eight player seat
 default cap is **20** (`BLOCKS_SPECTATOR_CAP`, design ceiling 50) because the 30-minute 8+50 soak
 was not run, streams coalesce at 5 Hz with a 10 s keepalive, and reconnect restores from one
 full snapshot. Origin packaging remains later phases.
+
+Phase 5 is implemented in-repo: catalog `live_url` for `/play/blocks/`, `index.rocdown`,
+`docker/blocks/Dockerfile`, Compose profile `blocks` with a 512 MiB limit, and Caddy
+`/play/blocks/*` before static fallback (island `/actions/*` and `/sse` unchanged).
+The Access-gated staging Tunnel soak is an operator gate and was not run.
 
 ### Phase 0 — Freeze rules, wire budget, and fixtures
 

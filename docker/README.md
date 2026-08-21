@@ -96,7 +96,9 @@ apply-only.
 the binary into a build context. The image creates an empty `assets/` directory
 so basic-webserver can start; hashed site files stay on the CDN mount. When the
 CDN container starts it prints `Open http://127.0.0.1:8080/` (honors
-`ROCCI_HTTP_PORT`). Smoke:
+`ROCCI_HTTP_PORT`). Caddy proxies `/play/blocks/*` to an optional `blocks`
+service (`docker compose --profile blocks`); hybrid island smoke does not
+start it. Smoke:
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
@@ -127,6 +129,8 @@ Override the published port with `ROCCI_HTTP_PORT`. The app container prints
 
 Catalog rows with `hosting = "live"` (`live-counter`, `datastar`) are separate
 processes and hostnames. They do **not** share the rocci.dev hybrid island
+process. Rocci Blocks is the exception: it is a first-party `/play/blocks/`
+route on the main hostname, enabled with Compose profile `blocks`.
 `/actions/` or `/sse`. Docs-only apps (counter, styling, snake) are absent
 from this Compose file.
 

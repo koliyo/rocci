@@ -101,7 +101,7 @@ init! = || {
     })
     config =
         Server.default_config
-        .with_listen({ host: "127.0.0.1", port: listen_port!({}) })
+        .with_listen({ host: listen_host!({}), port: listen_port!({}) })
         .with_file_roots([assets])
         .with_native_routes({
             files: [
@@ -1148,6 +1148,14 @@ spectator_cap! = |_| {
         50
     } else {
         n
+    }
+}
+
+listen_host! : {} => Str
+listen_host! = |_| {
+    match Env.var_str!("ROC_BASIC_WEBSERVER_HOST") {
+        Ok(host) if host == "0.0.0.0" => "0.0.0.0"
+        _ => "127.0.0.1"
     }
 }
 
