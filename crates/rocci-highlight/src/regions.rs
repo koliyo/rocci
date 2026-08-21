@@ -365,14 +365,18 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                 }
             }
             ModuleItem::View(view) => {
-                add_route_regions(builder, root, view.span, view.params, view.body)
+                add_route_regions(&mut builder, root, view.span, view.params, view.body)
             }
             ModuleItem::Patch(patch) => {
-                add_route_regions(builder, root, patch.span, patch.params, patch.body)
+                add_route_regions(&mut builder, root, patch.span, patch.params, patch.body)
             }
-            ModuleItem::Command(command) => {
-                add_route_regions(builder, root, command.span, command.params, command.body)
-            }
+            ModuleItem::Command(command) => add_route_regions(
+                &mut builder,
+                root,
+                command.span,
+                command.params,
+                command.body,
+            ),
         }
     }
 

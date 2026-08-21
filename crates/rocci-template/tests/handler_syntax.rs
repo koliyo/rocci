@@ -79,7 +79,7 @@ fn accepts_every_canonical_header() {
             assert!(ast.contains("(command DELETE "), "{header}\n{ast}");
         } else if header.starts_with("@command") {
             assert!(ast.contains("(command POST "), "{header}\n{ast}");
-            assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Json);
+            assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Command);
         } else {
             assert!(out.live.is_some(), "{header}");
         }
@@ -232,9 +232,9 @@ fn recovers_malformed_handler_and_keeps_later_valid_decl() {
         out.routes
     );
     assert!(
-        out.routes
-            .iter()
-            .any(|route| route.path == "/c" && route.respond == rocci_template::RespondKind::Json),
+        out.routes.iter().any(
+            |route| route.path == "/c" && route.respond == rocci_template::RespondKind::Command
+        ),
         "{:?}",
         out.routes
     );

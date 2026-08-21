@@ -137,5 +137,5 @@ badgeClass = |tone| {
 }
 
 @command("/actions/increment") {
-    "{\"count\": 0}"
+    { count: 0 }
 }

@@ -95,7 +95,7 @@ pub struct LiveInfo {
 pub enum RespondKind {
     #[default]
     Patch,
-    Json,
+    Command,
 }
 
 #[derive(Clone, Debug)]
@@ -189,6 +189,10 @@ pub fn route_fn_name(method: &str, path: &str) -> String {
             .collect::<String>()
     };
     format!("on_{method}_{path_part}!")
+}
+
+pub fn command_json_fn_name(fn_name: &str) -> String {
+    format!("{}_json!", fn_name.trim_end_matches('!'))
 }
 
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
@@ -543,7 +547,7 @@ impl<'a> Emitter<'a> {
         self.lower_route(
             method,
             &command.path,
-            RespondKind::Json,
+            RespondKind::Command,
             command.params,
             command.body,
             command.span,
@@ -586,6 +590,18 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.push_indent();
         self.emit("}\n");
+        if respond == RespondKind::Command {
+            self.emit("\n");
+            self.emit(&command_json_fn_name(&fn_name));
+            self.emit(" = |state, request| {\n");
+            self.emit("    match ");
+            self.emit(&fn_name);
+            self.emit("(state, request) {\n");
+            self.emit("        Ok(data) => Encoding.Json.to_str_try(data)\n");
+            self.emit("        Err(err) => Err(err)\n");
+            self.emit("    }\n");
+            self.emit("}\n");
+        }
     }
 
     fn emit_try_block(&mut self, body: Span, result_name: &str) {
