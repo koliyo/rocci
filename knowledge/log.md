@@ -2,6 +2,7 @@
 
 ## 2026-08-21
 
+- Implemented Phases 1–6 of the [Python and uv operator pipeline](plans/python-uv-ops-pipeline.md) on `python-uv-ops-pipeline`: `tools/rocci-ops` owns CI jobs, release packaging, deploy/origin, and local maintainer commands. POSIX remains for container entrypoints, `install-roc.sh`, and `access-ssh-proxy.sh`. Findings: [Python uv migration](research/python-uv-ops-pipeline.md). Not logged complete until CI and Knowledge workflows succeed on this revision.
 - Revised [Datastar SSE vs fan-out](research/datastar-cqrs-action-responses.md) and [CQRS plan](plans/datastar-cqrs-action-responses.md): Rocci generates the stream unfold; authors opt in with `@live` rather than a handwritten `/sse` handler. Keep `examples/rocci/standalone/counter` as the one-shot first app; add `live-counter`; convert the hybrid island. Medium term: toml fat-morph of `GET /`. Long term: named regions and platform wake. Exploratory; no phase started.
 - Added draft [Datastar SSE vs multi-client fan-out](research/datastar-cqrs-action-responses.md) research and [generated CQRS / JSON commands plan](plans/datastar-cqrs-action-responses.md): generated `@post` is a one-shot patch to the acting tab; Datastar CQRS is a long-lived `GET /sse` plus 204 or JSON commands; domain JSON must not be sent to Datastar as a HTML morph. Exploratory; no phase started.
 - Revised [rocci.dev deploy](plans/rocci-dev-publish.md):
