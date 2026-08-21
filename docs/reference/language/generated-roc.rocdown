@@ -1,0 +1,33 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Generated Roc",
+        description: "Representative lowering for major constructs, injected imports, naming, and source maps.",
+    },
+}
+
+# Generated Roc
+
+**Status:** current.
+
+| Template | Generated |
+| --- | --- |
+| `<p>…</p>` | `Html.element("p", attrs, children)` |
+| void element | `Html.void_element("br", attrs)` |
+| static/dynamic attr | `Html.attribute("class", …)` |
+| valueless attr | `Html.boolean_attribute("disabled", True)` |
+| text | `Html.text(…)` |
+| `<>…</>` | `Html.fragment(…)` |
+| missing `@else` | `Html.empty` |
+| `@for` | `List.map` |
+| `<Hello name={x} />` | `hello({ name: x })` |
+| Datastar action | `Datastar.post("…")` plus injected import |
+
+Roc type-checking begins after lowering. Source-map segments record ordinary
+Roc, signatures, tags, interpolations, directives, and scaffolding.
+`rocci inspect` always prints segments.
+
+Golden pair: `test/AllSyntax.rocci` and
+`crates/rocci-template/tests/fixtures/all_syntax.roc`.
+
+**Related:** [CLI inspect](/docs/reference/cli/#inspect).

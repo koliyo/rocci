@@ -1,0 +1,28 @@
+@page {
+    layout: "docs",
+    aliases: ["/docs/reference/@fixture/"],
+    meta: {
+        title: "Fixtures",
+        description: "@fixture grammar, local and qualified targets, discovery, and validation failures.",
+    },
+}
+
+# Fixtures
+
+**Status:** current.
+
+```rocci
+@fixture{target: TodoItem}
+todoItemExample = { item: { id: 1, text: "Buy milk" } }
+```
+
+The marker is stripped; the binding stays ordinary Roc. `target` is a local
+PascalCase component or a module-qualified path. Unqualified targets must name
+a `@component` in the same file. Dotted targets are left to Roc.
+
+`rocci view` and `rocci browse` consume fixtures. `rocci view` ignores HTTP
+declarations.
+
+**Errors:** `@fixture` inside a component body; missing local target.
+
+**Related:** [CLI view](/docs/reference/cli/#view).

@@ -1,0 +1,27 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Tags and fragments",
+        description: "Intrinsic tags, local and qualified components, fragments, void tags, and name restrictions.",
+    },
+}
+
+# Tags and fragments
+
+**Status:** current.
+
+| Form | Meaning | Generated |
+| --- | --- | --- |
+| `<div>` | Intrinsic HTML | `Html.element` |
+| `<Hello />` | Local component | `hello({ … })` |
+| `<Design.Button />` | Qualified component | `Design.button({ … })` |
+| `<>…</>` | Fragment | `Html.fragment` |
+| `<br>` / `<img />` | Void HTML | `Html.void_element` |
+
+Unknown PascalCase tags still lower to calls; Roc reports missing values later.
+Self-closing component tags are one-argument calls. Paired tags pass the body
+as the second argument.
+
+**Limits:** no dynamic tag names.
+
+**Related:** [Components](/docs/reference/language/components/), [Attributes](/docs/reference/language/attributes/).

@@ -1,0 +1,39 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "File structure and Roc regions",
+        description: "Look up module headers, imports, helpers, top-level recognition, and allowed ordering.",
+    },
+}
+
+# File structure and Roc regions
+
+**Status:** current.
+
+A `.rocci` file may mix a module header, imports, types, helpers, and any
+number of recognized declarations. Everything outside an `@` declaration is
+copied into generated Roc unchanged.
+
+```rocci
+module Example exposing [hello]
+
+import Html
+
+Tone : [Neutral, Positive]
+
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+```
+
+Recognized **only** at the start of a top-level definition: `@component`,
+`@fixture`, `@css`, `@context`, `@init`, `@view`, `@patch`, `@command`,
+`@live`.
+
+Roc regions (directive headers, interpolations, params, `@match` patterns)
+are token ranges. The template parser does not type-check them. Parenthesize
+records in directive headers so `{` is not read as the body opener.
+
+**Errors:** unrecognized `@` at top-level stays invalid; `@` inside Markdown
+is a Rocdown concern, not this file type.
+
+**Related:** [Components](/docs/reference/language/components/), [Generated Roc](/docs/reference/language/generated-roc/).

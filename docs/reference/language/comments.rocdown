@@ -1,0 +1,29 @@
+@page {
+    layout: "docs",
+    aliases: ["/docs/reference/@@/", "/docs/reference/doc-comments/"],
+    meta: {
+        title: "Comments, escaping, and whitespace",
+        description: "Roc comments, template comments, HTML comments, doc comments, @@, and blank-line behavior.",
+    },
+}
+
+# Comments, escaping, and whitespace
+
+**Status:** current.
+
+| Form | Where | Effect |
+| --- | --- | --- |
+| `#` at start of a template item | Template body | Line comment |
+| `<!-- … -->` | Template body | Dropped HTML comment |
+| `@@` | Template body | Literal `@` |
+| `## ` immediately above top-level `@` | File | Doc comment attached to generated assignment |
+| Roc `#` | Roc regions | Ordinary Roc comment |
+
+`## ` must sit immediately above the declaration (no blank line). Those lines
+are also the attached docs `rocci-docs` copies onto generated example source
+pages.
+
+Indentation-only whitespace around tags is discarded. Inline spaces in
+`Hello, {name}` are kept.
+
+**Related:** [Examples declaration docs](/examples/).

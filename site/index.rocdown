@@ -369,4 +369,4 @@ The card below is CDN HTML plus a SQLite-backed Rocci island: shared count, last
 }
 ```
 
-See [Rocci in five minutes](/docs/start/five-minutes/) to run a component locally, or [Publish a hybrid Rocdown site](/docs/guides/hybrid-sites/) for CDN plus `serve-islands`.
+See [Rocci in five minutes](/docs/start/five-minutes/) to run a component locally, or [Publish a hybrid Rocdown site](/rocdown/hybrid/) for CDN plus `serve-islands`.

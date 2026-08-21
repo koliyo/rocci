@@ -1,0 +1,34 @@
+@page {
+    layout: "docs",
+    aliases: ["/reference/rocci/", "/docs/reference/rocci/"],
+    meta: {
+        title: "Rocci language reference",
+        description: "Landing page for .rocci file structure, components, directives, CSS, fixtures, and server declarations.",
+    },
+}
+
+# Rocci language reference
+
+A `.rocci` file is a Roc module with explicit template and server declarations.
+Everything outside recognized `@` forms stays Roc. This page is the map; each
+subpage is the canonical contract.
+
+| Page | Covers |
+| --- | --- |
+| [File structure](/docs/reference/language/file-structure/) | Module header, Roc regions, top-level forms, order |
+| [Components](/docs/reference/language/components/) | Declaration, params, defaults, body parameter, generated shape |
+| [Tags and fragments](/docs/reference/language/tags/) | HTML, calls, fragments, void, name rules |
+| [Attributes and actions](/docs/reference/language/attributes/) | Static, dynamic, boolean, Datastar `@get`/`@post`/… |
+| [Text and interpolation](/docs/reference/language/text/) | `{expr}`, `Str`, Html bodies, escaping |
+| [Directives](/docs/reference/language/directives/) | `@let`, `@if`, `@for`, `@match` |
+| [CSS](/docs/reference/language/css/) | File vs component `@css`, scoping, limits |
+| [Fixtures](/docs/reference/language/fixtures/) | `@fixture` grammar and discovery |
+| [Server declarations](/docs/reference/language/server/) | `@context` `@init` `@view` `@patch` `@command` `@live` |
+| [Comments and whitespace](/docs/reference/language/comments/) | `#`, `<!-- -->`, `@@`, `## `, indentation |
+| [Generated Roc](/docs/reference/language/generated-roc/) | Lowering table and source maps |
+| [Grammar and limits](/docs/reference/language/grammar/) | Reserved forms, removals, unsupported JSX-like features |
+
+Coverage fixture: `test/AllSyntax.rocci` (compiler density, not a tutorial).
+Contributor tree spec: [Rocci tree appendix](/docs/reference/contributor/rocci-tree/).
+
+**Support:** current unless a subpage marks a form experimental, planned, or removed.

@@ -1,0 +1,28 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Diagnostics",
+        description: "Organize Rocci failures by owning phase and leading message until stable diagnostic codes exist.",
+    },
+}
+
+# Diagnostics
+
+**Status:** current. Rocci does not yet publish a stable diagnostic ID catalog
+for the template language. Do not invent codes in prose. Rocdown catalog codes
+(`RD2101`, …) belong to the Rocdown product.
+
+Organize failures by **owning phase** and the **exact leading message**.
+
+| Phase | Typical surface | Where to look |
+| --- | --- | --- |
+| Rocci parse / lower | `rocci build` / `inspect` | Template diagnostics; source maps |
+| Roc compile | `roc` after lowering | Roc compiler; generated Roc |
+| Application effects | `@init` / handlers | `?` → process exit or HTTP 500 |
+| HTTP dispatch | wrong method/path | `--log-handlers`; handler matrix |
+| Webview / preview | window does not open | `--no-window`; Linux WebKitGTK |
+
+Until codes exist, quote the leading message in issues. Migration from
+removed `@on` is a rewrite diagnostic, not a deprecation warning.
+
+**Related:** [Troubleshooting](/docs/troubleshooting/), [Grammar](/docs/reference/language/grammar/).

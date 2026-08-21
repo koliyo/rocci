@@ -1,6 +1,6 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/rocdown-tree/"],
+    aliases: ["/reference/rocdown-tree/", "/docs/reference/rocdown-tree/"],
 
     meta: {
         title: "Rocdown tree appendix",

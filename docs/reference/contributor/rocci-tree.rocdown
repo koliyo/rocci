@@ -1,6 +1,6 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/rocci-tree/"],
+    aliases: ["/reference/rocci-tree/", "/docs/reference/rocci-tree/"],
 
     meta: {
         title: "Rocci tree appendix",
