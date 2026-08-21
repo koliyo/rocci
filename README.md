@@ -57,7 +57,7 @@ ad-hoc signed macOS `.app`. The bundled app does not need `roc` on `PATH` at
 runtime. From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-uv run --project tools/rocci-ops rocci-ops bundle macos
+uv run rocci-ops bundle macos
 open "target/release/bundle/macos/Datastar.app"
 ```
 
@@ -137,7 +137,7 @@ cargo run -q -p rocci-browser -- open knowledge --document plans/cli-entry-point
 
 `rocci-browser` keeps one preview window and a Cmd-P target picker. Cmd-K stays
 in-page Go to File. `rocci browse` is still the component gallery. On macOS,
-`uv run --project tools/rocci-ops rocci-ops bundle browser-macos` assembles an ad-hoc **Rocci Browser.app**
+`uv run rocci-ops bundle browser-macos` assembles an ad-hoc **Rocci Browser.app**
 around that same host; it does not use `rocci bundle`. Production signing is
 planned. See
 [`docs/guides/rocci-browser.rocdown`](docs/guides/rocci-browser.rocdown).
@@ -169,9 +169,9 @@ on `run`.
 
 ```sh
 cargo test --workspace
-uv run --project tools/rocci-ops rocci-ops ci
+uv run rocci-ops ci
 ```
 
-`cargo test --workspace` is the fast crate suite. `uv run --project tools/rocci-ops rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run --project tools/rocci-ops rocci-ops ci lint test`.
+`cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.

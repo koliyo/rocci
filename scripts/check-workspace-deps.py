@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper. Prefer `uv run --project tools/rocci-ops rocci-ops check-deps`."""
+"""Compatibility wrapper. Prefer `uv run rocci-ops check-deps`."""
 
 from __future__ import annotations
 
@@ -8,12 +8,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PROJECT = ROOT / "tools" / "rocci-ops"
 
 
 def main() -> int:
     return subprocess.call(
-        ["uv", "run", "--project", str(PROJECT), "rocci-ops", "check-deps"],
+        ["uv", "run", "rocci-ops", "check-deps"],
         cwd=ROOT,
     )
 

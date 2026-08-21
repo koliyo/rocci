@@ -22,10 +22,7 @@ BOOTSTRAP_DOCKER_DEFAULT = "/srv/rocci/docker"
 
 
 def origin_publish_cmd(sha: str, origin_root: str) -> str:
-    return (
-        f"cd '{origin_root}' && uv run --project tools/rocci-ops --no-dev "
-        f"rocci-ops origin publish '{sha}'"
-    )
+    return f"cd '{origin_root}' && uv run --no-dev rocci-ops origin publish '{sha}'"
 
 
 def probe(*, runner=subprocess.run) -> int:
@@ -105,11 +102,19 @@ def bootstrap(*, runner=subprocess.run) -> int:
         ],
         runner=runner,
     )
+    rocci_scp(
+        [
+            str(root / "pyproject.toml"),
+            str(root / "uv.lock"),
+            str(root / ".python-version"),
+            f"{target}:{origin_root}/",
+        ],
+        runner=runner,
+    )
     ops = root / "tools" / "rocci-ops"
     rocci_scp(
         [
             str(ops / "pyproject.toml"),
-            str(ops / "uv.lock"),
             str(ops / ".python-version"),
             f"{target}:{ops_dest}/",
         ],

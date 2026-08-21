@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Compatibility shim. Prefer: uv run --project tools/rocci-ops rocci-ops ci
+# Compatibility shim. Prefer: uv run rocci-ops ci
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-exec uv run --project "${ROOT}/tools/rocci-ops" rocci-ops ci "$@"
+cd "$ROOT"
+exec uv run rocci-ops ci "$@"

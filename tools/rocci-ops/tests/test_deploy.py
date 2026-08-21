@@ -29,7 +29,7 @@ def test_ssh_opts_include_proxy_when_access_set(monkeypatch) -> None:
 
 def test_origin_publish_cmd() -> None:
     cmd = origin_publish_cmd("deadbeef", "/srv/rocci")
-    assert "uv run --project tools/rocci-ops --no-dev rocci-ops origin publish 'deadbeef'" in cmd
+    assert "uv run --no-dev rocci-ops origin publish 'deadbeef'" in cmd
 
 
 def test_push_invokes_bootstrap_scp_and_publish(monkeypatch, tmp_path: Path) -> None:

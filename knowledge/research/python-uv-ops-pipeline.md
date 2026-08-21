@@ -59,7 +59,7 @@ CI job bodies, release packaging and `gh` gating, deploy SSH/SCP, origin
 publish/up/backup, and localhost maintainer helpers now live in
 `tools/rocci-ops` (Python 3.12, stdlib plus pytest, committed `uv.lock`).
 GitHub Actions YAML is checkout, toolchains, cache, `astral-sh/setup-uv`,
-secrets, and artifacts; sequences are `uv run --project tools/rocci-ops --no-dev rocci-ops …`.[^plan][^pyproject][^ci-yml][^site-yml][^origin]
+secrets, and artifacts; sequences are `uv run --no-dev rocci-ops …`.[^plan][^pyproject][^ci-yml][^site-yml][^origin]
 
 ## What stayed POSIX
 

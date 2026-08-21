@@ -15,7 +15,7 @@ The interactive, in-browser editor and workbench for experimenting with `.rocci`
 
 ```sh
 # Full build: compiles WASM and produces standalone dist/ bundle with SHA-256 manifest
-uv run --project tools/rocci-ops rocci-ops build-playground
+uv run rocci-ops build-playground
 ```
 
 ## Running the Playground

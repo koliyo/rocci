@@ -24,11 +24,11 @@ On Apple Silicon you can run either path:
 ```sh
 # Native arm64 containers (default, fastest)
 cargo run -q -p rocci-rocdown-cli -- package SITE --target arm64musl
-uv run --project tools/rocci-ops rocci-ops serve hybrid DIST ISLANDS
+uv run rocci-ops serve hybrid DIST ISLANDS
 
 # amd64 containers via Docker’s x86_64 emulation (Rosetta/QEMU)
 cargo run -q -p rocci-rocdown-cli -- package SITE --target x64musl
-DOCKER_DEFAULT_PLATFORM=linux/amd64 uv run --project tools/rocci-ops rocci-ops serve hybrid DIST ISLANDS
+DOCKER_DEFAULT_PLATFORM=linux/amd64 uv run rocci-ops serve hybrid DIST ISLANDS
 ```
 
 A mismatch (`x64musl` binary in an arm64 image, or the reverse) fails at
@@ -55,7 +55,7 @@ From the repository root, dogfood `docs/` (`build.output = "../dist/docs"`):
 
 ```sh
 cargo run -q -p rocci-rocdown-cli -- build docs --cdn-only
-uv run --project tools/rocci-ops rocci-ops serve static dist/docs
+uv run rocci-ops serve static dist/docs
 ```
 
 The script absolutizes `ROCCI_DIST` and runs Compose. Extra arguments go to
@@ -84,7 +84,7 @@ the island binary (Debian, SQLite, no `rocci` / `rocdown` / `roc`):
 ```sh
 # Apple Silicon Docker → arm64musl; Intel / amd64 containers → x64musl
 cargo run -q -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
-uv run --project tools/rocci-ops rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/counter/islands
+uv run rocci-ops serve hybrid examples/rocdown/counter/dist examples/rocdown/counter/islands
 ```
 
 `package` writes `dist/`, `publish.json` (live routes and binary fingerprint),
@@ -117,7 +117,7 @@ weaken `rocci.toml` loopback validation).
 ```sh
 # Match the container CPU (Apple Silicon Docker → arm64musl)
 cargo run -q -p rocci-cli -- build --release examples/rocci/custom/datastar --target arm64musl
-uv run --project tools/rocci-ops rocci-ops serve app target/release/rocci-server
+uv run rocci-ops serve app target/release/rocci-server
 ```
 
 Override the published port with `ROCCI_HTTP_PORT`. The app container prints
@@ -133,9 +133,9 @@ From the repository root:
 
 ```sh
 ROCCI_SITE="$(pwd)/examples/rocdown/counter" docker compose -f docker/compose.yml build
-uv run --project tools/rocci-ops rocci-ops serve site examples/rocdown/counter
-uv run --project tools/rocci-ops rocci-ops serve site examples/rocdown/hybrid
-uv run --project tools/rocci-ops rocci-ops serve site /path/to/any/hybrid-site
+uv run rocci-ops serve site examples/rocdown/counter
+uv run rocci-ops serve site examples/rocdown/hybrid
+uv run rocci-ops serve site /path/to/any/hybrid-site
 ```
 
 `ROCCI_SITE` is required even for `build` because Compose interpolates the

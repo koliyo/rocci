@@ -65,7 +65,7 @@ On macOS, assemble an ad-hoc **Rocci Browser.app** around the same `preview()`
 binary:
 
 ```sh
-uv run --project tools/rocci-ops rocci-ops bundle browser-macos
+uv run rocci-ops bundle browser-macos
 open "target/release/bundle/macos/Rocci Browser.app"
 ```
 

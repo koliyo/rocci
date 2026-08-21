@@ -25,4 +25,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
       - name: Validate knowledge bundle
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops ci knowledge
+        run: uv run --no-dev rocci-ops ci knowledge

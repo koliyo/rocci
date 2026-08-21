@@ -44,7 +44,7 @@ npm test
 Package the extension into a standalone `.vsix` bundle containing the compiled `rocci-language-server` release binary:
 
 ```sh
-uv run --project tools/rocci-ops rocci-ops package vscode
+uv run rocci-ops package vscode
 ```
 
 Install the resulting `.vsix`:

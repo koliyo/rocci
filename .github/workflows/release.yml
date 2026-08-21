@@ -50,12 +50,12 @@ jobs:
 
       - name: Determine version
         id: version
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops release version
+        run: uv run --no-dev rocci-ops release version
 
       - name: Package archive
         id: archive
         run: >
-          uv run --project tools/rocci-ops --no-dev rocci-ops release package
+          uv run --no-dev rocci-ops release package
           --version "${{ steps.version.outputs.version }}"
           --target "${{ matrix.target }}"
 
@@ -77,7 +77,7 @@ jobs:
       - name: Wait for CI checks
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops release wait-ci
+        run: uv run --no-dev rocci-ops release wait-ci
 
   release:
     name: Publish Release
@@ -98,13 +98,13 @@ jobs:
 
       - name: Determine release parameters
         id: params
-        run: uv run --project tools/rocci-ops --no-dev rocci-ops release params
+        run: uv run --no-dev rocci-ops release params
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          uv run --project tools/rocci-ops --no-dev rocci-ops release publish
+          uv run --no-dev rocci-ops release publish
           --tag "${{ steps.params.outputs.tag }}"
           --title "${{ steps.params.outputs.name }}"
           --target-sha "${{ github.sha }}"
