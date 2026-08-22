@@ -2417,6 +2417,21 @@ items = ["index", "guide"]
     }
 
     #[test]
+    fn playground_styles_do_not_override_host_root_tokens() {
+        let css = include_str!("../../../playground/src/styles.css");
+        assert!(
+            !css.contains(":root {"),
+            "playground CSS must inherit host theme tokens when embedded"
+        );
+        assert!(
+            !css.contains("#faf9f6") && !css.contains("#161413") && !css.contains("#e64b2f"),
+            "standalone playground must not keep the old warm palette\n{css}"
+        );
+        assert!(css.contains("html:has(body > #playground-root)"), "{css}");
+        assert!(css.contains("background: var(--code)"), "{css}");
+    }
+
+    #[test]
     fn default_csp_is_strict_and_stable() {
         assert_eq!(
             DEFAULT_CSP,
