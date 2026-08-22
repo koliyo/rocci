@@ -10,18 +10,36 @@
       return;
     }
     let transition = Promise.resolve();
-    const storageKey = "rocci-nav-sections";
+    const currentLane = () => {
+      const lane = document.querySelector(".lane-link.is-current");
+      return lane && lane.textContent ? lane.textContent.trim() : "";
+    };
+    const storageKeyFor = (lane) =>
+      lane ? "rocci-nav-sections:" + lane : "rocci-nav-sections";
+    const storageKey = () => storageKeyFor(currentLane());
     const scrollStorageKey = "rocci-nav-scroll-positions";
     const reducedMotion = () =>
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    const forgetOtherLanes = () => {
+      const lane = currentLane();
+      if (lane !== "Docs") {
+        try {
+          sessionStorage.removeItem(storageKeyFor("Docs"));
+        } catch (err) {}
+      }
+    };
+
     const readSectionState = () => {
       try {
-        return JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+        return JSON.parse(sessionStorage.getItem(storageKey()) || "{}");
       } catch (err) {
         return {};
       }
     };
+
+    const sectionIsCurrent = (section) =>
+      section && section.hasAttribute("data-rocci-nav-current");
 
     const rememberSection = (section) => {
       const key = section.getAttribute("data-rocci-nav-section");
@@ -29,9 +47,9 @@
         return;
       }
       const state = readSectionState();
-      state[key] = section.open;
+      state[key] = sectionIsCurrent(section) ? true : section.open;
       try {
-        sessionStorage.setItem(storageKey, JSON.stringify(state));
+        sessionStorage.setItem(storageKey(), JSON.stringify(state));
       } catch (err) {}
     };
 
@@ -43,10 +61,15 @@
     };
 
     const restoreSections = () => {
+      forgetOtherLanes();
       const state = readSectionState();
       const sections = document.querySelectorAll("details[data-rocci-nav-section]");
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
+        if (sectionIsCurrent(section)) {
+          section.open = true;
+          continue;
+        }
         const key = section.getAttribute("data-rocci-nav-section");
         if (Object.prototype.hasOwnProperty.call(state, key)) {
           section.open = !!state[key];
@@ -135,6 +158,9 @@
         }
         event.preventDefault();
         const section = target.parentElement;
+        if (sectionIsCurrent(section) && section.open) {
+          return;
+        }
         transition = transition.then(function () {
           if (section.open) {
             return finishFold(section, false).then(function () {

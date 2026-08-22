@@ -12,8 +12,8 @@ This page is the application-layer guide for HTTP updates. The contract is
 [Runtime](/docs/reference/runtime/) and
 [Server](/docs/reference/language/server/).
 
-**Verify:** counter increment patches `#counter`; a command returns empty SSE
-to Datastar and 204 otherwise.
+Counter increment patches `#counter`. A command returns empty SSE to Datastar
+and 204 otherwise.
 
 Spell every route as `@method:role(path)`. Role-first forms are **removed**.
 

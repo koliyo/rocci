@@ -1,0 +1,77 @@
+import Html
+
+@component
+Page = |{ notes }|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Notes</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>
+                <p class="eyebrow">custom main.roc</p>
+                <h1>Notes</h1>
+                <p class="lede">Roc owns the list. Rocci templates render it. Datastar posts a new note.</p>
+                <NotesBoard notes={notes} />
+            </main>
+        </body>
+    </html>
+
+@component
+NotesBoard = |{ notes }| {
+    @css {
+        .board {
+            max-width: 36rem;
+            margin: 1.5rem 0;
+            padding: 1.25rem 1.4rem;
+            border: 1px solid rgba(109, 236, 177, 0.2);
+            border-radius: 16px;
+            background: rgba(11, 30, 24, 0.72);
+        }
+        .board h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+        .board form { display: grid; gap: 0.6rem; margin-bottom: 1.25rem; }
+        .board input {
+            padding: 0.55rem 0.7rem;
+            border-radius: 0.45rem;
+            border: 1px solid rgba(109, 236, 177, 0.25);
+            background: #0b1e18;
+            color: #f8fffb;
+        }
+        .board button {
+            justify-self: start;
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.45rem;
+            border: 0;
+            background: #48eda4;
+            color: #0b1e18;
+            font-weight: 700;
+        }
+        .board li { margin: 0.35rem 0; color: #f8fffb; }
+        .empty { color: #9db8ad; }
+        .eyebrow { letter-spacing: 0.12em; text-transform: uppercase; color: #48eda4; font-size: 0.75rem; }
+        body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1e18; color: #e8f5ef; }
+        .lede { color: #9db8ad; }
+    }
+
+    <section id="notes" class="board">
+        <h2>Add a note</h2>
+        <form data-on:submit__prevent=@post("/actions/notes/add")>
+            <label>
+                Body
+                <input type="text" name="body" data-bind:body="" autocomplete="off" />
+            </label>
+            <button type="submit">Add</button>
+        </form>
+        @if List.is_empty(notes) {
+            <p class="empty">No notes yet.</p>
+        } @else {
+            <ul>
+                @for note in notes {
+                    <li>{note.body}</li>
+                }
+            </ul>
+        }
+    </section>
+}

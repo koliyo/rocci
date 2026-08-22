@@ -12,9 +12,9 @@ Preview a checked-in component: lower `Hello` from the styling example and
 open it in the native window. Then read [the stack](/docs/the-stack/) or
 continue into [templates](/docs/templates/).
 
-**Verify:** the preview shows **Hello, Ada**.
+The preview shows **Hello, Ada**.
 
-## 1. Lower the module
+## Lower the module
 
 From the repository root:
 
@@ -27,7 +27,7 @@ Stdout is ordinary Roc. Find `hello = |{ name }|`. The PascalCase component
 `Hello` became a camelCase function. `@css` became scoped CSS metadata.
 Rocci did not type-check the module; Roc will, when you run or view it.
 
-## 2. Preview one component
+## Preview one component
 
 ```sh
 cargo run -q -p rocci-cli -- view \
@@ -39,10 +39,9 @@ Rocci compiles the module, starts a local HTTP server, prints the URL, and
 opens the native preview window. Add `--no-window` and open the URL yourself
 if you do not want the webview.
 
-**Verify:** a greeting that reads **Hello, Ada**. The fixture `helloTest`
-also supplies `{ name: "Ada" }` when you omit `--arg`.
+The greeting should read **Hello, Ada**.
 
-## 3. One boundary
+## One boundary
 
 | Authored | Generated |
 | --- | --- |
@@ -65,4 +64,4 @@ Complete source: [Styling](/examples/styling/) ·
 [Styling.rocci](/examples/styling/source/Styling-rocci/).
 
 Next: [the stack](/docs/the-stack/) for composition, or
-[templates](/docs/templates/components/) for fixtures, inspect, and CSS.
+[templates](/docs/templates/components/) for inspect and CSS.

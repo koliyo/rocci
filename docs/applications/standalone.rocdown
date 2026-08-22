@@ -15,7 +15,7 @@ Canonical source: [Counter](/examples/counter/) ·
 [Counter.rocci](/examples/counter/source/Counter-rocci/).
 Do not copy the file into `docs/`.
 
-**Verify:** GET `/` contains `#counter`; POST increment returns a
+GET `/` contains `#counter`. POST increment returns a
 `datastar-patch-elements` event.
 
 This first app is **one-shot**. Increment morphs `#counter` in the acting tab

@@ -188,13 +188,10 @@ notes = "Composition; two app depths; Rocdown experimental."
 [[page]]
 path = "docs/appendix/roc-for-rocci.rocdown"
 disposition = "keep"
+notes = "Also aliases /docs/appendix/why-roc/."
 
 [[page]]
 path = "docs/appendix/web-foundations.rocdown"
-disposition = "keep"
-
-[[page]]
-path = "docs/appendix/why-roc.rocdown"
 disposition = "keep"
 
 [[page]]

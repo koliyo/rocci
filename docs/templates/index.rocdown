@@ -8,7 +8,7 @@
 
 # Templates
 
-`.rocci` templates are HTML for Roc: `@component`, `@css`, `@fixture`,
+`.rocci` templates are HTML for Roc: `@component`, `@css`,
 markup, and directives. A PascalCase component lowers to a pure Roc `Html`
 function.
 
@@ -17,7 +17,7 @@ not need the Applications layer until you want generated dispatch or you
 own routing yourself.
 
 :card-grid.begin
-    :link-card[href: "/docs/templates/components/", title: "Components", summary: "Declare, call, fixtures, purity. Cataloged styling example."]
+    :link-card[href: "/docs/templates/components/", title: "Components", summary: "Declare, call, and preview. Cataloged styling example."]
     :link-card[href: "/docs/templates/markup/", title: "Markup", summary: "Tags, attributes, interpolations, scoped CSS, stable ids."]
     :link-card[href: "/docs/templates/directives/", title: "Directives", summary: "@if, @for, @match, @let."]
 :card-grid.end

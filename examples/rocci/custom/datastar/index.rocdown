@@ -15,11 +15,7 @@ Ports of official Datastar interaction patterns. The server still owns HTML.
 Datastar is the transport. The gallery uses an authored `main.roc` for custom
 HTTP routing and SQLite for durable state.
 
-This catalog row is `hosting = "live"`. The public demo origin is planned at
-[datastar.examples.rocci.dev](https://datastar.examples.rocci.dev) until a
-staging deploy has served it.
-
-[Open live demo](https://datastar.examples.rocci.dev) (planned).
+This catalog row is `hosting = "live"`.
 
 See the [source tree](/examples/datastar/source/).
 

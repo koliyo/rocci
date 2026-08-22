@@ -1,14 +1,21 @@
 @page {
     layout: "docs",
+    aliases: ["/docs/appendix/why-roc/"],
     meta: {
-        title: "Roc for Rocci authors",
-        description: "Learn the Roc subset later Rocci examples use: modules, records, tags, functions, match, effects, and the selected platform.",
+        title: "Roc",
+        description: "Why Roc fits Rocci, and the Roc subset later examples use.",
     },
 }
 
-# Roc for Rocci authors
+# Roc
 
-This primer assumes you can read code. You do not need to be a Roc expert.
+Roc is a good fit for Rocci:
+
+- Pure functions are the default, so a view is `model -> Html` without a server.
+- Effectful work is marked with `!` and stays at the edge (`@init`, handlers).
+- One platform per app makes HTTP, SQLite, and desktop hosts an explicit surface.
+- Tag unions and `Result` force missing and failure states into the model.
+- The same checked Roc can preview quickly and compile to a native host.
 
 This page is not a Roc language manual. Full coverage lives at
 [roc-lang.org](https://www.roc-lang.org/). Here is the subset later Rocci
@@ -62,10 +69,10 @@ do not pick a platform to preview a component.
 
 ## What stays Rocci
 
-Markup, `@if` / `@for` / `@match` that produce HTML, `@css`, `@fixture`, and
-`@get:view` / `@method:fragment` / `@method:command` / `@get:live` are Rocci syntax. Do not put tags
-inside a Roc `{ expr }` interpolation. Convert numbers at the interpolation
-site: `{count.to_str()}`.
+Markup, `@if` / `@for` / `@match` that produce HTML, `@css`, and
+`@get:view` / `@method:fragment` / `@method:command` / `@get:live` are Rocci
+syntax. Do not put tags inside a Roc `{ expr }` interpolation. Convert numbers
+at the interpolation site: `{count.to_str()}`.
 
-Continue with [web foundations](/docs/appendix/web-foundations/) if HTML-over-the-wire
-is new, otherwise [Rocci in five minutes](/docs/five-minutes/).
+Continue with [Datastar architecture and runtime](/docs/appendix/web-foundations/)
+if HTML-over-the-wire is new, otherwise [Rocci in five minutes](/docs/five-minutes/).

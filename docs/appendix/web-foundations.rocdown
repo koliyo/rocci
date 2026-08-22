@@ -1,18 +1,20 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Web foundations for Roc authors",
-        description: "Semantic HTML, HTTP methods, fragments, DOM ids, SSE, and same-origin behavior as Rocci uses them.",
+        title: "Datastar architecture and runtime",
+        description: "How Rocci uses Datastar as browser transport: documents, fragments, SSE, and same-origin HTTP.",
     },
 }
 
-# Web foundations for Roc authors
+# Datastar architecture and runtime
 
-This primer assumes you can read Roc. HTML expertise is not required.
+[Datastar](https://data-star.dev) is the browser transport Rocci uses. It is
+not a client application framework and not a Rocci language feature. Durable
+state stays on the server. Official docs:
+[data-star.dev](https://data-star.dev) and the
+[Datastar GitHub repository](https://github.com/starfederation/datastar).
 
-
-Rocci serves HTML over local HTTP. Datastar is the browser transport, not a
-client framework. Durable state stays on the server.
+Rocci serves HTML over local HTTP. Datastar sends intent and morphs HTML.
 
 ## Semantic HTML and identity
 

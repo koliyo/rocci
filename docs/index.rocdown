@@ -1,20 +1,19 @@
 @page {
     layout: "section",
     meta: {
-        title: "Rocci documentation",
-        description: "The Rocci stack in one screen: Roc and Datastar, .rocci templates, applications, and optional Rocdown documents.",
+        title: "Overview",
+        description: "The Rocci stack: Roc and Datastar, Rocci templates, applications, and optional Rocdown documents.",
     },
 }
 
-# Rocci documentation
+# Overview
 
-This manual is one `/docs/` corpus for the stack. Roc plus Datastar host a
-web application. `.rocci` templates are HTML for Roc. Applications add
-server structure — standalone or custom. Rocdown is an optional document
-layer on that same stack.
+Roc plus Datastar host a web application. Rocci templates are HTML for Roc.
+Applications add server structure — standalone or custom. Rocdown is an
+optional document layer on that same stack.
 
 This manual describes **development** `main`. Behavior is experimental;
-verify commands against the source you built.
+check commands against the source you built.
 
 :note[title: "Maturity"] {{
     macOS and Linux development are tested in CI. Windows development uses the
@@ -22,7 +21,7 @@ verify commands against the source you built.
     installers, and a versioned release channel are not the install path yet.
 }}
 
-## Three depths
+## Start here
 
 Stop at the layer you need.
 
@@ -33,7 +32,7 @@ Stop at the layer you need.
 :card-grid.end
 
 Read [the stack](/docs/the-stack/) for the composition. Install the
-toolchain on [Install Rocci](/docs/install/) if this machine is new.
+toolchain on [Install](/docs/install/) if this machine is new.
 
 ## What does the code feel like?
 
@@ -66,7 +65,7 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
 ## Where is the exact answer?
 
 :card-grid.begin
-    :link-card[href: "/docs/reference/language/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
+    :link-card[href: "/docs/reference/language/", title: "Language", summary: "File structure, components, directives, CSS, and server declarations."]
     :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
     :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
     :link-card[href: "/docs/applications/", title: "Applications", summary: "Standalone vs custom, handlers, inspect, package."]

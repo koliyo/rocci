@@ -21,7 +21,6 @@ items = [
     "the-stack",
     "appendix/roc-for-rocci",
     "appendix/web-foundations",
-    "appendix/why-roc",
     "appendix/glossary",
 ]
 

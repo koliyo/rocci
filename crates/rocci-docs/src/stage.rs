@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::catalog::{AppEntry, Catalog, DocsError, Hosting};
+use crate::catalog::{AppEntry, Catalog, DocsError};
 use crate::extract::declarations_markdown;
 use crate::inventory::{PublishedFile, inventory_app};
 
@@ -237,16 +237,6 @@ fn copy_rocdown(
 fn catalog_index(catalog: &Catalog) -> String {
     let mut rows = String::new();
     for app in &catalog.apps {
-        let live = if app.hosting == Hosting::Live {
-            let planned = if app.live_url.as_deref().unwrap_or("").is_empty() {
-                " (planned)"
-            } else {
-                ""
-            };
-            format!(" · [Open live demo]({}){planned}", app_play_url(app))
-        } else {
-            String::new()
-        };
         let role = if app.complexity.is_empty() {
             "—"
         } else {
@@ -258,7 +248,7 @@ fn catalog_index(catalog: &Catalog) -> String {
             app.persistence.as_str()
         };
         rows.push_str(&format!(
-            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` · [source](/examples/{id}/source/){live} |\n",
+            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` · [source](/examples/{id}/source/) |\n",
             title = app.title,
             id = app.id,
             summary = app.summary,
@@ -283,10 +273,7 @@ without a public demo.
 
 Rocdown is an optional experimental document layer. See [Rocdown](/docs/rocdown/).
 
-Live demo hostnames (`<id>.examples.rocci.dev`) are **planned** until a staging
-deploy has served them. Only catalog `live` apps advertise those URLs.
-
-Roles: **learning** (first component and first app), **reference** (handler
+Roles: **learning** (first component, first app, and Notes), **reference** (handler
 matrix), **pattern** (Datastar gallery), **advanced** (Blocks standalone,
 Snake custom ceiling).
 

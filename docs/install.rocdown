@@ -1,29 +1,29 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Install Rocci",
-        description: "What this manual assumes, then build Rocci from source and run one deterministic verify.",
+        title: "Install",
+        description: "Build Rocci from source, set up desktop preview, and run a first component.",
     },
 }
 
-# Install Rocci
+# Install
 
-This page is the toolchain: assumptions, a source build, and one verify
-command. Then [preview a component](/docs/five-minutes/).
-
-**Verify:** `rocci` via Cargo prints help, and the styling example builds.
+Build Rocci from this repository, then preview a component. There is no
+crates.io package and no install script. GitHub Release archives exist as an
+experimental prerelease channel; do not start there unless you already know
+you want those binaries.
 
 This manual is for programmers who are new to Rocci. It does not teach
 programming from zero. You should be able to read typed code, use a terminal
 and Git, and edit a text file.
 
-Rocci is **built from source**. There is no crates.io package and no install
-script. GitHub Release archives exist as an experimental prerelease channel;
-do not start there unless you already know you want those binaries.
-
 Commands below run from the repository root. They use
 `cargo run -p rocci-cli`. That is the documented spelling until an installed
 `rocci` distribution exists.
+
+`@fixture` declarations are **experimental** syntax for previewing components
+(`rocci view` / `rocci browse`) and possibly for tests. They do not change
+generated component functions.
 
 ## Toolchain
 
@@ -35,11 +35,11 @@ Commands below run from the repository root. They use
 
 A mismatched Roc nightly can reject syntax that is valid for this repository.
 
-Optional primers: [Roc for Rocci authors](/docs/appendix/roc-for-rocci/),
-[Web foundations](/docs/appendix/web-foundations/). Full Roc lives at
-[roc-lang.org](https://www.roc-lang.org/).
+Optional primers: [Roc](/docs/appendix/roc-for-rocci/),
+[Datastar architecture and runtime](/docs/appendix/web-foundations/). Full Roc
+lives at [roc-lang.org](https://www.roc-lang.org/).
 
-## 1. Install Rust and Roc
+## Install Rust and Roc
 
 Install a Rust toolchain that compiles this workspace (edition 2024).
 [rustup](https://rustup.rs/) is the usual path.
@@ -53,7 +53,7 @@ roc version
 rustc --version
 ```
 
-## 2. Clone and build
+## Clone and build
 
 ```sh
 git clone https://github.com/koliyo/rocci.git
@@ -61,7 +61,7 @@ cd rocci
 cargo build -p rocci-cli
 ```
 
-## 3. Platform webview
+## Desktop applications and preview
 
 :tabs.begin[group: "install-os", kind: "platform"]
     :tab[id: "mac", label: "macOS"] {{
@@ -90,7 +90,9 @@ cargo build -p rocci-cli
     }}
 :tabs.end
 
-## 4. Verify
+## Preview a component
+
+Confirm the CLI and lower the styling example:
 
 ```sh
 cargo run -q -p rocci-cli -- --help
