@@ -1,0 +1,9 @@
+[[example]]
+id = "counter"
+file = "../examples/rocci/standalone/counter/Counter.rocci"
+language = "rocci"
+
+[[example]]
+id = "guide"
+file = "../examples/rocdown/pages/Guide.rocdown"
+language = "rocdown"

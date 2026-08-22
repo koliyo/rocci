@@ -40,6 +40,7 @@ nav_labels = [
     "Troubleshooting",
 ]
 examples_lane = "/examples/"
+playground_lane = "/playground/"
 install_channel = "source-build"
 install_experimental = "github-prerelease-archives"
 install_absent = ["crates.io", "homebrew", "install-script"]
@@ -122,7 +123,6 @@ retired_routes = [
     "/docs/getting-started/installation/",
     "/docs/getting-started/quickstart/",
     "/documentation/",
-    "/playground/",
     "/docs/playground/",
     "/docs/examples/",
     "/docs/status/",

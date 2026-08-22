@@ -5,7 +5,7 @@ use anyhow::{Context, Result, bail};
 use rocci_template::{
     LowerOptions, Segment, SourceFile, compile, format_diagnostic, wrap_type_module,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::article::PageKind;
@@ -272,7 +272,7 @@ fn plan_with_preview(
         let wasm_asset = hashed_asset("compiler.wasm", runtime::PLAYGROUND_COMPILER_WASM);
         let session_asset = hashed_asset(
             "playground-session.json",
-            &playground_session_bytes(&worker_asset.hashed_url, &wasm_asset.hashed_url),
+            &playground_session_bytes(root, &worker_asset.hashed_url, &wasm_asset.hashed_url)?,
         );
 
         let app_url = app_asset.hashed_url.clone();
@@ -1540,8 +1540,48 @@ fn page_uses_playground(page: &ResolvedPage) -> bool {
             .any(|k| k == "playground")
 }
 
-fn playground_session_bytes(worker_url: &str, wasm_url: &str) -> Vec<u8> {
-    let documents = [
+fn playground_session_bytes(root: &Path, worker_url: &str, wasm_url: &str) -> Result<Vec<u8>> {
+    let documents = load_playground_documents(root)?;
+    let selected = documents
+        .first()
+        .and_then(|doc| doc.get("id"))
+        .and_then(|id| id.as_str())
+        .unwrap_or("counter")
+        .to_string();
+    Ok(serde_json::json!({
+        "protocol_version": 1,
+        "documents": documents,
+        "selected_document": selected,
+        "compiler_wasm_url": wasm_url,
+        "worker_url": worker_url,
+        "mode": "wasm",
+        "compile_url": "",
+        "native_languages": [],
+        "html_runtime": {
+            "available": false,
+            "reason": PLAYGROUND_HTML_REASON,
+        },
+    })
+    .to_string()
+    .into_bytes())
+}
+
+#[derive(Debug, Deserialize)]
+struct PlaygroundExamplesManifest {
+    #[serde(default, rename = "example")]
+    examples: Vec<PlaygroundExampleSpec>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PlaygroundExampleSpec {
+    id: String,
+    file: String,
+    #[serde(default)]
+    language: String,
+}
+
+fn default_playground_documents() -> Vec<serde_json::Value> {
+    vec![
         serde_json::json!({
             "id": "counter",
             "filename": "Counter.rocci",
@@ -1554,23 +1594,79 @@ fn playground_session_bytes(worker_url: &str, wasm_url: &str) -> Vec<u8> {
             "language": "rocdown",
             "source": "# Guide\n\nHello from Rocdown.\n",
         }),
-    ];
-    serde_json::json!({
-        "protocol_version": 1,
-        "documents": documents,
-        "selected_document": "counter",
-        "compiler_wasm_url": wasm_url,
-        "worker_url": worker_url,
-        "mode": "wasm",
-        "compile_url": "",
-        "native_languages": [],
-        "html_runtime": {
-            "available": false,
-            "reason": PLAYGROUND_HTML_REASON,
-        },
-    })
-    .to_string()
-    .into_bytes()
+    ]
+}
+
+fn playground_language(spec: &PlaygroundExampleSpec, filename: &str) -> Result<&'static str> {
+    let raw = if spec.language.is_empty() {
+        Path::new(filename)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or("")
+    } else {
+        spec.language.as_str()
+    };
+    match raw {
+        "rocci" => Ok("rocci"),
+        "rocdown" | "md" | "markdown" => Ok("rocdown"),
+        other => bail!(
+            "playground example `{}` has unknown language `{other}`",
+            spec.id
+        ),
+    }
+}
+
+fn load_playground_documents(root: &Path) -> Result<Vec<serde_json::Value>> {
+    let manifest_path = root.join("playground/examples.toml");
+    if !manifest_path.is_file() {
+        return Ok(default_playground_documents());
+    }
+    let text = std::fs::read_to_string(&manifest_path)
+        .with_context(|| format!("failed to read {}", manifest_path.display()))?;
+    let manifest: PlaygroundExamplesManifest = toml::from_str(&text)
+        .with_context(|| format!("failed to parse {}", manifest_path.display()))?;
+    if manifest.examples.is_empty() {
+        bail!(
+            "{} must list at least one [[example]]",
+            manifest_path.display()
+        );
+    }
+    let mut documents = Vec::new();
+    for spec in &manifest.examples {
+        if spec.id.trim().is_empty() {
+            bail!("playground example id must not be empty");
+        }
+        let relative = Path::new(&spec.file);
+        if relative.is_absolute() || spec.file.contains('\0') {
+            bail!(
+                "playground example `{}` path must be a relative file path",
+                spec.id
+            );
+        }
+        let path = root.join(relative);
+        let source = std::fs::read_to_string(&path).with_context(|| {
+            format!(
+                "failed to read playground example `{}` from {}",
+                spec.id,
+                path.display()
+            )
+        })?;
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                anyhow::anyhow!("playground example `{}` has a non-utf8 filename", spec.id)
+            })?
+            .to_string();
+        let language = playground_language(spec, &filename)?;
+        documents.push(serde_json::json!({
+            "id": spec.id,
+            "filename": filename,
+            "language": language,
+            "source": source,
+        }));
+    }
+    Ok(documents)
 }
 
 fn hashed_asset(relative: &str, bytes: &[u8]) -> PlannedAsset {
@@ -2461,6 +2557,77 @@ items = ["playground"]
             guide.view.resources.csp
         );
 
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn playground_examples_manifest_loads_checked_in_sources() {
+        let root = temp("playground-examples");
+        write_site(&root);
+        fs::create_dir_all(root.join("playground")).unwrap();
+        fs::write(
+            root.join("playground/index.rocdown"),
+            "@page {\n    layout: \"playground\",\n    route: \"/playground/\",\n    meta: { title: \"Playground\" },\n}\n\n# Playground\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("sample.rocci"),
+            "@component Hello = |_| {\n    <p>hi</p>\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("sample.rocdown"),
+            "# Sample\n\nFrom the manifest.\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("playground/examples.toml"),
+            r#"
+[[example]]
+id = "hello"
+file = "sample.rocci"
+language = "rocci"
+
+[[example]]
+id = "sample"
+file = "sample.rocdown"
+language = "rocdown"
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Playground"
+items = ["playground/index"]
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let session = planned
+            .assets
+            .iter()
+            .find(|asset| asset.logical_path == "/assets/playground-session.json")
+            .expect("session");
+        let parsed: serde_json::Value = serde_json::from_slice(&session.bytes).unwrap();
+        assert_eq!(parsed["selected_document"], "hello");
+        assert_eq!(
+            parsed["documents"][0]["source"],
+            "@component Hello = |_| {\n    <p>hi</p>\n}\n"
+        );
+        assert_eq!(
+            parsed["documents"][1]["source"],
+            "# Sample\n\nFrom the manifest.\n"
+        );
         let _ = fs::remove_dir_all(root);
     }
 
