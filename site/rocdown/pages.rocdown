@@ -66,7 +66,7 @@ published = "2026-08-16"
 ````
 
 `@roc` holds Roc values and helpers. On `live` pages, import `pf.Sqlite` in
-`@roc` and call those helpers from `@patch` / `@command` / `@init`. Document-root component
+`@roc` and call those helpers from `@method:fragment` / `@method:command` / `@init`. Document-root component
 tags and directives are explicit islands in the Markdown stream. Inline HTML in
 a Markdown paragraph is disabled by default.
 

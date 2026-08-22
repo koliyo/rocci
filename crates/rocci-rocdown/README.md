@@ -272,7 +272,7 @@ rocci_page    : {} -> Html     # layout call, or the default document shell
 Markdown lowers to `Html.element` / `void_element` / `text` / `fragment`. File
 `@css` is wrapped in `@scope ([data-rocci-css~="id"])` using the same file-scope
 id as `.rocci`. Component CSS keeps a per-component id. Both ids hash the file
-basename so a snapshot stylesheet still matches `@live` HTML compiled from a
+basename so a snapshot stylesheet still matches `@get:live` HTML compiled from a
 full path to the same module.
 
 If the file has no `@get:view` for the page route, lowering synthesizes a GET
