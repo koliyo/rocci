@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/docs/reference/@fixture/"],
     meta: {
         title: "Fixtures",
         description: "@fixture grammar, local and qualified targets, discovery, and validation failures.",

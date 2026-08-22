@@ -33,64 +33,45 @@ label = "Docs"
 label = "Start"
 items = [
     "docs/index",
+    "docs/install",
+    "docs/five-minutes",
     "docs/the-stack",
-    "docs/start/what-is-rocci",
-    "docs/start/choose-your-path",
-    "docs/start/prerequisites",
-    "docs/start/install",
-    "docs/start/roc-for-rocci",
-    "docs/start/web-foundations",
-    "docs/start/five-minutes",
+    "docs/appendix/roc-for-rocci",
+    "docs/appendix/web-foundations",
+    "docs/appendix/why-roc",
+    "docs/appendix/glossary",
 ]
 
 [[nav.groups]]
-label = "Tutorials"
+label = "Templates"
 items = [
-    "docs/tutorials/index",
-    "docs/tutorials/first-component",
-    "docs/tutorials/first-app",
-    "docs/tutorials/compose",
-    "docs/tutorials/commands-and-live",
-    "docs/tutorials/custom-main",
-    "docs/tutorials/ship",
+    "docs/templates/index",
+    "docs/templates/components",
+    "docs/templates/markup",
+    "docs/templates/directives",
 ]
 
 [[nav.groups]]
-label = "How to"
+label = "Applications"
 items = [
-    "docs/how-to/index",
-    "docs/how-to/author-components",
-    "docs/how-to/write-markup",
-    "docs/how-to/use-directives",
-    "docs/how-to/update-the-ui",
-    "docs/how-to/handle-requests-and-errors",
-    "docs/how-to/develop-and-inspect",
-    "docs/how-to/use-the-playground",
-    "docs/how-to/set-up-editors",
-    "docs/how-to/configure-and-secure",
-    "docs/how-to/package-and-deploy",
+    "docs/applications/index",
+    "docs/applications/standalone",
+    "docs/applications/handlers",
+    "docs/applications/custom",
+    "docs/applications/tooling",
+    "docs/applications/package",
 ]
 
 [[nav.groups]]
-label = "Understand"
+label = "Rocdown"
 items = [
-    "docs/concepts/compilation-model",
-    "docs/concepts/pure-components",
-    "docs/concepts/props-bodies-composition",
-    "docs/concepts/structural-control-flow",
-    "docs/concepts/styles-and-ownership",
-    "docs/concepts/standalone-versus-custom",
-    "docs/concepts/state-and-effects",
-    "docs/concepts/documents-fragments-commands-streams",
-    "docs/concepts/datastar-as-transport",
-    "docs/concepts/one-shot-versus-live",
-    "docs/concepts/html-and-identity",
-    "docs/concepts/error-boundaries",
-    "docs/concepts/development-and-delivery",
-    "docs/concepts/security-model",
-    "docs/concepts/performance-model",
-    "docs/concepts/why-roc",
-    "docs/glossary",
+    "docs/rocdown/index",
+    "docs/rocdown/pages",
+    "docs/rocdown/blocks",
+    "docs/rocdown/sites",
+    "docs/rocdown/hybrid",
+    "docs/rocdown/language",
+    "docs/rocdown/cli",
 ]
 
 [[nav.groups]]
@@ -129,24 +110,6 @@ items = [
     "docs/troubleshooting/compile",
     "docs/troubleshooting/runtime",
     "docs/troubleshooting/preview",
-]
-
-[[nav.groups]]
-label = "Status"
-items = [
-    "docs/status",
-]
-
-[[nav.groups]]
-label = "Rocdown"
-items = [
-    "docs/rocdown/index",
-    "docs/rocdown/pages",
-    "docs/rocdown/blocks",
-    "docs/rocdown/sites",
-    "docs/rocdown/hybrid",
-    "docs/rocdown/language",
-    "docs/rocdown/cli",
 ]
 
 [[nav]]

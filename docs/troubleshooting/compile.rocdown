@@ -33,4 +33,4 @@ trailing `json` are **removed**.
 `@post:command(path)`, or `@get:live(path)` as in
 [grammar](/docs/reference/language/grammar/).
 
-**Related:** [Error boundaries](/docs/concepts/error-boundaries/).
+**Related:** [Diagnostics](/docs/reference/diagnostics/).

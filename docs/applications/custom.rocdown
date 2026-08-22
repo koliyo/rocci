@@ -1,21 +1,21 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Take ownership with main.roc",
-        description: "Move to a custom application after the generated standalone boundary, reusing .rocci modules while owning routing in Roc.",
+        title: "Custom applications",
+        description: "Own main.roc after the generated standalone boundary. Reuse .rocci modules; Datastar stays transport.",
     },
 }
 
-# Take ownership with main.roc
+# Custom applications
+
+Generated standalone apps are the right default. Switch to authored `main.roc`
+when you need custom routing, extra platform effects, or a shape the
+generator does not cover. Reuse `.rocci` components either way.
 
 **Starting files:** [Datastar gallery](/examples/datastar/) (normal pattern
 gallery) and [Snake](/examples/snake/) (advanced stress example).
 **Verify:** `rocci run examples/rocci/custom/datastar --no-window` serves
 `/search`.
-
-Generated standalone apps are the right default. Switch to authored `main.roc`
-when you need custom routing, extra platform effects, or a shape the generator
-does not cover. Reuse `.rocci` components either way.
 
 ## Directory apps
 
@@ -25,11 +25,10 @@ curl -s http://127.0.0.1:8000/search | grep -E 'search|datastar'
 ```
 
 `rocci run` on a directory compiles sibling `.rocci` modules and starts the
-authored Roc program. `@get:view` / `@method:fragment` on those modules are not the
-generated standalone dispatcher; `main.roc` owns HTTP.
+authored Roc program. `@get:view` / `@method:fragment` on those modules are
+not the generated standalone dispatcher; `main.roc` owns HTTP.
 
 Read the gallery source index: [datastar source](/examples/datastar/source/).
-Patterns:
 
 | Route | What to notice |
 | --- | --- |
@@ -45,14 +44,8 @@ The server still owns HTML. Datastar remains transport.
 
 [Snake](/examples/snake/) is an explicitly advanced multiplayer stress
 example with a hand-written SSE unfold. Do not copy that unfold into ordinary
-apps; generated `@get:live` already emits the poll loop. Use Snake when you need a
-custom ceiling the generator does not cover.
+apps; generated `@get:live` already emits the poll loop. Use Snake when you
+need a custom ceiling the generator does not cover.
 
-## Ability checklist
-
-- Run a directory app rather than a single `.rocci` file
-- Know that custom `main.roc` opts out of generated standalone dispatch
-- Treat Snake as advanced, not as the second tutorial
-
-Next: [ship](/docs/tutorials/ship/).
-Concept: [Standalone versus custom](/docs/concepts/standalone-versus-custom/).
+**Related:** [Applications](/docs/applications/),
+[Package](/docs/applications/package/).

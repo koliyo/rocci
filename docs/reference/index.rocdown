@@ -21,7 +21,8 @@ Each contract has one owner. Tutorials and how-tos summarize and link here.
 - [Contributor checklist](/docs/reference/contributor/checklist/) — local CI path for docs PRs
 - [First-use protocol](/docs/reference/contributor/first-use/) — newcomer sessions and search queries
 
-Task recipes: [How to](/docs/how-to/). Mental models: [compilation](/docs/concepts/compilation-model/).
-Terms: [Glossary](/docs/glossary/).
+Guides: [Templates](/docs/templates/), [Applications](/docs/applications/).
+Composition: [the stack](/docs/the-stack/).
+Terms: [Glossary](/docs/appendix/glossary/).
 
 Rocdown lookup: [language](/docs/rocdown/language/) and [CLI](/docs/rocdown/cli/).

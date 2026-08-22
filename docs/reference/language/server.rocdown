@@ -1,13 +1,5 @@
 @page {
     layout: "docs",
-    aliases: [
-        "/docs/reference/@context/",
-        "/docs/reference/@init/",
-        "/docs/reference/@view/",
-        "/docs/reference/@patch/",
-        "/docs/reference/@command/",
-        "/docs/reference/@live/",
-    ],
     meta: {
         title: "Server declarations",
         description: "@context, @init, verb-first routes, request injection, methods, streams, and conflicts.",
@@ -52,4 +44,4 @@ local streams require explicit `data-init` subscriptions.
 Complete matrix: [Handler matrix](/examples/handler-matrix/).
 
 **Related:** [Runtime](/docs/reference/runtime/),
-[Update the UI](/docs/how-to/update-the-ui/).
+[Handlers](/docs/applications/handlers/).

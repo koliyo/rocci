@@ -1,6 +1,5 @@
 @page {
     layout: "section",
-    aliases: ["/documentation/"],
     meta: {
         title: "Rocci documentation",
         description: "The Rocci stack in one screen: Roc and Datastar, .rocci templates, applications, and optional Rocdown documents.",
@@ -28,13 +27,13 @@ verify commands against the source you built.
 Stop at the layer you need.
 
 :card-grid.begin
-    :link-card[href: "/docs/start/five-minutes/", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
-    :link-card[href: "/docs/tutorials/first-app/", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
+    :link-card[href: "/docs/five-minutes/", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
+    :link-card[href: "/docs/applications/standalone/", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
     :link-card[href: "/docs/rocdown/", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
 :card-grid.end
 
 Read [the stack](/docs/the-stack/) for the composition. Install the
-toolchain on [Install Rocci](/docs/start/install/) if this machine is new.
+toolchain on [Install Rocci](/docs/install/) if this machine is new.
 
 ## What does the code feel like?
 
@@ -54,7 +53,7 @@ Hello = |{ name ?? "Roc" }| {
 }
 ```
 
-Preview it after [install](/docs/start/install/):
+Preview it after [install](/docs/install/):
 
 ```sh
 cargo run -q -p rocci-cli -- view \
@@ -70,7 +69,7 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
     :link-card[href: "/docs/reference/language/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
     :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
     :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
-    :link-card[href: "/docs/how-to/", title: "How to", summary: "Task recipes: components, handlers, inspect, package."]
+    :link-card[href: "/docs/applications/", title: "Applications", summary: "Standalone vs custom, handlers, inspect, package."]
     :link-card[href: "/docs/troubleshooting/", title: "Troubleshooting", summary: "Install, compile, runtime, and preview failures."]
 :card-grid.end
 

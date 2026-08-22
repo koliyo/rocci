@@ -10,7 +10,7 @@
 
 **Status:** current. Rocci does not yet publish a stable diagnostic ID catalog
 for the template language. Do not invent codes in prose. Rocdown catalog codes
-(`RD2101`, …) belong to the Rocdown product.
+(`RD2101`, …) belong to [Rocdown](/docs/rocdown/).
 
 Organize failures by **owning phase** and the **exact leading message**.
 

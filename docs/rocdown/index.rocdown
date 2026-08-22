@@ -14,7 +14,7 @@ layouts. Rust owns the catalog; Rocci owns the visible shell.
 
 This layer is **experimental** — more so than templates. You do not need
 Rocdown to ship an application. Static pages are Markdown-first. Live pages
-reuse the [application](/docs/tutorials/first-app/) layer: same handlers,
+reuse the [application](/docs/applications/) layer: same handlers,
 same Datastar transport.
 
 :note[title: "Static pages stay Markdown-first"] {{

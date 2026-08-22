@@ -67,5 +67,5 @@ Markup, `@if` / `@for` / `@match` that produce HTML, `@css`, `@fixture`, and
 inside a Roc `{ expr }` interpolation. Convert numbers at the interpolation
 site: `{count.to_str()}`.
 
-Continue with [web foundations](/docs/start/web-foundations/) if HTML-over-the-wire
-is new, otherwise [Rocci in five minutes](/docs/start/five-minutes/).
+Continue with [web foundations](/docs/appendix/web-foundations/) if HTML-over-the-wire
+is new, otherwise [Rocci in five minutes](/docs/five-minutes/).
