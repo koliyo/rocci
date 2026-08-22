@@ -1,7 +1,7 @@
 name: Release
 
 on:
-  # Owner-only. After the repository is public, a ruleset should restrict v* tags.
+  # Anyone with write can dispatch. After public, a ruleset should restrict v* tags.
   workflow_dispatch:
   push:
     tags: ["v*"]

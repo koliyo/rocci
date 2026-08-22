@@ -8,10 +8,6 @@ on:
   pull_request_review_comment:
     types: [created]
 
-concurrency:
-  group: ci-command-${{ github.event.issue.number || github.event.pull_request.number }}-${{ (startsWith(github.event.comment.body || github.event.review.body || '', '/ci-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CI-LOCAL') || startsWith(github.event.comment.body || github.event.review.body || '', '/Ci-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CI-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/cl-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CL-LOCAL') || startsWith(github.event.comment.body || github.event.review.body || '', '/Cl-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CL-local')) && 'local' || 'hosted' }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
   pull-requests: write
@@ -126,7 +122,9 @@ jobs:
                 ;;
             esac
           elif [[ "$commenter" != "koliyo" || "$author" != "koliyo" || "$head_repo" != "$GITHUB_REPOSITORY" ]]; then
-            gh pr comment "$pr" --body "Local CI (\`/ci-local\`) denied: commenter and PR author must both be \`koliyo\` on a same-repository head."
+            if [[ "$commenter" == "koliyo" ]]; then
+              gh pr comment "$pr" --body "Local CI (\`/ci-local\`) denied: commenter and PR author must both be \`koliyo\` on a same-repository head."
+            fi
             exit 0
           fi
 
