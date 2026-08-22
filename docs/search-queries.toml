@@ -95,7 +95,7 @@ group = "syntax"
 
 [[query]]
 q = "playground wasm"
-expect = "/docs/applications/tooling/"
+expect = "/playground/"
 group = "cli"
 
 [[query]]

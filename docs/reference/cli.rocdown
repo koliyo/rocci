@@ -79,6 +79,8 @@ cargo run -q -p rocci-cli -- playground INPUT [--mode wasm|local]
 `--mode wasm` (default) runs in a worker and does not snapshot HTML.
 `--mode local` can snapshot through native Roc.
 
+The public site hosts the same WASM workbench at `/playground/`. It lowers source to generated Roc and AST; HTML preview is not available there.
+
 ## Render
 
 ```sh

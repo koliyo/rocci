@@ -504,7 +504,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/playground.rs"
 contract = "crates/rocci-playground"
 canonical = "/docs/reference/cli/#playground"
-example = "/docs/applications/tooling/"
+example = "/playground/"
 status = "current"
 
 [[feature]]
