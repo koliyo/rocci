@@ -1093,6 +1093,16 @@ fn proxy_to_backend(
             }
             Ok(())
         }
+        Err(err) if is_client_abort(&err) => {
+            if log_handlers {
+                logs::tee(
+                    logs,
+                    LogLevel::Info,
+                    style::handler_proxy_closed(method, path),
+                );
+            }
+            Ok(())
+        }
         Err(err) => {
             if log_handlers {
                 logs::tee(
@@ -1104,6 +1114,13 @@ fn proxy_to_backend(
             Err(err)
         }
     }
+}
+
+fn is_client_abort(err: &io::Error) -> bool {
+    matches!(
+        err.kind(),
+        io::ErrorKind::BrokenPipe | io::ErrorKind::ConnectionReset | io::ErrorKind::UnexpectedEof
+    ) || err.to_string().contains("Broken pipe")
 }
 
 fn stream_proxy_body(backend: &mut TcpStream, client: &mut TcpStream) -> io::Result<()> {
@@ -1637,6 +1654,30 @@ mod tests {
     }
 
     #[test]
+    fn client_abort_covers_broken_pipe_reset_and_eof() {
+        assert!(is_client_abort(&io::Error::new(
+            io::ErrorKind::BrokenPipe,
+            "write failed"
+        )));
+        assert!(is_client_abort(&io::Error::new(
+            io::ErrorKind::ConnectionReset,
+            "reset"
+        )));
+        assert!(is_client_abort(&io::Error::new(
+            io::ErrorKind::UnexpectedEof,
+            "eof"
+        )));
+        assert!(is_client_abort(&io::Error::new(
+            io::ErrorKind::Other,
+            "Broken pipe (os error 32)"
+        )));
+        assert!(!is_client_abort(&io::Error::new(
+            io::ErrorKind::TimedOut,
+            "timed out"
+        )));
+    }
+
+    #[test]
     fn should_proxy_posts_and_missing_gets_to_backend() {
         let temp = std::env::temp_dir().join(format!(
             "rocci-proxy-policy-{}-{}",
@@ -1955,6 +1996,119 @@ mod tests {
             assert!(n > 0, "proxy closed before the second SSE event");
             received.extend_from_slice(&buf[..n]);
         }
+
+        drop(server);
+        let _ = backend.join();
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn proxy_logs_client_closed_when_sse_client_drops() {
+        let output = std::env::temp_dir().join(format!(
+            "rocci-proxy-sse-abort-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        fs::write(output.join("index.html"), "<h1>cdn</h1>").unwrap();
+
+        let backend_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let backend_port = backend_listener.local_addr().unwrap().port();
+        let (continue_tx, continue_rx) = mpsc::channel::<()>();
+        let backend = thread::spawn(move || {
+            let (mut stream, _) = backend_listener.accept().unwrap();
+            let mut buf = [0u8; 2048];
+            let n = stream.read(&mut buf).unwrap();
+            let request = String::from_utf8_lossy(&buf[..n]);
+            assert!(request.starts_with("GET /sse"), "{request}");
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n",
+                )
+                .unwrap();
+            stream
+                .write_all(b"event: datastar-patch-elements\ndata: elements first\n\n")
+                .unwrap();
+            stream.flush().unwrap();
+            continue_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            let chunk = vec![b'x'; 64 * 1024];
+            loop {
+                let mut event = b"event: datastar-patch-elements\ndata: ".to_vec();
+                event.extend_from_slice(&chunk);
+                event.extend_from_slice(b"\n\n");
+                if stream.write_all(&event).is_err() {
+                    break;
+                }
+            }
+        });
+
+        let port = crate::serve::free_port().unwrap();
+        let advertised = Arc::new(AtomicU16::new(backend_port));
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "proxy-sse-abort".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: Some(advertised),
+                log_handlers: true,
+                on_stop: None,
+            },
+            |_, _| Ok(None),
+        )
+        .unwrap();
+
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        client
+            .write_all(b"GET /sse HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            .unwrap();
+        let mut received = Vec::new();
+        let mut buf = [0u8; 512];
+        let started = Instant::now();
+        while !received
+            .windows(b"elements first".len())
+            .any(|w| w == b"elements first")
+        {
+            assert!(
+                started.elapsed() < Duration::from_secs(2),
+                "first SSE event was buffered until the backend closed:\n{}",
+                String::from_utf8_lossy(&received)
+            );
+            let n = client.read(&mut buf).unwrap();
+            assert!(n > 0, "proxy closed before the first SSE event");
+            received.extend_from_slice(&buf[..n]);
+        }
+        drop(client);
+        continue_tx.send(()).unwrap();
+
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let logged = loop {
+            let snapshot = server.logs.snapshot();
+            if snapshot
+                .iter()
+                .any(|line| line.text.contains("client closed"))
+            {
+                break snapshot;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "proxy did not log client closed:\n{snapshot:?}"
+            );
+            thread::sleep(Duration::from_millis(20));
+        };
+        assert!(
+            logged.iter().all(|line| !line.text.contains("proxy error")),
+            "{logged:?}"
+        );
 
         drop(server);
         let _ = backend.join();
