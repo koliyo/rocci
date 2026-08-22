@@ -44,7 +44,7 @@ import PageOutline
                 <link rel="apple-touch-icon" href={view.site.apple_touch_icon} />
             }
         </head>
-        <body>
+        <body class={if view.layout == "home" { "site-body" } else { "site-body is-navigated" }}>
             <a class="skip-link" href="#main-content">Skip to content</a>
             <header class="site-header">
                 <div class="header-inner">
@@ -146,6 +146,19 @@ import PageOutline
         border-bottom: 1px solid var(--line);
         backdrop-filter: blur(14px);
     }
+    .site-body.is-navigated {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+    .site-body.is-navigated .site-container {
+        height: calc(100vh - var(--header-height));
+        height: calc(100dvh - var(--header-height));
+        margin-top: 0;
+        padding-top: 0;
+        overflow: hidden;
+    }
+    .site-body.is-navigated .site-footer { display: none; }
     .header-inner {
         max-width: 86rem;
         height: 100%;
@@ -235,6 +248,17 @@ import PageOutline
     }
     .mobile-menu { display: none; }
     @media (max-width: 48rem) {
+        .site-body.is-navigated {
+            height: auto;
+            overflow: visible;
+        }
+        .site-body.is-navigated .site-container {
+            height: auto;
+            margin-top: 0;
+            padding-top: 0;
+            overflow: visible;
+        }
+        .site-body.is-navigated .site-footer { display: block; }
         .header-inner { gap: 0.75rem; }
         .header-rule, .header-subtitle, .header-link, .lanes { display: none; }
         .goto-open { min-height: 2.75rem; }

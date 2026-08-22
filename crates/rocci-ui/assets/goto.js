@@ -11,6 +11,7 @@
     }
     let transition = Promise.resolve();
     const storageKey = "rocci-nav-sections";
+    const scrollStorageKey = "rocci-nav-scroll-positions";
     const reducedMotion = () =>
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -52,6 +53,43 @@
         }
       }
       rememberAllSections();
+    };
+
+    const readScrollPositions = () => {
+      try {
+        return JSON.parse(sessionStorage.getItem(scrollStorageKey) || "{}");
+      } catch (err) {
+        return {};
+      }
+    };
+
+    const rememberScrollPositions = () => {
+      const state = {};
+      const sidebar = document.querySelector(".sidebar");
+      const outline = document.querySelector(".layout-navigated > .outline");
+      if (sidebar) {
+        state.sidebar = sidebar.scrollTop;
+      }
+      if (outline) {
+        state.outline = outline.scrollTop;
+      }
+      try {
+        sessionStorage.setItem(scrollStorageKey, JSON.stringify(state));
+      } catch (err) {}
+    };
+
+    const restoreScrollPositions = () => {
+      const state = readScrollPositions();
+      window.requestAnimationFrame(function () {
+        const sidebar = document.querySelector(".sidebar");
+        const outline = document.querySelector(".layout-navigated > .outline");
+        if (sidebar && typeof state.sidebar === "number") {
+          sidebar.scrollTop = state.sidebar;
+        }
+        if (outline && typeof state.outline === "number") {
+          outline.scrollTop = state.outline;
+        }
+      });
     };
 
     const finishFold = (section, opening) => {
@@ -111,10 +149,17 @@
       true
     );
     restoreSections();
+    restoreScrollPositions();
     window.__rocciNavSections = {
       ready: true,
-      restore: restoreSections,
-      remember: rememberAllSections,
+      restore: function () {
+        restoreSections();
+        restoreScrollPositions();
+      },
+      remember: function () {
+        rememberAllSections();
+        rememberScrollPositions();
+      },
     };
   };
 
@@ -550,8 +595,11 @@
     }
     const id = decodeURIComponent(hash.replace(/^#/, ""));
     const el = document.getElementById(id);
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView();
+    const content = el && (el.closest(".content-column") || document.querySelector(".content-column"));
+    if (el && content) {
+      content.scrollTop += el.getBoundingClientRect().top - content.getBoundingClientRect().top;
+    } else if (el && el.scrollIntoView) {
+      el.scrollIntoView({ block: "start" });
     } else {
       window.scrollTo(0, 0);
     }
@@ -765,7 +813,7 @@
         return;
       }
       const href = link.getAttribute("href") || "";
-      if (!href || href.charAt(0) === "#") {
+      if (!href) {
         return;
       }
       let url;
@@ -775,6 +823,13 @@
         return;
       }
       if (url.origin !== window.location.origin) {
+        return;
+      }
+      const samePath =
+        url.pathname === window.location.pathname && url.search === window.location.search;
+      if (samePath && url.hash) {
+        event.preventDefault();
+        go(url.pathname + url.search + url.hash, "push");
         return;
       }
       event.preventDefault();
