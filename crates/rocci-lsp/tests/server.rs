@@ -766,10 +766,12 @@ fn semantic_tokens_counter_rocci_qualified_precision() {
             let line_text = src.lines().nth(cur_line as usize).unwrap_or("");
             if (cur_col as usize + tok.length as usize) <= line_text.len() {
                 let slice = &line_text[cur_col as usize..cur_col as usize + tok.length as usize];
-                if slice == "query" && line_text.contains("Sqlite.query!") {
+                if (slice == "query" || slice == "query!") && line_text.contains("Sqlite.query!") {
                     matched_sqlite_query = true;
                 }
-                if slice == "execute" && line_text.contains("Sqlite.execute!") {
+                if (slice == "execute" || slice == "execute!")
+                    && line_text.contains("Sqlite.execute!")
+                {
                     matched_sqlite_execute = true;
                 }
                 if slice == "default_query_limits"

@@ -10,11 +10,15 @@ fn highlight_roc() {
     // Invariant assertions
     assert_invariants(src, &spans);
 
-    let variable_span = spans
+    let main_span = spans
         .iter()
-        .find(|s| s.kind == HighlightKind::Variable)
-        .expect("variable");
-    assert_eq!(&src[variable_span.start()..variable_span.end()], "main");
+        .find(|s| &src[s.start()..s.end()] == "main")
+        .expect("main binding");
+    assert_eq!(
+        main_span.kind,
+        HighlightKind::Parameter,
+        "top-level bindings are parameters before function-body override"
+    );
 
     let string_span = spans
         .iter()

@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use rocci_template::Span;
-use tree_sitter::{Language, Parser, Query, QueryCursor};
+use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator};
 
 use crate::token::{HighlightKind, HighlightSpan};
 
@@ -44,8 +44,8 @@ impl TreeSitterHighlighter {
 
         CURSOR.with(|cursor_cell| {
             let mut cursor = cursor_cell.borrow_mut();
-            let matches = cursor.matches(&self.query, tree.root_node(), src.as_bytes());
-            for m in matches {
+            let mut matches = cursor.matches(&self.query, tree.root_node(), src.as_bytes());
+            while let Some(m) = matches.next() {
                 for capture in m.captures {
                     let name = &capture_names[capture.index as usize];
                     if let Some((kind, modifiers, priority)) = map_capture(name) {
