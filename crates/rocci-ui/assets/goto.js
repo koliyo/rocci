@@ -111,7 +111,11 @@
       true
     );
     restoreSections();
-    window.__rocciNavSections = { ready: true, restore: restoreSections };
+    window.__rocciNavSections = {
+      ready: true,
+      restore: restoreSections,
+      remember: rememberAllSections,
+    };
   };
 
   setupNavSections();
@@ -573,6 +577,9 @@
       return;
     }
     const target = url.pathname + url.search + url.hash;
+    if (window.__rocciNavSections) {
+      window.__rocciNavSections.remember();
+    }
     const samePath =
       url.pathname === window.location.pathname && url.search === window.location.search;
     if (samePath) {
