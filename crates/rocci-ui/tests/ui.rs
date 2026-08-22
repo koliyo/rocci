@@ -92,10 +92,14 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("animation.finished"));
     assert!(GOTO_SCRIPT.contains("prefers-reduced-motion: reduce"));
     assert!(GOTO_SCRIPT.contains("rocci-nav-sections"));
+    assert!(GOTO_SCRIPT.contains("rocci-nav-scroll-positions"));
     assert!(GOTO_SCRIPT.contains("data-rocci-nav-section"));
     assert!(GOTO_SCRIPT.contains("rememberAllSections"));
+    assert!(GOTO_SCRIPT.contains("rememberScrollPositions"));
+    assert!(GOTO_SCRIPT.contains("restoreScrollPositions"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.restore()"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.remember()"));
+    assert!(GOTO_SCRIPT.contains("content.scrollTop +="));
     assert!(GOTO_SCRIPT.contains("position:fixed"));
     assert!(GOTO_SCRIPT.contains(":host(.open){display:block}"));
     assert!(GOTO_SCRIPT.contains("max-height:min(70vh,480px)"));

@@ -264,6 +264,7 @@ mod tests {
         assert!(!PREVIEW_NAV_HTML.contains("<select"));
         assert!(!PREVIEW_NAV_HTML.contains("Original source"));
         assert!(PREVIEW_NAV_JS.contains("overflow: visible"));
+        assert!(PREVIEW_NAV_JS.contains("body > header"));
         assert!(PREVIEW_NAV_CSS.contains("overflow: visible"));
         assert!(!initialization_script(None, false, true, None).contains("http://127.0.0.1"));
         assert!(

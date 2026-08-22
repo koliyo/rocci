@@ -117,10 +117,11 @@ import PageOutline
     }
     .sidebar {
         position: sticky;
-        top: 4.5rem;
-        height: calc(100vh - 5rem);
+        top: var(--header-height);
+        align-self: start;
+        height: calc(100vh - var(--header-height));
         overflow-y: auto;
-        overscroll-behavior-y: contain;
+        overscroll-behavior: contain;
         scrollbar-width: thin;
         scrollbar-color: transparent transparent;
     }
@@ -279,5 +280,33 @@ import PageOutline
         margin-top: 2.5rem;
         font-size: 0.875rem;
         color: var(--muted);
+    }
+    @media (min-width: 48.01rem) {
+        :scope.layout-navigated {
+            height: 100%;
+            min-height: 0;
+            grid-template-rows: minmax(0, 1fr);
+        }
+        .sidebar {
+            position: static;
+            top: auto;
+            align-self: stretch;
+            height: auto;
+            min-height: 0;
+        }
+        .content-column {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        :scope.layout-navigated > .outline {
+            position: static;
+            top: auto;
+            align-self: stretch;
+            height: auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
     }
 }
