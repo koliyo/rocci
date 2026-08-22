@@ -261,6 +261,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             "news-post",
             "plain",
             "not-found",
+            "playground",
         ];
         let layout = if let Some(layout) = compiled.page_meta.layout.as_deref() {
             let clean = layout.trim().trim_matches('"');
@@ -1099,17 +1100,14 @@ debug = true
     #[test]
     fn docs_guide_previews_at_derived_site_route() {
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let file = manifest.join("../../docs/how-to/use-the-playground.rocdown");
+        let file = manifest.join("../../docs/five-minutes.rocdown");
         let expected = manifest.join("../../docs");
         let found = find_site_root(&file).expect("docs/rocdown.toml");
         assert_eq!(
             fs::canonicalize(&found).unwrap(),
             fs::canonicalize(&expected).unwrap()
         );
-        assert_eq!(
-            site_preview_route(&found, &file),
-            "/how-to/use-the-playground/"
-        );
+        assert_eq!(site_preview_route(&found, &file), "/five-minutes/");
     }
 
     #[test]
