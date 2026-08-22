@@ -194,6 +194,13 @@ GitHub Actions CI and Knowledge run automatically on push to `main`, `staging`, 
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.
 
+## Contributing
+
+This preview does not accept pull requests; that may change later.
+[CONTRIBUTING.md](CONTRIBUTING.md) is the current contract, including crate
+ownership and `/ci` versus `/ci-local`. Conduct, security, support, and
+governance live beside it at the repository root.
+
 ## License
 
 Copyright 2026 Nils Hjelte.

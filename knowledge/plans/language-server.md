@@ -10,7 +10,7 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: detailed-plan
-    resource: ../../ROCCI_LANGUAGE_SERVER_IMPLEMENTATION_PLAN.md
+    resource: ../../archive/reports/ROCCI_LANGUAGE_SERVER_IMPLEMENTATION_PLAN.md
     title: Rocci language-server report and detailed implementation plan
     author: process:codex
     last_modified: 2026-08-17

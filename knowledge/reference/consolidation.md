@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: OKF consolidation disposition
-description: Phase 6 preserves seven dated reports in an archive, retains two active root plans, records that no concepts are superseded, and fixes a lexical retrieval baseline before any larger retrieval stack.
+description: Phase 6 preserved seven dated reports in an archive and recorded that no concepts are superseded. A later public-repo sweep archived remaining root plans and the reports tree; lexical retrieval remains the baseline before any larger retrieval stack.
 tags: [domain/rocci, integration/okf, concern/validation, audience/maintainer]
 status: draft
 generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
@@ -9,7 +9,7 @@ authority: descriptive
 owners: [human:nils]
 sources:
   - id: okf-plan
-    resource: ../../OKF_PLAN.md
+    resource: ../../archive/reports/OKF_PLAN.md
     title: Open Knowledge Format plan for Rocci
     author: human:nils
     last_modified: 2026-08-16
@@ -41,12 +41,12 @@ name the superseded concept and provide a replacement link or explanation.[^okf-
 
 ## Root-report disposition
 
-Seven dated reports moved to `archive/reports/` with their prose unchanged and
-only relative links repaired. `ROC_TEMPLATE.md`
-and `ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md` remain at the
-repository root because they are still active detailed plans. No report was
-deleted, and the migration matrix retains original basenames as stable source
-identifiers.[^archive]
+Seven dated reports first moved to `archive/reports/` with their prose
+unchanged and only relative links repaired. `ROC_TEMPLATE.md` and
+`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md` were later archived
+there as well; they are detailed companions, not current root plans. No
+report was deleted, and the migration matrix retains original basenames as
+stable source identifiers.[^archive]
 
 ## Public-documentation audit
 

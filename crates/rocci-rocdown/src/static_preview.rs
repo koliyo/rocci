@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn branding_report_static_preview_completes_quickly() {
         let input = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown");
+            .join("../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown");
         if !input.is_file() {
             return;
         }

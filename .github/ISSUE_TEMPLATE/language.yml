@@ -1,0 +1,32 @@
+name: Language
+description: Parser, diagnostic, or grammar behavior for `.rocci` or `.rocdown`
+labels: ["language"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for syntax, diagnostics, lowering, or source maps.
+        Open-ended language redesign belongs in a discussion with the maintainer, not a blank issue.
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - ".rocci"
+        - ".rocdown"
+        - Both / boundary
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Input
+      description: Minimal source that shows the behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true

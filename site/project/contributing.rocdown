@@ -2,38 +2,62 @@
     layout: "plain",
     meta: {
         title: "Contributing to Rocci",
-        description: "Learn how to build, test, and contribute to Rocci and its developer documentation.",
+        description: "Rocci does not accept pull requests in this preview. The full contributor contract is CONTRIBUTING.md in the repository.",
     },
 }
 
 # Contributing to Rocci
 
-We welcome contributions across the compiler, editor plugins, documentation, and runtime tooling.
+Rocci is an experimental preview. **We do not accept pull requests at this
+point.** That may change in the near future. The repository
+[CONTRIBUTING.md](https://github.com/koliyo/rocci/blob/main/CONTRIBUTING.md)
+is the full contract. This page is a short map.
 
 ## Getting started
 
-1. Clone the repository and inspect the branch structure.
-2. Verify you have a modern Rust toolchain (1.85+).
-3. Run `cargo test --workspace` to verify your environment.
+1. Clone `https://github.com/koliyo/rocci` and work on a named branch.
+2. Use Rust 1.85+, `roc` and `cargo` on `PATH`, and the Wry platform packages
+   from [Install](/docs/install/).
+3. Run `cargo test --workspace` and `cargo fmt --all -- --check`.
 
 ## Ownership layers
+
+Change the owning crate. The same table lives in
+[AGENTS.md](https://github.com/koliyo/rocci/blob/main/AGENTS.md).
 
 - `.rocci` grammar, lowering, or source maps: `crates/rocci-template`
 - Markdown, Rocdown declarations, site catalog, and generator: `crates/rocci-rocdown`
 - Shared runtime configuration: `crates/rocci-core`
-- CLI tools: `crates/rocci-cli` and `crates/rocci-rocdown-cli`
-- Documentation site chrome: `site/theme/`
+- Application documentation staging: `crates/rocci-docs`
+- CLI template build, run, preview, or bundle: `crates/rocci-cli` and `crates/rocci-desktop`
+- CLI document and site build, run, check, or test: `crates/rocci-rocdown-cli`
+- Portable OKF parsing, validation, search, and artifacts: `crates/okf`
+- Knowledge review CLI and bundle tools: `crates/rocci-okf`
+- Shared UI primitives: `crates/rocci-ui`
+- Documentation site chrome: `crates/rocci-rocdown/templates/RocdownTheme.rocci`
+- rocci.dev document shell: `site/theme/`
+- Editors: `crates/rocci-lsp`, `crates/rocci-rocdown-lsp`, `editors/vscode`, `editors/zed`
+- Syntax highlighting grammars: `crates/rocci-highlight`
 
 ## Code conventions
 
-- Keep parsing loops monotonic to avoid hangs on malformed inputs.
-- Run `cargo fmt --all -- --check` before submitting changes.
+- Keep parsing loops monotonic so malformed input cannot hang.
 - Add regression tests in the narrowest owning crate.
+- Public contracts belong in crate READMEs and `/docs/`, not in archived
+  reports.
 
-## CI
+## Pull requests and CI
 
-Pull requests do not start GitHub Actions automatically. After review, a
+Do not open a pull request expecting review or a merge. Maintainer and
+Dependabot PRs do not start GitHub Actions automatically. After review, a
 maintainer comments `/ci` to run hosted CI and Knowledge on the PR head.
 Dependabot PRs need the same `/ci` comment. Do not run `/ci-local` on
 external or Dependabot pull requests; that command is reserved for
 `koliyo` same-repository work (`/cl-local` is an alias).
+
+## Also in the repository
+
+[Code of Conduct](https://github.com/koliyo/rocci/blob/main/CODE_OF_CONDUCT.md),
+[Security](https://github.com/koliyo/rocci/blob/main/SECURITY.md),
+[Support](https://github.com/koliyo/rocci/blob/main/SUPPORT.md), and
+[Governance](https://github.com/koliyo/rocci/blob/main/GOVERNANCE.md).

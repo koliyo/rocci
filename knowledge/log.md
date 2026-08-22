@@ -2,6 +2,7 @@
 
 ## 2026-08-23
 
+- Public-repo surface sweep: moved leftover root plans and `reports/` into `archive/reports/`; added [playground plan](plans/rocci-playground.md); added `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, `GOVERNANCE.md`, and focused issue forms; rewrote `site/project/contributing.rocdown`; marked `crates/rocci-highlight/grammars/**` linguist-vendored. Revised [public-launch checklist](audits/rocci-dev-public-launch.md). Staging smoke and DNS remain open. Does not flip repository visibility.
 - Retargeted the [public-repo CI plan](plans/public-ci-security.md) so `/ci-local` is the local command: exact first-token match, `/cl-local` kept as an alias. Naive `startsWith('/ci')` is forbidden; today's `startsWith('/ci ')` does not collide with `/ci-local`. No phase started.
 - Added draft [public-repo GitHub Actions security review](audits/public-ci-security.md) and [implementation plan](plans/public-ci-security.md). Current `/ci` is `koliyo`-only and self-hosted; deploy secrets are already Environment-only. Planned: hosted `/ci`/`/CI` from reviewer comments, `koliyo`-only `/ci-local`, automatic hosted CI on `main`/`staging`/`production`, site/release isolation, Dependabot. Exploratory; no phase started. Does not flip repository visibility.
 

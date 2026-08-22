@@ -22,7 +22,7 @@ Items 1, 3, 4, and 5 should be treated as pre-stabilization correctness work. Th
 
 - The parser and scanners in [`parser.rs`](../../crates/rocci-template/src/parser.rs) and [`lexer.rs`](../../crates/rocci-template/src/lexer.rs).
 - Lowering and component metadata in [`lower.rs`](../../crates/rocci-template/src/lower.rs) and [`ast.rs`](../../crates/rocci-template/src/ast.rs).
-- The implemented language reference in [`crates/rocci-template/README.md`](../../crates/rocci-template/README.md), plus the broader proposal in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md).
+- The implemented language reference in [`crates/rocci-template/README.md`](../../crates/rocci-template/README.md), plus the broader proposal in [`ROC_TEMPLATE.md`](ROC_TEMPLATE.md).
 - The kitchen-sink fixture and compiler tests in [`crates/rocci-template/tests`](../../crates/rocci-template/tests).
 - [`examples/counter`](../../examples/counter), [`examples/snake`](../../examples/snake), and the current [`examples/datastar`](../../examples/datastar) gallery.
 - Official Datastar examples for [Active Search](https://data-star.dev/examples/active_search), [Click to Edit](https://data-star.dev/examples/click_to_edit), [TodoMVC](https://data-star.dev/examples/todomvc), [Lazy Tabs](https://data-star.dev/examples/lazy_tabs), and [Inline Validation](https://data-star.dev/examples/inline_validation), plus the [attribute](https://data-star.dev/reference/attributes), [action](https://data-star.dev/reference/actions), and [SSE event](https://data-star.dev/reference/sse_events) references.
@@ -143,7 +143,7 @@ view = component |{ value }| {
 }
 ```
 
-It lowers to `Html.text(render(value))`, even if `render(value)` returns `Html`. Aliasing a body value through `@let`, indexing a list of `Html`, or choosing a node with an ordinary Roc `if` has the same problem. This contradicts the broader design text in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md), which suggests calling named render functions from expressions.
+It lowers to `Html.text(render(value))`, even if `render(value)` returns `Html`. Aliasing a body value through `@let`, indexing a list of `Html`, or choosing a node with an ordinary Roc `if` has the same problem. This contradicts the broader design text in [`ROC_TEMPLATE.md`](ROC_TEMPLATE.md), which suggests calling named render functions from expressions.
 
 The rule is also syntactic rather than typed: `content` is raw only because its spelling appears in `body_params`. Renaming it through a local binding changes lowering. Conversely, every extra component parameter is assumed to be an `Html` body parameter even though the parser does not enforce its type.
 

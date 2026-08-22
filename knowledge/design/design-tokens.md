@@ -45,7 +45,7 @@ sources:
     author: organization:design-tokens-community-group
     last_modified: 2025-10-28
   - id: okf-plan
-    resource: ../../OKF_PLAN.md
+    resource: ../../archive/reports/OKF_PLAN.md
     title: Open Knowledge Format plan for Rocci
     author: human:nils
     last_modified: 2026-08-16

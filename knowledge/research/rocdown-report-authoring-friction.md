@@ -10,12 +10,12 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: evaluation-report
-    resource: ../../reports/branding/ROCDOWN_REPORT_AUTHORING_FRICTION.rocdown
+    resource: ../../archive/reports/branding/ROCDOWN_REPORT_AUTHORING_FRICTION.rocdown
     title: Rocdown report authoring friction and missing features
     author: process:codex
     last_modified: 2026-08-17
   - id: branding-report
-    resource: ../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
+    resource: ../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
     title: Rocci branding and community foundation report
     author: process:codex
     last_modified: 2026-08-17

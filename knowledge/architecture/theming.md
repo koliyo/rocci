@@ -37,7 +37,7 @@ sources:
     author: human:nils
     last_modified: 2026-08-16
   - id: okf-plan
-    resource: ../../OKF_PLAN.md
+    resource: ../../archive/reports/OKF_PLAN.md
     title: Approved OKF and DTCG plan
     author: human:nils
     last_modified: 2026-08-16

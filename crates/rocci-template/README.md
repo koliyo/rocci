@@ -590,4 +590,4 @@ Heads are `module`, `roc`, `component`, `params`, `element`, `call`,
 Route metadata from `@method:role` declarations is emitted for the CLI. Dispatch lives in generated
 `main.roc`, not this crate.
 
-The language design and open questions live in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md).
+The language design and open questions live in [`ROC_TEMPLATE.md`](../../archive/reports/ROC_TEMPLATE.md).

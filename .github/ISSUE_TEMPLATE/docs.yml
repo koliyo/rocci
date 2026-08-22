@@ -1,0 +1,25 @@
+name: Docs
+description: Wrong, missing, or confusing public documentation
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: Point at the canonical page (rocci.dev URL or repo path). Do not paste large unpublished drafts here.
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: URL or path such as `docs/install.rocdown` or `https://rocci.dev/faq/`
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional. A short replacement sentence is enough.

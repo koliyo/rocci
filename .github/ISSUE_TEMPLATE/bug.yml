@@ -1,0 +1,31 @@
+name: Bug
+description: A reproducible failure in Rocci, Rocdown, the CLIs, editors, or preview hosts
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Rocci is experimental. Include a minimal fixture and the exact command.
+        Security issues belong in SECURITY.md, not here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Actual vs expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Commands, a short `.rocci` or `.rocdown` snippet, and OS / Roc nightly if relevant.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Revision
+      description: Git commit, tag, or `cargo` package versions.
+    validations:
+      required: true

@@ -1,7 +1,7 @@
 # Rocci and Rocdown client-side playground implementation plan
 
 > [!NOTE]
-> **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`tools/rocci-ops/src/rocci_ops/workspace_deps.py`) reflect the current post-split architecture.
+> **Product-Boundary Rebase:** This plan is aligned with the completed Rocdown product-boundary refactor ([`knowledge/decisions/consolidate-rocdown-product-boundary.md`](../../knowledge/decisions/consolidate-rocdown-product-boundary.md) and [`knowledge/audits/rocdown-boundary-refactor-review.md`](../../knowledge/audits/rocdown-boundary-refactor-review.md)). Crate identities, CLI command ownership (`rocci` vs `rocdown`), desktop window hosting (`rocci-desktop`), static site generation and themes (`rocci-rocdown`), shared UI primitives (`rocci-ui`), and workspace dependency constraints (`tools/rocci-ops/src/rocci_ops/workspace_deps.py`) reflect the current post-split architecture.
 
 **Status:** in progress — Phase 0 complete; desktop `--mode local` HTML snapshots are implemented
 
@@ -175,12 +175,12 @@ The plan relies on shipped code, not on older exploratory reports:
 
 Canonical architecture consulted for this proposal:
 
-- [`knowledge/architecture/system-overview.md`](knowledge/architecture/system-overview.md)
-- [`knowledge/architecture/language-tooling.md`](knowledge/architecture/language-tooling.md)
-- [`knowledge/architecture/rocdown-format.md`](knowledge/architecture/rocdown-format.md)
-- [`knowledge/architecture/rocdown-documentation-compiler.md`](knowledge/architecture/rocdown-documentation-compiler.md)
-- [`knowledge/decisions/consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md)
-- [`knowledge/status/known-limitations.md`](knowledge/status/known-limitations.md)
+- [`knowledge/architecture/system-overview.md`](../../knowledge/architecture/system-overview.md)
+- [`knowledge/architecture/language-tooling.md`](../../knowledge/architecture/language-tooling.md)
+- [`knowledge/architecture/rocdown-format.md`](../../knowledge/architecture/rocdown-format.md)
+- [`knowledge/architecture/rocdown-documentation-compiler.md`](../../knowledge/architecture/rocdown-documentation-compiler.md)
+- [`knowledge/decisions/consolidate-rocdown-product-boundary.md`](../../knowledge/decisions/consolidate-rocdown-product-boundary.md)
+- [`knowledge/status/known-limitations.md`](../../knowledge/status/known-limitations.md)
 
 ## 5. Architecture
 

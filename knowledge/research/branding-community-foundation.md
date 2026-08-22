@@ -10,7 +10,7 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: branding-report
-    resource: ../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
+    resource: ../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
     title: Rocci branding and community foundation report
     author: process:codex
     last_modified: 2026-08-18
@@ -70,12 +70,12 @@ sources:
     title: rOCCI cloud interoperability project
     author: organization:indigo-data-cloud
   - id: community-launch-kit
-    resource: ../../reports/branding/COMMUNITY_LAUNCH_KIT.md
+    resource: ../../archive/reports/branding/COMMUNITY_LAUNCH_KIT.md
     title: Rocci public-preview community launch kit
     author: process:codex
     last_modified: 2026-08-18
   - id: landing-prototype
-    resource: ../../reports/branding/LANDING_PAGE_PROTOTYPE.md
+    resource: ../../archive/reports/branding/LANDING_PAGE_PROTOTYPE.md
     title: Rocci landing-page prototype brief
     author: process:codex
     last_modified: 2026-08-17

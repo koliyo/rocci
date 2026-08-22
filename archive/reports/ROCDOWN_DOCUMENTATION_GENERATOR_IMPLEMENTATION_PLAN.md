@@ -1,7 +1,7 @@
 # Implementation plan for the Rocdown documentation generator
 
 > [!NOTE]
-> **Historical Archive:** This plan documents the initial documentation generator implementation. The architecture, CLI commands, and crate structures have been consolidated into `rocci-rocdown` and `rocci-rocdown-cli` under the approved decision [`consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md).
+> **Historical Archive:** This plan documents the initial documentation generator implementation. The architecture, CLI commands, and crate structures have been consolidated into `rocci-rocdown` and `rocci-rocdown-cli` under the approved decision [`consolidate-rocdown-product-boundary.md`](../../knowledge/decisions/consolidate-rocdown-product-boundary.md).
 
 **Status:** historical / superseded
 

@@ -9,7 +9,7 @@ authority: normative
 owners: [human:nils]
 sources:
   - id: okf-plan
-    resource: ../../OKF_PLAN.md
+    resource: ../../archive/reports/OKF_PLAN.md
     title: Open Knowledge Format plan for Rocci
     author: human:nils
     last_modified: 2026-08-16

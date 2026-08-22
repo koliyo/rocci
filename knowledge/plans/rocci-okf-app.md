@@ -10,7 +10,7 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: report
-    resource: ../../reports/okf/ROCS_OKF_REPORT.rocdown
+    resource: ../../archive/reports/okf/ROCS_OKF_REPORT.rocdown
     title: rocs-okf research and product direction
     author: process:codex
     last_modified: 2026-08-17

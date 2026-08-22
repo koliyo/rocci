@@ -1,10 +1,10 @@
 ---
 type: Audit
 title: rocci.dev public-launch checklist
-description: After the 2026-08-22 PR landings, rocci.dev is an experimental preview with stack-first docs, a playground lane, and no News 308s; remaining gates are GitHub community-health files, a thin Contributing page, and a signed-out staging smoke. The repository staying private until flip is known.
+description: After the 2026-08-23 public-repo surface sweep, community-health files, a matching Contributing page, linguist-vendored grammars, and archived root leftovers are in tree; remaining gates are a signed-out staging smoke and the known repository-visibility flip.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ux, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T21:40:00Z }
+generated: { by: process:cursor, at: 2026-08-23T00:30:00Z }
 stale_after: 2026-11-22
 authority: descriptive
 owners: [human:nils]
@@ -32,8 +32,13 @@ sources:
   - id: contributing-page
     resource: ../../site/project/contributing.rocdown
     title: Current public contributing page
-    author: process:git
-    last_modified: 2026-08-18
+    author: process:cursor
+    last_modified: 2026-08-23
+  - id: contributing-md
+    resource: ../../CONTRIBUTING.md
+    title: Root contributor contract
+    author: process:cursor
+    last_modified: 2026-08-23
   - id: playground
     resource: ../../site/playground/index.rocdown
     title: Current in-browser lower playground
@@ -112,7 +117,7 @@ sources:
     resource: ../../.gitattributes
     title: Current Git attributes
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-23
   - id: example-caddy
     resource: ../../docker/examples/Caddyfile
     title: Planned live example hostnames
@@ -134,22 +139,25 @@ sources:
 
 ## Executive verdict
 
-The site is ready to show as a labeled experimental preview once GitHub
-community-health files exist and staging has been smoked signed-out. Home,
-stack-first Docs, FAQ, Project status, Examples, and a Playground lane are in
-place. News 308s are gone because the hostname was never public. First-contact
-copy uses verb-first handlers. The repository remaining private until the
-maintainer flips it is known and is not an open defect.[^landing][^site-config][^project-status][^caddy][^root-readme][^preview-plan]
+The site is ready to show as a labeled experimental preview once staging has
+been smoked signed-out. Home, stack-first Docs, FAQ, Project status, Examples,
+and a Playground lane are in place. News 308s are gone because the hostname
+was never public. First-contact copy uses verb-first handlers. GitHub
+community-health files, a matching Contributing page, linguist-vendored
+Tree-sitter C, and an archived leftover sweep are in the tree. The repository
+remaining private until the maintainer flips it is known and is not an open
+defect.[^landing][^site-config][^project-status][^caddy][^root-readme][^preview-plan][^contributing-md]
 
 This audit does not authorize publication.
 
 ## Scope and method
 
-Re-reviewed on 2026-08-22 against `staging` (`9bfe631` plus this revision).
-Sources were the current `site/`, mounted `docs/`, origin Caddy, root README,
-and ROADMAP after the day's merged PRs. The first-use protocol page is
-deleted from `docs/reference/contributor/`. This pass did not rebuild
-`dist/rocci.dev` and did not hit production `rocci.dev`.[^publish-plan][^inventory]
+Re-reviewed on 2026-08-22 against `staging` (`9bfe631` plus that revision),
+then updated on 2026-08-23 for the public-repo surface sweep. Sources were
+the current `site/`, mounted `docs/`, origin Caddy, root README, ROADMAP, and
+the new community-health files. The first-use protocol page is deleted from
+`docs/reference/contributor/`. This pass did not rebuild `dist/rocci.dev` and
+did not hit production `rocci.dev`.[^publish-plan][^inventory][^contributing-md]
 
 ## Closed since the first pass
 
@@ -162,6 +170,18 @@ deleted from `docs/reference/contributor/`. This pass did not rebuild
 - Root README, ROADMAP, the VS Code extension README, and the Rocdown CLI
   README no longer teach `@on` as current. Public language and diagnostics
   pages still name `@on` only as a removed form.[^root-readme][^roadmap][^vscode-readme][^project-status]
+- Root community-health files exist: `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `SUPPORT.md`, `GOVERNANCE.md`, and focused
+  `.github/ISSUE_TEMPLATE` forms. Enforcement and vulnerability mail is
+  `oss@rocci.dev`; `security@rocci.dev` is still a later mailbox.[^contributing-md][^github-health][^publish-plan]
+- The in-site Contributing page matches AGENTS ownership layers and points at
+  root `CONTRIBUTING.md`.[^contributing-page][^contributing-md]
+- Tree-sitter grammars under `crates/rocci-highlight/grammars/` are
+  `linguist-vendored`.[^gitattributes]
+- Root leftover plans moved to `archive/reports/`. `reports/` is gone.
+  `knowledge/plans/rocci-playground.md` is the knowledge-facing playground
+  plan. `README.md`, `LICENSE`, `AGENTS.md`, `ROADMAP.md`, and `DESIGN.md`
+  stay at the root.
 
 ## What is already launch-shaped
 
@@ -189,20 +209,12 @@ unresolved site work.[^site-config][^install][^preview-plan]
 
 ## Must before public
 
-### Add the GitHub community-health files
+Community-health files from public-preview Phase 0 are in the tree. Remaining
+musts are operational: signed-out staging smoke, then the known repository
+visibility flip, then production DNS.[^contributing-md][^github-health][^publish-plan]
 
-**Severity:** P1. Public-preview Phase 0 still requires conduct, contribution,
-security, support, and governance documents plus focused issue or discussion
-forms. The root has `LICENSE` and `THIRD_PARTY_LICENSES.md` only. There is no
-`CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`,
-`GOVERNANCE.md`, or `.github/ISSUE_TEMPLATE`.[^preview-plan][^github-health]
-
-The in-site Contributing page is three short lists and predates
-`rocci-docs` ownership. It is not a substitute for GitHub's default community
-files.[^contributing-page]
-
-`security@rocci.dev` is still recorded as a later mailbox; `oss@rocci.dev`
-already forwards.[^publish-plan]
+`security@rocci.dev` is still a later mailbox; `oss@rocci.dev` already
+forwards and is the listed contact.[^publish-plan]
 
 ## Should before public
 
@@ -216,15 +228,12 @@ already forwards.[^publish-plan]
 - [ ] Prove one clean clone-and-install from a tagged revision using only
   public Install copy. Record the Roc nightly, Datastar pin, and OS in one
   support matrix.
-- [ ] Rewrite the public Contributing page to match AGENTS ownership layers
-  and point at the new GitHub `CONTRIBUTING.md`.
-- [ ] Mark Tree-sitter grammar C as linguist-vendored so GitHub does not
-  classify the public repo as C. `.gitattributes` currently lists image and
-  WASM LFS rules only.[^gitattributes]
-- [ ] Sweep root leftovers that will become the GitHub file list:
-  `AGENT_SKILLS_PLAN.md`, `ROCCI_LANGUAGE_SERVER_IMPLEMENTATION_PLAN.md`,
-  `ROCCI_PLAYGROUND_IMPLEMENTATION_PLAN.md`, `ROC_TEMPLATE.md`,
-  `archive/reports/`, and `reports/branding/`.
+- [x] Rewrite the public Contributing page to match AGENTS ownership layers
+  and point at root `CONTRIBUTING.md`.[^contributing-page][^contributing-md]
+- [x] Mark Tree-sitter grammar C as linguist-vendored so GitHub does not
+  classify the public repo as C.[^gitattributes]
+- [x] Sweep root leftovers that would dominate the GitHub file list. Plans
+  and `reports/` now live under `archive/reports/`.
 - [ ] Confirm live example hostnames
   (`live-counter.examples.rocci.dev`, `datastar.examples.rocci.dev`) are
   either serving or not linked as if they were.[^apps-catalog][^example-caddy]
@@ -246,10 +255,9 @@ already forwards.[^publish-plan]
 
 ## Suggested order
 
-1. Add community-health files and refresh the Contributing page.
-2. Smoke staging signed-out, including playground honesty and News 410/404.
-3. Flip the GitHub repository to public.
-4. Route production DNS.
+1. Smoke staging signed-out, including playground honesty and News 410/404.
+2. Flip the GitHub repository to public.
+3. Route production DNS.
 
 ## Launch-day smoke (after DNS)
 
@@ -269,7 +277,8 @@ island. GitHub must open without authentication after the known flip.
 [^landing]: Current home: caution, hybrid island, then six path cards.
 [^faq]: Current FAQ questions and canonical follow-up links.
 [^project-status]: Current shipped inventory uses verb-first handlers; `@island` is reserved.
-[^contributing-page]: Short in-site contributing notes last revised 2026-08-18.
+[^contributing-page]: In-site Contributing page lists AGENTS layers and links to root CONTRIBUTING.md.
+[^contributing-md]: Root CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, GOVERNANCE.md, and focused issue forms.
 [^playground]: Playground copy states lower-only; no HTML preview without Roc WASM.
 [^install]: Public clone URL, source-build path, and experimental GitHub archives.
 [^inventory]: First-use path is retired; academy and `/rocdown/` routes stay 404.
@@ -281,11 +290,11 @@ island. GitHub must open without authentication after the known flip.
 [^root-readme]: First-run copy names `@method:role` and a Datastar fragment.
 [^roadmap]: Root roadmap names `@method:role` for standalone HTTP apps.
 [^vscode-readme]: Completion list names current handler forms, not `@on`.
-[^preview-plan]: Phase 0: license done; community-health files remain.
+[^preview-plan]: Phase 0 license and community-health files are in tree; remaining Phase 0 items include a support matrix and a clean tagged install.
 [^publish-plan]: Staging Access-gated; production hostnames unrouted until a launch decision.
 [^ux-audit]: Prior P0/P1 chrome findings closed locally on 2026-08-22.
 [^github-health]: GitHub's default community-health file set.
-[^gitattributes]: Image and WASM LFS only; grammar C sources are not marked vendored.
+[^gitattributes]: LFS for images and WASM; `crates/rocci-highlight/grammars/**` is linguist-vendored.
 [^example-caddy]: Host routing for live-counter and datastar example origins.
 [^apps-catalog]: Those two apps are the catalog `hosting = "live"` rows.
 [^known-limits]: Finder is not full-text search; `@island` and production packaging remain absent.

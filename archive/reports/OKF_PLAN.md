@@ -1,7 +1,7 @@
 # Open Knowledge Format plan for Rocci
 
 > [!NOTE]
-> **Historical Archive:** This plan documents the initial OKF bootstrap completed on 2026-08-16. Its migration and packaging details are superseded by canonical knowledge records under `knowledge/` and approved decisions (including [`consolidate-rocdown-product-boundary.md`](knowledge/decisions/consolidate-rocdown-product-boundary.md)).
+> **Historical Archive:** This plan documents the initial OKF bootstrap completed on 2026-08-16. Its migration and packaging details are superseded by canonical knowledge records under `knowledge/` and approved decisions (including [`consolidate-rocdown-product-boundary.md`](../../knowledge/decisions/consolidate-rocdown-product-boundary.md)).
 
 **Plan date:** 2026-08-16
 

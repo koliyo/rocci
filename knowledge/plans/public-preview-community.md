@@ -10,7 +10,7 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: branding-report
-    resource: ../../reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
+    resource: ../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
     title: Rocci branding and community foundation report
     author: process:codex
     last_modified: 2026-08-18
@@ -42,12 +42,12 @@ sources:
     title: GitHub community health files
     author: organization:github
   - id: community-launch-kit
-    resource: ../../reports/branding/COMMUNITY_LAUNCH_KIT.md
+    resource: ../../archive/reports/branding/COMMUNITY_LAUNCH_KIT.md
     title: Rocci public-preview community launch kit
     author: process:codex
     last_modified: 2026-08-18
   - id: landing-prototype
-    resource: ../../reports/branding/LANDING_PAGE_PROTOTYPE.md
+    resource: ../../archive/reports/branding/LANDING_PAGE_PROTOTYPE.md
     title: Rocci landing-page prototype brief
     author: process:codex
     last_modified: 2026-08-17
@@ -79,8 +79,9 @@ compatibility during the feedback period.[^branding-research]
 ## Phase 0: repository launch gate
 
 - Root Apache-2.0 license text is present and is packaged with every workspace crate.
-- Add enforceable conduct, contribution, security, support, and governance
-  documents plus focused issue/discussion forms.[^github-health]
+- Conduct, contribution, security, support, and governance documents plus
+  focused issue forms are in the repository root and `.github/ISSUE_TEMPLATE`.
+  Discussions remain a later announcement gate.[^github-health]
 - Publish one support matrix for Roc revision, Datastar pin, operating systems,
   editor state, packaging state, and known limitations.
 - Prove one clean installation and five-minute example from a tagged revision.

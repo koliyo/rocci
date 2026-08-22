@@ -130,7 +130,7 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: playground-plan
-    resource: ../../ROCCI_PLAYGROUND_IMPLEMENTATION_PLAN.md
+    resource: ../../archive/reports/ROCCI_PLAYGROUND_IMPLEMENTATION_PLAN.md
     title: Root playground implementation plan
     author: process:codex
     last_modified: 2026-08-17

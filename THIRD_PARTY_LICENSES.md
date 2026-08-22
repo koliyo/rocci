@@ -1,6 +1,6 @@
 # Third-Party Licenses and Grammar Revisions
 
-This repository incorporates third-party Tree-sitter grammars and query definitions for embedded language highlighting in `rocci-lsp` and static site tooling.
+This repository incorporates third-party Tree-sitter grammars and query definitions for embedded language highlighting in `rocci-highlight` (used by `rocci-lsp` and static site tooling).
 
 ---
 
@@ -12,21 +12,21 @@ This repository incorporates third-party Tree-sitter grammars and query definiti
 - **Pinned Revision:** `d91c4e8c972ad8aac03fa45414a11f564c2274e3` (2026-08-21)
 - **Author:** Eli Dowling
 - **License:** MIT
-- **License Location:** [`crates/rocci-lsp/grammars/roc/LICENSE`](crates/rocci-lsp/grammars/roc/LICENSE)
+- **License Location:** [`crates/rocci-highlight/grammars/roc/LICENSE`](crates/rocci-highlight/grammars/roc/LICENSE)
 
 ### `tree-sitter-css`
 - **Purpose:** Syntax analysis and semantic highlighting for `@css` stylesheets in `.rocci` and CSS display code fences in `.rocdown`.
 - **Repository:** [https://github.com/tree-sitter/tree-sitter-css](https://github.com/tree-sitter/tree-sitter-css)
 - **Authors:** Max Brunsfeld and Tree-sitter authors
 - **License:** MIT
-- **License Location:** [`crates/rocci-lsp/grammars/css/LICENSE`](crates/rocci-lsp/grammars/css/LICENSE)
+- **License Location:** [`crates/rocci-highlight/grammars/css/LICENSE`](crates/rocci-highlight/grammars/css/LICENSE)
 
 ### `tree-sitter-html`
 - **Purpose:** Syntax analysis and semantic highlighting for display-only HTML code fences in `.rocdown`. (Note: Executable `.rocci` HTML-shaped templates are parsed by `rocci-template`, not generic HTML).
 - **Repository:** [https://github.com/tree-sitter/tree-sitter-html](https://github.com/tree-sitter/tree-sitter-html)
 - **Authors:** Max Brunsfeld and Tree-sitter authors
 - **License:** MIT
-- **License Location:** [`crates/rocci-lsp/grammars/html/LICENSE`](crates/rocci-lsp/grammars/html/LICENSE)
+- **License Location:** [`crates/rocci-highlight/grammars/html/LICENSE`](crates/rocci-highlight/grammars/html/LICENSE)
 
 ---
 

@@ -50,7 +50,7 @@ targeted record and source reads over loading the entire JSON catalog.
 ## Author or revise records
 
 1. Read `knowledge/reference/priority-1-review.md` before changing lifecycle,
-   verification, or provenance metadata. Read `OKF_PLAN.md` when the task
+   verification, or provenance metadata. Read `archive/reports/OKF_PLAN.md` when the task
    changes the knowledge-system contract rather than an individual record.
 2. Choose a collection and record type based on the claim's purpose and
    authority, not merely the file being discussed.
