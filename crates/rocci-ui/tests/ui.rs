@@ -107,6 +107,7 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("history.pushState"));
     assert!(GOTO_SCRIPT.contains("rocci-goto"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
+    assert!(GOTO_SCRIPT.contains("data-rocci-goto-shortcut"));
     assert!(GOTO_SCRIPT.contains("window.__rocciNavSections"));
     assert!(GOTO_SCRIPT.contains("details.nav-section > summary"));
     assert!(GOTO_SCRIPT.contains("animation.finished"));

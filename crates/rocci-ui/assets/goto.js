@@ -877,6 +877,10 @@
       if (!node.getAttribute("title")) {
         node.setAttribute("title", "Go to page (" + shortcutLabel + ")");
       }
+      const shortcut = node.querySelector("[data-rocci-goto-shortcut]");
+      if (shortcut) {
+        shortcut.textContent = shortcutLabel;
+      }
     }
   };
 
