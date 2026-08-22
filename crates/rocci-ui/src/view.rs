@@ -40,6 +40,10 @@ impl NavItemView {
             class_name: class_name.into(),
         }
     }
+
+    pub fn covers_href(&self, href: &str) -> bool {
+        self.href == href
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -63,6 +67,10 @@ impl NavGroupView {
             open,
             items,
         }
+    }
+
+    pub fn covers_href(&self, href: &str) -> bool {
+        self.href == href || self.items.iter().any(|item| item.covers_href(href))
     }
 }
 

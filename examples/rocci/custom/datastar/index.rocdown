@@ -15,9 +15,7 @@ Ports of official Datastar interaction patterns. The server still owns HTML.
 Datastar is the transport. The gallery uses an authored `main.roc` for custom
 HTTP routing and SQLite for durable state.
 
-This catalog row is `hosting = "live"`.
-
-See the [source tree](/examples/datastar/source/).
+This catalog row is `hosting = "live"`. Source files are listed in the sidebar.
 
 ## Pages
 

@@ -1094,6 +1094,26 @@ fn unknown_page_and_heading_are_errors() {
 }
 
 #[test]
+fn source_line_fragments_are_not_unknown_headings() {
+    let pages = vec![page("Foo", "/guides/foo/", &["hello"])];
+    let same_page = compile(
+        SourceFile::new("test.rocdown", "# Hello\n\n[line](#L12)\n"),
+        &CompileOptions::default(),
+    );
+    assert!(!same_page.has_errors(), "{:?}", same_page.diagnostics);
+    assert!(same_page.roc.contains("#L12"), "{}", same_page.roc);
+    let cross = compile(
+        SourceFile::new("test.rocdown", "[[Foo#L4]]\n"),
+        &CompileOptions {
+            pages,
+            ..CompileOptions::default()
+        },
+    );
+    assert!(!cross.has_errors(), "{:?}", cross.diagnostics);
+    assert!(cross.roc.contains("/guides/foo/#L4"), "{}", cross.roc);
+}
+
+#[test]
 fn unknown_route_and_collision_are_errors() {
     let pages = vec![page("Foo", "/guides/foo/", &[]), page("Bar", "/dup/", &[])];
     let route = compile_err_pages("[go](/nope/)\n", pages.clone());

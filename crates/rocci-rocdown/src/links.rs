@@ -284,7 +284,7 @@ fn page_destination(
     span: Span,
 ) -> Result<String, Diagnostic> {
     if let Some(id) = fragment {
-        if !page.heading_ids.iter().any(|heading| heading == id) {
+        if !page.heading_ids.iter().any(|heading| heading == id) && !is_source_line_anchor_id(id) {
             return Err(Diagnostic::error(
                 span,
                 format!("unknown heading `{id}` on page `{}`", page.stem),
@@ -296,11 +296,18 @@ fn page_destination(
 }
 
 fn same_page_heading(id: &str, span: Span, headings: &[HeadingInfo]) -> Result<String, Diagnostic> {
-    if headings.iter().any(|heading| heading.id == id) {
+    if headings.iter().any(|heading| heading.id == id) || is_source_line_anchor_id(id) {
         Ok(format!("#{id}"))
     } else {
         Err(Diagnostic::error(span, format!("unknown heading `{id}`")))
     }
+}
+
+pub(crate) fn is_source_line_anchor_id(fragment: &str) -> bool {
+    let Some(digits) = fragment.strip_prefix('L') else {
+        return false;
+    };
+    !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 fn resolve_page(
@@ -321,7 +328,7 @@ fn resolve_page(
         ));
     };
     if let Some(id) = fragment {
-        if !page.heading_ids.iter().any(|heading| heading == id) {
+        if !page.heading_ids.iter().any(|heading| heading == id) && !is_source_line_anchor_id(id) {
             return Err(Diagnostic::error(
                 span,
                 format!("unknown heading `{id}` on page `{stem}`"),

@@ -1224,6 +1224,11 @@ layout = "docs"
             .find(|page| page.id.contains("Counter.rocci"))
             .unwrap();
         assert!(
+            source_page.article_html.contains("id=\"L1\""),
+            "{}",
+            source_page.article_html
+        );
+        assert!(
             source_page.article_html.contains("tok-keyword"),
             "{}",
             source_page.article_html

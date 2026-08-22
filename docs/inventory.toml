@@ -348,7 +348,7 @@ entry = "Styling.rocci"
 hosting = "docs"
 role = "learning"
 prose = "examples/rocci/standalone/styling/index.rocdown"
-generated = ["/examples/styling/", "/examples/styling/source/", "/examples/styling/source/Styling-rocci/"]
+generated = ["/examples/styling/", "/examples/styling/source/Styling-rocci/"]
 notes = "First-component complete source. No parallel copy under docs/."
 
 [[app]]
@@ -358,7 +358,7 @@ entry = "Counter.rocci"
 hosting = "docs"
 role = "learning"
 prose = "examples/rocci/standalone/counter/index.rocdown"
-generated = ["/examples/counter/", "/examples/counter/source/", "/examples/counter/source/Counter-rocci/"]
+generated = ["/examples/counter/", "/examples/counter/source/Counter-rocci/"]
 notes = "First standalone app. SQLite is in the beginner path. Has attached ## docs."
 
 [[app]]
@@ -368,7 +368,7 @@ entry = "LiveCounter.rocci"
 hosting = "live"
 role = "learning"
 prose = "examples/rocci/standalone/live-counter/index.rocdown"
-generated = ["/examples/live-counter/", "/examples/live-counter/source/", "/examples/live-counter/source/LiveCounter-rocci/"]
+generated = ["/examples/live-counter/", "/examples/live-counter/source/LiveCounter-rocci/"]
 notes = "Command plus shared stream. Compare with counter. Live hostname planned."
 
 [[app]]
@@ -378,7 +378,7 @@ entry = "HandlerMatrix.rocci"
 hosting = "docs"
 role = "reference"
 prose = "examples/rocci/standalone/handler-matrix/index.rocdown"
-generated = ["/examples/handler-matrix/", "/examples/handler-matrix/source/", "/examples/handler-matrix/source/HandlerMatrix-rocci/"]
+generated = ["/examples/handler-matrix/", "/examples/handler-matrix/source/HandlerMatrix-rocci/"]
 notes = "Exhaustive handler contract. Not a beginner tutorial."
 
 [[app]]
@@ -388,7 +388,7 @@ entry = "."
 hosting = "live"
 role = "pattern-gallery"
 prose = "examples/rocci/custom/datastar/index.rocdown"
-generated = ["/examples/datastar/", "/examples/datastar/source/"]
+generated = ["/examples/datastar/"]
 notes = "Custom main.roc gallery. Live hostname planned."
 
 [[app]]
@@ -398,7 +398,7 @@ entry = "backend/Blocks.rocci"
 hosting = "docs"
 role = "advanced-standalone"
 prose = "examples/rocci/standalone/blocks/index.rocdown"
-generated = ["/examples/blocks/", "/examples/blocks/source/"]
+generated = ["/examples/blocks/", "/examples/blocks/source/backend--Blocks-rocci/"]
 notes = "Nested standalone falling-block app. Docs-only until a generic live hostname exists."
 
 [[app]]
@@ -408,5 +408,5 @@ entry = "."
 hosting = "docs"
 role = "advanced-stress"
 prose = "examples/rocci/custom/snake/index.rocdown"
-generated = ["/examples/snake/", "/examples/snake/source/"]
+generated = ["/examples/snake/", "/examples/snake/source/Snake-rocci/"]
 notes = "Advanced custom runtime. Docs-only; not a live site package."

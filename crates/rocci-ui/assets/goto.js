@@ -354,12 +354,14 @@
     );
   };
 
+  const isExampleSource = (url) => /\/examples\/[^/]+\/source(?:\/|$)/.test(String(url || ""));
+
   const normalizePages = (rows) => {
     const out = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i] || {};
       const url = row.route || row.url || "";
-      if (!url) {
+      if (!url || isExampleSource(url)) {
         continue;
       }
       out.push({
@@ -385,9 +387,13 @@
       if (!id) {
         continue;
       }
+      const url = "/" + id.replace(/^\/+|\/+$/g, "") + "/";
+      if (isExampleSource(url) || isExampleSource(id)) {
+        continue;
+      }
       out.push({
         title: title || id,
-        url: "/" + id.replace(/^\/+|\/+$/g, "") + "/",
+        url: url,
         path: row.path || "",
         description: description,
         kind: "",
@@ -418,7 +424,7 @@
         continue;
       }
       const key = url.pathname;
-      if (seen[key]) {
+      if (seen[key] || isExampleSource(key)) {
         continue;
       }
       seen[key] = true;
@@ -459,7 +465,12 @@
       try {
         catalog = JSON.parse(cached);
         if (catalog && catalog.length) {
-          return Promise.resolve(catalog);
+          catalog = catalog.filter(function (row) {
+            return row && !isExampleSource(row.url || row.route);
+          });
+          if (catalog.length) {
+            return Promise.resolve(catalog);
+          }
         }
       } catch (err) {
         catalog = null;
@@ -653,20 +664,74 @@
     return true;
   };
 
+  const hashTarget = (hash) => {
+    if (!hash || hash === "#") {
+      return null;
+    }
+    const id = decodeURIComponent(hash.replace(/^#/, ""));
+    const escaped = id.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    return (
+      document.querySelector('.rd-source-line[id="' + escaped + '"]') ||
+      document.getElementById(id)
+    );
+  };
+
+  const isScrollableY = (node) => {
+    if (!node || node === document.body || node === document.documentElement) {
+      return false;
+    }
+    const style = window.getComputedStyle(node);
+    const overflowY = style.overflowY;
+    return (
+      (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") &&
+      node.scrollHeight > node.clientHeight + 1
+    );
+  };
+
+  const scrollableAncestor = (el) => {
+    let node = el.parentElement;
+    while (node && node !== document.body && node !== document.documentElement) {
+      if (isScrollableY(node)) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+  };
+
   const scrollToHash = (hash) => {
     if (!hash || hash === "#") {
       window.scrollTo(0, 0);
+      const column = document.querySelector(".content-column");
+      if (column) {
+        column.scrollTop = 0;
+      }
       return;
     }
-    const id = decodeURIComponent(hash.replace(/^#/, ""));
-    const el = document.getElementById(id);
-    const content = el && (el.closest(".content-column") || document.querySelector(".content-column"));
-    if (el && content) {
-      content.scrollTop += el.getBoundingClientRect().top - content.getBoundingClientRect().top;
-    } else if (el && el.scrollIntoView) {
-      el.scrollIntoView({ block: "start" });
-    } else {
-      window.scrollTo(0, 0);
+    const run = () => {
+      const el = hashTarget(hash);
+      if (!el) {
+        return;
+      }
+      const scroller = scrollableAncestor(el);
+      const margin = parseFloat(window.getComputedStyle(el).scrollMarginTop) || 0;
+      if (scroller === document.scrollingElement || scroller === document.documentElement || scroller === document.body) {
+        if (el.scrollIntoView) {
+          el.scrollIntoView({ block: "start", inline: "nearest" });
+        } else {
+          const y =
+            el.getBoundingClientRect().top +
+            (window.pageYOffset || document.documentElement.scrollTop || 0) -
+            margin;
+          window.scrollTo(0, Math.max(0, y));
+        }
+        return;
+      }
+      scroller.scrollTop += el.getBoundingClientRect().top - scroller.getBoundingClientRect().top - margin;
+    };
+    run();
+    if (window.requestAnimationFrame) {
+      window.requestAnimationFrame(run);
     }
   };
 

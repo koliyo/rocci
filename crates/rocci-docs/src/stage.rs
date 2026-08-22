@@ -129,11 +129,6 @@ fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, 
     written += copy_authored_pages(&app_src, &app_out)?;
 
     let published = inventory_app(&catalog.root, app)?;
-    write_file(
-        app_out.join("source/index.rocdown"),
-        &source_index(app, &published),
-    )?;
-    written += 1;
 
     for file in &published {
         let snippet = app_out.join("snippets").join(&file.relative);
@@ -248,7 +243,7 @@ fn catalog_index(catalog: &Catalog) -> String {
             app.persistence.as_str()
         };
         rows.push_str(&format!(
-            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` · [source](/examples/{id}/source/) |\n",
+            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` |\n",
             title = app.title,
             id = app.id,
             summary = app.summary,
@@ -260,12 +255,12 @@ fn catalog_index(catalog: &Catalog) -> String {
     layout: "docs",
     aliases: ["/docs/examples/"],
     meta: {{
-        title: "Examples",
+        title: "Examples Overview",
         description: "Cataloged Rocci applications with authored docs and a full source tree.",
     }},
 }}
 
-# Examples
+# Examples Overview
 
 These pages come from `examples/rocci/apps.toml`. Each app has authored docs
 and a complete highlighted source tree. Source and local run paths stay useful
@@ -280,32 +275,6 @@ Snake custom ceiling).
 | App | Role | Persistence | Summary | Hosting |
 | --- | --- | --- | --- | --- |
 {rows}"#
-    )
-}
-
-fn source_index(app: &AppEntry, files: &[PublishedFile]) -> String {
-    let mut items = String::new();
-    for file in files {
-        let href = format!(
-            "/examples/{id}/source/{path}/",
-            id = app.id,
-            path = source_page_id(&file.relative)
-        );
-        items.push_str(&format!("- [{name}]({href})\n", name = file.relative));
-    }
-    format!(
-        r#"@page {{
-    layout: "docs",
-    meta: {{
-        title: "{title} source",
-        description: "Published source files for {title}.",
-    }},
-}}
-
-# {title} source
-
-{items}"#,
-        title = escape_text(&app.title),
     )
 }
 

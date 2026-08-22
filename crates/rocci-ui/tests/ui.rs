@@ -101,6 +101,8 @@ fn chrome_script_includes_copy_hooks() {
 fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("window.__rocciGoto"));
     assert!(GOTO_SCRIPT.contains("/pages.json"));
+    assert!(GOTO_SCRIPT.contains("isExampleSource"));
+    assert!(GOTO_SCRIPT.contains("/examples\\/[^/]+\\/source"));
     assert!(GOTO_SCRIPT.contains("/catalog.json"));
     assert!(GOTO_SCRIPT.contains("history.pushState"));
     assert!(GOTO_SCRIPT.contains("rocci-goto"));
@@ -117,7 +119,8 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("restoreScrollPositions"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.restore()"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.remember()"));
-    assert!(GOTO_SCRIPT.contains("content.scrollTop +="));
+    assert!(GOTO_SCRIPT.contains("rd-source-line[id="));
+    assert!(GOTO_SCRIPT.contains("scroller.scrollTop +="));
     assert!(GOTO_SCRIPT.contains("position:fixed"));
     assert!(GOTO_SCRIPT.contains(":host(.open){display:block}"));
     assert!(GOTO_SCRIPT.contains("max-height:min(70vh,480px)"));
@@ -155,5 +158,10 @@ fn test_chrome_templates_compile() {
             compiled.diagnostics
         );
         assert!(!compiled.roc.is_empty(), "{name} produced empty Roc");
+        assert!(
+            !compiled.roc.contains("Html.text(<"),
+            "{name} lowered markup into Html.text:\n{}",
+            compiled.roc
+        );
     }
 }

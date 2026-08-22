@@ -153,6 +153,9 @@
         font-size: .86rem;
         line-height: 1.65;
     }
+    .article .rd-source-code .rd-source-line {
+        scroll-margin-top: 0.85rem;
+    }
     .article .rd-source-code .rd-source-line:target {
         background: color-mix(in srgb, var(--accent) 18%, transparent);
         box-shadow: inset .12rem 0 0 var(--accent);

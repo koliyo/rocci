@@ -2602,11 +2602,15 @@ mod tests {
         );
         let html = render_article(&docs.article);
         assert!(html.contains("href=\"#L1\""), "{html}");
+        assert!(html.contains("id=\"component-card-l1\""), "{html}");
         assert!(
-            html.contains("id=\"component-card\"") || html.contains("@component Card"),
+            html.contains("<span class=\"rd-source-line\" id=\"L1\">"),
             "{html}"
         );
-        assert!(html.contains("id=\"L1\""), "{html}");
+        assert!(
+            !html.contains("<h3 class=\"rd-header-3\" id=\"L1\">"),
+            "{html}"
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 

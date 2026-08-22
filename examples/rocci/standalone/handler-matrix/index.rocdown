@@ -24,9 +24,7 @@ purpose; only the log moves. GET fragment is `data-on:click=@get(...)`, not a
 navigation link.
 
 This catalog row is **docs-only**. Do not expose it as a public origin; use
-local `curl` against `rocci run`.
-
-See [source](/examples/handler-matrix/source/).
+local `curl` against `rocci run`. Source files are listed in the sidebar.
 
 ## Run locally
 
