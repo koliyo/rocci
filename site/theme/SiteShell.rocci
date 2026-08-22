@@ -305,8 +305,8 @@ import PageOutline
     }
     @media print {
         .skip-link, .site-header, .site-footer, .sidebar, .outline,
-        .outline-fallback, .faq-contents, .journey { display: none; }
-        .site-container, .layout-navigated, .layout-home, .layout-faq {
+        .outline-fallback, .journey { display: none; }
+        .site-container, .layout-navigated, .layout-home {
             display: block;
             max-width: none;
             margin: 0;

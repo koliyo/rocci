@@ -1052,9 +1052,9 @@ fn planned_page(
         Some(page.id.as_str())
     };
     let (lanes, mut sidebar) = lanes_and_sidebar(navigation, current_id);
-    if matches!(page.layout.as_str(), "home" | "faq") {
+    if page.layout == "home" {
         sidebar.clear();
-    } else if !sidebar_has_current(&sidebar) {
+    } else if !sidebar_has_current(&sidebar, &page.route) {
         sidebar.push(NavGroupView::new(
             "Current page",
             "",
@@ -1298,12 +1298,13 @@ fn current_section<'a>(navigation: &'a [NavSection], id: &str) -> Option<&'a Nav
     })
 }
 
-fn sidebar_has_current(sidebar: &[NavGroupView]) -> bool {
+fn sidebar_has_current(sidebar: &[NavGroupView], route: &str) -> bool {
     sidebar.iter().any(|group| {
-        group
-            .items
-            .iter()
-            .any(|item| item.class_name.contains("is-current"))
+        group.href == route
+            || group
+                .items
+                .iter()
+                .any(|item| item.class_name.contains("is-current"))
             || (group.items.is_empty() && group.open)
     })
 }
@@ -2222,6 +2223,13 @@ mod tests {
         assert!(sidebar[0].open);
         assert_eq!(sidebar[1].title, "Status");
         assert!(sidebar[1].items.is_empty());
+    }
+
+    #[test]
+    fn single_page_lane_counts_as_current_sidebar() {
+        let sidebar = vec![NavGroupView::new("FAQ", "/faq/", false, vec![])];
+        assert!(sidebar_has_current(&sidebar, "/faq/"));
+        assert!(!sidebar_has_current(&sidebar, "/project/"));
     }
 
     fn write_site(root: &Path) {

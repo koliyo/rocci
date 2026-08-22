@@ -291,10 +291,10 @@ with `rocdown run` uses the standalone left navigator instead; see
 
 The catalog validates layout names and supplies page, navigation, breadcrumb,
 journey, and outline data. The project theme owns the visible frame. On
-rocci.dev, `home` and `faq` are the only sidebar-free layouts; every other
-published page uses the shared navigated frame. FAQ uses an inline question
-outline, while Home keeps authored path cards and its live island in source
-order.
+rocci.dev, `home` is the only sidebar-free layout. Every other published
+page, including FAQ, uses the shared navigated frame. FAQ uses the responsive
+page outline for its questions, while Home keeps authored path cards and its
+live island in source order.
 
 rocci.dev has no News collection, feed, lane, card, or route in the generated
 site. Historical URL redirects and terminal `410` responses are configured at
