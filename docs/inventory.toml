@@ -159,496 +159,184 @@ retired_routes = [
     "/docs/guides/hybrid-sites/",
 ]
 
-# --- Start ----------------------------------------------------------------
+# --- Current public tree (Phase 4) --------------------------------------
 
 [[page]]
 path = "docs/index.rocdown"
-disposition = "rewrite"
-target = "docs/index.rocdown"
-remove_aliases = ["/documentation/"]
-notes = "Stack portal. Drop Rocci-only / leave-the-manual-for-Rocdown framing."
-
-[[page]]
-path = "docs/start/what-is-rocci.rocdown"
-disposition = "merge"
-target = "docs/the-stack.rocdown"
-remove_aliases = [
-    "/getting-started/overview/",
-    "/getting-started/",
-    "/docs/getting-started/overview/",
-]
-notes = "Delete the source in Phase 3. No redirect stub."
-
-[[page]]
-path = "docs/start/choose-your-path.rocdown"
-disposition = "retire"
-notes = "Delete; no redirect."
-
-[[page]]
-path = "docs/start/prerequisites.rocdown"
-disposition = "merge"
-target = "docs/install.rocdown"
-notes = "Absorbed into install. Old /docs/start/prerequisites/ 404s."
-
-[[page]]
-path = "docs/start/install.rocdown"
-disposition = "rewrite"
-target = "docs/install.rocdown"
-remove_aliases = [
-    "/getting-started/installation/",
-    "/docs/getting-started/installation/",
-]
-notes = "Install plus absorbed prerequisites table. Old start/ and getting-started/ routes 404."
-
-[[page]]
-path = "docs/start/five-minutes.rocdown"
 disposition = "keep"
-target = "docs/five-minutes.rocdown"
-remove_aliases = [
-    "/getting-started/quickstart/",
-    "/docs/getting-started/quickstart/",
-]
-notes = "Drop academy chrome. Do not also keep /docs/start/five-minutes/."
+notes = "Stack portal."
 
 [[page]]
-path = "docs/start/roc-for-rocci.rocdown"
-disposition = "move"
-target = "docs/appendix/roc-for-rocci.rocdown"
+path = "docs/install.rocdown"
+disposition = "keep"
+notes = "Toolchain plus absorbed prerequisites. Old /docs/start/install/ 404s."
 
 [[page]]
-path = "docs/start/web-foundations.rocdown"
-disposition = "move"
-target = "docs/appendix/web-foundations.rocdown"
-
-# --- Templates ------------------------------------------------------------
+path = "docs/five-minutes.rocdown"
+disposition = "keep"
+notes = "First visible component. Old /docs/start/five-minutes/ 404s."
 
 [[page]]
-path = "docs/tutorials/first-component.rocdown"
-disposition = "merge"
-target = "docs/templates/components.rocdown"
-remove_aliases = [
-    "/guides/build-a-component/",
-    "/docs/guides/build-a-component/",
-]
+path = "docs/the-stack.rocdown"
+disposition = "keep"
+notes = "Composition; two app depths; Rocdown experimental."
 
 [[page]]
-path = "docs/how-to/author-components.rocdown"
-disposition = "merge"
-target = "docs/templates/components.rocdown"
+path = "docs/appendix/roc-for-rocci.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/pure-components.rocdown"
-disposition = "merge"
-target = "docs/templates/components.rocdown"
-notes = "Purity is a paragraph, not a page."
+path = "docs/appendix/web-foundations.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/props-bodies-composition.rocdown"
-disposition = "merge"
-target = "docs/templates/components.rocdown"
+path = "docs/appendix/why-roc.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/how-to/write-markup.rocdown"
-disposition = "merge"
-target = "docs/templates/markup.rocdown"
-
-[[page]]
-path = "docs/concepts/html-and-identity.rocdown"
-disposition = "merge"
-target = "docs/templates/markup.rocdown"
-notes = "Stable id ownership may also be cited from applications/handlers."
-
-[[page]]
-path = "docs/concepts/styles-and-ownership.rocdown"
-disposition = "merge"
-target = "docs/templates/markup.rocdown"
-notes = "CSS heading inside markup. Do not recreate styles-and-ownership as a concept."
-
-[[page]]
-path = "docs/how-to/use-directives.rocdown"
-disposition = "merge"
-target = "docs/templates/directives.rocdown"
-
-[[page]]
-path = "docs/concepts/structural-control-flow.rocdown"
-disposition = "merge"
-target = "docs/templates/directives.rocdown"
-
-[[page]]
-path = "docs/tutorials/index.rocdown"
-disposition = "retire"
-notes = "Delete; no redirect."
-
-[[page]]
-path = "docs/how-to/index.rocdown"
-disposition = "retire"
-notes = "Delete; no redirect."
+path = "docs/appendix/glossary.rocdown"
+disposition = "keep"
 
 [[page]]
 path = "docs/templates/index.rocdown"
-disposition = "create"
-notes = "Layer landing. When templates are enough; when to stop."
-
-# --- Applications ---------------------------------------------------------
+disposition = "keep"
+notes = "Layer landing. When templates are enough."
 
 [[page]]
-path = "docs/tutorials/first-app.rocdown"
-disposition = "merge"
-target = "docs/applications/standalone.rocdown"
+path = "docs/templates/components.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/tutorials/compose.rocdown"
-disposition = "merge"
-target = "docs/applications/standalone.rocdown"
-notes = "Composition section."
+path = "docs/templates/markup.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/tutorials/commands-and-live.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
+path = "docs/templates/directives.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/how-to/update-the-ui.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
-remove_aliases = [
-    "/guides/server-actions/",
-    "/docs/guides/server-actions/",
-]
+path = "docs/applications/index.rocdown"
+disposition = "keep"
+notes = "Standalone vs custom are two depths."
 
 [[page]]
-path = "docs/concepts/documents-fragments-commands-streams.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
-remove_aliases = [
-    "/concepts/rendering-model/",
-    "/docs/concepts/rendering-model/",
-]
+path = "docs/applications/standalone.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/datastar-as-transport.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
+path = "docs/applications/handlers.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/one-shot-versus-live.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
+path = "docs/applications/custom.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/state-and-effects.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
-notes = "May live on standalone if the handlers page is unwieldy."
+path = "docs/applications/tooling.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/standalone-versus-custom.rocdown"
-disposition = "merge"
-target = "docs/applications/index.rocdown"
+path = "docs/applications/package.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/tutorials/custom-main.rocdown"
-disposition = "rewrite"
-target = "docs/applications/custom.rocdown"
-
-[[page]]
-path = "docs/how-to/handle-requests-and-errors.rocdown"
-disposition = "merge"
-target = "docs/applications/handlers.rocdown"
-notes = "Or custom, whichever owns request/error tables after merge."
-
-[[page]]
-path = "docs/how-to/develop-and-inspect.rocdown"
-disposition = "merge"
-target = "docs/applications/tooling.rocdown"
-
-[[page]]
-path = "docs/how-to/use-the-playground.rocdown"
-disposition = "merge"
-target = "docs/applications/tooling.rocdown"
-remove_aliases = ["/playground/", "/docs/playground/"]
-
-[[page]]
-path = "docs/how-to/set-up-editors.rocdown"
-disposition = "merge"
-target = "docs/applications/tooling.rocdown"
-
-[[page]]
-path = "docs/tutorials/ship.rocdown"
-disposition = "merge"
-target = "docs/applications/package.rocdown"
-remove_aliases = [
-    "/guides/desktop-app/",
-    "/docs/guides/desktop-app/",
-]
-
-[[page]]
-path = "docs/how-to/package-and-deploy.rocdown"
-disposition = "merge"
-target = "docs/applications/package.rocdown"
-
-[[page]]
-path = "docs/how-to/configure-and-secure.rocdown"
-disposition = "merge"
-target = "docs/applications/package.rocdown"
-notes = "Field tables stay in configuration reference."
-
-[[page]]
-path = "docs/concepts/compilation-model.rocdown"
-disposition = "merge"
-target = "docs/the-stack.rocdown"
-remove_aliases = [
-    "/concepts/architecture/",
-    "/docs/concepts/architecture/",
-]
-notes = "Also generated-Roc reference."
-
-[[page]]
-path = "docs/concepts/development-and-delivery.rocdown"
-disposition = "merge"
-target = "docs/applications/tooling.rocdown"
-notes = "Or package."
-
-[[page]]
-path = "docs/concepts/security-model.rocdown"
-disposition = "merge"
-target = "docs/reference/configuration.rocdown"
-notes = "Also applications/package."
-
-[[page]]
-path = "docs/concepts/performance-model.rocdown"
-disposition = "merge"
-target = "docs/reference/runtime.rocdown"
-notes = "Retire if it adds no contract."
-
-[[page]]
-path = "docs/concepts/error-boundaries.rocdown"
-disposition = "merge"
-target = "docs/reference/diagnostics.rocdown"
-
-# --- Rocdown (move the product lane into /docs/rocdown/) ------------------
-
-[[page]]
-path = "site/rocdown/index.rocdown"
-disposition = "rewrite"
-target = "docs/rocdown/index.rocdown"
+path = "docs/rocdown/index.rocdown"
+disposition = "keep"
 notes = "Experimental; Markdown-first; live pages reuse Applications."
 
 [[page]]
-path = "site/rocdown/pages.rocdown"
-disposition = "move"
-target = "docs/rocdown/pages.rocdown"
-remove_aliases = [
-    "/guides/rocdown-pages/",
-    "/docs/guides/rocdown-pages/",
-]
+path = "docs/rocdown/pages.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "site/rocdown/article-blocks.rocdown"
-disposition = "move"
-target = "docs/rocdown/blocks.rocdown"
-remove_aliases = [
-    "/guides/docs-components/",
-    "/docs/guides/docs-components/",
-]
+path = "docs/rocdown/blocks.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "site/rocdown/site-config.rocdown"
-disposition = "move"
-target = "docs/rocdown/sites.rocdown"
-remove_aliases = [
-    "/reference/rocdown-site/",
-    "/docs/reference/rocdown-site/",
-]
+path = "docs/rocdown/sites.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "site/rocdown/hybrid.rocdown"
-disposition = "move"
-target = "docs/rocdown/hybrid.rocdown"
-remove_aliases = [
-    "/guides/hybrid-sites/",
-    "/docs/guides/hybrid-sites/",
-]
-notes = "Keep experimental note."
+path = "docs/rocdown/hybrid.rocdown"
+disposition = "keep"
+notes = "Experimental."
 
 [[page]]
-path = "site/rocdown/language.rocdown"
-disposition = "move"
-target = "docs/rocdown/language.rocdown"
-remove_aliases = [
-    "/reference/rocdown/",
-    "/docs/reference/rocdown/",
-]
+path = "docs/rocdown/language.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "site/rocdown/cli.rocdown"
-disposition = "move"
-target = "docs/rocdown/cli.rocdown"
-remove_aliases = ["/rocdown/cli/"]
+path = "docs/rocdown/cli.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "site/rocdown/tree.rocdown"
-disposition = "move"
-target = "docs/reference/contributor/rocdown-tree.rocdown"
-remove_aliases = [
-    "/reference/rocdown-tree/",
-    "/docs/reference/rocdown-tree/",
-]
-
-# --- Reference, troubleshooting, leftover ---------------------------------
+path = "docs/reference/index.rocdown"
+disposition = "keep"
+notes = "Links /docs/rocdown/language/ and /docs/rocdown/cli/."
 
 [[page]]
 path = "docs/reference/language/"
 disposition = "keep"
-notes = "Strip academy chrome only. Subpages keep their contracts."
 
 [[page]]
-path = "docs/reference/language/index.rocdown"
+path = "docs/reference/runtime.rocdown"
 disposition = "keep"
-remove_aliases = ["/reference/rocci/", "/docs/reference/rocci/"]
-
-[[page]]
-path = "docs/reference/language/components.rocdown"
-disposition = "keep"
-remove_aliases = ["/docs/reference/@component/"]
-
-[[page]]
-path = "docs/reference/language/attributes.rocdown"
-disposition = "keep"
-remove_aliases = [
-    "/docs/reference/@get/",
-    "/docs/reference/@post/",
-    "/docs/reference/datastar-actions/",
-]
-
-[[page]]
-path = "docs/reference/language/directives.rocdown"
-disposition = "keep"
-remove_aliases = [
-    "/docs/reference/@let/",
-    "/docs/reference/@if/",
-    "/docs/reference/@for/",
-    "/docs/reference/@match/",
-]
-
-[[page]]
-path = "docs/reference/language/css.rocdown"
-disposition = "keep"
-remove_aliases = ["/docs/reference/@css/"]
-
-[[page]]
-path = "docs/reference/language/fixtures.rocdown"
-disposition = "keep"
-remove_aliases = ["/docs/reference/@fixture/"]
-
-[[page]]
-path = "docs/reference/language/server.rocdown"
-disposition = "keep"
-remove_aliases = [
-    "/docs/reference/@context/",
-    "/docs/reference/@init/",
-    "/docs/reference/@view/",
-    "/docs/reference/@patch/",
-    "/docs/reference/@command/",
-    "/docs/reference/@live/",
-]
-
-[[page]]
-path = "docs/reference/language/comments.rocdown"
-disposition = "keep"
-remove_aliases = [
-    "/docs/reference/@@/",
-    "/docs/reference/doc-comments/",
-]
 
 [[page]]
 path = "docs/reference/cli.rocdown"
 disposition = "keep"
-remove_aliases = [
-    "/reference/cli/",
-    "/docs/reference/cli/",
-    "/docs/cli/validate/",
-    "/docs/cli/build/",
-    "/docs/cli/run/",
-    "/docs/cli/bundle/",
-]
-notes = "Rocci CLI. Link Rocdown CLI at /docs/rocdown/cli/."
 
 [[page]]
 path = "docs/reference/configuration.rocdown"
 disposition = "keep"
-remove_aliases = [
-    "/reference/configuration/",
-    "/docs/reference/configuration/",
-    "/docs/reference/rocci.toml/",
-    "/docs/reference/http-host/",
-]
+
+[[page]]
+path = "docs/reference/compatibility.rocdown"
+disposition = "keep"
+
+[[page]]
+path = "docs/reference/diagnostics.rocdown"
+disposition = "keep"
 
 [[page]]
 path = "docs/reference/contributor/rocci-tree.rocdown"
 disposition = "keep"
-remove_aliases = [
-    "/reference/rocci-tree/",
-    "/docs/reference/rocci-tree/",
-]
 
 [[page]]
-path = "docs/reference/index.rocdown"
-disposition = "rewrite"
-notes = "Link /docs/rocdown/language/ and /docs/rocdown/cli/."
-
-[[page]]
-path = "docs/troubleshooting/"
+path = "docs/reference/contributor/rocdown-tree.rocdown"
 disposition = "keep"
-notes = "Strip chrome. Rocci and Rocdown symptoms if distinct."
+
+[[page]]
+path = "docs/reference/contributor/checklist.rocdown"
+disposition = "keep"
+notes = "Matches stack IA paths and chrome rules."
+
+[[page]]
+path = "docs/reference/contributor/first-use.rocdown"
+disposition = "unpublished"
+notes = "Unpublished. Not in public nav. Do not run academy first-use as the IA target."
 
 [[page]]
 path = "docs/troubleshooting/index.rocdown"
 disposition = "keep"
-remove_aliases = ["/troubleshooting/", "/docs/troubleshooting/"]
 
 [[page]]
-path = "docs/status.rocdown"
-disposition = "fold"
-target = "site/project/status.rocdown"
-remove_aliases = ["/status/", "/docs/status/"]
-notes = "Portal sentence plus Project status. Delete the docs status page."
+path = "docs/troubleshooting/install.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/glossary.rocdown"
-disposition = "move"
-target = "docs/appendix/glossary.rocdown"
-notes = "Rewrite the Rocdown row."
+path = "docs/troubleshooting/compile.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/concepts/why-roc.rocdown"
-disposition = "move"
-target = "docs/appendix/why-roc.rocdown"
-remove_aliases = ["/concepts/why-roc/"]
-notes = "Delete does-not-teach-Rocdown. May land under site/project/ instead."
+path = "docs/troubleshooting/runtime.rocdown"
+disposition = "keep"
 
 [[page]]
-path = "docs/reference/contributor/first-use.rocdown"
-disposition = "retire"
-notes = "Unpublish. Do not run old Phase 7 against academy IA."
+path = "docs/troubleshooting/preview.rocdown"
+disposition = "keep"
 
-[[page]]
-path = "docs/reference/contributor/checklist.rocdown"
-disposition = "rewrite"
-notes = "Match new paths and chrome rules."
-
-# Historical sources already moved or retired before this rewrite.
-
-[[page]]
-path = "docs/guides/rocci-browser.rocdown"
-disposition = "retire"
-notes = "Already gone. /guides/rocci-browser/ stays 404."
-
-[[page]]
-path = "docs/examples/index.rocdown"
-disposition = "retire"
-target = "/examples/"
-notes = "Page does not exist. Generator must not emit /docs/examples/ as an alias."
+# Folded: docs/status.rocdown deleted. Status lives at /project/status/.
 
 # --- Cataloged apps (unchanged ownership) ---------------------------------
 

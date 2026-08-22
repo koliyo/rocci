@@ -137,7 +137,7 @@ fn stages_expected_tree_and_skips_non_catalog() {
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
     assert!(index.contains("/examples/listed/"));
     assert!(index.contains("`docs`"));
-    assert!(index.contains("/rocdown/"));
+    assert!(index.contains("/docs/rocdown/"));
     assert!(!index.contains("rocdown run"));
 }
 

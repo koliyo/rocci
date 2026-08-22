@@ -8,9 +8,9 @@
 
 # Handler matrix
 
-**Audience:** experienced Rocci author.
-**Prerequisites:** [runtime reference](/docs/reference/runtime/).
-**Role:** exhaustive handler contract, not a beginner tutorial.
+See [handlers](/docs/applications/handlers/) and the
+[runtime](/docs/reference/runtime/) contract. Exhaustive handler matrix, not a
+beginner walkthrough.
 
 One standalone app that lists every accepted handler construct. Fragment
 handlers return uniquely identified HTML fragments. Commands return no

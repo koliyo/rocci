@@ -82,7 +82,6 @@ items = [
     "reference/contributor/rocci-tree",
     "reference/contributor/rocdown-tree",
     "reference/contributor/checklist",
-    "reference/contributor/first-use",
 ]
 
 [[nav]]

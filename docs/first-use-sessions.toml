@@ -11,6 +11,6 @@ product = "rocci"
 # date = "YYYY-MM-DD"
 # success = false
 # minutes_to_visible = 0
-# failed_step = "/docs/start/install/"
+# failed_step = "/docs/install/"
 # disposition = "page-fix"  # page-fix | product-issue | non-goal
 # notes = "anonymous phrase only"

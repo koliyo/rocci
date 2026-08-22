@@ -99,7 +99,6 @@ items = [
     "docs/reference/contributor/rocci-tree",
     "docs/reference/contributor/rocdown-tree",
     "docs/reference/contributor/checklist",
-    "docs/reference/contributor/first-use",
 ]
 
 [[nav.groups]]
