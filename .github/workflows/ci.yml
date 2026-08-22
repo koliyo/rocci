@@ -14,12 +14,13 @@ jobs:
   lint:
     name: Code Formatting & Lints
     runs-on: [self-hosted, rocci-linux]
+    env:
+      CARGO_TARGET_DIR: /home/nils/.cache/rocci-target
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
         with:
           cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
@@ -43,21 +44,25 @@ jobs:
           lfs: true
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        if: runner.os != 'Linux'
         with:
           key: ${{ matrix.os }}
       - uses: astral-sh/setup-uv@v6
         with:
           cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run workspace tests
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Linux' && '/home/nils/.cache/rocci-target' || 'target' }}
         run: uv run --no-dev rocci-ops ci test
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
     runs-on: [self-hosted, rocci-linux]
+    env:
+      CARGO_TARGET_DIR: /home/nils/.cache/rocci-target
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
         with:
           cache-local-path: /home/nils/.cache/uv
