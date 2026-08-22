@@ -2417,6 +2417,16 @@ items = ["index", "guide"]
     }
 
     #[test]
+    fn playground_styles_do_not_override_host_root_tokens() {
+        let css = include_str!("../../../playground/src/styles.css");
+        assert!(
+            !css.contains(":root {"),
+            "playground CSS must inherit host theme tokens when embedded"
+        );
+        assert!(css.contains("html:has(body > #playground-root)"), "{css}");
+    }
+
+    #[test]
     fn default_csp_is_strict_and_stable() {
         assert_eq!(
             DEFAULT_CSP,
