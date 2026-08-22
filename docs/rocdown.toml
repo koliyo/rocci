@@ -6,7 +6,7 @@ language = "en"
 repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
 subtitle = "Composable authoring for applications and content"
-footer = "Rocci is experimental software. Verify APIs against the current source before production use."
+footer = "Highly experimental software — for testing only. Not for production use."
 
 [build]
 output = "../dist/docs"
