@@ -31,22 +31,18 @@ Page = |{ title, eyebrow, lede, current }, content|
 @component
 GalleryNav = |{ current }|
     <ul class="gallery-nav">
-        <li>
-            <a href="/search" class={if current == "search" { "active" } else { "" }}>Search</a>
-        </li>
-        <li>
-            <a href="/edit" class={if current == "edit" { "active" } else { "" }}>Edit</a>
-        </li>
-        <li>
-            <a href="/todos" class={if current == "todos" { "active" } else { "" }}>Todos</a>
-        </li>
-        <li>
-            <a href="/tabs" class={if current == "tabs" { "active" } else { "" }}>Tabs</a>
-        </li>
-        <li>
-            <a href="/validate" class={if current == "validate" { "active" } else { "" }}>Validate</a>
-        </li>
+        <NavLink href="/search" current={current} section="search">Search</NavLink>
+        <NavLink href="/edit" current={current} section="edit">Edit</NavLink>
+        <NavLink href="/todos" current={current} section="todos">Todos</NavLink>
+        <NavLink href="/tabs" current={current} section="tabs">Tabs</NavLink>
+        <NavLink href="/validate" current={current} section="validate">Validate</NavLink>
     </ul>
+
+@component
+NavLink = |{ href, current, section }, label|
+    <li>
+        <a href={href} class={if current == section { "active" } else { "" }}>{label}</a>
+    </li>
 
 @component
 Home = |{}|
@@ -86,6 +82,9 @@ pageTest = {
 
 @fixture{target: GalleryNav}
 galleryNavTest = { current: "search" }
+
+@fixture{target: NavLink}
+navLinkTest = { href: "/search", current: "search", section: "search" }
 
 @fixture{target: Home}
 homeTest = {}

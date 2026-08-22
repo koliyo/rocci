@@ -72,12 +72,12 @@ reset_count! = |db| {
             params: {},
         },
     )?
-    { db: db }
+    { db }
 }
 
 @get:live("/sse") = |{ db }| {
     count = read_count!(db)?
-    counterCard({ count: count })
+    counterCard({ count })
 }
 
 @post:command("/actions/counter/increment") = |{ db }| {

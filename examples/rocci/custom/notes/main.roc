@@ -66,7 +66,7 @@ respond! = |request, { db }| {
     match (method, path) {
         ("GET", "/") => {
             notes = load_notes!(db) ? |err| ServerErr("Failed to read notes: ${Str.inspect(err)}")
-            html_ok(Html.render(Notes.page({ notes: notes })))
+            html_ok(Html.render(Notes.page({ notes })))
         }
         ("GET", "/health") => text_ok("ok")
         ("POST", "/actions/notes/add") => add_note!(db, request)
@@ -101,7 +101,7 @@ add_note! = |db, request| {
     body = Str.trim(Signals.str(json, "body"))
     if body != "" {
         params : BodyParams
-        params = { body: body }
+        params = { body }
         Sqlite.execute!(
             {
                 db,
@@ -114,7 +114,7 @@ add_note! = |db, request| {
         Ok({})
     }?
     notes = load_notes!(db) ? |err| ServerErr("Failed to read notes: ${Str.inspect(err)}")
-    Ok(patch!(Notes.notesBoard({ notes: notes })))
+    Ok(patch!(Notes.notesBoard({ notes })))
 }
 
 html_ok = |body|

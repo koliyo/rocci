@@ -62,9 +62,9 @@ TodoItem = |{ item }|
 TodoFooter = |{ filter, pending, has_completed }|
     <div id="todo-actions" class="todo-actions">
         <span><strong>{pending.to_str()}</strong> items pending</span>
-        <button class={if filter_is(filter, All) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/all")>All</button>
-        <button class={if filter_is(filter, Pending) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/pending")>Pending</button>
-        <button class={if filter_is(filter, Completed) { "small info" } else { "small" }} data-on:click=@put("/actions/todos/mode/completed")>Completed</button>
+        <button class={filter_class(filter, All)} data-on:click=@put("/actions/todos/mode/all")>All</button>
+        <button class={filter_class(filter, Pending)} data-on:click=@put("/actions/todos/mode/pending")>Pending</button>
+        <button class={filter_class(filter, Completed)} data-on:click=@put("/actions/todos/mode/completed")>Completed</button>
         @if has_completed {
             <button class="error small" data-on:click=@delete("/actions/todos/completed")>Delete</button>
         } @else {
@@ -79,6 +79,13 @@ filter_is = |filter, wanted|
         (Pending, Pending) => True
         (Completed, Completed) => True
         _ => False
+    }
+
+filter_class = |filter, wanted|
+    if filter_is(filter, wanted) {
+        "small info"
+    } else {
+        "small"
     }
 
 sample_items = [
