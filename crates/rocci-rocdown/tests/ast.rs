@@ -137,7 +137,7 @@ fn classify_item(item: &rocci_rocdown::Item) -> &'static str {
         rocci_rocdown::Item::Init(_) => "init",
         rocci_rocdown::Item::Live(_) => "live",
         rocci_rocdown::Item::View(_) => "view",
-        rocci_rocdown::Item::Patch(_) => "patch",
+        rocci_rocdown::Item::Fragment(_) => "fragment",
         rocci_rocdown::Item::Command(_) => "command",
         rocci_rocdown::Item::Use(_) => "use",
         rocci_rocdown::Item::Template(_) => "template",

@@ -48,7 +48,7 @@ impl IslandServicePlan {
                     roc: module.roc,
                     state_type: module.state_type,
                     init: module.init,
-                    live: module.live,
+                    lives: module.lives,
                     routes: module.routes,
                     mapped: module.mapped,
                     local_assets: module.local_assets,
@@ -263,7 +263,7 @@ fn compile_service_module(
         roc: compiled.roc.clone(),
         state_type: compiled.state_type,
         init: compiled.init,
-        live: compiled.live,
+        lives: compiled.lives,
         routes,
         mapped: rocci_template::MappedModule {
             type_name,
@@ -436,7 +436,7 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
-            live: compiled.live,
+            lives: compiled.lives,
             routes,
             mapped: rocci_template::MappedModule {
                 type_name,
@@ -531,14 +531,14 @@ mod tests {
             method: "GET".into(),
             path: path.into(),
             fn_name: "on_get".into(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: rocci_template::RespondKind::Document,
             span: rocci_template::Span::new(0, 0),
         };
         let post = |path: &str| RouteInfo {
             method: "POST".into(),
             path: path.into(),
             fn_name: "on_post".into(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: rocci_template::RespondKind::Document,
             span: rocci_template::Span::new(0, 0),
         };
         assert!(!keep_island_route(&get("/"), &pages));

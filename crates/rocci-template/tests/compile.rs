@@ -1423,11 +1423,8 @@ fn lowers_plural_live_metadata_and_explicit_finite_roles() {
         out.roc
             .contains("on_post_actions_increment! = |state, _request| {")
     );
-    assert!(
-        out.roc
-            .contains("on_post_actions_increment_json! = |state, request| {")
-    );
-    assert!(out.roc.contains("Encoding.Json.to_str_try(data)"));
+    assert!(!out.roc.contains("_json!"));
+    assert!(!out.roc.contains("Encoding.Json.to_str_try(data)"));
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(live"));
     assert!(ast.contains("(command POST \"/actions/increment\""));

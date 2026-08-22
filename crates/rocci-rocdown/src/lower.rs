@@ -49,7 +49,7 @@ pub struct Lowered {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
-    pub live: Option<LiveInfo>,
+    pub lives: Vec<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub page_meta: PageMeta,
     pub theme: Option<rocci_theme::ResolvedTheme>,
@@ -102,10 +102,18 @@ pub fn lower(
             Item::Css(decl) => rocci_items.push(ModuleItem::Css(decl.clone())),
             Item::Context(decl) => rocci_items.push(ModuleItem::Context(decl.clone())),
             Item::Init(decl) => rocci_items.push(ModuleItem::Init(decl.clone())),
-            Item::Live(decl) => rocci_items.push(ModuleItem::Live(decl.clone())),
-            Item::View(decl) => rocci_items.push(ModuleItem::View(decl.clone())),
-            Item::Patch(decl) => rocci_items.push(ModuleItem::Patch(decl.clone())),
-            Item::Command(decl) => rocci_items.push(ModuleItem::Command(decl.clone())),
+            Item::Live(decl) => rocci_items.push(ModuleItem::Route(
+                rocci_template::RouteDecl::Live(decl.clone()),
+            )),
+            Item::View(decl) => rocci_items.push(ModuleItem::Route(
+                rocci_template::RouteDecl::View(decl.clone()),
+            )),
+            Item::Fragment(decl) => rocci_items.push(ModuleItem::Route(
+                rocci_template::RouteDecl::Fragment(decl.clone()),
+            )),
+            Item::Command(decl) => rocci_items.push(ModuleItem::Route(
+                rocci_template::RouteDecl::Command(decl.clone()),
+            )),
             _ => {}
         }
     }
@@ -334,7 +342,7 @@ pub fn lower(
             method: "GET".to_string(),
             path: page_route.clone(),
             fn_name: fn_name.clone(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: rocci_template::RespondKind::Document,
             span: document.span,
         });
         if page_route != "/"
@@ -346,7 +354,7 @@ pub fn lower(
                 method: "GET".to_string(),
                 path: "/".to_string(),
                 fn_name,
-                respond: rocci_template::RespondKind::Patch,
+                respond: rocci_template::RespondKind::Document,
                 span: document.span,
             });
         }
@@ -381,7 +389,7 @@ pub fn lower(
         styles,
         state_type: lowered_rocci.state_type,
         init: lowered_rocci.init,
-        live: lowered_rocci.live,
+        lives: lowered_rocci.lives,
         routes,
         page_meta,
         theme: resolved_theme,
@@ -582,7 +590,7 @@ pub fn lower_islands(
         styles: lowered_rocci.styles,
         state_type: None,
         init: None,
-        live: None,
+        lives: Vec::new(),
         routes: Vec::new(),
         page_meta,
         theme: None,
@@ -2690,7 +2698,7 @@ fn illegal_docs_item(item: &Item) -> Option<&'static str> {
         Item::Init(_) => Some("init"),
         Item::Live(_) => Some("live"),
         Item::View(_) => Some("view"),
-        Item::Patch(_) => Some("patch"),
+        Item::Fragment(_) => Some("fragment"),
         Item::Command(_) => Some("command"),
         Item::Use(_) => Some("use"),
         Item::Template(_) => Some("template"),

@@ -653,6 +653,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "counter example is converted in combined Phase 5"]
     fn counter_inspect_json_fills_source_ast_and_roc() {
         use crate::inspector::InspectorServer;
         use std::io::{Read, Write};

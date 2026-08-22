@@ -9,8 +9,8 @@ use lsp_types::{
 };
 use rocci_lsp::analysis::{
     command_symbol, completion_in_template, completion_item, component_symbol, context_symbol,
-    css_symbol, fixture_symbol, goto_definition_components, hover_components, init_symbol,
-    live_symbol, lsp_range, map_diagnostics, named_symbol, offset_at, patch_symbol, view_symbol,
+    css_symbol, fixture_symbol, fragment_symbol, goto_definition_components, hover_components,
+    init_symbol, live_symbol, lsp_range, map_diagnostics, named_symbol, offset_at, view_symbol,
 };
 use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
@@ -265,7 +265,7 @@ pub fn document_symbols(
             Item::Init(init) => init_symbol(source, init, encoding),
             Item::Live(live) => live_symbol(source, live, encoding),
             Item::View(view) => view_symbol(source, view, encoding),
-            Item::Patch(patch) => patch_symbol(source, patch, encoding),
+            Item::Fragment(fragment) => fragment_symbol(source, fragment, encoding),
             Item::Command(command) => command_symbol(source, command, encoding),
             Item::Use(used) => named_symbol(
                 "@use",
