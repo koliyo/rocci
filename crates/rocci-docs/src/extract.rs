@@ -7,6 +7,7 @@ use rocci_template::{
 pub struct DeclDoc {
     pub heading: String,
     pub body: String,
+    pub line: u32,
 }
 
 pub fn documented_declarations(src: &str) -> Vec<DeclDoc> {
@@ -25,25 +26,78 @@ fn collect_docs(src: &str, document: &Document) -> Vec<DeclDoc> {
 }
 
 fn item_doc(src: &str, item: &ModuleItem) -> Option<DeclDoc> {
+    let line = declaration_line(src, item);
     match item {
         ModuleItem::Roc { .. } => None,
-        ModuleItem::Component(item) => named_doc(src, &item.leading, component_heading(item)),
-        ModuleItem::Fixture(item) => named_doc(src, &item.leading, fixture_heading(item)),
-        ModuleItem::Css(item) => named_doc(src, &item.leading, css_heading(item)),
-        ModuleItem::Context(item) => named_doc(src, &item.leading, context_heading(item)),
-        ModuleItem::Init(item) => named_doc(src, &item.leading, init_heading(item)),
+        ModuleItem::Component(item) => named_doc(src, &item.leading, component_heading(item), line),
+        ModuleItem::Fixture(item) => named_doc(src, &item.leading, fixture_heading(item), line),
+        ModuleItem::Css(item) => named_doc(src, &item.leading, css_heading(item), line),
+        ModuleItem::Context(item) => named_doc(src, &item.leading, context_heading(item), line),
+        ModuleItem::Init(item) => named_doc(src, &item.leading, init_heading(item), line),
         ModuleItem::Route(route) => match route {
-            RouteDecl::Live(item) => named_doc(src, &item.leading, live_heading(item)),
-            RouteDecl::View(item) => named_doc(src, &item.leading, view_heading(item)),
-            RouteDecl::Fragment(item) => named_doc(src, &item.leading, fragment_heading(item)),
-            RouteDecl::Command(item) => named_doc(src, &item.leading, command_heading(item)),
+            RouteDecl::Live(item) => named_doc(src, &item.leading, live_heading(item), line),
+            RouteDecl::View(item) => named_doc(src, &item.leading, view_heading(item), line),
+            RouteDecl::Fragment(item) => {
+                named_doc(src, &item.leading, fragment_heading(item), line)
+            }
+            RouteDecl::Command(item) => named_doc(src, &item.leading, command_heading(item), line),
         },
     }
 }
 
-fn named_doc(src: &str, leading: &Option<LeadingComments>, heading: String) -> Option<DeclDoc> {
+fn named_doc(
+    src: &str,
+    leading: &Option<LeadingComments>,
+    heading: String,
+    line: u32,
+) -> Option<DeclDoc> {
     let body = docs_body(src, leading)?;
-    Some(DeclDoc { heading, body })
+    Some(DeclDoc {
+        heading,
+        body,
+        line,
+    })
+}
+
+fn declaration_line(src: &str, item: &ModuleItem) -> u32 {
+    line_number(src, declaration_offset(src, item))
+}
+
+fn declaration_offset(src: &str, item: &ModuleItem) -> usize {
+    match item {
+        ModuleItem::Roc { span } => span.start as usize,
+        ModuleItem::Component(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        ModuleItem::Fixture(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        ModuleItem::Css(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        ModuleItem::Context(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        ModuleItem::Init(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        ModuleItem::Route(route) => match route {
+            RouteDecl::Live(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+            RouteDecl::View(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+            RouteDecl::Fragment(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+            RouteDecl::Command(item) => leading_or_decl_start(src, &item.leading, item.span.start),
+        },
+    }
+}
+
+fn leading_or_decl_start(src: &str, leading: &Option<LeadingComments>, decl_start: u32) -> usize {
+    if let Some(leading) = leading {
+        let end = leading.span.end as usize;
+        if end < src.len() && src.as_bytes()[end] == b'\n' {
+            return end + 1;
+        }
+        return end;
+    }
+    decl_start as usize
+}
+
+fn line_number(src: &str, offset: usize) -> u32 {
+    src.get(..offset.min(src.len()))
+        .unwrap_or("")
+        .bytes()
+        .filter(|byte| *byte == b'\n')
+        .count() as u32
+        + 1
 }
 
 fn docs_body(src: &str, leading: &Option<LeadingComments>) -> Option<String> {
@@ -124,7 +178,7 @@ pub fn declarations_markdown(src: &str) -> String {
     for decl in decls {
         md.push_str("### `");
         md.push_str(&decl.heading);
-        md.push_str("`\n\n");
+        md.push_str(&format!("` · [#L{line}](#L{line})\n\n", line = decl.line));
         md.push_str(&escape_rocdown_prose(&decl.body));
         md.push_str("\n\n");
     }

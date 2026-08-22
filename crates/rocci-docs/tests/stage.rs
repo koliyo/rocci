@@ -125,9 +125,9 @@ fn stages_expected_tree_and_skips_non_catalog() {
     let page = fs::read_to_string(out.join("listed/source/App-rocci.rocdown")).unwrap();
     assert!(page.contains(":include[path: \"App.rocci\"]"));
     assert!(page.contains("## Declarations"));
-    assert!(page.contains("### `@component Card`"));
+    assert!(page.contains("### `@component Card` · [#L2](#L2)"));
     assert!(page.contains("Card used by the listing fixture."));
-    assert!(page.contains("### `@get:view(\"/\")`"));
+    assert!(page.contains("### `@get:view(\"/\")` · [#L8](#L8)"));
     assert!(page.contains("GET the demo page."));
     assert!(!page.contains(".."));
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();

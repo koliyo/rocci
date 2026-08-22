@@ -172,29 +172,7 @@ pub(crate) fn render_md(node: &MdNode) -> String {
             kids.extend(render_all(children));
             element("li", &[attribute("class", "rd-task-item")], &kids)
         }
-        MdNode::CodeBlock { info, literal, .. } => {
-            let lang = rocci_highlight::LanguageId::parse(info);
-            let mut pre_attrs = vec![attribute("class", "rd-code-block")];
-            if lang.is_highlighted() {
-                pre_attrs.push(attribute("data-language", lang.canonical_name()));
-            }
-            let code_class = if info.is_empty() {
-                "rd-code".to_string()
-            } else {
-                format!("rd-code language-{}", lang.canonical_name())
-            };
-            let code_html = if lang.is_highlighted() {
-                render_highlighted_code(&lang, literal)
-            } else {
-                escape(literal)
-            };
-            let code = format!(
-                "<code class=\"{}\">{}</code>",
-                escape(&code_class),
-                code_html
-            );
-            element("pre", &pre_attrs, &[code])
-        }
+        MdNode::CodeBlock { info, literal, .. } => render_code_block(info, literal),
         MdNode::ThematicBreak { .. } => {
             void_element("hr", &[attribute("class", "rd-thematic-break")])
         }
@@ -439,6 +417,68 @@ fn void_element(name: &str, attrs: &[String]) -> String {
 
 fn fragment(nodes: &[String]) -> String {
     nodes.concat()
+}
+
+pub(crate) fn render_code_block(info: &str, literal: &str) -> String {
+    render_code_block_with_lines(info, literal, None)
+}
+
+pub(crate) fn render_code_block_with_lines(
+    info: &str,
+    literal: &str,
+    line_start: Option<u32>,
+) -> String {
+    let lang = rocci_highlight::LanguageId::parse(info);
+    let mut pre_attrs = vec![];
+    let pre_class = if line_start.is_some() {
+        "rd-code-block rd-source-code"
+    } else {
+        "rd-code-block"
+    };
+    pre_attrs.push(attribute("class", pre_class));
+    if lang.is_highlighted() {
+        pre_attrs.push(attribute("data-language", lang.canonical_name()));
+    }
+    let code_class = if info.is_empty() {
+        "rd-code".to_string()
+    } else {
+        format!("rd-code language-{}", lang.canonical_name())
+    };
+    let code_html = match line_start {
+        Some(start) => render_code_with_line_anchors(&lang, literal, start),
+        None if lang.is_highlighted() => render_highlighted_code(&lang, literal),
+        None => escape(literal),
+    };
+    let code = format!(
+        "<code class=\"{}\">{}</code>",
+        escape(&code_class),
+        code_html
+    );
+    element("pre", &pre_attrs, &[code])
+}
+
+fn render_code_with_line_anchors(
+    lang: &rocci_highlight::LanguageId,
+    literal: &str,
+    line_start: u32,
+) -> String {
+    let lines: Vec<&str> = literal.split('\n').collect();
+    let mut out = String::new();
+    for (index, line) in lines.iter().enumerate() {
+        let line_no = line_start + index as u32;
+        let highlighted = if lang.is_highlighted() {
+            render_highlighted_code(lang, line)
+        } else {
+            escape(line)
+        };
+        out.push_str(&format!(
+            "<span class=\"rd-source-line\" id=\"L{line_no}\">{highlighted}</span>"
+        ));
+        if index + 1 < lines.len() {
+            out.push('\n');
+        }
+    }
+    out
 }
 
 fn render_highlighted_code(lang: &rocci_highlight::LanguageId, literal: &str) -> String {
