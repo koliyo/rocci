@@ -34,6 +34,6 @@ We welcome contributions across the compiler, editor plugins, documentation, and
 
 Pull requests do not start GitHub Actions automatically. After review, a
 maintainer comments `/ci` to run hosted CI and Knowledge on the PR head.
-Dependabot PRs need the same `/ci` comment. Do not run `/cl-local` on
+Dependabot PRs need the same `/ci` comment. Do not run `/ci-local` on
 external or Dependabot pull requests; that command is reserved for
-`koliyo` same-repository work.
+`koliyo` same-repository work (`/cl-local` is an alias).
