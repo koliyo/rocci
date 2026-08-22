@@ -3,10 +3,13 @@ from __future__ import annotations
 import argparse
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
+import time
 from pathlib import Path
 
 from rocci_ops.paths import repo_root
@@ -17,10 +20,24 @@ CLI_CRATES = (
     ("rocci-okf", "rocci-okf"),
 )
 
+# Temporary site-packaging workaround for Roc's optimized backend recursion.
+SITE_ROC_OPT = "dev"
+
 
 def run(argv: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
-    print("+ " + " ".join(argv), flush=True)
-    subprocess.run(argv, cwd=cwd or repo_root(), env=env, check=True)
+    started = time.monotonic()
+    print(
+        f"[rocci-ops] phase=command status=start command={shlex.join(argv)}",
+        flush=True,
+    )
+    try:
+        subprocess.run(argv, cwd=cwd or repo_root(), env=env, check=True)
+    except subprocess.CalledProcessError:
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        print(f"[rocci-ops] phase=command status=failed elapsed_ms={elapsed_ms}", flush=True)
+        raise
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    print(f"[rocci-ops] phase=command status=done elapsed_ms={elapsed_ms}", flush=True)
 
 
 def require_darwin(kind: str) -> None:
@@ -326,6 +343,8 @@ def package_site(*, target: str) -> int:
     root = repo_root()
     live_root = root / "dist/examples-live"
     stage_example_docs()
+    catalog = root / "examples/rocci/apps.toml"
+    print(f"[rocci-ops] phase=list-live status=start catalog={catalog}", flush=True)
     listed = subprocess.run(
         [
             "cargo",
@@ -343,10 +362,15 @@ def package_site(*, target: str) -> int:
         capture_output=True,
         text=True,
     )
+    live_entries = [line for line in listed.stdout.splitlines() if line.strip()]
+    print(
+        f"[rocci-ops] phase=list-live status=done count={len(live_entries)}",
+        flush=True,
+    )
     if live_root.exists():
         shutil.rmtree(live_root)
     live_root.mkdir(parents=True)
-    for raw in listed.stdout.splitlines():
+    for raw in live_entries:
         line = raw.strip()
         if not line:
             continue
@@ -355,26 +379,35 @@ def package_site(*, target: str) -> int:
         if entry != ".":
             src = src / entry
         dest = live_root / app_id
-        run(
-            [
-                "cargo",
-                "run",
-                "-q",
-                "-p",
-                "rocci-cli",
-                "--",
-                "build",
-                "--release",
-                str(src),
-                "--target",
-                target,
-                "--output",
-                str(dest),
-            ],
-            cwd=root,
+        # Use the dev backend for every live site artifact until the pinned Roc
+        # nightly's optimized backend is safe for the site applications.
+        opt = SITE_ROC_OPT
+        print(
+            f"[rocci-ops] phase=live-app status=start app={app_id} source={src} target={target}"
+            f" opt={opt or 'speed'}",
+            flush=True,
         )
+        build_args = [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "rocci-cli",
+            "--",
+            "build",
+            "--release",
+            str(src),
+            "--target",
+            target,
+            "--verbose",
+        ]
+        if opt:
+            build_args.extend(["--opt", opt])
+        build_args.extend(["--output", str(dest)])
+        run(build_args, cwd=root)
         if not (dest / "server").is_file():
             raise SystemExit(f"error: live app `{app_id}` did not write {dest / 'server'}")
+        print(f"[rocci-ops] phase=live-app status=done app={app_id}", flush=True)
     for docs_only in ("counter", "styling", "snake"):
         if (live_root / docs_only).exists():
             raise SystemExit(f"error: docs-only id `{docs_only}` must not be in {live_root}")
@@ -392,6 +425,16 @@ def package_site(*, target: str) -> int:
             target,
         ],
         cwd=root,
+    )
+    blocks = live_root / "blocks"
+    if not (blocks / "server").is_file() or not (blocks / "assets").is_dir():
+        raise SystemExit("error: blocks live package must contain server and assets/")
+    shutil.copy2(blocks / "server", root / "dist/blocks")
+    with tarfile.open(root / "dist/blocks-assets.tgz", "w:gz") as archive:
+        archive.add(blocks / "assets", arcname="assets")
+    print(
+        "[rocci-ops] phase=live-artifacts status=done server=dist/blocks assets=dist/blocks-assets.tgz",
+        flush=True,
     )
     return 0
 
@@ -459,6 +502,29 @@ def push_worktrees(*, remote: str | None, dry_run: bool) -> int:
     return 0
 
 
+def promote_staging() -> int:
+    """Rebase staging onto main, push it, and restore the starting branch."""
+    original = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    if not original:
+        raise SystemExit("promote-staging requires a named starting branch")
+
+    try:
+        if original != "staging":
+            run(["git", "switch", "staging"])
+        run(["git", "rebase", "main"])
+        run(["git", "push", "origin", "staging"])
+    finally:
+        if original != "staging":
+            run(["git", "switch", original])
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="rocci-ops")
     # invoked as subcommand via cli.py with remaining args only
@@ -519,4 +585,8 @@ def main(argv: list[str]) -> int:
         p.add_argument("-r", "--remote")
         ns = p.parse_args(rest)
         return push_worktrees(remote=ns.remote, dry_run=ns.dry_run)
+    if command == "promote-staging":
+        if rest:
+            raise SystemExit("usage: rocci-ops promote-staging")
+        return promote_staging()
     raise SystemExit(f"unknown local command: {command}")

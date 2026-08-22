@@ -144,12 +144,16 @@ links and catalog policy, runs documented examples, and builds
 To package the hybrid site (CDN archive plus musl `islands` binary), use:
 
 ```sh
-cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
-cargo run -p rocci-rocdown-cli -- package site --target x64musl
+uv run rocci-ops package site --target x64musl
 ```
 
-`rocci-docs` must run first so `site/rocdown.toml` can mount `dist/example-docs`
-at `/examples/`. `rocci-rocdown` does not import `rocci-docs`.
+This stages example docs, builds live example servers, and packages the hybrid
+site. Site packaging currently uses Roc's `dev` backend for every live server
+because the pinned nightly can recurse in its optimized backend. These
+artifacts are functional but are not production-performance builds: they may
+be larger and slower. Use `rocci build --release --opt speed` when an optimized
+binary is required. `rocci-docs` and `rocci-rocdown` remain separate crates;
+`rocci-rocdown` does not import `rocci-docs`.
 
 That writes `dist/rocci.dev`, `dist/site.tgz`, `dist/islands`, and
 `publish.json`. GitHub Actions workflow `site.yml` packages on linux/amd64
@@ -157,6 +161,10 @@ and, on `staging` or `production` only, scps those artifacts to the origin
 using the matching GitHub Environment. Land work on `main`; promote to
 `staging` to publish behind Access, then to `production` for the public
 hostname. Pull requests never deploy.
+
+To promote the current `main` revision to staging locally, run
+`uv run rocci-ops promote-staging`. This rebases `staging` onto `main`, pushes
+`staging` to `origin`, and restores the branch that was active when it started.
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to

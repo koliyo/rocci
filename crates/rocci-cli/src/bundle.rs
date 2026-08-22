@@ -209,6 +209,25 @@ pub fn package_server(
     output: Option<&Path>,
     target: Option<crate::native_target::NativeTarget>,
 ) -> Result<ServerPackage> {
+    package_server_with_options(input, output, target, false)
+}
+
+pub fn package_server_with_options(
+    input: &Path,
+    output: Option<&Path>,
+    target: Option<crate::native_target::NativeTarget>,
+    verbose: bool,
+) -> Result<ServerPackage> {
+    package_server_with_opt(input, output, target, verbose, None)
+}
+
+pub fn package_server_with_opt(
+    input: &Path,
+    output: Option<&Path>,
+    target: Option<crate::native_target::NativeTarget>,
+    verbose: bool,
+    opt: Option<crate::native_target::RocOpt>,
+) -> Result<ServerPackage> {
     let cwd = env::current_dir()?;
     let input = if input.is_absolute() {
         input.to_path_buf()
@@ -242,7 +261,9 @@ pub fn package_server(
             datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
             runtime_assets::stage_into(&app_dir)?;
             run::compile_rocci_modules(&app_dir)?;
-            crate::native_target::build_roc_server(&app_dir, &server, target)?;
+            crate::native_target::build_roc_server_with_opt(
+                &app_dir, &server, target, verbose, opt,
+            )?;
             copy_app_assets(&app_dir, &output)?;
         }
         ServerInput::Standalone(file) => {
@@ -252,7 +273,9 @@ pub fn package_server(
                 .map(Path::to_path_buf)
                 .unwrap_or_else(|| cwd.clone());
             let plan = run::standalone_app_plan(&file)?;
-            crate::driver::compile_app_plan(&plan, &src_dir, &server, target)?;
+            crate::driver::compile_app_plan_with_opt(
+                &plan, &src_dir, &server, target, verbose, opt,
+            )?;
             if src_dir.join("assets").is_dir() {
                 copy_tree(&src_dir.join("assets"), &assets)?;
             }

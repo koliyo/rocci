@@ -294,8 +294,29 @@ pub fn compile_app_plan(
     output: &Path,
     target: Option<crate::native_target::NativeTarget>,
 ) -> Result<()> {
+    compile_app_plan_with_options(plan, src_dir, output, target, false)
+}
+
+pub fn compile_app_plan_with_options(
+    plan: &GenericAppPlan,
+    src_dir: &Path,
+    output: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+    verbose: bool,
+) -> Result<()> {
+    compile_app_plan_with_opt(plan, src_dir, output, target, verbose, None)
+}
+
+pub fn compile_app_plan_with_opt(
+    plan: &GenericAppPlan,
+    src_dir: &Path,
+    output: &Path,
+    target: Option<crate::native_target::NativeTarget>,
+    verbose: bool,
+    opt: Option<crate::native_target::RocOpt>,
+) -> Result<()> {
     let workspace = stage_app_workspace(plan, src_dir, "islands-build")?;
-    crate::native_target::build_roc_server(&workspace.path, output, target)
+    crate::native_target::build_roc_server_with_opt(&workspace.path, output, target, verbose, opt)
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -32,6 +32,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      - uses: astral-sh/setup-uv@v6
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -44,34 +45,10 @@ jobs:
           ROC_PREFIX="$prefix" ROC_LINK_DIR="$link_dir" ./docker/install-roc.sh
           echo "$prefix" >> "$GITHUB_PATH"
           echo "$link_dir" >> "$GITHUB_PATH"
-      - name: Stage example docs
-        run: cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
-      - name: Build live example apps
+      - name: Package site and live example apps
         run: |
           set -euo pipefail
-          cargo run -q -p rocci-cli -- build --release \
-            examples/rocci/standalone/live-counter/LiveCounter.rocci \
-            --target x64musl \
-            --output dist/examples-live/live-counter
-          cargo run -q -p rocci-cli -- build --release \
-            examples/rocci/custom/datastar \
-            --target x64musl \
-            --output dist/examples-live/datastar
-          cargo run -q -p rocci-cli -- build --release \
-            examples/rocci/custom/blocks \
-            --target x64musl \
-            --output dist/examples-live/blocks
-          test -f dist/examples-live/live-counter/server
-          test -f dist/examples-live/datastar/server
-          test -f dist/examples-live/blocks/server
-          test -d dist/examples-live/blocks/assets
-          cp dist/examples-live/blocks/server dist/blocks
-          tar -C dist/examples-live/blocks -czf dist/blocks-assets.tgz assets
-          test ! -e dist/examples-live/counter
-          test ! -e dist/examples-live/snake
-          test ! -e dist/examples-live/styling
-      - name: Package hybrid site
-        run: cargo run -q -p rocci-rocdown-cli -- package site --target x64musl
+          uv run --no-dev rocci-ops package site --target x64musl
       - name: Upload linux/amd64 artifacts
         uses: actions/upload-artifact@v7
         with:

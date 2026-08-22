@@ -24,6 +24,7 @@ commands:
   render-brand-icons
   serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
+  promote-staging  rebase staging onto main and push staging
 """
 
 LOCAL_COMMANDS = {
@@ -37,6 +38,7 @@ LOCAL_COMMANDS = {
     "render-brand-icons",
     "serve",
     "push-worktrees",
+    "promote-staging",
 }
 
 
