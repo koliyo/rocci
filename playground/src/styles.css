@@ -288,12 +288,9 @@ body:has(> #playground-root) {
   color: var(--muted);
 }
 
-.source-pane {
-  background: var(--surface);
-}
-
+.source-pane,
 .output-pane {
-  background: var(--surface-raised);
+  background: var(--code);
 }
 
 .splitter {
@@ -328,7 +325,7 @@ body:has(> #playground-root) {
 }
 
 .cm-gutters {
-  background: var(--surface) !important;
+  background: var(--code) !important;
   border-right: 1px solid var(--line) !important;
   color: var(--faint) !important;
   user-select: none;
