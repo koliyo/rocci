@@ -33,6 +33,7 @@ label = "Docs"
 label = "Start"
 items = [
     "docs/index",
+    "docs/the-stack",
     "docs/start/what-is-rocci",
     "docs/start/choose-your-path",
     "docs/start/prerequisites",

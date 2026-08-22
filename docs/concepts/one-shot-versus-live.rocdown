@@ -8,10 +8,6 @@
 
 # One-shot versus shared live UI
 
-**Prerequisites:** [commands and live tutorial](/docs/tutorials/commands-and-live/).
-**Kind:** concept.
-**Next:** [Update the UI](/docs/how-to/update-the-ui/).
-
 **One-shot `@post:fragment`:** the acting tab morphs. A second tab stays stale until it
 clicks or reloads. That is the correct default (the [counter](/examples/counter/)).
 

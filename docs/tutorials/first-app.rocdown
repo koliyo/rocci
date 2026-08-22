@@ -8,14 +8,9 @@
 
 # Build your first standalone app
 
-**Prerequisites:** [Build your first component](/docs/tutorials/first-component/).
-**You will learn:** standalone app shape, one-shot patches, SQLite, `?` errors,
-and stderr logging.
 **Starting files:** `examples/rocci/standalone/counter/Counter.rocci`
-**Time:** about thirty minutes.
 **Verify:** GET `/` contains `#counter`; POST increment returns a
 `datastar-patch-elements` event.
-**Next:** [Compose a small application](/docs/tutorials/compose/).
 
 Canonical source: [Counter](/examples/counter/) ·
 [Counter.rocci](/examples/counter/source/Counter-rocci/).

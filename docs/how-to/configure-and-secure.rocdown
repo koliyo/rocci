@@ -8,11 +8,7 @@
 
 # Configure and secure
 
-**Prerequisites:** a standalone app directory or `rocci.toml` next to the entry.
-**You will do:** validate configuration and change only the fields you understand.
 **Verify:** `cargo run -q -p rocci-cli -- validate` exits 0.
-**Next:** [Package and deploy](/docs/how-to/package-and-deploy/) or
-[Configuration](/docs/reference/configuration/).
 
 Unknown fields are errors. The complete-shape example on the reference page is
 illustrative; the field tables are canonical.

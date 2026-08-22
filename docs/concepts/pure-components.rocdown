@@ -8,10 +8,6 @@
 
 # Components are pure Roc functions
 
-**Prerequisites:** [first component](/docs/tutorials/first-component/).
-**Kind:** concept.
-**Next:** [Author components](/docs/how-to/author-components/).
-
 `@component` lowers to a function that returns `Html`. Given the same props and
 body, it produces the same markup. That is why fixtures, `rocci view`, and HTTP
 handlers can share one renderer.

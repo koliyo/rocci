@@ -8,15 +8,10 @@
 
 # Add commands and live updates
 
-**Prerequisites:** [First standalone app](/docs/tutorials/first-app/).
-**You will learn:** when a one-shot `@post:fragment` is enough, and when
-`@post:command` plus `@get:live(path)` justifies a shared stream.
 **Starting files:** [Counter](/examples/counter/) and
 [Live counter](/examples/live-counter/).
-**Time:** about twenty minutes.
 **Verify:** Datastar POST is empty SSE; `curl` POST is 204; a second tab morphs
 on the live app.
-**Next:** [Take ownership with main.roc](/docs/tutorials/custom-main/).
 
 Open both generated source pages:
 

@@ -9,11 +9,7 @@
 
 # Update the UI
 
-**Prerequisites:** [first standalone app](/docs/tutorials/first-app/).
-**You will do:** pick the handler kind that matches the intended browser result.
 **Verify:** counter increment patches `#counter`; a command returns empty SSE to Datastar and 204 otherwise.
-**Next:** [Handle requests and errors](/docs/how-to/handle-requests-and-errors/) or
-[Runtime](/docs/reference/runtime/).
 
 Spell every route as `@method:role(path)`. Role-first forms are **removed**.
 

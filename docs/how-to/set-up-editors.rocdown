@@ -8,10 +8,7 @@
 
 # Set up editors
 
-**Prerequisites:** [Install](/docs/start/install/) so Cargo can build the language server.
-**You will do:** load the first-party extension and point it at a built server.
 **Verify:** opening a `.rocci` file shows diagnostics and semantic highlighting.
-**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
 
 Editor support is **current** in this repository. There is no Marketplace /
 extension-store install path yet. Build from the checkout.

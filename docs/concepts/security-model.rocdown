@@ -8,10 +8,6 @@
 
 # Security model
 
-**Prerequisites:** [Configure and secure](/docs/how-to/configure-and-secure/).
-**Kind:** concept.
-**Next:** [Configuration](/docs/reference/configuration/#security).
-
 Rocci's development server is loopback-only. That is a local-tooling boundary,
 not an OS sandbox. The native host still has process authority.
 

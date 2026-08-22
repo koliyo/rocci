@@ -9,11 +9,6 @@
 
 # Rocci's compilation model
 
-**Prerequisites:** [What is Rocci?](/docs/start/what-is-rocci/).
-**Kind:** concept.
-**Next:** [Generated Roc](/docs/reference/language/generated-roc/) or
-[pure components](/docs/concepts/pure-components/).
-
 A `.rocci` file is a Roc module. Rocci recognizes a closed set of `@`
 declarations at the start of a top-level definition. Everything else is copied
 into generated Roc unchanged.

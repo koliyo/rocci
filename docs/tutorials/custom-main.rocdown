@@ -8,15 +8,10 @@
 
 # Take ownership with main.roc
 
-**Prerequisites:** [Commands and live updates](/docs/tutorials/commands-and-live/).
-**You will learn:** when to leave generated standalone dispatch, and how a
-directory app reuses `.rocci` modules.
 **Starting files:** [Datastar gallery](/examples/datastar/) (normal pattern
 gallery) and [Snake](/examples/snake/) (advanced stress example).
-**Time:** about twenty minutes.
 **Verify:** `rocci run examples/rocci/custom/datastar --no-window` serves
 `/search`.
-**Next:** [Ship the application](/docs/tutorials/ship/).
 
 Generated standalone apps are the right default. Switch to authored `main.roc`
 when you need custom routing, extra platform effects, or a shape the generator

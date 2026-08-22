@@ -9,10 +9,6 @@
 
 # Troubleshooting
 
-**Prerequisites:** none beyond [docs prerequisites](/docs/start/prerequisites/).
-**Kind:** troubleshooting landing.
-**Next:** [Diagnostics](/docs/reference/diagnostics/).
-
 Start with the exact error and the smallest command that reproduces it. Rocci
 maps parser diagnostics to source; Roc type errors map back from generated
 code where source-map segments exist.

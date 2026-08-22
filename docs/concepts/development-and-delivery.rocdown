@@ -8,10 +8,6 @@
 
 # Development and delivery
 
-**Prerequisites:** [compilation model](/docs/concepts/compilation-model/).
-**Kind:** concept.
-**Next:** [Package and deploy](/docs/how-to/package-and-deploy/).
-
 | Mode | What runs |
 | --- | --- |
 | `rocci view` / `browse` | Lower, compile, preview one component or gallery |

@@ -8,10 +8,6 @@
 
 # Documentation contributor checklist
 
-**Prerequisites:** a source checkout that can run Cargo and `uv`.
-**Kind:** contributor reference.
-**Status:** development `main`.
-
 A documentation-only pull request has one local path that matches CI
 `fixtures-and-docs`:
 

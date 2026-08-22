@@ -9,13 +9,7 @@
 
 # Ship the application
 
-**Prerequisites:** a working app from the earlier tutorials.
-**You will do:** validate configuration, build a release server, and — on
-macOS — optionally assemble a local desktop bundle.
-**Time:** about twenty minutes plus compile time.
 **Verify:** `rocci validate` succeeds; `build --release` writes a server tree.
-**Next:** [Configuration reference](/docs/reference/configuration/) or
-[troubleshooting](/docs/troubleshooting/).
 
 Rocci is experimental. This page documents **development** `main`. Production
 signing, notarization, and Windows/Linux installers are not shipped. Do not

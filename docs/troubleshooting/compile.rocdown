@@ -8,8 +8,6 @@
 
 # Compile failures
 
-**Prerequisites:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
-
 ## Generated Roc does not type-check
 
 **Cause:** Rocci parses Roc regions but does not type-check them.

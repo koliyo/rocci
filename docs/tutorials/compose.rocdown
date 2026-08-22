@@ -8,12 +8,7 @@
 
 # Compose a small application
 
-**Prerequisites:** [First standalone app](/docs/tutorials/first-app/).
-**You will learn:** composition, `@if` / `@for` / `@match`, forms, assets, and
-multiple views — still inside generated standalone apps.
-**Time:** about twenty-five minutes.
 **Verify:** you can point at a cataloged module that uses each construct.
-**Next:** [Add commands and live updates](/docs/tutorials/commands-and-live/).
 
 Stay on generated `@get:view` / `@post:fragment` until the next tutorials. Custom
 `main.roc` is a later ownership step, not a requirement for composition.

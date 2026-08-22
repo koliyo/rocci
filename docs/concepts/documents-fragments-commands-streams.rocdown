@@ -9,11 +9,6 @@
 
 # Documents, fragments, commands, and streams
 
-**Prerequisites:** [first app](/docs/tutorials/first-app/).
-**Kind:** concept.
-**Next:** [Update the UI](/docs/how-to/update-the-ui/) or
-[Runtime](/docs/reference/runtime/).
-
 Rocci treats HTML as the shared boundary. JavaScript enhances; it is not the
 unit of composition.
 

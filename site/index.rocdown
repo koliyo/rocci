@@ -2,7 +2,7 @@
     layout: "home",
     meta: {
         title: "Roc-native interfaces and Markdown-first documents",
-        description: "Choose a path into Rocci applications, Rocdown documentation sites, working examples, or the project's experimental status.",
+        description: "Preview a template, run an application, or author an experimental Rocdown document. Inspect examples and project status.",
     },
 }
 
@@ -13,11 +13,14 @@ import LiveCounterUi
 
 # Build interfaces and documentation with Roc
 
-Rocci compiles Roc-native interfaces to ordinary HTML. Rocdown adds Markdown-first pages and static or hybrid documentation sites. Pick the path that matches what you want to make.
+Roc plus Datastar host a web application. `.rocci` templates are HTML for Roc.
+Applications add a server. Rocdown is an optional document layer — more
+experimental than templates.
 
 :card-grid.begin
-    :link-card[page: "docs/start/what-is-rocci", title: "Getting started", summary: "Install from source and preview a first Rocci component."]
-    :link-card[page: "rocdown/index", title: "Rocdown", summary: "Markdown-first documents and static sites."]
+    :link-card[page: "docs/start/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
+    :link-card[page: "docs/tutorials/first-app", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
+    :link-card[page: "rocdown/index", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
     :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
     :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
 :card-grid.end
@@ -26,7 +29,8 @@ Rocci compiles Roc-native interfaces to ordinary HTML. Rocdown adds Markdown-fir
 
 Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Datastar actions only where an interaction needs them. For prose-led work, keep articles in `.rocdown` and presentation in a project theme.
 
-- [Build your first component](/docs/start/five-minutes/)
+- [The stack](/docs/the-stack/)
+- [Preview a component](/docs/start/five-minutes/)
 - [Author a Rocdown page](/rocdown/pages/)
 - [Study complete examples](/examples/)
 
