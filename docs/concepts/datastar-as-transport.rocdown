@@ -19,10 +19,10 @@ client application framework and not where domain data lives.
 data-on:click=@post("/actions/inc")
         │  HTTP POST, Datastar-Request: true
         ▼
-@patch or @command
+@post:fragment or @post:command
         │
         ├─ HTML fragment → datastar-patch-elements
-        └─ Roc data → empty SSE (Datastar) or application/json (other clients)
+        └─ {} → empty SSE (Datastar) or 204 No Content (other clients)
 ```
 
 Rocci generates the action helpers and pins the JS asset. Discriminate Datastar

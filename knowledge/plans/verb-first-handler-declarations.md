@@ -168,8 +168,10 @@ verb-first `@method:role(path)`, `fragment` naming, the closed matrix below,
 representation-free commands, plural `@get:live(path)`, module-local singleton
 injection, explicit subscriptions for multiple local streams, app-wide stream
 binding and collision errors, and a clean cut with no aliases or interim
-`@live(path)` spelling. This is approved implementation direction, not shipped
-behavior; later phase gates remain open.
+`@live(path)` spelling. Phases 0–6 are implemented on
+`verb-first-handler-declarations`. Phase 7 documentation and release gates
+are in this revision and must not be marked complete until CI and Knowledge
+succeed on the landed commit.
 
 ## Goal
 

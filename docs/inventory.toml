@@ -41,11 +41,11 @@ new_rocdown_features = false
 
 [vocabulary]
 component = "A PascalCase @component that lowers to a pure Roc Html function."
-standalone_app = "A .rocci module with @context / @init / @view that rocci run compiles into a generated server."
+standalone_app = "A .rocci module with @context / @init / @get:view that rocci run compiles into a generated server."
 custom_app = "A directory with authored main.roc that reuses .rocci modules."
-patch = "A one-shot HTML fragment response from @patch; Datastar morphs the acting tab."
-command = "A @command handler that returns Roc data: empty SSE to Datastar, JSON to other clients."
-live = "A module-level @live render that generates GET /sse for shared HTML updates."
+patch = "A one-shot HTML fragment from @get:fragment or a mutation @method:fragment; Datastar morphs the acting tab."
+command = "A mutation @method:command whose {} body has no success representation: empty SSE to Datastar, 204 otherwise."
+live = "A path-bearing @get:live fragment stream; modules may declare several streams."
 datastar = "Browser transport for intent and morphing. Not a client application framework."
 rocdown = "Separate Markdown-first document product. Not part of the Rocci learning path."
 preview = "The Tao/Wry window that loads the same local HTTP origin as a browser."

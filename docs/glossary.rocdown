@@ -17,11 +17,11 @@ behavior stays in [reference](/docs/reference/).
 | Term | Meaning |
 | --- | --- |
 | Component | A PascalCase `@component` that lowers to a pure Roc `Html` function. |
-| Standalone app | A `.rocci` module with `@context` / `@init` / `@view` that `rocci run` compiles into a generated server. |
+| Standalone app | A `.rocci` module with `@context` / `@init` / `@get:view` that `rocci run` compiles into a generated server. |
 | Custom app | A directory with authored `main.roc` that reuses `.rocci` modules. |
-| Patch | A one-shot HTML fragment from `@patch`; Datastar morphs the acting tab. |
-| Command | A `@command` handler that returns Roc data: empty SSE to Datastar, JSON to other clients. |
-| Live | A module-level `@live` render that generates `GET /sse` for shared HTML updates. |
+| Fragment | Stable-target HTML from `@get:fragment` or a mutation `@method:fragment`; Datastar morphs it. |
+| Command | A mutation `@method:command` whose `{}` body performs effects and returns no success representation. |
+| Live | A path-bearing `@get:live` fragment stream; multiple streams may be declared per module. |
 | Datastar | Browser transport for intent and morphing. Not a client application framework. |
 | Fixture | `@fixture` preview data for `rocci view` / `browse`. |
 | Lowering | Translating template regions to ordinary Roc (`Html.*`, camelCase functions). |

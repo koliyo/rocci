@@ -22,11 +22,23 @@ Rocci does **not** provide:
 
 ## Removed (not deprecated)
 
-`@on:METHOD` and trailing `json` never lower. Diagnostics rewrite:
+Role-first headers, pathless `@live`, `@on:METHOD`, and trailing `json` never
+lower. Diagnostics rewrite directly to the final grammar:
 
-- `@on:get(path)` → `@view(path)`
-- `@on:post(path)` → `@patch(path)`
-- `@on:delete(path) json` → `@command:delete(path)`
+- `@view(path)` or `@on:get(path)` → `@get:view(path)`
+- `@patch(path)` or `@on:post(path)` → `@post:fragment(path)`
+- `@patch:put(path)` → `@put:fragment(path)`
+- `@patch:patch(path)` → `@patch:fragment(path)`
+- `@patch:delete(path)` → `@delete:fragment(path)`
+- `@command(path)` → `@post:command(path)`
+- `@command:put(path)` → `@put:command(path)`
+- `@command:patch(path)` → `@patch:command(path)`
+- `@command:delete(path)` or `@on:delete(path) json` → `@delete:command(path)`
+- `@live` / `@live(path)` → `@get:live("/sse")` or another authored path
+
+The complete route grammar is a closed `@method:role` matrix: GET admits
+`view`, `fragment`, and `live`; POST, PUT, PATCH, and DELETE admit
+`fragment` and `command`.
 
 The public grammar view is this reference plus `Rocci.AST.ungram` for
 contributors. `AllSyntax.rocci` is coverage, not prose.

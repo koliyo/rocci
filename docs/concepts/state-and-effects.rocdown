@@ -16,7 +16,7 @@
 | --- | --- |
 | Durable data | `@context` value, typically a SQLite connection |
 | Startup | `@init` (failure exits the process) |
-| Per-request I/O | `@view` / `@patch` / `@command` / `@live` bodies |
+| Per-request I/O | `@method:role` handler bodies |
 | Markup | `@component` (pure) |
 
 The browser does not own the domain model. Datastar morphs HTML or applies

@@ -3,7 +3,7 @@
     aliases: ["/concepts/rendering-model/", "/docs/concepts/rendering-model/"],
     meta: {
         title: "Documents, fragments, commands, and streams",
-        description: "How @view, @patch, @command, and @live differ in intent and HTTP response behavior.",
+        description: "How verb-first document, fragment, command, and live routes differ.",
     },
 }
 
@@ -19,13 +19,16 @@ unit of composition.
 
 | Handler | Typical result | Browser behavior |
 | --- | --- | --- |
-| `@view` | Complete HTML document | Load or navigate |
-| `@patch` | Fragment with a stable target | One-shot morph in the acting tab |
-| `@command` | Roc data | **empty SSE** when `Datastar-Request: true`; else JSON |
-| `@live` | Shared fragment | Generated `GET /sse`; every open tab morphs |
+| `@get:view(path)` | Complete HTML document | Load or navigate |
+| `@get:fragment(path)` | Fragment with a stable target | One-shot read/morph |
+| `@post:fragment(path)` | Fragment with a stable target | One-shot mutation/morph |
+| `@post:command(path)` | No representation (`{}` body) | Empty SSE for Datastar; 204 otherwise |
+| `@get:live(path)` | Shared fragment | Long-lived SSE; subscribed tabs morph |
 
-`@live` does not replace `@view` or `@patch`. Do not patch the same `id` from
-both a `@command` and the stream.
+The mutation roles also admit PUT, PATCH, and DELETE. Live paths are plural;
+use one coherence stream when possible, and explicit subscriptions when a
+module has more than one. Do not patch the same `id` from both a finite
+fragment and a stream.
 
 Canonical comparison: [Counter](/examples/counter/) versus
 [Live counter](/examples/live-counter/).

@@ -12,9 +12,9 @@
 **Kind:** concept.
 **Next:** [custom main tutorial](/docs/tutorials/custom-main/).
 
-A **standalone** module declares `@context`, `@init`, `@view`, and mutations.
-`rocci run` generates dispatch, `/assets`, `/health`, and optional `/sse`.
-You do not write `main`.
+A **standalone** module declares `@context`, `@init`, `@get:view`, and mutations.
+`rocci run` generates dispatch, `/assets`, `/health`, and any authored
+`@get:live` paths. You do not write `main`.
 
 A **custom** app is a directory with authored `main.roc` that imports `.rocci`
 modules. You own routing and platform effects. Reuse components; do not

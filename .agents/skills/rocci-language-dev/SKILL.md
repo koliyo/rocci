@@ -45,9 +45,9 @@ scripts.
   their public integration contract is affected.
 - Datastar is the **runtime transport** (morph HTML, optional SSE), not a
   grammar concern. `@get` / `@post` in attributes lower to Roc strings; do not
-  put CQRS, 204-vs-JSON, or `datastar-patch-elements` policy in the parser.
-  Stack fit is `$rocci-stack`. `@live` and the `json` respond ident are shipped.
-  Further declarations still need that skill and an implementation plan.
+  put CQRS, 204-vs-empty-SSE, or `datastar-patch-elements` policy in the parser.
+  Stack fit is `$rocci-stack`. `@method:role` routes, including path-addressed
+  `@get:live`, are shipped. Further roles still need that skill and a plan.
 
 ## Preserve language invariants
 

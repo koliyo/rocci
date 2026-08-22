@@ -2,6 +2,7 @@
 
 ## 2026-08-22
 
+- Aligned active public docs, owning READMEs, skills, example catalog prose, and canonical knowledge indexes with the landed verb-first `@method:role` and path-addressed `@get:live` contract on `verb-first-handler-declarations`. Historical research and plans retain old spellings with explicit historical status. Removal diagnostics and fixtures keep the former headers as rejected inputs. Phase 7 local documentation work is in this revision; do not log the phase complete until CI and Knowledge workflow run IDs succeed on the landed commit.
 - Recorded the maintainer's joint Phase 0 approval for mandatory
   `@method:role(path)`, the closed view/fragment/command/live matrix,
   representation-free commands, plural path-addressed live routes,

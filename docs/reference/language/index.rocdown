@@ -23,7 +23,7 @@ subpage is the canonical contract.
 | [Directives](/docs/reference/language/directives/) | `@let`, `@if`, `@for`, `@match` |
 | [CSS](/docs/reference/language/css/) | File vs component `@css`, scoping, limits |
 | [Fixtures](/docs/reference/language/fixtures/) | `@fixture` grammar and discovery |
-| [Server declarations](/docs/reference/language/server/) | `@context` `@init` `@view` `@patch` `@command` `@live` |
+| [Server declarations](/docs/reference/language/server/) | `@context` `@init` `@method:role` routes |
 | [Comments and whitespace](/docs/reference/language/comments/) | `#`, `<!-- -->`, `@@`, `## `, indentation |
 | [Generated Roc](/docs/reference/language/generated-roc/) | Lowering table and source maps |
 | [Grammar and limits](/docs/reference/language/grammar/) | Reserved forms, removals, unsupported JSX-like features |
