@@ -26,7 +26,7 @@ impl InputFingerprint {
             .with_context(|| format!("failed to read bytes for {}", file_path.display()))?;
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
-        let sha256 = format!("{:x}", hasher.finalize());
+        let sha256 = hex_sha256(hasher);
         Ok(Self {
             path: rel_path.to_string(),
             len,
@@ -38,7 +38,7 @@ impl InputFingerprint {
     pub fn from_bytes(rel_path: &str, bytes: &[u8]) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(bytes);
-        let sha256 = format!("{:x}", hasher.finalize());
+        let sha256 = hex_sha256(hasher);
         Self {
             path: rel_path.to_string(),
             len: bytes.len() as u64,
@@ -69,7 +69,15 @@ impl InputFingerprint {
         };
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
-        let sha256 = format!("{:x}", hasher.finalize());
+        let sha256 = hex_sha256(hasher);
         sha256 == self.sha256
     }
+}
+
+fn hex_sha256(hasher: Sha256) -> String {
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }

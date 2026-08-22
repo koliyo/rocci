@@ -541,13 +541,12 @@ fn inspect_regions_lsp_request_and_payload() {
         .unwrap(),
     );
     let resp = server.handle_request(req);
-    assert!(
-        resp.error.is_none(),
-        "inspect_regions request failed: {:?}",
-        resp.error
-    );
+    let result = resp
+        .response_result
+        .as_ref()
+        .unwrap_or_else(|err| panic!("inspect_regions request failed: {err:?}"));
     let regions: Vec<InspectedRegion> =
-        serde_json::from_value(resp.result.unwrap()).expect("deserialized regions");
+        serde_json::from_value(result.clone()).expect("deserialized regions");
     assert!(!regions.is_empty(), "expected inspected regions");
 
     let root = &regions[0];

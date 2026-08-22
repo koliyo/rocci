@@ -121,7 +121,11 @@ fn hex_sha256(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 #[cfg(feature = "fetch")]
@@ -149,10 +153,10 @@ pub fn download_datastar(tag: &str) -> Result<Vec<u8>> {
 fn http_get_bytes(url: &str) -> std::result::Result<Vec<u8>, String> {
     use std::io::Read;
     let response = ureq::get(url)
-        .set("User-Agent", "rocci")
+        .header("User-Agent", "rocci")
         .call()
         .map_err(|e| e.to_string())?;
-    let mut reader = response.into_reader().take(2 * 1024 * 1024);
+    let mut reader = response.into_body().into_reader().take(2 * 1024 * 1024);
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
     Ok(bytes)

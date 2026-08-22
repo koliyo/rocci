@@ -210,13 +210,18 @@ impl InspectPage {
             return;
         }
         let url = inspect_origin_url(origin, &self.route);
-        let Ok(response) = ureq::get(&url).timeout(Duration::from_secs(2)).call() else {
+        let Ok(response) = ureq::get(&url)
+            .config()
+            .timeout_global(Some(Duration::from_secs(2)))
+            .build()
+            .call()
+        else {
             return;
         };
         if response.status() != 200 {
             return;
         }
-        let Ok(body) = response.into_string() else {
+        let Ok(body) = response.into_body().read_to_string() else {
             return;
         };
         if body.is_empty() {

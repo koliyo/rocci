@@ -133,7 +133,7 @@ impl TwoTierCache {
         };
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
-        let actual_sha256 = format!("{:x}", hasher.finalize());
+        let actual_sha256 = hex_sha256(hasher);
 
         let sha_file = dir.join("artifact.sha256");
         let stored_sha = fs::read_to_string(&sha_file)
@@ -182,7 +182,7 @@ impl TwoTierCache {
 
         let mut hasher = Sha256::new();
         hasher.update(artifact_bytes);
-        let sha256 = format!("{:x}", hasher.finalize());
+        let sha256 = hex_sha256(hasher);
 
         fs::write(tmp_dir.join("artifact.sha256"), format!("{sha256}\n"))?;
         let fp_json = serde_json::to_string_pretty(fingerprints)?;
@@ -229,7 +229,7 @@ pub fn compute_gen_hash(
         hasher.update(bytes);
         hasher.update(b"\n");
     }
-    format!("{:x}", hasher.finalize())
+    hex_sha256(hasher)
 }
 
 pub fn compute_compile_hash(
@@ -252,5 +252,13 @@ pub fn compute_compile_hash(
     hasher.update(platform_id.as_bytes());
     hasher.update(b"\n");
     hasher.update(host_version.as_bytes());
-    format!("{:x}", hasher.finalize())
+    hex_sha256(hasher)
+}
+
+fn hex_sha256(hasher: Sha256) -> String {
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }

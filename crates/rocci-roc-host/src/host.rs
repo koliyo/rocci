@@ -282,7 +282,7 @@ impl WasmHost {
 
     pub fn run_wasi_with_preopens(&self, staging: &Path, extra: &[&Path]) -> Result<String> {
         use wasmtime_wasi::WasiCtxBuilder;
-        use wasmtime_wasi::pipe::MemoryOutputPipe;
+        use wasmtime_wasi::p2::pipe::MemoryOutputPipe;
 
         let stdout_pipe = MemoryOutputPipe::new(4096);
         let stderr_pipe = MemoryOutputPipe::new(4096);
@@ -318,7 +318,7 @@ impl WasmHost {
 
         let mut store = wasmtime::Store::new(&self.engine, wasi);
         let mut linker = wasmtime::Linker::new(&self.engine);
-        wasmtime_wasi::preview1::add_to_linker_sync(&mut linker, |t| t)?;
+        wasmtime_wasi::p1::add_to_linker_sync(&mut linker, |t| t)?;
 
         let instance = linker.instantiate(&mut store, &self.module)?;
         if let Ok(start) = instance.get_typed_func::<(), ()>(&mut store, "_start") {

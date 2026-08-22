@@ -140,7 +140,11 @@ impl GenericAppPlan {
             hasher.update(module.type_name.as_bytes());
             hasher.update(module.roc.as_bytes());
         }
-        format!("{:x}", hasher.finalize())
+        hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
     }
 }
 

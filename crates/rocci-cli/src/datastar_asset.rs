@@ -281,11 +281,12 @@ fn parse_latest_tag(body: &str) -> Result<String> {
 
 fn http_get_bytes(url: &str) -> Result<Vec<u8>> {
     let response = ureq::get(url)
-        .set("User-Agent", USER_AGENT)
+        .header("User-Agent", USER_AGENT)
         .call()
         .with_context(|| format!("GET {url} failed"))?;
     let mut buf = Vec::new();
     response
+        .into_body()
         .into_reader()
         .read_to_end(&mut buf)
         .with_context(|| format!("failed to read {url}"))?;
@@ -294,11 +295,12 @@ fn http_get_bytes(url: &str) -> Result<Vec<u8>> {
 
 fn http_get_text(url: &str) -> Result<String> {
     ureq::get(url)
-        .set("User-Agent", USER_AGENT)
-        .set("Accept", "application/vnd.github+json")
+        .header("User-Agent", USER_AGENT)
+        .header("Accept", "application/vnd.github+json")
         .call()
         .with_context(|| format!("GET {url} failed"))?
-        .into_string()
+        .into_body()
+        .read_to_string()
         .with_context(|| format!("failed to read {url}"))
 }
 
