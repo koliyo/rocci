@@ -1,29 +1,44 @@
 name: Knowledge
 
 on:
+  push:
+    branches: [main, staging, production]
   workflow_call:
     inputs:
+      lane:
+        description: hosted or local runner lane
+        required: false
+        type: string
+        default: hosted
       pr_number:
-        description: PR number to validate on the trusted self-hosted runner
-        required: true
+        description: PR number when validating a pull request head
+        required: false
         type: string
+        default: ""
       pr_sha:
-        description: Exact PR head SHA returned by GitHub
-        required: true
+        description: Exact PR head SHA when validating a pull request head
+        required: false
         type: string
+        default: ""
   workflow_dispatch:
     inputs:
+      lane:
+        description: hosted or local runner lane
+        required: false
+        type: choice
+        options: [hosted, local]
+        default: hosted
       pr_number:
-        description: PR number to validate on the trusted self-hosted runner
-        required: true
+        description: PR number when validating a pull request head
+        required: false
         type: string
       pr_sha:
-        description: Exact PR head SHA returned by GitHub
-        required: true
+        description: Exact PR head SHA when validating a pull request head
+        required: false
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: knowledge-${{ inputs.lane || 'hosted' }}-${{ inputs.pr_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -33,6 +48,7 @@ permissions:
 jobs:
   authorize:
     name: Authorize trusted PR
+    if: ${{ inputs.lane == 'local' }}
     runs-on: ubuntu-latest
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
@@ -71,15 +87,29 @@ jobs:
   validate:
     name: Validate Knowledge OKF Bundle
     needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
-    runs-on: [self-hosted, rocci-macos]
+    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
+    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-macos"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ inputs.pr_sha }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: astral-sh/setup-uv@v6
+          ref: ${{ (inputs.pr_number && inputs.pr_sha && format('refs/pull/{0}/head', inputs.pr_number)) || inputs.pr_sha || github.sha }}
+          persist-credentials: ${{ !inputs.pr_sha }}
+      - name: Pin checkout to snapshot SHA
+        if: ${{ inputs.pr_sha }}
+        env:
+          PR_SHA: ${{ inputs.pr_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "$(git rev-parse HEAD)" != "$PR_SHA" ]]; then
+            git -c "http.extraheader=AUTHORIZATION: bearer ${GH_TOKEN}" \
+              fetch origin "$PR_SHA"
+            git checkout --force "$PR_SHA"
+          fi
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: ${{ !inputs.pr_sha }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: Validate knowledge bundle
         run: uv run --no-dev rocci-ops ci knowledge
