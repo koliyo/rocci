@@ -1,4 +1,11 @@
-from rocci_ops.local import CLI_CRATES, build_site, parse_worktrees, render_brand_icons, require_darwin
+from rocci_ops.local import (
+    CLI_CRATES,
+    build_site,
+    parse_worktrees,
+    promote_staging,
+    render_brand_icons,
+    require_darwin,
+)
 
 
 def test_cli_crates() -> None:
@@ -50,6 +57,24 @@ detached
     assert entries[1] == ("/repo-feature", "refs/heads/feature")
     assert entries[2][0] == "/repo-detach"
     assert entries[2][1] is None
+
+
+def test_promote_staging_rebases_main_pushes_and_restores_branch(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"stdout": "feature\n"})(),
+    )
+    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
+
+    assert promote_staging() == 0
+    assert calls == [
+        ["git", "switch", "staging"],
+        ["git", "rebase", "main"],
+        ["git", "push", "origin", "staging"],
+        ["git", "switch", "feature"],
+    ]
 
 
 def test_require_darwin_rejects_other(monkeypatch) -> None:

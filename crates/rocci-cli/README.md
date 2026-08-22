@@ -18,6 +18,16 @@ cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 # Package a Linux server binary plus assets (not a macOS .app)
 cargo run -p rocci-cli -- build --release examples/rocci/custom/datastar [-o target/release/rocci-server] [--target x64musl|arm64musl|…]
 cargo run -p rocci-cli -- build --release examples/rocci/standalone/counter/Counter.rocci
+# Stream Roc compiler output and phase timings for a release build
+cargo run -p rocci-cli -- build --release --verbose examples/rocci/custom/datastar --target x64musl
+# Available backend modes: speed, size, dev, interpreter
+cargo run -p rocci-cli -- build --release --opt dev examples/rocci/custom/blocks --target x64musl
+
+`rocci build --release` defaults to Roc's optimized `speed` backend. The
+repository site packager currently passes `--opt dev` for all live examples as
+a temporary workaround for an optimized-backend compiler recursion. Dev
+artifacts are functional but may be larger and slower; pass `--opt speed` for
+production-performance output when the compiler path is known to work.
 
 # Run a standalone template application with live reload and embedded preview
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci

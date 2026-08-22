@@ -50,6 +50,12 @@ enum Commands {
         /// Requires `--release`. macOS `.app` bundling stays on `rocci bundle`.
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
+        /// Stream Roc compiler output and show compiler phase timings.
+        #[arg(long)]
+        verbose: bool,
+        /// Roc backend optimization mode (defaults to Roc's speed backend).
+        #[arg(long, value_enum)]
+        opt: Option<rocci_cli::native_target::RocOpt>,
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
@@ -172,18 +178,26 @@ fn try_main() -> Result<()> {
             output,
             release,
             target,
+            verbose,
+            opt,
         } => {
             if release {
-                let report = bundle::package_server(&input, output.as_deref(), target)?;
+                let report = bundle::package_server_with_opt(
+                    &input,
+                    output.as_deref(),
+                    target,
+                    verbose,
+                    opt,
+                )?;
                 println!(
                     "{}",
                     style::success_text(&report.output.display().to_string())
                 );
                 Ok(())
             } else {
-                if target.is_some() {
+                if target.is_some() || opt.is_some() {
                     bail!(
-                        "`--target` requires `--release` (Linux server packaging, not template-to-Roc)"
+                        "`--target` and `--opt` require `--release` (Linux server packaging, not template-to-Roc)"
                     );
                 }
                 build_module(&input, output.as_deref())
@@ -426,6 +440,9 @@ mod tests {
             "examples/rocci/custom/datastar",
             "--target",
             "x64musl",
+            "--verbose",
+            "--opt",
+            "dev",
             "-o",
             "target/release/rocci-server",
         ])
@@ -436,6 +453,8 @@ mod tests {
                 output,
                 release,
                 target,
+                verbose,
+                opt,
             } => {
                 assert_eq!(input, PathBuf::from("examples/rocci/custom/datastar"));
                 assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
@@ -444,6 +463,8 @@ mod tests {
                     target,
                     Some(rocci_cli::native_target::NativeTarget::X64Musl)
                 );
+                assert!(verbose);
+                assert_eq!(opt, Some(rocci_cli::native_target::RocOpt::Dev));
             }
             _ => panic!("expected build --release"),
         }

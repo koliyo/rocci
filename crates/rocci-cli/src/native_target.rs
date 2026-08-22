@@ -1,4 +1,4 @@
-use std::{fs, path::Path, process::Command};
+use std::{fs, path::Path, process::Command, time::Instant};
 
 use anyhow::{Context, Result, bail};
 use clap::ValueEnum;
@@ -35,6 +35,26 @@ pub enum NativeTarget {
     Wasm32,
 }
 
+/// Roc compiler backend optimization mode.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum RocOpt {
+    Speed,
+    Size,
+    Dev,
+    Interpreter,
+}
+
+impl RocOpt {
+    pub fn as_roc_opt(self) -> &'static str {
+        match self {
+            Self::Speed => "speed",
+            Self::Size => "size",
+            Self::Dev => "dev",
+            Self::Interpreter => "interpreter",
+        }
+    }
+}
+
 impl NativeTarget {
     pub fn as_roc_target(self) -> &'static str {
         match self {
@@ -67,18 +87,65 @@ pub fn roc_build_args(main_roc: &str, output: &Path, target: Option<NativeTarget
 }
 
 pub fn build_roc_server(app_dir: &Path, output: &Path, target: Option<NativeTarget>) -> Result<()> {
+    build_roc_server_with_options(app_dir, output, target, false)
+}
+
+pub fn build_roc_server_with_options(
+    app_dir: &Path,
+    output: &Path,
+    target: Option<NativeTarget>,
+    verbose: bool,
+) -> Result<()> {
+    build_roc_server_with_opt(app_dir, output, target, verbose, None)
+}
+
+pub fn build_roc_server_with_opt(
+    app_dir: &Path,
+    output: &Path,
+    target: Option<NativeTarget>,
+    verbose: bool,
+    opt: Option<RocOpt>,
+) -> Result<()> {
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
     }
-    let args = roc_build_args("main.roc", output, target);
-    let result = Command::new("roc")
-        .current_dir(app_dir)
-        .args(&args)
-        .output()
-        .context("failed to run `roc build`; is roc on PATH?")?;
-    if !result.status.success() {
-        let stdout = String::from_utf8_lossy(&result.stdout);
-        let stderr = String::from_utf8_lossy(&result.stderr);
+    let mut args = roc_build_args("main.roc", output, target);
+    if let Some(opt) = opt {
+        args.push(format!("--opt={}", opt.as_roc_opt()));
+    }
+    if verbose {
+        args.extend(["--verbose".to_string(), "--timings".to_string()]);
+        eprintln!(
+            "[rocci build] phase=roc_build status=start target={} app={} output={}",
+            target.map_or_else(|| "native".to_string(), |value| value.to_string()),
+            app_dir.display(),
+            output.display()
+        );
+    }
+    let started = Instant::now();
+    let result = if verbose {
+        Command::new("roc")
+            .current_dir(app_dir)
+            .args(&args)
+            .status()
+            .map(|status| (status, String::new(), String::new()))
+    } else {
+        Command::new("roc")
+            .current_dir(app_dir)
+            .args(&args)
+            .output()
+            .map(|output| {
+                (
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout).into_owned(),
+                    String::from_utf8_lossy(&output.stderr).into_owned(),
+                )
+            })
+    }
+    .context("failed to run `roc build`; is roc on PATH?")?;
+    if !result.0.success() {
+        let stdout = &result.1;
+        let stderr = &result.2;
         let target_note = match target {
             Some(target) => format!(
                 "\nroc build --target={} failed; not falling back to a host-native binary",
@@ -90,6 +157,15 @@ pub fn build_roc_server(app_dir: &Path, output: &Path, target: Option<NativeTarg
     }
     if !output.is_file() {
         bail!("roc build did not write {}", output.display());
+    }
+    if verbose {
+        let size = fs::metadata(output)
+            .map(|metadata| metadata.len())
+            .unwrap_or(0);
+        eprintln!(
+            "[rocci build] phase=roc_build status=done elapsed_ms={} output_bytes={size}",
+            started.elapsed().as_millis()
+        );
     }
     Ok(())
 }
