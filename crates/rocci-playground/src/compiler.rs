@@ -264,7 +264,10 @@ fn compute_highlights(
     roc: &str,
     ast: &str,
 ) -> PlaygroundHighlights {
-    let source_spans = highlight(source_lang, source);
+    let source_spans = match source_lang {
+        LanguageId::Rocdown => rocci_rocdown::highlight_rocdown(source),
+        lang => highlight(lang, source),
+    };
     let roc_spans = highlight(LanguageId::Roc, roc);
     let ast_spans = highlight_sexp(ast);
 

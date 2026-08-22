@@ -152,12 +152,24 @@ def install_cursor_extension() -> int:
     return 0
 
 
+def ensure_wasm32_unknown_unknown() -> None:
+    listed = subprocess.run(
+        ["rustup", "target", "list", "--installed"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    if "wasm32-unknown-unknown" not in listed.stdout.splitlines():
+        run(["rustup", "target", "add", "wasm32-unknown-unknown"])
+
+
 def build_playground() -> int:
     root = repo_root()
     dist = root / "playground" / "dist"
     dist.mkdir(parents=True, exist_ok=True)
     for name in ("app.js", "compiler-worker.js", "styles.css", "compiler.wasm"):
         (dist / name).touch()
+    ensure_wasm32_unknown_unknown()
     run(
         [
             "cargo",

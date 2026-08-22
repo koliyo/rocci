@@ -47,7 +47,19 @@ pub use span::{PositionEncoding, SourceFile, Span};
 pub use validate::{validate, validate_template_items};
 
 use crate::parser::parse as parse_impl;
-use std::time::Instant;
+
+fn timed_ms<T>(f: impl FnOnce() -> T) -> (T, u128) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        (f(), 0)
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let started = std::time::Instant::now();
+        let value = f();
+        (value, started.elapsed().as_millis())
+    }
+}
 
 pub fn parse(source: SourceFile<'_>) -> ParseOutput {
     parse_impl(source)
@@ -86,16 +98,10 @@ impl CompileOutput {
 }
 
 pub fn compile(source: SourceFile<'_>, options: &LowerOptions) -> CompileOutput {
-    let parse_started = Instant::now();
-    let parsed = parse(source);
-    let parse_ms = parse_started.elapsed().as_millis();
+    let (parsed, parse_ms) = timed_ms(|| parse(source));
     let mut diagnostics = parsed.diagnostics;
-    let validate_started = Instant::now();
-    validate(source.src, &parsed.document, &mut diagnostics);
-    let validate_ms = validate_started.elapsed().as_millis();
-    let lower_started = Instant::now();
-    let lowered = lower(source, &parsed.document, options);
-    let lower_ms = lower_started.elapsed().as_millis();
+    let (_, validate_ms) = timed_ms(|| validate(source.src, &parsed.document, &mut diagnostics));
+    let (lowered, lower_ms) = timed_ms(|| lower(source, &parsed.document, options));
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,

@@ -3,6 +3,7 @@ pub mod composite;
 pub mod embedded;
 pub mod html;
 pub mod language;
+pub mod lex;
 pub mod markdown;
 pub mod regions;
 pub mod token;

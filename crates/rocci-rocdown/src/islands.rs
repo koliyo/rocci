@@ -14,7 +14,7 @@ use rocci_template::{
 
 use crate::{BASIC_CLI_PLATFORM, CompileOptions, compile_islands};
 
-pub const PLACEHOLDER: &str = "<!--rocci-island-->";
+pub use crate::article::ISLAND_PLACEHOLDER as PLACEHOLDER;
 const BREAK: &str = "<!--rocci-island-break-->";
 
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);

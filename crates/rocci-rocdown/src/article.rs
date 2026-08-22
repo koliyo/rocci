@@ -2,6 +2,8 @@ use serde::Serialize;
 
 use crate::{Document, Item, MdNode};
 
+pub const ISLAND_PLACEHOLDER: &str = "<!--rocci-island-->";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PageKind {

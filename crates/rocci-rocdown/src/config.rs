@@ -84,6 +84,7 @@ pub struct BuildConfig {
     pub assets: String,
     #[serde(default)]
     pub theme: Option<String>,
+    #[cfg(not(target_arch = "wasm32"))]
     #[serde(default)]
     pub host: Option<rocci_roc_host::HostChoice>,
 }
@@ -94,6 +95,7 @@ impl Default for BuildConfig {
             output: "dist".into(),
             assets: "assets".into(),
             theme: None,
+            #[cfg(not(target_arch = "wasm32"))]
             host: None,
         }
     }

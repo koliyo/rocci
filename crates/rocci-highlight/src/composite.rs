@@ -7,14 +7,10 @@ use rocci_template::{
 #[cfg(not(target_arch = "wasm32"))]
 use crate::embedded;
 use crate::language::LanguageId;
-#[cfg(not(target_arch = "wasm32"))]
-use crate::regions::RegionPurpose;
-use crate::regions::{RegionTree, extract_rocci_regions};
-#[cfg(not(target_arch = "wasm32"))]
-use crate::token::floor_char_boundary;
+use crate::regions::{RegionPurpose, RegionTree, extract_rocci_regions};
 use crate::token::{
     HighlightKind, HighlightSpan, MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION,
-    resolve_and_sort_spans,
+    floor_char_boundary, resolve_and_sort_spans,
 };
 
 pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
@@ -35,7 +31,20 @@ pub fn highlight(language: LanguageId, source: &str) -> Vec<HighlightSpan> {
             resolve_and_sort_spans(source, &raw)
         }
         #[cfg(target_arch = "wasm32")]
-        LanguageId::Roc | LanguageId::Css | LanguageId::Html => Vec::new(),
+        LanguageId::Roc => {
+            let raw = crate::lex::highlight_roc(source);
+            resolve_and_sort_spans(source, &raw)
+        }
+        #[cfg(target_arch = "wasm32")]
+        LanguageId::Css => {
+            let raw = crate::lex::highlight_css(source);
+            resolve_and_sort_spans(source, &raw)
+        }
+        #[cfg(target_arch = "wasm32")]
+        LanguageId::Html => {
+            let raw = crate::lex::highlight_html(source);
+            resolve_and_sort_spans(source, &raw)
+        }
         LanguageId::Rocci => highlight_rocci(source),
         LanguageId::Markdown => {
             let raw = crate::markdown::highlight_markdown(source);
@@ -63,16 +72,47 @@ pub fn highlight_rocci_document(source: &str, document: &RocciDocument) -> Vec<H
     resolve_and_sort_spans(source, &raw_tokens)
 }
 
+fn highlight_embedded(language: LanguageId, slice: &str) -> Vec<HighlightSpan> {
+    match language {
+        LanguageId::Roc => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                embedded::roc::highlight(slice)
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                crate::lex::highlight_roc(slice)
+            }
+        }
+        LanguageId::Css => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                embedded::css::highlight(slice)
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                crate::lex::highlight_css(slice)
+            }
+        }
+        LanguageId::Html => {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                embedded::html::highlight(slice)
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                crate::lex::highlight_html(slice)
+            }
+        }
+        _ => Vec::new(),
+    }
+}
+
 pub fn collect_embedded_regions(
     src: &str,
     collector: &mut Vec<HighlightSpan>,
     regions: &RegionTree,
 ) {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let _ = (src, collector, regions);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
     for region in &regions.regions {
         let region_start = floor_char_boundary(src, region.span.start as usize);
         let region_end = floor_char_boundary(src, (region.span.end as usize).min(src.len()));
@@ -83,7 +123,7 @@ pub fn collect_embedded_regions(
 
         match region.language {
             LanguageId::Roc => {
-                let hl_tokens = embedded::roc::highlight(slice);
+                let hl_tokens = highlight_embedded(LanguageId::Roc, slice);
                 for tok in hl_tokens {
                     let tok_start =
                         floor_char_boundary(src, region_start + tok.span.start as usize);
@@ -102,7 +142,7 @@ pub fn collect_embedded_regions(
                 }
             }
             LanguageId::Css => {
-                let hl_tokens = embedded::css::highlight(slice);
+                let hl_tokens = highlight_embedded(LanguageId::Css, slice);
                 for tok in hl_tokens {
                     let tok_start =
                         floor_char_boundary(src, region_start + tok.span.start as usize);
@@ -122,7 +162,7 @@ pub fn collect_embedded_regions(
             }
             LanguageId::Html => {
                 if region.purpose == RegionPurpose::DisplayOnly {
-                    let hl_tokens = embedded::html::highlight(slice);
+                    let hl_tokens = highlight_embedded(LanguageId::Html, slice);
                     for tok in hl_tokens {
                         let tok_start =
                             floor_char_boundary(src, region_start + tok.span.start as usize);

@@ -13,19 +13,21 @@ path = "src/lib.rs"
 anyhow = { workspace = true }
 clap = { workspace = true }
 comrak = { version = "0.54", default-features = false }
+rocci-highlight = { workspace = true }
+rocci-template = { workspace = true }
+rocci-theme = { workspace = true }
+rocci-ui = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+toml = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 flate2 = "1"
 tar = "0.4"
 lsp-types = { workspace = true }
 notify = { workspace = true }
 rocci-cli = { workspace = true }
 rocci-core = { workspace = true }
-rocci-highlight = { workspace = true }
 rocci-lsp = { workspace = true }
-rocci-template = { workspace = true }
-rocci-theme = { workspace = true }
-rocci-ui = { workspace = true }
 rocci-roc-host = { workspace = true, features = ["wasmtime"] }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sha2 = "0.10"
-toml = { workspace = true }

@@ -1656,7 +1656,7 @@ fn render_node(node: &ArticleNode) -> String {
         ArticleNode::Markdown(md) => render_md(md),
         ArticleNode::Block(docs) => render_docs(docs),
         ArticleNode::Image(image) => render_static_image(image),
-        ArticleNode::Island => crate::islands::PLACEHOLDER.to_string(),
+        ArticleNode::Island => crate::article::ISLAND_PLACEHOLDER.to_string(),
     }
 }
 
@@ -1947,7 +1947,7 @@ fn plan_nodes(
                 let html = islands
                     .get(*island_index)
                     .cloned()
-                    .unwrap_or_else(|| crate::islands::PLACEHOLDER.to_string());
+                    .unwrap_or_else(|| crate::article::ISLAND_PLACEHOLDER.to_string());
                 *island_index += 1;
                 files.push((path.clone(), html));
                 segments.push(PlannedNode::Html { path });

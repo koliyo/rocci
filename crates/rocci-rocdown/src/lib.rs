@@ -2,32 +2,43 @@
 
 mod article;
 mod ast;
+#[cfg(not(target_arch = "wasm32"))]
 mod build;
 mod catalog;
 mod config;
+#[cfg(not(target_arch = "wasm32"))]
 mod dev;
 mod docs;
 pub mod highlight;
 mod img;
 mod imports;
+#[cfg(not(target_arch = "wasm32"))]
 mod inspect_snapshot;
+#[cfg(not(target_arch = "wasm32"))]
 mod islands;
 mod links;
 mod lower;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod lsp;
 mod markdown;
+#[cfg(not(target_arch = "wasm32"))]
 mod package;
 mod page;
 mod params;
 mod parse;
+#[cfg(not(target_arch = "wasm32"))]
 mod plan;
 mod pprint;
 mod registry;
 mod runtime;
 mod scan;
+#[cfg(not(target_arch = "wasm32"))]
 mod service;
+#[cfg(not(target_arch = "wasm32"))]
 mod site;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod standalone;
+#[cfg(not(target_arch = "wasm32"))]
 mod static_preview;
 pub mod theme;
 
@@ -40,6 +51,7 @@ pub use ast::{
     EndSection, HeadingInfo, Item, LineContent, LinkInfo, MdNode, PageDecl, PageMeta, ParamField,
     ParamValue, RenderDecl, RocDecl, UseDecl,
 };
+#[cfg(not(target_arch = "wasm32"))]
 pub use build::{
     BuildOptions, BuildReport, BuildSession, build, build_configured, build_configured_with_host,
     build_configured_with_options, build_with_host, discover_rocdown,
@@ -51,6 +63,7 @@ pub use catalog::{
 pub use config::{
     BuildConfig, CONFIG_FILE, HttpConfig, NavConfig, SiteConfig, SiteMeta, load_config,
 };
+#[cfg(not(target_arch = "wasm32"))]
 pub use dev::{DevServer, run, run_with_host, run_with_host_at};
 pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
@@ -64,29 +77,39 @@ pub use img::{
     normalize_local_asset_url, resolve_local_asset,
 };
 pub use links::{PageRef, index_pages, index_pages_in_dir, page_ref_from_source};
+#[cfg(not(target_arch = "wasm32"))]
 pub use lsp::{RocdownAnalysis, RocdownAnalyzer};
+#[cfg(not(target_arch = "wasm32"))]
 pub use package::{
     PackageManifest, PackageOptions, PackageReport, ensure_built_tree, package_configured,
 };
 pub use parse::{MarkdownBodyOptions, ParseOutput};
+#[cfg(not(target_arch = "wasm32"))]
 pub use plan::{ArtifactInspect, BuildPlan, DEFAULT_CSP, PublishPage, PublishReport, plan};
 pub use pprint::format_ast;
+#[cfg(not(target_arch = "wasm32"))]
 pub use rocci_roc_host::HostChoice;
-pub use runtime::{HTML, HTML_BINDINGS, THEME, runtime_bytes, stage_into};
+pub use runtime::{HTML, HTML_BINDINGS, THEME};
+#[cfg(not(target_arch = "wasm32"))]
+pub use runtime::{runtime_bytes, stage_into};
+#[cfg(not(target_arch = "wasm32"))]
 pub use service::{
     ConfiguredServiceApp, IslandRoute, IslandServicePlan, configured_service_app_plan,
     island_routes, island_routes_with_service, live_csp, plan_island_service, prefix_action_urls,
     serve_islands,
 };
+#[cfg(not(target_arch = "wasm32"))]
 pub use site::{
     CheckFormat, CheckReport, InspectKind, cdn_only_live_errors, check, find_site_root, inspect,
     load_site, resolve_loaded, site_preview_route, test_examples,
 };
+#[cfg(not(target_arch = "wasm32"))]
 pub use standalone::{
     StandaloneFailedFile, StandaloneModule, StandalonePlan, StandaloneReady,
     discover_rocdown_files, linked_standalone_inputs, plan_standalone,
     plan_standalone_with_progress,
 };
+#[cfg(not(target_arch = "wasm32"))]
 pub use static_preview::{
     document_page_kind, render_static_preview_html, write_static_document_preview,
 };
@@ -107,7 +130,19 @@ pub const BASIC_CLI_PLATFORM: &str = "https://github.com/roc-lang/basic-cli/rele
 pub const STAGING_ENV: &str = "ROCDOWN_STAGING";
 
 use crate::parse::parse as parse_impl;
-use std::time::Instant;
+
+fn timed_ms<T>(f: impl FnOnce() -> T) -> (T, u128) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        (f(), 0)
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let started = std::time::Instant::now();
+        let value = f();
+        (value, started.elapsed().as_millis())
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct CompileOptions {
@@ -188,9 +223,7 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
 }
 
 pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
-    let parse_started = Instant::now();
-    let mut parsed = parse(source, options.raw_html);
-    let parse_ms = parse_started.elapsed().as_millis();
+    let (mut parsed, parse_ms) = timed_ms(|| parse(source, options.raw_html));
     if options.resolve_links {
         links::resolve_document(source, &mut parsed, options);
     }
@@ -198,15 +231,15 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
         img::check_document_assets(source, &parsed.document, options, &mut parsed.diagnostics);
     }
     let mut diagnostics = parsed.diagnostics;
-    let lower_started = Instant::now();
-    let lowered = lower::lower(
-        source,
-        &parsed.document,
-        &parsed.headings,
-        options,
-        &mut diagnostics,
-    );
-    let lower_ms = lower_started.elapsed().as_millis();
+    let (lowered, lower_ms) = timed_ms(|| {
+        lower::lower(
+            source,
+            &parsed.document,
+            &parsed.headings,
+            options,
+            &mut diagnostics,
+        )
+    });
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,
@@ -228,13 +261,10 @@ pub fn compile(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutpu
 }
 
 pub fn compile_islands(source: SourceFile<'_>, options: &CompileOptions) -> CompileOutput {
-    let parse_started = Instant::now();
-    let parsed = parse(source, options.raw_html);
-    let parse_ms = parse_started.elapsed().as_millis();
+    let (parsed, parse_ms) = timed_ms(|| parse(source, options.raw_html));
     let mut diagnostics = parsed.diagnostics;
-    let lower_started = Instant::now();
-    let lowered = lower::lower_islands(source, &parsed.document, options, &mut diagnostics);
-    let lower_ms = lower_started.elapsed().as_millis();
+    let (lowered, lower_ms) =
+        timed_ms(|| lower::lower_islands(source, &parsed.document, options, &mut diagnostics));
     CompileOutput {
         roc: lowered.roc,
         segments: lowered.segments,
