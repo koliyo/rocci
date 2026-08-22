@@ -4,7 +4,7 @@ title: rocci.dev UX and authoring improvements
 description: Repair the landing and page finder, make section sidebar navigation universal except on Home, make breadcrumbs consistent, remove the rocci.dev News surface, improve public copy, and reduce site-authoring friction without changing the Rocdown ownership boundary.
 tags: [domain/rocci, domain/rocdown, concern/ux, concern/tooling, concern/publication, concern/navigation, concern/accessibility]
 status: draft
-generated: { by: process:codex, at: 2026-08-22T05:12:35Z }
+generated: { by: process:cursor, at: 2026-08-22T12:52:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -68,7 +68,12 @@ sources:
     resource: comprehensive-rocci-documentation.md
     title: Comprehensive Rocci documentation plan
     author: process:cursor
-    last_modified: 2026-08-21
+    last_modified: 2026-08-22
+  - id: stack-ia-plan
+    resource: rocci-dev-docs-stack-ia.md
+    title: Stack-first documentation IA plan
+    author: process:cursor
+    last_modified: 2026-08-22
   - id: phase-0-contract
     resource: ../../site/tests/rocci-dev-site-ux-contract.toml
     title: Approved rocci.dev route, chrome, viewport, and News disposition contract
@@ -135,13 +140,19 @@ The evidence and prioritized defects are recorded separately in the
 
 ## Target information architecture
 
+Content labels for the Docs and Rocdown lanes are superseded by the
+stack-first documentation plan: `/docs/` covers templates, applications,
+and experimental Rocdown at `/docs/rocdown/`; the top-level `/rocdown/`
+lane is removed with no alias. News 308 targets below retarget to the
+new canonical pages. The chrome contract (sidebar except Home/FAQ,
+breadcrumbs, News 410/308 *kinds*) is unchanged.[^stack-ia-plan]
+
 After News removal, global navigation is:
 
 | Lane | Canonical entry | Sidebar contents |
 | --- | --- | --- |
-| Docs | `/docs/` | Start, Tutorials, How to, Understand, Reference, Troubleshooting, Status |
+| Docs | `/docs/` | Start, Templates, Applications, Rocdown, Reference, Troubleshooting |
 | Examples | `/examples/` | Example catalog and the current example context |
-| Rocdown | `/rocdown/` | Overview, Pages, Article blocks, Hybrid, Language, Site config, CLI, Tree |
 | FAQ | `/faq/` | FAQ lane; responsive question outline |
 | Project | `/project/` | Overview, Status, Roadmap, Contributing |
 
@@ -169,9 +180,9 @@ The Phase 0 disposition was approved by `human:nils` on 2026-08-22:
 | --- | --- | --- |
 | `/news/` | Retire | `410 Gone` |
 | `/news/feed.xml` | Retire | `410 Gone` |
-| `/news/introducing-rocci/` | Fold and redirect | `308` to `/docs/start/what-is-rocci/` |
-| `/news/rocdown-static-collections/` | Fold and redirect | `308` to `/rocdown/site-config/` |
-| `/news/rocci-desktop-apps/` | Fold and redirect | `308` to `/docs/tutorials/ship/` |
+| `/news/introducing-rocci/` | Fold and redirect | `308` to `/docs/the-stack/` |
+| `/news/rocdown-static-collections/` | Fold and redirect | `308` to `/docs/rocdown/sites/` |
+| `/news/rocci-desktop-apps/` | Fold and redirect | `308` to `/docs/applications/package/` |
 
 Later phases must retain only current durable facts at those canonical owners;
 the announcement framing and stale commands or platform claims do not move.
@@ -436,7 +447,8 @@ approved response; and generic Rocdown collection tests still pass.
   knowledge; remove stale handler and phase language.
 - Verify every quantified or cross-platform claim or replace it with bounded
   wording.
-- Preserve stable routes and aliases.
+- Preserve News 308/410 dispositions. Documentation IA is a clean cut
+  under the stack-first plan: do not keep academy or `/rocdown/` aliases.
 
 #### Exit
 
@@ -579,3 +591,4 @@ direction.
 [^phase-0-contract]: Phase 0 route classes, viewport-specific chrome assertions, exact breadcrumb sequences, title and News-absence assertions, and the human-approved News URL dispositions.
 [^goto]: Current shared palette styling, host mounting, focus, results, and History API navigation.
 [^docs-plan]: Separate exhaustive Rocci documentation coverage, learning paths, reference, and first-use measurement work.
+[^stack-ia-plan]: Later plan: Docs includes `/docs/rocdown/`; top-level `/rocdown/` is removed with no alias. Chrome contract is unchanged. News 308 targets follow the new canonical pages.
