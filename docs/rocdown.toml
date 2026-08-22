@@ -99,8 +99,21 @@ items = [
     "reference/compatibility",
     "reference/diagnostics",
     "reference/contributor/rocci-tree",
+    "reference/contributor/rocdown-tree",
     "reference/contributor/checklist",
     "reference/contributor/first-use",
+]
+
+[[nav]]
+label = "Rocdown"
+items = [
+    "rocdown/index",
+    "rocdown/pages",
+    "rocdown/blocks",
+    "rocdown/sites",
+    "rocdown/hybrid",
+    "rocdown/language",
+    "rocdown/cli",
 ]
 
 [[nav]]

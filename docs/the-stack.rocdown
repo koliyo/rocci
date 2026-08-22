@@ -23,7 +23,7 @@ to stop. Exact forms live in [reference](/docs/reference/).
    custom are two depths of this layer, not two products.
 4. **Rocdown.** Optional Markdown-first documents and sites. Static pages stay
    Markdown; live pages reuse the application layer. This layer is more
-   experimental than templates. Start at [Rocdown](/rocdown/).
+   experimental than templates. Start at [Rocdown](/docs/rocdown/).
 
 You do not need Rocdown to ship an app. You do not need Applications if you
 only preview components into an existing `main.roc`.

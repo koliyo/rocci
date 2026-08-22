@@ -19,7 +19,7 @@
 **Status:** current.
 
 This page documents the `rocci` binary only. `rocdown` and `rocci-okf` are
-other products; see [Rocdown](/rocdown/).
+other products; see [Rocdown CLI](/docs/rocdown/cli/).
 
 Examples use a source checkout. Until a distribution exists, the spelling is
 `cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo

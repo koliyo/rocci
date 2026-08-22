@@ -30,7 +30,7 @@ Stop at the layer you need.
 :card-grid.begin
     :link-card[href: "/docs/start/five-minutes/", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
     :link-card[href: "/docs/tutorials/first-app/", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
-    :link-card[href: "/rocdown/", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
+    :link-card[href: "/docs/rocdown/", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
 :card-grid.end
 
 Read [the stack](/docs/the-stack/) for the composition. Install the

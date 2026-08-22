@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/docs-components/", "/docs/guides/docs-components/"],
-
     meta: {
         title: "Write documentation components",
         description: "Author asides, steps, figures, tabs, and other article blocks in Rocdown without raw HTML.",
@@ -73,8 +71,8 @@ Markdown or other blocks are errors.
 ## Link related pages
 
 :card-grid.begin
-    :link-card[page: "rocdown/language"]
-    :link-card[page: "rocdown/site-config"]
+    :link-card[href: "/docs/rocdown/language/", title: "Language"]
+    :link-card[href: "/docs/rocdown/sites/", title: "Sites"]
 :card-grid.end
 
 ## Caption an image
@@ -117,7 +115,7 @@ A site `theme/Blocks.rocci` (or `theme/blocks/*.rocci`) overlays builtin painter
 by exporting the same `@component` names. A new PascalCase export becomes a
 custom static kind (`Callout` → `:callout`). Helpers must not live in that pack.
 `@use` stays interactive-only; static `rocdown build` does not honor it. See
-[Rocdown site configuration](/rocdown/site-config/).
+[Rocdown site configuration](/docs/rocdown/sites/).
 
 ```rocci
 import Html

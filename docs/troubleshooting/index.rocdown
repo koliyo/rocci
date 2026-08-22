@@ -21,7 +21,7 @@ code where source-map segments exist.
 | Preview window, WebKitGTK, Dev Console empty | [Preview](/docs/troubleshooting/preview/) |
 
 Rocdown catalog codes (`RD2101`, …) and `rocdown check` failures belong on the
-[Rocdown](/rocdown/) lane, not here.
+[Rocdown](/docs/rocdown/) pages.
 
 If the issue persists, reduce it to one `.rocci` file and include the command,
 platform, Roc nightly (`docker/install-roc.sh`), and complete diagnostic in a
