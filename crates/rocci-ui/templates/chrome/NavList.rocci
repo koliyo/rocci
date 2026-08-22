@@ -6,7 +6,10 @@ import Html
         display: block;
         text-decoration: none;
     }
-    .nav-section { margin: 0; }
+    .nav-section {
+        margin: 0;
+        interpolate-size: allow-keywords;
+    }
     .nav-section + .nav-section { margin-top: 0.28rem; }
     .nav-section summary {
         list-style: none;
@@ -22,8 +25,31 @@ import Html
         top: 50%;
         transform: translateY(-50%);
         font-weight: 500;
+        transition: transform 160ms ease;
     }
-    .nav-section[open] > summary::after { content: "−"; }
+    .nav-section[open] > summary::after {
+        content: "−";
+        transform: translateY(-50%) rotate(180deg);
+    }
+    .nav-section::details-content {
+        block-size: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition:
+            block-size 180ms ease,
+            opacity 140ms ease,
+            content-visibility 180ms allow-discrete;
+    }
+    .nav-section[open]::details-content {
+        block-size: auto;
+        opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .nav-section summary::after,
+        .nav-section::details-content {
+            transition: none;
+        }
+    }
 }
 
 @component NavGroupInner = |{ group, route }| {
