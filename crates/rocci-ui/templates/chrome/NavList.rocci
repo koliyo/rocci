@@ -59,7 +59,7 @@ import Html
     </div>
 }
 
-@component NavList = |{ items, route, aria_label, group_name }| {
+@component NavList = |{ items, route, aria_label }| {
     <nav aria-label={aria_label}>
         <div class="nav-items">
             @for group in items {
@@ -70,11 +70,11 @@ import Html
                         aria-current={if group.href == route { "page" } else { "false" }}
                     >{group.title}</a>
                 } @else if group.open {
-                    <details class="nav-section" name={group_name} open>
+                    <details class="nav-section" open>
                         <NavGroupInner group={group} route={route} />
                     </details>
                 } @else {
-                    <details class="nav-section" name={group_name}>
+                    <details class="nav-section">
                         <NavGroupInner group={group} route={route} />
                     </details>
                 }
@@ -112,5 +112,4 @@ navListOpen = {
     ],
     route: "/tutorials/first-component/",
     aria_label: "Site navigation",
-    group_name: "fixture-sections",
 }

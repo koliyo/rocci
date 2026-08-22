@@ -60,24 +60,7 @@
           if (section.open) {
             return finishFold(section, false);
           }
-          const name = section.getAttribute("name");
-          const sections = document.querySelectorAll("details.nav-section");
-          let closeCurrent = Promise.resolve();
-          for (let i = 0; i < sections.length; i++) {
-            const current = sections[i];
-            if (
-              current !== section &&
-              current.open &&
-              current.getAttribute("name") === name
-            ) {
-              closeCurrent = closeCurrent.then(function () {
-                return finishFold(current, false);
-              });
-            }
-          }
-          return closeCurrent.then(function () {
-            return finishFold(section, true);
-          });
+          return finishFold(section, true);
         });
       },
       true
