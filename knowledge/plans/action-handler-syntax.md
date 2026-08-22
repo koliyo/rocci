@@ -4,8 +4,8 @@ title: Semantic view, patch, command, and live handlers
 description: "Replace @on with @view, @patch, and @command beside @live; default mutations to POST; encode command result data with Roc; convert every existing source without compatibility aliases; and build a complete syntax matrix with the pinned Roc compiler."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/language-design, concern/developer-experience]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T10:54:09Z }
-stale_after: 2026-11-21
+generated: { by: process:cursor, at: 2026-08-22T09:13:16Z }
+stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
 sources:
@@ -88,9 +88,23 @@ sources:
     resource: https://www.roc-lang.org/docs/main/
     title: Roc standard-library JSON encoding API
     author: organization:roc-lang
+  - id: follow-up
+    resource: handler-ui-boundary.md
+    title: Follow-up plan for a bounded Rocci UI handler surface
+    author: process:cursor
+    last_modified: 2026-08-22
 ---
 
 # Semantic view, patch, command, and live handlers
+
+## Current disposition
+
+The clean cut from `@on` to `@view`, `@patch`, `@command`, and `@live` is
+implemented in the current tree. This record preserves the original cutover
+design and phase structure; it is no longer the active recommendation for the
+command/API boundary. The [handler UI boundary follow-up](handler-ui-boundary.md)
+reopens negotiated command JSON, adds the missing GET fragment case, and keeps
+patch-signals below declaration syntax.[^follow-up]
 
 ## Purpose and authority
 
@@ -542,3 +556,4 @@ JSON-text branch or reinterpret `@command` data as wire bytes.
 [^template-readme]: The owning crate README documents the public standalone handler contract.
 [^server-actions]: The public guide teaches direct patches separately from live commands and is the primary DX migration surface.
 [^roc-json]: Roc builtins `Encoding.Json.to_str` (total) and `Encoding.Json.to_str_try` (fallible `Try(Str, err)`) compiled against the pinned nightly and the Rocci generated-app platform.
+[^follow-up]: The follow-up re-evaluates command JSON, GET fragments, and low-level patch-signals after the four-noun cutover shipped.
