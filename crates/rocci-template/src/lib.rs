@@ -20,10 +20,10 @@ mod validate;
 
 pub use ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
-    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
-    Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem,
-    ParsedParams, PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
-    parse_component_params, strip_param_defaults,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident,
+    IfDirective, InitDecl, Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm,
+    MatchDirective, ModuleItem, ParsedParams, RouteDecl, TemplateBlock, TemplateItem, TextNode,
+    ViewDecl, parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, leading_comments_before, trim_span};

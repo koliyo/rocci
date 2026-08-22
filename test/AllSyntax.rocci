@@ -129,42 +129,42 @@ badgeClass = |tone| {
     }
 }
 
-@view("/") {
+@get:view("/") {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }
 
-@patch("/actions/card") {
+@post:fragment("/actions/card") {
     counterCard({ count: 0 })
 }
 
-@patch:put("/actions/put") = |_state, _request| {
+@put:fragment("/actions/put") = |_state, _request| {
     counterCard({ count: 1 })
 }
 
-@patch:patch("/actions/patch") {
+@patch:fragment("/actions/patch") {
     counterCard({ count: 2 })
 }
 
-@patch:delete("/actions/delete-card") {
+@delete:fragment("/actions/delete-card") {
     counterCard({ count: 3 })
 }
 
-@command("/actions/increment") {
+@post:command("/actions/increment") {
     { count: 0 }
 }
 
-@command:put("/actions/command-put") = |_state| {
+@put:command("/actions/command-put") = |_state| {
     { count: 1 }
 }
 
-@command:patch("/actions/command-patch") {
+@patch:command("/actions/command-patch") {
     { items: ["a"] }
 }
 
-@command:delete("/actions/command-delete") {
+@delete:command("/actions/command-delete") {
     { remaining: 0 }
 }
 
-@live {
+@get:live("/sse") {
     counterPage({ person: { name: "Roc" }, count: 0 })
 }

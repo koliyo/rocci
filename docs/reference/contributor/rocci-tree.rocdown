@@ -35,6 +35,7 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `FixtureDecl` | `fixture` | generated |
 | `ForDirective` | `for` | generated |
 | `Fragment` | `fragment` | generated |
+| `FragmentDecl` | `fragment` | generated |
 | `Ident` | omit | generated |
 | `IfDirective` | `if` | generated |
 | `InitDecl` | `init` | generated |
@@ -47,11 +48,11 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `MatchDirective` | `match` | generated |
 | `ModuleItem` | omit | generated |
 | `ParamList` | `params` | leaf |
-| `PatchDecl` | `patch` | generated |
 | `RocExpr` | — | leaf |
 | `RocPattern` | — | leaf |
 | `RocRegion` | `roc` | inline |
 | `RocType` | — | leaf |
+| `RouteDecl` | omit | generated |
 | `Static` | omit | inline |
 | `StringLit` | — | leaf |
 | `TemplateBlock` | omit | generated |

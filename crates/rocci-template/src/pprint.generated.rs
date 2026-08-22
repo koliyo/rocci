@@ -16,10 +16,16 @@ fn write_module_item(w: &mut Writer<'_>, src: &str, item: &ModuleItem) {
         ModuleItem::Css(item) => write_css(w, src, item),
         ModuleItem::Context(item) => write_context(w, src, item),
         ModuleItem::Init(item) => write_init(w, src, item),
-        ModuleItem::Live(item) => write_live(w, src, item),
-        ModuleItem::View(item) => write_view(w, src, item),
-        ModuleItem::Patch(item) => write_patch(w, src, item),
-        ModuleItem::Command(item) => write_command(w, src, item),
+        ModuleItem::Route(item) => write_route_decl(w, src, item),
+    }
+}
+
+fn write_route_decl(w: &mut Writer<'_>, src: &str, item: &RouteDecl) {
+    match item {
+        RouteDecl::View(item) => write_view(w, src, item),
+        RouteDecl::Fragment(item) => write_fragment_decl(w, src, item),
+        RouteDecl::Command(item) => write_command(w, src, item),
+        RouteDecl::Live(item) => write_live(w, src, item),
     }
 }
 

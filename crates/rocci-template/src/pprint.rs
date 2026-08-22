@@ -1,8 +1,8 @@
 use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, IfDirective, InitDecl, Interpolation,
-    LeadingComments, LetDirective, LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock,
-    TemplateItem, TextNode, ViewDecl,
+    Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, IfDirective, InitDecl,
+    Interpolation, LeadingComments, LetDirective, LiveDecl, MatchDirective, ModuleItem, RouteDecl,
+    TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 use crate::span::Span;
 
@@ -175,7 +175,10 @@ fn write_init(w: &mut Writer<'_>, src: &str, init: &InitDecl) {
 }
 
 fn write_live(w: &mut Writer<'_>, src: &str, live: &LiveDecl) {
-    let mut atoms = Vec::new();
+    let mut atoms = vec![
+        atom(&live.method.name.to_ascii_uppercase()),
+        string_atom(&live.path),
+    ];
     if let Some(params) = live.params {
         atoms.push(atom(params.of(src).trim()));
     }
@@ -186,7 +189,10 @@ fn write_live(w: &mut Writer<'_>, src: &str, live: &LiveDecl) {
 }
 
 fn write_view(w: &mut Writer<'_>, src: &str, view: &ViewDecl) {
-    let mut atoms = vec![string_atom(&view.path)];
+    let mut atoms = vec![
+        atom(&view.method.name.to_ascii_uppercase()),
+        string_atom(&view.path),
+    ];
     if let Some(params) = view.params {
         atoms.push(atom(params.of(src).trim()));
     }
@@ -196,17 +202,17 @@ fn write_view(w: &mut Writer<'_>, src: &str, view: &ViewDecl) {
     w.close();
 }
 
-fn write_patch(w: &mut Writer<'_>, src: &str, patch: &PatchDecl) {
+fn write_fragment_decl(w: &mut Writer<'_>, src: &str, fragment: &FragmentDecl) {
     write_mutation(
         w,
         src,
         Mutation {
-            head: "patch",
-            method: patch.method.as_ref(),
-            path: &patch.path,
-            params: patch.params,
-            body: patch.body,
-            leading: &patch.leading,
+            head: "fragment",
+            method: &fragment.method,
+            path: &fragment.path,
+            params: fragment.params,
+            body: fragment.body,
+            leading: &fragment.leading,
         },
     );
 }
@@ -217,7 +223,7 @@ fn write_command(w: &mut Writer<'_>, src: &str, command: &CommandDecl) {
         src,
         Mutation {
             head: "command",
-            method: command.method.as_ref(),
+            method: &command.method,
             path: &command.path,
             params: command.params,
             body: command.body,
@@ -228,7 +234,7 @@ fn write_command(w: &mut Writer<'_>, src: &str, command: &CommandDecl) {
 
 struct Mutation<'a> {
     head: &'a str,
-    method: Option<&'a crate::ast::Ident>,
+    method: &'a crate::ast::Ident,
     path: &'a str,
     params: Option<Span>,
     body: Span,
@@ -236,12 +242,7 @@ struct Mutation<'a> {
 }
 
 fn write_mutation(w: &mut Writer<'_>, src: &str, mutation: Mutation<'_>) {
-    let mut atoms = Vec::new();
-    if let Some(method) = mutation.method {
-        atoms.push(atom(&method.name.to_ascii_uppercase()));
-    } else {
-        atoms.push(atom("POST"));
-    }
+    let mut atoms = vec![atom(&mutation.method.name.to_ascii_uppercase())];
     atoms.push(string_atom(mutation.path));
     if let Some(params) = mutation.params {
         atoms.push(atom(params.of(src).trim()));
@@ -415,39 +416,39 @@ pub fn inspect_handlers(document: &Document) -> Vec<HandlerInspect> {
         .items
         .iter()
         .filter_map(|item| match item {
-            ModuleItem::View(view) => Some(HandlerInspect {
-                kind: "view",
-                method: "GET".to_string(),
-                path: view.path.clone(),
-                role: "document",
-            }),
-            ModuleItem::Patch(patch) => Some(HandlerInspect {
-                kind: "patch",
-                method: mutation_method(patch.method.as_ref()),
-                path: patch.path.clone(),
-                role: "patch",
-            }),
-            ModuleItem::Command(command) => Some(HandlerInspect {
-                kind: "command",
-                method: mutation_method(command.method.as_ref()),
-                path: command.path.clone(),
-                role: "command",
-            }),
-            ModuleItem::Live(_) => Some(HandlerInspect {
-                kind: "live",
-                method: "GET".to_string(),
-                path: "/sse".to_string(),
-                role: "live",
+            ModuleItem::Route(route) => Some(match route {
+                RouteDecl::View(view) => HandlerInspect {
+                    kind: "view",
+                    method: mutation_method(&view.method),
+                    path: view.path.clone(),
+                    role: "document",
+                },
+                RouteDecl::Fragment(fragment) => HandlerInspect {
+                    kind: "fragment",
+                    method: mutation_method(&fragment.method),
+                    path: fragment.path.clone(),
+                    role: "fragment",
+                },
+                RouteDecl::Command(command) => HandlerInspect {
+                    kind: "command",
+                    method: mutation_method(&command.method),
+                    path: command.path.clone(),
+                    role: "command",
+                },
+                RouteDecl::Live(live) => HandlerInspect {
+                    kind: "live",
+                    method: mutation_method(&live.method),
+                    path: live.path.clone(),
+                    role: "live",
+                },
             }),
             _ => None,
         })
         .collect()
 }
 
-fn mutation_method(method: Option<&crate::ast::Ident>) -> String {
-    method
-        .map(|ident| ident.name.to_ascii_uppercase())
-        .unwrap_or_else(|| "POST".to_string())
+fn mutation_method(method: &crate::ast::Ident) -> String {
+    method.name.to_ascii_uppercase()
 }
 
 fn string_atom(text: &str) -> String {
