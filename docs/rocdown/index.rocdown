@@ -17,6 +17,10 @@ Rocdown to ship an application. Static pages are Markdown-first. Live pages
 reuse the [application](/docs/applications/) layer: same handlers,
 same Datastar transport.
 
+:figure[caption: "A static Rocdown site is catalogued in Rust and wrapped in one compiled theme."] {{
+    :img[src: "/assets/diagrams/rocdown-site.svg", alt: "Discover .rocdown pages, resolve the catalog in Rust, render article HTML from Markdown and article blocks, compile the theme once, plan hashed assets CSP and 404, then commit the output tree. Ordinary prose is not type-checked by Roc.", loading: "lazy", decoding: "async"]
+}}
+
 :note[title: "Static pages stay Markdown-first"] {{
     Ordinary `.rocdown` site pages cannot include `@roc` or `@component`
     islands yet. Use article blocks such as `:note` and Markdown here; put
