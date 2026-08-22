@@ -174,6 +174,47 @@ pub fn render_handler_overlay(method: &str, path: &str, handler: &str, error: &s
     )
 }
 
+pub fn render_build_error_dialog(message: &str) -> String {
+    format!(
+        r#"<dialog id="rocci-build-error" open style="max-width:48rem;width:calc(100% - 2rem);margin:auto;padding:0;border:1px solid #e06c75;border-radius:8px;background:#1c2128;color:#f1f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.45)">\
+<form method="dialog" style="margin:0;padding:2rem">\
+<h1 style="margin:0 0 1rem;font-size:1.25rem;color:#e06c75">Build error</h1>\
+<pre style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-word;background:#15181e;border-radius:4px;padding:1rem;margin:0 0 1rem;line-height:1.5">{message}</pre>\
+<button type="submit" style="font:inherit;padding:0.45rem 0.9rem;border:1px solid #3d444d;border-radius:6px;background:#21262d;color:#f1f3f5;cursor:pointer">Close</button>\
+</form></dialog>"#,
+        message = html_escape(message),
+    )
+}
+
+pub fn inject_build_error_dialog(html: &str, message: &str) -> String {
+    let dialog = render_build_error_dialog(message);
+    if let Some(idx) = html.rfind("</body>") {
+        let mut out = String::with_capacity(html.len() + dialog.len());
+        out.push_str(&html[..idx]);
+        out.push_str(&dialog);
+        out.push_str(&html[idx..]);
+        out
+    } else {
+        format!("{html}{dialog}")
+    }
+}
+
+pub fn render_build_error_shell(message: &str) -> String {
+    format!(
+        r#"<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Build error</title>
+</head>
+<body>
+{dialog}
+</body>
+</html>"#,
+        dialog = render_build_error_dialog(message),
+    )
+}
+
 pub fn format_template_errors(files: &[FailedFile]) -> String {
     let mut out = String::new();
     for file in files {

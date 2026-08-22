@@ -99,7 +99,11 @@ logging from `@component` render functions. Console does not capture page
 is original inspector Phase 5 and is not shipped). Static
 dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
-`GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a
+`GET /__rocci/inspect?route=&view=`. When a site rebuild fails, HTML responses
+still serve the last output on disk (or a minimal shell when none exists) with a
+native `<dialog>` listing the error. Close the dialog to read the page behind
+it; the next failed rebuild shows the dialog again after live reload.
+`rocci run` hosts the same panel on a
 sibling loopback port, including `--no-window`. Overlay chrome docks that URL
 right or bottom with DevTools-style dock icons over the panel corner (tabs pad
 right); prefs persist in `~/.rocci/state/inspector.json`, and Open as page loads

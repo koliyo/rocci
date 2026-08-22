@@ -16,6 +16,7 @@ use anyhow::{Context, Result};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rocci_desktop::{PreviewOptions, preview};
 
+use crate::error_page;
 use crate::inspect::InspectSnapshot;
 use crate::inspector;
 use crate::logs::{self, LogHub, LogLevel};
@@ -812,27 +813,24 @@ fn handle_client(
         }
         ServeTarget::Redirect(location) => write_redirect(&mut stream, &location),
         ServeTarget::File { relative } => {
-            if is_html_file(&relative)
-                && let Some(error) = last_error
-                    .lock()
-                    .unwrap_or_else(|err| err.into_inner())
-                    .clone()
-            {
-                return write_error_html(&mut stream, &error);
-            }
-            serve_file(&mut stream, output, &relative, 200)
-        }
-        ServeTarget::NotFound => {
-            if has_build.load(Ordering::Relaxed) && output.join("404.html").is_file() {
-                serve_file(&mut stream, output, "404.html", 404)
-            } else if let Some(error) = last_error
+            let build_error = last_error
                 .lock()
                 .unwrap_or_else(|err| err.into_inner())
                 .clone()
-            {
-                write_error_html(&mut stream, &error)
+                .filter(|_| is_html_file(&relative));
+            serve_file(&mut stream, output, &relative, 200, build_error.as_deref())
+        }
+        ServeTarget::NotFound => {
+            let build_error = last_error
+                .lock()
+                .unwrap_or_else(|err| err.into_inner())
+                .clone();
+            if has_build.load(Ordering::Relaxed) && output.join("404.html").is_file() {
+                serve_file(&mut stream, output, "404.html", 404, build_error.as_deref())
+            } else if let Some(error) = build_error {
+                write_build_error_shell(&mut stream, &error)
             } else if output.join("404.html").is_file() {
-                serve_file(&mut stream, output, "404.html", 404)
+                serve_file(&mut stream, output, "404.html", 404, None)
             } else {
                 write_error_html(
                     &mut stream,
@@ -1158,13 +1156,18 @@ fn serve_file(
     output: &Path,
     relative: &str,
     status: u16,
+    build_error: Option<&str>,
 ) -> io::Result<()> {
     let path = output.join(relative);
     let bytes = fs::read(&path)?;
     let mime = mime_type(&path);
     let inject = mime.starts_with("text/html");
     let body = if inject {
-        inject_live_reload(&String::from_utf8_lossy(&bytes)).into_bytes()
+        let mut html = String::from_utf8_lossy(&bytes).into_owned();
+        if let Some(error) = build_error {
+            html = error_page::inject_build_error_dialog(&html, error);
+        }
+        inject_live_reload(&html).into_bytes()
     } else {
         bytes
     };
@@ -1206,6 +1209,17 @@ fn write_error_html(stream: &mut TcpStream, message: &str) -> io::Result<()> {
     write_response(
         stream,
         500,
+        "text/html; charset=utf-8",
+        true,
+        html.as_bytes(),
+    )
+}
+
+fn write_build_error_shell(stream: &mut TcpStream, message: &str) -> io::Result<()> {
+    let html = inject_live_reload(&error_page::render_build_error_shell(message));
+    write_response(
+        stream,
+        200,
         "text/html; charset=utf-8",
         true,
         html.as_bytes(),
@@ -1822,7 +1836,7 @@ mod tests {
     }
 
     #[test]
-    fn static_server_serves_rebuild_error_instead_of_stale_html() {
+    fn static_server_serves_rebuild_error_over_stale_html() {
         let output = std::env::temp_dir().join(format!(
             "rocci-rebuild-err-{}-{}",
             std::process::id(),
@@ -1859,10 +1873,11 @@ mod tests {
             .unwrap();
         let mut html = String::new();
         home.read_to_string(&mut html).unwrap();
-        assert!(html.contains("HTTP/1.1 500"), "{html}");
+        assert!(html.contains("HTTP/1.1 200"), "{html}");
+        assert!(html.contains("<h1>cdn</h1>"), "{html}");
+        assert!(html.contains("rocci-build-error"), "{html}");
         assert!(html.contains("Build error"), "{html}");
         assert!(html.contains("read_count!"), "{html}");
-        assert!(!html.contains("<h1>cdn</h1>"), "{html}");
 
         let mut css = TcpStream::connect(("127.0.0.1", port)).unwrap();
         css.write_all(b"GET /theme.css HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
@@ -1871,6 +1886,48 @@ mod tests {
         css.read_to_string(&mut assets).unwrap();
         assert!(assets.contains("body{color:red}"), "{assets}");
         assert!(!assets.contains("Build error"), "{assets}");
+
+        drop(server);
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn static_server_serves_build_error_shell_when_no_html_exists() {
+        let output = std::env::temp_dir().join(format!(
+            "rocci-rebuild-shell-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        let port = crate::serve::free_port().unwrap();
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "rebuild-shell".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: None,
+                log_handlers: false,
+                on_stop: None,
+            },
+            |_, _| anyhow::bail!("catalog resolve failed"),
+        )
+        .unwrap();
+
+        let mut home = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        home.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut html = String::new();
+        home.read_to_string(&mut html).unwrap();
+        assert!(html.contains("HTTP/1.1 200"), "{html}");
+        assert!(html.contains("rocci-build-error"), "{html}");
+        assert!(html.contains("catalog resolve failed"), "{html}");
 
         drop(server);
         let _ = fs::remove_dir_all(&output);
