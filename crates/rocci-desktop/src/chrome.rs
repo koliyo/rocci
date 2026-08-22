@@ -73,12 +73,17 @@ pub fn initialization_script(
     };
     let goto_js = goto_js();
     format!(
-        "{seed}{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_INSPECTOR_PREFS__ = {prefs};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{goto_js}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
+        "{seed}{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_INSPECTOR_PREFS__ = {prefs};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_UNIFIED_TITLEBAR__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{goto_js}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
         json_string(PREVIEW_FIND_HTML.trim_end()),
         json_string(PREVIEW_FIND_CSS.trim_end()),
         if has_source_root { "true" } else { "false" },
+        if cfg!(target_os = "macos") {
+            "true"
+        } else {
+            "false"
+        },
         json_string(reveal_label()),
     )
 }
@@ -179,7 +184,19 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("copy-source:"));
         assert!(PREVIEW_NAV_JS.contains("reveal:"));
         assert!(PREVIEW_NAV_JS.contains("rocci-preview-dev"));
-        assert!(PREVIEW_NAV_JS.contains("const HEIGHT = \"48px\""));
+        assert!(PREVIEW_NAV_JS.contains("const UNIFIED = __ROCCI_UNIFIED_TITLEBAR__ === true"));
+        assert!(PREVIEW_NAV_JS.contains("const HEIGHT = UNIFIED ? \"52px\" : \"48px\""));
+        assert!(PREVIEW_NAV_JS.contains("host.classList.add(\"unified\")"));
+        assert!(PREVIEW_NAV_CSS.contains(":host(.unified)"));
+        assert!(PREVIEW_NAV_CSS.contains("padding-left: 78px"));
+        assert!(PREVIEW_NAV_CSS.contains("-webkit-app-region: drag"));
+        assert!(PREVIEW_NAV_CSS.contains("-webkit-app-region: no-drag"));
+        assert!(script.contains("const __ROCCI_UNIFIED_TITLEBAR__ = "));
+        if cfg!(target_os = "macos") {
+            assert!(script.contains("const __ROCCI_UNIFIED_TITLEBAR__ = true"));
+        } else {
+            assert!(script.contains("const __ROCCI_UNIFIED_TITLEBAR__ = false"));
+        }
         assert!(PREVIEW_NAV_JS.contains("if (inspectorUrl && dev && !onInspectorPage())"));
         assert!(PREVIEW_NAV_JS.contains("params.set(\"tab\""));
         assert!(PREVIEW_NAV_JS.contains("params.set(\"route\""));
@@ -366,6 +383,8 @@ mod tests {
         assert!(readme.contains("Web Inspector"));
         assert!(readme.contains("DevTools-style icons"));
         assert!(readme.contains("does not assign `iframe.src` for a Source `view`-only change"));
+        assert!(readme.contains("unified titlebar"));
+        assert!(readme.contains("52px overlay"));
         assert!(!readme.contains("undock"));
         assert!(!readme.contains("flex chrome strip"));
         assert!(!readme.contains("persist in `localStorage`"));

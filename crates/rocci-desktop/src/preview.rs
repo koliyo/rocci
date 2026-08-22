@@ -172,6 +172,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         },
         initial_position,
         initial_maximized,
+        cfg!(target_os = "macos"),
     )?;
     let menu = menu::NativeMenu::install(
         proxy,
