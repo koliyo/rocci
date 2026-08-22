@@ -210,8 +210,11 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("width: var(--rocci-chrome-right, 28rem)"));
         assert!(PREVIEW_NAV_JS.contains("--rocci-chrome-right"));
         assert!(PREVIEW_NAV_JS.contains("--rocci-chrome-bottom"));
-        assert!(PREVIEW_NAV_JS.contains("padding-right: var(--rocci-chrome-right)"));
-        assert!(PREVIEW_NAV_JS.contains("padding-bottom: var(--rocci-chrome-bottom)"));
+        assert!(PREVIEW_NAV_JS.contains("overflow: hidden !important"));
+        assert!(PREVIEW_NAV_JS.contains("overflow: auto !important"));
+        assert!(PREVIEW_NAV_JS.contains(
+            "inset: var(--rocci-chrome-top) var(--rocci-chrome-right, 0px) var(--rocci-chrome-bottom, 0px) 0"
+        ));
         assert!(PREVIEW_NAV_JS.contains("dock-right"));
         assert!(PREVIEW_NAV_JS.contains("dock-bottom"));
         assert!(

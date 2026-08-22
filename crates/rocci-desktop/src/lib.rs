@@ -250,6 +250,7 @@ impl Shell {
             }
             tao::event::WindowEvent::Moved(_) | tao::event::WindowEvent::Resized(_) => {
                 if let Some(live) = self.windows.get(&id) {
+                    live.sync_unified_chrome();
                     let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
                     state::persist_window_state(&state_key, &live.window);
                 }

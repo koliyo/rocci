@@ -213,6 +213,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                 event: WindowEvent::Moved(_) | WindowEvent::Resized(_),
                 ..
             } => {
+                live.sync_unified_chrome();
                 if last_persist.elapsed() >= Duration::from_millis(250) {
                     crate::state::persist_window_state(&save_key, &live.window);
                     last_persist = Instant::now();
