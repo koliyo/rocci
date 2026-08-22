@@ -1,29 +1,44 @@
 name: CI
 
 on:
+  push:
+    branches: [main, staging, production]
   workflow_call:
     inputs:
+      lane:
+        description: hosted or local runner lane
+        required: false
+        type: string
+        default: hosted
       pr_number:
-        description: PR number to validate and test on trusted self-hosted runners
-        required: true
+        description: PR number when validating a pull request head
+        required: false
         type: string
+        default: ""
       pr_sha:
-        description: Exact PR head SHA returned by GitHub
-        required: true
+        description: Exact PR head SHA when validating a pull request head
+        required: false
         type: string
+        default: ""
   workflow_dispatch:
     inputs:
+      lane:
+        description: hosted or local runner lane
+        required: false
+        type: choice
+        options: [hosted, local]
+        default: hosted
       pr_number:
-        description: PR number to validate and test on trusted self-hosted runners
-        required: true
+        description: PR number when validating a pull request head
+        required: false
         type: string
       pr_sha:
-        description: Exact PR head SHA returned by GitHub
-        required: true
+        description: Exact PR head SHA when validating a pull request head
+        required: false
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ inputs.lane || 'hosted' }}-${{ inputs.pr_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -33,6 +48,7 @@ permissions:
 jobs:
   authorize:
     name: Authorize trusted PR
+    if: ${{ inputs.lane == 'local' }}
     runs-on: ubuntu-latest
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
@@ -71,85 +87,86 @@ jobs:
   lint:
     name: Code Formatting & Lints
     needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
-    runs-on: [self-hosted, rocci-linux]
+    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
+    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-linux"]') || 'ubuntu-latest' }}
     env:
-      CARGO_TARGET_DIR: /home/nils/.cache/rocci-target
+      CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && '/home/nils/.cache/rocci-target' || 'target' }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_sha }}
+          ref: ${{ inputs.pr_sha || github.sha }}
+          persist-credentials: ${{ inputs.pr_sha == '' }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: astral-sh/setup-uv@v6
         with:
-          cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
+          cache-local-path: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run lint job
         run: uv run --no-dev rocci-ops ci lint
 
   test:
     name: Test Workspace (${{ matrix.os }})
     needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
+    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
     runs-on: ${{ fromJSON(matrix.runner) }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-self-hosted
-            runner: '["self-hosted", "rocci-macos"]'
-          - os: ubuntu-latest
-            runner: '["ubuntu-latest"]'
+        include: ${{ inputs.lane == 'local' && fromJSON('[{"os":"macos-self-hosted","runner":"[\"self-hosted\", \"rocci-macos\"]"},{"os":"ubuntu-latest","runner":"[\"ubuntu-latest\"]"}]') || fromJSON('[{"os":"ubuntu-latest","runner":"[\"ubuntu-latest\"]"},{"os":"macos-latest","runner":"[\"macos-latest\"]"}]') }}
     steps:
       - uses: actions/checkout@v7
         with:
           lfs: true
-          ref: ${{ inputs.pr_sha }}
+          ref: ${{ inputs.pr_sha || github.sha }}
+          persist-credentials: ${{ inputs.pr_sha == '' }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        if: runner.os != 'Linux'
+        if: ${{ inputs.pr_sha == '' && runner.os != 'Linux' }}
         with:
           key: ${{ matrix.os }}
       - uses: astral-sh/setup-uv@v6
         with:
-          cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
+          cache-local-path: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run workspace tests
         env:
-          CARGO_TARGET_DIR: ${{ runner.os == 'Linux' && '/home/nils/.cache/rocci-target' || 'target' }}
+          CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/rocci-target' || 'target' }}
         run: uv run --no-dev rocci-ops ci test
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
     needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
-    runs-on: [self-hosted, rocci-linux]
+    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
+    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-linux"]') || 'ubuntu-latest' }}
     env:
-      CARGO_TARGET_DIR: /home/nils/.cache/rocci-target
+      CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && '/home/nils/.cache/rocci-target' || 'target' }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_sha }}
+          ref: ${{ inputs.pr_sha || github.sha }}
+          persist-credentials: ${{ inputs.pr_sha == '' }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: astral-sh/setup-uv@v6
         with:
-          cache-local-path: /home/nils/.cache/uv
+          cache-local-path: ${{ inputs.lane == 'local' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Inspect fixtures and validate docs
         run: uv run --no-dev rocci-ops ci fixtures-and-docs
 
   editors:
     name: Editor Extensions (VS Code & Zed)
     needs: authorize
-    if: needs.authorize.outputs.allowed == 'true'
-    runs-on: [self-hosted, rocci-macos]
+    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
+    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-macos"]') || 'macos-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_sha }}
+          ref: ${{ inputs.pr_sha || github.sha }}
+          persist-credentials: ${{ inputs.pr_sha == '' }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-wasip1,wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
+        if: ${{ inputs.pr_sha == '' }}
       - uses: astral-sh/setup-uv@v6
       - name: Setup Node.js
         uses: actions/setup-node@v7
