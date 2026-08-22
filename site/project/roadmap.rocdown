@@ -27,4 +27,4 @@ This page summarizes direction. It is not a release schedule or compatibility pr
 
 ## How to read roadmap claims
 
-Unchecked repository roadmap items are planned, not promised. A capability is public only after code, tests, and user documentation agree. For adoption decisions, use [Project status](/project/status/) and [known limitations](/docs/status/).
+Unchecked repository roadmap items are planned, not promised. A capability is public only after code, tests, and user documentation agree. For adoption decisions, use [Project status](/project/status/).

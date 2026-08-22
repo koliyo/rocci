@@ -8,7 +8,7 @@
 
 # Reference
 
-Each contract has one owner. Tutorials and how-tos summarize and link here.
+Each contract has one owner. Guides summarize and link here.
 
 - [Language](/docs/reference/language/) — `.rocci` syntax
 - [Runtime and HTTP](/docs/reference/runtime/) — handler responses and lifecycle
@@ -16,13 +16,11 @@ Each contract has one owner. Tutorials and how-tos summarize and link here.
 - [Configuration](/docs/reference/configuration/) — `rocci.toml`
 - [Compatibility](/docs/reference/compatibility/) — platforms and toolchains
 - [Diagnostics](/docs/reference/diagnostics/) — failure phases and messages
-- [Status](/docs/status/) — experimental labels and known limits
 - [Contributor tree appendix](/docs/reference/contributor/rocci-tree/) — AST inspect tags
 - [Contributor checklist](/docs/reference/contributor/checklist/) — local CI path for docs PRs
-- [First-use protocol](/docs/reference/contributor/first-use/) — newcomer sessions and search queries
+- [Rocdown language](/docs/rocdown/language/) and [Rocdown CLI](/docs/rocdown/cli/) — document-layer lookup
 
 Guides: [Templates](/docs/templates/), [Applications](/docs/applications/).
 Composition: [the stack](/docs/the-stack/).
 Terms: [Glossary](/docs/appendix/glossary/).
-
-Rocdown lookup: [language](/docs/rocdown/language/) and [CLI](/docs/rocdown/cli/).
+Known limits: Project status on the public site (`/project/status/`).

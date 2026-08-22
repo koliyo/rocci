@@ -29,4 +29,4 @@ behavior stays in [reference](/docs/reference/).
 | Loopback | `127.0.0.1` / `localhost` only in `rocci.toml` `[http].host`. |
 | `??` default | Experimental field default in `.rocci` params; stripped for current Roc nightly. |
 
-**Related:** [Status](/docs/status/) for current / experimental / planned / removed.
+**Related:** [The stack](/docs/the-stack/) for composition terms.

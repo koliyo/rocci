@@ -75,4 +75,4 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
 
 [Examples](/examples/) are generated from `examples/rocci/apps.toml`.
 Styling is the first static component; Counter is the first stateful app.
-Status labels are on [Status](/docs/status/).
+Status labels are on Project status (`/project/status/` on the public site).

@@ -16,7 +16,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; crates/rocci-template/tests/compile.rs"
 canonical = "/docs/reference/language/file-structure/"
-example = "/docs/tutorials/first-component/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -27,7 +27,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/src/lower.rs"
 contract = "test/AllSyntax.rocci; crates/rocci-template/tests/compile.rs"
 canonical = "/docs/reference/language/components/"
-example = "/docs/tutorials/first-component/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -38,7 +38,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/components/"
-example = "/docs/how-to/author-components/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -60,7 +60,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/tags/"
-example = "/docs/how-to/write-markup/"
+example = "/docs/templates/markup/"
 status = "current"
 
 [[feature]]
@@ -71,7 +71,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/tags/"
-example = "/docs/how-to/author-components/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -82,7 +82,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/tags/"
-example = "/docs/how-to/write-markup/"
+example = "/docs/templates/markup/"
 status = "current"
 
 [[feature]]
@@ -93,7 +93,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/attributes/"
-example = "/docs/how-to/write-markup/"
+example = "/docs/templates/markup/"
 status = "current"
 
 [[feature]]
@@ -104,7 +104,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "examples/rocci/standalone/counter/Counter.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
 canonical = "/docs/reference/language/attributes/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -115,7 +115,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/text/"
-example = "/docs/tutorials/first-component/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -126,7 +126,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/directives/"
-example = "/docs/how-to/use-directives/"
+example = "/docs/templates/directives/"
 status = "current"
 
 [[feature]]
@@ -137,7 +137,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/directives/"
-example = "/docs/how-to/use-directives/"
+example = "/docs/templates/directives/"
 status = "current"
 
 [[feature]]
@@ -148,7 +148,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/directives/"
-example = "/docs/how-to/use-directives/"
+example = "/docs/templates/directives/"
 status = "current"
 
 [[feature]]
@@ -159,7 +159,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/directives/"
-example = "/docs/how-to/use-directives/"
+example = "/docs/templates/directives/"
 status = "current"
 
 [[feature]]
@@ -192,7 +192,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/fixtures/"
-example = "/docs/tutorials/first-component/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -203,7 +203,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "examples/rocci/standalone/counter/Counter.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -214,7 +214,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "examples/rocci/standalone/counter/Counter.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -225,7 +225,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -236,7 +236,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -247,7 +247,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/commands-and-live/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -258,7 +258,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; examples/rocci/standalone/live-counter/LiveCounter.rocci"
 canonical = "/docs/reference/language/server/"
-example = "/docs/tutorials/commands-and-live/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -291,7 +291,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "crates/rocci-template/tests/compile.rs"
 canonical = "/docs/reference/language/generated-roc/"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -302,7 +302,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci"
 canonical = "/docs/reference/language/grammar/"
-example = "/docs/concepts/compilation-model/"
+example = "/docs/the-stack/"
 status = "current"
 
 [[feature]]
@@ -326,7 +326,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
 contract = "examples/rocci/standalone/handler-matrix"
 canonical = "/docs/reference/runtime/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -337,7 +337,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
 contract = "examples/rocci/standalone/handler-matrix"
 canonical = "/docs/reference/runtime/"
-example = "/docs/tutorials/first-app/"
+example = "/docs/applications/standalone/"
 status = "current"
 
 [[feature]]
@@ -348,7 +348,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
 contract = "examples/rocci/standalone/handler-matrix"
 canonical = "/docs/reference/runtime/"
-example = "/docs/tutorials/commands-and-live/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -359,7 +359,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
 contract = "examples/rocci/standalone/live-counter"
 canonical = "/docs/reference/runtime/"
-example = "/docs/tutorials/commands-and-live/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -370,7 +370,7 @@ owner = "rocci-template"
 source = "crates/rocci-template/README.md"
 contract = "test/AllSyntax.rocci; examples/rocci/standalone/handler-matrix"
 canonical = "/docs/reference/language/server/"
-example = "/docs/how-to/handle-requests-and-errors/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -381,7 +381,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
 contract = "crates/rocci-cli tests"
 canonical = "/docs/reference/runtime/"
-example = "/docs/how-to/handle-requests-and-errors/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -392,7 +392,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/README.md"
 contract = "crates/rocci-cli tests"
 canonical = "/docs/reference/runtime/"
-example = "/docs/how-to/handle-requests-and-errors/"
+example = "/docs/applications/handlers/"
 status = "current"
 
 [[feature]]
@@ -403,7 +403,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/run.rs"
 contract = "examples/rocci/standalone/counter"
 canonical = "/docs/reference/runtime/"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -414,7 +414,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/run.rs"
 contract = "examples/rocci/custom/datastar"
 canonical = "/docs/reference/runtime/"
-example = "/docs/tutorials/custom-main/"
+example = "/docs/applications/custom/"
 status = "current"
 
 [[feature]]
@@ -438,7 +438,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/cli/#validate"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -449,7 +449,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-template/tests/compile.rs"
 canonical = "/docs/reference/cli/#build"
-example = "/docs/start/five-minutes/"
+example = "/docs/five-minutes/"
 status = "current"
 
 [[feature]]
@@ -460,7 +460,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "docker/README.md"
 canonical = "/docs/reference/cli/#build-release"
-example = "/docs/tutorials/ship/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -471,7 +471,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/run.rs"
 contract = "examples/rocci/standalone/counter"
 canonical = "/docs/reference/cli/#run"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -482,7 +482,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/view.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#view"
-example = "/docs/tutorials/first-component/"
+example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
@@ -493,7 +493,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/browse.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#browse"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -504,7 +504,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/playground.rs"
 contract = "crates/rocci-playground"
 canonical = "/docs/reference/cli/#playground"
-example = "/docs/how-to/use-the-playground/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -515,7 +515,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#render"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -526,7 +526,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-template"
 canonical = "/docs/reference/cli/#inspect"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -537,7 +537,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-template"
 canonical = "/docs/reference/cli/#ast"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -546,9 +546,9 @@ name = "rocci bundle"
 area = "cli"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/bundle.rs"
-contract = "docs/how-to/package-and-deploy.rocdown"
+contract = "docs/applications/package.rocdown"
 canonical = "/docs/reference/cli/#bundle"
-example = "/docs/tutorials/ship/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -559,7 +559,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/datastar_asset.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#datastar"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -570,7 +570,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/datastar_asset.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#datastar"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -581,7 +581,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/serve.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#serve-options"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -592,7 +592,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/serve.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#serve-options"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -603,7 +603,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/serve.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#serve-options"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -614,7 +614,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/serve.rs"
 contract = "crates/rocci-cli"
 canonical = "/docs/reference/cli/#serve-options"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 # --- Config ---------------------------------------------------------------
@@ -627,7 +627,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#app"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -638,7 +638,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#windows"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -649,7 +649,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#http"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -660,7 +660,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#security"
-example = "/docs/concepts/security-model/"
+example = "/docs/reference/configuration/#security"
 status = "current"
 
 [[feature]]
@@ -671,7 +671,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#assets"
-example = "/docs/how-to/configure-and-secure/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -682,7 +682,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#development"
-example = "/docs/how-to/develop-and-inspect/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -693,7 +693,7 @@ owner = "rocci-core"
 source = "crates/rocci-core/src/config.rs"
 contract = "crates/rocci-core/src/config.rs"
 canonical = "/docs/reference/configuration/#bundle"
-example = "/docs/how-to/package-and-deploy/"
+example = "/docs/applications/package/"
 status = "current"
 
 # --- Desktop / packaging --------------------------------------------------
@@ -705,8 +705,8 @@ area = "desktop"
 owner = "rocci-desktop"
 source = "crates/rocci-desktop/src/preview.rs"
 contract = "crates/rocci-desktop/README.md"
-canonical = "/docs/how-to/develop-and-inspect/"
-example = "/docs/start/five-minutes/"
+canonical = "/docs/applications/tooling/"
+example = "/docs/five-minutes/"
 status = "current"
 
 [[feature]]
@@ -716,8 +716,8 @@ area = "desktop"
 owner = "rocci-desktop"
 source = "crates/rocci-desktop/README.md"
 contract = "crates/rocci-cli/src/inspector.rs"
-canonical = "/docs/how-to/develop-and-inspect/"
-example = "/docs/how-to/develop-and-inspect/"
+canonical = "/docs/applications/tooling/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -726,9 +726,9 @@ name = "Ad-hoc macOS .app"
 area = "packaging"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/bundle.rs"
-contract = "docs/how-to/package-and-deploy.rocdown"
+contract = "docs/applications/package.rocdown"
 canonical = "/docs/reference/cli/#bundle"
-example = "/docs/tutorials/ship/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -739,7 +739,7 @@ owner = "rocci-cli"
 source = "crates/rocci-cli/src/bundle.rs"
 contract = "docker/README.md"
 canonical = "/docs/reference/cli/#build-release"
-example = "/docs/tutorials/ship/"
+example = "/docs/applications/package/"
 status = "current"
 
 [[feature]]
@@ -749,7 +749,7 @@ area = "packaging"
 owner = "rocci-cli"
 source = "ROADMAP.md"
 contract = ""
-canonical = "/docs/status/"
+canonical = "/project/status/"
 example = ""
 status = "planned"
 
@@ -760,7 +760,7 @@ area = "packaging"
 owner = "rocci-cli"
 source = "ROADMAP.md"
 contract = ""
-canonical = "/docs/status/"
+canonical = "/project/status/"
 example = ""
 status = "planned"
 
@@ -773,8 +773,8 @@ area = "editor"
 owner = "rocci-rocdown-lsp"
 source = "crates/rocci-rocdown-lsp/README.md"
 contract = "crates/rocci-lsp"
-canonical = "/docs/how-to/set-up-editors/"
-example = "/docs/how-to/set-up-editors/"
+canonical = "/docs/applications/tooling/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -784,8 +784,8 @@ area = "editor"
 owner = "editors/vscode"
 source = "editors/vscode"
 contract = "editors/vscode"
-canonical = "/docs/how-to/set-up-editors/"
-example = "/docs/how-to/set-up-editors/"
+canonical = "/docs/applications/tooling/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
@@ -795,8 +795,8 @@ area = "editor"
 owner = "editors/zed"
 source = "editors/zed"
 contract = "editors/zed"
-canonical = "/docs/how-to/set-up-editors/"
-example = "/docs/how-to/set-up-editors/"
+canonical = "/docs/applications/tooling/"
+example = "/docs/applications/tooling/"
 status = "current"
 
 # --- Install --------------------------------------------------------------
@@ -806,10 +806,10 @@ id = "install.source-build"
 name = "Build Rocci from source"
 area = "install"
 owner = "docs"
-source = "docs/start/install.rocdown"
+source = "docs/install.rocdown"
 contract = "README.md"
-canonical = "/docs/start/install/"
-example = "/docs/start/five-minutes/"
+canonical = "/docs/install/"
+example = "/docs/five-minutes/"
 status = "current"
 
 [[feature]]
@@ -819,7 +819,7 @@ area = "install"
 owner = "tools/rocci-ops"
 source = ".github/workflows/release.yml"
 contract = ""
-canonical = "/docs/start/install/"
+canonical = "/docs/install/"
 example = ""
 status = "experimental"
 
@@ -830,7 +830,7 @@ area = "install"
 owner = "docs"
 source = ""
 contract = ""
-canonical = "/docs/start/install/"
+canonical = "/docs/install/"
 example = ""
 status = "removed"
 
