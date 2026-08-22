@@ -42,7 +42,7 @@ pub struct LoweredModule {
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
-    pub live: Option<LiveInfo>,
+    pub lives: Vec<LiveInfo>,
     pub routes: Vec<RouteInfo>,
 }
 
@@ -88,13 +88,17 @@ pub struct InitInfo {
 
 #[derive(Clone, Debug)]
 pub struct LiveInfo {
+    pub method: String,
+    pub path: String,
+    pub fn_name: String,
     pub span: Span,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum RespondKind {
     #[default]
-    Patch,
+    Document,
+    Fragment,
     Command,
 }
 
@@ -143,7 +147,7 @@ pub fn lower_template_items(
         styles: Vec::new(),
         state_type: None,
         init: None,
-        live: None,
+        lives: Vec::new(),
         routes: Vec::new(),
         field_defaults: field_defaults.clone(),
         file_css: String::new(),
@@ -153,7 +157,7 @@ pub fn lower_template_items(
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
-        inject_live_init: false,
+        inject_live_path: None,
     };
     match items {
         [] => emitter.emit_html(".empty"),
@@ -256,6 +260,18 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             span: file_css_parts[0].1,
         });
     }
+    let local_live_paths = document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::Route(RouteDecl::Live(live)) => Some(live.path.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let inject_live_path = match local_live_paths.as_slice() {
+        [path] => Some(path.clone()),
+        _ => None,
+    };
     let mut emitter = Emitter {
         src: source.src,
         file_name: source.name,
@@ -269,7 +285,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         styles,
         state_type: None,
         init: None,
-        live: None,
+        lives: Vec::new(),
         routes: Vec::new(),
         field_defaults,
         file_css,
@@ -279,13 +295,10 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
-        inject_live_init: document
-            .items
-            .iter()
-            .any(|item| matches!(item, ModuleItem::Route(RouteDecl::Live(_)))),
+        inject_live_path,
     };
-    let inject_datastar =
-        document_has_action(document) && !document_imports_datastar(source.src, document);
+    let inject_datastar = (document_has_action(document) || emitter.inject_live_path.is_some())
+        && !document_imports_datastar(source.src, document);
     let mut injected = false;
     if inject_datastar && !matches!(document.items.first(), Some(ModuleItem::Roc { .. })) {
         emitter.emit("import Datastar\n\n");
@@ -325,7 +338,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         styles: emitter.styles,
         state_type: emitter.state_type,
         init: emitter.init,
-        live: emitter.live,
+        lives: emitter.lives,
         routes: emitter.routes,
     }
 }
@@ -343,7 +356,7 @@ struct Emitter<'a> {
     styles: Vec<StyleArtifact>,
     state_type: Option<String>,
     init: Option<InitInfo>,
-    live: Option<LiveInfo>,
+    lives: Vec<LiveInfo>,
     routes: Vec<RouteInfo>,
     field_defaults: HashMap<String, Vec<(String, String)>>,
     file_css: String,
@@ -353,7 +366,7 @@ struct Emitter<'a> {
     theme_id: Option<String>,
     color_scheme_attr: Option<String>,
     embed_css: bool,
-    inject_live_init: bool,
+    inject_live_path: Option<String>,
 }
 
 impl<'a> Emitter<'a> {
@@ -506,14 +519,21 @@ impl<'a> Emitter<'a> {
 
     fn lower_live(&mut self, live: &LiveDecl) {
         self.emit_leading(&live.leading);
-        self.live = Some(LiveInfo { span: live.span });
+        let method = live.method.name.to_ascii_uppercase();
+        let fn_name = route_fn_name(&live.method.name, &live.path);
+        self.lives.push(LiveInfo {
+            method,
+            path: live.path.clone(),
+            fn_name: fn_name.clone(),
+            span: live.span,
+        });
         let params = live
             .params
             .map(|span| {
                 ensure_handler_request_param(&strip_param_defaults(span.of(self.src).trim()))
             })
             .unwrap_or_else(|| "|state, _request|".to_string());
-        self.emit_mapped("live!", live.span, OriginKind::OrdinaryRoc);
+        self.emit_mapped(&fn_name, live.span, OriginKind::OrdinaryRoc);
         self.emit(" = ");
         if let Some(span) = live.params {
             self.emit_mapped(&params, span, OriginKind::OrdinaryRoc);
@@ -533,7 +553,7 @@ impl<'a> Emitter<'a> {
         self.lower_route(
             &view.method.name,
             &view.path,
-            RespondKind::Patch,
+            RespondKind::Document,
             view.params,
             view.body,
             view.span,
@@ -545,7 +565,7 @@ impl<'a> Emitter<'a> {
         self.lower_route(
             &fragment.method.name,
             &fragment.path,
-            RespondKind::Patch,
+            RespondKind::Fragment,
             fragment.params,
             fragment.body,
             fragment.span,
@@ -1091,16 +1111,22 @@ impl<'a> Emitter<'a> {
     }
 
     fn should_inject_live_init(&self, tag: &str, attrs: &[Attr]) -> bool {
-        self.inject_live_init
+        self.inject_live_path.is_some()
             && tag.eq_ignore_ascii_case("body")
             && !attrs.iter().any(|attr| attr.name.name == "data-init")
     }
 
     fn emit_live_init_attr(&mut self) {
+        let path = self
+            .inject_live_path
+            .clone()
+            .expect("live init is emitted only for a singleton local path");
         self.push_indent();
         self.emit_html(".attribute(");
         self.emit_string("data-init", Span::point(0), OriginKind::Scaffolding);
-        self.emit(", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])");
+        self.emit(", Datastar.get_with(");
+        self.emit_string(&path, Span::point(0), OriginKind::Scaffolding);
+        self.emit(", [OpenWhenHidden(True)])");
         self.emit("),\n");
     }
 
@@ -1623,7 +1649,6 @@ fn is_void(name: &str) -> bool {
 fn document_has_action(document: &Document) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(component) => items_have_action(&component.body.items),
-        ModuleItem::Route(RouteDecl::Live(_)) => true,
         _ => false,
     })
 }

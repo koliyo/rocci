@@ -1220,9 +1220,11 @@ import Html
     assert_eq!(out.routes[0].method, "GET");
     assert_eq!(out.routes[0].path, "/");
     assert_eq!(out.routes[0].fn_name, "on_get_root!");
+    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Document);
     assert_eq!(out.routes[1].method, "POST");
     assert_eq!(out.routes[1].path, "/actions/counter/increment");
     assert_eq!(out.routes[1].fn_name, "on_post_actions_counter_increment!");
+    assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Fragment);
     assert!(out.roc.contains("State : { db : Sqlite.Db }"));
     assert!(out.roc.contains("init! = || {"));
     assert!(out.roc.contains("rocci_state = {"));
@@ -1390,7 +1392,7 @@ fn rejects_view_inside_component() {
 }
 
 #[test]
-fn lowers_live_and_json_post() {
+fn lowers_plural_live_metadata_and_explicit_finite_roles() {
     let src = r#"
 @get:live("/sse") = |state| {
     Html.text("live")
@@ -1409,11 +1411,14 @@ fn lowers_live_and_json_post() {
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.live.is_some());
-    assert!(out.roc.contains("live! = |state, _request| {"));
+    assert_eq!(out.lives.len(), 1);
+    assert_eq!(out.lives[0].method, "GET");
+    assert_eq!(out.lives[0].path, "/sse");
+    assert_eq!(out.lives[0].fn_name, "on_get_sse!");
+    assert!(out.roc.contains("on_get_sse! = |state, _request| {"));
     assert_eq!(out.routes.len(), 2);
     assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Command);
-    assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Patch);
+    assert_eq!(out.routes[1].respond, rocci_template::RespondKind::Fragment);
     assert!(
         out.roc
             .contains("on_post_actions_increment! = |state, _request| {")
@@ -1482,9 +1487,9 @@ fn rejects_removed_on_unknown_respond() {
 }
 
 #[test]
-fn injects_data_init_on_body_when_live() {
+fn injects_singleton_custom_live_path_on_body() {
     let src = r#"
-@get:live("/sse") {
+@get:live("/events/counter-feed") {
     Html.text("live")
 }
 
@@ -1497,16 +1502,44 @@ fn injects_data_init_on_body_when_live() {
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.live.is_some());
+    assert_eq!(out.lives.len(), 1);
     assert!(out.roc.contains("import Datastar"));
     assert!(
         out.roc.contains(
-            "Html.attribute(\"data-init\", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])),"
+            "Html.attribute(\"data-init\", Datastar.get_with(\"/events/counter-feed\", [OpenWhenHidden(True)])),"
         ),
         "{}",
         out.roc
     );
     assert!(out.roc.contains("\"data-init\""));
+}
+
+#[test]
+fn multiple_local_streams_emit_unique_functions_without_automatic_injection() {
+    let src = r#"
+@get:live("/") {
+    Html.text("root")
+}
+
+@get:live("/events/order-feed") {
+    Html.text("orders")
+}
+
+@component Page = |{}| {
+    <html><body><p>hi</p></body></html>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.lives.len(), 2);
+    assert_eq!(out.lives[0].fn_name, "on_get_root!");
+    assert_eq!(out.lives[1].fn_name, "on_get_events_order_feed!");
+    assert!(out.roc.contains("on_get_root! = |state, _request| {"));
+    assert!(
+        out.roc
+            .contains("on_get_events_order_feed! = |state, _request| {")
+    );
+    assert!(!out.roc.contains("import Datastar"), "{}", out.roc);
+    assert!(!out.roc.contains("Datastar.get_with("), "{}", out.roc);
 }
 
 #[test]
