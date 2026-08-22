@@ -81,6 +81,22 @@ respond! = |request, { db }| {
         match (method, path) {
             ("GET", "/") => html_ok(Html.render(Gallery.home({})))
             ("GET", "/health") => text_ok("ok")
+            ("GET", "/actions/signals/compose") => {
+                node = Html.element(
+                    "output",
+                    [Html.attribute("id", "signal-ceiling")],
+                    [Html.text("ready")],
+                )
+                Ok(
+                    events!([
+                        Datastar.patch_elements(node),
+                        Datastar.patch_signals_with(
+                            "{\"notice\":\"ready\"}",
+                            [OnlyIfMissing(True)],
+                        ),
+                    ]),
+                )
+            }
             ("GET", "/search") =>
                 html_ok(Html.render(search_page("")))
             ("GET", "/actions/search/results") => {
@@ -143,12 +159,15 @@ text_ok = |body|
     )
 
 patch! = |node| {
-    event = Datastar.patch_elements(node)
+    events!([Datastar.patch_elements(node)])
+}
+
+events! = |events| {
     Server.stream(
-        Sse.unfold!(0, |state|
-            match state {
-                0 => Ok(Emit({ event, state: 1, wake: Immediately }))
-                _ => Ok(End)
+        Sse.unfold!(events, |pending|
+            match pending {
+                [event, .. as rest] => Ok(Emit({ event, state: rest, wake: Immediately }))
+                [] => Ok(End)
             }
         ),
     )
