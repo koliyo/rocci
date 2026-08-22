@@ -9,7 +9,7 @@
 # Rocci Blocks
 
 **Audience:** experienced Rocci author.
-**Prerequisites:** [standalone versus custom](/docs/concepts/standalone-versus-custom/).
+**Prerequisites:** [standalone applications](/docs/applications/standalone/).
 **Role:** advanced standalone authoring example. Public copy says “falling-block arena.”
 
 One shared SQLite game. Roc owns the board, the falling piece, gravity, kicks, and the seven-bag. Datastar `@post` / `@get` actions send intent. `@get:live("/sse")` morphs `#board` and `#hud`. There is no canvas island and no custom `main.roc`.

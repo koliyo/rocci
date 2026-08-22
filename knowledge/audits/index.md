@@ -1,5 +1,6 @@
 # Audits
 
+* [Standalone falling-block post-mortem](standalone-falling-block-postmortem.md) - Custom arena versus shipped nested standalone Blocks: play-feel, handler-only modules, gravity-in-live, quoted keydown, origin removal, and what must stay custom.
 * [Agent-model comparison for Rocci component-generation research](agent-model-component-generation-comparison.md) - Evidence-based comparison of Gemini 3.7 Flash and Grok 4.6 results for the same architecture research and planning task.
 * [hybrid-rocdown-islands preview performance audit](hybrid-rocdown-islands-preview-performance.md) - Profiled concept-path `rocci-okf run`; after load-performance Phases 1–4, release first-open `load` is 290ms and watch rebuilds reuse unchanged parses.
 * [rocci-okf headless load-performance audit](rocci-okf-headless-load-performance.md) - Headless rebuild timings, load sub-spans, batched provenance, default preview without git, and a watch parse cache. Release `check --profile rocci` is 0.40s.
