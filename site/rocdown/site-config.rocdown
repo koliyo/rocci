@@ -282,8 +282,9 @@ Docs) should keep one header link while the left rail folds into Start,
 Tutorials, and the rest. Group items are the same page IDs. A section with
 only groups and no `items` is valid. Sidebar groups share the same expandable
 shape and open independently under user control. The short transition honors
-reduced-motion preferences. The Examples group lists generated application
-overview pages; generated source pages remain linked details.
+reduced-motion preferences, and explicit open/closed choices persist while the
+user navigates in the same browser tab. The Examples group lists generated
+application overview pages; generated source pages remain linked details.
 
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened

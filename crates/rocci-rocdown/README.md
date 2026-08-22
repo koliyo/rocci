@@ -289,7 +289,8 @@ the documentation layout. The builtin `RocdownTheme` already ships that menu.
 Shared `NavList` sections use one expandable group shape even when a section
 contains only one page. Each group opens and closes independently under user
 control, and the chrome script animates that transition while native `<details>`
-remains the JavaScript-free fallback. Rocdown still compiles builtin `RocdownBase`
+remains the JavaScript-free fallback. Explicit group choices persist for
+subsequent navigation in the same browser tab. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or

@@ -10,8 +10,49 @@
       return;
     }
     let transition = Promise.resolve();
+    const storageKey = "rocci-nav-sections";
     const reducedMotion = () =>
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const readSectionState = () => {
+      try {
+        return JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+      } catch (err) {
+        return {};
+      }
+    };
+
+    const rememberSection = (section) => {
+      const key = section.getAttribute("data-rocci-nav-section");
+      if (!key) {
+        return;
+      }
+      const state = readSectionState();
+      state[key] = section.open;
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(state));
+      } catch (err) {}
+    };
+
+    const rememberAllSections = () => {
+      const sections = document.querySelectorAll("details[data-rocci-nav-section]");
+      for (let i = 0; i < sections.length; i++) {
+        rememberSection(sections[i]);
+      }
+    };
+
+    const restoreSections = () => {
+      const state = readSectionState();
+      const sections = document.querySelectorAll("details[data-rocci-nav-section]");
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const key = section.getAttribute("data-rocci-nav-section");
+        if (Object.prototype.hasOwnProperty.call(state, key)) {
+          section.open = !!state[key];
+        }
+      }
+      rememberAllSections();
+    };
 
     const finishFold = (section, opening) => {
       const fold = section.querySelector(":scope > .nav-fold");
@@ -58,14 +99,19 @@
         const section = target.parentElement;
         transition = transition.then(function () {
           if (section.open) {
-            return finishFold(section, false);
+            return finishFold(section, false).then(function () {
+              rememberSection(section);
+            });
           }
-          return finishFold(section, true);
+          return finishFold(section, true).then(function () {
+            rememberSection(section);
+          });
         });
       },
       true
     );
-    window.__rocciNavSections = { ready: true };
+    restoreSections();
+    window.__rocciNavSections = { ready: true, restore: restoreSections };
   };
 
   setupNavSections();
@@ -568,6 +614,9 @@
         }
         scrollToHash(url.hash);
         bindOpeners();
+        if (window.__rocciNavSections) {
+          window.__rocciNavSections.restore();
+        }
       })
       .catch(function () {
         fullLoad(target);

@@ -70,11 +70,11 @@ import Html
                         aria-current={if group.href == route { "page" } else { "false" }}
                     >{group.title}</a>
                 } @else if group.open {
-                    <details class="nav-section" open>
+                    <details class="nav-section" data-rocci-nav-section={group.title} open>
                         <NavGroupInner group={group} route={route} />
                     </details>
                 } @else {
-                    <details class="nav-section">
+                    <details class="nav-section" data-rocci-nav-section={group.title}>
                         <NavGroupInner group={group} route={route} />
                     </details>
                 }
