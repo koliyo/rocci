@@ -905,6 +905,22 @@ import PageOutline
         width: 1rem;
         height: 1rem;
     }
+    .site-grid.is-playground .content-column {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - var(--header-height));
+        padding: 1.25rem 1.25rem 0;
+    }
+    .playground-mount {
+        flex: 1 1 auto;
+        min-height: 24rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--line);
+    }
+    .playground-fallback {
+        margin: 1.25rem 1rem;
+        color: var(--muted);
+    }
 }
 
 @component SiteShell = |{ site, lanes, sidebar, route, title, document_title, description, outline, breadcrumbs, previous, next, resources, layout, published, updated, authors, tags, collection, collection_items }, content| {
@@ -1028,6 +1044,8 @@ import PageOutline
                     "site-grid is-plain"
                 } else if layout == "not-found" {
                     "site-grid is-plain"
+                } else if layout == "playground" {
+                    "site-grid is-plain is-playground"
                 } else {
                     "site-grid"
                 }
@@ -1035,17 +1053,30 @@ import PageOutline
                 @if layout != "plain" {
                     @if layout != "home" {
                         @if layout != "not-found" {
-                            <aside class="sidebar">
-                                <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
-                            </aside>
+                            @if layout != "playground" {
+                                <aside class="sidebar">
+                                    <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
+                                </aside>
+                            }
                         }
                     }
                 }
                 <main class="content-column" id="main-content">
                     @if layout != "home" {
-                        <Breadcrumbs.breadcrumbs breadcrumbs={breadcrumbs} route={route} />
+                        @if layout != "playground" {
+                            <Breadcrumbs.breadcrumbs breadcrumbs={breadcrumbs} route={route} />
+                        }
                     }
                     <article class="article" data-rd-select-root>{content}</article>
+                    @if layout == "playground" {
+                        <div
+                            id="playground-root"
+                            class="playground-mount"
+                            data-session={resources.playground_session}
+                        >
+                            <p class="playground-fallback">Live lowering needs JavaScript and WebAssembly in this browser. HTML preview is not available without a Roc compiler in WASM.</p>
+                        </div>
+                    }
                     @if layout == "collection" {
                         <div class="collection-items">
                             @for item in collection_items {
@@ -1067,12 +1098,16 @@ import PageOutline
                 @if layout != "plain" {
                     @if layout != "home" {
                         @if layout != "not-found" {
-                            <PageOutline.pageOutline outline={outline} />
+                            @if layout != "playground" {
+                                <PageOutline.pageOutline outline={outline} />
+                            }
                         }
                     }
                 }
             </div>
-            <SiteFooter footer={site.footer} repository={site.repository} />
+            @if layout != "playground" {
+                <SiteFooter footer={site.footer} repository={site.repository} />
+            }
         </body>
     </html>
 }

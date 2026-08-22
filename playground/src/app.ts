@@ -586,3 +586,27 @@ export class PlaygroundApp {
     this.outputEditor.destroy();
   }
 }
+
+async function bootFromMount() {
+  const root = document.getElementById("playground-root");
+  if (!(root instanceof HTMLElement)) {
+    return;
+  }
+  const sessionUrl = root.dataset.session;
+  if (!sessionUrl) {
+    return;
+  }
+  try {
+    const resp = await fetch(sessionUrl);
+    if (!resp.ok) {
+      throw new Error(`Failed to load playground session (${resp.status})`);
+    }
+    const bootstrap = (await resp.json()) as PlaygroundBootstrap;
+    new PlaygroundApp({ container: root, bootstrap });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    root.textContent = "Failed to load playground session: " + message;
+  }
+}
+
+void bootFromMount();

@@ -69,11 +69,20 @@
 
 * {
   box-sizing: border-box;
+}
+
+#playground-root,
+#playground-root * {
+  box-sizing: border-box;
+}
+
+#playground-root * {
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html:has(body > #playground-root),
+body:has(> #playground-root) {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -84,11 +93,21 @@ html, body {
   line-height: 1.5;
 }
 
+#playground-root {
+  height: 100%;
+  min-height: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .playground-app {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   background: var(--canvas);
 }
 

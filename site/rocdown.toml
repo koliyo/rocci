@@ -126,6 +126,13 @@ items = [
 ]
 
 [[nav]]
+label = "Playground"
+directory = "playground"
+items = [
+    "playground/index",
+]
+
+[[nav]]
 label = "FAQ"
 directory = "faq"
 items = [
