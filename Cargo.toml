@@ -51,7 +51,7 @@ rocci-playground-wasm = { path = "crates/rocci-playground-wasm" }
 rocci-theme = { path = "crates/rocci-theme" }
 rocci-highlight = { path = "crates/rocci-highlight" }
 rocci-lsp = { path = "crates/rocci-lsp" }
-lsp-server = "0.7"
+lsp-server = "0.10"
 lsp-types = "0.97"
 serde_json = "1.0"
 anyhow = "1.0"
@@ -59,13 +59,13 @@ clap = { version = "4.5", features = ["derive", "env"] }
 muda = { version = "0.19.2", default-features = false, features = ["gtk"] }
 notify = "8"
 serde = { version = "1.0", features = ["derive"] }
-tao = "0.35"
+tao = "0.36"
 thiserror = "2.0"
 tokio = { version = "1.47", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
-toml = "0.8"
+toml = "1.1"
 tracing = "0.1"
 uuid = { version = "1.18", features = ["v4", "js"] }
-wry = { version = "0.55", features = ["devtools"] }
+wry = { version = "0.56", features = ["devtools"] }
 
 [profile.release]
 lto = "thin"
