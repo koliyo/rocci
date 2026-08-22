@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T15:30:00Z }
+generated: { by: process:cursor, at: 2026-08-22T12:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -66,17 +66,24 @@ sources:
     title: Public Rocdown site configuration
     author: process:git
     last_modified: 2026-08-19
+  - id: verb-first
+    resource: ../plans/verb-first-handler-declarations.md
+    title: Verb-first handler implementation plan
+    author: process:cursor
+    last_modified: 2026-08-22
 ---
 
 # Rocci implementation status
 
 ## Snapshot date
 
-2026-08-21.
+2026-08-22.
 
 ## Shipped
 
 The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
+
+Ordinary `.rocci` routes are mandatory verb-first `@method:role(path)` headers with a closed view/fragment/command/live matrix. Commands return `{}` and have no success representation (empty SSE for Datastar, 204 otherwise). Live routes are plural path-addressed `@get:live` streams with module-local singleton injection. That cutover lives on `verb-first-handler-declarations` and is not logged complete until CI and Knowledge succeed on the revision. Historical role-first research remains labeled historical.[^verb-first]
 
 Rocdown currently resolves nested routes, links, assets, navigation, drafts, hashed artifacts, CSP, a generated 404 page, and structured theme input. Static pages may include bounded `:kind` article blocks: Rocdown types asides, steps, figures, cards, no-JS tabs, file includes, and example records. Builtin painters live in `DocsComponents.rocci`; a site `theme/Blocks.rocci` (or `[blocks] pack`) can replace those painters or add site-local kinds. `rocdown test` runs declared example commands on demand and is not part of `rocdown build`.[^refactor-plan][^site-ref]
 
@@ -125,3 +132,4 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.
 [^rocdown-compiler]: Current static code-block rendering path and token spans.
 [^site-ref]: Theme block-pack overlay and `[blocks]` configuration.
+[^verb-first]: Landed `@method:role` matrix, representation-free commands, and path-addressed live routes.

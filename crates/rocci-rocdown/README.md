@@ -108,7 +108,7 @@ See [`examples/rocdown/pages/Guide.rocdown`](../../examples/rocdown/pages/Guide.
 | `@component` | Rocci template | same grammar as `.rocci` |
 | `@fixture` | Roc binding | preview/test sample; not rendered into the article |
 | `@css { ... }` | raw CSS | file-level scoped stylesheet |
-| `@context` / `@init` / `@view` / `@patch` / `@command` | Roc | standalone HTTP, same as `.rocci` |
+| `@context` / `@init` / `@method:role` routes | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 | `@use "./Module.rocci"` | path string | interactive only: import `@component` exports as article kinds (`Callout` → `:callout`) |
 | `:kind[params]` | line, `{{ }}`, or `:kind.begin` ... `:kind.end` | article block; kinds are a closed builtin registry, plus `@use` on `rocdown view`. Do not mix `.begin` with `{{ }}` |
@@ -275,8 +275,8 @@ id as `.rocci`. Component CSS keeps a per-component id. Both ids hash the file
 basename so a snapshot stylesheet still matches `@live` HTML compiled from a
 full path to the same module.
 
-If the file has no `@view` for the page route, lowering synthesizes a GET
-handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
+If the file has no `@get:view` for the page route, lowering synthesizes a GET
+document handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
 registered to the same handler so `rocdown view` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
@@ -340,7 +340,7 @@ deployment-level redirects or terminal responses remain an origin concern.
 
 - `rocdown view FILE.rocdown`: Preview a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route. `rocdown run` is a deprecated alias.
 - `rocdown view DIR`: Preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
-- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@patch` / `@command` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
+- `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@method:fragment` / `@method:command` / `@get:live` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
 - `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target` is the Linux container process ISA/OS for island/app binaries (`arm64musl` on Apple Silicon Docker; `x64musl` on amd64)—never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target` matches the Linux container CPU (see `docker/README.md`).
 - `rocdown serve DIST`: Serve a previously built tree on loopback without Roc, watch, or rebuild.

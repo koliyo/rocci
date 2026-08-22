@@ -74,7 +74,7 @@ cargo run -q -p rocci-cli -- view \
 
 **Verify:** **Hello, Ada** from `helloTest`. Pass `--arg name=Roc` to override.
 
-`rocci view` ignores HTTP declarations. `@view("/")` in this file is for
+`rocci view` ignores HTTP declarations. `@get:view("/")` in this file is for
 `rocci run`, not for `--component Hello`.
 
 ## 5. Run the document
@@ -111,12 +111,12 @@ After this tutorial you can:
 | `@component Hello` | `hello` returning `Html` |
 | `@css` beside the markup | Scoped style metadata and a `<style>` inject for preview |
 | `@fixture` | Indexed preview data |
-| `@view("/")` | A GET document handler for `rocci run` |
+| `@get:view("/")` | A GET document handler for `rocci run` |
 
 ## Next
 
 - Continue learning: the first standalone app uses
-  [Counter](/examples/counter/) (SQLite and a one-shot `@patch`).
+  [Counter](/examples/counter/) (SQLite and a one-shot `@post:fragment`).
 - Next tutorial: [Build your first standalone app](/docs/tutorials/first-app/).
 - Task: [Author components](/docs/how-to/author-components/).
 - Reference: [Rocci language reference](/docs/reference/rocci/).

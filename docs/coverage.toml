@@ -219,7 +219,7 @@ status = "current"
 
 [[feature]]
 id = "syntax.handler.view"
-name = "@view"
+name = "@get:view"
 area = "syntax"
 owner = "rocci-template"
 source = "crates/rocci-template/README.md"
@@ -230,7 +230,7 @@ status = "current"
 
 [[feature]]
 id = "syntax.handler.patch"
-name = "@patch"
+name = "@method:fragment"
 area = "syntax"
 owner = "rocci-template"
 source = "crates/rocci-template/README.md"
@@ -241,7 +241,7 @@ status = "current"
 
 [[feature]]
 id = "syntax.handler.command"
-name = "@command"
+name = "@method:command"
 area = "syntax"
 owner = "rocci-template"
 source = "crates/rocci-template/README.md"
@@ -252,7 +252,7 @@ status = "current"
 
 [[feature]]
 id = "syntax.handler.live"
-name = "@live"
+name = "@get:live"
 area = "syntax"
 owner = "rocci-template"
 source = "crates/rocci-template/README.md"
@@ -263,7 +263,7 @@ status = "current"
 
 [[feature]]
 id = "syntax.handler.on-removed"
-name = "@on and trailing json"
+name = "@on, role-first headers, and trailing json"
 area = "syntax"
 owner = "rocci-template"
 source = "crates/rocci-template/README.md"
@@ -320,7 +320,7 @@ status = "current"
 
 [[feature]]
 id = "runtime.view-html"
-name = "@view HTML document response"
+name = "@get:view HTML document response"
 area = "runtime"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
@@ -331,7 +331,7 @@ status = "current"
 
 [[feature]]
 id = "runtime.patch-sse-oneshot"
-name = "@patch Datastar patch-elements"
+name = "@method:fragment Datastar patch-elements"
 area = "runtime"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
@@ -342,7 +342,7 @@ status = "current"
 
 [[feature]]
 id = "runtime.command-json-or-204"
-name = "@command empty SSE versus JSON"
+name = "@method:command empty SSE versus 204"
 area = "runtime"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"
@@ -353,7 +353,7 @@ status = "current"
 
 [[feature]]
 id = "runtime.live-sse-poll"
-name = "Generated GET /sse from @live"
+name = "Path-addressed @get:live stream"
 area = "runtime"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/dispatch.rs"

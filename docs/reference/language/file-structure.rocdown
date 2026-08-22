@@ -26,8 +26,7 @@ Tone : [Neutral, Positive]
 ```
 
 Recognized **only** at the start of a top-level definition: `@component`,
-`@fixture`, `@css`, `@context`, `@init`, `@view`, `@patch`, `@command`,
-`@live`.
+`@fixture`, `@css`, `@context`, `@init`, and `@method:role` routes.
 
 Roc regions (directive headers, interpolations, params, `@match` patterns)
 are token ranges. The template parser does not type-check them. Parenthesize

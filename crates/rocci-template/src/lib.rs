@@ -2,7 +2,7 @@
 //!
 //! This crate owns the bounded template grammar only. It does not invoke the
 //! Roc compiler, type-check Roc, spawn HTTP, or depend on desktop runtimes.
-//! `@context` / `@init` / `@view` / `@patch` / `@command` are lowered to Roc functions plus route
+//! `@context` / `@init` / `@method:role` routes are lowered to Roc functions plus route
 //! metadata for the CLI dispatcher.
 
 mod ast;

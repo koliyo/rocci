@@ -15,7 +15,7 @@ multiple views — still inside generated standalone apps.
 **Verify:** you can point at a cataloged module that uses each construct.
 **Next:** [Add commands and live updates](/docs/tutorials/commands-and-live/).
 
-Stay on generated `@view` / `@patch` until the next tutorials. Custom
+Stay on generated `@get:view` / `@post:fragment` until the next tutorials. Custom
 `main.roc` is a later ownership step, not a requirement for composition.
 
 ## Components and bodies
@@ -73,7 +73,7 @@ preview of the later ownership tutorial.
 ## Assets and extra views
 
 File-level `@css` styles the document (`body`, not `html`). Application files
-under `assets/` are served from `/assets`. Additional `@view("/path")`
+under `assets/` are served from `/assets`. Additional `@get:view("/path")`
 handlers are extra documents. Keep route shapes canonical (trailing slash
 policy is in `rocci.toml`).
 
@@ -82,7 +82,7 @@ policy is in `rocci.toml`).
 - Compose with a body parameter instead of `children`
 - Choose `@if` / `@for` / `@match` for markup-producing branches
 - Keep labels, buttons, and alerts meaningful
-- Add a second `@view` without introducing `main.roc`
+- Add a second `@get:view` without introducing `main.roc`
 
 Next: [commands and live updates](/docs/tutorials/commands-and-live/).
 Task: [Use directives](/docs/how-to/use-directives/).

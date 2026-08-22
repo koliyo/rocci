@@ -33,7 +33,7 @@ reference (`service_origin`, `--cdn-only`, `islands.json`).
 | --- | --- | --- |
 | `static` | Markdown / `@page` / `:name[params]` | No |
 | `hydrate` | Pure Rocci spliced at build | No |
-| `live` | Rocci plus `@view` / `@patch` / `@command` / `@context` / `@init` or `import Datastar` | Yes |
+| `live` | Rocci plus `@get:view` / `@method:fragment` / `@method:command` / `@context` / `@init` or `import Datastar` | Yes |
 
 Apply keeps the `:note` / `:tabs` widget forest on `static` pages. The counter
 home page splices island Html; `/about/` has no Datastar. `@render` is not
@@ -47,24 +47,24 @@ with no service.
 ## Walk the counter
 
 `examples/rocdown/counter/index.rocdown` puts SQLite helpers in `@roc` next to
-`import pf.Sqlite`, then calls them from `@command`. `@render` bakes `count: 0`
-into the CDN HTML. A full-page `@live` app gets generated `GET /sse` on its
+`import pf.Sqlite`, then calls them from `@post:command`. `@render` bakes `count: 0`
+into the CDN HTML. A full-page `@get:live` app gets generated `GET /sse` on its
 `<body>`; a spliced fragment must add
 `data-init=@get("/sse", [OpenWhenHidden(True)])` itself. On load, that stream
-replaces the snapshot and keeps tabs in sync. Increment and reset are `@command` handlers (empty SSE to
-Datastar; JSON to `curl`). Opening the CDN file shows the build-time snapshot
+replaces the snapshot and keeps tabs in sync. Increment and reset are `@post:command` handlers (empty SSE to
+Datastar; 204 to `curl`). Opening the CDN file shows the build-time snapshot
 until the stream connects.
 
 The public [rocci.dev](/) home page uses the same live pattern, but composes the
 standalone [live counter](/examples/live-counter/) app: Markdown plus
 `@render LiveCounterUi.CounterIsland(...)`, with
-`[http].service` pointing at `LiveCounter.rocci` (handlers + `@live`).
+`[http].service` pointing at `LiveCounter.rocci` (handlers + `@get:live`).
 
 `about.rocdown` is `static`. Built `about/index.html` includes hashed `goto.js`
 and `script-src 'self'`; it does not include Datastar.
 
 Do not set `[http].service` to `examples/rocci/standalone/counter/Counter.rocci`.
-That one-shot app has no `@live` stream. A sibling `.rocci` service is allowed
+That one-shot app has no `@get:live` stream. A sibling `.rocci` service is allowed
 when island routes (commands / live) match what the page posts to; document
 `GET /` stays on the CDN.
 
@@ -194,8 +194,8 @@ proxy until those details exist.
 
 `[http].service = "Islands.rocci"` skips the generated dispatcher.
 `rocdown serve-islands` runs that file with `rocci run`. Routes stay explicit
-strings. The app should expose `@live` and mutation `@command` / `@patch`
-handlers the page posts to. Document `GET /` may exist for standalone runs;
+strings. The app should expose `@get:live` and mutation `@method:command` /
+`@method:fragment` handlers the page posts to. Document `GET /` may exist for standalone runs;
 the CDN still owns page GET in a hybrid deploy. The rocci.dev home page uses
 this shape with `LiveCounter.rocci`.
 

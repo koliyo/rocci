@@ -10,12 +10,12 @@ fn extracts_attached_docs_and_skips_blank_separated() {
 
 ## skipped because of the blank line
 
-@patch:put("/actions/put") = |_| {
+@put:fragment("/actions/put") = |_| {
     Card
 }
 
 ## GET `/`.
-@view("/") = || {
+@get:view("/") = || {
     <html><body></body></html>
 }
 "#;
@@ -23,20 +23,20 @@ fn extracts_attached_docs_and_skips_blank_separated() {
     assert_eq!(decls.len(), 2);
     assert_eq!(decls[0].heading, "@component Card");
     assert_eq!(decls[0].body, "Shared count card.\nMorphs `#counter`.");
-    assert_eq!(decls[1].heading, "@view(\"/\")");
+    assert_eq!(decls[1].heading, "@get:view(\"/\")");
     assert_eq!(decls[1].body, "GET `/`.");
 }
 
 #[test]
-fn extracts_methoded_patch_docs() {
+fn extracts_verb_first_fragment_docs() {
     let src = r#"
 ## Replace the fragment.
-@patch:put("/actions/put-frag") = |_| {
+@put:fragment("/actions/put-frag") = |_| {
     <p/>
 }
 "#;
     let decls = documented_declarations(src);
     assert_eq!(decls.len(), 1);
-    assert_eq!(decls[0].heading, "@patch:put(\"/actions/put-frag\")");
+    assert_eq!(decls[0].heading, "@put:fragment(\"/actions/put-frag\")");
     assert_eq!(decls[0].body, "Replace the fragment.");
 }

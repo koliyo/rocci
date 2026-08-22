@@ -24,7 +24,7 @@ type-checking starts after that lowering. Rocci does not replace Roc.
 | Shape | What you author | What `rocci run` does |
 | --- | --- | --- |
 | Component module | `@component`, `@css`, `@fixture` | Preview with `rocci view` / `rocci browse` |
-| Standalone app | `@context`, `@init`, `@view`, optional `@patch` / `@command` / `@live` | Generate a server and serve it |
+| Standalone app | `@context`, `@init`, `@get:view`, optional `@method:fragment` / `@method:command` / `@get:live` | Generate a server and serve it |
 | Custom app | `main.roc` plus `.rocci` modules | Compile sibling modules and start your Roc program |
 | Desktop bundle | `rocci.toml` plus an app entry | Wrap the server in an ad-hoc macOS `.app` (`rocci bundle`) |
 

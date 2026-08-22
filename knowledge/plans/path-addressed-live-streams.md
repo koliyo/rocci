@@ -172,9 +172,10 @@ verb-first handler contract. The approved direction is plural
 module-local singleton injection, explicit subscription whenever a module has
 multiple streams, binding from primary and sibling modules, deterministic
 app-wide collision errors, unchanged per-connection polling/keepalive
-semantics, and no aliases or temporary `@live(path)` syntax. This remains an
-approved implementation direction until the later gates prove shipped
-behavior.
+semantics, and no aliases or temporary `@live(path)` syntax. Phases 0–6 are
+implemented with the verb-first cutover on `verb-first-handler-declarations`.
+Phase 7 documentation and release gates are in this revision and must not be
+marked complete until CI and Knowledge succeed on the landed commit.
 
 ## Goal
 

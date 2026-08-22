@@ -2,45 +2,46 @@
     layout: "docs",
     meta: {
         title: "Add commands and live updates",
-        description: "Convert a mutation to @command, add @live, compare one-shot counter with live-counter, and inspect empty SSE versus JSON.",
+        description: "Convert a mutation to @post:command, add @get:live, compare one-shot counter with live-counter, and inspect empty SSE versus 204.",
     },
 }
 
 # Add commands and live updates
 
 **Prerequisites:** [First standalone app](/docs/tutorials/first-app/).
-**You will learn:** when a one-shot `@patch` is enough, and when `@command` plus
-`@live` justifies a shared stream.
+**You will learn:** when a one-shot `@post:fragment` is enough, and when
+`@post:command` plus `@get:live(path)` justifies a shared stream.
 **Starting files:** [Counter](/examples/counter/) and
 [Live counter](/examples/live-counter/).
 **Time:** about twenty minutes.
-**Verify:** Datastar POST is empty SSE; `curl` POST is JSON; a second tab morphs on
-the live app.
+**Verify:** Datastar POST is empty SSE; `curl` POST is 204; a second tab morphs
+on the live app.
 **Next:** [Take ownership with main.roc](/docs/tutorials/custom-main/).
 
 Open both generated source pages:
 
-- [Counter.rocci](/examples/counter/source/Counter-rocci/) — `@patch` returns
-  `counterCard`
+- [Counter.rocci](/examples/counter/source/Counter-rocci/) — `@post:fragment`
+  returns `counterCard`
 - [LiveCounter.rocci](/examples/live-counter/source/LiveCounter-rocci/) —
-  `@command` returns `{ count }`, `@live` returns `counterCard`
+  `@post:command` returns `{}`, `@get:live("/sse")` returns `counterCard`
 
 ## One-shot versus live
 
 | | Counter | Live counter |
 | --- | --- | --- |
-| Mutation | `@patch` | `@command` |
+| Mutation | `@post:fragment` | `@post:command` |
 | Acting tab | Morphs from the POST body | Receives **empty SSE**, no morph from POST |
 | Other tabs | Stale until click/reload | Morph from `GET /sse` |
-| Return value | Html fragment | Roc record |
+| Return value | Html fragment | `{}` |
 
 Use one-shot when only the acting tab should change (search, click-to-edit,
 validation). Use live when every open client should see the same region.
 Do not patch the same `id` from both a command and the stream.
 
-`@live` is one per module. Rocci generates `GET /sse` and injects
-`data-init=@get("/sse", …)` on `<body>` when that attribute is absent. Do not
-author `GET /sse` yourself in the same module.
+A module with exactly one `@get:live(path)` and no authored `data-init`
+receives an automatic body subscription. Multiple local streams require
+explicit `data-init` attributes. Do not author a competing `@get:view` on the
+same live path.
 
 ## HTTP verification
 
@@ -51,23 +52,24 @@ cargo run -q -p rocci-cli -- run \
 
 ```sh
 curl -s http://127.0.0.1:8000/ | grep -E 'id="counter"|/sse'
-curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
-# JSON {"count":N}
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment
+# HTTP/1.1 204 No Content
 curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment \
   -H 'Datastar-Request: true'
 # HTTP/1.1 200 OK  Content-Type: text/event-stream  (empty body / zero events)
 ```
 
-**Verify:** ordinary clients get JSON; Datastar gets empty SSE (not 204). Open the printed URL
-in two browsers: increment in one, the other `#counter` updates without a
-reload. That two-client check is the definition of live for this tutorial.
+**Verify:** ordinary clients get 204; Datastar gets empty SSE (not JSON). Open
+the printed URL in two browsers: increment in one, the other `#counter`
+updates without a reload. That two-client check is the definition of live for
+this tutorial.
 
-JSON does **not** morph the DOM. Do not bind the visible count to `$count` to
-reuse the command body.
+Commands do **not** morph the DOM and do not return domain JSON. Do not bind
+the visible count to `$count` to reuse a command body.
 
 ## Ability checklist
 
-- Choose `@patch` vs `@command` + `@live` for a given flow
+- Choose `@post:fragment` vs `@post:command` + `@get:live` for a given flow
 - Discriminate Datastar with `Datastar-Request: true`, not `Accept`
 - Explain why a second counter tab stays stale
 
