@@ -1,5 +1,7 @@
 @page {
     layout: "docs",
+    aliases: ["/reference/rocdown-tree/", "/docs/reference/rocdown-tree/"],
+
     meta: {
         title: "Rocdown tree appendix",
         description: "Owned AST productions, inspect tags, and sidecar classification for .rocdown files.",

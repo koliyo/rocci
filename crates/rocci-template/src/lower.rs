@@ -354,6 +354,16 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
     }
 }
 
+struct RouteLowering<'a> {
+    method: &'a Ident,
+    path: &'a str,
+    path_span: Span,
+    respond: RespondKind,
+    params: Option<Span>,
+    body: Span,
+    span: Span,
+}
+
 struct Emitter<'a> {
     src: &'a str,
     file_name: &'a str,
@@ -565,81 +575,73 @@ impl<'a> Emitter<'a> {
 
     fn lower_view(&mut self, view: &ViewDecl) {
         self.emit_leading(&view.leading);
-        self.lower_route(
-            &view.method,
-            &view.path,
-            view.path_span,
-            RespondKind::Document,
-            view.params,
-            view.body,
-            view.span,
-        );
+        self.lower_route(RouteLowering {
+            method: &view.method,
+            path: &view.path,
+            path_span: view.path_span,
+            respond: RespondKind::Document,
+            params: view.params,
+            body: view.body,
+            span: view.span,
+        });
     }
 
     fn lower_fragment_decl(&mut self, fragment: &FragmentDecl) {
         self.emit_leading(&fragment.leading);
-        self.lower_route(
-            &fragment.method,
-            &fragment.path,
-            fragment.path_span,
-            RespondKind::Fragment,
-            fragment.params,
-            fragment.body,
-            fragment.span,
-        );
+        self.lower_route(RouteLowering {
+            method: &fragment.method,
+            path: &fragment.path,
+            path_span: fragment.path_span,
+            respond: RespondKind::Fragment,
+            params: fragment.params,
+            body: fragment.body,
+            span: fragment.span,
+        });
     }
 
     fn lower_command(&mut self, command: &CommandDecl) {
         self.emit_leading(&command.leading);
-        self.lower_route(
-            &command.method,
-            &command.path,
-            command.path_span,
-            RespondKind::Command,
-            command.params,
-            command.body,
-            command.span,
-        );
+        self.lower_route(RouteLowering {
+            method: &command.method,
+            path: &command.path,
+            path_span: command.path_span,
+            respond: RespondKind::Command,
+            params: command.params,
+            body: command.body,
+            span: command.span,
+        });
     }
 
-    fn lower_route(
-        &mut self,
-        method: &Ident,
-        path: &str,
-        path_span: Span,
-        respond: RespondKind,
-        params: Option<Span>,
-        body: Span,
-        span: Span,
-    ) {
-        let method_upper = method.name.to_ascii_uppercase();
-        let fn_name = route_fn_name(&method.name, path);
+    fn lower_route(&mut self, route: RouteLowering<'_>) {
+        let method_upper = route.method.name.to_ascii_uppercase();
+        let fn_name = route_fn_name(&route.method.name, route.path);
         self.routes.push(RouteInfo {
             method: method_upper,
-            path: path.to_string(),
+            path: route.path.to_string(),
             fn_name: fn_name.clone(),
-            respond,
-            span,
+            respond: route.respond,
+            span: route.span,
         });
-        let adapted = params
+        let adapted = route
+            .params
             .map(|param_span| {
                 ensure_handler_request_param(&strip_param_defaults(param_span.of(self.src).trim()))
             })
             .unwrap_or_else(|| "|state, _request|".to_string());
         self.emit_mapped(
             &fn_name,
-            route_header_span(self.src, method, path_span),
+            route_header_span(self.src, route.method, route.path_span),
             OriginKind::RouteHeader,
         );
         self.emit(" = ");
-        if let Some(param_span) = params {
+        if let Some(param_span) = route.params {
             self.emit_mapped(&adapted, param_span, OriginKind::OrdinaryRoc);
         } else {
             self.emit(&adapted);
         }
         self.emit(" {\n");
         self.indent += 1;
-        self.emit_try_block(body, "rocci_value");
+        self.emit_try_block(route.body, "rocci_value");
         self.indent -= 1;
         self.push_indent();
         self.emit("}\n");

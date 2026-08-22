@@ -1,7 +1,7 @@
 ---
 type: Case Study
 title: Nested standalone Blocks authoring boundary
-description: Rocci Blocks shows the current advanced standalone boundary: backend handlers and Game.roc versus a pure UI module, app-root rocci.toml discovery, commands plus live HTML, and a quoted keydown exception.
+description: "Rocci Blocks shows the current advanced standalone boundary: backend handlers and Game.roc versus a pure UI module, app-root rocci.toml discovery, commands plus live HTML, and a quoted keydown exception."
 tags: [domain/rocci, integration/datastar, concern/developer-experience, concern/architecture]
 status: draft
 generated: { by: process:cursor, at: 2026-08-22T13:00:00Z }
@@ -44,16 +44,20 @@ sources:
     title: Custom SSE unfold ceiling
     author: process:git
     last_modified: 2026-08-20
+  - id: app-docs
+    resource: ../../examples/rocci/standalone/blocks/index.rocdown
+    title: Blocks tutorial and Shortcomings
+    author: process:git
+    last_modified: 2026-08-22
 ---
 
 # Nested standalone Blocks authoring boundary
 
 ## Why this example exists
 
-[Rocci Blocks](../../examples/rocci/standalone/blocks/index.rocdown) is the
-advanced **standalone** authoring example. It is not a custom `main.roc` app
-and not the eight-player arena the earlier demonstrator plan described.
-[^audit][^plan]
+Rocci Blocks is the advanced **standalone** authoring example. It is not a
+custom `main.roc` app and not the eight-player arena the earlier demonstrator
+plan described.[^audit][^plan][^app-docs]
 
 Live-counter remains the flat sibling pattern: one directory, handler module
 plus UI module.[^live-counter] Snake remains the authored-runtime ceiling.
@@ -96,3 +100,4 @@ those are documented shortcomings of this boundary, not missing phases.
 [^run-rs]: App-root walk-up plus recursive staging.
 [^live-counter]: Flat sibling modules in one directory remain the smaller live pattern.
 [^snake-main]: Custom `main.roc` remains the ceiling for unfold and protocol work.
+[^app-docs]: Blocks `index.rocdown` tutorial and Shortcomings.

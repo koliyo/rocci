@@ -1,10 +1,4 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Arc,
-};
+use std::{collections::HashMap, fs, path::Path, process::Command, sync::Arc};
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
@@ -94,7 +88,7 @@ pub fn view(
     let sibling_assets = src_dir.join("assets");
     let stage_version = datastar_asset::stage_version_for_dir(src_dir);
 
-    let workspace = TempDir::create()?;
+    let workspace = crate::driver::TempDir::create("view")?;
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
     let workspace_assets = workspace.path.join("assets");
     runtime_assets::stage_into(&workspace.path)?;
@@ -475,29 +469,6 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
         copy_tree(&entry.path(), &to.join(entry.file_name()))?;
     }
     Ok(())
-}
-
-struct TempDir {
-    path: PathBuf,
-}
-
-impl TempDir {
-    fn create() -> Result<Self> {
-        let path = std::env::temp_dir().join(format!("rocci-view-{}", std::process::id()));
-        if path.exists() {
-            fs::remove_dir_all(&path)
-                .with_context(|| format!("failed to clear {}", path.display()))?;
-        }
-        fs::create_dir_all(&path)
-            .with_context(|| format!("failed to create {}", path.display()))?;
-        Ok(Self { path })
-    }
-}
-
-impl Drop for TempDir {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
 }
 
 #[cfg(test)]

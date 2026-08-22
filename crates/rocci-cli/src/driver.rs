@@ -3,7 +3,10 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::{Child, Command},
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -652,9 +655,12 @@ pub struct TempDir {
     pub path: PathBuf,
 }
 
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 impl TempDir {
     pub fn create(kind: &str) -> Result<Self> {
-        let path = env::temp_dir().join(format!("rocci-{kind}-{}", std::process::id()));
+        let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let path = env::temp_dir().join(format!("rocci-{kind}-{}-{n}", std::process::id()));
         if path.exists() {
             fs::remove_dir_all(&path)
                 .with_context(|| format!("failed to clear {}", path.display()))?;

@@ -117,7 +117,7 @@ fn hybrid_cdn_html_and_island_post_morph() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let root = repo_root().join("examples/rocdown/hybrid");
     let output = temp_dir("cdn");
     let bin = rocdown_bin();
@@ -247,7 +247,7 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let root = repo_root().join("examples/rocdown/hybrid");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
@@ -325,7 +325,7 @@ fn docs_run_previews_the_site() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let root = repo_root().join("docs");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
@@ -342,7 +342,7 @@ fn docs_run_previews_the_site() {
         .stderr(Stdio::inherit())
         .spawn()
         .unwrap();
-    wait_for_preview(port, &mut child, "Rocci documentation");
+    wait_for_preview(port, &mut child, "Maturity");
     let child = KillOnDrop(child);
 
     let home = http_exchange(
@@ -353,7 +353,7 @@ fn docs_run_previews_the_site() {
         !home.contains("no built site yet"),
         "persist-HTML preview must serve index.html:\n{home}"
     );
-    assert!(home.contains("Rocci documentation"), "{home}");
+    assert!(home.contains("Overview"), "{home}");
     assert!(
         !home.contains("/assets/datastar") && !home.to_ascii_lowercase().contains("datastar.js"),
         "docs must stay static:\n{home}"
@@ -370,7 +370,7 @@ fn counter_run_proxies_actions_on_one_origin() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let root = repo_root().join("examples/rocdown/counter");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
@@ -442,7 +442,7 @@ fn all_syntax_run_serves_the_kitchen_sink() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let fixture = repo_root().join("test/AllSyntax.rocdown");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();

@@ -31,7 +31,6 @@ impl TreeSitterHighlighter {
             if parser.set_language(&self.language).is_err() {
                 return None;
             }
-            parser.set_timeout_micros(200_000);
             parser.parse(src, None)
         });
 

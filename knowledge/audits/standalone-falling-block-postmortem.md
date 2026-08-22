@@ -1,7 +1,7 @@
 ---
 type: Audit
 title: Standalone falling-block post-mortem
-description: Compare the retired custom falling-block arena with the shipped nested standalone Rocci Blocks app against code: play-feel, handler-only modules, gravity-in-live, quoted keydown, origin removal, and what must stay custom.
+description: "Compare the retired custom falling-block arena with the shipped nested standalone Rocci Blocks app against code: play-feel, handler-only modules, gravity-in-live, quoted keydown, origin removal, and what must stay custom."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/developer-experience]
 status: draft
 generated: { by: process:cursor, at: 2026-08-22T13:00:00Z }
