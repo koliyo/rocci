@@ -1,18 +1,54 @@
 import Html
 
 @css {
+    :scope.rd-docs-block,
     .rd-docs-block { margin: 1.25rem 0; }
+    :scope.rd-docs-aside,
     .rd-docs-aside {
-        padding: 0.85rem 1rem;
+        padding: 0.9rem 1rem;
         border: 1px solid var(--line);
-        border-left-width: 0.35rem;
-        border-radius: 0.55rem;
+        border-radius: 0.6rem;
         background: var(--surface);
     }
-    .rd-docs-note { border-left-color: var(--accent); }
-    .rd-docs-tip { border-left-color: #2f7d4a; }
-    .rd-docs-caution { border-left-color: #b7791f; }
-    .rd-docs-danger, .rd-docs-deprecated { border-left-color: var(--accent-strong); }
+    :scope.rd-docs-note,
+    .rd-docs-note {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 34%, var(--surface));
+    }
+    :scope.rd-docs-note .rd-docs-label,
+    .rd-docs-note .rd-docs-label { color: var(--accent-strong); }
+    :scope.rd-docs-tip,
+    .rd-docs-tip {
+        border-color: #98c379;
+        background: color-mix(in srgb, #98c379 34%, var(--surface));
+    }
+    :scope.rd-docs-tip .rd-docs-label,
+    .rd-docs-tip .rd-docs-label { color: #98c379; }
+    :scope.rd-docs-caution,
+    :scope.rd-docs-warning,
+    .rd-docs-caution,
+    .rd-docs-warning {
+        border-color: #e5c07b;
+        background: color-mix(in srgb, #e5c07b 34%, var(--surface));
+    }
+    :scope.rd-docs-caution .rd-docs-label,
+    :scope.rd-docs-warning .rd-docs-label,
+    .rd-docs-caution .rd-docs-label,
+    .rd-docs-warning .rd-docs-label { color: #e5c07b; }
+    :scope.rd-docs-danger,
+    .rd-docs-danger {
+        border-color: #e06c75;
+        background: color-mix(in srgb, #e06c75 34%, var(--surface));
+    }
+    :scope.rd-docs-danger .rd-docs-label,
+    .rd-docs-danger .rd-docs-label { color: #e06c75; }
+    :scope.rd-docs-deprecated,
+    .rd-docs-deprecated {
+        border-color: #c678dd;
+        background: color-mix(in srgb, #c678dd 34%, var(--surface));
+    }
+    :scope.rd-docs-deprecated .rd-docs-label,
+    .rd-docs-deprecated .rd-docs-label { color: #c678dd; }
     .rd-docs-label {
         margin: 0 0 0.35rem;
         color: var(--muted);
@@ -25,6 +61,7 @@ import Html
     .rd-docs-body > :first-child { margin-top: 0; }
     .rd-docs-body > :last-child { margin-bottom: 0; }
     .rd-docs-summary { font-weight: 700; cursor: pointer; }
+    :scope.rd-docs-card,
     .rd-docs-card {
         display: block;
         padding: 0.9rem 1rem;

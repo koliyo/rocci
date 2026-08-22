@@ -263,16 +263,38 @@
 }
 .rd-docs-block { margin: 1.25rem 0; }
 .rd-docs-aside {
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--rd-color-border);
-  border-left-width: 0.35rem;
-  border-radius: 0.55rem;
+  border-radius: 0.6rem;
   background: var(--rd-color-surface);
 }
-.rd-docs-note { border-left-color: var(--rd-color-accent); }
-.rd-docs-tip { border-left-color: #2f7d4a; }
-.rd-docs-caution { border-left-color: #b7791f; }
-.rd-docs-danger, .rd-docs-deprecated { border-left-color: var(--rd-color-accent); }
+.rd-docs-note {
+  border-color: var(--rd-color-accent);
+  background: color-mix(in srgb, var(--rd-color-accent) 34%, var(--rd-color-surface));
+}
+.rd-docs-note .rd-docs-label { color: var(--rd-color-accent); }
+.rd-docs-tip {
+  border-color: #98c379;
+  background: color-mix(in srgb, #98c379 34%, var(--rd-color-surface));
+}
+.rd-docs-tip .rd-docs-label { color: #98c379; }
+.rd-docs-caution,
+.rd-docs-warning {
+  border-color: #e5c07b;
+  background: color-mix(in srgb, #e5c07b 34%, var(--rd-color-surface));
+}
+.rd-docs-caution .rd-docs-label,
+.rd-docs-warning .rd-docs-label { color: #e5c07b; }
+.rd-docs-danger {
+  border-color: #e06c75;
+  background: color-mix(in srgb, #e06c75 34%, var(--rd-color-surface));
+}
+.rd-docs-danger .rd-docs-label { color: #e06c75; }
+.rd-docs-deprecated {
+  border-color: #c678dd;
+  background: color-mix(in srgb, #c678dd 34%, var(--rd-color-surface));
+}
+.rd-docs-deprecated .rd-docs-label { color: #c678dd; }
 .rd-docs-label {
   margin: 0 0 0.35rem;
   color: var(--rd-color-muted);
