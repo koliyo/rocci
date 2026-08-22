@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Generalized Rocdown block model
-description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. Source spelling shipped as :kind; this plan is historical for that cutover."
+description: "Phased delivery of uniform article BlockCall nodes, :name[params] source spelling, a closed builtin registry, and per-kind Rocci renderers. Phases 1–7 shipped on main; phases 8–9 remain exploratory. Follow-on: custom block schemas and renderers."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-22T14:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -181,19 +181,21 @@ sources:
 ## Purpose and authority
 
 This is the implementation plan for the [generalized Rocdown block model
-research](/research/generalized-rocdown-block-model.md). It is exploratory
-until a human reviewer accepts a scope. It does not describe shipped
-behavior. Architecture records and crate READMEs remain the current
-contract.[^research][^rocdown-readme][^format-arch]
+research](/research/generalized-rocdown-block-model.md). Phases 1–7 below
+shipped on `main` (the stale
+`generalized-rocdown-block-model-implementation` branch was deleted
+2026-08-22). Phases 8–9 and follow-ons remain exploratory until a human
+reviewer accepts a scope. Architecture records and crate READMEs remain the
+current contract for shipped behavior.[^research][^rocdown-readme][^format-arch]
 
-The `:name[params]` spelling later landed on main. Renderer override,
-generic child policy, and site `[blocks]` config are a follow-on:
+The `:name[params]` spelling and closed registry landed on `main`. Renderer
+override, generic child policy, and site `[blocks]` config are a follow-on:
 [custom block schemas and renderers](rocdown-block-renderers.md).[^renderer-plan] Do not
 start that work from this record. Current article widgets are `:kind` only.
 Do not revive the removed experimental family or use it as a design analogy.
 
-Do not start a phase until the user asks to implement it. Use the
-`rocci-language-dev` skill for grammar, scanning, parsing, AST, validation,
+Do not start an exploratory phase until the user asks to implement it. Use
+the `rocci-language-dev` skill for grammar, scanning, parsing, AST, validation,
 lowering, diagnostics, and the public language reference. Use `rocci-author`
 only after the syntax exists, when rewriting `.rocdown` pages.[^language-dev][^rocci-author]
 
@@ -363,10 +365,11 @@ catalog, Roc emission, theme, LSP, and `docs/` in one diff.
 ## Delivery phases
 
 Each phase is one mergeable change. Later phases may assume earlier ones
-have merged. Dual-parse is internal only; the public cutover is Phase 6.
-Phases 1–6 are a delivery diary of the `:kind` cutover. They mention the
-removed experimental family only as the starting state they replaced. Do
-not resume that spelling. Current source is `:kind`.
+have merged. Dual-parse was internal only; the public cutover is Phase 6.
+Phases 1–7 are a delivery diary of the `:kind` cutover on `main`. Phases
+8–9 remain open. They mention the removed experimental family only as the
+starting state they replaced. Do not resume that spelling. Current source
+is `:kind`.
 
 ### Phase 1 — Closed builtin registry in Rust
 
