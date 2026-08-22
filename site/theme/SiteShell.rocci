@@ -93,7 +93,7 @@ import PageOutline
                             </nav>
                             @if !List.is_empty(view.sidebar) {
                                 <p class="mobile-nav-label">In this section</p>
-                                <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" group_name="mobile-site-sections" />
+                                <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
                             }
                             @if !List.is_empty(view.outline) {
                                 <PageOutline.pageOutline outline={view.outline} />
