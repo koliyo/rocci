@@ -71,6 +71,7 @@ fn test_view_constructors_and_serialization() {
             module_script: String::new(),
             chrome_script: "/assets/goto.js".into(),
             playground_css: String::new(),
+            playground_session: String::new(),
         },
     };
 

@@ -253,6 +253,7 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 "news-post",
                 "plain",
                 "not-found",
+                "playground",
             ];
             if !VALID_LAYOUTS.contains(&layout.trim().trim_matches('"')) {
                 bail!(
