@@ -76,7 +76,7 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
         if !roc_file.is_file() {
             if crate::path_hint::looks_like_okf_bundle(&path) {
                 bail!(
-                    "no main.roc in {}; preview OKF knowledge bundles with `rocci-okf run {}`",
+                    "no main.roc in {}; preview OKF knowledge bundles with `rocci-okf view {}`",
                     path.display(),
                     file.display()
                 );
@@ -106,13 +106,13 @@ fn resolve_entry(file: &Path) -> Result<ResolvedEntry> {
         if ext == Some("rocdown") || ext == Some("md") || ext == Some("markdown") {
             if ext != Some("rocdown") && crate::path_hint::looks_like_okf_file(&path) {
                 bail!(
-                    "unsupported file extension for `rocci run`: {}; preview OKF knowledge records with `rocci-okf run {}`",
+                    "unsupported file extension for `rocci run`: {}; preview OKF knowledge records with `rocci-okf view {}`",
                     path.display(),
                     file.display()
                 );
             }
             bail!(
-                "unsupported file extension for `rocci run`: {}; run Markdown and Rocdown documents with `rocdown run {}`",
+                "unsupported file extension for `rocci run`: {}; preview Markdown and Rocdown documents with `rocdown view {}`",
                 path.display(),
                 file.display()
             );
@@ -981,7 +981,7 @@ import Html
         fs::write(&md_file, "# Plan").unwrap();
         let err = resolve_entry(&md_file).unwrap_err().to_string();
         assert!(err.contains("unsupported file extension"));
-        assert!(err.contains("rocdown run"));
+        assert!(err.contains("rocdown view"));
         cleanup(&dir);
     }
 
@@ -996,7 +996,7 @@ import Html
         .unwrap();
         let err = resolve_entry(&md_file).unwrap_err().to_string();
         assert!(err.contains("unsupported file extension"));
-        assert!(err.contains("rocci-okf run"));
+        assert!(err.contains("rocci-okf view"));
         cleanup(&dir);
     }
 
@@ -1009,7 +1009,7 @@ import Html
         )
         .unwrap();
         let err = resolve_entry(&dir).unwrap_err().to_string();
-        assert!(err.contains("rocci-okf run"));
+        assert!(err.contains("rocci-okf view"));
         cleanup(&dir);
     }
 }

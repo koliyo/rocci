@@ -205,6 +205,6 @@ curl -s -X POST http://127.0.0.1:8001/actions/counter/increment
 # {"count":1}
 ```
 
-With `rocdown run --no-window` on port 8000, the same POST works on that
+With `rocdown view --no-window` on port 8000, the same POST works on that
 origin, and `GET /` is the CDN snapshot rather than a SQLite read. The first
 `GET /sse` event replaces snapshot `0` with the live count.

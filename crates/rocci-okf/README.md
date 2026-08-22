@@ -50,32 +50,33 @@ indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
 backed by `/pages.json` and `/catalog.json` in the review tree; same-origin
 links swap already-rendered HTML without a full reload.
 
-Default `run` uses the cached Rocci renderer when `roc` is on PATH. If `roc`
+Default `view` uses the cached Rocci renderer when `roc` is on PATH. If `roc`
 is missing, preview writes the Rust knowledge shell unless you pass
 `--host native` or set `ROCCI_REQUIRE_ROC=1`. `--host native` is the explicit
 compile path; `--host wasm` selects the in-process Wasmtime host.
+`rocci-okf run` remains a deprecated alias for `view`.
 
 ```sh
-# Run with desktop window. Rocci schema is on; git provenance is off.
-cargo run -p rocci-okf -- run knowledge
+# Preview with desktop window. Rocci schema is on; git provenance is off.
+cargo run -p rocci-okf -- view knowledge
 
 # Open a concept inside the enclosing bundle
-cargo run -p rocci-okf -- run knowledge/plans/cli-entry-points.md
+cargo run -p rocci-okf -- view knowledge/plans/cli-entry-points.md
 
 # Turn git provenance (OKF4006/4007/4008) back on for preview
-cargo run -p rocci-okf -- run knowledge --provenance
+cargo run -p rocci-okf -- view knowledge --provenance
 
-# Run headless (prints server URL). Append `?reload=0` to pause auto-refresh.
-cargo run -p rocci-okf -- run knowledge --no-window --port 8000
+# Preview headless (prints server URL). Append `?reload=0` to pause auto-refresh.
+cargo run -p rocci-okf -- view knowledge --no-window --port 8000
 
 # Pause automatic page refresh (watch/rebuild still runs)
-cargo run -p rocci-okf -- run knowledge --no-live-reload
+cargo run -p rocci-okf -- view knowledge --no-live-reload
 ```
 
-`run` without the browser still opens today's one-shot preview window.
+`view` without `--no-window` still opens today's one-shot preview window.
 
 `--profile base` is portable OKF, not the fast Rocci preview path. Use default
-`run` (Rocci schema, no git provenance) for local authoring, and
+`view` (Rocci schema, no git provenance) for local authoring, and
 `check --profile rocci` when reviewing or in CI.
 
 `run` still builds the review site when the bundle has validation errors. The

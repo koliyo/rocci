@@ -835,6 +835,96 @@ fn lowers_file_and_component_css() {
 }
 
 #[test]
+fn css_scope_ids_are_stable_across_path_spellings() {
+    let src = r#"
+@css {
+    .page { margin: 0; }
+}
+
+@component Card = |_| {
+    @css {
+        .card { border-radius: 16px; }
+    }
+    <section class="card">ok</section>
+}
+"#;
+    let from_basename = compile(
+        SourceFile::new("LiveCounterUi.rocci", src),
+        &LowerOptions {
+            embed_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    let from_path = compile(
+        SourceFile::new(
+            "examples/rocci/standalone/live-counter/LiveCounterUi.rocci",
+            src,
+        ),
+        &LowerOptions {
+            embed_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    assert!(
+        !from_basename.has_errors(),
+        "{:?}",
+        from_basename.diagnostics
+    );
+    assert!(!from_path.has_errors(), "{:?}", from_path.diagnostics);
+    let base_ids: Vec<_> = from_basename
+        .styles
+        .iter()
+        .map(|style| scope_id(&style.css).to_string())
+        .collect();
+    let path_ids: Vec<_> = from_path
+        .styles
+        .iter()
+        .map(|style| scope_id(&style.css).to_string())
+        .collect();
+    assert_eq!(base_ids, path_ids);
+    let card_id = from_basename
+        .styles
+        .iter()
+        .find(|style| style.name == "card")
+        .map(|style| scope_id(&style.css))
+        .expect("card scope");
+    assert!(from_basename.roc.contains(card_id), "{}", from_basename.roc);
+    assert!(from_path.roc.contains(card_id), "{}", from_path.roc);
+}
+
+#[test]
+fn scoped_css_uses_native_scope_at_rule() {
+    let src = r#"
+@component Card = |_| {
+    @css {
+        .card, button:hover { color: navy; }
+    }
+    <section class="card"><button>Go</button></section>
+}
+"#;
+    let out = compile(
+        SourceFile::new("test.rocci", src),
+        &LowerOptions {
+            embed_css: false,
+            ..LowerOptions::default()
+        },
+    );
+    assert!(!out.has_errors(), "{:?}", out.diagnostics);
+    let css = &out.styles[0].css;
+    let id = scope_id(css);
+    let scope = format!(r#"[data-rocci-css~="{id}"]"#);
+    assert!(css.contains(&format!("@scope ({scope})")), "{css}");
+    assert!(
+        css.contains(".card, button:hover { color: navy; }"),
+        "{css}"
+    );
+    assert!(
+        css.contains(&format!("{scope}.card, {scope}button:hover")),
+        "{css}"
+    );
+}
+
+#[test]
 fn injects_document_css_into_head() {
     let src = r#"
 @css {

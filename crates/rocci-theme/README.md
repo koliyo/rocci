@@ -8,16 +8,16 @@ applies.
 ## Selection
 
 1. `@page { theme: "..." }`
-2. `rocdown run --theme ...`
+2. `rocdown view --theme ...`
 3. `ROCCI_THEME`
 4. builtin `paper`
 
 `--theme` / `@page.theme` is a **name** or a **path**:
 
 ```sh
-rocdown run --theme paper foo.rocdown
-rocdown run --theme path/to/theme.css foo.rocdown
-rocdown run --color-scheme dark foo.rocdown
+rocdown view --theme paper foo.rocdown
+rocdown view --theme path/to/theme.css foo.rocdown
+rocdown view --color-scheme dark foo.rocdown
 ```
 
 Named themes load from `~/.rocci/themes/{name}.css` or

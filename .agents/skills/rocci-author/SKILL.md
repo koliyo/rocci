@@ -37,7 +37,7 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 Static `rocdown build` currently accepts Markdown, `@page`, and `:kind` article
 blocks. Custom static kinds belong in `theme/Blocks.rocci` or `[blocks] pack`
 (PascalCase `Callout` → `:callout`). Helpers must not live in that pack.
-`@use` is interactive-only (`rocci run` / standalone `rocdown run`) and is
+`@use` is interactive-only (`rocci run` / standalone `rocdown view`) and is
 rejected by the static site pipeline. Dynamic `@roc`, `@render`, Rocci
 components, file `@css`, handlers, and custom layouts work the same interactive
 path until island splicing lands.
@@ -100,7 +100,7 @@ path until island splicing lands.
 - `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,
   `include`, …). Nested blocks are legal; `@page` / `@roc` / handlers inside a
   block body are errors. Leftover `@docs` / `@img` is a removal error.
-  Interactive `rocdown run` may `@use "./Callout.rocci"` to import extra kinds
+  Interactive `rocdown view` may `@use "./Callout.rocci"` to import extra kinds
   (`Callout` → `:callout`). Static `rocdown build` / `check` reject `@use`.
 - `:img` requires `alt` or `decorative: True`, not both with a non-empty
   alt. Local `src` is relative to the source file.
@@ -168,7 +168,7 @@ Preview or publish with the matching CLI:
 ```sh
 cargo run -q -p rocci-cli -- view File.rocci --component Name
 cargo run -q -p rocci-cli -- run File.rocci
-cargo run -q -p rocci-rocdown-cli -- run File.rocdown
+cargo run -q -p rocci-rocdown-cli -- view File.rocdown
 cargo run -q -p rocci-rocdown-cli -- check docs
 cargo run -q -p rocci-rocdown-cli -- build docs
 ```

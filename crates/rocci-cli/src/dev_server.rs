@@ -1002,8 +1002,11 @@ fn proxy_to_backend(
             );
         }
     };
+    let _ = backend.set_nodelay(true);
+    let _ = client.set_nodelay(true);
     backend.set_read_timeout(Some(Duration::from_secs(30)))?;
     backend.set_write_timeout(Some(Duration::from_secs(30)))?;
+    client.set_write_timeout(None)?;
     let request = rewrite_message_connection_close(initial);
     backend.write_all(&request)?;
     let remaining = remaining_body(&request);
@@ -1015,8 +1018,9 @@ fn proxy_to_backend(
     let headers = read_headers(&mut backend)?;
     let rewritten = rewrite_message_connection_close(&headers);
     client.write_all(&rewritten)?;
-    match io::copy(&mut backend, client) {
-        Ok(_) => {
+    client.flush()?;
+    match stream_proxy_body(&mut backend, client) {
+        Ok(()) => {
             if log_handlers {
                 let ms = started.elapsed().as_millis();
                 logs::tee(
@@ -1036,6 +1040,21 @@ fn proxy_to_backend(
                 );
             }
             Err(err)
+        }
+    }
+}
+
+fn stream_proxy_body(backend: &mut TcpStream, client: &mut TcpStream) -> io::Result<()> {
+    let mut buf = [0u8; 1024];
+    loop {
+        match backend.read(&mut buf) {
+            Ok(0) => return Ok(()),
+            Ok(n) => {
+                client.write_all(&buf[..n])?;
+                client.flush()?;
+            }
+            Err(err) if err.kind() == io::ErrorKind::Interrupted => {}
+            Err(err) => return Err(err),
         }
     }
 }
@@ -1701,6 +1720,101 @@ mod tests {
         let mut html = String::new();
         home.read_to_string(&mut html).unwrap();
         assert!(html.contains("<h1>cdn</h1>"), "{html}");
+
+        drop(server);
+        let _ = backend.join();
+        let _ = fs::remove_dir_all(&output);
+    }
+
+    #[test]
+    fn proxy_flushes_sse_events_before_backend_closes() {
+        let output = std::env::temp_dir().join(format!(
+            "rocci-proxy-sse-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&output).unwrap();
+        fs::write(output.join("index.html"), "<h1>cdn</h1>").unwrap();
+
+        let backend_listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let backend_port = backend_listener.local_addr().unwrap().port();
+        let (continue_tx, continue_rx) = mpsc::channel::<()>();
+        let backend = thread::spawn(move || {
+            let (mut stream, _) = backend_listener.accept().unwrap();
+            let mut buf = [0u8; 2048];
+            let n = stream.read(&mut buf).unwrap();
+            let request = String::from_utf8_lossy(&buf[..n]);
+            assert!(request.starts_with("GET /sse"), "{request}");
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n",
+                )
+                .unwrap();
+            stream
+                .write_all(b"event: datastar-patch-elements\ndata: elements first\n\n")
+                .unwrap();
+            stream.flush().unwrap();
+            continue_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            stream
+                .write_all(b"event: datastar-patch-elements\ndata: elements second\n\n")
+                .unwrap();
+            stream.flush().unwrap();
+        });
+
+        let port = crate::serve::free_port().unwrap();
+        let advertised = Arc::new(AtomicU16::new(backend_port));
+        let server = serve_static_site(
+            StaticDevServerConfig {
+                title: "proxy-sse".into(),
+                port,
+                open_path: "/".into(),
+                output: Some(output.clone()),
+                watch_paths: Vec::new(),
+                custom_filter: None,
+                log_prefix: "test".into(),
+                backend_port: Some(advertised),
+                log_handlers: false,
+                on_stop: None,
+            },
+            |_, _| Ok(None),
+        )
+        .unwrap();
+
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        client
+            .write_all(b"GET /sse HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            .unwrap();
+        let mut received = Vec::new();
+        let mut buf = [0u8; 512];
+        let started = Instant::now();
+        while !received
+            .windows(b"elements first".len())
+            .any(|w| w == b"elements first")
+        {
+            assert!(
+                started.elapsed() < Duration::from_secs(2),
+                "first SSE event was buffered until the backend closed:\n{}",
+                String::from_utf8_lossy(&received)
+            );
+            let n = client.read(&mut buf).unwrap();
+            assert!(n > 0, "proxy closed before the first SSE event");
+            received.extend_from_slice(&buf[..n]);
+        }
+        continue_tx.send(()).unwrap();
+        while !received
+            .windows(b"elements second".len())
+            .any(|w| w == b"elements second")
+        {
+            let n = client.read(&mut buf).unwrap();
+            assert!(n > 0, "proxy closed before the second SSE event");
+            received.extend_from_slice(&buf[..n]);
+        }
 
         drop(server);
         let _ = backend.join();
