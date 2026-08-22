@@ -4,7 +4,7 @@ title: Comprehensive Rocci documentation for rocci.dev
 description: Build a Rocdown-authored Rocci manual that takes a programmer from first contact through production authoring, while giving experienced authors complete, searchable, tested reference material.
 tags: [domain/rocci, concern/publication, concern/developer-experience, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T12:53:40Z }
+generated: { by: process:cursor, at: 2026-08-22T12:52:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -138,6 +138,16 @@ sources:
     resource: https://doc.rust-lang.org/stable/
     title: Rust documentation bookshelf
     author: organization:rust-project
+  - id: stack-ia-research
+    resource: ../research/rocci-dev-docs-stack-ia.md
+    title: rocci.dev documentation should follow the stack, not a documentation academy
+    author: process:cursor
+    last_modified: 2026-08-22
+  - id: stack-ia-plan
+    resource: rocci-dev-docs-stack-ia.md
+    title: Restructure rocci.dev docs around the layered stack
+    author: process:cursor
+    last_modified: 2026-08-22
 ---
 
 # Comprehensive Rocci documentation for rocci.dev
@@ -151,10 +161,17 @@ deployment. The documentation source is Rocdown, mounted into the unified site
 at `/docs/`; generated application documentation is mounted at `/examples/`.
 Both teach Rocci, not Rocdown.[^root-readme][^site-config][^rocci-docs-readme]
 
-The record is exploratory. It proposes an information architecture, curriculum,
-page inventory, quality model, ownership rules, and delivery phases. It does
-not claim that the proposed pages or automation already exist, and writing the
-plan does not start any phase.
+Later IA work: the visible Diátaxis curriculum, academy page chrome,
+Rocci-only `/docs/` scope, and the “keep aliases when pages move” rule
+are superseded by the stack-first documentation research and plan.
+Rocdown lives at `/docs/rocdown/` with no compatibility URLs. Other
+quality rules in this record (one fact / one owner, runnable examples,
+coverage, no planned-as-shipped claims) remain. Phase 7 first-use
+sessions are not a gate for that rewrite.[^stack-ia-research][^stack-ia-plan]
+
+The record is exploratory. Phases 0–6 of the original curriculum are in the
+tree. Writing the plan did not, and this revision does not, start the
+stack-first rewrite.
 
 ## Goal
 
@@ -1112,3 +1129,5 @@ Human approval is required before implementation for:
 [^django-docs]: Explicit documentation map separating tutorials, topic guides, how-to recipes, and reference.
 [^mdn-learn]: Bounded beginner-to-comfortable learning pathway with prerequisites, skill checks, and challenges.
 [^rust-docs]: Separate learning, example, tool, API, error, and advanced-reference shelves for programmers with different needs.
+[^stack-ia-research]: Later review: visible Diátaxis curriculum and Rocci-only `/docs/` scope hide the layered stack.
+[^stack-ia-plan]: Follow-on implementation: stack-layer nav, `/docs/rocdown/`, academy-chrome removal, clean-cut URLs.
