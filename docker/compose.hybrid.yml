@@ -17,26 +17,6 @@ services:
       retries: 12
       start_period: 10s
 
-  blocks:
-    image: rocci-blocks:local
-    profiles: ["blocks"]
-    build: ${ROCCI_BLOCKS_CONTEXT:-./blocks}
-    mem_limit: 512m
-    cpus: "1.0"
-    environment:
-      ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
-      ROC_BASIC_WEBSERVER_PORT: "8000"
-      DB_PATH: /var/lib/rocci/blocks.db
-      BLOCKS_SPECTATOR_CAP: "${BLOCKS_SPECTATOR_CAP:-20}"
-    volumes:
-      - blocks-db:/var/lib/rocci
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health/blocks"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
-
   cdn:
     image: rocci-cdn:local
     build: ./cdn
@@ -53,4 +33,3 @@ services:
 
 volumes:
   islands-db:
-  blocks-db:

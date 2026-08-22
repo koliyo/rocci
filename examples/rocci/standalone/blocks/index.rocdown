@@ -51,5 +51,5 @@ These are product limits of generated standalone Rocci, not accidental omissions
 - **Gravity clock.** Generated live polls every 100 ms and applies due steps from `last_tick_ms`. Gravity does not advance with zero subscribers.
 - **One shared game.** No cookies or seats. Every tab plays the same SQLite row.
 - **HTML grid.** Cells remorph over SSE; this is not a 60 fps canvas paint.
-- **No multiplayer protocol.** Garbage, spectators, leases, JSON lock acks, and `/play/blocks/` are out of this example. Snake remains the custom-runtime ceiling.
-- **Generated `/health` only.** There is no `/health/blocks` text route.
+- **No multiplayer protocol.** Garbage, spectators, leases, JSON lock acks, and a main-hostname play mount are out of this example. Snake remains the custom-runtime ceiling.
+- **Generated `/health` only.** There is no extra health text route.

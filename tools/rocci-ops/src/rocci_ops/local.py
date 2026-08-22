@@ -7,7 +7,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 from pathlib import Path
@@ -408,7 +407,7 @@ def package_site(*, target: str) -> int:
         if not (dest / "server").is_file():
             raise SystemExit(f"error: live app `{app_id}` did not write {dest / 'server'}")
         print(f"[rocci-ops] phase=live-app status=done app={app_id}", flush=True)
-    for docs_only in ("counter", "styling", "snake"):
+    for docs_only in ("counter", "styling", "blocks", "snake"):
         if (live_root / docs_only).exists():
             raise SystemExit(f"error: docs-only id `{docs_only}` must not be in {live_root}")
     run(
@@ -425,16 +424,6 @@ def package_site(*, target: str) -> int:
             target,
         ],
         cwd=root,
-    )
-    blocks = live_root / "blocks"
-    if not (blocks / "server").is_file() or not (blocks / "assets").is_dir():
-        raise SystemExit("error: blocks live package must contain server and assets/")
-    shutil.copy2(blocks / "server", root / "dist/blocks")
-    with tarfile.open(root / "dist/blocks-assets.tgz", "w:gz") as archive:
-        archive.add(blocks / "assets", arcname="assets")
-    print(
-        "[rocci-ops] phase=live-artifacts status=done server=dist/blocks assets=dist/blocks-assets.tgz",
-        flush=True,
     )
     return 0
 

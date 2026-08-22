@@ -682,10 +682,10 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(
             dir.join("rocci.toml"),
-            "[app]\nname = \"t\"\nidentifier = \"dev.rocci.t\"\n\n[[windows]]\nlabel = \"main\"\nurl = \"/play/blocks/\"\n",
+            "[app]\nname = \"t\"\nidentifier = \"dev.rocci.t\"\n\n[[windows]]\nlabel = \"main\"\nurl = \"/app/\"\n",
         )
         .unwrap();
-        assert_eq!(app_start_path(&dir), "/play/blocks/");
+        assert_eq!(app_start_path(&dir), "/app/");
         let _ = fs::remove_dir_all(&dir);
     }
 
