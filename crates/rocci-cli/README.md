@@ -84,7 +84,8 @@ cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 `templates/dev/MetricsPanel.rocci` is the preview-origin Dev inspector. It has
 tabs for Performance, Source, and Console. Source is a GET form (`tab`, `route`,
 `view`) for original source, formatted AST, generated Roc, and generated HTML.
-Long Source bodies scroll inside `.code-pane`. Original Rocci, Rocdown, and
+Long Source bodies scroll inside `.code-pane` without moving the preview page;
+use the **Wrap** checkbox to toggle line wrapping (on by default). Original Rocci, Rocdown, and
 Markdown, plus generated Roc and HTML, highlight with `rocci-highlight` `tok-*`
 classes (playground token colors). AST stays escaped plaintext. OKF records
 show Markdown source and built HTML; the Source dropdown omits AST and Generated Roc.
@@ -98,7 +99,11 @@ logging from `@component` render functions. Console does not capture page
 is original inspector Phase 5 and is not shipped). Static
 dev servers serve the panel at `GET /__rocci/dev?tab=&route=&view=` from the
 current inspect snapshot; JSON for source views is
-`GET /__rocci/inspect?route=&view=`. `rocci run` hosts the same panel on a
+`GET /__rocci/inspect?route=&view=`. When a site rebuild fails, HTML responses
+still serve the last output on disk (or a minimal shell when none exists) with a
+native `<dialog>` listing the error. Close the dialog to read the page behind
+it; the next failed rebuild shows the dialog again after live reload.
+`rocci run` hosts the same panel on a
 sibling loopback port, including `--no-window`. Overlay chrome docks that URL
 right or bottom with DevTools-style dock icons over the panel corner (tabs pad
 right); prefs persist in `~/.rocci/state/inspector.json`, and Open as page loads

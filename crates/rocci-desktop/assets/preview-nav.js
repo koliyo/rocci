@@ -304,6 +304,9 @@
   };
   const clampRight = (px) => Math.min(window.innerWidth * 0.8, Math.max(remPx() * 20, px));
   const clampBottom = (px) => Math.min(window.innerHeight * 0.8, Math.max(remPx() * 8, px));
+  const NATIVE_RIGHT = "140px";
+  const NATIVE_BOTTOM = "36px";
+  const isNativeMode = () => panel && panel.classList.contains("native");
   const applyDock = () => {
     const open = !!(panel && panel.classList.contains("open"));
     const side = storedDock();
@@ -325,6 +328,16 @@
     if (!open) {
       root.style.setProperty("--rocci-chrome-right", "0px");
       root.style.setProperty("--rocci-chrome-bottom", "0px");
+      return;
+    }
+    if (isNativeMode()) {
+      if (side === "right") {
+        root.style.setProperty("--rocci-chrome-right", NATIVE_RIGHT);
+        root.style.setProperty("--rocci-chrome-bottom", "0px");
+      } else {
+        root.style.setProperty("--rocci-chrome-right", "0px");
+        root.style.setProperty("--rocci-chrome-bottom", NATIVE_BOTTOM);
+      }
       return;
     }
     if (side === "right") {
@@ -349,6 +362,32 @@
     }
     assignFrame(next, true);
   };
+  const setNativeMode = (on) => {
+    if (!panel) {
+      return;
+    }
+    const wasNative = panel.classList.contains("native");
+    if (on === wasNative) {
+      return;
+    }
+    panel.classList.toggle("native", on);
+    if (frame) {
+      frame.hidden = on;
+    }
+    if (splitter) {
+      splitter.hidden = on;
+    }
+    if (webInspectorBtn) {
+      webInspectorBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    if (on) {
+      send("devtools:1");
+    } else {
+      send("devtools:0");
+      syncFrame(routeOf(window.location.href));
+    }
+    applyDock();
+  };
   const setPanelOpen = (open) => {
     prefs.open = !!open;
     persistPrefs();
@@ -358,10 +397,17 @@
     if (dev) {
       dev.setAttribute("aria-pressed", open ? "true" : "false");
     }
+    if (!open && panel && panel.classList.contains("native")) {
+      setNativeMode(false);
+    }
     applyDock();
     if (open) {
-      send("devtools:0");
-      syncFrame(routeOf(window.location.href));
+      if (panel && panel.classList.contains("native")) {
+        setNativeMode(false);
+      } else {
+        send("devtools:0");
+        syncFrame(routeOf(window.location.href));
+      }
     }
   };
   if (inspectorUrl && dev && !onInspectorPage()) {
@@ -413,8 +459,14 @@
     });
     webInspectorBtn.addEventListener("click", (event) => {
       event.stopPropagation();
-      setPanelOpen(false);
-      send("devtools:1");
+      if (panel.classList.contains("native")) {
+        setNativeMode(false);
+      } else {
+        if (!panel.classList.contains("open")) {
+          setPanelOpen(true);
+        }
+        setNativeMode(true);
+      }
     });
     splitter.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) {
@@ -467,7 +519,16 @@
     });
     assignFrame(inspectorTuple(routeOf(window.location.href)), true);
     panel.append(docks, splitter, frame);
-    dev.addEventListener("click", () => setPanelOpen(!panel.classList.contains("open")));
+    dev.addEventListener("click", () => {
+      if (panel.classList.contains("native")) {
+        setNativeMode(false);
+        if (!panel.classList.contains("open")) {
+          setPanelOpen(true);
+        }
+      } else {
+        setPanelOpen(!panel.classList.contains("open"));
+      }
+    });
   } else if (dev && onInspectorPage()) {
     dev.hidden = true;
   }
@@ -588,6 +649,6 @@
     HEIGHT +
     "; --rocci-chrome-right: 0px; --rocci-chrome-bottom: 0px; padding-top: var(--rocci-chrome-top) !important; padding-right: var(--rocci-chrome-right) !important; padding-bottom: var(--rocci-chrome-bottom) !important; box-sizing: border-box; } body > header, body > [role=\"banner\"] { top: var(--rocci-chrome-top, 0px) !important; } rocci-preview-nav { display: block; position: fixed; top: 0; left: 0; right: 0; width: 100%; min-width: 100%; height: " +
     HEIGHT +
-    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; z-index: 2147483646; box-sizing: border-box; background: #21252b; background: light-dark(#f7f7f8, #21252b); } rocci-preview-dev.open { display: flex; flex-direction: column; } rocci-preview-dev.dock-right { top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: var(--rocci-chrome-right, 28rem); max-width: 80vw; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev.dock-bottom { left: 0; right: 0; bottom: 0; height: var(--rocci-chrome-bottom, 36vh); max-height: 80vh; border-top: 1px solid #3e4451; border-top-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev iframe { display: block; flex: 1 1 auto; min-height: 0; width: 100%; height: auto; border: 0; background: transparent; } rocci-preview-dev .rocci-dev-splitter { position: absolute; z-index: 3; touch-action: none; } rocci-preview-dev.dock-right .rocci-dev-splitter { top: 0; bottom: 0; left: -4px; width: 8px; cursor: ew-resize; } rocci-preview-dev.dock-bottom .rocci-dev-splitter { top: -4px; left: 0; right: 0; height: 8px; cursor: ns-resize; } rocci-preview-dev .rocci-dev-splitter::after { content: \"\"; position: absolute; background: #3e4451; background: light-dark(#d4d4d8, #3e4451); opacity: 0.85; pointer-events: none; } rocci-preview-dev.dock-right .rocci-dev-splitter::after { top: 0; bottom: 0; left: 3px; width: 2px; } rocci-preview-dev.dock-bottom .rocci-dev-splitter::after { left: 0; right: 0; top: 3px; height: 2px; } rocci-preview-dev .rocci-dev-splitter:hover::after, rocci-preview-dev .rocci-dev-splitter:active::after { background: #61afef; background: light-dark(#3b82f6, #61afef); opacity: 1; } rocci-preview-dev .rocci-dev-docks { position: absolute; z-index: 2; top: 6px; right: 8px; display: flex; gap: 2px; padding: 0; } rocci-preview-dev .rocci-dev-docks button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid #3e4451; border-color: light-dark(#d4d4d8, #3e4451); border-radius: 4px; background: light-dark(#ffffff, #2c313c); color: light-dark(#3f3f46, #d7dae0); cursor: pointer; } rocci-preview-dev .rocci-dev-docks button[aria-pressed=\"true\"] { border-color: #61afef; border-color: light-dark(#3b82f6, #61afef); background: light-dark(#eff6ff, #1e293b); } rocci-preview-dev .rocci-dev-docks button svg { display: block; } rocci-goto { right: var(--rocci-chrome-right, 0px); bottom: var(--rocci-chrome-bottom, 0px); }";
+    "; overflow: visible; background-color: #21252b; background-color: light-dark(#f7f7f8, #21252b); z-index: 2147483647; } rocci-preview-dev { display: none; position: fixed; z-index: 2147483646; box-sizing: border-box; overflow: hidden; overscroll-behavior: none; background: #21252b; background: light-dark(#f7f7f8, #21252b); } rocci-preview-dev.open { display: flex; flex-direction: column; } rocci-preview-dev.dock-right { top: var(--rocci-chrome-top, 48px); right: 0; bottom: 0; width: var(--rocci-chrome-right, 28rem); max-width: 80vw; border-left: 1px solid #3e4451; border-left-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev.dock-bottom { left: 0; right: 0; bottom: 0; height: var(--rocci-chrome-bottom, 36vh); max-height: 80vh; border-top: 1px solid #3e4451; border-top-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev.native.dock-right { width: auto; max-width: none; } rocci-preview-dev.native.dock-bottom { height: auto; max-height: none; } rocci-preview-dev.native iframe { display: none !important; } rocci-preview-dev.native .rocci-dev-splitter { display: none; } rocci-preview-dev iframe { display: block; flex: 1 1 auto; min-height: 0; width: 100%; height: auto; border: 0; background: transparent; } rocci-preview-dev .rocci-dev-splitter { position: absolute; z-index: 3; touch-action: none; } rocci-preview-dev.dock-right .rocci-dev-splitter { top: 0; bottom: 0; left: -4px; width: 8px; cursor: ew-resize; } rocci-preview-dev.dock-bottom .rocci-dev-splitter { top: -4px; left: 0; right: 0; height: 8px; cursor: ns-resize; } rocci-preview-dev .rocci-dev-splitter::after { content: \"\"; position: absolute; background: #3e4451; background: light-dark(#d4d4d8, #3e4451); opacity: 0.85; pointer-events: none; } rocci-preview-dev.dock-right .rocci-dev-splitter::after { top: 0; bottom: 0; left: 3px; width: 2px; } rocci-preview-dev.dock-bottom .rocci-dev-splitter::after { left: 0; right: 0; top: 3px; height: 2px; } rocci-preview-dev .rocci-dev-splitter:hover::after, rocci-preview-dev .rocci-dev-splitter:active::after { background: #61afef; background: light-dark(#3b82f6, #61afef); opacity: 1; } rocci-preview-dev .rocci-dev-docks { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 2px; padding: 4px 8px; border-bottom: 1px solid #3e4451; border-bottom-color: light-dark(#e4e4e7, #3e4451); } rocci-preview-dev .rocci-dev-docks button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid #3e4451; border-color: light-dark(#d4d4d8, #3e4451); border-radius: 4px; background: light-dark(#ffffff, #2c313c); color: light-dark(#3f3f46, #d7dae0); cursor: pointer; } rocci-preview-dev .rocci-dev-docks button[aria-pressed=\"true\"] { border-color: #61afef; border-color: light-dark(#3b82f6, #61afef); background: light-dark(#eff6ff, #1e293b); } rocci-preview-dev .rocci-dev-docks button svg { display: block; } rocci-goto { right: var(--rocci-chrome-right, 0px); bottom: var(--rocci-chrome-bottom, 0px); }";
   document.documentElement.appendChild(spacer);
 })();
