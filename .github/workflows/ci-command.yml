@@ -19,7 +19,7 @@ jobs:
        github.event.comment.author_association == 'COLLABORATOR') &&
       (github.event.comment.body == '/ci' ||
        startsWith(github.event.comment.body, '/ci '))
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, rocci-linux]
     steps:
       - name: Dispatch CI and Knowledge on the PR head
         env:
