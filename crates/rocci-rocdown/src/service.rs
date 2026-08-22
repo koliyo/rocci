@@ -195,10 +195,18 @@ pub fn island_routes_with_service(
     };
     let mut routes: Vec<IslandRoute> = modules
         .into_iter()
-        .flat_map(|module| module.routes)
-        .map(|route| IslandRoute {
-            method: route.method,
-            path: route.path,
+        .flat_map(|module| {
+            module
+                .routes
+                .into_iter()
+                .map(|route| IslandRoute {
+                    method: route.method,
+                    path: route.path,
+                })
+                .chain(module.lives.into_iter().map(|live| IslandRoute {
+                    method: live.method,
+                    path: live.path,
+                }))
         })
         .collect();
     routes.sort_by(|left, right| {
