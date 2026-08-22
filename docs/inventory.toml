@@ -1,6 +1,20 @@
-# Phase 0 truth map for the Rocci manual.
+# Phase 0 truth map for the stack-first Rocci manual.
 # Not a public page. Public routes live in .rocdown files; this file records
-# dispositions, aliases, generator ownership, and accepted decision gates.
+# dispositions, @page aliases fields to remove, retired routes that will 404,
+# generator ownership, and accepted decision gates.
+#
+# Approval (2026-08-22, confirmed Phase 0; not reopened):
+# - Nav labels: Start, Templates, Applications, Rocdown, Reference,
+#   Troubleshooting.
+# - Rocdown lives at /docs/rocdown/. No top-level /rocdown/ lane.
+# - Clean-cut URLs: no @page aliases, no vanity prefixes, no redirects.
+# - Academy chrome (Kind / Prerequisites / You will / Time / Next) is banned
+#   in page bodies.
+# - Choose your path is retired; primers are optional appendix.
+# - First-use protocol is unpublished.
+#
+# No alias-preservation section. Old academy, product-lane, and historical
+# routes 404. Phase 0 does not move public pages.
 
 schema_version = 1
 product = "rocci"
@@ -8,17 +22,22 @@ docs_root = "docs"
 site_docs_prefix = "/docs/"
 
 [approvals]
-# Accepted with the implementation plan on 2026-08-21.
-rocci_first_docs = true
-rocdown_lane = "/rocdown/"
+recorded = "2026-08-22"
+plan = "knowledge/plans/rocci-dev-docs-stack-ia.md"
+stack_ia = true
+rocdown_lane = "/docs/rocdown/"
+top_level_rocdown_lane = false
+url_aliases = false
+academy_chrome = false
+choose_your_path = false
+first_use_protocol = "unpublished"
 nav_labels = [
     "Start",
-    "Tutorials",
-    "How to",
-    "Understand",
+    "Templates",
+    "Applications",
+    "Rocdown",
     "Reference",
     "Troubleshooting",
-    "Status",
 ]
 examples_lane = "/examples/"
 install_channel = "source-build"
@@ -38,16 +57,18 @@ example_filter_metadata = "examples/rocci/apps.toml"
 platform_verified = ["macos", "linux"]
 platform_documented_unverified = ["windows"]
 new_rocdown_features = false
+five_minutes_route = "/docs/five-minutes/"
 
 [vocabulary]
 component = "A PascalCase @component that lowers to a pure Roc Html function."
 standalone_app = "A .rocci module with @context / @init / @get:view that rocci run compiles into a generated server."
 custom_app = "A directory with authored main.roc that reuses .rocci modules."
+applications = "Standalone and custom are two depths of the same layer, not two products."
 patch = "A one-shot HTML fragment from @get:fragment or a mutation @method:fragment; Datastar morphs the acting tab."
 command = "A mutation @method:command whose {} body has no success representation: empty SSE to Datastar, 204 otherwise."
 live = "A path-bearing @get:live fragment stream; modules may declare several streams."
 datastar = "Browser transport for intent and morphing. Not a client application framework."
-rocdown = "Separate Markdown-first document product. Not part of the Rocci learning path."
+rocdown = "Optional experimental document layer at /docs/rocdown/. Uses templates and applications; not a sibling product lane."
 preview = "The Tao/Wry window that loads the same local HTTP origin as a browser."
 rocci_browse = "Component gallery (rocci browse)."
 
@@ -67,183 +88,569 @@ roc_pin_source = "docker/install-roc.sh"
 rust = "A Rust toolchain that compiles edition 2024 workspace crates."
 github_releases = "Optional prerelease archives from GitHub Releases (tag v* / dev). Experimental; not the documented first path."
 
-# --- Existing pages -------------------------------------------------------
+# Retired prefixes and historical aliases. Site check treats these as gone,
+# not as missing aliases. Prefixes with /* cover every current and historical
+# page under that tree.
+
+retired_routes = [
+    "/rocdown/",
+    "/rocdown/pages/",
+    "/rocdown/article-blocks/",
+    "/rocdown/site-config/",
+    "/rocdown/hybrid/",
+    "/rocdown/language/",
+    "/rocdown/cli/",
+    "/rocdown/tree/",
+    "/docs/start/",
+    "/docs/start/what-is-rocci/",
+    "/docs/start/choose-your-path/",
+    "/docs/start/prerequisites/",
+    "/docs/start/install/",
+    "/docs/start/five-minutes/",
+    "/docs/start/roc-for-rocci/",
+    "/docs/start/web-foundations/",
+    "/docs/tutorials/",
+    "/docs/how-to/",
+    "/docs/concepts/",
+    "/guides/",
+    "/getting-started/",
+    "/getting-started/overview/",
+    "/getting-started/installation/",
+    "/getting-started/quickstart/",
+    "/documentation/",
+    "/playground/",
+    "/docs/playground/",
+    "/docs/examples/",
+    "/docs/status/",
+    "/status/",
+    "/troubleshooting/",
+    "/docs/troubleshooting/",
+    "/reference/rocci/",
+    "/docs/reference/rocci/",
+    "/reference/cli/",
+    "/docs/reference/cli/",
+    "/reference/configuration/",
+    "/docs/reference/configuration/",
+    "/reference/rocdown/",
+    "/docs/reference/rocdown/",
+    "/reference/rocdown-tree/",
+    "/docs/reference/rocdown-tree/",
+    "/reference/rocdown-site/",
+    "/docs/reference/rocdown-site/",
+    "/reference/rocci-tree/",
+    "/docs/reference/rocci-tree/",
+    "/concepts/why-roc/",
+    "/concepts/architecture/",
+    "/docs/concepts/architecture/",
+    "/concepts/rendering-model/",
+    "/docs/concepts/rendering-model/",
+    "/guides/build-a-component/",
+    "/docs/guides/build-a-component/",
+    "/guides/server-actions/",
+    "/docs/guides/server-actions/",
+    "/guides/desktop-app/",
+    "/docs/guides/desktop-app/",
+    "/guides/rocci-browser/",
+    "/guides/rocdown-pages/",
+    "/docs/guides/rocdown-pages/",
+    "/guides/docs-components/",
+    "/docs/guides/docs-components/",
+    "/guides/hybrid-sites/",
+    "/docs/guides/hybrid-sites/",
+]
+
+# --- Start ----------------------------------------------------------------
 
 [[page]]
 path = "docs/index.rocdown"
 disposition = "rewrite"
 target = "docs/index.rocdown"
-aliases = ["/documentation/"]
-notes = "Rocci-only portal. Rocdown goes to /rocdown/."
+remove_aliases = ["/documentation/"]
+notes = "Stack portal. Drop Rocci-only / leave-the-manual-for-Rocdown framing."
 
 [[page]]
-path = "docs/getting-started/overview.rocdown"
-disposition = "rewrite"
-target = "docs/start/what-is-rocci.rocdown"
-aliases = ["/getting-started/overview/", "/getting-started/"]
-notes = "Drop the four-product definition. Rocdown is a separate-product link."
-
-[[page]]
-path = "docs/getting-started/installation.rocdown"
-disposition = "split"
-target = "docs/start/prerequisites.rocdown"
-also = ["docs/start/install.rocdown"]
-aliases = ["/getting-started/installation/"]
-notes = "Install page stays the alias owner; prerequisites is a new sibling."
-
-[[page]]
-path = "docs/getting-started/quickstart.rocdown"
-disposition = "split"
-target = "docs/start/five-minutes.rocdown"
-also = ["docs/tutorials/first-component.rocdown"]
-aliases = ["/getting-started/quickstart/"]
-notes = "Five-minutes is evaluative; first-component is the tutorial."
-
-[[page]]
-path = "docs/guides/build-a-component.rocdown"
-disposition = "rewrite"
-target = "docs/tutorials/first-component.rocdown"
-aliases = ["/guides/build-a-component/"]
-notes = "Canonical source is examples/rocci/standalone/styling, not a pasted copy."
-
-[[page]]
-path = "docs/guides/server-actions.rocdown"
-disposition = "split"
-target = "docs/how-to/update-the-ui.rocdown"
-also = [
-    "docs/tutorials/first-app.rocdown",
-    "docs/tutorials/commands-and-live.rocdown",
-    "docs/concepts/datastar-as-transport.rocdown",
+path = "docs/start/what-is-rocci.rocdown"
+disposition = "merge"
+target = "docs/the-stack.rocdown"
+remove_aliases = [
+    "/getting-started/overview/",
+    "/getting-started/",
+    "/docs/getting-started/overview/",
 ]
-aliases = ["/guides/server-actions/"]
-notes = "Task recipe owns the alias. Tutorials and concepts link instead of restating the matrix."
+notes = "Delete the source in Phase 3. No redirect stub."
 
 [[page]]
-path = "docs/guides/desktop-app.rocdown"
-disposition = "split"
-target = "docs/tutorials/ship.rocdown"
-also = ["docs/how-to/package-and-deploy.rocdown"]
-aliases = ["/guides/desktop-app/"]
+path = "docs/start/choose-your-path.rocdown"
+disposition = "retire"
+notes = "Delete; no redirect."
+
+[[page]]
+path = "docs/start/prerequisites.rocdown"
+disposition = "merge"
+target = "docs/install.rocdown"
+notes = "Absorbed into install. Old /docs/start/prerequisites/ 404s."
+
+[[page]]
+path = "docs/start/install.rocdown"
+disposition = "rewrite"
+target = "docs/install.rocdown"
+remove_aliases = [
+    "/getting-started/installation/",
+    "/docs/getting-started/installation/",
+]
+notes = "Install plus absorbed prerequisites table. Old start/ and getting-started/ routes 404."
+
+[[page]]
+path = "docs/start/five-minutes.rocdown"
+disposition = "keep"
+target = "docs/five-minutes.rocdown"
+remove_aliases = [
+    "/getting-started/quickstart/",
+    "/docs/getting-started/quickstart/",
+]
+notes = "Drop academy chrome. Do not also keep /docs/start/five-minutes/."
+
+[[page]]
+path = "docs/start/roc-for-rocci.rocdown"
+disposition = "move"
+target = "docs/appendix/roc-for-rocci.rocdown"
+
+[[page]]
+path = "docs/start/web-foundations.rocdown"
+disposition = "move"
+target = "docs/appendix/web-foundations.rocdown"
+
+# --- Templates ------------------------------------------------------------
+
+[[page]]
+path = "docs/tutorials/first-component.rocdown"
+disposition = "merge"
+target = "docs/templates/components.rocdown"
+remove_aliases = [
+    "/guides/build-a-component/",
+    "/docs/guides/build-a-component/",
+]
+
+[[page]]
+path = "docs/how-to/author-components.rocdown"
+disposition = "merge"
+target = "docs/templates/components.rocdown"
+
+[[page]]
+path = "docs/concepts/pure-components.rocdown"
+disposition = "merge"
+target = "docs/templates/components.rocdown"
+notes = "Purity is a paragraph, not a page."
+
+[[page]]
+path = "docs/concepts/props-bodies-composition.rocdown"
+disposition = "merge"
+target = "docs/templates/components.rocdown"
+
+[[page]]
+path = "docs/how-to/write-markup.rocdown"
+disposition = "merge"
+target = "docs/templates/markup.rocdown"
+
+[[page]]
+path = "docs/concepts/html-and-identity.rocdown"
+disposition = "merge"
+target = "docs/templates/markup.rocdown"
+notes = "Stable id ownership may also be cited from applications/handlers."
+
+[[page]]
+path = "docs/concepts/styles-and-ownership.rocdown"
+disposition = "merge"
+target = "docs/templates/markup.rocdown"
+notes = "CSS heading inside markup. Do not recreate styles-and-ownership as a concept."
+
+[[page]]
+path = "docs/how-to/use-directives.rocdown"
+disposition = "merge"
+target = "docs/templates/directives.rocdown"
+
+[[page]]
+path = "docs/concepts/structural-control-flow.rocdown"
+disposition = "merge"
+target = "docs/templates/directives.rocdown"
+
+[[page]]
+path = "docs/tutorials/index.rocdown"
+disposition = "retire"
+notes = "Delete; no redirect."
+
+[[page]]
+path = "docs/how-to/index.rocdown"
+disposition = "retire"
+notes = "Delete; no redirect."
+
+[[page]]
+path = "docs/templates/index.rocdown"
+disposition = "create"
+notes = "Layer landing. When templates are enough; when to stop."
+
+# --- Applications ---------------------------------------------------------
+
+[[page]]
+path = "docs/tutorials/first-app.rocdown"
+disposition = "merge"
+target = "docs/applications/standalone.rocdown"
+
+[[page]]
+path = "docs/tutorials/compose.rocdown"
+disposition = "merge"
+target = "docs/applications/standalone.rocdown"
+notes = "Composition section."
+
+[[page]]
+path = "docs/tutorials/commands-and-live.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+
+[[page]]
+path = "docs/how-to/update-the-ui.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+remove_aliases = [
+    "/guides/server-actions/",
+    "/docs/guides/server-actions/",
+]
+
+[[page]]
+path = "docs/concepts/documents-fragments-commands-streams.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+remove_aliases = [
+    "/concepts/rendering-model/",
+    "/docs/concepts/rendering-model/",
+]
+
+[[page]]
+path = "docs/concepts/datastar-as-transport.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+
+[[page]]
+path = "docs/concepts/one-shot-versus-live.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+
+[[page]]
+path = "docs/concepts/state-and-effects.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+notes = "May live on standalone if the handlers page is unwieldy."
+
+[[page]]
+path = "docs/concepts/standalone-versus-custom.rocdown"
+disposition = "merge"
+target = "docs/applications/index.rocdown"
+
+[[page]]
+path = "docs/tutorials/custom-main.rocdown"
+disposition = "rewrite"
+target = "docs/applications/custom.rocdown"
+
+[[page]]
+path = "docs/how-to/handle-requests-and-errors.rocdown"
+disposition = "merge"
+target = "docs/applications/handlers.rocdown"
+notes = "Or custom, whichever owns request/error tables after merge."
+
+[[page]]
+path = "docs/how-to/develop-and-inspect.rocdown"
+disposition = "merge"
+target = "docs/applications/tooling.rocdown"
+
+[[page]]
+path = "docs/how-to/use-the-playground.rocdown"
+disposition = "merge"
+target = "docs/applications/tooling.rocdown"
+remove_aliases = ["/playground/", "/docs/playground/"]
+
+[[page]]
+path = "docs/how-to/set-up-editors.rocdown"
+disposition = "merge"
+target = "docs/applications/tooling.rocdown"
+
+[[page]]
+path = "docs/tutorials/ship.rocdown"
+disposition = "merge"
+target = "docs/applications/package.rocdown"
+remove_aliases = [
+    "/guides/desktop-app/",
+    "/docs/guides/desktop-app/",
+]
+
+[[page]]
+path = "docs/how-to/package-and-deploy.rocdown"
+disposition = "merge"
+target = "docs/applications/package.rocdown"
+
+[[page]]
+path = "docs/how-to/configure-and-secure.rocdown"
+disposition = "merge"
+target = "docs/applications/package.rocdown"
+notes = "Field tables stay in configuration reference."
+
+[[page]]
+path = "docs/concepts/compilation-model.rocdown"
+disposition = "merge"
+target = "docs/the-stack.rocdown"
+remove_aliases = [
+    "/concepts/architecture/",
+    "/docs/concepts/architecture/",
+]
+notes = "Also generated-Roc reference."
+
+[[page]]
+path = "docs/concepts/development-and-delivery.rocdown"
+disposition = "merge"
+target = "docs/applications/tooling.rocdown"
+notes = "Or package."
+
+[[page]]
+path = "docs/concepts/security-model.rocdown"
+disposition = "merge"
+target = "docs/reference/configuration.rocdown"
+notes = "Also applications/package."
+
+[[page]]
+path = "docs/concepts/performance-model.rocdown"
+disposition = "merge"
+target = "docs/reference/runtime.rocdown"
+notes = "Retire if it adds no contract."
+
+[[page]]
+path = "docs/concepts/error-boundaries.rocdown"
+disposition = "merge"
+target = "docs/reference/diagnostics.rocdown"
+
+# --- Rocdown (move the product lane into /docs/rocdown/) ------------------
+
+[[page]]
+path = "site/rocdown/index.rocdown"
+disposition = "rewrite"
+target = "docs/rocdown/index.rocdown"
+notes = "Experimental; Markdown-first; live pages reuse Applications."
+
+[[page]]
+path = "site/rocdown/pages.rocdown"
+disposition = "move"
+target = "docs/rocdown/pages.rocdown"
+remove_aliases = [
+    "/guides/rocdown-pages/",
+    "/docs/guides/rocdown-pages/",
+]
+
+[[page]]
+path = "site/rocdown/article-blocks.rocdown"
+disposition = "move"
+target = "docs/rocdown/blocks.rocdown"
+remove_aliases = [
+    "/guides/docs-components/",
+    "/docs/guides/docs-components/",
+]
+
+[[page]]
+path = "site/rocdown/site-config.rocdown"
+disposition = "move"
+target = "docs/rocdown/sites.rocdown"
+remove_aliases = [
+    "/reference/rocdown-site/",
+    "/docs/reference/rocdown-site/",
+]
+
+[[page]]
+path = "site/rocdown/hybrid.rocdown"
+disposition = "move"
+target = "docs/rocdown/hybrid.rocdown"
+remove_aliases = [
+    "/guides/hybrid-sites/",
+    "/docs/guides/hybrid-sites/",
+]
+notes = "Keep experimental note."
+
+[[page]]
+path = "site/rocdown/language.rocdown"
+disposition = "move"
+target = "docs/rocdown/language.rocdown"
+remove_aliases = [
+    "/reference/rocdown/",
+    "/docs/reference/rocdown/",
+]
+
+[[page]]
+path = "site/rocdown/cli.rocdown"
+disposition = "move"
+target = "docs/rocdown/cli.rocdown"
+remove_aliases = ["/rocdown/cli/"]
+
+[[page]]
+path = "site/rocdown/tree.rocdown"
+disposition = "move"
+target = "docs/reference/contributor/rocdown-tree.rocdown"
+remove_aliases = [
+    "/reference/rocdown-tree/",
+    "/docs/reference/rocdown-tree/",
+]
+
+# --- Reference, troubleshooting, leftover ---------------------------------
+
+[[page]]
+path = "docs/reference/language/"
+disposition = "keep"
+notes = "Strip academy chrome only. Subpages keep their contracts."
+
+[[page]]
+path = "docs/reference/language/index.rocdown"
+disposition = "keep"
+remove_aliases = ["/reference/rocci/", "/docs/reference/rocci/"]
+
+[[page]]
+path = "docs/reference/language/components.rocdown"
+disposition = "keep"
+remove_aliases = ["/docs/reference/@component/"]
+
+[[page]]
+path = "docs/reference/language/attributes.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/docs/reference/@get/",
+    "/docs/reference/@post/",
+    "/docs/reference/datastar-actions/",
+]
+
+[[page]]
+path = "docs/reference/language/directives.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/docs/reference/@let/",
+    "/docs/reference/@if/",
+    "/docs/reference/@for/",
+    "/docs/reference/@match/",
+]
+
+[[page]]
+path = "docs/reference/language/css.rocdown"
+disposition = "keep"
+remove_aliases = ["/docs/reference/@css/"]
+
+[[page]]
+path = "docs/reference/language/fixtures.rocdown"
+disposition = "keep"
+remove_aliases = ["/docs/reference/@fixture/"]
+
+[[page]]
+path = "docs/reference/language/server.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/docs/reference/@context/",
+    "/docs/reference/@init/",
+    "/docs/reference/@view/",
+    "/docs/reference/@patch/",
+    "/docs/reference/@command/",
+    "/docs/reference/@live/",
+]
+
+[[page]]
+path = "docs/reference/language/comments.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/docs/reference/@@/",
+    "/docs/reference/doc-comments/",
+]
+
+[[page]]
+path = "docs/reference/cli.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/reference/cli/",
+    "/docs/reference/cli/",
+    "/docs/cli/validate/",
+    "/docs/cli/build/",
+    "/docs/cli/run/",
+    "/docs/cli/bundle/",
+]
+notes = "Rocci CLI. Link Rocdown CLI at /docs/rocdown/cli/."
+
+[[page]]
+path = "docs/reference/configuration.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/reference/configuration/",
+    "/docs/reference/configuration/",
+    "/docs/reference/rocci.toml/",
+    "/docs/reference/http-host/",
+]
+
+[[page]]
+path = "docs/reference/contributor/rocci-tree.rocdown"
+disposition = "keep"
+remove_aliases = [
+    "/reference/rocci-tree/",
+    "/docs/reference/rocci-tree/",
+]
+
+[[page]]
+path = "docs/reference/index.rocdown"
+disposition = "rewrite"
+notes = "Link /docs/rocdown/language/ and /docs/rocdown/cli/."
+
+[[page]]
+path = "docs/troubleshooting/"
+disposition = "keep"
+notes = "Strip chrome. Rocci and Rocdown symptoms if distinct."
+
+[[page]]
+path = "docs/troubleshooting/index.rocdown"
+disposition = "keep"
+remove_aliases = ["/troubleshooting/", "/docs/troubleshooting/"]
+
+[[page]]
+path = "docs/status.rocdown"
+disposition = "fold"
+target = "site/project/status.rocdown"
+remove_aliases = ["/status/", "/docs/status/"]
+notes = "Portal sentence plus Project status. Delete the docs status page."
+
+[[page]]
+path = "docs/glossary.rocdown"
+disposition = "move"
+target = "docs/appendix/glossary.rocdown"
+notes = "Rewrite the Rocdown row."
+
+[[page]]
+path = "docs/concepts/why-roc.rocdown"
+disposition = "move"
+target = "docs/appendix/why-roc.rocdown"
+remove_aliases = ["/concepts/why-roc/"]
+notes = "Delete does-not-teach-Rocdown. May land under site/project/ instead."
+
+[[page]]
+path = "docs/reference/contributor/first-use.rocdown"
+disposition = "retire"
+notes = "Unpublish. Do not run old Phase 7 against academy IA."
+
+[[page]]
+path = "docs/reference/contributor/checklist.rocdown"
+disposition = "rewrite"
+notes = "Match new paths and chrome rules."
+
+# Historical sources already moved or retired before this rewrite.
 
 [[page]]
 path = "docs/guides/rocci-browser.rocdown"
 disposition = "retire"
-aliases = ["/guides/rocci-browser/"]
-notes = "Project browser product removed; no replacement how-to."
-
-[[page]]
-path = "docs/guides/rocdown-pages.rocdown"
-disposition = "move"
-target = "site/rocdown/pages.rocdown"
-aliases = ["/guides/rocdown-pages/", "/docs/guides/rocdown-pages/"]
-notes = "Leaves the Rocci manual."
-
-[[page]]
-path = "docs/guides/docs-components.rocdown"
-disposition = "move"
-target = "site/rocdown/article-blocks.rocdown"
-aliases = ["/guides/docs-components/", "/docs/guides/docs-components/"]
-
-[[page]]
-path = "docs/guides/hybrid-sites.rocdown"
-disposition = "move"
-target = "site/rocdown/hybrid.rocdown"
-aliases = ["/guides/hybrid-sites/", "/docs/guides/hybrid-sites/"]
-
-[[page]]
-path = "docs/concepts/architecture.rocdown"
-disposition = "rewrite"
-target = "docs/concepts/compilation-model.rocdown"
-also = ["docs/concepts/development-and-delivery.rocdown"]
-aliases = ["/concepts/architecture/"]
-notes = "Author-visible compilation and delivery. Crate-map internals stay contributor-only."
-
-[[page]]
-path = "docs/concepts/why-roc.rocdown"
-disposition = "keep"
-target = "docs/concepts/why-roc.rocdown"
-aliases = ["/concepts/why-roc/"]
-notes = "Revise to Rocci-only; drop Rocdown site generator discussion."
-
-[[page]]
-path = "docs/concepts/rendering-model.rocdown"
-disposition = "split"
-target = "docs/concepts/documents-fragments-commands-streams.rocdown"
-also = [
-    "docs/concepts/pure-components.rocdown",
-    "docs/concepts/datastar-as-transport.rocdown",
-    "docs/concepts/styles-and-ownership.rocdown",
-]
-aliases = ["/concepts/rendering-model/"]
-
-[[page]]
-path = "docs/reference/rocci.rocdown"
-disposition = "split"
-target = "docs/reference/language/index.rocdown"
-aliases = ["/reference/rocci/"]
-notes = "Landing page plus subpages for each language area."
-
-[[page]]
-path = "docs/reference/rocci-tree.rocdown"
-disposition = "move"
-target = "docs/reference/contributor/rocci-tree.rocdown"
-aliases = ["/reference/rocci-tree/"]
-notes = "Contributor appendix. Not between language and CLI reference."
-
-[[page]]
-path = "docs/reference/cli.rocdown"
-disposition = "split"
-target = "docs/reference/cli/index.rocdown"
-also = ["site/rocdown/cli.rocdown"]
-aliases = ["/reference/cli/"]
-notes = "Rocci-only CLI in the manual. Rocdown/OKF/browser commands leave this page."
-
-[[page]]
-path = "docs/reference/configuration.rocdown"
-disposition = "rewrite"
-target = "docs/reference/configuration.rocdown"
-aliases = ["/reference/configuration/"]
-notes = "Field tables become canonical; complete-shape example stays illustrative."
-
-[[page]]
-path = "docs/reference/rocdown.rocdown"
-disposition = "move"
-target = "site/rocdown/language.rocdown"
-aliases = ["/reference/rocdown/", "/docs/reference/rocdown/"]
-
-[[page]]
-path = "docs/reference/rocdown-tree.rocdown"
-disposition = "move"
-target = "site/rocdown/tree.rocdown"
-aliases = ["/reference/rocdown-tree/", "/docs/reference/rocdown-tree/"]
-
-[[page]]
-path = "docs/reference/rocdown-site.rocdown"
-disposition = "move"
-target = "site/rocdown/site-config.rocdown"
-aliases = ["/reference/rocdown-site/", "/docs/reference/rocdown-site/"]
-
-[[page]]
-path = "docs/playground.rocdown"
-disposition = "move"
-target = "docs/how-to/use-the-playground.rocdown"
-aliases = ["/playground/"]
-
-[[page]]
-path = "docs/troubleshooting.rocdown"
-disposition = "rewrite"
-target = "docs/troubleshooting/index.rocdown"
-aliases = ["/troubleshooting/"]
-notes = "Rocci-only symptoms. Split focused routes for install, compile, runtime, preview."
+notes = "Already gone. /guides/rocci-browser/ stays 404."
 
 [[page]]
 path = "docs/examples/index.rocdown"
 disposition = "retire"
 target = "/examples/"
-aliases = ["/docs/examples/"]
-notes = "Page does not exist in this tree. Generator already emits alias /docs/examples/."
+notes = "Page does not exist. Generator must not emit /docs/examples/ as an alias."
 
-# --- Cataloged apps -------------------------------------------------------
+# --- Cataloged apps (unchanged ownership) ---------------------------------
 
 [[app]]
 id = "styling"
