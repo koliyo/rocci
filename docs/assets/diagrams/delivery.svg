@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 248" role="img">
+  <title>Shipping a Rocci app is a release server or an ad-hoc macOS bundle</title>
+  <desc>rocci validate checks rocci.toml. rocci build --release writes a Linux server tree plus assets. rocci bundle wraps standalone or custom apps in an ad-hoc signed macOS .app. Production signing and OS installers are not shipped. Do not expose the preview window as production.</desc>
+  <style>
+      :root {
+        color-scheme: dark light;
+        --canvas: #282c34;
+        --surface: #21252b;
+        --ink: #abb2bf;
+        --muted: #9da5b4;
+        --line: #3e4451;
+        --accent: #61afef;
+        --accent-soft: #2c313c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --canvas: #fafafa;
+          --surface: #ffffff;
+          --ink: #383a42;
+          --muted: #696c77;
+          --line: #e5e5e6;
+          --accent: #4078f2;
+          --accent-soft: #eef2fb;
+        }
+      }
+      .bg { fill: var(--canvas); }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+      .box-hi { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.25; }
+      .title { fill: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 700; }
+      .sub { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 500; }
+      .mono { fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 650; }
+      .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: url(#arrowHead); }
+      #arrowHead path { fill: var(--accent); }
+    </style>
+  <defs>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.2 L 10 5 L 0 8.8 z" />
+    </marker>
+  </defs>
+  <rect class="bg" width="720" height="248" rx="8" />
+
+  <rect class="box" x="16" y="24" width="160" height="72" rx="6" />
+  <text class="mono" x="96" y="54" text-anchor="middle">rocci validate</text>
+  <text class="sub" x="96" y="74" text-anchor="middle">rocci.toml</text>
+
+  <path class="arrow" d="M176 60 L208 60" />
+
+  <rect class="box-hi" x="210" y="24" width="240" height="72" rx="6" />
+  <text class="mono" x="330" y="54" text-anchor="middle">rocci build --release</text>
+  <text class="sub" x="330" y="74" text-anchor="middle">server + assets/</text>
+
+  <path class="arrow" d="M330 96 L330 118" />
+
+  <rect class="box" x="210" y="120" width="240" height="56" rx="6" />
+  <text class="title" x="330" y="144" text-anchor="middle">your reverse proxy</text>
+  <text class="sub" x="330" y="162" text-anchor="middle">not the preview window</text>
+
+  <path class="arrow" d="M450 60 L482 60" />
+
+  <rect class="box" x="484" y="24" width="220" height="72" rx="6" />
+  <text class="mono" x="594" y="54" text-anchor="middle">rocci bundle</text>
+  <text class="sub" x="594" y="74" text-anchor="middle">ad-hoc macOS .app</text>
+
+  <text class="sub" x="360" y="210" text-anchor="middle">Standalone and custom are the same packaging choice: generated dispatch versus owned routing.</text>
+  <text class="sub" x="360" y="228" text-anchor="middle">No production signing, notarization, or OS installers.</text>
+</svg>

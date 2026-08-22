@@ -13,6 +13,10 @@ to stop. Exact forms live in [reference](/docs/reference/).
 
 ## Four layers
 
+:figure[caption: "Rocci is four layers. Stop at the one you need."] {{
+    :img[src: "/assets/diagrams/stack.svg", alt: "Roc and Datastar sit under .rocci templates, then applications, then optional Rocdown documents. You can stop at any layer.", loading: "lazy", decoding: "async"]
+}}
+
 1. **Roc + Datastar.** Roc owns types, helpers, SQLite, and effects. Datastar
    is the browser transport: it sends intent and morphs HTML. It is not a
    client application framework and not a Rocci language feature.
@@ -35,14 +39,9 @@ declarations. Everything else is copied into generated Roc unchanged.
 Roc type-checking starts after lowering. Tags become `Html.*` calls.
 Component tags become ordinary functions.
 
-```text
-authored .rocci
-    │ parse template regions, copy Roc regions
-    ▼
-generated .roc  ── Roc type-check and compile ── native host
-    │
-    └── source-map segments point diagnostics back at the template
-```
+:figure[caption: ".rocci parses, validates, and lowers to Roc before roc compiles."] {{
+    :img[src: "/assets/diagrams/compile.svg", alt: ".rocci parses template versus Roc regions, validates, and lowers to generated Roc with source-map segments. roc then type-checks and compiles that module to a native host.", loading: "lazy", decoding: "async"]
+}}
 
 Rocci does **not** type-check interpolations, params, or directive headers.
 A template can parse and still fail in `roc`. The template crate does not
