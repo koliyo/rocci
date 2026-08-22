@@ -38,7 +38,7 @@ Missing `@else` becomes `Html.empty`.
 ```
 
 One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
-`@patch` will morph them.
+`@post:fragment` will morph them.
 
 ## Variants
 

@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Build your first standalone app",
-        description: "Add @context, @init, @view, a one-shot @patch, persistent SQLite state, errors, and logging in the cataloged counter.",
+        description: "Add @context, @init, @get:view, a one-shot @post:fragment, persistent SQLite state, errors, and logging.",
     },
 }
 
@@ -45,7 +45,7 @@ Components stay pure. Effects live in `@init` and handlers.
 
 ## 2. The document
 
-`@view("/")` returns a full HTML document. It reads the count and calls
+`@get:view("/")` returns a full HTML document. It reads the count and calls
 `counterPage`. The increment control is a real `<button>` with an unquoted
 Rocci action:
 
@@ -60,7 +60,7 @@ is part of accessibility and of Datastar morphing. Do not restyle it as a
 ## 3. The one-shot patch
 
 ```rocci
-@patch("/actions/counter/increment") = |{ db }| {
+@post:fragment("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
@@ -104,7 +104,7 @@ cargo run -q -p rocci-cli -- inspect \
 
 ## Ability checklist
 
-- Explain `@context` / `@init` / `@view` / `@patch`
+- Explain `@context` / `@init` / `@get:view` / `@post:fragment`
 - Keep durable state in SQLite, not in Datastar signals
 - Log from handlers without poisoning `?`
 - Confirm a patch by HTTP, not only by looking at the window
@@ -112,7 +112,7 @@ cargo run -q -p rocci-cli -- inspect \
 ## What Rocci did
 
 Generated dispatch calls `init!`, serves the document, wraps the patch in one
-SSE event, and closes. It did not open `/sse`. That is the live-counter
+SSE event, and closes. It did not open a live route. That is the live-counter
 tutorial.
 
 Next: [compose](/docs/tutorials/compose/),

@@ -675,7 +675,7 @@ fn nodes_from_items(
             | Item::Init(_)
             | Item::Live(_)
             | Item::View(_)
-            | Item::Patch(_)
+            | Item::Fragment(_)
             | Item::Command(_)
                 if parent_kind.is_none() => {}
             Item::Roc(_) => illegal(ctx, item, "roc"),
@@ -687,7 +687,7 @@ fn nodes_from_items(
             Item::Init(_) => illegal(ctx, item, "init"),
             Item::Live(_) => illegal(ctx, item, "live"),
             Item::View(_) => illegal(ctx, item, "view"),
-            Item::Patch(_) => illegal(ctx, item, "patch"),
+            Item::Fragment(_) => illegal(ctx, item, "fragment"),
             Item::Command(_) => illegal(ctx, item, "command"),
             Item::Use(_) if parent_kind.is_some() => illegal(ctx, item, "use"),
             Item::Use(_) => {}

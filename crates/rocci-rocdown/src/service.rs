@@ -48,7 +48,7 @@ impl IslandServicePlan {
                     roc: module.roc,
                     state_type: module.state_type,
                     init: module.init,
-                    live: module.live,
+                    lives: module.lives,
                     routes: module.routes,
                     mapped: module.mapped,
                     local_assets: module.local_assets,
@@ -263,7 +263,7 @@ fn compile_service_module(
         roc: compiled.roc.clone(),
         state_type: compiled.state_type,
         init: compiled.init,
-        live: compiled.live,
+        lives: compiled.lives,
         routes,
         mapped: rocci_template::MappedModule {
             type_name,
@@ -436,7 +436,7 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
-            live: compiled.live,
+            lives: compiled.lives,
             routes,
             mapped: rocci_template::MappedModule {
                 type_name,
@@ -531,14 +531,14 @@ mod tests {
             method: "GET".into(),
             path: path.into(),
             fn_name: "on_get".into(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: rocci_template::RespondKind::Document,
             span: rocci_template::Span::new(0, 0),
         };
         let post = |path: &str| RouteInfo {
             method: "POST".into(),
             path: path.into(),
             fn_name: "on_post".into(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: rocci_template::RespondKind::Document,
             span: rocci_template::Span::new(0, 0),
         };
         assert!(!keep_island_route(&get("/"), &pages));
@@ -568,11 +568,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@patch("/actions/reveal/hide") = |_, _request| {
+@post:fragment("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -641,7 +641,7 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
@@ -679,7 +679,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/", meta: { title: "Live" } }
 
-@patch("/actions/counter/increment") = |_, _request| {
+@post:fragment("/actions/counter/increment") = |_, _request| {
     Html.text("1")
 }
 
@@ -697,7 +697,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/live", meta: { title: "Also live" } }
 
-@patch("/actions/live/ping") = |_, _request| {
+@post:fragment("/actions/live/ping") = |_, _request| {
     Html.text("ok")
 }
 
@@ -764,7 +764,7 @@ RevealTip = |{ open }| {
         .unwrap();
         fs::write(
             sibling.join("Islands.rocci"),
-            "@patch(\"/x\") = |_, _request| <p>x</p>\n",
+            "@post:fragment(\"/x\") = |_, _request| <p>x</p>\n",
         )
         .unwrap();
         assert!(generated_island_plan(&sibling).unwrap().is_none());
@@ -783,12 +783,12 @@ RevealTip = |{ open }| {
         .unwrap();
         fs::write(
             root.join("index.rocdown"),
-            "@patch(\"/actions/page/ping\") = |_, _request| {\n    <div id=\"ping\">pong</div>\n}\n",
+            "@post:fragment(\"/actions/page/ping\") = |_, _request| {\n    <div id=\"ping\">pong</div>\n}\n",
         )
         .unwrap();
         fs::write(
             root.join("Service.rocci"),
-            "import ServiceUi\n\n@patch(\"/actions/counter/increment\") = |_, _request| {\n    ServiceUi.Counter({ count: 1.I64 })\n}\n",
+            "import ServiceUi\n\n@post:fragment(\"/actions/counter/increment\") = |_, _request| {\n    ServiceUi.Counter({ count: 1.I64 })\n}\n",
         )
         .unwrap();
         fs::write(

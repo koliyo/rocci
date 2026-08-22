@@ -1,6 +1,6 @@
 use rocci_template::{
-    CommandDecl, ComponentDecl, ContextDecl, CssDecl, FixtureDecl, InitDecl, LiveDecl, PatchDecl,
-    TemplateItem, ViewDecl,
+    CommandDecl, ComponentDecl, ContextDecl, CssDecl, FixtureDecl, FragmentDecl, InitDecl,
+    LiveDecl, TemplateItem, ViewDecl,
 };
 
 use crate::ast::{
@@ -64,30 +64,26 @@ fn write_init_leaf(w: &mut Writer<'_>, _src: &str, _init: &InitDecl) {
     w.leaf("init", &[]);
 }
 
-fn write_live_leaf(w: &mut Writer<'_>, _src: &str, _live: &LiveDecl) {
-    w.leaf("live", &[]);
+fn write_live_leaf(w: &mut Writer<'_>, _src: &str, live: &LiveDecl) {
+    w.leaf("live", &[format!("{}:{}", live.method.name, live.path)]);
 }
 
 fn write_view_leaf(w: &mut Writer<'_>, _src: &str, view: &ViewDecl) {
-    w.leaf("view", &[format!("GET:{}", view.path)]);
+    w.leaf("view", &[format!("{}:{}", view.method.name, view.path)]);
 }
 
-fn write_patch_leaf(w: &mut Writer<'_>, _src: &str, patch: &PatchDecl) {
-    let method = patch
-        .method
-        .as_ref()
-        .map(|ident| ident.name.as_str())
-        .unwrap_or("post");
-    w.leaf("patch", &[format!("{}:{}", method, patch.path)]);
+fn write_fragment_leaf(w: &mut Writer<'_>, _src: &str, fragment: &FragmentDecl) {
+    w.leaf(
+        "fragment",
+        &[format!("{}:{}", fragment.method.name, fragment.path)],
+    );
 }
 
 fn write_command_leaf(w: &mut Writer<'_>, _src: &str, command: &CommandDecl) {
-    let method = command
-        .method
-        .as_ref()
-        .map(|ident| ident.name.as_str())
-        .unwrap_or("post");
-    w.leaf("command", &[format!("{}:{}", method, command.path)]);
+    w.leaf(
+        "command",
+        &[format!("{}:{}", command.method.name, command.path)],
+    );
 }
 
 fn write_use(w: &mut Writer<'_>, _src: &str, used: &UseDecl) {

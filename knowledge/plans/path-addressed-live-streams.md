@@ -4,7 +4,7 @@ title: Implement path-addressed live routes
 description: "Replace the fixed singleton @live with plural @get:live(path) routes, bind streams from every generated module, and keep subscriptions explicit whenever a page has more than one possible stream."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/language-design, concern/developer-experience, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T09:52:04Z }
+generated: { by: process:cursor, at: 2026-08-22T10:20:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -163,6 +163,19 @@ cut.[^verb-first-research][^verb-first-plan]
 This plan is exploratory. Writing it does not approve the feature, start a
 phase, or change shipped behavior. The current fixed `/sse` contract remains
 descriptive until implementation and release gates pass.
+
+## Current disposition
+
+Phase 0 was jointly approved by the maintainer on 2026-08-22 with the
+verb-first handler contract. The approved direction is plural
+`@get:live("literal-path")`, one coarse page/coherence stream by default,
+module-local singleton injection, explicit subscription whenever a module has
+multiple streams, binding from primary and sibling modules, deterministic
+app-wide collision errors, unchanged per-connection polling/keepalive
+semantics, and no aliases or temporary `@live(path)` syntax. Phases 0–6 are
+implemented with the verb-first cutover on `verb-first-handler-declarations`.
+Phase 7 documentation and release gates are in this revision and must not be
+marked complete until CI and Knowledge succeed on the landed commit.
 
 ## Goal
 
@@ -388,6 +401,19 @@ yet carry a second source frame, fail with a deterministic file/method/path
 message and add richer cross-file diagnostics as a bounded follow-up.
 
 ## Phase 0 — Approve topology and measure the baseline
+
+**Status:** Approved 2026-08-22 as part of the joint verb-first/live gate.
+
+The approved contract fixture covers one page/one stream, plural streams,
+explicit subscriptions, one stream returning several stable-ID fragments, and
+the linear cost model. On macOS Apple Silicon with the pinned Roc nightly and
+Datastar 1.0.2, two concurrent connections to the current generated `/sse`
+route were observed for 0.55 seconds. Each connection received its own initial
+multi-ID patch and five idle keepalives from the existing 100 ms render loop.
+Thus two subscriptions mean two responses and two independent poll/render
+loops; two streams in each of two tabs mean four. This is local baseline
+evidence, not a universal latency or capacity claim. Authorization remains an
+authored check inside each path-specific live body.
 
 **Bound**
 

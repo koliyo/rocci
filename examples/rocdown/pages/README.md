@@ -6,7 +6,7 @@ Markdown-first pages with colocated Roc and Rocci.
 | --- | --- |
 | [`Guide.rocdown`](Guide.rocdown) | Static article: `@roc` values, a document-root component tag, wiki links, `rocci` theme |
 | [`Blocks.rocdown`](Blocks.rocdown) | `:note`, `:steps`, `:tabs`, `:figure`, a wide table, and a long code fence |
-| [`Interactive.rocdown`](Interactive.rocdown) | Datastar toggles and a server `@patch` reveal patch |
+| [`Interactive.rocdown`](Interactive.rocdown) | Datastar toggles and a server `@post:fragment` reveal patch |
 
 From the repository root, with `roc` and `cargo` on `PATH`:
 

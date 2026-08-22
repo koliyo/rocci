@@ -14,9 +14,10 @@ FixtureDecl = "rocci_template::FixtureDecl"
 CssDecl = "rocci_template::CssDecl"
 ContextDecl = "rocci_template::ContextDecl"
 InitDecl = "rocci_template::InitDecl"
+RouteDecl = "rocci_template::RouteDecl"
 LiveDecl = "rocci_template::LiveDecl"
 ViewDecl = "rocci_template::ViewDecl"
-PatchDecl = "rocci_template::PatchDecl"
+FragmentDecl = "rocci_template::FragmentDecl"
 CommandDecl = "rocci_template::CommandDecl"
 LeadingComments = "rocci_template::LeadingComments"
 TemplateBlock = "rocci_template::TemplateBlock"
@@ -66,8 +67,9 @@ TextNode = "{ value: String, span: Span }"
 "ComponentCall.children" = "Option<Vec<TemplateItem>> wrapping TemplateItem*"
 "MatchArm.value" = "Box<TemplateItem>"
 "ViewDecl.path" = "String + path_span from StringLit"
-"PatchDecl.path" = "String + path_span from StringLit"
+"FragmentDecl.path" = "String + path_span from StringLit"
 "CommandDecl.path" = "String + path_span from StringLit"
+"LiveDecl.path" = "String + path_span from StringLit"
 
 [module_item_variants]
 RocRegion = "Roc"
@@ -76,10 +78,13 @@ FixtureDecl = "Fixture"
 CssDecl = "Css"
 ContextDecl = "Context"
 InitDecl = "Init"
-LiveDecl = "Live"
+RouteDecl = "Route"
+
+[route_decl_variants]
 ViewDecl = "View"
-PatchDecl = "Patch"
+FragmentDecl = "Fragment"
 CommandDecl = "Command"
+LiveDecl = "Live"
 
 [template_item_variants]
 Element = "Element"
@@ -109,11 +114,13 @@ Boolean = "Boolean"
 
 [flatten]
 "ViewDecl.path" = "path:String, path_span:Span"
-"PatchDecl.path" = "path:String, path_span:Span"
+"FragmentDecl.path" = "path:String, path_span:Span"
 "CommandDecl.path" = "path:String, path_span:Span"
+"LiveDecl.path" = "path:String, path_span:Span"
 
 [span_method]
 TemplateItem = true
+RouteDecl = true
 
 [out_of_tree]
 ParsedParams = "derived from ParamList text; not a node"
@@ -132,7 +139,7 @@ ContextDecl = "context"
 InitDecl = "init"
 LiveDecl = "live"
 ViewDecl = "view"
-PatchDecl = "patch"
+FragmentDecl = "fragment"
 CommandDecl = "command"
 Element = "element"
 ComponentCall = "call"
@@ -157,7 +164,7 @@ ContextDecl = "write_context"
 InitDecl = "write_init"
 LiveDecl = "write_live"
 ViewDecl = "write_view"
-PatchDecl = "write_patch"
+FragmentDecl = "write_fragment_decl"
 CommandDecl = "write_command"
 Element = "write_element"
 ComponentCall = "write_call"
@@ -175,6 +182,7 @@ LetDirective = "write_let"
 
 [inspect.omit]
 ModuleItem = "enum wrapper; variants print their own heads"
+RouteDecl = "enum wrapper; variants print their own heads"
 TemplateBlock = "items printed without a wrapper tag"
 TemplateItem = "enum wrapper; variants print their own heads"
 ComponentPath = "flattened onto call atoms"

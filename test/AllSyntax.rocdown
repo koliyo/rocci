@@ -38,7 +38,7 @@ Hello = |{ name ?? "World" }| {
 @fixture{target: Hello}
 helloSample = { name: "Roc" }
 
-@patch("/actions/all-syntax/ping") = |_| {
+@post:fragment("/actions/all-syntax/ping") = |_| {
     hello({ name: "pong" })
 }
 

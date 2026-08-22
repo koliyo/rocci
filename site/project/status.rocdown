@@ -14,7 +14,7 @@ Rocci is an active experiment with working template and document compilers, exam
 
 - `.rocci` parsing and deterministic lowering to Roc.
 - Components, fixtures, structural directives, scoped CSS, and Datastar actions.
-- Standalone `@context`, `@init`, `@view`, `@patch`, `@command`, and `@live` applications.
+- Standalone `@context`, `@init`, and verb-first `@method:role` applications.
 - `.rocdown` Markdown, page metadata, Roc and Rocci regions, links, themes, and preview.
 - Build, inspect, AST, run, view, and browse commands.
 - VS Code and Zed language registration plus LSP diagnostics and navigation.

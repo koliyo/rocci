@@ -1,0 +1,41 @@
+import Html
+
+## Dashboard page: its page stream and the shared notifications stream are explicit.
+@get:view("/") = |_| {
+    dashboardPage({})
+}
+
+## One coarse page stream updates two stable regions in one render loop.
+@get:live("/streams/dashboard") = |_, _request| {
+    dashboardLive({})
+}
+
+@component
+DashboardLive = |{}|
+    <>
+        <section id="dashboard-summary"><strong>Dashboard summary</strong></section>
+        <aside id="dashboard-activity">Dashboard activity</aside>
+    </>
+
+@component
+DashboardPage = |{}|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <title>Multi-page streams — Dashboard</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body data-init=@get("/streams/dashboard")>
+            <nav><a href="/">Dashboard</a> <a href="/admin">Admin</a></nav>
+            <main>
+                <h1>Dashboard</h1>
+                <section id="dashboard-summary"><strong>Waiting for dashboard stream</strong></section>
+                <aside id="dashboard-activity">Waiting for dashboard activity</aside>
+                <output id="notifications">No notifications</output>
+            </main>
+            <div id="notifications-subscription" data-init=@get("/streams/notifications", [OpenWhenHidden(True)])></div>
+        </body>
+    </html>
+
+@fixture{target: DashboardPage}
+dashboardPageTest = {}

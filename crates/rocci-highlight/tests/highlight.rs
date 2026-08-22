@@ -223,9 +223,9 @@ fn assert_invariants(src: &str, spans: &[HighlightSpan]) {
 }
 
 #[test]
-fn patch_noun_and_patch_method_use_distinct_kinds() {
+fn method_and_role_use_distinct_kinds() {
     let src = r#"
-@patch:patch("/x") {
+@patch:fragment("/x") {
     Html.text("ok")
 }
 
@@ -244,7 +244,7 @@ fn patch_noun_and_patch_method_use_distinct_kinds() {
     assert!(
         spans
             .iter()
-            .any(|s| s.kind == HighlightKind::EnumMember && &src[s.start()..s.end()] == "patch")
+            .any(|s| s.kind == HighlightKind::EnumMember && &src[s.start()..s.end()] == "fragment")
     );
 }
 

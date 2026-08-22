@@ -10,31 +10,44 @@
     ],
     meta: {
         title: "Server declarations",
-        description: "@context, @init, @view, @patch, @command, @live, request injection, methods, and conflicts.",
+        description: "@context, @init, verb-first routes, request injection, methods, streams, and conflicts.",
     },
 }
 
 # Server declarations
 
-**Status:** current. `@on` and trailing `json` are **removed**.
+**Status:** current. Route declarations use mandatory verb-first
+`@method:role("path")` headers. The former role-first forms, `@on`, trailing
+`json`, and pathless `@live` are **removed**, not aliases.
 
 Bodies are Roc, not templates. Module-level only.
 
-| Declaration | Default method | Success | Notes |
-| --- | --- | --- | --- |
-| `@context { … }` | — | `State` type | One per module |
-| `@init { … }` | — | context value | `?` → process exit |
-| `@view("path")` | GET | HTML document | Always GET |
-| `@patch("path")` | POST | Fragment → patch-elements | GET rejected; `:put` `:patch` `:delete` allowed |
-| `@command("path")` | POST | Roc data → empty SSE or JSON | GET rejected |
-| `@live` | generated GET `/sse` | Fragment stream | One per module |
+| Declaration | Success |
+| --- | --- |
+| `@context { … }` | `State` type; one per module |
+| `@init { … }` | context value; `?` exits the process |
+| `@get:view(path)` | HTML document |
+| `@get:fragment(path)` | finite patch-elements response |
+| `@get:live(path)` | long-lived fragment stream |
+| `@post:fragment(path)` | finite patch-elements response |
+| `@put:fragment(path)` | finite patch-elements response |
+| `@patch:fragment(path)` | finite patch-elements response |
+| `@delete:fragment(path)` | finite patch-elements response |
+| `@post:command(path)` | no success representation |
+| `@put:command(path)` | no success representation |
+| `@patch:command(path)` | no success representation |
+| `@delete:command(path)` | no success representation |
 
 Dispatch calls `handler!(context, request)`. Write `|{ db }, request|` when
 you read the request. One-parameter lists append `_request`. Omit params for
 `|state, _request|`.
 
-`@patch:post` is rejected (POST is already the default). `@patch:patch` is
-legal. `@view("/sse")` plus `@live` is a diagnostic.
+There are no default methods. Any method/role pair outside this closed matrix
+is rejected. Paths are literal and app-wide method/path collisions are
+rejected across the primary module and siblings. A module may declare multiple
+live routes; each becomes one SSE endpoint. A page with exactly one local live
+route and no authored `data-init` receives an automatic subscription. Multiple
+local streams require explicit `data-init` subscriptions.
 
 Complete matrix: [Handler matrix](/examples/handler-matrix/).
 

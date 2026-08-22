@@ -18,6 +18,7 @@ Expr	omit	printed as attr
 FixtureDecl	tag	fixture
 ForDirective	tag	for
 Fragment	tag	fragment
+FragmentDecl	tag	fragment
 Ident	omit	atom; no inspect head
 IfDirective	tag	if
 InitDecl	tag	init
@@ -30,11 +31,11 @@ MatchArm	tag	arm
 MatchDirective	tag	match
 ModuleItem	omit	enum wrapper; variants print their own heads
 ParamList	tag	params
-PatchDecl	tag	patch
 RocExpr	leaf	—
 RocPattern	leaf	—
 RocRegion	tag	roc
 RocType	leaf	—
+RouteDecl	omit	enum wrapper; variants print their own heads
 Static	omit	printed as attr
 StringLit	leaf	—
 TemplateBlock	omit	items printed without a wrapper tag

@@ -42,10 +42,10 @@ pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass 
             Item::Template(_) => (PageKind::Hydrate, "Rocci template"),
             Item::Context(_) => (PageKind::Live, "@context"),
             Item::Init(_) => (PageKind::Live, "@init"),
-            Item::Live(_) => (PageKind::Live, "@live"),
-            Item::View(_) => (PageKind::Live, "@view"),
-            Item::Patch(_) => (PageKind::Live, "@patch"),
-            Item::Command(_) => (PageKind::Live, "@command"),
+            Item::Live(_) => (PageKind::Live, "@get:live"),
+            Item::View(_) => (PageKind::Live, "@get:view"),
+            Item::Fragment(_) => (PageKind::Live, "@method:fragment"),
+            Item::Command(_) => (PageKind::Live, "@method:command"),
         };
         if kind > class.kind {
             class.kind = kind;
@@ -70,10 +70,10 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
             Item::Css(_) => return Err("@css"),
             Item::Context(_) => return Err("@context"),
             Item::Init(_) => return Err("@init"),
-            Item::Live(_) => return Err("@live"),
-            Item::View(_) => return Err("@view"),
-            Item::Patch(_) => return Err("@patch"),
-            Item::Command(_) => return Err("@command"),
+            Item::Live(_) => return Err("@get:live"),
+            Item::View(_) => return Err("@get:view"),
+            Item::Fragment(_) => return Err("@method:fragment"),
+            Item::Command(_) => return Err("@method:command"),
             Item::Use(_) => return Err("@use"),
             Item::Template(_) => return Err("Rocci template"),
         }
@@ -656,10 +656,11 @@ Text in rocdown.
 
     #[test]
     fn classifies_patch_as_live() {
-        let class =
-            classify("# Hi\n\n@patch(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n");
+        let class = classify(
+            "# Hi\n\n@post:fragment(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n",
+        );
         assert_eq!(class.kind, PageKind::Live);
-        assert_eq!(class.reason, "@patch");
+        assert_eq!(class.reason, "@method:fragment");
     }
 
     #[test]
@@ -671,10 +672,10 @@ Text in rocdown.
     #[test]
     fn live_wins_over_hydrate() {
         let class = classify(
-            "@component Box = || { <div /> }\n\n@patch(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
+            "@component Box = || { <div /> }\n\n@post:fragment(\"/inc\") = |_, _request| {\n    Html.text(\"x\")\n}\n\n# Hi\n",
         );
         assert_eq!(class.kind, PageKind::Live);
-        assert_eq!(class.reason, "@patch");
+        assert_eq!(class.reason, "@method:fragment");
     }
 
     #[test]

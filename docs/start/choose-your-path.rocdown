@@ -40,5 +40,5 @@ checkout, then [Rocci in five minutes](/docs/start/five-minutes/) and
 ## After the first component
 
 The next controlled project is a standalone counter with SQLite and a one-shot
-`@patch`. That tutorial ships in the application journey. Until then, the
+`@post:fragment`. That tutorial ships in the application journey. Until then, the
 canonical complete source is [Styling](/examples/styling/).

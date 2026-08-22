@@ -119,6 +119,26 @@ expect = "/docs/reference/language/server/"
 group = "syntax"
 
 [[query]]
+q = "@get:view"
+expect = "/docs/reference/language/server/"
+group = "syntax"
+
+[[query]]
+q = "@get:live"
+expect = "/docs/reference/language/server/"
+group = "runtime"
+
+[[query]]
+q = "@post:command 204"
+expect = "/docs/reference/runtime/"
+group = "runtime"
+
+[[query]]
+q = "@method:role"
+expect = "/docs/reference/language/grammar/"
+group = "syntax"
+
+[[query]]
 q = "html tags fragments"
 expect = "/docs/reference/language/tags/"
 group = "syntax"

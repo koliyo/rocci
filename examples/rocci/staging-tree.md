@@ -2,12 +2,11 @@
 
 This file freezes include/exclude rules and the staging-tree shape for
 `rocci-docs`. Tests that enforce the tree land with the crate (Phase 1).
-Published example source waits on the semantic handler cutover
-(`@view` / `@patch` / `@command` / `@live`). This freeze does not convert
-`.rocci` files.
+Published example source uses the completed verb-first handler cutover
+(`@method:view`, `@method:fragment`, `@method:command`, and `@get:live`).
 
 Discovery is the catalog `apps.toml`, not every directory under `examples/rocci`.
-`handler-matrix` is omitted until that directory exists.
+`handler-matrix` is included as the exhaustive method/role reference.
 
 ## Include
 

@@ -20,7 +20,7 @@ Generated dispatch calls `handler!(context, request)`. List `request` in the
 parameter list when you read the body, headers, or route data:
 
 ```rocci
-@patch("/actions/save") = |{ db }, request| {
+@post:fragment("/actions/save") = |{ db }, request| {
     # decode body from request, then return a fragment
 }
 ```

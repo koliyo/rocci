@@ -438,7 +438,7 @@ fn site_chrome_layout_is_not_emitted_as_a_roc_call() {
     meta: { title: "Counter" },
 }
 
-@patch("/actions/x") = |_, _request| {
+@post:fragment("/actions/x") = |_, _request| {
     <p>ok</p>
 }
 
@@ -448,6 +448,25 @@ fn site_chrome_layout_is_not_emitted_as_a_roc_call() {
     assert_eq!(out.page_meta.layout.as_deref(), Some("docs"));
     assert!(!out.roc.contains("docs({ meta:"), "{}", out.roc);
     assert!(out.roc.contains("rocci_content"), "{}", out.roc);
+}
+
+#[test]
+fn embedded_route_inspect_uses_final_method_role_and_live_paths() {
+    let src = r#"
+@post:fragment("/actions/x") = |_, _request| { <p>ok</p> }
+@post:command("/actions/save") = |_, _request| { {} }
+@get:live("/events/page") = |_, _request| { <p id="page">page</p> }
+@get:live("/events/shared") = |_, _request| { <p id="shared">shared</p> }
+
+# Hello
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.lives.len(), 2);
+    let ast = format_ast(src, &out.document);
+    assert!(ast.contains("(fragment post:/actions/x)"), "{ast}");
+    assert!(ast.contains("(command post:/actions/save)"), "{ast}");
+    assert!(ast.contains("(live get:/events/page)"), "{ast}");
+    assert!(ast.contains("(live get:/events/shared)"), "{ast}");
 }
 
 #[test]
@@ -1282,7 +1301,7 @@ read_count! = |db|
     )
 }
 
-@patch("/actions/counter/sync") = |_, _request| {
+@post:fragment("/actions/counter/sync") = |_, _request| {
     count = read_count!(db)?
     counterCard({ count: count.value })
 }

@@ -1,4 +1,6 @@
-use rocci_template::{AttrValue, Document as RocciDocument, ModuleItem, Span, TemplateItem};
+use rocci_template::{
+    AttrValue, Document as RocciDocument, ModuleItem, RouteDecl, Span, TemplateItem,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::language::LanguageId;
@@ -332,51 +334,28 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                     );
                 }
             }
-            ModuleItem::Live(live) => {
-                let live_id = builder.add(
-                    LanguageId::Rocci,
-                    RegionContext::Body,
-                    RegionPurpose::HostStructure,
-                    live.span,
-                    Some(root),
-                    10,
-                );
-                if let Some(params) = live.params
-                    && !params.is_empty()
-                {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Params,
-                        RegionPurpose::Executable,
-                        params,
-                        Some(live_id),
-                        20,
-                    );
+            ModuleItem::Route(route) => match route {
+                RouteDecl::Live(live) => {
+                    add_route_regions(&mut builder, root, live.span, live.params, live.body)
                 }
-                if !live.body.is_empty() {
-                    builder.add(
-                        LanguageId::Roc,
-                        RegionContext::Body,
-                        RegionPurpose::Executable,
-                        live.body,
-                        Some(live_id),
-                        20,
-                    );
+                RouteDecl::View(view) => {
+                    add_route_regions(&mut builder, root, view.span, view.params, view.body)
                 }
-            }
-            ModuleItem::View(view) => {
-                add_route_regions(&mut builder, root, view.span, view.params, view.body)
-            }
-            ModuleItem::Patch(patch) => {
-                add_route_regions(&mut builder, root, patch.span, patch.params, patch.body)
-            }
-            ModuleItem::Command(command) => add_route_regions(
-                &mut builder,
-                root,
-                command.span,
-                command.params,
-                command.body,
-            ),
+                RouteDecl::Fragment(fragment) => add_route_regions(
+                    &mut builder,
+                    root,
+                    fragment.span,
+                    fragment.params,
+                    fragment.body,
+                ),
+                RouteDecl::Command(command) => add_route_regions(
+                    &mut builder,
+                    root,
+                    command.span,
+                    command.params,
+                    command.body,
+                ),
+            },
         }
     }
 

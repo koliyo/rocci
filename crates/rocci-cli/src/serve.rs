@@ -66,7 +66,7 @@ pub struct ServeOptions {
     #[arg(long)]
     pub no_live_reload: bool,
 
-    /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
+    /// Log each matched `@method:role(path)` handler to stderr (CLI and Dev Console).
     #[arg(long)]
     pub log_handlers: bool,
 

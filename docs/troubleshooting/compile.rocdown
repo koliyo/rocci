@@ -26,11 +26,13 @@ header `{` is on the next line, or markup sits inside `{expr}`.
 [directives](/docs/reference/language/directives/) and
 [file structure](/docs/reference/language/file-structure/).
 
-## Still writing `@on`
+## Still writing the former handler syntax
 
-**Cause:** `@on:METHOD` and trailing `json` are **removed**.
+**Cause:** role-first declarations, pathless `@live`, `@on:METHOD`, and
+trailing `json` are **removed**.
 
-**Fix:** rewrite to `@view` / `@patch` / `@command` as in
+**Fix:** rewrite to `@get:view(path)`, `@post:fragment(path)`,
+`@post:command(path)`, or `@get:live(path)` as in
 [grammar](/docs/reference/language/grammar/).
 
 **Related:** [Error boundaries](/docs/concepts/error-boundaries/).

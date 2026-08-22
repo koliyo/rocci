@@ -5,7 +5,7 @@ page kinds with colocated `@on` (ephemeral show/hide, no SQLite).
 
 | File | Kind | What it shows |
 | --- | --- | --- |
-| [`index.rocdown`](index.rocdown) | live | RevealTip + `@patch` morph |
+| [`index.rocdown`](index.rocdown) | live | RevealTip + `@post:fragment` morph |
 | [`widgets.rocdown`](widgets.rocdown) | hydrate | Pure `@component` / `@render`, no Datastar |
 | [`pair.rocdown`](pair.rocdown) | live | Two hosts with distinct element ids |
 | [`about.rocdown`](about.rocdown) | static | Markdown-only neighbor |

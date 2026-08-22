@@ -18,6 +18,7 @@ Document	tag	rocdown
 EndMarker	omit	flattened onto EndSection
 EndSection	omit	nested items are reparsed; no inspect head
 FixtureDecl	tag	fixture
+FragmentDecl	tag	fragment
 HtmlIsland	doc_only	—
 Ident	leaf	—
 InitDecl	tag	init
@@ -45,7 +46,6 @@ Paragraph	doc_only	—
 ParamField	omit	flattened onto block param atoms
 ParamValue	omit	flattened onto block param atoms
 ParenPayload	leaf	—
-PatchDecl	tag	patch
 RenderDecl	tag	render
 RocDecl	tag	roc
 StringLit	leaf	—

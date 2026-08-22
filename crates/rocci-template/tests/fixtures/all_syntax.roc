@@ -395,26 +395,12 @@ on_post_actions_increment! = |state, _request| {
     Ok(rocci_value)
 }
 
-on_post_actions_increment_json! = |state, request| {
-    match on_post_actions_increment!(state, request) {
-        Ok(data) => Encoding.Json.to_str_try(data)
-        Err(err) => Err(err)
-    }
-}
-
 
 on_put_actions_command_put! = |_state, _request| {
     rocci_value = {
         { count: 1 }
     }
     Ok(rocci_value)
-}
-
-on_put_actions_command_put_json! = |state, request| {
-    match on_put_actions_command_put!(state, request) {
-        Ok(data) => Encoding.Json.to_str_try(data)
-        Err(err) => Err(err)
-    }
 }
 
 
@@ -425,13 +411,6 @@ on_patch_actions_command_patch! = |state, _request| {
     Ok(rocci_value)
 }
 
-on_patch_actions_command_patch_json! = |state, request| {
-    match on_patch_actions_command_patch!(state, request) {
-        Ok(data) => Encoding.Json.to_str_try(data)
-        Err(err) => Err(err)
-    }
-}
-
 
 on_delete_actions_command_delete! = |state, _request| {
     rocci_value = {
@@ -440,15 +419,8 @@ on_delete_actions_command_delete! = |state, _request| {
     Ok(rocci_value)
 }
 
-on_delete_actions_command_delete_json! = |state, request| {
-    match on_delete_actions_command_delete!(state, request) {
-        Ok(data) => Encoding.Json.to_str_try(data)
-        Err(err) => Err(err)
-    }
-}
 
-
-live! = |state, _request| {
+on_get_sse! = |state, _request| {
     rocci_value = {
         counterPage({ person: { name: "Roc" }, count: 0 })
     }
