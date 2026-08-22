@@ -45,7 +45,10 @@ import PageOutline
                 <link rel="apple-touch-icon" href={view.site.apple_touch_icon} />
             }
         </head>
-        <body class={if view.layout == "home" { "site-body" } else { "site-body is-navigated" }}>
+        <body
+            class={if view.layout == "home" { "site-body" } else { "site-body is-navigated" }}
+            data-rocci-not-found={if view.layout == "not-found" { "true" } else { "false" }}
+        >
             <a class="skip-link" href="#main-content">Skip to content</a>
             <header class="site-header">
                 <div class="header-inner">
