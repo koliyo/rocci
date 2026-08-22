@@ -248,7 +248,7 @@ counterFeedTest = {
 @fixture{target: CounterIsland}
 counterIslandTest = { count: 3.I64, clicks: empty_clicks, show_reset: False }
 
-## Returned from `@live`: count and feed morph by id; controls stay on the page.
+## Returned from `@get:live`: count and feed morph by id; controls stay on the page.
 @component
 LiveSlice = |{ count, clicks }|
     <>

@@ -44,7 +44,7 @@ Item =
 | InitDecl
 | LiveDecl
 | ViewDecl
-| PatchDecl
+| FragmentDecl
 | CommandDecl
 | UseDecl
 | TemplateItem
@@ -62,7 +62,7 @@ ModuleItem =
 | InitDecl
 | LiveDecl
 | ViewDecl
-| PatchDecl
+| FragmentDecl
 | CommandDecl
 | UseDecl
 
@@ -88,8 +88,8 @@ InitDecl = 'rocci-init'
 LiveDecl = 'rocci-live'
 /// foreign → rocci_template::ViewDecl
 ViewDecl = 'rocci-view'
-/// foreign → rocci_template::PatchDecl
-PatchDecl = 'rocci-patch'
+/// foreign → rocci_template::FragmentDecl
+FragmentDecl = 'rocci-fragment'
 /// foreign → rocci_template::CommandDecl
 CommandDecl = 'rocci-command'
 /// foreign → rocci_template::TemplateItem

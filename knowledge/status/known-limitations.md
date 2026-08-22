@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T13:08:32Z }
+generated: { by: process:cursor, at: 2026-08-22T12:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -81,7 +81,7 @@ Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed
 
 The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^roadmap]
 
-Pinned **basic-webserver 0.16** still logs opaque HTTP/1.1 Body-stream errors on client abort of an open SSE, and plaintext `rocci run` stays on HTTP/1.1 (browsers do not use cleartext HTTP/2). Generated `@live` keepalives and empty SSE `@command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; Rocci does not fork the platform. Details: [basic-webserver SSE and HTTP](../research/basic-webserver-sse-http.md).[^bws-sse]
+Pinned **basic-webserver 0.16** still logs opaque HTTP/1.1 Body-stream errors on client abort of an open SSE, and plaintext `rocci run` stays on HTTP/1.1 (browsers do not use cleartext HTTP/2). Generated `@get:live` keepalives and empty-SSE `@method:command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; ordinary command callers receive 204 instead of JSON. Rocci does not fork the platform. Details: [basic-webserver SSE and HTTP](../research/basic-webserver-sse-http.md).[^bws-sse]
 
 ## Language and client behavior
 

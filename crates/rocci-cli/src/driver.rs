@@ -12,7 +12,7 @@ use rocci_template::{InitInfo, LiveInfo, RouteInfo};
 use sha2::{Digest, Sha256};
 
 use crate::datastar_asset;
-use crate::dispatch::{self, DispatchOptions, DispatchSource};
+use crate::dispatch::{self, DispatchOptions, DispatchSource, LiveSource};
 use crate::error_page::{self, FailedFile, MappedModule};
 use crate::logs::{self, LogHub, LogLevel};
 use crate::profile::{ProfileSnapshot, ProfileSpan};
@@ -27,7 +27,7 @@ pub struct GenericModule {
     pub roc: String,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
-    pub live: Option<LiveInfo>,
+    pub lives: Vec<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub mapped: MappedModule,
     pub local_assets: Vec<String>,
@@ -58,18 +58,30 @@ impl GenericAppPlan {
                 routes: &module.routes,
             })
             .collect();
-        let bound = dispatch::merge_standalone_routes(
-            DispatchSource {
+        let primary_source = DispatchSource {
+            type_name: &primary.type_name,
+            routes: &primary.routes,
+        };
+        let bound = dispatch::merge_standalone_routes(primary_source, &siblings);
+        let live_siblings = self.modules[1..]
+            .iter()
+            .map(|module| LiveSource {
+                type_name: &module.type_name,
+                lives: &module.lives,
+            })
+            .collect::<Vec<_>>();
+        let bound_lives = dispatch::merge_standalone_lives(
+            LiveSource {
                 type_name: &primary.type_name,
-                routes: &primary.routes,
+                lives: &primary.lives,
             },
-            &siblings,
+            &live_siblings,
         );
         dispatch::generate_bound_main_roc(
             &primary.type_name,
             primary.state_type.as_deref(),
             primary.init.as_ref(),
-            primary.live.as_ref(),
+            &bound_lives,
             &bound,
             DispatchOptions {
                 redirect_trailing_slash: self.redirect_trailing_slash,
@@ -82,6 +94,38 @@ impl GenericAppPlan {
                 log_handlers_color: self.log_handlers && style::stderr_color(),
             },
         )
+    }
+
+    pub fn validate_dispatch(&self) -> Result<()> {
+        let primary = &self.modules[0];
+        let primary_source = DispatchSource {
+            type_name: &primary.type_name,
+            routes: &primary.routes,
+        };
+        let siblings = self.modules[1..]
+            .iter()
+            .map(|module| DispatchSource {
+                type_name: &module.type_name,
+                routes: &module.routes,
+            })
+            .collect::<Vec<_>>();
+        let sibling_lives = self.modules[1..]
+            .iter()
+            .map(|module| LiveSource {
+                type_name: &module.type_name,
+                lives: &module.lives,
+            })
+            .collect::<Vec<_>>();
+        dispatch::validate_standalone_dispatch(
+            primary_source,
+            &siblings,
+            LiveSource {
+                type_name: &primary.type_name,
+                lives: &primary.lives,
+            },
+            &sibling_lives,
+        )
+        .map_err(anyhow::Error::msg)
     }
 
     pub fn fingerprint(&self) -> String {
@@ -138,6 +182,7 @@ pub fn execute_app_plan(
 ) -> Result<()> {
     let mut plan = plan.clone();
     plan.log_handlers = options.log_handlers;
+    plan.validate_dispatch()?;
     let write_started = Instant::now();
     let type_name = plan.primary_name.clone();
     let workspace = stage_app_workspace(&plan, src_dir, "run")?;
@@ -232,6 +277,7 @@ pub(crate) fn stage_app_workspace(
     src_dir: &Path,
     kind: &str,
 ) -> Result<TempDir> {
+    plan.validate_dispatch()?;
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create(kind)?;
     runtime_assets::stage_into(&workspace.path)?;

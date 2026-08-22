@@ -1,10 +1,11 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    Document, FixtureDecl, LiveDecl, ModuleItem, TemplateItem, handler_param_arity,
+    Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, handler_param_arity,
     parse_component_params,
 };
 use crate::diagnostic::Diagnostic;
+use crate::lower::route_fn_name;
 use crate::resolve::{fixture_target_name_error, pascal_to_camel};
 use crate::span::Span;
 
@@ -25,8 +26,8 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
 
     let mut context_span = None;
     let mut init_span = None;
-    let mut live_span = None;
-    let mut routes: Vec<(&str, &str, crate::span::Span)> = Vec::new();
+    let mut routes: Vec<(String, String, Span)> = Vec::new();
+    let mut generated_names: HashMap<String, (String, String, Span)> = HashMap::new();
     let mut has_record_handler = false;
 
     for item in &document.items {
@@ -58,95 +59,21 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                     init_span = Some(init.span);
                 }
             }
-            ModuleItem::Live(live) => {
-                if live_span.is_some() {
-                    diagnostics.push(Diagnostic::error(
-                        live.span,
-                        "duplicate `@live`; a module may declare one live render",
-                    ));
-                } else {
-                    live_span = Some(live.span);
-                }
-                if let Some(params) = live.params
-                    && handler_param_arity(params.of(src)) > 2
-                {
-                    diagnostics.push(Diagnostic::error(
-                        params,
-                        "`@live` takes at most two parameters: state and request",
-                    ));
-                }
-                if live_has_record_params(src, live) {
-                    has_record_handler = true;
-                }
-            }
-            ModuleItem::View(view) => {
+            ModuleItem::Route(route) => {
+                let parts = route_parts(route);
                 validate_route_handler(
                     &mut RouteValidation {
                         src,
                         diagnostics,
                         has_record_handler: &mut has_record_handler,
                         routes: &mut routes,
+                        generated_names: &mut generated_names,
                     },
-                    "view",
-                    "get",
-                    &view.path,
-                    view.params,
-                    view.span,
-                );
-            }
-            ModuleItem::Patch(patch) => {
-                let method = patch
-                    .method
-                    .as_ref()
-                    .map(|ident| ident.name.as_str())
-                    .unwrap_or("post");
-                validate_route_handler(
-                    &mut RouteValidation {
-                        src,
-                        diagnostics,
-                        has_record_handler: &mut has_record_handler,
-                        routes: &mut routes,
-                    },
-                    "patch",
-                    method,
-                    &patch.path,
-                    patch.params,
-                    patch.span,
-                );
-            }
-            ModuleItem::Command(command) => {
-                let method = command
-                    .method
-                    .as_ref()
-                    .map(|ident| ident.name.as_str())
-                    .unwrap_or("post");
-                validate_route_handler(
-                    &mut RouteValidation {
-                        src,
-                        diagnostics,
-                        has_record_handler: &mut has_record_handler,
-                        routes: &mut routes,
-                    },
-                    "command",
-                    method,
-                    &command.path,
-                    command.params,
-                    command.span,
+                    parts,
                 );
             }
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => {}
         }
-    }
-
-    if live_span.is_some()
-        && let Some((_, _, span)) = routes
-            .iter()
-            .find(|(method, path, _)| *method == "get" && *path == "/sse")
-    {
-        diagnostics.push(Diagnostic::error(
-            *span,
-            "`@view(\"/sse\")` conflicts with generated `@live` stream",
-        ));
     }
 
     if let (Some(init), None) = (init_span, context_span) {
@@ -166,31 +93,70 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             .items
             .iter()
             .find_map(|item| match item {
-                ModuleItem::View(view) if handler_has_record_params(src, view.params) => {
-                    Some(view.span)
+                ModuleItem::Route(route)
+                    if handler_has_record_params(src, route_parts(route).params) =>
+                {
+                    Some(route.span())
                 }
-                ModuleItem::Patch(patch) if handler_has_record_params(src, patch.params) => {
-                    Some(patch.span)
-                }
-                ModuleItem::Command(command) if handler_has_record_params(src, command.params) => {
-                    Some(command.span)
-                }
-                ModuleItem::Live(live) if live_has_record_params(src, live) => Some(live.span),
                 _ => None,
             })
             .unwrap_or(document.span);
         diagnostics.push(Diagnostic::error(
             span,
-            "`@view`, `@patch`, `@command`, and `@live` handlers that destructure a record require `@context`",
+            "route handlers that destructure a record require `@context`",
         ));
     }
 }
 
-fn live_has_record_params(src: &str, live: &LiveDecl) -> bool {
-    let Some(params) = live.params else {
-        return false;
-    };
-    parse_component_params(src, params).first_param_is_record
+struct RouteParts<'a> {
+    role: &'static str,
+    method: &'a str,
+    method_span: Span,
+    path: &'a str,
+    path_span: Span,
+    params: Option<Span>,
+    span: Span,
+}
+
+fn route_parts(route: &RouteDecl) -> RouteParts<'_> {
+    match route {
+        RouteDecl::View(decl) => RouteParts {
+            role: "view",
+            method: &decl.method.name,
+            method_span: decl.method.span,
+            path: &decl.path,
+            path_span: decl.path_span,
+            params: decl.params,
+            span: decl.span,
+        },
+        RouteDecl::Fragment(decl) => RouteParts {
+            role: "fragment",
+            method: &decl.method.name,
+            method_span: decl.method.span,
+            path: &decl.path,
+            path_span: decl.path_span,
+            params: decl.params,
+            span: decl.span,
+        },
+        RouteDecl::Command(decl) => RouteParts {
+            role: "command",
+            method: &decl.method.name,
+            method_span: decl.method.span,
+            path: &decl.path,
+            path_span: decl.path_span,
+            params: decl.params,
+            span: decl.span,
+        },
+        RouteDecl::Live(decl) => RouteParts {
+            role: "live",
+            method: &decl.method.name,
+            method_span: decl.method.span,
+            path: &decl.path,
+            path_span: decl.path_span,
+            params: decl.params,
+            span: decl.span,
+        },
+    }
 }
 
 fn handler_has_record_params(src: &str, params: Option<Span>) -> bool {
@@ -204,54 +170,105 @@ struct RouteValidation<'a, 'd> {
     src: &'a str,
     diagnostics: &'d mut Vec<Diagnostic>,
     has_record_handler: &'d mut bool,
-    routes: &'d mut Vec<(&'a str, &'a str, Span)>,
+    routes: &'d mut Vec<(String, String, Span)>,
+    generated_names: &'d mut HashMap<String, (String, String, Span)>,
 }
 
-fn validate_route_handler<'a, 'd>(
-    validation: &mut RouteValidation<'a, 'd>,
-    noun: &str,
-    method: &'a str,
-    path: &'a str,
-    params: Option<Span>,
-    span: Span,
-) {
-    if let Some(params) = params
+fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, route: RouteParts<'_>) {
+    if let Some(params) = route.params
         && handler_param_arity(params.of(validation.src)) > 2
     {
         validation.diagnostics.push(Diagnostic::error(
             params,
-            format!("`@{noun}` handlers take at most two parameters: state and request"),
+            format!(
+                "`@{}:{}` handlers take at most two parameters: state and request",
+                route.method, route.role
+            ),
         ));
     }
-    if handler_has_record_params(validation.src, params) {
+    if handler_has_record_params(validation.src, route.params) {
         *validation.has_record_handler = true;
     }
-    if path.is_empty() {
+    let method_known = matches!(route.method, "get" | "post" | "put" | "patch" | "delete");
+    if !method_known {
+        validation.diagnostics.push(Diagnostic::error(
+            route.method_span,
+            format!(
+                "unknown HTTP method `{}`; expected get, post, put, patch, or delete",
+                route.method
+            ),
+        ));
+    } else if !legal_pair(route.method, route.role) {
+        let guidance = if route.method == "get" {
+            "GET accepts view, fragment, or live"
+        } else {
+            "mutation methods accept fragment or command"
+        };
+        validation.diagnostics.push(Diagnostic::error(
+            route.method_span,
+            format!(
+                "illegal handler pair `@{}:{}`; {guidance}",
+                route.method, route.role
+            ),
+        ));
+    }
+    if route.path.is_empty() {
+        validation.diagnostics.push(Diagnostic::error(
+            route.path_span,
+            format!(
+                "`@{}:{}` requires a non-empty literal path",
+                route.method, route.role
+            ),
+        ));
         return;
     }
-    if let Some((_, _, _)) = validation
+    if validation
         .routes
         .iter()
-        .find(|(existing_method, existing_path, _)| {
-            *existing_method == method && *existing_path == path
+        .any(|(existing_method, existing_path, _)| {
+            existing_method == route.method && existing_path == route.path
         })
     {
-        let header = route_header(noun, method, path);
+        let header = route_header(route.method, route.role, route.path);
         validation.diagnostics.push(Diagnostic::error(
-            span,
+            route.span,
             format!("duplicate `{header}` handler"),
         ));
     } else {
-        validation.routes.push((method, path, span));
+        let fn_name = route_fn_name(route.method, route.path);
+        if let Some((first_method, first_path, _)) = validation.generated_names.get(&fn_name) {
+            validation.diagnostics.push(Diagnostic::error(
+                route.span,
+                format!(
+                    "route `{} {}` and `{} {}` both generate Roc handler `{fn_name}`; choose paths with distinct normalized names",
+                    first_method.to_ascii_uppercase(),
+                    first_path,
+                    route.method.to_ascii_uppercase(),
+                    route.path,
+                ),
+            ));
+        } else {
+            validation.generated_names.insert(
+                fn_name,
+                (route.method.to_string(), route.path.to_string(), route.span),
+            );
+        }
+        validation
+            .routes
+            .push((route.method.to_string(), route.path.to_string(), route.span));
     }
 }
 
-fn route_header(noun: &str, method: &str, path: &str) -> String {
-    match (noun, method) {
-        ("view", _) => format!("@view(\"{path}\")"),
-        (_, "post") => format!("@{noun}(\"{path}\")"),
-        _ => format!("@{noun}:{method}(\"{path}\")"),
+fn legal_pair(method: &str, role: &str) -> bool {
+    match method {
+        "get" => matches!(role, "view" | "fragment" | "live"),
+        "post" | "put" | "patch" | "delete" => matches!(role, "fragment" | "command"),
+        _ => false,
     }
+}
+
+fn route_header(method: &str, role: &str, path: &str) -> String {
+    format!("@{method}:{role}(\"{path}\")")
 }
 
 fn validate_fixture(

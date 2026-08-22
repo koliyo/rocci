@@ -3,7 +3,7 @@
     aliases: ["/guides/server-actions/", "/docs/guides/server-actions/"],
     meta: {
         title: "Update the UI",
-        description: "Choose a one-shot @patch, a @command data response, or a shared @live stream for a mutation.",
+        description: "Choose a finite fragment, representation-free command, or path-addressed live stream.",
     },
 }
 
@@ -11,23 +11,23 @@
 
 **Prerequisites:** [first standalone app](/docs/tutorials/first-app/).
 **You will do:** pick the handler kind that matches the intended browser result.
-**Verify:** counter increment patches `#counter`; a `@command` returns empty SSE to Datastar.
+**Verify:** counter increment patches `#counter`; a command returns empty SSE to Datastar and 204 otherwise.
 **Next:** [Handle requests and errors](/docs/how-to/handle-requests-and-errors/) or
 [Runtime](/docs/reference/runtime/).
 
-`@on` is **removed**. Write `@view`, `@patch`, `@command`, or `@live`.
+Spell every route as `@method:role(path)`. Role-first forms are **removed**.
 
 ## Choose a shape
 
 | Goal | Declaration | Browser result |
 | --- | --- | --- |
-| Replace HTML in the acting tab | `@patch("path")` | One-shot `datastar-patch-elements` |
-| Return data, no morph | `@command("path")` | **empty SSE** to Datastar; JSON to other clients |
-| Shared HTML for every open tab | `@live` | Generated `GET /sse` |
+| Read an HTML fragment | `@get:fragment("path")` | Finite `datastar-patch-elements` |
+| Replace HTML after a mutation | `@post:fragment("path")` | Finite `datastar-patch-elements` |
+| Perform a write, no representation | `@post:command("path")` | Empty SSE to Datastar; 204 otherwise |
+| Stream shared HTML | `@get:live("path")` | Long-lived SSE at that path |
 
-Default mutation method is POST. Spell `:put`, `:patch`, or `:delete` when the
-verb must differ. `@patch:post` is rejected. GET is rejected on `@patch` and
-`@command`.
+There is no default method. Mutation fragments and commands also allow
+`@put`, `@patch`, and `@delete`; the other method/role pairs are rejected.
 
 Canonical one-shot: [Counter](/examples/counter/).
 Canonical stream: [Live counter](/examples/live-counter/).
@@ -46,8 +46,8 @@ Datastar JS, not a Rocci action.
 For row-specific URLs, make the attribute a Roc expression. A static quoted
 string does not interpolate a `@for` binder.
 
-Do not morph the same `id` from both a `@command` and `@live`. Do not bind a
-visible count to `$count` to “reuse” JSON; HTML is the document, JSON is data.
+Do not morph the same `id` from both a finite fragment and a live stream.
+Commands return `{}` and carry no success representation.
 
 **Related:** [Datastar as transport](/docs/concepts/datastar-as-transport/),
 [One-shot versus live](/docs/concepts/one-shot-versus-live/).

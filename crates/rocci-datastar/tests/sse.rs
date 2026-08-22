@@ -21,9 +21,19 @@ fn test_patch_elements_sse() {
 fn test_patch_signals_sse() {
     let signals = PatchSignals::new("{\"count\": 10}").only_if_missing(true);
     let formatted = signals.format_sse();
-    assert!(formatted.contains("event: datastar-patch-signals\n"));
-    assert!(formatted.contains("data: onlyIfMissing true\n"));
-    assert!(formatted.contains("data: signals {\"count\": 10}\n"));
+    assert_eq!(
+        formatted,
+        "event: datastar-patch-signals\ndata: onlyIfMissing true\ndata: signals {\"count\": 10}\n\n"
+    );
+}
+
+#[test]
+fn patch_signals_normalizes_every_logical_line_like_the_roc_sse_builder() {
+    let formatted = PatchSignals::new("{\r\n  \"count\": 10\r}\n").format_sse();
+    assert_eq!(
+        formatted,
+        "event: datastar-patch-signals\ndata: signals {\ndata: signals   \"count\": 10\ndata: signals }\ndata: signals \n\n"
+    );
 }
 
 #[test]

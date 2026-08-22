@@ -1,0 +1,14 @@
+import Html
+
+## Shared stream imported by both pages. It owns one stable notification region.
+@get:live("/streams/notifications") = |_, _request| {
+    notificationsPreview({})
+}
+
+@component
+NotificationsPreview = |{}| {
+    <output id="notifications">Shared notifications online</output>
+}
+
+@fixture{target: NotificationsPreview}
+notificationsPreviewTest = {}

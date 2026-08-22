@@ -9,6 +9,8 @@ ActionOpt : [
     RequestCancellation([Auto, Cleanup, Disabled]),
 ]
 
+PatchSignalsOpt : [OnlyIfMissing(Bool)]
+
 Datastar := [].{
     patch_elements = |node|
         Sse.Event.keyed(
@@ -16,6 +18,9 @@ Datastar := [].{
             "elements",
             PlatformHtml.render_without_doc_type(node),
         )
+
+    patch_signals = patch_signals_event
+    patch_signals_with = patch_signals_event_with
 
     get = |uri| backend("get", uri, [])
     post = |uri| backend("post", uri, [])
@@ -28,6 +33,25 @@ Datastar := [].{
     put_with = |uri, opts| backend("put", uri, opts)
     patch_with = |uri, opts| backend("patch", uri, opts)
     delete_with = |uri, opts| backend("delete", uri, opts)
+}
+
+patch_signals_event = |signals| patch_signals_event_with(signals, [])
+
+patch_signals_event_with = |signals, opts| {
+    only_if_missing =
+        List.any(opts, |opt|
+            match opt {
+                OnlyIfMissing(value) => value
+            },
+        )
+    option_fields = if only_if_missing { ["onlyIfMissing true"] } else { [] }
+    lf = Str.join_with(Str.split_on(signals, "\r\n"), "\n")
+    normalized = Str.join_with(Str.split_on(lf, "\r"), "\n")
+    signal_fields = Str.split_on(normalized, "\n").map(|line| "signals ${line}")
+    Sse.Event.named(
+        "datastar-patch-signals",
+        List.concat(option_fields, signal_fields),
+    )
 }
 
 backend = |method, uri, opts| {

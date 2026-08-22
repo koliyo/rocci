@@ -35,6 +35,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `EndMarker` | omit | generated |
 | `EndSection` | omit | generated |
 | `FixtureDecl` | `fixture` | foreign |
+| `FragmentDecl` | `fragment` | foreign |
 | `HtmlIsland` | — | doc-only |
 | `Ident` | — | leaf |
 | `InitDecl` | `init` | foreign |
@@ -62,7 +63,6 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `ParamField` | omit | generated |
 | `ParamValue` | omit | generated |
 | `ParenPayload` | — | leaf |
-| `PatchDecl` | `patch` | foreign |
 | `RenderDecl` | `render` | generated |
 | `RocDecl` | `roc` | generated |
 | `StringLit` | — | leaf |

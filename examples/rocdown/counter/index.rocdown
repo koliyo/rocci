@@ -75,27 +75,27 @@ reset_count! = |db| {
     { db: db }
 }
 
-@live = |{ db }| {
+@get:live("/sse") = |{ db }| {
     count = read_count!(db)?
     counterCard({ count: count })
 }
 
-@command("/actions/counter/increment") = |{ db }| {
+@post:command("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    { count }
+    {}
 }
 
-@command("/actions/counter/reset") = |{ db }| {
+@post:command("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    { count }
+    {}
 }
 
 @component

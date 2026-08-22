@@ -1,54 +1,63 @@
 import Html
 
 ## Catalog landing document. Not a public origin.
-@view("/") = |_| {
+@get:view("/") = |_| {
     matrixPage({})
 }
 
+## GET fragment onto `#frag-get`.
+@get:fragment("/fragments/get") = |_| {
+    fragGet({ label: "get" })
+}
+
 ## Default POST fragment onto `#frag-post`.
-@patch("/actions/post-frag") = |_| {
+@post:fragment("/actions/post-frag") = |_| {
     fragPost({ label: "post" })
 }
 
 ## PUT fragment onto `#frag-put`.
-@patch:put("/actions/put-frag") = |_| {
+@put:fragment("/actions/put-frag") = |_| {
     fragPut({ label: "put" })
 }
 
 ## PATCH fragment onto `#frag-patch`.
-@patch:patch("/actions/patch-frag") = |_| {
+@patch:fragment("/actions/patch-frag") = |_| {
     fragPatch({ label: "patch" })
 }
 
 ## DELETE fragment onto `#frag-delete`.
-@patch:delete("/actions/delete-frag") = |_| {
+@delete:fragment("/actions/delete-frag") = |_| {
     fragDelete({ label: "delete" })
 }
 
-## Default POST command; 204 to Datastar, JSON otherwise.
-@command("/actions/post-cmd") = |_| {
-    { n: 1.I64, label: "post" }
+## POST command with no response representation.
+@post:command("/actions/post-cmd") = |_| {
+    {}
 }
 
-## PUT command returning a record.
-@command:put("/actions/put-cmd") = |_| {
-    { n: 2.I64, label: "put" }
+## PUT command with no response representation.
+@put:command("/actions/put-cmd") = |_| {
+    {}
 }
 
-## PATCH command returning a list.
-@command:patch("/actions/patch-cmd") = |_| {
-    { items: ["a", "b"] }
+## PATCH command with no response representation.
+@patch:command("/actions/patch-cmd") = |_| {
+    {}
 }
 
-## DELETE command returning a record.
-@command:delete("/actions/delete-cmd") = |_| {
-    { deleted: 1.I64 }
+## DELETE command with no response representation.
+@delete:command("/actions/delete-cmd") = |_| {
+    {}
 }
 
 ## Shared `#live-tick` only. Do not morph `frag-*` ids from this stream.
-@live = |_| {
+@get:live("/events/matrix") = |_| {
     liveTick({ label: "0" })
 }
+
+@component
+FragGet = |{ label }|
+    <p id="frag-get">{label}</p>
 
 @component
 FragPost = |{ label }|
@@ -83,16 +92,18 @@ MatrixPage = |{}|
             <main>
                 <h1>Handler matrix</h1>
                 <p class="lede">
-                    One-shot patches own <code>frag-*</code> ids. Commands return data.
+                    One-shot fragments own <code>frag-*</code> ids. Commands return no representation.
                     The live stream owns <code>live-tick</code> only.
                 </p>
                 <section>
-                    <h2>Patches</h2>
+                    <h2>Fragments</h2>
+                    <FragGet label="idle" />
                     <FragPost label="idle" />
                     <FragPut label="idle" />
                     <FragPatch label="idle" />
                     <FragDelete label="idle" />
                     <div class="actions">
+                        <a href="/fragments/get">GET fragment</a>
                         <button data-on:click=@post("/actions/post-frag")>POST patch</button>
                         <button data-on:click=@put("/actions/put-frag")>PUT patch</button>
                         <button data-on:click=@patch("/actions/patch-frag")>PATCH patch</button>
@@ -140,7 +151,7 @@ matrixPageTest = {}
         gap: 0.75rem;
         margin: 0.75rem 0 1.5rem;
     }
-    button {
+    button, a {
         appearance: none;
         border: 0;
         border-radius: 10px;
@@ -150,6 +161,7 @@ matrixPageTest = {}
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        text-decoration: none;
     }
     p, output {
         font-family: ui-monospace, monospace;

@@ -30,7 +30,7 @@ curl -s http://127.0.0.1:8000/search | grep -E 'search|datastar'
 ```
 
 `rocci run` on a directory compiles sibling `.rocci` modules and starts the
-authored Roc program. `@view` / `@patch` on those modules are not the
+authored Roc program. `@get:view` / `@method:fragment` on those modules are not the
 generated standalone dispatcher; `main.roc` owns HTTP.
 
 Read the gallery source index: [datastar source](/examples/datastar/source/).
@@ -50,7 +50,7 @@ The server still owns HTML. Datastar remains transport.
 
 [Snake](/examples/snake/) is an explicitly advanced multiplayer stress
 example with a hand-written SSE unfold. Do not copy that unfold into ordinary
-apps; generated `@live` already emits the poll loop. Use Snake when you need a
+apps; generated `@get:live` already emits the poll loop. Use Snake when you need a
 custom ceiling the generator does not cover.
 
 ## Ability checklist

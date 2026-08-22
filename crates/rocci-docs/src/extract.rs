@@ -1,6 +1,6 @@
 use rocci_template::{
-    CommandDecl, ComponentDecl, ContextDecl, CssDecl, Document, FixtureDecl, Ident, InitDecl,
-    LeadingComments, LiveDecl, ModuleItem, PatchDecl, SourceFile, ViewDecl, parse,
+    CommandDecl, ComponentDecl, ContextDecl, CssDecl, Document, FixtureDecl, FragmentDecl,
+    InitDecl, LeadingComments, LiveDecl, ModuleItem, RouteDecl, SourceFile, ViewDecl, parse,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,10 +32,12 @@ fn item_doc(src: &str, item: &ModuleItem) -> Option<DeclDoc> {
         ModuleItem::Css(item) => named_doc(src, &item.leading, css_heading(item)),
         ModuleItem::Context(item) => named_doc(src, &item.leading, context_heading(item)),
         ModuleItem::Init(item) => named_doc(src, &item.leading, init_heading(item)),
-        ModuleItem::Live(item) => named_doc(src, &item.leading, live_heading(item)),
-        ModuleItem::View(item) => named_doc(src, &item.leading, view_heading(item)),
-        ModuleItem::Patch(item) => named_doc(src, &item.leading, patch_heading(item)),
-        ModuleItem::Command(item) => named_doc(src, &item.leading, command_heading(item)),
+        ModuleItem::Route(route) => match route {
+            RouteDecl::Live(item) => named_doc(src, &item.leading, live_heading(item)),
+            RouteDecl::View(item) => named_doc(src, &item.leading, view_heading(item)),
+            RouteDecl::Fragment(item) => named_doc(src, &item.leading, fragment_heading(item)),
+            RouteDecl::Command(item) => named_doc(src, &item.leading, command_heading(item)),
+        },
     }
 }
 
@@ -93,27 +95,24 @@ fn init_heading(_item: &InitDecl) -> String {
     "@init".to_string()
 }
 
-fn live_heading(_item: &LiveDecl) -> String {
-    "@live".to_string()
+fn live_heading(item: &LiveDecl) -> String {
+    handler_heading(&item.method.name, "live", &item.path)
 }
 
 fn view_heading(item: &ViewDecl) -> String {
-    format!("@view(\"{}\")", item.path)
+    handler_heading(&item.method.name, "view", &item.path)
 }
 
-fn patch_heading(item: &PatchDecl) -> String {
-    handler_heading("patch", item.method.as_ref(), &item.path)
+fn fragment_heading(item: &FragmentDecl) -> String {
+    handler_heading(&item.method.name, "fragment", &item.path)
 }
 
 fn command_heading(item: &CommandDecl) -> String {
-    handler_heading("command", item.method.as_ref(), &item.path)
+    handler_heading(&item.method.name, "command", &item.path)
 }
 
-fn handler_heading(kind: &str, method: Option<&Ident>, path: &str) -> String {
-    match method {
-        Some(method) => format!("@{}:{}(\"{}\")", kind, method.name, path),
-        None => format!("@{}(\"{}\")", kind, path),
-    }
+fn handler_heading(method: &str, role: &str, path: &str) -> String {
+    format!("@{method}:{role}(\"{path}\")")
 }
 
 pub fn declarations_markdown(src: &str) -> String {

@@ -16,10 +16,10 @@
 | --- | --- |
 | Edit | Watch rebuilds the lowered module |
 | Compile | Roc toolchain on generated source |
-| Document GET | `@view` returns a full document |
-| One-shot mutation | `@patch` HTML over SSE; Datastar morphs one tab |
-| Command | Empty SSE or a small JSON body — no HTML morph |
-| Live poll | `GET /sse`; unchanged HTML is skipped |
+| Document GET | `@get:view` returns a full document |
+| One-shot mutation | `@method:fragment` HTML over SSE; Datastar morphs one tab |
+| Command | Empty SSE or 204 — no HTML morph |
+| Live poll | authored `@get:live` path; unchanged HTML is skipped |
 | Bundle | Native compile plus resource copy |
 
 Measure the preview Dev **Performance** panel and HTTP timings on the same

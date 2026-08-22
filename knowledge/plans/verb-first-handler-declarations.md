@@ -4,7 +4,7 @@ title: Implement verb-first handler declarations
 description: "Clean-cut Rocci routes to mandatory @method:role headers, including path-addressed live GET routes, while keeping commands representation-free and advanced Datastar events below the high-level grammar."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/language-design, concern/developer-experience]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T09:52:04Z }
+generated: { by: process:cursor, at: 2026-08-22T10:20:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -160,6 +160,19 @@ syntax, start a phase, or change shipped behavior. Do not mark any phase
 complete from local source edits alone; use the listed exit evidence and, for
 the final phase, green CI and Knowledge workflows.
 
+## Current disposition
+
+Phase 0 was jointly approved by the maintainer on 2026-08-22 together with
+Phase 0 of the path-addressed live plan. The approval freezes mandatory
+verb-first `@method:role(path)`, `fragment` naming, the closed matrix below,
+representation-free commands, plural `@get:live(path)`, module-local singleton
+injection, explicit subscriptions for multiple local streams, app-wide stream
+binding and collision errors, and a clean cut with no aliases or interim
+`@live(path)` spelling. Phases 0–6 are implemented on
+`verb-first-handler-declarations`. Phase 7 documentation and release gates
+are in this revision and must not be marked complete until CI and Knowledge
+succeed on the landed commit.
+
 ## Goal
 
 The complete high-level route surface is:
@@ -210,6 +223,11 @@ The exact command success framing is frozen in Phase 0 after testing the pinned
 Datastar and host combination. The intended semantics are fixed even if the
 wire differs by caller: Datastar may retain empty SSE while an ordinary caller
 receives 204, but neither receives command result JSON.
+
+Phase 0 selected that fallback wire pair: successful Datastar requests retain
+the proven `200 text/event-stream` response with zero events, while successful
+ordinary callers receive `204 No Content`. Neither branch serializes the
+handler result, and generated Roc constrains command success to `{}`.
 
 ## Out of bound
 
@@ -358,6 +376,23 @@ branch, and illegal pairings must have been rejected before lowering.
 [^template-lower][^dispatch]
 
 ## Phase 0 — Approve the contract with complete examples
+
+**Status:** Approved 2026-08-22 as part of the joint verb-first/live gate.
+
+The maintainer approved the final syntax and clean cut in the combined program
+request. The contract-only `handler_contract.rs` fixture records all eleven
+accepted method-role pairs, representative rejected forms, complete source,
+the injection table, and the linear polling cost model. The existing host was
+probed through its actual origin: Datastar command success was empty SSE and
+the ordinary branch was JSON before this cutover. Two concurrent `/sse`
+connections, observed for 0.55 seconds on macOS Apple Silicon with the pinned
+Roc nightly and Datastar 1.0.2, each received one initial multi-ID patch and
+five idle keepalives from the 100 ms loop. This local observation supports the
+coarse-stream recommendation but is not a universal performance claim.
+
+No newcomer study was performed or claimed. Complete-example review found no
+method/role inversion or `view`/`fragment` ambiguity, and implementation may
+proceed under the maintainer's explicit approval.
 
 **Bound**
 

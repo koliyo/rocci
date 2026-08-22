@@ -129,7 +129,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 | Kind | Convention | Example |
 | --- | --- | --- |
 | `@component` / tag | PascalCase | `StatusCard`, `<StatusCard />` |
-| Lowered component value | camelCase | `statusCard` in `@view` and `exposing` |
+| Lowered component value | camelCase | `statusCard` in `@get:view` and `exposing` |
 | Ordinary Roc helper / field | snake_case | `read_count!`, `has_completed` |
 | Type / tag union payload | PascalCase | `Status : [Ready, Working, Failed]` |
 | Effectful function | `snake_case!` | `write_page!`, `from_request!` |
@@ -137,7 +137,7 @@ Parenthesize a record scrutinee so `{` does not open the match body:
 Call the component from Roc with the lowered name:
 
 ```rocci
-@view("/") = |{ db }| {
+@get:view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count })
 }
@@ -245,10 +245,10 @@ answer = 42
 
 ## Server handlers and purity
 
-Keep rendering pure. Put I/O in `@init`, `@view`, `@patch`, and `@command` (or an authored `main.roc`).
+Keep rendering pure. Put I/O in `@init` and `@method:role` handlers (or an authored `main.roc`).
 
 ```rocci
-@patch("/actions/counter/increment") = |{ db }| {
+@post:fragment("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     counterCard({ count })
 }
@@ -259,11 +259,11 @@ Keep rendering pure. Put I/O in `@init`, `@view`, `@patch`, and `@command` (or a
     </section>
 ```
 
-GET returns a document. Mutations return the fragment Datastar will patch; the
-target element needs a stable `id`. That POST updates **this tab only**. Shared
-live views and JSON-vs-HTML Datastar responses are `$rocci-stack`. Use
-`@post("/actions/...")` (Roc strings), not single-quoted JS, unless the
-attribute is intentionally an opaque Datastar expression.
+`@get:view` returns a document. Mutation fragments return the HTML Datastar
+will patch; the target element needs a stable `id`. That POST updates **this
+tab only**. Shared live views and representation-free commands are
+`$rocci-stack`. Use `@post("/actions/...")` (Roc strings), not single-quoted
+JS, unless the attribute is intentionally an opaque Datastar expression.
 
 ## Fixtures
 

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo, command_json_fn_name};
+use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
 
 use crate::error_page::{self, ListedRoute};
 use crate::serve;
@@ -15,28 +15,77 @@ pub struct DispatchSource<'a> {
     pub routes: &'a [RouteInfo],
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct LiveSource<'a> {
+    pub type_name: &'a str,
+    pub lives: &'a [LiveInfo],
+}
+
 pub fn merge_standalone_routes<'a>(
     primary: DispatchSource<'a>,
     siblings: &[DispatchSource<'a>],
 ) -> Vec<(&'a str, &'a RouteInfo)> {
     let mut bound = Vec::new();
-    let mut seen = HashSet::new();
     for route in primary.routes {
-        if seen.insert((route.method.as_str(), route.path.as_str())) {
-            bound.push((primary.type_name, route));
-        }
+        bound.push((primary.type_name, route));
     }
     for sibling in siblings {
         for route in sibling.routes {
-            if route.method == "GET" && route.path == "/" {
-                continue;
-            }
-            if seen.insert((route.method.as_str(), route.path.as_str())) {
-                bound.push((sibling.type_name, route));
-            }
+            bound.push((sibling.type_name, route));
         }
     }
     bound
+}
+
+pub fn merge_standalone_lives<'a>(
+    primary: LiveSource<'a>,
+    siblings: &[LiveSource<'a>],
+) -> Vec<(&'a str, &'a LiveInfo)> {
+    let mut bound = primary
+        .lives
+        .iter()
+        .map(|live| (primary.type_name, live))
+        .collect::<Vec<_>>();
+    for sibling in siblings {
+        bound.extend(sibling.lives.iter().map(|live| (sibling.type_name, live)));
+    }
+    bound
+}
+
+pub fn validate_standalone_dispatch(
+    primary: DispatchSource<'_>,
+    siblings: &[DispatchSource<'_>],
+    primary_lives: LiveSource<'_>,
+    sibling_lives: &[LiveSource<'_>],
+) -> Result<(), String> {
+    let mut seen = HashSet::new();
+    for source in std::iter::once(primary).chain(siblings.iter().copied()) {
+        for (method, path) in source
+            .routes
+            .iter()
+            .map(|route| (route.method.as_str(), route.path.as_str()))
+        {
+            if !seen.insert((method, path)) {
+                return Err(format!(
+                    "duplicate app route `{method} {path}`; routes must be unique across primary and sibling modules"
+                ));
+            }
+        }
+    }
+    for source in std::iter::once(primary_lives).chain(sibling_lives.iter().copied()) {
+        for (method, path) in source
+            .lives
+            .iter()
+            .map(|live| (live.method.as_str(), live.path.as_str()))
+        {
+            if !seen.insert((method, path)) {
+                return Err(format!(
+                    "duplicate app route `{method} {path}`; routes must be unique across primary and sibling modules"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,7 +111,7 @@ pub fn generate_bound_main_roc(
     type_name: &str,
     state_type: Option<&str>,
     init: Option<&InitInfo>,
-    live: Option<&LiveInfo>,
+    lives: &[(&str, &LiveInfo)],
     bound: &[(&str, &RouteInfo)],
     options: DispatchOptions,
 ) -> String {
@@ -86,6 +135,13 @@ pub fn generate_bound_main_roc(
             imports.push('\n');
         }
     }
+    for (module, _) in lives {
+        if imported.insert(*module) {
+            imports.push_str("import ");
+            imports.push_str(module);
+            imports.push('\n');
+        }
+    }
     if imported.insert(type_name) {
         imports.push_str("import ");
         imports.push_str(type_name);
@@ -95,16 +151,13 @@ pub fn generate_bound_main_roc(
     let mut arms = String::new();
     let mut listed = Vec::new();
     let mut has_health = false;
-    let has_sse = bound
-        .iter()
-        .any(|(_, route)| route.method == "GET" && route.path == "/sse");
-    if live.is_some() && !has_sse {
+    for (module, live) in lives {
         listed.push(ListedRoute::new(
-            "GET",
-            "/sse",
-            format!("{type_name}.live!"),
+            live.method.clone(),
+            live.path.clone(),
+            format!("{module}.{}", live.fn_name),
         ));
-        arms.push_str(&live_sse_arm(type_name, options.log_handlers));
+        arms.push_str(&live_sse_arm(module, live, options.log_handlers));
     }
     for (module, route) in bound {
         if route.method == "GET" && route.path == "/health" {
@@ -280,20 +333,18 @@ patch_html! = |node| {{
 empty_sse! = ||
     Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
 
-json_ok = |body|
+no_content = ||
     Ok(
         Server.respond(
-            Response.from_status(200)
-            .with_headers([{{ name: "Content-Type", value: "application/json" }}])
-            .with_body(Str.to_utf8(body)),
+            Response.from_status(204),
         ),
     )
 
-json_status = |status, body|
+text_status = |status, body|
     Ok(
         Server.respond(
             Response.from_status(status)
-            .with_headers([{{ name: "Content-Type", value: "application/json" }}])
+            .with_headers([{{ name: "Content-Type", value: "text/plain; charset=utf-8" }}])
             .with_body(Str.to_utf8(body)),
         ),
     )
@@ -317,17 +368,6 @@ datastar_request = |request|
         not_found = error_page::roc_not_found_arm(),
     );
     out.push_str(&error_page::roc_runtime_helpers(&listed));
-    out.push_str(
-        r#"
-ApiError : { error : Str }
-
-json_error_body = |err| {
-    payload : ApiError
-    payload = { error: err }
-    Encoding.Json.to_str_try(payload) ?? "{\"error\":\"encoding failed\"}"
-}
-"#,
-    );
     out.push_str(serve::ROC_LISTEN_PORT_HELPER);
     out.push_str(serve::ROC_LISTEN_HOST_HELPER);
     out
@@ -538,15 +578,18 @@ fn listed_route(type_name: &str, route: &RouteInfo) -> ListedRoute {
     )
 }
 
-fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
-    let handler = format!("{type_name}.live!");
+fn live_sse_arm(type_name: &str, live: &LiveInfo, log_handlers: bool) -> String {
+    let handler = format!("{type_name}.{}", live.fn_name);
     let ok_log = if log_handlers {
-        "handler_log!(\"GET\", \"/sse\", \"ok\")\n            ".to_string()
+        format!(
+            "handler_log!(\"{}\", \"{}\", \"ok\")\n            ",
+            live.method, live.path
+        )
     } else {
         String::new()
     };
     format!(
-        r#"        ("GET", "/sse") => {{
+        r#"        ("{method}", "{path}") => {{
             {ok_log}Ok(
                 Server.stream(
                     Sse.unfold!(
@@ -564,7 +607,7 @@ fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
                                     }}
                                 }}
                                 Err(err) => {{
-                                    event = Datastar.patch_elements(error_overlay_html("GET", "/sse", "{handler}", Str.inspect(err)))
+                                    event = Datastar.patch_elements(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err)))
                                     Ok(Emit({{ event, state: prev, wake: After(100) }}))
                                 }}
                             }}
@@ -575,6 +618,8 @@ fn live_sse_arm(type_name: &str, log_handlers: bool) -> String {
         }}
 "#,
         handler = handler,
+        method = live.method,
+        path = live.path,
         ok_log = ok_log,
     )
 }
@@ -600,8 +645,8 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
     } else {
         String::new()
     };
-    if route.method == "GET" {
-        format!(
+    match route.respond {
+        RespondKind::Document => format!(
             r#"        ("{method}", "{path}") =>
             match {call} {{
                 Ok(html) => {{
@@ -618,28 +663,22 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             handler = handler,
             ok_log = ok_log,
             err_log = err_log,
-        )
-    } else if route.respond == RespondKind::Command {
-        let json_handler = format!("{type_name}.{}", command_json_fn_name(&route.fn_name));
-        let json_call = format!("{json_handler}(context, request)");
-        format!(
+        ),
+        RespondKind::Command => format!(
             r#"        ("{method}", "{path}") =>
-            if datastar_request(request) {{
-                match {call} {{
-                    Ok(_data) => {{
-                    {ok_log}empty_sse!()
-                    }}
-                    Err(err) => {{
-                    {err_log}Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+            match {call} {{
+                Ok({{}}) => {{
+                {ok_log}if datastar_request(request) {{
+                        empty_sse!()
+                    }} else {{
+                        no_content()
                     }}
                 }}
-            }} else {{
-                match {json_call} {{
-                    Ok(body) => {{
-                    {ok_log}json_ok(body)
-                    }}
-                    Err(err) => {{
-                    {err_log}json_status(500, json_error_body(Str.inspect(err)))
+                Err(err) => {{
+                {err_log}if datastar_request(request) {{
+                        Ok(patch_html!(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err))))
+                    }} else {{
+                        text_status(500, "handler failed")
                     }}
                 }}
             }}
@@ -647,13 +686,11 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             method = route.method,
             path = route.path,
             call = call,
-            json_call = json_call,
             handler = handler,
             ok_log = ok_log,
             err_log = err_log,
-        )
-    } else {
-        format!(
+        ),
+        RespondKind::Fragment => format!(
             r#"        ("{method}", "{path}") =>
             match {call} {{
                 Ok(html) => {{
@@ -670,7 +707,7 @@ fn route_arm(type_name: &str, route: &RouteInfo, log_handlers: bool) -> String {
             handler = handler,
             ok_log = ok_log,
             err_log = err_log,
-        )
+        ),
     }
 }
 
@@ -690,7 +727,11 @@ mod tests {
             method: method.to_string(),
             path: path.to_string(),
             fn_name: fn_name.to_string(),
-            respond: rocci_template::RespondKind::Patch,
+            respond: if method == "GET" {
+                rocci_template::RespondKind::Document
+            } else {
+                rocci_template::RespondKind::Fragment
+            },
             span: Span::new(0, 0),
         }
     }
@@ -705,6 +746,25 @@ mod tests {
         }
     }
 
+    fn route_fragment(method: &str, path: &str, fn_name: &str) -> RouteInfo {
+        RouteInfo {
+            method: method.to_string(),
+            path: path.to_string(),
+            fn_name: fn_name.to_string(),
+            respond: rocci_template::RespondKind::Fragment,
+            span: Span::new(0, 0),
+        }
+    }
+
+    fn live(path: &str, fn_name: &str) -> LiveInfo {
+        LiveInfo {
+            method: "GET".to_string(),
+            path: path.to_string(),
+            fn_name: fn_name.to_string(),
+            span: Span::new(0, 0),
+        }
+    }
+
     fn generate_main_roc(
         type_name: &str,
         state_type: Option<&str>,
@@ -715,7 +775,7 @@ mod tests {
             type_name,
             state_type,
             init,
-            None,
+            &[],
             &merge_standalone_routes(DispatchSource { type_name, routes }, &[]),
             DispatchOptions::default(),
         )
@@ -767,7 +827,7 @@ mod tests {
             "Counter",
             None,
             None,
-            None,
+            &[],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Counter",
@@ -803,7 +863,7 @@ mod tests {
             "Counter",
             None,
             None,
-            None,
+            &[],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Counter",
@@ -840,14 +900,13 @@ mod tests {
     }
 
     #[test]
-    fn sibling_pages_keep_their_routes_but_not_root() {
+    fn sibling_pages_keep_distinct_routes_and_duplicate_roots_are_rejected() {
         let primary = [
             route("GET", "/home/", "on_get_home!"),
             route("GET", "/", "on_get_root!"),
         ];
         let sibling = [
             route("GET", "/about/", "on_get_about!"),
-            route("GET", "/", "on_get_root!"),
             route(
                 "POST",
                 "/actions/reveal/show",
@@ -879,7 +938,7 @@ mod tests {
         );
 
         let main =
-            generate_bound_main_roc("Home", None, None, None, &bound, DispatchOptions::default());
+            generate_bound_main_roc("Home", None, None, &[], &bound, DispatchOptions::default());
         assert!(main.contains("import Home"));
         assert!(main.contains("import About"));
         assert!(main.contains("Home.on_get_root!(context, request)"));
@@ -887,10 +946,28 @@ mod tests {
         assert!(main.contains("About.on_post_actions_reveal_show!(context, request)"));
         assert!(main.contains("(\"GET\", \"/about/\")"));
         assert!(main.contains("match Home.on_get_root!(context, request)"));
-        assert!(!main.contains("About.on_get_root!"));
         assert!(main.contains("(\"GET\", \"/about\") =>"));
         assert!(main.contains("redirect_slash(\"/about/\")"));
         assert!(main.contains("Response.from_status(308)"));
+
+        let duplicate_root = [route("GET", "/", "on_get_sibling_root!")];
+        let err = validate_standalone_dispatch(
+            DispatchSource {
+                type_name: "Home",
+                routes: &primary,
+            },
+            &[DispatchSource {
+                type_name: "About",
+                routes: &duplicate_root,
+            }],
+            LiveSource {
+                type_name: "Home",
+                lives: &[],
+            },
+            &[],
+        )
+        .unwrap_err();
+        assert!(err.contains("duplicate app route `GET /`"), "{err}");
     }
 
     #[test]
@@ -899,7 +976,7 @@ mod tests {
             "Dx",
             None,
             None,
-            None,
+            &[],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Dx",
@@ -973,7 +1050,7 @@ mod tests {
             "Page",
             None,
             None,
-            None,
+            &[],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Page",
@@ -999,14 +1076,12 @@ mod tests {
 
     #[test]
     fn live_emits_sse_unfold_and_poll() {
-        let live = LiveInfo {
-            span: Span::new(0, 0),
-        };
+        let live = live("/events/counter", "on_get_events_counter!");
         let main = generate_bound_main_roc(
             "Counter",
             None,
             None,
-            Some(&live),
+            &[("Counter", &live)],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Counter",
@@ -1018,8 +1093,11 @@ mod tests {
         );
         assert!(main.contains("Sse.unfold!"), "{main}");
         assert!(main.contains("After(100)"), "{main}");
-        assert!(main.contains("(\"GET\", \"/sse\")"), "{main}");
-        assert!(main.contains("Counter.live!(context, request)"), "{main}");
+        assert!(main.contains("(\"GET\", \"/events/counter\")"), "{main}");
+        assert!(
+            main.contains("Counter.on_get_events_counter!(context, request)"),
+            "{main}"
+        );
         assert!(main.contains("Datastar.patch_elements"), "{main}");
         assert!(main.contains("Sse.Event.data(\"\")"), "{main}");
         assert!(
@@ -1030,14 +1108,12 @@ mod tests {
 
     #[test]
     fn live_logs_once_when_the_stream_opens() {
-        let live = LiveInfo {
-            span: Span::new(0, 0),
-        };
+        let live = live("/events/counter", "on_get_events_counter!");
         let main = generate_bound_main_roc(
             "Counter",
             None,
             None,
-            Some(&live),
+            &[("Counter", &live)],
             &merge_standalone_routes(
                 DispatchSource {
                     type_name: "Counter",
@@ -1050,7 +1126,7 @@ mod tests {
                 ..DispatchOptions::default()
             },
         );
-        let log = "handler_log!(\"GET\", \"/sse\", \"ok\")";
+        let log = "handler_log!(\"GET\", \"/events/counter\", \"ok\")";
         let stream = "Sse.unfold!";
         assert_eq!(main.matches(log).count(), 1, "{main}");
         assert!(
@@ -1060,7 +1136,41 @@ mod tests {
     }
 
     #[test]
-    fn command_encodes_data_and_negotiates_empty_sse() {
+    fn primary_and_sibling_live_routes_each_get_an_sse_arm() {
+        let primary_lives = [live("/events/home", "on_get_events_home!")];
+        let sibling_lives = [live("/events/shared", "on_get_events_shared!")];
+        let bound_lives = merge_standalone_lives(
+            LiveSource {
+                type_name: "Home",
+                lives: &primary_lives,
+            },
+            &[LiveSource {
+                type_name: "Shared",
+                lives: &sibling_lives,
+            }],
+        );
+        let main = generate_bound_main_roc(
+            "Home",
+            None,
+            None,
+            &bound_lives,
+            &[],
+            DispatchOptions::default(),
+        );
+        assert!(main.contains("(\"GET\", \"/events/home\")"), "{main}");
+        assert!(main.contains("(\"GET\", \"/events/shared\")"), "{main}");
+        assert!(
+            main.contains("Home.on_get_events_home!(context, request)"),
+            "{main}"
+        );
+        assert!(
+            main.contains("Shared.on_get_events_shared!(context, request)"),
+            "{main}"
+        );
+    }
+
+    #[test]
+    fn command_returns_empty_sse_or_no_content_without_json() {
         let main = generate_main_roc(
             "Counter",
             None,
@@ -1075,25 +1185,22 @@ mod tests {
         assert!(main.contains("datastar_request(request)"), "{main}");
         assert!(main.contains("empty_sse!()"), "{main}");
         assert!(main.contains("Ok(End)"), "{main}");
-        assert!(!main.contains("from_status(204)"), "{main}");
-        assert!(!main.contains("no_content"), "{main}");
+        assert!(main.contains("from_status(204)"), "{main}");
+        assert!(main.contains("no_content()"), "{main}");
         assert!(
             main.contains("Counter.on_post_actions_counter_increment!(context, request)"),
             "{main}"
         );
-        assert!(
-            main.contains("Counter.on_post_actions_counter_increment_json!(context, request)"),
-            "{main}"
-        );
+        assert!(!main.contains("_json!"), "{main}");
         assert!(!main.contains("Encoding.Json.to_str_try(data)"), "{main}");
-        assert!(main.contains("json_ok(body)"), "{main}");
+        assert!(!main.contains("json_ok"), "{main}");
+        assert!(!main.contains("json_status"), "{main}");
+        assert!(!main.contains("ApiError"), "{main}");
+        assert!(!main.contains("application/json"), "{main}");
         assert!(
-            main.contains("json_status(500, json_error_body(Str.inspect(err)))"),
+            main.contains("text_status(500, \"handler failed\")"),
             "{main}"
         );
-        assert!(main.contains("ApiError : { error : Str }"), "{main}");
-        assert!(main.contains("Encoding.Json.to_str_try(payload)"), "{main}");
-        assert!(main.contains("application/json"), "{main}");
         assert!(!main.contains("Ok(patch_html!(html))"), "{main}");
         assert!(!main.contains("{\"error\":\"${escaped}\"}"), "{main}");
     }
@@ -1115,6 +1222,22 @@ mod tests {
     }
 
     #[test]
+    fn get_fragment_uses_one_shot_patch_not_document_html() {
+        let main = generate_main_roc(
+            "Catalog",
+            None,
+            None,
+            &[route_fragment(
+                "GET",
+                "/fragments/item",
+                "on_get_fragments_item!",
+            )],
+        );
+        assert!(main.contains("Ok(patch_html!(html))"), "{main}");
+        assert!(!main.contains("html_ok(Html.render(html))"), "{main}");
+    }
+
+    #[test]
     fn without_live_omits_sse_arm() {
         let main = generate_main_roc("Page", None, None, &[route("GET", "/", "on_get_root!")]);
         assert!(!main.contains("(\"GET\", \"/sse\")"), "{main}");
@@ -1122,27 +1245,23 @@ mod tests {
     }
 
     #[test]
-    fn live_does_not_duplicate_authored_sse_route() {
-        let live = LiveInfo {
-            span: Span::new(0, 0),
-        };
-        let main = generate_bound_main_roc(
-            "App",
-            None,
-            None,
-            Some(&live),
-            &merge_standalone_routes(
-                DispatchSource {
-                    type_name: "App",
-                    routes: &[route("GET", "/sse", "on_get_sse!")],
-                },
-                &[],
-            ),
-            DispatchOptions::default(),
-        );
-        assert_eq!(main.matches("(\"GET\", \"/sse\")").count(), 1, "{main}");
-        assert!(main.contains("App.on_get_sse!(context, request)"), "{main}");
-        assert!(!main.contains("App.live!(context, request)"), "{main}");
+    fn route_and_live_collision_is_rejected() {
+        let routes = [route("GET", "/events", "on_get_events!")];
+        let lives = [live("/events", "on_get_events_live!")];
+        let err = validate_standalone_dispatch(
+            DispatchSource {
+                type_name: "App",
+                routes: &routes,
+            },
+            &[],
+            LiveSource {
+                type_name: "App",
+                lives: &lives,
+            },
+            &[],
+        )
+        .unwrap_err();
+        assert!(err.contains("duplicate app route `GET /events`"), "{err}");
     }
 
     #[test]

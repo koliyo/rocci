@@ -44,11 +44,7 @@ PageShell = |{ title }, content|
         </body>
     </html>
 
-@view("/guides/rocdown-interactive/") = |_, _request| {
-    pageShell({ title: rocci_meta.title }, rocci_content({}))
-}
-
-@view("/") = |_, _request| {
+@get:view("/guides/rocdown-interactive/") = |_, _request| {
     pageShell({ title: rocci_meta.title }, rocci_content({}))
 }
 
@@ -180,11 +176,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@patch("/actions/reveal/hide") = |_, _request| {
+@post:fragment("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -257,7 +253,7 @@ Fences are documentation only — never evaluated:
 ```
 
 ```rocci
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 ```

@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Live counter",
-        description: "Commands plus a shared @live stream with click origins",
+        description: "Commands plus an explicit @get:live stream with click origins",
     },
 }
 
@@ -13,9 +13,10 @@
 **Concepts:** [one-shot versus live](/docs/concepts/one-shot-versus-live/).
 
 The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
-but `@live` generates `GET /sse`. Increment and reset are `@command` handlers: Datastar
-receives **empty SSE** (200 `text/event-stream`, zero events), and `curl` without
-`Datastar-Request` receives `{"count":N}`.
+but `@get:live("/sse")` owns the stream path. Increment and reset are
+`@post:command` handlers and return no representation: ordinary HTTP clients
+receive `204 No Content`; Datastar receives an empty finite SSE response with
+zero events so its action lifecycle completes normally.
 The stream morphs `#counter` and `#counter-feed` in every connected tab.
 Reset is optional on the island (`show_reset`); the home page omits it.
 Place may come from the browser timezone or a chosen picker value (marked
@@ -23,7 +24,7 @@ Place may come from the browser timezone or a chosen picker value (marked
 
 This same app is composed into the [rocci.dev home page](/) via
 `@render LiveCounterUi.CounterIsland(...)` (UI module) and
-`[http].service` → `LiveCounter.rocci` (SQLite, `@live`, commands). Because
+`[http].service` → `LiveCounter.rocci` (SQLite, `@get:live`, commands). Because
 the home page receives a fragment rather than this app's `<body>`, it also
 opens `GET /sse` explicitly with
 `data-init=@get("/sse", [OpenWhenHidden(True)])`.
@@ -52,8 +53,8 @@ the count and the click feed without a refresh.
 curl -s http://127.0.0.1:8000/health
 curl -s http://127.0.0.1:8000/ | grep -E 'datastar.js|id="counter"|/sse'
 curl -s -X POST http://127.0.0.1:8000/actions/counter/increment
-# {"count":1}
+# empty body; HTTP/1.1 204 No Content
 curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/increment \
   -H 'Datastar-Request: true'
-# HTTP/1.1 200 OK  Content-Type: text/event-stream  (empty body / zero events)
+# HTTP/1.1 200 OK; Content-Type: text/event-stream; zero events
 ```

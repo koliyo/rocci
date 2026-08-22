@@ -21,7 +21,7 @@ fn write_item(w: &mut Writer<'_>, src: &str, item: &Item) {
         Item::Init(item) => write_init_leaf(w, src, item),
         Item::Live(item) => write_live_leaf(w, src, item),
         Item::View(item) => write_view_leaf(w, src, item),
-        Item::Patch(item) => write_patch_leaf(w, src, item),
+        Item::Fragment(item) => write_fragment_leaf(w, src, item),
         Item::Command(item) => write_command_leaf(w, src, item),
         Item::Use(item) => write_use(w, src, item),
         Item::Template(item) => write_template_island(w, src, item),

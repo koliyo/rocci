@@ -4,9 +4,9 @@ Parse `.rocci` modules and lower explicit components to ordinary Roc.
 
 A `.rocci` file is a Roc module: ordinary declarations stay Roc, and
 `@component Name = |params| ...` bodies use a bounded HTML template
-grammar. Top-level `@context`, `@init`, `@view`, `@patch`, `@command`, and `@live` declare standalone HTTP
-apps for `rocci run`. This crate does not invoke the Roc compiler, type-check
-expressions, or spawn servers.
+grammar. Top-level `@context`, `@init`, and verb-first `@method:role(path)`
+routes declare standalone HTTP apps for `rocci run`. This crate does not
+invoke the Roc compiler, type-check expressions, or spawn servers.
 
 ```sh
 cargo run -p rocci-template -- build path/to/file.rocci
@@ -47,8 +47,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, `@view`,
-`@patch`, `@command`, and `@live` are recognized only at the start of a top-level definition.
+module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
+`@method:role` routes are recognized only at the start of a top-level definition.
 
 ## Components
 
@@ -70,7 +70,7 @@ helpers—uses that camelCase name, because those regions are Roc:
 ```rocci
 module CounterPage exposing [hello]
 
-@view("/") = |{}| {
+@get:view("/") = |{}| {
     hello({ name: "Roc" })
 }
 
@@ -167,12 +167,12 @@ are left for the Roc compiler and later project-level tools.
 
 ## Standalone HTTP
 
-Top-level `@context`, `@init`, `@view`, `@patch`, `@command`, and `@live`
+Top-level `@context`, `@init`, and `@method:role("literal-path")` routes
 declare app state and HTTP handlers for `rocci run File.rocci`. Bodies are
-Roc, not templates. `@on` and the trailing `json` marker are removed; old
-source never lowers. The generated dispatcher (not this crate) maps handlers
-onto basic-webserver: authors never write `Context`, `ServerErr`, `Exit`, or
-`respond!`.
+Roc, not templates. Role-first forms, `@on`, trailing `json`, and pathless
+`@live` are removed; old source never lowers. The generated dispatcher (not
+this crate) maps handlers onto basic-webserver: authors never write
+`Context`, `ServerErr`, `Exit`, or `respond!`.
 
 ```rocci
 @context { db : Sqlite.Db }
@@ -182,22 +182,22 @@ onto basic-webserver: authors never write `Context`, `ServerErr`, `Exit`, or
     { db: db }
 }
 
-@view("/") = |{ db }| {
+@get:view("/") = |{ db }| {
     count = read_count!(db)?
     page({ count })
 }
 
-@live = |{ db }| {
+@get:live("/sse") = |{ db }| {
     count = read_count!(db)?
     card({ count })
 }
 
-@command("/actions/increment") = |{ db }| {
-    count = increment_count!(db)?
-    { count }
+@post:command("/actions/increment") = |{ db }| {
+    increment_count!(db)?
+    {}
 }
 
-@patch("/actions/reset") = |{ db }| {
+@post:fragment("/actions/reset") = |{ db }| {
     count = reset_count!(db)?
     card({ count })
 }
@@ -207,59 +207,64 @@ onto basic-webserver: authors never write `Context`, `ServerErr`, `Exit`, or
   `main.roc` uses `Context : Module.State`.
 - `@init { ... }` lowers to `init!`, wrapping the block so `?` works. The
   generated app maps failures to process exit.
-- `@live = |state, request| { ... }` (optional params, same arity as other
-  handlers) lowers to `live!`. One per module. The CLI dispatcher emits
-  `GET /sse` as a poll unfold (`After(100)`) that calls
-  `Type.live!(context, request)`, emits `datastar-patch-elements` when
-  `Html.render` bytes change, and emits a non-Datastar keepalive (`Sse.Event.data("")`)
-  when unchanged so the host response-idle timeout cannot kill the stream. In an
-  `@live` module, a root `<body>` without `data-init` gets
-  `data-init=@get("/sse", [OpenWhenHidden(True)])`. Authored `@view("/sse")`
-  plus `@live` is a diagnostic.
-- `@view("literal-path")` is always GET and returns an HTML document.
-  `@patch[:method]("literal-path")` returns an HTML fragment encoded as a
-  one-shot `datastar-patch-elements` event. `@command[:method]("literal-path")`
-  returns Roc data; generated dispatch encodes it with
-  `Encoding.Json.to_str_try`. Datastar (`Datastar-Request: true`) gets **empty
-  SSE** (HTTP 200 `text/event-stream` that ends immediately) and no morph; an
-  ordinary client gets **200** `application/json`. A command
-  that returns `Str` encodes as a JSON string; return a record or list for a
-  JSON object or array. POST is the omitted default (`@patch:post` is
-  rejected). GET is rejected on `@patch` and `@command`. `@patch:patch` is
-  legal: the noun is the fragment role, `:patch` is the HTTP method. Complete
-  examples did not show method confusion, so the name stays `@patch` rather
-  than `@fragment`.
+- Every ordinary route spells one HTTP method and one response role. The
+  closed matrix is: GET admits `view`, `fragment`, and `live`; POST, PUT,
+  PATCH, and DELETE admit `fragment` and `command`. Illegal pairs are
+  rejected. There are no default methods.
+- `@get:live("literal-path")` lowers to a named live handler. Modules may
+  declare several live routes; each becomes one SSE endpoint. The CLI
+  dispatcher polls (`After(100)`), emits `datastar-patch-elements` when
+  `Html.render` bytes change, and emits a non-Datastar keepalive
+  (`Sse.Event.data("")`) when unchanged so the host response-idle timeout
+  cannot kill the stream. A document receives automatic
+  `data-init=@get(path, [OpenWhenHidden(True)])` only when its module has
+  exactly one live route and the body has no authored `data-init`. Multiple
+  local streams require explicit subscriptions. App-wide method/path
+  collisions, including sibling modules, are diagnostics.
+- `@get:view(path)` returns an HTML document. `@method:fragment(path)`
+  returns an HTML fragment encoded as a one-shot `datastar-patch-elements`
+  event. `@method:command(path)` returns `{}` and has no success
+  representation: Datastar (`Datastar-Request: true`) gets **empty SSE**
+  (HTTP 200 `text/event-stream` that ends immediately); an ordinary client
+  gets **204 No Content**. JSON resources and mixed responses belong in
+  authored `main.roc`. `Datastar.patch_signals` is a low-level Roc helper,
+  not a route role.
 - Generated functions keep names such as `on_get_root!` and
   `on_post_actions_increment!`. Dispatch calls `handler!(context, request)`.
   Write `|{ db }, request|` when the handler reads the request. A one-parameter
   list such as `|{ db }|` or `|_|` lowers with an unused `_request` appended.
   Omit the parameter list to get `|state, _request|`. Generated `respond!`
-  maps `?` failures to HTTP 500 (HTML overlay for Datastar; JSON
-  `{"error":"..."}` for API). Bodies may call platform effects such as
+  maps `?` failures to HTTP 500 (HTML overlay for Datastar; a small ordinary
+  error otherwise). Bodies may call platform effects such as
   `pf.Stderr.line!`; under `rocci run` those lines are teed to the CLI and Dev
   Console. Do not print from `@component`.
 - `rocci view` / `rocci browse` ignore these directives and render fixtures.
 
-Paths are free-form. The convention is:
-
 | Kind | Declaration | Body | Response |
 | --- | --- | --- | --- |
-| HTML document | `@view(path)` | Full `<html>` | `text/html` |
-| One-shot patch | `@patch`, `@patch:put`, `@patch:patch`, `@patch:delete` | Fragment with a stable `id` | `datastar-patch-elements` in the acting tab |
-| JSON command | `@command` and friends | Record or list | **Empty SSE** for Datastar; `application/json` otherwise |
-| Live stream | `@live` | Fragment with a stable `id` | Generated `GET /sse` |
+| HTML document | `@get:view(path)` | Full `<html>` | `text/html` |
+| One-shot fragment | `@get:fragment` or mutation `@method:fragment` | Fragment with a stable `id` | `datastar-patch-elements` |
+| Command | mutation `@method:command` | `{}` | **Empty SSE** for Datastar; **204** otherwise |
+| Live stream | `@get:live(path)` | Fragment with a stable `id` | Long-lived SSE at that path |
 
-`@on:METHOD` and trailing `json` are a removal, not a deprecation. Diagnostics rewrite:
+Former headers are a removal, not a deprecation. Diagnostics rewrite:
 
-- `@on:get(path)` → `@view(path)` for a document
-- `@on:post(path)` → `@patch(path)`
-- `@on:delete(path) json` → `@command:delete(path)` and delete any `Json.to_str` from the body
+- `@view(path)` or `@on:get(path)` → `@get:view(path)`
+- `@patch(path)` or `@on:post(path)` → `@post:fragment(path)`
+- `@patch:put(path)` → `@put:fragment(path)`
+- `@patch:patch(path)` → `@patch:fragment(path)`
+- `@patch:delete(path)` → `@delete:fragment(path)`
+- `@command(path)` → `@post:command(path)`
+- `@command:put(path)` → `@put:command(path)`
+- `@command:patch(path)` → `@patch:command(path)`
+- `@command:delete(path)` or `@on:delete(path) json` → `@delete:command(path)`
+- `@live` / `@live(path)` → `@get:live("/sse")` or another authored path
 
 Handler return alternatives not taken: returning `Server.Outcome` from the
 body, or branching on `Html` vs `Sse.Event`. A custom unfold can still live in
 an authored `main.roc`.
 
-`@context` / `@init` / `@view` / `@patch` / `@command` / `@live` are module-level only.
+`@context` / `@init` / `@method:role` routes are module-level only.
 
 ## Tags
 
@@ -445,7 +450,7 @@ Isolation is Vue-style. Authors keep writing `class="card"`. Lowering stamps
 File-level rules share one file id across every component in the module.
 Component-level rules use a per-component id. Both ids hash the file basename
 so a snapshot stylesheet compiled as `LiveCounterUi.rocci` still matches
-`@live` HTML compiled from an absolute path to the same file. Descendant selectors can still
+`@get:live` HTML compiled from an absolute path to the same file. Descendant selectors can still
 match child-component internals; there is no `:deep` yet.
 
 v1 injects a `<style>` element so `view` / `browse` work immediately, and also
@@ -571,8 +576,8 @@ quoted. Ordinary Roc between components is shown as `(roc ...)` lines.
 
 Heads are `module`, `roc`, `component`, `params`, `element`, `call`,
 `fragment`, `text`, `interp`, `attr`, `if`, `else-if`, `else`, `for`,
-`match`, `arm`, `let`, `css`, `context`, `init`, and `on`. Self-closing tags
-include the `self-closing` atom after the tag name.
+`match`, `arm`, `let`, `css`, `context`, `init`, `view`, `command`, and
+`live`. Self-closing tags include the `self-closing` atom after the tag name.
 
 ## Not in this crate
 
@@ -582,7 +587,7 @@ include the `self-closing` atom after the tag name.
 - Dynamic tags, prop spreading, or a runtime component registry
 - Spawning HTTP servers, Datastar JS, file watching, or process management
 
-Route metadata from `@view` / `@patch` / `@command` is emitted for the CLI. Dispatch lives in generated
+Route metadata from `@method:role` declarations is emitted for the CLI. Dispatch lives in generated
 `main.roc`, not this crate.
 
 The language design and open questions live in [`ROC_TEMPLATE.md`](../../ROC_TEMPLATE.md).

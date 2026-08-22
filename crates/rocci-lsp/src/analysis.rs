@@ -5,8 +5,8 @@ use lsp_types::{
 };
 use rocci_template::{
     CommandDecl, CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl,
-    InitDecl, LiveDecl, LowerOptions, ModuleItem, PatchDecl, PositionEncoding, Severity,
-    SourceFile, Span, TemplateItem, ViewDecl, compile, component_matches,
+    FragmentDecl, InitDecl, LiveDecl, LowerOptions, ModuleItem, PositionEncoding, RouteDecl,
+    Severity, SourceFile, Span, TemplateItem, ViewDecl, compile, component_matches,
 };
 
 #[rustfmt::skip]
@@ -18,8 +18,8 @@ const HTML_TAGS: &[&str] = &[
 ];
 
 const DIRECTIVES: &[&str] = &[
-    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "live", "view",
-    "patch", "command",
+    "if", "else", "else if", "for", "match", "let", "css", "context", "init", "get", "post", "put",
+    "patch", "delete", "view", "fragment", "command", "live",
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
@@ -78,10 +78,12 @@ pub fn document_symbols(
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
             ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
             ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
-            ModuleItem::Live(live) => Some(live_symbol(source, live, encoding)),
-            ModuleItem::View(view) => Some(view_symbol(source, view, encoding)),
-            ModuleItem::Patch(patch) => Some(patch_symbol(source, patch, encoding)),
-            ModuleItem::Command(command) => Some(command_symbol(source, command, encoding)),
+            ModuleItem::Route(route) => Some(match route {
+                RouteDecl::Live(live) => live_symbol(source, live, encoding),
+                RouteDecl::View(view) => view_symbol(source, view, encoding),
+                RouteDecl::Fragment(fragment) => fragment_symbol(source, fragment, encoding),
+                RouteDecl::Command(command) => command_symbol(source, command, encoding),
+            }),
             ModuleItem::Roc { .. } | ModuleItem::Css(_) => None,
         })
         .collect();
@@ -278,14 +280,14 @@ pub fn live_symbol(
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
     DocumentSymbol {
-        name: "live!".to_string(),
-        detail: Some("@live".to_string()),
+        name: format!("GET {}", live.path),
+        detail: Some(format!("@get:live(\"{}\")", live.path)),
         kind: SymbolKind::FUNCTION,
         tags: None,
         #[allow(deprecated)]
         deprecated: None,
         range: lsp_range(source, live.span, encoding),
-        selection_range: lsp_range(source, live.span, encoding),
+        selection_range: lsp_range(source, live.path_span, encoding),
         children: None,
     }
 }
@@ -296,8 +298,8 @@ pub fn view_symbol(
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
     named_symbol(
-        &format!("GET {}", view.path),
-        Some(format!("@view(\"{}\")", view.path)),
+        &format!("{} {}", view.method.name.to_ascii_uppercase(), view.path),
+        Some(format!("@{}:view(\"{}\")", view.method.name, view.path)),
         SymbolKind::FUNCTION,
         source,
         view.span,
@@ -306,18 +308,18 @@ pub fn view_symbol(
     )
 }
 
-pub fn patch_symbol(
+pub fn fragment_symbol(
     source: SourceFile<'_>,
-    patch: &PatchDecl,
+    fragment: &FragmentDecl,
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
     mutation_symbol(
-        "patch",
+        "fragment",
         source,
-        patch.method.as_ref(),
-        &patch.path,
-        patch.span,
-        patch.path_span,
+        &fragment.method,
+        &fragment.path,
+        fragment.span,
+        fragment.path_span,
         encoding,
     )
 }
@@ -330,7 +332,7 @@ pub fn command_symbol(
     mutation_symbol(
         "command",
         source,
-        command.method.as_ref(),
+        &command.method,
         &command.path,
         command.span,
         command.path_span,
@@ -341,27 +343,21 @@ pub fn command_symbol(
 fn mutation_symbol(
     kind: &str,
     source: SourceFile<'_>,
-    method: Option<&rocci_template::Ident>,
+    method: &rocci_template::Ident,
     path: &str,
     span: Span,
     path_span: Span,
     encoding: PositionEncoding,
 ) -> DocumentSymbol {
-    let method_name = method
-        .map(|ident| ident.name.to_ascii_uppercase())
-        .unwrap_or_else(|| "POST".to_string());
-    let detail = match method {
-        Some(ident) => format!("@{kind}:{}(\"{path}\")", ident.name),
-        None => format!("@{kind}(\"{path}\")"),
-    };
-    let selection = method.map(|ident| ident.span).unwrap_or(path_span);
+    let method_name = method.name.to_ascii_uppercase();
+    let detail = format!("@{}:{kind}(\"{path}\")", method.name);
     named_symbol(
         &format!("{method_name} {path}"),
         Some(detail),
         SymbolKind::FUNCTION,
         source,
         span,
-        selection,
+        path_span,
         encoding,
     )
 }
@@ -373,36 +369,38 @@ fn handler_hover(
     encoding: PositionEncoding,
 ) -> Option<Hover> {
     for item in &document.items {
-        let (header, detail) = match item {
-            ModuleItem::View(view) => (
+        let ModuleItem::Route(route) = item else {
+            continue;
+        };
+        let (header, detail) = match route {
+            RouteDecl::View(view) => (
                 Span {
                     start: view.span.start,
                     end: view.body.start,
                 },
-                format!("@view(\"{}\")", view.path),
+                format!("@{}:view(\"{}\")", view.method.name, view.path),
             ),
-            ModuleItem::Patch(patch) => (
+            RouteDecl::Fragment(fragment) => (
                 Span {
-                    start: patch.span.start,
-                    end: patch.body.start,
+                    start: fragment.span.start,
+                    end: fragment.body.start,
                 },
-                patch_header(patch),
+                fragment_header(fragment),
             ),
-            ModuleItem::Command(command) => (
+            RouteDecl::Command(command) => (
                 Span {
                     start: command.span.start,
                     end: command.body.start,
                 },
                 command_header(command),
             ),
-            ModuleItem::Live(live) => (
+            RouteDecl::Live(live) => (
                 Span {
                     start: live.span.start,
                     end: live.body.start,
                 },
-                "@live".into(),
+                format!("@{}:live(\"{}\")", live.method.name, live.path),
             ),
-            _ => continue,
         };
         if header.contains(offset) {
             return Some(Hover {
@@ -414,18 +412,12 @@ fn handler_hover(
     None
 }
 
-fn patch_header(patch: &PatchDecl) -> String {
-    match &patch.method {
-        Some(ident) => format!("@patch:{}(\"{}\")", ident.name, patch.path),
-        None => format!("@patch(\"{}\")", patch.path),
-    }
+fn fragment_header(fragment: &FragmentDecl) -> String {
+    format!("@{}:fragment(\"{}\")", fragment.method.name, fragment.path)
 }
 
 fn command_header(command: &CommandDecl) -> String {
-    match &command.method {
-        Some(ident) => format!("@command:{}(\"{}\")", ident.name, command.path),
-        None => format!("@command(\"{}\")", command.path),
-    }
+    format!("@{}:command(\"{}\")", command.method.name, command.path)
 }
 
 pub fn css_symbol(
@@ -523,10 +515,7 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
         | ModuleItem::Css(_)
         | ModuleItem::Context(_)
         | ModuleItem::Init(_)
-        | ModuleItem::Live(_)
-        | ModuleItem::View(_)
-        | ModuleItem::Patch(_)
-        | ModuleItem::Command(_) => None,
+        | ModuleItem::Route(_) => None,
     })
 }
 

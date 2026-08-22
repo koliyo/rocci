@@ -23,7 +23,7 @@ goal. Exact syntax lives in [reference](/docs/reference/).
 
 ## Applications
 
-- [Update the UI](/docs/how-to/update-the-ui/) — choose `@patch`, `@command`, or `@live`
+- [Update the UI](/docs/how-to/update-the-ui/) — choose a fragment, command, or live stream
 - [Handle requests and errors](/docs/how-to/handle-requests-and-errors/) — request access, `?`, logging, SQLite
 
 ## Workflow and tools

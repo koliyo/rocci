@@ -31,7 +31,7 @@ fn plan_ready(path: &Path) -> GenericAppPlan {
                     roc: m.roc,
                     state_type: m.state_type,
                     init: m.init,
-                    live: m.live,
+                    lives: m.lives,
                     routes: m.routes,
                     mapped: m.mapped,
                     local_assets: m.local_assets,
@@ -98,10 +98,6 @@ See [[About]]
         dir.join("About.rocdown"),
         r#"
 @page { route: "/about/" }
-
-@view("/") = |_, _request| {
-    rocci_page({})
-}
 
 # About
 "#,

@@ -32,11 +32,11 @@ BetaSlot = |{ open }| {
     </div>
 }
 
-@patch("/actions/alpha/show") = |_, _request| {
+@post:fragment("/actions/alpha/show") = |_, _request| {
     alphaSlot({ open: True })
 }
 
-@patch("/actions/beta/show") = |_, _request| {
+@post:fragment("/actions/beta/show") = |_, _request| {
     betaSlot({ open: True })
 }
 

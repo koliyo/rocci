@@ -2,6 +2,18 @@
 
 ## 2026-08-22
 
+- Aligned active public docs, owning READMEs, skills, example catalog prose, and canonical knowledge indexes with the landed verb-first `@method:role` and path-addressed `@get:live` contract on `verb-first-handler-declarations`. Historical research and plans retain old spellings with explicit historical status. Removal diagnostics and fixtures keep the former headers as rejected inputs. Phase 7 local documentation work is in this revision; do not log the phase complete until CI and Knowledge workflow run IDs succeed on the landed commit.
+- Recorded the maintainer's joint Phase 0 approval for mandatory
+  `@method:role(path)`, the closed view/fragment/command/live matrix,
+  representation-free commands, plural path-addressed live routes,
+  deterministic injection and app binding, and a no-alias clean cut. The plans
+  remain draft and later phases remain open; no shipped-behavior or
+  CI-completion claim is made. Captured the current local wire and stream-cost
+  baseline: Datastar command success is empty SSE, ordinary command success is
+  JSON before the cutover, and every live subscription owns an independent
+  100 ms poll/render loop with keepalives when unchanged. The approved command
+  replacement keeps empty SSE for Datastar and uses 204 for ordinary callers,
+  with no success JSON.
 - Added the draft [path-addressed live stream research](research/path-addressed-live-streams.md) and [implementation plan](plans/path-addressed-live-streams.md). The exploratory recommendation replaces the effective singleton with plural `@get:live(path)` routes, binds streams from primary and sibling modules, validates app-level path collisions, auto-injects only an unambiguous module-local singleton, and requires explicit subscriptions for multiple streams. It recommends one page/coherence stream that can patch several stable IDs rather than one connection per component. The verb-first records are amended to include GET-live in the method-role matrix. No syntax is approved or shipped and no phase has started.
 - Added the draft [verb-first handler declaration research](research/verb-first-handler-declarations.md) and [detailed implementation plan](plans/verb-first-handler-declarations.md). The exploratory recommendation changes ordinary routes to mandatory `@method:role` headers, chooses `fragment` as the HTML-fragment role, adds GET fragments, and preserves a closed UI-oriented method-role matrix. Its initial singleton-live exception is superseded by the path-addressed follow-up above, which amends the matrix with `@get:live(path)`. The plan covers contract testing, AST/parser/validation, role-aware dispatch, command JSON removal, formatter/LSP/source maps, examples and HTTP/browser proof, low-level Roc patch-signals, documentation, and integrated release gates. It supersedes the earlier handler-boundary plan only as the proposed implementation sequence; no syntax is approved or shipped and no phase has started.
 - Revised the draft [handler syntax research](research/action-handler-syntax.md) and added the draft [handler UI boundary plan](plans/handler-ui-boundary.md): treat `.rocci` handlers as a bounded server-rendered UI surface rather than a complete HTTP/Datastar response matrix. The research identifies one-shot GET HTML fragments as the missing UI read, recommends removing ordinary-client JSON representation from high-level commands, and places patch-signals in low-level Roc transport helpers and authored `main.roc`. The plan keeps `@patch:get` versus a clean-cut `@fragment:get` rename and the exact no-representation command wire response behind Phase 0 maintainer gates. Exploratory; no phase started and no follow-up language change approved.

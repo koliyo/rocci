@@ -97,7 +97,9 @@ impl<'a> PatchSignals<'a> {
         if self.only_if_missing {
             let _ = writeln!(out, "data: onlyIfMissing true");
         }
-        for line in self.signals.lines() {
+        let lf = self.signals.replace("\r\n", "\n");
+        let normalized = lf.replace('\r', "\n");
+        for line in normalized.split('\n') {
             let _ = writeln!(out, "data: signals {line}");
         }
         out.push('\n');

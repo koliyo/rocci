@@ -1,8 +1,8 @@
 use rocci_template::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
-    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl,
-    Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm, MatchDirective, ModuleItem,
-    PatchDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident,
+    IfDirective, InitDecl, Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm,
+    MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
 };
 
 fn ungram_productions(src: &str) -> Vec<String> {
@@ -58,10 +58,10 @@ fn classify_module_item(item: &ModuleItem) -> &'static str {
         ModuleItem::Css(_) => "css",
         ModuleItem::Context(_) => "context",
         ModuleItem::Init(_) => "init",
-        ModuleItem::Live(_) => "live",
-        ModuleItem::View(_) => "view",
-        ModuleItem::Patch(_) => "patch",
-        ModuleItem::Command(_) => "command",
+        ModuleItem::Route(RouteDecl::Live(_)) => "live",
+        ModuleItem::Route(RouteDecl::View(_)) => "view",
+        ModuleItem::Route(RouteDecl::Fragment(_)) => "fragment",
+        ModuleItem::Route(RouteDecl::Command(_)) => "command",
     }
 }
 
@@ -128,9 +128,10 @@ fn ungram_generated_productions_exist_as_rust_types() {
                 "CssDecl",
                 "ContextDecl",
                 "InitDecl",
+                "RouteDecl",
                 "LiveDecl",
                 "ViewDecl",
-                "PatchDecl",
+                "FragmentDecl",
                 "CommandDecl",
                 "LeadingComments",
                 "TemplateBlock",
@@ -161,9 +162,10 @@ fn ungram_generated_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<CssDecl>();
     let _ = std::any::type_name::<ContextDecl>();
     let _ = std::any::type_name::<InitDecl>();
+    let _ = std::any::type_name::<RouteDecl>();
     let _ = std::any::type_name::<LiveDecl>();
     let _ = std::any::type_name::<ViewDecl>();
-    let _ = std::any::type_name::<PatchDecl>();
+    let _ = std::any::type_name::<FragmentDecl>();
     let _ = std::any::type_name::<CommandDecl>();
     let _ = std::any::type_name::<LeadingComments>();
     let _ = std::any::type_name::<TemplateBlock>();
