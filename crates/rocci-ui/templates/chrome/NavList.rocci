@@ -5,6 +5,10 @@ import Html
     .nav-link, .nav-category {
         display: block;
         text-decoration: none;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .nav-section {
         margin: 0;
