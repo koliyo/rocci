@@ -20,7 +20,7 @@ colocated `.rocdown`. This crate depends on `rocci-template` for parse only; it
 does not compile Roc or render HTML.
 
 `site/rocdown.toml` mounts `../dist/example-docs` at prefix `examples`. Run
-this tool before `rocdown check site`, `rocdown run site`, or
+this tool before `rocdown check site`, `rocdown view site`, or
 `rocdown package site`. `rocci-rocdown` does not depend on this crate.
 
 Staging writes a complete sibling tree and replaces the previous output only

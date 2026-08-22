@@ -245,7 +245,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
     let mut styles = Vec::new();
     if !file_css.is_empty() {
         let css = if let Some(id) = &file_scope_id {
-            scope_css(&file_css, id)
+            scope_css(&file_css, id, !options.embed_css)
         } else {
             file_css.clone()
         };
@@ -422,7 +422,7 @@ impl<'a> Emitter<'a> {
             self.styles.push(StyleArtifact {
                 kind: StyleKind::Component,
                 name: roc_name.clone(),
-                css: scope_css(&component_css, id),
+                css: scope_css(&component_css, id, !self.embed_css),
                 span,
             });
         }
@@ -678,12 +678,12 @@ impl<'a> Emitter<'a> {
         if !self.file_css.is_empty()
             && let Some(id) = &self.file_scope_id
         {
-            parts.push(scope_css(&self.file_css, id));
+            parts.push(scope_css(&self.file_css, id, false));
         }
         if !component_css.is_empty()
             && let Some(id) = component_id
         {
-            parts.push(scope_css(component_css, id));
+            parts.push(scope_css(component_css, id, false));
         }
         if parts.is_empty() {
             None
@@ -1512,23 +1512,66 @@ fn is_html_document(items: &[TemplateItem]) -> bool {
     )
 }
 
-fn scope_css(css: &str, id: &str) -> String {
-    format!("@scope ([data-rocci-css~=\"{id}\"]) {{\n{}\n}}", css.trim())
+fn scope_css(css: &str, id: &str, external: bool) -> String {
+    let css = css.trim();
+    let native = format!("@scope ([data-rocci-css~=\"{id}\"]) {{\n{css}\n}}");
+    if external {
+        match external_scope_compatibility(css, id) {
+            Some(compatibility) => format!("{native}\n{compatibility}"),
+            None => native,
+        }
+    } else {
+        native
+    }
+}
+
+/// Linked stylesheets in the macOS preview can fail to apply a native scoped
+/// rule even though the same rule works in an inline component stylesheet.
+/// Keep the native rule and add an equivalent, attribute-prefixed rule for
+/// uncomplicated CSS. Rules with nested at-rules retain the native form.
+fn external_scope_compatibility(css: &str, id: &str) -> Option<String> {
+    if css.contains('@') {
+        return None;
+    }
+    let scope = format!("[data-rocci-css~=\"{id}\"]");
+    let mut output = String::new();
+    for rule in css.split('}') {
+        let rule = rule.trim();
+        if rule.is_empty() {
+            continue;
+        }
+        let (selectors, declarations) = rule.split_once('{')?;
+        let selectors = selectors
+            .split(',')
+            .map(str::trim)
+            .map(|selector| format!("{scope}{selector}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        output.push_str(&selectors);
+        output.push_str(" { ");
+        output.push_str(declarations.trim());
+        output.push_str(" }\n");
+    }
+    (!output.is_empty()).then_some(output.trim_end().to_string())
 }
 
 pub fn file_scope_id(file_name: &str) -> String {
-    format!(
-        "{}-{:08x}",
-        file_stem(file_name),
-        fnv1a32(file_name.as_bytes())
-    )
+    let key = scope_file_key(file_name);
+    format!("{}-{:08x}", file_stem(key), fnv1a32(key.as_bytes()))
 }
 
 fn component_scope_id(file_name: &str, component: &str) -> String {
-    let mut bytes = file_name.as_bytes().to_vec();
+    let key = scope_file_key(file_name);
+    let mut bytes = key.as_bytes().to_vec();
     bytes.push(0);
     bytes.extend_from_slice(component.as_bytes());
     format!("{}-{:08x}", sanitize_ident(component), fnv1a32(&bytes))
+}
+
+/// Snapshot CSS and island-service HTML must share stamps even when one
+/// compile uses a basename and the other uses an absolute path.
+fn scope_file_key(file_name: &str) -> &str {
+    file_name.rsplit(['/', '\\']).next().unwrap_or(file_name)
 }
 
 fn file_stem(name: &str) -> String {

@@ -13,7 +13,7 @@
 Place `rocdown.toml` at the documentation content root when you need site metadata,
 hashed assets, or curated navigation. The file is optional: a directory of
 `.rocdown` pages, or a single `.rocdown` file whose parent is the content root,
-is enough for `rocdown build`, `rocdown check`, and `rocdown run`.
+is enough for `rocdown build`, `rocdown check`, and `rocdown view`.
 
 ```sh
 cargo run -p rocci-rocdown-cli -- build report.rocdown --output dist
@@ -66,7 +66,7 @@ allow_network = false
 `:include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
 code literal. Named regions use `docs-region: NAME` / `docs-region-end: NAME`
 markers. Line ranges emit warning `RD2504`. Cycles are `RD2505`. Included files
-are watch inputs for `rocdown run`.
+are watch inputs for `rocdown view`.
 
 `rocdown check` validates components and includes without Roc. Untested
 `:example` records warn (`RD2601`). Example commands never run during
@@ -218,7 +218,7 @@ note = "Callout"
   `theme/blocks/` convention.
 - `debug`: when `true`, `rocdown build` and `rocdown check` paint a first-party
   debug placeholder (`data-rocci-block-debug`) for kinds that have a schema but
-  no renderer. `rocdown run` always uses that placeholder in preview. Unknown
+  no renderer. `rocdown view` always uses that placeholder in preview. Unknown
   kinds stay errors.
 - `[blocks.override]`: maps a builtin widget kind (`note`) to a pack or
   `DocsComponents` component name (`Callout`). Unknown kinds fail config load.
@@ -250,7 +250,7 @@ visibility = "linked-detail"
 
 `dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
 --catalog examples/rocci/apps.toml --output dist/example-docs`). Run that
-before `rocdown check site`, `rocdown run site`, or `rocdown package site`.
+before `rocdown check site`, `rocdown view site`, or `rocdown package site`.
 Rocdown does not import `rocci-docs`. Generated example pages use the docs
 layout. `/docs/examples/` is an alias of `/examples/` during the move.
 
@@ -288,7 +288,7 @@ application overview pages; generated source pages remain linked details.
 
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
-with `rocdown run` uses the standalone left navigator instead; see
+with `rocdown view` uses the standalone left navigator instead; see
 [Rocdown](/rocdown/language/).
 
 ## Layout and site-surface ownership
@@ -364,7 +364,7 @@ cargo run -p rocci-rocdown-cli -- run docs
 cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid
 ```
 
-`rocdown run` writes to a temp directory by default so it does not replace
+`rocdown view` writes to a temp directory by default so it does not replace
 `build.output`. Pass `--output` to keep the preview files. `--no-window` serves
 in the browser only. Static content reloads after a successful rebuild. Hybrid
 sites with colocated handlers proxy the island service on the same origin, and

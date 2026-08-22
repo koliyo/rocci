@@ -103,7 +103,7 @@ pub fn evaluate_page(
         });
     }
 
-    let html = render_islands(
+    let (html, service_css) = render_islands(
         source_path,
         source_name,
         src,
@@ -111,6 +111,13 @@ pub fn evaluate_page(
         &compiled.segments,
         service,
     )?;
+    let css = if service_css.is_empty() {
+        css
+    } else if css.is_empty() {
+        service_css
+    } else {
+        format!("{css}\n{service_css}")
+    };
     Ok(EvaluatedIslands { html, css })
 }
 
@@ -121,7 +128,7 @@ fn render_islands(
     roc: &str,
     segments: &[rocci_template::Segment],
     service: Option<&Path>,
-) -> Result<Vec<String>> {
+) -> Result<(Vec<String>, String)> {
     let type_name = type_name_from_path(source_path);
     let workspace = unique_temp("islands")?;
     fs::write(workspace.join("Html.roc"), crate::runtime::HTML)
@@ -134,9 +141,10 @@ fn render_islands(
     if let Some(src_dir) = source_path.parent() {
         rocci_cli::driver::copy_sibling_roc(src_dir, &workspace, &type_name)?;
     }
-    if let Some(service_path) = service {
-        stage_service_imports(&workspace, service_path, roc)?;
-    }
+    let service_css = match service {
+        Some(service_path) => stage_service_imports(&workspace, service_path, roc)?,
+        None => String::new(),
+    };
     // Staged service UI modules often import Datastar for @get/@post even when
     // the page island roc does not list that import itself.
     if !uses_datastar && workspace_imports_datastar(&workspace)? {
@@ -238,7 +246,7 @@ fn render_islands(
     if body.is_empty() {
         bail!("island renderer produced no HTML for {source_name}");
     }
-    Ok(body.split(BREAK).map(str::to_string).collect())
+    Ok((body.split(BREAK).map(str::to_string).collect(), service_css))
 }
 
 fn workspace_imports_datastar(workspace: &Path) -> Result<bool> {
@@ -262,12 +270,13 @@ fn workspace_imports_datastar(workspace: &Path) -> Result<bool> {
     Ok(false)
 }
 
-fn stage_service_imports(workspace: &Path, service_path: &Path, page_roc: &str) -> Result<()> {
+fn stage_service_imports(workspace: &Path, service_path: &Path, page_roc: &str) -> Result<String> {
     let Some(dir) = service_path.parent() else {
-        return Ok(());
+        return Ok(String::new());
     };
     let service_name = type_name_from_path(service_path);
     let mut staged = Vec::new();
+    let mut css = Vec::new();
     for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
         let path = entry?.path();
         if path.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
@@ -281,20 +290,24 @@ fn stage_service_imports(workspace: &Path, service_path: &Path, page_roc: &str) 
         if !page_roc.lines().any(|line| line.trim() == import_line) {
             continue;
         }
-        stage_service_module(workspace, &path)?;
+        css.push(stage_service_module(workspace, &path)?);
         staged.push(name);
     }
     if staged.is_empty() {
         // Snapshot may still import the service module name when UI lives there.
         let import_line = format!("import {service_name}");
         if page_roc.lines().any(|line| line.trim() == import_line) {
-            stage_service_module(workspace, service_path)?;
+            css.push(stage_service_module(workspace, service_path)?);
         }
     }
-    Ok(())
+    Ok(css
+        .into_iter()
+        .filter(|css| !css.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n"))
 }
 
-fn stage_service_module(workspace: &Path, service_path: &Path) -> Result<()> {
+fn stage_service_module(workspace: &Path, service_path: &Path) -> Result<String> {
     if !service_path.is_file() {
         bail!(
             "configured [http].service `{}` does not exist",
@@ -327,13 +340,20 @@ fn stage_service_module(workspace: &Path, service_path: &Path) -> Result<()> {
             messages.join("; ")
         );
     }
+    let css = compiled
+        .styles
+        .iter()
+        .filter(|style| matches!(style.kind, StyleKind::File | StyleKind::Component))
+        .map(|style| style.css.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
     let wrapped = wrap_type_module(&compiled.roc, &type_name);
     fs::write(workspace.join(format!("{type_name}.roc")), &wrapped)
         .with_context(|| format!("failed to write {type_name}.roc"))?;
     if let Some(src_dir) = service_path.parent() {
         rocci_cli::driver::copy_sibling_roc(src_dir, workspace, &type_name)?;
     }
-    Ok(())
+    Ok(css)
 }
 
 fn island_main(type_name: &str) -> String {
@@ -411,5 +431,63 @@ mod tests {
     fn fill_placeholders_rejects_count_mismatch() {
         let err = fill_placeholders(PLACEHOLDER, &[]).unwrap_err();
         assert!(err.to_string().contains("island count mismatch"), "{err}");
+    }
+
+    #[test]
+    fn service_imports_contribute_component_css_to_the_snapshot() {
+        let root = unique_temp("service-css").unwrap();
+        let workspace = root.join("workspace");
+        fs::create_dir_all(&workspace).unwrap();
+        let service = root.join("Service.rocci");
+        fs::write(&service, "@command(\"/actions/inc\") = |_| { {} }\n").unwrap();
+        fs::write(
+            root.join("ServiceUi.rocci"),
+            "@component\nCard = |_| {\n    @css { .card { border-radius: 16px; } }\n    <div class=\"card\">count</div>\n}\n",
+        )
+        .unwrap();
+
+        let css = stage_service_imports(&workspace, &service, "import ServiceUi\n").unwrap();
+        assert!(css.contains("border-radius: 16px"), "{css}");
+        assert!(workspace.join("ServiceUi.roc").is_file());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn live_counter_service_contributes_its_scoped_css() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let service = root.join("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        let workspace = unique_temp("live-counter-css").unwrap();
+
+        let css = stage_service_imports(&workspace, &service, "import LiveCounterUi\n").unwrap();
+        assert!(css.contains("border-radius: 16px"), "{css}");
+        assert!(css.contains("counter-card"), "{css}");
+
+        let ui = service.with_file_name("LiveCounterUi.rocci");
+        let src = fs::read_to_string(&ui).unwrap();
+        let from_path = rocci_template::compile(
+            rocci_template::SourceFile::new(ui.to_str().unwrap(), &src),
+            &rocci_template::LowerOptions {
+                embed_css: false,
+                ..rocci_template::LowerOptions::default()
+            },
+        );
+        assert!(!from_path.has_errors(), "{:?}", from_path.diagnostics);
+        for style in &from_path.styles {
+            if !matches!(
+                style.kind,
+                rocci_template::StyleKind::File | rocci_template::StyleKind::Component
+            ) {
+                continue;
+            }
+            let marker = r#"data-rocci-css~=""#;
+            let start = style.css.find(marker).expect("scope attr") + marker.len();
+            let end = style.css[start..].find('"').expect("scope end") + start;
+            let id = &style.css[start..end];
+            assert!(
+                css.contains(id),
+                "snapshot CSS missing live stamp {id}:\n{css}"
+            );
+        }
+        let _ = fs::remove_dir_all(workspace);
     }
 }

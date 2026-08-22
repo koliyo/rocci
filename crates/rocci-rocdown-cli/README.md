@@ -9,23 +9,24 @@ Executable name: `rocdown`
 ## Commands
 
 ```sh
-# Run a single interactive .rocdown or ordinary .md document with live reload.
+# Preview a single interactive .rocdown or ordinary .md document with live reload.
 # Relative links to other documents are compiled and served as extra routes.
 # Compile failures print rustc-style frames on stderr unless `--quiet`.
-# OKF knowledge records are refused with a pointer to `rocci-okf run`.
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
+# OKF knowledge records are refused with a pointer to `rocci-okf view`.
+# `rocdown run` remains a deprecated alias for `view`.
+cargo run -p rocci-rocdown-cli -- view examples/rocdown/pages/Guide.rocdown
 
 # A .rocdown file under a site root (ancestor `rocdown.toml`) previews the
 # whole site and opens that page. Includes, aliases, and `/docs/...` links
-# resolve the same way as `rocdown run docs`.
-cargo run -p rocci-rocdown-cli -- run site/rocdown/article-blocks.rocdown
+# resolve the same way as `rocdown view docs`.
+cargo run -p rocci-rocdown-cli -- view site/rocdown/article-blocks.rocdown
 
-# Run/preview a documentation site directory with watch and live reload.
+# Preview a documentation site directory with watch and live reload.
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.
 # `--no-window` prints a URL; append `?reload=0` to pause auto-refresh.
-cargo run -p rocci-rocdown-cli -- run docs [--port 8000] [--no-window] [--no-live-reload]
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid [--port 8000] [--no-window]
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/counter [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- view docs [--port 8000] [--no-window] [--no-live-reload]
+cargo run -p rocci-rocdown-cli -- view examples/rocdown/hybrid [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- view examples/rocdown/counter [--port 8000] [--no-window]
 
 # Build a static documentation site to dist/
 # --host is apply on this machine; --target is Roc's process ISA/OS (see `rocdown package --help`).
@@ -69,4 +70,4 @@ cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdow
 
 ## Architectural Boundary
 
-`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation. It does not parse OKF; `rocdown run` and `rocdown build` refuse knowledge records and bundles and point to `rocci-okf run`.
+`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation. It does not parse OKF; `rocdown view` and `rocdown build` refuse knowledge records and bundles and point to `rocci-okf view`.
