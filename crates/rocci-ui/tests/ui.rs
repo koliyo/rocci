@@ -101,6 +101,8 @@ fn chrome_script_includes_copy_hooks() {
 fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("window.__rocciGoto"));
     assert!(GOTO_SCRIPT.contains("/pages.json"));
+    assert!(GOTO_SCRIPT.contains("isExampleSource"));
+    assert!(GOTO_SCRIPT.contains("/examples\\/[^/]+\\/source"));
     assert!(GOTO_SCRIPT.contains("/catalog.json"));
     assert!(GOTO_SCRIPT.contains("history.pushState"));
     assert!(GOTO_SCRIPT.contains("rocci-goto"));

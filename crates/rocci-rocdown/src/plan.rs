@@ -1058,6 +1058,7 @@ fn planned_page(
         Some(page.id.as_str())
     };
     let (lanes, mut sidebar) = lanes_and_sidebar(navigation, current_id);
+    attach_example_source_tree(&mut sidebar, current_id, all_pages);
     if page.layout == "home" || page.layout == "playground" {
         sidebar.clear();
     } else if !sidebar_has_current(&sidebar, &page.route) {
@@ -1222,16 +1223,8 @@ fn not_found_page(
                 BreadcrumbView::new(&site.title, "/"),
                 BreadcrumbView::new("Page not found", "/404.html"),
             ],
-            previous: NavItemView {
-                title: String::new(),
-                href: String::new(),
-                class_name: String::new(),
-            },
-            next: NavItemView {
-                title: String::new(),
-                href: String::new(),
-                class_name: String::new(),
-            },
+            previous: NavItemView::default(),
+            next: NavItemView::default(),
             resources: ResourceView {
                 stylesheet: stylesheet.to_string(),
                 csp: csp.to_string(),
@@ -1318,13 +1311,14 @@ fn current_section<'a>(navigation: &'a [NavSection], id: &str) -> Option<&'a Nav
 
 fn sidebar_has_current(sidebar: &[NavGroupView], route: &str) -> bool {
     sidebar.iter().any(|group| {
-        group.href == route
-            || group
-                .items
-                .iter()
-                .any(|item| item.class_name.contains("is-current"))
+        group.covers_href(route)
+            || group.items.iter().any(|item| nav_item_is_current(item))
             || (group.items.is_empty() && group.open)
     })
+}
+
+fn nav_item_is_current(item: &NavItemView) -> bool {
+    item.class_name.contains("is-current") || item.items.iter().any(nav_item_is_current)
 }
 
 fn normalized_breadcrumbs(
@@ -1427,11 +1421,33 @@ fn nav_leaf(item: &catalog::NavItem, current_id: Option<&str>) -> NavItemView {
         } else {
             "nav-link nav-child".into()
         },
+        ..Default::default()
     }
 }
 
+fn nav_item_owns_page(item_id: &str, current_id: &str) -> bool {
+    if current_id == item_id {
+        return true;
+    }
+    let Some(example) = item_id.strip_prefix("examples/") else {
+        return false;
+    };
+    let Some(slug) = example.strip_suffix("/index") else {
+        return false;
+    };
+    current_id
+        .strip_prefix("examples/")
+        .is_some_and(|rest| rest == slug || rest.starts_with(&format!("{slug}/")))
+}
+
 fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavGroupView> {
-    let open = current_id.is_some_and(|id| catalog::section_contains(section, id));
+    let open = current_id.is_some_and(|id| {
+        catalog::section_contains(section, id)
+            || section
+                .items
+                .iter()
+                .any(|item| nav_item_owns_page(&item.id, id))
+    });
     match section.items.as_slice() {
         [] => None,
         items => Some(NavGroupView {
@@ -1443,6 +1459,81 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
                 .map(|item| nav_leaf(item, current_id))
                 .collect(),
         }),
+    }
+}
+
+fn selected_example_slug(page_id: &str) -> Option<&str> {
+    let rest = page_id.strip_prefix("examples/")?;
+    let slug = rest.split('/').next()?;
+    if slug.is_empty() || slug == "index" {
+        None
+    } else {
+        Some(slug)
+    }
+}
+
+fn example_source_prefix(slug: &str) -> String {
+    format!("examples/{slug}/source/")
+}
+
+fn attach_example_source_tree(
+    sidebar: &mut [NavGroupView],
+    current_id: Option<&str>,
+    pages: &[ResolvedPage],
+) {
+    let Some(current_id) = current_id else {
+        return;
+    };
+    let Some(slug) = selected_example_slug(current_id) else {
+        return;
+    };
+    let example_href = format!("/examples/{slug}/");
+    let prefix = example_source_prefix(slug);
+    let index_id = format!("examples/{slug}/source/index");
+    let mut source_pages: Vec<&ResolvedPage> = pages
+        .iter()
+        .filter(|page| page.id == index_id || page.id.starts_with(&prefix))
+        .collect();
+    if source_pages.is_empty() {
+        return;
+    }
+    source_pages.sort_by(|left, right| source_sort_key(&left.id).cmp(&source_sort_key(&right.id)));
+    for group in sidebar.iter_mut() {
+        let Some(item) = group
+            .items
+            .iter_mut()
+            .find(|item| item.href == example_href)
+        else {
+            continue;
+        };
+        item.open = true;
+        item.items_label = "Source".into();
+        item.items = source_pages
+            .iter()
+            .map(|page| {
+                let current = current_id == page.id.as_str();
+                NavItemView {
+                    title: page.title.clone(),
+                    href: page.route.clone(),
+                    class_name: if current {
+                        "nav-link nav-child nav-source is-current".into()
+                    } else {
+                        "nav-link nav-child nav-source".into()
+                    },
+                    ..Default::default()
+                }
+            })
+            .collect();
+        group.open = true;
+        return;
+    }
+}
+
+fn source_sort_key(id: &str) -> (u8, &str) {
+    if id.ends_with("/source/index") {
+        (0, id)
+    } else {
+        (1, id)
     }
 }
 
@@ -1463,6 +1554,7 @@ fn nav_from_link(link: &NavLink) -> NavItemView {
         title: link.title.clone(),
         href: link.route.clone(),
         class_name: String::new(),
+        ..Default::default()
     }
 }
 
@@ -1473,6 +1565,7 @@ fn optional_link(link: Option<&NavLink>) -> NavItemView {
             title: String::new(),
             href: String::new(),
             class_name: String::new(),
+            ..Default::default()
         },
     }
 }
@@ -2040,13 +2133,7 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
             out.push_str(if group.open { "True" } else { "False" });
             out.push_str(", items: [\n");
             for item in &group.items {
-                out.push_str("                        { title: ");
-                push_roc_string(&mut out, &item.title);
-                out.push_str(", href: ");
-                push_roc_string(&mut out, &item.href);
-                out.push_str(", class_name: ");
-                push_roc_string(&mut out, &item.class_name);
-                out.push_str(" },\n");
+                push_nav_item_roc(&mut out, item, "                        ");
             }
             out.push_str("                    ] },\n");
         }
@@ -2221,6 +2308,32 @@ fn push_node(out: &mut String, node: &crate::docs::PlannedNode) {
     }
 }
 
+fn push_nav_item_roc(out: &mut String, item: &NavItemView, indent: &str) {
+    out.push_str(indent);
+    out.push_str("{ title: ");
+    push_roc_string(out, &item.title);
+    out.push_str(", href: ");
+    push_roc_string(out, &item.href);
+    out.push_str(", class_name: ");
+    push_roc_string(out, &item.class_name);
+    out.push_str(", open: ");
+    out.push_str(if item.open { "True" } else { "False" });
+    out.push_str(", items_label: ");
+    push_roc_string(out, &item.items_label);
+    out.push_str(", items: [");
+    if item.items.is_empty() {
+        out.push_str("] },\n");
+        return;
+    }
+    out.push('\n');
+    let nested = format!("{indent}    ");
+    for child in &item.items {
+        push_nav_item_roc(out, child, &nested);
+    }
+    out.push_str(indent);
+    out.push_str("] },\n");
+}
+
 fn push_roc_string(out: &mut String, value: &str) {
     out.push('"');
     for ch in value.chars() {
@@ -2315,6 +2428,110 @@ mod tests {
         assert_eq!(sidebar[1].items[0].title, "Tutorials");
         assert_eq!(sidebar[1].items[1].title, "Build your first component");
         assert!(sidebar[1].items[1].class_name.contains("is-current"));
+    }
+
+    fn source_page(id: &str, title: &str, route: &str) -> ResolvedPage {
+        ResolvedPage {
+            id: id.into(),
+            source_path: format!("{id}.rocdown"),
+            kind: PageKind::Static,
+            title: title.into(),
+            description: String::new(),
+            layout: "docs".into(),
+            published: String::new(),
+            updated: String::new(),
+            authors: Vec::new(),
+            tags: Vec::new(),
+            collection: String::new(),
+            headings: Vec::new(),
+            outgoing_links: Vec::new(),
+            article_html: String::new(),
+            island_css: String::new(),
+            island_html: Vec::new(),
+            route: route.into(),
+            output_path: String::new(),
+            aliases: Vec::new(),
+            draft: false,
+            suppress_unlisted_warning: true,
+            unlisted: true,
+            breadcrumbs: Vec::new(),
+            previous: None,
+            next: None,
+            article: Vec::new(),
+            examples: Vec::new(),
+            includes: Vec::new(),
+            docs_kinds: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn selected_example_lists_source_tree_below_the_example() {
+        let navigation = vec![nav_section(
+            "Examples",
+            vec![
+                nav_item("examples/index", "Examples", "/examples/"),
+                nav_item("examples/blocks/index", "Rocci Blocks", "/examples/blocks/"),
+                nav_item("examples/snake/index", "Snake", "/examples/snake/"),
+            ],
+            vec![],
+        )];
+        let pages = [
+            source_page(
+                "examples/blocks/source/index",
+                "Rocci Blocks source",
+                "/examples/blocks/source/",
+            ),
+            source_page(
+                "examples/blocks/source/backend--Blocks-rocci",
+                "backend/Blocks.rocci",
+                "/examples/blocks/source/backend--Blocks-rocci/",
+            ),
+            source_page(
+                "examples/snake/source/Snake-rocci",
+                "Snake.rocci",
+                "/examples/snake/source/Snake-rocci/",
+            ),
+        ];
+        let (_, mut sidebar) = lanes_and_sidebar(
+            &navigation,
+            Some("examples/blocks/source/backend--Blocks-rocci"),
+        );
+        attach_example_source_tree(
+            &mut sidebar,
+            Some("examples/blocks/source/backend--Blocks-rocci"),
+            &pages,
+        );
+        assert!(sidebar[0].open);
+        let blocks = &sidebar[0].items[1];
+        assert_eq!(blocks.title, "Rocci Blocks");
+        assert_eq!(blocks.items_label, "Source");
+        assert!(blocks.open);
+        assert_eq!(blocks.items.len(), 2);
+        assert_eq!(blocks.items[0].title, "Rocci Blocks source");
+        assert_eq!(blocks.items[1].title, "backend/Blocks.rocci");
+        assert!(blocks.items[1].class_name.contains("is-current"));
+        assert!(sidebar[0].items[2].items.is_empty());
+        assert!(sidebar_has_current(
+            &sidebar,
+            "/examples/blocks/source/backend--Blocks-rocci/"
+        ));
+    }
+
+    #[test]
+    fn examples_index_does_not_attach_a_source_tree() {
+        let navigation = vec![nav_section(
+            "Examples",
+            vec![nav_item("examples/index", "Examples", "/examples/")],
+            vec![],
+        )];
+        let pages = [source_page(
+            "examples/blocks/source/App-rocci",
+            "App.rocci",
+            "/examples/blocks/source/App-rocci/",
+        )];
+        let (_, mut sidebar) = lanes_and_sidebar(&navigation, Some("examples/index"));
+        attach_example_source_tree(&mut sidebar, Some("examples/index"), &pages);
+        assert!(sidebar[0].items.iter().all(|item| item.items.is_empty()));
     }
 
     #[test]

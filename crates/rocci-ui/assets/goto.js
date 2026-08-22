@@ -354,12 +354,14 @@
     );
   };
 
+  const isExampleSource = (url) => /\/examples\/[^/]+\/source(?:\/|$)/.test(String(url || ""));
+
   const normalizePages = (rows) => {
     const out = [];
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i] || {};
       const url = row.route || row.url || "";
-      if (!url) {
+      if (!url || isExampleSource(url)) {
         continue;
       }
       out.push({
@@ -385,9 +387,13 @@
       if (!id) {
         continue;
       }
+      const url = "/" + id.replace(/^\/+|\/+$/g, "") + "/";
+      if (isExampleSource(url) || isExampleSource(id)) {
+        continue;
+      }
       out.push({
         title: title || id,
-        url: "/" + id.replace(/^\/+|\/+$/g, "") + "/",
+        url: url,
         path: row.path || "",
         description: description,
         kind: "",
@@ -418,7 +424,7 @@
         continue;
       }
       const key = url.pathname;
-      if (seen[key]) {
+      if (seen[key] || isExampleSource(key)) {
         continue;
       }
       seen[key] = true;
@@ -459,7 +465,12 @@
       try {
         catalog = JSON.parse(cached);
         if (catalog && catalog.length) {
-          return Promise.resolve(catalog);
+          catalog = catalog.filter(function (row) {
+            return row && !isExampleSource(row.url || row.route);
+          });
+          if (catalog.length) {
+            return Promise.resolve(catalog);
+          }
         }
       } catch (err) {
         catalog = null;

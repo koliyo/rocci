@@ -26,6 +26,12 @@ pub struct NavItemView {
     pub title: String,
     pub href: String,
     pub class_name: String,
+    #[serde(default)]
+    pub open: bool,
+    #[serde(default)]
+    pub items_label: String,
+    #[serde(default)]
+    pub items: Vec<NavItemView>,
 }
 
 impl NavItemView {
@@ -38,7 +44,12 @@ impl NavItemView {
             title: title.into(),
             href: href.into(),
             class_name: class_name.into(),
+            ..Default::default()
         }
+    }
+
+    pub fn covers_href(&self, href: &str) -> bool {
+        self.href == href || self.items.iter().any(|item| item.covers_href(href))
     }
 }
 
@@ -63,6 +74,10 @@ impl NavGroupView {
             open,
             items,
         }
+    }
+
+    pub fn covers_href(&self, href: &str) -> bool {
+        self.href == href || self.items.iter().any(|item| item.covers_href(href))
     }
 }
 
