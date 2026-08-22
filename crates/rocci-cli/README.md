@@ -21,7 +21,7 @@ cargo run -p rocci-cli -- build --release examples/rocci/standalone/counter/Coun
 # Stream Roc compiler output and phase timings for a release build
 cargo run -p rocci-cli -- build --release --verbose examples/rocci/custom/datastar --target x64musl
 # Available backend modes: speed, size, dev, interpreter
-cargo run -p rocci-cli -- build --release --opt dev examples/rocci/custom/blocks --target x64musl
+cargo run -p rocci-cli -- build --release --opt dev examples/rocci/standalone/blocks/backend/Blocks.rocci --target x64musl
 
 `rocci build --release` defaults to Roc's optimized `speed` backend. The
 repository site packager currently passes `--opt dev` for all live examples as

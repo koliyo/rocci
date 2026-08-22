@@ -5,12 +5,6 @@
 	@retired_news path /news/ /news/feed.xml
 	respond @retired_news 410
 
-	handle /play/blocks/* {
-		reverse_proxy blocks:8000 {
-			flush_interval -1
-		}
-		header Cache-Control "no-cache"
-	}
 	handle /actions/* {
 		reverse_proxy islands:8001 {
 			flush_interval -1
@@ -23,9 +17,6 @@
 	}
 	handle /health {
 		reverse_proxy islands:8001
-	}
-	handle /health/blocks {
-		reverse_proxy blocks:8000
 	}
 	@hashed path /assets/*
 	handle @hashed {

@@ -59,8 +59,6 @@ jobs:
             dist/rocci.dev/publish.json
             dist/examples-live/live-counter/server
             dist/examples-live/datastar/server
-            dist/blocks
-            dist/blocks-assets.tgz
 
   deploy:
     name: Push artifacts (${{ github.ref_name }})
@@ -94,10 +92,8 @@ jobs:
           ls -la artifacts
           test -f artifacts/site.tgz
           test -f artifacts/islands
-          test -f artifacts/blocks
-          test -f artifacts/blocks-assets.tgz
-          wc -c artifacts/site.tgz artifacts/islands artifacts/blocks artifacts/blocks-assets.tgz
-          file artifacts/islands artifacts/blocks || true
+          wc -c artifacts/site.tgz artifacts/islands
+          file artifacts/islands || true
       - name: Install cloudflared
         run: |
           set -euo pipefail

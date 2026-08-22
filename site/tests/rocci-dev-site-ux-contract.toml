@@ -87,14 +87,14 @@ outline_390 = "mobile-menu"
 title = "Project status · Rocci"
 
 [[route]]
-path = "/examples/blocks/source/Blocks-rocci/"
+path = "/examples/blocks/source/backend--Blocks-rocci/"
 page_class = "generated-example-source"
 sidebar = "examples"
-breadcrumbs = ["Rocci", "Examples", "Rocci Blocks", "Blocks.rocci"]
+breadcrumbs = ["Rocci", "Examples", "Rocci Blocks", "backend/Blocks.rocci"]
 outline_1280 = "right-rail"
 outline_900 = "inline-details"
 outline_390 = "mobile-menu"
-title = "Blocks.rocci · Rocci"
+title = "backend/Blocks.rocci · Rocci"
 
 [[route]]
 path = "/404.html"
