@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Multiplayer falling-block demonstrator on rocci.dev
-description: "Build one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser code owns responsive piece motion; Roc validates committed locks, owns boards, targeting, garbage, rounds, leases, and compact recovery snapshots. Exploratory; Phases 0–6 implemented on multiplayer-falling-block-demonstrator. Staging soak and 24-hour public observation are operator gates."
+description: "Historical custom-arena design: one same-origin falling-block arena for up to eight active players and a measured target of fifty spectators. Browser-owned falling piece, JSON lock acks, and /play/blocks/. Superseded as the product shape by the standalone falling-block authoring plan. Exploratory; Phases 0–6 described that custom arena."
 tags: [domain/rocci, domain/runtime, concern/architecture, concern/performance, concern/publication, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T17:00:00Z }
+generated: { by: process:cursor, at: 2026-08-22T13:00:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -82,9 +82,22 @@ sources:
     resource: https://tetris.wiki/Garbage
     title: Multiplayer falling-block garbage and targeting reference
     author: organization:tetris-wiki
+  - id: successor
+    resource: standalone-falling-block.md
+    title: Replacement standalone falling-block authoring plan
+    author: process:cursor
+    last_modified: 2026-08-22
 ---
 
 # Multiplayer falling-block demonstrator on rocci.dev
+
+## Current disposition
+
+This record is **historical**. Phases 0–6 described a custom `main.roc` arena
+at `/play/blocks/` with a canvas island, JSON lock acks, seats, and a
+main-hostname Caddy exception. The shipped product shape is the nested
+standalone app in the [standalone falling-block plan](standalone-falling-block.md).
+Do not treat `/play/blocks/` as a live route in the current tree.[^successor]
 
 ## Purpose and authority
 
@@ -642,3 +655,4 @@ Before Phase 5, a human should approve:
 [^apps-catalog]: The current app catalog distinguishes docs and live hosting but has no explicit per-app live URL.
 [^jstris-guide]: Target rotation, one-target distribution, cancellable queued garbage, and configurable garbage delay are established multiplayer choices; “to all” is explicitly more explosive.
 [^garbage-reference]: Common base attacks are 0/1/2/4 for single/double/triple/four-row clears; outgoing attack can cancel queued incoming garbage; many-player games select targets.
+[^successor]: The shipped product shape is nested standalone Blocks; this record keeps the custom-arena design as historical evidence.
