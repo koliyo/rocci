@@ -91,8 +91,9 @@ module has exactly one live route and no authored `data-init`. Commands are
 writes with no success representation: **empty SSE** for Datastar, **204**
 for ordinary callers. Do not also patch the same `id` from the command. Put
 an authored `data-init=@get("/sse", [OpenWhenHidden(True)])` when injection
-cannot see a `<body>` (island fragments) or when a module has multiple
-streams. `basic-webserver` polls (`Wait` + `After`); it has no cross-request
+cannot see a `<body>` (island fragments), when a module has multiple
+streams, or when the document lives in a UI module that has no live route
+(`examples/rocci/standalone/blocks/ui/BlocksUi.rocci`). `basic-webserver` polls (`Wait` + `After`); it has no cross-request
 pub/sub. Copy Snake’s unfold only when you need a custom ceiling the
 generator does not cover.
 
@@ -100,17 +101,20 @@ Do not treat “Datastar architecture” as “every POST is a broadcast bus.”
 not infer live mode from “there is a POST.”
 
 Examples: `examples/rocci/standalone/counter` is one-shot;
-`examples/rocci/standalone/live-counter` and hybrid `examples/rocdown/counter`
-are `@get:live` + `@post:command`; Snake is authored CQRS.
+`examples/rocci/standalone/live-counter` is a shared stream;
+`examples/rocci/standalone/blocks` is a server-owned game (`@post:command` plus
+`@get:live` HTML board); Snake is the custom unfold ceiling. Do not put
+gravity or DAS in a JS island when the point is standalone authoring.
 
 ## File and language fit
 
 - **Reusable widgets:** `components/*.rocci` — pure `@component`, scoped CSS,
   `@fixture`. No route handlers.
-- **HTTP app:** `pages/*.rocci` or app-root `.rocci` — `@context` / `@init` /
-  `@method:role` routes. `@get:view` returns `<html>`; `@method:fragment`
-  returns a fragment; `@method:command` returns `{}` (empty SSE vs 204).
-  JSON resources belong in authored `main.roc`.
+- **HTTP app:** `pages/*.rocci`, app-root `.rocci`, or nested `backend/` + `ui/`
+  with app-root `rocci.toml` — `@context` / `@init` / `@method:role` routes.
+  `@get:view` returns `<html>`; `@method:fragment` returns a fragment;
+  `@method:command` returns `{}` (empty SSE vs 204). JSON resources belong in
+  authored `main.roc`. Keep I/O out of `ui/` modules.
 - **Docs / prose:** `.rocdown` — Markdown first. Executable `@` / `:` only at
   document root. Static `rocdown build` rejects `@use` and live handlers;
   islands are a separate live origin.
@@ -150,6 +154,8 @@ Before implementing, answer:
   `@render`.
 - Copy Snake’s `Sse.unfold!` into ordinary apps; generated `@get:live` already
   emits the poll loop.
+- Put falling-piece gravity, DAS, or the board source of truth in a canvas JS
+  island when the example is meant to stay standalone Rocci.
 
 ## Validate
 

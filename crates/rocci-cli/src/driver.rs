@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
     process::{Child, Command},
@@ -582,21 +583,50 @@ pub fn invoke_standalone(
 
 pub fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<()> {
     let skip = format!("{type_name}.roc");
-    if !src_dir.is_dir() {
+    let mut seen = HashMap::new();
+    copy_authored_roc(src_dir, dest, &skip, &mut seen)
+}
+
+fn skip_staging_dir(name: &str) -> bool {
+    name.starts_with('.') || matches!(name, "generated" | "target" | "node_modules")
+}
+
+fn copy_authored_roc(
+    dir: &Path,
+    dest: &Path,
+    skip: &str,
+    seen: &mut HashMap<String, PathBuf>,
+) -> Result<()> {
+    if !dir.is_dir() {
         return Ok(());
     }
-    for entry in fs::read_dir(src_dir)? {
+    for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
+        let file_name = entry.file_name();
+        let name = file_name.to_string_lossy();
+        if path.is_dir() {
+            if skip_staging_dir(&name) {
+                continue;
+            }
+            copy_authored_roc(&path, dest, skip, seen)?;
+            continue;
+        }
         if path.extension().and_then(|ext| ext.to_str()) != Some("roc") {
             continue;
         }
-        let file_name = entry.file_name();
-        let name = file_name.to_string_lossy();
         if name == "main.roc" || name == skip {
             continue;
         }
-        fs::copy(&path, dest.join(&file_name))
+        let key = name.into_owned();
+        if let Some(previous) = seen.insert(key.clone(), path.clone()) {
+            bail!(
+                "duplicate Roc module `{key}`: {} and {}",
+                previous.display(),
+                path.display()
+            );
+        }
+        fs::copy(&path, dest.join(&key))
             .with_context(|| format!("failed to copy {}", path.display()))?;
     }
     Ok(())
@@ -652,10 +682,49 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(
             dir.join("rocci.toml"),
-            "[app]\nname = \"t\"\nidentifier = \"dev.rocci.t\"\n\n[[windows]]\nlabel = \"main\"\nurl = \"/play/blocks/\"\n",
+            "[app]\nname = \"t\"\nidentifier = \"dev.rocci.t\"\n\n[[windows]]\nlabel = \"main\"\nurl = \"/app/\"\n",
         )
         .unwrap();
-        assert_eq!(app_start_path(&dir), "/play/blocks/");
+        assert_eq!(app_start_path(&dir), "/app/");
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn copy_sibling_roc_flattens_nested_helpers() {
+        let src = env::temp_dir().join(format!("rocci-copy-src-{}", std::process::id()));
+        let dest = env::temp_dir().join(format!("rocci-copy-dest-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+        fs::create_dir_all(src.join("backend")).unwrap();
+        fs::create_dir_all(src.join("generated")).unwrap();
+        fs::create_dir_all(&dest).unwrap();
+        fs::write(src.join("backend").join("Game.roc"), "module").unwrap();
+        fs::write(src.join("backend").join("Blocks.roc"), "skip-primary").unwrap();
+        fs::write(src.join("generated").join("Stale.roc"), "skip-generated").unwrap();
+        copy_sibling_roc(&src, &dest, "Blocks").unwrap();
+        assert_eq!(fs::read_to_string(dest.join("Game.roc")).unwrap(), "module");
+        assert!(!dest.join("Blocks.roc").exists());
+        assert!(!dest.join("Stale.roc").exists());
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+    }
+
+    #[test]
+    fn copy_sibling_roc_rejects_duplicate_stems() {
+        let src = env::temp_dir().join(format!("rocci-copy-dup-{}", std::process::id()));
+        let dest = env::temp_dir().join(format!("rocci-copy-dup-dest-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
+        fs::create_dir_all(src.join("backend")).unwrap();
+        fs::create_dir_all(src.join("ui")).unwrap();
+        fs::create_dir_all(&dest).unwrap();
+        fs::write(src.join("backend").join("Game.roc"), "a").unwrap();
+        fs::write(src.join("ui").join("Game.roc"), "b").unwrap();
+        let err = copy_sibling_roc(&src, &dest, "Blocks")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("duplicate Roc module `Game.roc`"));
+        let _ = fs::remove_dir_all(&src);
+        let _ = fs::remove_dir_all(&dest);
     }
 }

@@ -287,7 +287,8 @@ Live demo hostnames (`<id>.examples.rocci.dev`) are **planned** until a staging
 deploy has served them. Only catalog `live` apps advertise those URLs.
 
 Roles: **learning** (first component and first app), **reference** (handler
-matrix), **pattern** (Datastar gallery), **advanced** (Snake stress demo).
+matrix), **pattern** (Datastar gallery), **advanced** (Blocks standalone,
+Snake custom ceiling).
 
 | App | Role | Persistence | Summary | Hosting |
 | --- | --- | --- | --- | --- |
@@ -376,9 +377,9 @@ mod tests {
     #[test]
     fn explicit_live_url_overrides_example_hostname() {
         let app = crate::catalog::AppEntry {
-            id: "blocks".into(),
-            path: "custom/blocks".into(),
-            title: "Rocci Blocks".into(),
+            id: "demo".into(),
+            path: "custom/demo".into(),
+            title: "Demo".into(),
             summary: "demo".into(),
             entry: ".".into(),
             hosting: crate::catalog::Hosting::Live,
@@ -388,12 +389,12 @@ mod tests {
             complexity: String::new(),
             persistence: String::new(),
             support: String::new(),
-            live_url: Some("https://rocci.dev/play/blocks/".into()),
+            live_url: Some("https://rocci.dev/play/demo/".into()),
         };
-        assert_eq!(super::app_play_url(&app), "https://rocci.dev/play/blocks/");
+        assert_eq!(super::app_play_url(&app), "https://rocci.dev/play/demo/");
         assert_eq!(
-            super::live_demo_url("blocks"),
-            "https://blocks.examples.rocci.dev"
+            super::live_demo_url("demo"),
+            "https://demo.examples.rocci.dev"
         );
     }
 }

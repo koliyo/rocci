@@ -67,7 +67,9 @@ cargo run -q -p rocci-cli -- run \
 ## Composition stays standalone
 
 Split components, render lists with `@for`, variants with `@match`, and forms
-without leaving generated dispatch. Custom `main.roc` is a later ownership
+without leaving generated dispatch. Nested apps such as
+[Rocci Blocks](/examples/blocks/) put handlers in `backend/` and markup in
+`ui/` behind an app-root `rocci.toml`. Custom `main.roc` is a later ownership
 step, not a requirement for composition.
 
 **Related:** [Handlers](/docs/applications/handlers/),

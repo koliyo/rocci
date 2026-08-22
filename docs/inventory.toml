@@ -392,13 +392,13 @@ notes = "Custom main.roc gallery. Live hostname planned."
 
 [[app]]
 id = "blocks"
-path = "examples/rocci/custom/blocks"
-entry = "."
-hosting = "live"
-role = "advanced-stress"
-prose = "examples/rocci/custom/blocks/index.rocdown"
+path = "examples/rocci/standalone/blocks"
+entry = "backend/Blocks.rocci"
+hosting = "docs"
+role = "advanced-standalone"
+prose = "examples/rocci/standalone/blocks/index.rocdown"
 generated = ["/examples/blocks/", "/examples/blocks/source/"]
-notes = "First-party same-origin falling-block arena. Live URL is /play/blocks/."
+notes = "Nested standalone falling-block app. Docs-only until a generic live hostname exists."
 
 [[app]]
 id = "snake"

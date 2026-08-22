@@ -1,0 +1,55 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Rocci Blocks",
+        description: "Standalone falling-block app with server-owned gravity and live HTML",
+    },
+}
+
+# Rocci Blocks
+
+**Audience:** experienced Rocci author.
+**Prerequisites:** [standalone applications](/docs/applications/standalone/).
+**Role:** advanced standalone authoring example. Public copy says “falling-block arena.”
+
+One shared SQLite game. Roc owns the board, the falling piece, gravity, kicks, and the seven-bag. Datastar `@post` / `@get` actions send intent. `@get:live("/sse")` morphs `#board` and `#hud`. There is no canvas island and no custom `main.roc`.
+
+Run the backend entry so nested `backend/` and `ui/` modules resolve from this directory’s `rocci.toml`:
+
+```sh
+cargo run -q -p rocci-cli -- inspect --ast examples/rocci/standalone/blocks/backend/Blocks.rocci
+cargo run -q -p rocci-cli -- inspect --ast examples/rocci/standalone/blocks/ui/BlocksUi.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/blocks/backend/Blocks.rocci
+```
+
+`--no-window` serves `http://127.0.0.1:8000/`. Open two tabs: a move in one morphs the board in both.
+
+```sh
+curl -s -o /dev/null -D - -X POST http://127.0.0.1:8000/actions/reset
+# 204
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/reset \
+  -H 'Datastar-Request: true'
+# 200 text/event-stream (empty SSE)
+```
+
+Keyboard: arrows / WASD, Up/X rotate, Z CCW, Space hard drop.
+
+## Layout
+
+| Path | Owns |
+| --- | --- |
+| `backend/Blocks.rocci` | `@context`, `@init`, routes, SQLite |
+| `backend/Game.roc` | Pure rules and overlay cells |
+| `ui/BlocksUi.rocci` | Page, board, HUD, fixtures, CSS |
+
+## Shortcomings
+
+These are product limits of generated standalone Rocci, not accidental omissions:
+
+- **Input latency.** Every key is an HTTP command. There is no client DAS/ARR; browser key-repeat posts instead.
+- **Quoted keydown.** Rocci actions cannot branch on `evt.key`, so the keyboard map is opaque Datastar JS, not `@post("/actions/left")` on each key.
+- **Gravity clock.** Generated live polls every 100 ms and applies due steps from `last_tick_ms`. Gravity does not advance with zero subscribers.
+- **One shared game.** No cookies or seats. Every tab plays the same SQLite row.
+- **HTML grid.** Cells remorph over SSE; this is not a 60 fps canvas paint.
+- **No multiplayer protocol.** Garbage, spectators, leases, JSON lock acks, and a main-hostname play mount are out of this example. Snake remains the custom-runtime ceiling.
+- **Generated `/health` only.** There is no extra health text route.

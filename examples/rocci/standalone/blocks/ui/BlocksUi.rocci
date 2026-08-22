@@ -1,0 +1,225 @@
+import Game
+import Html
+
+started = Game.start(1)
+
+sample_view = {
+    rows: Game.overlay_rows(started),
+    score: 0.I64,
+    status: "playing",
+    piece: started.piece,
+    next: Game.peek_next(started.bag, started.seed),
+}
+
+sample_topped = { ..sample_view, status: "topped", score: 800.I64 }
+
+@component
+Board = |{ view }|
+    <div id="board" class="board" aria-label="Board">
+        @for row in view.rows {
+            <div class="row">
+                @for cell in row.cells {
+                    <span class={cell.class}></span>
+                }
+            </div>
+        }
+    </div>
+
+@component
+Hud = |{ view }|
+    <aside id="hud" class="hud">
+        <p class="eyebrow">Rocci Blocks</p>
+        @match view.status {
+            "topped" => <p class="overlay">Topped out — reset to play again.</p>
+            _ => <p>Playing</p>
+        }
+        <p>Score {view.score.to_str()}</p>
+        <p>Next {view.next}</p>
+        <p>Current {view.piece}</p>
+    </aside>
+
+@component
+Controls = |{}|
+    <div class="steer" aria-label="Controls">
+        <button type="button" class="secondary" data-on:click=@post("/actions/ccw")>CCW</button>
+        <button type="button" class="secondary" data-on:click=@post("/actions/rotate")>CW</button>
+        <button type="button" class="secondary" data-on:click=@post("/actions/left")>Left</button>
+        <button type="button" class="secondary" data-on:click=@post("/actions/right")>Right</button>
+        <button type="button" class="secondary" data-on:click=@post("/actions/down")>Down</button>
+        <button type="button" data-on:click=@post("/actions/drop")>Drop</button>
+        <button type="button" class="secondary" data-on:click=@post("/actions/reset")>Reset</button>
+    </div>
+
+@component
+LiveSlice = |{ view }|
+    <>
+        <Board view={view} />
+        <Hud view={view} />
+    </>
+
+@component
+PlayPage = |{ view }|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Rocci Blocks</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body
+            data-init=@get("/sse", [OpenWhenHidden(True)])
+            data-on:keydown__window="evt.preventDefault(); (evt.key === 'ArrowLeft' || evt.key === 'a' || evt.key === 'A') && @post('/actions/left'); (evt.key === 'ArrowRight' || evt.key === 'd' || evt.key === 'D') && @post('/actions/right'); (evt.key === 'ArrowDown' || evt.key === 's' || evt.key === 'S') && @post('/actions/down'); (evt.key === 'ArrowUp' || evt.key === 'x' || evt.key === 'w' || evt.key === 'W') && @post('/actions/rotate'); (evt.key === 'z' || evt.key === 'Z') && @post('/actions/ccw'); evt.key === ' ' && @post('/actions/drop')"
+        >
+            <main class="play">
+                <nav>
+                    <strong>ROC</strong>
+                    <span>Standalone falling-block</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">Rocci Blocks</p>
+                    <h1>Falling-block arena.</h1>
+                    <p class="lede">One shared SQLite game. Commands return no representation; GET /sse morphs the board in every tab. The server owns gravity and the falling piece.</p>
+                </header>
+                <div class="stage">
+                    <Board view={view} />
+                    <Controls />
+                </div>
+                <div class="side">
+                    <Hud view={view} />
+                </div>
+            </main>
+        </body>
+    </html>
+
+@fixture{target: Board}
+boardTest = { view: sample_view }
+
+@fixture{target: Hud}
+hudTest = { view: sample_view }
+
+@fixture{target: Hud}
+hudToppedTest = { view: sample_topped }
+
+@fixture{target: PlayPage}
+playTest = { view: sample_view }
+
+@fixture{target: LiveSlice}
+liveTest = { view: sample_view }
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+        --accent: #48eda4;
+        --muted: #8da39a;
+        --line: rgba(109, 236, 177, 0.2);
+        --cell: 1.5rem;
+    }
+    main.play {
+        width: min(52rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+        display: grid;
+        grid-template-columns: minmax(0, auto) minmax(12rem, 16rem);
+        gap: 1.5rem;
+        align-items: start;
+    }
+    nav {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong {
+        color: var(--accent);
+        font-size: 1.1rem;
+        letter-spacing: 0.16em;
+    }
+    header { grid-column: 1 / -1; }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    .eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--accent);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .lede {
+        margin: 0;
+        max-width: 36rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    .board {
+        display: grid;
+        gap: 1px;
+        padding: 4px;
+        background: #07110e;
+        border: 1px solid #1d3b30;
+        border-radius: 12px;
+        width: calc(var(--cell) * 10 + 10px);
+    }
+    .row { display: flex; }
+    .cell {
+        width: var(--cell);
+        height: var(--cell);
+        border-radius: 3px;
+        background: #0b1f18;
+    }
+    .cell.piece-I { background: #6ee7f9; }
+    .cell.piece-J { background: #60a5fa; }
+    .cell.piece-L { background: #fb923c; }
+    .cell.piece-O { background: #facc15; }
+    .cell.piece-S { background: #4ade80; }
+    .cell.piece-Z { background: #f87171; }
+    .cell.piece-T { background: #c084fc; }
+    .cell.ghost { opacity: 0.28; }
+    .hud {
+        padding: 1.25rem 1.4rem;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(11, 30, 24, 0.72);
+    }
+    .overlay { color: var(--accent); font-weight: 700; }
+    .steer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+        width: calc(var(--cell) * 10 + 10px);
+    }
+    button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.6rem 0.75rem;
+        background: var(--accent);
+        color: #06100c;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    button.secondary {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: #bfd0c8;
+    }
+}
