@@ -91,6 +91,10 @@ pub fn handler_proxy_error(method: &str, path: &str, err: impl std::fmt::Display
     )
 }
 
+pub fn handler_proxy_closed(method: &str, path: &str) -> String {
+    format_handler_detail(stderr_color(), method, path, "client closed", "1;32")
+}
+
 fn format_handler(color: bool, method: &str, path: &str, status: &str) -> String {
     let status_code = if status == "ok" { "1;32" } else { "1;31" };
     format_handler_detail(color, method, path, status, status_code)
@@ -197,6 +201,10 @@ mod tests {
                 "1;32"
             )),
             "POST /actions/x -> proxied (4ms)"
+        );
+        assert_eq!(
+            strip_ansi(&handler_proxy_closed("GET", "/sse")),
+            "GET /sse -> client closed"
         );
     }
 }
