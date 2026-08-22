@@ -84,7 +84,8 @@ cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 `templates/dev/MetricsPanel.rocci` is the preview-origin Dev inspector. It has
 tabs for Performance, Source, and Console. Source is a GET form (`tab`, `route`,
 `view`) for original source, formatted AST, generated Roc, and generated HTML.
-Long Source bodies scroll inside `.code-pane`. Original Rocci, Rocdown, and
+Long Source bodies scroll inside `.code-pane` without moving the preview page;
+use the **Wrap** checkbox to toggle line wrapping (on by default). Original Rocci, Rocdown, and
 Markdown, plus generated Roc and HTML, highlight with `rocci-highlight` `tok-*`
 classes (playground token colors). AST stays escaped plaintext. OKF records
 show Markdown source and built HTML; the Source dropdown omits AST and Generated Roc.
