@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 268" role="img">
+  <title>.rocci compiles by parsing, validating, and lowering before roc type-checks</title>
+  <desc>rocci-template parses template versus Roc regions, validates, and lowers to generated Roc with source-map segments. rocci-cli then type-checks and compiles that Roc to a native host. Interpolations are not type-checked in the template crate.</desc>
+  <style>
+      :root {
+        color-scheme: dark light;
+        --canvas: #282c34;
+        --surface: #21252b;
+        --ink: #abb2bf;
+        --muted: #9da5b4;
+        --line: #3e4451;
+        --accent: #61afef;
+        --accent-soft: #2c313c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --canvas: #fafafa;
+          --surface: #ffffff;
+          --ink: #383a42;
+          --muted: #696c77;
+          --line: #e5e5e6;
+          --accent: #4078f2;
+          --accent-soft: #eef2fb;
+        }
+      }
+      .bg { fill: var(--canvas); }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+      .box-hi { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.25; }
+      .title { fill: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 700; }
+      .sub { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 500; }
+      .mono { fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 650; }
+      .head { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 750; letter-spacing: 0.06em; }
+      .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: url(#arrowHead); }
+      #arrowHead path { fill: var(--accent); }
+    </style>
+  <defs>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.2 L 10 5 L 0 8.8 z" />
+    </marker>
+  </defs>
+  <rect class="bg" width="720" height="268" rx="8" />
+
+  <text class="head" x="16" y="22">ROCCI-TEMPLATE</text>
+
+  <rect class="box-hi" x="16" y="32" width="150" height="64" rx="6" />
+  <text class="mono" x="91" y="58" text-anchor="middle">.rocci</text>
+  <text class="sub" x="91" y="78" text-anchor="middle">authored module</text>
+
+  <path class="arrow" d="M166 64 L182 64" />
+
+  <rect class="box" x="184" y="32" width="150" height="64" rx="6" />
+  <text class="title" x="259" y="58" text-anchor="middle">parse</text>
+  <text class="sub" x="259" y="78" text-anchor="middle">template vs Roc</text>
+
+  <path class="arrow" d="M334 64 L350 64" />
+
+  <rect class="box" x="352" y="32" width="150" height="64" rx="6" />
+  <text class="title" x="427" y="58" text-anchor="middle">validate</text>
+  <text class="sub" x="427" y="78" text-anchor="middle">closed @ forms</text>
+
+  <path class="arrow" d="M502 64 L518 64" />
+
+  <rect class="box" x="520" y="32" width="184" height="64" rx="6" />
+  <text class="title" x="612" y="58" text-anchor="middle">lower</text>
+  <text class="sub" x="612" y="78" text-anchor="middle">Html.* + route metadata</text>
+
+  <path class="arrow" d="M612 96 L612 124 L180 124 L180 150" />
+
+  <text class="head" x="16" y="142">ROCCI-CLI + ROC</text>
+
+  <rect class="box-hi" x="92" y="152" width="176" height="64" rx="6" />
+  <text class="mono" x="180" y="178" text-anchor="middle">generated .roc</text>
+  <text class="sub" x="180" y="198" text-anchor="middle">source-map segments</text>
+
+  <path class="arrow" d="M268 184 L300 184" />
+
+  <rect class="box" x="302" y="152" width="176" height="64" rx="6" />
+  <text class="title" x="390" y="178" text-anchor="middle">roc type-check</text>
+  <text class="sub" x="390" y="198" text-anchor="middle">and compile</text>
+
+  <path class="arrow" d="M478 184 L510 184" />
+
+  <rect class="box" x="512" y="152" width="176" height="64" rx="6" />
+  <text class="title" x="600" y="178" text-anchor="middle">native host</text>
+  <text class="sub" x="600" y="198" text-anchor="middle">HTTP origin later</text>
+
+  <text class="sub" x="360" y="248" text-anchor="middle">A template can parse and still fail in roc. Diagnostics remap through source-map segments.</text>
+</svg>

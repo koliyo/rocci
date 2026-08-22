@@ -14,6 +14,10 @@ This page is how you ship a working app. Field tables stay in
 
 **Verify:** `rocci validate` succeeds; `build --release` writes a server tree.
 
+:figure[caption: "Validate, then ship a release server or an ad-hoc macOS .app."] {{
+    :img[src: "/assets/diagrams/delivery.svg", alt: "rocci validate checks rocci.toml. rocci build --release writes a server process plus assets for a reverse proxy. rocci bundle writes an ad-hoc macOS .app. There is no production signing.", loading: "lazy", decoding: "async"]
+}}
+
 ## Configure and secure
 
 Unknown `rocci.toml` fields are errors. Validate before you change anything:

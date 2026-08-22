@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 448" role="img">
+  <title>Rocdown splits a document into static article HTML and compiled islands</title>
+  <desc>Markdown, @page, and :kind become Rust article HTML with placeholders. @render, template items, and @component go through compile_islands, lower to Roc, and roc eval to HTML. Placeholders are spliced. Static pages emit CDN HTML without Datastar. Hydrate pages splice pure Rocci without Datastar. Live pages emit a CDN snapshot plus Datastar and an island service for commands and live streams, not page GET. There is no @island syntax.</desc>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --canvas: #282c34;
+      --surface: #21252b;
+      --ink: #abb2bf;
+      --muted: #9da5b4;
+      --line: #3e4451;
+      --accent: #61afef;
+      --accent-soft: #2c313c;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --canvas: #fafafa;
+        --surface: #ffffff;
+        --ink: #383a42;
+        --muted: #696c77;
+        --line: #e5e5e6;
+        --accent: #4078f2;
+        --accent-soft: #eef2fb;
+      }
+    }
+    .bg { fill: var(--canvas); }
+    .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+    .box-hi { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.25; }
+    .title { fill: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 700; }
+    .sub { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; font-weight: 500; }
+    .mono { fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 650; }
+    .head { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 750; letter-spacing: 0.06em; }
+    .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: url(#arrowHead); }
+    #arrowHead path { fill: var(--accent); }
+  </style>
+  <defs>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.2 L 10 5 L 0 8.8 z" />
+    </marker>
+  </defs>
+  <rect class="bg" width="720" height="448" rx="8" />
+
+  <rect class="box-hi" x="200" y="12" width="320" height="48" rx="6" />
+  <text class="mono" x="360" y="32" text-anchor="middle">.rocdown document items</text>
+  <text class="sub" x="360" y="48" text-anchor="middle">no @island syntax  -  split by existing item kinds</text>
+
+  <path class="arrow" d="M280 60 L166 84" />
+  <path class="arrow" d="M440 60 L554 84" />
+
+  <rect class="box" x="16" y="88" width="300" height="72" rx="6" />
+  <text class="title" x="166" y="112" text-anchor="middle">Markdown / @page / :kind</text>
+  <text class="sub" x="166" y="130" text-anchor="middle">Rust article HTML</text>
+  <text class="mono" x="166" y="148" text-anchor="middle">&lt;!--rocci-island--&gt;</text>
+
+  <rect class="box" x="404" y="88" width="300" height="72" rx="6" />
+  <text class="title" x="554" y="112" text-anchor="middle">@render / template / @component</text>
+  <text class="sub" x="554" y="130" text-anchor="middle">compile_islands ? lower to Roc</text>
+  <text class="sub" x="554" y="148" text-anchor="middle">roc eval ? island Html</text>
+
+  <path class="arrow" d="M166 160 L330 176" />
+  <path class="arrow" d="M554 160 L390 176" />
+
+  <rect class="box-hi" x="210" y="176" width="300" height="48" rx="6" />
+  <text class="title" x="360" y="196" text-anchor="middle">splice placeholders</text>
+  <text class="sub" x="360" y="212" text-anchor="middle">island Html into the article</text>
+
+  <path class="arrow" d="M360 224 L360 244" />
+
+  <text class="head" x="16" y="258">PAGE KIND</text>
+
+  <rect class="box" x="16" y="266" width="224" height="72" rx="6" />
+  <text class="mono" x="128" y="290" text-anchor="middle">static</text>
+  <text class="sub" x="128" y="308" text-anchor="middle">CDN HTML</text>
+  <text class="sub" x="128" y="324" text-anchor="middle">no Datastar</text>
+
+  <rect class="box" x="248" y="266" width="224" height="72" rx="6" />
+  <text class="mono" x="360" y="290" text-anchor="middle">hydrate</text>
+  <text class="sub" x="360" y="308" text-anchor="middle">spliced Rocci</text>
+  <text class="sub" x="360" y="324" text-anchor="middle">no Datastar</text>
+
+  <rect class="box-hi" x="480" y="266" width="224" height="72" rx="6" />
+  <text class="mono" x="592" y="290" text-anchor="middle">live</text>
+  <text class="sub" x="592" y="308" text-anchor="middle">CDN snapshot + Datastar</text>
+  <text class="sub" x="592" y="324" text-anchor="middle">plus island service</text>
+
+  <path class="arrow" d="M592 338 L592 358" />
+
+  <rect class="box" x="404" y="360" width="300" height="48" rx="6" />
+  <text class="title" x="554" y="380" text-anchor="middle">island service</text>
+  <text class="sub" x="554" y="396" text-anchor="middle">commands and live  -  not page GET</text>
+
+  <text class="sub" x="360" y="432" text-anchor="middle">docs/ is static. Hybrid example: examples/rocdown/counter. @use is a site-build error.</text>
+</svg>

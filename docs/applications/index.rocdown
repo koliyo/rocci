@@ -14,6 +14,10 @@ custom are two depths of this layer, not two products.
 Stop here if you only preview components. You do not need Rocdown to ship
 an app.
 
+:figure[caption: "rocci run serves one HTTP origin. Datastar morphs HTML. Ship a server or an ad-hoc app."] {{
+    :img[src: "/assets/diagrams/runtime.svg", alt: "rocci run compiles .rocci modules, writes generated or authored main.roc, and roc compiles a loopback HTTP origin. The preview window loads that origin. GET view returns a document, POST fragment morphs HTML by id, POST command returns empty SSE or 204, and GET live polls a stream. rocci build --release writes a server plus assets; rocci bundle writes an ad-hoc macOS app.", loading: "lazy", decoding: "async"]
+}}
+
 | Depth | What you author | What `rocci run` does |
 | --- | --- | --- |
 | Standalone | `@context`, `@init`, `@get:view`, optional fragment / command / live routes | Generate dispatch, `/assets`, `/health`, and authored live paths |
@@ -21,7 +25,8 @@ an app.
 
 Stay standalone until generated dispatch is in the way: extra routes, a
 different platform, or a runtime the dispatcher does not express. Reuse
-components; do not re-implement `Html`.
+components; do not re-implement `Html`. How a request moves is the
+[runtime matrix](/docs/reference/runtime/).
 
 :card-grid.begin
     :link-card[href: "/docs/applications/standalone/", title: "Standalone", summary: "First app: Counter, SQLite, one-shot fragment."]
