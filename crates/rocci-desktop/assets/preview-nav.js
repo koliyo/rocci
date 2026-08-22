@@ -2,7 +2,8 @@
   if (window.__rocciPreviewNav) {
     return;
   }
-  const HEIGHT = "48px";
+  const UNIFIED = __ROCCI_UNIFIED_TITLEBAR__ === true;
+  const HEIGHT = UNIFIED ? "52px" : "48px";
   const LIVE_RELOAD_KEY = "rocci-live-reload";
   const LEGACY_PANEL_KEY = "rocci-dev-panel";
   const LEGACY_VIEW_KEY = "rocci-dev-view";
@@ -28,6 +29,9 @@
   const revealLabel =
     typeof __ROCCI_REVEAL_LABEL__ === "string" ? __ROCCI_REVEAL_LABEL__ : "Reveal in Finder";
   const host = document.createElement("rocci-preview-nav");
+  if (UNIFIED) {
+    host.classList.add("unified");
+  }
   const shadow = host.attachShadow({ mode: "open" });
   const sheet = document.createElement("style");
   sheet.textContent = __ROCCI_PREVIEW_NAV_CSS__;
