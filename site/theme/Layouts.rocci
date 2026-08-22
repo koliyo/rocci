@@ -9,22 +9,14 @@ import PageOutline
         @if view.site.footer != "" {
             <p class="article-footer-text">{view.site.footer}</p>
         }
-        @if view.site.repository != "" {
-            <p class="article-footer-links">
-                <a class="footer-github-link" href={view.site.repository}>
-                    <Components.GithubIcon />
-                    <span>GitHub</span>
-                </a>
-            </p>
-        }
+        <Components.FooterLinks repository={view.site.repository} />
     </footer>
 }
 
-@component Home = |{ view }, content| {
+@component Home = |{ view: _view }, content| {
     <div class="layout-home">
         <main class="home-main" id="main-content">
             <article class="article">{content}</article>
-            <ArticleFooter view={view} />
         </main>
     </div>
 }
@@ -309,26 +301,15 @@ import PageOutline
         text-align: center;
     }
     .article-footer-text { margin: 0; }
-    .article-footer-links { margin: .65rem 0 0; }
     .layout-home .rd-docs-caution {
         max-width: 36rem;
         margin-left: auto;
         margin-right: auto;
         text-align: center;
     }
-    .article-footer .footer-github-link {
-        display: inline-flex;
-        align-items: center;
-        gap: .45rem;
-        color: var(--muted);
-        font-weight: 650;
-        text-decoration: none;
-    }
-    .article-footer .footer-github-link:hover { color: var(--ink); }
-    .article-footer .footer-github-link svg {
-        width: 1rem;
-        height: 1rem;
-    }
+    .article-footer .footer-links { margin: .65rem 0 0; }
+    .article-footer .footer-link { color: var(--muted); }
+    .article-footer .footer-link:hover { color: var(--ink); }
     @media (min-width: 48.01rem) {
         :scope.layout-navigated {
             height: 100%;

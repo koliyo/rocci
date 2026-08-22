@@ -10,6 +10,43 @@ import Html
     </svg>
 }
 
+@component EmailIcon = |{}| {
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path
+            fill="currentColor"
+            d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"
+        />
+    </svg>
+}
+
+@component BlueskyIcon = |{}| {
+    <svg viewBox="0 0 64 57" width="16" height="14" aria-hidden="true">
+        <path
+            fill="currentColor"
+            d="M13.873 3.805C21.21 9.332 29.103 20.537 32 26.55v15.882c0-.338-.13.044-.41.867-1.512 4.456-7.418 21.847-20.923 7.944-7.111-7.32-3.819-14.64 9.125-16.85-7.405 1.264-15.73-.825-18.014-9.015C1.12 23.022 0 8.52 0 6.55 0-3.268 8.579-.182 13.873 3.805ZM50.127 3.805C42.79 9.332 34.897 20.537 32 26.55v15.882c0-.338.13.044.41.867 1.512 4.456 7.418 21.847 20.923 7.944 7.111-7.32 3.819-14.64-9.125-16.85 7.405 1.264 15.73-.825 18.014-9.015C62.88 23.022 64 8.52 64 6.55c0-9.818-8.578-6.734-13.873-2.745Z"
+        />
+    </svg>
+}
+
+@component FooterLinks = |{ repository }| {
+    <p class="footer-links">
+        <a class="footer-link" href="mailto:hi@rocci.dev">
+            <EmailIcon />
+            <span>{"hi@rocci.dev"}</span>
+        </a>
+        <a class="footer-link" href="https://bsky.app/profile/rocci.dev" rel="me">
+            <BlueskyIcon />
+            <span>{"@rocci.dev"}</span>
+        </a>
+        @if repository != "" {
+            <a class="footer-link" href={repository}>
+                <GithubIcon />
+                <span>GitHub</span>
+            </a>
+        }
+    </p>
+}
+
 @component GithubLink = |{ href }| {
     <a class="header-icon-link" href={href} aria-label="GitHub repository">
         <GithubIcon />
@@ -31,14 +68,7 @@ import Html
             @if footer != "" {
                 <p class="footer-text">{footer}</p>
             }
-            @if repository != "" {
-                <p class="footer-links">
-                    <a class="footer-github-link" href={repository}>
-                        <GithubIcon />
-                        <span>GitHub</span>
-                    </a>
-                </p>
-            }
+            <FooterLinks repository={repository} />
         </div>
     </footer>
 }
@@ -129,10 +159,14 @@ import Html
         font-weight: 800;
     }
     .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: .85rem 1.35rem;
         margin: .75rem 0 0;
         text-align: center;
     }
-    .footer-github-link {
+    .footer-link {
         display: inline-flex;
         align-items: center;
         gap: .45rem;
@@ -141,12 +175,13 @@ import Html
         font-weight: 650;
         text-decoration: none;
     }
-    .footer-github-link:hover {
+    .footer-link:hover {
         color: var(--ink);
     }
-    .footer-github-link svg {
+    .footer-link svg {
         width: 1rem;
         height: 1rem;
+        flex-shrink: 0;
     }
     .rd-card-grid {
         display: grid;
