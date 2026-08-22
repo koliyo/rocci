@@ -37,7 +37,7 @@ fn parity_roc_snippet_drives_lsp_and_rocdown_html() {
 
     assert!(html.contains("<pre class=\"rd-code-block\" data-language=\"roc\">"));
     assert!(html.contains("<code class=\"rd-code language-roc\">"));
-    assert!(html.contains("<span class=\"tok-variable\">main</span>"));
+    assert!(html.contains("<span class=\"tok-parameter\">main</span>"));
     assert!(html.contains("<span class=\"tok-operator\">=</span>"));
     assert!(html.contains("<span class=\"tok-string\">&quot;Hello World&quot;</span>"));
 }

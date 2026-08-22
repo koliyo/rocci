@@ -1681,15 +1681,14 @@ fn render_docs(docs: &DocsNode) -> String {
     }
     if docs.kind == "include"
         && let Some(child) = docs.children.first()
+        && let ArticleNode::Markdown(MdNode::CodeBlock { info, literal, .. }) = child
     {
-        if let ArticleNode::Markdown(MdNode::CodeBlock { info, literal, .. }) = child {
-            let line_start = docs
-                .origin
-                .as_ref()
-                .and_then(|origin| origin.line_start)
-                .unwrap_or(1);
-            return crate::article::render_code_block_with_lines(info, literal, Some(line_start));
-        }
+        let line_start = docs
+            .origin
+            .as_ref()
+            .and_then(|origin| origin.line_start)
+            .unwrap_or(1);
+        return crate::article::render_code_block_with_lines(info, literal, Some(line_start));
     }
     docs.children.iter().map(render_node).collect::<String>()
 }

@@ -48,7 +48,7 @@ pub fn browse(
     }
 
     let compiled_modules = compile_modules(&files)?;
-    let workspace = TempDir::create()?;
+    let workspace = crate::driver::TempDir::create("browse")?;
     let mut copied = HashMap::new();
     let skip_names = reserved_and_generated(&compiled_modules);
 
@@ -1786,29 +1786,6 @@ fn roc_string(value: &str) -> String {
 
 fn roc_bool(value: bool) -> &'static str {
     if value { "True" } else { "False" }
-}
-
-struct TempDir {
-    path: PathBuf,
-}
-
-impl TempDir {
-    fn create() -> Result<Self> {
-        let path = std::env::temp_dir().join(format!("rocci-browse-{}", std::process::id()));
-        if path.exists() {
-            fs::remove_dir_all(&path)
-                .with_context(|| format!("failed to clear {}", path.display()))?;
-        }
-        fs::create_dir_all(&path)
-            .with_context(|| format!("failed to create {}", path.display()))?;
-        Ok(Self { path })
-    }
-}
-
-impl Drop for TempDir {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
 }
 
 #[cfg(test)]

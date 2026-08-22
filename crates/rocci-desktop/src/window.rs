@@ -171,7 +171,7 @@ fn align_traffic_lights(window: &Window) {
         title_bar_rect.origin.y = ns_window.frame().size.height - UNIFIED_CHROME_HEIGHT;
         title_bar.setFrame(title_bar_rect);
 
-        let space = NSView::frame(&*miniaturize).origin.x - close_rect.origin.x;
+        let space = NSView::frame(&miniaturize).origin.x - close_rect.origin.x;
         let mut buttons = vec![close, miniaturize];
         if let Some(zoom) = zoom {
             buttons.push(zoom);

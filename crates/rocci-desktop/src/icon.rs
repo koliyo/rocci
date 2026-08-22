@@ -25,7 +25,9 @@ pub(crate) fn decode_rgba(bytes: &[u8]) -> Result<RgbaIcon, String> {
     let rgba = match info.color_type {
         png::ColorType::Rgba => pixels.to_vec(),
         png::ColorType::Rgb => pixels
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], 255])
             .collect(),
         other => {

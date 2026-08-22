@@ -1667,8 +1667,7 @@ mod tests {
             io::ErrorKind::UnexpectedEof,
             "eof"
         )));
-        assert!(is_client_abort(&io::Error::new(
-            io::ErrorKind::Other,
+        assert!(is_client_abort(&io::Error::other(
             "Broken pipe (os error 32)"
         )));
         assert!(!is_client_abort(&io::Error::new(
