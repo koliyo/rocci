@@ -1,7 +1,16 @@
 name: Knowledge
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: PR number to validate on the trusted self-hosted runner
+        required: true
+        type: string
+      pr_sha:
+        description: Exact PR head SHA returned by GitHub
+        required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -9,15 +18,56 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  authorize:
+    name: Authorize trusted PR
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Validate PR author, repository, and immutable SHA
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_SHA: ${{ inputs.pr_sha }}
+          TRUSTED_AUTHOR: koliyo
+        run: |
+          set -euo pipefail
+          echo "allowed=false" >> "$GITHUB_OUTPUT"
+
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ || ! "$PR_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Self-hosted knowledge validation denied: malformed PR number or SHA."
+            exit 0
+          fi
+
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          author="$(jq -r '.user.login // ""' <<< "$pr_json")"
+          head_repo="$(jq -r '.head.repo.full_name // ""' <<< "$pr_json")"
+          head_sha="$(jq -r '.head.sha // ""' <<< "$pr_json")"
+
+          if [[ "$author" != "$TRUSTED_AUTHOR" ||
+                "$head_repo" != "$GITHUB_REPOSITORY" ||
+                "$head_sha" != "$PR_SHA" ]]; then
+            echo "Self-hosted knowledge validation denied: PR is not an exact same-repository PR authored by ${TRUSTED_AUTHOR}."
+            exit 0
+          fi
+
+          echo "allowed=true" >> "$GITHUB_OUTPUT"
+          echo "Authorized ${GITHUB_REPOSITORY}#${PR_NUMBER} at ${PR_SHA}."
+
   validate:
     name: Validate Knowledge OKF Bundle
-    runs-on: macos-latest
+    needs: authorize
+    if: needs.authorize.outputs.allowed == 'true'
+    runs-on: [self-hosted, rocci-macos]
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ inputs.pr_sha }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6

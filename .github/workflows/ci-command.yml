@@ -6,28 +6,65 @@ on:
 
 permissions:
   contents: read
-  actions: write
   pull-requests: write
 
 jobs:
-  dispatch:
-    name: Queue CI from /ci
+  prepare:
+    name: Authorize trusted PR
     if: >
       github.event.issue.pull_request &&
-      (github.event.comment.author_association == 'OWNER' ||
-       github.event.comment.author_association == 'MEMBER' ||
-       github.event.comment.author_association == 'COLLABORATOR') &&
+      github.event.comment.user.login == 'koliyo' &&
       (github.event.comment.body == '/ci' ||
        startsWith(github.event.comment.body, '/ci '))
-    runs-on: [self-hosted, rocci-linux]
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.inspect.outputs.allowed }}
+      pr_number: ${{ steps.inspect.outputs.pr_number }}
+      pr_sha: ${{ steps.inspect.outputs.pr_sha }}
     steps:
-      - name: Dispatch CI and Knowledge on the PR head
+      - name: Validate PR author, repository, and immutable SHA
+        id: inspect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           pr="${{ github.event.issue.number }}"
-          ref="$(gh api "repos/${{ github.repository }}/pulls/${pr}" --jq .head.ref)"
-          gh workflow run ci.yml --ref "$ref"
-          gh workflow run knowledge.yml --ref "$ref"
-          gh pr comment "$pr" --body "Queued **CI** and **Knowledge** on \`${ref}\`."
+          echo "allowed=false" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${pr}" >> "$GITHUB_OUTPUT"
+          pr_json="$(gh api "repos/${{ github.repository }}/pulls/${pr}")"
+          author="$(jq -r '.user.login // ""' <<< "$pr_json")"
+          head_repo="$(jq -r '.head.repo.full_name // ""' <<< "$pr_json")"
+          head_sha="$(jq -r '.head.sha // ""' <<< "$pr_json")"
+
+          if [[ "$author" != "koliyo" || "$head_repo" != "$GITHUB_REPOSITORY" || ! "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Ignoring /ci: self-hosted validation is restricted to same-repository PRs authored by koliyo."
+            exit 0
+          fi
+
+          echo "allowed=true" >> "$GITHUB_OUTPUT"
+          echo "pr_sha=${head_sha}" >> "$GITHUB_OUTPUT"
+          gh pr comment "$pr" --body "Queued **CI** and **Knowledge** for trusted self-hosted validation at \`${head_sha}\`."
+
+  ci:
+    name: Run trusted CI
+    needs: prepare
+    if: needs.prepare.outputs.allowed == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      pr_number: ${{ needs.prepare.outputs.pr_number }}
+      pr_sha: ${{ needs.prepare.outputs.pr_sha }}
+    permissions:
+      contents: read
+      pull-requests: read
+
+  knowledge:
+    name: Run trusted Knowledge validation
+    needs: prepare
+    if: needs.prepare.outputs.allowed == 'true'
+    uses: ./.github/workflows/knowledge.yml
+    with:
+      pr_number: ${{ needs.prepare.outputs.pr_number }}
+      pr_sha: ${{ needs.prepare.outputs.pr_sha }}
+    permissions:
+      contents: read
+      pull-requests: read
