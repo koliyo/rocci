@@ -21,10 +21,8 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        with:
+          cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run lint job
         run: uv run --no-dev rocci-ops ci lint
 
@@ -48,11 +46,8 @@ jobs:
         with:
           key: ${{ matrix.os }}
       - uses: astral-sh/setup-uv@v6
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        with:
+          cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run workspace tests
         run: uv run --no-dev rocci-ops ci test
 
@@ -64,10 +59,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        with:
+          cache-local-path: /home/nils/.cache/uv
       - name: Inspect fixtures and validate docs
         run: uv run --no-dev rocci-ops ci fixtures-and-docs
 
