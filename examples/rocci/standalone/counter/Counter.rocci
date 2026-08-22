@@ -28,13 +28,13 @@ import Html
             params: {},
         },
     )?
-    { db: db }
+    { db }
 }
 
 ## Read the stored count and render `CounterPage`.
 @get:view("/") = |{ db }| {
     count = read_count!(db)?
-    counterPage({ count: count })
+    counterPage({ count })
 }
 
 ## Add one to the stored count and morph `#counter`.
@@ -44,7 +44,7 @@ import Html
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count })
+    counterCard({ count })
 }
 
 ## Set the stored count to zero and morph `#counter`.
@@ -54,7 +54,7 @@ import Html
         Ok({}) => {}
         Err(_) => {}
     }
-    counterCard({ count: count })
+    counterCard({ count })
 }
 
 read_count! = |db| {

@@ -28,6 +28,7 @@ FilterParams : { filter : Str }
 ContactParams : { first_name : Str, last_name : Str, email : Str }
 EditParams : { editing : I64 }
 Filter : [All, Pending, Completed]
+FieldKind : [Email, Name]
 FieldState : [Empty, Valid, Invalid({ message : Str })]
 Field : { value : Str, hint : Str, state : FieldState }
 
@@ -181,7 +182,7 @@ search_page = |query|
             lede: "The server filters contacts. Datastar only binds the search box and asks for a new table after you pause typing.",
             current: "search",
         },
-        Search.demo({ contacts: all_contacts, query: query }),
+        Search.demo({ contacts: all_contacts, query }),
     )
 
 edit_page = |contact|
@@ -225,7 +226,7 @@ validate_page = |page|
             lede: "Each field is a Roc tag. Submitting either re-renders errors or replaces the form with a welcome message.",
             current: "validate",
         },
-        Validate.demo({ page: page }),
+        Validate.demo({ page }),
     )
 
 all_contacts = [
@@ -302,9 +303,9 @@ seed_todos! = |db| {
 
 insert_todo_row! = |db, id, text, done| {
     params : TextParams
-    params = { id: id, text: text }
+    params = { id, text }
     done_params : { id : I64, done : I64 }
-    done_params = { id: id, done: done }
+    done_params = { id, done }
     Sqlite.execute!(
         {
             db,
@@ -373,7 +374,7 @@ contact_patch! = |db| {
 
 set_editing! = |db, editing| {
     params : EditParams
-    params = { editing: editing }
+    params = { editing }
     Sqlite.execute!(
         {
             db,
@@ -442,9 +443,9 @@ load_todos! = |db| {
     Ok(
         {
             items: List.map(visible, todo_item),
-            filter: filter,
-            pending: pending,
-            has_completed: has_completed,
+            filter,
+            pending,
+            has_completed,
         },
     )
 }
@@ -470,12 +471,10 @@ todo_visible = |row, filter|
     }
 
 parse_filter = |text|
-    if text == "pending" {
-        Pending
-    } else if text == "completed" {
-        Completed
-    } else {
-        All
+    match text {
+        "pending" => Pending
+        "completed" => Completed
+        _ => All
     }
 
 todos_patch! = |db| {
@@ -522,7 +521,7 @@ toggle_todo! = |db, id_str| {
     match I64.from_str(id_str) {
         Ok(id) => {
             params : IdParams
-            params = { id: id }
+            params = { id }
             Sqlite.execute!(
                 {
                     db,
@@ -541,7 +540,7 @@ delete_todo! = |db, id_str| {
     match I64.from_str(id_str) {
         Ok(id) => {
             params : IdParams
-            params = { id: id }
+            params = { id }
             Sqlite.execute!(
                 {
                     db,
@@ -558,7 +557,7 @@ delete_todo! = |db, id_str| {
 
 set_todo_filter! = |db, filter| {
     params : FilterParams
-    params = { filter: filter }
+    params = { filter }
     Sqlite.execute!(
         {
             db,
@@ -595,27 +594,22 @@ tabs_view = |selected| {
         ids,
         |id| {
             {
-                id: id,
+                id,
                 label: "Tab ${id}",
                 selected: id == selected,
             }
         },
     )
     panel =
-        if selected == "0" {
-            "Rocci lowers @for to List.map. The selected tab is just another field on that list."
-        } else if selected == "1" {
-            "Clicking a tab GETs a new fragment. Hypertext carries the selected index; the client does not store it."
-        } else if selected == "2" {
-            "aria-selected is a Roc string. There is no client tab widget, only buttons that request HTML."
-        } else if selected == "3" {
-            "Stable id=\"tabs\" is the morph boundary. Datastar replaces the tablist and the panel together."
-        } else if selected == "4" {
-            "This is the same HATEOAS idea as Click to Edit: the server decides which pane is current."
-        } else {
-            "Unknown tab."
+        match selected {
+            "0" => "Rocci lowers @for to List.map. The selected tab is just another field on that list."
+            "1" => "Clicking a tab GETs a new fragment. Hypertext carries the selected index; the client does not store it."
+            "2" => "aria-selected is a Roc string. There is no client tab widget, only buttons that request HTML."
+            "3" => "Stable id=\"tabs\" is the morph boundary. Datastar replaces the tablist and the panel together."
+            "4" => "This is the same HATEOAS idea as Click to Edit: the server decides which pane is current."
+            _ => "Unknown tab."
         }
-    { tabs: tabs, panel: panel }
+    { tabs, panel }
 }
 
 tabs_patch! = |selected|
@@ -624,31 +618,36 @@ tabs_patch! = |selected|
 empty_form = || {
     Form(
         {
-            email: field("", "The server checks this on every pause in typing."),
-            first: field("", "Any non-empty first name is enough."),
-            last: field("", "Any non-empty last name is enough."),
+            email: field("", "The server checks this on every pause in typing.", Email),
+            first: field("", "Any non-empty first name is enough.", Name),
+            last: field("", "Any non-empty last name is enough.", Name),
         },
     )
 }
 
-field = |value, hint| {
-    { value: value, hint: hint, state: field_state(value, hint) }
+field = |value, hint, kind| {
+    { value, hint, state: field_state(value, kind) }
 }
 
-field_state = |value, hint| {
+field_state = |value, kind| {
     trimmed = Str.trim(value)
     if trimmed == "" {
         Empty
-    } else if hint == "The server checks this on every pause in typing." {
-        if Str.contains(trimmed, "@") and Str.contains(trimmed, ".") {
-            Valid
-        } else {
-            Invalid({ message: "Use a full email like ada@roc-lang.org." })
-        }
-    } else if List.len(Str.to_utf8(trimmed)).to_i64_wrap() < 2 {
-        Invalid({ message: "Enter at least two characters." })
     } else {
-        Valid
+        match kind {
+            Email =>
+                if Str.contains(trimmed, "@") and Str.contains(trimmed, ".") {
+                    Valid
+                } else {
+                    Invalid({ message: "Use a full email like ada@roc-lang.org." })
+                }
+            Name =>
+                if List.len(Str.to_utf8(trimmed)).to_i64_wrap() < 2 {
+                    Invalid({ message: "Enter at least two characters." })
+                } else {
+                    Valid
+                }
+        }
     }
 }
 
@@ -657,9 +656,9 @@ read_form! = |request| {
     Ok(
         Form(
             {
-                email: field(Signals.str(json, "email"), "The server checks this on every pause in typing."),
-                first: field(Signals.str(json, "firstName"), "Any non-empty first name is enough."),
-                last: field(Signals.str(json, "lastName"), "Any non-empty last name is enough."),
+                email: field(Signals.str(json, "email"), "The server checks this on every pause in typing.", Email),
+                first: field(Signals.str(json, "firstName"), "Any non-empty first name is enough.", Name),
+                last: field(Signals.str(json, "lastName"), "Any non-empty last name is enough.", Name),
             },
         ),
     )
@@ -667,7 +666,7 @@ read_form! = |request| {
 
 validate_check! = |request| {
     page = read_form!(request)?
-    Ok(patch!(Validate.demo({ page: page })))
+    Ok(patch!(Validate.demo({ page })))
 }
 
 validate_submit! = |request| {
@@ -677,9 +676,9 @@ validate_submit! = |request| {
             match (email.state, first.state, last.state) {
                 (Valid, Valid, Valid) =>
                     Ok(patch!(Validate.demo({ page: SignedUp({ name: "${Str.trim(first.value)} ${Str.trim(last.value)}" }) })))
-                _ => Ok(patch!(Validate.demo({ page: page })))
+                _ => Ok(patch!(Validate.demo({ page })))
             }
-        SignedUp(_) => Ok(patch!(Validate.demo({ page: page })))
+        SignedUp(_) => Ok(patch!(Validate.demo({ page })))
     }
 }
 

@@ -32,7 +32,7 @@ import LiveCounterUi
         },
     )?
     ensure_clicks!(db)?
-    { db: db }
+    { db }
 }
 
 ## Document GET `/`. Renders the page; the live card is a separate live fragment.
@@ -60,12 +60,10 @@ import LiveCounterUi
     tz_browser = Origin.signal_str(body, "tz")
     chosen = origin_pick != ""
     tz =
-        if chosen {
-            origin_pick
-        } else if tz_browser == "" {
-            "UTC"
-        } else {
-            tz_browser
+        match (chosen, tz_browser) {
+            (True, _) => origin_pick
+            (False, "") => "UTC"
+            (False, browser) => browser
         }
     place = Origin.lookup(tz)
     now = now_secs!(db)?

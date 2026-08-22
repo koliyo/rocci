@@ -21,7 +21,7 @@ Hello = |{ name ?? "Roc" }| {
     <p class="greeting">Hello, <strong>{name}</strong></p>
 }
 
-## Feature card with component-scoped CSS. `count` must already be `Str`-converted in the template.
+## Feature card with component-scoped CSS. Convert `count` to `Str` in the template.
 @component
 FeatureCard = |{ count }| {
     @css {
@@ -79,7 +79,7 @@ StylePage = |{ count }|
                 </header>
                 <div class="hello-list">
                     <Hello />
-                    <Hello name="Foo"/>
+                    <Hello name="Foo" />
                 </div>
                 <FeatureCard count={count} />
                 <div class="actions">

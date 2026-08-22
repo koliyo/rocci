@@ -40,18 +40,7 @@ GameRow : {
     now = now_ms!({})?
     started = Game.start(now)
     insert : GameRow
-    insert = {
-        board: started.board,
-        piece: started.piece,
-        rot: started.rot,
-        x: started.x,
-        y: started.y,
-        bag: started.bag,
-        seed: started.seed,
-        score: started.score,
-        status: started.status,
-        last_tick_ms: now,
-    }
+    insert = { ..started, last_tick_ms: now }
     Sqlite.execute!(
         {
             db,
@@ -59,7 +48,7 @@ GameRow : {
             params: insert,
         },
     )?
-    { db: db }
+    { db }
 }
 
 ## Document GET `/`. Live board and HUD are separate morph targets.
@@ -117,18 +106,8 @@ now_ms! = |_| {
     Ok(secs * 1000.I64 + nanos.to_i64().div_trunc_by(1_000_000.I64))
 }
 
-from_row = |row|
-    {
-        board: row.board,
-        piece: row.piece,
-        rot: row.rot,
-        x: row.x,
-        y: row.y,
-        bag: row.bag,
-        seed: row.seed,
-        score: row.score,
-        status: row.status,
-    }
+from_row = |{ board, piece, rot, x, y, bag, seed, score, status }|
+    { board, piece, rot, x, y, bag, seed, score, status }
 
 to_view = |state| {
     {
@@ -155,18 +134,7 @@ load_row! = |db| {
 
 save! = |db, state, last_tick_ms| {
     params : GameRow
-    params = {
-        board: state.board,
-        piece: state.piece,
-        rot: state.rot,
-        x: state.x,
-        y: state.y,
-        bag: state.bag,
-        seed: state.seed,
-        score: state.score,
-        status: state.status,
-        last_tick_ms,
-    }
+    params = { ..state, last_tick_ms }
     Sqlite.execute!(
         {
             db,
@@ -180,24 +148,25 @@ load_ticked! = |db| {
     row = load_row!(db)?
     state = from_row(row)
     now = now_ms!({})?
-    if state.status != "playing" {
-        Ok(state)
-    } else {
-        elapsed = now - row.last_tick_ms
-        steps =
-            if elapsed <= 0 {
-                0
+    match state.status {
+        "playing" => {
+            elapsed = now - row.last_tick_ms
+            steps =
+                if elapsed <= 0 {
+                    0
+                } else {
+                    elapsed.div_trunc_by(Game.gravity_ms)
+                }
+            next = Game.apply_gravity(state, steps)
+            if steps > 0 {
+                remainder = elapsed.rem_by(Game.gravity_ms)
+                save!(db, next, now - remainder)?
+                Ok(next)
             } else {
-                elapsed.div_trunc_by(Game.gravity_ms)
+                Ok(state)
             }
-        next = Game.apply_gravity(state, steps)
-        if steps > 0 {
-            remainder = elapsed.rem_by(Game.gravity_ms)
-            save!(db, next, now - remainder)?
-            Ok(next)
-        } else {
-            Ok(state)
         }
+        _ => Ok(state)
     }
 }
 

@@ -61,26 +61,11 @@ Origin := [].{
         } else if delta < 60.I64 {
             "${delta.to_str()} seconds ago"
         } else if delta < 3600.I64 {
-            mins = delta.div_trunc_by(60.I64)
-            if mins == 1.I64 {
-                "1 minute ago"
-            } else {
-                "${mins.to_str()} minutes ago"
-            }
+            counted_ago(delta.div_trunc_by(60.I64), "minute")
         } else if delta < 86400.I64 {
-            hours = delta.div_trunc_by(3600.I64)
-            if hours == 1.I64 {
-                "1 hour ago"
-            } else {
-                "${hours.to_str()} hours ago"
-            }
+            counted_ago(delta.div_trunc_by(3600.I64), "hour")
         } else {
-            days = delta.div_trunc_by(86400.I64)
-            if days == 1.I64 {
-                "1 day ago"
-            } else {
-                "${days.to_str()} days ago"
-            }
+            counted_ago(delta.div_trunc_by(86400.I64), "day")
         }
     }
 
@@ -128,6 +113,13 @@ Origin := [].{
         { tz: "Pacific/Auckland", label: "Auckland" },
     ]
 }
+
+counted_ago = |n, unit|
+    if n == 1.I64 {
+        "1 ${unit} ago"
+    } else {
+        "${n.to_str()} ${unit}s ago"
+    }
 
 fallback = |tz| {
     parts = Str.split_on(tz, "/")
