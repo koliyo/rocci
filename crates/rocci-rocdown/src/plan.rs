@@ -1239,7 +1239,17 @@ fn not_found_page(
 
 fn not_found_html() -> String {
     String::from(
-        "<h1 class=\"rd-header-1\">Page not found</h1>\n<p class=\"rd-paragraph\">This page does not exist. Return to the <a class=\"rd-link\" href=\"/\">home page</a>.</p>\n",
+        "<h1 class=\"rd-header-1\">Page not found</h1>\n\
+<p class=\"rd-paragraph\">This URL is not part of the current Rocci manual. \
+The stack-first docs moved several academy routes; use the links below or \
+<strong>Go to</strong> (Cmd/Ctrl+K) to open a live page.</p>\n\
+<p class=\"rd-paragraph\" id=\"rocci-not-found-hint\" hidden></p>\n\
+<ul class=\"rd-list\">\n\
+<li class=\"rd-list-item\"><p class=\"rd-paragraph\"><a class=\"rd-link\" href=\"/docs/\">Documentation home</a></p></li>\n\
+<li class=\"rd-list-item\"><p class=\"rd-paragraph\"><a class=\"rd-link\" href=\"/docs/five-minutes/\">Rocci in five minutes</a> — preview a component</p></li>\n\
+<li class=\"rd-list-item\"><p class=\"rd-paragraph\"><a class=\"rd-link\" href=\"/docs/install/\">Install Rocci</a></p></li>\n\
+<li class=\"rd-list-item\"><p class=\"rd-paragraph\"><a class=\"rd-link\" href=\"/\">Site home</a></p></li>\n\
+</ul>\n",
     )
 }
 
