@@ -16,6 +16,7 @@ assets = "assets"
 label = "Start"
 items = [
     "index",
+    "the-stack",
     "start/what-is-rocci",
     "start/choose-your-path",
     "start/prerequisites",

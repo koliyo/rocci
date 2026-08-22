@@ -8,10 +8,6 @@
 
 # Performance model
 
-**Prerequisites:** [Development and delivery](/docs/concepts/development-and-delivery/).
-**Kind:** concept.
-**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
-
 | Moment | Work |
 | --- | --- |
 | Edit | Watch rebuilds the lowered module |

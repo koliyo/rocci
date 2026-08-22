@@ -8,9 +8,6 @@
 
 # Glossary
 
-**Prerequisites:** none.
-**Kind:** reference companion.
-
 Terms appear here when a reader meets them on more than one path. Canonical
 behavior stays in [reference](/docs/reference/).
 
@@ -28,7 +25,7 @@ behavior stays in [reference](/docs/reference/).
 | Source map | Segments that map generated Roc back to `.rocci` spans. |
 | Preview | The Tao/Wry window that loads the same local HTTP origin as a browser. |
 | `rocci browse` | Component gallery. |
-| Rocdown | Separate Markdown-first document product. Not part of the Rocci learning path. |
+| Rocdown | Optional experimental document layer. Markdown-first pages that reuse templates and applications. |
 | Loopback | `127.0.0.1` / `localhost` only in `rocci.toml` `[http].host`. |
 | `??` default | Experimental field default in `.rocci` params; stripped for current Roc nightly. |
 

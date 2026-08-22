@@ -229,12 +229,6 @@ Rocci can generate ordinary Roc without making authors repeat every intermediate
 type, while still leaving the Roc compiler—not the template lowerer—as the
 authority on records, tags, functions, and effects.
 
-## Why this page does not teach Rocdown
-
-Rocdown is a separate product. Catalog, Markdown, and site generation are out
-of this manual. Rocci uses Roc where typed UI and effects matter; it does not
-require every adjacent tool to compile prose through Roc.
-
 ## Costs and open questions
 
 Roc's fit should be evaluated with its current constraints in view:

@@ -9,11 +9,6 @@
 
 # What is Rocci?
 
-**Prerequisites:** none beyond the [docs prerequisites](/docs/start/prerequisites/).
-**You will learn:** what a `.rocci` file is, what Rocci generates, and when not to use it.
-**Time:** about five minutes of reading.
-**Next:** [Choose your path](/docs/start/choose-your-path/).
-
 A `.rocci` module is mostly Roc. `@component` marks the regions that use a
 bounded HTML template grammar. The compiler lowers those regions to ordinary
 Roc calls such as `Html.element`, `Html.attribute`, and `Html.text`. Roc
@@ -43,7 +38,7 @@ not a client application framework and not a Rocci language feature.
 - No runtime component registry and no magic `children` field.
 - No markup inside arbitrary Roc expressions; use `@if` / `@for` / `@match`.
 - No dynamic tag names or prop spreading.
-- Rocdown is a [separate content product](/rocdown/), not a fourth piece of Rocci.
+- Rocdown is an optional [document layer](/rocdown/) on the same stack, more experimental than templates.
 
 Continue with [choose your path](/docs/start/choose-your-path/) or jump to
 [Rocci in five minutes](/docs/start/five-minutes/) if the toolchain is already

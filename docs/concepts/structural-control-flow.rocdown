@@ -8,10 +8,6 @@
 
 # Structural control flow
 
-**Prerequisites:** [Use directives](/docs/how-to/use-directives/).
-**Kind:** concept.
-**Next:** [Directives](/docs/reference/language/directives/).
-
 Rocci parses a template tree. `{expr}` is a Roc expression, not a nested
 template. `{if active { <Icon /> }}` is rejected because the parser would have
 to treat Roc as markup.

@@ -9,14 +9,11 @@
 
 # Rocci in five minutes
 
-**Prerequisites:** [Install Rocci](/docs/start/install/).
-**You will build:** nothing new. You will lower and preview `Hello` from the
-checked-in styling example.
-**Time:** about five minutes after the CLI is built.
-**Verify:** the preview shows **Hello, Ada**.
-**Next:** [Build your first component](/docs/tutorials/first-component/).
+Preview a checked-in component: lower `Hello` from the styling example and
+open it in the native window. Then read [the stack](/docs/the-stack/) or
+continue into [templates](/docs/tutorials/first-component/).
 
-This page is evaluative. It is not the full tutorial.
+**Verify:** the preview shows **Hello, Ada**.
 
 ## 1. Lower the module
 
@@ -68,7 +65,6 @@ in patterns, so lowering strips them. That status is **experimental**.
 Complete source: [Styling](/examples/styling/) ·
 [Styling.rocci](/examples/styling/source/Styling-rocci/).
 
-Next: [Build your first component](/docs/tutorials/first-component/) to add
-fixtures, inspect lowering, and run the full page. Or skip to a task in
-[Build your first component](/docs/tutorials/first-component/) if you already know the
-shape.
+Next: [the stack](/docs/the-stack/) for composition, or
+[Build your first component](/docs/tutorials/first-component/) for fixtures,
+inspect, and the full page.

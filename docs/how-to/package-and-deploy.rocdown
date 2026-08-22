@@ -8,12 +8,7 @@
 
 # Package and deploy
 
-**Prerequisites:** [Configure and secure](/docs/how-to/configure-and-secure/) and
-the [ship tutorial](/docs/tutorials/ship/).
-**You will do:** produce a server tree or a local macOS bundle from a working app.
 **Verify:** `build --release` writes a `server` plus `assets/`.
-**Next:** [Compatibility](/docs/reference/compatibility/) or
-[CLI bundle](/docs/reference/cli/#bundle).
 
 Rocci is **development** `main`. Production signing, notarization, and OS
 installers are not shipped.

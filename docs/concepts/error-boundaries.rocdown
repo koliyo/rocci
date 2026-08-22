@@ -8,10 +8,6 @@
 
 # Error boundaries and source maps
 
-**Prerequisites:** [Diagnostics](/docs/reference/diagnostics/).
-**Kind:** concept.
-**Next:** [Troubleshooting](/docs/troubleshooting/).
-
 | Phase | Typical command | What to trust |
 | --- | --- | --- |
 | Rocci parse / lower | `rocci build` / `inspect` | Template diagnostics and source maps |

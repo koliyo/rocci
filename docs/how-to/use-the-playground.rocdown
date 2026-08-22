@@ -9,12 +9,7 @@
 
 # Use the playground
 
-**Prerequisites:** [Install](/docs/start/install/) for `--mode local`; WASM mode
-runs in the browser worker without a Roc compiler.
-**You will do:** open a `.rocci` file and read generated Roc / AST, not HTML.
 **Verify:** WASM mode shows lowered Roc; it does not snapshot HTML.
-**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/) or
-[CLI playground](/docs/reference/cli/#playground).
 
 ```sh
 cargo run -q -p rocci-cli -- playground examples/rocci/standalone/styling/Styling.rocci

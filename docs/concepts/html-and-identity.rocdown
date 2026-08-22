@@ -8,10 +8,6 @@
 
 # HTML and identity
 
-**Prerequisites:** [Write markup](/docs/how-to/write-markup/).
-**Kind:** concept.
-**Next:** [Update the UI](/docs/how-to/update-the-ui/).
-
 Datastar patches match existing DOM. A fragment must reuse an `id` that already
 exists in the document. Changing the `id` between render and patch looks like a
 missing target, not a “refresh”.

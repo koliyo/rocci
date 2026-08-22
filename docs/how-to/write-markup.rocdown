@@ -8,11 +8,7 @@
 
 # Write markup
 
-**Prerequisites:** [Author components](/docs/how-to/author-components/).
-**You will do:** mix intrinsic tags, fragments, and interpolations without JSX extras.
 **Verify:** `rocci build FILE` succeeds; inspect shows `Html.element` / `Html.fragment`.
-**Next:** [Use directives](/docs/how-to/use-directives/) or
-[Tags reference](/docs/reference/language/tags/).
 
 ## Tags and fragments
 

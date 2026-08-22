@@ -9,18 +9,10 @@
 
 # Build your first component
 
-**Prerequisites:** [Install Rocci](/docs/start/install/) and
-[Rocci in five minutes](/docs/start/five-minutes/).
-**You will build:** a mental model of the styling example, not a second copy
-of it.
 **Starting files:** `examples/rocci/standalone/styling/Styling.rocci` in the
 checkout.
-**Time:** about twenty minutes.
 **Verify:** `Hello` previews, the full page serves, and inspect output lists
 components and fixtures.
-**Next:** continue learning with the first standalone app, or look up
-[language reference](/docs/reference/rocci/). Task recipe:
-[Author components](/docs/how-to/author-components/).
 
 The canonical complete source is the cataloged styling app. This tutorial
 does not paste a divergent copy under `docs/`. Open

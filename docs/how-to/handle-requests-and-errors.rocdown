@@ -8,11 +8,7 @@
 
 # Handle requests and errors
 
-**Prerequisites:** [Update the UI](/docs/how-to/update-the-ui/).
-**You will do:** read `request` when needed, keep `?` at the effectful edge, and log without touching `@component`.
 **Verify:** a failing handler returns HTTP 500; `rocci run --log-handlers` prints the matched route.
-**Next:** [Develop and inspect](/docs/how-to/develop-and-inspect/) or
-[Runtime](/docs/reference/runtime/).
 
 ## Request access
 

@@ -8,10 +8,6 @@
 
 # Props, bodies, and composition
 
-**Prerequisites:** [pure components](/docs/concepts/pure-components/).
-**Kind:** concept.
-**Next:** [Author components](/docs/how-to/author-components/).
-
 The first parameter is a props record. Nested markup is a second `Html`
 argument, not a `children` field on that record. Putting `Html` in the record
 wraps it in `Html.text` and escapes it.

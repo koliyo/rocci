@@ -8,10 +8,8 @@
 
 # Web foundations for Roc authors
 
-**Prerequisites:** you can read Roc. HTML expertise is not required.
-**You will learn:** the web subset Rocci apps rely on.
-**Time:** about fifteen minutes.
-**Next:** [Rocci in five minutes](/docs/start/five-minutes/).
+This primer assumes you can read Roc. HTML expertise is not required.
+
 
 Rocci serves HTML over local HTTP. Datastar is the browser transport, not a
 client framework. Durable state stays on the server.

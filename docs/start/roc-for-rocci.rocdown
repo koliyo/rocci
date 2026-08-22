@@ -8,10 +8,7 @@
 
 # Roc for Rocci authors
 
-**Prerequisites:** [Prerequisites](/docs/start/prerequisites/). You do not need to be a Roc expert.
-**You will learn:** the Roc you will read in `.rocci` files outside template bodies.
-**Time:** about fifteen minutes.
-**Next:** [Install](/docs/start/install/) if needed, then [Rocci in five minutes](/docs/start/five-minutes/).
+This primer assumes you can read code. You do not need to be a Roc expert.
 
 This page is not a Roc language manual. Full coverage lives at
 [roc-lang.org](https://www.roc-lang.org/). Here is the subset later Rocci

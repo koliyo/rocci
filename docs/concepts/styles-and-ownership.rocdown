@@ -8,10 +8,6 @@
 
 # Styles and ownership
 
-**Prerequisites:** [first component](/docs/tutorials/first-component/).
-**Kind:** concept.
-**Next:** [CSS reference](/docs/reference/language/css/).
-
 | Layer | Where | Collision model |
 | --- | --- | --- |
 | Component `@css` | Inside `@component` | Lowering stamps `data-rocci-css` and wraps rules in CSS `@scope` |

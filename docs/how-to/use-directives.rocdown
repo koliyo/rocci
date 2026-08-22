@@ -8,11 +8,7 @@
 
 # Use directives
 
-**Prerequisites:** [Write markup](/docs/how-to/write-markup/).
-**You will do:** choose `@if` / `@for` / `@match` / `@let` instead of embedding markup in Roc.
 **Verify:** `rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
-**Next:** [Update the UI](/docs/how-to/update-the-ui/) or
-[Directives reference](/docs/reference/language/directives/).
 
 Keep the opening `{` on the same logical header line. Parenthesize records in
 headers so `{` is not the body opener: `@match ({ status, items }) {`.

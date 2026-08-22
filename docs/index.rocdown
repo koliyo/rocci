@@ -3,29 +3,19 @@
     aliases: ["/documentation/"],
     meta: {
         title: "Rocci documentation",
-        description: "Learn Rocci from first contact through production authoring, with searchable reference for every stable contract.",
+        description: "The Rocci stack in one screen: Roc and Datastar, .rocci templates, applications, and optional Rocdown documents.",
     },
 }
 
 # Rocci documentation
 
-Rocci is a `.rocci` template language and runtime for Roc. You author HTML
-components and HTTP handlers, Rocci lowers them to ordinary Roc, and Datastar
-transports browser intent over the same local HTTP origin the preview window
-uses.
+This manual is one `/docs/` corpus for the stack. Roc plus Datastar host a
+web application. `.rocci` templates are HTML for Roc. Applications add
+server structure — standalone or custom. Rocdown is an optional document
+layer on that same stack.
 
-This manual describes **development** `main`. Behavior is experimental; verify
-commands against the source you built.
-
-Rocdown is a separate Markdown-first product. It does not belong in this
-learning path. Start at [Rocdown](/rocdown/) if you are writing documentation
-sites instead of Rocci applications.
-
-## What can I build?
-
-Standalone `.rocci` apps, custom `main.roc` servers that reuse components, and
-ad-hoc macOS desktop bundles around the same HTTP server. Durable state stays
-on the server. The browser morphs HTML; it does not own the domain model.
+This manual describes **development** `main`. Behavior is experimental;
+verify commands against the source you built.
 
 :note[title: "Maturity"] {{
     macOS and Linux development are tested in CI. Windows development uses the
@@ -33,17 +23,18 @@ on the server. The browser morphs HTML; it does not own the domain model.
     installers, and a versioned release channel are not the install path yet.
 }}
 
-## Where should I start?
+## Three depths
+
+Stop at the layer you need.
 
 :card-grid.begin
-    :link-card[href: "/docs/start/what-is-rocci/", title: "New to Rocci", summary: "Five-minute evaluation, then a visible component from a clean checkout."]
-    :link-card[href: "/docs/reference/rocci/", title: "I know the basics", summary: "Jump to the language reference, CLI, configuration, or troubleshooting."]
+    :link-card[href: "/docs/start/five-minutes/", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
+    :link-card[href: "/docs/tutorials/first-app/", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
+    :link-card[href: "/rocdown/", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
 :card-grid.end
 
-Prefer a track based on what you already know:
-
-- [Choose your path](/docs/start/choose-your-path/) if you know Roc, the web, or both.
-- [Install Rocci](/docs/start/install/) if the toolchain is not on this machine yet.
+Read [the stack](/docs/the-stack/) for the composition. Install the
+toolchain on [Install Rocci](/docs/start/install/) if this machine is new.
 
 ## What does the code feel like?
 
@@ -76,21 +67,13 @@ Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
 ## Where is the exact answer?
 
 :card-grid.begin
-    :link-card[href: "/docs/reference/rocci/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
+    :link-card[href: "/docs/reference/language/", title: "Language", summary: "File structure, components, directives, CSS, fixtures, and server declarations."]
     :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
     :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
-    :link-card[href: "/docs/how-to/", title: "How to", summary: "Task recipes after the tutorials: components, handlers, inspect, package."]
+    :link-card[href: "/docs/how-to/", title: "How to", summary: "Task recipes: components, handlers, inspect, package."]
     :link-card[href: "/docs/troubleshooting/", title: "Troubleshooting", summary: "Install, compile, runtime, and preview failures."]
 :card-grid.end
 
-## Tracks and examples
-
-| Track | First page |
-| --- | --- |
-| Evaluate | [Rocci in five minutes](/docs/start/five-minutes/) |
-| Learn | [Build your first component](/docs/tutorials/first-component/) |
-| Understand | [Compilation model](/docs/concepts/compilation-model/) |
-| Applications | [Examples](/examples/) |
-
-The examples portal is generated from `examples/rocci/apps.toml`. Styling is
-the first static component; Counter is the first stateful app.
+[Examples](/examples/) are generated from `examples/rocci/apps.toml`.
+Styling is the first static component; Counter is the first stateful app.
+Status labels are on [Status](/docs/status/).

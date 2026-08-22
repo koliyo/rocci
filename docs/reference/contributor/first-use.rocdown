@@ -8,11 +8,8 @@
 
 # First-use measurement protocol
 
-**Prerequisites:** a clean machine or VM with only the [install](/docs/start/install/)
-toolchain, not a developer checkout already on `PATH`.
-**Kind:** contributor reference.
-**Status:** the protocol is current; live session results are **not** filled in
-by this implementation. Do not invent completion times.
+The protocol is current; live session results are **not** filled in by this
+implementation. Do not invent completion times.
 
 ## Why this exists
 

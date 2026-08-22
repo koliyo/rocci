@@ -8,11 +8,7 @@
 
 # Author components
 
-**Prerequisites:** [first component](/docs/tutorials/first-component/).
-**You will do:** declare a component, call it, pass a body, and preview a fixture.
 **Verify:** `rocci view FILE --component Name` shows the fixture.
-**Next:** [Write markup](/docs/how-to/write-markup/) or
-[Components reference](/docs/reference/language/components/).
 
 Canonical source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
 

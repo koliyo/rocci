@@ -9,11 +9,7 @@
 
 # Install Rocci
 
-**Prerequisites:** [Prerequisites](/docs/start/prerequisites/).
-**You will do:** clone the repository, build the CLI, and preview a component.
-**Time:** depends on a cold Cargo and Roc install.
 **Verify:** `rocci` via Cargo prints help, and the styling example builds.
-**Next:** [Rocci in five minutes](/docs/start/five-minutes/).
 
 Rocci is **built from source**. There is no crates.io package and no install
 script. GitHub Release archives exist as an experimental prerelease channel;

@@ -8,10 +8,6 @@
 
 # Reference
 
-**Prerequisites:** none beyond the [docs prerequisites](/docs/start/prerequisites/).
-**Kind:** reference landing.
-**Status:** development `main`.
-
 Each contract has one owner. Tutorials and how-tos summarize and link here.
 
 - [Language](/docs/reference/language/) — `.rocci` syntax

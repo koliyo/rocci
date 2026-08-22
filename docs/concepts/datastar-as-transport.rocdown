@@ -8,10 +8,6 @@
 
 # Datastar as transport
 
-**Prerequisites:** [Documents, fragments, commands, and streams](/docs/concepts/documents-fragments-commands-streams/).
-**Kind:** concept.
-**Next:** [Attributes](/docs/reference/language/attributes/).
-
 Datastar is the browser **transport** for intent and morphing. It is not a
 client application framework and not where domain data lives.
 
