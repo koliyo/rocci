@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Handler matrix",
-        description: "Every accepted @view, @patch, @command, and @live construct",
+        description: "Every accepted verb-first method and handler role",
     },
 }
 
@@ -12,9 +12,10 @@
 **Prerequisites:** [runtime reference](/docs/reference/runtime/).
 **Role:** exhaustive handler contract, not a beginner tutorial.
 
-One standalone app that lists every accepted handler construct. `@patch`
-handlers return uniquely identified HTML fragments. `@command` handlers return
-records. `@live` owns `#live-tick` so the stream never races a one-shot patch.
+One standalone app that lists every accepted handler construct. Fragment
+handlers return uniquely identified HTML fragments. Commands return no
+representation. `@get:live("/events/matrix")` owns `#live-tick` so the stream
+never races a one-shot fragment.
 
 This catalog row is **docs-only**. Do not expose it as a public origin; use
 local `curl` against `rocci run`.
