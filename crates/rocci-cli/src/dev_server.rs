@@ -669,6 +669,7 @@ fn path_is_relevant(
     true
 }
 
+#[allow(clippy::too_many_arguments)]
 fn serve_loop(
     listener: TcpListener,
     output: PathBuf,

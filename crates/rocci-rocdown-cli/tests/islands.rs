@@ -342,7 +342,7 @@ fn docs_run_previews_the_site() {
         .stderr(Stdio::inherit())
         .spawn()
         .unwrap();
-    wait_for_preview(port, &mut child, "Documentation Portal");
+    wait_for_preview(port, &mut child, "Rocci documentation");
     let child = KillOnDrop(child);
 
     let home = http_exchange(
@@ -353,22 +353,14 @@ fn docs_run_previews_the_site() {
         !home.contains("no built site yet"),
         "persist-HTML preview must serve index.html:\n{home}"
     );
-    assert!(home.contains("Documentation Portal"), "{home}");
+    assert!(home.contains("Rocci documentation"), "{home}");
     assert!(
         !home.contains("/assets/datastar") && !home.to_ascii_lowercase().contains("datastar.js"),
         "docs must stay static:\n{home}"
     );
-
-    let guide = http_exchange(
-        port,
-        &format!(
-            "GET /guides/docs-components/ HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
-        ),
-    );
-    assert!(guide.contains("Write documentation components"), "{guide}");
     assert!(
-        guide.contains("Static pages"),
-        "widget forest must still paint :note:\n{guide}"
+        home.contains("Maturity"),
+        "widget forest must still paint the home :note:\n{home}"
     );
     drop(child);
 }
@@ -435,8 +427,10 @@ fn counter_run_proxies_actions_on_one_origin() {
         ),
     );
     assert!(
-        datastar_increment.contains("204"),
-        "json POST from Datastar returns 204:\n{datastar_increment}"
+        datastar_increment.contains("HTTP/1.1 200 OK")
+            && datastar_increment.contains("content-type: text/event-stream")
+            && !datastar_increment.contains("datastar-patch-elements"),
+        "JSON command from Datastar returns an empty SSE response:\n{datastar_increment}"
     );
     drop(child);
 }

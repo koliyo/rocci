@@ -470,8 +470,8 @@ mod tests {
         let dash = src.find('—').unwrap();
         assert_eq!(src.as_bytes()[dash..dash + 3], "—".as_bytes()[..]);
         let start_of_dash = dash + 1;
-        assert_eq!(line_col_offset(src, 1, start_of_dash as usize), dash);
-        assert_eq!(line_col_offset(src, 1, (dash + 3 + 1) as usize), dash + 3);
+        assert_eq!(line_col_offset(src, 1, start_of_dash), dash);
+        assert_eq!(line_col_offset(src, 1, dash + 3 + 1), dash + 3);
         assert_eq!(line_col_offset(src, 2, 1), src.find('\n').unwrap() + 1);
     }
 }

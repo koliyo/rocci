@@ -10,7 +10,7 @@ import PageOutline
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <meta name="color-scheme" content="light dark" />
             <meta http-equiv="Content-Security-Policy" content={view.resources.csp} />
-            <title>{view.title} · {view.site.title}</title>
+            <title>{view.document_title}</title>
             <link rel="stylesheet" href={view.resources.stylesheet} />
             @if view.description != "" {
                 <meta name="description" content={view.description} />
@@ -43,7 +43,6 @@ import PageOutline
             @if view.site.apple_touch_icon != "" {
                 <link rel="apple-touch-icon" href={view.site.apple_touch_icon} />
             }
-            <link rel="alternate" type="application/atom+xml" title={"${view.site.title} News"} href="/news/feed.xml" />
         </head>
         <body>
             <a class="skip-link" href="#main-content">Skip to content</a>
@@ -92,18 +91,12 @@ import PageOutline
                                     }
                                 }
                             </nav>
-                            @match view.layout {
-                                "home" => <></>
-                                "product" => <></>
-                                "section" => <></>
-                                "news-index" => <></>
-                                "news-post" => <></>
-                                "plain" => <></>
-                                "not-found" => <></>
-                                _ => <>
-                                    <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
-                                    <PageOutline.pageOutline outline={view.outline} />
-                                </>
+                            @if !List.is_empty(view.sidebar) {
+                                <p class="mobile-nav-label">In this section</p>
+                                <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
+                            }
+                            @if !List.is_empty(view.outline) {
+                                <PageOutline.pageOutline outline={view.outline} />
                             }
                         </div>
                     </details>
@@ -112,10 +105,9 @@ import PageOutline
             <div class="site-container">
                 @match view.layout {
                     "home" => <Layouts.Home view={view}>{content}</Layouts.Home>
+                    "faq" => <Layouts.Faq view={view}>{content}</Layouts.Faq>
                     "product" => <Layouts.Product view={view}>{content}</Layouts.Product>
                     "section" => <Layouts.Section view={view}>{content}</Layouts.Section>
-                    "news-index" => <Layouts.NewsIndex view={view}>{content}</Layouts.NewsIndex>
-                    "news-post" => <Layouts.NewsPost view={view}>{content}</Layouts.NewsPost>
                     "plain" => <Layouts.Plain view={view}>{content}</Layouts.Plain>
                     "not-found" => <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
                     _ => <Layouts.Docs view={view}>{content}</Layouts.Docs>
@@ -295,6 +287,14 @@ import PageOutline
             display: flex;
             align-items: center;
         }
+        .mobile-nav-label {
+            margin: 1rem 0 0.5rem;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
         .mobile-panel .outline {
             position: static;
             height: auto;
@@ -304,7 +304,32 @@ import PageOutline
         .mobile-panel .outline:not(:has(.outline-link)) { display: none; }
     }
     @media print {
-        .mobile-menu { display: none; }
+        .skip-link, .site-header, .site-footer, .sidebar, .outline,
+        .outline-fallback, .journey { display: none; }
+        .site-container, .layout-navigated, .layout-home {
+            display: block;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+        a { color: inherit; text-decoration: underline; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .skip-link { transition: none; }
+        * { scroll-behavior: auto; }
+    }
+    @media (forced-colors: active) {
+        .skip-link, .lane-link.is-current, .goto-open,
+        .mobile-menu summary, :focus-visible {
+            border: 1px solid CanvasText;
+            outline: 2px solid Highlight;
+            outline-offset: 2px;
+        }
+        .site-header, .site-footer, .mobile-panel {
+            background: Canvas;
+            border-color: CanvasText;
+            box-shadow: none;
+        }
     }
     .site-footer {
         border-top: 1px solid var(--line);

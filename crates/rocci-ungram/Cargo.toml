@@ -2,7 +2,7 @@
 name = "rocci-ungram"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Generate owned AST structs from Rocci and Rocdown ungrammar tree specs"
 
 [lib]

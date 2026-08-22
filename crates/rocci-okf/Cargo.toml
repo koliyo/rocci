@@ -2,7 +2,7 @@
 name = "rocci-okf"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Rocci Open Knowledge Format (OKF) review and query application"
 
 [[bin]]

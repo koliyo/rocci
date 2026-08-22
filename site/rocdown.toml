@@ -24,6 +24,7 @@ layout = "docs"
 source = "../dist/example-docs"
 prefix = "examples"
 layout = "docs"
+visibility = "linked-detail"
 
 [[nav]]
 label = "Docs"
@@ -139,6 +140,13 @@ label = "Examples"
 directory = "examples"
 items = [
     "examples/index",
+    "examples/counter/index",
+    "examples/live-counter/index",
+    "examples/handler-matrix/index",
+    "examples/styling/index",
+    "examples/datastar/index",
+    "examples/blocks/index",
+    "examples/snake/index",
 ]
 
 [[nav]]
@@ -153,16 +161,6 @@ items = [
     "rocdown/site-config",
     "rocdown/cli",
     "rocdown/tree",
-]
-
-[[nav]]
-label = "News"
-directory = "news"
-items = [
-    "news/index",
-    "news/introducing-rocci",
-    "news/rocdown-static-collections",
-    "news/rocci-desktop-apps",
 ]
 
 [[nav]]

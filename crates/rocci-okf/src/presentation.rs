@@ -2204,7 +2204,7 @@ pub fn render_validation_notice(bundle: &Bundle, current_path: Option<&str>) -> 
         .iter()
         .filter(|diagnostic| {
             diagnostic.severity == Severity::Error
-                && current_path.map_or(true, |path| diagnostic.path != path)
+                && current_path.is_none_or(|path| diagnostic.path != path)
         })
         .collect();
     if path_diagnostics.is_empty() && other_errors.is_empty() {
@@ -2860,7 +2860,7 @@ mod tests {
         assert_eq!(hash, renderer_compile_hash(&modules, &main_code, false));
         assert!(cache.lookup_renderer(&hash, &target).is_some());
         let mut changed = modules.clone();
-        changed[0].roc.push_str("\n");
+        changed[0].roc.push('\n');
         let hash2 = renderer_compile_hash(&changed, &main_code, false);
         assert!(cache.lookup_renderer(&hash2, &target).is_none());
         let _ = fs::remove_dir_all(&dir);

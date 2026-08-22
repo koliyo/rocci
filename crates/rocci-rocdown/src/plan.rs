@@ -346,6 +346,7 @@ fn plan_with_preview(
             datastar_url.as_deref(),
             &config.http.service_origin,
             &rewrite,
+            &published,
             collection_items,
             false,
         ));
@@ -389,6 +390,17 @@ fn plan_with_preview(
         service_routes,
         widget_render_arms: widget_kind_render_arms(),
     })
+}
+
+fn document_title(title: &str, site_title: &str) -> String {
+    let title = title.trim();
+    let site_title = site_title.trim();
+
+    if title.contains(site_title) {
+        title.to_string()
+    } else {
+        format!("{title} · {site_title}")
+    }
 }
 
 fn compile_theme_with_painters(
@@ -1030,6 +1042,7 @@ fn planned_page(
     datastar_url: Option<&str>,
     service_origin: &str,
     rewrite: &BTreeMap<String, String>,
+    all_pages: &[ResolvedPage],
     collection_items: Vec<CollectionItemView>,
     not_found: bool,
 ) -> PlannedPage {
@@ -1038,7 +1051,21 @@ fn planned_page(
     } else {
         Some(page.id.as_str())
     };
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, current_id);
+    let (lanes, mut sidebar) = lanes_and_sidebar(navigation, current_id);
+    if page.layout == "home" {
+        sidebar.clear();
+    } else if !sidebar_has_current(&sidebar, &page.route) {
+        sidebar.push(NavGroupView::new(
+            "Current page",
+            "",
+            true,
+            vec![NavItemView::new(
+                &page.title,
+                &page.route,
+                "nav-link nav-child is-current",
+            )],
+        ));
+    }
     let canonical = if not_found || site.base_url.is_empty() {
         String::new()
     } else {
@@ -1050,16 +1077,13 @@ fn planned_page(
     } else {
         format!("Page{}", &hex_sha256(page.id.as_bytes())[..HASH_LEN])
     };
-    let hybrid = matches!(page.kind, PageKind::Hydrate | PageKind::Live);
-    let (segments, fragments) = if hybrid {
-        let path = format!("articles/{article_name}.html");
-        (
-            vec![crate::docs::PlannedNode::Html { path: path.clone() }],
-            vec![(path, article_html.clone())],
-        )
-    } else {
-        let (segments, fragments) =
-            crate::docs::plan_segments(&article_name, &page.article, rewrite);
+    let (segments, fragments) = {
+        let (segments, fragments) = crate::docs::plan_segments_with_islands(
+            &article_name,
+            &page.article,
+            rewrite,
+            &page.island_html,
+        );
         let fragments = if fragments.is_empty() {
             vec![(
                 format!("articles/{article_name}.html"),
@@ -1111,6 +1135,7 @@ fn planned_page(
             sidebar,
             route: page.route.clone(),
             title: page.title.clone(),
+            document_title: document_title(&page.title, &site.title),
             description: page.description.clone(),
             layout: page.layout.clone(),
             published: page.published.clone(),
@@ -1125,7 +1150,7 @@ fn planned_page(
                 .filter(|heading| (2..=3).contains(&heading.level))
                 .map(outline_view)
                 .collect(),
-            breadcrumbs: page.breadcrumbs.iter().map(breadcrumb_from_link).collect(),
+            breadcrumbs: normalized_breadcrumbs(page, site, navigation, all_pages),
             previous: optional_link(page.previous.as_ref()),
             next: optional_link(page.next.as_ref()),
             resources: ResourceView {
@@ -1148,7 +1173,20 @@ fn not_found_page(
     chrome_script: &str,
 ) -> PlannedPage {
     let home = find_route_id(navigation, "/");
-    let (lanes, sidebar) = lanes_and_sidebar(navigation, home);
+    let (lanes, _) = lanes_and_sidebar(navigation, home);
+    let mut recovery_items = lanes
+        .iter()
+        .map(|lane| NavItemView::new(&lane.label, &lane.href, "nav-link nav-child"))
+        .collect::<Vec<_>>();
+    for (title, route) in [
+        ("Start with Rocci", "/docs/"),
+        ("Project status", "/project/status/"),
+    ] {
+        if !recovery_items.iter().any(|item| item.href == route) {
+            recovery_items.push(NavItemView::new(title, route, "nav-link nav-child"));
+        }
+    }
+    let sidebar = vec![NavGroupView::new("Recover", "", true, recovery_items)];
     PlannedPage {
         article_path: "articles/NotFound.html".into(),
         output_path: "404.html".into(),
@@ -1163,6 +1201,7 @@ fn not_found_page(
             sidebar,
             route: "/404.html".into(),
             title: "Page not found".into(),
+            document_title: document_title("Page not found", &site.title),
             description: "This page does not exist.".into(),
             layout: "not-found".into(),
             published: String::new(),
@@ -1172,7 +1211,10 @@ fn not_found_page(
             collection: String::new(),
             collection_items: Vec::new(),
             outline: Vec::new(),
-            breadcrumbs: Vec::new(),
+            breadcrumbs: vec![
+                BreadcrumbView::new(&site.title, "/"),
+                BreadcrumbView::new("Page not found", "/404.html"),
+            ],
             previous: NavItemView {
                 title: String::new(),
                 href: String::new(),
@@ -1208,11 +1250,7 @@ fn lanes_and_sidebar(
     let has_nested = navigation
         .iter()
         .any(|section| !section.children.is_empty());
-    let current_top = current_id.and_then(|id| {
-        navigation
-            .iter()
-            .find(|section| catalog::section_contains(section, id))
-    });
+    let current_top = current_id.and_then(|id| current_section(navigation, id));
     let lanes = if has_nested {
         navigation
             .iter()
@@ -1247,6 +1285,109 @@ fn lanes_and_sidebar(
     (lanes, sidebar)
 }
 
+fn current_section<'a>(navigation: &'a [NavSection], id: &str) -> Option<&'a NavSection> {
+    navigation.iter().find(|section| {
+        catalog::section_contains(section, id)
+            || catalog::first_nav_item(section).is_some_and(|item| {
+                item.id
+                    .split('/')
+                    .next()
+                    .zip(id.split('/').next())
+                    .is_some_and(|(lane, current)| lane == current)
+            })
+    })
+}
+
+fn sidebar_has_current(sidebar: &[NavGroupView], route: &str) -> bool {
+    sidebar.iter().any(|group| {
+        group.href == route
+            || group
+                .items
+                .iter()
+                .any(|item| item.class_name.contains("is-current"))
+            || (group.items.is_empty() && group.open)
+    })
+}
+
+fn normalized_breadcrumbs(
+    page: &ResolvedPage,
+    site: &SiteView,
+    navigation: &[NavSection],
+    all_pages: &[ResolvedPage],
+) -> Vec<BreadcrumbView> {
+    if page.route == "/" {
+        return Vec::new();
+    }
+    let mut crumbs = vec![BreadcrumbView::new(&site.title, "/")];
+    if let Some(section) = current_section(navigation, &page.id)
+        && let Some(first) = catalog::first_nav_item(section)
+    {
+        push_breadcrumb(
+            &mut crumbs,
+            BreadcrumbView::new(&section.label, &first.route),
+        );
+    }
+    if let Some(rest) = page.id.strip_prefix("examples/")
+        && let Some(example) = rest.split('/').next()
+    {
+        let parent_id = format!("examples/{example}/index");
+        if let Some(parent) = all_pages.iter().find(|candidate| candidate.id == parent_id) {
+            push_breadcrumb(
+                &mut crumbs,
+                BreadcrumbView::new(&parent.title, &parent.route),
+            );
+        }
+    }
+    for link in page.breadcrumbs.iter().filter(|link| link.route != "/") {
+        let mut next = breadcrumb_from_link(link);
+        if crumbs.last().is_some_and(|previous| {
+            previous.href == next.href
+                && !previous
+                    .title
+                    .trim()
+                    .eq_ignore_ascii_case(next.title.trim())
+        }) && let Some(group) = find_group_for_page(navigation, &link.title, &page.id)
+            && let Some(item) = group.items.iter().find(|item| {
+                crumbs
+                    .last()
+                    .is_none_or(|previous| item.route != previous.href)
+            })
+        {
+            next.href = item.route.clone();
+        }
+        push_breadcrumb(&mut crumbs, next);
+    }
+    crumbs
+}
+
+fn find_group_for_page<'a>(
+    navigation: &'a [NavSection],
+    label: &str,
+    page_id: &str,
+) -> Option<&'a NavSection> {
+    navigation.iter().find_map(|section| {
+        if section.label.eq_ignore_ascii_case(label) && catalog::section_contains(section, page_id)
+        {
+            Some(section)
+        } else {
+            find_group_for_page(&section.children, label, page_id)
+        }
+    })
+}
+
+fn push_breadcrumb(crumbs: &mut Vec<BreadcrumbView>, next: BreadcrumbView) {
+    let duplicate = crumbs.last().is_some_and(|previous| {
+        previous.href == next.href
+            || previous
+                .title
+                .trim()
+                .eq_ignore_ascii_case(next.title.trim())
+    });
+    if !duplicate {
+        crumbs.push(next);
+    }
+}
+
 fn find_route_id<'a>(navigation: &'a [NavSection], route: &str) -> Option<&'a str> {
     for section in navigation {
         if let Some(item) = section.items.iter().find(|item| item.route == route) {
@@ -1275,37 +1416,15 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
     let open = current_id.is_some_and(|id| catalog::section_contains(section, id));
     match section.items.as_slice() {
         [] => None,
-        [only] => Some(NavGroupView {
+        items => Some(NavGroupView {
             title: section.label.clone(),
-            href: only.route.clone(),
-            open: false,
-            items: Vec::new(),
+            href: String::new(),
+            open,
+            items: items
+                .iter()
+                .map(|item| nav_leaf(item, current_id))
+                .collect(),
         }),
-        items => {
-            let (href, rest) = match items.first() {
-                Some(first) if first.title == section.label => (
-                    first.route.clone(),
-                    items
-                        .iter()
-                        .skip(1)
-                        .map(|item| nav_leaf(item, current_id))
-                        .collect(),
-                ),
-                _ => (
-                    String::new(),
-                    items
-                        .iter()
-                        .map(|item| nav_leaf(item, current_id))
-                        .collect(),
-                ),
-            };
-            Some(NavGroupView {
-                title: section.label.clone(),
-                href,
-                open,
-                items: rest,
-            })
-        }
     }
 }
 
@@ -1781,6 +1900,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.route);
         out.push_str(",\n                title: ");
         push_roc_string(&mut out, &page.view.title);
+        out.push_str(",\n                document_title: ");
+        push_roc_string(&mut out, &page.view.document_title);
         out.push_str(",\n                description: ");
         push_roc_string(&mut out, &page.view.description);
         out.push_str(",\n                layout: ");
@@ -1965,6 +2086,19 @@ mod tests {
     use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
     use std::{env, fs, path::PathBuf};
 
+    #[test]
+    fn document_title_adds_the_brand_exactly_once() {
+        assert_eq!(document_title("Guide", "Rocci"), "Guide · Rocci");
+        assert_eq!(
+            document_title("Contributing to Rocci", "Rocci"),
+            "Contributing to Rocci"
+        );
+        assert_eq!(
+            document_title("Rocci · Native interfaces", "Rocci"),
+            "Rocci · Native interfaces"
+        );
+    }
+
     fn temp(name: &str) -> PathBuf {
         let path = env::temp_dir().join(format!("rocdown-plan-{}-{name}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
@@ -2021,9 +2155,10 @@ mod tests {
         assert_eq!(sidebar.len(), 2);
         assert!(!sidebar[0].open);
         assert!(sidebar[1].open);
-        assert_eq!(sidebar[1].href, "/tutorials/");
-        assert_eq!(sidebar[1].items[0].title, "Build your first component");
-        assert!(sidebar[1].items[0].class_name.contains("is-current"));
+        assert!(sidebar[1].href.is_empty());
+        assert_eq!(sidebar[1].items[0].title, "Tutorials");
+        assert_eq!(sidebar[1].items[1].title, "Build your first component");
+        assert!(sidebar[1].items[1].class_name.contains("is-current"));
     }
 
     #[test]
@@ -2066,7 +2201,23 @@ mod tests {
         assert_eq!(sidebar[0].title, "Tutorials");
         assert!(sidebar[0].open);
         assert_eq!(sidebar[1].title, "Status");
-        assert!(sidebar[1].items.is_empty());
+        assert_eq!(sidebar[1].items.len(), 1);
+        assert_eq!(sidebar[1].items[0].title, "Status");
+    }
+
+    #[test]
+    fn single_page_lane_is_an_expandable_current_group() {
+        let navigation = vec![nav_section(
+            "FAQ",
+            vec![nav_item("faq/index", "FAQ", "/faq/")],
+            vec![],
+        )];
+        let (_, sidebar) = lanes_and_sidebar(&navigation, Some("faq/index"));
+        assert_eq!(sidebar.len(), 1);
+        assert!(sidebar[0].open);
+        assert!(sidebar[0].href.is_empty());
+        assert_eq!(sidebar[0].items.len(), 1);
+        assert!(sidebar_has_current(&sidebar, "/faq/"));
     }
 
     fn write_site(root: &Path) {
@@ -2167,6 +2318,16 @@ items = ["index", "guide"]
             .unwrap();
         assert!(guide.article_html.contains("/assets/icons/logo."));
         assert!(!guide.article_html.contains("/assets/icons/logo.png"));
+        assert_eq!(
+            guide
+                .view
+                .breadcrumbs
+                .iter()
+                .map(|crumb| crumb.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Rocci", "Guide"]
+        );
+        assert!(home.view.breadcrumbs.is_empty());
         let _ = fs::remove_dir_all(root);
     }
 
@@ -2204,17 +2365,22 @@ items = ["index", "guide"]
         );
         assert!(planned.assets.iter().any(|asset| asset.kind == "stylesheet"
             && String::from_utf8_lossy(&asset.bytes).contains("forced-colors")));
+        let recovery = planned
+            .pages
+            .iter()
+            .find(|page| page.output_path == "404.html")
+            .unwrap();
+        assert_eq!(recovery.view.resources.csp, DEFAULT_CSP);
         assert_eq!(
-            planned
-                .pages
-                .iter()
-                .find(|page| page.output_path == "404.html")
-                .unwrap()
+            recovery
                 .view
-                .resources
-                .csp,
-            DEFAULT_CSP
+                .breadcrumbs
+                .iter()
+                .map(|crumb| crumb.title.as_str())
+                .collect::<Vec<_>>(),
+            ["Rocci", "Page not found"]
         );
+        assert!(!recovery.view.sidebar.is_empty());
         let roc = planned.pages_roc();
         let not_found = roc.find("output_path: \"404.html\"").unwrap();
         let guide = roc.find("output_path: \"guide/index.html\"").unwrap();
@@ -2395,7 +2561,7 @@ items = ["index", "guide"]
     }
 
     #[test]
-    fn static_pages_keep_widget_forest_hybrid_pages_use_one_htmlfile() {
+    fn hybrid_pages_keep_static_widgets_and_islands_in_authored_order() {
         let root = temp("dual-apply");
         fs::write(
             root.join("rocdown.toml"),
@@ -2429,6 +2595,11 @@ FeatureCount = |_| {
 }
 
 # Widgets
+
+:card-grid.begin
+    :link-card[href: "/", title: "Start", summary: "First path."]
+    :link-card[href: "/widgets/", title: "Project", summary: "Second path."]
+:card-grid.end
 
 @render FeatureCount({})
 "#,
@@ -2472,9 +2643,13 @@ FeatureCount = |_| {
             .iter()
             .find(|page| page.view.route == "/widgets/")
             .unwrap();
-        assert_eq!(widgets.segments.len(), 1);
+        let card_segment = widgets
+            .segments
+            .iter()
+            .position(|node| node.widget_kind() == Some("card-grid"))
+            .expect("card-grid segment");
         assert!(
-            matches!(widgets.segments[0], crate::docs::PlannedNode::Html { .. }),
+            card_segment + 1 < widgets.segments.len(),
             "{:?}",
             widgets.segments
         );
@@ -2486,6 +2661,13 @@ FeatureCount = |_| {
             "{:?}",
             widgets.fragments
         );
+        let roc = planned.pages_roc();
+        let card_at = roc.find("CardGrid({").expect("card-grid in generated Roc");
+        let island_at = roc[card_at..]
+            .find("HtmlFile({ path:")
+            .map(|offset| card_at + offset)
+            .expect("island fragment after card-grid");
+        assert!(card_at < island_at, "{roc}");
         assert!(widgets.view.resources.module_script.is_empty());
         assert!(widgets.view.resources.chrome_script.contains("goto."));
         let _ = fs::remove_dir_all(root);

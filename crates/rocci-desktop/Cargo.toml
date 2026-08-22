@@ -2,7 +2,7 @@
 name = "rocci-desktop"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Native desktop shell for Rocci: windows, webviews, and native events"
 
 [dependencies]
@@ -30,4 +30,3 @@ objc2-foundation = { version = "0.3", default-features = false, features = [
     "std",
     "NSData",
 ] }
-

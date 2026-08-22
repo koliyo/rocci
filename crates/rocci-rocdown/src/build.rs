@@ -381,6 +381,7 @@ fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Resu
         };
         let evaluated = crate::islands::evaluate_page(&path, source_name, &src, service.as_deref())
             .with_context(|| format!("failed to evaluate islands in {}", page.source_path))?;
+        page.island_html = evaluated.html.clone();
         page.article_html = crate::islands::fill_placeholders(&page.article_html, &evaluated.html)
             .with_context(|| format!("failed to splice islands into {}", page.source_path))?;
         if page.kind == crate::article::PageKind::Live {
@@ -603,6 +604,7 @@ impl BuildReport {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn report_from_plan(
     plan: &BuildPlan,
     generated_roc_bytes: usize,

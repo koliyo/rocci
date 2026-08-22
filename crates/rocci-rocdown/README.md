@@ -286,7 +286,10 @@ site chrome and named layouts. Custom site shells that hide a docs sidebar
 below `48rem` must replace it with a labeled `<details>` menu; rocci.dev’s
 `SiteShell` uses `class="mobile-menu"` and only copies the docs `NavList` on
 the documentation layout. The builtin `RocdownTheme` already ships that menu.
-Rocdown still compiles builtin `RocdownBase`
+Shared `NavList` sections use one expandable group shape even when a section
+contains only one page. Each group opens and closes independently under user
+control, and the chrome script animates that transition while native `<details>`
+remains the JavaScript-free fallback. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
@@ -313,6 +316,20 @@ Sites can mount external documentation catalogs using `[[mount]]` in `rocdown.to
 For example, `site/` mounts `../docs` at prefix `docs` with `layout = "docs"`,
 allowing `docs/` to remain at repository root for standalone `rocdown run docs`
 while building as part of `rocdown build site`.
+
+Mounts default to `visibility = "navigable"`: published pages omitted from
+navigation emit `RD2202`. Use `visibility = "linked-detail"` only for a
+generated detail catalog whose pages are intentionally reached from authored
+links. Those pages remain marked unlisted in inspection and machine output,
+but do not emit expected warning noise. Authored pages and ordinary mounts
+still warn.
+
+The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
+Project `.rocci` layouts own the visible frame. A site may validate named
+layouts such as `home`, `faq`, `product`, `section`, `docs`, `plain`, and
+`not-found`; their visual behavior is a theme contract, not catalog policy.
+Removed content surfaces should be deleted from navigation and authored pages;
+deployment-level redirects or terminal responses remain an origin concern.
 
 ## CLI
 

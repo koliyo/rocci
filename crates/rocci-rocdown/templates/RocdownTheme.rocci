@@ -794,14 +794,14 @@ import PageOutline
     }
 }
 
-@component SiteShell = |{ site, lanes, sidebar, route, title, description, outline, breadcrumbs, previous, next, resources, layout, published, updated, authors, tags, collection, collection_items }, content| {
+@component SiteShell = |{ site, lanes, sidebar, route, title, document_title, description, outline, breadcrumbs, previous, next, resources, layout, published, updated, authors, tags, collection, collection_items }, content| {
     <html lang={site.language} class="rd-document">
         <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <meta name="color-scheme" content="dark light" />
             <meta http-equiv="Content-Security-Policy" content={resources.csp} />
-            <title>{title} · {site.title}</title>
+            <title>{document_title}</title>
             <link rel="stylesheet" href={resources.stylesheet} />
             @if resources.playground_css != "" {
                 <link rel="stylesheet" href={resources.playground_css} />

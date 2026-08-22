@@ -666,6 +666,7 @@ fn build_single_doc(input: &Path, output: Option<&Path>, theme: &ThemeArgs) -> R
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_standalone_doc(
     file: &Path,
     args: &[String],
@@ -806,6 +807,7 @@ fn run_standalone_doc(
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_static_standalone_preview(
     path: &Path,
     src_dir: &Path,
@@ -854,6 +856,7 @@ fn run_static_standalone_preview(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_site_dev(
     root: &Path,
     output: Option<&Path>,

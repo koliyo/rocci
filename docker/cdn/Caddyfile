@@ -1,4 +1,10 @@
 :80 {
+	redir /news/introducing-rocci/ /docs/start/what-is-rocci/ 308
+	redir /news/rocdown-static-collections/ /rocdown/site-config/ 308
+	redir /news/rocci-desktop-apps/ /docs/tutorials/ship/ 308
+	@retired_news path /news/ /news/feed.xml
+	respond @retired_news 410
+
 	handle /play/blocks/* {
 		reverse_proxy blocks:8000 {
 			flush_interval -1

@@ -81,9 +81,9 @@ fn page(
     out.push_str("}\n\n");
     out.push_str(&format!("# {title}\n\n"));
     out.push_str(lead);
-    out.push_str("\n");
+    out.push('\n');
     for (heading, table) in sections {
-        out.push_str("\n");
+        out.push('\n');
         out.push_str(&format!("## {heading}\n\n"));
         out.push_str(table);
     }

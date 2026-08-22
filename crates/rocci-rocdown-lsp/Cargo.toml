@@ -2,7 +2,7 @@
 name = "rocci-rocdown-lsp"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Product language-server binary that composes Rocci and Rocdown analyzers"
 
 [lib]

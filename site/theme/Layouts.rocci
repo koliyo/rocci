@@ -13,132 +13,70 @@ import PageOutline
     <div class="layout-home">
         <main class="home-main" id="main-content">
             <article class="article">{content}</article>
-            <section class="home-recent-news">
-                <div class="section-heading">
-                    <h2 class="section-title">Latest Updates</h2>
-                    <a class="section-more" href="/news/">View all news →</a>
-                </div>
-                <div class="news-grid">
-                    @for item in view.collection_items {
-                        <div class="news-item">
-                            <time class="news-date">{item.published}</time>
-                            <h3 class="news-item-title"><a href={item.route}>{item.title}</a></h3>
-                            @if item.summary != "" {
-                                <p class="news-item-summary">{item.summary}</p>
-                            }
-                        </div>
-                    }
-                </div>
-            </section>
             <ArticleFooter view={view} />
         </main>
+    </div>
+}
+
+@component NavigatedFrame = |{ view, show_journey }, content| {
+    <div class="layout-navigated">
+        <aside class="sidebar">
+            <p class="nav-label">In this section</p>
+            <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
+        </aside>
+        <main class="content-column" id="main-content">
+            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
+            @if !List.is_empty(view.outline) {
+                <details class="outline-fallback">
+                    <summary>On this page</summary>
+                    <PageOutline.pageOutline outline={view.outline} />
+                </details>
+            }
+            <article class="article">{content}</article>
+            @if show_journey {
+                <nav class="journey" aria-label="Page journey">
+                    @if view.previous.href != "" {
+                        <a class="journey-prev" href={view.previous.href}>← {view.previous.title}</a>
+                    }
+                    @if view.next.href != "" {
+                        <a class="journey-next" href={view.next.href}>{view.next.title} →</a>
+                    }
+                </nav>
+            }
+            <ArticleFooter view={view} />
+        </main>
+        @if !List.is_empty(view.outline) {
+            <PageOutline.pageOutline outline={view.outline} />
+        }
     </div>
 }
 
 @component Product = |{ view }, content| {
-    <div class="layout-product">
-        <main class="product-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
 @component Section = |{ view }, content| {
-    <div class="layout-section">
-        <main class="section-main" id="main-content">
-            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
-            <article class="article">{content}</article>
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
 @component Docs = |{ view }, content| {
-    <div class="layout-docs">
-        <aside class="sidebar">
-            <NavList.navList items={view.sidebar} route={view.route} aria_label="Documentation navigation" />
-        </aside>
-        <main class="content-column" id="main-content">
-            <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />
-            <article class="article">{content}</article>
-            <nav class="journey" aria-label="Page journey">
-                @if view.previous.href != "" {
-                    <a class="journey-prev" href={view.previous.href}>← {view.previous.title}</a>
-                }
-                @if view.next.href != "" {
-                    <a class="journey-next" href={view.next.href}>{view.next.title} →</a>
-                }
-            </nav>
-            <ArticleFooter view={view} />
-        </main>
-        <PageOutline.pageOutline outline={view.outline} />
-    </div>
+    <NavigatedFrame view={view} show_journey={True}>{content}</NavigatedFrame>
 }
 
-@component NewsIndex = |{ view }, content| {
-    <div class="layout-news-index">
-        <main class="news-main" id="main-content">
-            <article class="article">{content}</article>
-            <div class="collection-feed">
-                <div class="collection-feed-header">
-                    <h2 class="feed-title">All Announcements</h2>
-                    <a class="feed-link" href="/news/feed.xml">RSS / Atom Feed ↗</a>
-                </div>
-                <div class="news-list">
-                    @for item in view.collection_items {
-                        <article class="news-card">
-                            <div class="news-card-meta">
-                                <time class="news-date">{item.published}</time>
-                            </div>
-                            <h2 class="news-card-title"><a href={item.route}>{item.title}</a></h2>
-                            @if item.summary != "" {
-                                <p class="news-card-summary">{item.summary}</p>
-                            }
-                        </article>
-                    }
-                </div>
-            </div>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
-}
-
-@component NewsPost = |{ view }, content| {
-    <div class="layout-news-post">
-        <main class="news-post-main" id="main-content">
-            <header class="post-header">
-                @if view.published != "" {
-                    <time class="post-date">{view.published}</time>
-                }
-            </header>
-            <article class="article">{content}</article>
-            <div class="post-footer">
-                <a class="back-link" href="/news/">← Back to news</a>
-            </div>
-        </main>
-    </div>
+@component Faq = |{ view }, content| {
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
 @component Plain = |{ view }, content| {
-    <div class="layout-plain">
-        <main class="plain-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={True}>{content}</NavigatedFrame>
 }
 
 @component NotFound = |{ view }, content| {
-    <div class="layout-not-found">
-        <main class="not-found-main" id="main-content">
-            <article class="article">{content}</article>
-            <ArticleFooter view={view} />
-        </main>
-    </div>
+    <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
 @css {
-    :scope.layout-docs {
+    :scope.layout-navigated {
         display: grid;
         grid-template-columns: 16rem minmax(0, 1fr) 14rem;
         gap: 2rem;
@@ -147,21 +85,22 @@ import PageOutline
         padding: 1.5rem 1rem;
     }
     @media (max-width: 64rem) {
-        :scope.layout-docs {
+        :scope.layout-navigated {
             grid-template-columns: 14rem minmax(0, 1fr);
         }
-        .outline {
+        :scope.layout-navigated > .outline {
             display: none;
         }
+        :scope.layout-navigated .outline-fallback { display: block; }
     }
     @media (max-width: 48rem) {
-        :scope.layout-docs {
+        :scope.layout-navigated {
             grid-template-columns: minmax(0, 1fr);
         }
         .sidebar {
             display: none;
         }
-        .outline {
+        :scope.layout-navigated .outline-fallback, :scope.layout-navigated > .outline {
             display: none;
         }
         .mobile-panel .outline {
@@ -171,7 +110,7 @@ import PageOutline
             display: none;
         }
     }
-    .layout-home, .layout-product, .layout-section, .layout-news-index, .layout-news-post, .layout-plain, .layout-not-found {
+    .layout-home {
         max-width: 54rem;
         margin: 0 auto;
         padding: 2rem 1rem 4rem;
@@ -181,6 +120,25 @@ import PageOutline
         top: 4.5rem;
         height: calc(100vh - 5rem);
         overflow-y: auto;
+    }
+    .nav-label, .outline-fallback > summary {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+    .outline-fallback { display: none; margin: 0 0 1.5rem; }
+    .layout-navigated > .outline:not(:has(.outline-link)) { display: none; }
+    .outline-fallback > summary {
+        min-height: 2.75rem;
+        cursor: pointer;
+    }
+    .outline-fallback .outline {
+        position: static;
+        height: auto;
+        overflow: visible;
+        padding: 0.5rem 0 1rem;
     }
     .nav-section { margin: 0; }
     .nav-section + .nav-section { margin-top: 0.28rem; }
@@ -276,7 +234,7 @@ import PageOutline
         color: var(--muted);
         text-decoration: none;
     }
-    .breadcrumbs a.crumb-current {
+    .breadcrumbs .crumb-current {
         color: inherit;
         font-weight: 500;
     }
@@ -296,79 +254,5 @@ import PageOutline
         margin-top: 2.5rem;
         font-size: 0.875rem;
         color: var(--muted);
-    }
-    .post-date {
-        font-size: 0.875rem;
-        color: var(--muted);
-    }
-    .post-footer {
-        margin-top: 2rem;
-    }
-    .back-link {
-        text-decoration: none;
-        color: var(--accent);
-        font-weight: 500;
-    }
-    .home-recent-news, .collection-feed {
-        margin-top: 3rem;
-        padding-top: 2rem;
-        border-top: 1px solid var(--line);
-    }
-    .section-heading, .collection-feed-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 1.5rem;
-    }
-    .section-title, .feed-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0;
-    }
-    .section-more, .feed-link {
-        font-size: 0.875rem;
-        color: var(--accent);
-        text-decoration: none;
-        font-weight: 500;
-    }
-    .news-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-        gap: 1.25rem;
-    }
-    .news-item {
-        border: 1px solid var(--line);
-        border-radius: 0.5rem;
-        padding: 1.25rem;
-        background: var(--surface);
-    }
-    .news-item-title {
-        font-size: 1.125rem;
-        margin: 0.25rem 0 0.5rem;
-    }
-    .news-item-title a, .news-card-title a {
-        text-decoration: none;
-        color: inherit;
-    }
-    .news-item-title a:hover, .news-card-title a:hover {
-        color: var(--accent);
-    }
-    .news-item-summary, .news-card-summary {
-        font-size: 0.875rem;
-        color: var(--muted);
-        margin: 0;
-    }
-    .news-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-    .news-card {
-        border-bottom: 1px solid var(--line);
-        padding-bottom: 1.5rem;
-    }
-    .news-card-title {
-        font-size: 1.35rem;
-        margin: 0.25rem 0 0.5rem;
     }
 }

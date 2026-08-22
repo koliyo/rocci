@@ -298,6 +298,7 @@ pub fn compile_app_plan(
     crate::native_target::build_roc_server(&workspace.path, output, target)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn execute_resolved_entry(
     resolved: &ResolvedEntry,
     args: &[String],

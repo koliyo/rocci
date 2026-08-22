@@ -1,62 +1,35 @@
 @page {
-    layout: "plain",
+    layout: "faq",
     meta: {
-        title: "Frequently Asked Questions · Rocci",
-        description: "Answers to common questions about Rocci, Rocdown, performance, Datastar integration, desktop apps, and comparisons with other frameworks.",
+        title: "Frequently asked questions",
+        description: "Concise answers about Rocci, Rocdown, Datastar, desktop delivery, and current project maturity.",
     },
 }
 
 # Frequently Asked Questions
 
-Find answers to common questions about Rocci's architecture, tooling, performance, and best practices.
+Use this page for orientation. Follow the linked guide when you need the full contract.
 
----
+## What is Rocci?
 
-## General & Concepts
+Rocci is an experimental toolchain for writing HTML interfaces in Roc. `.rocci` templates lower to ordinary Roc; standalone server declarations can produce HTTP applications. Start with [What is Rocci?](/docs/start/what-is-rocci/).
 
-### What is Rocci?
-Rocci is a developer toolchain designed for building user interfaces and documentation with the Roc programming language. It provides two complementary formats:
-1. **`.rocci` Templates**: Pure Roc modules with an embedded HTML grammar that lowers to pure functions returning type-safe virtual HTML representations.
-2. **`.rocdown` Documents**: Markdown files with explicit compiler directives for page metadata, code snippets, tabs, callouts, and interactive components.
+## Is Rocci a client-side JavaScript framework?
 
-### Is Rocci a client-side JavaScript framework?
-No. Rocci applications run as compiled native processes (or server backends) that output semantic HTML. Dynamic client interactions and live updates are driven by lightweight hypermedia protocols (such as [Datastar](https://data-star.dev)) or native desktop webviews (Tao/Wry), eliminating large single-page-app JavaScript runtimes.
+No. Rocci renders semantic HTML from Roc. Interactive applications can use Datastar as a browser transport for requests, HTML patches, commands, and shared streams; durable state remains on the server. Read [Datastar as transport](/docs/concepts/datastar-as-transport/).
 
-### How does Rocci compare to React, Vue, or Svelte?
-- **Purity & Reliability**: Roc has no `null`, no exceptions, no mutation, and full type inference. Views are pure deterministic mathematical functions of state.
-- **Payload & Simplicity**: While modern JS frameworks ship megabytes of client JavaScript, Rocci ships lightweight, semantic HTML with scoped CSS.
-- **Deterministic Builds**: Static documentation sites built with Rocdown compile in sub-second speeds and guarantee byte-identical outputs.
+## When should I use `.rocci` or `.rocdown`?
 
----
+Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/rocdown/pages/).
 
-## Rocdown & Static Sites
+## Can Rocdown publish interactive pages?
 
-### What is the difference between `.rocci` and `.rocdown`?
-- Use **`.rocci`** when authoring application components, interactive views, or custom site shells where Roc logic and HTML structure are primary.
-- Use **`.rocdown`** when authoring prose, technical manuals, guides, tutorials, or blog posts where Markdown prose is primary.
+Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/rocdown/hybrid/).
 
-### How do custom themes work in Rocdown?
-Rocdown decouples documentation prose from site chrome. You place `.rocci` templates in your project's `theme/` directory (e.g. `SiteShell.rocci`, `Layouts.rocci`, `Components.rocci`). Rocdown compiles the theme once, resolves the content catalog in Rust, and renders the static site without type-checking Markdown prose in Roc.
+## Can I build desktop applications?
 
-### Does Rocdown support RSS and Atom feeds?
-Yes! Rocdown supports typed static collections (such as `news`). When collection posts are present, Rocdown automatically generates an Atom 1.0 feed at `/news/feed.xml` with RFC 3339 timestamps and feed autodiscovery headers.
+`rocci run` can open a Tao/Wry preview window, and `rocci bundle` can create a local, ad-hoc-signed macOS application bundle. Production signing, installers, updates, and broad native APIs are not shipped. See [Runtime compatibility](/docs/reference/compatibility/).
 
----
+## Is Rocci ready for production adoption?
 
-## Desktop & Runtime
-
-### Can I build desktop applications with Rocci?
-Yes. `rocci run` compiles your application and serves it inside a native window powered by [Tao](https://github.com/tauri-apps/tao) and [Wry](https://github.com/tauri-apps/wry). You can also package standalone macOS `.app` bundles with ad-hoc code signing.
-
-### What are the hardware and OS requirements?
-- **macOS**: Apple Silicon (M1/M2/M3/M4) and Intel (x86_64), macOS 12+.
-- **Linux & Windows**: Development bundles and static site generation are supported across all platforms; standalone native application packaging is currently expanding to Linux and Windows.
-
----
-
-## Next Steps
-
-- [Read What is Rocci?](/docs/start/what-is-rocci/)
-- [Follow Rocci in five minutes](/docs/start/five-minutes/)
-- [Explore the Architecture Concepts](/docs/concepts/architecture/)
-- [Check Project Status & Roadmap](/project/status/)
+Treat it as an active experiment. Evaluate the implemented surface and current limitations in [Project status](/project/status/); do not infer support from an uncited platform or performance claim.

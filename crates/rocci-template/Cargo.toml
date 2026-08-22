@@ -2,7 +2,7 @@
 name = "rocci-template"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Parse and lower .rocci templates to ordinary Roc"
 
 [lib]
