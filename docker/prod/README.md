@@ -114,12 +114,10 @@ A push to either branch runs `.github/workflows/site.yml`: it packages on
 linux/amd64, then the `deploy` job (GitHub Environment named after the
 branch, never `pull_request` and never `main`) probes SSH
 (`uv run rocci-ops deploy probe`), bootstraps the origin kit, scps
-`site.tgz` / `islands` / `blocks` / `blocks-assets.tgz`, and runs `uv run rocci-ops origin publish SHA` on
-the box: unpack to `releases/<sha>/`, `compose up -d --build` with Compose
-profile `blocks` when that release has a Blocks server, GET
-`http://127.0.0.1:8080/health` and `http://127.0.0.1:8080/health/blocks`, then flip `current`. A failed health check
-leaves the previous symlink and restores that release. Spectator admission
-defaults to 20 (`BLOCKS_SPECTATOR_CAP`). Both branches
+`site.tgz` / `islands`, and runs `uv run rocci-ops origin publish SHA` on
+the box: unpack to `releases/<sha>/`, `compose up -d --build`, GET
+`http://127.0.0.1:8080/health`, then flip `current`. A failed health check
+leaves the previous symlink and restores that release. Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
 serialized so they cannot interleave. **Run workflow** on `staging` or
 `production` packages and deploys the same way as a push; on any other
@@ -184,8 +182,8 @@ by Cloudflare's normal `*.rocci.dev` certificate; a per-build
 
 ## Cloudflare cache
 
-Add a Cache Rule: bypass cache for URI Path starts with `/actions/`,
-`/play/blocks/`, or equals `/health` or `/health/blocks`. Hashed `/assets/` already send
+Add a Cache Rule: bypass cache for URI Path starts with `/actions/`
+or equals `/health`. Hashed `/assets/` already send
 `Cache-Control: public, max-age=31536000, immutable`; HTML is `no-cache`.
 
 ## SQLite backup
@@ -194,37 +192,14 @@ Add a Cache Rule: bypass cache for URI Path starts with `/actions/`,
 cd /srv/rocci && sudo uv run --no-dev rocci-ops origin backup /var/backups/rocci
 ```
 
-That copies `site.db` out of volume `rocci-prod_islands-db` and `blocks.db`
-out of `rocci-prod_blocks-db`. Restore by stopping the matching service,
-copying the file back onto `/var/lib/rocci/site.db` or
-`/var/lib/rocci/blocks.db`, and starting again.
-
-## Rocci Blocks (experimental)
-
-Same-origin `/play/blocks/` is a first-party arena, not a generic live-example
-hostname. Origin publish starts Compose profile `blocks` (512 MiB, 1 CPU,
-SQLite volume `blocks-db`) at spectator cap **20**. Public copy says
-“falling-block arena.”
-
-Watch on the VPS:
-
-```sh
-curl -sf http://127.0.0.1:8080/health
-curl -sf http://127.0.0.1:8080/health/blocks
-docker compose -f /srv/rocci/docker/compose.hybrid.yml --profile blocks logs --tail=100 blocks
-docker stats --no-stream
-```
-
-Look for lock 409/429 bursts, stream reconnects, SQLite busy, CPU, memory, and
-egress. Lower `BLOCKS_SPECTATOR_CAP` or roll back the previous release rather
-than weakening lock validation. A 24-hour public observation is an operator
-gate; shipping the route in git is not that observation.
+That copies `site.db` out of volume `rocci-prod_islands-db`. Restore by
+stopping the islands service, copying the file back onto
+`/var/lib/rocci/site.db`, and starting again.
 
 ## Origin smoke (on the VPS)
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
-curl -sf http://127.0.0.1:8080/health/blocks
 ```
 
 Public `https://rocci.dev/` smoke waits until the Tunnel hostname is routed.

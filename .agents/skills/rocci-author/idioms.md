@@ -11,7 +11,9 @@ In Rocci projects, structure directories according to the semantic role of each 
 | --- | --- | --- | --- |
 | **`components/`** | Reusable UI widgets and design primitives | `Button.rocci`, `StatusCard.rocci`, `NavList.rocci` | `@component`, `@fixture`, scoped `@css` |
 | **`theme/`** or **`layouts/`** | Document frames, site chrome, and responsive shells | `SiteShell.rocci`, `Layouts.rocci`, `RocdownTheme.rocci` | `@component Layout = \|{ view }, content\|`, global CSS tokens |
-| **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `Todos.rocci`, `Edit.rocci` | `@context`, `@init`, `@view`, `@patch` |
+| **`pages/`** or **`routes/`** (or app root) | Standalone full-page web applications and HTTP route handlers | `Counter.rocci`, `LiveCounter.rocci` | `@context`, `@init`, `@get:view`, `@method:fragment` / `@method:command`, `@get:live` |
+| **`backend/`** | Handler-only module plus ordinary Roc rules | `examples/rocci/standalone/blocks/backend/` | `@context`, `@init`, routes, SQLite; no `@component` |
+| **`ui/`** | Pure render for a nested standalone app | `examples/rocci/standalone/blocks/ui/` | `@component`, `@fixture`, `@css`; no I/O |
 | **`docs/`** | Documentation pages and guides | `overview.rocdown`, `quickstart.rocdown` | Markdown, `@page`, `:note`, `:img` |
 
 ### Why `components/` instead of `templates/`
@@ -26,6 +28,18 @@ In Rocci projects, structure directories according to the semantic role of each 
 1. **Co-locate private sub-components**: If a small sub-component is only used within a single page or parent component, declare it directly in that same `.rocci` file (e.g. `@component ItemRow` inside `TodoList.rocci`).
 2. **Extract shared components to `components/`**: When a component is reused across multiple pages or designed as part of a design system, move it to `components/` (e.g. `components/Button.rocci`).
 3. **Explore with `rocci browse`**: Run `cargo run -p rocci-cli -- browse components/` to discover, test, and interactively preview all components and fixtures in the component directory.
+
+### Nested standalone apps
+
+Flat apps (live-counter) keep `LiveCounter.rocci` and `LiveCounterUi.rocci` as
+siblings. Nested apps (`examples/rocci/standalone/blocks/`) put I/O in
+`backend/` and markup in `ui/`. Discovery walks up from the entry `.rocci` to
+the nearest app `rocci.toml` and recurses; stop at `.git` or a Cargo workspace
+root so the repository `rocci.toml` is not treated as an app.
+
+Quoted `data-on:keydown__window="… && @post('/actions/…')"` is the exception
+when the handler must inspect `evt.key`. Unquoted `@post("/path")` remains the
+default for buttons.
 
 ## Prefer match over chained if/else
 
@@ -263,7 +277,8 @@ Keep rendering pure. Put I/O in `@init` and `@method:role` handlers (or an autho
 will patch; the target element needs a stable `id`. That POST updates **this
 tab only**. Shared live views and representation-free commands are
 `$rocci-stack`. Use `@post("/actions/...")` (Roc strings), not single-quoted
-JS, unless the attribute is intentionally an opaque Datastar expression.
+JS, unless the attribute is intentionally an opaque Datastar expression
+(window keydown that branches on `evt.key`).
 
 ## Fixtures
 

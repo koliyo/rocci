@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -167,6 +168,90 @@ fn discover_standalone(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+fn standalone_app_root(entry: &Path) -> PathBuf {
+    let start = entry
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let mut dir = start.clone();
+    loop {
+        if dir.join("rocci.toml").is_file() && !is_project_boundary(&dir) {
+            return dir;
+        }
+        if is_project_boundary(&dir) {
+            return start;
+        }
+        match dir.parent() {
+            Some(parent) if parent != dir => dir = parent.to_path_buf(),
+            _ => return start,
+        }
+    }
+}
+
+fn is_project_boundary(dir: &Path) -> bool {
+    dir.join(".git").exists() || cargo_workspace_root(dir)
+}
+
+fn cargo_workspace_root(dir: &Path) -> bool {
+    let Ok(text) = fs::read_to_string(dir.join("Cargo.toml")) else {
+        return false;
+    };
+    text.lines().any(|line| line.trim() == "[workspace]")
+}
+
+fn skip_standalone_dir(name: &str) -> bool {
+    name.starts_with('.') || matches!(name, "generated" | "target" | "node_modules")
+}
+
+fn discover_standalone_tree(app_root: &Path) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    let mut stems = HashMap::new();
+    walk_standalone(app_root, &mut files, &mut stems)?;
+    files.sort();
+    Ok(files)
+}
+
+fn walk_standalone(
+    dir: &Path,
+    files: &mut Vec<PathBuf>,
+    stems: &mut HashMap<String, PathBuf>,
+) -> Result<()> {
+    let mut entries: Vec<_> = fs::read_dir(dir)
+        .with_context(|| format!("failed to read {}", dir.display()))?
+        .collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if path.is_dir() {
+            if skip_standalone_dir(&name) {
+                continue;
+            }
+            walk_standalone(&path, files, stems)?;
+            continue;
+        }
+        if !is_standalone_file(&path) {
+            continue;
+        }
+        let stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("")
+            .to_string();
+        if let Some(previous) = stems.insert(stem.clone(), path.clone()) {
+            bail!(
+                "duplicate standalone module `{stem}`: {} and {}",
+                previous.display(),
+                path.display()
+            );
+        }
+        files.push(path);
+    }
+    Ok(())
+}
+
 fn run_standalone(
     file: &Path,
     args: &[String],
@@ -184,11 +269,7 @@ fn run_standalone(
     if !path.is_file() {
         bail!("no such Rocci file: {}", path.display());
     }
-    let src_dir = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| env::current_dir().expect("current directory"));
+    let src_dir = standalone_app_root(&path);
 
     let title = path
         .file_stem()
@@ -239,12 +320,11 @@ fn plan_standalone(
         .canonicalize()
         .unwrap_or_else(|_| primary.to_path_buf());
     let mut inputs = vec![primary.clone()];
-    if let Some(dir) = primary.parent() {
-        for path in discover_standalone(dir)? {
-            let path = path.canonicalize().unwrap_or(path);
-            if path != primary {
-                inputs.push(path);
-            }
+    let app_root = standalone_app_root(&primary);
+    for path in discover_standalone_tree(&app_root)? {
+        let path = path.canonicalize().unwrap_or(path);
+        if path != primary {
+            inputs.push(path);
         }
     }
     for input in inputs {
@@ -302,9 +382,7 @@ fn plan_standalone(
         StandaloneReady::Ready(GenericAppPlan {
             primary_name: type_name_from_path(&primary),
             modules,
-            redirect_trailing_slash: redirect_trailing_slash_for(
-                primary.parent().unwrap_or_else(|| Path::new(".")),
-            ),
+            redirect_trailing_slash: redirect_trailing_slash_for(&app_root),
             log_handlers: false,
         }),
         profile,
@@ -1000,6 +1078,135 @@ import Html
         let found = discover_rocci(&dir).unwrap();
         assert_eq!(found, vec![dir.join("Snake.rocci")]);
         cleanup(&dir);
+    }
+
+    #[test]
+    fn standalone_app_root_stops_at_git_workspace_rocci_toml() {
+        let root = temp_app("boundary-root");
+        fs::write(root.join(".git"), "").unwrap();
+        fs::write(root.join("Cargo.toml"), "[workspace]\nmembers = []\n").unwrap();
+        fs::write(root.join("rocci.toml"), "[app]\nname = \"root\"\n").unwrap();
+        let app = root.join("examples").join("app");
+        fs::create_dir_all(&app).unwrap();
+        let entry = app.join("Live.rocci");
+        fs::write(&entry, "").unwrap();
+        fs::write(app.join("Ui.rocci"), "").unwrap();
+        fs::create_dir_all(root.join("examples").join("other")).unwrap();
+        fs::write(root.join("examples").join("other").join("Skip.rocci"), "").unwrap();
+
+        assert_eq!(standalone_app_root(&entry), app);
+        let found = discover_standalone_tree(&app).unwrap();
+        assert_eq!(found, vec![app.join("Live.rocci"), app.join("Ui.rocci")]);
+        cleanup(&root);
+    }
+
+    #[test]
+    fn nested_standalone_discovers_backend_and_ui() {
+        let app = temp_app("nested-app");
+        fs::write(
+            app.join("rocci.toml"),
+            "[app]\nname = \"blocks\"\nidentifier = \"dev.rocci.blocks\"\n",
+        )
+        .unwrap();
+        let backend = app.join("backend");
+        let ui = app.join("ui");
+        fs::create_dir_all(&backend).unwrap();
+        fs::create_dir_all(&ui).unwrap();
+        fs::create_dir_all(app.join("generated")).unwrap();
+        fs::create_dir_all(app.join(".hidden")).unwrap();
+        fs::write(backend.join("Blocks.rocci"), "").unwrap();
+        fs::write(ui.join("BlocksUi.rocci"), "").unwrap();
+        fs::write(app.join("generated").join("Skip.rocci"), "").unwrap();
+        fs::write(app.join(".hidden").join("Nope.rocci"), "").unwrap();
+
+        let entry = backend.join("Blocks.rocci");
+        assert_eq!(standalone_app_root(&entry), app);
+        let found = discover_standalone_tree(&app).unwrap();
+        assert_eq!(
+            found,
+            vec![backend.join("Blocks.rocci"), ui.join("BlocksUi.rocci")]
+        );
+        cleanup(&app);
+    }
+
+    #[test]
+    fn nested_standalone_rejects_duplicate_stems() {
+        let app = temp_app("dup-stem");
+        fs::write(app.join("rocci.toml"), "[app]\nname = \"x\"\n").unwrap();
+        fs::create_dir_all(app.join("backend")).unwrap();
+        fs::create_dir_all(app.join("ui")).unwrap();
+        fs::write(app.join("backend").join("Foo.rocci"), "").unwrap();
+        fs::write(app.join("ui").join("Foo.rocci"), "").unwrap();
+        let err = discover_standalone_tree(&app).unwrap_err().to_string();
+        assert!(err.contains("duplicate standalone module `Foo`"));
+        cleanup(&app);
+    }
+
+    #[test]
+    fn nested_standalone_plan_includes_ui_module() {
+        let app = temp_app("nested-plan");
+        fs::write(
+            app.join("rocci.toml"),
+            "[app]\nname = \"blocks\"\nidentifier = \"dev.rocci.blocks\"\n",
+        )
+        .unwrap();
+        let backend = app.join("backend");
+        let ui = app.join("ui");
+        fs::create_dir_all(&backend).unwrap();
+        fs::create_dir_all(&ui).unwrap();
+        fs::write(
+            backend.join("Blocks.rocci"),
+            r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            ui.join("BlocksUi.rocci"),
+            r#"
+import Html
+
+@component Board = |{}|
+    <div id="board"></div>
+"#,
+        )
+        .unwrap();
+        let plan = standalone_app_plan(&backend.join("Blocks.rocci")).expect("plan nested app");
+        assert_eq!(plan.primary_name, "Blocks");
+        let mut names: Vec<_> = plan.modules.iter().map(|m| m.type_name.as_str()).collect();
+        names.sort();
+        assert_eq!(names, vec!["Blocks", "BlocksUi"]);
+        cleanup(&app);
+    }
+
+    #[test]
+    fn live_counter_stays_flat_and_does_not_absorb_sibling_apps() {
+        let live = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        if !live.is_file() {
+            return;
+        }
+        let root = standalone_app_root(&live);
+        assert_eq!(
+            root.file_name().and_then(|n| n.to_str()),
+            Some("live-counter")
+        );
+        let found = discover_standalone_tree(&root).unwrap();
+        let names: Vec<_> = found
+            .iter()
+            .filter_map(|path| path.file_name()?.to_str())
+            .collect();
+        assert!(names.contains(&"LiveCounter.rocci"));
+        assert!(names.contains(&"LiveCounterUi.rocci"));
+        assert!(!names.contains(&"Counter.rocci"));
+        assert!(!names.contains(&"HandlerMatrix.rocci"));
     }
 
     #[test]

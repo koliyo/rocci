@@ -1,0 +1,209 @@
+import pf.Env
+import pf.Path
+import pf.Sqlite
+import pf.UnixTime
+import Game
+import Html
+import BlocksUi
+
+## SQLite handle opened in `@init`. Shared with `@get:live` and commands.
+@context { db : Sqlite.Db }
+
+GameRow : {
+    board : Str,
+    piece : Str,
+    rot : I64,
+    x : I64,
+    y : I64,
+    bag : Str,
+    seed : I64,
+    score : I64,
+    status : Str,
+    last_tick_ms : I64,
+}
+
+## Open or create `blocks.db` (`DB_PATH` override). Failure exits the process.
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./blocks.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS game (id INTEGER PRIMARY KEY CHECK (id = 1), board TEXT NOT NULL, piece TEXT NOT NULL, rot INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, bag TEXT NOT NULL, seed INTEGER NOT NULL, score INTEGER NOT NULL, status TEXT NOT NULL, last_tick_ms INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    now = now_ms!({})?
+    started = Game.start(now)
+    insert : GameRow
+    insert = {
+        board: started.board,
+        piece: started.piece,
+        rot: started.rot,
+        x: started.x,
+        y: started.y,
+        bag: started.bag,
+        seed: started.seed,
+        score: started.score,
+        status: started.status,
+        last_tick_ms: now,
+    }
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR IGNORE INTO game (id, board, piece, rot, x, y, bag, seed, score, status, last_tick_ms) VALUES (1, :board, :piece, :rot, :x, :y, :bag, :seed, :score, :status, :last_tick_ms)",
+            params: insert,
+        },
+    )?
+    { db: db }
+}
+
+## Document GET `/`. Live board and HUD are separate morph targets.
+@get:view("/") = |{ db }| {
+    state = load_ticked!(db)?
+    BlocksUi.playPage({ view: to_view(state) })
+}
+
+## Shared `#board` and `#hud` for `GET /sse`. Applies due gravity while a tab is subscribed.
+@get:live("/sse") = |{ db }| {
+    state = load_ticked!(db)?
+    BlocksUi.liveSlice({ view: to_view(state) })
+}
+
+@post:command("/actions/left") = |{ db }| {
+    apply_move!(db, |state| Game.shift(state, -1, 0))?
+    {}
+}
+
+@post:command("/actions/right") = |{ db }| {
+    apply_move!(db, |state| Game.shift(state, 1, 0))?
+    {}
+}
+
+@post:command("/actions/down") = |{ db }| {
+    apply_move!(db, Game.tick)?
+    {}
+}
+
+@post:command("/actions/rotate") = |{ db }| {
+    apply_move!(db, |state| Game.rotate(state, 1))?
+    {}
+}
+
+@post:command("/actions/ccw") = |{ db }| {
+    apply_move!(db, |state| Game.rotate(state, -1))?
+    {}
+}
+
+@post:command("/actions/drop") = |{ db }| {
+    apply_move!(db, Game.hard_drop)?
+    {}
+}
+
+@post:command("/actions/reset") = |{ db }| {
+    now = now_ms!({})?
+    save!(db, Game.start(now), now)?
+    {}
+}
+
+now_ms! = |_| {
+    ts = UnixTime.now!()
+    secs = UnixTime.Timestamp.seconds_since_epoch(ts)
+    nanos = UnixTime.Timestamp.subsecond_nanoseconds(ts)
+    Ok(secs * 1000.I64 + nanos.to_i64().div_trunc_by(1_000_000.I64))
+}
+
+from_row = |row|
+    {
+        board: row.board,
+        piece: row.piece,
+        rot: row.rot,
+        x: row.x,
+        y: row.y,
+        bag: row.bag,
+        seed: row.seed,
+        score: row.score,
+        status: row.status,
+    }
+
+to_view = |state| {
+    {
+        rows: Game.overlay_rows(state),
+        score: state.score,
+        status: state.status,
+        piece: state.piece,
+        next: Game.peek_next(state.bag, state.seed),
+    }
+}
+
+load_row! = |db| {
+    row : GameRow
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT board, piece, rot, x, y, bag, seed, score, status, last_tick_ms FROM game WHERE id = 1",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row)
+}
+
+save! = |db, state, last_tick_ms| {
+    params : GameRow
+    params = {
+        board: state.board,
+        piece: state.piece,
+        rot: state.rot,
+        x: state.x,
+        y: state.y,
+        bag: state.bag,
+        seed: state.seed,
+        score: state.score,
+        status: state.status,
+        last_tick_ms,
+    }
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE game SET board = :board, piece = :piece, rot = :rot, x = :x, y = :y, bag = :bag, seed = :seed, score = :score, status = :status, last_tick_ms = :last_tick_ms WHERE id = 1",
+            params,
+        },
+    )
+}
+
+load_ticked! = |db| {
+    row = load_row!(db)?
+    state = from_row(row)
+    now = now_ms!({})?
+    if state.status != "playing" {
+        Ok(state)
+    } else {
+        elapsed = now - row.last_tick_ms
+        steps =
+            if elapsed <= 0 {
+                0
+            } else {
+                elapsed.div_trunc_by(Game.gravity_ms)
+            }
+        next = Game.apply_gravity(state, steps)
+        if steps > 0 {
+            remainder = elapsed.rem_by(Game.gravity_ms)
+            save!(db, next, now - remainder)?
+            Ok(next)
+        } else {
+            Ok(state)
+        }
+    }
+}
+
+apply_move! = |db, step| {
+    state = load_ticked!(db)?
+    next = step(state)
+    row = load_row!(db)?
+    save!(db, next, row.last_tick_ms)
+}
