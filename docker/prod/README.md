@@ -120,8 +120,8 @@ the box: unpack to `releases/<sha>/`, `compose up -d --build`, GET
 leaves the previous symlink and restores that release. Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
 serialized so they cannot interleave. **Run workflow** on `staging` or
-`production` packages and deploys the same way as a push; on any other
-ref it packages only.
+`production` packages and deploys the same way as a push. On any other
+ref, both package and deploy are no-ops.
 Laptop one-shot:
 
 ```sh
@@ -131,11 +131,24 @@ uv run rocci-ops deploy push ARTIFACT_DIR SHA
 Secrets (names only): `DEPLOY_HOST` (`ssh.rocci.dev`), `DEPLOY_USER`,
 `DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`. Fork PRs
 cannot read them. Create GitHub Environments `staging` and `production`
-with those same names. Restrict each Environment to its matching branch so
-a workflow_dispatch on another ref cannot use those secrets. Copy the
-values into `staging` even while both lanes share one VPS. The deploy job
-runs `cloudflared access ssh --hostname ssh.rocci.dev` as SSH
-`ProxyCommand`.
+with those same names. Keep those values Environment-only; do not copy them
+to repository secrets. Restrict each Environment with a **custom branch
+policy** for its matching branch (`staging` only, `production` only). A
+`protected_branches` toggle is not enough on a free private repo, and a
+workflow_dispatch on another ref must not be able to use those secrets.
+Copy the values into `staging` even while both lanes share one VPS. The
+deploy job runs `cloudflared access ssh --hostname ssh.rocci.dev` as SSH
+`ProxyCommand`. After writing `$HOME/.ssh/deploy`, the job always
+`shred`/`rm`s that file. Prefer a dedicated self-hosted label
+`rocci-deploy` so local CI jobs and deploy never share a host; until that
+label exists, keep deploy on `rocci-linux` and rely on the key wipe.
+
+Register self-hosted runners on this repository only, not org-wide. After
+the repository is public, enable a `main` / `staging` / `production`
+ruleset (available on public repos without Pro). Do not require the CI
+check on pull requests. Leave the Actions default token read-only, and do
+not grant Actions the right to approve reviews. Require approval for
+workflows from all outside collaborators.
 
 Caddy listens on `127.0.0.1:8080` via
 [`compose.hybrid.yml`](../compose.hybrid.yml) and
