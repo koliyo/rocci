@@ -24,6 +24,8 @@ cargo run -p rocci-rocdown-cli -- view docs/rocdown/blocks.rocdown
 # Preview a documentation site directory with watch and live reload.
 # Hybrid sites serve CDN HTML and proxy island @on actions on the same origin.
 # `--no-window` prints a URL; append `?reload=0` to pause auto-refresh.
+# When a rebuild fails, the preview still serves the last HTML on disk and
+# opens a native build-error dialog you can dismiss to read the page.
 cargo run -p rocci-rocdown-cli -- view docs [--port 8000] [--no-window] [--no-live-reload]
 cargo run -p rocci-rocdown-cli -- view examples/rocdown/hybrid [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- view examples/rocdown/counter [--port 8000] [--no-window]
