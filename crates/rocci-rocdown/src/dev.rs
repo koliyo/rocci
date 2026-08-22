@@ -144,14 +144,18 @@ fn sync_island_backend(
     logs: Option<Arc<LogHub>>,
     log_handlers: bool,
 ) -> Result<()> {
-    match crate::service::generated_island_plan(root) {
-        Ok(None) => {
+    let app = match crate::service::generated_island_plan(root)? {
+        Some(plan) => Some((plan.into_app_plan(), root.to_path_buf())),
+        None => crate::service::configured_service_app_plan(root)?
+            .map(|configured| (configured.app, configured.source_dir)),
+    };
+    match app {
+        None => {
             *backend.lock().unwrap_or_else(|err| err.into_inner()) = None;
             advertised.store(0, Ordering::Relaxed);
             Ok(())
         }
-        Ok(Some(plan)) => {
-            let app = plan.into_app_plan();
+        Some((app, source_dir)) => {
             let fingerprint = {
                 let mut app = app.clone();
                 app.log_handlers = log_handlers;
@@ -170,8 +174,13 @@ fn sync_island_backend(
             };
             advertised.store(0, Ordering::Relaxed);
             *slot = None;
-            let running =
-                rocci_cli::driver::spawn_app_plan(&app, root, port, logs.clone(), log_handlers)?;
+            let running = rocci_cli::driver::spawn_app_plan(
+                &app,
+                &source_dir,
+                port,
+                logs.clone(),
+                log_handlers,
+            )?;
             advertised.store(running.port, Ordering::Relaxed);
             if let Some(hub) = &logs {
                 logs::tee(
@@ -185,7 +194,6 @@ fn sync_island_backend(
             *slot = Some(running);
             Ok(())
         }
-        Err(err) => Err(err).context("island service"),
     }
 }
 

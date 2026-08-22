@@ -111,7 +111,7 @@ See [`examples/rocdown/pages/Guide.rocdown`](../../examples/rocdown/pages/Guide.
 | `@context` / `@init` / `@view` / `@patch` / `@command` | Roc | standalone HTTP, same as `.rocci` |
 | `@if` / `@for` / `@match` / `@let` | Rocci template | same constructs as a `@component` body, spliced into the page |
 | `@use "./Module.rocci"` | path string | interactive only: import `@component` exports as article kinds (`Callout` → `:callout`) |
-| `:kind[params]` | line, `{{ }}`, or `:kind.begin` ... `:kind.end` | article block; kinds are a closed builtin registry, plus `@use` on `rocdown run`. Do not mix `.begin` with `{{ }}` |
+| `:kind[params]` | line, `{{ }}`, or `:kind.begin` ... `:kind.end` | article block; kinds are a closed builtin registry, plus `@use` on `rocdown view`. Do not mix `.begin` with `{{ }}` |
 | `:img[src: "...", alt: "..."]` | params | native image element (`src`, `alt` or `decorative`, `title`, `width`, `height`, `class`, `loading`, `decoding`) |
 | `<Tag>` / `<Hello />` | Rocci template | document-root HTML island; instantiates elements and components |
 
@@ -168,7 +168,7 @@ Heading ids still come from the existing slug algorithm unless
 `:h2[id: "install"]` sets one. Inline images in mixed paragraphs stay Markdown.
 Nested `:img`
 inside `:figure` owns accessibility text; figure `caption` and `credit`
-do not substitute for `alt`. Local `src` paths, including `./img/photo.png`, resolve against the source file directory. `http(s):`, `mailto:`, and `data:` pass through. `rocdown run` diagnoses missing files, copies them into the preview workspace without hashing, and serves them next to the page route. Static site builds (`rocdown build`) hash files under `build.assets`.
+do not substitute for `alt`. Local `src` paths, including `./img/photo.png`, resolve against the source file directory. `http(s):`, `mailto:`, and `data:` pass through. `rocdown view` diagnoses missing files, copies them into the preview workspace without hashing, and serves them next to the page route. Static site builds (`rocdown build`) hash files under `build.assets`.
 
 ### `@page`
 
@@ -195,7 +195,7 @@ replaces it with a no-JS `<details class="rd-toc-menu">` On this page control.
 Clicks scroll the article quickly with a short animation. Theme
 `none` skips chrome, including the navigator. A custom `layout` replaces the
 default shell entirely. Document `@css` overrides the theme. Default theme
-comes from `rocdown run --theme`, `ROCDOWN_THEME` (or `ROCCI_THEME`), then builtin `paper`.
+comes from `rocdown view --theme`, `ROCDOWN_THEME` (or `ROCCI_THEME`), then builtin `paper`.
 `@page.theme` wins for that file.
 
 Without `@page.route`, the synthesized GET path is `/`.
@@ -242,7 +242,7 @@ citation.
 **Page links:** `[[Foo]]`, `[text](Foo.rocdown)`, `[text](./Foo.rocdown)`,
 `[text](Foo)`, `[text](docs/Foo.md)`, and reference links to those destinations
 resolve to the target file’s `@page.route` when that file is in the page index.
-Standalone `rocdown run FILE` builds that index from sibling `.rocdown` files and
+Standalone `rocdown view FILE` builds that index from sibling `.rocdown` files and
 from relative `.rocdown` / `.md` / `.markdown` links, including nested paths.
 Same-page `#heading-id` is checked against this file’s heading ids. Absolute
 `/path/` destinations are checked against known page routes when a page index is
@@ -271,11 +271,13 @@ rocci_page    : {} -> Html     # layout call, or the default document shell
 
 Markdown lowers to `Html.element` / `void_element` / `text` / `fragment`. File
 `@css` is wrapped in `@scope ([data-rocci-css~="id"])` using the same file-scope
-id as `.rocci`. Component CSS keeps a per-component id.
+id as `.rocci`. Component CSS keeps a per-component id. Both ids hash the file
+basename so a snapshot stylesheet still matches `@live` HTML compiled from a
+full path to the same module.
 
 If the file has no `@view` for the page route, lowering synthesizes a GET
 handler that returns `rocci_page({})`. When that route is not `/`, GET `/` is
-registered to the same handler so `rocdown run` can open a preview.
+registered to the same handler so `rocdown view` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
 
@@ -315,7 +317,7 @@ the template body. Putting `content` in the props record wraps it in
 
 Sites can mount external documentation catalogs using `[[mount]]` in `rocdown.toml`.
 For example, `site/` mounts `../docs` at prefix `docs` with `layout = "docs"`,
-allowing `docs/` to remain at repository root for standalone `rocdown run docs`
+allowing `docs/` to remain at repository root for standalone `rocdown view docs`
 while building as part of `rocdown build site`.
 
 Mounts default to `visibility = "navigable"`: published pages omitted from
@@ -336,8 +338,8 @@ deployment-level redirects or terminal responses remain an origin concern.
 
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
-- `rocdown run FILE.rocdown`: Run a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route.
-- `rocdown run DIR`: Run/preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
+- `rocdown view FILE.rocdown`: Preview a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route. `rocdown run` is a deprecated alias.
+- `rocdown view DIR`: Preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
 - `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@patch` / `@command` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
 - `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target` is the Linux container process ISA/OS for island/app binaries (`arm64musl` on Apple Silicon Docker; `x64musl` on amd64)—never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target` matches the Linux container CPU (see `docker/README.md`).
@@ -377,11 +379,11 @@ not a substitute for the syntax above.
 - `:kind[params]` article blocks and `:img` alt/decorative contract and `:figure` caption/credit.
   Child policy is registry data: `:tabs` / `:card-grid` exclusive children,
   asides forbid `:tabs`, and `:steps` / `:figure` keep named predicates
-- `@use "./Module.rocci"` on interactive `rocdown run` (exported `@component` names become article kinds)
+- `@use "./Module.rocci"` on interactive `rocdown view` (exported `@component` names become article kinds)
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
   `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
-- Static site generation (`build`, `check`, `test`, `run`), content catalog,
+- Static site generation (`build`, `check`, `test`, `view`), content catalog,
   curated navigation, and hashed asset pipeline
 - Site page kinds `static` / `hydrate` / `live` recorded on the catalog and
   `rocdown inspect catalog`. Classification sits on top of `:name[params]`:
@@ -396,9 +398,9 @@ not a substitute for the syntax above.
   writes `publish.json` and `site.tgz`; hybrid sites also compile a sibling
   `islands` binary and record live routes plus the binary fingerprint.
   `--cdn-only` still refuses `live` pages. `rocdown serve DIST` hosts the CDN
-  tree without Roc or rebuild. `rocdown run DIR`
+  tree without Roc or rebuild. `rocdown view DIR`
   previews both artifacts on one local origin and reloads after content or
-  handler edits.
+  handler edits. `rocdown run` is a deprecated alias for `view`.
 
 **Not implemented / Deferred**
 

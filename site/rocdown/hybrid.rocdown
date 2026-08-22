@@ -48,8 +48,10 @@ with no service.
 
 `examples/rocdown/counter/index.rocdown` puts SQLite helpers in `@roc` next to
 `import pf.Sqlite`, then calls them from `@command`. `@render` bakes `count: 0`
-into the CDN HTML. On load, generated `GET /sse` replaces that snapshot and
-keeps tabs in sync. Increment and reset are `@command` handlers (empty SSE to
+into the CDN HTML. A full-page `@live` app gets generated `GET /sse` on its
+`<body>`; a spliced fragment must add
+`data-init=@get("/sse", [OpenWhenHidden(True)])` itself. On load, that stream
+replaces the snapshot and keeps tabs in sync. Increment and reset are `@command` handlers (empty SSE to
 Datastar; JSON to `curl`). Opening the CDN file shows the build-time snapshot
 until the stream connects.
 
@@ -92,7 +94,7 @@ cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/counter --no-window \
   --output /tmp/rocdown-counter-preview
 ```
 
-`rocdown run DIR` rebuilds the CDN tree, serves it, and proxies colocated
+`rocdown view DIR` rebuilds the CDN tree, serves it, and proxies colocated
 `/actions/` on the same origin ([http://127.0.0.1:8000](http://127.0.0.1:8000)
 with `--no-window`). It logs `preview files at …`. `--output` keeps that tree;
 without it the files are temp and deleted on stop. Preview SQLite is
@@ -200,7 +202,7 @@ this shape with `LiveCounter.rocci`.
 ## Smoke checks
 
 After `build`, the home page HTML includes `#counter` and Datastar; `about/`
-does not. With `rocdown run --no-window` on 8000:
+does not. With `rocdown view --no-window` on 8000:
 
 ```sh
 curl -sf http://127.0.0.1:8000/health

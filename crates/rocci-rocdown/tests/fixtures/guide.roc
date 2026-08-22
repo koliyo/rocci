@@ -11,14 +11,14 @@ featureCount = |{ count }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"Guide-3d4d1af7\"]) {\n* { box-sizing: border-box; }\n    body {\n        background:\n            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),\n            linear-gradient(145deg, var(--rd-color-bg) 0%, var(--rd-color-bg) 55%, var(--rd-color-surface) 100%);\n    }\n}\n@scope ([data-rocci-css~=\"featureCount-0d908c8c\"]) {\n.feature-count {\n            display: inline-flex;\n            margin: 0 0 1.5rem;\n            padding: 0.35rem 0.75rem;\n            border: 1px solid color-mix(in srgb, var(--rd-color-accent) 28%, transparent);\n            border-radius: 999px;\n            background: color-mix(in srgb, var(--rd-color-accent) 10%, transparent);\n            color: var(--rd-color-accent);\n            font-size: 0.8rem;\n            font-weight: 700;\n            letter-spacing: 0.04em;\n        }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"Guide-fd48e9e1\"]) {\n* { box-sizing: border-box; }\n    body {\n        background:\n            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),\n            linear-gradient(145deg, var(--rd-color-bg) 0%, var(--rd-color-bg) 55%, var(--rd-color-surface) 100%);\n    }\n}\n@scope ([data-rocci-css~=\"featureCount-d0c4058e\"]) {\n.feature-count {\n            display: inline-flex;\n            margin: 0 0 1.5rem;\n            padding: 0.35rem 0.75rem;\n            border: 1px solid color-mix(in srgb, var(--rd-color-accent) 28%, transparent);\n            border-radius: 999px;\n            background: color-mix(in srgb, var(--rd-color-accent) 10%, transparent);\n            color: var(--rd-color-accent);\n            font-size: 0.8rem;\n            font-weight: 700;\n            letter-spacing: 0.04em;\n        }\n}"),
                 ],
             ),
             Html.element(
                 "p",
                 [
                     Html.attribute("class", "feature-count"),
-                    Html.attribute("data-rocci-css", "Guide-3d4d1af7 featureCount-0d908c8c"),
+                    Html.attribute("data-rocci-css", "Guide-fd48e9e1 featureCount-d0c4058e"),
                 ],
                 [
                     Html.text(count.to_str()),
@@ -41,7 +41,7 @@ rocci_content = |{}| {
             [
                 Html.attribute("class", "rd-header-1"),
                 Html.attribute("id", "rocdown"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("Rocdown"),
@@ -51,7 +51,7 @@ rocci_content = |{}| {
             "p",
             [
                 Html.attribute("class", "rd-paragraph"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("Rocdown is a content-first format. Email us at "),
@@ -60,7 +60,7 @@ rocci_content = |{}| {
                     [
                         Html.attribute("class", "rd-link"),
                         Html.attribute("href", "mailto:docs@example.com"),
-                        Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
                         Html.text("docs@example.com"),
@@ -78,7 +78,7 @@ rocci_content = |{}| {
             "p",
             [
                 Html.attribute("class", "rd-paragraph"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("See also "),
@@ -87,7 +87,7 @@ rocci_content = |{}| {
                     [
                         Html.attribute("class", "rd-link"),
                         Html.attribute("href", "/guides/rocdown-blocks/"),
-                        Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
                         Html.text("Blocks"),
@@ -99,7 +99,7 @@ rocci_content = |{}| {
                     [
                         Html.attribute("class", "rd-link"),
                         Html.attribute("href", "/guides/rocdown-interactive/"),
-                        Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
                         Html.text("Interactive"),
@@ -111,7 +111,7 @@ rocci_content = |{}| {
                     [
                         Html.attribute("class", "rd-link"),
                         Html.attribute("href", "/guides/rocdown-interactive/"),
-                        Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
                         Html.text("interactive guide"),
@@ -125,7 +125,7 @@ rocci_content = |{}| {
             [
                 Html.attribute("class", "rd-header-2"),
                 Html.attribute("id", "displayed-code"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("Displayed code"),
@@ -135,7 +135,7 @@ rocci_content = |{}| {
             "p",
             [
                 Html.attribute("class", "rd-paragraph"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("This fence is documentation and is never evaluated:"),
@@ -145,14 +145,14 @@ rocci_content = |{}| {
             "pre",
             [
                 Html.attribute("class", "rd-code-block"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.element(
                     "code",
                     [
                         Html.attribute("class", "rd-code language-roc"),
-                        Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
                         Html.text("answer = 42\n"),
@@ -164,7 +164,7 @@ rocci_content = |{}| {
             "p",
             [
                 Html.attribute("class", "rd-paragraph"),
-                Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
                 Html.text("The page remains static unless it references an island or defines server"),
@@ -183,7 +183,7 @@ rocci_page = |{}| {
             Html.attribute("class", "rd-document"),
             Html.attribute("data-rd-theme", "rocci"),
             Html.attribute("data-rd-color-scheme", "light"),
-            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
         ],
         [
             Html.element(
@@ -228,7 +228,7 @@ rocci_page = |{}| {
                         "style",
                         [],
                         [
-                            Html.text("@scope ([data-rocci-css~=\"Guide-3d4d1af7\"]) {\n* { box-sizing: border-box; }\n    body {\n        background:\n            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),\n            linear-gradient(145deg, var(--rd-color-bg) 0%, var(--rd-color-bg) 55%, var(--rd-color-surface) 100%);\n    }\n}"),
+                            Html.text("@scope ([data-rocci-css~=\"Guide-fd48e9e1\"]) {\n* { box-sizing: border-box; }\n    body {\n        background:\n            radial-gradient(circle at 78% 8%, rgba(55, 242, 159, 0.13), transparent 31rem),\n            linear-gradient(145deg, var(--rd-color-bg) 0%, var(--rd-color-bg) 55%, var(--rd-color-surface) 100%);\n    }\n}"),
                         ],
                     ),
                 ],
@@ -236,14 +236,14 @@ rocci_page = |{}| {
             Html.element(
                 "body",
                 [
-                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                 ],
                 [
                     Html.element(
                         "div",
                         [
                             Html.attribute("class", "rd-shell"),
-                            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                         ],
                         [
                             Html.element(
@@ -251,14 +251,14 @@ rocci_page = |{}| {
                                 [
                                     Html.attribute("class", "rd-toc"),
                                     Html.attribute("aria-label", "On this page"),
-                                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                 ],
                                 [
                                     Html.element(
                                         "p",
                                         [
                                             Html.attribute("class", "rd-toc-label"),
-                                            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                         ],
                                         [
                                             Html.text("On this page"),
@@ -268,7 +268,7 @@ rocci_page = |{}| {
                                         "div",
                                         [
                                             Html.attribute("class", "rd-toc-items"),
-                                            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                         ],
                                         [
                                             Html.element(
@@ -276,7 +276,7 @@ rocci_page = |{}| {
                                                 [
                                                     Html.attribute("class", "rd-toc-link"),
                                                     Html.attribute("href", "#displayed-code"),
-                                                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                                 ],
                                                 [
                                                     Html.text("Displayed code"),
@@ -291,13 +291,13 @@ rocci_page = |{}| {
                                 [
                                     Html.attribute("class", "rd-toc-menu"),
                                     Html.attribute("aria-label", "On this page"),
-                                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                 ],
                                 [
                                     Html.element(
                                         "summary",
                                         [
-                                            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                         ],
                                         [
                                             Html.text("On this page"),
@@ -307,7 +307,7 @@ rocci_page = |{}| {
                                         "div",
                                         [
                                             Html.attribute("class", "rd-toc-items"),
-                                            Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                            Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                         ],
                                         [
                                             Html.element(
@@ -315,7 +315,7 @@ rocci_page = |{}| {
                                                 [
                                                     Html.attribute("class", "rd-toc-link"),
                                                     Html.attribute("href", "#displayed-code"),
-                                                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                                 ],
                                                 [
                                                     Html.text("Displayed code"),
@@ -328,7 +328,7 @@ rocci_page = |{}| {
                             Html.element(
                                 "main",
                                 [
-                                    Html.attribute("data-rocci-css", "Guide-3d4d1af7"),
+                                    Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                                 ],
                                 [
                                     rocci_content({}),

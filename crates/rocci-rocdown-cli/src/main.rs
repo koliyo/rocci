@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use rocci_cli::dev_server::{StaticDevServerConfig, preview_static_site};
 use rocci_cli::driver::{DriverOptions, GenericAppPlan, GenericModule};
 use rocci_cli::path_hint;
@@ -76,51 +76,16 @@ enum Commands {
         #[arg(long, value_enum)]
         target: Option<rocci_cli::native_target::NativeTarget>,
     },
-    /// Run an interactive document or serve a documentation site with live reload.
+    /// Preview a document or documentation site with live reload.
     /// Hybrid sites proxy the island service on the same origin.
-    Run {
-        /// Site root directory, or a .rocdown file. A file inside a site
-        /// (ancestor `rocdown.toml`) previews that site at the page route.
-        #[arg(default_value = ".")]
-        path: PathBuf,
-        /// Write preview output here instead of a temp directory (for site dev server).
-        #[arg(short, long)]
-        output: Option<PathBuf>,
-        /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
-        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
-        host: HostArg,
-        /// Skip the preview window; print the URL and keep serving.
-        /// Open that URL with `?reload=0` to pause automatic page refresh.
-        #[arg(long)]
-        no_window: bool,
-        /// Pause automatic page refresh. Watch and rebuild still run.
-        #[arg(long)]
-        no_live_reload: bool,
-        /// Do not print compile diagnostics on stderr; the error page still serves.
-        #[arg(long)]
-        quiet: bool,
-        /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
-        #[arg(long)]
-        log_handlers: bool,
-        /// Print compile, inspect, and wait phases to stderr.
-        #[arg(short, long)]
-        verbose: bool,
-        /// TCP port to listen on. Defaults to a free port with the preview window,
-        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
-        #[arg(
-            long,
-            default_value = "auto",
-            default_value_if("no_window", "true", "8000"),
-            value_name = "PORT",
-            value_parser = parse_port_arg,
-            env = "ROC_BASIC_WEBSERVER_PORT"
-        )]
-        port: PortArg,
+    View {
         #[command(flatten)]
-        theme: ThemeArgs,
-        /// Extra arguments forwarded to `roc` after `--` (for interactive documents).
-        #[arg(trailing_var_arg = true)]
-        args: Vec<String>,
+        preview: PreviewArgs,
+    },
+    /// Deprecated alias for `view`.
+    Run {
+        #[command(flatten)]
+        preview: PreviewArgs,
     },
     /// Serve a previously built site tree without rebuilding.
     Serve {
@@ -210,6 +175,52 @@ enum Commands {
         )]
         port: PortArg,
     },
+}
+
+#[derive(Args, Debug)]
+struct PreviewArgs {
+    /// Site root directory, or a .rocdown file. A file inside a site
+    /// (ancestor `rocdown.toml`) previews that site at the page route.
+    #[arg(default_value = ".")]
+    path: PathBuf,
+    /// Write preview output here instead of a temp directory (for site dev server).
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
+    #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+    host: HostArg,
+    /// Skip the preview window; print the URL and keep serving.
+    /// Open that URL with `?reload=0` to pause automatic page refresh.
+    #[arg(long)]
+    no_window: bool,
+    /// Pause automatic page refresh. Watch and rebuild still run.
+    #[arg(long)]
+    no_live_reload: bool,
+    /// Do not print compile diagnostics on stderr; the error page still serves.
+    #[arg(long)]
+    quiet: bool,
+    /// Log each matched `@view` / `@patch` / `@command` / `@live` handler to stderr (CLI and Dev Console).
+    #[arg(long)]
+    log_handlers: bool,
+    /// Print compile, inspect, and wait phases to stderr.
+    #[arg(short, long)]
+    verbose: bool,
+    /// TCP port to listen on. Defaults to a free port with the preview window,
+    /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+    #[arg(
+        long,
+        default_value = "auto",
+        default_value_if("no_window", "true", "8000"),
+        value_name = "PORT",
+        value_parser = parse_port_arg,
+        env = "ROC_BASIC_WEBSERVER_PORT"
+    )]
+    port: PortArg,
+    #[command(flatten)]
+    theme: ThemeArgs,
+    /// Extra arguments forwarded to `roc` after `--` (for interactive documents).
+    #[arg(trailing_var_arg = true)]
+    args: Vec<String>,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -339,11 +350,81 @@ fn is_document_file(path: &Path) -> bool {
             .is_some_and(|ext| ext == "rocdown" || ext == "md" || ext == "markdown")
 }
 
+fn warn_deprecated_run_alias(bin: &str) {
+    eprintln!(
+        "{bin}: `run` is a deprecated alias for `view` and will be removed in a later release"
+    );
+}
+
+fn preview_docs(preview: PreviewArgs) -> Result<()> {
+    let PreviewArgs {
+        path,
+        output,
+        host,
+        no_window,
+        no_live_reload,
+        quiet,
+        log_handlers,
+        verbose,
+        port,
+        theme,
+        args,
+    } = preview;
+    let live_reload = !no_live_reload;
+    if is_document_file(&path) {
+        refuse_okf_input(&path, "view")?;
+        if let Some(site_root) = rocci_rocdown::find_site_root(&path) {
+            let route = rocci_rocdown::site_preview_route(&site_root, &path);
+            run_site_dev(
+                &site_root,
+                output.as_deref(),
+                no_window,
+                live_reload,
+                log_handlers,
+                verbose,
+                port,
+                host.into(),
+                Some(&route),
+            )
+        } else {
+            run_standalone_doc(
+                &path,
+                &args,
+                no_window,
+                live_reload,
+                log_handlers,
+                quiet,
+                verbose,
+                port,
+                &theme,
+            )
+        }
+    } else if path.is_file() {
+        bail!(
+            "unsupported file extension for `rocdown view`: {}; expected a .rocdown, .md, or .markdown file",
+            path.display()
+        )
+    } else {
+        refuse_okf_input(&path, "view")?;
+        run_site_dev(
+            &path,
+            output.as_deref(),
+            no_window,
+            live_reload,
+            log_handlers,
+            verbose,
+            port,
+            host.into(),
+            None,
+        )
+    }
+}
+
 fn refuse_okf_input(path: &Path, command_name: &str) -> Result<()> {
     if path.is_dir() {
         if path_hint::looks_like_okf_bundle(path) {
             bail!(
-                "`rocdown {command_name}` does not preview OKF knowledge bundles; run `rocci-okf run {}`",
+                "`rocdown {command_name}` does not preview OKF knowledge bundles; preview with `rocci-okf view {}`",
                 path.display()
             );
         }
@@ -354,7 +435,7 @@ fn refuse_okf_input(path: &Path, command_name: &str) -> Result<()> {
         .is_some_and(|ext| ext == "md" || ext == "markdown");
     if is_markdown && path_hint::looks_like_okf_file(path) {
         bail!(
-            "`rocdown {command_name}` does not render OKF knowledge records; preview {} with `rocci-okf run {}`",
+            "`rocdown {command_name}` does not render OKF knowledge records; preview {} with `rocci-okf view {}`",
             path.display(),
             path.display()
         );
@@ -430,67 +511,10 @@ fn try_main() -> Result<()> {
             print!("{}", report.render());
             Ok(())
         }
-        Commands::Run {
-            path,
-            output,
-            host,
-            no_window,
-            no_live_reload,
-            quiet,
-            log_handlers,
-            verbose,
-            port,
-            theme,
-            args,
-        } => {
-            let live_reload = !no_live_reload;
-            if is_document_file(&path) {
-                refuse_okf_input(&path, "run")?;
-                if let Some(site_root) = rocci_rocdown::find_site_root(&path) {
-                    let route = rocci_rocdown::site_preview_route(&site_root, &path);
-                    run_site_dev(
-                        &site_root,
-                        output.as_deref(),
-                        no_window,
-                        live_reload,
-                        log_handlers,
-                        verbose,
-                        port,
-                        host.into(),
-                        Some(&route),
-                    )
-                } else {
-                    run_standalone_doc(
-                        &path,
-                        &args,
-                        no_window,
-                        live_reload,
-                        log_handlers,
-                        quiet,
-                        verbose,
-                        port,
-                        &theme,
-                    )
-                }
-            } else if path.is_file() {
-                bail!(
-                    "unsupported file extension for `rocdown run`: {}; expected a .rocdown, .md, or .markdown file",
-                    path.display()
-                );
-            } else {
-                refuse_okf_input(&path, "run")?;
-                run_site_dev(
-                    &path,
-                    output.as_deref(),
-                    no_window,
-                    live_reload,
-                    log_handlers,
-                    verbose,
-                    port,
-                    host.into(),
-                    None,
-                )
-            }
+        Commands::View { preview } => preview_docs(preview),
+        Commands::Run { preview } => {
+            warn_deprecated_run_alias("rocdown");
+            preview_docs(preview)
         }
         Commands::Serve {
             dist,
@@ -1106,86 +1130,83 @@ mod tests {
         }
     }
 
+    fn preview_args(command: Commands) -> PreviewArgs {
+        match command {
+            Commands::View { preview } | Commands::Run { preview } => preview,
+            _ => panic!("expected view or run"),
+        }
+    }
+
     #[test]
-    fn run_parses_document_and_site() {
+    fn view_parses_document_and_site() {
         let cli = Cli::try_parse_from([
             "rocdown",
-            "run",
+            "view",
             "examples/rocdown/pages/Guide.rocdown",
             "--no-window",
             "--port",
             "8000",
         ])
         .unwrap();
-        match cli.command {
-            Commands::Run {
-                path,
-                no_window,
-                no_live_reload,
-                quiet,
-                port,
-                output,
-                ..
-            } => {
-                assert_eq!(path, PathBuf::from("examples/rocdown/pages/Guide.rocdown"));
-                assert!(no_window);
-                assert!(!quiet);
-                assert_eq!(port, PortArg::Exact(8000));
-                assert!(!no_live_reload);
-                assert_eq!(output, None);
-            }
-            _ => panic!("expected run"),
-        }
+        let preview = preview_args(cli.command);
+        assert_eq!(
+            preview.path,
+            PathBuf::from("examples/rocdown/pages/Guide.rocdown")
+        );
+        assert!(preview.no_window);
+        assert!(!preview.quiet);
+        assert_eq!(preview.port, PortArg::Exact(8000));
+        assert!(!preview.no_live_reload);
+        assert_eq!(preview.output, None);
 
-        let verbose = Cli::try_parse_from(["rocdown", "run", "docs", "-v"]).unwrap();
-        match verbose.command {
-            Commands::Run { verbose, .. } => assert!(verbose),
-            _ => panic!("expected run -v"),
-        }
-        let long = Cli::try_parse_from(["rocdown", "run", "docs", "--verbose"]).unwrap();
-        match long.command {
-            Commands::Run { verbose, .. } => assert!(verbose),
-            _ => panic!("expected run --verbose"),
-        }
+        let verbose = Cli::try_parse_from(["rocdown", "view", "docs", "-v"]).unwrap();
+        assert!(preview_args(verbose.command).verbose);
+        let long = Cli::try_parse_from(["rocdown", "view", "docs", "--verbose"]).unwrap();
+        assert!(preview_args(long.command).verbose);
 
         let kept = Cli::try_parse_from([
             "rocdown",
-            "run",
+            "view",
             "examples/rocdown/counter",
             "--no-window",
             "--output",
             "/tmp/rocdown-counter-preview",
         ])
         .unwrap();
-        match kept.command {
-            Commands::Run { output, .. } => {
-                assert_eq!(output, Some(PathBuf::from("/tmp/rocdown-counter-preview")));
-            }
-            _ => panic!("expected run --output"),
-        }
+        assert_eq!(
+            preview_args(kept.command).output,
+            Some(PathBuf::from("/tmp/rocdown-counter-preview"))
+        );
 
-        let paused = Cli::try_parse_from(["rocdown", "run", "docs", "--no-live-reload"]).unwrap();
-        match paused.command {
-            Commands::Run { no_live_reload, .. } => assert!(no_live_reload),
-            _ => panic!("expected run --no-live-reload"),
-        }
+        let paused = Cli::try_parse_from(["rocdown", "view", "docs", "--no-live-reload"]).unwrap();
+        assert!(preview_args(paused.command).no_live_reload);
 
         let cli = Cli::try_parse_from([
             "rocdown",
-            "run",
+            "view",
             "examples/rocdown/errors/parse/Broken.rocdown",
             "--quiet",
         ])
         .unwrap();
+        let preview = preview_args(cli.command);
+        assert!(preview.quiet);
+        assert_eq!(
+            preview.path,
+            PathBuf::from("examples/rocdown/errors/parse/Broken.rocdown")
+        );
+    }
+
+    #[test]
+    fn run_remains_a_deprecated_alias_for_view() {
+        let cli =
+            Cli::try_parse_from(["rocdown", "run", "docs", "--no-window", "--verbose"]).unwrap();
         match cli.command {
-            Commands::Run { quiet, path, .. } => {
-                assert!(quiet);
-                assert_eq!(
-                    path,
-                    PathBuf::from("examples/rocdown/errors/parse/Broken.rocdown")
-                );
+            Commands::Run { preview } => {
+                assert_eq!(preview.path, PathBuf::from("docs"));
+                assert!(preview.no_window);
+                assert!(preview.verbose);
             }
-            _ => panic!("expected run"),
+            _ => panic!("expected run alias"),
         }
     }
 
@@ -1322,8 +1343,8 @@ mod tests {
             "---\ntype: Implementation Plan\ntitle: Plan\nauthority: exploratory\n---\n\n# Plan\n",
         )
         .unwrap();
-        let err = refuse_okf_input(&concept, "run").unwrap_err().to_string();
-        assert!(err.contains("rocci-okf run"));
+        let err = refuse_okf_input(&concept, "view").unwrap_err().to_string();
+        assert!(err.contains("rocci-okf view"));
 
         fs::write(
             temp_dir.join("index.md"),
@@ -1333,11 +1354,11 @@ mod tests {
         let err = refuse_okf_input(&temp_dir, "build")
             .unwrap_err()
             .to_string();
-        assert!(err.contains("rocci-okf run"));
+        assert!(err.contains("rocci-okf view"));
 
         let ordinary = temp_dir.join("notes.md");
         fs::write(&ordinary, "# Notes\n").unwrap();
-        assert!(refuse_okf_input(&ordinary, "run").is_ok());
+        assert!(refuse_okf_input(&ordinary, "view").is_ok());
         let _ = fs::remove_dir_all(&temp_dir);
     }
 
@@ -1345,8 +1366,8 @@ mod tests {
     fn no_window_help_mentions_reload_query() {
         use clap::CommandFactory;
         let cmd = Cli::command();
-        let run = cmd.find_subcommand("run").expect("run");
-        let arg = run
+        let view = cmd.find_subcommand("view").expect("view");
+        let arg = view
             .get_arguments()
             .find(|arg| arg.get_long() == Some("no-window"))
             .expect("no-window");

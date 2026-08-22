@@ -51,7 +51,7 @@ Use `:img[...]` for first-class image elements with compile-time field extractio
 
 Local `src` paths, including `./img/photo.png`, resolve against the source file
 directory. Site-root paths like `/assets/photo.png` and remote `http(s):` /
-`data:` URLs pass through. Missing local files are errors in `rocdown run` and in
+`data:` URLs pass through. Missing local files are errors in `rocdown view` and in
 Rocdown catalog checks. Standalone preview copies those files without hashing and
 serves them beside the page route; static site builds hash files under `build.assets`.
 
@@ -78,7 +78,7 @@ the rest of the line, a `{{ }}` section, or `:kind.begin` ... `:kind.end`.
 Do not mix `.begin` with double braces on the same call. Kinds such
 as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 `@docs` / `@img` is a removal error. Rocdown types the body; standalone
-`rocdown run` paints a conservative preview.
+`rocdown view` paints a conservative preview.
 
 ````rocdown
 :note[title: "Deprecation"] {{
@@ -101,7 +101,7 @@ children, not both. `:figure` still requires exactly one image.
 `@component`, handlers, and HTML islands inside a block body are errors.
 A colon with a following space (`: definition`) stays Markdown.
 
-`@use "./Callout.rocci"` on `rocdown run` maps each exported `@component` to an
+`@use "./Callout.rocci"` on `rocdown view` maps each exported `@component` to an
 article kind (`Callout` → `:callout`). Unknown `:callout` without `@use` is an
 error. Static `rocdown build` and `rocdown check` reject `@use`; custom static
 kinds belong in the compiled theme.
@@ -189,7 +189,7 @@ as `https:` and `mailto:` pass through.
 In static site builds, a passing catalog check rewrites validated page and heading links to
 the emitted route (`./foo.rocdown` becomes `/foo/`, and `{id}#heading` becomes
 `/route/#heading`). Same-page `#heading` stays a fragment. Asset hrefs are
-hashed in a later plan pass. Standalone `rocdown run` rewrites sibling stems and
+hashed in a later plan pass. Standalone `rocdown view` rewrites sibling stems and
 reachable relative document links when `resolve_links` is true, and serves those
 linked pages as extra routes.
 
@@ -204,7 +204,7 @@ rocci_page    : {} -> Html
 ```
 
 If no GET handler exists for the page route, lowering synthesizes one. A
-non-root page also gets a root preview route so `rocdown run` can open it.
+non-root page also gets a root preview route so `rocdown view` can open it.
 
 The default standalone shell is a single-document reader. When the selected
 theme is not `none`, `rocci_page` emits a left `<nav class="rd-toc">` from
@@ -235,7 +235,7 @@ on the Markdown-first path; they do not make a page hydrate or live.
 
 `@use` stays a site-build error. `@render`, handlers, and HTML islands inside a
 `:note` (or other article-block) body are errors. `docs/` is a `static` catalog.
-`rocdown run DIR` serves the CDN tree and, for `live` pages, proxies the island
+`rocdown view DIR` serves the CDN tree and, for `live` pages, proxies the island
 service on the same local origin. `rocdown serve-islands` runs the mutation
 service by itself. See [Rocdown site configuration](/rocdown/site-config/)
 for the two-artifact publish, `service_origin`, and `--cdn-only`. Draft pages

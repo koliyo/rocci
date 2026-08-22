@@ -23,7 +23,10 @@ Place may come from the browser timezone or a chosen picker value (marked
 
 This same app is composed into the [rocci.dev home page](/) via
 `@render LiveCounterUi.CounterIsland(...)` (UI module) and
-`[http].service` → `LiveCounter.rocci` (SQLite, `@live`, commands).
+`[http].service` → `LiveCounter.rocci` (SQLite, `@live`, commands). Because
+the home page receives a fragment rather than this app's `<body>`, it also
+opens `GET /sse` explicitly with
+`data-init=@get("/sse", [OpenWhenHidden(True)])`.
 
 This catalog row is `hosting = "live"`. The public demo origin is planned at
 [live-counter.examples.rocci.dev](https://live-counter.examples.rocci.dev)

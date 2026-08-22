@@ -501,6 +501,10 @@ pub fn lower_islands(
         }
     }
     let (imports, rest) = filter_snapshot_roc(source, document, imports, rest);
+    let page_datastar = document.items.iter().any(|item| match item {
+        Item::Template(template) => template_items_have_action(std::slice::from_ref(template)),
+        _ => false,
+    });
     let injected_html = !imports_html(source.src, &imports);
     if injected_html {
         emitter.emit("import Html\n");
@@ -515,7 +519,7 @@ pub fn lower_islands(
             .trim_start_matches('\n')
             .to_string();
     }
-    if has_datastar {
+    if has_datastar || page_datastar {
         emitter.emit("import Datastar\n");
     }
     for span in &imports {
@@ -527,7 +531,7 @@ pub fn lower_islands(
             }
         }
     }
-    if injected_html || !imports.is_empty() || has_datastar {
+    if injected_html || !imports.is_empty() || has_datastar || page_datastar {
         emitter.emit("\n");
     }
     for span in &rest {
