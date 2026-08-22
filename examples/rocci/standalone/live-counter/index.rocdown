@@ -8,9 +8,8 @@
 
 # Live counter
 
-**Audience:** application author.
-**Prerequisites:** [commands and live tutorial](/docs/tutorials/commands-and-live/).
-**Concepts:** [one-shot versus live](/docs/concepts/one-shot-versus-live/).
+See [handlers](/docs/applications/handlers/) for one-shot fragments versus
+commands plus `@get:live`.
 
 The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
 but `@get:live("/sse")` owns the stream path. Increment and reset are

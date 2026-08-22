@@ -1,0 +1,35 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Rocdown CLI",
+        description: "rocdown check, test, build, view, package, serve, and inspect commands.",
+    },
+}
+
+# Rocdown CLI
+
+This is the `rocdown` binary (`rocci-rocdown-cli`). It is not the Rocci CLI.
+Rocci commands live in the [Rocci CLI reference](/docs/reference/cli/).
+
+Source-checkout spelling:
+
+```sh
+cargo run -q -p rocci-rocdown-cli -- COMMAND
+```
+
+| Command | Role |
+| --- | --- |
+| `check [ROOT]` | Catalog, links, includes, assets. No Roc compile |
+| `test [ROOT]` | Run `:example` commands that declare `test` |
+| `build [ROOT]` | Write the static (and hybrid) tree |
+| `view [ROOT]` | Watch, rebuild, serve, optional preview window. Hybrid sites proxy islands. `run` is a deprecated alias |
+| `package [ROOT]` | CDN archive plus optional island binary |
+| `serve [DIST]` | Serve an existing `dist/` on loopback |
+| `serve-islands [ROOT]` | Island HTTP service only |
+| `inspect ast FILE` | Rocdown AST |
+| `inspect artifacts [ROOT]` | Planned output and page kinds |
+
+`rocdown` refuses OKF knowledge records; use `rocci-okf`.
+
+See [Write Rocdown pages](/docs/rocdown/pages/), [Article blocks](/docs/rocdown/blocks/),
+and [Site configuration](/docs/rocdown/sites/).

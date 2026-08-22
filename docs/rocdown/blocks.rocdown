@@ -1,0 +1,139 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Write documentation components",
+        description: "Author asides, steps, figures, tabs, and other article blocks in Rocdown without raw HTML.",
+    },
+}
+
+# Write documentation components
+
+Use `:name[params]` for bounded documentation components. The parser stores the
+kind, optional params, and body; Rocdown validates the content model; the theme
+paints the HTML. Fenced code stays display-only.
+
+:note[title: "Static pages"] {{
+    Rocdown accepts `:note` next to Markdown and `@page` on `static` site pages.
+    `@render`, `@component`, and other islands belong on `hydrate` or `live`
+    pages, not inside a `:note` body.
+}}
+
+## Call out a risk
+
+:caution {{
+    Do not paste raw HTML into Markdown. Use a component when the page needs
+    structure beyond CommonMark.
+}}
+
+## Walk through a procedure
+
+:steps.begin
+    :step[title: "Author the block"] {{
+        Start a document-root line with `:`, then the kind. Params go in `[]`.
+        Content is the rest of the line, `{{ }}`, or `:kind.begin` ...
+        `:kind.end`. Nested blocks are allowed. Do not mix `.begin` with
+        double braces on the same call.
+    }}
+
+    :step[title: "Include source from disk", verify: True] {{
+        Point `:include` at a file under the content root. Prefer a named
+        region over line numbers.
+    }}
+:steps.end
+
+:include[path: "snippets/hello.rs", region: "hello", language: "rust"]
+
+## Show alternatives without JavaScript
+
+Every tab panel is in the document. Print, forced-colors, and browsers with
+scripts disabled show all panels. There is no `tablist` role until a hashed
+script exists. `:tabs` bodies may contain only `:tab` children; stray
+Markdown or other blocks are errors.
+
+:tabs.begin[group: "install", kind: "tool"]
+    :tab[id: "cli", label: "CLI"] {{
+        Check the catalog without compiling Roc:
+
+        ```sh
+        cargo run -p rocci-rocdown-cli -- check site
+        ```
+    }}
+
+    :tab[id: "test", label: "Examples"] {{
+        Run declared example commands. This is not part of `rocdown build`.
+
+        ```sh
+        cargo run -p rocci-rocdown-cli -- test site
+        ```
+    }}
+:tabs.end
+
+## Link related pages
+
+:card-grid.begin
+    :link-card[href: "/docs/rocdown/language/", title: "Language"]
+    :link-card[href: "/docs/rocdown/sites/", title: "Sites"]
+:card-grid.end
+
+## Caption an image
+
+Nested `:img` owns the accessible name. Figure `caption` and `credit` are
+optional labels around that image.
+
+:figure[caption: "A banana", credit: "Rocci fixtures"] {{
+    :img[src: "./img/yammi_banana.png", alt: "A banana", width: "50px"]
+}}
+
+## Disclose extra detail
+
+:details[summary: "What stays in the document"] {{
+    Disclosure bodies stay in the HTML. Print and browsers with scripts
+    disabled still show the content.
+}}
+
+:badge[label: "preview", tone: "preview"]
+
+:definition[term: "Article block"] A `:kind[params]` node with optional Markdown or nested blocks as its body.
+
+:file-tree {{
+- docs/
+    - guides/
+    - reference/
+- examples/
+    - rocdown/
+}}
+
+:example[id: "echo-hello", language: "sh", test: ["/bin/echo", "hello"], expect: "hello"] {{
+    ```sh
+    echo hello
+    ```
+}}
+
+## Replace painters or add a site kind
+
+A site `theme/Blocks.rocci` (or `theme/blocks/*.rocci`) overlays builtin painters
+by exporting the same `@component` names. A new PascalCase export becomes a
+custom static kind (`Callout` → `:callout`). Helpers must not live in that pack.
+`@use` stays interactive-only; static `rocdown build` does not honor it. See
+[Rocdown site configuration](/docs/rocdown/sites/).
+
+```rocci
+import Html
+
+@component Note = |{ title }, content|
+    <section data-callout data-title={title}>{content}</section>
+
+@component Callout = |{ tone ?? "note" }, content|
+    <aside data-tone={tone}>{content}</aside>
+```
+
+```rocdown
+:note[title: "Watch"] Body still uses `:note`.
+
+:callout[tone: "warn"] {{
+    Custom kinds work only on sites that compile that pack.
+}}
+```
+
+`api-operation` is reserved for generated API reference and is rejected until
+that work ships.

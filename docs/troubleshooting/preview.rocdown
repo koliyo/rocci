@@ -8,8 +8,6 @@
 
 # Preview failures
 
-**Prerequisites:** [Develop and inspect](/docs/how-to/develop-and-inspect/).
-
 ## The preview window does not open
 
 Run the same app with `--no-window` and open the printed URL in a browser. If

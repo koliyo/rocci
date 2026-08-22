@@ -1,0 +1,74 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Standalone applications",
+        description: "Author @context, @init, and @get:view. rocci run generates the server. Counter is the first app.",
+    },
+}
+
+# Standalone applications
+
+A standalone module declares `@context`, `@init`, `@get:view`, and optional
+mutations. `rocci run` generates dispatch. You do not write `main`.
+
+Canonical source: [Counter](/examples/counter/) ·
+[Counter.rocci](/examples/counter/source/Counter-rocci/).
+Do not copy the file into `docs/`.
+
+**Verify:** GET `/` contains `#counter`; POST increment returns a
+`datastar-patch-elements` event.
+
+This first app is **one-shot**. Increment morphs `#counter` in the acting tab
+only. Shared streams are [handlers](/docs/applications/handlers/).
+
+## State and initialization
+
+`@context` declares the value generated `main` threads through handlers.
+`@init` opens SQLite and creates the row. Failures here exit the process.
+Components stay pure.
+
+```rocci
+@context { db : Sqlite.Db }
+
+@init {
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    { db: db }
+}
+```
+
+## The document
+
+`@get:view("/")` returns a full HTML document. The increment control is a
+real `<button>` with an unquoted Rocci action:
+
+```rocci
+data-on:click=@post("/actions/counter/increment")
+```
+
+The card uses `id="counter"` so the later patch has a morph target.
+
+## The one-shot patch
+
+```rocci
+@post:fragment("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    counterCard({ count: count })
+}
+```
+
+`?` on SQLite becomes a 500 if the query fails. There is no `@log` and no
+logging from `@component`.
+
+```sh
+cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/counter/Counter.rocci --no-window --log-handlers
+```
+
+## Composition stays standalone
+
+Split components, render lists with `@for`, variants with `@match`, and forms
+without leaving generated dispatch. Custom `main.roc` is a later ownership
+step, not a requirement for composition.
+
+**Related:** [Handlers](/docs/applications/handlers/),
+[Server](/docs/reference/language/server/).

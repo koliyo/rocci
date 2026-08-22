@@ -8,9 +8,8 @@
 
 # Rocci Blocks
 
-**Audience:** experienced Rocci author.
-**Prerequisites:** [standalone versus custom](/docs/concepts/standalone-versus-custom/).
-**Role:** first-party falling-block arena on the main hostname, not a generic app mount.
+See [custom applications](/docs/applications/custom/). First-party
+falling-block arena on the main hostname, not a generic app mount.
 
 Play lives at `/play/blocks/` on rocci.dev. Ordinary live examples use
 `<id>.examples.rocci.dev`; this demonstrator is a Caddy prefix exception.

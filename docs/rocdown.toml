@@ -16,63 +16,45 @@ assets = "assets"
 label = "Start"
 items = [
     "index",
-    "start/what-is-rocci",
-    "start/choose-your-path",
-    "start/prerequisites",
-    "start/install",
-    "start/roc-for-rocci",
-    "start/web-foundations",
-    "start/five-minutes",
+    "install",
+    "five-minutes",
+    "the-stack",
+    "appendix/roc-for-rocci",
+    "appendix/web-foundations",
+    "appendix/why-roc",
+    "appendix/glossary",
 ]
 
 [[nav]]
-label = "Tutorials"
+label = "Templates"
 items = [
-    "tutorials/index",
-    "tutorials/first-component",
-    "tutorials/first-app",
-    "tutorials/compose",
-    "tutorials/commands-and-live",
-    "tutorials/custom-main",
-    "tutorials/ship",
+    "templates/index",
+    "templates/components",
+    "templates/markup",
+    "templates/directives",
 ]
 
 [[nav]]
-label = "How to"
+label = "Applications"
 items = [
-    "how-to/index",
-    "how-to/author-components",
-    "how-to/write-markup",
-    "how-to/use-directives",
-    "how-to/update-the-ui",
-    "how-to/handle-requests-and-errors",
-    "how-to/develop-and-inspect",
-    "how-to/use-the-playground",
-    "how-to/set-up-editors",
-    "how-to/configure-and-secure",
-    "how-to/package-and-deploy",
+    "applications/index",
+    "applications/standalone",
+    "applications/handlers",
+    "applications/custom",
+    "applications/tooling",
+    "applications/package",
 ]
 
 [[nav]]
-label = "Understand"
+label = "Rocdown"
 items = [
-    "concepts/compilation-model",
-    "concepts/pure-components",
-    "concepts/props-bodies-composition",
-    "concepts/structural-control-flow",
-    "concepts/styles-and-ownership",
-    "concepts/standalone-versus-custom",
-    "concepts/state-and-effects",
-    "concepts/documents-fragments-commands-streams",
-    "concepts/datastar-as-transport",
-    "concepts/one-shot-versus-live",
-    "concepts/html-and-identity",
-    "concepts/error-boundaries",
-    "concepts/development-and-delivery",
-    "concepts/security-model",
-    "concepts/performance-model",
-    "concepts/why-roc",
-    "glossary",
+    "rocdown/index",
+    "rocdown/pages",
+    "rocdown/blocks",
+    "rocdown/sites",
+    "rocdown/hybrid",
+    "rocdown/language",
+    "rocdown/cli",
 ]
 
 [[nav]]
@@ -98,8 +80,8 @@ items = [
     "reference/compatibility",
     "reference/diagnostics",
     "reference/contributor/rocci-tree",
+    "reference/contributor/rocdown-tree",
     "reference/contributor/checklist",
-    "reference/contributor/first-use",
 ]
 
 [[nav]]
@@ -110,10 +92,4 @@ items = [
     "troubleshooting/compile",
     "troubleshooting/runtime",
     "troubleshooting/preview",
-]
-
-[[nav]]
-label = "Status"
-items = [
-    "status",
 ]

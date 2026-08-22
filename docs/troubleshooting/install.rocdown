@@ -8,8 +8,6 @@
 
 # Install failures
 
-**Prerequisites:** [Install Rocci](/docs/start/install/).
-
 ## `roc` was not found
 
 **Cause:** the Roc compiler is missing from `PATH` in the same shell as Cargo.
