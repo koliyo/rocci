@@ -39,22 +39,24 @@ GameRow : {
     )?
     now = now_ms!({})?
     started = Game.start(now)
+    insert : GameRow
+    insert = {
+        board: started.board,
+        piece: started.piece,
+        rot: started.rot,
+        x: started.x,
+        y: started.y,
+        bag: started.bag,
+        seed: started.seed,
+        score: started.score,
+        status: started.status,
+        last_tick_ms: now,
+    }
     Sqlite.execute!(
         {
             db,
             query: "INSERT OR IGNORE INTO game (id, board, piece, rot, x, y, bag, seed, score, status, last_tick_ms) VALUES (1, :board, :piece, :rot, :x, :y, :bag, :seed, :score, :status, :last_tick_ms)",
-            params: {
-                board: started.board,
-                piece: started.piece,
-                rot: started.rot,
-                x: started.x,
-                y: started.y,
-                bag: started.bag,
-                seed: started.seed,
-                score: started.score,
-                status: started.status,
-                last_tick_ms: now,
-            },
+            params: insert,
         },
     )?
     { db: db }
@@ -152,22 +154,24 @@ load_row! = |db| {
 }
 
 save! = |db, state, last_tick_ms| {
+    params : GameRow
+    params = {
+        board: state.board,
+        piece: state.piece,
+        rot: state.rot,
+        x: state.x,
+        y: state.y,
+        bag: state.bag,
+        seed: state.seed,
+        score: state.score,
+        status: state.status,
+        last_tick_ms,
+    }
     Sqlite.execute!(
         {
             db,
             query: "UPDATE game SET board = :board, piece = :piece, rot = :rot, x = :x, y = :y, bag = :bag, seed = :seed, score = :score, status = :status, last_tick_ms = :last_tick_ms WHERE id = 1",
-            params: {
-                board: state.board,
-                piece: state.piece,
-                rot: state.rot,
-                x: state.x,
-                y: state.y,
-                bag: state.bag,
-                seed: state.seed,
-                score: state.score,
-                status: state.status,
-                last_tick_ms,
-            },
+            params,
         },
     )
 }
