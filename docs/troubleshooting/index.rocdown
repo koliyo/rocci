@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/troubleshooting/", "/docs/troubleshooting/"],
     meta: {
         title: "Troubleshooting",
         description: "Recover from Rocci install, compile, runtime, and preview failures using the smallest reproducing command.",

@@ -1,11 +1,5 @@
 @page {
     layout: "docs",
-    aliases: [
-        "/reference/configuration/",
-        "/docs/reference/configuration/",
-        "/docs/reference/rocci.toml/",
-        "/docs/reference/http-host/",
-    ],
     meta: {
         title: "Application configuration",
         description: "rocci.toml field types, defaults, platforms, validation failures, and which commands use each section.",
@@ -143,4 +137,4 @@ Key is `[development]`, not `[dev]`.
 `ROCCI_CONFIG` overrides the config path. `rocci validate` is the check
 command.
 
-**Related:** [CLI validate](/docs/reference/cli/#validate), [Ship](/docs/tutorials/ship/).
+**Related:** [CLI validate](/docs/reference/cli/#validate), [Package](/docs/applications/package/).

@@ -8,9 +8,8 @@
 
 # Counter
 
-**Audience:** new Rocci author.
-**Prerequisites:** [first app tutorial](/docs/tutorials/first-app/).
-**Concepts:** [documents vs fragments](/docs/concepts/documents-fragments-commands-streams/).
+See [standalone applications](/docs/applications/standalone/) and
+[handlers](/docs/applications/handlers/).
 
 The first Rocci app: one `.rocci` file, SQLite state, `@get:view("/")`, and two
 `@post:fragment` handlers that morph `#counter`. Increment and reset each return the

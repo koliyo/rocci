@@ -49,8 +49,7 @@ A template can parse and still fail in `roc`. The template crate does not
 start HTTP or open a window; `rocci-cli` compiles the generated module and
 serves it. The preview webview loads that same origin.
 
-**Related:** [Generated Roc](/docs/reference/language/generated-roc/),
-[compilation model](/docs/concepts/compilation-model/).
+**Related:** [Generated Roc](/docs/reference/language/generated-roc/).
 
 ## Two application depths
 
@@ -64,7 +63,7 @@ different platform, or a runtime the dispatcher does not express. Reuse
 components; do not re-implement `Html`. Desktop bundling (`rocci bundle`)
 wraps either depth in an ad-hoc macOS `.app`.
 
-**Related:** [standalone versus custom](/docs/concepts/standalone-versus-custom/),
+**Related:** [Applications](/docs/applications/),
 [Runtime](/docs/reference/runtime/).
 
 ## Deliberate limits
@@ -74,6 +73,6 @@ wraps either depth in an ad-hoc macOS `.app`.
 - No markup inside arbitrary Roc expressions; use `@if` / `@for` / `@match`.
 - No dynamic tag names or prop spreading.
 
-Preview a component in [five minutes](/docs/start/five-minutes/), then
-[templates](/docs/tutorials/first-component/) or a
-[standalone app](/docs/tutorials/first-app/).
+Preview a component in [five minutes](/docs/five-minutes/), then
+[templates](/docs/templates/) or a
+[standalone app](/docs/applications/standalone/).

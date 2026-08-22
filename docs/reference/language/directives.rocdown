@@ -1,11 +1,5 @@
 @page {
     layout: "docs",
-    aliases: [
-        "/docs/reference/@let/",
-        "/docs/reference/@if/",
-        "/docs/reference/@for/",
-        "/docs/reference/@match/",
-    ],
     meta: {
         title: "Template directives",
         description: "Exact @let, @if, @for, and @match grammar, scope, guards, and invalid markup contexts.",
@@ -30,4 +24,4 @@ records in headers: `@match ({ status, items }) {`.
 headers; `@fixture` inside a component body.
 
 **Related:** [File structure](/docs/reference/language/file-structure/),
-[Use directives](/docs/how-to/use-directives/).
+[Directives](/docs/templates/directives/).

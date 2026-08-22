@@ -1,12 +1,17 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Write markup",
-        description: "Write HTML tags, fragments, void elements, attributes, ARIA names, and string interpolations in .rocci files.",
+        title: "Markup",
+        description: "HTML tags, fragments, attributes, interpolations, scoped CSS, and stable ids in .rocci files.",
     },
 }
 
-# Write markup
+# Markup
+
+This page is the template-layer guide for tags, attributes, text, and CSS.
+Canonical contracts: [Tags](/docs/reference/language/tags/),
+[Attributes](/docs/reference/language/attributes/),
+[CSS](/docs/reference/language/css/).
 
 **Verify:** `rocci build FILE` succeeds; inspect shows `Html.element` / `Html.fragment`.
 
@@ -22,7 +27,7 @@
 Unknown PascalCase tags still lower to calls; Roc reports a missing function
 later. Dynamic tag names and prop spreading are not supported.
 
-## Attributes
+## Attributes and identity
 
 ```rocci
 <button class="primary" disabled data-on:click=@post("/actions/save")>
@@ -33,7 +38,8 @@ later. Dynamic tag names and prop spreading are not supported.
 `class={expr}` is a Roc expression. Valueless `disabled` is a boolean
 attribute. Hyphenated names (`aria-current`, `data-on:click`) are legal.
 Preserve accessible names: `alt` on images, visible labels on buttons, and
-stable `id`s on regions you will morph.
+stable `id`s on regions you will morph. Datastar morphs by `id`; a fragment
+without a stable target is a no-op.
 
 ## Interpolation
 
@@ -41,5 +47,15 @@ Text `{expr}` must be `Str` (`{count.to_str()}`). A body parameter already typed
 `Html` is inserted as-is. Markup inside `{…}` is rejected; use `@if` or a
 named render function. `@@` is a literal `@`.
 
-**Related:** [Attributes](/docs/reference/language/attributes/),
-[HTML and identity](/docs/concepts/html-and-identity/).
+## CSS
+
+File-level `@css` styles document chrome (`body`, not `html`). Component
+`@css` is scoped: lowering stamps `data-rocci-css` and wraps rules in CSS
+`@scope`. Authors keep writing `class="card"`. Do not ride a sibling
+`<style>` on an SSE patch.
+
+The styling example shows both: file-level dark chrome and component-scoped
+`.greeting`. See [Styling.rocci](/examples/styling/source/Styling-rocci/).
+
+**Related:** [Directives](/docs/templates/directives/),
+[Handlers](/docs/applications/handlers/) for morph targets.

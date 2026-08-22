@@ -77,4 +77,4 @@ browser load the **same** loopback origin. `rocci.toml` rejects binding
 Signals (`$count`) are for ephemeral UI, not the domain. Commands do not
 return domain JSON; use rendered fragments for visible state.
 
-Continue with [Rocci in five minutes](/docs/start/five-minutes/).
+Continue with [Rocci in five minutes](/docs/five-minutes/).

@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/status/", "/docs/status/"],
     meta: {
         title: "Status",
         description: "Experimental and stable labels, known limits, and the documentation version policy.",

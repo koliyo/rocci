@@ -217,4 +217,4 @@ The POST body is a `datastar-patch-elements` event that morphs `#counter`.
 `serve-islands` on 8001 is the mutation process alone (no Markdown).
 
 The complete command list lives in `examples/rocdown/counter/README.md`. Handler
-syntax is in [Build your first standalone app](/docs/tutorials/first-app/).
+syntax is in [Standalone applications](/docs/applications/standalone/).

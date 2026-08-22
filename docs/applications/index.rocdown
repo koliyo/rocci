@@ -1,0 +1,34 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Applications",
+        description: "Standalone and custom are two depths of the same layer: generated dispatch versus authored main.roc.",
+    },
+}
+
+# Applications
+
+Applications add HTTP structure around `.rocci` templates. Standalone and
+custom are two depths of this layer, not two products.
+
+Stop here if you only preview components. You do not need Rocdown to ship
+an app.
+
+| Depth | What you author | What `rocci run` does |
+| --- | --- | --- |
+| Standalone | `@context`, `@init`, `@get:view`, optional fragment / command / live routes | Generate dispatch, `/assets`, `/health`, and authored live paths |
+| Custom | `main.roc` plus `.rocci` modules | Compile sibling modules and start your Roc program |
+
+Stay standalone until generated dispatch is in the way: extra routes, a
+different platform, or a runtime the dispatcher does not express. Reuse
+components; do not re-implement `Html`.
+
+:card-grid.begin
+    :link-card[href: "/docs/applications/standalone/", title: "Standalone", summary: "First app: Counter, SQLite, one-shot fragment."]
+    :link-card[href: "/docs/applications/handlers/", title: "Handlers", summary: "Documents, fragments, commands, live streams."]
+    :link-card[href: "/docs/applications/custom/", title: "Custom", summary: "Own main.roc. Datastar gallery; Snake is the ceiling."]
+    :link-card[href: "/docs/applications/tooling/", title: "Tooling", summary: "run, view, browse, inspect, playground, editors."]
+    :link-card[href: "/docs/applications/package/", title: "Package", summary: "Release server, loopback config, ad-hoc macOS bundle."]
+:card-grid.end
+
+**Related:** [The stack](/docs/the-stack/), [Runtime](/docs/reference/runtime/).

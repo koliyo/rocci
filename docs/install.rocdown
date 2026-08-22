@@ -1,15 +1,21 @@
 @page {
     layout: "docs",
-    aliases: ["/getting-started/installation/", "/docs/getting-started/installation/"],
     meta: {
         title: "Install Rocci",
-        description: "Build Rocci from source on macOS, Linux, or Windows and run one deterministic version check.",
+        description: "What this manual assumes, then build Rocci from source and run one deterministic verify.",
     },
 }
 
 # Install Rocci
 
+This page is the toolchain: assumptions, a source build, and one verify
+command. Then [preview a component](/docs/five-minutes/).
+
 **Verify:** `rocci` via Cargo prints help, and the styling example builds.
+
+This manual is for programmers who are new to Rocci. It does not teach
+programming from zero. You should be able to read typed code, use a terminal
+and Git, and edit a text file.
 
 Rocci is **built from source**. There is no crates.io package and no install
 script. GitHub Release archives exist as an experimental prerelease channel;
@@ -18,6 +24,20 @@ do not start there unless you already know you want those binaries.
 Commands below run from the repository root. They use
 `cargo run -p rocci-cli`. That is the documented spelling until an installed
 `rocci` distribution exists.
+
+## Toolchain
+
+| Tool | Role | As tested |
+| --- | --- | --- |
+| Rust and Cargo | Build the Rocci workspace | GitHub Actions `dtolnay/rust-toolchain@stable`, edition 2024 crates |
+| Roc nightly | Compile generated and authored Roc | `nightly-2026-08-10` (`7df8509`), pinned in `docker/install-roc.sh` |
+| Native webview | Preview window | macOS WebKit, Linux WebKitGTK 4.1, Windows system webview |
+
+A mismatched Roc nightly can reject syntax that is valid for this repository.
+
+Optional primers: [Roc for Rocci authors](/docs/appendix/roc-for-rocci/),
+[Web foundations](/docs/appendix/web-foundations/). Full Roc lives at
+[roc-lang.org](https://www.roc-lang.org/).
 
 ## 1. Install Rust and Roc
 
@@ -47,10 +67,11 @@ cargo build -p rocci-cli
     :tab[id: "mac", label: "macOS"] {{
         Tao and Wry use the system WebKit view. No extra webview packages.
         Ad-hoc `.app` bundling is available later with `rocci bundle`.
+        Verified in CI (`macos-latest`).
     }}
     :tab[id: "linux", label: "Linux"] {{
         Install the WebKitGTK development packages Wry needs. On Debian and
-        Ubuntu this matches CI:
+        Ubuntu this matches CI (`ubuntu-latest`):
 
         ```sh
         sudo apt-get update
@@ -101,6 +122,4 @@ CI publishes `rocci-{version}-{target}.tar.gz` archives on GitHub Releases
 (macOS aarch64 and Linux x86_64). Treat them as **experimental**. They are not
 the first-run path in this manual.
 
-Next: [Rocci in five minutes](/docs/start/five-minutes/) or
-[Roc for Rocci authors](/docs/start/roc-for-rocci/) if you still need the Roc
-subset.
+Next: [Rocci in five minutes](/docs/five-minutes/).

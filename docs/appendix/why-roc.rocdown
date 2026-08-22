@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/concepts/why-roc/"],
-
     meta: {
         title: "Why Roc fits Rocci",
         description: "Why pure rendering, platform-controlled effects, one host boundary, and Roc's interpreted and compiled execution paths suit Rocci applications.",
@@ -275,7 +273,6 @@ This page was reviewed against current first-party material in August 2026:
 - [Roc repository](https://github.com/roc-lang/roc) is the authoritative status
   reference and explicitly identifies the language as a work in progress.
 
-Continue with [Rocci's compilation model](/docs/concepts/compilation-model/) to
-see where these boundaries live while authoring, or
-[Documents, fragments, commands, and streams](/docs/concepts/documents-fragments-commands-streams/)
-to follow `Html` from a component to the browser.
+Continue with [the stack](/docs/the-stack/) to see where these boundaries
+live while authoring, or [Handlers](/docs/applications/handlers/) to follow
+`Html` from a component to the browser.

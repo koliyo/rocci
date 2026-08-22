@@ -1,12 +1,15 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Use directives",
+        title: "Directives",
         description: "Render conditionals, lists, variants, and derived bindings with @if, @for, @match, and @let.",
     },
 }
 
-# Use directives
+# Directives
+
+This page is the template-layer guide for structural control flow. The
+contract is [Directives](/docs/reference/language/directives/).
 
 **Verify:** `rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
 
@@ -23,7 +26,8 @@ headers so `{` is not the body opener: `@match ({ status, items }) {`.
 }
 ```
 
-Missing `@else` becomes `Html.empty`.
+Missing `@else` becomes `Html.empty`. Use `@if` for a true/false condition.
+Prefer `@match` when the input is a tag union or a small closed set.
 
 ## List
 
@@ -54,4 +58,5 @@ bare text. Guards and `|` alternatives are ordinary Roc.
 `@let name = expr` binds before render-producing items. Do not put `@fixture`
 inside a component body.
 
-**Related:** [Structural control flow](/docs/concepts/structural-control-flow/).
+**Related:** [Components](/docs/templates/components/),
+[Directives reference](/docs/reference/language/directives/).

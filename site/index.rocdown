@@ -18,8 +18,8 @@ Applications add a server. Rocdown is an optional document layer — more
 experimental than templates.
 
 :card-grid.begin
-    :link-card[page: "docs/start/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
-    :link-card[page: "docs/tutorials/first-app", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
+    :link-card[page: "docs/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
+    :link-card[page: "docs/applications/standalone", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
     :link-card[page: "docs/rocdown/index", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
     :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
     :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
@@ -30,7 +30,7 @@ experimental than templates.
 Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Datastar actions only where an interaction needs them. For prose-led work, keep articles in `.rocdown` and presentation in a project theme.
 
 - [The stack](/docs/the-stack/)
-- [Preview a component](/docs/start/five-minutes/)
+- [Preview a component](/docs/five-minutes/)
 - [Author a Rocdown page](/docs/rocdown/pages/)
 - [Study complete examples](/examples/)
 
