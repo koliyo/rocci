@@ -6,7 +6,7 @@ import Html
 import Origin
 import LiveCounterUi
 
-## SQLite handle opened in `@init`. Shared with `@live` and commands.
+## SQLite handle opened in `@init`. Shared with `@get:live` and commands.
 @context { db : Sqlite.Db }
 
 ## Open or create `counter.db` (`DB_PATH` override). Failure exits the process.
@@ -35,22 +35,22 @@ import LiveCounterUi
     { db: db }
 }
 
-## Document GET `/`. Renders the page; the live card is a separate `@live` fragment.
-@view("/") = |{ db }| {
+## Document GET `/`. Renders the page; the live card is a separate live fragment.
+@get:view("/") = |{ db }| {
     count = read_count!(db)?
     clicks = read_clicks!(db)?
     counterPage({ count, clicks })
 }
 
-## Shared `#counter` and `#counter-feed` fragments for generated `GET /sse`.
-@live = |{ db }| {
+## Shared `#counter` and `#counter-feed` fragments for `GET /sse`.
+@get:live("/sse") = |{ db }| {
     count = read_count!(db)?
     clicks = read_clicks!(db)?
     LiveCounterUi.liveSlice({ count, clicks })
 }
 
-## Increment and record click origin; Datastar gets empty SSE, curl gets `{ count }`.
-@command("/actions/counter/increment") = |{ db }, request| {
+## Increment and record click origin; commands intentionally return no representation.
+@post:command("/actions/counter/increment") = |{ db }, request| {
     body =
         match request.body().with_limit(8 * 1024).read_all!() {
             Ok(bytes) => Str.from_utf8_lossy(bytes)
@@ -97,17 +97,17 @@ import LiveCounterUi
         Ok({}) => {}
         Err(_) => {}
     }
-    { count }
+    {}
 }
 
-## Reset count to zero (keeps click history); same empty SSE / JSON split as increment.
-@command("/actions/counter/reset") = |{ db }| {
+## Reset count to zero (keeps click history); the live stream publishes the change.
+@post:command("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}
         Err(_) => {}
     }
-    { count }
+    {}
 }
 
 clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL, chosen INTEGER NOT NULL DEFAULT 0"
@@ -231,7 +231,7 @@ CounterPage = |{ count, clicks }|
                 </nav>
                 <header>
                     <h1>Live counter</h1>
-                    <p class="lede">Two browsers share one SQLite count and recent click origins over a generated stream. Increment returns JSON; GET /sse morphs the count and feed in every tab. Reset is optional on the island.</p>
+                    <p class="lede">Two browsers share one SQLite count and recent click origins over an explicit stream. Commands return no representation; GET /sse morphs the count and feed in every tab. Reset is optional on the island.</p>
                 </header>
                 <LiveCounterUi.CounterIsland
                     count={count}

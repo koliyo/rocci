@@ -1608,50 +1608,53 @@ fn rejects_live_and_authored_sse_route() {
 }
 
 #[test]
-fn counter_example_is_rejected_until_example_cutover() {
+fn counter_example_compiles_with_final_routes() {
     let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
-    let errors = compile_err(src);
-    assert!(errors.iter().any(|message| message.contains("@get:view")));
+    let out = compile_ok(src);
+    assert_eq!(out.routes.len(), 3);
+    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Document);
     assert!(
-        errors
+        out.routes[1..]
             .iter()
-            .any(|message| message.contains("@post:fragment"))
+            .all(|route| route.respond == rocci_template::RespondKind::Fragment)
     );
 }
 
 #[test]
-fn live_counter_example_is_rejected_until_example_cutover() {
+fn live_counter_example_compiles_with_singleton_live_path() {
     let src = include_str!("../../../examples/rocci/standalone/live-counter/LiveCounter.rocci");
-    let errors = compile_err(src);
-    assert!(errors.iter().any(|message| message.contains("@get:live")));
+    let out = compile_ok(src);
+    assert_eq!(out.lives.len(), 1);
+    assert_eq!(out.lives[0].path, "/sse");
+    assert!(out.roc.contains("data-init"));
+    assert!(out.roc.contains("/sse"));
     assert!(
-        errors
+        out.routes
             .iter()
-            .any(|message| message.contains("@post:command"))
+            .filter(|route| route.respond == rocci_template::RespondKind::Command)
+            .count()
+            == 2
     );
 }
 
 #[test]
-fn handler_matrix_example_is_rejected_until_example_cutover() {
+fn handler_matrix_example_compiles_with_every_final_role() {
     let src = include_str!("../../../examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci");
-    let errors = compile_err(src);
-    assert!(
-        errors
-            .iter()
-            .any(|message| message.contains("@patch:fragment"))
-    );
-    assert!(
-        errors
-            .iter()
-            .any(|message| message.contains("@delete:command"))
-    );
+    let out = compile_ok(src);
+    assert_eq!(out.routes.len(), 10);
+    assert!(out.routes.iter().any(
+        |route| route.method == "GET" && route.respond == rocci_template::RespondKind::Fragment
+    ));
+    assert_eq!(out.lives.len(), 1);
+    assert_eq!(out.lives[0].path, "/events/matrix");
 }
 
 #[test]
-fn styling_example_is_rejected_until_example_cutover() {
+fn styling_example_compiles_with_final_view() {
     let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
-    let errors = compile_err(src);
-    assert!(errors.iter().any(|message| message.contains("@get:view")));
+    let out = compile_ok(src);
+    assert_eq!(out.routes.len(), 1);
+    assert_eq!(out.routes[0].respond, rocci_template::RespondKind::Document);
 }
 
 #[test]

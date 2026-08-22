@@ -1,0 +1,56 @@
+import Html
+
+authorize_admin! = |request| {
+    token =
+        List.fold(request.headers(), "", |found, header|
+            if found != "" {
+                found
+            } else if header.name == "x-rocci-admin" or header.name == "X-Rocci-Admin" {
+                header.value
+            } else {
+                found
+            },
+        )
+    if token == "demo" {
+        Ok({})
+    } else {
+        Err(Unauthorized)
+    }
+}
+
+## Admin page subscribes to its protected page stream and shared notifications.
+@get:view("/admin") = |_| {
+    adminPage({})
+}
+
+## Authorization remains ordinary authored Roc inside this path-specific handler.
+@get:live("/streams/admin") = |_, request| {
+    authorize_admin!(request)?
+    adminLive({})
+}
+
+@component
+AdminLive = |{}|
+    <section id="admin-summary"><strong>Authorized admin summary</strong></section>
+
+@component
+AdminPage = |{}|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <title>Multi-page streams — Admin</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body data-init=@get("/streams/admin", [Header("X-Rocci-Admin", "demo")])>
+            <nav><a href="/">Dashboard</a> <a href="/admin">Admin</a></nav>
+            <main>
+                <h1>Admin</h1>
+                <section id="admin-summary"><strong>Waiting for authorized stream</strong></section>
+                <output id="notifications">No notifications</output>
+            </main>
+            <div id="notifications-subscription" data-init=@get("/streams/notifications", [OpenWhenHidden(True)])></div>
+        </body>
+    </html>
+
+@fixture{target: AdminPage}
+adminPageTest = {}

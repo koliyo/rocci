@@ -2,9 +2,9 @@
 
 A Rocdown site with one `live` page: Markdown plus a SQLite-backed counter
 island, the hybrid analog of [`examples/rocci/standalone/live-counter`](../../rocci/standalone/live-counter). The CDN file is
-a snapshot (`count` is `0` at build). On load, generated `GET /sse` replaces
-that snapshot and keeps two browsers in sync. Increment and reset are `json`
-commands (204 to Datastar; JSON to `curl`).
+a snapshot (`count` is `0` at build). On load, `@get:live("/sse")` replaces
+that snapshot and keeps two browsers in sync. Increment and reset are
+representation-free commands (empty finite SSE to Datastar; 204 to `curl`).
 
 A neighboring [`about.rocdown`](about.rocdown) page stays `static`: no Datastar,
 no island routes.
@@ -59,7 +59,7 @@ Omit `--no-window` to open an embedded preview. Override the port with
 `--port` or `ROC_BASIC_WEBSERVER_PORT`. Generated island `main.roc` binds
 `127.0.0.1` unless `ROC_BASIC_WEBSERVER_HOST` is set.
 
-Pass `--log-handlers` to print each proxied / dispatched `@on` route on the
+Pass `--log-handlers` to print each proxied / dispatched verb-first route on the
 CLI and in the Dev Console.
 
 Preview SQLite state is ephemeral (`islands.db` in the staging workspace).
@@ -72,7 +72,7 @@ Smoke on 8000:
 curl -sf http://127.0.0.1:8000/health
 curl -sf http://127.0.0.1:8000/ | grep -E 'rd-document|#counter|stylesheet'
 curl -sf -X POST http://127.0.0.1:8000/actions/counter/increment
-# {"count":1}
+# empty body; HTTP 204
 ```
 
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in two windows, click Increment once, and
@@ -176,7 +176,7 @@ See [`docker/README.md`](../../docker/README.md) for choosing `--target`.
 ```sh
 curl -sf http://127.0.0.1:8080/health
 curl -sf -X POST http://127.0.0.1:8080/actions/counter/increment
-# {"count":1}
+# empty body; HTTP 204
 docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 ```
 
@@ -202,7 +202,7 @@ curl -s http://127.0.0.1:8001/health
 # ok
 
 curl -s -X POST http://127.0.0.1:8001/actions/counter/increment
-# {"count":1}
+# empty body; HTTP 204
 ```
 
 With `rocdown view --no-window` on port 8000, the same POST works on that

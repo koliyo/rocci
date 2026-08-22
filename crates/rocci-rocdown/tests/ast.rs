@@ -298,7 +298,7 @@ fn all_syntax_covers_document_and_block_kinds() {
         "fixture",
         "context",
         "init",
-        "patch",
+        "fragment",
         "render",
         "template",
         "block",
@@ -339,5 +339,5 @@ fn all_syntax_covers_document_and_block_kinds() {
     }
     assert!(ast.contains("(context"), "{ast}");
     assert!(ast.contains("(init)"), "{ast}");
-    assert!(ast.contains("(patch "), "{ast}");
+    assert!(ast.contains("(fragment "), "{ast}");
 }

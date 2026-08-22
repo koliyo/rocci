@@ -416,9 +416,11 @@ fn counter_run_proxies_actions_on_one_origin() {
             "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
         ),
     );
+    assert!(increment.contains("204"), "{increment}");
+    assert!(!increment.contains("application/json"), "{increment}");
     assert!(
-        increment.contains("{\"count\":") && !increment.contains("datastar-patch-elements"),
-        "json POST without Datastar-Request must return JSON:\n{increment}"
+        !increment.contains("datastar-patch-elements"),
+        "{increment}"
     );
     let datastar_increment = http_exchange(
         port,
@@ -430,7 +432,7 @@ fn counter_run_proxies_actions_on_one_origin() {
         datastar_increment.contains("HTTP/1.1 200 OK")
             && datastar_increment.contains("content-type: text/event-stream")
             && !datastar_increment.contains("datastar-patch-elements"),
-        "JSON command from Datastar returns an empty SSE response:\n{datastar_increment}"
+        "representation-free command from Datastar returns an empty SSE response:\n{datastar_increment}"
     );
     drop(child);
 }

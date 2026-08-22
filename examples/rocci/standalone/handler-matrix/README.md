@@ -11,4 +11,5 @@ cargo run -q -p rocci-cli -- run examples/rocci/standalone/handler-matrix/Handle
 ```sh
 curl -s -X POST http://127.0.0.1:8000/actions/post-frag
 curl -s -X POST http://127.0.0.1:8000/actions/post-cmd
+# empty body; HTTP 204
 ```

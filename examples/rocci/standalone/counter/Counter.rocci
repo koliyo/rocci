@@ -32,13 +32,13 @@ import Html
 }
 
 ## Read the stored count and render `CounterPage`.
-@view("/") = |{ db }| {
+@get:view("/") = |{ db }| {
     count = read_count!(db)?
     counterPage({ count: count })
 }
 
 ## Add one to the stored count and morph `#counter`.
-@patch("/actions/counter/increment") = |{ db }| {
+@post:fragment("/actions/counter/increment") = |{ db }| {
     count = increment_count!(db)?
     match Stderr.line!("counter increment count=${count.to_str()}") {
         Ok({}) => {}
@@ -48,7 +48,7 @@ import Html
 }
 
 ## Set the stored count to zero and morph `#counter`.
-@patch("/actions/counter/reset") = |{ db }| {
+@post:fragment("/actions/counter/reset") = |{ db }| {
     count = reset_count!(db)?
     match Stderr.line!("counter reset count=${count.to_str()}") {
         Ok({}) => {}

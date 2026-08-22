@@ -165,13 +165,19 @@ pub fn plan_standalone_with_progress(
             )),
         );
 
+        let routes = if input == &primary {
+            compiled.routes.clone()
+        } else {
+            without_synthetic_root_aliases(&compiled.routes)
+        };
+
         modules.push(StandaloneModule {
             type_name: type_name.clone(),
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
             lives: compiled.lives,
-            routes: compiled.routes,
+            routes,
             mapped: MappedModule {
                 type_name: type_name.clone(),
                 generated: compiled.roc,
@@ -195,6 +201,28 @@ pub fn plan_standalone_with_progress(
         redirect_trailing_slash,
         inspect_pages,
     }))
+}
+
+fn without_synthetic_root_aliases(routes: &[RouteInfo]) -> Vec<RouteInfo> {
+    let document_functions: HashSet<&str> = routes
+        .iter()
+        .filter(|route| {
+            route.method == "GET"
+                && route.path != "/"
+                && route.respond == rocci_template::RespondKind::Document
+        })
+        .map(|route| route.fn_name.as_str())
+        .collect();
+    routes
+        .iter()
+        .filter(|route| {
+            !(route.method == "GET"
+                && route.path == "/"
+                && route.respond == rocci_template::RespondKind::Document
+                && document_functions.contains(route.fn_name.as_str()))
+        })
+        .cloned()
+        .collect()
 }
 
 fn relative_inspect_path(path: &Path, root: &Path) -> String {
@@ -450,4 +478,37 @@ fn redirect_trailing_slash_for(dir: &Path) -> bool {
     rocci_core::Config::from_file(path)
         .map(|config| config.http.redirect_trailing_slash)
         .unwrap_or(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rocci_template::{RespondKind, Span};
+
+    fn document(path: &str, fn_name: &str) -> RouteInfo {
+        RouteInfo {
+            method: "GET".into(),
+            path: path.into(),
+            fn_name: fn_name.into(),
+            respond: RespondKind::Document,
+            span: Span::new(0, 0),
+        }
+    }
+
+    #[test]
+    fn sibling_filter_removes_only_the_synthetic_root_alias() {
+        let routes = [
+            document("/guide/", "on_get_guide!"),
+            document("/", "on_get_guide!"),
+            document("/", "authored_root!"),
+        ];
+        let filtered = without_synthetic_root_aliases(&routes);
+        assert_eq!(filtered.len(), 2);
+        assert!(filtered.iter().any(|route| route.path == "/guide/"));
+        assert!(
+            filtered
+                .iter()
+                .any(|route| route.path == "/" && route.fn_name == "authored_root!")
+        );
+    }
 }
