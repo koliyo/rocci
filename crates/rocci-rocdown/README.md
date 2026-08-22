@@ -230,7 +230,9 @@ autolinks.
 duplicates; stable `rd-*` classes on Markdown HTML (`rd-header-1`,
 `rd-paragraph`, …); fenced info strings become
 `class="rd-code language-…"`; wiki links `[[Foo]]` and `[[Foo|label]]`
-(optionally `[[Foo#heading-id]]`).
+(optionally `[[Foo#heading-id]]`). When site chrome JavaScript is present,
+fenced code blocks expose a copy-to-clipboard control; the code remains
+selectable without JavaScript.
 
 **Footnotes:** `[^label]` references and `[^label]:` definitions are parsed in
 ordinary Rocdown. Definitions are collected out of flow into a footnotes

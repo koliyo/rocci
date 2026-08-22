@@ -80,6 +80,23 @@ fn test_view_constructors_and_serialization() {
 }
 
 #[test]
+fn copy_script_is_self_contained() {
+    assert!(COPY_SCRIPT.contains("window.__rocciCopy"));
+    assert!(COPY_SCRIPT.contains("navigator.clipboard"));
+    assert!(COPY_SCRIPT.contains("rd-code-block"));
+    assert!(COPY_SCRIPT.contains("rd-copy"));
+    assert!(COPY_SCRIPT.contains("Copy code"));
+}
+
+#[test]
+fn chrome_script_includes_copy_hooks() {
+    let chrome = chrome_script();
+    assert!(chrome.contains("window.__rocciGoto"));
+    assert!(chrome.contains("window.__rocciCopy"));
+    assert!(chrome.contains("rd-code-block"));
+}
+
+#[test]
 fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("window.__rocciGoto"));
     assert!(GOTO_SCRIPT.contains("/pages.json"));

@@ -1499,7 +1499,7 @@ fn write_site_chrome(bundle: &Bundle, site: &Path) -> Result<()> {
     let okf_static_dir = site.join("__rocci_okf");
     fs::create_dir_all(&okf_static_dir)
         .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
-    fs::write(okf_static_dir.join("goto.js"), rocci_ui::GOTO_SCRIPT)
+    fs::write(okf_static_dir.join("goto.js"), rocci_ui::chrome_script())
         .context("failed to write knowledge goto script")?;
 
     let catalog = bundle
