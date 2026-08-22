@@ -15,7 +15,7 @@ component-scoped rules, default component params, and Vue-style isolation.
 There is no database. v1 injects a `<style>` tag into `<head>` and wraps rules
 in `@scope ([data-rocci-css~="id"])`. Put document chrome on `body`, not `html`.
 
-Docs-only on the public origin. See [source](/examples/styling/source/).
+Docs-only on the public origin. Source files are listed in the sidebar.
 
 ## Run locally
 

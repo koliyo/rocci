@@ -111,7 +111,7 @@ fn stages_expected_tree_and_skips_non_catalog() {
     assert!(files.contains(&"index.rocdown".into()));
     assert!(files.contains(&"listed/index.rocdown".into()));
     assert!(files.contains(&"listed/extra.rocdown".into()));
-    assert!(files.contains(&"listed/source/index.rocdown".into()));
+    assert!(!files.contains(&"listed/source/index.rocdown".into()));
     assert!(files.contains(&"listed/source/App-rocci.rocdown".into()));
     assert!(files.contains(&"listed/source/assets--ok-css.rocdown".into()));
     assert!(files.contains(&"listed/snippets/App.rocci".into()));
@@ -131,6 +131,7 @@ fn stages_expected_tree_and_skips_non_catalog() {
     assert!(page.contains("GET the demo page."));
     assert!(!page.contains(".."));
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("Examples Overview"));
     assert!(index.contains("/examples/listed/"));
     assert!(index.contains("`docs`"));
     assert!(index.contains("/docs/rocdown/"));

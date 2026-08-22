@@ -32,7 +32,7 @@ The card below is the [live counter](/examples/live-counter/) app composed into 
     :link-card[page: "docs/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
     :link-card[page: "docs/applications/standalone", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
     :link-card[page: "docs/rocdown/index", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
-    :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
+    :link-card[page: "examples/index", title: "Examples Overview", summary: "Inspect complete Rocci apps and their published source."]
     :link-card[page: "playground/index", title: "Try the playground", summary: "Lower .rocci and .rocdown to generated Roc in the browser."]
     :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
 :card-grid.end

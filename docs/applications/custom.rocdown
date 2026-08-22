@@ -31,7 +31,7 @@ curl -s http://127.0.0.1:8000/ | grep -E 'notes|Add'
 authored Roc program. `@get:view` / `@method:fragment` on those modules are
 not the generated standalone dispatcher; `main.roc` owns HTTP.
 
-Read the Notes source index: [notes source](/examples/notes/source/).
+Open [Notes](/examples/notes/) and use the sidebar source list.
 
 The server still owns HTML. Datastar remains transport.
 

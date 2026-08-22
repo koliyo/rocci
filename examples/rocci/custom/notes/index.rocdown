@@ -14,9 +14,7 @@ A small custom app: authored `main.roc` owns HTTP, Rocci templates render the
 page, and SQLite stores notes. Use this when you want Roc-centered development
 with `.rocci` views, before the Datastar gallery or Snake.
 
-This app is **docs-only** on rocci.dev.
-
-See the [source tree](/examples/notes/source/).
+This app is **docs-only** on rocci.dev. Source files are listed in the sidebar.
 
 ## Run locally
 

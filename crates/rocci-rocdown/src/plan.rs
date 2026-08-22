@@ -1487,15 +1487,14 @@ fn attach_example_source_tree(
     };
     let example_href = format!("/examples/{slug}/");
     let prefix = example_source_prefix(slug);
-    let index_id = format!("examples/{slug}/source/index");
     let mut source_pages: Vec<&ResolvedPage> = pages
         .iter()
-        .filter(|page| page.id == index_id || page.id.starts_with(&prefix))
+        .filter(|page| page.id.starts_with(&prefix))
         .collect();
     if source_pages.is_empty() {
         return;
     }
-    source_pages.sort_by(|left, right| source_sort_key(&left.id).cmp(&source_sort_key(&right.id)));
+    source_pages.sort_by(|left, right| left.id.cmp(&right.id));
     let Some(group_index) = sidebar
         .iter()
         .position(|group| group.items.iter().any(|item| item.href == example_href))
@@ -1537,14 +1536,6 @@ fn attach_example_source_tree(
         }
     }
     sidebar.splice(group_index..group_index, replacement);
-}
-
-fn source_sort_key(id: &str) -> (u8, &str) {
-    if id.ends_with("/source/index") {
-        (0, id)
-    } else {
-        (1, id)
-    }
 }
 
 fn outline_view(heading: &PageHeading) -> OutlineView {
@@ -2465,11 +2456,6 @@ mod tests {
         )];
         let pages = [
             source_page(
-                "examples/blocks/source/index",
-                "Rocci Blocks source",
-                "/examples/blocks/source/",
-            ),
-            source_page(
                 "examples/blocks/source/backend--Blocks-rocci",
                 "backend/Blocks.rocci",
                 "/examples/blocks/source/backend--Blocks-rocci/",
@@ -2496,10 +2482,9 @@ mod tests {
         assert_eq!(sidebar[1].href, "/examples/blocks/");
         assert_eq!(sidebar[2].title, "Source");
         assert!(sidebar[2].open);
-        assert_eq!(sidebar[2].items.len(), 2);
-        assert_eq!(sidebar[2].items[0].title, "Rocci Blocks source");
-        assert_eq!(sidebar[2].items[1].title, "backend/Blocks.rocci");
-        assert!(sidebar[2].items[1].class_name.contains("is-current"));
+        assert_eq!(sidebar[2].items.len(), 1);
+        assert_eq!(sidebar[2].items[0].title, "backend/Blocks.rocci");
+        assert!(sidebar[2].items[0].class_name.contains("is-current"));
         assert_eq!(sidebar[3].title, "Snake");
         assert!(sidebar[3].items.is_empty());
         assert!(sidebar_has_current(

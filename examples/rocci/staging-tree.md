@@ -36,7 +36,6 @@ example-docs/
     index.rocdown               # copy of authored docs
     extra.rocdown               # extra authored pages, if any
     source/
-      index.rocdown             # generated file list
       Counter.rocci.rocdown     # :include of staged source (no `..`)
     snippets/
       Counter.rocci             # copy used by :include
