@@ -2,7 +2,7 @@
 # Expected routes are canonical pages (aliases also resolve).
 # Threshold: every row's `expect` page must exist (`rocci-ops check-docs`).
 # Live zero-result search samples are added as new rows after public search exists.
-# First-use protocol is unpublished. Sessions: docs/first-use-sessions.toml.
+# First-use protocol page is deleted. Sessions: docs/first-use-sessions.toml.
 
 schema_version = 1
 product = "rocci"

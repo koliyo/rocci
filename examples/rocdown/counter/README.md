@@ -151,7 +151,7 @@ Cross-origin: set `[http] service_origin = "https://islands.example.com"` in
 and host `serve-islands` on that origin. CORS and cookies for that layout
 are not shipped yet; prefer the same-origin proxy.
 
-A sibling `[http].service` `.rocci` app is an alternative to colocated `@on`.
+A sibling `[http].service` `.rocci` app is an alternative to colocated handlers.
 `rocdown serve-islands` runs that file with `rocci run` instead of generating
 a dispatcher. The app must return island fragments, not a full HTML document,
 and must not rely on GET `/` (the CDN owns page GET).

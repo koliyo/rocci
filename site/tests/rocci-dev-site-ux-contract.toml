@@ -130,18 +130,15 @@ status = 410
 
 [[news_disposition]]
 path = "/news/introducing-rocci/"
-action = "fold-and-redirect"
-status = 308
-target = "/docs/start/what-is-rocci/"
+action = "retire"
+status = 404
 
 [[news_disposition]]
 path = "/news/rocdown-static-collections/"
-action = "fold-and-redirect"
-status = 308
-target = "/rocdown/site-config/"
+action = "retire"
+status = 404
 
 [[news_disposition]]
 path = "/news/rocci-desktop-apps/"
-action = "fold-and-redirect"
-status = 308
-target = "/docs/tutorials/ship/"
+action = "retire"
+status = 404

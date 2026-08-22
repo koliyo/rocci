@@ -5,7 +5,7 @@
 Rocci and Rocdown provide clean, symmetrical application and document pipelines:
 
 1. **Templates & Apps (`rocci`)** — `.rocci` modules lower to ordinary Roc HTML. `@context` /
-   `@init` / `@on` declare standalone HTTP apps. Authored `main.roc` apps keep full
+   `@init` / `@method:role` declare standalone HTTP apps. Authored `main.roc` apps keep full
    control of `init!` / `respond!`. `rocci run` stages `Html.roc` / `Datastar.roc`
    and starts the server.
 2. **Documents & Sites (`rocdown`)** — `.rocdown` files are Markdown with document-root
@@ -28,7 +28,7 @@ The contract between UI and backend should stay usable in a normal browser.
 
 - [x] `.rocci` parse, lower, and compile to Roc type modules
 - [x] `rocci run` / `view` / `browse` with an embedded preview window
-- [x] Standalone `rocci run App.rocci` from `@context` / `@init` / `@on`
+- [x] Standalone `rocci run App.rocci` from `@context` / `@init` / `@method:role`
 - [x] Example apps: counter (standalone), styling, snake, and the Datastar gallery
 - [x] `.rocdown` compiler core: Markdown-first pages with `@page` / `@roc` /
       `@render` and delegated Rocci declarations, lowering to Roc; `rocdown run`

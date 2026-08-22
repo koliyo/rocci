@@ -1,6 +1,6 @@
 # Live first-use sessions. Privacy-preserving: no names, emails, or recordings.
-# Maintainers append [[session]] rows after running
-# docs/reference/contributor/first-use.rocdown. Do not invent rows.
+# Maintainers append [[session]] rows after a first-use pass.
+# Do not invent rows.
 
 schema_version = 1
 product = "rocci"

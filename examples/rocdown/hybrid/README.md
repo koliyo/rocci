@@ -1,7 +1,7 @@
 # Hybrid islands fixture
 
 Four-page site used by Rocdown CLI tests: `static`, `hydrate`, and `live`
-page kinds with colocated `@on` (ephemeral show/hide, no SQLite).
+page kinds with colocated handlers (ephemeral show/hide, no SQLite).
 
 | File | Kind | What it shows |
 | --- | --- | --- |

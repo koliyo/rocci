@@ -10,7 +10,7 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **Diagnostics & Error Recovery**: Push diagnostics for parser syntax errors with parser recovery that preserves partial highlighting on incomplete documents.
 - **File icons**: Explorer icons for `.rocci` and `.rocdown` use the folded-R document mark.
 - **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
-- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@on`, `@page`, `@roc`, `:note`), HTML elements, and components; hover documentation for template elements.
+- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@page`, `@roc`, `:note`), handlers (`@get:view`, `@post:fragment`), HTML elements, and components; hover documentation for template elements.
 
 ## Configuration
 

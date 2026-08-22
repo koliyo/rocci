@@ -314,8 +314,8 @@ notes = "Matches stack IA paths and chrome rules."
 
 [[page]]
 path = "docs/reference/contributor/first-use.rocdown"
-disposition = "unpublished"
-notes = "Unpublished. Not in public nav. Do not run academy first-use as the IA target."
+disposition = "retire"
+notes = "Deleted. Sessions file remains at docs/first-use-sessions.toml."
 
 [[page]]
 path = "docs/troubleshooting/index.rocdown"

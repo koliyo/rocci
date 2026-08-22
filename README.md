@@ -27,8 +27,8 @@ cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/errors/ErrorDemo.rocdown
 ```
 
-[`examples/rocci/standalone/counter`](examples/rocci/standalone/counter) is the starting app: SQLite, `@on`, and a
-Datastar patch. [`examples/rocci/standalone/styling`](examples/rocci/standalone/styling) is the same template
+[`examples/rocci/standalone/counter`](examples/rocci/standalone/counter) is the starting app: SQLite and a
+Datastar fragment. [`examples/rocci/standalone/styling`](examples/rocci/standalone/styling) is the same template
 language with file-level and component `@css`.
 [`examples/rocdown/pages`](examples/rocdown/pages) is a Markdown page with explicit `@roc`,
 `@component`, and `@render` islands; see [`crates/rocci-rocdown`](crates/rocci-rocdown)
@@ -36,7 +36,7 @@ for the format. [`examples/rocdown/errors`](examples/rocdown/errors) is the 404 
 preview: a working `/error-demo/` page plus a broken file that still opens in the window.
 
 `rocci run path/to/App.rocci` is a standalone app: compile that file, generate
-an HTTP dispatcher from `@context` / `@init` / `@on`, and start it. `rocci run`
+an HTTP dispatcher from `@context` / `@init` / `@method:role` routes, and start it. `rocci run`
 on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
 authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
 runtime and a pinned Datastar JS file in `assets/` (downloaded into
