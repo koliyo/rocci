@@ -17,6 +17,10 @@
   z-index: 2147483647;
 }
 
+:host(.unified) {
+  height: 52px;
+}
+
 nav {
   box-sizing: border-box;
   display: flex;
@@ -34,6 +38,17 @@ nav {
   color: inherit;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   user-select: none;
+}
+
+:host(.unified) nav {
+  height: 52px;
+  padding-left: 78px;
+  -webkit-app-region: drag;
+}
+
+:host(.unified) button,
+:host(.unified) .more-menu {
+  -webkit-app-region: no-drag;
 }
 
 .controls,

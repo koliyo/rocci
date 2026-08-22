@@ -199,6 +199,7 @@ impl Shell {
             window::WebViewHooks::default(),
             initial_position,
             initial_maximized,
+            false,
         )?;
         self.menu.attach(&live.window)?;
         let tao_id = live.window.id();

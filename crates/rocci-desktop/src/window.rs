@@ -6,6 +6,11 @@ use tao::{
 };
 use wry::{PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
 
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHT_INSET_X: f64 = 16.0;
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHT_INSET_Y: f64 = 19.0;
+
 #[derive(Default)]
 pub struct WebViewHooks {
     pub initialization_script: Option<String>,
@@ -33,6 +38,7 @@ impl LiveWindow {
         hooks: WebViewHooks,
         position: Option<LogicalPosition<f64>>,
         maximized: bool,
+        unified_titlebar: bool,
     ) -> Result<Self> {
         let mut builder = WindowBuilder::new()
             .with_title(&template.title)
@@ -47,6 +53,20 @@ impl LiveWindow {
         if maximized {
             builder = builder.with_maximized(true);
         }
+        #[cfg(target_os = "macos")]
+        if unified_titlebar {
+            use tao::platform::macos::WindowBuilderExtMacOS;
+            builder = builder
+                .with_titlebar_transparent(true)
+                .with_title_hidden(true)
+                .with_fullsize_content_view(true)
+                .with_traffic_light_inset(LogicalPosition::new(
+                    TRAFFIC_LIGHT_INSET_X,
+                    TRAFFIC_LIGHT_INSET_Y,
+                ));
+        }
+        #[cfg(not(target_os = "macos"))]
+        let _ = unified_titlebar;
         let window = builder
             .build(event_loop)
             .map_err(|error| Error::message(format!("failed to create window {id}: {error}")))?;
@@ -70,6 +90,18 @@ impl LiveWindow {
         let webview_builder = {
             use wry::WebViewBuilderExtWindows;
             webview_builder.with_browser_accelerator_keys(false)
+        };
+        #[cfg(target_os = "macos")]
+        let webview_builder = {
+            if unified_titlebar {
+                use wry::WebViewBuilderExtDarwin;
+                webview_builder.with_traffic_light_inset(wry::dpi::LogicalPosition::new(
+                    TRAFFIC_LIGHT_INSET_X,
+                    TRAFFIC_LIGHT_INSET_Y,
+                ))
+            } else {
+                webview_builder
+            }
         };
         let webview = webview_builder
             .build(&window)
