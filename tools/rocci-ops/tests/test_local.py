@@ -102,13 +102,17 @@ def test_render_brand_icons_invokes_rsvg(monkeypatch, tmp_path) -> None:
     brand.mkdir()
     (brand / "rocci-app.svg").write_text("<svg/>", encoding="utf-8")
     (brand / "rocci-file.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-file-light.svg").write_text("<svg/>", encoding="utf-8")
     (brand / "rocci-mark.svg").write_text("<svg/>", encoding="utf-8")
     (tmp_path / "crates/rocci-desktop/assets").mkdir(parents=True)
     (tmp_path / "site/assets").mkdir(parents=True)
     calls: list[list[str]] = []
     copies: list[tuple[str, str]] = []
 
-    monkeypatch.setattr("rocci_ops.local.shutil.which", lambda _: "/usr/bin/rsvg-convert")
+    monkeypatch.setattr(
+        "rocci_ops.local.shutil.which",
+        lambda name: "/usr/bin/rsvg-convert" if name == "rsvg-convert" else None,
+    )
     monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
         "rocci_ops.local.run",
@@ -124,4 +128,40 @@ def test_render_brand_icons_invokes_rsvg(monkeypatch, tmp_path) -> None:
     assert all(call[0] == "rsvg-convert" for call in calls)
     assert any("rocci-icon.png" in call[-1] for call in calls)
     assert any("apple-touch-icon.png" in call[-1] for call in calls)
-    assert len(copies) == 3
+    assert len(copies) == 7
+    assert any(dst.endswith("rocci-file-light.svg") for _, dst in copies)
+    assert any(dst.endswith("text-x-rocci.svg") for _, dst in copies)
+
+
+def test_render_brand_icons_generates_icns_when_iconutil_present(monkeypatch, tmp_path) -> None:
+    from rocci_ops.local import ICONSET_SIZES
+
+    brand = tmp_path / "brand"
+    brand.mkdir()
+    (brand / "rocci-app.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-file.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-file-light.svg").write_text("<svg/>", encoding="utf-8")
+    (brand / "rocci-mark.svg").write_text("<svg/>", encoding="utf-8")
+    (tmp_path / "crates/rocci-desktop/assets").mkdir(parents=True)
+    (tmp_path / "site/assets").mkdir(parents=True)
+    calls: list[list[str]] = []
+
+    def which(name: str) -> str:
+        return {
+            "rsvg-convert": "/usr/bin/rsvg-convert",
+            "iconutil": "/usr/bin/iconutil",
+        }[name]
+
+    monkeypatch.setattr("rocci_ops.local.shutil.which", which)
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+    monkeypatch.setattr("rocci_ops.local.shutil.copy2", lambda src, dst: None)
+
+    assert render_brand_icons() == 0
+    assert len(calls) == 3 + len(ICONSET_SIZES) + 1
+    assert calls[-1][0] == "iconutil"
+    assert calls[-1][-2] == str(brand / "rocci-app.icns")
+    assert sum(1 for call in calls if call[0] == "rsvg-convert") == 3 + len(ICONSET_SIZES)
