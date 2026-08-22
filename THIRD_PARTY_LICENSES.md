@@ -9,7 +9,7 @@ This repository incorporates third-party Tree-sitter grammars and query definiti
 ### `tree-sitter-roc`
 - **Purpose:** Syntax analysis and semantic highlighting for embedded Roc regions in `.rocci` and `.rocdown` files.
 - **Repository:** [https://github.com/faldor20/tree-sitter-roc](https://github.com/faldor20/tree-sitter-roc)
-- **Pinned Revision:** `edc18052a9d7382ac9f9f5bf413db3a78d5ea12c` (2026-01-27)
+- **Pinned Revision:** `d91c4e8c972ad8aac03fa45414a11f564c2274e3` (2026-08-21)
 - **Author:** Eli Dowling
 - **License:** MIT
 - **License Location:** [`crates/rocci-lsp/grammars/roc/LICENSE`](crates/rocci-lsp/grammars/roc/LICENSE)
@@ -45,7 +45,7 @@ This repository incorporates third-party Tree-sitter grammars and query definiti
 
 | Crate | Version | License | Purpose |
 | --- | --- | --- | --- |
-| `tree-sitter` | `0.22.6` | MIT | Tree-sitter parsing runtime |
+| `tree-sitter` | `0.25.10` | MIT | Tree-sitter parsing runtime |
 | `lsp-server` | `0.7` | MIT OR Apache-2.0 | Language Server Protocol transport and event loop |
 | `lsp-types` | `0.97` | MIT | LSP specification types and serialization |
 | `serde` / `serde_json` | `1.0` | MIT OR Apache-2.0 | JSON serialization/deserialization |
