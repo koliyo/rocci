@@ -448,7 +448,7 @@ on_delete_actions_command_delete_json! = |state, request| {
 }
 
 
-live! = |state, _request| {
+on_get_sse! = |state, _request| {
     rocci_value = {
         counterPage({ person: { name: "Roc" }, count: 0 })
     }
