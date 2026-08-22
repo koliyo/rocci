@@ -286,7 +286,10 @@ site chrome and named layouts. Custom site shells that hide a docs sidebar
 below `48rem` must replace it with a labeled `<details>` menu; rocci.dev’s
 `SiteShell` uses `class="mobile-menu"` and only copies the docs `NavList` on
 the documentation layout. The builtin `RocdownTheme` already ships that menu.
-Rocdown still compiles builtin `RocdownBase`
+Shared `NavList` sections use one expandable group shape even when a section
+contains only one page. Opening a sibling closes the previous group; the chrome
+script animates that handoff and native `<details name>` preserves exclusive
+behavior when JavaScript is unavailable. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
 component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
