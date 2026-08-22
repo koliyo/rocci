@@ -3,6 +3,14 @@ name: CI command
 on:
   issue_comment:
     types: [created]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group: ci-command-${{ github.event.issue.number || github.event.pull_request.number }}-${{ (startsWith(github.event.comment.body || github.event.review.body || '', '/cl-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CL-LOCAL') || startsWith(github.event.comment.body || github.event.review.body || '', '/Cl-local') || startsWith(github.event.comment.body || github.event.review.body || '', '/CL-local')) && 'local' || 'hosted' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -10,48 +18,134 @@ permissions:
 
 jobs:
   prepare:
-    name: Authorize trusted PR
+    name: Authorize and route CI command
     if: >
-      github.event.issue.pull_request &&
-      github.event.comment.user.login == 'koliyo' &&
-      (github.event.comment.body == '/ci' ||
-       startsWith(github.event.comment.body, '/ci '))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'pull_request_review_comment'
     runs-on: ubuntu-latest
     outputs:
       allowed: ${{ steps.inspect.outputs.allowed }}
+      lane: ${{ steps.inspect.outputs.lane }}
       pr_number: ${{ steps.inspect.outputs.pr_number }}
       pr_sha: ${{ steps.inspect.outputs.pr_sha }}
     steps:
-      - name: Validate PR author, repository, and immutable SHA
+      - name: Parse command and authorize
         id: inspect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          ISSUE_IS_PR: ${{ github.event.issue.pull_request != null }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          REVIEW_BODY: ${{ github.event.review.body }}
+          COMMENT_USER: ${{ github.event.comment.user.login }}
+          REVIEW_USER: ${{ github.event.review.user.login }}
+          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          REVIEW_ASSOCIATION: ${{ github.event.review.author_association }}
         run: |
           set -euo pipefail
-          pr="${{ github.event.issue.number }}"
           echo "allowed=false" >> "$GITHUB_OUTPUT"
+          echo "lane=" >> "$GITHUB_OUTPUT"
+          echo "pr_number=" >> "$GITHUB_OUTPUT"
+          echo "pr_sha=" >> "$GITHUB_OUTPUT"
+
+          body=""
+          pr=""
+          commenter=""
+          association=""
+
+          case "$EVENT_NAME" in
+            issue_comment)
+              if [[ "$ISSUE_IS_PR" != "true" ]]; then
+                echo "Ignoring non-PR issue comment."
+                exit 0
+              fi
+              body="$COMMENT_BODY"
+              pr="$ISSUE_NUMBER"
+              commenter="$COMMENT_USER"
+              association="$COMMENT_ASSOCIATION"
+              ;;
+            pull_request_review)
+              body="$REVIEW_BODY"
+              pr="$PR_NUMBER"
+              commenter="$REVIEW_USER"
+              association="$REVIEW_ASSOCIATION"
+              ;;
+            pull_request_review_comment)
+              body="$COMMENT_BODY"
+              pr="$PR_NUMBER"
+              commenter="$COMMENT_USER"
+              association="$COMMENT_ASSOCIATION"
+              ;;
+            *)
+              echo "Ignoring unsupported event."
+              exit 0
+              ;;
+          esac
+
+          trimmed="${body#"${body%%[![:space:]]*}"}"
+          token="${trimmed%%[[:space:]]*}"
+          token_lc="$(printf '%s' "$token" | tr '[:upper:]' '[:lower:]')"
+
+          lane=""
+          case "$token_lc" in
+            /ci) lane=hosted ;;
+            /cl-local) lane=local ;;
+            *)
+              echo "Ignoring comment: first token is not /ci or /cl-local."
+              exit 0
+              ;;
+          esac
+
+          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
+            echo "Ignoring: missing PR number."
+            exit 0
+          fi
+
+          echo "lane=${lane}" >> "$GITHUB_OUTPUT"
           echo "pr_number=${pr}" >> "$GITHUB_OUTPUT"
-          pr_json="$(gh api "repos/${{ github.repository }}/pulls/${pr}")"
+
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr}")"
           author="$(jq -r '.user.login // ""' <<< "$pr_json")"
           head_repo="$(jq -r '.head.repo.full_name // ""' <<< "$pr_json")"
           head_sha="$(jq -r '.head.sha // ""' <<< "$pr_json")"
 
-          if [[ "$author" != "koliyo" || "$head_repo" != "$GITHUB_REPOSITORY" || ! "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Ignoring /ci: self-hosted validation is restricted to same-repository PRs authored by koliyo."
+          if [[ ! "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Ignoring: PR head SHA is not a 40-character hex digest."
+            exit 0
+          fi
+
+          if [[ "$lane" == "hosted" ]]; then
+            case "$association" in
+              OWNER|MEMBER|COLLABORATOR) ;;
+              *)
+                echo "Ignoring /ci: commenter association is ${association}."
+                exit 0
+                ;;
+            esac
+          elif [[ "$commenter" != "koliyo" || "$author" != "koliyo" || "$head_repo" != "$GITHUB_REPOSITORY" ]]; then
+            gh pr comment "$pr" --body "Local CI (\`/cl-local\`) denied: commenter and PR author must both be \`koliyo\` on a same-repository head."
             exit 0
           fi
 
           echo "allowed=true" >> "$GITHUB_OUTPUT"
           echo "pr_sha=${head_sha}" >> "$GITHUB_OUTPUT"
-          gh pr comment "$pr" --body "Queued **CI** and **Knowledge** for trusted self-hosted validation at \`${head_sha}\`."
+
+          if [[ "$lane" == "hosted" ]]; then
+            gh pr comment "$pr" --body "Queued **hosted** CI and Knowledge at \`${head_sha}\`."
+          else
+            gh pr comment "$pr" --body "Queued **local** CI and Knowledge at \`${head_sha}\`."
+          fi
 
   ci:
-    name: Run trusted CI
+    name: Run CI
     needs: prepare
     if: needs.prepare.outputs.allowed == 'true'
     uses: ./.github/workflows/ci.yml
     with:
+      lane: ${{ needs.prepare.outputs.lane }}
       pr_number: ${{ needs.prepare.outputs.pr_number }}
       pr_sha: ${{ needs.prepare.outputs.pr_sha }}
     permissions:
@@ -59,11 +153,12 @@ jobs:
       pull-requests: read
 
   knowledge:
-    name: Run trusted Knowledge validation
+    name: Run Knowledge validation
     needs: prepare
     if: needs.prepare.outputs.allowed == 'true'
     uses: ./.github/workflows/knowledge.yml
     with:
+      lane: ${{ needs.prepare.outputs.lane }}
       pr_number: ${{ needs.prepare.outputs.pr_number }}
       pr_sha: ${{ needs.prepare.outputs.pr_sha }}
     permissions:
