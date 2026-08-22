@@ -41,7 +41,7 @@ jobs:
         with:
           key: release-${{ matrix.target }}
 
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
 
@@ -75,7 +75,7 @@ jobs:
     runs-on: [self-hosted, rocci-linux]
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           cache-local-path: /home/nils/.cache/uv
       - name: Wait for CI checks
@@ -89,7 +89,7 @@ jobs:
     runs-on: [self-hosted, rocci-linux]
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           cache-local-path: /home/nils/.cache/uv
 
