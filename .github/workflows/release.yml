@@ -36,6 +36,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
+        if: runner.os != 'Linux'
         with:
           key: release-${{ matrix.target }}
 
@@ -44,6 +45,8 @@ jobs:
           cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
 
       - name: Build release binaries
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Linux' && '/home/nils/.cache/rocci-target' || 'target' }}
         run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp -p rocci-okf
 
       - name: Determine version

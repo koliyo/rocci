@@ -28,10 +28,11 @@ jobs:
   package:
     name: Package site (linux/amd64)
     runs-on: [self-hosted, rocci-linux]
+    env:
+      CARGO_TARGET_DIR: /home/nils/.cache/rocci-target
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
         with:
           cache-local-path: /home/nils/.cache/uv
