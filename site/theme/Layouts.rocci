@@ -120,6 +120,7 @@ import PageOutline
         top: 4.5rem;
         height: calc(100vh - 5rem);
         overflow-y: auto;
+        overscroll-behavior-y: contain;
         scrollbar-width: thin;
         scrollbar-color: transparent transparent;
     }
