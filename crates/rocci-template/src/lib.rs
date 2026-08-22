@@ -29,8 +29,8 @@ pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};
 pub use lexer::{Cursor, is_ident_continue, is_ident_start, leading_comments_before, trim_span};
 pub use lower::{
     ComponentInfo, FixtureInfo, InitInfo, LiveInfo, LowerOptions, LoweredModule, LoweredTemplate,
-    RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, command_json_fn_name,
-    file_scope_id, lower_template_items, route_fn_name, template_items_have_action,
+    RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, file_scope_id,
+    lower_template_items, route_fn_name, template_items_have_action,
 };
 pub use parser::{
     ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,

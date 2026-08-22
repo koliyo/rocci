@@ -44,7 +44,7 @@ pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass 
             Item::Init(_) => (PageKind::Live, "@init"),
             Item::Live(_) => (PageKind::Live, "@live"),
             Item::View(_) => (PageKind::Live, "@view"),
-            Item::Patch(_) => (PageKind::Live, "@patch"),
+            Item::Fragment(_) => (PageKind::Live, "@method:fragment"),
             Item::Command(_) => (PageKind::Live, "@command"),
         };
         if kind > class.kind {
@@ -72,7 +72,7 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
             Item::Init(_) => return Err("@init"),
             Item::Live(_) => return Err("@live"),
             Item::View(_) => return Err("@view"),
-            Item::Patch(_) => return Err("@patch"),
+            Item::Fragment(_) => return Err("@method:fragment"),
             Item::Command(_) => return Err("@command"),
             Item::Use(_) => return Err("@use"),
             Item::Template(_) => return Err("Rocci template"),

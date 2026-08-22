@@ -23,7 +23,7 @@ pub struct StandaloneModule {
     pub roc: String,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
-    pub live: Option<LiveInfo>,
+    pub lives: Vec<LiveInfo>,
     pub routes: Vec<RouteInfo>,
     pub mapped: MappedModule,
     pub local_assets: Vec<String>,
@@ -170,7 +170,7 @@ pub fn plan_standalone_with_progress(
             roc: compiled.roc.clone(),
             state_type: compiled.state_type,
             init: compiled.init,
-            live: compiled.live,
+            lives: compiled.lives,
             routes: compiled.routes,
             mapped: MappedModule {
                 type_name: type_name.clone(),

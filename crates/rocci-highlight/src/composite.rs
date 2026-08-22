@@ -1,7 +1,7 @@
 use rocci_template::{
     AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl,
-    Document as RocciDocument, Element, FixtureDecl, InitDecl, LeadingComments, LiveDecl,
-    ModuleItem, PatchDecl, SourceFile, Span, TemplateItem, ViewDecl,
+    Document as RocciDocument, Element, FixtureDecl, FragmentDecl, InitDecl, LeadingComments,
+    LiveDecl, ModuleItem, RouteDecl, SourceFile, Span, TemplateItem, ViewDecl,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -165,10 +165,12 @@ pub fn collect_rocci_document(
             ModuleItem::Css(css) => collect_css(src, collector, css),
             ModuleItem::Context(context) => collect_context(src, collector, context),
             ModuleItem::Init(init) => collect_init(src, collector, init),
-            ModuleItem::Live(live) => collect_live(src, collector, live),
-            ModuleItem::View(view) => collect_view(src, collector, view),
-            ModuleItem::Patch(patch) => collect_patch(src, collector, patch),
-            ModuleItem::Command(command) => collect_command(src, collector, command),
+            ModuleItem::Route(route) => match route {
+                RouteDecl::Live(live) => collect_live(src, collector, live),
+                RouteDecl::View(view) => collect_view(src, collector, view),
+                RouteDecl::Fragment(fragment) => collect_fragment(src, collector, fragment),
+                RouteDecl::Command(command) => collect_command(src, collector, command),
+            },
         }
     }
 }
@@ -258,15 +260,15 @@ pub fn collect_view(src: &str, collector: &mut Vec<HighlightSpan>, view: &ViewDe
     ));
 }
 
-pub fn collect_patch(src: &str, collector: &mut Vec<HighlightSpan>, patch: &PatchDecl) {
-    collect_leading(collector, &patch.leading);
+pub fn collect_fragment(src: &str, collector: &mut Vec<HighlightSpan>, fragment: &FragmentDecl) {
+    collect_leading(collector, &fragment.leading);
     collect_mutation(
         src,
         collector,
-        patch.span.start,
-        patch.method.as_ref(),
-        patch.path_span,
-        "@patch",
+        fragment.span.start,
+        Some(&fragment.method),
+        fragment.path_span,
+        "@fragment",
     );
 }
 
@@ -276,7 +278,7 @@ pub fn collect_command(src: &str, collector: &mut Vec<HighlightSpan>, command: &
         src,
         collector,
         command.span.start,
-        command.method.as_ref(),
+        Some(&command.method),
         command.path_span,
         "@command",
     );

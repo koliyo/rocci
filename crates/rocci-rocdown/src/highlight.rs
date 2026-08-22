@@ -1,6 +1,6 @@
 use rocci_highlight::composite::{
     collect_command, collect_component, collect_context, collect_css, collect_embedded_regions,
-    collect_fixture, collect_init, collect_items, collect_keyword, collect_live, collect_patch,
+    collect_fixture, collect_fragment, collect_init, collect_items, collect_keyword, collect_live,
     collect_view, heading_marker,
 };
 use rocci_highlight::language::LanguageId;
@@ -86,7 +86,7 @@ pub fn collect_rocdown(
             Item::Init(init) => collect_init(src, collector, init),
             Item::Live(live) => collect_live(src, collector, live),
             Item::View(view) => collect_view(src, collector, view),
-            Item::Patch(patch) => collect_patch(src, collector, patch),
+            Item::Fragment(fragment) => collect_fragment(src, collector, fragment),
             Item::Command(command) => collect_command(src, collector, command),
             Item::Use(used) => {
                 collect_keyword(src, collector, used.span, used.path_span.start, "@use");
@@ -493,9 +493,13 @@ fn collect_rocdown_items(
             Item::View(view) => {
                 add_handler_regions(builder, parent_id, view.span, view.params, view.body)
             }
-            Item::Patch(patch) => {
-                add_handler_regions(builder, parent_id, patch.span, patch.params, patch.body)
-            }
+            Item::Fragment(fragment) => add_handler_regions(
+                builder,
+                parent_id,
+                fragment.span,
+                fragment.params,
+                fragment.body,
+            ),
             Item::Command(command) => add_handler_regions(
                 builder,
                 parent_id,

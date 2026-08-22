@@ -13,9 +13,13 @@ pub enum Reserved {
     Css,
     Context,
     Init,
+    Get,
+    Post,
+    Put,
     Live,
     View,
     Patch,
+    Delete,
     Command,
     On,
     Use,
@@ -36,9 +40,13 @@ impl Reserved {
             "css" => Self::Css,
             "context" => Self::Context,
             "init" => Self::Init,
+            "get" => Self::Get,
+            "post" => Self::Post,
+            "put" => Self::Put,
             "live" => Self::Live,
             "view" => Self::View,
             "patch" => Self::Patch,
+            "delete" => Self::Delete,
             "command" => Self::Command,
             "on" => Self::On,
             "use" => Self::Use,
@@ -60,9 +68,13 @@ impl Reserved {
             Self::Css => "css",
             Self::Context => "context",
             Self::Init => "init",
+            Self::Get => "get",
+            Self::Post => "post",
+            Self::Put => "put",
             Self::Live => "live",
             Self::View => "view",
             Self::Patch => "patch",
+            Self::Delete => "delete",
             Self::Command => "command",
             Self::On => "on",
             Self::Use => "use",
@@ -81,9 +93,13 @@ impl Reserved {
                 | Self::Css
                 | Self::Context
                 | Self::Init
+                | Self::Get
+                | Self::Post
+                | Self::Put
                 | Self::Live
                 | Self::View
                 | Self::Patch
+                | Self::Delete
                 | Self::Command
                 | Self::On
         )
@@ -698,6 +714,10 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             cur.peek() == Some(':')
         }
+        Reserved::Get | Reserved::Post | Reserved::Put | Reserved::Delete => {
+            cur.skip_trivia();
+            cur.peek() == Some(':')
+        }
         Reserved::View => {
             cur.skip_trivia();
             cur.peek() == Some('(')
@@ -716,7 +736,7 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
         }
         Reserved::Live => {
             cur.skip_trivia();
-            matches!(cur.peek(), Some('=') | Some('{'))
+            matches!(cur.peek(), Some('(') | Some('=') | Some('{'))
         }
         Reserved::Page | Reserved::Roc | Reserved::Css | Reserved::Init => {
             cur.skip_trivia();
