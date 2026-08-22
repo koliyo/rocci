@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 428" role="img">
+  <title>The Rocci stack: Roc and Datastar, templates, applications, optional Rocdown</title>
+  <desc>Four layers. Roc and Datastar sit under .rocci templates, then applications, then optional Rocdown documents. You can stop at any layer.</desc>
+  <style>
+      :root {
+        color-scheme: dark light;
+        --canvas: #282c34;
+        --surface: #21252b;
+        --ink: #abb2bf;
+        --muted: #9da5b4;
+        --line: #3e4451;
+        --accent: #61afef;
+        --accent-soft: #2c313c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --canvas: #fafafa;
+          --surface: #ffffff;
+          --ink: #383a42;
+          --muted: #696c77;
+          --line: #e5e5e6;
+          --accent: #4078f2;
+          --accent-soft: #eef2fb;
+        }
+      }
+      .bg { fill: var(--canvas); }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+      .bar { fill: var(--accent); }
+      .title { fill: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 15px; font-weight: 700; }
+      .sub { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 500; }
+      .mono { fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 650; }
+      .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: url(#arrowHead); }
+      #arrowHead path { fill: var(--accent); }
+    </style>
+  <defs>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.2 L 10 5 L 0 8.8 z" />
+    </marker>
+  </defs>
+  <rect class="bg" width="720" height="428" rx="8" />
+
+  <rect class="box" x="16" y="16" width="688" height="80" rx="6" />
+  <rect class="bar" x="16" y="16" width="6" height="80" rx="3" />
+  <text class="title" x="36" y="48">1. Roc + Datastar</text>
+  <text class="sub" x="36" y="70">Roc owns types, SQLite, and effects. Datastar sends intent and morphs HTML. Not a client framework.</text>
+
+  <path class="arrow" d="M360 96 L360 110" />
+
+  <rect class="box" x="16" y="112" width="688" height="80" rx="6" />
+  <rect class="bar" x="16" y="112" width="6" height="80" rx="3" />
+  <text class="title" x="36" y="144">2. .rocci templates</text>
+  <text class="sub" x="36" y="166">@component, @css, and handlers lower to ordinary Roc Html functions. Preview without a server.</text>
+
+  <path class="arrow" d="M360 192 L360 206" />
+
+  <rect class="box" x="16" y="208" width="688" height="80" rx="6" />
+  <rect class="bar" x="16" y="208" width="6" height="80" rx="3" />
+  <text class="title" x="36" y="240">3. Applications</text>
+  <text class="sub" x="36" y="262">One layer, two depths: standalone generated dispatch, or custom main.roc.</text>
+
+  <path class="arrow" d="M360 288 L360 302" />
+
+  <rect class="box" x="16" y="304" width="688" height="80" rx="6" />
+  <rect class="bar" x="16" y="304" width="6" height="80" rx="3" />
+  <text class="title" x="36" y="336">4. Rocdown (optional)</text>
+  <text class="sub" x="36" y="358">Markdown-first documents. Static pages stay in Rust; live pages reuse Applications. Experimental.</text>
+
+  <text class="sub" x="360" y="412" text-anchor="middle">You do not need a later layer. Stop when the current one is enough.</text>
+</svg>

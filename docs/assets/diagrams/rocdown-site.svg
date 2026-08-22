@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 268" role="img">
+  <title>A static Rocdown site is catalogued in Rust and wrapped in one compiled theme</title>
+  <desc>Discover .rocdown pages, resolve the catalog in Rust, render article HTML from Markdown and :kind painters, compile RocdownTheme.rocci once, plan hashed assets CSP and 404, then commit the output tree. Ordinary prose is not type-checked by Roc.</desc>
+  <style>
+      :root {
+        color-scheme: dark light;
+        --canvas: #282c34;
+        --surface: #21252b;
+        --ink: #abb2bf;
+        --muted: #9da5b4;
+        --line: #3e4451;
+        --accent: #61afef;
+        --accent-soft: #2c313c;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --canvas: #fafafa;
+          --surface: #ffffff;
+          --ink: #383a42;
+          --muted: #696c77;
+          --line: #e5e5e6;
+          --accent: #4078f2;
+          --accent-soft: #eef2fb;
+        }
+      }
+      .bg { fill: var(--canvas); }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+      .box-hi { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.25; }
+      .title { fill: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 700; }
+      .sub { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; font-weight: 500; }
+      .mono { fill: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; font-weight: 650; }
+      .head { fill: var(--muted); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 750; letter-spacing: 0.06em; }
+      .arrow { stroke: var(--accent); stroke-width: 1.5; fill: none; marker-end: url(#arrowHead); }
+      #arrowHead path { fill: var(--accent); }
+    </style>
+  <defs>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 1.2 L 10 5 L 0 8.8 z" />
+    </marker>
+  </defs>
+  <rect class="bg" width="720" height="268" rx="8" />
+
+  <text class="head" x="16" y="22">STATIC RODOWN BUILD  /  RUST CATALOG</text>
+
+  <rect class="box-hi" x="16" y="32" width="160" height="64" rx="6" />
+  <text class="mono" x="96" y="58" text-anchor="middle">.rocdown</text>
+  <text class="sub" x="96" y="78" text-anchor="middle">discover pages</text>
+
+  <path class="arrow" d="M176 64 L192 64" />
+
+  <rect class="box" x="194" y="32" width="160" height="64" rx="6" />
+  <text class="title" x="274" y="58" text-anchor="middle">catalog</text>
+  <text class="sub" x="274" y="78" text-anchor="middle">routes / links / nav</text>
+
+  <path class="arrow" d="M354 64 L370 64" />
+
+  <rect class="box" x="372" y="32" width="160" height="64" rx="6" />
+  <text class="title" x="452" y="58" text-anchor="middle">article HTML</text>
+  <text class="sub" x="452" y="78" text-anchor="middle">Markdown + :kind</text>
+
+  <path class="arrow" d="M532 64 L548 64" />
+
+  <rect class="box" x="550" y="32" width="154" height="64" rx="6" />
+  <text class="title" x="627" y="58" text-anchor="middle">theme once</text>
+  <text class="sub" x="627" y="78" text-anchor="middle">RocdownTheme.rocci</text>
+
+  <path class="arrow" d="M627 96 L627 124 L216 124 L216 150" />
+
+  <text class="head" x="16" y="142">PLAN AND COMMIT</text>
+
+  <rect class="box" x="92" y="152" width="248" height="64" rx="6" />
+  <text class="title" x="216" y="178" text-anchor="middle">plan artifacts</text>
+  <text class="sub" x="216" y="198" text-anchor="middle">hashed assets / CSP / 404</text>
+
+  <path class="arrow" d="M340 184 L372 184" />
+
+  <rect class="box-hi" x="374" y="152" width="248" height="64" rx="6" />
+  <text class="title" x="498" y="178" text-anchor="middle">output tree</text>
+  <text class="sub" x="498" y="198" text-anchor="middle">atomic commit</text>
+
+  <text class="sub" x="360" y="244" text-anchor="middle">Ordinary prose is not type-checked by Roc. docs/ in this repository is this static path.</text>
+</svg>

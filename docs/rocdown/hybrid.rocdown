@@ -22,6 +22,10 @@ A hybrid Rocdown site is two artifacts:
    on `[http].service`. Mutation handlers return Datastar patches. The CDN file
    is a snapshot; the service owns durable state.
 
+:figure[caption: "Live pages splice compiled islands into CDN HTML. Commands and streams run on a separate island service, not page GET."] {{
+    :img[src: "/assets/diagrams/islands.svg", alt: "A .rocdown file splits Markdown, @page, and article blocks into Rust article HTML with placeholders, and @render, templates, and @component through compile_islands into Roc that roc evaluates. After splice, static and hydrate pages have no Datastar; live pages add Datastar and an island service for commands and live streams. There is no @island syntax.", loading: "lazy", decoding: "async"]
+}}
+
 `docs/` in this repository is a `static` catalog. The public `site/` tree is
 hybrid: home is `live` (the SQLite counter island); mounted docs stay
 `static`. The worked example is `examples/rocdown/counter`.

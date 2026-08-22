@@ -10,6 +10,10 @@
 
 **Status:** current.
 
+:figure[caption: "Lowering is finished before roc type-checks the generated module."] {{
+    :img[src: "/assets/diagrams/compile.svg", alt: ".rocci parses, validates, and lowers to generated Roc with source-map segments before roc type-checks and compiles.", loading: "lazy", decoding: "async"]
+}}
+
 | Template | Generated |
 | --- | --- |
 | `<p>…</p>` | `Html.element("p", attrs, children)` |
