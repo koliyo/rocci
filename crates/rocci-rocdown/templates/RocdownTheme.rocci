@@ -112,6 +112,7 @@ import PageOutline
         display: inline-flex;
         min-height: 2.25rem;
         align-items: center;
+        gap: .4rem;
         padding: .35rem .72rem;
         border: 1px solid var(--line);
         border-radius: .55rem;
@@ -122,6 +123,7 @@ import PageOutline
         font-weight: 650;
         cursor: pointer;
     }
+    .goto-open svg { display: block; flex-shrink: 0; }
     .goto-open:hover { border-color: var(--line-strong); color: var(--ink); }
 
     .site-grid {
@@ -1006,7 +1008,13 @@ import PageOutline
                         }
                     </nav>
                     <div class="header-actions">
-                        <button type="button" class="goto-open" data-rocci-goto-open aria-label="Go to page">Go to</button>
+                        <button type="button" class="goto-open" data-rocci-goto-open aria-label="Go to page">
+                            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                <circle cx="6.5" cy="6.5" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+                                <path d="M9.75 9.75L13.25 13.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            </svg>
+                            Go to
+                        </button>
                         @if site.repository != "" {
                             <GithubLink href={site.repository} />
                         }
