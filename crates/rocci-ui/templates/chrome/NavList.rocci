@@ -8,7 +8,6 @@ import Html
     }
     .nav-section {
         margin: 0;
-        interpolate-size: allow-keywords;
     }
     .nav-section + .nav-section { margin-top: 0.28rem; }
     .nav-section summary {
@@ -25,57 +24,42 @@ import Html
         top: 50%;
         transform: translateY(-50%);
         font-weight: 500;
-        transition: transform 160ms ease;
     }
-    .nav-section[open] > summary::after {
-        content: "−";
-        transform: translateY(-50%) rotate(180deg);
-    }
-    .nav-section::details-content {
-        block-size: 0;
-        overflow: hidden;
+    .nav-section[open] > summary::after { content: "−"; }
+    .nav-section > .nav-fold {
+        display: grid;
+        grid-template-rows: 0fr;
         opacity: 0;
-        transition:
-            block-size 180ms ease,
-            opacity 140ms ease,
-            content-visibility 180ms allow-discrete;
+        overflow: hidden;
     }
-    .nav-section[open]::details-content {
-        block-size: auto;
+    .nav-section > .nav-fold > .nav-items {
+        min-height: 0;
+        overflow: hidden;
+    }
+    .nav-section[open] > .nav-fold {
+        grid-template-rows: 1fr;
         opacity: 1;
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .nav-section summary::after,
-        .nav-section::details-content {
-            transition: none;
-        }
     }
 }
 
 @component NavGroupInner = |{ group, route }| {
     <summary class="nav-category">
-        @if group.href != "" {
-            <a
-                class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
-                href={group.href}
-                aria-current={if group.href == route { "page" } else { "false" }}
-            >{group.title}</a>
-        } @else {
-            <span class="nav-link nav-category">{group.title}</span>
-        }
+        <span class="nav-link nav-category">{group.title}</span>
     </summary>
-    <div class="nav-items">
-        @for item in group.items {
-            <a
-                class={item.class_name}
-                href={item.href}
-                aria-current={if item.href == route { "page" } else { "false" }}
-            >{item.title}</a>
-        }
+    <div class="nav-fold">
+        <div class="nav-items">
+            @for item in group.items {
+                <a
+                    class={item.class_name}
+                    href={item.href}
+                    aria-current={if item.href == route { "page" } else { "false" }}
+                >{item.title}</a>
+            }
+        </div>
     </div>
 }
 
-@component NavList = |{ items, route, aria_label }| {
+@component NavList = |{ items, route, aria_label, group_name }| {
     <nav aria-label={aria_label}>
         <div class="nav-items">
             @for group in items {
@@ -86,11 +70,11 @@ import Html
                         aria-current={if group.href == route { "page" } else { "false" }}
                     >{group.title}</a>
                 } @else if group.open {
-                    <details class="nav-section" open>
+                    <details class="nav-section" name={group_name} open>
                         <NavGroupInner group={group} route={route} />
                     </details>
                 } @else {
-                    <details class="nav-section">
+                    <details class="nav-section" name={group_name}>
                         <NavGroupInner group={group} route={route} />
                     </details>
                 }
@@ -128,4 +112,5 @@ navListOpen = {
     ],
     route: "/tutorials/first-component/",
     aria_label: "Site navigation",
+    group_name: "fixture-sections",
 }

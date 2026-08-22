@@ -5,6 +5,88 @@
     }
   };
 
+  const setupNavSections = () => {
+    if (window.__rocciNavSections) {
+      return;
+    }
+    let transition = Promise.resolve();
+    const reducedMotion = () =>
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const finishFold = (section, opening) => {
+      const fold = section.querySelector(":scope > .nav-fold");
+      if (!fold || reducedMotion() || typeof fold.animate !== "function") {
+        section.open = opening;
+        return Promise.resolve();
+      }
+      if (opening) {
+        section.open = true;
+      }
+      const height = fold.scrollHeight;
+      const frames = opening
+        ? [
+            { height: "0px", opacity: 0 },
+            { height: height + "px", opacity: 1 },
+          ]
+        : [
+            { height: height + "px", opacity: 1 },
+            { height: "0px", opacity: 0 },
+          ];
+      const animation = fold.animate(frames, {
+        duration: 180,
+        easing: "ease",
+        fill: "both",
+      });
+      return animation.finished
+        .catch(function () {})
+        .then(function () {
+          section.open = opening;
+          animation.cancel();
+        });
+    };
+
+    document.addEventListener(
+      "click",
+      function (event) {
+        const target = event.target && event.target.closest
+          ? event.target.closest("details.nav-section > summary")
+          : null;
+        if (!target || event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        const section = target.parentElement;
+        transition = transition.then(function () {
+          if (section.open) {
+            return finishFold(section, false);
+          }
+          const name = section.getAttribute("name");
+          const sections = document.querySelectorAll("details.nav-section");
+          let closeCurrent = Promise.resolve();
+          for (let i = 0; i < sections.length; i++) {
+            const current = sections[i];
+            if (
+              current !== section &&
+              current.open &&
+              current.getAttribute("name") === name
+            ) {
+              closeCurrent = closeCurrent.then(function () {
+                return finishFold(current, false);
+              });
+            }
+          }
+          return closeCurrent.then(function () {
+            return finishFold(section, true);
+          });
+        });
+      },
+      true
+    );
+    window.__rocciNavSections = { ready: true };
+  };
+
+  setupNavSections();
+
   if (window.__rocciGoto) {
     aliasPreview(window.__rocciGoto);
     return;

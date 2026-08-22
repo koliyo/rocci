@@ -1416,37 +1416,15 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
     let open = current_id.is_some_and(|id| catalog::section_contains(section, id));
     match section.items.as_slice() {
         [] => None,
-        [only] => Some(NavGroupView {
+        items => Some(NavGroupView {
             title: section.label.clone(),
-            href: only.route.clone(),
-            open: false,
-            items: Vec::new(),
+            href: String::new(),
+            open,
+            items: items
+                .iter()
+                .map(|item| nav_leaf(item, current_id))
+                .collect(),
         }),
-        items => {
-            let (href, rest) = match items.first() {
-                Some(first) if first.title == section.label => (
-                    first.route.clone(),
-                    items
-                        .iter()
-                        .skip(1)
-                        .map(|item| nav_leaf(item, current_id))
-                        .collect(),
-                ),
-                _ => (
-                    String::new(),
-                    items
-                        .iter()
-                        .map(|item| nav_leaf(item, current_id))
-                        .collect(),
-                ),
-            };
-            Some(NavGroupView {
-                title: section.label.clone(),
-                href,
-                open,
-                items: rest,
-            })
-        }
     }
 }
 
@@ -2177,9 +2155,10 @@ mod tests {
         assert_eq!(sidebar.len(), 2);
         assert!(!sidebar[0].open);
         assert!(sidebar[1].open);
-        assert_eq!(sidebar[1].href, "/tutorials/");
-        assert_eq!(sidebar[1].items[0].title, "Build your first component");
-        assert!(sidebar[1].items[0].class_name.contains("is-current"));
+        assert!(sidebar[1].href.is_empty());
+        assert_eq!(sidebar[1].items[0].title, "Tutorials");
+        assert_eq!(sidebar[1].items[1].title, "Build your first component");
+        assert!(sidebar[1].items[1].class_name.contains("is-current"));
     }
 
     #[test]
@@ -2222,14 +2201,23 @@ mod tests {
         assert_eq!(sidebar[0].title, "Tutorials");
         assert!(sidebar[0].open);
         assert_eq!(sidebar[1].title, "Status");
-        assert!(sidebar[1].items.is_empty());
+        assert_eq!(sidebar[1].items.len(), 1);
+        assert_eq!(sidebar[1].items[0].title, "Status");
     }
 
     #[test]
-    fn single_page_lane_counts_as_current_sidebar() {
-        let sidebar = vec![NavGroupView::new("FAQ", "/faq/", false, vec![])];
+    fn single_page_lane_is_an_expandable_current_group() {
+        let navigation = vec![nav_section(
+            "FAQ",
+            vec![nav_item("faq/index", "FAQ", "/faq/")],
+            vec![],
+        )];
+        let (_, sidebar) = lanes_and_sidebar(&navigation, Some("faq/index"));
+        assert_eq!(sidebar.len(), 1);
+        assert!(sidebar[0].open);
+        assert!(sidebar[0].href.is_empty());
+        assert_eq!(sidebar[0].items.len(), 1);
         assert!(sidebar_has_current(&sidebar, "/faq/"));
-        assert!(!sidebar_has_current(&sidebar, "/project/"));
     }
 
     fn write_site(root: &Path) {

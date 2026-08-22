@@ -22,7 +22,7 @@ import PageOutline
     <div class="layout-navigated">
         <aside class="sidebar">
             <p class="nav-label">In this section</p>
-            <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
+            <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" group_name="desktop-site-sections" />
         </aside>
         <main class="content-column" id="main-content">
             <Breadcrumbs.breadcrumbs breadcrumbs={view.breadcrumbs} route={view.route} />

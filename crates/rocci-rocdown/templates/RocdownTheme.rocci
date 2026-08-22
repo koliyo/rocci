@@ -896,7 +896,7 @@ import PageOutline
                                     }
                                 }
                             </nav>
-                            <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
+                            <NavList.navList items={sidebar} route={route} aria_label="Site navigation" group_name="desktop-document-sections" />
                             <PageOutline.pageOutline outline={outline} />
                         </div>
                     </details>
@@ -917,7 +917,7 @@ import PageOutline
                     @if layout != "home" {
                         @if layout != "not-found" {
                             <aside class="sidebar">
-                                <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
+                                <NavList.navList items={sidebar} route={route} aria_label="Site navigation" group_name="mobile-document-sections" />
                             </aside>
                         }
                     }
