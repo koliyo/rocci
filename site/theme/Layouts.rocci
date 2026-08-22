@@ -1,12 +1,23 @@
 import Html
 import Breadcrumbs
+import Components
 import NavList
 import PageOutline
 
 @component ArticleFooter = |{ view }| {
-    @if view.site.footer != "" {
-        <footer class="article-footer">{view.site.footer}</footer>
-    }
+    <footer class="article-footer">
+        @if view.site.footer != "" {
+            <p class="article-footer-text">{view.site.footer}</p>
+        }
+        @if view.site.repository != "" {
+            <p class="article-footer-links">
+                <a class="footer-github-link" href={view.site.repository}>
+                    <Components.GithubIcon />
+                    <span>GitHub</span>
+                </a>
+            </p>
+        }
+    </footer>
 }
 
 @component Home = |{ view }, content| {
@@ -280,6 +291,21 @@ import PageOutline
         margin-top: 2.5rem;
         font-size: 0.875rem;
         color: var(--muted);
+    }
+    .article-footer-text { margin: 0; }
+    .article-footer-links { margin: .65rem 0 0; }
+    .article-footer .footer-github-link {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        color: var(--muted);
+        font-weight: 650;
+        text-decoration: none;
+    }
+    .article-footer .footer-github-link:hover { color: var(--ink); }
+    .article-footer .footer-github-link svg {
+        width: 1rem;
+        height: 1rem;
     }
     @media (min-width: 48.01rem) {
         :scope.layout-navigated {
