@@ -120,6 +120,10 @@
         font-size: .86rem;
         line-height: 1.65;
     }
+    .article .rd-source-code .rd-source-line:target {
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+        box-shadow: inset .12rem 0 0 var(--accent);
+    }
     .article .rd-code-block .tok-keyword { color: var(--syntax-keyword); font-weight: 600; }
     .article .rd-code-block .tok-string { color: var(--syntax-string); }
     .article .rd-code-block .tok-comment { color: var(--syntax-comment); font-style: italic; }

@@ -23,8 +23,18 @@ fn extracts_attached_docs_and_skips_blank_separated() {
     assert_eq!(decls.len(), 2);
     assert_eq!(decls[0].heading, "@component Card");
     assert_eq!(decls[0].body, "Shared count card.\nMorphs `#counter`.");
+    assert_eq!(decls[0].line, 4);
     assert_eq!(decls[1].heading, "@get:view(\"/\")");
     assert_eq!(decls[1].body, "GET `/`.");
+    assert_eq!(decls[1].line, 14);
+}
+
+#[test]
+fn declaration_line_targets_decl_not_doc_comment() {
+    let src = "## Card used by the listing fixture.\n@component Card = |{ title }| {\n    <div>{title}</div>\n}\n";
+    let decls = documented_declarations(src);
+    assert_eq!(decls.len(), 1);
+    assert_eq!(decls[0].line, 2);
 }
 
 #[test]

@@ -1679,6 +1679,18 @@ fn render_docs(docs: &DocsNode) -> String {
                 .collect::<Vec<_>>(),
         );
     }
+    if docs.kind == "include"
+        && let Some(child) = docs.children.first()
+    {
+        if let ArticleNode::Markdown(MdNode::CodeBlock { info, literal, .. }) = child {
+            let line_start = docs
+                .origin
+                .as_ref()
+                .and_then(|origin| origin.line_start)
+                .unwrap_or(1);
+            return crate::article::render_code_block_with_lines(info, literal, Some(line_start));
+        }
+    }
     docs.children.iter().map(render_node).collect::<String>()
 }
 
@@ -2513,6 +2525,90 @@ mod tests {
             }),
             "{diagnostics:?}"
         );
+    }
+
+    #[test]
+    fn include_source_code_has_line_anchors() {
+        let root =
+            std::env::temp_dir().join(format!("rocdown-docs-line-anchor-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join("snippet.rocci"),
+            "@component Card = || { <p/> }\n",
+        )
+        .unwrap();
+        let src = ":include[path: \"snippet.rocci\"]\n";
+        let compiled = compile(
+            SourceFile::new("guide.rocdown", src),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        let mut diagnostics = Vec::new();
+        let docs = load_page_docs(
+            SourceFile::new(root.join("guide.rocdown").to_str().unwrap(), src),
+            &compiled.document,
+            "guide.rocdown",
+            IncludeOptions {
+                root: &root,
+                snippet_roots: &[],
+            },
+            &mut diagnostics,
+        );
+        assert!(
+            !diagnostics.iter().any(CatalogDiagnostic::is_error),
+            "{diagnostics:?}"
+        );
+        let html = render_article(&docs.article);
+        assert!(html.contains("rd-source-code"), "{html}");
+        assert!(html.contains("id=\"L1\""), "{html}");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn declaration_heading_links_to_included_source_line() {
+        let root =
+            std::env::temp_dir().join(format!("rocdown-docs-decl-link-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join("snippet.rocci"),
+            "@component Card = || { <p/> }\n",
+        )
+        .unwrap();
+        let src = "@page { layout: \"docs\" }\n\n## Declarations\n\n### `@component Card` · [#L1](#L1)\n\n:include[path: \"snippet.rocci\"]\n";
+        let compiled = compile(
+            SourceFile::new("guide.rocdown", src),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        let mut diagnostics = Vec::new();
+        let docs = load_page_docs(
+            SourceFile::new(root.join("guide.rocdown").to_str().unwrap(), src),
+            &compiled.document,
+            "guide.rocdown",
+            IncludeOptions {
+                root: &root,
+                snippet_roots: &[],
+            },
+            &mut diagnostics,
+        );
+        assert!(
+            !diagnostics.iter().any(CatalogDiagnostic::is_error),
+            "{diagnostics:?}"
+        );
+        let html = render_article(&docs.article);
+        assert!(html.contains("href=\"#L1\""), "{html}");
+        assert!(
+            html.contains("id=\"component-card\"") || html.contains("@component Card"),
+            "{html}"
+        );
+        assert!(html.contains("id=\"L1\""), "{html}");
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
