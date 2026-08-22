@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/hybrid-sites/", "/docs/guides/hybrid-sites/"],
-
     meta: {
         title: "Publish a hybrid Rocdown site",
         description: "Build CDN-static Rocdown HTML with live Rocci islands, then deploy the island HTTP service beside it.",
@@ -9,6 +7,10 @@
 }
 
 # Publish a hybrid Rocdown site
+
+Hybrid islands are **experimental**. Static Markdown pages are the stable
+Rocdown path. Live pages reuse the application layer; the reserved `@island`
+syntax is not implemented.
 
 A hybrid Rocdown site is two artifacts:
 
@@ -24,7 +26,7 @@ A hybrid Rocdown site is two artifacts:
 hybrid: home is `live` (the SQLite counter island); mounted docs stay
 `static`. The worked example is `examples/rocdown/counter`.
 
-See [Rocdown site configuration](/rocdown/site-config/) for the field
+See [Rocdown site configuration](/docs/rocdown/sites/) for the field
 reference (`service_origin`, `--cdn-only`, `islands.json`).
 
 ## Page kinds

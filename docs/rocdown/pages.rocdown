@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/guides/rocdown-pages/", "/docs/guides/rocdown-pages/"],
-
     meta: {
         title: "Write Rocdown pages",
         description: "Author Markdown-first pages with explicit metadata, Roc values, components, rendered regions, and links.",
@@ -73,10 +71,10 @@ a Markdown paragraph is disabled by default.
 `rocdown build` accepts `static` pages (Markdown, `@page`, and article blocks),
 splices pure Rocci on `hydrate` pages, and emits Datastar plus an island
 service for `live` pages. `@use` stays a site-build error. See
-[Publish a hybrid Rocdown site](/rocdown/hybrid/).
+[Publish a hybrid Rocdown site](/docs/rocdown/hybrid/).
 
 For asides, steps, includes, and tabs, see
-[Write documentation components](/rocdown/article-blocks/).
+[Write documentation components](/docs/rocdown/blocks/).
 
 ## Link pages
 
@@ -92,7 +90,7 @@ This plan follows [the product-boundary decision](knowledge/decisions/consolidat
 For a Rocdown site, stable absolute routes are the clearest current form:
 
 ```markdown
-Read the [Rocdown reference](/rocdown/language/).
+Read the [Rocdown reference](/docs/rocdown/language/).
 ```
 
 ## Preview and publish

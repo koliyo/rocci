@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/rocdown/", "/docs/reference/rocdown/"],
-
     meta: {
         title: "Rocdown language reference",
         description: "Look up Rocdown page metadata, declarations, Markdown behavior, links, themes, routes, and generated values.",
@@ -82,7 +80,7 @@ as `note` or `tabs` are registry names, not reserved `@` names. Line-start
 
 ````rocdown
 :note[title: "Deprecation"] {{
-    This API will be removed in 0.4. See [Routing](/rocdown/site-config/).
+    This API will be removed in 0.4. See [Routing](/docs/rocdown/sites/).
 }}
 
 :tabs.begin[group: "install", kind: "tool"]
@@ -122,9 +120,9 @@ kinds belong in the compiled theme.
 | `example` | Display sample with optional `test` metadata |
 | `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |
 
-See [Write documentation components](/rocdown/article-blocks/) for a working
+See [Write documentation components](/docs/rocdown/blocks/) for a working
 page. Includes, snippet roots, and `rocdown test` are documented in
-[Rocdown site](/rocdown/site-config/).
+[Rocdown site](/docs/rocdown/sites/).
 
 ## Page metadata
 
@@ -237,7 +235,7 @@ on the Markdown-first path; they do not make a page hydrate or live.
 `:note` (or other article-block) body are errors. `docs/` is a `static` catalog.
 `rocdown view DIR` serves the CDN tree and, for `live` pages, proxies the island
 service on the same local origin. `rocdown serve-islands` runs the mutation
-service by itself. See [Rocdown site configuration](/rocdown/site-config/)
+service by itself. See [Rocdown site configuration](/docs/rocdown/sites/)
 for the two-artifact publish, `service_origin`, and `--cdn-only`. Draft pages
 are excluded from production builds.
 
@@ -246,4 +244,4 @@ The developer tree spec for owned article and module AST nodes is
 generate the scanner or replace this language reference. Markdown remains
 `MdNode` until a later tree change. Production names, inspect tags, and sidecar
 classification are listed in the
-[Rocdown tree appendix](/rocdown/tree/).
+[Rocdown tree appendix](/docs/reference/contributor/rocdown-tree/).

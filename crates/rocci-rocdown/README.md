@@ -303,7 +303,7 @@ painter fail `rocdown build` / `check` unless `[blocks] debug = true`; preview
 paints a `data-rocci-block-debug` placeholder. A pack component that does not
 match a builtin painter is a custom static kind (`Callout` → `:callout`);
 helpers must not live in the pack. See
-[Rocdown site configuration](../../site/rocdown/site-config.rocdown). Static
+[Rocdown site configuration](../../docs/rocdown/sites.rocdown). Static
 apply data is a tagged union of
 per-kind props plus fragment paths; widget bodies stay in HTML files and are
 passed as the extra content argument. There is no flattened optional-field bag
@@ -360,7 +360,7 @@ blocks are generated `MdNode` from [`Rocdown.Markdown.ungram`](Rocdown.Markdown.
 when the committed generated file is stale or a generated production has no
 inspect mapping. Inspect tags live in [`Rocdown.AST.toml`](Rocdown.AST.toml)
 and the public
-[`site/rocdown/tree.rocdown`](../../site/rocdown/tree.rocdown)
+[`docs/reference/contributor/rocdown-tree.rocdown`](../../docs/reference/contributor/rocdown-tree.rocdown)
 appendix.
 This README remains the language contract; the ungram is the developer tree spec,
 not a substitute for the syntax above.

@@ -38,7 +38,7 @@ not a client application framework and not a Rocci language feature.
 - No runtime component registry and no magic `children` field.
 - No markup inside arbitrary Roc expressions; use `@if` / `@for` / `@match`.
 - No dynamic tag names or prop spreading.
-- Rocdown is an optional [document layer](/rocdown/) on the same stack, more experimental than templates.
+- Rocdown is an optional [document layer](/docs/rocdown/) on the same stack, more experimental than templates.
 
 Continue with [choose your path](/docs/start/choose-your-path/) or jump to
 [Rocci in five minutes](/docs/start/five-minutes/) if the toolchain is already

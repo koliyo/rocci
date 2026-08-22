@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/rocdown-site/", "/docs/reference/rocdown-site/"],
-
     meta: {
         title: "Rocdown site configuration",
         description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocdown.toml.",
@@ -289,7 +287,7 @@ application overview pages; generated source pages remain linked details.
 Each page also gets a right-hand “On this page” outline from heading levels 2
 and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
 with `rocdown view` uses the standalone left navigator instead; see
-[Rocdown](/rocdown/language/).
+[Rocdown](/docs/rocdown/language/).
 
 ## Layout and site-surface ownership
 
@@ -355,7 +353,7 @@ cargo run -p rocci-rocdown-cli -- build docs
 `docs/` is a `static` catalog. Hybrid fixtures such as
 `examples/rocdown/hybrid` and `examples/rocdown/counter` emit CDN HTML plus
 `islands.json`; pass `--cdn-only` only when the publish has no island service.
-The SQLite counter runbook is [Publish a hybrid Rocdown site](/rocdown/hybrid/).
+The SQLite counter runbook is [Publish a hybrid Rocdown site](/docs/rocdown/hybrid/).
 
 Preview with watch and live reload:
 

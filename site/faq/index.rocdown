@@ -20,11 +20,11 @@ No. Rocci renders semantic HTML from Roc. Interactive applications can use Datas
 
 ## When should I use `.rocci` or `.rocdown`?
 
-Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/rocdown/pages/).
+Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/docs/rocdown/pages/).
 
 ## Can Rocdown publish interactive pages?
 
-Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/rocdown/hybrid/).
+Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/docs/rocdown/hybrid/).
 
 ## Can I build desktop applications?
 

@@ -116,6 +116,7 @@ items = [
     "docs/reference/compatibility",
     "docs/reference/diagnostics",
     "docs/reference/contributor/rocci-tree",
+    "docs/reference/contributor/rocdown-tree",
     "docs/reference/contributor/checklist",
     "docs/reference/contributor/first-use",
 ]
@@ -136,6 +137,18 @@ items = [
     "docs/status",
 ]
 
+[[nav.groups]]
+label = "Rocdown"
+items = [
+    "docs/rocdown/index",
+    "docs/rocdown/pages",
+    "docs/rocdown/blocks",
+    "docs/rocdown/sites",
+    "docs/rocdown/hybrid",
+    "docs/rocdown/language",
+    "docs/rocdown/cli",
+]
+
 [[nav]]
 label = "Examples"
 directory = "examples"
@@ -148,20 +161,6 @@ items = [
     "examples/datastar/index",
     "examples/blocks/index",
     "examples/snake/index",
-]
-
-[[nav]]
-label = "Rocdown"
-directory = "rocdown"
-items = [
-    "rocdown/index",
-    "rocdown/pages",
-    "rocdown/article-blocks",
-    "rocdown/hybrid",
-    "rocdown/language",
-    "rocdown/site-config",
-    "rocdown/cli",
-    "rocdown/tree",
 ]
 
 [[nav]]
