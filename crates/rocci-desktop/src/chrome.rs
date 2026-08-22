@@ -189,8 +189,9 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("host.classList.add(\"unified\")"));
         assert!(PREVIEW_NAV_CSS.contains(":host(.unified)"));
         assert!(PREVIEW_NAV_CSS.contains("padding-left: 78px"));
-        assert!(PREVIEW_NAV_CSS.contains("-webkit-app-region: drag"));
-        assert!(PREVIEW_NAV_CSS.contains("-webkit-app-region: no-drag"));
+        assert!(PREVIEW_NAV_JS.contains("send(\"drag\")"));
+        assert!(PREVIEW_NAV_JS.contains("send(\"zoom\")"));
+        assert!(PREVIEW_NAV_JS.contains("chromeInteractive"));
         assert!(script.contains("const __ROCCI_UNIFIED_TITLEBAR__ = "));
         if cfg!(target_os = "macos") {
             assert!(script.contains("const __ROCCI_UNIFIED_TITLEBAR__ = true"));

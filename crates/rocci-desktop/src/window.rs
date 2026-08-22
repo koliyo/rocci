@@ -10,6 +10,8 @@ use wry::{PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
 const UNIFIED_CHROME_HEIGHT: f64 = 52.0;
 #[cfg(target_os = "macos")]
 const TRAFFIC_LIGHT_INSET_X: f64 = 16.0;
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHT_INSET_Y: f64 = UNIFIED_CHROME_HEIGHT - 14.0;
 
 #[derive(Default)]
 pub struct WebViewHooks {
@@ -62,7 +64,10 @@ impl LiveWindow {
                 .with_titlebar_transparent(true)
                 .with_title_hidden(true)
                 .with_fullsize_content_view(true)
-                .with_traffic_light_inset(LogicalPosition::new(TRAFFIC_LIGHT_INSET_X, 0.0));
+                .with_traffic_light_inset(LogicalPosition::new(
+                    TRAFFIC_LIGHT_INSET_X,
+                    TRAFFIC_LIGHT_INSET_Y,
+                ));
         }
         #[cfg(not(target_os = "macos"))]
         let _ = unified_titlebar;
@@ -96,7 +101,7 @@ impl LiveWindow {
                 use wry::WebViewBuilderExtDarwin;
                 webview_builder.with_traffic_light_inset(wry::dpi::LogicalPosition::new(
                     TRAFFIC_LIGHT_INSET_X,
-                    0.0,
+                    TRAFFIC_LIGHT_INSET_Y,
                 ))
             } else {
                 webview_builder
@@ -124,6 +129,35 @@ impl LiveWindow {
             align_traffic_lights(&self.window);
         }
     }
+
+    pub fn realize_unified_chrome(&self) {
+        self.sync_unified_chrome();
+        #[cfg(target_os = "macos")]
+        if self.unified_titlebar {
+            let size = self.window.inner_size();
+            self.window.set_inner_size(size);
+            self.window.request_redraw();
+            self.sync_unified_chrome();
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub fn begin_toolbar_drag() {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::NSApplication;
+
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let app = NSApplication::sharedApplication(mtm);
+    let Some(window) = app.keyWindow() else {
+        return;
+    };
+    let Some(event) = app.currentEvent() else {
+        return;
+    };
+    window.performWindowDragWithEvent(&event);
 }
 
 fn apply_geometry(

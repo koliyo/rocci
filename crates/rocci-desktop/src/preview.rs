@@ -154,6 +154,15 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json)));
                     }
+                    Some(IpcMessage::Drag) => {
+                        #[cfg(target_os = "macos")]
+                        crate::window::begin_toolbar_drag();
+                        #[cfg(not(target_os = "macos"))]
+                        let _ = ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Drag));
+                    }
+                    Some(IpcMessage::Zoom) => {
+                        let _ = ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Zoom));
+                    }
                     None => {
                         if let Some(handler) = &host_ipc {
                             handler(request.body(), host_sink.clone());
@@ -201,7 +210,11 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         *control_flow = ControlFlow::Wait;
         let _keep = &menu;
         match event {
-            Event::NewEvents(StartCause::Init) => crate::icon::apply_host_icon(),
+            Event::NewEvents(StartCause::Init) => {
+                crate::icon::apply_host_icon();
+                live.realize_unified_chrome();
+            }
+            Event::RedrawEventsCleared => live.sync_unified_chrome(),
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
@@ -299,9 +312,18 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     crate::state::save_inspector_state(&state_key, state);
                 }
             }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Drag)) => {
+                if let Err(error) = live.window.drag_window() {
+                    tracing::error!(%error, "failed to drag preview window");
+                }
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Zoom)) => {
+                live.window.set_maximized(!live.window.is_maximized());
+            }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);
                 sync_chrome(&live, &history, &title);
+                live.sync_unified_chrome();
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Title(next))) => {
                 live.window.set_title(&next);

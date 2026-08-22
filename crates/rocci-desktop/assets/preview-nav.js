@@ -634,6 +634,25 @@
     closeMore: closeMenu,
     syncLiveReload: syncLiveReloadButton,
   };
+  const chromeInteractive = (target) =>
+    target &&
+    target.closest &&
+    target.closest("button, .more-menu, a, input, textarea, select, [role=\"menu\"]");
+  const nav = shadow.querySelector("nav");
+  if (UNIFIED && nav) {
+    nav.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 || chromeInteractive(event.target)) {
+        return;
+      }
+      send("drag");
+    });
+    nav.addEventListener("dblclick", (event) => {
+      if (chromeInteractive(event.target)) {
+        return;
+      }
+      send("zoom");
+    });
+  }
   const mount = () => {
     if (!host.isConnected && document.documentElement) {
       document.documentElement.prepend(host);

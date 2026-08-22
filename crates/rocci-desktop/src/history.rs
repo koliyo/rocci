@@ -14,6 +14,8 @@ pub enum IpcMessage {
     LiveReload(bool),
     Devtools(bool),
     InspectorPrefs(String),
+    Drag,
+    Zoom,
 }
 
 impl NavCommand {
@@ -45,6 +47,11 @@ impl IpcMessage {
         }
         if let Some(json) = message.strip_prefix("inspector-prefs:") {
             return Some(Self::InspectorPrefs(json.to_string()));
+        }
+        match message {
+            "drag" => return Some(Self::Drag),
+            "zoom" => return Some(Self::Zoom),
+            _ => {}
         }
         NavCommand::parse(message).map(Self::Nav)
     }
@@ -238,6 +245,8 @@ mod tests {
             IpcMessage::parse("home"),
             Some(IpcMessage::Nav(NavCommand::Home))
         );
+        assert_eq!(IpcMessage::parse("drag"), Some(IpcMessage::Drag));
+        assert_eq!(IpcMessage::parse("zoom"), Some(IpcMessage::Zoom));
     }
 
     #[test]

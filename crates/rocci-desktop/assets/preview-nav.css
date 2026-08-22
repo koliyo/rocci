@@ -45,12 +45,12 @@ nav {
 :host(.unified) nav {
   height: 100%;
   padding-left: 78px;
-  -webkit-app-region: drag;
+  cursor: default;
 }
 
 :host(.unified) button,
 :host(.unified) .more-menu {
-  -webkit-app-region: no-drag;
+  cursor: pointer;
 }
 
 .controls,
