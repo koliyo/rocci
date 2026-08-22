@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Handler matrix",
-        description: "Every accepted verb-first method and handler role",
+        description: "Every accepted verb-first method and handler role, with visible results and a shared live log",
     },
 }
 
@@ -12,10 +12,16 @@ See [handlers](/docs/applications/handlers/) and the
 [runtime](/docs/reference/runtime/) contract. Exhaustive handler matrix, not a
 beginner walkthrough.
 
-One standalone app that lists every accepted handler construct. Fragment
-handlers return uniquely identified HTML fragments. Commands return no
-representation. `@get:live("/events/matrix")` owns `#live-tick` so the stream
-never races a one-shot fragment.
+One standalone app that lists every accepted handler construct. Each fragment
+verb morphs its own result well in the acting tab only (`#frag-get` through
+`#frag-delete`). Commands still return no representation: Datastar gets empty
+SSE, `curl` gets 204. `@get:live("/events/matrix")` owns `#live-tick` and
+`#event-log` so the stream never races a one-shot fragment.
+
+Click a fragment: that well fills immediately, and the shared SQLite log
+updates in every tab. Click a command: the command card stays empty on
+purpose; only the log moves. GET fragment is `data-on:click=@get(...)`, not a
+navigation link.
 
 This catalog row is **docs-only**. Do not expose it as a public origin; use
 local `curl` against `rocci run`.
@@ -27,6 +33,9 @@ See [source](/examples/handler-matrix/source/).
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci
 ```
+
+Open the printed URL in two windows. Click a fragment in one; the other keeps
+its wells and both logs update. Click a command; only the logs update.
 
 ## Smoke
 
