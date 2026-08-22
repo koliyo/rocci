@@ -1540,6 +1540,37 @@ fn multiple_local_streams_emit_unique_functions_without_automatic_injection() {
 }
 
 #[test]
+fn route_headers_and_injected_live_paths_have_precise_source_segments() {
+    let src = r#"
+@get:live("/events/main") { Html.text("live") }
+
+@component Page = |{}| {
+    <html><body><p>hi</p></body></html>
+}
+"#;
+    let out = compile_ok(src);
+    let route = out
+        .segments
+        .iter()
+        .find(|segment| {
+            segment.origin == OriginKind::RouteHeader
+                && segment.generated.of(&out.roc) == "on_get_events_main!"
+        })
+        .expect("generated live function segment");
+    assert_eq!(route.source.of(src), "@get:live(\"/events/main\")");
+
+    let injected = out
+        .segments
+        .iter()
+        .find(|segment| {
+            segment.origin == OriginKind::Scaffolding
+                && segment.generated.of(&out.roc) == "\"/events/main\""
+        })
+        .expect("injected live path segment");
+    assert_eq!(injected.source.of(src), "\"/events/main\"");
+}
+
+#[test]
 fn live_does_not_merge_existing_data_init() {
     let src = r#"
 @get:live("/sse") {

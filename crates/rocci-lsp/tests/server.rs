@@ -105,7 +105,7 @@ fn kitchen_sink_has_no_error_diagnostics_and_component_symbols() {
     assert!(names.contains(&"GET /"));
     assert!(names.contains(&"PATCH /actions/patch"));
     assert!(names.contains(&"POST /actions/increment"));
-    assert!(names.contains(&"live!"));
+    assert!(names.contains(&"GET /sse"));
 }
 
 #[test]
@@ -599,7 +599,7 @@ fn malformed_and_unclosed_syntax_produces_valid_regions() {
         INCOMPLETE_TAG,
         "@component Foo = |{}| { <p>{user. </p> }",
         "@css { .foo { color: ",
-        "@patch(\"/api\") { let x = ",
+        "@patch:fragment(\"/api\") { let x = ",
         include_str!("../../../test/MalformedHandlers.rocci"),
         "@init {",
     ];
@@ -708,7 +708,7 @@ fn semantic_tokens_malformed_and_incomplete_recovery() {
         INCOMPLETE_TAG,
         "@component Broken = |{}| { <p>{person. </p> }",
         "@css { .card { color: #fff; width: ",
-        "@patch(\"/api\") { let result = ",
+        "@patch:fragment(\"/api\") { let result = ",
         include_str!("../../../test/MalformedHandlers.rocci"),
     ];
 
@@ -793,11 +793,14 @@ fn semantic_tokens_counter_rocci_qualified_precision() {
 }
 
 #[test]
-fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
+fn handlers_have_final_symbols_hover_completion_and_distinct_role_tokens() {
     let src = r#"
-@view("/") { Html.text("v") }
-@patch:patch("/x") { Html.text("p") }
-@command("/c") { { n: 1 } }
+@get:view("/") { Html.text("v") }
+@get:fragment("/search") { Html.text("s") }
+@patch:fragment("/x") { Html.text("p") }
+@post:command("/c") { {} }
+@get:live("/events/main") { Html.text("l") }
+@get:live("/events/shared") { Html.text("s") }
 
 @component Unused = |{}| {
     <p>x</p>
@@ -819,8 +822,11 @@ fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     assert!(names.contains(&"GET /"), "{names:?}");
     assert!(names.contains(&"PATCH /x"), "{names:?}");
     assert!(names.contains(&"POST /c"), "{names:?}");
+    assert!(names.contains(&"GET /search"), "{names:?}");
+    assert!(names.contains(&"GET /events/main"), "{names:?}");
+    assert!(names.contains(&"GET /events/shared"), "{names:?}");
 
-    let view_at = src.find("@view").expect("@view");
+    let view_at = src.find("@get:view").expect("@get:view");
     let (line, character) = line_col(src, view_at);
     let hover = server
         .hover(HoverParams {
@@ -831,9 +837,13 @@ fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     let lsp_types::HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
-    assert!(markup.value.contains("@view(\"/\")"), "{}", markup.value);
+    assert!(
+        markup.value.contains("@get:view(\"/\")"),
+        "{}",
+        markup.value
+    );
 
-    let at_view = src.find("@view").expect("@view") + 1;
+    let at_view = src.find("@get:view").expect("@get:view") + 1;
     let (line, character) = line_col(src, at_view);
     let CompletionResponse::Array(items) = server
         .completion(CompletionParams {
@@ -846,7 +856,9 @@ fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     else {
         panic!("expected completion array");
     };
-    assert!(items.iter().any(|item| item.label == "view"));
+    assert!(items.iter().any(|item| item.label == "get"));
+    assert!(items.iter().any(|item| item.label == "post"));
+    assert!(items.iter().any(|item| item.label == "fragment"));
     assert!(items.iter().any(|item| item.label == "patch"));
     assert!(items.iter().any(|item| item.label == "command"));
 
@@ -862,8 +874,8 @@ fn handlers_have_symbols_hover_completion_and_distinct_patch_tokens() {
     };
     let patch_kw = src.find("@patch").expect("@patch");
     assert_eq!(token_type_at(src, &tokens, patch_kw), Some(TOKEN_KEYWORD));
-    let method = src.find("@patch:").expect("method") + "@patch:".len();
-    assert_eq!(token_type_at(src, &tokens, method), Some(TOKEN_ENUM_MEMBER));
+    let role = src.find("@patch:fragment").expect("role") + "@patch:".len();
+    assert_eq!(token_type_at(src, &tokens, role), Some(TOKEN_ENUM_MEMBER));
 }
 
 #[test]

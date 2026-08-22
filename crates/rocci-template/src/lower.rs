@@ -195,6 +195,21 @@ pub fn route_fn_name(method: &str, path: &str) -> String {
     format!("on_{method}_{path_part}!")
 }
 
+fn route_header_span(src: &str, method: &Ident, path_span: Span) -> Span {
+    let at = method.span.start.saturating_sub(1);
+    let start = if src.as_bytes().get(at as usize) == Some(&b'@') {
+        at
+    } else {
+        method.span.start
+    };
+    let end = if src.as_bytes().get(path_span.end as usize) == Some(&b')') {
+        path_span.end + 1
+    } else {
+        path_span.end
+    };
+    Span { start, end }
+}
+
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
     // Workaround: fill `??` defaults at call sites until Roc accepts them in patterns.
     // See `strip_param_defaults`.
@@ -260,7 +275,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         .items
         .iter()
         .filter_map(|item| match item {
-            ModuleItem::Route(RouteDecl::Live(live)) => Some(live.path.clone()),
+            ModuleItem::Route(RouteDecl::Live(live)) => Some((live.path.clone(), live.path_span)),
             _ => None,
         })
         .collect::<Vec<_>>();
@@ -362,7 +377,7 @@ struct Emitter<'a> {
     theme_id: Option<String>,
     color_scheme_attr: Option<String>,
     embed_css: bool,
-    inject_live_path: Option<String>,
+    inject_live_path: Option<(String, Span)>,
 }
 
 impl<'a> Emitter<'a> {
@@ -529,7 +544,11 @@ impl<'a> Emitter<'a> {
                 ensure_handler_request_param(&strip_param_defaults(span.of(self.src).trim()))
             })
             .unwrap_or_else(|| "|state, _request|".to_string());
-        self.emit_mapped(&fn_name, live.span, OriginKind::OrdinaryRoc);
+        self.emit_mapped(
+            &fn_name,
+            route_header_span(self.src, &live.method, live.path_span),
+            OriginKind::RouteHeader,
+        );
         self.emit(" = ");
         if let Some(span) = live.params {
             self.emit_mapped(&params, span, OriginKind::OrdinaryRoc);
@@ -547,8 +566,9 @@ impl<'a> Emitter<'a> {
     fn lower_view(&mut self, view: &ViewDecl) {
         self.emit_leading(&view.leading);
         self.lower_route(
-            &view.method.name,
+            &view.method,
             &view.path,
+            view.path_span,
             RespondKind::Document,
             view.params,
             view.body,
@@ -559,8 +579,9 @@ impl<'a> Emitter<'a> {
     fn lower_fragment_decl(&mut self, fragment: &FragmentDecl) {
         self.emit_leading(&fragment.leading);
         self.lower_route(
-            &fragment.method.name,
+            &fragment.method,
             &fragment.path,
+            fragment.path_span,
             RespondKind::Fragment,
             fragment.params,
             fragment.body,
@@ -571,8 +592,9 @@ impl<'a> Emitter<'a> {
     fn lower_command(&mut self, command: &CommandDecl) {
         self.emit_leading(&command.leading);
         self.lower_route(
-            &command.method.name,
+            &command.method,
             &command.path,
+            command.path_span,
             RespondKind::Command,
             command.params,
             command.body,
@@ -582,15 +604,16 @@ impl<'a> Emitter<'a> {
 
     fn lower_route(
         &mut self,
-        method: &str,
+        method: &Ident,
         path: &str,
+        path_span: Span,
         respond: RespondKind,
         params: Option<Span>,
         body: Span,
         span: Span,
     ) {
-        let method_upper = method.to_ascii_uppercase();
-        let fn_name = route_fn_name(method, path);
+        let method_upper = method.name.to_ascii_uppercase();
+        let fn_name = route_fn_name(&method.name, path);
         self.routes.push(RouteInfo {
             method: method_upper,
             path: path.to_string(),
@@ -603,7 +626,11 @@ impl<'a> Emitter<'a> {
                 ensure_handler_request_param(&strip_param_defaults(param_span.of(self.src).trim()))
             })
             .unwrap_or_else(|| "|state, _request|".to_string());
-        self.emit_mapped(&fn_name, span, OriginKind::OrdinaryRoc);
+        self.emit_mapped(
+            &fn_name,
+            route_header_span(self.src, method, path_span),
+            OriginKind::RouteHeader,
+        );
         self.emit(" = ");
         if let Some(param_span) = params {
             self.emit_mapped(&adapted, param_span, OriginKind::OrdinaryRoc);
@@ -1101,7 +1128,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_live_init_attr(&mut self) {
-        let path = self
+        let (path, path_span) = self
             .inject_live_path
             .clone()
             .expect("live init is emitted only for a singleton local path");
@@ -1109,7 +1136,7 @@ impl<'a> Emitter<'a> {
         self.emit_html(".attribute(");
         self.emit_string("data-init", Span::point(0), OriginKind::Scaffolding);
         self.emit(", Datastar.get_with(");
-        self.emit_string(&path, Span::point(0), OriginKind::Scaffolding);
+        self.emit_string(&path, path_span, OriginKind::Scaffolding);
         self.emit(", [OpenWhenHidden(True)])");
         self.emit("),\n");
     }

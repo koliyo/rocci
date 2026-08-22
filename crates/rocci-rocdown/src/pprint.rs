@@ -64,12 +64,12 @@ fn write_init_leaf(w: &mut Writer<'_>, _src: &str, _init: &InitDecl) {
     w.leaf("init", &[]);
 }
 
-fn write_live_leaf(w: &mut Writer<'_>, _src: &str, _live: &LiveDecl) {
-    w.leaf("live", &[]);
+fn write_live_leaf(w: &mut Writer<'_>, _src: &str, live: &LiveDecl) {
+    w.leaf("live", &[format!("{}:{}", live.method.name, live.path)]);
 }
 
 fn write_view_leaf(w: &mut Writer<'_>, _src: &str, view: &ViewDecl) {
-    w.leaf("view", &[format!("GET:{}", view.path)]);
+    w.leaf("view", &[format!("{}:{}", view.method.name, view.path)]);
 }
 
 fn write_fragment_leaf(w: &mut Writer<'_>, _src: &str, fragment: &FragmentDecl) {
