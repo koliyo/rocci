@@ -1,86 +1,254 @@
+import pf.Env
+import pf.Path
+import pf.Sqlite
+import pf.Stderr
 import Html
+import HandlerMatrixUi
 
-## Catalog landing document. Not a public origin.
-@get:view("/") = |_| {
-    matrixPage({})
+## SQLite handle opened in `@init`. Shared with fragments, commands, and live.
+@context { db : Sqlite.Db }
+
+## Open or create `handler-matrix.db` (`DB_PATH` override). Failure exits the process.
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./handler-matrix.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, kind TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, message TEXT NOT NULL)",
+            params: {},
+        },
+    )?
+    { db: db }
+}
+
+## Document GET `/`. Fragment wells start waiting; the live card shows the shared log.
+@get:view("/") = |{ db }| {
+    lab = load_lab!(db)?
+    matrixPage(lab)
 }
 
 ## GET fragment onto `#frag-get`.
-@get:fragment("/fragments/get") = |_| {
-    fragGet({ label: "get" })
+@get:fragment("/fragments/get") = |{ db }| {
+    record_event!(db, "fragment", "GET", "/fragments/get", "Returned HTML for #frag-get")?
+    HandlerMatrixUi.fragGet(
+        {
+            waiting: False,
+            note: "Fetched HTML into this tab only.",
+            ago: "just now",
+        },
+    )
 }
 
-## Default POST fragment onto `#frag-post`.
-@post:fragment("/actions/post-frag") = |_| {
-    fragPost({ label: "post" })
+## POST fragment onto `#frag-post`.
+@post:fragment("/actions/post-frag") = |{ db }| {
+    record_event!(db, "fragment", "POST", "/actions/post-frag", "Returned HTML for #frag-post")?
+    HandlerMatrixUi.fragPost(
+        {
+            waiting: False,
+            note: "Patched this tab with new HTML.",
+            ago: "just now",
+        },
+    )
 }
 
 ## PUT fragment onto `#frag-put`.
-@put:fragment("/actions/put-frag") = |_| {
-    fragPut({ label: "put" })
+@put:fragment("/actions/put-frag") = |{ db }| {
+    record_event!(db, "fragment", "PUT", "/actions/put-frag", "Returned HTML for #frag-put")?
+    HandlerMatrixUi.fragPut(
+        {
+            waiting: False,
+            note: "Replaced this tab's slot with new HTML.",
+            ago: "just now",
+        },
+    )
 }
 
 ## PATCH fragment onto `#frag-patch`.
-@patch:fragment("/actions/patch-frag") = |_| {
-    fragPatch({ label: "patch" })
+@patch:fragment("/actions/patch-frag") = |{ db }| {
+    record_event!(db, "fragment", "PATCH", "/actions/patch-frag", "Returned HTML for #frag-patch")?
+    HandlerMatrixUi.fragPatch(
+        {
+            waiting: False,
+            note: "Updated this tab's slot with new HTML.",
+            ago: "just now",
+        },
+    )
 }
 
 ## DELETE fragment onto `#frag-delete`.
-@delete:fragment("/actions/delete-frag") = |_| {
-    fragDelete({ label: "delete" })
+@delete:fragment("/actions/delete-frag") = |{ db }| {
+    record_event!(db, "fragment", "DELETE", "/actions/delete-frag", "Returned HTML for #frag-delete")?
+    HandlerMatrixUi.fragDelete(
+        {
+            waiting: False,
+            note: "Cleared this tab's slot.",
+            ago: "just now",
+        },
+    )
 }
 
 ## POST command with no response representation.
-@post:command("/actions/post-cmd") = |_| {
+@post:command("/actions/post-cmd") = |{ db }| {
+    record_event!(db, "command", "POST", "/actions/post-cmd", "Wrote with no representation")?
     {}
 }
 
 ## PUT command with no response representation.
-@put:command("/actions/put-cmd") = |_| {
+@put:command("/actions/put-cmd") = |{ db }| {
+    record_event!(db, "command", "PUT", "/actions/put-cmd", "Wrote with no representation")?
     {}
 }
 
 ## PATCH command with no response representation.
-@patch:command("/actions/patch-cmd") = |_| {
+@patch:command("/actions/patch-cmd") = |{ db }| {
+    record_event!(db, "command", "PATCH", "/actions/patch-cmd", "Wrote with no representation")?
     {}
 }
 
 ## DELETE command with no response representation.
-@delete:command("/actions/delete-cmd") = |_| {
+@delete:command("/actions/delete-cmd") = |{ db }| {
+    record_event!(db, "command", "DELETE", "/actions/delete-cmd", "Wrote with no representation")?
     {}
 }
 
-## Shared `#live-tick` only. Do not morph `frag-*` ids from this stream.
-@get:live("/events/matrix") = |_| {
-    liveTick({ label: "0" })
+## Shared `#live-tick` and `#event-log` only. Do not morph `frag-*` ids from this stream.
+@get:live("/events/matrix") = |{ db }| {
+    lab = load_lab!(db)?
+    HandlerMatrixUi.liveSlice(lab)
+}
+
+now_secs! = |db| {
+    row : { now : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.now)
+}
+
+relative_ago = |now_secs, then_secs| {
+    delta = if now_secs > then_secs {
+        now_secs - then_secs
+    } else {
+        0.I64
+    }
+    if delta < 5.I64 {
+        "just now"
+    } else if delta < 60.I64 {
+        "${delta.to_str()} seconds ago"
+    } else if delta < 3600.I64 {
+        mins = delta.div_trunc_by(60.I64)
+        if mins == 1.I64 {
+            "1 minute ago"
+        } else {
+            "${mins.to_str()} minutes ago"
+        }
+    } else if delta < 86400.I64 {
+        hours = delta.div_trunc_by(3600.I64)
+        if hours == 1.I64 {
+            "1 hour ago"
+        } else {
+            "${hours.to_str()} hours ago"
+        }
+    } else {
+        days = delta.div_trunc_by(86400.I64)
+        if days == 1.I64 {
+            "1 day ago"
+        } else {
+            "${days.to_str()} days ago"
+        }
+    }
+}
+
+record_event! = |db, kind, method, path, message| {
+    now = now_secs!(db)?
+    params : { ts : I64, kind : Str, method : Str, path : Str, message : Str }
+    params = {
+        ts: now,
+        kind: kind,
+        method: method,
+        path: path,
+        message: message,
+    }
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT INTO events (ts, kind, method, path, message) VALUES (:ts, :kind, :method, :path, :message)",
+            params: params,
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "DELETE FROM events WHERE id NOT IN (SELECT id FROM events ORDER BY id DESC LIMIT 20)",
+            params: {},
+        },
+    )?
+    match Stderr.line!("${kind} ${method} ${path} ${message}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+    Ok({})
+}
+
+read_count! = |db| {
+    row : { value : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT COUNT(*) AS value FROM events",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.value)
+}
+
+read_events! = |db| {
+    now = now_secs!(db)?
+    rows : List({ ts : I64, kind : Str, method : Str, path : Str, message : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts, kind, method, path, message FROM events ORDER BY id DESC LIMIT 20",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(
+        List.map(
+            rows,
+            |row| {
+                {
+                    kind: row.kind,
+                    method: row.method,
+                    path: row.path,
+                    message: row.message,
+                    ago: relative_ago(now, row.ts),
+                    ts: row.ts.to_str(),
+                }
+            },
+        ),
+    )
+}
+
+load_lab! = |db| {
+    count = read_count!(db)?
+    events = read_events!(db)?
+    Ok({ count: count, events: events })
 }
 
 @component
-FragGet = |{ label }|
-    <p id="frag-get">{label}</p>
-
-@component
-FragPost = |{ label }|
-    <p id="frag-post">{label}</p>
-
-@component
-FragPut = |{ label }|
-    <p id="frag-put">{label}</p>
-
-@component
-FragPatch = |{ label }|
-    <p id="frag-patch">{label}</p>
-
-@component
-FragDelete = |{ label }|
-    <p id="frag-delete">{label}</p>
-
-@component
-LiveTick = |{ label }|
-    <output id="live-tick">{label}</output>
-
-@component
-MatrixPage = |{}|
+MatrixPage = |{ count, events }|
     <html lang="en">
         <head>
             <meta charset="utf-8" />
@@ -90,45 +258,30 @@ MatrixPage = |{}|
         </head>
         <body>
             <main>
-                <h1>Handler matrix</h1>
-                <p class="lede">
-                    One-shot fragments own <code>frag-*</code> ids. Commands return no representation.
-                    The live stream owns <code>live-tick</code> only.
-                </p>
-                <section>
-                    <h2>Fragments</h2>
-                    <FragGet label="idle" />
-                    <FragPost label="idle" />
-                    <FragPut label="idle" />
-                    <FragPatch label="idle" />
-                    <FragDelete label="idle" />
-                    <div class="actions">
-                        <a href="/fragments/get">GET fragment</a>
-                        <button data-on:click=@post("/actions/post-frag")>POST patch</button>
-                        <button data-on:click=@put("/actions/put-frag")>PUT patch</button>
-                        <button data-on:click=@patch("/actions/patch-frag")>PATCH patch</button>
-                        <button data-on:click=@delete("/actions/delete-frag")>DELETE patch</button>
-                    </div>
-                </section>
-                <section>
-                    <h2>Commands</h2>
-                    <div class="actions">
-                        <button data-on:click=@post("/actions/post-cmd")>POST command</button>
-                        <button data-on:click=@put("/actions/put-cmd")>PUT command</button>
-                        <button data-on:click=@patch("/actions/patch-cmd")>PATCH command</button>
-                        <button data-on:click=@delete("/actions/delete-cmd")>DELETE command</button>
-                    </div>
-                </section>
-                <section>
-                    <h2>Live</h2>
-                    <LiveTick label="0" />
-                </section>
+                <nav>
+                    <strong>Rocci</strong>
+                    <span>Handler lab</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">Every accepted method and role</p>
+                    <h1>See what each handler returns.</h1>
+                    <p class="lede">
+                        A fragment sends HTML back — only this tab's result well changes.
+                        A command writes and returns nothing. Live is a long-lived GET:
+                        every tab shares the server log.
+                    </p>
+                </header>
+                <HandlerMatrixUi.Lab count={count} events={events} />
+                <footer>
+                    Open a second tab. Click a fragment: one well changes, both logs
+                    update. Click a command: only the logs move.
+                </footer>
             </main>
         </body>
     </html>
 
 @fixture{target: MatrixPage}
-matrixPageTest = {}
+matrixPageTest = { count: 0.I64, events: HandlerMatrixUi.empty_events }
 
 @css {
     * { box-sizing: border-box; }
@@ -137,33 +290,252 @@ matrixPageTest = {}
         font-family: system-ui, sans-serif;
         color: #f3f7f5;
         margin: 0;
-        background: #07110e;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+        --accent: #48eda4;
+        --ink: #f8fffb;
+        --muted: #8da39a;
+        --line: rgba(109, 236, 177, 0.2);
+        --surface: rgba(11, 30, 24, 0.72);
+        --canvas: #06100c;
     }
     main {
-        width: min(40rem, calc(100% - 2rem));
+        width: min(56rem, calc(100% - 2rem));
         margin: 0 auto;
         padding: 2.5rem 0 4rem;
+        display: grid;
+        gap: 1.5rem;
     }
-    .lede { color: #a8bbb3; }
+    nav {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong {
+        color: var(--accent);
+        font-size: 1.1rem;
+        letter-spacing: 0.16em;
+    }
+    header .eyebrow,
+    .card .eyebrow,
+    .tick .eyebrow,
+    .empty-response .eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--accent);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    h2 {
+        margin: 0 0 0.45rem;
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+    }
+    .lede {
+        margin: 0;
+        max-width: 36rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    .card .lede {
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+    }
+    .lab {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.85fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .roles {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .card {
+        padding: 1.35rem 1.5rem 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+    }
+    .stream-card {
+        position: sticky;
+        top: 1rem;
+        box-shadow: 0 0 0 1px rgba(72, 237, 164, 0.08);
+    }
+    .verb-row {
+        display: grid;
+        grid-template-columns: minmax(11rem, 0.9fr) minmax(0, 1.1fr);
+        gap: 0.75rem;
+        align-items: stretch;
+        padding: 0.75rem 0;
+        border-top: 1px solid var(--line);
+    }
     .actions {
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
-        margin: 0.75rem 0 1.5rem;
+        margin: 0.25rem 0 1rem;
     }
-    button, a {
+    button {
         appearance: none;
         border: 0;
         border-radius: 10px;
-        padding: 0.6rem 0.9rem;
-        background: #48eda4;
-        color: #06100c;
+        padding: 0.7rem 0.95rem;
+        background: var(--accent);
+        color: var(--canvas);
         font: inherit;
         font-weight: 700;
         cursor: pointer;
-        text-decoration: none;
+        text-align: left;
     }
-    p, output {
+    button:hover { background: #79f4bd; }
+    button:focus-visible,
+    .result:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+    button.secondary {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: #bfd0c8;
+    }
+    button.secondary:hover {
+        background: rgba(72, 237, 164, 0.08);
+    }
+    .result {
+        min-height: 3.4rem;
+        padding: 0.65rem 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--canvas);
+    }
+    .result .verb {
+        display: inline-block;
+        margin-bottom: 0.25rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--accent);
         font-family: ui-monospace, monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+    }
+    .result p,
+    .empty,
+    .muted {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    .filled p {
+        color: var(--ink);
+    }
+    .filled time {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+    }
+    .empty-response {
+        margin-top: 0.25rem;
+    }
+    .empty-response p + p {
+        margin-top: 0.35rem;
+    }
+    .tick {
+        margin: 0.5rem 0 1rem;
+        padding: 0.85rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--canvas);
+    }
+    .tick output {
+        display: block;
+        color: var(--ink);
+        font-family: ui-monospace, monospace;
+        font-size: 2.4rem;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.04em;
+    }
+    .feed-scroll {
+        max-height: 22rem;
+        overflow-y: auto;
+    }
+    .feed {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .feed li {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.55rem 0.75rem;
+        align-items: baseline;
+        padding: 0.6rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 0.88rem;
+    }
+    .kind {
+        display: inline-flex;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+    .kind.command {
+        color: var(--accent);
+    }
+    .detail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+        color: var(--ink);
+    }
+    .detail .method {
+        font-family: ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 0.78rem;
+    }
+    .detail code {
+        color: var(--muted);
+        font-size: 0.78rem;
+    }
+    .feed time {
+        color: var(--muted);
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+    footer {
+        color: #6f857c;
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+    @media (max-width: 800px) {
+        .lab { grid-template-columns: 1fr; }
+        .stream-card { position: static; }
+        .verb-row { grid-template-columns: 1fr; }
+        h1 { font-size: 1.9rem; }
     }
 }

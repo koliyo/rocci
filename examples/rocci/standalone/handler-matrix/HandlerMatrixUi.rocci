@@ -1,0 +1,252 @@
+import Html
+
+Event : { kind : Str, method : Str, path : Str, message : Str, ago : Str, ts : Str }
+
+empty_events : List(Event)
+empty_events = []
+
+sample_events : List(Event)
+sample_events = [
+    {
+        kind: "command",
+        method: "POST",
+        path: "/actions/post-cmd",
+        message: "Wrote with no representation",
+        ago: "just now",
+        ts: "0",
+    },
+    {
+        kind: "fragment",
+        method: "GET",
+        path: "/fragments/get",
+        message: "Returned HTML for #frag-get",
+        ago: "8 seconds ago",
+        ts: "0",
+    },
+]
+
+@component
+FragBody = |{ verb, waiting ?? True, note ?? "", ago ?? "" }| {
+    <>
+        <span class="verb">{verb}</span>
+        @if waiting {
+            <p class="muted">Waiting — click to land HTML in this tab.</p>
+        } @else {
+            <div class="filled">
+                <time>{ago}</time>
+                <p>{note}</p>
+            </div>
+        }
+    </>
+}
+
+@fixture{target: FragBody}
+fragBodyWaitingTest = { verb: "GET" }
+
+@fixture{target: FragBody}
+fragBodyFilledTest = {
+    verb: "POST",
+    waiting: False,
+    note: "Patched this tab with new HTML.",
+    ago: "just now",
+}
+
+@component
+FragGet = |{ waiting ?? True, note ?? "", ago ?? "" }|
+    <div id="frag-get" class="result">
+        <FragBody verb="GET" waiting={waiting} note={note} ago={ago} />
+    </div>
+
+@component
+FragPost = |{ waiting ?? True, note ?? "", ago ?? "" }|
+    <div id="frag-post" class="result">
+        <FragBody verb="POST" waiting={waiting} note={note} ago={ago} />
+    </div>
+
+@component
+FragPut = |{ waiting ?? True, note ?? "", ago ?? "" }|
+    <div id="frag-put" class="result">
+        <FragBody verb="PUT" waiting={waiting} note={note} ago={ago} />
+    </div>
+
+@component
+FragPatch = |{ waiting ?? True, note ?? "", ago ?? "" }|
+    <div id="frag-patch" class="result">
+        <FragBody verb="PATCH" waiting={waiting} note={note} ago={ago} />
+    </div>
+
+@component
+FragDelete = |{ waiting ?? True, note ?? "", ago ?? "" }|
+    <div id="frag-delete" class="result">
+        <FragBody verb="DELETE" waiting={waiting} note={note} ago={ago} />
+    </div>
+
+@fixture{target: FragGet}
+fragGetWaitingTest = {}
+
+@fixture{target: FragPost}
+fragPostFilledTest = {
+    waiting: False,
+    note: "Patched this tab with new HTML.",
+    ago: "just now",
+}
+
+@component
+FragmentCard = |{}|
+    <section class="card">
+        <p class="eyebrow">Fragment</p>
+        <h2>Fragments return HTML</h2>
+        <p class="lede">
+            Each click morphs only the result well in this tab. Open a second tab:
+            that well stays waiting.
+        </p>
+        <div class="verb-row">
+            <button type="button" data-on:click=@get("/fragments/get")>
+                GET — fetch into this tab
+            </button>
+            <FragGet />
+        </div>
+        <div class="verb-row">
+            <button type="button" data-on:click=@post("/actions/post-frag")>
+                POST — patch this tab
+            </button>
+            <FragPost />
+        </div>
+        <div class="verb-row">
+            <button type="button" data-on:click=@put("/actions/put-frag")>
+                PUT — replace this slot
+            </button>
+            <FragPut />
+        </div>
+        <div class="verb-row">
+            <button type="button" data-on:click=@patch("/actions/patch-frag")>
+                PATCH — update this slot
+            </button>
+            <FragPatch />
+        </div>
+        <div class="verb-row">
+            <button type="button" data-on:click=@delete("/actions/delete-frag")>
+                DELETE — clear this slot
+            </button>
+            <FragDelete />
+        </div>
+    </section>
+
+@fixture{target: FragmentCard}
+fragmentCardTest = {}
+
+@component
+CommandCard = |{}|
+    <section class="card">
+        <p class="eyebrow">Command</p>
+        <h2>Commands return nothing</h2>
+        <p class="lede">
+            These buttons do not change this card. The server writes, then the live
+            log in every tab shows the result.
+        </p>
+        <div class="actions">
+            <button class="secondary" type="button" data-on:click=@post("/actions/post-cmd")>
+                POST — write
+            </button>
+            <button class="secondary" type="button" data-on:click=@put("/actions/put-cmd")>
+                PUT — write
+            </button>
+            <button class="secondary" type="button" data-on:click=@patch("/actions/patch-cmd")>
+                PATCH — write
+            </button>
+            <button class="secondary" type="button" data-on:click=@delete("/actions/delete-cmd")>
+                DELETE — write
+            </button>
+        </div>
+        <div class="result empty-response">
+            <p class="eyebrow">Response</p>
+            <p>None. Datastar gets empty SSE; curl gets 204.</p>
+            <p class="muted">The write shows up in the server log.</p>
+        </div>
+    </section>
+
+@fixture{target: CommandCard}
+commandCardTest = {}
+
+@component
+LiveTick = |{ count }|
+    <div id="live-tick" class="tick">
+        <p class="eyebrow">Events logged</p>
+        <output>{count.to_str()}</output>
+    </div>
+
+@fixture{target: LiveTick}
+liveTickTest = { count: 2.I64 }
+
+@component
+EventLog = |{ events }| {
+    <div id="event-log">
+        @if List.is_empty(events) {
+            <p class="empty">No events yet — click a fragment or command.</p>
+        } @else {
+            <div class="feed-scroll">
+                <ol class="feed" aria-label="Server event log">
+                    @for event in events {
+                        <li>
+                            @match event.kind {
+                                "command" => <span class="kind command">command</span>
+                                _ => <span class="kind fragment">fragment</span>
+                            }
+                            <div class="detail">
+                                <span class="method">{event.method}</span>
+                                <code>{event.path}</code>
+                                <span>{event.message}</span>
+                            </div>
+                            <time datetime={event.ts}>{event.ago}</time>
+                        </li>
+                    }
+                </ol>
+            </div>
+        }
+    </div>
+}
+
+@fixture{target: EventLog}
+eventLogEmptyTest = { events: empty_events }
+
+@fixture{target: EventLog}
+eventLogFilledTest = { events: sample_events }
+
+@component
+LiveCard = |{ count, events }|
+    <section class="card stream-card">
+        <p class="eyebrow">Live stream</p>
+        <h2>Live stream is shared</h2>
+        <p class="lede">
+            GET /events/matrix morphs the count and log in every tab. It never
+            touches the fragment wells.
+        </p>
+        <LiveTick count={count} />
+        <EventLog events={events} />
+    </section>
+
+@fixture{target: LiveCard}
+liveCardTest = { count: 2.I64, events: sample_events }
+
+@component
+LiveSlice = |{ count, events }|
+    <>
+        <LiveTick count={count} />
+        <EventLog events={events} />
+    </>
+
+@fixture{target: LiveSlice}
+liveSliceTest = { count: 0.I64, events: empty_events }
+
+@component
+Lab = |{ count, events }|
+    <div class="lab">
+        <div class="roles">
+            <FragmentCard />
+            <CommandCard />
+        </div>
+        <LiveCard count={count} events={events} />
+    </div>
+
+@fixture{target: Lab}
+labTest = { count: 0.I64, events: empty_events }
