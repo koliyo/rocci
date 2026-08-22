@@ -40,12 +40,8 @@ jobs:
           key: release-${{ matrix.target }}
 
       - uses: astral-sh/setup-uv@v6
-
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+        with:
+          cache-local-path: ${{ runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
 
       - name: Build release binaries
         run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp -p rocci-okf
@@ -76,6 +72,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
+        with:
+          cache-local-path: /home/nils/.cache/uv
       - name: Wait for CI checks
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,6 +86,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
+        with:
+          cache-local-path: /home/nils/.cache/uv
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8

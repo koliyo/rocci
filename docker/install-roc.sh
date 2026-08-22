@@ -20,6 +20,14 @@ archive="roc_nightly-linux_${roc_arch}-${ROC_NIGHTLY_DATE}-${ROC_NIGHTLY_SHA}.ta
 url="https://github.com/roc-lang/nightlies/releases/download/${ROC_NIGHTLY_TAG}/${archive}"
 prefix="${ROC_PREFIX:-/opt/roc}"
 link_dir="${ROC_LINK_DIR:-/usr/local/bin}"
+marker="$prefix/.rocci-roc-${ROC_NIGHTLY_TAG}"
+
+if [ -x "$prefix/roc" ] && [ -f "$marker" ]; then
+    mkdir -p "$link_dir"
+    ln -sf "$prefix/roc" "$link_dir/roc"
+    "$prefix/roc" version
+    exit 0
+fi
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -34,5 +42,7 @@ fi
 roc_root="$(cd "$(dirname "$roc_bin")" && pwd)"
 cp -a "$roc_root/." "$prefix/"
 ln -sf "$prefix/roc" "$link_dir/roc"
+mkdir -p "$prefix"
+touch "$marker"
 export PATH="$link_dir:$PATH"
 roc version
