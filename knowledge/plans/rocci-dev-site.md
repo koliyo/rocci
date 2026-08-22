@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: rocci.dev UX and authoring improvements
-description: Repair the landing and page finder, make section sidebar navigation universal except on Home and FAQ, make breadcrumbs consistent, remove the rocci.dev News surface, improve public copy, and reduce site-authoring friction without changing the Rocdown ownership boundary.
+description: Repair the landing and page finder, make section sidebar navigation universal except on Home, make breadcrumbs consistent, remove the rocci.dev News surface, improve public copy, and reduce site-authoring friction without changing the Rocdown ownership boundary.
 tags: [domain/rocci, domain/rocdown, concern/ux, concern/tooling, concern/publication, concern/navigation, concern/accessibility]
 status: draft
-generated: { by: process:codex, at: 2026-08-21T22:06:52Z }
+generated: { by: process:codex, at: 2026-08-22T05:12:35Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -83,7 +83,7 @@ sources:
 Make rocci.dev easy to enter, orient within, and author by establishing one
 visible navigation contract across the existing catalog:
 
-- Home and FAQ are the only pages without a persistent section sidebar.
+- Home is the only page without a persistent section sidebar.
 - Every non-home page has compact, correctly ordered breadcrumbs.
 - Every other page, including section indexes, product indexes, Project
   articles, generated example/source pages, and 404 recovery, has useful
@@ -142,7 +142,7 @@ After News removal, global navigation is:
 | Docs | `/docs/` | Start, Tutorials, How to, Understand, Reference, Troubleshooting, Status |
 | Examples | `/examples/` | Example catalog and the current example context |
 | Rocdown | `/rocdown/` | Overview, Pages, Article blocks, Hybrid, Language, Site config, CLI, Tree |
-| FAQ | `/faq/` | None; inline question index only |
+| FAQ | `/faq/` | FAQ lane; responsive question outline |
 | Project | `/project/` | Overview, Status, Roadmap, Contributing |
 
 Home remains reachable through the brand, skip-link target, breadcrumbs, and
@@ -279,9 +279,9 @@ link to Project Status is sufficient until a release source exists.[^audit]
 
 ## FAQ direction
 
-- Give FAQ the explicit `faq` layout and keep it single-column.
+- Give FAQ the explicit `faq` layout while reusing the shared navigated frame.
 - Add `Rocci / FAQ` breadcrumbs.
-- Generate an inline collapsed question index from h2/h3 outline data.
+- Generate the responsive question outline from h2/h3 outline data.
 - Shorten answers and link to canonical Docs/Project owners.
 - Replace broad comparisons and performance claims with bounded, sourced
   language.
@@ -296,14 +296,14 @@ The target public vocabulary is about body intent, not navigation side
 effects:
 
 - `home`: unique landing page, no sidebar.
-- `faq`: unique FAQ, no sidebar, inline outline.
+- `faq`: shared navigated frame, FAQ sidebar, responsive question outline.
 - `docs`: navigated article/reference/guide.
 - `section`: navigated section index.
 - `product`: navigated product overview when its body truly differs.
 - `not-found`: navigated recovery page.
 
 Remove `news-index` and `news-post`. Either retire `plain` or redefine it as a
-navigated ordinary article; do not leave it as a third sidebar-free escape.
+navigated ordinary article; Home remains the sole sidebar-free escape.
 Document each layout with its chrome contract.[^rocdown-readme]
 
 ### Discoverability policy
@@ -388,10 +388,10 @@ horizontal or document-height regression.
 
 #### Bound
 
-- Add the shared navigated frame and explicit FAQ frame.
+- Add the shared navigated frame and route the explicit FAQ layout through it.
 - Route `section`, `product`, ordinary articles, generated example pages, and
   404 through the shared navigation policy.
-- Render the sidebar on every page except Home and FAQ.
+- Render the sidebar on every page except Home.
 - Correct breadcrumb root/lane/group construction and suppress duplicates.
 - Add tablet outline fallback and labeled phone navigation sections.
 - Remove the duplicated desktop/mobile layout allowlist.
@@ -400,7 +400,7 @@ horizontal or document-height regression.
 
 #### Exit
 
-Exit when Home and FAQ are the only sidebar-free routes in the fixture matrix;
+Exit when Home is the only sidebar-free route in the fixture matrix;
 all non-home routes have exact expected breadcrumbs; current pages are visible
 in desktop and mobile section navigation; and page headings remain reachable
 at all three target widths without JavaScript.
@@ -429,7 +429,7 @@ approved response; and generic Rocdown collection tests still pass.
 #### Bound
 
 - Rework Home in the agreed outcome/path/proof/maturity order.
-- Rework FAQ into concise answers with an inline question index and canonical
+- Rework FAQ into concise answers with a responsive question outline and canonical
   links.
 - Fix document-title composition so the brand appears once.
 - Reconcile Project Status and Roadmap with current code, README, and canonical
@@ -528,10 +528,10 @@ in place.[^rocdown-readme]
 
 ## Acceptance criteria
 
-- Only `/` and `/faq/` omit the persistent section sidebar.
+- Only `/` omits the persistent section sidebar.
 - Every non-home page has breadcrumbs matching the approved hierarchy with no
   duplicated site or section title.
-- FAQ has an inline question index; detailed pages retain an outline at wide,
+- FAQ and detailed pages retain an outline at wide,
   tablet, and phone widths.
 - The Home path cards and live island both render in authored order.
 - Go to page is a bounded, keyboard-operable modal and does not expand the

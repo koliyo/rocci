@@ -3,7 +3,7 @@
 
 [contract]
 home_route = "/"
-sidebar_free_routes = ["/", "/faq/"]
+sidebar_free_routes = ["/"]
 viewports = [1280, 900, 390]
 news_absent = [
     "/news/",
@@ -21,7 +21,6 @@ current_breadcrumb = "[aria-current='page']"
 wide_outline = ".outline"
 inline_outline = ".outline-fallback"
 mobile_outline = ".mobile-panel [aria-label='On this page']"
-faq_outline = ".faq-contents"
 page_title = "head > title"
 
 [[route]]
@@ -39,11 +38,11 @@ assert_absent = ["News", "/news/"]
 [[route]]
 path = "/faq/"
 page_class = "faq"
-sidebar = "none"
+sidebar = "faq"
 breadcrumbs = ["Rocci", "FAQ"]
-outline_1280 = "inline-question-index"
-outline_900 = "inline-question-index"
-outline_390 = "inline-collapsible-question-index"
+outline_1280 = "right-rail"
+outline_900 = "inline-details"
+outline_390 = "mobile-menu"
 title = "Frequently Asked Questions · Rocci"
 assert_absent = ["News", "/news/feed.xml"]
 
