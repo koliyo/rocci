@@ -568,11 +568,11 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
-@patch("/actions/reveal/hide") = |_, _request| {
+@post:fragment("/actions/reveal/hide") = |_, _request| {
     revealTip({ open: False })
 }
 
@@ -641,7 +641,7 @@ RevealTip = |{ open }| {
     </div>
 }
 
-@patch("/actions/reveal/show") = |_, _request| {
+@post:fragment("/actions/reveal/show") = |_, _request| {
     revealTip({ open: True })
 }
 
@@ -679,7 +679,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/", meta: { title: "Live" } }
 
-@patch("/actions/counter/increment") = |_, _request| {
+@post:fragment("/actions/counter/increment") = |_, _request| {
     Html.text("1")
 }
 
@@ -697,7 +697,7 @@ RevealTip = |{ open }| {
             r#"
 @page { route: "/live", meta: { title: "Also live" } }
 
-@patch("/actions/live/ping") = |_, _request| {
+@post:fragment("/actions/live/ping") = |_, _request| {
     Html.text("ok")
 }
 
@@ -764,7 +764,7 @@ RevealTip = |{ open }| {
         .unwrap();
         fs::write(
             sibling.join("Islands.rocci"),
-            "@patch(\"/x\") = |_, _request| <p>x</p>\n",
+            "@post:fragment(\"/x\") = |_, _request| <p>x</p>\n",
         )
         .unwrap();
         assert!(generated_island_plan(&sibling).unwrap().is_none());

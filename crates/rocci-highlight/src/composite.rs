@@ -238,69 +238,58 @@ pub fn collect_init(src: &str, collector: &mut Vec<HighlightSpan>, init: &InitDe
 
 pub fn collect_live(src: &str, collector: &mut Vec<HighlightSpan>, live: &LiveDecl) {
     collect_leading(collector, &live.leading);
-    let before = live
-        .params
-        .map(|params| params.start)
-        .unwrap_or(live.body.start);
-    if let Some(span) = ident_between(src, live.span.start, before, "@live") {
-        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
-    }
+    collect_route_header(src, collector, &live.method, "live", live.path_span);
 }
 
 pub fn collect_view(src: &str, collector: &mut Vec<HighlightSpan>, view: &ViewDecl) {
     collect_leading(collector, &view.leading);
-    if let Some(span) = ident_between(src, view.span.start, view.path_span.start, "@view") {
-        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
-    }
-    collector.push(HighlightSpan::new(
-        view.path_span,
-        HighlightKind::String,
-        0,
-        50,
-    ));
+    collect_route_header(src, collector, &view.method, "view", view.path_span);
 }
 
 pub fn collect_fragment(src: &str, collector: &mut Vec<HighlightSpan>, fragment: &FragmentDecl) {
     collect_leading(collector, &fragment.leading);
-    collect_mutation(
+    collect_route_header(
         src,
         collector,
-        fragment.span.start,
-        Some(&fragment.method),
+        &fragment.method,
+        "fragment",
         fragment.path_span,
-        "@fragment",
     );
 }
 
 pub fn collect_command(src: &str, collector: &mut Vec<HighlightSpan>, command: &CommandDecl) {
     collect_leading(collector, &command.leading);
-    collect_mutation(
+    collect_route_header(
         src,
         collector,
-        command.span.start,
-        Some(&command.method),
+        &command.method,
+        "command",
         command.path_span,
-        "@command",
     );
 }
 
-fn collect_mutation(
+fn collect_route_header(
     src: &str,
     collector: &mut Vec<HighlightSpan>,
-    start: u32,
-    method: Option<&rocci_template::Ident>,
+    method: &rocci_template::Ident,
+    role: &str,
     path_span: Span,
-    word: &str,
 ) {
-    let before = method
-        .map(|ident| ident.span.start)
-        .unwrap_or(path_span.start);
-    if let Some(span) = ident_between(src, start, before, word) {
-        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
-    }
-    if let Some(method) = method {
+    let at = method.span.start.saturating_sub(1);
+    let method_span = if src.as_bytes().get(at as usize) == Some(&b'@') {
+        Span::new(at as usize, method.span.end as usize)
+    } else {
+        method.span
+    };
+    collector.push(HighlightSpan::new(
+        method_span,
+        HighlightKind::Keyword,
+        0,
+        55,
+    ));
+    if let Some(role_span) = ident_between(src, method.span.end, path_span.start, role) {
         collector.push(HighlightSpan::new(
-            method.span,
+            role_span,
             HighlightKind::EnumMember,
             0,
             50,

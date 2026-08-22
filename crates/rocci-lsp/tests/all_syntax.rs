@@ -86,7 +86,7 @@ fn test_lsp_all_syntax_rocci() {
             );
             assert!(
                 syms.iter().any(|s| s.name == "PATCH /actions/patch"),
-                "missing @patch:patch symbol"
+                "missing @patch:fragment symbol"
             );
         }
         DocumentSymbolResponse::Flat(_) => panic!("expected nested symbols"),
