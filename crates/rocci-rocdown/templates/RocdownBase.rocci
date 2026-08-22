@@ -103,14 +103,47 @@
         font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
         font-size: .87em;
     }
-    .article .rd-code-block {
+    .article .rd-code-wrap {
+        position: relative;
         margin: 1.35rem 0;
+    }
+    .article .rd-code-block {
+        margin: 0;
         padding: 1.1rem 1.2rem;
         overflow-x: auto;
         border: 1px solid var(--line);
         border-radius: .72rem;
         background: var(--code);
         box-shadow: 0 .7rem 2rem rgba(50, 35, 25, .08);
+    }
+    .article .rd-copy {
+        position: absolute;
+        top: .55rem;
+        right: .55rem;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: .45rem;
+        background: color-mix(in srgb, var(--code) 82%, var(--surface));
+        color: var(--muted);
+        cursor: pointer;
+    }
+    .article .rd-copy:hover {
+        border-color: var(--line-strong);
+        color: var(--ink);
+    }
+    .article .rd-copy:focus-visible {
+        outline: .18rem solid var(--accent);
+        outline-offset: .12rem;
+    }
+    .article .rd-copy.is-copied {
+        color: #2f7d4a;
+        border-color: color-mix(in srgb, #2f7d4a 45%, var(--line));
     }
     .article .rd-code-block .rd-code {
         padding: 0;
@@ -207,6 +240,7 @@
     @media print {
         .article { max-width: none; }
         .article .rd-link { color: inherit; }
+        .article .rd-copy { display: none; }
         .article .rd-code-block {
             background: #ffffff;
             color: #111111;
@@ -233,6 +267,7 @@
         .article .rd-blockquote,
         .article .rd-code,
         .article .rd-code-block,
+        .article .rd-copy,
         .article .rd-table-wrap,
         .article .rd-table {
             border: 1px solid currentColor;

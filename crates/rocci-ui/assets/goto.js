@@ -672,6 +672,9 @@
         if (window.__rocciNavSections) {
           window.__rocciNavSections.restore();
         }
+        if (window.__rocciCopy) {
+          window.__rocciCopy.enhance();
+        }
       })
       .catch(function () {
         fullLoad(target);
