@@ -1,5 +1,10 @@
 # Knowledge log
 
+## 2026-08-23
+
+- Retargeted the [public-repo CI plan](plans/public-ci-security.md) so `/ci-local` is the local command: exact first-token match, `/cl-local` kept as an alias. Naive `startsWith('/ci')` is forbidden; today's `startsWith('/ci ')` does not collide with `/ci-local`. No phase started.
+- Added draft [public-repo GitHub Actions security review](audits/public-ci-security.md) and [implementation plan](plans/public-ci-security.md). Current `/ci` is `koliyo`-only and self-hosted; deploy secrets are already Environment-only. Planned: hosted `/ci`/`/CI` from reviewer comments, `koliyo`-only `/ci-local`, automatic hosted CI on `main`/`staging`/`production`, site/release isolation, Dependabot. Exploratory; no phase started. Does not flip repository visibility.
+
 ## 2026-08-22
 
 - Revised the [rocci.dev public-launch checklist](audits/rocci-dev-public-launch.md) after the day's merged PRs: first-use page is deleted, News 308s are removed because the hostname was never public, and first-contact `@on` copy is aligned with `@method:role`. Remaining gates are GitHub community-health files and a signed-out staging smoke. Repository privacy until flip is known. Descriptive; does not authorize publication.
