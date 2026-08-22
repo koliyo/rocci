@@ -94,6 +94,10 @@ MetricsSpan : {
                         }
                     </select>
                 </label>
+                <label class="wrap-label">
+                    <input type="checkbox" id="source-wrap" checked="" aria-label="Wrap lines" />
+                    Wrap
+                </label>
                 <p class="file-path">{path}</p>
                 <noscript>
                     <button type="submit">Show</button>
@@ -239,7 +243,7 @@ samplePage = {
         display: flex;
         gap: 0;
         border-bottom: 1px solid light-dark(#e4e4e7, #3e4451);
-        padding: 0 114px 0 8px;
+        padding: 0 8px;
     }
     .inspector-tabs a {
         padding: 10px 12px;
@@ -278,9 +282,13 @@ samplePage = {
         flex: 1 1 auto;
         min-height: 0;
         min-width: 0;
-        overflow-x: auto;
+        overflow-x: hidden;
         overflow-y: auto;
+        overscroll-behavior: contain;
         background: light-dark(#ececee, #15181e);
+    }
+    .code-pane.no-wrap {
+        overflow-x: auto;
     }
     .inspector-body h1 {
         margin: 0 0 8px;
@@ -410,6 +418,20 @@ samplePage = {
         border-radius: 4px;
         padding: 3px 6px;
     }
+    .wrap-label {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        font-size: 12px;
+        color: light-dark(#71717a, #9da5b4);
+        cursor: pointer;
+        user-select: none;
+    }
+    .wrap-label input {
+        margin: 0;
+    }
     .file-path {
         flex: 1 1 auto;
         min-width: 0;
@@ -430,7 +452,8 @@ samplePage = {
         padding: 10px 12px;
         overflow: visible;
         box-sizing: border-box;
-        width: max-content;
+        width: auto;
+        max-width: 100%;
         min-width: 100%;
         min-height: 100%;
         background: transparent;
@@ -438,7 +461,14 @@ samplePage = {
         font-family: ui-monospace, Menlo, Consolas, monospace;
         font-size: 12px;
         line-height: 1.45;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+    .code-pane.no-wrap pre {
+        width: max-content;
+        max-width: none;
         white-space: pre;
+        overflow-wrap: normal;
     }
     pre code {
         font: inherit;
