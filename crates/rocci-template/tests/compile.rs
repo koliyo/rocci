@@ -1197,11 +1197,11 @@ import Html
             { db: db }
 }
 
-@view("/") = |{ db }| {
+@get:view("/") = |{ db }| {
     counterPage({ count: 0 })
 }
 
-@patch("/actions/counter/increment") = |{ db }| {
+@post:fragment("/actions/counter/increment") = |{ db }| {
     counterCard({ count: 1 })
 }
 
@@ -1238,14 +1238,14 @@ import Html
     let ast = format_ast(src, &out.document);
     assert!(ast.contains("(context"));
     assert!(ast.contains("(init"));
-    assert!(ast.contains("(view \"/\""));
-    assert!(ast.contains("(patch POST"));
+    assert!(ast.contains("(view GET \"/\""));
+    assert!(ast.contains("(fragment POST"));
 }
 
 #[test]
 fn view_without_params_defaults_to_state_and_request() {
     let src = r#"
-@view("/") {
+@get:view("/") {
     Html.text("ok")
 }
 
@@ -1261,15 +1261,15 @@ fn view_without_params_defaults_to_state_and_request() {
 #[test]
 fn handler_one_param_injects_unused_request() {
     let src = r#"
-@view("/") = |{ db }| {
+@get:view("/") = |{ db }| {
     Html.text("ok")
 }
 
-@patch("/actions/x") = |_| {
+@post:fragment("/actions/x") = |_| {
     Html.text("x")
 }
 
-@patch:put("/y") = || {
+@put:fragment("/y") = || {
     Html.text("y")
 }
 
@@ -1292,7 +1292,7 @@ fn handler_one_param_injects_unused_request() {
 #[test]
 fn handler_two_params_keep_authored_request() {
     let src = r#"
-@patch("/actions/save") = |{ db }, request| {
+@post:fragment("/actions/save") = |{ db }, request| {
     _ = request
     Html.text("ok")
 }
@@ -1318,7 +1318,7 @@ fn handler_two_params_keep_authored_request() {
 fn rejects_handler_with_more_than_two_params() {
     let errors = compile_err(
         r#"
-@patch("/x") = |state, request, extra| {
+@post:fragment("/x") = |state, request, extra| {
     Html.text("x")
 }
 "#,
@@ -1352,11 +1352,11 @@ fn rejects_init_without_context() {
 fn rejects_duplicate_handlers() {
     let errors = compile_err(
         r#"
-@patch("/x") {
+@post:fragment("/x") {
     Html.text("a")
 }
 
-@patch("/x") {
+@post:fragment("/x") {
     Html.text("b")
 }
 "#,
@@ -1364,7 +1364,7 @@ fn rejects_duplicate_handlers() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@patch(\"/x\")")),
+            .any(|msg| msg.contains("duplicate") && msg.contains("@post:fragment(\"/x\")")),
         "{errors:?}"
     );
 }
@@ -1392,15 +1392,15 @@ fn rejects_view_inside_component() {
 #[test]
 fn lowers_live_and_json_post() {
     let src = r#"
-@live = |state| {
+@get:live("/sse") = |state| {
     Html.text("live")
 }
 
-@command("/actions/increment") = |state| {
+@post:command("/actions/increment") = |state| {
     { count: 0 }
 }
 
-@patch("/actions/reset") = |state| {
+@post:fragment("/actions/reset") = |state| {
     Html.text("reset")
 }
 
@@ -1432,11 +1432,11 @@ fn lowers_live_and_json_post() {
 fn rejects_duplicate_live() {
     let errors = compile_err(
         r#"
-@live {
+@get:live("/sse") {
     Html.text("a")
 }
 
-@live {
+@get:live("/sse") {
     Html.text("b")
 }
 "#,
@@ -1444,7 +1444,7 @@ fn rejects_duplicate_live() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@live")),
+            .any(|msg| msg.contains("duplicate") && msg.contains("@get:live")),
         "{errors:?}"
     );
 }
@@ -1461,7 +1461,7 @@ fn rejects_removed_on_get_json() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@on` was removed") && msg.contains("@view")),
+            .any(|msg| msg.contains("`@on` was removed") && msg.contains("@get:view")),
         "{errors:?}"
     );
 }
@@ -1484,7 +1484,7 @@ fn rejects_removed_on_unknown_respond() {
 #[test]
 fn injects_data_init_on_body_when_live() {
     let src = r#"
-@live {
+@get:live("/sse") {
     Html.text("live")
 }
 
@@ -1512,7 +1512,7 @@ fn injects_data_init_on_body_when_live() {
 #[test]
 fn live_does_not_merge_existing_data_init() {
     let src = r#"
-@live {
+@get:live("/sse") {
     Html.text("live")
 }
 
@@ -1529,11 +1529,11 @@ fn live_does_not_merge_existing_data_init() {
 fn rejects_live_and_authored_sse_route() {
     let errors = compile_err(
         r#"
-@live {
+@get:live("/sse") {
     Html.text("live")
 }
 
-@view("/sse") {
+@get:view("/sse") {
     Html.text("authored")
 }
 "#,
@@ -1541,159 +1541,56 @@ fn rejects_live_and_authored_sse_route() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@view(\"/sse\")` conflicts with generated `@live` stream")),
+            .any(|msg| msg.contains("duplicate `@get:view(\"/sse\")` handler")),
         "{errors:?}"
     );
 }
 
 #[test]
-fn counter_example_compiles_as_standalone_app() {
+fn counter_example_is_rejected_until_example_cutover() {
     let src = include_str!("../../../examples/rocci/standalone/counter/Counter.rocci");
-    let out = compile_ok(src);
-    assert_eq!(out.state_type.as_deref(), Some("{ db : Sqlite.Db }"));
-    assert!(out.init.is_some());
-    assert_eq!(out.routes.len(), 3);
+    let errors = compile_err(src);
+    assert!(errors.iter().any(|message| message.contains("@get:view")));
     assert!(
-        out.routes
+        errors
             .iter()
-            .any(|route| route.method == "GET" && route.path == "/")
+            .any(|message| message.contains("@post:fragment"))
     );
-    assert!(
-        out.routes
-            .iter()
-            .any(|route| { route.method == "POST" && route.path == "/actions/counter/increment" })
-    );
-    assert!(out.roc.contains("State : { db : Sqlite.Db }"));
-    assert!(out.roc.contains("init! = || {"));
-    assert!(out.roc.contains("on_get_root!"));
-    assert!(out.roc.contains("on_post_actions_counter_increment!"));
-    assert!(out.roc.contains("on_post_actions_counter_reset!"));
-    let page = out.roc.split("counterPage = ").nth(1).expect("counterPage");
-    let html_at = page.find("\"html\"").expect("html");
-    let head_at = page.find("\"head\"").expect("head");
-    let style_at = page.find("\"style\"").expect("style");
-    assert!(html_at < head_at);
-    assert!(head_at < style_at);
 }
 
 #[test]
-fn live_counter_example_compiles_as_standalone_app() {
+fn live_counter_example_is_rejected_until_example_cutover() {
     let src = include_str!("../../../examples/rocci/standalone/live-counter/LiveCounter.rocci");
-    let out = compile_ok(src);
-    assert!(out.live.is_some());
-    assert!(out.roc.contains("live! = |{ db }, _request|"));
-    assert_eq!(out.routes.len(), 3);
+    let errors = compile_err(src);
+    assert!(errors.iter().any(|message| message.contains("@get:live")));
     assert!(
-        out.routes
+        errors
             .iter()
-            .any(|route| route.method == "GET" && route.path == "/")
+            .any(|message| message.contains("@post:command"))
     );
-    assert!(out.routes.iter().any(|route| {
-        route.method == "POST"
-            && route.path == "/actions/counter/increment"
-            && route.respond == rocci_template::RespondKind::Command
-    }));
-    assert!(out.routes.iter().any(|route| {
-        route.method == "POST"
-            && route.path == "/actions/counter/reset"
-            && route.respond == rocci_template::RespondKind::Command
-    }));
-    assert!(out.roc.contains(
-        "Html.attribute(\"data-init\", Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])),"
-    ));
 }
 
 #[test]
-fn handler_matrix_example_compiles_as_standalone_app() {
+fn handler_matrix_example_is_rejected_until_example_cutover() {
     let src = include_str!("../../../examples/rocci/standalone/handler-matrix/HandlerMatrix.rocci");
-    let out = compile_ok(src);
-    assert!(out.live.is_some());
-    assert_eq!(out.routes.len(), 9);
+    let errors = compile_err(src);
     assert!(
-        out.routes
+        errors
             .iter()
-            .any(|route| route.method == "GET" && route.path == "/")
+            .any(|message| message.contains("@patch:fragment"))
     );
-    for (method, path, respond) in [
-        (
-            "POST",
-            "/actions/post-frag",
-            rocci_template::RespondKind::Patch,
-        ),
-        (
-            "PUT",
-            "/actions/put-frag",
-            rocci_template::RespondKind::Patch,
-        ),
-        (
-            "PATCH",
-            "/actions/patch-frag",
-            rocci_template::RespondKind::Patch,
-        ),
-        (
-            "DELETE",
-            "/actions/delete-frag",
-            rocci_template::RespondKind::Patch,
-        ),
-        (
-            "POST",
-            "/actions/post-cmd",
-            rocci_template::RespondKind::Command,
-        ),
-        (
-            "PUT",
-            "/actions/put-cmd",
-            rocci_template::RespondKind::Command,
-        ),
-        (
-            "PATCH",
-            "/actions/patch-cmd",
-            rocci_template::RespondKind::Command,
-        ),
-        (
-            "DELETE",
-            "/actions/delete-cmd",
-            rocci_template::RespondKind::Command,
-        ),
-    ] {
-        assert!(
-            out.routes.iter().any(|route| {
-                route.method == method && route.path == path && route.respond == respond
-            }),
-            "missing {method} {path} {respond:?}"
-        );
-    }
-    assert!(out.roc.contains("on_post_actions_post_cmd_json!"));
-    assert!(out.roc.contains("Html.attribute(\"id\", \"frag-post\")"));
-    assert!(out.roc.contains("Html.attribute(\"id\", \"live-tick\")"));
+    assert!(
+        errors
+            .iter()
+            .any(|message| message.contains("@delete:command"))
+    );
 }
 
 #[test]
-fn styling_example_compiles() {
+fn styling_example_is_rejected_until_example_cutover() {
     let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
-    let out = compile_ok(src);
-    assert!(out.state_type.is_none());
-    assert!(out.init.is_none());
-    assert_eq!(out.routes.len(), 1);
-    assert_eq!(out.routes[0].method, "GET");
-    assert_eq!(out.routes[0].path, "/");
-    assert!(out.styles.iter().any(|style| style.kind == StyleKind::File));
-    assert!(
-        out.styles
-            .iter()
-            .any(|style| style.kind == StyleKind::Component && style.name == "hello")
-    );
-    assert!(
-        out.styles
-            .iter()
-            .any(|style| style.kind == StyleKind::Component && style.name == "featureCard")
-    );
-    let page = out.roc.split("stylePage = ").nth(1).expect("stylePage");
-    let html_at = page.find("\"html\"").expect("html");
-    let head_at = page.find("\"head\"").expect("head");
-    let style_at = page.find("\"style\"").expect("style");
-    assert!(html_at < head_at);
-    assert!(head_at < style_at);
+    let errors = compile_err(src);
+    assert!(errors.iter().any(|message| message.contains("@get:view")));
 }
 
 #[test]

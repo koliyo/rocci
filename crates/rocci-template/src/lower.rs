@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
-    Element, FixtureDecl, ForDirective, Fragment, Ident, IfDirective, InitDecl, Interpolation,
-    LiveDecl, MatchDirective, ModuleItem, PatchDecl, TemplateBlock, TemplateItem, ViewDecl,
-    ensure_handler_request_param, parse_component_params, strip_param_defaults,
+    Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident, IfDirective, InitDecl,
+    Interpolation, LiveDecl, MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem,
+    ViewDecl, ensure_handler_request_param, parse_component_params, strip_param_defaults,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -282,7 +282,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         inject_live_init: document
             .items
             .iter()
-            .any(|item| matches!(item, ModuleItem::Live(_))),
+            .any(|item| matches!(item, ModuleItem::Route(RouteDecl::Live(_)))),
     };
     let inject_datastar =
         document_has_action(document) && !document_imports_datastar(source.src, document);
@@ -306,10 +306,12 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             ModuleItem::Css(css) => emitter.emit_css_leading(css),
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
-            ModuleItem::Live(live) => emitter.lower_live(live),
-            ModuleItem::View(view) => emitter.lower_view(view),
-            ModuleItem::Patch(patch) => emitter.lower_patch(patch),
-            ModuleItem::Command(command) => emitter.lower_command(command),
+            ModuleItem::Route(route) => match route {
+                RouteDecl::Live(live) => emitter.lower_live(live),
+                RouteDecl::View(view) => emitter.lower_view(view),
+                RouteDecl::Fragment(fragment) => emitter.lower_fragment_decl(fragment),
+                RouteDecl::Command(command) => emitter.lower_command(command),
+            },
         }
     }
     if !emitter.roc.ends_with('\n') && !emitter.roc.is_empty() {
@@ -529,7 +531,7 @@ impl<'a> Emitter<'a> {
     fn lower_view(&mut self, view: &ViewDecl) {
         self.emit_leading(&view.leading);
         self.lower_route(
-            "GET",
+            &view.method.name,
             &view.path,
             RespondKind::Patch,
             view.params,
@@ -538,32 +540,22 @@ impl<'a> Emitter<'a> {
         );
     }
 
-    fn lower_patch(&mut self, patch: &PatchDecl) {
-        self.emit_leading(&patch.leading);
-        let method = patch
-            .method
-            .as_ref()
-            .map(|ident| ident.name.as_str())
-            .unwrap_or("post");
+    fn lower_fragment_decl(&mut self, fragment: &FragmentDecl) {
+        self.emit_leading(&fragment.leading);
         self.lower_route(
-            method,
-            &patch.path,
+            &fragment.method.name,
+            &fragment.path,
             RespondKind::Patch,
-            patch.params,
-            patch.body,
-            patch.span,
+            fragment.params,
+            fragment.body,
+            fragment.span,
         );
     }
 
     fn lower_command(&mut self, command: &CommandDecl) {
         self.emit_leading(&command.leading);
-        let method = command
-            .method
-            .as_ref()
-            .map(|ident| ident.name.as_str())
-            .unwrap_or("post");
         self.lower_route(
-            method,
+            &command.method.name,
             &command.path,
             RespondKind::Command,
             command.params,
@@ -1631,7 +1623,7 @@ fn is_void(name: &str) -> bool {
 fn document_has_action(document: &Document) -> bool {
     document.items.iter().any(|item| match item {
         ModuleItem::Component(component) => items_have_action(&component.body.items),
-        ModuleItem::Live(_) => true,
+        ModuleItem::Route(RouteDecl::Live(_)) => true,
         _ => false,
     })
 }

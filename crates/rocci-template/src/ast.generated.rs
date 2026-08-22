@@ -16,10 +16,7 @@ pub enum ModuleItem {
     Css(CssDecl),
     Context(ContextDecl),
     Init(InitDecl),
-    Live(LiveDecl),
-    View(ViewDecl),
-    Patch(PatchDecl),
-    Command(CommandDecl),
+    Route(RouteDecl),
 }
 
 impl ModuleItem {
@@ -31,10 +28,7 @@ impl ModuleItem {
             Self::Css(item) => item.span,
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
-            Self::Live(item) => item.span,
-            Self::View(item) => item.span,
-            Self::Patch(item) => item.span,
-            Self::Command(item) => item.span,
+            Self::Route(item) => item.span(),
         }
     }
 }
@@ -79,43 +73,22 @@ pub struct InitDecl {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LiveDecl {
-    pub leading: Option<LeadingComments>,
-    pub params: Option<Span>,
-    pub body: Span,
-    pub span: Span,
+pub enum RouteDecl {
+    View(ViewDecl),
+    Fragment(FragmentDecl),
+    Command(CommandDecl),
+    Live(LiveDecl),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ViewDecl {
-    pub leading: Option<LeadingComments>,
-    pub path: String,
-    pub path_span: Span,
-    pub params: Option<Span>,
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PatchDecl {
-    pub leading: Option<LeadingComments>,
-    pub method: Option<Ident>,
-    pub path: String,
-    pub path_span: Span,
-    pub params: Option<Span>,
-    pub body: Span,
-    pub span: Span,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CommandDecl {
-    pub leading: Option<LeadingComments>,
-    pub method: Option<Ident>,
-    pub path: String,
-    pub path_span: Span,
-    pub params: Option<Span>,
-    pub body: Span,
-    pub span: Span,
+impl RouteDecl {
+    pub fn span(&self) -> Span {
+        match self {
+            Self::View(item) => item.span,
+            Self::Fragment(item) => item.span,
+            Self::Command(item) => item.span,
+            Self::Live(item) => item.span,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -141,6 +114,50 @@ pub struct TemplateBlock {
 pub struct ComponentPath {
     pub parts: Vec<Ident>,
     pub roc_name: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ViewDecl {
+    pub leading: Option<LeadingComments>,
+    pub method: Ident,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FragmentDecl {
+    pub leading: Option<LeadingComments>,
+    pub method: Ident,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CommandDecl {
+    pub leading: Option<LeadingComments>,
+    pub method: Ident,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LiveDecl {
+    pub leading: Option<LeadingComments>,
+    pub method: Ident,
+    pub path: String,
+    pub path_span: Span,
+    pub params: Option<Span>,
+    pub body: Span,
     pub span: Span,
 }
 
