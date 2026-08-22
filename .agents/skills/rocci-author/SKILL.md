@@ -28,7 +28,7 @@ read [idioms.md](idioms.md) before writing non-trivial control flow.
 | Reusable UI widgets & design primitives | `components/*.rocci` | Composable `@component` declarations, scoped `@css`, and `@fixture` |
 | Markdown-first page or docs | `docs/*.rocdown` or `*.rocdown` | Prose is Markdown; `@` and `:` only at document root |
 | Site chrome / document layouts | `theme/*.rocci` or `layouts/*.rocci` | Article is a **body parameter**, not a prop (`|{ view }, content|`) |
-| Standalone HTTP apps / route modules | `pages/*.rocci` or root `*.rocci` | App state (`@context`, `@init`), verb-first `@method:role` routes, and full-page HTML |
+| Standalone HTTP apps / route modules | `pages/*.rocci`, app-root `*.rocci`, or nested `backend/` + `ui/` | App state (`@context`, `@init`), verb-first `@method:role` routes, and full-page HTML. Nested apps need `rocci.toml` at the app root. |
 | Shared Roc helpers / domain modules | `*.roc` | Import from `.rocci`; ordinary Roc functions/types without template grammar |
 
 > [!NOTE]
@@ -46,7 +46,8 @@ path until island splicing lands.
 
 - **`components/`**: Place reusable UI components here (e.g. `components/Button.rocci`, `components/StatusCard.rocci`, `components/NavList.rocci`). Each file may define one or several related components and fixtures.
 - **`theme/` or `layouts/`**: Place site shells, document frames, and chrome layouts here (e.g. `theme/Layouts.rocci`, `theme/SiteShell.rocci`).
-- **`pages/` or `routes/` (or app root)**: Place standalone full-page applications and HTTP route modules with `@get:view`, `@context`, and `@init` here.
+- **`pages/` or `routes/` (or app root)**: Place standalone full-page applications and HTTP route modules with `@get:view`, `@context`, and `@init` here. Flat siblings (live-counter) keep the handler module and UI module in one directory.
+- **`backend/` vs `ui/`**: Split an advanced standalone app so `backend/` owns `@context` / `@init` / routes / SQLite plus ordinary `*.roc` rules, and `ui/` owns pure `@component` markup, fixtures, and `@css`. `examples/rocci/standalone/blocks/` is the current advanced example. Put `rocci.toml` at the **app root** (the directory that contains both folders). `rocci run` walks up from the entry file to that file; a repository-root `rocci.toml` is not an app.
 - **Co-location rule**: Keep private helper components and page-specific sub-components in the same `.rocci` module where they are consumed. Extract to `components/` when reused across multiple modules or when authoring a shared component library.
 - **Interactive browsing**: Use `cargo run -p rocci-cli -- browse components/` to discover, test, and preview all components and fixtures in the directory.
 
@@ -132,6 +133,15 @@ file-level `@css` on page modules or shared CSS for patch components; injected
 sibling `<style>` should not ride on SSE patches. Shared multi-tab updates use
 `@get:live` (`$rocci-stack`); do not expect a POST fragment to fan out.
 JSON APIs and mixed responses belong in authored `main.roc`.
+
+Unquoted Rocci actions cannot branch on `evt.key`. A window keymap that must
+inspect the key is **quoted opaque Datastar JS**, for example
+`data-on:keydown__window="evt.key === 'ArrowLeft' && @post('/actions/left')"`.
+Keep ordinary clicks unquoted: `data-on:click=@post("/actions/left")`.
+
+If the document `<body>` lives in a UI module that has no `@get:live`,
+auto-inject does not see the backend live route. Author
+`data-init=@get("/sse", [OpenWhenHidden(True)])` on that shell.
 
 ## Roc used from Rocci
 
