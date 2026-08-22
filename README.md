@@ -166,6 +166,11 @@ To promote the current `main` revision to staging locally, run
 `uv run rocci-ops promote-staging`. This rebases `staging` onto `main`, pushes
 `staging` to `origin`, and restores the branch that was active when it started.
 
+To test a pull request in this worktree when an agent already has the PR
+branch checked out, run `uv run rocci-ops pr-checkout 39`. Quote `#39` in the
+shell, or pass a GitHub PR URL or branch. That fetches the tip and switches
+this checkout to a local `pr/<branch>` branch.
+
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to
 `/page/` or the reverse with **308**, matching the registered `@page` route;

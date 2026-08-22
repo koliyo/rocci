@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from rocci_ops import ci, deploy, docs_coverage, local, origin, release, workspace_deps
+from rocci_ops import ci, deploy, docs_coverage, local, origin, pr_checkout, release, workspace_deps
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
@@ -24,6 +24,7 @@ commands:
   render-brand-icons
   serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
+  pr-checkout   checkout a PR or branch here as pr/<branch>
   promote-staging  rebase staging onto main and push staging
 """
 
@@ -62,6 +63,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(deploy.main(rest))
     if command == "origin":
         raise SystemExit(origin.main(rest))
+    if command == "pr-checkout":
+        raise SystemExit(pr_checkout.main(rest))
     if command in LOCAL_COMMANDS:
         raise SystemExit(local.main([command, *rest]))
     sys.stderr.write(f"unknown command: {command}\n")
