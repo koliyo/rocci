@@ -169,15 +169,20 @@ import PageOutline
     }
     .nav-section summary::-webkit-details-marker { display: none; }
     .nav-section summary::after {
-        content: "+";
         position: absolute;
         right: 0.68rem;
         top: 50%;
-        transform: translateY(-50%);
+        width: 0.42rem;
+        height: 0.42rem;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: translate(-0.12rem, -50%) rotate(-45deg);
+        transition: transform 160ms ease;
         color: var(--faint);
-        font-weight: 500;
     }
-    .nav-section[open] > summary::after { content: "−"; }
+    .nav-section[open] > summary::after {
+        transform: translate(-0.12rem, -65%) rotate(45deg);
+    }
     .nav-link {
         padding: 0.42rem 0.68rem;
         border-radius: 0.45rem;
