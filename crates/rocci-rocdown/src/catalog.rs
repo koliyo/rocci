@@ -715,10 +715,7 @@ fn has_source_line_anchor(target: &ResolvedPage, fragment: &str) -> bool {
 }
 
 fn is_source_line_anchor_id(fragment: &str) -> bool {
-    let Some(digits) = fragment.strip_prefix('L') else {
-        return false;
-    };
-    !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
+    crate::links::is_source_line_anchor_id(fragment)
 }
 
 fn asset_edge(
