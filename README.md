@@ -181,7 +181,9 @@ cargo test --workspace
 uv run rocci-ops ci
 ```
 
-`cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`. GitHub Actions CI and Knowledge do not run on every push or PR; comment `/ci` on a pull request or use **Run workflow**.
+`cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`. GitHub Actions CI and Knowledge do not run on every push or PR; comment `/ci` on a pull request from the `koliyo` account.
+
+The self-hosted CI runners are restricted to exact, same-repository pull requests authored by `koliyo`. Comment `/ci` only from the `koliyo` account: the default-branch comment workflow validates the PR author, repository, and immutable head SHA on a GitHub-hosted runner before calling the trusted workflow definitions; fork and other-author pull requests never reach a local runner. Release builds remain on GitHub-hosted macOS.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.
 
