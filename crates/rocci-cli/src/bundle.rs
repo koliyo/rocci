@@ -53,6 +53,7 @@ fn bundle_macos(
     }
     fs::create_dir_all(&macos)?;
     fs::create_dir_all(&bundled_app)?;
+    copy_app_icon(root, &resources)?;
 
     let server = bundled_app.join(SERVER_NAME);
     if target.is_some() {
@@ -117,6 +118,16 @@ fn build_host(root: &Path) -> Result<PathBuf> {
         bail!("cargo build did not write {}", host.display());
     }
     Ok(host)
+}
+
+fn copy_app_icon(root: &Path, resources: &Path) -> Result<()> {
+    let src = root.join("brand/rocci-app.icns");
+    if !src.is_file() {
+        bail!("missing macOS app icon {}", src.display());
+    }
+    fs::copy(&src, resources.join("AppIcon.icns"))
+        .with_context(|| format!("failed to copy {}", src.display()))?;
+    Ok(())
 }
 
 fn copy_app_assets(app_dir: &Path, bundled_app: &Path) -> Result<()> {
@@ -416,6 +427,8 @@ fn generate_plist(config: &Config, executable: &str) -> String {
   <string>6.0</string>
   <key>CFBundleName</key>
   <string>{name}</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -481,6 +494,32 @@ mod tests {
         assert!(plist.contains("<string>Counter</string>"));
         assert!(plist.contains("<string>dev.rocci.counter</string>"));
         assert!(plist.contains("<key>CFBundleExecutable</key>"));
+        assert!(plist.contains("<key>CFBundleIconFile</key>"));
+        assert!(plist.contains("<string>AppIcon</string>"));
+    }
+
+    #[test]
+    fn copy_app_icon_writes_resources_icns() {
+        let dir = temp_dir("icon");
+        let brand = dir.join("brand");
+        let resources = dir.join("Contents/Resources");
+        fs::create_dir_all(&brand).unwrap();
+        fs::create_dir_all(&resources).unwrap();
+        fs::write(brand.join("rocci-app.icns"), b"icns").unwrap();
+        copy_app_icon(&dir, &resources).unwrap();
+        assert_eq!(fs::read(resources.join("AppIcon.icns")).unwrap(), b"icns");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn copy_app_icon_requires_brand_icns() {
+        let dir = temp_dir("icon-missing");
+        let resources = dir.join("Contents/Resources");
+        fs::create_dir_all(&resources).unwrap();
+        let err = copy_app_icon(&dir, &resources).unwrap_err();
+        let message = format!("{err:#}");
+        assert!(message.contains("missing macOS app icon"), "{message}");
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

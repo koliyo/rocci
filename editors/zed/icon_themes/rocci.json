@@ -42,7 +42,7 @@
       },
       "file_icons": {
         "default": { "path": "./icons/file.svg" },
-        "rocci": { "path": "./icons/rocci-file.svg" }
+        "rocci": { "path": "./icons/rocci-file-light.svg" }
       }
     }
   ]

@@ -64,7 +64,7 @@
           ".rocci"
         ],
         "icon": {
-          "light": "./icons/rocci-file.svg",
+          "light": "./icons/rocci-file-light.svg",
           "dark": "./icons/rocci-file.svg"
         },
         "configuration": "./language-configuration.json"
@@ -78,7 +78,7 @@
           ".rocdown"
         ],
         "icon": {
-          "light": "./icons/rocci-file.svg",
+          "light": "./icons/rocci-file-light.svg",
           "dark": "./icons/rocci-file.svg"
         },
         "configuration": "./rocdown-language-configuration.json"
