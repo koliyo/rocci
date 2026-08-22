@@ -671,6 +671,20 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(50));
         };
+        let signals = {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+            stream
+                .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+                .unwrap();
+            let req = format!(
+                "GET /actions/signals/compose HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+            );
+            stream.write_all(req.as_bytes()).unwrap();
+            let mut buf = Vec::new();
+            let _ = stream.read_to_end(&mut buf);
+            String::from_utf8_lossy(&buf).into_owned()
+        };
         let _ = child.kill();
         let _ = child.wait();
         assert!(
@@ -681,6 +695,23 @@ mod tests {
             !spy_log.exists(),
             "packaged server must not invoke roc: {}",
             fs::read_to_string(&spy_log).unwrap_or_default()
+        );
+        assert!(
+            signals.contains("event: datastar-patch-elements"),
+            "{signals}"
+        );
+        assert!(
+            signals.contains("data: elements <output id=\"signal-ceiling\">ready</output>"),
+            "{signals}"
+        );
+        assert!(
+            signals.contains("event: datastar-patch-signals"),
+            "{signals}"
+        );
+        assert!(signals.contains("data: onlyIfMissing true"), "{signals}");
+        assert!(
+            signals.contains("data: signals {\"notice\":\"ready\"}"),
+            "{signals}"
         );
         let _ = fs::remove_dir_all(&output);
     }
