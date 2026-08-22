@@ -1,180 +1,219 @@
-//! Frozen contract for semantic `@view` / `@patch` / `@command` / `@live`.
+//! Frozen contract for the approved verb-first handler and path-addressed live cutover.
 //! Phase 0 records the intended language; later phases implement it. This file
-//! does not parse new syntax.
+//! deliberately does not parse the new syntax.
 
-struct HandlerRole {
-    noun: &'static str,
+struct HandlerPair {
+    method: &'static str,
+    role: &'static str,
     header: &'static str,
-    default_method: &'static str,
-    allowed_overrides: &'static [&'static str],
     success_value: &'static str,
     generated_response: &'static str,
 }
 
-const ROLES: &[HandlerRole] = &[
-    HandlerRole {
-        noun: "view",
-        header: "@view(path)",
-        default_method: "GET",
-        allowed_overrides: &[],
-        success_value: "Html",
-        generated_response: "document HTML",
-    },
-    HandlerRole {
-        noun: "patch",
-        header: "@patch(path)",
-        default_method: "POST",
-        allowed_overrides: &["PUT", "PATCH", "DELETE"],
-        success_value: "Html",
-        generated_response: "one-shot patch-elements SSE",
-    },
-    HandlerRole {
-        noun: "command",
-        header: "@command(path)",
-        default_method: "POST",
-        allowed_overrides: &["PUT", "PATCH", "DELETE"],
-        success_value: "JSON-encodable data",
-        generated_response: "Datastar empty SSE; otherwise encoded JSON",
-    },
-    HandlerRole {
-        noun: "live",
-        header: "@live",
-        default_method: "GET",
-        allowed_overrides: &[],
-        success_value: "Html",
-        generated_response: "long-lived patch-elements SSE",
-    },
-];
-
-const ACCEPTED_HEADERS: &[&str] = &[
-    "@view(path)",
-    "@patch(path)",
-    "@patch:put(path)",
-    "@patch:patch(path)",
-    "@patch:delete(path)",
-    "@command(path)",
-    "@command:put(path)",
-    "@command:patch(path)",
-    "@command:delete(path)",
-    "@live",
+const ACCEPTED_PAIRS: &[HandlerPair] = &[
+    pair("GET", "view", "@get:view(path)", "Html", "document HTML"),
+    pair(
+        "GET",
+        "fragment",
+        "@get:fragment(path)",
+        "Html",
+        "one-shot element morph",
+    ),
+    pair(
+        "GET",
+        "live",
+        "@get:live(path)",
+        "Html",
+        "long-lived element morph stream",
+    ),
+    pair(
+        "POST",
+        "fragment",
+        "@post:fragment(path)",
+        "Html",
+        "one-shot element morph",
+    ),
+    pair(
+        "PUT",
+        "fragment",
+        "@put:fragment(path)",
+        "Html",
+        "one-shot element morph",
+    ),
+    pair(
+        "PATCH",
+        "fragment",
+        "@patch:fragment(path)",
+        "Html",
+        "one-shot element morph",
+    ),
+    pair(
+        "DELETE",
+        "fragment",
+        "@delete:fragment(path)",
+        "Html",
+        "one-shot element morph",
+    ),
+    pair(
+        "POST",
+        "command",
+        "@post:command(path)",
+        "{}",
+        "no success representation",
+    ),
+    pair(
+        "PUT",
+        "command",
+        "@put:command(path)",
+        "{}",
+        "no success representation",
+    ),
+    pair(
+        "PATCH",
+        "command",
+        "@patch:command(path)",
+        "{}",
+        "no success representation",
+    ),
+    pair(
+        "DELETE",
+        "command",
+        "@delete:command(path)",
+        "{}",
+        "no success representation",
+    ),
 ];
 
 const REJECTED_NEAR_MISSES: &[&str] = &[
-    "@patch:post(path)",
-    "@command:post(path)",
-    "@patch:get(path)",
-    "@command:get(path)",
-    "@view:get(path)",
+    "@get(path)",
+    "@post(path)",
+    "@get:command(path)",
+    "@post:view(path)",
+    "@post:live(path)",
+    "@post:json(path)",
+    "@get:signals(path)",
+    "@get:stream(path)",
+    "@fragment:get(path)",
+    "@view(path)",
+    "@patch:patch(path)",
+    "@command:delete(path)",
+    "@live",
+    "@live(path)",
     "@on:get(path)",
-    "@on:post(path)",
-    "@on:post(path) json",
-    "@action[patch]:delete(path)",
-    "@action:delete[patch](path)",
-    "@action(path) -> patch",
 ];
 
-const PROPOSED_COMMAND_EXAMPLE: &str = r#"
-@command("/actions/counter/increment") = |{ db }| {
-    count = increment_count!(db)?
-    { count }
-}
+const COMPLETE_EXAMPLE: &str = r#"
+@get:view("/") = |state| { page(state) }
+@get:fragment("/search") = |state, request| { search_results(state, request) }
+@post:fragment("/actions/validate") = |state, request| { validation(state, request) }
+@patch:fragment("/actions/items/42") = |state, request| { item_row(state, request) }
+@post:command("/actions/increment") = |state| { increment!(state)? }
+@get:live("/streams/dashboard") = |state| { dashboard_regions(state) }
 "#;
 
-const COMMAND_ENCODER: &str = "Encoding.Json.to_str_try";
-const TOTAL_ENCODER: &str = "Encoding.Json.to_str";
-const NAMING_GATE_PATCH: &str = "@patch";
-const NAMING_GATE_SUBSTITUTE: &str = "@fragment";
+const SINGLETON_INJECTION: &str = "inject authored path with OpenWhenHidden(True)";
+const MULTIPLE_INJECTION: &str = "inject nothing; subscriptions are explicit";
+const AUTHORED_DATA_INIT: &str = "preserve exactly";
+const COMMAND_WIRE_POLICY: &str = "Datastar: empty SSE; ordinary caller: 204";
+const POLL_INTERVAL_MS: u64 = 100;
 
-#[test]
-fn freezes_four_declaration_roles() {
-    assert_eq!(
-        ROLES.iter().map(|role| role.noun).collect::<Vec<_>>(),
-        ["view", "patch", "command", "live"]
-    );
-    let view = role("view");
-    assert_eq!(view.default_method, "GET");
-    assert!(view.allowed_overrides.is_empty());
-    assert_eq!(view.success_value, "Html");
-
-    let patch = role("patch");
-    assert_eq!(patch.default_method, "POST");
-    assert_eq!(patch.allowed_overrides, ["PUT", "PATCH", "DELETE"]);
-    assert_eq!(patch.success_value, "Html");
-
-    let command = role("command");
-    assert_eq!(command.default_method, "POST");
-    assert_eq!(command.allowed_overrides, ["PUT", "PATCH", "DELETE"]);
-    assert_eq!(command.success_value, "JSON-encodable data");
-    assert!(command.generated_response.contains("empty SSE"));
-    assert!(command.generated_response.contains("JSON"));
-
-    let live = role("live");
-    assert_eq!(live.header, "@live");
-    assert_eq!(live.default_method, "GET");
-    assert_eq!(live.success_value, "Html");
-}
-
-#[test]
-fn freezes_accepted_headers_and_post_omission() {
-    for header in ACCEPTED_HEADERS {
-        assert!(!header.contains(":post"), "POST is omitted: {header}");
+const fn pair(
+    method: &'static str,
+    role: &'static str,
+    header: &'static str,
+    success_value: &'static str,
+    generated_response: &'static str,
+) -> HandlerPair {
+    HandlerPair {
+        method,
+        role,
+        header,
+        success_value,
+        generated_response,
     }
-    assert!(ACCEPTED_HEADERS.contains(&"@patch:patch(path)"));
-    assert!(ACCEPTED_HEADERS.contains(&"@command:delete(path)"));
-    assert!(!ACCEPTED_HEADERS.iter().any(|header| header.contains("@on")));
 }
 
 #[test]
-fn freezes_clean_cut_removal_and_rejected_near_misses() {
+fn freezes_closed_method_role_matrix() {
+    assert_eq!(ACCEPTED_PAIRS.len(), 11);
+    assert!(accepted("GET", "view"));
+    assert!(accepted("GET", "fragment"));
+    assert!(accepted("GET", "live"));
+    for method in ["POST", "PUT", "PATCH", "DELETE"] {
+        assert!(accepted(method, "fragment"));
+        assert!(accepted(method, "command"));
+        assert!(!accepted(method, "view"));
+        assert!(!accepted(method, "live"));
+    }
+    assert!(!accepted("GET", "command"));
+}
+
+#[test]
+fn freezes_verb_first_fragment_naming_and_clean_cut() {
+    assert!(ACCEPTED_PAIRS.iter().all(|pair| {
+        pair.header
+            .starts_with(&format!("@{}:", pair.method.to_ascii_lowercase()))
+    }));
+    assert!(ACCEPTED_PAIRS.iter().any(|pair| pair.role == "fragment"));
+    assert!(!ACCEPTED_PAIRS.iter().any(|pair| {
+        pair.header.starts_with("@view")
+            || pair.header.starts_with("@patch(")
+            || pair.header.starts_with("@command")
+            || pair.header.starts_with("@live")
+    }));
     for near_miss in REJECTED_NEAR_MISSES {
-        assert!(
-            !ACCEPTED_HEADERS.contains(near_miss),
-            "{near_miss} must not be an accepted header"
-        );
+        assert!(!ACCEPTED_PAIRS.iter().any(|pair| pair.header == *near_miss));
     }
-    assert!(
-        REJECTED_NEAR_MISSES
-            .iter()
-            .any(|header| header.starts_with("@on:")),
-        "removed @on declarations stay rejected, not aliases"
-    );
 }
 
 #[test]
-fn freezes_patch_versus_fragment_naming_gate() {
-    assert_eq!(NAMING_GATE_PATCH, "@patch");
-    assert_eq!(NAMING_GATE_SUBSTITUTE, "@fragment");
-    assert!(
-        ACCEPTED_HEADERS
-            .iter()
-            .any(|header| header.starts_with("@patch")),
-        "trial syntax keeps @patch"
+fn freezes_representation_free_commands() {
+    for command in ACCEPTED_PAIRS.iter().filter(|pair| pair.role == "command") {
+        assert_eq!(command.success_value, "{}");
+        assert_eq!(command.generated_response, "no success representation");
+    }
+    assert_eq!(
+        COMMAND_WIRE_POLICY,
+        "Datastar: empty SSE; ordinary caller: 204"
     );
-    assert!(
-        !ACCEPTED_HEADERS
-            .iter()
-            .any(|header| header.contains("fragment")),
-        "do not substitute @fragment; complete examples keep @patch as the fragment noun"
-    );
+    assert!(!COMPLETE_EXAMPLE.contains("Json.to_str"));
+    assert!(!COMPLETE_EXAMPLE.contains("{ count"));
 }
 
 #[test]
-fn proposed_examples_do_not_interpolate_json() {
-    assert!(!PROPOSED_COMMAND_EXAMPLE.contains("Json.to_str"));
-    assert!(!PROPOSED_COMMAND_EXAMPLE.contains("{\\\""));
-    assert!(!PROPOSED_COMMAND_EXAMPLE.contains("${count.to_str()}"));
-    assert!(PROPOSED_COMMAND_EXAMPLE.contains("{ count }"));
-}
-
-#[test]
-fn freezes_host_json_encoder_api() {
-    assert_eq!(COMMAND_ENCODER, "Encoding.Json.to_str_try");
-    assert_eq!(TOTAL_ENCODER, "Encoding.Json.to_str");
-}
-
-fn role(noun: &str) -> &'static HandlerRole {
-    ROLES
+fn freezes_plural_live_paths_and_injection_policy() {
+    let live = ACCEPTED_PAIRS
         .iter()
-        .find(|role| role.noun == noun)
-        .unwrap_or_else(|| panic!("missing role {noun}"))
+        .find(|pair| pair.role == "live")
+        .expect("GET live pair");
+    assert_eq!(live.method, "GET");
+    assert_eq!(live.header, "@get:live(path)");
+    assert!(COMPLETE_EXAMPLE.contains("@get:live(\"/streams/dashboard\")"));
+    assert_eq!(
+        SINGLETON_INJECTION,
+        "inject authored path with OpenWhenHidden(True)"
+    );
+    assert_eq!(
+        MULTIPLE_INJECTION,
+        "inject nothing; subscriptions are explicit"
+    );
+    assert_eq!(AUTHORED_DATA_INIT, "preserve exactly");
+}
+
+#[test]
+fn records_linear_polling_cost_model() {
+    assert_eq!(POLL_INTERVAL_MS, 100);
+    let streams = 2;
+    let tabs = 2;
+    assert_eq!(
+        streams * tabs,
+        4,
+        "one independent response and poll loop per stream subscription"
+    );
+}
+
+fn accepted(method: &str, role: &str) -> bool {
+    ACCEPTED_PAIRS
+        .iter()
+        .any(|pair| pair.method == method && pair.role == role)
 }
