@@ -45,8 +45,10 @@ Game := [].{
             _ => ""
         }
 
-    next_seed = |seed|
-        I64.bitwise_and(I64.plus_saturated(I64.times(seed, 1103515245.I64), 12345.I64), 2147483647.I64)
+    next_seed = |seed| {
+        n = I64.bitwise_and(seed, 2147483647.I64)
+        I64.bitwise_and(I64.plus_saturated(I64.times(n, 1103515245.I64), 12345.I64), 2147483647.I64)
+    }
 
     rand_range = |seed, lo, hi| {
         span = hi - lo + 1
