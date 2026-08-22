@@ -43,7 +43,7 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
-    "vscode-languageclient": "^8.1.0"
+    "vscode-languageclient": "^10.1.0"
   },
   "contributes": {
     "configurationDefaults": {
