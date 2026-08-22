@@ -443,16 +443,21 @@ Isolation is Vue-style. Authors keep writing `class="card"`. Lowering stamps
 `data-rocci-css` on intrinsic HTML elements authored in that component (not on
 `<Child />` calls) and wraps each block in `@scope ([data-rocci-css~="id"])`.
 File-level rules share one file id across every component in the module.
-Component-level rules use a per-component id. Descendant selectors can still
+Component-level rules use a per-component id. Both ids hash the file basename
+so a snapshot stylesheet compiled as `LiveCounterUi.rocci` still matches
+`@live` HTML compiled from an absolute path to the same file. Descendant selectors can still
 match child-component internals; there is no `:deep` yet.
 
 v1 injects a `<style>` element so `view` / `browse` work immediately, and also
-returns the same scoped CSS on `CompileOutput.styles`. When the component root
+returns scoped CSS on `CompileOutput.styles`. When the component root
 is an `<html>` document, that style is placed in `<head>` so the browser applies
 page chrome. Other components wrap a sibling `<style>` around the markup. SSE
 patches should not carry `<style>`. The intended delivery is: keep `@css`
 colocated, extract once, and link or inline the stylesheet in the document
-`<head>`. Until that follow-up, prefer file-level `@css` on page modules or
+`<head>`. For extracted simple rules, lowering retains native `@scope` and
+also emits equivalent attribute-prefixed selectors for linked-stylesheet
+compatibility; rules containing nested at-rules keep their native form. Until
+that follow-up, prefer file-level `@css` on page modules or
 shared `app.css` for patch components. `@scope` does not restyle the document
 element from an `html { ... }` rule; put document chrome on `body` or `:scope`.
 

@@ -22,44 +22,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Watch an OKF bundle or a concept file inside one, rebuild, and serve with live reload.
+    /// Preview an OKF bundle or a concept file with live reload.
+    View {
+        #[command(flatten)]
+        preview: PreviewArgs,
+    },
+    /// Deprecated alias for `view`.
     Run {
-        /// Knowledge bundle directory or a Markdown file inside one.
-        #[arg(default_value = "knowledge")]
-        path: PathBuf,
-        /// Write preview output here instead of a temp directory.
-        #[arg(short, long)]
-        output: Option<PathBuf>,
-        #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
-        profile: KnowledgeProfileArg,
-        /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
-        #[arg(long, value_enum, default_value_t = HostArg::Auto)]
-        host: HostArg,
-        /// Skip the preview window; print the URL and keep serving.
-        /// Open that URL with `?reload=0` to pause automatic page refresh.
-        #[arg(long)]
-        no_window: bool,
-        /// Pause automatic page refresh. Watch and rebuild still run.
-        #[arg(long)]
-        no_live_reload: bool,
-        /// Run git provenance checks (OKF4006/4007/4008) during preview.
-        /// Off by default; `check --profile rocci` still runs them.
-        #[arg(long)]
-        provenance: bool,
-        /// Emit rebuild profiling to stderr in terminal or JSON form.
-        #[arg(long, value_enum, default_value_t = ProfileReportArg::Off)]
-        profile_report: ProfileReportArg,
-        /// TCP port to listen on. Defaults to a free port with the preview window,
-        /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
-        #[arg(
-            long,
-            default_value = "auto",
-            default_value_if("no_window", "true", "8000"),
-            value_name = "PORT",
-            value_parser = parse_port_arg,
-            env = "ROC_BASIC_WEBSERVER_PORT"
-        )]
-        port: PortArg,
+        #[command(flatten)]
+        preview: PreviewArgs,
     },
     /// Validate an OKF bundle without writing output.
     Check {
@@ -109,6 +80,46 @@ enum Commands {
     },
 }
 
+#[derive(Args, Debug)]
+struct PreviewArgs {
+    /// Knowledge bundle directory or a Markdown file inside one.
+    #[arg(default_value = "knowledge")]
+    path: PathBuf,
+    /// Write preview output here instead of a temp directory.
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+    #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
+    profile: KnowledgeProfileArg,
+    /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
+    #[arg(long, value_enum, default_value_t = HostArg::Auto)]
+    host: HostArg,
+    /// Skip the preview window; print the URL and keep serving.
+    /// Open that URL with `?reload=0` to pause automatic page refresh.
+    #[arg(long)]
+    no_window: bool,
+    /// Pause automatic page refresh. Watch and rebuild still run.
+    #[arg(long)]
+    no_live_reload: bool,
+    /// Run git provenance checks (OKF4006/4007/4008) during preview.
+    /// Off by default; `check --profile rocci` still runs them.
+    #[arg(long)]
+    provenance: bool,
+    /// Emit rebuild profiling to stderr in terminal or JSON form.
+    #[arg(long, value_enum, default_value_t = ProfileReportArg::Off)]
+    profile_report: ProfileReportArg,
+    /// TCP port to listen on. Defaults to a free port with the preview window,
+    /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
+    #[arg(
+        long,
+        default_value = "auto",
+        default_value_if("no_window", "true", "8000"),
+        value_name = "PORT",
+        value_parser = parse_port_arg,
+        env = "ROC_BASIC_WEBSERVER_PORT"
+    )]
+    port: PortArg,
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 enum CheckFormatArg {
     Terminal,
@@ -144,6 +155,56 @@ enum HostArg {
     Wasm,
 }
 
+fn preview_knowledge(preview: PreviewArgs) -> Result<()> {
+    let PreviewArgs {
+        path,
+        output,
+        profile,
+        host,
+        no_window,
+        no_live_reload,
+        provenance,
+        profile_report,
+        port,
+    } = preview;
+    let live_reload = !no_live_reload;
+    let target = okf::resolve_preview_path(&path)?;
+    let port = port.resolve()?;
+    let server = dev::run_knowledge(
+        &target.root,
+        output.as_deref(),
+        port,
+        profile.into(),
+        provenance,
+        &target.open_path,
+        preview_host(host),
+        profile_report.into(),
+    )?;
+    rocci_cli::logs::tee(
+        &server.logs,
+        rocci_cli::logs::LogLevel::Info,
+        format!("rocci-okf: serving {} at {}", server.title, server.url),
+    );
+    rocci_cli::serve::note_live_reload_paused(live_reload);
+    if no_window {
+        server.wait();
+        return Ok(());
+    }
+    let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
+        url: server.url.clone(),
+        title: format!("{} — Rocci Knowledge", server.title),
+        state_key: Some("rocci:knowledge".to_string()),
+        width: 1200.0,
+        height: 800.0,
+        inspector_url: Some(server.inspector_url.clone()),
+        live_reload,
+        ..rocci_desktop::PreviewOptions::default()
+    })
+    .map_err(|error| anyhow::anyhow!("{error}"));
+    drop(server);
+    result
+}
+
 fn preview_host(host: HostArg) -> Option<rocci_roc_host::HostChoice> {
     match host {
         HostArg::Auto => None,
@@ -152,7 +213,7 @@ fn preview_host(host: HostArg) -> Option<rocci_roc_host::HostChoice> {
     }
 }
 
-#[derive(Clone, Copy, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 enum KnowledgeProfileArg {
     Base,
     Rocci,
@@ -322,53 +383,12 @@ fn main() -> Result<()> {
             );
             Ok(())
         }
-        Commands::Run {
-            path,
-            output,
-            profile,
-            host,
-            no_window,
-            no_live_reload,
-            provenance,
-            profile_report,
-            port,
-        } => {
-            let live_reload = !no_live_reload;
-            let target = okf::resolve_preview_path(&path)?;
-            let port = port.resolve()?;
-            let server = dev::run_knowledge(
-                &target.root,
-                output.as_deref(),
-                port,
-                profile.into(),
-                provenance,
-                &target.open_path,
-                preview_host(host),
-                profile_report.into(),
-            )?;
-            rocci_cli::logs::tee(
-                &server.logs,
-                rocci_cli::logs::LogLevel::Info,
-                format!("rocci-okf: serving {} at {}", server.title, server.url),
+        Commands::View { preview } => preview_knowledge(preview),
+        Commands::Run { preview } => {
+            eprintln!(
+                "rocci-okf: `run` is a deprecated alias for `view` and will be removed in a later release"
             );
-            rocci_cli::serve::note_live_reload_paused(live_reload);
-            if no_window {
-                server.wait();
-                return Ok(());
-            }
-            let result = rocci_desktop::preview(rocci_desktop::PreviewOptions {
-                url: server.url.clone(),
-                title: format!("{} — Rocci Knowledge", server.title),
-                state_key: Some("rocci:knowledge".to_string()),
-                width: 1200.0,
-                height: 800.0,
-                inspector_url: Some(server.inspector_url.clone()),
-                live_reload,
-                ..rocci_desktop::PreviewOptions::default()
-            })
-            .map_err(|error| anyhow::anyhow!("{error}"));
-            drop(server);
-            result
+            preview_knowledge(preview)
         }
     }
 }
@@ -391,18 +411,29 @@ mod tests {
         );
     }
 
+    fn preview_args(command: Commands) -> PreviewArgs {
+        match command {
+            Commands::View { preview } | Commands::Run { preview } => preview,
+            _ => panic!("expected view or run"),
+        }
+    }
+
     #[test]
-    fn run_accepts_no_live_reload() {
+    fn view_accepts_no_live_reload() {
+        let cli =
+            Cli::try_parse_from(["rocci-okf", "view", "knowledge", "--no-live-reload"]).unwrap();
+        assert!(preview_args(cli.command).no_live_reload);
+        let cli = Cli::try_parse_from(["rocci-okf", "view", "knowledge"]).unwrap();
+        assert!(!preview_args(cli.command).no_live_reload);
+    }
+
+    #[test]
+    fn run_remains_a_deprecated_alias_for_view() {
         let cli =
             Cli::try_parse_from(["rocci-okf", "run", "knowledge", "--no-live-reload"]).unwrap();
         match cli.command {
-            Commands::Run { no_live_reload, .. } => assert!(no_live_reload),
-            _ => panic!("expected run"),
-        }
-        let cli = Cli::try_parse_from(["rocci-okf", "run", "knowledge"]).unwrap();
-        match cli.command {
-            Commands::Run { no_live_reload, .. } => assert!(!no_live_reload),
-            _ => panic!("expected run"),
+            Commands::Run { preview } => assert!(preview.no_live_reload),
+            _ => panic!("expected run alias"),
         }
     }
 
@@ -410,8 +441,8 @@ mod tests {
     fn no_window_help_mentions_reload_query() {
         use clap::CommandFactory;
         let cmd = Cli::command();
-        let run = cmd.find_subcommand("run").expect("run");
-        let arg = run
+        let view = cmd.find_subcommand("view").expect("view");
+        let arg = view
             .get_arguments()
             .find(|arg| arg.get_long() == Some("no-window"))
             .expect("no-window");

@@ -18,14 +18,14 @@ badge = |{ tone }, content| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             Html.element(
                 "span",
                 [
                     Html.attribute("class", badgeClass(tone)),
-                    Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                    Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                 ],
                 [
                     content,
@@ -44,13 +44,13 @@ hello = |{ name }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             Html.element(
                 "p",
                 [
-                    Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                    Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                 ],
                 [
                     Html.text("Hello, "),
@@ -69,7 +69,7 @@ counterCard = |{ count }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             Html.element(
@@ -77,13 +77,13 @@ counterCard = |{ count }| {
                 [
                     Html.attribute("id", "counter"),
                     Html.attribute("class", "counter-card"),
-                    Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                    Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                 ],
                 [
                     Html.element(
                         "output",
                         [
-                            Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                            Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                         ],
                         [
                             Html.text(Num.toStr(count)),
@@ -107,14 +107,14 @@ counterPage = |{ person, count }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             Html.element(
                 "main",
                 [
                     Html.attribute("id", "counter-page"),
-                    Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                    Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                 ],
                 [
                     hello(
@@ -140,7 +140,7 @@ todoList = |{ items, state }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             match state {
@@ -158,7 +158,7 @@ todoList = |{ items, state }| {
                     Html.element(
                         "ul",
                         [
-                            Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                            Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                         ],
                         List.map(items, |item| {
                             todoRow(
@@ -180,7 +180,7 @@ accountActions = |{ user }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             if user.isSignedIn {
@@ -210,7 +210,7 @@ filteredList = |{ items, query }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             if List.isEmpty(visible) {
@@ -234,7 +234,7 @@ requestState = |{ state, active }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             match state {
@@ -270,7 +270,7 @@ profileLink = |{ person, selected }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             Html.element(
@@ -279,7 +279,7 @@ profileLink = |{ person, selected }| {
                     Html.attribute("href", person.url),
                     Html.attribute("class", if selected { "selected" } else { "" }),
                     Html.attribute("aria-current", if selected { "page" } else { "false" }),
-                    Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                    Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                 ],
                 [
                     Html.text(person.name),
@@ -297,7 +297,7 @@ visibleCheck = |{ user, permissions }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             if isVisible({ user, permissions }) {
@@ -308,7 +308,7 @@ visibleCheck = |{ user, permissions }| {
                 Html.element(
                     "p",
                     [
-                        Html.attribute("data-rocci-css", "AllSyntax-02b8f884"),
+                        Html.attribute("data-rocci-css", "AllSyntax-30772c91"),
                     ],
                     [],
                 )
@@ -325,7 +325,7 @@ statusMatch = |{ pair }| {
                 "style",
                 [],
                 [
-                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-02b8f884\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
+                    Html.text("@scope ([data-rocci-css~=\"AllSyntax-30772c91\"]) {\nbody { font-family: system-ui, sans-serif; }\n}"),
                 ],
             ),
             match ({ status, items }) {

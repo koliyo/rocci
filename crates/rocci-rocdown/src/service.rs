@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
 use rocci_cli::driver::{self, DriverOptions, GenericAppPlan, GenericModule};
@@ -27,6 +28,12 @@ pub struct IslandServicePlan {
     pub primary_name: String,
     pub modules: Vec<StandaloneModule>,
     pub redirect_trailing_slash: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ConfiguredServiceApp {
+    pub app: GenericAppPlan,
+    pub source_dir: PathBuf,
 }
 
 impl IslandServicePlan {
@@ -115,6 +122,61 @@ pub fn generated_island_plan(root: &Path) -> Result<Option<IslandServicePlan>> {
         return Ok(None);
     }
     Ok(Some(plan_island_service_from(&loaded, &result.site)?))
+}
+
+/// Build the island plan for an explicitly configured sibling Rocci service.
+///
+/// Static preview uses this plan to run the configured service behind its
+/// same-origin proxy. `generated_island_plan` intentionally excludes these
+/// services because it only assembles handlers authored in live `.rocdown`
+/// pages.
+pub fn configured_service_app_plan(root: &Path) -> Result<Option<ConfiguredServiceApp>> {
+    let loaded = load_site(root)?;
+    if loaded.config.http.service.is_empty() {
+        return Ok(None);
+    }
+    let result = resolve_loaded(&loaded);
+    if result.has_errors() {
+        bail!("{}", result.error_summary());
+    }
+    if !result
+        .site
+        .pages
+        .iter()
+        .any(|page| !page.draft && page.kind == PageKind::Live)
+    {
+        return Ok(None);
+    }
+
+    let service = loaded.root.join(&loaded.config.http.service);
+    if !service.is_file() {
+        bail!(
+            "configured [http].service `{}` does not exist",
+            loaded.config.http.service
+        );
+    }
+    let mut app = rocci_cli::run::standalone_app_plan(&service)?;
+    let page_paths = site_page_paths(&result.site);
+    for module in &mut app.modules {
+        module
+            .routes
+            .retain(|route| keep_island_route(route, &page_paths));
+    }
+    if !app.modules.iter().any(|module| {
+        module
+            .routes
+            .iter()
+            .any(|route| route.method != "GET" && route.method != "HEAD")
+    }) {
+        bail!(
+            "[http].service `{}` has no mutation `@patch` or `@command` handlers",
+            loaded.config.http.service
+        );
+    }
+    Ok(Some(ConfiguredServiceApp {
+        app,
+        source_dir: service.parent().unwrap_or(&loaded.root).to_path_buf(),
+    }))
 }
 
 pub fn island_routes(root: &Path, site: &ResolvedSite) -> Result<Vec<IslandRoute>> {
@@ -709,5 +771,46 @@ RevealTip = |{ open }| {
         let err = plan_island_service(&sibling).unwrap_err().to_string();
         assert!(err.contains("[http].service"), "{err}");
         let _ = fs::remove_dir_all(sibling);
+    }
+
+    #[test]
+    fn configured_service_app_plan_keeps_mutation_routes_and_sibling_modules() {
+        let root = temp("configured-service-plan");
+        fs::write(
+            root.join("rocdown.toml"),
+            "[site]\ntitle = \"Configured\"\n[http]\nservice = \"Service.rocci\"\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("index.rocdown"),
+            "@patch(\"/actions/page/ping\") = |_, _request| {\n    <div id=\"ping\">pong</div>\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("Service.rocci"),
+            "import ServiceUi\n\n@patch(\"/actions/counter/increment\") = |_, _request| {\n    ServiceUi.Counter({ count: 1.I64 })\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("ServiceUi.rocci"),
+            "@component\nCounter = |{ count }|\n    <output id=\"counter\">{count.to_str()}</output>\n",
+        )
+        .unwrap();
+
+        let configured = configured_service_app_plan(&root).unwrap().unwrap();
+        assert_eq!(configured.source_dir, root);
+        assert!(
+            configured
+                .app
+                .modules
+                .iter()
+                .any(|module| module.type_name == "ServiceUi")
+        );
+        assert!(configured.app.modules.iter().any(|module| {
+            module
+                .routes
+                .iter()
+                .any(|route| route.method == "POST" && route.path == "/actions/counter/increment")
+        }));
     }
 }

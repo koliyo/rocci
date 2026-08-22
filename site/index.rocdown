@@ -35,6 +35,8 @@ Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Data
 The card below is the [live counter](/examples/live-counter/) app composed into this page: CDN snapshot HTML, then `GET /sse` keeps the shared count and recent click origins in sync across tabs. Place comes from your browser timezone or a chosen override — neither is verified.
 
 @render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
+<div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
+
 ## Know the maturity boundary
 
 Rocci is an active experiment. The compiler, local runtime, Rocdown site generator, hybrid serving path, editor integration, and local macOS bundling work today. Production distribution and broad cross-platform validation are not complete. Read [Project status](/project/status/) before adopting it.

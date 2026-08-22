@@ -42,7 +42,7 @@ pub fn resolve_preview_path(path: &Path) -> Result<PreviewTarget> {
     }
     if path.extension().and_then(|ext| ext.to_str()) != Some("md") {
         bail!(
-            "unsupported file for `rocci-okf run`: {}; expected a knowledge bundle directory or a .md file",
+            "unsupported file for `rocci-okf view`: {}; expected a knowledge bundle directory or a .md file",
             path.display()
         );
     }
@@ -58,12 +58,12 @@ pub fn resolve_preview_path(path: &Path) -> Result<PreviewTarget> {
     match relative.rsplit('/').next() {
         Some("index.md") if relative == "index.md" => Ok(PreviewTarget::bundle(root)),
         Some("index.md") => bail!(
-            "{} is a collection index, not a concept; preview the bundle with `rocci-okf run {}`",
+            "{} is a collection index, not a concept; preview the bundle with `rocci-okf view {}`",
             path.display(),
             root.display()
         ),
         Some("log.md") => bail!(
-            "{} is a knowledge log, not a concept; preview the bundle with `rocci-okf run {}`",
+            "{} is a knowledge log, not a concept; preview the bundle with `rocci-okf view {}`",
             path.display(),
             root.display()
         ),

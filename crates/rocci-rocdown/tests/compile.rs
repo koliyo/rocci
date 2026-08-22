@@ -1353,6 +1353,25 @@ FeatureCount = |{ count }| {
 }
 
 #[test]
+fn compile_islands_keeps_datastar_for_root_action_elements() {
+    let src = r#"
+@roc {
+import Datastar
+}
+
+<div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
+"#;
+    let out = compile_islands_ok(src);
+    assert!(out.roc.contains("import Datastar"), "{}", out.roc);
+    assert!(
+        out.roc
+            .contains("Datastar.get_with(\"/sse\", [OpenWhenHidden(True)])"),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
 fn html_inside_lists_and_fences_is_not_an_island() {
     let src = "\
 - item
