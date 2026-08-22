@@ -32,7 +32,7 @@ outline_1280 = "none"
 outline_900 = "none"
 outline_390 = "none"
 title = "Rocci"
-assert_present = ["Getting started", "Rocdown", "Examples", "Playground", "Project", "Try a live island"]
+assert_present = ["Getting started", "Rocdown", "Examples", "Playground", "Project", "Hybrid island deployment"]
 assert_absent = ["News", "/news/"]
 
 [[route]]
@@ -54,17 +54,17 @@ breadcrumbs = ["Rocci", "Docs"]
 outline_1280 = "right-rail-when-headings-warrant"
 outline_900 = "inline-details-when-headings-warrant"
 outline_390 = "mobile-menu-when-headings-warrant"
-title = "Rocci documentation · Rocci"
+title = "Overview · Rocci"
 
 [[route]]
-path = "/docs/start/install/"
+path = "/docs/install/"
 page_class = "article"
 sidebar = "docs"
-breadcrumbs = ["Rocci", "Docs", "Start", "Install Rocci"]
+breadcrumbs = ["Rocci", "Docs", "Start", "Install"]
 outline_1280 = "right-rail"
 outline_900 = "inline-details"
 outline_390 = "mobile-menu"
-title = "Install Rocci · Rocci"
+title = "Install · Rocci"
 
 [[route]]
 path = "/rocdown/"

@@ -13,7 +13,7 @@ Canonical contracts: [Tags](/docs/reference/language/tags/),
 [Attributes](/docs/reference/language/attributes/),
 [CSS](/docs/reference/language/css/).
 
-**Verify:** `rocci build FILE` succeeds; inspect shows `Html.element` / `Html.fragment`.
+`rocci build FILE` succeeds when tags lower to `Html.element` / `Html.fragment`.
 
 ## Tags and fragments
 
@@ -29,14 +29,21 @@ later. Dynamic tag names and prop spreading are not supported.
 
 ## Attributes and identity
 
+Standard Datastar writes browser attributes as strings
+(`data-on-click="@post('/actions/save')"`). Rocci keeps the same morph-by-`id`
+model, but attributes stay in template grammar:
+
 ```rocci
 <button class="primary" disabled data-on:click=@post("/actions/save")>
     Save
 </button>
 ```
 
-`class={expr}` is a Roc expression. Valueless `disabled` is a boolean
+Unquoted `@post(...)` is a Rocci action: the compiler knows the path and
+keeps it aligned with handlers. A quoted `"@post('/x')"` is opaque Datastar
+JS. `class={expr}` is a Roc expression. Valueless `disabled` is a boolean
 attribute. Hyphenated names (`aria-current`, `data-on:click`) are legal.
+
 Preserve accessible names: `alt` on images, visible labels on buttons, and
 stable `id`s on regions you will morph. Datastar morphs by `id`; a fragment
 without a stable target is a no-op.

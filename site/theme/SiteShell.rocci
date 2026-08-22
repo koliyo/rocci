@@ -123,12 +123,6 @@ import PageOutline
                     </details>
                 </div>
             </header>
-            @if view.route == "/" {
-                <Components.ExperimentalBanner />
-            }
-            @if view.route == "/docs/" {
-                <Components.ExperimentalBanner />
-            }
             <div class="site-container">
                 @match view.layout {
                     "home" => <Layouts.Home view={view}>{content}</Layouts.Home>

@@ -7,7 +7,7 @@ repository = "https://github.com/koliyo/rocci"
 social_image = "/assets/og.png"
 favicon = "/assets/favicon.svg"
 apple_touch_icon = "/assets/apple-touch-icon.png"
-subtitle = "Roc-native interface tools"
+subtitle = "Composable authoring for applications and content"
 footer = "Highly experimental software — for testing only. Not for production use."
 
 [build]
@@ -38,7 +38,6 @@ items = [
     "docs/the-stack",
     "docs/appendix/roc-for-rocci",
     "docs/appendix/web-foundations",
-    "docs/appendix/why-roc",
     "docs/appendix/glossary",
 ]
 
@@ -118,6 +117,7 @@ items = [
     "examples/index",
     "examples/counter/index",
     "examples/live-counter/index",
+    "examples/notes/index",
     "examples/handler-matrix/index",
     "examples/styling/index",
     "examples/datastar/index",

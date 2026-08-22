@@ -40,7 +40,7 @@
     a { color: inherit; }
     img { max-width: 100%; height: auto; }
 
-    .article { width: min(100%, 46rem); margin: 0 auto; overflow-x: auto; }
+    .article { width: min(100%, 46rem); margin: 0 auto; overflow-x: visible; padding-inline: 0.35rem; }
     .article > :first-child { margin-top: 0; }
     .article .rd-header-1 {
         margin: 0 0 1.15rem;

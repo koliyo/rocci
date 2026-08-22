@@ -691,7 +691,9 @@ fn heading_edge(
     target: &ResolvedPage,
     fragment: &str,
 ) -> Result<Option<Edge>, CatalogDiagnostic> {
-    if target.headings.iter().any(|heading| heading.id == fragment) {
+    if target.headings.iter().any(|heading| heading.id == fragment)
+        || has_source_line_anchor(target, fragment)
+    {
         Ok(Some(edge(
             from,
             raw,
@@ -705,6 +707,18 @@ fn heading_edge(
             format!("broken heading link `{raw}`"),
         ))
     }
+}
+
+fn has_source_line_anchor(target: &ResolvedPage, fragment: &str) -> bool {
+    is_source_line_anchor_id(fragment)
+        && target.article_html.contains(&format!("id=\"{fragment}\""))
+}
+
+fn is_source_line_anchor_id(fragment: &str) -> bool {
+    let Some(digits) = fragment.strip_prefix('L') else {
+        return false;
+    };
+    !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 fn asset_edge(
@@ -842,6 +856,9 @@ fn resolve_nav_section(
     let mut items = Vec::new();
     for id in ids {
         let Some(page) = by_id.get(id.as_str()) else {
+            if section.directory.as_deref() == Some("examples") {
+                continue;
+            }
             diagnostics.push(CatalogDiagnostic::error(
                 "RD2201",
                 "rocdown.toml",
@@ -1270,6 +1287,32 @@ mod tests {
     }
 
     #[test]
+    fn examples_nav_skips_unstaged_page_ids() {
+        let pages = [page(
+            "examples/index",
+            "examples/index.rocdown",
+            RouteHint::Derived,
+            "Examples",
+        )];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Examples".into(),
+                    items: vec!["examples/index".into(), "examples/notes/index".into()],
+                    directory: Some("examples".into()),
+                    groups: Vec::new(),
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+        assert!(!result.has_errors(), "{}", result.error_summary());
+        assert!(!codes(&result).contains(&"RD2201"));
+        assert_eq!(result.site.navigation[0].items.len(), 1);
+        assert_eq!(result.site.navigation[0].items[0].id, "examples/index");
+    }
+
+    #[test]
     fn linked_detail_is_unlisted_without_warning_noise() {
         let home = page("index", "index.rocdown", RouteHint::Derived, "Home");
         let mut detail = page(
@@ -1443,6 +1486,38 @@ mod tests {
         assert!(result.error_summary().contains("/missing/"));
         assert!(result.error_summary().contains("/guide/#nope"));
         assert!(codes(&result).contains(&"RD2101"));
+        assert!(codes(&result).contains(&"RD2102"));
+    }
+
+    #[test]
+    fn accepts_include_source_line_anchor_links() {
+        let mut source = page(
+            "examples/styling/source/Styling-rocci",
+            "examples/styling/source/Styling-rocci.rocdown",
+            RouteHint::Derived,
+            "Styling.rocci",
+        );
+        source.outgoing_links = vec![
+            "#L4".into(),
+            "/examples/styling/source/Styling-rocci/#L25".into(),
+        ];
+        source.article_html = concat!(
+            "<pre class=\"rd-code-block rd-source-code\"><code>",
+            "<span class=\"rd-source-line\" id=\"L4\">@get:view(\"/\")</span>\n",
+            "<span class=\"rd-source-line\" id=\"L25\">@css { }</span>",
+            "</code></pre>"
+        )
+        .into();
+        let result = resolved(&[source]);
+        assert!(!result.has_errors(), "{}", result.error_summary());
+    }
+
+    #[test]
+    fn rejects_missing_include_source_line_anchor() {
+        let mut source = page("guide", "guide.rocdown", RouteHint::Derived, "Guide");
+        source.outgoing_links = vec!["#L4".into()];
+        let result = resolved(&[source]);
+        assert!(result.error_summary().contains("#L4"));
         assert!(codes(&result).contains(&"RD2102"));
     }
 

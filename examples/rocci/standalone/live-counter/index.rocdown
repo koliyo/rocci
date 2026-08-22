@@ -28,12 +28,7 @@ the home page receives a fragment rather than this app's `<body>`, it also
 opens `GET /sse` explicitly with
 `data-init=@get("/sse", [OpenWhenHidden(True)])`.
 
-This catalog row is `hosting = "live"`. The public demo origin is planned at
-[live-counter.examples.rocci.dev](https://live-counter.examples.rocci.dev)
-until a staging deploy has served it. It is a separate hostname so it does not
-share `/actions/` or `/sse` with the rocci.dev home island.
-
-[Open live demo](https://live-counter.examples.rocci.dev) (planned).
+This catalog row is `hosting = "live"`.
 
 Full file: [LiveCounter.rocci](/examples/live-counter/source/LiveCounter-rocci/).
 

@@ -1,0 +1,32 @@
+[app]
+name = "Notes"
+identifier = "dev.rocci.notes"
+version = "0.1.0"
+
+[[windows]]
+label = "main"
+title = "Notes"
+url = "/"
+width = 840
+height = 720
+min_width = 560
+min_height = 480
+
+[http]
+host = "127.0.0.1"
+port = 0
+
+[security]
+allowed_origins = []
+
+[assets]
+directory = "assets"
+embed = true
+datastar = "1.0.2"
+
+[development]
+reload = false
+devtools = false
+
+[bundle]
+app = "."

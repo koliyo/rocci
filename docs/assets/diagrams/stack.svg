@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 428" role="img">
-  <title>The Rocci stack: Roc and Datastar, templates, applications, optional Rocdown</title>
-  <desc>Four layers. Roc and Datastar sit under .rocci templates, then applications, then optional Rocdown documents. You can stop at any layer.</desc>
+  <title>The Rocci stack: Roc and Datastar, Rocci templates, standalone applications, Rocdown documents</title>
+  <desc>Four layers. Roc and Datastar sit under Rocci templates, then Rocci standalone applications, then Rocdown interactive documents. You can stop at any layer.</desc>
   <style>
       :root {
         color-scheme: dark light;
@@ -48,22 +48,22 @@
 
   <rect class="box" x="16" y="112" width="688" height="80" rx="6" />
   <rect class="bar" x="16" y="112" width="6" height="80" rx="3" />
-  <text class="title" x="36" y="144">2. .rocci templates</text>
+  <text class="title" x="36" y="144">2. Rocci templates</text>
   <text class="sub" x="36" y="166">@component, @css, and handlers lower to ordinary Roc Html functions. Preview without a server.</text>
 
   <path class="arrow" d="M360 192 L360 206" />
 
   <rect class="box" x="16" y="208" width="688" height="80" rx="6" />
   <rect class="bar" x="16" y="208" width="6" height="80" rx="3" />
-  <text class="title" x="36" y="240">3. Applications</text>
+  <text class="title" x="36" y="240">3. Rocci standalone applications</text>
   <text class="sub" x="36" y="262">One layer, two depths: standalone generated dispatch, or custom main.roc.</text>
 
   <path class="arrow" d="M360 288 L360 302" />
 
   <rect class="box" x="16" y="304" width="688" height="80" rx="6" />
   <rect class="bar" x="16" y="304" width="6" height="80" rx="3" />
-  <text class="title" x="36" y="336">4. Rocdown (optional)</text>
-  <text class="sub" x="36" y="358">Markdown-first documents. Static pages stay in Rust; live pages reuse Applications. Experimental.</text>
+  <text class="title" x="36" y="336">4. Rocdown interactive documents</text>
+  <text class="sub" x="36" y="358">Markdown-first documents. Static pages stay Markdown; live pages reuse Applications. Experimental.</text>
 
   <text class="sub" x="360" y="412" text-anchor="middle">You do not need a later layer. Stop when the current one is enough.</text>
 </svg>

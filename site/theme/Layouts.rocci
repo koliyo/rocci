@@ -306,9 +306,16 @@ import PageOutline
         margin-top: 2.5rem;
         font-size: 0.875rem;
         color: var(--muted);
+        text-align: center;
     }
     .article-footer-text { margin: 0; }
     .article-footer-links { margin: .65rem 0 0; }
+    .layout-home .rd-docs-caution {
+        max-width: 36rem;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+    }
     .article-footer .footer-github-link {
         display: inline-flex;
         align-items: center;

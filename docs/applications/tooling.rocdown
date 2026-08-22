@@ -1,17 +1,19 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Tooling",
-        description: "Run, preview, browse, inspect, playground, and editor setup from one checkout.",
+        title: "Workflow",
+        description: "Run, preview, browse, inspect, playground, editors, and rocci-ops from one checkout.",
     },
 }
 
-# Tooling
+# Workflow
 
 This page is how you develop a Rocci application from the source checkout.
-Command flags live in the [CLI](/docs/reference/cli/).
+Command flags live in the [CLI](/docs/reference/cli/). Repository automation
+and local ops live in `rocci-ops` (`uv run rocci-ops`): CI helpers, site
+package, and container sketches under `docker/`.
 
-**Verify:** `rocci inspect FILE` prints components and source-map segments.
+`rocci inspect FILE` prints components and source-map segments.
 
 ## Run the app
 

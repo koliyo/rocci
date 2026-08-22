@@ -1,21 +1,32 @@
 @page {
     layout: "home",
     meta: {
-        title: "Roc-native interfaces and Markdown-first documents",
-        description: "Preview a template, run an application, or author an experimental Rocdown document. Inspect examples and project status.",
+        title: "Rocci",
+        description: "Composable authoring for applications and content. Preview a template, run an application, or author a Rocdown document.",
     },
 }
 
 @roc {
-import Datastar
-import LiveCounterUi
+    import Datastar
+    import LiveCounterUi
 }
 
-# Build interfaces and documentation with Roc
+# Rocci
 
-Roc plus Datastar host a web application. `.rocci` templates are HTML for Roc.
-Applications add a server. Rocdown is an optional document layer — more
-experimental than templates.
+Composable authoring for applications and content.
+
+:caution {{
+    Highly experimental software. For testing only — not for production use.
+}}
+
+This website is one use case: it is built with [Rocci](/docs/the-stack/) and [Rocdown](/docs/rocdown/).
+
+## Hybrid island deployment
+
+The card below is the [live counter](/examples/live-counter/) app composed into this page: a CDN snapshot of static content (including the counter's initial state), plus a simple VPS-hosted reactive Rocci/Datastar component.
+
+@render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
+<div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
 
 :card-grid.begin
     :link-card[page: "docs/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
@@ -25,24 +36,3 @@ experimental than templates.
     :link-card[page: "playground/index", title: "Try the playground", summary: "Lower .rocci and .rocdown to generated Roc in the browser."]
     :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
 :card-grid.end
-
-## See the model in one minute
-
-Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Datastar actions only where an interaction needs them. For prose-led work, keep articles in `.rocdown` and presentation in a project theme.
-
-- [The stack](/docs/the-stack/)
-- [Preview a component](/docs/five-minutes/)
-- [Author a Rocdown page](/docs/rocdown/pages/)
-- [Study complete examples](/examples/)
-- [Try the playground](/playground/)
-
-## Try the shipped hybrid path
-
-The card below is the [live counter](/examples/live-counter/) app composed into this page: CDN snapshot HTML, then `GET /sse` keeps the shared count and recent click origins in sync across tabs. Place comes from your browser timezone or a chosen override — neither is verified.
-
-@render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
-<div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
-
-## Know the maturity boundary
-
-Rocci is an active experiment. The compiler, local runtime, Rocdown site generator, hybrid serving path, editor integration, and local macOS bundling work today. Production distribution and broad cross-platform validation are not complete. Read [Project status](/project/status/) before adopting it.

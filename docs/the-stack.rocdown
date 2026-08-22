@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "The Rocci stack",
-        description: "How Roc, Datastar, .rocci templates, applications, and optional Rocdown documents fit together.",
+        description: "How Roc, Datastar, Rocci templates, standalone applications, and Rocdown documents fit together.",
     },
 }
 
@@ -14,20 +14,21 @@ to stop. Exact forms live in [reference](/docs/reference/).
 ## Four layers
 
 :figure[caption: "Rocci is four layers. Stop at the one you need."] {{
-    :img[src: "/assets/diagrams/stack.svg", alt: "Roc and Datastar sit under .rocci templates, then applications, then optional Rocdown documents. You can stop at any layer.", loading: "lazy", decoding: "async"]
+    :img[src: "/assets/diagrams/stack.svg", alt: "Roc and Datastar sit under Rocci templates, then Rocci standalone applications, then Rocdown interactive documents. You can stop at any layer.", loading: "lazy", decoding: "async"]
 }}
 
 1. **Roc + Datastar.** Roc owns types, helpers, SQLite, and effects. Datastar
    is the browser transport: it sends intent and morphs HTML. It is not a
    client application framework and not a Rocci language feature.
-2. **`.rocci` templates.** `@component`, `@css`, `@fixture`, markup, and
+2. **Rocci templates.** `@component`, `@css`, markup, and
    directives. A PascalCase component lowers to a pure Roc `Html` function.
    Preview with `rocci view` / `rocci browse` without writing a server.
-3. **Applications.** HTTP structure around those templates. Standalone and
-   custom are two depths of this layer, not two products.
-4. **Rocdown.** Optional Markdown-first documents and sites. Static pages stay
-   Markdown; live pages reuse the application layer. This layer is more
-   experimental than templates. Start at [Rocdown](/docs/rocdown/).
+3. **Rocci standalone applications.** HTTP structure around those templates.
+   Standalone and custom are two depths of this layer, not two products.
+4. **Rocdown interactive documents.** Optional Markdown-first documents and
+   sites. Static pages stay Markdown; live pages reuse the application layer.
+   This layer is more experimental than templates. Start at
+   [Rocdown](/docs/rocdown/).
 
 You do not need Rocdown to ship an app. You do not need Applications if you
 only preview components into an existing `main.roc`.

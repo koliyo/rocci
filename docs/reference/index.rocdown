@@ -8,7 +8,8 @@
 
 # Reference
 
-Each contract has one owner. Guides summarize and link here.
+This section is **not reviewed**. Treat it as a lookup index, not a
+first-read path. Each contract has one owner. Guides summarize and link here.
 
 - [Language](/docs/reference/language/) — `.rocci` syntax
 - [Runtime and HTTP](/docs/reference/runtime/) — handler responses and lifecycle

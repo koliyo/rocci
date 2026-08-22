@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Directives",
-        description: "Render conditionals, lists, variants, and derived bindings with @if, @for, @match, and @let.",
+        description: "Render conditionals, lists, pattern matching, and local variables with @if, @for, @match, and @let.",
     },
 }
 
@@ -11,7 +11,7 @@
 This page is the template-layer guide for structural control flow. The
 contract is [Directives](/docs/reference/language/directives/).
 
-**Verify:** `rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
+`rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
 
 Keep the opening `{` on the same logical header line. Parenthesize records in
 headers so `{` is not the body opener: `@match ({ status, items }) {`.
@@ -40,7 +40,7 @@ Prefer `@match` when the input is a tag union or a small closed set.
 One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
 `@post:fragment` will morph them.
 
-## Variants
+## Pattern matching
 
 ```rocci
 @match status {
@@ -53,10 +53,23 @@ One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
 An arm is an element, call, fragment, interpolation, or nested directive — not
 bare text. Guards and `|` alternatives are ordinary Roc.
 
-## Derived bindings
+## Local variables
 
-`@let name = expr` binds before render-producing items. Do not put `@fixture`
-inside a component body.
+`@let` binds a name before later markup in the same block:
+
+```rocci
+@component Results = |{ contacts, query }| {
+    @let visible = List.keep_if(contacts, |contact| matches(contact, query))
+
+    <div id="results">
+        @if List.is_empty(visible) {
+            <p>No matches.</p>
+        } @else {
+            <p>{List.len(visible).to_str()} matches</p>
+        }
+    </div>
+}
+```
 
 **Related:** [Components](/docs/templates/components/),
 [Directives reference](/docs/reference/language/directives/).

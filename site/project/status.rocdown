@@ -10,7 +10,7 @@
 
 Rocci is an active experiment with working template and document compilers, examples, editor support, local runtimes, hybrid site delivery, and local macOS bundling. This page describes the shipped repository snapshot, not a stability promise.
 
-## Working today
+## Working proof of concept
 
 - `.rocci` parsing and deterministic lowering to Roc.
 - Components, fixtures, structural directives, scoped CSS, and Datastar actions.

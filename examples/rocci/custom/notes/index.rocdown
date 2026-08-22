@@ -1,0 +1,35 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Notes",
+        description: "Custom main.roc plus Rocci templates for a SQLite note list",
+    },
+}
+
+# Notes
+
+See [custom applications](/docs/applications/custom/).
+
+A small custom app: authored `main.roc` owns HTTP, Rocci templates render the
+page, and SQLite stores notes. Use this when you want Roc-centered development
+with `.rocci` views, before the Datastar gallery or Snake.
+
+This app is **docs-only** on rocci.dev.
+
+See the [source tree](/examples/notes/source/).
+
+## Run locally
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/custom/notes
+```
+
+Pass `--no-window` to serve on [http://127.0.0.1:8000](http://127.0.0.1:8000).
+SQLite state is `examples/rocci/custom/notes/notes.db` unless `DB_PATH` is set.
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/ | grep -E 'id="notes"|Add a note'
+```

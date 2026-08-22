@@ -51,6 +51,19 @@ persistence = "none"
 support = "current"
 
 [[app]]
+id = "notes"
+path = "custom/notes"
+title = "Notes"
+summary = "Custom main.roc plus Rocci templates for a SQLite note list"
+entry = "."
+hosting = "docs"
+audience = "new Rocci author"
+purpose = "Roc-centered custom app with templates"
+complexity = "learning"
+persistence = "sqlite"
+support = "current"
+
+[[app]]
 id = "datastar"
 path = "custom/datastar"
 title = "Datastar gallery"

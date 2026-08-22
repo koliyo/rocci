@@ -14,13 +14,16 @@ copy the file into `docs/`. Forms and errors live in
 [Components](/docs/reference/language/components/).
 
 **Starting files:** `examples/rocci/standalone/styling/Styling.rocci`
-**Verify:** `Hello` previews; inspect lists components and fixtures.
 
-`@component` lowers to a function that returns `Html`. Given the same props
-and body, it produces the same markup. That is why fixtures, `rocci view`,
-and HTTP handlers can share one renderer. Effects belong in `@init` and
-handlers. There is no runtime component registry and no implicit instance
-state.
+A `@component` signature matches ordinary Roc function syntax, with a
+`@component` prefix: `| { props } |` or `| { props }, content |`. Lowering
+emits a function that returns `Html`. Given the same props and body, it
+produces the same markup. Effects belong in `@init` and handlers. There is no
+runtime component registry and no implicit instance state.
+
+`@fixture` bindings are **experimental** syntax used to preview components
+(`rocci view` / `rocci browse`) and to supply test data. They do not change
+the generated component function.
 
 ## Declare and call
 
@@ -53,16 +56,12 @@ In the styling example, `Hello` takes `{ name ?? "Roc" }`. A self-closing
 `<Hello />` uses the default. The component is **pure**: it cannot log, open
 SQLite, or read the request.
 
-## Fixtures
+## Preview with fixtures
 
 ```rocci
 @fixture{target: Hello}
 helloTest = { name: "Ada" }
 ```
-
-Fixtures are ordinary Roc bindings tagged for `rocci view` and `rocci browse`.
-They do not change the generated component function. HTTP declarations are
-ignored in `view`.
 
 ```sh
 cargo run -q -p rocci-cli -- view \
@@ -70,7 +69,8 @@ cargo run -q -p rocci-cli -- view \
   --component Hello
 ```
 
-**Verify:** **Hello, Ada** from `helloTest`. Pass `--arg name=Roc` to override.
+The preview shows **Hello, Ada** from `helloTest`. Pass `--arg name=Roc` to
+override. HTTP declarations are ignored in `view`.
 
 ## Inspect lowering
 
@@ -79,15 +79,15 @@ cargo run -q -p rocci-cli -- inspect --ast \
   examples/rocci/standalone/styling/Styling.rocci
 ```
 
-**Verify:** the output names `Hello`, `FeatureCard`, and `StylePage`, lists
-the fixtures, and prints source-map segments.
+The output names `Hello`, `FeatureCard`, and `StylePage`, lists the fixtures,
+and prints source-map segments.
 
 ```sh
 cargo run -q -p rocci-cli -- build \
   examples/rocci/standalone/styling/Styling.rocci
 ```
 
-**Verify:** generated Roc contains `hello`, `featureCard`, and `stylePage`.
+Generated Roc contains `hello`, `featureCard`, and `stylePage`.
 
 `rocci run` on the same file serves the full page (`@get:view("/")`). File-level
 `@css` styles `body`, not `html`.
@@ -99,4 +99,4 @@ Put reusable widgets in `components/`. Keep page-private helpers in the same
 
 **Related:** [Markup](/docs/templates/markup/),
 [Fixtures](/docs/reference/language/fixtures/),
-[Why Roc](/docs/appendix/why-roc/).
+[Roc](/docs/appendix/roc-for-rocci/).
