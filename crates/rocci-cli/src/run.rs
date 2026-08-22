@@ -276,7 +276,7 @@ fn run_standalone(
         .and_then(|name| name.to_str())
         .unwrap_or("rocci")
         .to_string();
-    let plan = match plan_standalone(&path)? {
+    let plan = match plan_standalone(&path, &LowerOptions::default())? {
         (StandaloneReady::Failed(files), _, _) => {
             return driver::serve_template_errors(&files, port, no_window, live_reload, &title);
         }
@@ -305,8 +305,29 @@ enum StandaloneReady {
     Failed(Vec<FailedFile>),
 }
 
+pub fn standalone_island_lower_options() -> LowerOptions {
+    LowerOptions {
+        embed_css: false,
+        ..LowerOptions::default()
+    }
+}
+
+pub fn standalone_island_app_plan(primary: &Path) -> Result<GenericAppPlan> {
+    match plan_standalone(primary, &standalone_island_lower_options())? {
+        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Failed(files), _, _) => {
+            let name = files
+                .first()
+                .map(|file| file.name.as_str())
+                .unwrap_or("template");
+            bail!("template compilation failed for {name}")
+        }
+    }
+}
+
 fn plan_standalone(
     primary: &Path,
+    lower: &LowerOptions,
 ) -> Result<(
     StandaloneReady,
     crate::profile::ProfileSnapshot,
@@ -333,7 +354,7 @@ fn plan_standalone(
                 .with_context(|| format!("failed to read {}", input.display()))
         })?;
         let name = input.display().to_string();
-        let compiled = compile_source(&name, &src)?;
+        let compiled = compile_source(&name, &src, lower)?;
         rec.push(
             "parse",
             compiled.timings.parse_ms + compiled.timings.validate_ms,
@@ -391,7 +412,7 @@ fn plan_standalone(
 }
 
 pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
-    match plan_standalone(primary)? {
+    match plan_standalone(primary, &LowerOptions::default())? {
         (StandaloneReady::Ready(plan), _, _) => Ok(plan),
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
@@ -457,7 +478,7 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
                 .with_context(|| format!("failed to read {}", input.display()))
         })?;
         let name = input.display().to_string();
-        let compiled = compile_source(&name, &src)?;
+        let compiled = compile_source(&name, &src, &LowerOptions::default())?;
         rec.push(
             "parse",
             compiled.timings.parse_ms + compiled.timings.validate_ms,
@@ -511,9 +532,9 @@ struct CompiledSource {
     inspect: crate::inspect::InspectPage,
 }
 
-fn compile_source(name: &str, src: &str) -> Result<CompiledSource> {
+fn compile_source(name: &str, src: &str, lower: &LowerOptions) -> Result<CompiledSource> {
     let source = SourceFile::new(name, src);
-    let compiled = compile(source, &LowerOptions::default());
+    let compiled = compile(source, lower);
     for diagnostic in &compiled.diagnostics {
         eprintln!("{}", format_diagnostic(source, diagnostic));
     }

@@ -155,7 +155,7 @@ pub fn configured_service_app_plan(root: &Path) -> Result<Option<ConfiguredServi
             loaded.config.http.service
         );
     }
-    let mut app = rocci_cli::run::standalone_app_plan(&service)?;
+    let mut app = rocci_cli::run::standalone_island_app_plan(&service)?;
     let page_paths = site_page_paths(&result.site);
     for module in &mut app.modules {
         module
@@ -481,7 +481,7 @@ fn keep_island_route(route: &RouteInfo, page_paths: &HashSet<String>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{env, fs};
+    use std::{env, fs, path::PathBuf};
 
     fn temp(name: &str) -> std::path::PathBuf {
         let path = env::temp_dir().join(format!("rocdown-service-{}-{name}", std::process::id()));
@@ -820,5 +820,31 @@ RevealTip = |{ open }| {
                 .iter()
                 .any(|route| route.method == "POST" && route.path == "/actions/counter/increment")
         }));
+    }
+
+    #[test]
+    fn standalone_island_app_plan_omits_embedded_style_in_live_slice() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        let plan = rocci_cli::run::standalone_island_app_plan(&path).unwrap();
+        let ui = plan
+            .modules
+            .iter()
+            .find(|module| module.type_name == "LiveCounterUi")
+            .expect("LiveCounterUi module");
+        let counter_count = ui
+            .roc
+            .split("counterCount = ")
+            .nth(1)
+            .and_then(|rest| rest.split("counterFeed = ").next())
+            .expect("counterCount component");
+        assert!(
+            counter_count.contains("data-rocci-css"),
+            "island service must keep scoped stamps:\n{counter_count}"
+        );
+        assert!(
+            !counter_count.contains("\"style\""),
+            "island service must not embed style elements in live patches:\n{counter_count}"
+        );
     }
 }

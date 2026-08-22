@@ -861,7 +861,9 @@ fn request_path(request: &str) -> Option<&str> {
     let first = lines.next()?;
     let mut parts = first.split_whitespace();
     let _method = parts.next()?;
-    parts.next()
+    parts
+        .next()
+        .map(|path| path.split(['?', '#']).next().unwrap_or(path))
 }
 
 fn request_method(request: &str) -> Option<&str> {
@@ -885,6 +887,7 @@ pub(crate) fn should_proxy(
     backend: u16,
     output: &Path,
 ) -> bool {
+    let path = path.split(['?', '#']).next().unwrap_or(path);
     if backend == 0 || is_preview_internal(path) {
         return false;
     }
@@ -1683,6 +1686,13 @@ mod tests {
         assert!(should_proxy(
             "GET",
             "/sse",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
+        assert!(should_proxy(
+            "GET",
+            "/sse?datastar=%7B%22tz%22%3A%22Europe%2FOslo%22%7D",
             &ServeTarget::NotFound,
             9000,
             &temp

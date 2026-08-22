@@ -160,7 +160,7 @@ fn compile_island_binary(
                 loaded.config.http.service
             );
         }
-        let plan = rocci_cli::run::standalone_app_plan(&service)?;
+        let plan = rocci_cli::run::standalone_island_app_plan(&service)?;
         let src_dir = service.parent().unwrap_or_else(|| Path::new("."));
         rocci_cli::driver::compile_app_plan(&plan, src_dir, &binary, target)?;
     } else {
