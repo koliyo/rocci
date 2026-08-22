@@ -11,6 +11,16 @@ on:
         description: Exact PR head SHA returned by GitHub
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to validate on the trusted self-hosted runner
+        required: true
+        type: string
+      pr_sha:
+        description: Exact PR head SHA returned by GitHub
+        required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
