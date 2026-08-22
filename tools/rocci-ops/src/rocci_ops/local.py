@@ -385,6 +385,7 @@ def stage_example_docs() -> None:
 
 
 def build_site() -> int:
+    build_playground()
     root = repo_root()
     stage_example_docs()
     for action in ("check", "test", "build"):

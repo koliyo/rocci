@@ -22,6 +22,7 @@ experimental than templates.
     :link-card[page: "docs/applications/standalone", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
     :link-card[page: "docs/rocdown/index", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
     :link-card[page: "examples/index", title: "Examples", summary: "Inspect complete Rocci apps and their published source."]
+    :link-card[page: "playground/index", title: "Try the playground", summary: "Lower .rocci and .rocdown to generated Roc in the browser."]
     :link-card[page: "project/status", title: "Project status", summary: "See what works now, the deliberate limits, and the adoption boundary."]
 :card-grid.end
 
@@ -33,6 +34,7 @@ Author a `.rocci` view as a pure Roc function, serve semantic HTML, and add Data
 - [Preview a component](/docs/five-minutes/)
 - [Author a Rocdown page](/docs/rocdown/pages/)
 - [Study complete examples](/examples/)
+- [Try the playground](/playground/)
 
 ## Try the shipped hybrid path
 

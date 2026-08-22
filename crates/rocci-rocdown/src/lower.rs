@@ -38,6 +38,7 @@ fn is_site_chrome_layout(layout: &str) -> bool {
             | "news-post"
             | "plain"
             | "not-found"
+            | "playground"
     )
 }
 

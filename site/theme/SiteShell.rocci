@@ -13,6 +13,9 @@ import PageOutline
             <meta http-equiv="Content-Security-Policy" content={view.resources.csp} />
             <title>{view.document_title}</title>
             <link rel="stylesheet" href={view.resources.stylesheet} />
+            @if view.resources.playground_css != "" {
+                <link rel="stylesheet" href={view.resources.playground_css} />
+            }
             @if view.description != "" {
                 <meta name="description" content={view.description} />
             } @else if view.site.description != "" {
@@ -46,7 +49,15 @@ import PageOutline
             }
         </head>
         <body
-            class={if view.layout == "home" { "site-body" } else { "site-body is-navigated" }}
+            class={
+                if view.layout == "home" {
+                    "site-body"
+                } else if view.layout == "playground" {
+                    "site-body is-navigated is-playground"
+                } else {
+                    "site-body is-navigated"
+                }
+            }
             data-rocci-not-found={if view.layout == "not-found" { "true" } else { "false" }}
         >
             <a class="skip-link" href="#main-content">Skip to content</a>
@@ -120,6 +131,7 @@ import PageOutline
                     "section" => <Layouts.Section view={view}>{content}</Layouts.Section>
                     "plain" => <Layouts.Plain view={view}>{content}</Layouts.Plain>
                     "not-found" => <Layouts.NotFound view={view}>{content}</Layouts.NotFound>
+                    "playground" => <Layouts.Playground view={view}>{content}</Layouts.Playground>
                     _ => <Layouts.Docs view={view}>{content}</Layouts.Docs>
                 }
             </div>

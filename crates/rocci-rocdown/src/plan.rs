@@ -5,7 +5,7 @@ use anyhow::{Context, Result, bail};
 use rocci_template::{
     LowerOptions, Segment, SourceFile, compile, format_diagnostic, wrap_type_module,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::article::PageKind;
@@ -15,6 +15,8 @@ use crate::runtime;
 use crate::service::{IslandRoute, island_routes_with_service, live_csp};
 
 pub const DEFAULT_CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+pub const PLAYGROUND_CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'";
+const PLAYGROUND_HTML_REASON: &str = "HTML preview is not available in WASM mode. The browser cannot dynamically compile generated Roc to WebAssembly.";
 
 const HASH_LEN: usize = 16;
 
@@ -261,29 +263,31 @@ fn plan_with_preview(
         .cloned()
         .collect();
 
-    let has_playground = published.iter().any(|p| {
-        crate::docs::collect_kinds(&p.article)
-            .iter()
-            .any(|k| k == "playground")
-    });
+    let has_playground = published.iter().any(page_uses_playground);
 
-    let (playground_app_url, playground_css_url) = if has_playground {
+    let (playground_app_url, playground_css_url, playground_session_url) = if has_playground {
         let app_asset = hashed_asset("playground-app.js", runtime::PLAYGROUND_APP_JS);
         let worker_asset = hashed_asset("playground-worker.js", runtime::PLAYGROUND_WORKER_JS);
         let css_asset = hashed_asset("playground-styles.css", runtime::PLAYGROUND_STYLES_CSS);
         let wasm_asset = hashed_asset("compiler.wasm", runtime::PLAYGROUND_COMPILER_WASM);
+        let session_asset = hashed_asset(
+            "playground-session.json",
+            &playground_session_bytes(root, &worker_asset.hashed_url, &wasm_asset.hashed_url)?,
+        );
 
         let app_url = app_asset.hashed_url.clone();
         let css_url = css_asset.hashed_url.clone();
+        let session_url = session_asset.hashed_url.clone();
 
         assets.push(app_asset);
         assets.push(worker_asset);
         assets.push(css_asset);
         assets.push(wasm_asset);
+        assets.push(session_asset);
 
-        (Some(app_url), Some(css_url))
+        (Some(app_url), Some(css_url), Some(session_url))
     } else {
-        (None, None)
+        (None, None, None)
     };
 
     let has_live = published.iter().any(|page| page.kind == PageKind::Live);
@@ -343,6 +347,7 @@ fn plan_with_preview(
             &chrome_script_url,
             playground_app_url.as_deref(),
             playground_css_url.as_deref(),
+            playground_session_url.as_deref(),
             datastar_url.as_deref(),
             &config.http.service_origin,
             &rewrite,
@@ -1039,6 +1044,7 @@ fn planned_page(
     chrome_script: &str,
     playground_app: Option<&str>,
     playground_css: Option<&str>,
+    playground_session: Option<&str>,
     datastar_url: Option<&str>,
     service_origin: &str,
     rewrite: &BTreeMap<String, String>,
@@ -1052,7 +1058,7 @@ fn planned_page(
         Some(page.id.as_str())
     };
     let (lanes, mut sidebar) = lanes_and_sidebar(navigation, current_id);
-    if page.layout == "home" {
+    if page.layout == "home" || page.layout == "playground" {
         sidebar.clear();
     } else if !sidebar_has_current(&sidebar, &page.route) {
         sidebar.push(NavGroupView::new(
@@ -1102,26 +1108,26 @@ fn planned_page(
         (segments, fragments)
     };
 
-    let page_has_playground = !not_found
-        && crate::docs::collect_kinds(&page.article)
-            .iter()
-            .any(|k| k == "playground");
+    let page_has_playground = !not_found && page_uses_playground(page);
 
-    let (page_csp, module_script, playground_css_val) = if page_has_playground {
-        (
-            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'".to_string(),
-            playground_app.unwrap_or_default().to_string(),
-            playground_css.unwrap_or_default().to_string(),
-        )
-    } else if !not_found && page.kind == PageKind::Live {
-        (
-            live_csp(service_origin),
-            datastar_url.unwrap_or_default().to_string(),
-            String::new(),
-        )
-    } else {
-        (csp.to_string(), String::new(), String::new())
-    };
+    let (page_csp, module_script, playground_css_val, playground_session_val) =
+        if page_has_playground {
+            (
+                PLAYGROUND_CSP.to_string(),
+                playground_app.unwrap_or_default().to_string(),
+                playground_css.unwrap_or_default().to_string(),
+                playground_session.unwrap_or_default().to_string(),
+            )
+        } else if !not_found && page.kind == PageKind::Live {
+            (
+                live_csp(service_origin),
+                datastar_url.unwrap_or_default().to_string(),
+                String::new(),
+                String::new(),
+            )
+        } else {
+            (csp.to_string(), String::new(), String::new(), String::new())
+        };
 
     PlannedPage {
         article_path: format!("articles/{article_name}.html"),
@@ -1160,6 +1166,7 @@ fn planned_page(
                 module_script,
                 chrome_script: chrome_script.to_string(),
                 playground_css: playground_css_val,
+                playground_session: playground_session_val,
             },
         },
     }
@@ -1232,6 +1239,7 @@ fn not_found_page(
                 module_script: String::new(),
                 chrome_script: chrome_script.to_string(),
                 playground_css: String::new(),
+                playground_session: String::new(),
             },
         },
     }
@@ -1523,6 +1531,142 @@ fn datastar_js_bytes() -> Result<Vec<u8>> {
     let path =
         rocci_cli::datastar_asset::ensure_cached(rocci_cli::datastar_asset::DEFAULT_VERSION)?;
     std::fs::read(&path).with_context(|| format!("failed to read {}", path.display()))
+}
+
+fn page_uses_playground(page: &ResolvedPage) -> bool {
+    page.layout == "playground"
+        || crate::docs::collect_kinds(&page.article)
+            .iter()
+            .any(|k| k == "playground")
+}
+
+fn playground_session_bytes(root: &Path, worker_url: &str, wasm_url: &str) -> Result<Vec<u8>> {
+    let documents = load_playground_documents(root)?;
+    let selected = documents
+        .first()
+        .and_then(|doc| doc.get("id"))
+        .and_then(|id| id.as_str())
+        .unwrap_or("counter")
+        .to_string();
+    Ok(serde_json::json!({
+        "protocol_version": 1,
+        "documents": documents,
+        "selected_document": selected,
+        "compiler_wasm_url": wasm_url,
+        "worker_url": worker_url,
+        "mode": "wasm",
+        "compile_url": "",
+        "native_languages": [],
+        "html_runtime": {
+            "available": false,
+            "reason": PLAYGROUND_HTML_REASON,
+        },
+    })
+    .to_string()
+    .into_bytes())
+}
+
+#[derive(Debug, Deserialize)]
+struct PlaygroundExamplesManifest {
+    #[serde(default, rename = "example")]
+    examples: Vec<PlaygroundExampleSpec>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PlaygroundExampleSpec {
+    id: String,
+    file: String,
+    #[serde(default)]
+    language: String,
+}
+
+fn default_playground_documents() -> Vec<serde_json::Value> {
+    vec![
+        serde_json::json!({
+            "id": "counter",
+            "filename": "Counter.rocci",
+            "language": "rocci",
+            "source": "@component Counter = |{ count }| {\n    <p>{count.to_str()}</p>\n}\n",
+        }),
+        serde_json::json!({
+            "id": "guide",
+            "filename": "Guide.rocdown",
+            "language": "rocdown",
+            "source": "# Guide\n\nHello from Rocdown.\n",
+        }),
+    ]
+}
+
+fn playground_language(spec: &PlaygroundExampleSpec, filename: &str) -> Result<&'static str> {
+    let raw = if spec.language.is_empty() {
+        Path::new(filename)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or("")
+    } else {
+        spec.language.as_str()
+    };
+    match raw {
+        "rocci" => Ok("rocci"),
+        "rocdown" | "md" | "markdown" => Ok("rocdown"),
+        other => bail!(
+            "playground example `{}` has unknown language `{other}`",
+            spec.id
+        ),
+    }
+}
+
+fn load_playground_documents(root: &Path) -> Result<Vec<serde_json::Value>> {
+    let manifest_path = root.join("playground/examples.toml");
+    if !manifest_path.is_file() {
+        return Ok(default_playground_documents());
+    }
+    let text = std::fs::read_to_string(&manifest_path)
+        .with_context(|| format!("failed to read {}", manifest_path.display()))?;
+    let manifest: PlaygroundExamplesManifest = toml::from_str(&text)
+        .with_context(|| format!("failed to parse {}", manifest_path.display()))?;
+    if manifest.examples.is_empty() {
+        bail!(
+            "{} must list at least one [[example]]",
+            manifest_path.display()
+        );
+    }
+    let mut documents = Vec::new();
+    for spec in &manifest.examples {
+        if spec.id.trim().is_empty() {
+            bail!("playground example id must not be empty");
+        }
+        let relative = Path::new(&spec.file);
+        if relative.is_absolute() || spec.file.contains('\0') {
+            bail!(
+                "playground example `{}` path must be a relative file path",
+                spec.id
+            );
+        }
+        let path = root.join(relative);
+        let source = std::fs::read_to_string(&path).with_context(|| {
+            format!(
+                "failed to read playground example `{}` from {}",
+                spec.id,
+                path.display()
+            )
+        })?;
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                anyhow::anyhow!("playground example `{}` has a non-utf8 filename", spec.id)
+            })?
+            .to_string();
+        let language = playground_language(spec, &filename)?;
+        documents.push(serde_json::json!({
+            "id": spec.id,
+            "filename": filename,
+            "language": language,
+            "source": source,
+        }));
+    }
+    Ok(documents)
 }
 
 fn hashed_asset(relative: &str, bytes: &[u8]) -> PlannedAsset {
@@ -1998,6 +2142,8 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.resources.chrome_script);
         out.push_str(",\n                    playground_css: ");
         push_roc_string(&mut out, &page.view.resources.playground_css);
+        out.push_str(",\n                    playground_session: ");
+        push_roc_string(&mut out, &page.view.resources.playground_session);
         out.push_str("\n                }\n            }\n        },\n");
     }
     out.push_str("    ]\n}\n");
@@ -2278,6 +2424,233 @@ items = ["index", "guide"]
         );
         assert!(!DEFAULT_CSP.contains("unsafe-eval"));
         assert!(!DEFAULT_CSP.contains("unsafe-inline"));
+    }
+
+    #[test]
+    fn playground_layout_gets_hashed_assets_session_and_csp() {
+        let root = temp("playground-layout");
+        write_site(&root);
+        fs::write(
+            root.join("playground.rocdown"),
+            "@page {\n    layout: \"playground\",\n    route: \"/playground/\",\n    meta: { title: \"Playground\" },\n}\n\n# Playground\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Start"
+items = ["index", "guide"]
+
+[[nav]]
+label = "Playground"
+items = ["playground"]
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+
+        let playground = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/playground/")
+            .expect("playground page");
+        let guide = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/guide/")
+            .expect("guide page");
+
+        assert_eq!(playground.view.layout, "playground");
+        assert_eq!(playground.view.resources.csp, PLAYGROUND_CSP);
+        assert!(
+            playground
+                .view
+                .resources
+                .module_script
+                .contains("playground-app."),
+            "{}",
+            playground.view.resources.module_script
+        );
+        assert!(
+            playground
+                .view
+                .resources
+                .playground_css
+                .contains("playground-styles."),
+            "{}",
+            playground.view.resources.playground_css
+        );
+        assert!(
+            playground
+                .view
+                .resources
+                .playground_session
+                .contains("playground-session."),
+            "{}",
+            playground.view.resources.playground_session
+        );
+        assert!(playground.view.sidebar.is_empty());
+
+        assert_eq!(guide.view.resources.csp, DEFAULT_CSP);
+        assert!(guide.view.resources.module_script.is_empty());
+        assert!(guide.view.resources.playground_css.is_empty());
+        assert!(guide.view.resources.playground_session.is_empty());
+
+        let logical: Vec<_> = planned
+            .assets
+            .iter()
+            .map(|asset| asset.logical_path.as_str())
+            .collect();
+        for expected in [
+            "/assets/playground-app.js",
+            "/assets/playground-worker.js",
+            "/assets/playground-styles.css",
+            "/assets/compiler.wasm",
+            "/assets/playground-session.json",
+        ] {
+            assert!(logical.contains(&expected), "{logical:?}");
+        }
+
+        let session = planned
+            .assets
+            .iter()
+            .find(|asset| asset.logical_path == "/assets/playground-session.json")
+            .expect("session asset");
+        let worker = planned
+            .assets
+            .iter()
+            .find(|asset| asset.logical_path == "/assets/playground-worker.js")
+            .expect("worker asset");
+        let wasm = planned
+            .assets
+            .iter()
+            .find(|asset| asset.logical_path == "/assets/compiler.wasm")
+            .expect("wasm asset");
+        let parsed: serde_json::Value = serde_json::from_slice(&session.bytes).unwrap();
+        assert_eq!(parsed["mode"], "wasm");
+        assert_eq!(parsed["html_runtime"]["available"], false);
+        assert_eq!(parsed["compiler_wasm_url"], wasm.hashed_url);
+        assert_eq!(parsed["worker_url"], worker.hashed_url);
+        let languages: Vec<&str> = parsed["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|doc| doc["language"].as_str().unwrap())
+            .collect();
+        assert!(languages.contains(&"rocci"), "{languages:?}");
+        assert!(languages.contains(&"rocdown"), "{languages:?}");
+
+        let roc = planned.pages_roc();
+        assert!(roc.contains("playground_session: "));
+        assert!(
+            !guide.view.resources.csp.contains("wasm-unsafe-eval"),
+            "{}",
+            guide.view.resources.csp
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn playground_examples_manifest_loads_checked_in_sources() {
+        let root = temp("playground-examples");
+        write_site(&root);
+        fs::create_dir_all(root.join("playground")).unwrap();
+        fs::write(
+            root.join("playground/index.rocdown"),
+            "@page {\n    layout: \"playground\",\n    route: \"/playground/\",\n    meta: { title: \"Playground\" },\n}\n\n# Playground\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("sample.rocci"),
+            "@component Hello = |_| {\n    <p>hi</p>\n}\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("sample.rocdown"),
+            "# Sample\n\nFrom the manifest.\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("playground/examples.toml"),
+            r#"
+[[example]]
+id = "hello"
+file = "sample.rocci"
+language = "rocci"
+
+[[example]]
+id = "sample"
+file = "sample.rocdown"
+language = "rocdown"
+"#,
+        )
+        .unwrap();
+        fs::write(
+            root.join("rocdown.toml"),
+            r#"
+[site]
+title = "Rocci"
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Playground"
+items = ["playground/index"]
+"#,
+        )
+        .unwrap();
+
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        let session = planned
+            .assets
+            .iter()
+            .find(|asset| asset.logical_path == "/assets/playground-session.json")
+            .expect("session");
+        let parsed: serde_json::Value = serde_json::from_slice(&session.bytes).unwrap();
+        assert_eq!(parsed["selected_document"], "hello");
+        assert_eq!(
+            parsed["documents"][0]["source"],
+            "@component Hello = |_| {\n    <p>hi</p>\n}\n"
+        );
+        assert_eq!(
+            parsed["documents"][1]["source"],
+            "# Sample\n\nFrom the manifest.\n"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn site_without_playground_omits_playground_assets() {
+        let root = temp("no-playground");
+        write_site(&root);
+        let loaded = load_site(&root).unwrap();
+        let resolved = resolve_loaded(&loaded);
+        assert!(!resolved.has_errors(), "{}", resolved.error_summary());
+        let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
+        assert!(planned.assets.iter().all(|asset| {
+            !asset.logical_path.contains("playground")
+                && !asset.logical_path.contains("compiler.wasm")
+        }));
+        let home = planned
+            .pages
+            .iter()
+            .find(|page| page.view.route == "/")
+            .unwrap();
+        assert!(home.view.resources.playground_session.is_empty());
+        assert!(!home.view.resources.csp.contains("wasm-unsafe-eval"));
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

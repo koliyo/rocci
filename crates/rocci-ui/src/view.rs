@@ -109,6 +109,8 @@ pub struct ResourceView {
     pub chrome_script: String,
     #[serde(default)]
     pub playground_css: String,
+    #[serde(default)]
+    pub playground_session: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

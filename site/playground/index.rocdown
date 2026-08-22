@@ -1,0 +1,11 @@
+@page {
+    layout: "playground",
+    meta: {
+        title: "Playground",
+        description: "Lower .rocci templates and .rocdown documents to generated Roc in the browser. HTML preview is not available without a Roc compiler in WebAssembly.",
+    },
+}
+
+# Playground
+
+Edit a `.rocci` template or a `.rocdown` document. The browser lowers it to generated Roc and AST. HTML preview is not available on this page: the public site cannot compile generated Roc to WebAssembly.

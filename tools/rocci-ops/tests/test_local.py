@@ -27,6 +27,7 @@ def test_package_site_usage() -> None:
 def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.local.build_playground", lambda: 0)
     monkeypatch.setattr(
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),

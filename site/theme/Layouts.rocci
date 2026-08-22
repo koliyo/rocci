@@ -86,6 +86,21 @@ import PageOutline
     <NavigatedFrame view={view} show_journey={False}>{content}</NavigatedFrame>
 }
 
+@component Playground = |{ view }, content| {
+    <div class="layout-playground">
+        <main class="playground-main" id="main-content">
+            <div class="playground-intro">{content}</div>
+            <div
+                id="playground-root"
+                class="playground-mount"
+                data-session={view.resources.playground_session}
+            >
+                <p class="playground-fallback">Live lowering needs JavaScript and WebAssembly in this browser. HTML preview is not available without a Roc compiler in WASM.</p>
+            </div>
+        </main>
+    </div>
+}
+
 @css {
     :scope.layout-navigated {
         display: grid;
@@ -334,5 +349,37 @@ import PageOutline
             overflow-y: auto;
             overscroll-behavior: contain;
         }
+    }
+    :scope.layout-playground {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        padding: 0;
+    }
+    .playground-main {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+    .playground-intro {
+        flex: 0 0 auto;
+        max-width: 86rem;
+        width: 100%;
+        margin: 0 auto;
+        padding: 1rem 1rem 0.75rem;
+    }
+    .playground-intro .article > :first-child { margin-top: 0; }
+    .playground-intro .article > :last-child { margin-bottom: 0; }
+    .playground-mount {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        border-top: 1px solid var(--line);
+    }
+    .playground-fallback {
+        margin: 1.25rem 1rem;
+        color: var(--muted);
     }
 }

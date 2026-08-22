@@ -3,7 +3,7 @@
 
 [contract]
 home_route = "/"
-sidebar_free_routes = ["/"]
+sidebar_free_routes = ["/", "/playground/"]
 viewports = [1280, 900, 390]
 news_absent = [
     "/news/",
@@ -32,7 +32,7 @@ outline_1280 = "none"
 outline_900 = "none"
 outline_390 = "none"
 title = "Rocci"
-assert_present = ["Getting started", "Rocdown", "Examples", "Project", "Try a live island"]
+assert_present = ["Getting started", "Rocdown", "Examples", "Playground", "Project", "Try a live island"]
 assert_absent = ["News", "/news/"]
 
 [[route]]
@@ -85,6 +85,18 @@ outline_1280 = "right-rail"
 outline_900 = "inline-details"
 outline_390 = "mobile-menu"
 title = "Project status · Rocci"
+
+[[route]]
+path = "/playground/"
+page_class = "playground"
+sidebar = "none"
+breadcrumbs = ["Rocci", "Playground"]
+outline_1280 = "none"
+outline_900 = "none"
+outline_390 = "none"
+title = "Playground · Rocci"
+assert_present = ["playground-root"]
+assert_absent = ["News", "/news/"]
 
 [[route]]
 path = "/examples/blocks/source/backend--Blocks-rocci/"
