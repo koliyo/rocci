@@ -733,7 +733,7 @@ fn handle_client(
         .map(|port| port.load(Ordering::Relaxed))
         .unwrap_or(0);
     let target = resolve_request(output, path);
-    if should_proxy(method, path, &target, backend) {
+    if should_proxy(method, path, &target, backend, output) {
         return proxy_to_backend(
             &mut stream,
             &buf[..n],
@@ -878,7 +878,13 @@ fn is_cdn_owned_get(path: &str) -> bool {
     path == "/" || path == "/index.html"
 }
 
-pub(crate) fn should_proxy(method: &str, path: &str, target: &ServeTarget, backend: u16) -> bool {
+pub(crate) fn should_proxy(
+    method: &str,
+    path: &str,
+    target: &ServeTarget,
+    backend: u16,
+    output: &Path,
+) -> bool {
     if backend == 0 || is_preview_internal(path) {
         return false;
     }
@@ -886,9 +892,64 @@ pub(crate) fn should_proxy(method: &str, path: &str, target: &ServeTarget, backe
         if is_cdn_owned_get(path) {
             return false;
         }
-        return matches!(target, ServeTarget::NotFound);
+        if matches!(target, ServeTarget::NotFound) {
+            if output.join("404.html").is_file()
+                && !path_matches_any_island_route(output, method, path)
+            {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
     true
+}
+
+fn path_matches_any_island_route(output: &Path, method: &str, path: &str) -> bool {
+    if method != "GET" && method != "HEAD" {
+        return true;
+    }
+    island_get_paths(output)
+        .iter()
+        .any(|route| path_matches_island_route(path, route))
+}
+
+fn island_get_paths(output: &Path) -> Vec<String> {
+    let path = output.join("islands.json");
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(_) => return Vec::new(),
+    };
+    #[derive(serde::Deserialize)]
+    struct RouteRow {
+        method: String,
+        path: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct IslandsFile {
+        routes: Vec<RouteRow>,
+    }
+    match serde_json::from_slice::<IslandsFile>(&bytes) {
+        Ok(file) => file
+            .routes
+            .into_iter()
+            .filter(|route| route.method == "GET" || route.method == "HEAD")
+            .map(|route| route.path)
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn normalize_route_path(path: &str) -> &str {
+    if path.len() > 1 && path.ends_with('/') {
+        path.trim_end_matches('/')
+    } else {
+        path
+    }
+}
+
+fn path_matches_island_route(path: &str, route: &str) -> bool {
+    normalize_route_path(path) == normalize_route_path(route)
 }
 
 fn remaining_body(initial: &[u8]) -> usize {
@@ -1574,21 +1635,71 @@ mod tests {
 
     #[test]
     fn should_proxy_posts_and_missing_gets_to_backend() {
-        assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 0));
-        assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 9000));
-        assert!(!should_proxy("HEAD", "/", &ServeTarget::NotFound, 9000));
+        let temp = std::env::temp_dir().join(format!(
+            "rocci-proxy-policy-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        fs::create_dir_all(&temp).unwrap();
+        fs::write(temp.join("404.html"), "<!DOCTYPE html><title>404</title>").unwrap();
+        fs::write(
+            temp.join("islands.json"),
+            r#"{"routes":[{"method":"GET","path":"/health"},{"method":"GET","path":"/sse"}]}"#,
+        )
+        .unwrap();
+
+        assert!(!should_proxy("GET", "/", &ServeTarget::NotFound, 0, &temp));
+        assert!(!should_proxy(
+            "GET",
+            "/",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
+        assert!(!should_proxy(
+            "HEAD",
+            "/",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
         assert!(!should_proxy(
             "GET",
             "/index.html",
             &ServeTarget::NotFound,
-            9000
+            9000,
+            &temp
         ));
-        assert!(should_proxy("GET", "/health", &ServeTarget::NotFound, 9000));
+        assert!(should_proxy(
+            "GET",
+            "/health",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
+        assert!(should_proxy(
+            "GET",
+            "/sse",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
+        assert!(!should_proxy(
+            "GET",
+            "/docs/getting-started/quickstart/",
+            &ServeTarget::NotFound,
+            9000,
+            &temp
+        ));
         assert!(should_proxy(
             "POST",
             "/actions/reveal/show",
             &ServeTarget::NotFound,
-            9000
+            9000,
+            &temp
         ));
         assert!(should_proxy(
             "POST",
@@ -1596,7 +1707,8 @@ mod tests {
             &ServeTarget::File {
                 relative: "index.html".into()
             },
-            9000
+            9000,
+            &temp
         ));
         assert!(!should_proxy(
             "GET",
@@ -1604,20 +1716,24 @@ mod tests {
             &ServeTarget::File {
                 relative: "index.html".into()
             },
-            9000
+            9000,
+            &temp
         ));
         assert!(!should_proxy(
             "GET",
             "/__rocci/events",
             &ServeTarget::Events,
-            9000
+            9000,
+            &temp
         ));
         assert!(!should_proxy(
             "POST",
             "/__rocci/events",
             &ServeTarget::Events,
-            9000
+            9000,
+            &temp
         ));
+        let _ = fs::remove_dir_all(&temp);
     }
 
     #[test]

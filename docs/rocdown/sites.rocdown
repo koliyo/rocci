@@ -37,7 +37,7 @@ assets = "assets"
 
 [[nav]]
 label = "Start here"
-items = ["index", "getting-started/quickstart"]
+items = ["index", "five-minutes"]
 
 [[nav]]
 label = "Reference"
@@ -253,7 +253,7 @@ Rocdown does not import `rocci-docs`. Generated example pages use the docs
 layout. `/docs/examples/` is an alias of `/examples/` during the move.
 
 - `source`: Relative path to the mounted content directory.
-- `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `getting-started/quickstart` to ID `docs/getting-started/quickstart` and route `/docs/getting-started/quickstart/`).
+- `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `five-minutes` to ID `docs/five-minutes` and route `/docs/five-minutes/`).
 - `layout`: Optional default layout applied to pages in this mount.
 - `visibility`: `navigable` by default. `linked-detail` keeps intentionally
   linked generated details out of navigation without `RD2202` warning noise;

@@ -269,6 +269,45 @@
       .replace(/"/g, "&quot;");
   };
 
+  const RETIRED_ROUTES = {
+    "/docs/getting-started/quickstart/": "/docs/five-minutes/",
+    "/docs/getting-started/quickstart": "/docs/five-minutes/",
+    "/getting-started/quickstart/": "/docs/five-minutes/",
+    "/getting-started/quickstart": "/docs/five-minutes/",
+    "/docs/start/five-minutes/": "/docs/five-minutes/",
+    "/docs/start/install/": "/docs/install/",
+    "/docs/start/what-is-rocci/": "/docs/",
+    "/getting-started/installation/": "/docs/install/",
+    "/getting-started/overview/": "/docs/",
+  };
+
+  const setupNotFoundRecovery = () => {
+    const body = document.body;
+    if (!body || body.getAttribute("data-rocci-not-found") !== "true") {
+      return;
+    }
+    const hint = document.getElementById("rocci-not-found-hint");
+    if (!hint) {
+      return;
+    }
+    const pathname = window.location.pathname;
+    const target =
+      RETIRED_ROUTES[pathname] ||
+      RETIRED_ROUTES[pathname.endsWith("/") ? pathname : pathname + "/"];
+    if (!target) {
+      return;
+    }
+    hint.hidden = false;
+    hint.innerHTML =
+      "Did you mean <a class=\"rd-link\" href=\"" +
+      escapeText(target) +
+      "\"><code class=\"rd-code\">" +
+      escapeText(target) +
+      "</code></a>?";
+  };
+
+  setupNotFoundRecovery();
+
   const highlightLabel = (text, query) => {
     const raw = String(text || "");
     if (!query) {
