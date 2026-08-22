@@ -14,17 +14,18 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
    drawing CI provenance conclusions or editing code. Preserve unrelated
    work.
 2. Understand the repository's GitHub Actions workflows in `.github/workflows/`:
-   - `ci.yml` and `knowledge.yml`: **not** on push/PR. Queue them with a `/ci`
-     comment on a pull request (owner/member/collaborator) or Actions
-     **Run workflow**. `ci.yml` jobs:
-     - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), and clippy (`cargo clippy -D warnings`) on `ubuntu-latest`.
-     - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest`.
-     - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest`.
-     - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check.
-   - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs.
-   - `site.yml`: Packages and deploys `site/` from `staging` or `production` (credits; matching GitHub Environment), including **Run workflow** on those branches. `main` lands PRs and does not publish. Use **Run workflow** on other refs for package only.
-   - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation.
-   - `ci-command.yml`: Listens for `/ci` on PR comments and dispatches `ci.yml` plus `knowledge.yml` at the PR head.
+   - `ci.yml` and `knowledge.yml`: hosted on push to `main`, `staging`, and
+     `production`. Queue a PR run with `/ci` or `/CI` (hosted) or `/cl-local`
+     (self-hosted, `koliyo` only). Actions **Run workflow** defaults to hosted.
+     There is no `pull_request` trigger. `ci.yml` jobs:
+     - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), and clippy (`cargo clippy -D warnings`) on `ubuntu-latest` when hosted.
+     - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest` when hosted.
+     - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest` when hosted.
+     - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check on `macos-latest` when hosted.
+   - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs. Hosted lane runs on `ubuntu-latest`.
+   - `site.yml`: Packages and deploys `site/` from `staging` or `production` only (matching GitHub Environment). `main` lands PRs and does not publish. **Run workflow** on any other ref is a no-op. Deploy secrets stay Environment-only.
+   - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation. `workflow_dispatch` is owner-only.
+   - `ci-command.yml`: Listens for `/ci`/`/CI` (hosted; owner, member, or collaborator) and `/cl-local` (`koliyo` commenter and author, same-repo head) on PR conversation comments, review bodies, and inline review comments, then dispatches `ci.yml` plus `knowledge.yml` at the snapshot SHA. Dependabot PRs get `/ci` only; never `/cl-local`.
 3. Note that `gh` commands communicate with `https://api.github.com`. When running
    in sandboxed environments, run `gh` with unsandboxed execution permissions
    (e.g., `BypassSandbox: true`).
@@ -82,7 +83,8 @@ gh run rerun RUN_ID
 gh workflow run ci.yml --ref BRANCH
 gh workflow run knowledge.yml --ref BRANCH
 
-# On a pull request, comment `/ci` (after `ci-command.yml` is on the default branch)
+# On a pull request, comment `/ci` (hosted) or `/cl-local` (koliyo-only)
+# after `ci-command.yml` is on the default branch. Never `/cl-local` on Dependabot.
 
 # Download artifacts produced by a run
 gh run download RUN_ID --dir target/ci-artifacts

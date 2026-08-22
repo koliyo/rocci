@@ -29,3 +29,11 @@ We welcome contributions across the compiler, editor plugins, documentation, and
 - Keep parsing loops monotonic to avoid hangs on malformed inputs.
 - Run `cargo fmt --all -- --check` before submitting changes.
 - Add regression tests in the narrowest owning crate.
+
+## CI
+
+Pull requests do not start GitHub Actions automatically. After review, a
+maintainer comments `/ci` to run hosted CI and Knowledge on the PR head.
+Dependabot PRs need the same `/ci` comment. Do not run `/cl-local` on
+external or Dependabot pull requests; that command is reserved for
+`koliyo` same-repository work.
