@@ -2,32 +2,29 @@
     layout: "plain",
     meta: {
         title: "Project roadmap",
-        description: "Explore the planned phases and milestones for the Rocci ecosystem and rocci.dev.",
+        description: "See Rocci's current direction without confusing planned work with shipped behavior.",
     },
 }
 
 # Project roadmap
 
-This document tracks the phased milestones for Rocci and Rocdown.
+This page summarizes direction. It is not a release schedule or compatibility promise; [Project status](/project/status/) is the public inventory of what works now.
 
-## Milestones
+## Shipped foundation
 
-### Phase 1: Project-shell seam & named layouts (Completed)
-- Configurable `theme` in `rocdown.toml`.
-- Project-local `.rocci` theme compilation into modules.
-- Named layout validation and view record expansion.
+- `.rocci` templates lower to ordinary Roc HTML.
+- Standalone server declarations cover documents, one-shot patches, data commands, and shared live streams.
+- Rocdown builds static and hybrid sites with a Rust-owned catalog and a Rocci-owned visible shell.
+- The CLI provides build, run, inspect, check, test, package, and island-service workflows.
+- Editor registration, language servers, desktop preview, and local macOS bundling are present.
 
-### Phase 2: Complete rocci.dev structure (Current)
-- Canonical route tree under `site/`.
-- Branded shell and named layout templates in `.rocci`.
-- Route aliases preserving backwards compatibility.
-- Structural pages across Home, Rocdown, Docs, News, FAQ, and Project portals.
+## Near-term direction
 
-### Phase 3: Typed collections & feeds
-- First-class collection definitions in Rocdown.
-- Automated `news` catalog queries and Atom / RSS feed generation.
-- Recent-news integration into Home and Section views.
+- Keep the Rocci and Rocdown language contracts small, explicit, and well diagnosed.
+- Improve site authoring, generated navigation, machine-readable output, and validation without moving presentation policy into Rust.
+- Expand production packaging, signing, native capabilities, and cross-platform validation only with explicit contracts.
+- Continue the reserved `@island` design separately from the shipped server-rendered hybrid path.
 
-### Phase 4: Extended capabilities
-- Static client-side search indexing with zero runtime dependencies.
-- Reusable site starter templates and distribution packaging.
+## How to read roadmap claims
+
+Unchecked repository roadmap items are planned, not promised. A capability is public only after code, tests, and user documentation agree. For adoption decisions, use [Project status](/project/status/) and [known limitations](/docs/status/).

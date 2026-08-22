@@ -129,6 +129,7 @@ pub struct PageView {
     pub sidebar: Vec<NavGroupView>,
     pub route: String,
     pub title: String,
+    pub document_title: String,
     pub description: String,
     pub layout: String,
     pub published: String,

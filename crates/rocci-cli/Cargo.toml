@@ -2,7 +2,7 @@
 name = "rocci-cli"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Command-line interface for Rocci configuration, packaging, and .rocci template compilation"
 
 [lib]

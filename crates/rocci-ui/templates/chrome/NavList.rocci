@@ -6,7 +6,9 @@ import Html
         display: block;
         text-decoration: none;
     }
-    .nav-section { margin: 0; }
+    .nav-section {
+        margin: 0;
+    }
     .nav-section + .nav-section { margin-top: 0.28rem; }
     .nav-section summary {
         list-style: none;
@@ -24,28 +26,36 @@ import Html
         font-weight: 500;
     }
     .nav-section[open] > summary::after { content: "−"; }
+    .nav-section > .nav-fold {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        overflow: hidden;
+    }
+    .nav-section > .nav-fold > .nav-items {
+        min-height: 0;
+        overflow: hidden;
+    }
+    .nav-section[open] > .nav-fold {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
 }
 
 @component NavGroupInner = |{ group, route }| {
     <summary class="nav-category">
-        @if group.href != "" {
-            <a
-                class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
-                href={group.href}
-                aria-current={if group.href == route { "page" } else { "false" }}
-            >{group.title}</a>
-        } @else {
-            <span class="nav-link nav-category">{group.title}</span>
-        }
+        <span class="nav-link nav-category">{group.title}</span>
     </summary>
-    <div class="nav-items">
-        @for item in group.items {
-            <a
-                class={item.class_name}
-                href={item.href}
-                aria-current={if item.href == route { "page" } else { "false" }}
-            >{item.title}</a>
-        }
+    <div class="nav-fold">
+        <div class="nav-items">
+            @for item in group.items {
+                <a
+                    class={item.class_name}
+                    href={item.href}
+                    aria-current={if item.href == route { "page" } else { "false" }}
+                >{item.title}</a>
+            }
+        </div>
     </div>
 }
 

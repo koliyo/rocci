@@ -1,0 +1,135 @@
+# Approved Phase 0 evidence contract for the rocci.dev UX/DX plan.
+# This is inert test input until later phases wire it into built-site DOM tests.
+
+[contract]
+home_route = "/"
+sidebar_free_routes = ["/"]
+viewports = [1280, 900, 390]
+news_absent = [
+    "/news/",
+    "/news/introducing-rocci/",
+    "/news/rocdown-static-collections/",
+    "/news/rocci-desktop-apps/",
+    "/news/feed.xml",
+]
+
+[selectors]
+sidebar = ".sidebar"
+mobile_section_navigation = ".mobile-panel [aria-label='In this section']"
+breadcrumbs = "nav[aria-label='Breadcrumb']"
+current_breadcrumb = "[aria-current='page']"
+wide_outline = ".outline"
+inline_outline = ".outline-fallback"
+mobile_outline = ".mobile-panel [aria-label='On this page']"
+page_title = "head > title"
+
+[[route]]
+path = "/"
+page_class = "home"
+sidebar = "none"
+breadcrumbs = []
+outline_1280 = "none"
+outline_900 = "none"
+outline_390 = "none"
+title = "Rocci"
+assert_present = ["Getting started", "Rocdown", "Examples", "Project", "Try a live island"]
+assert_absent = ["News", "/news/"]
+
+[[route]]
+path = "/faq/"
+page_class = "faq"
+sidebar = "faq"
+breadcrumbs = ["Rocci", "FAQ"]
+outline_1280 = "right-rail"
+outline_900 = "inline-details"
+outline_390 = "mobile-menu"
+title = "Frequently Asked Questions · Rocci"
+assert_absent = ["News", "/news/feed.xml"]
+
+[[route]]
+path = "/docs/"
+page_class = "section"
+sidebar = "docs"
+breadcrumbs = ["Rocci", "Docs"]
+outline_1280 = "right-rail-when-headings-warrant"
+outline_900 = "inline-details-when-headings-warrant"
+outline_390 = "mobile-menu-when-headings-warrant"
+title = "Rocci documentation · Rocci"
+
+[[route]]
+path = "/docs/start/install/"
+page_class = "article"
+sidebar = "docs"
+breadcrumbs = ["Rocci", "Docs", "Start", "Install Rocci"]
+outline_1280 = "right-rail"
+outline_900 = "inline-details"
+outline_390 = "mobile-menu"
+title = "Install Rocci · Rocci"
+
+[[route]]
+path = "/rocdown/"
+page_class = "product-index"
+sidebar = "rocdown"
+breadcrumbs = ["Rocci", "Rocdown"]
+outline_1280 = "right-rail-when-headings-warrant"
+outline_900 = "inline-details-when-headings-warrant"
+outline_390 = "mobile-menu-when-headings-warrant"
+title = "Rocdown · Markdown-first documents & static sites · Rocci"
+
+[[route]]
+path = "/project/status/"
+page_class = "article"
+sidebar = "project"
+breadcrumbs = ["Rocci", "Project", "Project status"]
+outline_1280 = "right-rail"
+outline_900 = "inline-details"
+outline_390 = "mobile-menu"
+title = "Project status · Rocci"
+
+[[route]]
+path = "/examples/blocks/source/Blocks-rocci/"
+page_class = "generated-example-source"
+sidebar = "examples"
+breadcrumbs = ["Rocci", "Examples", "Rocci Blocks", "Blocks.rocci"]
+outline_1280 = "right-rail"
+outline_900 = "inline-details"
+outline_390 = "mobile-menu"
+title = "Blocks.rocci · Rocci"
+
+[[route]]
+path = "/404.html"
+page_class = "not-found"
+sidebar = "recovery"
+breadcrumbs = ["Rocci", "Page not found"]
+outline_1280 = "none"
+outline_900 = "none"
+outline_390 = "none"
+title = "Page not found · Rocci"
+
+[[news_disposition]]
+path = "/news/"
+action = "retire"
+status = 410
+
+[[news_disposition]]
+path = "/news/feed.xml"
+action = "retire"
+status = 410
+
+[[news_disposition]]
+path = "/news/introducing-rocci/"
+action = "fold-and-redirect"
+status = 308
+target = "/docs/start/what-is-rocci/"
+
+[[news_disposition]]
+path = "/news/rocdown-static-collections/"
+action = "fold-and-redirect"
+status = 308
+target = "/rocdown/site-config/"
+
+[[news_disposition]]
+path = "/news/rocci-desktop-apps/"
+action = "fold-and-redirect"
+status = 308
+target = "/docs/tutorials/ship/"

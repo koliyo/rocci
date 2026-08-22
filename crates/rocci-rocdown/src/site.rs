@@ -118,6 +118,7 @@ struct DiscoveredPage {
     relative_name: String,
     mount_prefix: String,
     default_layout: Option<String>,
+    suppress_unlisted_warning: bool,
 }
 
 pub fn load_site(root: &Path) -> Result<LoadedSite> {
@@ -138,6 +139,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             relative_name,
             mount_prefix: String::new(),
             default_layout: None,
+            suppress_unlisted_warning: false,
         });
     }
 
@@ -170,6 +172,8 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                 relative_name,
                 mount_prefix: mount.prefix.clone(),
                 default_layout: mount.layout.clone(),
+                suppress_unlisted_warning: mount.visibility
+                    == crate::config::MountVisibility::LinkedDetail,
             });
         }
     }
@@ -249,6 +253,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         let class = classify_document(&compiled.document, roc_imports_datastar(&compiled.roc));
         const VALID_LAYOUTS: &[&str] = &[
             "home",
+            "faq",
             "product",
             "section",
             "docs",
@@ -411,6 +416,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             route_hint,
             aliases: compiled.page_meta.aliases.clone(),
             draft: compiled.page_meta.draft,
+            suppress_unlisted_warning: page_info.suppress_unlisted_warning,
             layout,
             published,
             updated,

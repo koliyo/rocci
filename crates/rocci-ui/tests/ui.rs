@@ -37,6 +37,7 @@ fn test_view_constructors_and_serialization() {
         )],
         route: "/guide/".into(),
         title: "Guide".into(),
+        document_title: "Guide · Documentation".into(),
         description: "Getting started".into(),
         layout: "docs".into(),
         published: "2026-08-18".into(),
@@ -86,6 +87,22 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("history.pushState"));
     assert!(GOTO_SCRIPT.contains("rocci-goto"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
+    assert!(GOTO_SCRIPT.contains("window.__rocciNavSections"));
+    assert!(GOTO_SCRIPT.contains("details.nav-section > summary"));
+    assert!(GOTO_SCRIPT.contains("animation.finished"));
+    assert!(GOTO_SCRIPT.contains("prefers-reduced-motion: reduce"));
+    assert!(GOTO_SCRIPT.contains("position:fixed"));
+    assert!(GOTO_SCRIPT.contains(":host(.open){display:block}"));
+    assert!(GOTO_SCRIPT.contains("max-height:min(70vh,480px)"));
+    assert!(GOTO_SCRIPT.contains("@media(max-width:480px)"));
+    assert!(GOTO_SCRIPT.contains("document.body.style.overflow = \"hidden\""));
+    assert!(GOTO_SCRIPT.contains("event.key === \"Escape\""));
+    assert!(GOTO_SCRIPT.contains("event.target.id === \"backdrop\""));
+    assert!(GOTO_SCRIPT.contains("queryInput.focus()"));
+    assert!(GOTO_SCRIPT.contains("lastFocused.focus()"));
+    assert!(GOTO_SCRIPT.contains("shadow.adoptedStyleSheets = [sheet]"));
+    assert!(GOTO_SCRIPT.contains("sheet.replaceSync(CSS)"));
+    assert!(!GOTO_SCRIPT.contains("rocci-goto{display:none;position:fixed"));
 }
 
 #[test]

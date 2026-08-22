@@ -5,11 +5,11 @@ import Html
         <ol>
             @for crumb in breadcrumbs {
                 <li>
-                    <a
-                        class={if crumb.href == route { "crumb-current" } else { "" }}
-                        href={crumb.href}
-                        aria-current={if crumb.href == route { "page" } else { "false" }}
-                    >{crumb.title}</a>
+                    @if crumb.href == route {
+                        <span class="crumb-current" aria-current="page">{crumb.title}</span>
+                    } @else {
+                        <a href={crumb.href}>{crumb.title}</a>
+                    }
                 </li>
             }
         </ol>

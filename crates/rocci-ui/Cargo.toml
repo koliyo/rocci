@@ -2,7 +2,7 @@
 name = "rocci-ui"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Domain-neutral presentation components, view records, and shell layout primitives for Rocci"
 
 [dependencies]
@@ -11,4 +11,3 @@ serde = { workspace = true }
 [dev-dependencies]
 rocci-template = { workspace = true }
 serde_json = { workspace = true }
-

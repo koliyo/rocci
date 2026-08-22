@@ -2,7 +2,7 @@
 name = "rocci-core"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Configuration, events, sessions, and backend contracts for the Rocci desktop runtime"
 
 [dependencies]

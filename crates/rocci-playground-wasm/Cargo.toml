@@ -2,7 +2,7 @@
 name = "rocci-playground-wasm"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "WASM adapter and JS/C-ABI exports for Rocci and Rocdown playground compilation"
 
 [lib]

@@ -2,7 +2,7 @@
 name = "rocci-docs"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Stage colocated Rocdown and published source for cataloged Rocci apps"
 
 [lib]

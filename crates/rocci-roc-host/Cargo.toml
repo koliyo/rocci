@@ -2,7 +2,7 @@
 name = "rocci-roc-host"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Two-tier renderer cache and host runner (native subprocess and wasmtime) for compiled Rocci renderers"
 
 [lib]
@@ -24,4 +24,3 @@ wasmtime-wasi = { version = "29", optional = true }
 
 [dev-dependencies]
 wat = "1"
-

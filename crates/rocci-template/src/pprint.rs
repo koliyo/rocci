@@ -200,12 +200,14 @@ fn write_patch(w: &mut Writer<'_>, src: &str, patch: &PatchDecl) {
     write_mutation(
         w,
         src,
-        "patch",
-        patch.method.as_ref(),
-        &patch.path,
-        patch.params,
-        patch.body,
-        &patch.leading,
+        Mutation {
+            head: "patch",
+            method: patch.method.as_ref(),
+            path: &patch.path,
+            params: patch.params,
+            body: patch.body,
+            leading: &patch.leading,
+        },
     );
 }
 
@@ -213,38 +215,40 @@ fn write_command(w: &mut Writer<'_>, src: &str, command: &CommandDecl) {
     write_mutation(
         w,
         src,
-        "command",
-        command.method.as_ref(),
-        &command.path,
-        command.params,
-        command.body,
-        &command.leading,
+        Mutation {
+            head: "command",
+            method: command.method.as_ref(),
+            path: &command.path,
+            params: command.params,
+            body: command.body,
+            leading: &command.leading,
+        },
     );
 }
 
-fn write_mutation(
-    w: &mut Writer<'_>,
-    src: &str,
-    head: &str,
-    method: Option<&crate::ast::Ident>,
-    path: &str,
+struct Mutation<'a> {
+    head: &'a str,
+    method: Option<&'a crate::ast::Ident>,
+    path: &'a str,
     params: Option<Span>,
     body: Span,
-    leading: &Option<LeadingComments>,
-) {
+    leading: &'a Option<LeadingComments>,
+}
+
+fn write_mutation(w: &mut Writer<'_>, src: &str, mutation: Mutation<'_>) {
     let mut atoms = Vec::new();
-    if let Some(method) = method {
+    if let Some(method) = mutation.method {
         atoms.push(atom(&method.name.to_ascii_uppercase()));
     } else {
         atoms.push(atom("POST"));
     }
-    atoms.push(string_atom(path));
-    if let Some(params) = params {
+    atoms.push(string_atom(mutation.path));
+    if let Some(params) = mutation.params {
         atoms.push(atom(params.of(src).trim()));
     }
-    w.open(head, &atoms);
-    write_optional_leading(w, src, leading);
-    write_roc(w, body.of(src));
+    w.open(mutation.head, &atoms);
+    write_optional_leading(w, src, mutation.leading);
+    write_roc(w, mutation.body.of(src));
     w.close();
 }
 

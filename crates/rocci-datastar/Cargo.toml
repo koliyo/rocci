@@ -2,7 +2,7 @@
 name = "rocci-datastar"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 description = "Datastar specification metadata, typed SSE framing, signals, and asset management for Rocci"
 
 [features]

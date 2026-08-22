@@ -30,6 +30,7 @@ fn is_site_chrome_layout(layout: &str) -> bool {
     matches!(
         layout,
         "home"
+            | "faq"
             | "product"
             | "section"
             | "docs"

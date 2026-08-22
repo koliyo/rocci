@@ -35,4 +35,4 @@ Rocdown is the document language and static-site compiler. Write pages in Markdo
 }
 ```
 
-Named layouts currently available: `home`, `product`, `section`, `docs`, `news-index`, `news-post`, `plain`, and `not-found`.
+Named layouts currently available: `home`, `faq`, `product`, `section`, `docs`, `plain`, and `not-found`.
