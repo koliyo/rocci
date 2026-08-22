@@ -8,7 +8,7 @@ social_image = "/assets/og.png"
 favicon = "/assets/favicon.svg"
 apple_touch_icon = "/assets/apple-touch-icon.png"
 subtitle = "Roc-native interface tools"
-footer = "Rocci is experimental software. Verify APIs against the current source before production use."
+footer = "Highly experimental software — for testing only. Not for production use."
 
 [build]
 output = "../dist/rocci.dev"

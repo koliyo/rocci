@@ -1,4 +1,5 @@
 import Html
+import Components
 import Layouts
 import NavList
 import PageOutline
@@ -74,7 +75,7 @@ import PageOutline
                     <div class="header-actions">
                         <button type="button" class="goto-open" data-rocci-goto-open aria-label="Go to page">Go to</button>
                         @if view.site.repository != "" {
-                            <a class="header-link" href={view.site.repository}>Source ↗</a>
+                            <Components.GithubLink href={view.site.repository} />
                         }
                     </div>
                     <details class="mobile-menu">
@@ -102,6 +103,12 @@ import PageOutline
                     </details>
                 </div>
             </header>
+            @if view.route == "/" {
+                <Components.ExperimentalBanner />
+            }
+            @if view.route == "/docs/" {
+                <Components.ExperimentalBanner />
+            }
             <div class="site-container">
                 @match view.layout {
                     "home" => <Layouts.Home view={view}>{content}</Layouts.Home>
@@ -113,11 +120,7 @@ import PageOutline
                     _ => <Layouts.Docs view={view}>{content}</Layouts.Docs>
                 }
             </div>
-            <footer class="site-footer">
-                <div class="footer-inner">
-                    <p class="footer-text">{view.site.footer}</p>
-                </div>
-            </footer>
+            <Components.SiteFooter footer={view.site.footer} repository={view.site.repository} />
         </body>
     </html>
 }
