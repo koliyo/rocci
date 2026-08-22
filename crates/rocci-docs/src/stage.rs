@@ -281,7 +281,7 @@ These pages come from `examples/rocci/apps.toml`. Each app has authored docs
 and a complete highlighted source tree. Source and local run paths stay useful
 without a public demo.
 
-Rocdown examples are a separate product. See [Rocdown](/rocdown/).
+Rocdown is an optional experimental document layer. See [Rocdown](/docs/rocdown/).
 
 Live demo hostnames (`<id>.examples.rocci.dev`) are **planned** until a staging
 deploy has served them. Only catalog `live` apps advertise those URLs.

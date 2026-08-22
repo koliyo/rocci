@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/docs/reference/@@/", "/docs/reference/doc-comments/"],
     meta: {
         title: "Comments, escaping, and whitespace",
         description: "Roc comments, template comments, HTML comments, doc comments, @@, and blank-line behavior.",

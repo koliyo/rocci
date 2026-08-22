@@ -1,0 +1,125 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Install Rocci",
+        description: "What this manual assumes, then build Rocci from source and run one deterministic verify.",
+    },
+}
+
+# Install Rocci
+
+This page is the toolchain: assumptions, a source build, and one verify
+command. Then [preview a component](/docs/five-minutes/).
+
+**Verify:** `rocci` via Cargo prints help, and the styling example builds.
+
+This manual is for programmers who are new to Rocci. It does not teach
+programming from zero. You should be able to read typed code, use a terminal
+and Git, and edit a text file.
+
+Rocci is **built from source**. There is no crates.io package and no install
+script. GitHub Release archives exist as an experimental prerelease channel;
+do not start there unless you already know you want those binaries.
+
+Commands below run from the repository root. They use
+`cargo run -p rocci-cli`. That is the documented spelling until an installed
+`rocci` distribution exists.
+
+## Toolchain
+
+| Tool | Role | As tested |
+| --- | --- | --- |
+| Rust and Cargo | Build the Rocci workspace | GitHub Actions `dtolnay/rust-toolchain@stable`, edition 2024 crates |
+| Roc nightly | Compile generated and authored Roc | `nightly-2026-08-10` (`7df8509`), pinned in `docker/install-roc.sh` |
+| Native webview | Preview window | macOS WebKit, Linux WebKitGTK 4.1, Windows system webview |
+
+A mismatched Roc nightly can reject syntax that is valid for this repository.
+
+Optional primers: [Roc for Rocci authors](/docs/appendix/roc-for-rocci/),
+[Web foundations](/docs/appendix/web-foundations/). Full Roc lives at
+[roc-lang.org](https://www.roc-lang.org/).
+
+## 1. Install Rust and Roc
+
+Install a Rust toolchain that compiles this workspace (edition 2024).
+[rustup](https://rustup.rs/) is the usual path.
+
+Install Roc. This repository is tested against **Roc nightly-2026-08-10**
+(`7df8509`). See the [Roc install docs](https://www.roc-lang.org/install) and
+match that nightly when a listed nightly is available. Confirm:
+
+```sh
+roc version
+rustc --version
+```
+
+## 2. Clone and build
+
+```sh
+git clone https://github.com/koliyo/rocci.git
+cd rocci
+cargo build -p rocci-cli
+```
+
+## 3. Platform webview
+
+:tabs.begin[group: "install-os", kind: "platform"]
+    :tab[id: "mac", label: "macOS"] {{
+        Tao and Wry use the system WebKit view. No extra webview packages.
+        Ad-hoc `.app` bundling is available later with `rocci bundle`.
+        Verified in CI (`macos-latest`).
+    }}
+    :tab[id: "linux", label: "Linux"] {{
+        Install the WebKitGTK development packages Wry needs. On Debian and
+        Ubuntu this matches CI (`ubuntu-latest`):
+
+        ```sh
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgtk-3-dev libwebkit2gtk-4.1-dev \
+          libappindicator3-dev librsvg2-dev patchelf
+        ```
+
+        Other distributions use their WebKitGTK 4.1 development packages.
+        Headless checks can pass `--no-window`.
+    }}
+    :tab[id: "windows", label: "Windows"] {{
+        Wry uses the operating-system webview. Windows packaging is not
+        implemented. Development `rocci run` / `rocci view` use the same local
+        HTTP server as other platforms. This path is not in CI.
+    }}
+:tabs.end
+
+## 4. Verify
+
+```sh
+cargo run -q -p rocci-cli -- --help
+cargo run -q -p rocci-cli -- build examples/rocci/standalone/styling/Styling.rocci
+```
+
+The build command prints generated Roc to stdout. You should see a `hello`
+function and `Html.element` calls.
+
+Then open the component (window or browser):
+
+```sh
+cargo run -q -p rocci-cli -- view \
+  examples/rocci/standalone/styling/Styling.rocci \
+  --component Hello --arg name=Ada
+```
+
+The command prints a local URL. With `--no-window`, the default port is `8000`.
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `roc` not found | Roc missing from `PATH` | Install the pinned nightly and retry `roc version` |
+| WebKit / webview link errors on Linux | Missing GTK/WebKitGTK dev packages | Install the packages above or use `--no-window` |
+| Template compilation failed | Checkout is incomplete | Run from the clone root; do not copy a single `.rocci` file out of tree |
+
+### Experimental GitHub archives
+
+CI publishes `rocci-{version}-{target}.tar.gz` archives on GitHub Releases
+(macOS aarch64 and Linux x86_64). Treat them as **experimental**. They are not
+the first-run path in this manual.
+
+Next: [Rocci in five minutes](/docs/five-minutes/).

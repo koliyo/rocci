@@ -1,0 +1,62 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Directives",
+        description: "Render conditionals, lists, variants, and derived bindings with @if, @for, @match, and @let.",
+    },
+}
+
+# Directives
+
+This page is the template-layer guide for structural control flow. The
+contract is [Directives](/docs/reference/language/directives/).
+
+**Verify:** `rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
+
+Keep the opening `{` on the same logical header line. Parenthesize records in
+headers so `{` is not the body opener: `@match ({ status, items }) {`.
+
+## Conditional
+
+```rocci
+@if List.is_empty(items) {
+    <p>Nothing yet.</p>
+} @else {
+    <p>{List.len(items).to_str()} items</p>
+}
+```
+
+Missing `@else` becomes `Html.empty`. Use `@if` for a true/false condition.
+Prefer `@match` when the input is a tag union or a small closed set.
+
+## List
+
+```rocci
+@for item in items {
+    <li id={"row-" ++ item.id.to_str()}>{item.label}</li>
+}
+```
+
+One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
+`@post:fragment` will morph them.
+
+## Variants
+
+```rocci
+@match status {
+    Idle => <p>Idle</p>
+    Loading => <p>Loading</p>
+    Failed(msg) => <p>{msg}</p>
+}
+```
+
+An arm is an element, call, fragment, interpolation, or nested directive — not
+bare text. Guards and `|` alternatives are ordinary Roc.
+
+## Derived bindings
+
+`@let name = expr` binds before render-producing items. Do not put `@fixture`
+inside a component body.
+
+**Related:** [Components](/docs/templates/components/),
+[Directives reference](/docs/reference/language/directives/).

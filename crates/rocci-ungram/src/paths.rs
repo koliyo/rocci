@@ -12,4 +12,4 @@ pub const ROCDOWN_MARKDOWN_UNGRAM: &str = "crates/rocci-rocdown/Rocdown.Markdown
 pub const ROCDOWN_MARKDOWN_TOML: &str = "crates/rocci-rocdown/Rocdown.Markdown.toml";
 pub const ROCDOWN_MD_GENERATED: &str = "crates/rocci-rocdown/src/md.generated.rs";
 pub const ROCCI_TREE_APPENDIX: &str = "docs/reference/contributor/rocci-tree.rocdown";
-pub const ROCDOWN_TREE_APPENDIX: &str = "site/rocdown/tree.rocdown";
+pub const ROCDOWN_TREE_APPENDIX: &str = "docs/reference/contributor/rocdown-tree.rocdown";

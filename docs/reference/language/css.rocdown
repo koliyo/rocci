@@ -1,6 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/docs/reference/@css/"],
     meta: {
         title: "CSS",
         description: "File-level versus component @css, scoping transformation, selector behavior, and limits.",
@@ -23,4 +22,4 @@ writing `class="card"`. Document chrome belongs on `body` or `:scope`, not
 
 **Limits:** no `:deep` yet.
 
-**Related:** [Styles and ownership](/docs/concepts/styles-and-ownership/).
+**Related:** [Markup](/docs/templates/markup/).

@@ -1,13 +1,5 @@
 @page {
     layout: "docs",
-    aliases: [
-        "/reference/cli/",
-        "/docs/reference/cli/",
-        "/docs/cli/validate/",
-        "/docs/cli/build/",
-        "/docs/cli/run/",
-        "/docs/cli/bundle/",
-    ],
     meta: {
         title: "Rocci CLI reference",
         description: "Look up rocci commands: validate, build, run, view, browse, playground, render, inspect, bundle, and datastar.",
@@ -19,7 +11,7 @@
 **Status:** current.
 
 This page documents the `rocci` binary only. `rocdown` and `rocci-okf` are
-other products; see [Rocdown](/rocdown/).
+other products; see [Rocdown CLI](/docs/rocdown/cli/).
 
 Examples use a source checkout. Until a distribution exists, the spelling is
 `cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo
@@ -144,4 +136,4 @@ Shared by `run`, `view`, `browse`, and `playground`:
 | `-v` / `--verbose` | off | Compile and wait phases |
 | `--port PORT\|auto` | `auto` with a window; `8000` with `--no-window` | Also `ROC_BASIC_WEBSERVER_PORT` |
 
-**Related:** [Configuration](/docs/reference/configuration/), [Install](/docs/start/install/).
+**Related:** [Configuration](/docs/reference/configuration/), [Install](/docs/install/).

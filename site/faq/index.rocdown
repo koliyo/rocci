@@ -12,19 +12,19 @@ Use this page for orientation. Follow the linked guide when you need the full co
 
 ## What is Rocci?
 
-Rocci is an experimental toolchain for writing HTML interfaces in Roc. `.rocci` templates lower to ordinary Roc; standalone server declarations can produce HTTP applications. Start with [What is Rocci?](/docs/start/what-is-rocci/).
+Rocci is an experimental toolchain for writing HTML interfaces in Roc. `.rocci` templates lower to ordinary Roc; standalone server declarations can produce HTTP applications. Start with [the stack](/docs/the-stack/).
 
 ## Is Rocci a client-side JavaScript framework?
 
-No. Rocci renders semantic HTML from Roc. Interactive applications can use Datastar as a browser transport for requests, HTML patches, commands, and shared streams; durable state remains on the server. Read [Datastar as transport](/docs/concepts/datastar-as-transport/).
+No. Rocci renders semantic HTML from Roc. Interactive applications can use Datastar as a browser transport for requests, HTML patches, commands, and shared streams; durable state remains on the server. Read [Handlers](/docs/applications/handlers/).
 
 ## When should I use `.rocci` or `.rocdown`?
 
-Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/rocdown/pages/).
+Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/docs/rocdown/pages/).
 
 ## Can Rocdown publish interactive pages?
 
-Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/rocdown/hybrid/).
+Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/docs/rocdown/hybrid/).
 
 ## Can I build desktop applications?
 

@@ -1,10 +1,5 @@
 @page {
     layout: "docs",
-    aliases: [
-        "/docs/reference/@get/",
-        "/docs/reference/@post/",
-        "/docs/reference/datastar-actions/",
-    ],
     meta: {
         title: "Attributes and actions",
         description: "Static, dynamic, and boolean attributes, props records, hyphenated names, and Datastar actions.",

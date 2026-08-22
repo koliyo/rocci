@@ -1,0 +1,78 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "The Rocci stack",
+        description: "How Roc, Datastar, .rocci templates, applications, and optional Rocdown documents fit together.",
+    },
+}
+
+# The Rocci stack
+
+This page is the composition: four layers, two application depths, and when
+to stop. Exact forms live in [reference](/docs/reference/).
+
+## Four layers
+
+1. **Roc + Datastar.** Roc owns types, helpers, SQLite, and effects. Datastar
+   is the browser transport: it sends intent and morphs HTML. It is not a
+   client application framework and not a Rocci language feature.
+2. **`.rocci` templates.** `@component`, `@css`, `@fixture`, markup, and
+   directives. A PascalCase component lowers to a pure Roc `Html` function.
+   Preview with `rocci view` / `rocci browse` without writing a server.
+3. **Applications.** HTTP structure around those templates. Standalone and
+   custom are two depths of this layer, not two products.
+4. **Rocdown.** Optional Markdown-first documents and sites. Static pages stay
+   Markdown; live pages reuse the application layer. This layer is more
+   experimental than templates. Start at [Rocdown](/docs/rocdown/).
+
+You do not need Rocdown to ship an app. You do not need Applications if you
+only preview components into an existing `main.roc`.
+
+## Compile to Roc
+
+A `.rocci` file is a Roc module. Rocci recognizes a closed set of `@`
+declarations. Everything else is copied into generated Roc unchanged.
+Roc type-checking starts after lowering. Tags become `Html.*` calls.
+Component tags become ordinary functions.
+
+```text
+authored .rocci
+    │ parse template regions, copy Roc regions
+    ▼
+generated .roc  ── Roc type-check and compile ── native host
+    │
+    └── source-map segments point diagnostics back at the template
+```
+
+Rocci does **not** type-check interpolations, params, or directive headers.
+A template can parse and still fail in `roc`. The template crate does not
+start HTTP or open a window; `rocci-cli` compiles the generated module and
+serves it. The preview webview loads that same origin.
+
+**Related:** [Generated Roc](/docs/reference/language/generated-roc/).
+
+## Two application depths
+
+| Depth | What you author | What `rocci run` does |
+| --- | --- | --- |
+| Standalone | `@context`, `@init`, `@get:view`, optional fragment / command / live routes | Generate dispatch, `/assets`, `/health`, and authored live paths |
+| Custom | `main.roc` plus `.rocci` modules | Compile sibling modules and start your Roc program |
+
+Stay standalone until generated dispatch is in the way: extra routes, a
+different platform, or a runtime the dispatcher does not express. Reuse
+components; do not re-implement `Html`. Desktop bundling (`rocci bundle`)
+wraps either depth in an ad-hoc macOS `.app`.
+
+**Related:** [Applications](/docs/applications/),
+[Runtime](/docs/reference/runtime/).
+
+## Deliberate limits
+
+- Not JSX embedded throughout Roc.
+- No runtime component registry and no magic `children` field.
+- No markup inside arbitrary Roc expressions; use `@if` / `@for` / `@match`.
+- No dynamic tag names or prop spreading.
+
+Preview a component in [five minutes](/docs/five-minutes/), then
+[templates](/docs/templates/) or a
+[standalone app](/docs/applications/standalone/).

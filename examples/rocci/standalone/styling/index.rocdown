@@ -8,9 +8,7 @@
 
 # Styling
 
-**Audience:** new Rocci author.
-**Prerequisites:** [first component tutorial](/docs/tutorials/first-component/).
-**Concepts:** [styles and ownership](/docs/concepts/styles-and-ownership/).
+See [Templates](/docs/templates/) for components and colocated CSS.
 
 A standalone page that shows colocated `@css`: file-level document chrome,
 component-scoped rules, default component params, and Vue-style isolation.

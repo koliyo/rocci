@@ -1,0 +1,102 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Components",
+        description: "Declare, call, and preview PascalCase @component functions using the cataloged styling example.",
+    },
+}
+
+# Components
+
+This page is the template-layer guide for `@component`. Canonical complete
+source is [Styling.rocci](/examples/styling/source/Styling-rocci/). Do not
+copy the file into `docs/`. Forms and errors live in
+[Components](/docs/reference/language/components/).
+
+**Starting files:** `examples/rocci/standalone/styling/Styling.rocci`
+**Verify:** `Hello` previews; inspect lists components and fixtures.
+
+`@component` lowers to a function that returns `Html`. Given the same props
+and body, it produces the same markup. That is why fixtures, `rocci view`,
+and HTTP handlers can share one renderer. Effects belong in `@init` and
+handlers. There is no runtime component registry and no implicit instance
+state.
+
+## Declare and call
+
+Names are PascalCase. Consecutive leading capitals (`HTMLShell`) are rejected;
+write `HtmlShell`. The first parameter is a props record. Nested markup is a
+second `Html` argument, not a `children` field. Putting `Html` in the record
+wraps it in `Html.text` and escapes it.
+
+```rocci
+@component Card = |{ title }, content|
+    <section>
+        <h2>{title}</h2>
+        {content}
+    </section>
+
+@component Page = |_|
+    <Card title="Hello">
+        <p>Body is Html, not a string.</p>
+    </Card>
+```
+
+A self-closing tag is a one-argument call. Qualified calls use the imported
+module: `<Design.Button />` → `Design.button`. Missing PascalCase names fail
+in Roc, not in a client-side registry.
+
+`??` field defaults are **experimental**. Omit the field at the call site;
+lowering fills it.
+
+In the styling example, `Hello` takes `{ name ?? "Roc" }`. A self-closing
+`<Hello />` uses the default. The component is **pure**: it cannot log, open
+SQLite, or read the request.
+
+## Fixtures
+
+```rocci
+@fixture{target: Hello}
+helloTest = { name: "Ada" }
+```
+
+Fixtures are ordinary Roc bindings tagged for `rocci view` and `rocci browse`.
+They do not change the generated component function. HTTP declarations are
+ignored in `view`.
+
+```sh
+cargo run -q -p rocci-cli -- view \
+  examples/rocci/standalone/styling/Styling.rocci \
+  --component Hello
+```
+
+**Verify:** **Hello, Ada** from `helloTest`. Pass `--arg name=Roc` to override.
+
+## Inspect lowering
+
+```sh
+cargo run -q -p rocci-cli -- inspect --ast \
+  examples/rocci/standalone/styling/Styling.rocci
+```
+
+**Verify:** the output names `Hello`, `FeatureCard`, and `StylePage`, lists
+the fixtures, and prints source-map segments.
+
+```sh
+cargo run -q -p rocci-cli -- build \
+  examples/rocci/standalone/styling/Styling.rocci
+```
+
+**Verify:** generated Roc contains `hello`, `featureCard`, and `stylePage`.
+
+`rocci run` on the same file serves the full page (`@get:view("/")`). File-level
+`@css` styles `body`, not `html`.
+
+## Library layout
+
+Put reusable widgets in `components/`. Keep page-private helpers in the same
+`.rocci` module. `rocci browse components/` lists fixtures across a directory.
+
+**Related:** [Markup](/docs/templates/markup/),
+[Fixtures](/docs/reference/language/fixtures/),
+[Why Roc](/docs/appendix/why-roc/).

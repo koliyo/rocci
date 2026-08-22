@@ -8,8 +8,6 @@
 
 # Runtime failures
 
-**Prerequisites:** [Update the UI](/docs/how-to/update-the-ui/).
-
 ## A Datastar button does nothing
 
 Check four boundaries:
@@ -34,4 +32,4 @@ route shape.
 `{"error":"…"}`. `@init` failure exits the process instead.
 
 **Related:** [Runtime](/docs/reference/runtime/),
-[Handle requests](/docs/how-to/handle-requests-and-errors/).
+[Handlers](/docs/applications/handlers/).

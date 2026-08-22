@@ -8,10 +8,6 @@
 
 # Documentation contributor checklist
 
-**Prerequisites:** a source checkout that can run Cargo and `uv`.
-**Kind:** contributor reference.
-**Status:** development `main`.
-
 A documentation-only pull request has one local path that matches CI
 `fixtures-and-docs`:
 
@@ -25,8 +21,8 @@ uv run rocci-ops ci fixtures-and-docs
 ```
 
 `check site` / `check docs` already fail on broken links, unknown nav ids,
-missing includes/assets, and duplicate routes or aliases. Staging is atomic:
-a failed `rocci-docs` run keeps the previous `dist/example-docs` tree.
+missing includes/assets, and duplicate routes. Staging is atomic: a failed
+`rocci-docs` run keeps the previous `dist/example-docs` tree.
 
 ## Public contract
 
@@ -37,7 +33,14 @@ removed; do not relabel `@on` as current.
 
 Do not duplicate generated `/examples/` source. Link the cataloged app.
 
-Do not teach Rocdown, OKF, or planned work as shipped Rocci.
+Do not open a page with Prerequisites, Kind, You will, Time, or Next. Do not
+add `@page aliases` or redirects from retired academy or `/rocdown/` routes.
+
+Do not teach OKF or planned work as shipped. Rocdown is experimental and
+lives at `/docs/rocdown/`.
+
+Nav groups stay Start, Templates, Applications, Rocdown, Reference,
+Troubleshooting.
 
 ## Examples
 
@@ -45,6 +48,9 @@ Staging does not compile Roc. Cataloged standalone apps have `rocci-cli` build
 tests that run when `roc` is on `PATH` (`counter_generated_app_roc_builds`,
 `live_counter_generated_app_roc_builds`). Smoke `curl` lines live on each app
 page. Set `ROCCI_REQUIRE_ROC=1` when Roc must not be skipped.
+
+Example prose links into [Templates](/docs/templates/) or
+[Applications](/docs/applications/), not retired tutorial URLs.
 
 ## Accessibility
 
@@ -59,7 +65,5 @@ page. Set `ROCCI_REQUIRE_ROC=1` when Roc must not be skipped.
 Blocking broken examples or missing canonical pages fail CI. Theme contrast
 bugs belong in the Rocdown theme, not a second checker.
 
-**Related:** [Status](/docs/status/),
-[first-use protocol](/docs/reference/contributor/first-use/).
-Search fixtures: `docs/search-queries.toml`. Session log:
-`docs/first-use-sessions.toml`.
+**Related:** [The stack](/docs/the-stack/).
+Search fixtures: `docs/search-queries.toml`.

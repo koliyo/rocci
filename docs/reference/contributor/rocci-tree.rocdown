@@ -1,7 +1,5 @@
 @page {
     layout: "docs",
-    aliases: ["/reference/rocci-tree/", "/docs/reference/rocci-tree/"],
-
     meta: {
         title: "Rocci tree appendix",
         description: "Owned AST productions, inspect tags, and sidecar classification for .rocci files.",

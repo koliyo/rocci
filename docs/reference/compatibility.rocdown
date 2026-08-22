@@ -24,4 +24,4 @@
 GitHub Release archives (macOS aarch64, Linux x86_64) are **experimental**.
 crates.io is not an install path (**removed** / absent).
 
-**Related:** [Status](/docs/status/), [Install](/docs/start/install/).
+**Related:** [Install](/docs/install/).

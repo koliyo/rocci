@@ -2,7 +2,7 @@
 # Expected routes are canonical pages (aliases also resolve).
 # Threshold: every row's `expect` page must exist (`rocci-ops check-docs`).
 # Live zero-result search samples are added as new rows after public search exists.
-# First-use sessions: docs/reference/contributor/first-use.rocdown
+# First-use protocol is unpublished. Sessions: docs/first-use-sessions.toml.
 
 schema_version = 1
 product = "rocci"
@@ -10,12 +10,12 @@ threshold = "every listed query resolves to an existing page"
 
 [[query]]
 q = "what is rocci"
-expect = "/docs/start/what-is-rocci/"
+expect = "/docs/the-stack/"
 group = "beginner"
 
 [[query]]
 q = "install rocci"
-expect = "/docs/start/install/"
+expect = "/docs/install/"
 group = "beginner"
 
 [[query]]
@@ -25,7 +25,7 @@ group = "syntax"
 
 [[query]]
 q = "component body parameter"
-expect = "/docs/how-to/author-components/"
+expect = "/docs/templates/components/"
 group = "beginner"
 
 [[query]]
@@ -50,7 +50,7 @@ group = "runtime"
 
 [[query]]
 q = "@live sse"
-expect = "/docs/concepts/one-shot-versus-live/"
+expect = "/docs/applications/handlers/"
 group = "runtime"
 
 [[query]]
@@ -95,22 +95,22 @@ group = "syntax"
 
 [[query]]
 q = "playground wasm"
-expect = "/docs/how-to/use-the-playground/"
+expect = "/docs/applications/tooling/"
 group = "cli"
 
 [[query]]
 q = "vscode extension"
-expect = "/docs/how-to/set-up-editors/"
+expect = "/docs/applications/tooling/"
 group = "beginner"
 
 [[query]]
 q = "glossary patch"
-expect = "/docs/glossary/"
+expect = "/docs/appendix/glossary/"
 group = "beginner"
 
 [[query]]
 q = "sqlite standalone counter"
-expect = "/docs/tutorials/first-app/"
+expect = "/docs/applications/standalone/"
 group = "beginner"
 
 [[query]]
@@ -145,7 +145,7 @@ group = "syntax"
 
 [[query]]
 q = "error boundary"
-expect = "/docs/concepts/error-boundaries/"
+expect = "/docs/reference/diagnostics/"
 group = "runtime"
 
 [[query]]
@@ -155,12 +155,12 @@ group = "beginner"
 
 [[query]]
 q = "one-shot versus live"
-expect = "/docs/concepts/one-shot-versus-live/"
+expect = "/docs/applications/handlers/"
 group = "runtime"
 
 [[query]]
 q = "custom main ability"
-expect = "/docs/tutorials/custom-main/"
+expect = "/docs/applications/custom/"
 group = "cli"
 
 [[query]]
@@ -174,6 +174,6 @@ expect = "/docs/reference/runtime/#handler-matrix"
 group = "runtime"
 
 [[query]]
-q = "first-use newcomer session"
-expect = "/docs/reference/contributor/first-use/"
+q = "docs contributor checklist"
+expect = "/docs/reference/contributor/checklist/"
 group = "beginner"
