@@ -60,41 +60,6 @@ import Html
     }
 }
 
-@component NavLink = |{ item, route }| {
-    <a
-        class={item.class_name}
-        href={item.href}
-        aria-current={if item.href == route { "page" } else { "false" }}
-    >{item.title}</a>
-}
-
-@component NavNested = |{ item, route }| {
-    @if List.any(item.items, |child| child.href == route) {
-        <details class="nav-section" data-rocci-nav-section={item.items_label} data-rocci-nav-current="" open>
-            <NavGroupInner group={{ title: item.items_label, href: "", open: True, items: item.items }} route={route} />
-        </details>
-    } @else if item.open {
-        <details class="nav-section" data-rocci-nav-section={item.items_label} open>
-            <NavGroupInner group={{ title: item.items_label, href: "", open: True, items: item.items }} route={route} />
-        </details>
-    } @else {
-        <details class="nav-section" data-rocci-nav-section={item.items_label}>
-            <NavGroupInner group={{ title: item.items_label, href: "", open: False, items: item.items }} route={route} />
-        </details>
-    }
-}
-
-@component NavEntry = |{ item, route }| {
-    @if List.is_empty(item.items) {
-        <NavLink item={item} route={route} />
-    } @else {
-        {
-            <NavLink item={item} route={route} />
-            <NavNested item={item} route={route} />
-        }
-    }
-}
-
 @component NavGroupInner = |{ group, route }| {
     <summary class="nav-category">
         <span class="nav-link nav-category">{group.title}</span>
@@ -102,7 +67,11 @@ import Html
     <div class="nav-fold">
         <div class="nav-items">
             @for item in group.items {
-                <NavEntry item={item} route={route} />
+                <a
+                    class={item.class_name}
+                    href={item.href}
+                    aria-current={if item.href == route { "page" } else { "false" }}
+                >{item.title}</a>
             }
         </div>
     </div>
@@ -118,7 +87,7 @@ import Html
                         href={group.href}
                         aria-current={if group.href == route { "page" } else { "false" }}
                     >{group.title}</a>
-                } @else if List.any(group.items, |item| item.href == route || List.any(item.items, |child| child.href == route)) {
+                } @else if List.any(group.items, |item| item.href == route) {
                     <details class="nav-section" data-rocci-nav-section={group.title} data-rocci-nav-current="" open>
                         <NavGroupInner group={group} route={route} />
                     </details>
@@ -144,7 +113,7 @@ navListOpen = {
             href: "/",
             open: False,
             items: [
-                { title: "What is Rocci", href: "/start/what-is-rocci/", class_name: "nav-link nav-child", open: False, items_label: "", items: [] },
+                { title: "What is Rocci", href: "/start/what-is-rocci/", class_name: "nav-link nav-child" },
             ],
         },
         {
@@ -152,8 +121,8 @@ navListOpen = {
             href: "/tutorials/",
             open: True,
             items: [
-                { title: "Build your first component", href: "/tutorials/first-component/", class_name: "nav-link nav-child is-current", open: False, items_label: "", items: [] },
-                { title: "Build your first standalone app", href: "/tutorials/first-app/", class_name: "nav-link nav-child", open: False, items_label: "", items: [] },
+                { title: "Build your first component", href: "/tutorials/first-component/", class_name: "nav-link nav-child is-current" },
+                { title: "Build your first standalone app", href: "/tutorials/first-app/", class_name: "nav-link nav-child" },
             ],
         },
         {

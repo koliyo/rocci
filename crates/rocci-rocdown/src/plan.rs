@@ -1312,13 +1312,12 @@ fn current_section<'a>(navigation: &'a [NavSection], id: &str) -> Option<&'a Nav
 fn sidebar_has_current(sidebar: &[NavGroupView], route: &str) -> bool {
     sidebar.iter().any(|group| {
         group.covers_href(route)
-            || group.items.iter().any(|item| nav_item_is_current(item))
+            || group
+                .items
+                .iter()
+                .any(|item| item.class_name.contains("is-current"))
             || (group.items.is_empty() && group.open)
     })
-}
-
-fn nav_item_is_current(item: &NavItemView) -> bool {
-    item.class_name.contains("is-current") || item.items.iter().any(nav_item_is_current)
 }
 
 fn normalized_breadcrumbs(
@@ -1421,7 +1420,6 @@ fn nav_leaf(item: &catalog::NavItem, current_id: Option<&str>) -> NavItemView {
         } else {
             "nav-link nav-child".into()
         },
-        ..Default::default()
     }
 }
 
@@ -1477,7 +1475,7 @@ fn example_source_prefix(slug: &str) -> String {
 }
 
 fn attach_example_source_tree(
-    sidebar: &mut [NavGroupView],
+    sidebar: &mut Vec<NavGroupView>,
     current_id: Option<&str>,
     pages: &[ResolvedPage],
 ) {
@@ -1498,35 +1496,47 @@ fn attach_example_source_tree(
         return;
     }
     source_pages.sort_by(|left, right| source_sort_key(&left.id).cmp(&source_sort_key(&right.id)));
-    for group in sidebar.iter_mut() {
-        let Some(item) = group
-            .items
-            .iter_mut()
-            .find(|item| item.href == example_href)
-        else {
-            continue;
-        };
-        item.open = true;
-        item.items_label = "Source".into();
-        item.items = source_pages
-            .iter()
-            .map(|page| {
-                let current = current_id == page.id.as_str();
-                NavItemView {
-                    title: page.title.clone(),
-                    href: page.route.clone(),
-                    class_name: if current {
-                        "nav-link nav-child nav-source is-current".into()
-                    } else {
-                        "nav-link nav-child nav-source".into()
-                    },
-                    ..Default::default()
-                }
-            })
-            .collect();
-        group.open = true;
+    let Some(group_index) = sidebar
+        .iter()
+        .position(|group| group.items.iter().any(|item| item.href == example_href))
+    else {
         return;
+    };
+    let group = sidebar.remove(group_index);
+    let source_items: Vec<NavItemView> = source_pages
+        .iter()
+        .map(|page| {
+            let current = current_id == page.id.as_str();
+            NavItemView {
+                title: page.title.clone(),
+                href: page.route.clone(),
+                class_name: if current {
+                    "nav-link nav-child nav-source is-current".into()
+                } else {
+                    "nav-link nav-child nav-source".into()
+                },
+            }
+        })
+        .collect();
+    let mut replacement = Vec::new();
+    for item in group.items {
+        let selected = item.href == example_href;
+        replacement.push(NavGroupView {
+            title: item.title,
+            href: item.href,
+            open: false,
+            items: Vec::new(),
+        });
+        if selected {
+            replacement.push(NavGroupView {
+                title: "Source".into(),
+                href: String::new(),
+                open: true,
+                items: source_items.clone(),
+            });
+        }
     }
+    sidebar.splice(group_index..group_index, replacement);
 }
 
 fn source_sort_key(id: &str) -> (u8, &str) {
@@ -1554,7 +1564,6 @@ fn nav_from_link(link: &NavLink) -> NavItemView {
         title: link.title.clone(),
         href: link.route.clone(),
         class_name: String::new(),
-        ..Default::default()
     }
 }
 
@@ -1565,7 +1574,6 @@ fn optional_link(link: Option<&NavLink>) -> NavItemView {
             title: String::new(),
             href: String::new(),
             class_name: String::new(),
-            ..Default::default()
         },
     }
 }
@@ -2133,7 +2141,13 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
             out.push_str(if group.open { "True" } else { "False" });
             out.push_str(", items: [\n");
             for item in &group.items {
-                push_nav_item_roc(&mut out, item, "                        ");
+                out.push_str("                        { title: ");
+                push_roc_string(&mut out, &item.title);
+                out.push_str(", href: ");
+                push_roc_string(&mut out, &item.href);
+                out.push_str(", class_name: ");
+                push_roc_string(&mut out, &item.class_name);
+                out.push_str(" },\n");
             }
             out.push_str("                    ] },\n");
         }
@@ -2308,32 +2322,6 @@ fn push_node(out: &mut String, node: &crate::docs::PlannedNode) {
     }
 }
 
-fn push_nav_item_roc(out: &mut String, item: &NavItemView, indent: &str) {
-    out.push_str(indent);
-    out.push_str("{ title: ");
-    push_roc_string(out, &item.title);
-    out.push_str(", href: ");
-    push_roc_string(out, &item.href);
-    out.push_str(", class_name: ");
-    push_roc_string(out, &item.class_name);
-    out.push_str(", open: ");
-    out.push_str(if item.open { "True" } else { "False" });
-    out.push_str(", items_label: ");
-    push_roc_string(out, &item.items_label);
-    out.push_str(", items: [");
-    if item.items.is_empty() {
-        out.push_str("] },\n");
-        return;
-    }
-    out.push('\n');
-    let nested = format!("{indent}    ");
-    for child in &item.items {
-        push_nav_item_roc(out, child, &nested);
-    }
-    out.push_str(indent);
-    out.push_str("] },\n");
-}
-
 fn push_roc_string(out: &mut String, value: &str) {
     out.push('"');
     for ch in value.chars() {
@@ -2501,16 +2489,19 @@ mod tests {
             Some("examples/blocks/source/backend--Blocks-rocci"),
             &pages,
         );
-        assert!(sidebar[0].open);
-        let blocks = &sidebar[0].items[1];
-        assert_eq!(blocks.title, "Rocci Blocks");
-        assert_eq!(blocks.items_label, "Source");
-        assert!(blocks.open);
-        assert_eq!(blocks.items.len(), 2);
-        assert_eq!(blocks.items[0].title, "Rocci Blocks source");
-        assert_eq!(blocks.items[1].title, "backend/Blocks.rocci");
-        assert!(blocks.items[1].class_name.contains("is-current"));
-        assert!(sidebar[0].items[2].items.is_empty());
+        assert_eq!(sidebar.len(), 4);
+        assert_eq!(sidebar[0].title, "Examples");
+        assert!(sidebar[0].items.is_empty());
+        assert_eq!(sidebar[1].title, "Rocci Blocks");
+        assert_eq!(sidebar[1].href, "/examples/blocks/");
+        assert_eq!(sidebar[2].title, "Source");
+        assert!(sidebar[2].open);
+        assert_eq!(sidebar[2].items.len(), 2);
+        assert_eq!(sidebar[2].items[0].title, "Rocci Blocks source");
+        assert_eq!(sidebar[2].items[1].title, "backend/Blocks.rocci");
+        assert!(sidebar[2].items[1].class_name.contains("is-current"));
+        assert_eq!(sidebar[3].title, "Snake");
+        assert!(sidebar[3].items.is_empty());
         assert!(sidebar_has_current(
             &sidebar,
             "/examples/blocks/source/backend--Blocks-rocci/"
@@ -2531,7 +2522,9 @@ mod tests {
         )];
         let (_, mut sidebar) = lanes_and_sidebar(&navigation, Some("examples/index"));
         attach_example_source_tree(&mut sidebar, Some("examples/index"), &pages);
-        assert!(sidebar[0].items.iter().all(|item| item.items.is_empty()));
+        assert_eq!(sidebar.len(), 1);
+        assert_eq!(sidebar[0].title, "Examples");
+        assert_eq!(sidebar[0].items.len(), 1);
     }
 
     #[test]

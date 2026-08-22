@@ -157,5 +157,10 @@ fn test_chrome_templates_compile() {
             compiled.diagnostics
         );
         assert!(!compiled.roc.is_empty(), "{name} produced empty Roc");
+        assert!(
+            !compiled.roc.contains("Html.text(<"),
+            "{name} lowered markup into Html.text:\n{}",
+            compiled.roc
+        );
     }
 }
