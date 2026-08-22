@@ -153,6 +153,10 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 Rocdown uses CommonMark with GFM tables, strikethrough, task lists, extended
 URL autolinks, and footnotes. It adds deterministic heading IDs, stable `rd-*`
 classes, language classes on fenced code, wiki links, and page-link resolution.
+When site chrome JavaScript is present, fenced code blocks expose a
+copy-to-clipboard control; the code remains selectable without JavaScript.
+When site chrome JavaScript is present, fenced code blocks expose a
+copy-to-clipboard control; the code remains selectable without JavaScript.
 
 Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
 Rocci tag, or `@render MyComponent({ ... })` instead.

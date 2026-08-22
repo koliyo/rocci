@@ -3,7 +3,9 @@ const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
 const PREVIEW_FIND_HTML: &str = include_str!("../assets/preview-find.html");
 const PREVIEW_FIND_CSS: &str = include_str!("../assets/preview-find.css");
 const PREVIEW_FIND_JS: &str = include_str!("../assets/preview-find.js");
-const GOTO_JS: &str = rocci_ui::GOTO_SCRIPT;
+fn goto_js() -> String {
+    rocci_ui::chrome_script()
+}
 const PREVIEW_GOTO_JS: &str = include_str!("../assets/preview-goto.js");
 const PREVIEW_KEYS_JS: &str = include_str!("../assets/preview-keys.js");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
@@ -69,8 +71,9 @@ pub fn initialization_script(
     } else {
         "try{if(sessionStorage.getItem(\"rocci-live-reload\")===null)sessionStorage.setItem(\"rocci-live-reload\",\"0\")}catch(e){}\n".to_string()
     };
+    let goto_js = goto_js();
     format!(
-        "{seed}{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_INSPECTOR_PREFS__ = {prefs};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{GOTO_JS}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
+        "{seed}{REDUCED_MOTION_JS}\nconst __ROCCI_PREVIEW_NAV_HTML__ = {};\nconst __ROCCI_PREVIEW_NAV_CSS__ = {};\nconst __ROCCI_PREVIEW_FIND_HTML__ = {};\nconst __ROCCI_PREVIEW_FIND_CSS__ = {};\nconst __ROCCI_INSPECTOR_URL__ = {inspector};\nconst __ROCCI_INSPECTOR_PREFS__ = {prefs};\nconst __ROCCI_HAS_SOURCE_ROOT__ = {};\nconst __ROCCI_REVEAL_LABEL__ = {};\n{PREVIEW_NAV_JS}\n{PREVIEW_FIND_JS}\n{goto_js}\n{PREVIEW_GOTO_JS}\n{PREVIEW_KEYS_JS}",
         json_string(PREVIEW_NAV_HTML.trim_end()),
         json_string(PREVIEW_NAV_CSS.trim_end()),
         json_string(PREVIEW_FIND_HTML.trim_end()),
@@ -312,13 +315,13 @@ mod tests {
         assert!(script.contains("window.__rocciPreviewNav.goto"));
         assert!(PREVIEW_FIND_HTML.contains("id=\"query\""));
         assert!(PREVIEW_FIND_HTML.contains("aria-label=\"Find in page\""));
-        assert!(GOTO_JS.contains("aria-label=\"Go to page\""));
+        assert!(goto_js().contains("aria-label=\"Go to page\""));
         assert!(PREVIEW_FIND_JS.contains("__rocciPreviewNav.find"));
         assert!(PREVIEW_FIND_JS.contains("useSelection"));
-        assert!(GOTO_JS.contains("/pages.json"));
-        assert!(GOTO_JS.contains("/catalog.json"));
-        assert!(GOTO_JS.contains("loadCatalog"));
-        assert!(GOTO_JS.contains("history.pushState"));
+        assert!(goto_js().contains("/pages.json"));
+        assert!(goto_js().contains("/catalog.json"));
+        assert!(goto_js().contains("loadCatalog"));
+        assert!(goto_js().contains("history.pushState"));
         assert!(PREVIEW_GOTO_JS.contains("__rocciGoto"));
         assert!(PREVIEW_KEYS_JS.contains("closeMore"));
         assert!(PREVIEW_KEYS_JS.contains("preventDefault"));

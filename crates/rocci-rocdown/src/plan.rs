@@ -214,7 +214,7 @@ fn plan_with_preview(
     }
     let stylesheet = hashed_asset("theme.css", theme_css.as_bytes());
     assets.push(stylesheet.clone());
-    let goto_asset = hashed_asset("goto.js", rocci_ui::GOTO_SCRIPT.as_bytes());
+    let goto_asset = hashed_asset("goto.js", rocci_ui::chrome_script().as_bytes());
     let chrome_script_url = goto_asset.hashed_url.clone();
     assets.push(goto_asset);
     assets.sort_by(|a, b| a.output_path.cmp(&b.output_path));
@@ -2670,6 +2670,7 @@ FeatureCount = |_| {
         assert!(card_at < island_at, "{roc}");
         assert!(widgets.view.resources.module_script.is_empty());
         assert!(widgets.view.resources.chrome_script.contains("goto."));
+        assert!(rocci_ui::chrome_script().contains("__rocciCopy"));
         let _ = fs::remove_dir_all(root);
     }
 
