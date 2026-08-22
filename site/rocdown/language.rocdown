@@ -42,7 +42,7 @@ Use `\@roc` for a literal line-start declaration example outside a fence.
 `@component` hosts and `@method:fragment` / `@method:command` handlers instead.
 
 `@roc` is the place for Roc values and helpers. Live pages may `import pf.Sqlite`
-there and call those helpers from `@patch` / `@command` / `@init`. Document-root text that looks
+there and call those helpers from `@method:fragment` / `@method:command` / `@init`. Document-root text that looks
 like Roc is Markdown, not a module item.
 
 ## `:img` native images

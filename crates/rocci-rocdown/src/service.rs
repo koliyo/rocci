@@ -783,12 +783,12 @@ RevealTip = |{ open }| {
         .unwrap();
         fs::write(
             root.join("index.rocdown"),
-            "@patch(\"/actions/page/ping\") = |_, _request| {\n    <div id=\"ping\">pong</div>\n}\n",
+            "@post:fragment(\"/actions/page/ping\") = |_, _request| {\n    <div id=\"ping\">pong</div>\n}\n",
         )
         .unwrap();
         fs::write(
             root.join("Service.rocci"),
-            "import ServiceUi\n\n@patch(\"/actions/counter/increment\") = |_, _request| {\n    ServiceUi.Counter({ count: 1.I64 })\n}\n",
+            "import ServiceUi\n\n@post:fragment(\"/actions/counter/increment\") = |_, _request| {\n    ServiceUi.Counter({ count: 1.I64 })\n}\n",
         )
         .unwrap();
         fs::write(

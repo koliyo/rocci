@@ -439,7 +439,7 @@ mod tests {
         let workspace = root.join("workspace");
         fs::create_dir_all(&workspace).unwrap();
         let service = root.join("Service.rocci");
-        fs::write(&service, "@command(\"/actions/inc\") = |_| { {} }\n").unwrap();
+        fs::write(&service, "@post:command(\"/actions/inc\") = |_| { {} }\n").unwrap();
         fs::write(
             root.join("ServiceUi.rocci"),
             "@component\nCard = |_| {\n    @css { .card { border-radius: 16px; } }\n    <div class=\"card\">count</div>\n}\n",

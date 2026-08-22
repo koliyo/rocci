@@ -450,7 +450,7 @@ Isolation is Vue-style. Authors keep writing `class="card"`. Lowering stamps
 File-level rules share one file id across every component in the module.
 Component-level rules use a per-component id. Both ids hash the file basename
 so a snapshot stylesheet compiled as `LiveCounterUi.rocci` still matches
-`@live` HTML compiled from an absolute path to the same file. Descendant selectors can still
+`@get:live` HTML compiled from an absolute path to the same file. Descendant selectors can still
 match child-component internals; there is no `:deep` yet.
 
 v1 injects a `<style>` element so `view` / `browse` work immediately, and also

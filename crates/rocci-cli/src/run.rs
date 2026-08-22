@@ -291,7 +291,7 @@ fn plan_standalone(
     if !failures.is_empty() {
         return Ok((StandaloneReady::Failed(failures), profile, inspect_pages));
     }
-    // Primary first so dispatch / @init / @live come from the entry file.
+    // Primary first so dispatch / @init / @get:live come from the entry file.
     if let Some(index) = modules
         .iter()
         .position(|module| module.type_name == type_name_from_path(&primary))
