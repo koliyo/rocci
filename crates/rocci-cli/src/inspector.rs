@@ -19,7 +19,9 @@ use crate::profile::ProfileSnapshot;
 
 const METRICS_PANEL: &str = include_str!("../templates/dev/MetricsPanel.rocci");
 
-const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; } body { display: flex; flex-direction: column; min-height: 0; }";
+const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; } body { display: flex; flex-direction: column; min-height: 0; }";
+
+const SOURCE_WRAP_JS: &str = r#"<script>(function(){var key="rocci-dev-wrap";var pane=document.querySelector(".code-pane");var box=document.getElementById("source-wrap");if(!pane||!box)return;function apply(on){pane.classList.toggle("no-wrap",!on);try{sessionStorage.setItem(key,on?"1":"0");}catch(err){}}var stored=null;try{stored=sessionStorage.getItem(key);}catch(err){}var wrap=stored!=="0";box.checked=wrap;apply(wrap);box.addEventListener("change",function(){apply(box.checked);});})();</script>"#;
 
 const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(location.search);parent.postMessage({type:"rocci-inspector",tab:p.get("tab")||"performance",view:p.get("view")||"source"},"*");})();</script>"#;
 
@@ -111,7 +113,7 @@ fn render_source_pane(
         "<div class=\"code-pane\"></div>".to_string()
     };
     format!(
-        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\"><span class=\"visually-hidden\">View</span><select name=\"view\" aria-label=\"View\" onchange=\"this.form.submit()\">{}</select></label><p class=\"file-path\">{}</p><noscript><button type=\"submit\">Show</button></noscript></form>{reason_html}</div>{pane_html}",
+        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\"><span class=\"visually-hidden\">View</span><select name=\"view\" aria-label=\"View\" onchange=\"this.form.submit()\">{}</select></label><label class=\"wrap-label\"><input type=\"checkbox\" id=\"source-wrap\" checked=\"\" aria-label=\"Wrap lines\" /> Wrap</label><p class=\"file-path\">{}</p><noscript><button type=\"submit\">Show</button></noscript></form>{reason_html}</div>{pane_html}{SOURCE_WRAP_JS}",
         error_page::html_escape(route),
         view_options(view, page),
         error_page::html_escape(path),
@@ -601,8 +603,13 @@ mod tests {
         assert!(html.contains("action=\"/__rocci/dev\""));
         assert!(html.contains("name=\"tab\" value=\"source\""));
         assert!(html.contains("class=\"code-pane\""));
-        assert!(html.contains("html, body { height: 100%; margin: 0; overflow: hidden; }"));
+        assert!(html.contains(
+            "html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }"
+        ));
         assert!(html.contains("body { display: flex; flex-direction: column; min-height: 0; }"));
+        assert!(html.contains("id=\"source-wrap\""));
+        assert!(html.contains("Wrap lines"));
+        assert!(html.contains("rocci-dev-wrap"));
         assert!(html.contains("rocci-inspector"));
         assert!(!html.contains("<table>"));
 
@@ -658,19 +665,21 @@ mod tests {
         assert!(html.contains("min-height: 0"));
         assert!(html.contains("overflow: hidden"));
         assert!(html.contains(
-            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: auto;\n        overflow-y: auto;\n        background:"
+            ".code-pane {\n        flex: 1 1 auto;\n        min-height: 0;\n        min-width: 0;\n        overflow-x: hidden;\n        overflow-y: auto;\n        overscroll-behavior: contain;\n        background:"
         ));
         assert!(!html.contains("scrollbar-gutter"));
-        assert!(html.contains("padding: 0 114px 0 8px"));
+        assert!(html.contains("padding: 0 8px"));
         assert!(html.contains("visually-hidden"));
         assert!(html.contains("aria-label=\"View\""));
         assert!(html.contains(".inspector-body.tab-source {\n        padding: 0;"));
         assert!(html.contains("pre {\n        margin: 0;"));
+        assert!(html.contains("white-space: pre-wrap"));
+        assert!(html.contains("overflow-wrap: anywhere"));
+        assert!(html.contains(".code-pane.no-wrap"));
         assert!(html.contains("width: max-content"));
         assert!(html.contains("min-width: 100%"));
         assert!(html.contains("min-height: 100%"));
         assert!(html.contains("overflow: visible"));
-        assert!(html.contains("white-space: pre"));
         assert!(html.contains("expose"));
         assert!(html.contains(".tok-keyword"));
         assert!(html.contains("<span class=\"tok-"));

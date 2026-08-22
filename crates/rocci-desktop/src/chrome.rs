@@ -204,8 +204,17 @@ mod tests {
             )
         );
         assert!(
-            PREVIEW_NAV_JS.contains("rocci-preview-dev .rocci-dev-docks { position: absolute;")
+            PREVIEW_NAV_JS.contains(
+                "rocci-preview-dev .rocci-dev-docks { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end;"
+            )
         );
+        assert!(PREVIEW_NAV_HTML.contains("rocci-dev-mark"));
+        assert!(PREVIEW_NAV_HTML.contains("class=\"icon rocci-mark\""));
+        assert!(!PREVIEW_NAV_JS.contains("rocci-dev-rocci"));
+        assert!(PREVIEW_NAV_JS.contains("setNativeMode"));
+        assert!(PREVIEW_NAV_JS.contains("classList.contains(\"native\")"));
+        assert!(!PREVIEW_NAV_JS.contains("setPanelOpen(false);\n      send(\"devtools:1\")"));
+        assert!(PREVIEW_NAV_JS.contains("overscroll-behavior: none"));
         assert!(PREVIEW_NAV_JS.contains("Open as page"));
         assert!(PREVIEW_NAV_JS.contains("Web Inspector"));
         assert!(PREVIEW_NAV_JS.contains("ICON_WEB_INSPECTOR"));

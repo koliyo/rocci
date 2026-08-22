@@ -38,6 +38,7 @@
 * [Runtime console without a component log API](inspector-console-scope.md) - Keep Console as host runtime lines; feed `rocci run` Roc stderr into sibling `InspectorServer`. Do not add `@component` logging. Exploratory; Phases 1–3 implemented in this revision, not CI-complete. Research: [console scope](../research/inspector-console-scope.md).
 * [Live reload follow-ons after the preview chrome toggle](live-reload-follow-ons.md) - Native View menu check item, shared `--no-live-reload` CLI flag, and a `--no-window` browser pause. Exploratory; Phases 1–3 implemented in this revision, not CI-complete.
 * [Deferred live-reload controls after the three follow-ons](live-reload-deferred.md) - Stop the file watcher, per-route reload policy, and inspector-only pause. Exploratory; no phase started.
+* [Partial failed site publish](partial-failed-site-publish.md) - After catalog or compile errors, commit HTML for pages that did resolve and surface remaining diagnostics in the preview build-error dialog. Exploratory; no phase started. Shipped preview uses a dismissible native `<dialog>` over the last successful output tree only.
 * [Tangled hosting and devops with a GitHub macOS mirror](tangled-hosting.md) - Tangled as canonical git, review, and Linux CI before the near-term public open-source clone; GitHub as a fast-forward mirror that supplies `macos-latest` runners. Exploratory; no phase started.
 
 Other implementation-plan concepts have not yet been migrated. Priority-2 plan migration remains scheduled after the Phase 2 priority-1 corpus.
