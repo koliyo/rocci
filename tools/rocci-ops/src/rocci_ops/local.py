@@ -152,6 +152,20 @@ def install_cursor_extension() -> int:
     return 0
 
 
+def playground_wasm_artifact(root: Path) -> Path:
+    rel = Path("wasm32-unknown-unknown") / "release" / "rocci_playground_wasm.wasm"
+    candidates = []
+    env_dir = os.environ.get("CARGO_TARGET_DIR")
+    if env_dir:
+        candidates.append(Path(env_dir) / rel)
+    candidates.append(root / "target" / rel)
+    for path in candidates:
+        if path.is_file() and path.stat().st_size > 0:
+            return path
+    looked = ", ".join(str(path) for path in candidates)
+    raise SystemExit(f"error: playground WASM artifact not found; looked in: {looked}")
+
+
 def ensure_wasm32_unknown_unknown() -> None:
     listed = subprocess.run(
         ["rustup", "target", "list", "--installed"],
@@ -167,8 +181,6 @@ def build_playground() -> int:
     root = repo_root()
     dist = root / "playground" / "dist"
     dist.mkdir(parents=True, exist_ok=True)
-    for name in ("app.js", "compiler-worker.js", "styles.css", "compiler.wasm"):
-        (dist / name).touch()
     ensure_wasm32_unknown_unknown()
     run(
         [
@@ -182,6 +194,7 @@ def build_playground() -> int:
         ],
         cwd=root,
     )
+    shutil.copy2(playground_wasm_artifact(root), dist / "compiler.wasm")
     playground = root / "playground"
     if not (playground / "node_modules").is_dir():
         run(["npm", "install"], cwd=playground)

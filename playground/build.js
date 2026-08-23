@@ -40,12 +40,22 @@ await esbuild.build({
 // 3. Copy/Bundle CSS
 fs.copyFileSync(path.join(__dirname, "src/styles.css"), path.join(DIST, "styles.css"));
 
-// 4. Copy WASM binary if exists in target/
-const wasmSrc = path.join(ROOT, "target/wasm32-unknown-unknown/release/rocci_playground_wasm.wasm");
+// 4. Copy WASM binary from CARGO_TARGET_DIR or workspace target/
+const cargoTarget = process.env.CARGO_TARGET_DIR
+  ? path.resolve(process.env.CARGO_TARGET_DIR)
+  : path.join(ROOT, "target");
+const wasmSrc = path.join(
+  cargoTarget,
+  "wasm32-unknown-unknown",
+  "release",
+  "rocci_playground_wasm.wasm",
+);
 const wasmDst = path.join(DIST, "compiler.wasm");
-if (fs.existsSync(wasmSrc)) {
-  fs.copyFileSync(wasmSrc, wasmDst);
+if (!fs.existsSync(wasmSrc) || fs.statSync(wasmSrc).size === 0) {
+  console.error("error: missing or empty playground WASM artifact:", wasmSrc);
+  process.exit(1);
 }
+fs.copyFileSync(wasmSrc, wasmDst);
 
 // 5. Generate Standalone index.html
 const indexHtmlContent = `<!DOCTYPE html>

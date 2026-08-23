@@ -1,6 +1,7 @@
 from rocci_ops.local import (
     CLI_CRATES,
     _require_playground_dist,
+    playground_wasm_artifact,
     build_site,
     package_site,
     parse_worktrees,
@@ -94,6 +95,18 @@ def test_require_playground_dist_rejects_empty_or_non_wasm(tmp_path) -> None:
 
     (dist / "compiler.wasm").write_bytes(b"\0asm" + b"\x01" * 8)
     _require_playground_dist(dist)
+
+
+def test_playground_wasm_artifact_prefers_cargo_target_dir(monkeypatch, tmp_path) -> None:
+    rel = "wasm32-unknown-unknown/release/rocci_playground_wasm.wasm"
+    cached = tmp_path / "cache" / rel
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(b"\0asm" + b"\x01" * 8)
+    workspace = tmp_path / "target" / rel
+    workspace.parent.mkdir(parents=True)
+    workspace.write_bytes(b"\0asm" + b"\x02" * 8)
+    monkeypatch.setenv("CARGO_TARGET_DIR", str(tmp_path / "cache"))
+    assert playground_wasm_artifact(tmp_path) == cached
 
 
 def test_parse_worktrees() -> None:
