@@ -94,6 +94,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `FootnoteReference` | — | inline |
 | `Heading` | `h` | inline |
 | `Image` | — | inline |
+| `Interpolation` | `interp` | inline |
 | `Item` | `li` | inline |
 | `LineBreak` | — | inline |
 | `Link` | `a` | inline |
@@ -101,6 +102,7 @@ This page is generated from `crates/rocci-rocdown/Rocdown.AST.ungram` and `crate
 | `MdNode` | `md` (fallback) | generated |
 | `Paragraph` | `p` | inline |
 | `RawHtml` | — | inline |
+| `RocExpr` | omit | leaf |
 | `SoftBreak` | — | inline |
 | `Strikethrough` | — | inline |
 | `Strong` | `strong` | inline |

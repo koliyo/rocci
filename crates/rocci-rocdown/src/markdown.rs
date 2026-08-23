@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use comrak::nodes::{AstNode, ListType, NodeValue};
-use rocci_template::{Diagnostic, Span};
+use rocci_template::{Diagnostic, Span, scan_interpolation};
 
 use crate::ast::{HeadingInfo, LinkInfo, MdNode};
 
@@ -145,6 +145,7 @@ enum Converted {
 pub fn convert_document<'a>(
     root: &'a AstNode<'a>,
     synthetic: &str,
+    original: &str,
     map: &OffsetMap,
     raw_html: bool,
     diagnostics: &mut Vec<Diagnostic>,
@@ -157,8 +158,12 @@ pub fn convert_document<'a>(
         raw_html,
     };
     for child in root.children() {
-        match out.convert_top(child, synthetic, map, diagnostics) {
-            Converted::Block(node) => out.blocks.push(BlockOrHole::Block(node)),
+        match out.convert_top(child, synthetic, original, map, diagnostics) {
+            Converted::Block(node) => {
+                for node in flatten_interpolations(original, vec![node], diagnostics) {
+                    out.blocks.push(BlockOrHole::Block(node));
+                }
+            }
             Converted::Hole(index) => out.blocks.push(BlockOrHole::Hole(index)),
             Converted::Skip => {}
         }
@@ -171,6 +176,7 @@ impl MarkdownConvert {
         &mut self,
         node: &'a AstNode<'a>,
         synthetic: &str,
+        original: &str,
         map: &OffsetMap,
         diagnostics: &mut Vec<Diagnostic>,
     ) -> Converted {
@@ -179,14 +185,16 @@ impl MarkdownConvert {
             NodeValue::HtmlBlock(html) => {
                 if let Some(index) = placeholder_index(&html.literal) {
                     Converted::Hole(index)
-                } else if let Some(md) = self.convert_node(node, synthetic, map, diagnostics) {
+                } else if let Some(md) =
+                    self.convert_node(node, synthetic, original, map, diagnostics)
+                {
                     Converted::Block(md)
                 } else {
                     Converted::Skip
                 }
             }
             _ => {
-                if let Some(md) = self.convert_node(node, synthetic, map, diagnostics) {
+                if let Some(md) = self.convert_node(node, synthetic, original, map, diagnostics) {
                     Converted::Block(md)
                 } else {
                     Converted::Skip
@@ -199,6 +207,7 @@ impl MarkdownConvert {
         &mut self,
         node: &'a AstNode<'a>,
         synthetic: &str,
+        original: &str,
         map: &OffsetMap,
         diagnostics: &mut Vec<Diagnostic>,
     ) -> Option<MdNode> {
@@ -207,11 +216,11 @@ impl MarkdownConvert {
         match &data.value {
             NodeValue::Document => None,
             NodeValue::Paragraph => Some(MdNode::Paragraph {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::Heading(heading) => {
-                let children = self.convert_children(node, synthetic, map, diagnostics);
+                let children = self.convert_children(node, synthetic, original, map, diagnostics);
                 let text = children
                     .iter()
                     .map(MdNode::text_content)
@@ -231,22 +240,22 @@ impl MarkdownConvert {
                 })
             }
             NodeValue::BlockQuote => Some(MdNode::BlockQuote {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::List(list) => Some(MdNode::List {
                 ordered: list.list_type == ListType::Ordered,
                 start: list.start as u64,
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::Item(_) => Some(MdNode::Item {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::TaskItem(item) => Some(MdNode::TaskItem {
                 checked: item.symbol.is_some(),
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::CodeBlock(block) => Some(MdNode::CodeBlock {
@@ -261,16 +270,16 @@ impl MarkdownConvert {
             }),
             NodeValue::ThematicBreak => Some(MdNode::ThematicBreak { span }),
             NodeValue::Table(_) => Some(MdNode::Table {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::TableRow(header) => Some(MdNode::TableRow {
                 header: *header,
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::TableCell => Some(MdNode::TableCell {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::Text(text) => Some(MdNode::Text {
@@ -284,21 +293,21 @@ impl MarkdownConvert {
                 span,
             }),
             NodeValue::Emph => Some(MdNode::Emph {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::Strong => Some(MdNode::Strong {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::Strikethrough => Some(MdNode::Strikethrough {
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::FootnoteDefinition(definition) => Some(MdNode::FootnoteDefinition {
                 name: definition.name.clone(),
                 total_references: definition.total_references,
-                children: self.convert_children(node, synthetic, map, diagnostics),
+                children: self.convert_children(node, synthetic, original, map, diagnostics),
                 span,
             }),
             NodeValue::FootnoteReference(reference) => Some(MdNode::FootnoteReference {
@@ -315,7 +324,7 @@ impl MarkdownConvert {
                 Some(MdNode::Link {
                     url: link.url.clone(),
                     title: link.title.clone(),
-                    children: self.convert_children(node, synthetic, map, diagnostics),
+                    children: self.convert_children(node, synthetic, original, map, diagnostics),
                     span,
                 })
             }
@@ -327,14 +336,16 @@ impl MarkdownConvert {
                 Some(MdNode::Link {
                     url: link.url.clone(),
                     title: String::new(),
-                    children: self.convert_children(node, synthetic, map, diagnostics),
+                    children: self.convert_children(node, synthetic, original, map, diagnostics),
                     span,
                 })
             }
             NodeValue::Image(link) => {
                 let alt = node
                     .children()
-                    .filter_map(|child| self.convert_node(child, synthetic, map, diagnostics))
+                    .filter_map(|child| {
+                        self.convert_node(child, synthetic, original, map, diagnostics)
+                    })
                     .map(|child| child.text_content())
                     .collect::<String>();
                 Some(MdNode::Image {
@@ -349,7 +360,7 @@ impl MarkdownConvert {
             }
             NodeValue::HtmlInline(html) => self.raw_html_node(html.clone(), span, diagnostics),
             _ => {
-                let children = self.convert_children(node, synthetic, map, diagnostics);
+                let children = self.convert_children(node, synthetic, original, map, diagnostics);
                 if children.is_empty() {
                     None
                 } else if children.len() == 1 {
@@ -365,12 +376,15 @@ impl MarkdownConvert {
         &mut self,
         node: &'a AstNode<'a>,
         synthetic: &str,
+        original: &str,
         map: &OffsetMap,
         diagnostics: &mut Vec<Diagnostic>,
     ) -> Vec<MdNode> {
-        node.children()
-            .filter_map(|child| self.convert_node(child, synthetic, map, diagnostics))
-            .collect()
+        let children = node
+            .children()
+            .filter_map(|child| self.convert_node(child, synthetic, original, map, diagnostics))
+            .collect();
+        flatten_interpolations(original, children, diagnostics)
     }
 
     fn raw_html_node(
@@ -404,6 +418,142 @@ impl MarkdownConvert {
         *count += 1;
         id
     }
+}
+
+fn flatten_interpolations(
+    src: &str,
+    children: Vec<MdNode>,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Vec<MdNode> {
+    children
+        .into_iter()
+        .flat_map(|child| match child {
+            MdNode::Text { value, span } => {
+                split_text_interpolations(src, &value, span, diagnostics)
+            }
+            other => vec![other],
+        })
+        .collect()
+}
+
+pub fn split_text_interpolations(
+    src: &str,
+    value: &str,
+    span: Span,
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Vec<MdNode> {
+    let start = span.start as usize;
+    let end = (span.end as usize).min(src.len());
+    if start >= end || start > src.len() {
+        return vec![MdNode::Text {
+            value: value.to_string(),
+            span,
+        }];
+    }
+
+    let mut nodes = Vec::new();
+    let mut i = start;
+    let mut lit = String::new();
+    let mut lit_start = start;
+    let mut found_hole = false;
+
+    while i < end {
+        if is_at_open(src, i, end) {
+            found_hole = true;
+            if !lit.is_empty() {
+                nodes.push(MdNode::Text {
+                    value: std::mem::take(&mut lit),
+                    span: Span::new(lit_start, i),
+                });
+            }
+            let scan = scan_interpolation(src, i + 1);
+            let interp_end = (scan.span.end as usize).max(i + 1);
+            if !scan.terminated {
+                diagnostics.push(Diagnostic::error(
+                    Span::new(i, interp_end),
+                    "unterminated interpolation; expected `}`",
+                ));
+            }
+            nodes.push(MdNode::Interpolation {
+                expr: scan.expr,
+                span: Span::new(i, interp_end),
+            });
+            i = interp_end;
+            lit_start = i;
+            if i >= end {
+                break;
+            }
+            continue;
+        }
+
+        if src.as_bytes()[i] == b'\\' {
+            let mut slashes = 0usize;
+            let mut j = i;
+            while j < end && src.as_bytes()[j] == b'\\' {
+                slashes += 1;
+                j += 1;
+            }
+            if is_at_open(src, j, end) {
+                for _ in 0..(slashes / 2) {
+                    lit.push('\\');
+                }
+                if slashes % 2 == 1 {
+                    let scan = scan_interpolation(src, j + 1);
+                    let close = (scan.span.end as usize).max(j + 1);
+                    let copy_end = close.min(end).max(j);
+                    lit.push_str(&src[j..copy_end]);
+                    i = close.min(end).max(i + 1);
+                    continue;
+                }
+                i = j;
+                continue;
+            }
+            if i + 1 < end {
+                let next = src[i + 1..].chars().next().unwrap();
+                if next.is_ascii_punctuation() {
+                    lit.push(next);
+                    i += 1 + next.len_utf8();
+                    continue;
+                }
+            }
+        }
+
+        let Some(ch) = src[i..].chars().next() else {
+            break;
+        };
+        lit.push(ch);
+        i += ch.len_utf8();
+    }
+
+    if !found_hole {
+        return vec![MdNode::Text {
+            value: value.to_string(),
+            span,
+        }];
+    }
+    if !lit.is_empty() && lit_start < end {
+        nodes.push(MdNode::Text {
+            value: lit,
+            span: Span::new(lit_start, end),
+        });
+    } else if !lit.is_empty() {
+        nodes.push(MdNode::Text {
+            value: lit,
+            span: Span::new(lit_start, i.max(lit_start)),
+        });
+    }
+    if nodes.is_empty() {
+        vec![MdNode::Text {
+            value: value.to_string(),
+            span,
+        }]
+    } else {
+        nodes
+    }
+}
+
+fn is_at_open(src: &str, pos: usize, end: usize) -> bool {
+    pos + 1 < end && src.as_bytes()[pos] == b'@' && src.as_bytes()[pos + 1] == b'{'
 }
 
 fn placeholder_index(literal: &str) -> Option<usize> {

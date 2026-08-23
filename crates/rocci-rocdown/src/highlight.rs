@@ -258,6 +258,7 @@ pub fn collect_markdown_node(src: &str, node: &MdNode, tokens: &mut Vec<Highligh
         }
         MdNode::CodeBlock { .. }
         | MdNode::Text { .. }
+        | MdNode::Interpolation { .. }
         | MdNode::SoftBreak { .. }
         | MdNode::LineBreak { .. }
         | MdNode::FootnoteReference { .. }
@@ -900,6 +901,7 @@ fn collect_md_node_regions(
         }
         MdNode::ThematicBreak { .. }
         | MdNode::Text { .. }
+        | MdNode::Interpolation { .. }
         | MdNode::SoftBreak { .. }
         | MdNode::LineBreak { .. }
         | MdNode::Code { .. }

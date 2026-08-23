@@ -1898,6 +1898,7 @@ impl<'a> Emitter<'a> {
                 self.emit_string(value, *span, OriginKind::MarkdownText);
                 self.emit(")");
             }
+            MdNode::Interpolation { .. } => self.emit_html(".empty"),
             MdNode::SoftBreak { span } => {
                 self.emit_html(".text(");
                 self.emit_string("\n", *span, OriginKind::MarkdownText);

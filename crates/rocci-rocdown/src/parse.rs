@@ -34,7 +34,14 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let arena = Arena::new();
     let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
-    let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
+    let converted = markdown::convert_document(
+        root,
+        &synthetic,
+        source.src,
+        &map,
+        raw_html,
+        &mut diagnostics,
+    );
 
     let mut items = Vec::new();
     for block in converted.blocks {
@@ -120,6 +127,7 @@ pub fn parse_markdown_body(
     let converted = markdown::convert_document(
         root,
         body_src,
+        source.src,
         &map,
         body_options.raw_html,
         &mut diagnostics,
@@ -171,7 +179,14 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     let arena = Arena::new();
     let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
-    let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
+    let converted = markdown::convert_document(
+        root,
+        &synthetic,
+        source.src,
+        &map,
+        raw_html,
+        &mut diagnostics,
+    );
 
     let mut items = Vec::new();
     for block in converted.blocks {

@@ -241,6 +241,7 @@ pub(crate) fn render_md(node: &MdNode) -> String {
             &render_all(children),
         ),
         MdNode::Text { value, .. } => text(value),
+        MdNode::Interpolation { .. } => text(""),
         MdNode::SoftBreak { .. } => text("\n"),
         MdNode::LineBreak { .. } => void_element("br", &[]),
         MdNode::Code { value, .. } => {

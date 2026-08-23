@@ -33,8 +33,8 @@ pub use lower::{
     lower_template_items, route_fn_name, template_items_have_action,
 };
 pub use parser::{
-    ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
-    parse_template_item_from,
+    InterpolationScan, ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,
+    parse_template_item_from, scan_interpolation,
 };
 pub use pprint::{HandlerInspect, format_ast, inspect_handlers};
 pub use remap::{MappedModule, remap_roc_output};

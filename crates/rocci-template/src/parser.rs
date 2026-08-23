@@ -76,6 +76,63 @@ pub fn parse_template_item_from(src: &str, start: usize) -> Option<ParseTemplate
     })
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct InterpolationScan {
+    pub expr: Span,
+    pub span: Span,
+    pub terminated: bool,
+}
+
+pub fn scan_interpolation(src: &str, open_brace: usize) -> InterpolationScan {
+    let open_brace = open_brace.min(src.len());
+    let mut cur = Cursor::at(src, open_brace);
+    let start = cur.pos;
+    if !cur.eat('{') {
+        return InterpolationScan {
+            expr: Span::point(start),
+            span: Span::point(start),
+            terminated: false,
+        };
+    }
+    let expr_start = cur.pos;
+    let mut depth = 1usize;
+    while !cur.is_eof() && depth > 0 {
+        let before = cur.pos;
+        match cur.peek() {
+            Some('"') => cur.skip_string(),
+            Some('#') => cur.skip_comment(),
+            Some('{') => {
+                cur.bump();
+                depth += 1;
+            }
+            Some('}') => {
+                if depth == 1 {
+                    let expr = lexer::trim_span(src, Span::new(expr_start, cur.pos));
+                    cur.bump();
+                    return InterpolationScan {
+                        expr,
+                        span: Span::new(start, cur.pos),
+                        terminated: true,
+                    };
+                }
+                cur.bump();
+                depth -= 1;
+            }
+            _ => {
+                cur.bump();
+            }
+        }
+        if cur.pos <= before {
+            cur.bump();
+        }
+    }
+    InterpolationScan {
+        expr: lexer::trim_span(src, Span::new(expr_start, cur.pos)),
+        span: Span::new(start, cur.pos),
+        terminated: false,
+    }
+}
+
 struct Parser<'a> {
     cur: Cursor<'a>,
     diagnostics: Vec<Diagnostic>,
@@ -1802,43 +1859,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_interpolation(&mut self) -> Interpolation {
-        let start = self.cur.pos;
-        self.cur.bump();
-        let expr_start = self.cur.pos;
-        let mut depth = 1usize;
-        while !self.cur.is_eof() && depth > 0 {
-            match self.cur.peek() {
-                Some('"') => self.cur.skip_string(),
-                Some('#') => self.cur.skip_comment(),
-                Some('{') => {
-                    self.cur.bump();
-                    depth += 1;
-                }
-                Some('}') => {
-                    if depth == 1 {
-                        let expr =
-                            lexer::trim_span(self.src(), Span::new(expr_start, self.cur.pos));
-                        self.cur.bump();
-                        return Interpolation {
-                            expr,
-                            span: Span::new(start, self.cur.pos),
-                        };
-                    }
-                    self.cur.bump();
-                    depth -= 1;
-                }
-                _ => {
-                    self.cur.bump();
-                }
-            }
+        let scan = scan_interpolation(self.src(), self.cur.pos);
+        self.cur.pos = scan.span.end as usize;
+        if !scan.terminated {
+            self.error(scan.span, "unterminated interpolation; expected `}`");
         }
-        self.error(
-            Span::new(start, self.cur.pos),
-            "unterminated interpolation; expected `}`",
-        );
         Interpolation {
-            expr: lexer::trim_span(self.src(), Span::new(expr_start, self.cur.pos)),
-            span: Span::new(start, self.cur.pos),
+            expr: scan.expr,
+            span: scan.span,
         }
     }
 
@@ -2692,4 +2720,38 @@ fn levenshtein(a: &str, b: &str) -> usize {
         std::mem::swap(&mut prev, &mut cur);
     }
     prev[b.len()]
+}
+
+#[cfg(test)]
+mod interpolation_scan_tests {
+    use super::scan_interpolation;
+    use crate::span::Span;
+
+    #[test]
+    fn scan_interpolation_matches_terminated_spans() {
+        let src = "{date}";
+        let scan = scan_interpolation(src, 0);
+        assert!(scan.terminated);
+        assert_eq!(scan.span, Span::new(0, 6));
+        assert_eq!(scan.expr.of(src), "date");
+
+        let nested = "{List.len(items)}";
+        let scan = scan_interpolation(nested, 0);
+        assert!(scan.terminated);
+        assert_eq!(scan.expr.of(nested), "List.len(items)");
+
+        let strings = r#"{ if x { "a" } else { "b" } }"#;
+        let scan = scan_interpolation(strings, 0);
+        assert!(scan.terminated);
+        assert_eq!(scan.expr.of(strings).trim(), r#"if x { "a" } else { "b" }"#);
+    }
+
+    #[test]
+    fn scan_interpolation_unterminated_advances_to_eof() {
+        let src = "{date";
+        let scan = scan_interpolation(src, 0);
+        assert!(!scan.terminated);
+        assert_eq!(scan.span.end as usize, src.len());
+        assert_eq!(scan.expr.of(src), "date");
+    }
 }
