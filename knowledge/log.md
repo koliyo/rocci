@@ -2,6 +2,7 @@
 
 ## 2026-08-23
 
+- Pointed [Rocdown Markdown `@{expr}` interpolation](plans/rocdown-inline-interpolation.md) and [inline interpolation research](research/rocdown-inline-interpolation.md) at draft [Rocdown `@{expr}` follow-ons after v1](plans/rocdown-inline-interpolation-follow-ons.md). Public hydrate matrices on `sites.rocdown` / `hybrid.rocdown` now name Markdown `@{expr}` like `language.rocdown`. Parent plan stays exploratory; not logged CI-complete.
 - Moved Site package/deploy and Release Linux off `rocci-linux` onto `ubuntu-latest`. No workflow `runs-on` is self-hosted. Hosted Ubuntu jobs install GTK/WebKit via `docker/install-linux-deps.sh builder`.
 - Disabled self-hosted runners for CI and Knowledge: `ci.yml` and `knowledge.yml` are GitHub-hosted only. `/ci-local` still matches but queues hosted jobs.
 - Added draft [public-launch operator sequence](plans/public-launch-operator.md): promote current `main` to staging and smoke it, flip visibility, then `promote-production` and route DNS. Hosted CI and Knowledge already list `production`; `uv run rocci-ops promote-production` creates that branch from `origin/staging`. Phase 1 is in this revision. Does not flip visibility, push `production`, or route apex DNS.

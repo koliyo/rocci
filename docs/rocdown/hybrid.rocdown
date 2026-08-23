@@ -38,7 +38,7 @@ reference (`service_origin`, `--cdn-only`, `islands.json`).
 | Kind | Meaning | Datastar |
 | --- | --- | --- |
 | `static` | Markdown / `@page` / `:name[params]` | No |
-| `hydrate` | Pure Rocci spliced at build | No |
+| `hydrate` | Pure Rocci plus Markdown `@{expr}` spliced at build | No |
 | `live` | Rocci plus `@get:view` / `@method:fragment` / `@method:command` / `@context` / `@init` or `import Datastar` | Yes |
 
 Apply keeps the `:note` / `:tabs` widget forest on `static` pages. The counter

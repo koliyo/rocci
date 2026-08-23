@@ -4,7 +4,7 @@ title: Rocdown Markdown @{expr} interpolation
 description: "Implement mid-sentence Roc Str holes in Rocdown as `@{expr}`: Comrak Text split, source-aware `\\@{` escape, hydrate promotion, Html.text lowering. Do not add `{@expr}`, `{{expr}}`, MDX, or a Rust evaluator."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/authoring, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T20:45:00Z }
+generated: { by: process:cursor, at: 2026-08-23T17:20:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -124,6 +124,11 @@ sources:
     title: Rocdown compiler contract tests
     author: process:git
     last_modified: 2026-08-22
+  - id: follow-ons
+    resource: rocdown-inline-interpolation-follow-ons.md
+    title: Rocdown @{expr} follow-ons after v1
+    author: process:cursor
+    last_modified: 2026-08-23
 ---
 
 # Rocdown Markdown `@{expr}` interpolation
@@ -143,6 +148,10 @@ ungram, parser, lowering, and AllSyntax work. Branch name:
 The spelling is **settled for this plan**: `@{expr}` in Markdown Text;
 Rocci template mode keeps `{expr}`. `{@expr}` and `{{expr}}` are not
 implemented and are not aliases.[^research]
+
+v1 gap-closing after Phases 1–5 is
+[Rocdown `@{expr}` follow-ons after v1](rocdown-inline-interpolation-follow-ons.md).
+This record stays exploratory and is not marked stable or CI-complete.[^follow-ons]
 
 ## Goal
 
@@ -560,6 +569,12 @@ toolchain.[^language-dev]
 
 ## Follow-ons (not this plan)
 
+Renderer gate, hydrate-matrix drift, splitter tests, and LSP go-to without a
+hole target:
+[Rocdown `@{expr}` follow-ons after v1](rocdown-inline-interpolation-follow-ons.md).[^follow-ons]
+
+Still deferred:
+
 - Heading and destination interpolation.
 - `{@` / `{{` aliases (do not add).
 - Static Rust substitution of `@page.meta` under a different spelling.
@@ -587,3 +602,4 @@ toolchain.[^language-dev]
 [^all-syntax]: Comprehensive fixture and inspect lock.
 [^language-dev]: Ungram then parser; AllSyntax; crate tests and fmt.
 [^compile-tests]: Existing compile contract tests to extend, not replace.
+[^follow-ons]: Post-v1 gate, docs matrix, tests, and LSP go-to; not heading/URL interpolation.
