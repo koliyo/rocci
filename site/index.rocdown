@@ -15,6 +15,11 @@
 
 Composable authoring for applications and content.
 
+:note {{
+    Rocci is an independent open-source project. It is built on Roc and is not
+    an official Roc language project.
+}}
+
 :caution {{
     Highly experimental software. For testing only — not for production use.
 }}

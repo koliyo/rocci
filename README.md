@@ -7,6 +7,9 @@ HTTP with Datastar. `rocci run` opens the app in a
 [tao](https://github.com/tauri-apps/tao) / [wry](https://github.com/tauri-apps/wry)
 preview window.
 
+Rocci is an independent open-source project. It is built on Roc and is not an
+official Roc language project.
+
 The workspace is organized into focused packages with strictly enforced one-way boundaries:
 - **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
 - **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).

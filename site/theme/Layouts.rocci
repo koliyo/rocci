@@ -301,6 +301,7 @@ import PageOutline
         text-align: center;
     }
     .article-footer-text { margin: 0; }
+    .layout-home .rd-docs-note,
     .layout-home .rd-docs-caution {
         max-width: 36rem;
         margin-left: auto;
