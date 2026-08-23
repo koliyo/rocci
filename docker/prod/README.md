@@ -105,6 +105,16 @@ two steps: `staging` first (Access-gated `staging.rocci.dev`), then
 `production` (public hostname once the Tunnel route exists):
 
 ```sh
+uv run rocci-ops promote-staging
+uv run rocci-ops promote-production
+```
+
+`promote-production` is `git push origin origin/staging:refs/heads/production`.
+It creates `production` on first use. That push runs hosted CI and Knowledge
+and then this workflow's package/deploy jobs. Do not run it until staging has
+been smoked signed-out. Equivalent raw git:
+
+```sh
 git fetch origin
 git push origin origin/main:staging
 git push origin origin/staging:production

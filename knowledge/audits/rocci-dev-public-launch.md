@@ -4,7 +4,7 @@ title: rocci.dev public-launch checklist
 description: After the 2026-08-23 Should pass, live example hostnames are not advertised as serving, a public support matrix and one GitHub-issues feedback URL are published; remaining gates are a signed-out staging smoke, a tagged clean install, the known repository-visibility flip, and production DNS.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ux, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-23T00:25:00Z }
+generated: { by: process:cursor, at: 2026-08-23T00:30:00Z }
 stale_after: 2026-11-22
 authority: descriptive
 owners: [human:nils]
@@ -141,6 +141,11 @@ sources:
   - id: support-md
     resource: ../../SUPPORT.md
     title: Root support and public feedback URL
+    author: process:cursor
+    last_modified: 2026-08-23
+  - id: operator-plan
+    resource: ../plans/public-launch-operator.md
+    title: Maintainer flip, promote, and DNS sequence
     author: process:cursor
     last_modified: 2026-08-23
 ---
@@ -289,9 +294,16 @@ forwards and is the listed contact.[^publish-plan]
 
 ## Suggested order
 
-1. Smoke staging signed-out, including playground honesty and News 410/404.
-2. Flip the GitHub repository to public.
-3. Route production DNS.
+Operator sequence: [public-launch operator plan](../plans/public-launch-operator.md).[^operator-plan]
+
+1. Promote current `main` onto `staging` (`uv run rocci-ops promote-staging`).
+   `origin/staging` was four commits behind `main` on 2026-08-23.
+2. Smoke staging signed-out, including playground honesty and News 410/404.
+3. Flip the GitHub repository to public. Enable Dependabot alerts and a
+   `main` / `staging` / `production` ruleset after the flip.
+4. After that smoke, `uv run rocci-ops promote-production` creates
+   `origin/production` from smoked `staging` and runs hosted CI plus site
+   deploy. Then route production DNS.
 
 ## Launch-day smoke (after DNS)
 
@@ -334,3 +346,4 @@ island. GitHub must open without authentication after the known flip.
 [^known-limits]: Finder is not full-text search; `@island` and production packaging remain absent.
 [^compatibility]: Support matrix lists documented Roc 2026-08-10, maintainer macOS 2026-08-18, Datastar 1.0.2, OS, editors, packaging.
 [^support-md]: SUPPORT.md names https://github.com/koliyo/rocci/issues as the single public feedback URL.
+[^operator-plan]: Maintainer sequence: promote-staging, smoke, flip, ruleset, promote-production, then DNS.

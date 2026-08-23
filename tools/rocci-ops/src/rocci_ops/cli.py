@@ -26,6 +26,8 @@ commands:
   push-worktrees
   pr-checkout   checkout a PR or branch here as pr/<branch>
   promote-staging  rebase staging onto main and push staging
+  promote-production
+                push origin/staging to origin/production
 """
 
 LOCAL_COMMANDS = {
@@ -40,6 +42,7 @@ LOCAL_COMMANDS = {
     "serve",
     "push-worktrees",
     "promote-staging",
+    "promote-production",
 }
 
 

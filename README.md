@@ -165,6 +165,10 @@ hostname. Pull requests never deploy.
 To promote the current `main` revision to staging locally, run
 `uv run rocci-ops promote-staging`. This rebases `staging` onto `main`, pushes
 `staging` to `origin`, and restores the branch that was active when it started.
+After a signed-out staging smoke, `uv run rocci-ops promote-production` pushes
+`origin/staging` to `origin/production` (creates the branch on first use). That
+push runs hosted CI and Knowledge, then the site package/deploy job. Do not
+promote production until staging has been smoked.
 
 To test a pull request in this worktree when an agent already has the PR
 branch checked out, run `uv run rocci-ops pr-checkout 39`. Quote `#39` in the

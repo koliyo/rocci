@@ -584,6 +584,21 @@ def promote_staging() -> int:
     return 0
 
 
+def promote_production() -> int:
+    """Push origin/staging to origin/production. Creates the branch if needed."""
+    run(["git", "fetch", "origin"])
+    verify = subprocess.run(
+        ["git", "rev-parse", "--verify", "origin/staging"],
+        cwd=repo_root(),
+        capture_output=True,
+        text=True,
+    )
+    if verify.returncode != 0:
+        raise SystemExit("promote-production requires origin/staging")
+    run(["git", "push", "origin", "origin/staging:refs/heads/production"])
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="rocci-ops")
     # invoked as subcommand via cli.py with remaining args only
@@ -648,4 +663,8 @@ def main(argv: list[str]) -> int:
         if rest:
             raise SystemExit("usage: rocci-ops promote-staging")
         return promote_staging()
+    if command == "promote-production":
+        if rest:
+            raise SystemExit("usage: rocci-ops promote-production")
+        return promote_production()
     raise SystemExit(f"unknown local command: {command}")

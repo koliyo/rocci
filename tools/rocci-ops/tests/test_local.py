@@ -2,6 +2,7 @@ from rocci_ops.local import (
     CLI_CRATES,
     build_site,
     parse_worktrees,
+    promote_production,
     promote_staging,
     render_brand_icons,
     require_darwin,
@@ -76,6 +77,40 @@ def test_promote_staging_rebases_main_pushes_and_restores_branch(monkeypatch, tm
         ["git", "push", "origin", "staging"],
         ["git", "switch", "feature"],
     ]
+
+
+def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+
+    assert promote_production() == 0
+    assert calls == [
+        ["git", "fetch", "origin"],
+        ["git", "push", "origin", "origin/staging:refs/heads/production"],
+    ]
+
+
+def test_promote_production_requires_origin_staging(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: None)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 1, "stdout": ""})(),
+    )
+    try:
+        promote_production()
+    except SystemExit as exc:
+        assert "origin/staging" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
 
 
 def test_require_darwin_rejects_other(monkeypatch) -> None:
