@@ -23,7 +23,7 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest` when hosted.
      - `fixtures-and-docs`: AST inspection fixtures (`inspect --ast`) and Rocdown documentation check (`check docs`) on `ubuntu-latest` when hosted.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check on `macos-latest` when hosted.
-   - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs. Hosted lane runs on `ubuntu-latest`.
+   - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs. Hosted on `ubuntu-latest` after `docker/install-linux-deps.sh builder` (GTK/WebKit for `rocci-okf` → `rocci-desktop`).
    - `site.yml`: Packages and deploys `site/` from `staging` or `production` only (matching GitHub Environment). `main` lands PRs and does not publish. **Run workflow** on any other ref is a no-op. Deploy secrets stay Environment-only.
    - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation. `workflow_dispatch` is owner-only.
    - `ci-command.yml`: Listens for `/ci`/`/CI` (owner, member, or collaborator) and `/ci-local`/`/cl-local` (same hosted queue; self-hosted CI is disabled) on PR conversation comments, review bodies, and inline review comments, then dispatches `ci.yml` plus `knowledge.yml` at the snapshot SHA. First-token exact match only; `/circle` is a no-op.
