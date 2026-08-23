@@ -19,6 +19,7 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "snake" not in compose
     workflow = (root / ".github/workflows/site.yml").read_text(encoding="utf-8")
     assert '"examples/**"' in workflow or "- \"examples/**\"" in workflow
+    assert "- \"playground/**\"" in workflow
     assert "dist/examples-live/live-counter/server" in workflow
     assert "dist/examples-live/datastar/server" in workflow
     assert Path(root / "examples/rocci/apps.toml").is_file()
@@ -29,4 +30,5 @@ def test_retired_news_urls_have_exact_origin_dispositions() -> None:
     assert "redir " not in hybrid
     assert "@retired_news path /news/ /news/feed.xml" in hybrid
     assert "respond @retired_news 410" in hybrid
+    assert "Content-Type application/wasm" in hybrid
     assert "path /news/*" not in hybrid

@@ -186,8 +186,24 @@ def build_playground() -> int:
     if not (playground / "node_modules").is_dir():
         run(["npm", "install"], cwd=playground)
     run(["node", "build.js"], cwd=playground)
+    _require_playground_dist(dist)
     print("Playground build succeeded.")
     return 0
+
+
+def _require_playground_dist(dist: Path) -> None:
+    missing: list[str] = []
+    for name in ("app.js", "compiler-worker.js", "styles.css", "compiler.wasm"):
+        path = dist / name
+        if not path.is_file() or path.stat().st_size == 0:
+            missing.append(name)
+    if missing:
+        raise SystemExit(
+            "error: playground dist missing or empty after build: " + ", ".join(missing)
+        )
+    wasm = dist / "compiler.wasm"
+    if wasm.read_bytes()[:4] != b"\0asm":
+        raise SystemExit("error: playground/dist/compiler.wasm is not a WebAssembly module")
 
 
 def render_brand_icons() -> int:
@@ -409,6 +425,8 @@ def build_site() -> int:
 
 
 def package_site(*, target: str) -> int:
+    # Site HTML embeds playground/dist via include_bytes; CI checkouts have no dist/.
+    build_playground()
     root = repo_root()
     live_root = root / "dist/examples-live"
     stage_example_docs()

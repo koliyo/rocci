@@ -1,6 +1,8 @@
 from rocci_ops.local import (
     CLI_CRATES,
+    _require_playground_dist,
     build_site,
+    package_site,
     parse_worktrees,
     promote_production,
     promote_staging,
@@ -38,6 +40,60 @@ def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> Non
     assert calls[0][4] == "rocci-docs"
     assert [call[-2] for call in calls[1:]] == ["check", "test", "build"]
     assert all(call[-1] == "site" for call in calls[1:])
+
+
+def test_package_site_builds_playground_before_cargo(monkeypatch, tmp_path) -> None:
+    calls: list[object] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.build_playground",
+        lambda: calls.append("playground") or 0,
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.stage_example_docs",
+        lambda: calls.append("docs"),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"stdout": "\n", "returncode": 0})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+    (tmp_path / "dist/examples-live").mkdir(parents=True)
+
+    assert package_site(target="x64musl") == 0
+    assert calls[0] == "playground"
+    assert calls[1] == "docs"
+    assert calls[2][4] == "rocci-rocdown-cli"
+    assert calls[2][-4:] == ["package", "site", "--target", "x64musl"]
+
+
+def test_require_playground_dist_rejects_empty_or_non_wasm(tmp_path) -> None:
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "app.js").write_text("app", encoding="utf-8")
+    (dist / "compiler-worker.js").write_text("worker", encoding="utf-8")
+    (dist / "styles.css").write_text("css", encoding="utf-8")
+    (dist / "compiler.wasm").write_bytes(b"")
+    try:
+        _require_playground_dist(dist)
+    except SystemExit as exc:
+        assert "compiler.wasm" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+    (dist / "compiler.wasm").write_bytes(b"not-wasm")
+    try:
+        _require_playground_dist(dist)
+    except SystemExit as exc:
+        assert "WebAssembly" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+    (dist / "compiler.wasm").write_bytes(b"\0asm" + b"\x01" * 8)
+    _require_playground_dist(dist)
 
 
 def test_parse_worktrees() -> None:
