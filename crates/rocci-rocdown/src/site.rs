@@ -250,7 +250,21 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         if compiled.has_errors() || has_use {
             continue;
         }
-        let class = classify_document(&compiled.document, roc_imports_datastar(&compiled.roc));
+        let class = classify_document(
+            &src,
+            &compiled.document,
+            roc_imports_datastar(&compiled.roc),
+        );
+        if crate::article::items_have_interpolation(&src, &compiled.document.items) {
+            diagnostics.push(CatalogDiagnostic::error(
+                "RD2303",
+                &relative_name,
+                format!(
+                    "{relative_name} contains Markdown `@{{` interpolation; static catalog pages cannot evaluate Roc expressions"
+                ),
+            ));
+            continue;
+        }
         const VALID_LAYOUTS: &[&str] = &[
             "home",
             "faq",
@@ -1055,6 +1069,19 @@ debug = true
             "{}",
             widget.article_html
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_rejects_markdown_interpolation() {
+        let root = temp("interp-static");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(root.join("guide.rocdown"), ":note {{ Hello @{name}. }}\n").unwrap();
+        let report = check(&root).unwrap();
+        assert!(report.has_errors(), "expected RD2303");
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(rendered.contains("RD2303"), "{rendered}");
+        assert!(rendered.contains("@{"), "{rendered}");
         let _ = fs::remove_dir_all(root);
     }
 

@@ -168,6 +168,7 @@ fn write_md(w: &mut Writer<'_>, src: &str, node: &MdNode) {
             w.close();
         }
         MdNode::Text { value, .. } => w.leaf("text", &[atom(value)]),
+        MdNode::Interpolation { expr, .. } => w.leaf("interp", &[atom(expr.of(src).trim())]),
         MdNode::Code { value, .. } => w.leaf("code", &[atom(value)]),
         MdNode::Link { url, children, .. } => {
             w.open("a", &[atom(url)]);

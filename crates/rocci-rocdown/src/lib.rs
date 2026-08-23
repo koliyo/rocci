@@ -43,8 +43,8 @@ mod static_preview;
 pub mod theme;
 
 pub use article::{
-    PageClass, PageKind, classify_document, is_static_document, render_document,
-    roc_imports_datastar,
+    PageClass, PageKind, StaticRender, classify_document, is_static_document, render_document,
+    render_document_gated, roc_imports_datastar,
 };
 pub use ast::{
     BlockCall, BlockContent, BraceSection, BracketList, BracketRecord, Document, EndMarker,
@@ -69,7 +69,8 @@ pub use docs::{
     ArticleNode, DocsField, ExampleRecord, ExampleTestOptions, IncludeOptions, IncludeOrigin,
     PageDocs, PlannedNode, PlannedProp, PlannedWidget, extract_lines, extract_region, field_bool,
     field_string, field_strings, include_path_error, load_page_docs, markdown_fragment,
-    plan_segments, render_article, resolve_include_path, run_examples, search_text,
+    markdown_fragment_gated, plan_segments, render_article, render_article_gated,
+    resolve_include_path, run_examples, search_text,
 };
 pub use highlight::{extract_rocdown_regions, highlight_rocdown, highlight_rocdown_document};
 pub use img::{

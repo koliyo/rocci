@@ -557,3 +557,125 @@ fn goto_end_marker_jumps_to_opener() {
     assert_eq!(location.range.start.line, want_line);
     assert_eq!(location.range.start.character, want_character);
 }
+
+#[test]
+fn interpolation_hover_goto_and_diagnostics_use_hole_span() {
+    let mut server = initialize_server();
+    let uri: Uri = "file:///Interp.rocdown".parse().expect("interp uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open interp");
+
+    let hole = src.find("@{published}").expect("hole");
+    let (line, character) = line_col(src, hole + 2);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("interp hover");
+    let range = hover.range.expect("hover range");
+    let (start_line, start_character) = line_col(src, hole);
+    let (end_line, end_character) = line_col(src, hole + "@{published}".len());
+    assert_eq!(range.start.line, start_line);
+    assert_eq!(range.start.character, start_character);
+    assert_eq!(range.end.line, end_line);
+    assert_eq!(range.end.character, end_character);
+    let lsp_types::HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("published"), "{}", markup.value);
+
+    let response = server
+        .goto_definition(GotoDefinitionParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("goto interp");
+    let lsp_types::GotoDefinitionResponse::Scalar(location) = response else {
+        panic!("expected scalar location");
+    };
+    let bind = src.find("published =").expect("binding");
+    let (bind_line, bind_character) = line_col(src, bind);
+    assert_eq!(location.range.start.line, bind_line);
+    assert_eq!(location.range.start.character, bind_character);
+
+    let heading = "# Hello @{ver}\n";
+    let published = server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 2,
+                text: heading.to_string(),
+            },
+        })
+        .expect("open heading hole");
+    let at = heading.find("@{").expect("heading hole");
+    let (diag_line, diag_character) = line_col(heading, at);
+    let diag = published
+        .diagnostics
+        .iter()
+        .find(|d| d.message.contains("not allowed in headings"))
+        .expect("heading interpolation diagnostic");
+    assert_eq!(diag.range.start.line, diag_line);
+    assert_eq!(diag.range.start.character, diag_character);
+    let close = heading.find('}').expect("close") + 1;
+    let (end_line, end_character) = line_col(heading, close);
+    assert_eq!(diag.range.end.line, end_line);
+    assert_eq!(diag.range.end.character, end_character);
+}
+
+#[test]
+fn interpolation_goto_without_binding_has_no_location() {
+    let mut server = initialize_server();
+    let uri: Uri = "file:///UnboundInterp.rocdown"
+        .parse()
+        .expect("unbound uri");
+    let src = "Published @{missing}.\n";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open unbound interp");
+
+    let hole = src.find("@{missing}").expect("hole");
+    let (line, character) = line_col(src, hole + 2);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("unbound hover");
+    let range = hover.range.expect("hover range");
+    let (start_line, start_character) = line_col(src, hole);
+    let (end_line, end_character) = line_col(src, hole + "@{missing}".len());
+    assert_eq!(range.start.line, start_line);
+    assert_eq!(range.start.character, start_character);
+    assert_eq!(range.end.line, end_line);
+    assert_eq!(range.end.character, end_character);
+
+    let response = server.goto_definition(GotoDefinitionParams {
+        text_document_position_params: position_params(&uri, line, character),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+        partial_result_params: PartialResultParams::default(),
+    });
+    assert!(
+        response.is_none(),
+        "unbound hole must not be a definition target: {response:?}"
+    );
+}

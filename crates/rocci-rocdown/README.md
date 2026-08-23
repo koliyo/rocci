@@ -127,7 +127,18 @@ forms.
 A line-start `<Tag>` or `<>...</>` at document root (same list/quote/fence
 rules as `@`) is a Rocci HTML island, not CommonMark raw HTML. Use it to
 instantiate colocated components next to Markdown. Bare `{expr}` at document
-root is still prose. Splice a colocated component with `@render MyComponent({ ... })`
+root is still prose.
+
+In Markdown **Text**, `@{expr}` is an inline Roc `Str` hole (same payload as
+Rocci `{expr}`: balanced Roc, no markup, `Html.text`). A hole promotes the
+page to **hydrate**. Static `docs/` catalogs cannot use it. Write `\@{…}` for
+a literal `@{…}`, or a code span. Fences and inline code never interpolate.
+**Planned:** holes in headings and link/image destinations. `{@expr}` and
+`{{expr}}` are not aliases. See
+[inline interpolation research](../../knowledge/research/rocdown-inline-interpolation.md)
+and the [implementation plan](../../knowledge/plans/rocdown-inline-interpolation.md).
+
+Splice a colocated component with `@render MyComponent({ ... })`
 or a standalone `<MyComponent />` tag. There is no `@html { ... }` wrapper.
 
 Inline HTML inside a Markdown paragraph stays disabled raw HTML. See
@@ -384,7 +395,10 @@ not a substitute for the syntax above.
 - `@use "./Module.rocci"` on interactive `rocdown view` (exported `@component` names become article kinds)
 - Heading IDs, scoped CSS, default HTML shell with an automatic H2–H3 navigator, synthesized GET
 - Source-map segments (`MarkdownStructure`, `MarkdownText`, `MarkdownBoilerplate`,
-  `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
+  `TextExpression`, `PageRoc`, `RocBlock`, `RenderRoc`, plus existing Rocci kinds)
+- Markdown `@{expr}` interpolation in Text (paragraphs, emphasis, lists, quotes,
+  table cells, link text, footnote bodies, `:kind` Markdown bodies). Hydrate
+  classification; static catalog `check` rejects the hole (`RD2303`).
 - Static site generation (`build`, `check`, `test`, `view`), content catalog,
   curated navigation, and hashed asset pipeline
 - Site page kinds `static` / `hydrate` / `live` recorded on the catalog and
@@ -407,6 +421,8 @@ not a substitute for the syntax above.
 **Not implemented / Deferred**
 
 - `@island` and client JS dynamic island splicing
+- Markdown `@{expr}` in headings and in link/image destinations
+- `{@expr}` / `{{expr}}` Markdown interpolation aliases
 - Project default layouts and layout packages
 - Formatter
 - Admonitions, definition lists, math, and in-body automatic TOC tokens

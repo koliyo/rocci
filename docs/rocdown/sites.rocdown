@@ -125,7 +125,7 @@ Each published page is one of:
 | Kind | Meaning | CDN | Datastar |
 | --- | --- | --- | --- |
 | `static` | Markdown / `@page` / `:name[params]` only | Widget forest HTML and hashed assets | No |
-| `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) | Initial island HTML spliced at build | No |
+| `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) plus Markdown `@{expr}` | Initial island HTML spliced at build | No |
 | `live` | Rocci plus `@get:view` / `@method:fragment` / `@method:command` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
 
 `rocdown check` accepts all three. Default `rocdown build` accepts `live` and

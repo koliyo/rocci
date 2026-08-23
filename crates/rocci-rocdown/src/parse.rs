@@ -34,7 +34,14 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
     let arena = Arena::new();
     let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
-    let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
+    let converted = markdown::convert_document(
+        root,
+        &synthetic,
+        source.src,
+        &map,
+        raw_html,
+        &mut diagnostics,
+    );
 
     let mut items = Vec::new();
     for block in converted.blocks {
@@ -58,6 +65,7 @@ pub fn parse(source: SourceFile<'_>, raw_html: bool) -> ParseOutput {
         items,
         span: Span::new(0, source.src.len()),
     };
+    diagnose_heading_interpolations(source, &document.items, &mut diagnostics);
     let imported = crate::imports::imported_kind_names(source, &document, &mut diagnostics);
     validate_colon_tree(
         source.src,
@@ -120,6 +128,7 @@ pub fn parse_markdown_body(
     let converted = markdown::convert_document(
         root,
         body_src,
+        source.src,
         &map,
         body_options.raw_html,
         &mut diagnostics,
@@ -171,7 +180,14 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
     let arena = Arena::new();
     let options = markdown_options(true, true);
     let root = parse_document(&arena, &synthetic, &options);
-    let converted = markdown::convert_document(root, &synthetic, &map, raw_html, &mut diagnostics);
+    let converted = markdown::convert_document(
+        root,
+        &synthetic,
+        source.src,
+        &map,
+        raw_html,
+        &mut diagnostics,
+    );
 
     let mut items = Vec::new();
     for block in converted.blocks {
@@ -196,6 +212,40 @@ pub fn parse_fragment(source: SourceFile<'_>, body: Span, raw_html: bool) -> Par
         diagnostics,
         headings: converted.headings,
         links: converted.links,
+    }
+}
+
+fn diagnose_heading_interpolations(
+    source: SourceFile<'_>,
+    items: &[Item],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    const MESSAGE: &str = "Markdown interpolation `@{` is not allowed in headings";
+    for item in items {
+        let Item::Block(call) = item else {
+            continue;
+        };
+        if crate::registry::heading_level(&call.name).is_none() {
+            continue;
+        }
+        if !call.is_colon(source.src) {
+            continue;
+        }
+        let Some(span) = call.content_span() else {
+            continue;
+        };
+        let mut parsed = parse_fragment(source, span, false);
+        diagnostics.extend(std::mem::take(&mut parsed.diagnostics));
+        for nested in &mut parsed.document.items {
+            if let Item::Markdown(md) = nested {
+                markdown::restore_interpolations(
+                    source.src,
+                    std::slice::from_mut(md),
+                    diagnostics,
+                    MESSAGE,
+                );
+            }
+        }
     }
 }
 
@@ -322,7 +372,17 @@ fn heading_text_from_call(source: SourceFile<'_>, call: &BlockCall) -> String {
     if content.is_empty() {
         return String::new();
     }
-    let parsed = parse_fragment(source, content, false);
+    let mut parsed = parse_fragment(source, content, false);
+    for item in &mut parsed.document.items {
+        if let Item::Markdown(md) = item {
+            markdown::restore_interpolations(
+                source.src,
+                std::slice::from_mut(md),
+                &mut Vec::new(),
+                "Markdown interpolation `@{` is not allowed in headings",
+            );
+        }
+    }
     let mut parts = Vec::new();
     for item in parsed.document.items {
         if let Item::Markdown(md) = item {

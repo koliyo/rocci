@@ -11,6 +11,12 @@
     (p
       (text All syntax)))
   (p
+    (text Published)
+    (interp published)
+    (text . Use @{upstream} or)
+    (code @{upstream})
+    (text in a code span.))
+  (p
     (text Email)
     (a mailto:docs@example.com
       (text docs@example.com))

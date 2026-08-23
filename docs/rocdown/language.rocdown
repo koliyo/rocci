@@ -161,6 +161,30 @@ copy-to-clipboard control; the code remains selectable without JavaScript.
 Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
 Rocci tag, or `@render MyComponent({ ... })` instead.
 
+## Markdown `@{expr}`
+
+**Current.** After CommonMark parse, `@{expr}` in Markdown Text splices a Roc
+`Str` expression. Copy a Rocci `{expr}` by prefixing `@`. The page becomes
+`hydrate`. Bindings come from `@roc` and document `@let`.
+
+````rocdown
+@roc {
+published = "2026-08-23"
+}
+
+Published @{published}.
+````
+
+Fences, indented code, and inline code do not interpolate. `\@{…}` in source is
+literal `@{…}`. Prefer `` `@{upstream}` `` for git or regex examples. Bare
+`{date}` stays prose.
+
+Static `docs/` catalog pages cannot use this form (`rocdown check` reports
+`RD2303`).
+
+**Planned:** `@{` in headings and in link or image destinations. `{@expr}` and
+`{{expr}}` are not aliases.
+
 ## Footnotes
 
 `[^label]` in ordinary Rocdown is a footnote reference. Pair it with a
@@ -232,7 +256,7 @@ on the Markdown-first path; they do not make a page hydrate or live.
 | Kind | What the page may contain | CDN apply | Datastar |
 | --- | --- | --- | --- |
 | `static` | Markdown, `@page`, `:name[params]` | Widget forest (`DocsComponents`) | No |
-| `hydrate` | plus `@component`, `@render`, document-root tags, `@css`, `@roc` | Island Html spliced at build | No |
+| `hydrate` | plus `@component`, `@render`, document-root tags, `@css`, `@roc`, Markdown `@{expr}` | Island Html spliced at build | No |
 | `live` | plus `@get:view` / `@method:fragment` / `@method:command` / `@context` / `@init` or `import Datastar` | Same splice plus Datastar.js | Yes |
 
 `@use` stays a site-build error. `@render`, handlers, and HTML islands inside a

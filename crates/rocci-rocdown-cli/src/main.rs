@@ -747,7 +747,7 @@ fn run_standalone_doc(
             &title,
         );
     }
-    let kind = document_page_kind(&parsed.document);
+    let kind = document_page_kind(&src, &parsed.document);
     progress.detail(format!("rocdown: {} is {}", path.display(), kind.as_str()));
     if kind == PageKind::Static {
         progress.step("rocdown: static document, rendering HTML without roc");

@@ -719,6 +719,7 @@ fn guide_example_compiles() {
     assert!(out.roc.contains("language-roc"));
     assert!(out.roc.contains("docs@example.com"));
     assert!(out.roc.contains("@roclang"));
+    assert!(out.roc.contains("Html.text(published)"));
     assert!(!out.roc.contains("import Datastar"));
     assert!(out.roc.contains("rocdown-blocks"));
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/guide.roc");
@@ -807,6 +808,7 @@ fn all_syntax_example_compiles() {
     assert!(out.roc.contains("List.concat("));
     assert!(out.roc.contains("match status {"));
     assert!(out.roc.contains("hello({ name: \"render\" })"));
+    assert!(out.roc.contains("Html.text(published)"));
     assert!(out.roc.contains("@if this is escaped"));
     assert!(out.roc.contains("rd-docs-aside rd-docs-block rd-docs-note"));
     assert!(out.roc.contains("on_get_all_syntax! = |_state, _request|"));

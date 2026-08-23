@@ -54,7 +54,10 @@ rocci_content = |{}| {
                 Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
-                Html.text("Rocdown is a content-first format. Email us at "),
+                Html.text("Rocdown is a content-first format. Published "),
+                Html.text(published),
+                Html.text(". Email us at"),
+                Html.text("\n"),
                 Html.element(
                     "a",
                     [
@@ -66,9 +69,7 @@ rocci_content = |{}| {
                         Html.text("docs@example.com"),
                     ],
                 ),
-                Html.text(" or mention"),
-                Html.text("\n"),
-                Html.text("@roclang normally."),
+                Html.text(" or mention @roclang normally."),
             ],
         ),
         featureCount(
@@ -167,9 +168,52 @@ rocci_content = |{}| {
                 Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
             ],
             [
-                Html.text("The page remains static unless it references an island or defines server"),
+                Html.text("This page is "),
+                Html.element(
+                    "strong",
+                    [
+                        Html.attribute("class", "rd-strong"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
+                    ],
+                    [
+                        Html.text("hydrate"),
+                    ],
+                ),
+                Html.text(": "),
+                Html.element(
+                    "code",
+                    [
+                        Html.attribute("class", "rd-code"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
+                    ],
+                    [
+                        Html.text("@{published}"),
+                    ],
+                ),
+                Html.text(" is a Markdown "),
+                Html.element(
+                    "code",
+                    [
+                        Html.attribute("class", "rd-code"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
+                    ],
+                    [
+                        Html.text("Str"),
+                    ],
+                ),
+                Html.text(" hole, and"),
                 Html.text("\n"),
-                Html.text("routes."),
+                Html.element(
+                    "code",
+                    [
+                        Html.attribute("class", "rd-code"),
+                        Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
+                    ],
+                    [
+                        Html.text("<FeatureCount />"),
+                    ],
+                ),
+                Html.text(" is a document-root island."),
             ],
         ),
     ])

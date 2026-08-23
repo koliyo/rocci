@@ -21,6 +21,7 @@ Table = "MdNode::Table { children: Vec<MdNode>, span: Span }"
 TableRow = "MdNode::TableRow { header: bool, children: Vec<MdNode>, span: Span }"
 TableCell = "MdNode::TableCell { children: Vec<MdNode>, span: Span }"
 Text = "MdNode::Text { value: String, span: Span }"
+Interpolation = "MdNode::Interpolation { expr: Span, span: Span }"
 SoftBreak = "MdNode::SoftBreak { span: Span }"
 LineBreak = "MdNode::LineBreak { span: Span }"
 Code = "MdNode::Code { value: String, span: Span }"
@@ -33,6 +34,12 @@ Link = "MdNode::Link { url: String, title: String, children: Vec<MdNode>, span: 
 Image = "MdNode::Image { url: String, title: String, alt: String, span: Span }"
 RawHtml = "MdNode::RawHtml { html: String, span: Span }"
 
+[leaves]
+RocExpr = "Span"
+
+[inspect.omit]
+RocExpr = "opaque RocExpr span"
+
 [inspect.fallback]
 MdNode = "md"
 
@@ -43,6 +50,7 @@ MdNode = "write_md"
 Heading = "h"
 Paragraph = "p"
 Text = "text"
+Interpolation = "interp"
 Code = "code"
 CodeBlock = "fence"
 Link = "a"

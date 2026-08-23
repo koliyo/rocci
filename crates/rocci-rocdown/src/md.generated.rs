@@ -58,6 +58,10 @@ pub enum MdNode {
         value: String,
         span: Span,
     },
+    Interpolation {
+        expr: Span,
+        span: Span,
+    },
     SoftBreak {
         span: Span,
     },
@@ -125,6 +129,7 @@ impl MdNode {
             Self::TableRow { span, .. } => *span,
             Self::TableCell { span, .. } => *span,
             Self::Text { span, .. } => *span,
+            Self::Interpolation { span, .. } => *span,
             Self::SoftBreak { span } => *span,
             Self::LineBreak { span } => *span,
             Self::Code { span, .. } => *span,

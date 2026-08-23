@@ -8,6 +8,8 @@ status = Ready
 
 show_notice = True
 
+published = "2026-08-23"
+
 State : { ready : Bool }
 init! = || {
     rocci_state = {
@@ -67,6 +69,29 @@ rocci_content = |{}| {
                         ],
                         [
                             Html.text("All syntax"),
+                        ],
+                    ),
+                    Html.element(
+                        "p",
+                        [
+                            Html.attribute("class", "rd-paragraph"),
+                            Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
+                        ],
+                        [
+                            Html.text("Published "),
+                            Html.text(published),
+                            Html.text(". Use @{upstream} or "),
+                            Html.element(
+                                "code",
+                                [
+                                    Html.attribute("class", "rd-code"),
+                                    Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
+                                ],
+                                [
+                                    Html.text("@{upstream}"),
+                                ],
+                            ),
+                            Html.text(" in a code span."),
                         ],
                     ),
                     Html.element(

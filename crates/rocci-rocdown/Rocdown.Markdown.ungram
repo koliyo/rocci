@@ -17,6 +17,7 @@ MdNode =
 | TableRow
 | TableCell
 | Text
+| Interpolation
 | SoftBreak
 | LineBreak
 | Code
@@ -41,6 +42,8 @@ Table = children:MdNode*
 TableRow = children:MdNode*
 TableCell = children:MdNode*
 Text = 'text'
+Interpolation =
+  expr:RocExpr
 SoftBreak = 'soft-break'
 LineBreak = 'line-break'
 Code = 'code'
@@ -52,3 +55,4 @@ FootnoteReference = 'footnote-ref'
 Link = children:MdNode*
 Image = 'image'
 RawHtml = 'raw-html'
+RocExpr = 'roc-expr'

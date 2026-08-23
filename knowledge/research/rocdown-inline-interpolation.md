@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Inline interpolation in Rocdown Markdown
-description: "Settled Markdown hole is `@{expr}` (prefix around Rocci `{expr}`). `{@expr}` and `{{expr}}` remain rejected alternatives. Implementation: knowledge/plans/rocdown-inline-interpolation.md. Not shipped."
+description: "Settled Markdown hole is `@{expr}` (prefix around Rocci `{expr}`). `{@expr}` and `{{expr}}` remain rejected alternatives. Implementation: knowledge/plans/rocdown-inline-interpolation.md. v1 gap-closing: knowledge/plans/rocdown-inline-interpolation-follow-ons.md. Not shipped."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/authoring, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T20:30:00Z }
+generated: { by: process:cursor, at: 2026-08-23T17:20:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -138,7 +138,12 @@ sources:
     resource: ../plans/rocdown-inline-interpolation.md
     title: Rocdown Markdown @{expr} interpolation plan
     author: process:cursor
-    last_modified: 2026-08-22
+    last_modified: 2026-08-23
+  - id: follow-ons
+    resource: ../plans/rocdown-inline-interpolation-follow-ons.md
+    title: Rocdown @{expr} follow-ons after v1
+    author: process:cursor
+    last_modified: 2026-08-23
 ---
 
 # Inline interpolation in Rocdown Markdown
@@ -651,7 +656,8 @@ hydrate/live; the hole does not create a new runtime.
 The Markdown hole is **`@{expr}`**. Rocci keeps `{expr}`. `{@expr}` fails
 full expressions; `{{expr}}` shares `:kind` bodies and needs `}}}` on Roc
 blocks. Implementation: [Rocdown Markdown `@{expr}` interpolation](../plans/rocdown-inline-interpolation.md).
-Not shipped. No phase started.[^impl-plan]
+v1 gap-closing: [Rocdown `@{expr}` follow-ons after v1](../plans/rocdown-inline-interpolation-follow-ons.md).
+Not shipped. Parent plan stays exploratory.[^impl-plan][^follow-ons]
 
 [^rocdown-readme]: File shape, line-start recognition, reserved names, HTML islands, bare `{expr}` as prose, `\@` escape, fences, `@if` bodies, `@render` prefix calls, `{{ }}` block bodies.
 [^scanner]: Document-root scan of `@` reserved names, `:kind`, and `<Tag>`; a line-start `\@` is not a declaration.
@@ -679,3 +685,4 @@ Not shipped. No phase started.[^impl-plan]
 [^regex-quantifiers]: `{n}`, `{n,}`, and `{n,m}` repeat the preceding atom, so `@{2,}` is two or more `@` characters.
 [^directives-ref]: `@if` / `@for` / `@match` / `@let` are markup directives; a Roc `if` / `match` inside `{expr}` is a `Str` expression and must not contain tags.
 [^impl-plan]: Phased implementation of `@{expr}` only; `{@` / `{{` are not aliases.
+[^follow-ons]: Post-v1 Rust-path gate, hydrate-matrix alignment, splitter tests, and LSP go-to; heading/URL holes stay deferred.

@@ -76,6 +76,7 @@ impl MdNode {
             Self::CodeBlock { .. }
             | Self::ThematicBreak { .. }
             | Self::Text { .. }
+            | Self::Interpolation { .. }
             | Self::SoftBreak { .. }
             | Self::LineBreak { .. }
             | Self::Code { .. }
@@ -95,6 +96,7 @@ impl MdNode {
     pub fn text_content(&self) -> String {
         match self {
             Self::Text { value, .. } | Self::Code { value, .. } => value.clone(),
+            Self::Interpolation { .. } => String::new(),
             Self::SoftBreak { .. } | Self::LineBreak { .. } => " ".to_string(),
             Self::Image { alt, .. } => alt.clone(),
             Self::Heading { children, .. }
@@ -141,6 +143,7 @@ impl MdNode {
             Self::CodeBlock { .. }
             | Self::ThematicBreak { .. }
             | Self::Text { .. }
+            | Self::Interpolation { .. }
             | Self::SoftBreak { .. }
             | Self::LineBreak { .. }
             | Self::Code { .. }

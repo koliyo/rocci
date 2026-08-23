@@ -16,7 +16,9 @@ use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
-use crate::ast::{BlockCall, BlockContent, Document, HeadingInfo, Item, PageDecl, PageMeta};
+use crate::ast::{
+    BlockCall, BlockContent, Document, HeadingInfo, Item, MdNode, PageDecl, PageMeta,
+};
 use crate::highlight::{extract_rocdown_regions, highlight_rocdown_document};
 use crate::parse::nested_items;
 use crate::{
@@ -301,6 +303,16 @@ pub fn hover(
         return Some(hover);
     }
     let source = SourceFile::new(name, text);
+    if let Some((expr, span)) = interpolation_at(text, &compiled.document.items, offset) {
+        let expr_text = expr.of(text).trim();
+        return Some(Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: format!("Markdown interpolation\n\n```roc\n{expr_text}\n```"),
+            }),
+            range: Some(lsp_range(source, span, encoding)),
+        });
+    }
     if let Some(page) = compiled.document.items.iter().find_map(|item| match item {
         Item::Page(page) if page.span.contains(offset) => Some(page),
         _ => None,
@@ -347,6 +359,16 @@ pub fn goto_definition(
         goto_definition_components(name, text, &comps, &extra, offset, encoding, uri.clone())
     {
         return Some(response);
+    }
+    if let Some((expr, _span)) = interpolation_at(text, &compiled.document.items, offset) {
+        let source = SourceFile::new(name, text);
+        if let Some(target) = interpolation_binding(text, &compiled.document.items, expr) {
+            return Some(GotoDefinitionResponse::Scalar(Location {
+                uri,
+                range: lsp_range(source, target, encoding),
+            }));
+        }
+        return None;
     }
     let call = innermost_block(text, &compiled.document.items, offset)?;
     let BlockContent::End(section) = call.content.as_ref()? else {
@@ -806,6 +828,76 @@ fn colon_kind_prefix(text: &str, offset: usize) -> Option<String> {
     } else {
         None
     }
+}
+
+fn interpolation_at(src: &str, items: &[Item], offset: u32) -> Option<(Span, Span)> {
+    fn consider(best: &mut Option<(u32, Span, Span)>, expr: Span, span: Span, offset: u32) {
+        if !span.contains(offset) {
+            return;
+        }
+        let len = span.end.saturating_sub(span.start);
+        if best.as_ref().is_none_or(|(best_len, _, _)| len < *best_len) {
+            *best = Some((len, expr, span));
+        }
+    }
+    fn walk_md(node: &MdNode, offset: u32, best: &mut Option<(u32, Span, Span)>) {
+        node.walk(&mut |n| {
+            if let MdNode::Interpolation { expr, span } = n {
+                consider(best, *expr, *span, offset);
+            }
+        });
+    }
+    fn walk(src: &str, items: &[Item], offset: u32, best: &mut Option<(u32, Span, Span)>) {
+        for item in items {
+            match item {
+                Item::Markdown(node) => walk_md(node, offset, best),
+                Item::Block(call) => walk(src, &nested_items(src, call), offset, best),
+                _ => {}
+            }
+        }
+    }
+    let mut best = None;
+    walk(src, items, offset, &mut best);
+    best.map(|(_, expr, span)| (expr, span))
+}
+
+fn interpolation_binding(src: &str, items: &[Item], expr: Span) -> Option<Span> {
+    let name = expr.of(src).trim();
+    if name.is_empty() {
+        return None;
+    }
+    let mut chars = name.chars();
+    let first = chars.next()?;
+    if !(first.is_ascii_alphabetic() || first == '_')
+        || !chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+    {
+        return None;
+    }
+    fn search(src: &str, items: &[Item], name: &str) -> Option<Span> {
+        for item in items {
+            match item {
+                Item::Roc(roc) => {
+                    if let Some((_, span)) = crate::page::roc_binding_names(src, roc.body)
+                        .into_iter()
+                        .find(|(binding, _)| binding == name)
+                    {
+                        return Some(span);
+                    }
+                }
+                Item::Template(TemplateItem::Let(dir)) if dir.binder.name == name => {
+                    return Some(dir.binder.span);
+                }
+                Item::Block(call) => {
+                    if let Some(span) = search(src, &nested_items(src, call), name) {
+                        return Some(span);
+                    }
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+    search(src, items, name)
 }
 
 fn innermost_block(src: &str, items: &[Item], offset: u32) -> Option<BlockCall> {
