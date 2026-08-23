@@ -99,7 +99,8 @@ pub(crate) fn items_have_interpolation(src: &str, items: &[Item]) -> bool {
         match item {
             Item::Markdown(node) if md_has_interpolation(node) => return true,
             Item::Block(call)
-                if items_have_interpolation(src, &crate::parse::nested_items(src, call)) =>
+                if crate::registry::heading_level(&call.name).is_none()
+                    && items_have_interpolation(src, &crate::parse::nested_items(src, call)) =>
             {
                 return true;
             }

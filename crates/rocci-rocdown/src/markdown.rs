@@ -220,7 +220,14 @@ impl MarkdownConvert {
                 span,
             }),
             NodeValue::Heading(heading) => {
-                let children = self.convert_children(node, synthetic, original, map, diagnostics);
+                let mut children =
+                    self.convert_children(node, synthetic, original, map, diagnostics);
+                restore_interpolations(
+                    original,
+                    &mut children,
+                    diagnostics,
+                    "Markdown interpolation `@{` is not allowed in headings",
+                );
                 let text = children
                     .iter()
                     .map(MdNode::text_content)
@@ -554,6 +561,25 @@ pub fn split_text_interpolations(
 
 fn is_at_open(src: &str, pos: usize, end: usize) -> bool {
     pos + 1 < end && src.as_bytes()[pos] == b'@' && src.as_bytes()[pos + 1] == b'{'
+}
+
+pub fn restore_interpolations(
+    src: &str,
+    nodes: &mut [MdNode],
+    diagnostics: &mut Vec<Diagnostic>,
+    message: &str,
+) {
+    for node in nodes {
+        if let MdNode::Interpolation { span, .. } = node {
+            diagnostics.push(Diagnostic::error(*span, message));
+            *node = MdNode::Text {
+                value: span.of(src).to_string(),
+                span: *span,
+            };
+        } else {
+            restore_interpolations(src, node.children_mut(), diagnostics, message);
+        }
+    }
 }
 
 fn placeholder_index(literal: &str) -> Option<usize> {

@@ -198,3 +198,109 @@ fn rust_article_html_does_not_emit_hole_glyphs() {
     assert!(!html.contains("@{date}"), "{html}");
     assert!(!html.contains("@{"), "{html}");
 }
+
+#[test]
+fn heading_hole_is_an_error_and_slug_stays_literal() {
+    let src = "# Hello @{ver}\n";
+    let out = compile_with(src);
+    assert!(
+        out.diagnostics.iter().any(|d| d.is_error()
+            && d.message.contains("not allowed in headings")
+            && d.span.of(src).contains("@{")),
+        "{:?}",
+        out.diagnostics
+    );
+    assert_eq!(out.headings.len(), 1);
+    assert_eq!(out.headings[0].id, "hello-ver");
+    assert!(
+        out.headings[0].text.contains("@{ver}"),
+        "{:?}",
+        out.headings[0].text
+    );
+    assert!(
+        !out.roc.contains("Html.text(ver)") && !out.roc.contains(".text(ver)"),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
+fn colon_heading_hole_is_an_error() {
+    let src = ":h2 Hello @{ver}\n";
+    let out = compile_with(src);
+    assert!(
+        out.diagnostics
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("not allowed in headings")),
+        "{:?}",
+        out.diagnostics
+    );
+}
+
+#[test]
+fn link_destination_at_brace_stays_literal_href() {
+    let src = "[t](@{url})\n";
+    let out = compile_with(src);
+    let dump = format_ast(src, &out.document);
+    assert!(
+        dump.contains("(a @{url})") || dump.contains("@{url}"),
+        "{dump}"
+    );
+    assert!(
+        !out.roc.contains("Html.text(url)") && !out.roc.contains(".text(url)"),
+        "destination must not interpolate: {}",
+        out.roc
+    );
+}
+
+#[test]
+fn link_text_interpolates_destination_does_not() {
+    let src = "[see @{title}](/x/)\n";
+    let out = compile_with(src);
+    let dump = format_ast(src, &out.document);
+    assert!(dump.contains("(interp title)"), "{dump}");
+    assert!(
+        out.roc.contains("Html.text(title)") || out.roc.contains(".text(title)"),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
+fn image_alt_does_not_interpolate_url() {
+    let src = "![alt @{x}](./a.png)\n";
+    let out = compile_with(src);
+    assert!(
+        !out.roc.contains("Html.text(x)") && !out.roc.contains(".text(x)"),
+        "image url/alt must not interpolate in v1: {}",
+        out.roc
+    );
+}
+
+#[test]
+fn footnote_body_may_interpolate_label_does_not() {
+    let src = "Claim.[^lab]\n\n[^lab]: Hello @{name}.\n";
+    let out = compile_with(src);
+    let mut found = false;
+    for item in &out.document.items {
+        if let Item::Markdown(MdNode::FootnoteDefinition { .. }) = item {
+            item_walk_interp(item, &mut found);
+        }
+    }
+    assert!(found, "footnote body should contain an interpolation node");
+    assert!(
+        out.roc.contains("Html.text(name)") || out.roc.contains(".text(name)"),
+        "{}",
+        out.roc
+    );
+}
+
+fn item_walk_interp(item: &Item, found: &mut bool) {
+    if let Item::Markdown(md) = item {
+        md.walk(&mut |node| {
+            if matches!(node, MdNode::Interpolation { .. }) {
+                *found = true;
+            }
+        });
+    }
+}

@@ -1456,7 +1456,13 @@ impl<'a> Emitter<'a> {
             .unwrap_or_else(|| Span::point(call.span.end as usize));
         let parsed = parse_fragment(self.source, content, false);
         self.diagnostics.extend(parsed.diagnostics);
-        let children = heading_inline_nodes(&parsed.document.items);
+        let mut children = heading_inline_nodes(&parsed.document.items);
+        crate::markdown::restore_interpolations(
+            self.source.src,
+            &mut children,
+            &mut Vec::new(),
+            "Markdown interpolation `@{` is not allowed in headings",
+        );
         self.emit_element(
             &tag,
             &[("class", class.as_str()), ("id", id.as_str())],
