@@ -233,6 +233,8 @@ fn is_sibling_product_lane(route: &str) -> bool {
         || route.starts_with("/examples/")
         || route == "/rocdown/"
         || route.starts_with("/rocdown/")
+        || route == "/project/"
+        || route.starts_with("/project/")
 }
 
 pub fn page_route(page: &SourcePage) -> String {
@@ -1550,12 +1552,14 @@ mod tests {
         home.outgoing_links = vec![
             "/examples/styling/".into(),
             "/rocdown/".into(),
+            "/project/status/".into(),
             "/missing/".into(),
         ];
         let result = resolved(&[home]);
         assert!(result.error_summary().contains("/missing/"));
         assert!(!result.error_summary().contains("/examples/styling/"));
         assert!(!result.error_summary().contains("/rocdown/"));
+        assert!(!result.error_summary().contains("/project/status/"));
         assert!(
             result
                 .site

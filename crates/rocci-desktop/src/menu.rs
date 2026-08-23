@@ -28,7 +28,9 @@ pub const LIVE_RELOAD_ID: &str = "view.live-reload";
 pub const WEB_INSPECTOR_ID: &str = "view.web-inspector";
 
 pub struct MenuConfig<'a> {
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub app_name: &'a str,
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub version: Option<&'a str>,
     pub new_window: bool,
     pub navigation: bool,
