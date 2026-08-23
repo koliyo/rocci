@@ -256,9 +256,11 @@ pub fn collect_markdown_node(src: &str, node: &MdNode, tokens: &mut Vec<Highligh
                 collect_markdown_node(src, child, tokens);
             }
         }
+        MdNode::Interpolation { span, .. } => {
+            collect_interpolation_delimiters(src, *span, tokens);
+        }
         MdNode::CodeBlock { .. }
         | MdNode::Text { .. }
-        | MdNode::Interpolation { .. }
         | MdNode::SoftBreak { .. }
         | MdNode::LineBreak { .. }
         | MdNode::FootnoteReference { .. }
@@ -899,15 +901,63 @@ fn collect_md_node_regions(
                 collect_md_node_regions(builder, text, child, parent_id);
             }
         }
+        MdNode::Interpolation { expr, .. } => {
+            if !expr.is_empty() {
+                builder.add(
+                    LanguageId::Roc,
+                    RegionContext::Expression,
+                    RegionPurpose::Executable,
+                    *expr,
+                    Some(parent_id),
+                    20,
+                );
+            }
+        }
         MdNode::ThematicBreak { .. }
         | MdNode::Text { .. }
-        | MdNode::Interpolation { .. }
         | MdNode::SoftBreak { .. }
         | MdNode::LineBreak { .. }
         | MdNode::Code { .. }
         | MdNode::FootnoteReference { .. }
         | MdNode::Image { .. }
         | MdNode::RawHtml { .. } => {}
+    }
+}
+
+fn collect_interpolation_delimiters(src: &str, span: Span, tokens: &mut Vec<HighlightSpan>) {
+    let start = span.start as usize;
+    let end = (span.end as usize).min(src.len());
+    if start >= end {
+        return;
+    }
+    let bytes = src.as_bytes();
+    let open_end = if start + 1 < end && bytes[start] == b'@' && bytes[start + 1] == b'{' {
+        start + 2
+    } else if bytes[start] == b'{' {
+        start + 1
+    } else {
+        start
+    };
+    if open_end > start {
+        tokens.push(HighlightSpan::new(
+            Span::new(start, open_end),
+            HighlightKind::Punctuation,
+            0,
+            55,
+        ));
+    }
+    let close_start = if end > start && bytes[end - 1] == b'}' {
+        end - 1
+    } else {
+        end
+    };
+    if close_start < end {
+        tokens.push(HighlightSpan::new(
+            Span::new(close_start, end),
+            HighlightKind::Punctuation,
+            0,
+            55,
+        ));
     }
 }
 

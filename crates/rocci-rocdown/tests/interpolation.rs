@@ -1,6 +1,7 @@
+use rocci_highlight::HighlightKind;
 use rocci_rocdown::{
     CompileOptions, Item, MdNode, OriginKind, PageKind, SourceFile, classify_document, compile,
-    format_ast, is_static_document, render_document,
+    format_ast, highlight_rocdown, is_static_document, render_document,
 };
 
 fn compile_with(src: &str) -> rocci_rocdown::CompileOutput {
@@ -303,4 +304,35 @@ fn item_walk_interp(item: &Item, found: &mut bool) {
             }
         });
     }
+}
+
+#[test]
+fn interpolation_highlights_delimiters_and_expr() {
+    let src = "Hello @{name}.\n";
+    let spans = highlight_rocdown(src);
+    let painted: Vec<_> = spans
+        .iter()
+        .map(|s| (src.get(s.start()..s.end()).unwrap_or(""), s.kind))
+        .collect();
+    assert!(
+        spans
+            .iter()
+            .any(|s| s.kind == HighlightKind::Punctuation
+                && src.get(s.start()..s.end()) == Some("@{")),
+        "{painted:?}"
+    );
+    assert!(
+        spans
+            .iter()
+            .any(|s| s.kind == HighlightKind::Punctuation
+                && src.get(s.start()..s.end()) == Some("}")),
+        "{painted:?}"
+    );
+    let expr = src.find("name").expect("name");
+    assert!(
+        spans.iter().any(|s| {
+            s.kind != HighlightKind::Punctuation && s.start() <= expr && s.end() >= expr + 4
+        }),
+        "expr should be painted as Roc: {painted:?}"
+    );
 }
