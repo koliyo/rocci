@@ -21,19 +21,24 @@ async function initWasm(wasmUrl: string) {
       },
     };
 
-    let response: Response | BufferSource;
-    if (typeof fetch === "function") {
-      const resp = await fetch(wasmUrl);
-      if ("instantiateStreaming" in WebAssembly && typeof resp.body !== "undefined") {
-        const streamRes = await WebAssembly.instantiateStreaming(resp, importObject);
-        wasmInstance = streamRes.instance;
-      } else {
-        const buf = await resp.arrayBuffer();
-        const res = await WebAssembly.instantiate(buf, importObject);
-        wasmInstance = res.instance;
-      }
-    } else {
+    if (typeof fetch !== "function") {
       throw new Error("fetch is not available in worker environment");
+    }
+    const resp = await fetch(wasmUrl);
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch compiler WASM (${resp.status})`);
+    }
+    try {
+      if ("instantiateStreaming" in WebAssembly && resp.body) {
+        const streamed = await WebAssembly.instantiateStreaming(resp.clone(), importObject);
+        wasmInstance = streamed.instance;
+      } else {
+        throw new Error("streaming instantiate unavailable");
+      }
+    } catch {
+      const buf = await resp.arrayBuffer();
+      const instantiated = await WebAssembly.instantiate(buf, importObject);
+      wasmInstance = instantiated.instance;
     }
 
     const exports = wasmInstance.exports as Record<string, unknown>;
