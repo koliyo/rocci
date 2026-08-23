@@ -360,7 +360,7 @@ pub fn goto_definition(
     {
         return Some(response);
     }
-    if let Some((expr, span)) = interpolation_at(text, &compiled.document.items, offset) {
+    if let Some((expr, _span)) = interpolation_at(text, &compiled.document.items, offset) {
         let source = SourceFile::new(name, text);
         if let Some(target) = interpolation_binding(text, &compiled.document.items, expr) {
             return Some(GotoDefinitionResponse::Scalar(Location {
@@ -368,10 +368,7 @@ pub fn goto_definition(
                 range: lsp_range(source, target, encoding),
             }));
         }
-        return Some(GotoDefinitionResponse::Scalar(Location {
-            uri,
-            range: lsp_range(source, span, encoding),
-        }));
+        return None;
     }
     let call = innermost_block(text, &compiled.document.items, offset)?;
     let BlockContent::End(section) = call.content.as_ref()? else {
