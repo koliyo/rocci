@@ -95,6 +95,65 @@ fn escaped_at_brace_stays_text() {
 }
 
 #[test]
+fn even_backslashes_open_a_real_hole() {
+    let src = "Use \\\\@{ident} in prose.\n";
+    let out = compile_with(src);
+    assert!(
+        !out.diagnostics.iter().any(|d| d.is_error()),
+        "{:?}",
+        out.diagnostics
+    );
+    let dump = format_ast(src, &out.document);
+    assert!(dump.contains("(interp ident)"), "{dump}");
+    assert!(
+        out.roc.contains("Html.text(ident)") || out.roc.contains(".text(ident)"),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
+fn table_cell_interpolates() {
+    let src = "| col | val |\n| --- | --- |\n| a | @{x} |\n";
+    let out = compile_with(src);
+    let mut found = false;
+    for item in &out.document.items {
+        if let Item::Markdown(md) = item {
+            md.walk(&mut |node| {
+                if let MdNode::Interpolation { expr, .. } = node {
+                    found |= expr.of(src).trim() == "x";
+                }
+            });
+        }
+    }
+    assert!(
+        found,
+        "expected a table-cell interpolation, items={:?}",
+        out.document.items
+    );
+    assert!(
+        out.roc.contains("Html.text(x)") || out.roc.contains(".text(x)"),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
+fn entity_adjacent_text_still_splits_the_hole() {
+    let src = "A &amp; @{x} value.\n";
+    let out = compile_with(src);
+    let dump = format_ast(src, &out.document);
+    assert!(dump.contains("(interp x)"), "{dump}");
+    let children = paragraph_children(&out);
+    assert!(
+        children
+            .iter()
+            .any(|node| matches!(node, MdNode::Interpolation { .. })),
+        "{children:?}"
+    );
+}
+
+#[test]
 fn inline_code_and_fences_stay_inert() {
     let src =
         "Use `@{upstream}` in a path.\n\n```\n@{date}\n```\n\n    indented @{date} stays code\n";
@@ -318,6 +377,8 @@ fn link_text_interpolates_destination_does_not() {
 fn image_alt_does_not_interpolate_url() {
     let src = "![alt @{x}](./a.png)\n";
     let out = compile_with(src);
+    let dump = format_ast(src, &out.document);
+    assert!(!dump.contains("(interp x)"), "{dump}");
     assert!(
         !out.roc.contains("Html.text(x)") && !out.roc.contains(".text(x)"),
         "image url/alt must not interpolate in v1: {}",
