@@ -60,7 +60,7 @@ init! = || {
             readiness: [],
         })
 
-    Ok({ config, context: { db } })
+    Ok({ config, context: { db: db } })
 }
 
 respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])
@@ -226,7 +226,7 @@ validate_page = |page|
             lede: "Each field is a Roc tag. Submitting either re-renders errors or replaces the form with a welcome message.",
             current: "validate",
         },
-        Validate.demo({ page }),
+        Validate.demo({ page: page }),
     )
 
 all_contacts = [
@@ -374,7 +374,7 @@ contact_patch! = |db| {
 
 set_editing! = |db, editing| {
     params : EditParams
-    params = { editing }
+    params = { editing: editing }
     Sqlite.execute!(
         {
             db,
@@ -521,7 +521,7 @@ toggle_todo! = |db, id_str| {
     match I64.from_str(id_str) {
         Ok(id) => {
             params : IdParams
-            params = { id }
+            params = { id: id }
             Sqlite.execute!(
                 {
                     db,
@@ -540,7 +540,7 @@ delete_todo! = |db, id_str| {
     match I64.from_str(id_str) {
         Ok(id) => {
             params : IdParams
-            params = { id }
+            params = { id: id }
             Sqlite.execute!(
                 {
                     db,
@@ -557,7 +557,7 @@ delete_todo! = |db, id_str| {
 
 set_todo_filter! = |db, filter| {
     params : FilterParams
-    params = { filter }
+    params = { filter: filter }
     Sqlite.execute!(
         {
             db,
@@ -666,7 +666,7 @@ read_form! = |request| {
 
 validate_check! = |request| {
     page = read_form!(request)?
-    Ok(patch!(Validate.demo({ page })))
+    Ok(patch!(Validate.demo({ page: page })))
 }
 
 validate_submit! = |request| {
@@ -676,9 +676,9 @@ validate_submit! = |request| {
             match (email.state, first.state, last.state) {
                 (Valid, Valid, Valid) =>
                     Ok(patch!(Validate.demo({ page: SignedUp({ name: "${Str.trim(first.value)} ${Str.trim(last.value)}" }) })))
-                _ => Ok(patch!(Validate.demo({ page })))
+                _ => Ok(patch!(Validate.demo({ page: page })))
             }
-        SignedUp(_) => Ok(patch!(Validate.demo({ page })))
+        SignedUp(_) => Ok(patch!(Validate.demo({ page: page })))
     }
 }
 

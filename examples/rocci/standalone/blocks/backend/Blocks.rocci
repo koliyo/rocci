@@ -48,7 +48,7 @@ GameRow : {
             params: insert,
         },
     )?
-    { db }
+    { db: db }
 }
 
 ## Document GET `/`. Live board and HUD are separate morph targets.

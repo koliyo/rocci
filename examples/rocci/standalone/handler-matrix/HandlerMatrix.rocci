@@ -23,7 +23,7 @@ import HandlerMatrixUi
             params: {},
         },
     )?
-    { db }
+    { db: db }
 }
 
 ## Document GET `/`. Fragment wells start waiting; the live card shows the shared log.

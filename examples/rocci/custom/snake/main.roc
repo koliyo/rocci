@@ -102,7 +102,7 @@ init! = || {
             readiness: [],
         })
 
-    Ok({ config, context: { db } })
+    Ok({ config, context: { db: db } })
 }
 
 respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])

@@ -32,7 +32,7 @@ import LiveCounterUi
         },
     )?
     ensure_clicks!(db)?
-    { db }
+    { db: db }
 }
 
 ## Document GET `/`. Renders the page; the live card is a separate live fragment.

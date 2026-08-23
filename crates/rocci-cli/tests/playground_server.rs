@@ -6,6 +6,25 @@ use rocci_cli::serve::free_port;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
+
+fn wait_for_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
+    let mut last = (0, String::new(), Vec::new());
+    for _ in 0..50 {
+        match TcpStream::connect(("127.0.0.1", port)) {
+            Ok(_) => {
+                last = send_raw_get(port, path);
+                if last.0 != 0 {
+                    return last;
+                }
+            }
+            Err(_) => {}
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    last
+}
 
 fn send_raw_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect to server");
@@ -66,7 +85,7 @@ fn test_playground_loopback_server_routes_and_headers() {
     )
     .expect("start server");
 
-    let (status, headers, body) = send_raw_get(port, "/");
+    let (status, headers, body) = wait_for_get(port, "/");
     assert_eq!(status, 200);
     assert!(headers.contains("Content-Type: text/html; charset=utf-8"));
     assert!(headers.contains(&format!("Content-Security-Policy: {PLAYGROUND_CSP}")));
@@ -161,7 +180,7 @@ fn test_playground_local_mode_compile_hook() {
     )
     .expect("start server");
 
-    let (status, _, body) = send_raw_get(port, "/api/session");
+    let (status, _, body) = wait_for_get(port, "/api/session");
     assert_eq!(status, 200);
     let json_str = String::from_utf8_lossy(&body);
     assert!(json_str.contains("\"mode\":\"local\""));
