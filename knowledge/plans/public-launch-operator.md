@@ -86,8 +86,8 @@ Writing this plan does not flip visibility or route apex DNS.
   Knowledge, and runs site package/deploy. Both lanes currently publish
   the same `/srv/rocci` origin.[^prod-readme][^publish-plan]
 - Deploy secrets stay Environment-only. Repository Actions secrets stay
-  empty. CI and Knowledge are GitHub-hosted only; `/ci-local` queues the
-  same hosted jobs. Site package/deploy still uses `rocci-linux`.[^ci-security-plan]
+  empty. CI, Knowledge, Site, and Release are GitHub-hosted only;
+  `/ci-local` queues the same hosted jobs.[^ci-security-plan]
 - Signed-out `https://staging.rocci.dev/` 302s to Cloudflare Access until
   the maintainer signs in or adds a temporary bypass.[^launch-audit][^publish-plan]
 - Apex and `www` 502 until the Tunnel public hostname is attached. Do not

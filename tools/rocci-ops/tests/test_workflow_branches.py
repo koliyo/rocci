@@ -25,3 +25,11 @@ def test_site_push_is_staging_and_production_only() -> None:
     assert "pull_request" not in text
     assert _on_push_branches(text) == "branches: [staging, production]"
     assert 'github.ref == \'refs/heads/staging\' || github.ref == \'refs/heads/production\'' in text
+
+
+def test_no_workflow_uses_self_hosted_runners() -> None:
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        text = path.read_text(encoding="utf-8")
+        assert "self-hosted" not in text
+        assert "rocci-linux" not in text
+        assert "/home/nils/.cache" not in text

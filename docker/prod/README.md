@@ -147,14 +147,11 @@ policy** for its matching branch (`staging` only, `production` only). A
 `protected_branches` toggle is not enough on a free private repo, and a
 workflow_dispatch on another ref must not be able to use those secrets.
 Copy the values into `staging` even while both lanes share one VPS. The
-deploy job runs `cloudflared access ssh --hostname ssh.rocci.dev` as SSH
-`ProxyCommand`. After writing `$HOME/.ssh/deploy`, the job always
-`shred`/`rm`s that file. Prefer a dedicated self-hosted label
-`rocci-deploy` so local CI jobs and deploy never share a host; until that
-label exists, keep deploy on `rocci-linux` and rely on the key wipe.
+deploy job runs on `ubuntu-latest` and uses `cloudflared access ssh
+--hostname ssh.rocci.dev` as SSH `ProxyCommand`. After writing
+`$HOME/.ssh/deploy`, the job always `shred`/`rm`s that file.
 
-Register self-hosted runners on this repository only, not org-wide. After
-the repository is public, enable a `main` / `staging` / `production`
+After the repository is public, enable a `main` / `staging` / `production`
 ruleset (available on public repos without Pro). Do not require the CI
 check on pull requests. Leave the Actions default token read-only, and do
 not grant Actions the right to approve reviews. Require approval for
