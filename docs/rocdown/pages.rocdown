@@ -63,6 +63,17 @@ published = "2026-08-16"
 <Byline date={published} />
 ````
 
+Or splice the same `Str` into Markdown prose with `@{expr}` (the page is
+`hydrate`; do not use this on static `docs/` catalog pages):
+
+````rocdown
+@roc {
+published = "2026-08-16"
+}
+
+Published @{published}.
+````
+
 `@roc` holds Roc values and helpers. On `live` pages, import `pf.Sqlite` in
 `@roc` and call those helpers from `@method:fragment` / `@method:command` / `@init`. Document-root component
 tags and directives are explicit islands in the Markdown stream. Inline HTML in

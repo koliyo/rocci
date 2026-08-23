@@ -224,6 +224,12 @@ fn test_all_syntax_source_map_segments() {
             .any(|s| s.origin == OriginKind::RenderRoc),
         "missing RenderRoc segment"
     );
+    assert!(
+        out.segments
+            .iter()
+            .any(|s| s.origin == OriginKind::TextExpression),
+        "missing TextExpression segment"
+    );
 
     // Verify all segments have valid generated and source spans
     for (i, seg) in out.segments.iter().enumerate() {
@@ -340,4 +346,5 @@ fn all_syntax_covers_document_and_block_kinds() {
     assert!(ast.contains("(context"), "{ast}");
     assert!(ast.contains("(init)"), "{ast}");
     assert!(ast.contains("(fragment "), "{ast}");
+    assert!(ast.contains("(interp published)"), "{ast}");
 }

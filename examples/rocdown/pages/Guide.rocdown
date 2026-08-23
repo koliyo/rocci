@@ -45,8 +45,8 @@ FeatureCount = |{ count }| {
 
 # Rocdown
 
-Rocdown is a content-first format. Email us at docs@example.com or mention
-@roclang normally.
+Rocdown is a content-first format. Published @{published}. Email us at
+docs@example.com or mention @roclang normally.
 
 <FeatureCount count={feature_count} />
 
@@ -60,5 +60,5 @@ This fence is documentation and is never evaluated:
 answer = 42
 ```
 
-The page remains static unless it references an island or defines server
-routes.
+This page is **hydrate**: `@{published}` is a Markdown `Str` hole, and
+`<FeatureCount />` is a document-root island.

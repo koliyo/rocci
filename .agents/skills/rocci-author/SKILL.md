@@ -106,6 +106,10 @@ path until island splicing lands.
 - `:img` requires `alt` or `decorative: True`, not both with a non-empty
   alt. Local `src` is relative to the source file.
 - Names `rocci_meta`, `rocci_content`, and `rocci_page` are reserved.
+- Markdown `@{expr}` splices a Roc `Str` (same payload as Rocci `{expr}`).
+  It hydrates the page. Do not put it on static `docs/` catalog pages.
+  Headings and URL destinations are planned, not v1. Escape with `\@{` or a
+  code span. `{@expr}` / `{{expr}}` are not aliases.
 
 ## Server apps
 

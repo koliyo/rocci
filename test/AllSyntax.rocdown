@@ -15,6 +15,7 @@ Status : [Ready, Loading]
 items = [{ name: "alpha" }, { name: "beta" }]
 status = Ready
 show_notice = True
+published = "2026-08-23"
 }
 
 @context { ready : Bool }
@@ -43,6 +44,8 @@ helloSample = { name: "Roc" }
 }
 
 # All syntax
+
+Published @{published}. Use \@{upstream} or `@{upstream}` in a code span.
 
 Email docs@example.com or mention @roclang. Visit https://example.com or see
 [[syntax-v2]], [v2](syntax-v2.rocdown), and [the heading](#explicit-heading).
