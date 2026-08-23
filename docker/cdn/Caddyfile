@@ -1,6 +1,8 @@
 :80 {
-	@retired_news path /news/ /news/feed.xml
-	respond @retired_news 410
+	@retired_news path /news /news/ /news/feed.xml
+	handle @retired_news {
+		respond 410
+	}
 
 	handle /actions/* {
 		reverse_proxy islands:8001 {

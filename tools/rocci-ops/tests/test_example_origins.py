@@ -28,7 +28,9 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
 def test_retired_news_urls_have_exact_origin_dispositions() -> None:
     hybrid = (repo_root() / "docker/cdn/Caddyfile").read_text(encoding="utf-8")
     assert "redir " not in hybrid
-    assert "@retired_news path /news/ /news/feed.xml" in hybrid
-    assert "respond @retired_news 410" in hybrid
+    assert "@retired_news path /news /news/ /news/feed.xml" in hybrid
+    assert "handle @retired_news" in hybrid
+    assert "respond 410" in hybrid
+    assert "respond @retired_news 410" not in hybrid
     assert "Content-Type application/wasm" in hybrid
     assert "path /news/*" not in hybrid
