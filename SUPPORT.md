@@ -15,8 +15,10 @@ promise of replies on a schedule.
 
 ## Asking for help
 
-Open a GitHub issue with the **docs** template when the public pages are
-wrong or missing. Use the **bug** template for a reproducible failure.
+The single public feedback URL is
+[https://github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues).
+Open an issue with the **docs** template when the public pages are wrong or
+missing. Use the **bug** template for a reproducible failure.
 
 Do not use GitHub issues for security reports. See [SECURITY.md](SECURITY.md).
 

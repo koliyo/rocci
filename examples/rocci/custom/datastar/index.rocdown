@@ -15,7 +15,8 @@ Ports of official Datastar interaction patterns. The server still owns HTML.
 Datastar is the transport. The gallery uses an authored `main.roc` for custom
 HTTP routing and SQLite for durable state.
 
-This catalog row is `hosting = "live"`. Source files are listed in the sidebar.
+A dedicated `datastar.examples.rocci.dev` hostname is reserved and is not
+serving yet. Run the app locally. Source files are listed in the sidebar.
 
 ## Pages
 

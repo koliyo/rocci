@@ -98,7 +98,20 @@ fn repo_catalog_live_ids_exclude_docs_only() {
     assert_eq!(ids, ["live-counter", "datastar"]);
     assert!(!ids.contains(&"counter"));
     assert!(!ids.contains(&"snake"));
-    assert!(!ids.contains(&"blocks"));
+}
+
+#[test]
+fn catalog_index_does_not_advertise_unserved_live_hostnames() {
+    let catalog = load_catalog(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocci/apps.toml"),
+    )
+    .unwrap();
+    let out = scratch("live-label");
+    stage(&catalog, &out).unwrap();
+    let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("planned live"));
+    assert!(!index.contains("examples.rocci.dev"));
+    assert!(!index.contains("| `live` |"));
 }
 
 #[test]

@@ -8,7 +8,8 @@
 
 # Compatibility
 
-**Status:** development `main`. Claims are as tested in this repository.
+This is the public **support matrix**. **Status:** development `main`. Claims
+are as tested in this repository, not a stability promise.
 
 | Surface | As tested |
 | --- | --- |
@@ -19,9 +20,14 @@
 | Release server | `rocci build --release` with musl/glibc targets listed by `--target` |
 | Architecture | CI covers the GitHub-hosted runners above |
 | Rust | `dtolnay/rust-toolchain@stable`, edition 2024 crates |
-| Roc | nightly-2026-08-10 (`7df8509`), `docker/install-roc.sh` |
+| Roc (documented / CI Linux site) | nightly-2026-08-10 (`7df8509`), `docker/install-roc.sh` |
+| Roc (maintainer macOS, 2026-08-23) | nightly-2026-08-18 (`e9be50a`) |
+| Datastar JS pin | `1.0.2` in application `rocci.toml` (`[assets] datastar`); `run` does not auto-upgrade |
+| Editors | VS Code and Zed language registration; treat as experimental |
+| Packaging | Source clone and `cargo` build. GitHub Release archives are experimental. crates.io and Homebrew are absent. |
+| Known limits | Title/path finder only; reserved `@island` unimplemented; no production signing |
 
 GitHub Release archives (macOS aarch64, Linux x86_64) are **experimental**.
 crates.io is not an install path (**removed** / absent).
 
-**Related:** [Install](/docs/install/).
+**Related:** [Install](/docs/install/), [Project status](/project/status/).

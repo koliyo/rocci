@@ -28,7 +28,8 @@ the home page receives a fragment rather than this app's `<body>`, it also
 opens `GET /sse` explicitly with
 `data-init=@get("/sse", [OpenWhenHidden(True)])`.
 
-This catalog row is `hosting = "live"`.
+A dedicated `live-counter.examples.rocci.dev` hostname is reserved and is
+not serving yet. Run the app locally.
 
 Full file: [LiveCounter.rocci](/examples/live-counter/source/LiveCounter-rocci/).
 

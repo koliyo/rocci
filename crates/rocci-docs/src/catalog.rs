@@ -39,6 +39,13 @@ impl Hosting {
             Self::Live => "live",
         }
     }
+
+    pub fn public_label(self) -> &'static str {
+        match self {
+            Self::Docs => "docs",
+            Self::Live => "planned live",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

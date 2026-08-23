@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Public feedback
+    url: https://github.com/koliyo/rocci/issues
+    about: The single public feedback URL. Use the bug or docs form.
   - name: Documentation and FAQ
     url: https://rocci.dev/docs/
     about: Start with public docs and the FAQ before opening an issue.

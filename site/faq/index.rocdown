@@ -8,6 +8,11 @@
 
 # Frequently Asked Questions
 
+:caution {{
+    This page was automatically generated. Treat answers as orientation, not a
+    reviewed contract.
+}}
+
 Use this page for orientation. Follow the linked guide when you need the full contract.
 
 ## What is Rocci?
@@ -33,3 +38,11 @@ Yes. A hybrid site can publish CDN HTML and run a sibling island service for pag
 ## Is Rocci ready for production adoption?
 
 Treat it as an active experiment. Evaluate the implemented surface and current limitations in [Project status](/project/status/); do not infer support from an uncited platform or performance claim.
+
+## How do I send feedback?
+
+Use GitHub issues as the single public feedback URL:
+[github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues).
+Pick the **bug** or **docs** form. Do not open a pull request expecting a
+merge. Security reports go to [SECURITY.md](https://github.com/koliyo/rocci/blob/main/SECURITY.md),
+not the issue tracker.

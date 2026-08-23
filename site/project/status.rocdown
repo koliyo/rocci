@@ -46,4 +46,4 @@ The project intends to keep these boundaries:
 
 ## Before adopting
 
-Read [the stack](/docs/the-stack/), run the [examples](/examples/), and review the [roadmap](/project/roadmap/). Platform details live in [Runtime compatibility](/docs/reference/compatibility/).
+Read [the stack](/docs/the-stack/), run the [examples](/examples/), and review the [roadmap](/project/roadmap/). Platform details live in the [support matrix](/docs/reference/compatibility/). Public feedback is [GitHub issues](https://github.com/koliyo/rocci/issues).

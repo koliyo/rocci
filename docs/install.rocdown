@@ -31,7 +31,11 @@ generated component functions.
 | --- | --- | --- |
 | Rust and Cargo | Build the Rocci workspace | GitHub Actions `dtolnay/rust-toolchain@stable`, edition 2024 crates |
 | Roc nightly | Compile generated and authored Roc | `nightly-2026-08-10` (`7df8509`), pinned in `docker/install-roc.sh` |
+| Datastar JS | Browser transport copied by `run` | `1.0.2` in application `rocci.toml` |
 | Native webview | Preview window | macOS WebKit, Linux WebKitGTK 4.1, Windows system webview |
+
+The full [support matrix](/docs/reference/compatibility/) also lists editors,
+packaging, and known limits.
 
 A mismatched Roc nightly can reject syntax that is valid for this repository.
 

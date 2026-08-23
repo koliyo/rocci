@@ -19,15 +19,16 @@ Composable authoring for applications and content.
     Highly experimental software. For testing only — not for production use.
 }}
 
-This website is one use case: it is built with [Rocci](/docs/the-stack/) and [Rocdown](/docs/rocdown/).
+This website is built with [Rocci](/docs/the-stack/) and [Rocdown](/docs/rocdown/).
 
-## Hybrid island deployment
+## Hybrid island demo
 
 The card below is the [live counter](/examples/live-counter/) app composed into this page: a CDN snapshot of static content (including the counter's initial state), plus a simple VPS-hosted reactive Rocci/Datastar component.
 
 @render LiveCounterUi.CounterIsland({ count: 0.I64, clicks: LiveCounterUi.empty_clicks, show_reset: False })
 <div data-init=@get("/sse", [OpenWhenHidden(True)])></div>
 
+## Explore Rocci
 :card-grid.begin
     :link-card[page: "docs/five-minutes", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
     :link-card[page: "docs/applications/standalone", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]

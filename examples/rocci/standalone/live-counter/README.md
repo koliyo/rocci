@@ -7,7 +7,8 @@ cargo run -q -p rocci-cli -- run examples/rocci/standalone/live-counter/LiveCoun
 ```
 
 Open two windows on the printed URL. Increment in one; both `<output>` values
-and the recent-click feed change. Planned hosted demo: https://live-counter.examples.rocci.dev
+and the recent-click feed change. The reserved
+`live-counter.examples.rocci.dev` hostname is not serving yet.
 
 The same app powers the rocci.dev home island (`[http].service` +
 `@render LiveCounterUi.CounterIsland`).

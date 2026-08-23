@@ -30,6 +30,7 @@ place.
 The generated `/examples/` index lists cataloged Rocci apps only. Rocdown
 examples belong on the Rocdown product lane.
 
-Live demo links use `<id>.examples.rocci.dev` (staging:
-`<id>.examples.staging.rocci.dev`). Those hostnames are **planned** until a
-staging origin deploy has served them.
+Reserved live hostnames use `<id>.examples.rocci.dev` (staging:
+`<id>.examples.staging.rocci.dev`). Those names are **not serving**; the
+generated examples table labels them `planned live` and does not emit the
+URLs.

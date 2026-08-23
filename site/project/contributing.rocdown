@@ -13,6 +13,10 @@ point.** That may change in the near future. The repository
 [CONTRIBUTING.md](https://github.com/koliyo/rocci/blob/main/CONTRIBUTING.md)
 is the full contract. This page is a short map.
 
+Public feedback is GitHub issues:
+[github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues).
+Do not open a pull request expecting a merge.
+
 ## Getting started
 
 1. Clone `https://github.com/koliyo/rocci` and work on a named branch.

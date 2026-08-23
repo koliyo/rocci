@@ -75,6 +75,7 @@ requests. That command is reserved for `koliyo` same-repository work.
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - [SECURITY.md](SECURITY.md) for vulnerability reports
 - [SUPPORT.md](SUPPORT.md) for usage questions
+- Public feedback: [https://github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues)
 - [GOVERNANCE.md](GOVERNANCE.md)
 
 The public site page is [Contributing](https://rocci.dev/project/contributing/).

@@ -247,7 +247,7 @@ fn catalog_index(catalog: &Catalog) -> String {
             title = app.title,
             id = app.id,
             summary = app.summary,
-            hosting = app.hosting.as_str(),
+            hosting = app.hosting.public_label(),
         ));
     }
     format!(
