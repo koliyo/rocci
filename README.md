@@ -192,9 +192,7 @@ uv run rocci-ops ci
 
 `cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`.
 
-GitHub Actions CI and Knowledge run automatically on push to `main`, `staging`, and `production` (GitHub-hosted runners; Knowledge on `ubuntu-latest`). They do not run on every pull request. A reviewer comments `/ci` or `/CI` (conversation, review body, or inline review comment) to queue **hosted** CI for that PR head. Owners, members, and collaborators may do this, including on forks. Dependabot PRs need `/ci` the same way; they must never get `/ci-local`.
-
-`/ci-local` (case-insensitive; alias `/cl-local`) queues the current self-hosted runners. The dispatcher matches the first whitespace-separated token exactly, so `/ci-local` is not `/ci`, and `/circle` is a no-op. The commenter must be `koliyo`, the PR author must be `koliyo`, and the head must be this repository. The default-branch dispatcher snapshots the immutable head SHA on a hosted job before any local job starts. Fork, Dependabot, and other-author PRs never reach a local runner. Deploy secrets stay on the `staging` and `production` GitHub Environments; CI and Knowledge jobs cannot read them. Release builds remain on GitHub-hosted macOS.
+GitHub Actions CI and Knowledge run automatically on push to `main`, `staging`, and `production` (GitHub-hosted runners; Knowledge on `ubuntu-latest`). They do not run on every pull request. A reviewer comments `/ci` or `/CI` (conversation, review body, or inline review comment) to queue hosted CI for that PR head. Owners, members, and collaborators may do this, including on forks. Dependabot PRs need `/ci` the same way. `/ci-local` and `/cl-local` are accepted but currently queue the same hosted jobs; self-hosted CI runners are disabled. Site package and deploy still use the `rocci-linux` self-hosted runner. Deploy secrets stay on the `staging` and `production` GitHub Environments; CI and Knowledge jobs cannot read them.
 
 See [ROADMAP.md](ROADMAP.md) for remaining work.
 
@@ -202,7 +200,7 @@ See [ROADMAP.md](ROADMAP.md) for remaining work.
 
 This preview does not accept pull requests; that may change later.
 [CONTRIBUTING.md](CONTRIBUTING.md) is the current contract, including crate
-ownership and `/ci` versus `/ci-local`. Conduct, security, support, and
+ownership and `/ci`. Conduct, security, support, and
 governance live beside it at the repository root.
 
 ## License

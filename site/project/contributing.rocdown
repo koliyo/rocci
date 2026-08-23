@@ -55,9 +55,8 @@ Change the owning crate. The same table lives in
 Do not open a pull request expecting review or a merge. Maintainer and
 Dependabot PRs do not start GitHub Actions automatically. After review, a
 maintainer comments `/ci` to run hosted CI and Knowledge on the PR head.
-Dependabot PRs need the same `/ci` comment. Do not run `/ci-local` on
-external or Dependabot pull requests; that command is reserved for
-`koliyo` same-repository work (`/cl-local` is an alias).
+Dependabot PRs need the same `/ci` comment. `/ci-local` currently queues
+the same hosted jobs; self-hosted CI runners are disabled.
 
 ## Also in the repository
 

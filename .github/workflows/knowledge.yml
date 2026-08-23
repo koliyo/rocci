@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       lane:
-        description: hosted or local runner lane
+        description: ignored; Knowledge is GitHub-hosted only
         required: false
         type: string
         default: hosted
@@ -22,12 +22,6 @@ on:
         default: ""
   workflow_dispatch:
     inputs:
-      lane:
-        description: hosted or local runner lane
-        required: false
-        type: choice
-        options: [hosted, local]
-        default: hosted
       pr_number:
         description: PR number when validating a pull request head
         required: false
@@ -38,7 +32,7 @@ on:
         type: string
 
 concurrency:
-  group: knowledge-${{ inputs.lane || 'hosted' }}-${{ inputs.pr_number || github.ref }}
+  group: knowledge-hosted-${{ inputs.pr_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -46,49 +40,9 @@ permissions:
   pull-requests: read
 
 jobs:
-  authorize:
-    name: Authorize trusted PR
-    if: ${{ inputs.lane == 'local' }}
-    runs-on: ubuntu-latest
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-    steps:
-      - name: Validate PR author, repository, and immutable SHA
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_SHA: ${{ inputs.pr_sha }}
-          TRUSTED_AUTHOR: koliyo
-        run: |
-          set -euo pipefail
-          echo "allowed=false" >> "$GITHUB_OUTPUT"
-
-          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ || ! "$PR_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Self-hosted knowledge validation denied: malformed PR number or SHA."
-            exit 0
-          fi
-
-          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
-          author="$(jq -r '.user.login // ""' <<< "$pr_json")"
-          head_repo="$(jq -r '.head.repo.full_name // ""' <<< "$pr_json")"
-          head_sha="$(jq -r '.head.sha // ""' <<< "$pr_json")"
-
-          if [[ "$author" != "$TRUSTED_AUTHOR" ||
-                "$head_repo" != "$GITHUB_REPOSITORY" ||
-                "$head_sha" != "$PR_SHA" ]]; then
-            echo "Self-hosted knowledge validation denied: PR is not an exact same-repository PR authored by ${TRUSTED_AUTHOR}."
-            exit 0
-          fi
-
-          echo "allowed=true" >> "$GITHUB_OUTPUT"
-          echo "Authorized ${GITHUB_REPOSITORY}#${PR_NUMBER} at ${PR_SHA}."
-
   validate:
     name: Validate Knowledge OKF Bundle
-    needs: authorize
-    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
-    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-macos"]') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:

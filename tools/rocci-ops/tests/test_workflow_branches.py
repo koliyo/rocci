@@ -16,6 +16,7 @@ def test_ci_and_knowledge_push_include_production() -> None:
     for name in ("ci.yml", "knowledge.yml"):
         text = (WORKFLOWS / name).read_text(encoding="utf-8")
         assert "pull_request" not in text
+        assert "self-hosted" not in text
         assert _on_push_branches(text) == "branches: [main, staging, production]"
 
 

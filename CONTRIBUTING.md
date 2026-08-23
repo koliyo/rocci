@@ -67,8 +67,8 @@ Maintainer and Dependabot PRs do not start GitHub Actions automatically.
 After review, a maintainer comments `/ci` or `/CI` to run hosted CI and
 Knowledge on the PR head. Dependabot PRs need the same `/ci` comment.
 
-Do not run `/ci-local` (or `/cl-local`) on external or Dependabot pull
-requests. That command is reserved for `koliyo` same-repository work.
+`/ci-local` and `/cl-local` currently queue the same hosted jobs. Self-hosted
+CI runners are disabled.
 
 ## Conduct, security, and support
 

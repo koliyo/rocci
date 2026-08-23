@@ -86,9 +86,13 @@ jobs:
           token_lc="$(printf '%s' "$token" | tr '[:upper:]' '[:lower:]')"
 
           lane=""
+          local_disabled=""
           case "$token_lc" in
             /ci) lane=hosted ;;
-            /ci-local|/cl-local) lane=local ;;
+            /ci-local|/cl-local)
+              lane=hosted
+              local_disabled=1
+              ;;
             *)
               echo "Ignoring comment: first token is not /ci, /ci-local, or /cl-local."
               exit 0
@@ -113,28 +117,21 @@ jobs:
             exit 0
           fi
 
-          if [[ "$lane" == "hosted" ]]; then
-            case "$association" in
-              OWNER|MEMBER|COLLABORATOR) ;;
-              *)
-                echo "Ignoring /ci: commenter association is ${association}."
-                exit 0
-                ;;
-            esac
-          elif [[ "$commenter" != "koliyo" || "$author" != "koliyo" || "$head_repo" != "$GITHUB_REPOSITORY" ]]; then
-            if [[ "$commenter" == "koliyo" ]]; then
-              gh pr comment "$pr" --body "Local CI (\`/ci-local\`) denied: commenter and PR author must both be \`koliyo\` on a same-repository head."
-            fi
-            exit 0
-          fi
+          case "$association" in
+            OWNER|MEMBER|COLLABORATOR) ;;
+            *)
+              echo "Ignoring /ci: commenter association is ${association}."
+              exit 0
+              ;;
+          esac
 
           echo "allowed=true" >> "$GITHUB_OUTPUT"
           echo "pr_sha=${head_sha}" >> "$GITHUB_OUTPUT"
 
-          if [[ "$lane" == "hosted" ]]; then
-            gh pr comment "$pr" --body "Queued **hosted** CI and Knowledge at \`${head_sha}\`."
+          if [[ -n "$local_disabled" ]]; then
+            gh pr comment "$pr" --body "Self-hosted CI is disabled. Queued **hosted** CI and Knowledge at \`${head_sha}\`."
           else
-            gh pr comment "$pr" --body "Queued **local** CI and Knowledge at \`${head_sha}\`."
+            gh pr comment "$pr" --body "Queued **hosted** CI and Knowledge at \`${head_sha}\`."
           fi
 
   ci:

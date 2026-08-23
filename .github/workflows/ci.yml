@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       lane:
-        description: hosted or local runner lane
+        description: ignored; CI is GitHub-hosted only
         required: false
         type: string
         default: hosted
@@ -22,12 +22,6 @@ on:
         default: ""
   workflow_dispatch:
     inputs:
-      lane:
-        description: hosted or local runner lane
-        required: false
-        type: choice
-        options: [hosted, local]
-        default: hosted
       pr_number:
         description: PR number when validating a pull request head
         required: false
@@ -38,7 +32,7 @@ on:
         type: string
 
 concurrency:
-  group: ci-${{ inputs.lane || 'hosted' }}-${{ inputs.pr_number || github.ref }}
+  group: ci-hosted-${{ inputs.pr_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -46,51 +40,9 @@ permissions:
   pull-requests: read
 
 jobs:
-  authorize:
-    name: Authorize trusted PR
-    if: ${{ inputs.lane == 'local' }}
-    runs-on: ubuntu-latest
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-    steps:
-      - name: Validate PR author, repository, and immutable SHA
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_SHA: ${{ inputs.pr_sha }}
-          TRUSTED_AUTHOR: koliyo
-        run: |
-          set -euo pipefail
-          echo "allowed=false" >> "$GITHUB_OUTPUT"
-
-          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ || ! "$PR_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Self-hosted CI denied: malformed PR number or SHA."
-            exit 0
-          fi
-
-          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
-          author="$(jq -r '.user.login // ""' <<< "$pr_json")"
-          head_repo="$(jq -r '.head.repo.full_name // ""' <<< "$pr_json")"
-          head_sha="$(jq -r '.head.sha // ""' <<< "$pr_json")"
-
-          if [[ "$author" != "$TRUSTED_AUTHOR" ||
-                "$head_repo" != "$GITHUB_REPOSITORY" ||
-                "$head_sha" != "$PR_SHA" ]]; then
-            echo "Self-hosted CI denied: PR is not an exact same-repository PR authored by ${TRUSTED_AUTHOR}."
-            exit 0
-          fi
-
-          echo "allowed=true" >> "$GITHUB_OUTPUT"
-          echo "Authorized ${GITHUB_REPOSITORY}#${PR_NUMBER} at ${PR_SHA}."
-
   lint:
     name: Code Formatting & Lints
-    needs: authorize
-    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
-    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-linux"]') || 'ubuntu-latest' }}
-    env:
-      CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && '/home/nils/.cache/rocci-target' || 'target' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
@@ -112,20 +64,16 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          cache-local-path: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run lint job
         run: uv run --no-dev rocci-ops ci lint
 
   test:
     name: Test Workspace (${{ matrix.os }})
-    needs: authorize
-    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
-    runs-on: ${{ fromJSON(matrix.runner) }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ inputs.lane == 'local' && fromJSON('[{"os":"macos-self-hosted","runner":"[\"self-hosted\", \"rocci-macos\"]"},{"os":"ubuntu-latest","runner":"[\"ubuntu-latest\"]"}]') || fromJSON('[{"os":"ubuntu-latest","runner":"[\"ubuntu-latest\"]"},{"os":"macos-latest","runner":"[\"macos-latest\"]"}]') }}
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -150,20 +98,12 @@ jobs:
         with:
           key: ${{ matrix.os }}
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          cache-local-path: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Run workspace tests
-        env:
-          CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && runner.os == 'Linux' && '/home/nils/.cache/rocci-target' || 'target' }}
         run: uv run --no-dev rocci-ops ci test
 
   fixtures-and-docs:
     name: AST Fixtures & Docs Validation
-    needs: authorize
-    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
-    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-linux"]') || 'ubuntu-latest' }}
-    env:
-      CARGO_TARGET_DIR: ${{ inputs.lane == 'local' && '/home/nils/.cache/rocci-target' || 'target' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
@@ -183,16 +123,12 @@ jobs:
           fi
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          cache-local-path: ${{ inputs.lane == 'local' && '/home/nils/.cache/uv' || runner.temp }}
       - name: Inspect fixtures and validate docs
         run: uv run --no-dev rocci-ops ci fixtures-and-docs
 
   editors:
     name: Editor Extensions (VS Code & Zed)
-    needs: authorize
-    if: ${{ always() && !cancelled() && (inputs.lane != 'local' || needs.authorize.outputs.allowed == 'true') }}
-    runs-on: ${{ inputs.lane == 'local' && fromJSON('["self-hosted", "rocci-macos"]') || 'macos-latest' }}
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
         with:
