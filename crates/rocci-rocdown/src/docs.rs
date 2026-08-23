@@ -4,10 +4,12 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::{Duration, Instant};
 
-use rocci_template::{SourceFile, Span, TemplateItem};
+use rocci_template::{Diagnostic, SourceFile, Span, TemplateItem};
 use serde::Serialize;
 
-use crate::article::{render_md, render_static_image};
+use crate::article::{
+    StaticRender, collect_md_interpolation_gates, render_md, render_static_image,
+};
 use crate::ast::{BlockCall, BracketRecord, Document, Item, MdNode, ParamValue};
 use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
 use crate::img::{StaticImage, img_fields_from_params};
@@ -1634,6 +1636,31 @@ fn push_example(ctx: &mut BuildCtx<'_>, node: &DocsNode) {
     });
 }
 
+pub fn collect_article_interpolation_gates(nodes: &[ArticleNode], out: &mut Vec<Diagnostic>) {
+    for node in nodes {
+        match node {
+            ArticleNode::Markdown(md) => collect_md_interpolation_gates(md, out),
+            ArticleNode::Block(docs) => collect_article_interpolation_gates(&docs.children, out),
+            ArticleNode::Image(_) | ArticleNode::Island => {}
+        }
+    }
+}
+
+pub fn render_article_gated(nodes: &[ArticleNode]) -> StaticRender {
+    let mut diagnostics = Vec::new();
+    collect_article_interpolation_gates(nodes, &mut diagnostics);
+    StaticRender {
+        html: render_article(nodes),
+        diagnostics,
+    }
+}
+
+pub fn markdown_fragment_gated(nodes: &[ArticleNode]) -> (String, Vec<Diagnostic>) {
+    let mut diagnostics = Vec::new();
+    collect_article_interpolation_gates(nodes, &mut diagnostics);
+    (markdown_fragment(nodes), diagnostics)
+}
+
 pub fn render_article(nodes: &[ArticleNode]) -> String {
     let mut parts = Vec::new();
     let mut footnotes = Vec::new();
@@ -1873,6 +1900,7 @@ fn md_to_markdown(node: &MdNode) -> String {
         }
         MdNode::CodeBlock { info, literal, .. } => format!("```{info}\n{literal}\n```"),
         MdNode::Table { .. } => node.text_content(),
+        MdNode::Interpolation { .. } => String::new(),
         _ => node.text_content(),
     }
 }

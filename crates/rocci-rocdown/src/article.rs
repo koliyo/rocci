@@ -1,6 +1,37 @@
 use serde::Serialize;
 
+use rocci_template::{Diagnostic, Span};
+
 use crate::{Document, Item, MdNode};
+
+pub const STATIC_INTERPOLATION_GATE: &str =
+    "Markdown `@{` interpolation cannot be evaluated on the static Rust article path";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StaticRender {
+    pub html: String,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub fn interpolation_static_gate(span: Span) -> Diagnostic {
+    Diagnostic::error(span, STATIC_INTERPOLATION_GATE)
+}
+
+pub fn collect_md_interpolation_gates(node: &MdNode, out: &mut Vec<Diagnostic>) {
+    node.walk(&mut |n| {
+        if let MdNode::Interpolation { span, .. } = n {
+            out.push(interpolation_static_gate(*span));
+        }
+    });
+}
+
+pub fn collect_document_interpolation_gates(document: &Document, out: &mut Vec<Diagnostic>) {
+    for item in &document.items {
+        if let Item::Markdown(node) = item {
+            collect_md_interpolation_gates(node, out);
+        }
+    }
+}
 
 pub const ISLAND_PLACEHOLDER: &str = "<!--rocci-island-->";
 
@@ -115,6 +146,12 @@ pub fn roc_imports_datastar(roc: &str) -> bool {
 }
 
 pub fn render_document(document: &Document) -> String {
+    render_document_gated(document).html
+}
+
+pub fn render_document_gated(document: &Document) -> StaticRender {
+    let mut diagnostics = Vec::new();
+    collect_document_interpolation_gates(document, &mut diagnostics);
     let mut parts = Vec::new();
     let mut footnotes = Vec::new();
     for item in &document.items {
@@ -129,7 +166,10 @@ pub fn render_document(document: &Document) -> String {
     if !footnotes.is_empty() {
         parts.push(render_footnote_section(&footnotes));
     }
-    fragment(&parts)
+    StaticRender {
+        html: fragment(&parts),
+        diagnostics,
+    }
 }
 
 pub(crate) fn render_footnote_section(items: &[String]) -> String {
@@ -268,7 +308,7 @@ pub(crate) fn render_md(node: &MdNode) -> String {
             &render_all(children),
         ),
         MdNode::Text { value, .. } => text(value),
-        MdNode::Interpolation { .. } => text(""),
+        MdNode::Interpolation { .. } => String::new(),
         MdNode::SoftBreak { .. } => text("\n"),
         MdNode::LineBreak { .. } => void_element("br", &[]),
         MdNode::Code { value, .. } => {

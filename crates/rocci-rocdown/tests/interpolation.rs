@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use rocci_highlight::HighlightKind;
 use rocci_rocdown::{
-    CompileOptions, Item, MdNode, OriginKind, PageKind, SourceFile, classify_document, compile,
-    format_ast, highlight_rocdown, is_static_document, render_document,
+    CompileOptions, IncludeOptions, Item, MdNode, OriginKind, PageKind, SourceFile,
+    classify_document, compile, format_ast, highlight_rocdown, is_static_document, load_page_docs,
+    markdown_fragment_gated, render_article_gated, render_document, render_document_gated,
 };
 
 fn compile_with(src: &str) -> rocci_rocdown::CompileOutput {
@@ -195,9 +198,53 @@ fn note_body_hole_lowers_on_hydrate_page() {
 fn rust_article_html_does_not_emit_hole_glyphs() {
     let src = "Published @{date}.\n";
     let out = compile_with(src);
+    let rendered = render_document_gated(&out.document);
+    assert!(!rendered.html.contains("@{date}"), "{}", rendered.html);
+    assert!(!rendered.html.contains("@{"), "{}", rendered.html);
+    assert!(
+        rendered.diagnostics.iter().any(|d| d.is_error()
+            && d.message.contains("static Rust article path")
+            && d.span.of(src).contains("@{")),
+        "{:?}",
+        rendered.diagnostics
+    );
     let html = render_document(&out.document);
     assert!(!html.contains("@{date}"), "{html}");
-    assert!(!html.contains("@{"), "{html}");
+}
+
+#[test]
+fn docs_forest_gate_does_not_emit_hole_glyphs() {
+    let src = "Published @{date}.\n";
+    let out = compile_with(src);
+    let mut catalog = Vec::new();
+    let docs = load_page_docs(
+        SourceFile::new("test.rocdown", src),
+        &out.document,
+        "test.rocdown",
+        IncludeOptions {
+            root: Path::new("."),
+            snippet_roots: &[],
+        },
+        &mut catalog,
+    );
+    let rendered = render_article_gated(&docs.article);
+    assert!(!rendered.html.contains("@{date}"), "{}", rendered.html);
+    assert!(
+        rendered
+            .diagnostics
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("static Rust article path")),
+        "{:?}",
+        rendered.diagnostics
+    );
+    let (markdown, md_diagnostics) = markdown_fragment_gated(&docs.article);
+    assert!(!markdown.contains("@{date}"), "{markdown}");
+    assert!(
+        md_diagnostics
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("static Rust article path")),
+        "{md_diagnostics:?}"
+    );
 }
 
 #[test]
