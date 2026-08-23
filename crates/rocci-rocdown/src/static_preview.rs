@@ -9,8 +9,8 @@ use crate::docs::{IncludeOptions, load_page_docs, render_article};
 use crate::page::extract_page;
 use crate::{CompileOptions, Document, Item, PageKind, classify_document, parse};
 
-pub fn document_page_kind(document: &Document) -> PageKind {
-    classify_document(document, false).kind
+pub fn document_page_kind(src: &str, document: &Document) -> PageKind {
+    classify_document(src, document, false).kind
 }
 
 pub fn write_static_document_preview(
@@ -35,7 +35,7 @@ pub fn write_static_document_preview(
                 .join("\n")
         );
     }
-    if document_page_kind(&parsed.document) != PageKind::Static {
+    if document_page_kind(&src, &parsed.document) != PageKind::Static {
         bail!("{} is not a static document", input.display());
     }
 
@@ -256,7 +256,7 @@ mod tests {
         let src = fs::read_to_string(&input).unwrap();
         let source = SourceFile::new("Report.rocdown", &src);
         let parsed = parse(source, false);
-        assert_eq!(document_page_kind(&parsed.document), PageKind::Static);
+        assert_eq!(document_page_kind(&src, &parsed.document), PageKind::Static);
 
         let out = dir.join("dist");
         let mut options = CompileOptions::default();
@@ -318,6 +318,6 @@ mod tests {
         let src = "@get:view(\"/\") = |_, _request| {\n    Html.text(\"hi\")\n}\n";
         let source = SourceFile::new("Live.rocdown", src);
         let parsed = parse(source, false);
-        assert_eq!(document_page_kind(&parsed.document), PageKind::Live);
+        assert_eq!(document_page_kind(src, &parsed.document), PageKind::Live);
     }
 }

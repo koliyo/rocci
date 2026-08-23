@@ -28,11 +28,15 @@ pub struct PageClass {
     pub reason: &'static str,
 }
 
-pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass {
+pub fn classify_document(src: &str, document: &Document, uses_datastar: bool) -> PageClass {
     let mut class = PageClass {
         kind: PageKind::Static,
         reason: "Markdown",
     };
+    if items_have_interpolation(src, &document.items) {
+        class.kind = PageKind::Hydrate;
+        class.reason = "@{";
+    }
     for item in &document.items {
         let (kind, reason) = match item {
             Item::Markdown(_) | Item::Page(_) | Item::Block(_) | Item::Use(_) => continue,
@@ -61,7 +65,10 @@ pub fn classify_document(document: &Document, uses_datastar: bool) -> PageClass 
     class
 }
 
-pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
+pub fn is_static_document(src: &str, document: &Document) -> Result<(), &'static str> {
+    if items_have_interpolation(src, &document.items) {
+        return Err("@{");
+    }
     for item in &document.items {
         match item {
             Item::Markdown(_) | Item::Page(_) | Item::Block(_) => {}
@@ -81,6 +88,25 @@ pub fn is_static_document(document: &Document) -> Result<(), &'static str> {
         }
     }
     Ok(())
+}
+
+pub(crate) fn md_has_interpolation(node: &MdNode) -> bool {
+    matches!(node, MdNode::Interpolation { .. }) || node.children().iter().any(md_has_interpolation)
+}
+
+pub(crate) fn items_have_interpolation(src: &str, items: &[Item]) -> bool {
+    for item in items {
+        match item {
+            Item::Markdown(node) if md_has_interpolation(node) => return true,
+            Item::Block(call)
+                if items_have_interpolation(src, &crate::parse::nested_items(src, call)) =>
+            {
+                return true;
+            }
+            _ => {}
+        }
+    }
+    false
 }
 
 pub fn roc_imports_datastar(roc: &str) -> bool {
@@ -511,9 +537,9 @@ mod tests {
             },
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
-        assert!(is_static_document(&out.document).is_ok());
+        assert!(is_static_document(src, &out.document).is_ok());
         assert_eq!(
-            classify_document(&out.document, false).kind,
+            classify_document(src, &out.document, false).kind,
             PageKind::Static
         );
         let mut diagnostics = Vec::new();
@@ -660,7 +686,7 @@ Text in rocdown.
                 ..CompileOptions::default()
             },
         );
-        classify_document(&out.document, uses_datastar)
+        classify_document(src, &out.document, uses_datastar)
     }
 
     #[test]
@@ -739,9 +765,9 @@ Text in rocdown.
             },
         );
         assert!(!out.has_errors(), "{:?}", out.diagnostics);
-        assert_eq!(is_static_document(&out.document), Err("@render"));
+        assert_eq!(is_static_document(src, &out.document), Err("@render"));
         assert_eq!(
-            classify_document(&out.document, false).kind,
+            classify_document(src, &out.document, false).kind,
             PageKind::Hydrate
         );
     }
@@ -756,16 +782,14 @@ Text in rocdown.
                 ..CompileOptions::default()
             },
         );
-        assert_eq!(is_static_document(&out.document), Err("@use"));
+        assert_eq!(is_static_document(src, &out.document), Err("@use"));
     }
 
     #[test]
     fn markdown_mentioning_datastar_is_not_an_import() {
+        let src = "Pages with `import Datastar` stay documentation.\n";
         let out = compile(
-            SourceFile::new(
-                "page.rocdown",
-                "Pages with `import Datastar` stay documentation.\n",
-            ),
+            SourceFile::new("page.rocdown", src),
             &CompileOptions {
                 resolve_links: false,
                 ..CompileOptions::default()
@@ -774,9 +798,33 @@ Text in rocdown.
         assert!(out.roc.contains("import Datastar"), "{}", out.roc);
         assert!(!roc_imports_datastar(&out.roc), "{}", out.roc);
         assert_eq!(
-            classify_document(&out.document, roc_imports_datastar(&out.roc)).kind,
+            classify_document(src, &out.document, roc_imports_datastar(&out.roc)).kind,
             PageKind::Static
         );
+    }
+
+    #[test]
+    fn markdown_interpolation_promotes_to_hydrate() {
+        let src = "Published @{x}.\n";
+        let class = classify(src);
+        assert_eq!(class.kind, PageKind::Hydrate);
+        assert_eq!(class.reason, "@{");
+        let out = compile(
+            SourceFile::new("page.rocdown", src),
+            &CompileOptions {
+                resolve_links: false,
+                ..CompileOptions::default()
+            },
+        );
+        assert_eq!(is_static_document(src, &out.document), Err("@{"));
+    }
+
+    #[test]
+    fn interpolation_reason_stays_when_roc_is_also_present() {
+        let src = "@roc { x = \"hi\" }\n\nPublished @{x}.\n";
+        let class = classify(src);
+        assert_eq!(class.kind, PageKind::Hydrate);
+        assert_eq!(class.reason, "@{");
     }
 
     #[test]
