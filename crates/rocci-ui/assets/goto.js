@@ -196,7 +196,6 @@
     return;
   }
 
-  const CACHE_KEY = "rocci-goto-catalog";
   const CSS =
     ':host{all:initial;color-scheme:inherit;display:none;position:fixed;inset:0 var(--rocci-chrome-right,0px) var(--rocci-chrome-bottom,0px) 0;z-index:2147483646;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#d7dae0;color:light-dark(#18181b,#d7dae0)}:host(.open){display:block}.backdrop{box-sizing:border-box;display:flex;justify-content:center;align-items:flex-start;width:100%;height:100%;padding:12vh 16px 16px;background:rgba(0,0,0,.42);background:light-dark(rgba(24,24,27,.28),rgba(0,0,0,.42))}.palette{box-sizing:border-box;width:min(560px,100%);max-height:min(70vh,480px);display:flex;flex-direction:column;border:1px solid #3e4451;border-color:light-dark(#e4e4e7,#3e4451);border-radius:12px;background:#21252b;background:light-dark(#f7f7f8,#21252b);box-shadow:0 16px 48px rgba(0,0,0,.35);overflow:hidden}.query-row{display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #3e4451;border-bottom-color:light-dark(#e4e4e7,#3e4451)}.query-row:focus-within{box-shadow:inset 0 -2px 0 #61afef;box-shadow:inset 0 -2px 0 light-dark(#2563eb,#61afef)}.query-icon{flex:none;color:#9da5b4;color:light-dark(#71717a,#9da5b4)}input{box-sizing:border-box;flex:1;min-width:0;height:48px;margin:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-size:15px;outline:none;box-shadow:none;appearance:none;-webkit-appearance:none}input:focus,input:focus-visible{outline:none;box-shadow:none}input::placeholder{color:#9da5b4;color:light-dark(#71717a,#9da5b4);opacity:1}input::-webkit-search-decoration,input::-webkit-search-cancel-button,input::-webkit-search-results-button,input::-webkit-search-results-decoration{-webkit-appearance:none}#results{margin:0;padding:6px;list-style:none;overflow-y:auto;flex:1 1 auto}.item{display:flex;flex-direction:column;gap:2px;min-height:44px;box-sizing:border-box;padding:8px 10px;border-radius:8px;cursor:pointer}.item.is-selected,.item:hover{background:rgba(97,175,239,.16);background:light-dark(rgba(59,130,246,.12),rgba(97,175,239,.16))}.title{font-size:13.5px;font-weight:600}.path{color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:12px;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.empty{margin:0;padding:18px 14px;color:#9da5b4;color:light-dark(#71717a,#9da5b4);font-size:13px}mark{background:transparent;color:#61afef;color:light-dark(#2563eb,#61afef);font-weight:700;padding:0}@media(max-width:480px){.backdrop{padding:8vh 8px 8px}.palette{max-height:84vh;border-radius:10px}}';
   const HTML =
@@ -275,6 +274,7 @@
     const parts = [
       [entry.title, 1],
       [entry.path, 0.85],
+      [entry.collection, 0.9],
       [entry.description, 0.4],
       [entry.url, 0.7],
     ];
@@ -369,6 +369,7 @@
         url: url,
         path: row.path || "",
         description: row.description || "",
+        collection: row.collection || "",
         kind: row.kind || "",
         datastar: !!row.datastar,
       });
@@ -396,6 +397,7 @@
         url: url,
         path: row.path || "",
         description: description,
+        collection: row.collection || "",
         kind: "",
         datastar: false,
       });
@@ -434,6 +436,7 @@
         url: key,
         path: key,
         description: "",
+        collection: "",
         kind: "",
         datastar: false,
       });
@@ -451,38 +454,11 @@
   };
 
   const loadCatalog = () => {
-    if (catalog) {
-      return Promise.resolve(catalog);
-    }
     if (catalogPromise) {
       return catalogPromise;
     }
-    let cached = null;
-    try {
-      cached = sessionStorage.getItem(CACHE_KEY);
-    } catch (err) {}
-    if (cached) {
-      try {
-        catalog = JSON.parse(cached);
-        if (catalog && catalog.length) {
-          catalog = catalog.filter(function (row) {
-            return row && !isExampleSource(row.url || row.route);
-          });
-          if (catalog.length) {
-            return Promise.resolve(catalog);
-          }
-        }
-      } catch (err) {
-        catalog = null;
-      }
-    }
     const remember = (rows) => {
       catalog = rows || [];
-      if (catalog.length) {
-        try {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify(catalog));
-        } catch (err) {}
-      }
       return catalog;
     };
     catalogPromise = fetchIndex("/pages.json")
@@ -531,7 +507,11 @@
         '<span class="title">' +
         highlightLabel(entry.title, query) +
         '</span><span class="path">' +
-        escapeText(entry.path || entry.url) +
+        escapeText(
+          entry.collection
+            ? entry.collection + " · " + (entry.path || entry.url)
+            : entry.path || entry.url
+        ) +
         "</span>";
       item.addEventListener("mousedown", function (event) {
         event.preventDefault();
@@ -556,7 +536,11 @@
       }
     }
     ranked.sort(function (a, b) {
-      return b.score - a.score || a.entry.title.localeCompare(b.entry.title);
+      return (
+        b.score - a.score ||
+        a.entry.title.localeCompare(b.entry.title) ||
+        String(a.entry.path || "").localeCompare(String(b.entry.path || ""))
+      );
     });
     filtered = ranked.map(function (row) {
       return row.entry;
@@ -805,6 +789,9 @@
         if (window.__rocciCopy) {
           window.__rocciCopy.enhance();
         }
+        if (window.__rocciOkfSession && window.__rocciOkfSession.record) {
+          window.__rocciOkfSession.record(url.pathname, document.title);
+        }
       })
       .catch(function () {
         fullLoad(target);
@@ -836,6 +823,8 @@
       }
       queryInput.value = "";
       queryInput.focus();
+      catalog = null;
+      catalogPromise = null;
       loadCatalog().then(filter);
     });
   };

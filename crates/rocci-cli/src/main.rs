@@ -211,6 +211,7 @@ fn try_main() -> Result<()> {
             serve.live_reload(),
             serve.log_handlers,
             serve.verbose,
+            serve.public,
         ),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
@@ -232,6 +233,7 @@ fn try_main() -> Result<()> {
             serve.port,
             serve.live_reload(),
             serve.verbose,
+            serve.public,
         ),
         Commands::Browse { roots, serve } => browse::browse(
             &roots,
@@ -239,6 +241,7 @@ fn try_main() -> Result<()> {
             serve.port,
             serve.live_reload(),
             serve.verbose,
+            serve.public,
         ),
         Commands::Playground { input, serve, mode } => {
             let hook = match mode {
@@ -599,6 +602,27 @@ mod tests {
             assert!(verbose_of(&Cli::try_parse_from(args).unwrap()));
         }
         assert!(!verbose_of(&Cli::try_parse_from(["rocci", "run"]).unwrap()));
+    }
+
+    fn public_of(cli: &Cli) -> bool {
+        match &cli.command {
+            Commands::Run { serve, .. }
+            | Commands::View { serve, .. }
+            | Commands::Browse { serve, .. } => serve.public,
+            _ => panic!("expected a hosting command"),
+        }
+    }
+
+    #[test]
+    fn hosting_commands_accept_public() {
+        for args in [
+            ["rocci", "run", "--public"].as_slice(),
+            ["rocci", "view", "Foo.rocci", "--public"].as_slice(),
+            ["rocci", "browse", "--public"].as_slice(),
+        ] {
+            assert!(public_of(&Cli::try_parse_from(args).unwrap()));
+        }
+        assert!(!public_of(&Cli::try_parse_from(["rocci", "run"]).unwrap()));
     }
 
     #[test]

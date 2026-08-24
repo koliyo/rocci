@@ -41,6 +41,7 @@ pub fn browse(
     port: serve::PortArg,
     live_reload: bool,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     let files = discover_rocci_files(roots)?;
     if files.is_empty() {
@@ -107,6 +108,7 @@ pub fn browse(
     cmd.arg("main.roc")
         .current_dir(&workspace.path)
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    serve::apply_roc_listen_host(&mut cmd, public);
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
 
     match serve::wait_for_roc(
@@ -119,7 +121,15 @@ pub fn browse(
         serve::RocStart::Ready => {}
         serve::RocStart::Failed(output) => {
             let html = error_page::render_roc_compile_error(&output, &[]);
-            return serve::serve_html(port, 500, &html, "rocci browse", no_window, live_reload);
+            return serve::serve_html(
+                port,
+                500,
+                &html,
+                "rocci browse",
+                no_window,
+                live_reload,
+                public,
+            );
         }
     }
 

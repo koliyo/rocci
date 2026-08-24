@@ -26,7 +26,8 @@ use wry::WebContext;
 use crate::window::LiveWindow;
 
 pub use events::{PreviewEvent, PreviewSink, ShellEvent};
-pub use preview::{PreviewOptions, preview};
+pub use history::display_path;
+pub use preview::{NavigateHandler, PreviewOptions, preview};
 
 pub struct RunOptions {
     pub config: Config,

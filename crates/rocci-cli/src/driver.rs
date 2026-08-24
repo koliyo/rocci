@@ -181,6 +181,7 @@ pub struct DriverOptions {
     pub profile: crate::profile::ProfileSnapshot,
     pub inspect_pages: Vec<crate::inspect::InspectPage>,
     pub state_key: Option<String>,
+    pub public: bool,
 }
 
 pub fn execute_app_plan(
@@ -237,6 +238,7 @@ pub fn execute_app_plan(
         options.inspect_pages.clone(),
         options.state_key.clone(),
         options.verbose,
+        options.public,
     )
 }
 
@@ -257,7 +259,7 @@ pub fn spawn_app_plan(
         roc_file: PathBuf::from("main.roc"),
     };
     let invocation = roc_invocation(&resolved, &[]);
-    let mut cmd = roc_command(&invocation, port);
+    let mut cmd = roc_command(&invocation, port, false);
     cmd.env("DB_PATH", &db_path);
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, logs)?;
     match serve::wait_for_roc(
@@ -385,6 +387,7 @@ pub fn execute_resolved_entry(
     mut profile: ProfileSnapshot,
     inspect_pages: Vec<crate::inspect::InspectPage>,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     let default_title = window_title(resolved);
     let title = title.unwrap_or(&default_title);
@@ -392,7 +395,7 @@ pub fn execute_resolved_entry(
     let port = port.resolve()?;
     let start_path = app_start_path(&resolved.app_dir);
     let url = format!("http://127.0.0.1:{port}{start_path}");
-    let cmd = roc_command(&invocation, port);
+    let cmd = roc_command(&invocation, port, public);
     let roc_started = Instant::now();
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
@@ -419,6 +422,7 @@ pub fn execute_resolved_entry(
                 LogLevel::Info,
                 style::serving(&invocation.app_dir.display().to_string(), &url),
             );
+            serve::note_public_listen(public, port);
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&url);
             serve::with_window_and_inspector(
@@ -433,7 +437,7 @@ pub fn execute_resolved_entry(
             )
         }
         serve::RocStart::Failed(output) => {
-            serve_roc_failure(&output, maps, port, no_window, live_reload, title)
+            serve_roc_failure(&output, maps, port, no_window, live_reload, title, public)
         }
     }
 }
@@ -471,10 +475,11 @@ pub fn serve_template_errors(
     no_window: bool,
     live_reload: bool,
     title: &str,
+    public: bool,
 ) -> Result<()> {
     let html = error_page::render_template_errors(files);
     let port = port.resolve()?;
-    serve::serve_html(port, 500, &html, title, no_window, live_reload)
+    serve::serve_html(port, 500, &html, title, no_window, live_reload, public)
 }
 
 pub fn serve_roc_failure(
@@ -484,9 +489,10 @@ pub fn serve_roc_failure(
     no_window: bool,
     live_reload: bool,
     title: &str,
+    public: bool,
 ) -> Result<()> {
     let html = error_page::render_roc_compile_error(output, maps);
-    serve::serve_html(port, 500, &html, title, no_window, live_reload)
+    serve::serve_html(port, 500, &html, title, no_window, live_reload, public)
 }
 
 pub fn window_title(resolved: &ResolvedEntry) -> String {
@@ -515,12 +521,13 @@ pub fn roc_invocation(resolved: &ResolvedEntry, args: &[String]) -> RocInvocatio
     }
 }
 
-pub fn roc_command(invocation: &RocInvocation, port: u16) -> Command {
+pub fn roc_command(invocation: &RocInvocation, port: u16, public: bool) -> Command {
     let mut cmd = Command::new(invocation.program);
     cmd.arg(&invocation.roc_file)
         .args(&invocation.args)
         .current_dir(&invocation.app_dir)
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    serve::apply_roc_listen_host(&mut cmd, public);
     cmd
 }
 
@@ -539,11 +546,12 @@ pub fn invoke_standalone(
     inspect_pages: Vec<crate::inspect::InspectPage>,
     state_key: Option<String>,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}{path}");
-    let mut cmd = roc_command(&invocation, port);
+    let mut cmd = roc_command(&invocation, port, public);
     if env::var_os("DB_PATH").is_none() {
         cmd.env("DB_PATH", db_path);
     }
@@ -569,6 +577,7 @@ pub fn invoke_standalone(
             });
             tee.flush_to_hub();
             logs::tee(&logs, LogLevel::Info, style::serving(title, &url));
+            serve::note_public_listen(public, port);
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));
             serve::with_window_and_inspector(
@@ -583,7 +592,7 @@ pub fn invoke_standalone(
             )
         }
         serve::RocStart::Failed(output) => {
-            serve_roc_failure(&output, maps, port, no_window, live_reload, title)
+            serve_roc_failure(&output, maps, port, no_window, live_reload, title, public)
         }
     }
 }

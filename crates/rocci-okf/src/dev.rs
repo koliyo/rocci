@@ -29,6 +29,8 @@ pub fn run_knowledge(
     open_path: &str,
     host: Option<rocci_roc_host::HostChoice>,
     profile_report: ProfileReportMode,
+    public: bool,
+    extra_http: Option<rocci_cli::dev_server::ExtraHttpHandler>,
 ) -> Result<DevServer> {
     let root = okf::absolute(root)?;
     if !root.is_dir() {
@@ -51,6 +53,8 @@ pub fn run_knowledge(
         backend_port: None,
         log_handlers: false,
         on_stop: None,
+        public,
+        extra_http,
     };
 
     let build_root = root.clone();

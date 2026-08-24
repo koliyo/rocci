@@ -234,6 +234,7 @@ dummy_page = {
     output_path: "",
     article_path: "",
     article_html: "",
+    nav_html: "",
     title: "",
     view: {
         has_outline: False,
@@ -304,6 +305,7 @@ parse_page = |obj| {
         output_path: json_str(obj, "output_path"),
         article_path: json_str(obj, "article_path"),
         article_html: "",
+        nav_html: json_str(obj, "nav_html"),
         title: json_str(obj, "title"),
         view: {
             has_outline: json_bool(obj, "has_outline"),
@@ -335,20 +337,23 @@ with_article = |record, html| {
         output_path: record.output_path,
         article_path: record.article_path,
         article_html: html,
+        nav_html: record.nav_html,
         title: record.title,
         view: record.view,
     }
 }
 
 render_page = |item| {
+    nav_node = Html.dangerously_include_unescaped_html(item.nav_html)
     article_node = Html.dangerously_include_unescaped_html(item.article_html)
     page_html = Html.render(
         OkfTheme.knowledgeShell(
             item.view,
+            nav_node,
             article_node,
         ),
     )
-    "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>${item.title}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>${page_html}</body></html>\n"
+    "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>${item.title}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/session.js\" defer></script><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>${page_html}</body></html>\n"
 }
 
 OkfBuild := [].{

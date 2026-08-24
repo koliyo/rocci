@@ -25,6 +25,7 @@ pub fn view(
     port: serve::PortArg,
     live_reload: bool,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     if !input.is_file() {
         bail!("no such file: {}", input.display());
@@ -59,7 +60,7 @@ pub fn view(
         }]);
         let title = format!("rocci view · {component}");
         let port = port.resolve()?;
-        return serve::serve_html(port, 500, &html, &title, no_window, live_reload);
+        return serve::serve_html(port, 500, &html, &title, no_window, live_reload, public);
     }
 
     let info = find_component(&components, component).with_context(|| {
@@ -118,6 +119,7 @@ pub fn view(
     cmd.arg("main.roc")
         .current_dir(&workspace.path)
         .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    serve::apply_roc_listen_host(&mut cmd, public);
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
     let title = format!("rocci view · {}", info.name);
@@ -162,7 +164,7 @@ pub fn view(
                     segments,
                 }],
             );
-            serve::serve_html(port, 500, &html, &title, no_window, live_reload)
+            serve::serve_html(port, 500, &html, &title, no_window, live_reload, public)
         }
     }
 }
@@ -643,6 +645,7 @@ mod tests {
             true,
             serve::PortArg::Auto,
             true,
+            false,
             false,
         )
         .unwrap_err()

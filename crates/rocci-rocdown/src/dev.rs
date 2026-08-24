@@ -30,7 +30,7 @@ pub fn run_with_host(
     port: u16,
     host: Option<rocci_roc_host::HostChoice>,
 ) -> Result<DevServer> {
-    run_with_host_at(root, output, port, host, "/", false, false)
+    run_with_host_at(root, output, port, host, "/", false, false, false)
 }
 
 pub fn run_with_host_at(
@@ -41,6 +41,7 @@ pub fn run_with_host_at(
     open_path: &str,
     log_handlers: bool,
     verbose: bool,
+    public: bool,
 ) -> Result<DevServer> {
     let root = absolute(root)?;
     if !root.is_dir() {
@@ -102,6 +103,8 @@ pub fn run_with_host_at(
         on_stop: Some(Arc::new(move || {
             *backend_slot.lock().unwrap_or_else(|err| err.into_inner()) = None;
         })),
+        public,
+        extra_http: None,
     };
 
     let session_root = root.clone();

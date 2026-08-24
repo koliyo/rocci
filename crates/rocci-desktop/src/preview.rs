@@ -22,6 +22,7 @@ use crate::{
 };
 
 pub type IpcHandler = Arc<dyn Fn(&str, Arc<dyn PreviewSink>) + Send + Sync>;
+pub type NavigateHandler = Arc<dyn Fn(&str) + Send + Sync>;
 
 pub struct PreviewOptions {
     pub url: String,
@@ -35,6 +36,8 @@ pub struct PreviewOptions {
     pub live_reload: bool,
     pub extra_initialization_script: Option<String>,
     pub on_ipc: Option<IpcHandler>,
+    pub on_navigate: Option<NavigateHandler>,
+    pub home_url: Option<String>,
     pub picker: bool,
 }
 
@@ -53,6 +56,8 @@ impl Default for PreviewOptions {
             live_reload: true,
             extra_initialization_script: None,
             on_ipc: None,
+            on_navigate: None,
+            home_url: None,
             picker: false,
         }
     }
@@ -199,7 +204,11 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     )?;
     menu.attach(&live.window)?;
 
-    let mut history = NavHistory::new(options.url);
+    let mut history = match &options.home_url {
+        Some(home) => NavHistory::with_start_and_home(&options.url, home),
+        None => NavHistory::new(options.url.clone()),
+    };
+    let on_navigate = options.on_navigate.clone();
     let mut title = options.title;
     let mut modifiers = ModifiersState::empty();
     let save_key = state_key.clone();
@@ -322,6 +331,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);
+                if let Some(on_navigate) = &on_navigate {
+                    on_navigate(&url);
+                }
                 sync_chrome(&live, &history, &title);
                 live.sync_unified_chrome();
             }

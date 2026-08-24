@@ -74,6 +74,10 @@ pub struct ServeOptions {
     #[arg(short, long)]
     pub verbose: bool,
 
+    /// Bind every interface (`0.0.0.0`). Default is localhost only.
+    #[arg(long)]
+    pub public: bool,
+
     /// TCP port to listen on. Defaults to a free port with the preview window,
     /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
     #[arg(
@@ -90,6 +94,47 @@ pub struct ServeOptions {
 impl ServeOptions {
     pub fn live_reload(self) -> bool {
         !self.no_live_reload
+    }
+
+    pub fn bind_host(self) -> &'static str {
+        bind_host(self.public)
+    }
+}
+
+pub fn bind_host(public: bool) -> &'static str {
+    if public { "0.0.0.0" } else { "127.0.0.1" }
+}
+
+pub fn apply_roc_listen_host(cmd: &mut Command, public: bool) {
+    if public {
+        cmd.env("ROC_BASIC_WEBSERVER_HOST", "0.0.0.0");
+    }
+}
+
+pub fn first_non_loopback_ip() -> Option<std::net::IpAddr> {
+    use std::net::UdpSocket;
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("1.1.1.1:80").ok()?;
+    let addr = socket.local_addr().ok()?;
+    let ip = addr.ip();
+    if ip.is_loopback() { None } else { Some(ip) }
+}
+
+pub fn note_public_listen(public: bool, port: u16) {
+    if !public {
+        return;
+    }
+    eprintln!(
+        "{}",
+        crate::style::note(&format!(
+            "listening on 0.0.0.0:{port} (reachable from other interfaces)"
+        ))
+    );
+    if let Some(ip) = first_non_loopback_ip() {
+        eprintln!(
+            "{}",
+            crate::style::note(&format!("  e.g. http://{ip}:{port}/"))
+        );
     }
 }
 
@@ -495,12 +540,14 @@ pub fn serve_html(
     title: &str,
     no_window: bool,
     live_reload: bool,
+    public: bool,
 ) -> Result<()> {
     let url = format!("http://127.0.0.1:{port}/");
     let html = html.to_string();
     let stop = Arc::new(AtomicBool::new(false));
-    let listener = TcpListener::bind(("127.0.0.1", port))
-        .with_context(|| format!("failed to bind 127.0.0.1:{port}"))?;
+    let host = bind_host(public);
+    let listener =
+        TcpListener::bind((host, port)).with_context(|| format!("failed to bind {host}:{port}"))?;
     listener
         .set_nonblocking(true)
         .context("failed to set error-page listener non-blocking")?;
@@ -522,6 +569,7 @@ pub fn serve_html(
     });
 
     println!("{}", style::serving(title, &url));
+    note_public_listen(public, port);
     note_live_reload_paused(live_reload);
     if no_window {
         let _ = thread.join();
@@ -683,6 +731,7 @@ mod tests {
         let cli = ServeCli::try_parse_from(["rocci"]).unwrap();
         assert!(!cli.serve.no_window);
         assert!(!cli.serve.no_live_reload);
+        assert!(!cli.serve.public);
         assert_eq!(cli.serve.port, PortArg::Auto);
     }
 
@@ -697,6 +746,13 @@ mod tests {
     }
 
     #[test]
+    fn clap_accepts_public() {
+        let cli = ServeCli::try_parse_from(["rocci", "--public"]).unwrap();
+        assert!(cli.serve.public);
+        assert_eq!(cli.serve.bind_host(), "0.0.0.0");
+        assert_eq!(bind_host(false), "127.0.0.1");
+    }
+
     fn clap_accepts_no_live_reload() {
         let cli = ServeCli::try_parse_from(["rocci", "--no-live-reload"]).unwrap();
         assert!(cli.serve.no_live_reload);

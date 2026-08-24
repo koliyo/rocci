@@ -131,6 +131,9 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("event.target.id === \"backdrop\""));
     assert!(GOTO_SCRIPT.contains("queryInput.focus()"));
     assert!(GOTO_SCRIPT.contains("lastFocused.focus()"));
+    assert!(GOTO_SCRIPT.contains("entry.collection"));
+    assert!(GOTO_SCRIPT.contains("catalog = null"));
+    assert!(!GOTO_SCRIPT.contains("rocci-goto-catalog"));
     assert!(GOTO_SCRIPT.contains("shadow.adoptedStyleSheets = [sheet]"));
     assert!(GOTO_SCRIPT.contains("sheet.replaceSync(CSS)"));
     assert!(!GOTO_SCRIPT.contains("rocci-goto{display:none;position:fixed"));

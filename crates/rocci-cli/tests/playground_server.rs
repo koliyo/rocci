@@ -82,6 +82,7 @@ fn test_playground_loopback_server_routes_and_headers() {
         PlaygroundMode::Wasm,
         None,
         &[],
+        false,
     )
     .expect("start server");
 
@@ -177,6 +178,7 @@ fn test_playground_local_mode_compile_hook() {
         PlaygroundMode::Local,
         Some(hook),
         &["rocci"],
+        false,
     )
     .expect("start server");
 

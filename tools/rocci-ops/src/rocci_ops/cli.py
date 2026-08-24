@@ -18,7 +18,7 @@ commands:
   package       package vscode, zed, or the rocci.dev site (docs + live apps)
   site          stage generated examples, check, test, and build rocci.dev
   verify-zed    check Zed manifest and build the language server WASM
-  bundle        macOS app bundles
+  bundle        macOS app bundles (`macos` for Rocci, `okf` for Rocci Knowledge)
   install-cursor-extension
   build-playground
   render-brand-icons
