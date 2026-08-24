@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::catalog::{AppEntry, Catalog, DocsError};
+use crate::catalog::{AppEntry, Catalog, DocsError, Hosting};
 use crate::extract::declarations_markdown;
 use crate::inventory::{PublishedFile, inventory_app};
 
@@ -11,6 +11,12 @@ use crate::inventory::{PublishedFile, inventory_app};
 pub struct StageReport {
     pub apps: usize,
     pub files: usize,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StageOptions {
+    pub include_all: bool,
+    pub advertise_live: bool,
 }
 
 pub fn live_demo_url(id: &str) -> String {
@@ -25,13 +31,13 @@ pub fn app_play_url(app: &AppEntry) -> String {
 }
 
 pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
-    stage_with(catalog, output, false)
+    stage_with(catalog, output, StageOptions::default())
 }
 
 pub fn stage_with(
     catalog: &Catalog,
     output: &Path,
-    include_all: bool,
+    options: StageOptions,
 ) -> Result<StageReport, DocsError> {
     let parent = output.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|source| DocsError::Io {
@@ -52,7 +58,7 @@ pub fn stage_with(
             source,
         })?;
     }
-    match stage_into(catalog, &staging, include_all) {
+    match stage_into(catalog, &staging, options) {
         Ok(report) => {
             replace_dir(&staging, output)?;
             Ok(report)
@@ -75,20 +81,23 @@ fn apps_to_stage(catalog: &Catalog, include_all: bool) -> Vec<&AppEntry> {
 fn stage_into(
     catalog: &Catalog,
     output: &Path,
-    include_all: bool,
+    options: StageOptions,
 ) -> Result<StageReport, DocsError> {
     fs::create_dir_all(output).map_err(|source| DocsError::Io {
         path: output.to_path_buf(),
         source,
     })?;
 
-    let apps = apps_to_stage(catalog, include_all);
+    let apps = apps_to_stage(catalog, options.include_all);
     let mut files = 0;
-    write_file(output.join("index.rocdown"), &catalog_index(&apps))?;
+    write_file(
+        output.join("index.rocdown"),
+        &catalog_index(&apps, options.advertise_live),
+    )?;
     files += 1;
 
     for app in &apps {
-        files += stage_app(catalog, app, output)?;
+        files += stage_app(catalog, app, output, options.advertise_live)?;
     }
 
     Ok(StageReport {
@@ -134,7 +143,12 @@ fn replace_dir(staging: &Path, output: &Path) -> Result<(), DocsError> {
     Ok(())
 }
 
-fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, DocsError> {
+fn stage_app(
+    catalog: &Catalog,
+    app: &AppEntry,
+    output: &Path,
+    advertise_live: bool,
+) -> Result<usize, DocsError> {
     let app_src = catalog.root.join(&app.path);
     let app_out = output.join(&app.id);
     fs::create_dir_all(app_out.join("source")).map_err(|source| DocsError::Io {
@@ -148,6 +162,9 @@ fn stage_app(catalog: &Catalog, app: &AppEntry, output: &Path) -> Result<usize, 
 
     let mut written = 0;
     written += copy_authored_pages(&app_src, &app_out)?;
+    if advertise_live && app.hosting == Hosting::Live {
+        inject_launch_card(app, &app_out)?;
+    }
 
     let published = inventory_app(&catalog.root, app)?;
 
@@ -250,7 +267,44 @@ fn copy_rocdown(
     Ok(())
 }
 
-fn catalog_index(apps: &[&AppEntry]) -> String {
+fn inject_launch_card(app: &AppEntry, app_out: &Path) -> Result<(), DocsError> {
+    let path = app_out.join("index.rocdown");
+    let body = fs::read_to_string(&path).map_err(|source| DocsError::Io {
+        path: path.clone(),
+        source,
+    })?;
+    let card = format!(
+        ":link-card[href: \"{href}\", title: \"Launch\"]",
+        href = app_play_url(app)
+    );
+    write_file(path, &insert_after_title(&body, &card))
+}
+
+fn insert_after_title(body: &str, snippet: &str) -> String {
+    let mut out = String::with_capacity(body.len() + snippet.len() + 2);
+    let mut inserted = false;
+    for line in body.lines() {
+        out.push_str(line);
+        out.push('\n');
+        if !inserted && line.starts_with("# ") {
+            out.push('\n');
+            out.push_str(snippet);
+            out.push('\n');
+            inserted = true;
+        }
+    }
+    if !inserted {
+        if !out.ends_with('\n') && !out.is_empty() {
+            out.push('\n');
+        }
+        out.push('\n');
+        out.push_str(snippet);
+        out.push('\n');
+    }
+    out
+}
+
+fn catalog_index(apps: &[&AppEntry], advertise_live: bool) -> String {
     let mut rows = String::new();
     for app in apps {
         let role = if app.complexity.is_empty() {
@@ -263,14 +317,34 @@ fn catalog_index(apps: &[&AppEntry]) -> String {
         } else {
             app.persistence.as_str()
         };
-        rows.push_str(&format!(
-            "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` |\n",
-            title = app.title,
-            id = app.id,
-            summary = app.summary,
-            hosting = app.hosting.public_label(),
-        ));
+        if advertise_live {
+            let launch = if app.hosting == Hosting::Live {
+                format!("[Launch]({})", app_play_url(app))
+            } else {
+                "—".to_string()
+            };
+            rows.push_str(&format!(
+                "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` | {launch} |\n",
+                title = app.title,
+                id = app.id,
+                summary = app.summary,
+                hosting = app.hosting.public_label(),
+            ));
+        } else {
+            rows.push_str(&format!(
+                "| [{title}](/examples/{id}/) | {role} | {persistence} | {summary} | `{hosting}` |\n",
+                title = app.title,
+                id = app.id,
+                summary = app.summary,
+                hosting = app.hosting.public_label(),
+            ));
+        }
     }
+    let header = if advertise_live {
+        "| App | Role | Persistence | Summary | Hosting | Launch |\n| --- | --- | --- | --- | --- | --- |"
+    } else {
+        "| App | Role | Persistence | Summary | Hosting |\n| --- | --- | --- | --- | --- |"
+    };
     format!(
         r#"@page {{
     layout: "docs",
@@ -293,8 +367,7 @@ Roles: **learning** (first component, first app, and Notes), **reference** (hand
 matrix), **pattern** (Datastar gallery), **advanced** (Blocks standalone,
 Snake custom ceiling).
 
-| App | Role | Persistence | Summary | Hosting |
-| --- | --- | --- | --- | --- |
+{header}
 {rows}"#
     )
 }

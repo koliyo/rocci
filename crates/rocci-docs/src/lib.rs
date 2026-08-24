@@ -8,7 +8,7 @@ mod stage;
 pub use catalog::{AppEntry, Catalog, DocsError, Hosting, load_catalog};
 pub use extract::{DeclDoc, declarations_markdown, documented_declarations};
 pub use inventory::{PublishedFile, inventory_app, is_published_rel};
-pub use stage::{StageReport, app_play_url, live_demo_url, stage, stage_with};
+pub use stage::{StageOptions, StageReport, app_play_url, live_demo_url, stage, stage_with};
 
 use std::path::Path;
 
@@ -33,5 +33,12 @@ pub fn generate(catalog_path: &Path, output: &Path) -> Result<StageReport> {
 /// When `include_all` is true, rows with `site = false` are staged too (local preview).
 pub fn generate_with(catalog_path: &Path, output: &Path, include_all: bool) -> Result<StageReport> {
     let catalog = load_catalog(catalog_path)?;
-    Ok(stage_with(&catalog, output, include_all)?)
+    Ok(stage_with(
+        &catalog,
+        output,
+        StageOptions {
+            include_all,
+            advertise_live: false,
+        },
+    )?)
 }
