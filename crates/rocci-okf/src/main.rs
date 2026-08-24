@@ -81,6 +81,12 @@ enum Commands {
         /// Omit live-reload and desktop session scripts from the static tree.
         #[arg(long)]
         public: bool,
+        /// JSON array of `{label, href}` site lanes to inject into public HTML.
+        #[arg(long)]
+        site_lanes: Option<PathBuf>,
+        /// Absolute origin used in `/knowledge/sitemap.xml` loc URLs (no trailing slash).
+        #[arg(long, default_value = "")]
+        canonical_origin: String,
         /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
@@ -534,8 +540,14 @@ fn main() -> Result<()> {
             host,
             base_path,
             public,
+            site_lanes,
+            canonical_origin,
         } => {
-            let options = presentation::SiteOptions::from_args(&base_path, public)?;
+            let mut options = presentation::SiteOptions::from_args(&base_path, public)?;
+            if let Some(path) = site_lanes {
+                options.site_lanes = presentation::load_site_lanes(&path)?;
+            }
+            options.site_origin = canonical_origin.trim_end_matches('/').to_string();
             let bundle = okf::load(&root, profile.into())?;
             if bundle.has_errors() {
                 bail!("knowledge bundle has validation errors");
@@ -606,6 +618,41 @@ mod tests {
     fn view_accepts_public() {
         let cli = Cli::try_parse_from(["rocci-okf", "view", "knowledge", "--public"]).unwrap();
         assert!(preview_args(cli.command.unwrap()).public);
+    }
+
+    #[test]
+    fn build_accepts_site_lanes_and_canonical_origin() {
+        let cli = Cli::try_parse_from([
+            "rocci-okf",
+            "build",
+            "knowledge",
+            "--public",
+            "--base-path",
+            "/knowledge",
+            "--site-lanes",
+            "lanes.json",
+            "--canonical-origin",
+            "https://rocci.dev",
+        ])
+        .unwrap();
+        match cli.command.unwrap() {
+            Commands::Build {
+                public,
+                base_path,
+                site_lanes,
+                canonical_origin,
+                ..
+            } => {
+                assert!(public);
+                assert_eq!(base_path, "/knowledge");
+                assert_eq!(
+                    site_lanes.as_deref(),
+                    Some(std::path::Path::new("lanes.json"))
+                );
+                assert_eq!(canonical_origin, "https://rocci.dev");
+            }
+            _ => panic!("expected build"),
+        }
     }
 
     #[test]

@@ -116,8 +116,11 @@ parses the bundle fresh.
 cargo run -p rocci-okf -- build knowledge -o dist/knowledge --profile rocci
 ```
 
-`--base-path /knowledge` prefixes every emitted route and `/__rocci_okf/` asset URL. `--public` omits `reload.js` and `session.js` (preview-only). `view` keeps an empty prefix and includes those scripts. `okf::published_href` stays bundle-root; prefixing happens when `rocci-okf` writes HTML and indexes.
+`--base-path /knowledge` prefixes every emitted route and `/__rocci_okf/` asset URL. `--public` omits `reload.js` and `session.js` (preview-only). `--site-lanes lanes.json` injects a site lane strip from packaging (`[{ "label", "href" }, …]`). `--canonical-origin https://rocci.dev` writes `sitemap.xml` with absolute `loc` URLs. `view` keeps an empty prefix, does not inject site lanes, and includes preview scripts. `okf::published_href` stays bundle-root; prefixing happens when `rocci-okf` writes HTML and indexes.
 
 ```sh
-cargo run -p rocci-okf -- build knowledge -o dist/knowledge --profile rocci --base-path /knowledge --public
+cargo run -p rocci-okf -- build knowledge -o dist/knowledge --profile rocci \
+  --base-path /knowledge --public \
+  --site-lanes dist/.okf-site-lanes.json \
+  --canonical-origin https://rocci.dev
 ```

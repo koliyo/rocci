@@ -150,8 +150,11 @@ To package the hybrid site (CDN archive plus musl `islands` binary), use:
 uv run rocci-ops package site --target x64musl
 ```
 
-This stages example docs, builds live example servers, and packages the hybrid
-site. Site packaging currently uses Roc's `dev` backend for every live server
+This stages example docs, builds live example servers, packages the hybrid
+site, then copies a public `rocci-okf` build into `dist/rocci.dev/knowledge/`.
+A failed knowledge build fails the package. `rocdown view site` remains
+catalog-only; use `uv run rocci-ops site` for a local tree that includes
+`/knowledge/`. Site packaging currently uses Roc's `dev` backend for every live server
 because the pinned nightly can recurse in its optimized backend. These
 artifacts are functional but are not production-performance builds: they may
 be larger and slower. Use `rocci build --release --opt speed` when an optimized

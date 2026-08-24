@@ -47,7 +47,9 @@ cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window] [-
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/hybrid [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/counter [--port 8000] [--no-window]
 
-# Package/check the rocci.dev site after staging generated example docs
+# Package/check the rocci.dev catalog after staging generated example docs.
+# This does not copy `/knowledge/`. Use `uv run rocci-ops package site` for the
+# joined deploy tree (Rocdown site plus the OKF viewer).
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -p rocci-rocdown-cli -- check site
 cargo run -p rocci-rocdown-cli -- package site --target x64musl

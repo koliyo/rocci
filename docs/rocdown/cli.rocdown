@@ -30,6 +30,9 @@ cargo run -q -p rocci-rocdown-cli -- COMMAND
 | `inspect artifacts [ROOT]` | Planned output and page kinds |
 
 `rocdown` refuses OKF knowledge records; use `rocci-okf`.
+`rocdown view site` is the Rocdown catalog only. Preview or package the
+joined rocci.dev tree (docs plus `/knowledge/`) with `rocci-ops site` or
+`rocci-ops package site`.
 
 See [Write Rocdown pages](/docs/rocdown/pages/), [Article blocks](/docs/rocdown/blocks/),
 and [Site configuration](/docs/rocdown/sites/).

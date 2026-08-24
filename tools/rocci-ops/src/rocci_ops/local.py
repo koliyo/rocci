@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import platform
 import shlex
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
+import tomllib
 from pathlib import Path
 
 from rocci_ops.paths import repo_root
@@ -498,6 +502,7 @@ def build_site() -> int:
             ["cargo", "run", "-q", "-p", "rocci-rocdown-cli", "--", action, "site"],
             cwd=root,
         )
+    attach_knowledge_lane(root, refresh_archive=False)
     return 0
 
 
@@ -590,7 +595,160 @@ def package_site(*, target: str) -> int:
         ],
         cwd=root,
     )
+    attach_knowledge_lane(root, refresh_archive=True)
     return 0
+
+
+def page_id_to_href(page_id: str) -> str:
+    if page_id == "index":
+        return "/"
+    if page_id.endswith("/index"):
+        return f"/{page_id[: -len('/index')]}/"
+    return f"/{page_id.strip('/')}/"
+
+
+def nav_section_href(section: dict) -> str | None:
+    href = section.get("href")
+    if isinstance(href, str) and href.strip():
+        return href.strip()
+    items = section.get("items") or []
+    if items:
+        return page_id_to_href(str(items[0]))
+    groups = section.get("groups") or []
+    if groups:
+        return nav_section_href(groups[0])
+    directory = section.get("directory")
+    if isinstance(directory, str) and directory.strip():
+        return f"/{directory.strip().strip('/')}/"
+    return None
+
+
+def nav_lanes_from_toml(path: Path) -> list[dict[str, str]]:
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    lanes: list[dict[str, str]] = []
+    for section in data.get("nav") or []:
+        if not isinstance(section, dict):
+            continue
+        label = str(section.get("label") or "").strip()
+        href = nav_section_href(section)
+        if label and href:
+            lanes.append({"label": label, "href": href})
+    if not lanes:
+        raise SystemExit(f"error: no [[nav]] lanes in {path}")
+    return lanes
+
+
+def site_origin_from_toml(path: Path) -> str:
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    origin = str((data.get("site") or {}).get("base_url") or "").strip().rstrip("/")
+    if not origin:
+        raise SystemExit(f"error: [site].base_url missing in {path}")
+    return origin
+
+
+def hash_site_tree(dist: Path) -> tuple[list[str], str]:
+    files: list[str] = []
+    for path in dist.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(dist).as_posix()
+        if rel == "publish.json" or rel.endswith(".tgz"):
+            continue
+        files.append(rel)
+    files.sort()
+    digest = hashlib.sha256()
+    for rel in files:
+        digest.update(rel.encode())
+        digest.update(b"\x00")
+        digest.update((dist / rel).read_bytes())
+    return files, digest.hexdigest()
+
+
+def write_site_tgz(dist: Path, archive: Path) -> None:
+    tmp = archive.with_name(archive.name + ".tmp")
+    with tarfile.open(tmp, "w:gz") as tar:
+        for path in sorted(dist.rglob("*"), key=lambda item: item.as_posix()):
+            if not path.is_file():
+                continue
+            tar.add(path, arcname=path.relative_to(dist).as_posix())
+    tmp.replace(archive)
+
+
+def refresh_publish_manifest(dist: Path) -> None:
+    manifest_path = dist / "publish.json"
+    if not manifest_path.is_file():
+        raise SystemExit(f"error: missing {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files, output_hash = hash_site_tree(dist)
+    manifest["files"] = files
+    manifest["output_hash"] = output_hash
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+
+def mention_knowledge_sitemap(robots: Path, origin: str) -> None:
+    line = f"Sitemap: {origin}/knowledge/sitemap.xml"
+    text = robots.read_text(encoding="utf-8") if robots.is_file() else "User-agent: *\nAllow: /\n"
+    if "knowledge/sitemap.xml" not in text:
+        if text and not text.endswith("\n"):
+            text += "\n"
+        text += line + "\n"
+        robots.write_text(text, encoding="utf-8")
+
+
+def attach_knowledge_lane(root: Path, *, refresh_archive: bool) -> None:
+    config = root / "site" / "rocdown.toml"
+    if not config.is_file():
+        raise SystemExit(f"error: missing {config}")
+    origin = site_origin_from_toml(config)
+    lanes = nav_lanes_from_toml(config)
+    site_dist = root / "dist" / "rocci.dev"
+    if not site_dist.is_dir():
+        raise SystemExit(f"error: missing packaged site tree {site_dist}")
+    knowledge_out = root / "dist" / "knowledge"
+    lanes_path = root / "dist" / ".okf-site-lanes.json"
+    lanes_path.parent.mkdir(parents=True, exist_ok=True)
+    lanes_path.write_text(json.dumps(lanes), encoding="utf-8")
+    print("[rocci-ops] phase=knowledge-site status=start", flush=True)
+    run(
+        [
+            "cargo",
+            "run",
+            "-q",
+            "-p",
+            "rocci-okf",
+            "--",
+            "build",
+            "knowledge",
+            "-o",
+            str(knowledge_out),
+            "--profile",
+            "rocci",
+            "--base-path",
+            "/knowledge",
+            "--public",
+            "--site-lanes",
+            str(lanes_path),
+            "--canonical-origin",
+            origin,
+        ],
+        cwd=root,
+    )
+    dest = site_dist / "knowledge"
+    if dest.exists():
+        shutil.rmtree(dest)
+    if not (knowledge_out / "index.html").is_file():
+        raise SystemExit(f"error: knowledge build did not write {knowledge_out / 'index.html'}")
+    shutil.copytree(knowledge_out, dest)
+    mention_knowledge_sitemap(site_dist / "robots.txt", origin)
+    if not (dest / "index.html").is_file():
+        raise SystemExit(f"error: missing {dest / 'index.html'}")
+    if refresh_archive:
+        refresh_publish_manifest(site_dist)
+        archive = root / "dist" / "site.tgz"
+        if not archive.is_file():
+            raise SystemExit(f"error: missing {archive} after package site")
+        write_site_tgz(site_dist, archive)
+    print("[rocci-ops] phase=knowledge-site status=done", flush=True)
 
 
 def parse_worktrees(porcelain: str) -> list[tuple[str, str | None]]:

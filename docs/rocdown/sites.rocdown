@@ -252,6 +252,12 @@ before `rocdown check site`, `rocdown view site`, or `rocdown package site`.
 Rocdown does not import `rocci-docs`. Generated example pages use the docs
 layout. `/docs/examples/` is an alias of `/examples/` during the move.
 
+`rocdown view site` and `rocdown package site` build the Rocdown catalog only.
+They do not copy the OKF knowledge viewer. The joined tree under
+`/knowledge/` is produced by `uv run rocci-ops site` (local preview tree) or
+`uv run rocci-ops package site --target x64musl` (deploy archive). Do not add
+an OKF dependency to `rocci-rocdown-cli`.
+
 - `source`: Relative path to the mounted content directory.
 - `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `five-minutes` to ID `docs/five-minutes` and route `/docs/five-minutes/`).
 - `layout`: Optional default layout applied to pages in this mount.

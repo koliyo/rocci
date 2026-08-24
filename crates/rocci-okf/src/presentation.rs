@@ -12,13 +12,21 @@ use okf::{
 };
 use rocci_cli::profile::{ProfileSnapshot, SpanRecorder};
 pub use rocci_ui::escape;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SiteLane {
+    pub label: String,
+    pub href: String,
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SiteOptions {
     pub base_path: String,
     pub public: bool,
+    pub site_lanes: Vec<SiteLane>,
+    pub site_origin: String,
 }
 
 impl SiteOptions {
@@ -26,12 +34,24 @@ impl SiteOptions {
         Ok(Self {
             base_path: normalize_base_path(base_path)?,
             public,
+            site_lanes: Vec::new(),
+            site_origin: String::new(),
         })
     }
 
     fn is_identity(&self) -> bool {
-        self.base_path.is_empty() && !self.public
+        self.base_path.is_empty()
+            && !self.public
+            && self.site_lanes.is_empty()
+            && self.site_origin.is_empty()
     }
+}
+
+pub fn load_site_lanes(path: &Path) -> Result<Vec<SiteLane>> {
+    let json = fs::read_to_string(path)
+        .with_context(|| format!("failed to read site lanes {}", path.display()))?;
+    serde_json::from_str(&json)
+        .with_context(|| format!("invalid site lanes JSON {}", path.display()))
 }
 
 pub fn normalize_base_path(raw: &str) -> Result<String> {
@@ -1595,6 +1615,7 @@ fn apply_site_options(site: &Path, options: &SiteOptions) -> Result<()> {
             if options.public {
                 html = strip_preview_scripts(&html);
             }
+            html = inject_site_lanes(&html, &options.site_lanes, &options.base_path);
             fs::write(path, html).with_context(|| format!("failed to write {}", path.display()))?;
         } else if name == "pages.json" && !options.base_path.is_empty() {
             let mut json = fs::read_to_string(path)
@@ -1689,6 +1710,54 @@ fn set_goto_base_attr(html: &str, base: &str) -> String {
     html.to_string()
 }
 
+fn inject_site_lanes(html: &str, lanes: &[SiteLane], base_path: &str) -> String {
+    if lanes.is_empty() || html.contains("class=\"site-lanes\"") {
+        return html.to_string();
+    }
+    let markup = site_lanes_markup(lanes, base_path);
+    if let Some(body) = html.find("<body")
+        && let Some(rel) = html[body..].find('>')
+    {
+        let at = body + rel + 1;
+        return format!("{}{}{}", &html[..at], markup, &html[at..]);
+    }
+    html.to_string()
+}
+
+fn lane_is_current(lane: &SiteLane, base_path: &str) -> bool {
+    if base_path.is_empty() {
+        return false;
+    }
+    let prefix = if base_path.ends_with('/') {
+        base_path.to_string()
+    } else {
+        format!("{base_path}/")
+    };
+    lane.href == prefix || lane.href.starts_with(&prefix)
+}
+
+fn site_lanes_markup(lanes: &[SiteLane], base_path: &str) -> String {
+    let mut out = String::from("<nav class=\"site-lanes\" aria-label=\"Site\">");
+    for lane in lanes {
+        let current = lane_is_current(lane, base_path);
+        out.push_str("<a class=\"");
+        out.push_str(if current {
+            "lane-link is-current"
+        } else {
+            "lane-link"
+        });
+        out.push_str("\" href=\"");
+        out.push_str(&escape(&lane.href));
+        out.push_str("\" aria-current=\"");
+        out.push_str(if current { "true" } else { "false" });
+        out.push_str("\">");
+        out.push_str(&escape(&lane.label));
+        out.push_str("</a>");
+    }
+    out.push_str("</nav>");
+    out
+}
+
 fn strip_preview_scripts(html: &str) -> String {
     let mut out = html.to_string();
     for file in ["session.js", "reload.js"] {
@@ -1747,14 +1816,44 @@ fn write_site_chrome(bundle: &Bundle, site: &Path, options: &SiteOptions) -> Res
         format!("{}\n", serde_json::to_string_pretty(&nav_pages(bundle))?),
     )
     .context("failed to write knowledge page index")?;
-    apply_site_options(site, options)
+    apply_site_options(site, options)?;
+    write_knowledge_sitemap(site, options)
 }
 
 pub fn finalize_site(site: &Path, options: &SiteOptions) -> Result<()> {
     if options.public {
         let _ = fs::remove_file(site.join("__rocci_okf").join("session.js"));
     }
-    apply_site_options(site, options)
+    apply_site_options(site, options)?;
+    write_knowledge_sitemap(site, options)
+}
+
+fn write_knowledge_sitemap(site: &Path, options: &SiteOptions) -> Result<()> {
+    if options.site_origin.is_empty() {
+        return Ok(());
+    }
+    let origin = options.site_origin.trim_end_matches('/');
+    let pages: Vec<Value> = serde_json::from_str(
+        &fs::read_to_string(site.join("pages.json"))
+            .with_context(|| format!("failed to read {}", site.join("pages.json").display()))?,
+    )
+    .context("invalid pages.json for knowledge sitemap")?;
+    let mut routes: Vec<String> = pages
+        .iter()
+        .filter_map(|page| page.get("route")?.as_str().map(str::to_string))
+        .collect();
+    routes.sort();
+    routes.dedup();
+    let mut xml = String::from(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n",
+    );
+    for route in routes {
+        xml.push_str("  <url><loc>");
+        xml.push_str(&escape(&format!("{origin}{route}")));
+        xml.push_str("</loc></url>\n");
+    }
+    xml.push_str("</urlset>\n");
+    fs::write(site.join("sitemap.xml"), xml).context("failed to write knowledge sitemap")
 }
 
 #[derive(Serialize)]
@@ -2355,6 +2454,30 @@ html.rd-document, body {
   line-height: 1.65;
 }
 html.rd-document { scroll-behavior: smooth; }
+.site-lanes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 1.1rem;
+  border-bottom: 1px solid var(--rd-border);
+  background: var(--rd-bg-subtle);
+}
+.site-lanes .lane-link {
+  text-decoration: none;
+  color: var(--rd-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+.site-lanes .lane-link:hover,
+.site-lanes .lane-link.is-current {
+  color: var(--rd-fg);
+}
+.site-lanes .lane-link.is-current {
+  background: #2c313a;
+  color: var(--rd-primary);
+}
 .rd-shell {
   position: relative;
   display: grid;
@@ -3442,6 +3565,7 @@ mod tests {
         assert!(DEFAULT_CSS.contains(".rocci-col-resizer"));
         assert!(DEFAULT_CSS.contains(".outline-link.is-current"));
         assert!(DEFAULT_CSS.contains(".okf-outline-menu { display: block"));
+        assert!(DEFAULT_CSS.contains(".site-lanes {"));
     }
 
     #[test]
@@ -3590,6 +3714,17 @@ mod tests {
             &SiteOptions {
                 base_path: "/knowledge".into(),
                 public: true,
+                site_lanes: vec![
+                    SiteLane {
+                        label: "Docs".into(),
+                        href: "/docs/".into(),
+                    },
+                    SiteLane {
+                        label: "Knowledge".into(),
+                        href: "/knowledge/".into(),
+                    },
+                ],
+                site_origin: "https://rocci.dev".into(),
             },
         )
         .unwrap();
@@ -3619,10 +3754,17 @@ mod tests {
         assert!(home.contains("href=\"/knowledge/architecture/\""));
         assert!(home.contains("src=\"/knowledge/__rocci_okf/goto.js\""));
         assert!(home.contains("data-rocci-goto-base=\"/knowledge\""));
+        assert!(home.contains("class=\"site-lanes\""));
+        assert!(home.contains("href=\"/docs/\""));
+        assert!(home.contains("aria-current=\"true\">Knowledge</a>"));
+        assert!(home.contains("aria-current=\"false\">Docs</a>"));
         assert!(!site.join("__rocci_okf").join("session.js").is_file());
         let pages = fs::read_to_string(site.join("pages.json")).unwrap();
         assert!(pages.contains("\"route\": \"/knowledge/architecture/overview/\""));
         assert!(!pages.contains("\"route\": \"/architecture/overview/\""));
+        let sitemap = fs::read_to_string(site.join("sitemap.xml")).unwrap();
+        assert!(sitemap.contains("https://rocci.dev/knowledge/architecture/overview/"));
+        assert!(!sitemap.contains("https://rocci.dev/architecture/overview/"));
         let _ = fs::remove_dir_all(&site);
     }
 

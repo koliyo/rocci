@@ -1,8 +1,13 @@
+import json
+import tarfile
+
 from rocci_ops.local import (
     CLI_CRATES,
     _require_playground_dist,
+    attach_knowledge_lane,
     playground_wasm_artifact,
     build_site,
+    nav_lanes_from_toml,
     package_site,
     parse_worktrees,
     promote_production,
@@ -44,6 +49,7 @@ def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> Non
     calls: list[list[str]] = []
     monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
     monkeypatch.setattr("rocci_ops.local.build_playground", lambda: 0)
+    monkeypatch.setattr("rocci_ops.local.attach_knowledge_lane", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
@@ -74,6 +80,10 @@ def test_package_site_builds_playground_before_cargo(monkeypatch, tmp_path) -> N
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
+    monkeypatch.setattr(
+        "rocci_ops.local.attach_knowledge_lane",
+        lambda *args, **kwargs: calls.append("knowledge"),
+    )
     (tmp_path / "dist/examples-live").mkdir(parents=True)
 
     assert package_site(target="x64musl") == 0
@@ -81,6 +91,98 @@ def test_package_site_builds_playground_before_cargo(monkeypatch, tmp_path) -> N
     assert calls[1] == "docs"
     assert calls[2][4] == "rocci-rocdown-cli"
     assert calls[2][-4:] == ["package", "site", "--target", "x64musl"]
+    assert calls[3] == "knowledge"
+
+
+def test_nav_lanes_from_toml_reads_href_and_first_catalog_item(tmp_path) -> None:
+    config = tmp_path / "rocdown.toml"
+    config.write_text(
+        """
+[site]
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Docs"
+items = ["docs/index"]
+
+[[nav]]
+label = "Knowledge"
+href = "/knowledge/"
+""",
+        encoding="utf-8",
+    )
+    assert nav_lanes_from_toml(config) == [
+        {"label": "Docs", "href": "/docs/"},
+        {"label": "Knowledge", "href": "/knowledge/"},
+    ]
+
+
+def test_attach_knowledge_lane_copies_tree_and_mentions_sitemap(monkeypatch, tmp_path) -> None:
+    (tmp_path / "site").mkdir()
+    (tmp_path / "site" / "rocdown.toml").write_text(
+        """
+[site]
+base_url = "https://rocci.dev"
+
+[[nav]]
+label = "Docs"
+items = ["docs/index"]
+
+[[nav]]
+label = "Knowledge"
+href = "/knowledge/"
+""",
+        encoding="utf-8",
+    )
+    site_dist = tmp_path / "dist" / "rocci.dev"
+    site_dist.mkdir(parents=True)
+    (site_dist / "index.html").write_text("home", encoding="utf-8")
+    (site_dist / "robots.txt").write_text(
+        "User-agent: *\nAllow: /\nSitemap: https://rocci.dev/sitemap.xml\n",
+        encoding="utf-8",
+    )
+    (site_dist / "publish.json").write_text(
+        json.dumps({"files": ["index.html", "robots.txt"], "output_hash": "old"}),
+        encoding="utf-8",
+    )
+    archive = tmp_path / "dist" / "site.tgz"
+    archive.write_bytes(b"old-archive")
+    calls: list[list[str]] = []
+
+    def fake_run(argv, cwd=None, env=None):
+        calls.append(list(argv))
+        out = tmp_path / "dist" / "knowledge"
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "index.html").write_text(
+            '<html><body><nav class="site-lanes"></nav>'
+            '<a href="/knowledge/architecture/">Architecture</a></body></html>\n',
+            encoding="utf-8",
+        )
+        (out / "pages.json").write_text('[{"route":"/knowledge/"}]\n', encoding="utf-8")
+        (out / "sitemap.xml").write_text(
+            '<?xml version="1.0"?><urlset><url><loc>https://rocci.dev/knowledge/</loc></url></urlset>\n',
+            encoding="utf-8",
+        )
+
+    monkeypatch.setattr("rocci_ops.local.run", fake_run)
+    attach_knowledge_lane(tmp_path, refresh_archive=True)
+
+    knowledge = site_dist / "knowledge" / "index.html"
+    assert knowledge.is_file()
+    html = knowledge.read_text(encoding="utf-8")
+    assert 'href="/knowledge/architecture/"' in html
+    robots = (site_dist / "robots.txt").read_text(encoding="utf-8")
+    assert "Sitemap: https://rocci.dev/knowledge/sitemap.xml" in robots
+    manifest = json.loads((site_dist / "publish.json").read_text(encoding="utf-8"))
+    assert "knowledge/index.html" in manifest["files"]
+    assert "knowledge/sitemap.xml" in manifest["files"]
+    assert calls[0][4] == "rocci-okf"
+    assert "--public" in calls[0]
+    assert "--base-path" in calls[0]
+    with tarfile.open(archive, "r:gz") as tar:
+        names = tar.getnames()
+    assert "knowledge/index.html" in names
+    assert "knowledge/sitemap.xml" in names
 
 
 def test_require_playground_dist_rejects_empty_or_non_wasm(tmp_path) -> None:
