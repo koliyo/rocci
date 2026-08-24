@@ -30,59 +30,124 @@ def compose_file() -> Path:
     return repo_root() / "docker" / "compose.hybrid.yml"
 
 
+def origin_examples_compose() -> Path:
+    return repo_root() / "docker" / "compose.origin.yml"
+
+
+def live_app_env_key(app_id: str) -> str:
+    return "ROCCI_" + app_id.replace("-", "_").upper() + "_CONTEXT"
+
+
+def live_app_ids(live_root: Path) -> list[str]:
+    if not live_root.is_dir():
+        return []
+    ids = [
+        path.name
+        for path in sorted(live_root.iterdir())
+        if path.is_dir() and (path / "server").is_file()
+    ]
+    return ids
+
+
 def compose_project_dir() -> Path:
     return repo_root() / "docker"
 
 
-def compose_env(root: Path) -> dict[str, str]:
+def compose_env(root: Path, live_ids: list[str] | None = None) -> dict[str, str]:
     env = os.environ.copy()
     env["COMPOSE_PROJECT_NAME"] = env.get("COMPOSE_PROJECT_NAME") or "rocci-prod"
     env["ROCCI_DIST"] = str(root / "dist")
     env["ROCCI_ISLANDS_CONTEXT"] = str(root / "islands-context")
     env["ROCCI_HTTP_PORT"] = http_port()
+    live_root = root / "examples-live"
+    for app_id in live_ids if live_ids is not None else live_app_ids(live_root):
+        env[live_app_env_key(app_id)] = str(live_root / app_id)
     return env
 
 
 def compose_up(root: Path, *, runner=subprocess.run) -> None:
-    env = compose_env(root)
+    live_ids = live_app_ids(root / "examples-live")
+    env = compose_env(root, live_ids)
     argv = [
         "docker",
         "compose",
         "-f",
         str(compose_file()),
-        "--project-directory",
-        str(compose_project_dir()),
     ]
-    argv.extend(["up", "-d", "--build"])
+    if live_ids:
+        extra = origin_examples_compose()
+        if not extra.is_file():
+            raise SystemExit(f"error: missing {extra}")
+        argv.extend(["-f", str(extra)])
+    argv.extend(
+        [
+            "--project-directory",
+            str(compose_project_dir()),
+            "up",
+            "-d",
+            "--build",
+        ]
+    )
     result = runner(argv, env=env, check=False)
     if result.returncode != 0:
         raise SystemExit("error: docker compose failed")
 
 
-def health_ok(url: str, *, fetch=urllib.request.urlopen) -> bool:
+def health_ok(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    fetch=urllib.request.urlopen,
+) -> bool:
     try:
-        with fetch(url, timeout=5) as response:
+        target: str | urllib.request.Request = url
+        if headers:
+            target = urllib.request.Request(url, headers=headers)
+        with fetch(target, timeout=5) as response:
             return getattr(response, "status", 200) == 200
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
 
 
-def health_urls() -> list[str]:
+def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str, str]]]:
     port = http_port()
-    return [
-        f"http://127.0.0.1:{port}/health",
-    ]
+    site = f"http://127.0.0.1:{port}/health"
+    checks = [(site, {})]
+    for app_id in live_ids or []:
+        checks.append((site, {"Host": f"{app_id}.examples.localhost"}))
+    return checks
 
 
-def wait_health(*, attempts: int = 36, delay: float = 5.0, fetch=urllib.request.urlopen, sleeper=time.sleep) -> bool:
-    urls = health_urls()
+def health_urls() -> list[str]:
+    return [url for url, _headers in health_checks()]
+
+
+def wait_health(
+    *,
+    live_ids: list[str] | None = None,
+    attempts: int = 36,
+    delay: float = 5.0,
+    fetch=urllib.request.urlopen,
+    sleeper=time.sleep,
+) -> bool:
+    checks = health_checks(live_ids)
     for index in range(1, attempts + 1):
-        ok = all(health_ok(url, fetch=fetch) for url in urls)
+        ok = all(health_ok(url, headers=headers or None, fetch=fetch) for url, headers in checks)
         print(f"health {index}/{attempts} {'200' if ok else 'fail'}", flush=True)
         if ok:
             return True
         sleeper(delay)
     return False
+
+
+def ensure_app_docker_context(app_dir: Path, docker_app: Path) -> None:
+    if not (app_dir / "Dockerfile").is_file():
+        shutil.copy2(docker_app / "Dockerfile", app_dir / "Dockerfile")
+    if not (app_dir / "entrypoint.sh").is_file():
+        shutil.copy2(docker_app / "entrypoint.sh", app_dir / "entrypoint.sh")
+    assets = app_dir / "assets"
+    if not assets.is_dir():
+        assets.mkdir(parents=True)
 
 
 def unpack_release(sha: str, incoming: Path, release: Path) -> None:
@@ -102,6 +167,16 @@ def unpack_release(sha: str, incoming: Path, release: Path) -> None:
     shutil.copy2(docker / "islands" / "Dockerfile", context / "Dockerfile")
     shutil.copy2(binary, context / "islands")
     (context / "islands").chmod(0o755)
+    src_live = incoming / "examples-live"
+    dest_live = release / "examples-live"
+    if dest_live.exists():
+        shutil.rmtree(dest_live)
+    if src_live.is_dir():
+        shutil.copytree(src_live, dest_live)
+        docker_app = docker / "app"
+        for app_dir in dest_live.iterdir():
+            if app_dir.is_dir() and (app_dir / "server").is_file():
+                ensure_app_docker_context(app_dir, docker_app)
 
 
 def prune_releases(releases: Path, keep_n: int) -> None:
@@ -126,7 +201,8 @@ def publish(sha: str, *, runner=subprocess.run, fetch=urllib.request.urlopen, sl
     print(f"=== publish {sha} ===", flush=True)
     unpack_release(sha, incoming, release)
     compose_up(release, runner=runner)
-    if not wait_health(fetch=fetch, sleeper=sleeper):
+    live_ids = live_app_ids(release / "examples-live")
+    if not wait_health(live_ids=live_ids, fetch=fetch, sleeper=sleeper):
         print(f"error: origin health failed for {sha}", flush=True)
         if previous is not None and previous.is_dir():
             print(f"=== rollback to {previous} ===", flush=True)

@@ -53,5 +53,30 @@ def test_push_invokes_bootstrap_scp_and_publish(monkeypatch, tmp_path: Path) -> 
     flat = [" ".join(call) for call in calls]
     assert any("mkdir -p" in item and "/srv/rocci/tools/rocci-ops" in item for item in flat)
     assert any(str(artifact / "site.tgz") in item for item in flat)
+    assert any("compose.origin.yml" in item for item in flat)
     assert any("origin publish 'abc123'" in item for item in flat)
     assert not any("/blocks/" in item or "docker/blocks" in item for item in flat)
+
+
+def test_push_copies_examples_live_tree(monkeypatch, tmp_path: Path) -> None:
+    artifact = tmp_path / "artifacts"
+    live = artifact / "examples-live" / "live-counter"
+    live.mkdir(parents=True)
+    (artifact / "site.tgz").write_bytes(b"tgz")
+    (artifact / "islands").write_bytes(b"bin")
+    (live / "server").write_bytes(b"srv")
+    monkeypatch.setenv("DEPLOY_HOST", "ssh.rocci.dev")
+    monkeypatch.setenv("DEPLOY_USER", "deploy")
+    calls: list[list[str]] = []
+
+    def runner(argv, **_kwargs):
+        calls.append(argv)
+
+        class Result:
+            returncode = 0
+
+        return Result()
+
+    push(artifact, "abc123", runner=runner)
+    flat = [" ".join(call) for call in calls]
+    assert any(str(artifact / "examples-live") in item and "-r" in item for item in flat)

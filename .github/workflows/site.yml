@@ -64,12 +64,11 @@ jobs:
         with:
           name: rocci-dev-linux-amd64
           if-no-files-found: error
-          path: |
+            path: |
             dist/site.tgz
             dist/islands
             dist/rocci.dev/publish.json
-            dist/examples-live/live-counter/server
-            dist/examples-live/datastar/server
+            dist/examples-live/**
 
   deploy:
     name: Push artifacts (${{ github.ref_name }})
@@ -100,8 +99,10 @@ jobs:
           ls -la artifacts
           test -f artifacts/site.tgz
           test -f artifacts/islands
+          test -d artifacts/examples-live
           wc -c artifacts/site.tgz artifacts/islands
           file artifacts/islands || true
+          find artifacts/examples-live -type f | head
       - name: Install cloudflared
         run: |
           set -euo pipefail

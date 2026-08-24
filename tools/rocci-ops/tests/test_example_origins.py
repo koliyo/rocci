@@ -63,8 +63,12 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     workflow = (root / ".github/workflows/site.yml").read_text(encoding="utf-8")
     assert '"examples/**"' in workflow or "- \"examples/**\"" in workflow
     assert "- \"playground/**\"" in workflow
-    assert "dist/examples-live/live-counter/server" in workflow
-    assert "dist/examples-live/datastar/server" in workflow
+    assert "dist/examples-live/**" in workflow
+    assert "dist/examples-live/live-counter/server" not in workflow
+    assert "dist/examples-live/datastar/server" not in workflow
+    ingress = (root / "docker/prod/cloudflared-ingress.yml.example").read_text(encoding="utf-8")
+    assert '"*.examples.rocci.dev"' in ingress or "*.examples.rocci.dev" in ingress
+    assert "*.examples.staging.rocci.dev" in ingress
     assert Path(root / "examples/rocci/apps.toml").is_file()
 
 

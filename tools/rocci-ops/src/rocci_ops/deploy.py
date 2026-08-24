@@ -74,11 +74,11 @@ def bootstrap(*, runner=subprocess.run) -> int:
     rocci_ssh(
         [
             target,
-            f"mkdir -p '{dest}/cdn' '{dest}/islands' '{dest}/prod' '{ops_dest}/src'",
+            f"mkdir -p '{dest}/cdn' '{dest}/islands' '{dest}/app' '{dest}/prod' '{ops_dest}/src'",
         ],
         runner=runner,
     )
-    rocci_scp([str(docker / "compose.hybrid.yml"), f"{target}:{dest}/"], runner=runner)
+    rocci_scp([str(docker / "compose.hybrid.yml"), str(docker / "compose.origin.yml"), f"{target}:{dest}/"], runner=runner)
     rocci_scp(
         [
             str(docker / "cdn" / "Caddyfile"),
@@ -89,7 +89,18 @@ def bootstrap(*, runner=subprocess.run) -> int:
         runner=runner,
     )
     rocci_scp(
-        [str(docker / "islands" / "Dockerfile"), f"{target}:{dest}/islands/"],
+        [
+            str(docker / "islands" / "Dockerfile"),
+            f"{target}:{dest}/islands/",
+        ],
+        runner=runner,
+    )
+    rocci_scp(
+        [
+            str(docker / "app" / "Dockerfile"),
+            str(docker / "app" / "entrypoint.sh"),
+            f"{target}:{dest}/app/",
+        ],
         runner=runner,
     )
     rocci_scp(
@@ -146,6 +157,9 @@ def push(artifact_dir: Path, sha: str, *, runner=subprocess.run) -> int:
         [str(tgz), str(islands), f"{target}:{incoming}/"],
         runner=runner,
     )
+    live = artifact_dir / "examples-live"
+    if live.is_dir():
+        rocci_scp(["-r", str(live), f"{target}:{incoming}/"], runner=runner)
     rocci_ssh([target, origin_publish_cmd(sha, origin_root)], runner=runner)
     return 0
 

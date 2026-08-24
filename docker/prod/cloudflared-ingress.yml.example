@@ -1,10 +1,16 @@
 # Merge into the Tunnel's config (or Zero Trust Public Hostname UI).
 # Do not commit credentials.json or the tunnel token.
+# *.rocci.dev does not cover *.examples.rocci.dev; those names need their
+# own certificate coverage. Staging example hosts stay Access-gated.
 ingress:
   - hostname: staging.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: "*.examples.staging.rocci.dev"
     service: http://127.0.0.1:8080
   - hostname: rocci.dev
     service: http://127.0.0.1:8080
   - hostname: www.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: "*.examples.rocci.dev"
     service: http://127.0.0.1:8080
   - service: http_status:404

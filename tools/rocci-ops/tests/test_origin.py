@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import io
 import tarfile
 
-from rocci_ops.origin import publish, wait_health
+from rocci_ops.origin import live_app_env_key, health_checks, publish, wait_health
 
 
 class FakeResponse:
@@ -22,6 +22,15 @@ def test_wait_health_succeeds(monkeypatch) -> None:
     sleeps: list[float] = []
     assert wait_health(fetch=lambda _url, timeout=5: FakeResponse(200), sleeper=sleeps.append)
     assert sleeps == []
+
+
+def test_live_app_env_and_health_hosts() -> None:
+    assert live_app_env_key("live-counter") == "ROCCI_LIVE_COUNTER_CONTEXT"
+    assert live_app_env_key("datastar") == "ROCCI_DATASTAR_CONTEXT"
+    checks = health_checks(["live-counter", "datastar"])
+    assert checks[0][1] == {}
+    assert checks[1][1]["Host"] == "live-counter.examples.localhost"
+    assert checks[2][1]["Host"] == "datastar.examples.localhost"
 
 
 def test_wait_health_retries_then_ok() -> None:
@@ -91,3 +100,63 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     assert compose_roots[0].endswith("/releases/abc/dist")
     assert compose_roots[-1].endswith("/releases/old/dist")
     assert "--profile" not in compose_argv[0]
+    assert not any("compose.origin.yml" in " ".join(argv) for argv in compose_argv)
+
+
+def test_publish_live_apps_use_origin_compose_and_rollback(monkeypatch, tmp_path: Path) -> None:
+    origin = tmp_path / "origin"
+    incoming = origin / "incoming" / "abc"
+    previous = origin / "releases" / "old"
+    incoming.mkdir(parents=True)
+    previous.mkdir(parents=True)
+    (previous / "dist").mkdir()
+    live = incoming / "examples-live" / "live-counter"
+    live.mkdir(parents=True)
+    (live / "server").write_bytes(b"srv")
+    (incoming / "islands").write_bytes(b"bin")
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("index.html")
+        data = b"<html></html>"
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    (incoming / "site.tgz").write_bytes(buf.getvalue())
+
+    docker = tmp_path / "repo" / "docker"
+    (docker / "islands").mkdir(parents=True)
+    (docker / "app").mkdir(parents=True)
+    (docker / "islands" / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    (docker / "app" / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    (docker / "app" / "entrypoint.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    (docker / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
+    (docker / "compose.origin.yml").write_text("services: {}\n", encoding="utf-8")
+    (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
+    (tmp_path / "repo" / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
+
+    current = origin / "current"
+    current.symlink_to(previous)
+
+    monkeypatch.setenv("ROCCI_ORIGIN_ROOT", str(origin))
+    monkeypatch.setenv("ROCCI_REPO_ROOT", str(tmp_path / "repo"))
+
+    compose_argv: list[list[str]] = []
+    compose_env: list[dict[str, str]] = []
+
+    def runner(argv, **kwargs):
+        compose_argv.append(list(argv))
+        compose_env.append(kwargs.get("env", {}))
+        return SimpleNamespace(returncode=0)
+
+    def fetch(_url, timeout=5):
+        raise OSError("unhealthy")
+
+    try:
+        publish("abc", runner=runner, fetch=fetch, sleeper=lambda _s: None)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("expected SystemExit")
+    assert any("compose.origin.yml" in argv for argv in compose_argv[0])
+    assert compose_env[0]["ROCCI_LIVE_COUNTER_CONTEXT"].endswith("/releases/abc/examples-live/live-counter")
+    assert compose_argv[-1].count("-f") == 1

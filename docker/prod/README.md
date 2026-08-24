@@ -13,9 +13,10 @@ Default `ROCCI_ORIGIN_ROOT=/srv/rocci`:
 | `current` | Symlink to `releases/<sha>` after a healthy publish |
 | `releases/<sha>/dist/` | Unpacked CDN tree |
 | `releases/<sha>/islands-context/` | `Dockerfile` plus the musl `islands` binary |
-| `releases/<sha>/blocks-context/` | `Dockerfile` plus musl `server` and `assets/` |
+| `releases/<sha>/examples-live/<id>/` | Live app Docker context (`server`, `assets/`, `Dockerfile`) |
 | Docker volume `rocci-prod_islands-db` | Persistent SQLite at `/var/lib/rocci/site.db` inside `islands` |
-| Docker volume `rocci-prod_blocks-db` | Persistent SQLite at `/var/lib/rocci/blocks.db` inside `blocks` |
+| Docker volume `rocci-prod_live-counter-db` | SQLite for the live-counter origin tenant |
+| Docker volume `rocci-prod_datastar-db` | SQLite for the datastar origin tenant |
 
 `ROCCI_DIST` and `ROCCI_ISLANDS_CONTEXT` must be absolute. Copy
 [`env.example`](env.example) to `/srv/rocci/.env` if you invoke Compose by
@@ -124,10 +125,11 @@ A push to either branch runs `.github/workflows/site.yml`: it packages on
 linux/amd64, then the `deploy` job (GitHub Environment named after the
 branch, never `pull_request` and never `main`) probes SSH
 (`uv run rocci-ops deploy probe`), bootstraps the origin kit, scps
-`site.tgz` / `islands`, and runs `uv run rocci-ops origin publish SHA` on
-the box: unpack to `releases/<sha>/`, `compose up -d --build`, GET
-`http://127.0.0.1:8080/health`, then flip `current`. A failed health check
-leaves the previous symlink and restores that release. Both branches
+`site.tgz` / `islands` / `examples-live/`, and runs `uv run rocci-ops origin publish SHA` on
+the box: unpack to `releases/<sha>/`, `compose up -d --build` for hybrid **and**
+live apps, GET `http://127.0.0.1:8080/health` plus each live app via `Host`,
+then flip `current`. A failed health check leaves the previous symlink and
+restores that release (hybrid + examples together). Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
 serialized so they cannot interleave. **Run workflow** on `staging` or
 `production` packages and deploys the same way as a push. On any other
@@ -158,8 +160,10 @@ not grant Actions the right to approve reviews. Require approval for
 workflows from all outside collaborators.
 
 Caddy listens on `127.0.0.1:8080` via
-[`compose.hybrid.yml`](../compose.hybrid.yml) and
-[`cdn/Caddyfile`](../cdn/Caddyfile).
+[`compose.hybrid.yml`](../compose.hybrid.yml) merged with
+[`compose.origin.yml`](../compose.origin.yml) and
+[`cdn/Caddyfile`](../cdn/Caddyfile). Do not run
+[`compose.examples.yml`](../compose.examples.yml) `edge` on this box.
 
 Confirm the island image has no Roc:
 
@@ -173,8 +177,15 @@ docker run --rm --entrypoint /bin/sh rocci-islands:local -c 'which roc'; echo $?
 
 After origin health succeeds, point the named Tunnel at Caddy (Zero
 Trust Public Hostname UI, or merge [`cloudflared-ingress.yml.example`](cloudflared-ingress.yml.example)
-into the service config). Map `rocci.dev` and `www.rocci.dev` to
+into the service config). Map `rocci.dev`, `www.rocci.dev`,
+`*.examples.rocci.dev`, and `*.examples.staging.rocci.dev` to
 `http://127.0.0.1:8080`. Do not open provider firewall 80/443.
+
+Cloudflare `*.rocci.dev` does **not** cover `*.examples.rocci.dev`. Add
+DNS CNAMEs for both example wildcards to the Tunnel, then issue certificate
+coverage for `*.examples.rocci.dev` and `*.examples.staging.rocci.dev`
+(Total TLS or an advanced certificate). Do not advertise those hostnames
+from the site until a staging deploy has served them with TLS.
 
 ### Private staging
 
@@ -191,14 +202,16 @@ follows:
    SSH login or making the site anonymous.
 4. Add the Tunnel published application `staging.rocci.dev` ->
    `http://127.0.0.1:8080`, and attach the Access application.
+5. Repeat Access for `*.examples.staging.rocci.dev` (same Allow + Service
+   Auth). Staging example hosts stay gated like `staging.rocci.dev`.
 
 Keep the Access application in place whenever this hostname is enabled. Test
 in a private browser window: Cloudflare Access should require the maintainer
 login before it serves the site. CI must pass the service token as
 `CF-Access-Client-Id` and `CF-Access-Client-Secret`; do not put either value
-in the repository. This hostname is a first-level subdomain so it is covered
-by Cloudflare's normal `*.rocci.dev` certificate; a per-build
-`<uuid>.staging.rocci.dev` name is not.
+in the repository. `staging.rocci.dev` is a first-level subdomain so it is
+covered by Cloudflare's normal `*.rocci.dev` certificate; example hosts are
+not.
 
 ## Cloudflare cache
 
@@ -220,6 +233,11 @@ stopping the islands service, copying the file back onto
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
+curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
+curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8080/health
+curl -sf -H 'Host: staging.rocci.dev' \
+  -X POST http://127.0.0.1:8080/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
 ```
 
 Public `https://rocci.dev/` smoke waits until the Tunnel hostname is routed.

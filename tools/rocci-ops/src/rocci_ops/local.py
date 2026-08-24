@@ -518,6 +518,11 @@ def package_site(*, target: str) -> int:
         run(build_args, cwd=root)
         if not (dest / "server").is_file():
             raise SystemExit(f"error: live app `{app_id}` did not write {dest / 'server'}")
+        docker_app = root / "docker" / "app"
+        shutil.copy2(docker_app / "Dockerfile", dest / "Dockerfile")
+        shutil.copy2(docker_app / "entrypoint.sh", dest / "entrypoint.sh")
+        if not (dest / "assets").is_dir():
+            (dest / "assets").mkdir()
         print(f"[rocci-ops] phase=live-app status=done app={app_id}", flush=True)
     expected = {line.split("\t", 1)[0] for line in live_entries if line.strip()}
     found = {path.name for path in live_root.iterdir() if path.is_dir()}
