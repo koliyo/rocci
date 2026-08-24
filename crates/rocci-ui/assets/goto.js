@@ -41,41 +41,76 @@
     const sectionIsCurrent = (section) =>
       section && section.hasAttribute("data-rocci-nav-current");
 
-    const rememberSection = (section) => {
-      const key = section.getAttribute("data-rocci-nav-section");
+    const sectionsWithKey = () =>
+      document.querySelectorAll("details[data-rocci-nav-section]");
+
+    const sectionOpenForKey = (key) => {
+      const sections = sectionsWithKey();
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        if (section.getAttribute("data-rocci-nav-section") !== key) {
+          continue;
+        }
+        if (sectionIsCurrent(section) || section.open) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const writeSectionState = (key, open) => {
       if (!key) {
         return;
       }
       const state = readSectionState();
-      state[key] = sectionIsCurrent(section) ? true : section.open;
+      state[key] = !!open;
       try {
         sessionStorage.setItem(storageKey(), JSON.stringify(state));
       } catch (err) {}
     };
 
-    const rememberAllSections = () => {
-      const sections = document.querySelectorAll("details[data-rocci-nav-section]");
-      for (let i = 0; i < sections.length; i++) {
-        rememberSection(sections[i]);
+    const rememberSection = (section) => {
+      const key = section.getAttribute("data-rocci-nav-section");
+      if (!key) {
+        return;
       }
+      writeSectionState(key, sectionIsCurrent(section) || sectionOpenForKey(key));
+    };
+
+    const rememberAllSections = () => {
+      const state = readSectionState();
+      const sections = sectionsWithKey();
+      const seen = {};
+      for (let i = 0; i < sections.length; i++) {
+        const key = sections[i].getAttribute("data-rocci-nav-section");
+        if (!key || seen[key]) {
+          continue;
+        }
+        seen[key] = true;
+        if (sectionOpenForKey(key)) {
+          state[key] = true;
+        }
+      }
+      try {
+        sessionStorage.setItem(storageKey(), JSON.stringify(state));
+      } catch (err) {}
     };
 
     const restoreSections = () => {
       forgetOtherLanes();
       const state = readSectionState();
-      const sections = document.querySelectorAll("details[data-rocci-nav-section]");
+      const sections = sectionsWithKey();
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
-        if (sectionIsCurrent(section)) {
+        const key = section.getAttribute("data-rocci-nav-section");
+        if (sectionIsCurrent(section) || (key && state[key])) {
           section.open = true;
           continue;
         }
-        const key = section.getAttribute("data-rocci-nav-section");
-        if (Object.prototype.hasOwnProperty.call(state, key)) {
+        if (key && Object.prototype.hasOwnProperty.call(state, key)) {
           section.open = !!state[key];
         }
       }
-      rememberAllSections();
     };
 
     const readScrollPositions = () => {
@@ -88,7 +123,7 @@
 
     const rememberScrollPositions = () => {
       const state = {};
-      const sidebar = document.querySelector(".sidebar");
+      const sidebar = document.querySelector(".sidebar, .okf-chrome");
       const outline = document.querySelector(".layout-navigated > .outline");
       if (sidebar) {
         state.sidebar = sidebar.scrollTop;
@@ -104,7 +139,7 @@
     const restoreScrollPositions = () => {
       const state = readScrollPositions();
       window.requestAnimationFrame(function () {
-        const sidebar = document.querySelector(".sidebar");
+        const sidebar = document.querySelector(".sidebar, .okf-chrome");
         const outline = document.querySelector(".layout-navigated > .outline");
         if (sidebar && typeof state.sidebar === "number") {
           sidebar.scrollTop = state.sidebar;
@@ -161,14 +196,17 @@
         if (sectionIsCurrent(section) && section.open) {
           return;
         }
+        const key = section.getAttribute("data-rocci-nav-section");
         transition = transition.then(function () {
-          if (section.open) {
-            return finishFold(section, false).then(function () {
-              rememberSection(section);
-            });
-          }
-          return finishFold(section, true).then(function () {
-            rememberSection(section);
+          const opening = !section.open;
+          return finishFold(section, opening).then(function () {
+            const copies = sectionsWithKey();
+            for (let i = 0; i < copies.length; i++) {
+              if (copies[i].getAttribute("data-rocci-nav-section") === key) {
+                copies[i].open = opening;
+              }
+            }
+            writeSectionState(key, sectionIsCurrent(section) || opening);
           });
         });
       },
@@ -176,6 +214,10 @@
     );
     restoreSections();
     restoreScrollPositions();
+    window.addEventListener("pagehide", function () {
+      rememberAllSections();
+      rememberScrollPositions();
+    });
     window.__rocciNavSections = {
       ready: true,
       restore: function () {
@@ -556,6 +598,7 @@
     return (
       /goto(\.[a-f0-9]+)?\.js(\?|#|$)/.test(src) ||
       /\/__rocci_okf\/goto\.js/.test(src) ||
+      /\/__rocci_okf\/session\.js/.test(src) ||
       /\/__rocci_okf\/reload\.js/.test(src) ||
       /\/__rocci\/reload\.js/.test(src)
     );
@@ -629,11 +672,14 @@
     current.setAttribute("href", next.getAttribute("href") || "");
   };
 
-  const applyDocument = (fromDoc) => {
-    const nextBody = fromDoc.body;
-    if (!nextBody || !document.body) {
-      return false;
-    }
+  const NAV_KEEP = "#okf-nav";
+  const MAIN_SWAP = "#okf-main";
+  const TOC_SWAP = "#okf-toc";
+
+  const attrEscape = (value) =>
+    String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+  const copyHead = (fromDoc) => {
     document.documentElement.lang = fromDoc.documentElement.lang || document.documentElement.lang;
     if (fromDoc.documentElement.className) {
       document.documentElement.className = fromDoc.documentElement.className;
@@ -644,8 +690,77 @@
     copyMeta(fromDoc, "og:description", "property");
     copyMeta(fromDoc, "og:url", "property");
     copyCanonical(fromDoc);
+  };
+
+  const syncKeptNav = (fromDoc, keepNav) => {
+    const nextNav = fromDoc.querySelector(NAV_KEEP);
+    if (!nextNav) {
+      return;
+    }
+    keepNav.querySelectorAll("[data-rocci-nav-current]").forEach((el) => {
+      el.removeAttribute("data-rocci-nav-current");
+    });
+    keepNav.querySelectorAll(".is-current").forEach((el) => {
+      el.classList.remove("is-current");
+    });
+    keepNav.querySelectorAll('[aria-current="page"]').forEach((el) => {
+      el.setAttribute("aria-current", "false");
+    });
+    nextNav.querySelectorAll("a.is-current, a[aria-current='page']").forEach((link) => {
+      const href = link.getAttribute("href");
+      if (!href) {
+        return;
+      }
+      keepNav.querySelectorAll('a[href="' + attrEscape(href) + '"]').forEach((keep) => {
+        keep.classList.add("is-current");
+        keep.setAttribute("aria-current", "page");
+      });
+    });
+    nextNav.querySelectorAll("[data-rocci-nav-current]").forEach((section) => {
+      const key = section.getAttribute("data-rocci-nav-section");
+      if (!key) {
+        return;
+      }
+      keepNav
+        .querySelectorAll('details[data-rocci-nav-section="' + attrEscape(key) + '"]')
+        .forEach((keep) => {
+          keep.setAttribute("data-rocci-nav-current", "");
+          keep.open = true;
+        });
+    });
+  };
+
+  const applyDocument = (fromDoc) => {
+    const nextBody = fromDoc.body;
+    if (!nextBody || !document.body) {
+      return { ok: false, keepNav: false };
+    }
+    copyHead(fromDoc);
+    const keepNav = document.querySelector(NAV_KEEP);
+    const nextNav = fromDoc.querySelector(NAV_KEEP);
+    const keepMain = document.querySelector(MAIN_SWAP);
+    const nextMain = fromDoc.querySelector(MAIN_SWAP);
+    if (keepNav && nextNav && keepMain && nextMain) {
+      keepMain.replaceWith(nextMain);
+      const keepToc = document.querySelector(TOC_SWAP);
+      const nextToc = fromDoc.querySelector(TOC_SWAP);
+      if (keepToc && nextToc) {
+        keepToc.replaceWith(nextToc);
+      } else if (keepToc && !nextToc) {
+        keepToc.remove();
+      } else if (!keepToc && nextToc) {
+        const shell = document.querySelector(".rd-shell");
+        if (!shell) {
+          document.body.replaceWith(nextBody);
+          return { ok: true, keepNav: false };
+        }
+        shell.appendChild(nextToc);
+      }
+      syncKeptNav(fromDoc, keepNav);
+      return { ok: true, keepNav: true };
+    }
     document.body.replaceWith(nextBody);
-    return true;
+    return { ok: true, keepNav: false };
   };
 
   const hashTarget = (hash) => {
@@ -772,7 +887,8 @@
           fullLoad(target);
           return;
         }
-        if (!applyDocument(parsed)) {
+        const applied = applyDocument(parsed);
+        if (!applied.ok) {
           fullLoad(target);
           return;
         }
@@ -783,7 +899,7 @@
         }
         scrollToHash(url.hash);
         bindOpeners();
-        if (window.__rocciNavSections) {
+        if (!applied.keepNav && window.__rocciNavSections) {
           window.__rocciNavSections.restore();
         }
         if (window.__rocciCopy) {

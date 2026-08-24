@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -47,31 +47,31 @@ impl StatCardView {
 }
 
 pub fn render_stat_grid(cards: &[StatCardView]) -> String {
-    let mut out = String::new();
-    out.push_str("<div class=\"okf-stat-grid\">\n");
+    let mut out = String::from("<ul class=\"okf-stat-list\">\n");
     for card in cards {
         let tone_class = match card.tone {
             StatTone::Default => "",
             StatTone::Action => " is-action",
         };
+        let inner = format!(
+            "<span class=\"okf-stat-label\">{}</span><span class=\"okf-stat-value\">{}</span>",
+            escape(&card.label),
+            escape(&card.value)
+        );
         if let Some(href) = &card.href {
             out.push_str(&format!(
-                "  <a href=\"{}\" class=\"okf-stat-card{}\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">{}</div></a>\n",
+                "  <li><a href=\"{}\" class=\"okf-stat-row{}\">{inner}</a></li>\n",
                 escape(href),
-                tone_class,
-                escape(&card.value),
-                escape(&card.label)
+                tone_class
             ));
         } else {
             out.push_str(&format!(
-                "  <div class=\"okf-stat-card{}\"><div class=\"okf-stat-value\">{}</div><div class=\"okf-stat-label\">{}</div></div>\n",
-                tone_class,
-                escape(&card.value),
-                escape(&card.label)
+                "  <li class=\"okf-stat-row{}\">{inner}</li>\n",
+                tone_class
             ));
         }
     }
-    out.push_str("</div>\n");
+    out.push_str("</ul>\n");
     out
 }
 
@@ -478,12 +478,35 @@ pub fn render_home_page_governance(bundle: &Bundle) -> String {
     }
     let warnings_count = bundle.diagnostics.len();
 
+    let recents = recent_leaf_documents(bundle, 10);
     let mut out = String::new();
     out.push_str("<div class=\"okf-home-governance\">\n");
     out.push_str("  <section class=\"okf-recents\" id=\"okf-recents\">\n");
     out.push_str("    <h2 class=\"rd-header-2\" id=\"recent-documents\">Recent documents</h2>\n");
-    out.push_str("    <p class=\"okf-recents-empty\">No recent documents yet.</p>\n");
-    out.push_str("    <ul class=\"okf-recents-list\" hidden></ul>\n");
+    if recents.is_empty() {
+        out.push_str("    <p class=\"okf-recents-empty\">No recent documents yet.</p>\n");
+    } else {
+        out.push_str("    <ul class=\"okf-recents-list\">\n");
+        for doc in recents {
+            out.push_str("      <li>");
+            out.push_str(&format!(
+                "<a class=\"okf-recent-link\" href=\"{}\">",
+                escape(&doc.route)
+            ));
+            out.push_str(&format!(
+                "<span class=\"okf-recent-title\">{}</span>",
+                escape(&doc.title)
+            ));
+            if !doc.collection.is_empty() {
+                out.push_str(&format!(
+                    "<span class=\"okf-badge okf-type\">{}</span>",
+                    escape(&doc.collection)
+                ));
+            }
+            out.push_str("</a></li>\n");
+        }
+        out.push_str("    </ul>\n");
+    }
     out.push_str("  </section>\n");
     out.push_str("  <div class=\"okf-cta-row\">\n");
     out.push_str("    <a href=\"/review/\" class=\"okf-cta-btn\">Open review queue</a>\n");
@@ -514,17 +537,15 @@ pub fn governance_stat_cards(
     warnings_count: usize,
 ) -> Vec<StatCardView> {
     vec![
-        StatCardView::new(total_concepts.to_string(), "Total Concepts"),
+        StatCardView::new(total_concepts.to_string(), "Total"),
         StatCardView::new(stable_count.to_string(), "Stable"),
         StatCardView::new(draft_count.to_string(), "Draft"),
-        StatCardView::new(action_count.to_string(), "Action Required").with_tone(
-            if action_count > 0 {
-                StatTone::Action
-            } else {
-                StatTone::Default
-            },
-        ),
-        StatCardView::new(stale_count.to_string(), "Stale Records"),
+        StatCardView::new(action_count.to_string(), "Action").with_tone(if action_count > 0 {
+            StatTone::Action
+        } else {
+            StatTone::Default
+        }),
+        StatCardView::new(stale_count.to_string(), "Stale"),
         StatCardView::new(warnings_count.to_string(), "Diagnostics"),
     ]
 }
@@ -1582,6 +1603,66 @@ fn collection_title(index: &okf::Index) -> String {
         .to_string()
 }
 
+struct RecentLeafDoc {
+    route: String,
+    title: String,
+    collection: String,
+}
+
+fn generated_at(concept: &Concept) -> &str {
+    concept
+        .metadata
+        .get("generated")
+        .and_then(|value| value.get("at"))
+        .and_then(Value::as_str)
+        .unwrap_or("")
+}
+
+fn longest_collection_prefix<'a>(bundle: &'a Bundle, concept_id: &str) -> &'a str {
+    bundle
+        .indexes
+        .iter()
+        .filter_map(|index| index.path.strip_suffix("/index.md"))
+        .filter(|name| concept_id == *name || concept_id.starts_with(&format!("{name}/")))
+        .max_by_key(|name| name.len())
+        .unwrap_or("")
+}
+
+fn is_collection_id(bundle: &Bundle, id: &str) -> bool {
+    bundle
+        .indexes
+        .iter()
+        .any(|index| index.path == format!("{id}/index.md"))
+}
+
+fn recent_leaf_documents(bundle: &Bundle, limit: usize) -> Vec<RecentLeafDoc> {
+    let mut docs: Vec<&Concept> = bundle
+        .concepts
+        .iter()
+        .filter(|concept| {
+            !concept.path.ends_with("/index.md")
+                && concept.path != "index.md"
+                && !is_collection_id(bundle, &concept.id)
+        })
+        .collect();
+    docs.sort_by(|left, right| {
+        generated_at(right)
+            .cmp(generated_at(left))
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    docs.into_iter()
+        .take(limit)
+        .map(|concept| {
+            let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+            RecentLeafDoc {
+                route: format!("/{}/", concept.id.trim_matches('/')),
+                title: title.to_string(),
+                collection: longest_collection_prefix(bundle, &concept.id).to_string(),
+            }
+        })
+        .collect()
+}
+
 fn h1_text(html: &str) -> Option<String> {
     let start = html.find("<h1")?;
     let inner_at = html[start..].find('>')? + start + 1;
@@ -2100,27 +2181,67 @@ html.rd-document { scroll-behavior: smooth; }
   padding-bottom: 1.1rem;
   border-bottom: 1px solid var(--rd-border);
 }
-.okf-tree {
-  display: grid;
-  gap: 0.2rem;
-}
-.okf-tree-collection {
-  margin: 0;
-}
-.okf-tree-collection > summary {
+.okf-chrome .nav-items { display: grid; gap: 0.08rem; }
+.okf-chrome .nav-section { margin: 0; }
+.okf-chrome .nav-section + .nav-section { margin-top: 0.28rem; }
+.okf-chrome .nav-section summary {
   list-style: none;
   cursor: pointer;
-  color: var(--rd-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  position: relative;
+  padding-right: 1.75rem;
 }
-.okf-tree-collection > summary::-webkit-details-marker { display: none; }
-.okf-tree-docs {
-  display: grid;
-  gap: 0.28rem;
-  margin: 0.35rem 0 0.75rem;
+.okf-chrome .nav-section summary::-webkit-details-marker { display: none; }
+.okf-chrome .nav-section summary::after {
+  content: "+";
+  position: absolute;
+  right: 0.68rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--rd-muted);
+  font-weight: 500;
+}
+.okf-chrome .nav-section[open] > summary::after { content: "−"; }
+.okf-chrome .nav-link {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.42rem 0.68rem;
+  border-radius: 0.45rem;
+  color: var(--rd-muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.okf-chrome .nav-link:hover {
+  background: var(--rd-bg-subtle);
+  color: var(--rd-fg);
+  text-decoration: none;
+}
+.okf-chrome .nav-link.is-current {
+  background: color-mix(in srgb, var(--rd-primary) 16%, transparent);
+  color: var(--rd-primary);
+  font-weight: 680;
+}
+.okf-chrome .nav-category {
+  color: var(--rd-fg);
+  font-weight: 680;
+}
+.okf-chrome .nav-section[open] > summary .nav-category:not(.is-current) {
+  color: var(--rd-primary);
+}
+.okf-chrome .nav-section > .nav-fold > .nav-items {
+  margin-left: 0.55rem;
+  padding-left: 0.45rem;
+  border-left: 1px solid var(--rd-border);
+}
+.okf-chrome .nav-child {
+  font-size: 0.82rem;
+}
+.okf-chrome .nav-items > .nav-section {
+  margin-top: 0.08rem;
+  margin-bottom: 0.16rem;
 }
 .okf-breadcrumbs {
   margin: 0 0 1.25rem;
@@ -2149,10 +2270,42 @@ html.rd-document { scroll-behavior: smooth; }
   gap: 0.45rem;
   margin-bottom: 1.5rem;
 }
-.okf-recents-list { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; gap: 0.45rem; }
-.okf-recent-link { display: flex; gap: 0.65rem; align-items: baseline; text-decoration: none; color: var(--rd-fg); }
+.okf-recents-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 0.45rem 0.85rem;
+  align-items: baseline;
+}
+.okf-recents-list > li,
+.okf-recent-link {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  align-items: baseline;
+}
+.okf-recent-link { text-decoration: none; color: var(--rd-fg); }
 .okf-recent-link:hover { color: var(--rd-primary); }
+.okf-recent-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .okf-nav-menu { display: none; }
+.okf-nav-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.5rem;
+  background: var(--rd-bg-subtle);
+  color: var(--rd-fg);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.okf-nav-menu > summary::-webkit-details-marker { display: none; }
+.okf-nav-panel { margin-top: 0.65rem; }
 .okf-global-label,
 .rd-toc-label,
 .outline-label {
@@ -2234,14 +2387,10 @@ main {
     padding: 1rem 1.25rem 0.25rem;
     overflow: visible;
   }
-  .okf-global-nav {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.35rem 1.1rem;
-    margin-bottom: 0.35rem;
+  .okf-chrome .nav-items {
+    display: grid;
+    gap: 0.08rem;
   }
-  .okf-global-label { margin: 0; }
   .rd-toc { display: none; }
   .okf-outline-menu { display: block; margin: 0 0 1.25rem; }
   .okf-outline-menu summary {
@@ -2328,11 +2477,30 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-sources-table th, .okf-sources-table td { padding: 0.4rem 0.5rem; border: 1px solid var(--rd-border); text-align: left; vertical-align: top; }
 .okf-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
 .okf-tag { font-size: 0.8rem; color: var(--rd-muted); }
-.okf-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-.okf-stat-card { background: var(--rd-bg-subtle); border: 1px solid var(--rd-border); padding: 1rem; border-radius: 8px; text-align: center; }
-.okf-stat-value { font-size: 1.8rem; font-weight: bold; }
-.okf-stat-label { font-size: 0.85rem; color: var(--rd-muted); }
-.okf-stat-card.is-action .okf-stat-value { color: var(--rd-red); }
+.okf-stat-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1.75rem;
+}
+.okf-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.32rem 0;
+  border-bottom: 1px solid var(--rd-border);
+  font-size: 0.88rem;
+  text-decoration: none;
+  color: inherit;
+}
+.okf-stat-list > li > .okf-stat-row { display: flex; }
+.okf-stat-label { color: var(--rd-muted); }
+.okf-stat-value { font-variant-numeric: tabular-nums; font-weight: 650; }
+.okf-stat-row.is-action .okf-stat-value { color: var(--rd-red); }
+.okf-stat-row:hover { color: var(--rd-fg); }
 .okf-review-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
 .okf-review-table th, .okf-review-table td { padding: 0.75rem; border: 1px solid var(--rd-border); text-align: left; vertical-align: top; }
 .okf-review-table th { background: var(--rd-bg-subtle); }
@@ -2466,119 +2634,196 @@ pub fn render_validation_notice(bundle: &Bundle, current_path: Option<&str>) -> 
 }
 
 const SESSION_UI_JS: &str = r#"(function(){
-  var root=document.getElementById("okf-recents");
-  var empty=root&&root.querySelector(".okf-recents-empty");
-  var list=root&&root.querySelector(".okf-recents-list");
-  function badge(name){return name?('<span class="okf-badge okf-type">'+name+'</span>'):'';}
-  function render(recents){
-    if(!list)return;
-    list.innerHTML="";
-    if(!recents||!recents.length){if(empty)empty.hidden=false;list.hidden=true;return;}
-    if(empty)empty.hidden=true;list.hidden=false;
-    recents.forEach(function(item){
-      var li=document.createElement("li");
-      li.innerHTML='<a class="okf-recent-link" href="'+(item.route||"/")+'">'+badge(item.collection||"")+'<span>'+(item.title||item.route||"")+'</span></a>';
-      list.appendChild(li);
-    });
-  }
-  function load(){
-    fetch("/__rocci_okf/session").then(function(r){return r.ok?r.json():null;}).then(function(data){
-      render(data&&data.recents);
+  function post(body){
+    fetch("/__rocci_okf/session",{
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify(body)
     }).catch(function(){});
   }
   window.__rocciOkfSession={
     record:function(route,title){
-      fetch("/__rocci_okf/session",{
-        method:"POST",
-        headers:{"content-type":"application/json"},
-        body:JSON.stringify({route:route||location.pathname,title:title||document.title})
-      }).then(function(r){return r.ok?r.json():null;}).then(function(data){
-        render(data&&data.recents);
-      }).catch(function(){});
+      post({route:route||location.pathname,title:title||document.title});
     }
   };
-  if(root)load();
+  window.__rocciOkfSession.record(location.pathname,document.title);
 })();"#;
 
 pub fn render_nav_tree(bundle: Option<&Bundle>, current: &str) -> String {
-    let mut out = String::from("<div class=\"okf-desktop-nav\">");
-    out.push_str(&nav_inner(bundle, current));
-    out.push_str("</div>");
-    out.push_str(
+    let mut out = String::from(
         "<details class=\"okf-nav-menu\"><summary>Knowledge</summary><div class=\"okf-nav-panel\">",
     );
     out.push_str(&nav_inner(bundle, current));
     out.push_str("</div></details>");
+    out.push_str("<div class=\"okf-desktop-nav\">");
+    out.push_str(&nav_inner(bundle, current));
+    out.push_str("</div>");
     out
 }
 
 fn nav_inner(bundle: Option<&Bundle>, current: &str) -> String {
-    let mut out = String::from("<nav class=\"okf-global-nav\" aria-label=\"Knowledge\">");
-    out.push_str("<p class=\"okf-global-label\">Knowledge</p>");
-    out.push_str(&nav_link("/", "Dashboard", current));
-    out.push_str("</nav>");
-    out.push_str("<div class=\"okf-review-nav\">");
-    out.push_str("<p class=\"okf-global-label\">Review</p>");
-    out.push_str(&nav_link("/review/", "Review queue", current));
-    out.push_str("</div>");
+    let mut out = String::from("<nav class=\"nav-list\" aria-label=\"Knowledge\">");
+    out.push_str("<div class=\"nav-items\">");
+    out.push_str(&nav_site_link("/", "Dashboard", current, false));
+    out.push_str(&nav_site_link("/review/", "Review queue", current, false));
     if let Some(bundle) = bundle {
-        out.push_str("<div class=\"okf-tree\" aria-label=\"Collections\">");
-        let mut collections: Vec<(&str, Vec<(&str, &str)>)> = Vec::new();
-        for index in &bundle.indexes {
-            if let Some(name) = index.path.strip_suffix("/index.md") {
-                collections.push((name, Vec::new()));
-            }
+        for node in nav_forest(bundle) {
+            out.push_str(&render_nav_collection(&node, current));
         }
-        for concept in &bundle.concepts {
-            let Some(collection) = collections
-                .iter()
-                .map(|(name, _)| *name)
-                .filter(|name| concept.id == *name || concept.id.starts_with(&format!("{name}/")))
-                .max_by_key(|name| name.len())
-            else {
-                continue;
-            };
-            if let Some((_, docs)) = collections.iter_mut().find(|(name, _)| *name == collection) {
-                let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-                docs.push((concept.id.as_str(), title));
-            }
-        }
-        for (name, docs) in collections {
-            let open = current.trim_matches('/').starts_with(name);
-            let label = bundle
-                .indexes
-                .iter()
-                .find(|index| index.path == format!("{name}/index.md"))
-                .map(collection_title)
-                .unwrap_or_else(|| name.to_string());
-            out.push_str(&format!(
-                "<details class=\"okf-tree-collection\"{}>",
-                if open { " open" } else { "" }
-            ));
-            out.push_str(&format!(
-                "<summary><a class=\"okf-global-link\" href=\"/{name}/\">{label}</a></summary>",
-                label = escape(&label)
-            ));
-            out.push_str("<div class=\"okf-tree-docs\">");
-            for (id, title) in docs {
-                out.push_str(&nav_link(&format!("/{id}/"), title, current));
-            }
-            out.push_str("</div></details>");
-        }
-        out.push_str("</div>");
     }
+    out.push_str("</div></nav>");
     out
 }
 
-fn nav_link(href: &str, label: &str, current: &str) -> String {
-    let class = if normalize_route(href) == normalize_route(current) {
-        "okf-global-link is-current"
-    } else {
-        "okf-global-link"
-    };
+struct NavDoc {
+    id: String,
+    title: String,
+}
+
+struct NavCollection {
+    path: String,
+    title: String,
+    docs: Vec<NavDoc>,
+    children: Vec<NavCollection>,
+}
+
+fn nav_forest(bundle: &Bundle) -> Vec<NavCollection> {
+    let mut by_path: BTreeMap<String, NavCollection> = BTreeMap::new();
+    for index in &bundle.indexes {
+        let Some(path) = index.path.strip_suffix("/index.md") else {
+            continue;
+        };
+        by_path.insert(
+            path.to_string(),
+            NavCollection {
+                path: path.to_string(),
+                title: collection_title(index),
+                docs: Vec::new(),
+                children: Vec::new(),
+            },
+        );
+    }
+    let paths: Vec<String> = by_path.keys().cloned().collect();
+    for concept in &bundle.concepts {
+        if by_path.contains_key(&concept.id) {
+            continue;
+        }
+        let Some(owner) = paths
+            .iter()
+            .filter(|name| concept.id == **name || concept.id.starts_with(&format!("{name}/")))
+            .max_by_key(|name| name.len())
+            .cloned()
+        else {
+            continue;
+        };
+        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+        if let Some(node) = by_path.get_mut(&owner) {
+            node.docs.push(NavDoc {
+                id: concept.id.clone(),
+                title: title.to_string(),
+            });
+        }
+    }
+    for node in by_path.values_mut() {
+        node.docs
+            .sort_by(|left, right| left.title.cmp(&right.title).then(left.id.cmp(&right.id)));
+    }
+    let mut children_of: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut roots = Vec::new();
+    for path in &paths {
+        let parent = paths
+            .iter()
+            .filter(|candidate| path.starts_with(&format!("{candidate}/")))
+            .max_by_key(|candidate| candidate.len());
+        if let Some(parent) = parent {
+            children_of
+                .entry(parent.clone())
+                .or_default()
+                .push(path.clone());
+        } else {
+            roots.push(path.clone());
+        }
+    }
+    fn take_node(
+        path: &str,
+        by_path: &mut BTreeMap<String, NavCollection>,
+        children_of: &BTreeMap<String, Vec<String>>,
+    ) -> NavCollection {
+        let mut node = by_path.remove(path).expect("nav node");
+        if let Some(child_paths) = children_of.get(path) {
+            for child in child_paths {
+                node.children.push(take_node(child, by_path, children_of));
+            }
+        }
+        node.children.sort_by(|left, right| {
+            left.title
+                .cmp(&right.title)
+                .then(left.path.cmp(&right.path))
+        });
+        node
+    }
+    roots.sort();
+    roots
+        .into_iter()
+        .map(|path| take_node(&path, &mut by_path, &children_of))
+        .collect()
+}
+
+fn collection_covers(path: &str, current: &str) -> bool {
+    let current = current.trim_matches('/');
+    current == path || current.starts_with(&format!("{path}/"))
+}
+
+fn render_nav_collection(node: &NavCollection, current: &str) -> String {
+    let href = format!("/{}/", node.path);
+    let covers = collection_covers(&node.path, current);
+    if node.docs.is_empty() && node.children.is_empty() {
+        return nav_site_link(&href, &node.title, current, false);
+    }
+    let mut out = format!(
+        "<details class=\"nav-section\" data-rocci-nav-section=\"{}\"{}{}>",
+        escape(&node.path),
+        if covers {
+            " data-rocci-nav-current=\"\""
+        } else {
+            ""
+        },
+        if covers { " open" } else { "" }
+    );
+    out.push_str(&format!(
+        "<summary class=\"nav-category\"><span class=\"nav-link nav-category\">{}</span></summary>",
+        escape(&node.title)
+    ));
+    out.push_str("<div class=\"nav-fold\"><div class=\"nav-items\">");
+    out.push_str(&nav_site_link(&href, "Overview", current, true));
+    for child in &node.children {
+        out.push_str(&render_nav_collection(child, current));
+    }
+    for doc in &node.docs {
+        out.push_str(&nav_site_link(
+            &format!("/{}/", doc.id),
+            &doc.title,
+            current,
+            true,
+        ));
+    }
+    out.push_str("</div></div></details>");
+    out
+}
+
+fn nav_site_link(href: &str, label: &str, current: &str, child: bool) -> String {
+    let is_current = normalize_route(href) == normalize_route(current);
+    let mut class = String::from("nav-link");
+    if child {
+        class.push_str(" nav-child");
+    }
+    if is_current {
+        class.push_str(" is-current");
+    }
     format!(
-        "<a class=\"{class}\" href=\"{}\">{}</a>",
+        "<a class=\"{class}\" href=\"{}\" aria-current=\"{}\">{}</a>",
         escape(href),
+        if is_current { "page" } else { "false" },
         escape(label)
     )
 }
@@ -2606,8 +2851,8 @@ pub fn html_page_for(bundle: &Bundle, route: &str, title: &str, article: &str) -
 
 fn html_page_with_nav(title: &str, article: &str, nav: &str) -> String {
     let (article, headings) = stamp_and_collect_headings(article);
-    let chrome = format!("<div class=\"okf-chrome\">{nav}</div>");
-    let mut main = String::from("<main>");
+    let chrome = format!("<div class=\"okf-chrome\" id=\"okf-nav\">{nav}</div>");
+    let mut main = String::from("<main id=\"okf-main\">");
     if !headings.is_empty() {
         main.push_str(&render_outline_details(&headings));
     }
@@ -2649,7 +2894,7 @@ fn toc_links(headings: &[TocHeading], class_for_level3: &str, class_default: &st
 
 fn render_toc(headings: &[TocHeading]) -> String {
     format!(
-        "<nav class=\"rd-toc\" aria-label=\"On this page\"><p class=\"rd-toc-label\">On this page</p><div class=\"rd-toc-items\">{}</div></nav>",
+        "<nav class=\"rd-toc\" id=\"okf-toc\" aria-label=\"On this page\"><p class=\"rd-toc-label\">On this page</p><div class=\"rd-toc-items\">{}</div></nav>",
         toc_links(headings, "rd-toc-link rd-toc-level-3", "rd-toc-link")
     )
 }
@@ -2951,6 +3196,8 @@ mod tests {
         assert!(html.contains("class=\"rd-document\""));
         assert!(html.contains("/__rocci_okf/goto.js"));
         assert!(html.contains("class=\"rd-shell\""));
+        assert!(html.contains("id=\"okf-nav\""));
+        assert!(html.contains("id=\"okf-main\""));
         assert!(!html.contains("class=\"rd-toc\""));
         assert!(!html.contains("okf-outline-menu"));
         assert_global_nav_outside_toc(&html);
@@ -2975,6 +3222,7 @@ mod tests {
         );
         assert!(html.contains("class=\"rd-shell\""));
         assert!(html.contains("class=\"rd-toc\""));
+        assert!(html.contains("id=\"okf-toc\""));
         assert!(html.contains("class=\"okf-outline-menu\""));
         assert!(html.contains("On this page"));
         assert!(html.contains("href=\"#alpha\""));
@@ -2991,7 +3239,7 @@ mod tests {
         let outline_menu = html
             .find("class=\"okf-outline-menu\"")
             .expect("outline menu");
-        let main = html.find("<main>").expect("main");
+        let main = html.find("<main id=\"okf-main\">").expect("main");
         assert!(main < outline_menu);
     }
 
@@ -3005,7 +3253,7 @@ mod tests {
             ),
         );
         let toc = html.find("class=\"rd-toc\"").expect("toc");
-        let main = html.find("<main>").expect("main");
+        let main = html.find("<main id=\"okf-main\">").expect("main");
         let meta = html.find("okf-concept-meta").expect("meta");
         let article = html.find("class=\"rd-article\"").expect("article");
         assert!(main < toc);
@@ -3133,7 +3381,71 @@ mod tests {
         )
         .unwrap();
         assert!(concept_html.contains("href=\"/plans/okf/\""));
+        assert!(concept_html.contains("class=\"nav-section\""));
+        assert!(concept_html.contains("data-rocci-nav-section=\"plans\""));
+        assert!(concept_html.contains("data-rocci-nav-section=\"plans/okf\""));
+        assert!(concept_html.contains("data-rocci-nav-current"));
+        assert!(!concept_html.contains("<summary><a "));
+        assert!(concept_html.contains(">Overview</a>"));
+        let plans_open = concept_html
+            .find("data-rocci-nav-section=\"plans\"")
+            .unwrap();
+        let okf_open = concept_html
+            .find("data-rocci-nav-section=\"plans/okf\"")
+            .unwrap();
+        assert!(plans_open < okf_open);
         let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn dashboard_lists_ten_recent_leaf_documents() {
+        let mut concepts = Vec::new();
+        for index in 0..12 {
+            let mut concept = concept_with(BTreeMap::new());
+            concept.id = format!("plans/doc-{index:02}");
+            concept.path = format!("plans/doc-{index:02}.md");
+            concept
+                .metadata
+                .insert("title".into(), json!(format!("Doc {index:02}")));
+            concept.metadata.insert(
+                "generated".into(),
+                json!({
+                    "by": "process:test",
+                    "at": format!("2026-08-{:02}T12:00:00Z", index + 1)
+                }),
+            );
+            concepts.push(concept);
+        }
+        let mut bundle = bundle_with(concepts);
+        bundle.indexes = vec![
+            okf::Index {
+                path: "index.md".into(),
+                version: Some("0.2".into()),
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>Knowledge</h1>".into(),
+            },
+            okf::Index {
+                path: "plans/index.md".into(),
+                version: None,
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>Plans</h1>".into(),
+            },
+        ];
+        let html = render_home_page_governance(&bundle);
+        assert!(html.contains("href=\"/plans/doc-11/\""));
+        assert!(html.contains("Doc 11"));
+        assert!(html.contains("href=\"/plans/doc-02/\""));
+        assert!(!html.contains("href=\"/plans/doc-01/\""));
+        assert!(!html.contains("href=\"/plans/\">"));
+        assert_eq!(html.matches("class=\"okf-recent-link\"").count(), 10);
+        let first = html.find("class=\"okf-recent-link\"").expect("recent link");
+        let title = html[first..].find("Doc 11").expect("title first");
+        let badge = html[first..].find("okf-badge").expect("collection badge");
+        assert!(title < badge);
     }
 
     #[test]
@@ -3218,7 +3530,10 @@ mod tests {
             "chrome must render even when has_outline is false"
         );
         let toc = theme.src.find("class=\"rd-toc\"").expect("toc");
-        let main = theme.src.find("<main>").expect("main");
+        assert!(theme.src.contains("id=\"okf-nav\""));
+        assert!(theme.src.contains("id=\"okf-main\""));
+        assert!(theme.src.contains("id=\"okf-toc\""));
+        let main = theme.src.find("id=\"okf-main\"").expect("main");
         assert!(main < toc, "On this page belongs to the right column");
         assert!(!theme.src[toc..].contains("href=\"/\""));
         let concept_meta = modules

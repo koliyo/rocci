@@ -116,6 +116,13 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("rocci-nav-scroll-positions"));
     assert!(GOTO_SCRIPT.contains("data-rocci-nav-section"));
     assert!(GOTO_SCRIPT.contains("rememberAllSections"));
+    assert!(GOTO_SCRIPT.contains("sectionOpenForKey"));
+    assert!(GOTO_SCRIPT.contains("writeSectionState"));
+    assert!(GOTO_SCRIPT.contains(".sidebar, .okf-chrome"));
+    assert!(GOTO_SCRIPT.contains("#okf-nav"));
+    assert!(GOTO_SCRIPT.contains("#okf-main"));
+    assert!(GOTO_SCRIPT.contains("#okf-toc"));
+    assert!(GOTO_SCRIPT.contains("keepNav"));
     assert!(GOTO_SCRIPT.contains("rememberScrollPositions"));
     assert!(GOTO_SCRIPT.contains("restoreScrollPositions"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.restore()"));

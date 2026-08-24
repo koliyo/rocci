@@ -1,22 +1,24 @@
 import Html
 
 @component StatGrid = |{ cards }| {
-    <div class="okf-stat-grid">
+    <ul class="okf-stat-list">
         @for card in cards {
             @if card.href != "" {
-                <a href={card.href} class={if card.is_action { "okf-stat-card is-action" } else { "okf-stat-card" }}>
-                    <div class="okf-stat-value">{card.value}</div>
-                    <div class="okf-stat-label">{card.label}</div>
-                </a>
+                <li>
+                    <a href={card.href} class={if card.is_action { "okf-stat-row is-action" } else { "okf-stat-row" }}>
+                        <span class="okf-stat-label">{card.label}</span>
+                        <span class="okf-stat-value">{card.value}</span>
+                    </a>
+                </li>
             }
             @if card.href == "" {
-                <div class={if card.is_action { "okf-stat-card is-action" } else { "okf-stat-card" }}>
-                    <div class="okf-stat-value">{card.value}</div>
-                    <div class="okf-stat-label">{card.label}</div>
-                </div>
+                <li class={if card.is_action { "okf-stat-row is-action" } else { "okf-stat-row" }}>
+                    <span class="okf-stat-label">{card.label}</span>
+                    <span class="okf-stat-value">{card.value}</span>
+                </li>
             }
         }
-    </div>
+    </ul>
 }
 
 @component Priority1Section = |{ items }| {

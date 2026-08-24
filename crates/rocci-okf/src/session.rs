@@ -7,7 +7,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-const MAX_RECENTS: usize = 12;
+const MAX_RECENTS: usize = 10;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OkfSession {
@@ -92,6 +92,13 @@ pub fn record_visit(session: &mut OkfSession, route: &str, title: &str) {
     if is_dashboard_or_review(&route) {
         return;
     }
+    if session
+        .bundle
+        .as_deref()
+        .is_some_and(|root| !is_leaf_document(root, &route))
+    {
+        return;
+    }
     let collection = collection_of(&route);
     session.recents.retain(|item| item.route != route);
     session.recents.insert(
@@ -163,6 +170,14 @@ pub fn pick_bundle_folder() -> Result<PathBuf> {
     Ok(PathBuf::from(path))
 }
 
+pub fn is_leaf_document(root: &Path, route: &str) -> bool {
+    let rel = normalize_route(route).trim_matches('/').to_string();
+    if rel.is_empty() || is_dashboard_or_review(route) {
+        return false;
+    }
+    root.join(format!("{rel}.md")).is_file()
+}
+
 fn normalize_route(route: &str) -> String {
     let path = route.split(['?', '#']).next().unwrap_or(route).trim();
     if path.is_empty() {
@@ -191,23 +206,31 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("rocci-okf-session-{}", uuid_like()));
         fs::create_dir_all(&dir).unwrap();
         let path = dir.join("okf.json");
+        let bundle = std::env::temp_dir().join(format!("rocci-okf-bundle-{}", uuid_like()));
+        fs::create_dir_all(bundle.join("plans")).unwrap();
+        fs::create_dir_all(bundle.join("research")).unwrap();
+        fs::write(bundle.join("plans/foo.md"), "# Foo\n").unwrap();
+        fs::write(bundle.join("research/bar.md"), "# Bar\n").unwrap();
+        fs::write(bundle.join("plans/index.md"), "# Plans\n").unwrap();
         let mut session = OkfSession {
-            bundle: Some(PathBuf::from("/tmp/knowledge")),
+            bundle: Some(bundle.clone()),
             open_path: "/plans/foo/".into(),
             recents: Vec::new(),
         };
         record_visit(&mut session, "/plans/foo/", "Foo");
         record_visit(&mut session, "/research/bar/", "Bar");
+        record_visit(&mut session, "/plans/", "Plans");
         record_visit(&mut session, "/", "Knowledge");
         save_to(&path, &session).unwrap();
         let loaded = load_from(&path);
-        assert_eq!(loaded.bundle, Some(PathBuf::from("/tmp/knowledge")));
+        assert_eq!(loaded.bundle, Some(bundle.clone()));
         assert_eq!(loaded.open_path, "/");
         assert_eq!(loaded.recents.len(), 2);
         assert_eq!(loaded.recents[0].route, "/research/bar/");
         assert_eq!(loaded.recents[0].collection, "research");
         assert_eq!(loaded.recents[1].collection, "plans");
         let _ = fs::remove_dir_all(&dir);
+        let _ = fs::remove_dir_all(&bundle);
     }
 
     #[test]
@@ -220,6 +243,25 @@ mod tests {
             "/plans/exists/"
         );
         assert_eq!(resolve_saved_open_path(&dir, "/plans/gone/"), "/");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn recents_omit_collection_indexes() {
+        let dir = std::env::temp_dir().join(format!("rocci-okf-leaf-{}", uuid_like()));
+        fs::create_dir_all(dir.join("plans").join("okf")).unwrap();
+        fs::write(dir.join("plans/index.md"), "# Plans\n").unwrap();
+        fs::write(dir.join("plans/okf/index.md"), "# OKF\n").unwrap();
+        fs::write(dir.join("plans/okf/nested-collections.md"), "# Nested\n").unwrap();
+        let mut session = OkfSession {
+            bundle: Some(dir.clone()),
+            ..OkfSession::default()
+        };
+        record_visit(&mut session, "/plans/", "Plans");
+        record_visit(&mut session, "/plans/okf/", "OKF");
+        record_visit(&mut session, "/plans/okf/nested-collections/", "Nested");
+        assert_eq!(session.recents.len(), 1);
+        assert_eq!(session.recents[0].route, "/plans/okf/nested-collections/");
         let _ = fs::remove_dir_all(&dir);
     }
 

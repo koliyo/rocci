@@ -39,18 +39,23 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 ### Live Reload Review Server & Desktop Preview
 
-The review viewer uses a dark One Dark Pro palette. The left chrome has
-Dashboard, a Review section, and a collection tree. Pages with H2 or H3
-headings get a right “On this page” navigator; below `48rem` both the tree and
-that outline hide behind no-JS `<details>` menus. The dashboard lists recent
-documents first and a compact review-queue button; `/review/` keeps the full
-queue. Wide source and review tables scroll inside `.okf-table-container`.
+The review viewer uses a dark One Dark Pro palette. The left sidebar follows
+the documentation site pattern: Dashboard and Review queue as top links, then
+nested collection sections that expand with a `+`/`−` control (the section
+title is not itself a link). Each nested level is indented. Collection landing
+pages are labeled Overview, and leaf documents sit inside the open section. Pages with H2 or H3 headings get a right “On this
+page” navigator; below `48rem` both the sidebar and that outline hide behind
+no-JS `<details>` menus. The dashboard lists the ten most recently generated
+leaf documents (not collection indexes) and a compact review-queue button;
+`/review/` keeps the full queue. Wide source and review tables scroll inside
+`.okf-table-container`.
 Authored knowledge links such as `/decisions/foo.md` are bundle-root paths;
 the review site publishes them at `/decisions/foo/` and writes collection
 indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
 backed by `/pages.json` and `/catalog.json` in the review tree (refetched when
-the palette opens); same-origin links swap already-rendered HTML without a
-full reload.
+the palette opens); same-origin links swap `#okf-main` and `#okf-toc` and keep
+`#okf-nav`, so open collection folds stay in the sidebar DOM. Full reload
+opens the ancestors of the current page.
 
 `rocci-okf` with no subcommand, and `view` with no path, restore the last
 bundle and document from `~/.rocci/state/okf.json` (or `ROCCI_STATE_DIR`).

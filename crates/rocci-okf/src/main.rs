@@ -319,6 +319,7 @@ fn session_http_handler(
                 .map(|index| &raw[index + 4..])
                 .unwrap_or(b"");
             if let Ok(visit) = serde_json::from_slice::<serde_json::Value>(body) {
+                let mut stored = state.lock().unwrap();
                 let route = visit
                     .get("route")
                     .and_then(|value| value.as_str())
@@ -327,7 +328,6 @@ fn session_http_handler(
                     .get("title")
                     .and_then(|value| value.as_str())
                     .unwrap_or("");
-                let mut stored = state.lock().unwrap();
                 session::record_visit(&mut stored, route, title);
                 session::save(&stored);
                 if let Ok(json) = serde_json::to_vec_pretty(&*stored) {
