@@ -1,3 +1,7 @@
+# Catalog inventory. `site` defaults to true (include on rocci.dev /examples/).
+# Set `site = false` to keep a row for local inventory without staging it.
+# `hosting = "live"` requires `site = true`.
+
 [[app]]
 id = "counter"
 path = "standalone/counter"

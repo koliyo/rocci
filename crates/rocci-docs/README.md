@@ -10,6 +10,12 @@ cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/e
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
 ```
 
+Each catalog row may set `site` (bool, default `true`) to include the app in
+the rocci.dev `/examples/` tree. `site = false` keeps the row for local
+inventory, coverage, and path checks without staging it. `hosting = "live"`
+requires `site = true`. Unknown keys are rejected so a misspelling of `site`
+cannot silently default to included.
+
 `--print-live` lists `id`, catalog-relative `path`, and `entry` for
 `hosting = "live"` rows. Docs-only ids are omitted.
 
