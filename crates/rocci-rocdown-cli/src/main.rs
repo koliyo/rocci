@@ -95,6 +95,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Bind every interface (`0.0.0.0`). Default is localhost only.
+        #[arg(long)]
+        public: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -118,6 +121,9 @@ enum Commands {
         /// Log each matched `@method:role(path)` handler to stderr (CLI and Dev Console).
         #[arg(long)]
         log_handlers: bool,
+        /// Bind every interface (`0.0.0.0`). Default is localhost only.
+        #[arg(long)]
+        public: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -163,6 +169,9 @@ enum Commands {
         /// Skip the preview window; print the URL and keep serving.
         #[arg(long)]
         no_window: bool,
+        /// Bind every interface (`0.0.0.0`). Default is localhost only.
+        #[arg(long)]
+        public: bool,
         /// TCP port to listen on. Defaults to a free port with the preview window,
         /// or 8000 with `--no-window`. Pass `auto` to pick a free port.
         #[arg(
@@ -196,6 +205,9 @@ struct PreviewArgs {
     /// Pause automatic page refresh. Watch and rebuild still run.
     #[arg(long)]
     no_live_reload: bool,
+    /// Bind every interface (`0.0.0.0`). Default is localhost only.
+    #[arg(long)]
+    public: bool,
     /// Do not print compile diagnostics on stderr; the error page still serves.
     #[arg(long)]
     quiet: bool,
@@ -363,6 +375,7 @@ fn preview_docs(preview: PreviewArgs) -> Result<()> {
         host,
         no_window,
         no_live_reload,
+        public,
         quiet,
         log_handlers,
         verbose,
@@ -385,6 +398,7 @@ fn preview_docs(preview: PreviewArgs) -> Result<()> {
                 port,
                 host.into(),
                 Some(&route),
+                public,
             )
         } else {
             run_standalone_doc(
@@ -397,6 +411,7 @@ fn preview_docs(preview: PreviewArgs) -> Result<()> {
                 verbose,
                 port,
                 &theme,
+                public,
             )
         }
     } else if path.is_file() {
@@ -416,6 +431,7 @@ fn preview_docs(preview: PreviewArgs) -> Result<()> {
             port,
             host.into(),
             None,
+            public,
         )
     }
 }
@@ -519,6 +535,7 @@ fn try_main() -> Result<()> {
         Commands::Serve {
             dist,
             no_window,
+            public,
             port,
         } => {
             rocci_rocdown::ensure_built_tree(&dist)?;
@@ -535,6 +552,7 @@ fn try_main() -> Result<()> {
                     dist,
                     open_path: "/".to_string(),
                     log_prefix: "rocdown".to_string(),
+                    public,
                 },
                 no_window,
                 Some("rocdown".to_string()),
@@ -544,10 +562,11 @@ fn try_main() -> Result<()> {
             root,
             no_window,
             log_handlers,
+            public,
             port,
         } => {
             refuse_okf_input(&root, "serve-islands")?;
-            rocci_rocdown::serve_islands(&root, no_window, port, log_handlers)
+            rocci_rocdown::serve_islands(&root, no_window, port, log_handlers, public)
         }
         Commands::Check { root, format } => {
             let report = rocci_rocdown::check(&root)?;
@@ -634,6 +653,7 @@ fn try_main() -> Result<()> {
         Commands::Playground {
             input,
             no_window,
+            public,
             port,
             mode,
         } => {
@@ -642,6 +662,7 @@ fn try_main() -> Result<()> {
                 no_live_reload: false,
                 log_handlers: false,
                 verbose: false,
+                public,
                 port,
             };
             let hook = match mode {
@@ -701,6 +722,7 @@ fn run_standalone_doc(
     verbose: bool,
     port: PortArg,
     theme: &ThemeArgs,
+    public: bool,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -745,6 +767,7 @@ fn run_standalone_doc(
             no_window,
             live_reload,
             &title,
+            public,
         );
     }
     let kind = document_page_kind(&src, &parsed.document);
@@ -761,6 +784,7 @@ fn run_standalone_doc(
             verbose,
             port,
             &compile_opts,
+            public,
         );
     }
 
@@ -785,6 +809,7 @@ fn run_standalone_doc(
                     no_window,
                     live_reload,
                     &title,
+                    public,
                 );
             }
             StandaloneReady::Ready(plan) => plan,
@@ -826,6 +851,7 @@ fn run_standalone_doc(
         profile: profile.finish(),
         inspect_pages: plan.inspect_pages,
         state_key: Some("rocdown".to_string()),
+        public,
     };
 
     rocci_cli::driver::execute_app_plan(&generic_plan, &src_dir, &driver_options)
@@ -842,6 +868,7 @@ fn run_static_standalone_preview(
     verbose: bool,
     port: PortArg,
     options: &rocci_rocdown::CompileOptions,
+    public: bool,
 ) -> Result<()> {
     let port = port.resolve()?;
     let progress = rocci_cli::logs::Progress { verbose, quiet };
@@ -868,6 +895,8 @@ fn run_static_standalone_preview(
             backend_port: None,
             log_handlers: false,
             on_stop: None,
+            public,
+            extra_http: None,
         },
         no_window,
         live_reload,
@@ -891,6 +920,7 @@ fn run_site_dev(
     port: PortArg,
     host: rocci_rocdown::HostChoice,
     open_path: Option<&str>,
+    public: bool,
 ) -> Result<()> {
     let port = port.resolve()?;
     let open_path = open_path.unwrap_or("/");
@@ -902,6 +932,7 @@ fn run_site_dev(
         open_path,
         log_handlers,
         verbose,
+        public,
     )?;
     rocci_cli::logs::tee(
         &server.logs,
@@ -1120,10 +1151,12 @@ mod tests {
             Commands::Serve {
                 dist,
                 no_window,
+                public,
                 port,
             } => {
                 assert_eq!(dist, PathBuf::from("dist/docs"));
                 assert!(no_window);
+                assert!(!public);
                 assert_eq!(port, PortArg::Exact(8080));
             }
             _ => panic!("expected serve"),
@@ -1226,11 +1259,13 @@ mod tests {
                 root,
                 no_window,
                 log_handlers,
+                public,
                 port,
             } => {
                 assert_eq!(root, PathBuf::from("examples/rocdown/hybrid"));
                 assert!(no_window);
                 assert!(!log_handlers);
+                assert!(!public);
                 assert_eq!(port, PortArg::Exact(9001));
             }
             _ => panic!("expected serve-islands"),

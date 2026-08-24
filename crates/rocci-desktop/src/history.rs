@@ -83,6 +83,11 @@ impl NavHistory {
         }
     }
 
+    pub fn with_start_and_home(start: impl Into<String>, home: impl Into<String>) -> Self {
+        let _ = start;
+        Self::new(home)
+    }
+
     pub fn home(&self) -> &str {
         &self.home
     }
@@ -329,6 +334,17 @@ mod tests {
         assert_eq!(history.current(), Some(GUIDE));
         history.commit(INTERACTIVE);
         assert!(history.can_back());
+    }
+
+    #[test]
+    fn start_url_can_differ_from_home() {
+        let mut history = NavHistory::with_start_and_home(INTERACTIVE, ABOUT);
+        history.commit(INTERACTIVE);
+        assert_eq!(history.home(), ABOUT);
+        history.request_home();
+        history.commit(ABOUT);
+        assert_eq!(history.current(), Some(ABOUT));
+        assert!(!history.can_back());
     }
 
     #[test]

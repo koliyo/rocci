@@ -26,6 +26,8 @@ use crate::style;
 const DEBOUNCE: Duration = Duration::from_millis(200);
 
 pub type PathFilter = Arc<dyn Fn(&Path) -> bool + Send + Sync>;
+pub type ExtraHttpHandler =
+    Arc<dyn Fn(&str, &str, &[u8]) -> Option<(u16, &'static str, Vec<u8>)> + Send + Sync>;
 
 const RELOAD_JS: &str = r#"(function () {
   if (window.__rocciLiveReload) {
@@ -188,6 +190,8 @@ pub struct StaticDevServerConfig {
     pub backend_port: Option<Arc<AtomicU16>>,
     pub log_handlers: bool,
     pub on_stop: Option<Arc<dyn Fn() + Send + Sync>>,
+    pub public: bool,
+    pub extra_http: Option<ExtraHttpHandler>,
 }
 
 pub fn serve_static_site<F>(config: StaticDevServerConfig, mut rebuild: F) -> Result<DevServer>
@@ -250,8 +254,9 @@ where
         }
     }
 
-    let listener = TcpListener::bind(("127.0.0.1", config.port))
-        .with_context(|| format!("failed to bind 127.0.0.1:{}", config.port))?;
+    let host = crate::serve::bind_host(config.public);
+    let listener = TcpListener::bind((host, config.port))
+        .with_context(|| format!("failed to bind {host}:{}", config.port))?;
     listener
         .set_nonblocking(true)
         .context("failed to set listener non-blocking")?;
@@ -268,6 +273,7 @@ where
     };
     let url = format!("http://127.0.0.1:{bound}{open_path}");
     let inspector_url = format!("http://127.0.0.1:{bound}/__rocci/dev");
+    crate::serve::note_public_listen(config.public, bound);
 
     let server_stop = stop.clone();
     let server_hub = hub.clone();
@@ -276,6 +282,7 @@ where
     let server_has_build = has_build.clone();
     let server_backend = config.backend_port.clone();
     let server_log_handlers = config.log_handlers;
+    let server_extra_http = config.extra_http.clone();
     let server = thread::spawn(move || {
         serve_loop(
             listener,
@@ -285,6 +292,7 @@ where
             server_has_build,
             server_backend,
             server_log_handlers,
+            server_extra_http,
             server_stop,
         );
     });
@@ -386,6 +394,7 @@ pub struct PublishedTreeConfig {
     pub dist: PathBuf,
     pub open_path: String,
     pub log_prefix: String,
+    pub public: bool,
 }
 
 pub struct PublishedServer {
@@ -429,8 +438,9 @@ pub fn serve_published_tree(config: PublishedTreeConfig) -> Result<PublishedServ
         format!("{}: serving files at {}", config.log_prefix, dist.display()),
     );
     let stop = Arc::new(AtomicBool::new(false));
-    let listener = TcpListener::bind(("127.0.0.1", config.port))
-        .with_context(|| format!("failed to bind 127.0.0.1:{}", config.port))?;
+    let host = crate::serve::bind_host(config.public);
+    let listener = TcpListener::bind((host, config.port))
+        .with_context(|| format!("failed to bind {host}:{}", config.port))?;
     listener
         .set_nonblocking(true)
         .context("failed to set listener non-blocking")?;
@@ -446,6 +456,7 @@ pub fn serve_published_tree(config: PublishedTreeConfig) -> Result<PublishedServ
         format!("/{open_path}")
     };
     let url = format!("http://127.0.0.1:{bound}{open_path}");
+    crate::serve::note_public_listen(config.public, bound);
 
     let server_stop = stop.clone();
     let server_dist = dist;
@@ -679,25 +690,29 @@ fn serve_loop(
     has_build: Arc<AtomicBool>,
     backend_port: Option<Arc<AtomicU16>>,
     log_handlers: bool,
+    extra_http: Option<ExtraHttpHandler>,
     stop: Arc<AtomicBool>,
 ) {
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
-            Ok((stream, _)) => {
+            Ok((stream, peer)) => {
                 let output = output.clone();
                 let hub = hub.clone();
                 let last_error = last_error.clone();
                 let has_build = has_build.clone();
                 let backend_port = backend_port.clone();
+                let extra_http = extra_http.clone();
                 thread::spawn(move || {
                     let _ = handle_client(
                         stream,
+                        peer.ip().is_loopback(),
                         &output,
                         &hub,
                         &last_error,
                         &has_build,
                         backend_port.as_deref(),
                         log_handlers,
+                        extra_http.as_ref(),
                     );
                 });
             }
@@ -711,12 +726,14 @@ fn serve_loop(
 
 fn handle_client(
     mut stream: TcpStream,
+    loopback_peer: bool,
     output: &Path,
     hub: &ReloadHub,
     last_error: &Mutex<Option<String>>,
     has_build: &AtomicBool,
     backend_port: Option<&AtomicU16>,
     log_handlers: bool,
+    extra_http: Option<&ExtraHttpHandler>,
 ) -> io::Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(2)))?;
@@ -729,6 +746,20 @@ fn handle_client(
     let request = String::from_utf8_lossy(&buf[..n]);
     let path = request_path(&request).unwrap_or("/");
     let method = request_method(&request).unwrap_or("GET");
+    if !loopback_peer && is_loopback_only_preview(path) {
+        return write_response(
+            &mut stream,
+            403,
+            "text/plain; charset=utf-8",
+            false,
+            b"forbidden",
+        );
+    }
+    if let Some(handler) = extra_http
+        && let Some((status, content_type, body)) = handler(method, path, &buf[..n])
+    {
+        return write_response(&mut stream, status, content_type, false, &body);
+    }
     let backend = backend_port
         .map(|port| port.load(Ordering::Relaxed))
         .unwrap_or(0);
@@ -874,6 +905,31 @@ fn is_preview_internal(path: &str) -> bool {
     path.starts_with("/__rocci")
         || path.starts_with("/__rocdown")
         || path.starts_with("/__rocci_okf")
+}
+
+fn is_loopback_only_preview(path: &str) -> bool {
+    let path = path.split(['?', '#']).next().unwrap_or(path);
+    matches!(
+        path,
+        "/__rocci/dev"
+            | "/__rocdown/dev"
+            | "/__rocci_okf/dev"
+            | "/__rocci/inspect"
+            | "/__rocdown/inspect"
+            | "/__rocci_okf/inspect"
+            | "/__rocci/logs"
+            | "/__rocdown/logs"
+            | "/__rocci_okf/logs"
+            | "/__rocci/logs/events"
+            | "/__rocdown/logs/events"
+            | "/__rocci_okf/logs/events"
+            | "/__rocci/logs/clear"
+            | "/__rocdown/logs/clear"
+            | "/__rocci_okf/logs/clear"
+            | "/__rocci/profile"
+            | "/__rocdown/profile"
+            | "/__rocci_okf/profile"
+    )
 }
 
 fn is_cdn_owned_get(path: &str) -> bool {
@@ -1860,6 +1916,8 @@ mod tests {
                 backend_port: Some(advertised),
                 log_handlers: false,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |_, _| Ok(None),
         )
@@ -1958,6 +2016,8 @@ mod tests {
                 backend_port: Some(advertised),
                 log_handlers: false,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |_, _| Ok(None),
         )
@@ -2058,6 +2118,8 @@ mod tests {
                 backend_port: Some(advertised),
                 log_handlers: true,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |_, _| Ok(None),
         )
@@ -2138,6 +2200,8 @@ mod tests {
                 backend_port: None,
                 log_handlers: false,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |out, _| {
                 fs::write(out.join("index.html"), "<h1>cdn</h1>").unwrap();
@@ -2194,6 +2258,8 @@ mod tests {
                 backend_port: None,
                 log_handlers: false,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |_, _| anyhow::bail!("catalog resolve failed"),
         )
@@ -2240,6 +2306,8 @@ mod tests {
                 backend_port: None,
                 log_handlers: false,
                 on_stop: None,
+                public: false,
+                extra_http: None,
             },
             |out, _| {
                 fs::write(out.join("index.html"), "<h1>home</h1>").unwrap();

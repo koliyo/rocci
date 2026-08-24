@@ -26,7 +26,7 @@ cargo run -p rocci-rocdown-cli -- view docs/rocdown/blocks.rocdown
 # `--no-window` prints a URL; append `?reload=0` to pause auto-refresh.
 # When a rebuild fails, the preview still serves the last HTML on disk and
 # opens a native build-error dialog you can dismiss to read the page.
-cargo run -p rocci-rocdown-cli -- view docs [--port 8000] [--no-window] [--no-live-reload]
+cargo run -p rocci-rocdown-cli -- view docs [--port 8000] [--no-window] [--no-live-reload] [--public]
 cargo run -p rocci-rocdown-cli -- view examples/rocdown/hybrid [--port 8000] [--no-window]
 cargo run -p rocci-rocdown-cli -- view examples/rocdown/counter [--port 8000] [--no-window]
 
@@ -41,7 +41,7 @@ cargo run -p rocci-rocdown-cli -- package docs [--output dist] [--archive site.t
 cargo run -p rocci-rocdown-cli -- package examples/rocdown/counter --target arm64musl
 
 # Serve a previously built dist/ tree without rebuilding (no Roc, no watch)
-cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window]
+cargo run -p rocci-rocdown-cli -- serve dist/docs [--port 8000] [--no-window] [--public]
 
 # Start the island HTTP service for live pages (colocated handlers)
 cargo run -p rocci-rocdown-cli -- serve-islands examples/rocdown/hybrid [--port 8000] [--no-window]

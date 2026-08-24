@@ -17,6 +17,18 @@ def test_cli_crates() -> None:
     assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown", "rocci-okf"}
 
 
+def test_bundle_usage() -> None:
+    from rocci_ops.local import main
+
+    try:
+        main(["bundle"])
+    except SystemExit as exc:
+        assert "macos" in str(exc)
+        assert "okf" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
 def test_package_site_usage() -> None:
     from rocci_ops.local import main
 

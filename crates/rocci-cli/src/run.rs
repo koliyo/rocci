@@ -26,6 +26,7 @@ pub fn run(
     live_reload: bool,
     log_handlers: bool,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     if is_standalone_file(file) {
         return run_standalone(
@@ -36,6 +37,7 @@ pub fn run(
             live_reload,
             log_handlers,
             verbose,
+            public,
         );
     }
     let resolved = resolve_entry(file)?;
@@ -49,6 +51,7 @@ pub fn run(
             no_window,
             live_reload,
             &driver::window_title(&resolved),
+            public,
         );
     }
     driver::execute_resolved_entry(
@@ -62,6 +65,7 @@ pub fn run(
         compiled.profile,
         compiled.inspect_pages,
         verbose,
+        public,
     )
 }
 
@@ -260,6 +264,7 @@ fn run_standalone(
     live_reload: bool,
     log_handlers: bool,
     verbose: bool,
+    public: bool,
 ) -> Result<()> {
     let path = if file.is_absolute() {
         file.to_path_buf()
@@ -278,7 +283,14 @@ fn run_standalone(
         .to_string();
     let plan = match plan_standalone(&path, &LowerOptions::default())? {
         (StandaloneReady::Failed(files), _, _) => {
-            return driver::serve_template_errors(&files, port, no_window, live_reload, &title);
+            return driver::serve_template_errors(
+                &files,
+                port,
+                no_window,
+                live_reload,
+                &title,
+                public,
+            );
         }
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
@@ -296,6 +308,7 @@ fn run_standalone(
         profile,
         inspect_pages,
         state_key: None,
+        public,
     };
     driver::execute_app_plan(&plan, &src_dir, &options)
 }
@@ -1267,7 +1280,7 @@ import Html
         assert_eq!(invocation.roc_file, PathBuf::from("main.roc"));
         assert_eq!(invocation.args, vec!["--".to_string(), "arg1".to_string()]);
 
-        let cmd = roc_command(&invocation, 9001);
+        let cmd = roc_command(&invocation, 9001, false);
         assert_eq!(cmd.get_program(), "roc");
         let args: Vec<_> = cmd.get_args().collect();
         assert_eq!(args, ["main.roc", "--", "arg1"]);

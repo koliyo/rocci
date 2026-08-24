@@ -39,16 +39,27 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 
 ### Live Reload Review Server & Desktop Preview
 
-The review viewer uses a dark One Dark Pro palette. Home and Governance &
-Review stay in `.okf-global-nav` at every width. Pages with H2 or H3 headings
-also get a left “On this page” navigator; below `48rem` that outline hides and
-a no-JS `<details class="okf-outline-menu">` control appears. Wide source and
-review tables scroll inside `.okf-table-container`. Authored knowledge links
-such as `/decisions/foo.md` are bundle-root paths;
+The review viewer uses a dark One Dark Pro palette. The left chrome has
+Dashboard, a Review section, and a collection tree. Pages with H2 or H3
+headings get a right “On this page” navigator; below `48rem` both the tree and
+that outline hide behind no-JS `<details>` menus. The dashboard lists recent
+documents first and a compact review-queue button; `/review/` keeps the full
+queue. Wide source and review tables scroll inside `.okf-table-container`.
+Authored knowledge links such as `/decisions/foo.md` are bundle-root paths;
 the review site publishes them at `/decisions/foo/` and writes collection
 indexes such as `/architecture/`. Cmd/Ctrl-K opens a fuzzy page palette
-backed by `/pages.json` and `/catalog.json` in the review tree; same-origin
-links swap already-rendered HTML without a full reload.
+backed by `/pages.json` and `/catalog.json` in the review tree (refetched when
+the palette opens); same-origin links swap already-rendered HTML without a
+full reload.
+
+`rocci-okf` with no subcommand, and `view` with no path, restore the last
+bundle and document from `~/.rocci/state/okf.json` (or `ROCCI_STATE_DIR`).
+Home in the preview window always opens the dashboard (`/`). Preview servers
+listen on localhost unless you pass `--public` (binds `0.0.0.0`; inspector and
+`/__rocci/dev` stay loopback-only).
+
+On macOS, `rocci-ops bundle okf` builds an ad-hoc signed `Rocci Knowledge.app`
+under `target/release/bundle/macos/`.
 
 Default `view` uses the cached Rocci renderer when `roc` is on PATH. If `roc`
 is missing, preview writes the Rust knowledge shell unless you pass
@@ -61,13 +72,19 @@ compile path; `--host wasm` selects the in-process Wasmtime host.
 cargo run -p rocci-okf -- view knowledge
 
 # Open a concept inside the enclosing bundle
-cargo run -p rocci-okf -- view knowledge/plans/cli-entry-points.md
+cargo run -p rocci-okf -- view knowledge/plans/shared/cli-entry-points.md
 
 # Turn git provenance (OKF4006/4007/4008) back on for preview
 cargo run -p rocci-okf -- view knowledge --provenance
 
 # Preview headless (prints server URL). Append `?reload=0` to pause auto-refresh.
 cargo run -p rocci-okf -- view knowledge --no-window --port 8000
+
+# Restore the last bundle (or ./knowledge) with no path
+cargo run -p rocci-okf -- view
+
+# Listen on every interface (default is localhost only)
+cargo run -p rocci-okf -- view knowledge --no-window --public
 
 # Pause automatic page refresh (watch/rebuild still runs)
 cargo run -p rocci-okf -- view knowledge --no-live-reload

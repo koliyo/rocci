@@ -2,20 +2,9 @@ import Html
 import PageOutline
 import ConceptMeta
 
-@component KnowledgeShell = |{ outline, has_outline, meta, has_meta }, body| {
+@component KnowledgeShell = |{ outline, has_outline, meta, has_meta }, nav, body| {
     <div class="rd-shell">
-        <div class="okf-chrome">
-            <nav class="okf-global-nav" aria-label="Knowledge">
-                <p class="okf-global-label">Knowledge</p>
-                <a class="okf-global-link" href="/">Home</a>
-                <a class="okf-global-link" href="/review/">Governance & Review</a>
-            </nav>
-            @if has_outline {
-                <aside class="rd-toc" aria-label="On this page">
-                    <PageOutline.pageOutline outline={outline} />
-                </aside>
-            }
-        </div>
+        <div class="okf-chrome">{nav}</div>
         <main>
             @if has_outline {
                 <details class="okf-outline-menu">
@@ -30,5 +19,10 @@ import ConceptMeta
             }
             <article class="rd-article">{body}</article>
         </main>
+        @if has_outline {
+            <aside class="rd-toc" aria-label="On this page">
+                <PageOutline.pageOutline outline={outline} />
+            </aside>
+        }
     </div>
 }

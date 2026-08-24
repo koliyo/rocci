@@ -480,6 +480,14 @@ pub fn render_home_page_governance(bundle: &Bundle) -> String {
 
     let mut out = String::new();
     out.push_str("<div class=\"okf-home-governance\">\n");
+    out.push_str("  <section class=\"okf-recents\" id=\"okf-recents\">\n");
+    out.push_str("    <h2 class=\"rd-header-2\" id=\"recent-documents\">Recent documents</h2>\n");
+    out.push_str("    <p class=\"okf-recents-empty\">No recent documents yet.</p>\n");
+    out.push_str("    <ul class=\"okf-recents-list\" hidden></ul>\n");
+    out.push_str("  </section>\n");
+    out.push_str("  <div class=\"okf-cta-row\">\n");
+    out.push_str("    <a href=\"/review/\" class=\"okf-cta-btn\">Open review queue</a>\n");
+    out.push_str("  </div>\n");
     out.push_str(&render_stat_grid(&governance_stat_cards(
         total_concepts,
         stable_count,
@@ -489,16 +497,6 @@ pub fn render_home_page_governance(bundle: &Bundle) -> String {
         warnings_count,
     )));
     out.push('\n');
-
-    out.push_str(&render_priority_1_queue(bundle));
-
-    out.push_str("  <div class=\"okf-cta-row\">\n");
-    out.push_str(&format!(
-        "    <a href=\"/review/\" class=\"okf-cta-btn\">Open Complete Review Queue (All {} Concepts) &rarr;</a>\n",
-        total_concepts
-    ));
-    out.push_str("    <a href=\"/reference/priority-1-review/\" class=\"okf-secondary-link\">View Priority-1 Review Checklist &rarr;</a>\n");
-    out.push_str("  </div>\n");
     out.push_str("  <hr class=\"rd-hr\" />\n");
     out.push_str(
         "  <h2 class=\"rd-header-2\" id=\"knowledge-collections\">Knowledge Collections</h2>\n",
@@ -1044,6 +1042,7 @@ struct OkfPageRecord {
     outline: Vec<OkfOutlineItem>,
     has_meta: bool,
     meta: OkfPageMeta,
+    nav_html: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -1141,6 +1140,8 @@ fn outline_items(headings: &[TocHeading]) -> Vec<OkfOutlineItem> {
 }
 
 fn page_record(
+    bundle: &Bundle,
+    route: &str,
     output_path: String,
     article_path: String,
     title: String,
@@ -1155,6 +1156,7 @@ fn page_record(
         outline: outline_items(headings),
         has_meta: meta.is_some(),
         meta: meta.unwrap_or_else(empty_page_meta),
+        nav_html: render_nav_tree(Some(bundle), route),
     }
 }
 
@@ -1285,14 +1287,22 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
     let mut output_paths = Vec::new();
 
     for concept in &bundle.concepts {
-        let article = article_with_validation(bundle, Some(&concept.path), &concept.article_html);
+        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+        let route = format!("/{}/", concept.id);
+        let article = with_breadcrumbs(
+            bundle,
+            &route,
+            title,
+            &article_with_validation(bundle, Some(&concept.path), &concept.article_html),
+        );
         let (stamped_article, headings) = stamp_and_collect_headings(&article);
         let article_rel = format!("articles/{}.html", concept.id.replace('/', "-"));
         articles.push((article_rel.clone(), stamped_article));
         let out_path = format!("{}/index.html", concept.id);
         output_paths.push(out_path.clone());
-        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
         pages.push(page_record(
+            bundle,
+            &route,
             out_path,
             article_rel,
             title.to_string(),
@@ -1316,6 +1326,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         articles.push((article_rel.clone(), stamped));
         output_paths.push("index.html".to_string());
         pages.push(page_record(
+            bundle,
+            "/",
             "index.html".into(),
             article_rel,
             "Knowledge".into(),
@@ -1328,16 +1340,25 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         let Some(collection) = index.path.strip_suffix("/index.md") else {
             continue;
         };
-        let article = article_with_validation(bundle, Some(&index.path), &index.article_html);
+        let title = collection_title(index);
+        let route = format!("/{collection}/");
+        let article = with_breadcrumbs(
+            bundle,
+            &route,
+            &title,
+            &article_with_validation(bundle, Some(&index.path), &index.article_html),
+        );
         let (stamped, headings) = stamp_and_collect_headings(&article);
-        let article_rel = format!("articles/{collection}-index.html");
+        let article_rel = format!("articles/{}", collection_article_name(collection));
         articles.push((article_rel.clone(), stamped));
         let out_path = format!("{collection}/index.html");
         output_paths.push(out_path.clone());
         pages.push(page_record(
+            bundle,
+            &route,
             out_path,
             article_rel,
-            collection.to_string(),
+            title,
             &headings,
             None,
         ));
@@ -1349,6 +1370,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
     articles.push((article_rel.clone(), stamped));
     output_paths.push("review/index.html".to_string());
     pages.push(page_record(
+        bundle,
+        "/review/",
         "review/index.html".into(),
         article_rel,
         "Knowledge Governance & Review Queue".into(),
@@ -1364,6 +1387,8 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         let out_path = format!("{id}/index.html");
         output_paths.push(out_path.clone());
         pages.push(page_record(
+            bundle,
+            &format!("/{id}/"),
             out_path,
             article_rel,
             id.to_string(),
@@ -1501,6 +1526,8 @@ fn write_site_chrome(bundle: &Bundle, site: &Path) -> Result<()> {
         .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
     fs::write(okf_static_dir.join("goto.js"), rocci_ui::chrome_script())
         .context("failed to write knowledge goto script")?;
+    fs::write(okf_static_dir.join("session.js"), SESSION_UI_JS)
+        .context("failed to write knowledge session script")?;
 
     let catalog = bundle
         .concepts
@@ -1528,21 +1555,110 @@ struct NavPage {
     path: String,
     #[serde(skip_serializing_if = "String::is_empty")]
     description: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    collection: String,
+}
+
+fn collection_label(path: &str) -> String {
+    path.split('/')
+        .next()
+        .filter(|segment| !segment.is_empty() && *segment != path && *segment != "review")
+        .unwrap_or("")
+        .to_string()
+}
+
+fn collection_title(index: &okf::Index) -> String {
+    if let Some(heading) = index.headings.iter().find(|heading| heading.level == 1) {
+        return heading.text.clone();
+    }
+    if let Some(text) = h1_text(&index.article_html) {
+        return text;
+    }
+    index
+        .path
+        .strip_suffix("/index.md")
+        .and_then(|collection| collection.rsplit('/').next())
+        .unwrap_or(index.path.as_str())
+        .to_string()
+}
+
+fn h1_text(html: &str) -> Option<String> {
+    let start = html.find("<h1")?;
+    let inner_at = html[start..].find('>')? + start + 1;
+    let end = html[inner_at..].find("</h1>")? + inner_at;
+    let text = unescape_text(&strip_tags(&html[inner_at..end]));
+    if text.is_empty() { None } else { Some(text) }
+}
+
+fn collection_article_name(collection: &str) -> String {
+    format!("{}-index.html", collection.replace('/', "-"))
+}
+
+fn breadcrumb_nav(bundle: &Bundle, route: &str, current_title: &str) -> String {
+    let trimmed = route
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(route)
+        .trim_matches('/');
+    if trimmed.is_empty() || trimmed == "review" {
+        return String::new();
+    }
+    let parts: Vec<&str> = trimmed.split('/').collect();
+    let mut html = String::from(
+        "<nav class=\"okf-breadcrumbs\" aria-label=\"Breadcrumb\"><ol class=\"okf-breadcrumb-list\">",
+    );
+    html.push_str("<li><a href=\"/\">Home</a></li>");
+    let mut prefix = String::new();
+    for (index, part) in parts.iter().enumerate() {
+        if !prefix.is_empty() {
+            prefix.push('/');
+        }
+        prefix.push_str(part);
+        let is_last = index + 1 == parts.len();
+        if is_last {
+            html.push_str(&format!(
+                "<li aria-current=\"page\">{}</li>",
+                escape(current_title)
+            ));
+            continue;
+        }
+        let index_path = format!("{prefix}/index.md");
+        if let Some(collection) = bundle
+            .indexes
+            .iter()
+            .find(|candidate| candidate.path == index_path)
+        {
+            html.push_str(&format!(
+                "<li><a href=\"/{prefix}/\">{title}</a></li>",
+                title = escape(&collection_title(collection))
+            ));
+        } else {
+            html.push_str(&format!("<li>{}</li>", escape(part)));
+        }
+    }
+    html.push_str("</ol></nav>\n");
+    html
+}
+
+fn with_breadcrumbs(bundle: &Bundle, route: &str, title: &str, article: &str) -> String {
+    format!("{}{article}", breadcrumb_nav(bundle, route, title))
 }
 
 fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
     let mut pages = Vec::new();
     pages.push(NavPage {
-        title: "Knowledge".into(),
+        title: "Dashboard".into(),
         route: "/".into(),
         path: "index.md".into(),
         description: String::new(),
+        collection: String::new(),
     });
     pages.push(NavPage {
-        title: "Governance & Review".into(),
+        title: "Review queue".into(),
         route: "/review/".into(),
         path: "review".into(),
         description: String::new(),
+        collection: String::new(),
     });
     for concept in &bundle.concepts {
         let id = concept.id.trim_matches('/');
@@ -1555,6 +1671,7 @@ fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
             description: okf::string_field(&concept.metadata, "description")
                 .unwrap_or("")
                 .to_string(),
+            collection: collection_label(&concept.path),
         });
     }
     for index in &bundle.indexes {
@@ -1562,10 +1679,21 @@ fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
             continue;
         };
         pages.push(NavPage {
-            title: collection.to_string(),
+            title: collection_title(index),
             route: format!("/{collection}/"),
             path: index.path.clone(),
             description: String::new(),
+            collection: collection.to_string(),
+        });
+    }
+    for path in diagnostic_only_concept_paths(bundle) {
+        let id = concept_id_from_path(path);
+        pages.push(NavPage {
+            title: id.to_string(),
+            route: format!("/{id}/"),
+            path: path.to_string(),
+            description: String::new(),
+            collection: collection_label(path),
         });
     }
     pages.sort_by(|left, right| {
@@ -1590,15 +1718,21 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         let meta_header = render_concept_meta(concept, bundle);
         let article = article_with_validation(bundle, Some(&concept.path), &concept.article_html);
         let full_html = with_meta_and_article(&meta_header, &article);
-        fs::write(&destination, html_page(title, &full_html))
-            .with_context(|| format!("failed to write {}", destination.display()))?;
+        fs::write(
+            &destination,
+            html_page_for(bundle, &format!("/{}/", concept.id), title, &full_html),
+        )
+        .with_context(|| format!("failed to write {}", destination.display()))?;
     }
     if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
         let governance_header = render_home_page_governance(bundle);
         let article = article_with_validation(bundle, Some("index.md"), &index.article_html);
         let full_index = with_meta_and_article(&governance_header, &article);
-        fs::write(site.join("index.html"), html_page("Knowledge", &full_index))
-            .context("failed to write knowledge index")?;
+        fs::write(
+            site.join("index.html"),
+            html_page_for(bundle, "/", "Knowledge", &full_index),
+        )
+        .context("failed to write knowledge index")?;
     }
     for index in &bundle.indexes {
         let Some(collection) = index.path.strip_suffix("/index.md") else {
@@ -1611,8 +1745,10 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         }
         fs::write(
             &destination,
-            html_page(
-                collection,
+            html_page_for(
+                bundle,
+                &format!("/{collection}/"),
+                &collection_title(index),
                 &select_root_article(&article_with_validation(
                     bundle,
                     Some(&index.path),
@@ -1629,7 +1765,9 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
     }
     fs::write(
         &review_dest,
-        html_page(
+        html_page_for(
+            bundle,
+            "/review/",
             "Knowledge Governance & Review Queue",
             &select_root_article(&article_with_validation(
                 bundle,
@@ -1649,7 +1787,12 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         }
         fs::write(
             &destination,
-            html_page(id, &select_root_article(&stub_article(bundle, path))),
+            html_page_for(
+                bundle,
+                &format!("/{id}/"),
+                id,
+                &select_root_article(&stub_article(bundle, path)),
+            ),
         )
         .with_context(|| format!("failed to write {}", destination.display()))?;
     }
@@ -1831,7 +1974,10 @@ pub fn build_review_site_with_session(
                 let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
                 let meta_header = render_concept_meta(concept, bundle);
                 let full_html = with_meta_and_article(&meta_header, &concept.article_html);
-                fs::write(&destination, html_page(title, &full_html))?;
+                fs::write(
+                    &destination,
+                    html_page_for(bundle, &format!("/{}/", concept.id), title, &full_html),
+                )?;
             }
         }
         if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
@@ -1839,7 +1985,10 @@ pub fn build_review_site_with_session(
             if !destination.exists() {
                 let governance_header = render_home_page_governance(bundle);
                 let full_index = with_meta_and_article(&governance_header, &index.article_html);
-                fs::write(&destination, html_page("Knowledge", &full_index))?;
+                fs::write(
+                    &destination,
+                    html_page_for(bundle, "/", "Knowledge", &full_index),
+                )?;
             }
         }
         for index in &bundle.indexes {
@@ -1853,7 +2002,12 @@ pub fn build_review_site_with_session(
                 }
                 fs::write(
                     &destination,
-                    html_page(collection, &select_root_article(&index.article_html)),
+                    html_page_for(
+                        bundle,
+                        &format!("/{collection}/"),
+                        &collection_title(index),
+                        &select_root_article(&index.article_html),
+                    ),
                 )?;
             }
         }
@@ -1864,7 +2018,9 @@ pub fn build_review_site_with_session(
             }
             fs::write(
                 &review_dest,
-                html_page(
+                html_page_for(
+                    bundle,
+                    "/review/",
                     "Knowledge Governance & Review Queue",
                     &select_root_article(&render_review_page(bundle)),
                 ),
@@ -1922,7 +2078,7 @@ html.rd-document, body {
 html.rd-document { scroll-behavior: smooth; }
 .rd-shell {
   display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr);
+  grid-template-columns: 16.5rem minmax(0, 1fr) 13.5rem;
   align-items: start;
   min-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
 }
@@ -1937,11 +2093,66 @@ html.rd-document { scroll-behavior: smooth; }
   overflow-y: auto;
   user-select: none;
 }
+.okf-review-nav {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1.25rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--rd-border);
+}
+.okf-tree {
+  display: grid;
+  gap: 0.2rem;
+}
+.okf-tree-collection {
+  margin: 0;
+}
+.okf-tree-collection > summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--rd-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.okf-tree-collection > summary::-webkit-details-marker { display: none; }
+.okf-tree-docs {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0.35rem 0 0.75rem;
+}
+.okf-breadcrumbs {
+  margin: 0 0 1.25rem;
+}
+.okf-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--rd-muted);
+  font-size: 0.82rem;
+}
+.okf-breadcrumb-list li:not(:last-child)::after {
+  content: "/";
+  margin-left: 0.5rem;
+  color: var(--rd-border);
+}
+.okf-breadcrumb-list a {
+  color: var(--rd-primary);
+  text-decoration: none;
+}
 .okf-global-nav {
   display: grid;
   gap: 0.45rem;
   margin-bottom: 1.5rem;
 }
+.okf-recents-list { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; gap: 0.45rem; }
+.okf-recent-link { display: flex; gap: 0.65rem; align-items: baseline; text-decoration: none; color: var(--rd-fg); }
+.okf-recent-link:hover { color: var(--rd-primary); }
+.okf-nav-menu { display: none; }
 .okf-global-label,
 .rd-toc-label,
 .outline-label {
@@ -1970,9 +2181,12 @@ main {
 }
 .rd-toc {
   box-sizing: border-box;
+  position: sticky;
+  top: var(--rocci-chrome-top, 0px);
   min-width: 0;
-  padding: 0;
-  overflow: visible;
+  max-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
+  padding: 2.15rem 1.2rem 2rem 0;
+  overflow-y: auto;
   user-select: none;
 }
 .rd-toc .outline {
@@ -2012,6 +2226,8 @@ main {
 .okf-outline-menu .outline-label { display: none; }
 @media (max-width: 48rem) {
   .rd-shell { display: block; }
+  .okf-nav-menu { display: block; margin: 0 0 1rem; }
+  .okf-chrome .okf-desktop-nav { display: none; }
   .okf-chrome {
     position: static;
     max-height: none;
@@ -2249,36 +2465,167 @@ pub fn render_validation_notice(bundle: &Bundle, current_path: Option<&str>) -> 
     out
 }
 
-const OKF_GLOBAL_NAV: &str = concat!(
-    "<nav class=\"okf-global-nav\" aria-label=\"Knowledge\">",
-    "<p class=\"okf-global-label\">Knowledge</p>",
-    "<a class=\"okf-global-link\" href=\"/\">Home</a>",
-    "<a class=\"okf-global-link\" href=\"/review/\">Governance &amp; Review</a>",
-    "</nav>",
-);
-
-pub fn html_page(title: &str, article: &str) -> String {
-    let (article, headings) = stamp_and_collect_headings(article);
-    let mut chrome = String::from("<div class=\"okf-chrome\">");
-    chrome.push_str(OKF_GLOBAL_NAV);
-    if !headings.is_empty() {
-        chrome.push_str(&render_toc(&headings));
+const SESSION_UI_JS: &str = r#"(function(){
+  var root=document.getElementById("okf-recents");
+  var empty=root&&root.querySelector(".okf-recents-empty");
+  var list=root&&root.querySelector(".okf-recents-list");
+  function badge(name){return name?('<span class="okf-badge okf-type">'+name+'</span>'):'';}
+  function render(recents){
+    if(!list)return;
+    list.innerHTML="";
+    if(!recents||!recents.length){if(empty)empty.hidden=false;list.hidden=true;return;}
+    if(empty)empty.hidden=true;list.hidden=false;
+    recents.forEach(function(item){
+      var li=document.createElement("li");
+      li.innerHTML='<a class="okf-recent-link" href="'+(item.route||"/")+'">'+badge(item.collection||"")+'<span>'+(item.title||item.route||"")+'</span></a>';
+      list.appendChild(li);
+    });
+  }
+  function load(){
+    fetch("/__rocci_okf/session").then(function(r){return r.ok?r.json():null;}).then(function(data){
+      render(data&&data.recents);
+    }).catch(function(){});
+  }
+  window.__rocciOkfSession={
+    record:function(route,title){
+      fetch("/__rocci_okf/session",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({route:route||location.pathname,title:title||document.title})
+      }).then(function(r){return r.ok?r.json():null;}).then(function(data){
+        render(data&&data.recents);
+      }).catch(function(){});
     }
-    chrome.push_str("</div>");
+  };
+  if(root)load();
+})();"#;
+
+pub fn render_nav_tree(bundle: Option<&Bundle>, current: &str) -> String {
+    let mut out = String::from("<div class=\"okf-desktop-nav\">");
+    out.push_str(&nav_inner(bundle, current));
+    out.push_str("</div>");
+    out.push_str(
+        "<details class=\"okf-nav-menu\"><summary>Knowledge</summary><div class=\"okf-nav-panel\">",
+    );
+    out.push_str(&nav_inner(bundle, current));
+    out.push_str("</div></details>");
+    out
+}
+
+fn nav_inner(bundle: Option<&Bundle>, current: &str) -> String {
+    let mut out = String::from("<nav class=\"okf-global-nav\" aria-label=\"Knowledge\">");
+    out.push_str("<p class=\"okf-global-label\">Knowledge</p>");
+    out.push_str(&nav_link("/", "Dashboard", current));
+    out.push_str("</nav>");
+    out.push_str("<div class=\"okf-review-nav\">");
+    out.push_str("<p class=\"okf-global-label\">Review</p>");
+    out.push_str(&nav_link("/review/", "Review queue", current));
+    out.push_str("</div>");
+    if let Some(bundle) = bundle {
+        out.push_str("<div class=\"okf-tree\" aria-label=\"Collections\">");
+        let mut collections: Vec<(&str, Vec<(&str, &str)>)> = Vec::new();
+        for index in &bundle.indexes {
+            if let Some(name) = index.path.strip_suffix("/index.md") {
+                collections.push((name, Vec::new()));
+            }
+        }
+        for concept in &bundle.concepts {
+            let Some(collection) = collections
+                .iter()
+                .map(|(name, _)| *name)
+                .filter(|name| concept.id == *name || concept.id.starts_with(&format!("{name}/")))
+                .max_by_key(|name| name.len())
+            else {
+                continue;
+            };
+            if let Some((_, docs)) = collections.iter_mut().find(|(name, _)| *name == collection) {
+                let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+                docs.push((concept.id.as_str(), title));
+            }
+        }
+        for (name, docs) in collections {
+            let open = current.trim_matches('/').starts_with(name);
+            let label = bundle
+                .indexes
+                .iter()
+                .find(|index| index.path == format!("{name}/index.md"))
+                .map(collection_title)
+                .unwrap_or_else(|| name.to_string());
+            out.push_str(&format!(
+                "<details class=\"okf-tree-collection\"{}>",
+                if open { " open" } else { "" }
+            ));
+            out.push_str(&format!(
+                "<summary><a class=\"okf-global-link\" href=\"/{name}/\">{label}</a></summary>",
+                label = escape(&label)
+            ));
+            out.push_str("<div class=\"okf-tree-docs\">");
+            for (id, title) in docs {
+                out.push_str(&nav_link(&format!("/{id}/"), title, current));
+            }
+            out.push_str("</div></details>");
+        }
+        out.push_str("</div>");
+    }
+    out
+}
+
+fn nav_link(href: &str, label: &str, current: &str) -> String {
+    let class = if normalize_route(href) == normalize_route(current) {
+        "okf-global-link is-current"
+    } else {
+        "okf-global-link"
+    };
+    format!(
+        "<a class=\"{class}\" href=\"{}\">{}</a>",
+        escape(href),
+        escape(label)
+    )
+}
+
+fn normalize_route(route: &str) -> String {
+    let path = route.split(['?', '#']).next().unwrap_or(route);
+    if path == "/" {
+        return "/".into();
+    }
+    format!("/{}/", path.trim_matches('/'))
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn html_page(title: &str, article: &str) -> String {
+    html_page_with_nav(title, article, &render_nav_tree(None, "/"))
+}
+
+pub fn html_page_for(bundle: &Bundle, route: &str, title: &str, article: &str) -> String {
+    html_page_with_nav(
+        title,
+        &with_breadcrumbs(bundle, route, title, article),
+        &render_nav_tree(Some(bundle), route),
+    )
+}
+
+fn html_page_with_nav(title: &str, article: &str, nav: &str) -> String {
+    let (article, headings) = stamp_and_collect_headings(article);
+    let chrome = format!("<div class=\"okf-chrome\">{nav}</div>");
     let mut main = String::from("<main>");
     if !headings.is_empty() {
         main.push_str(&render_outline_details(&headings));
     }
     main.push_str(&article);
     main.push_str("</main>");
+    let toc = if headings.is_empty() {
+        String::new()
+    } else {
+        render_toc(&headings)
+    };
     let script = if headings.is_empty() {
         String::new()
     } else {
         format!("<script>{TOC_SCRIPT}</script>")
     };
-    let body = format!("<div class=\"rd-shell\">{chrome}{main}</div>{script}");
+    let body = format!("<div class=\"rd-shell\">{chrome}{main}{toc}</div>{script}");
     format!(
-        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
+        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/session.js\" defer></script><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
         escape(title)
     )
 }
@@ -2583,17 +2930,16 @@ mod tests {
     }
 
     fn assert_global_nav_outside_toc(html: &str) {
-        let nav = class_inner(html, "okf-global-nav", "</nav>");
-        assert!(nav.contains("href=\"/\""));
-        assert!(nav.contains("href=\"/review/\""));
-        assert!(nav.contains("Home"));
-        assert!(nav.contains("Governance"));
+        assert!(html.contains("href=\"/\""));
+        assert!(html.contains("href=\"/review/\""));
+        assert!(html.contains("Dashboard"));
+        assert!(html.contains("Review queue"));
         if html.contains("class=\"rd-toc\"") {
             let toc = class_inner(html, "rd-toc", "</nav>");
             assert!(!toc.contains("href=\"/\""));
             assert!(!toc.contains("/review/"));
-            assert!(!toc.contains("Home"));
-            assert!(!toc.contains("Governance"));
+            assert!(!toc.contains("Dashboard"));
+            assert!(!toc.contains("Review queue"));
         }
     }
 
@@ -2622,7 +2968,7 @@ mod tests {
     }
 
     #[test]
-    fn html_page_emits_left_toc_for_h2_and_h3() {
+    fn html_page_emits_right_toc_for_h2_and_h3() {
         let html = html_page(
             "Plan",
             "<h1>Title</h1><h2>Alpha</h2><p>x</p><h3>Beta</h3><h4>Gamma</h4>",
@@ -2662,10 +3008,10 @@ mod tests {
         let main = html.find("<main>").expect("main");
         let meta = html.find("okf-concept-meta").expect("meta");
         let article = html.find("class=\"rd-article\"").expect("article");
-        assert!(toc < main);
+        assert!(main < toc);
         assert!(main < meta);
         assert!(meta < article);
-        let article_html = &html[article..];
+        let article_html = class_inner(&html, "rd-article", "</article>");
         assert!(article_html.contains("body"));
         assert!(!article_html.contains("okf-concept-meta"));
         assert!(!article_html.contains("class=\"rd-toc\""));
@@ -2701,12 +3047,16 @@ mod tests {
                 path: "index.md".into(),
                 version: Some("0.2".into()),
                 body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
                 article_html: "<p><a href=\"/architecture/\">Architecture</a></p>".into(),
             },
             okf::Index {
                 path: "architecture/index.md".into(),
                 version: None,
                 body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
                 article_html: "<h1>Architecture</h1>".into(),
             },
         ];
@@ -2722,6 +3072,102 @@ mod tests {
         let collection = fs::read_to_string(site.join("architecture").join("index.html")).unwrap();
         assert!(collection.contains("Architecture"));
         assert!(collection.contains("id=\"architecture\""));
+        let pages = fs::read_to_string(site.join("pages.json")).unwrap();
+        assert!(pages.contains("\"collection\": \"architecture\""));
+        assert!(pages.contains("\"route\": \"/architecture/overview/\""));
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn nested_collection_uses_heading_title_and_breadcrumbs() {
+        let site = unique_temp("nested-collection").unwrap();
+        let mut concept = concept_with(BTreeMap::new());
+        concept.id = "plans/okf/nested-collections".into();
+        concept.path = "plans/okf/nested-collections.md".into();
+        concept
+            .metadata
+            .insert("title".into(), json!("Nested collections"));
+        concept.article_html = "<h1>Nested collections</h1>".into();
+
+        let mut bundle = bundle_with(vec![concept]);
+        bundle.indexes = vec![
+            okf::Index {
+                path: "index.md".into(),
+                version: Some("0.2".into()),
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>Knowledge</h1>".into(),
+            },
+            okf::Index {
+                path: "plans/index.md".into(),
+                version: None,
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>Plans</h1>".into(),
+            },
+            okf::Index {
+                path: "plans/okf/index.md".into(),
+                version: None,
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>OKF</h1>".into(),
+            },
+        ];
+
+        build_review_site_pure_rust(&bundle, &site).unwrap();
+        let pages = fs::read_to_string(site.join("pages.json")).unwrap();
+        assert!(pages.contains("\"title\": \"OKF\""));
+        assert!(pages.contains("\"route\": \"/plans/okf/\""));
+        let collection =
+            fs::read_to_string(site.join("plans").join("okf").join("index.html")).unwrap();
+        assert!(collection.contains("okf-breadcrumbs"));
+        assert!(collection.contains("href=\"/plans/\""));
+        let concept_html = fs::read_to_string(
+            site.join("plans")
+                .join("okf")
+                .join("nested-collections")
+                .join("index.html"),
+        )
+        .unwrap();
+        assert!(concept_html.contains("href=\"/plans/okf/\""));
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn pages_json_includes_diagnostic_only_paths() {
+        let site = unique_temp("pages-diag").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "plans/ok".into();
+        overview.path = "plans/ok.md".into();
+        let mut bundle = bundle_with(vec![overview]);
+        bundle.indexes.push(okf::Index {
+            path: "plans/index.md".into(),
+            version: None,
+            body_span: Span::new(0, 0),
+            headings: Vec::new(),
+            links: Vec::new(),
+            article_html: "<h1>Plans</h1>".into(),
+        });
+        bundle.diagnostics.push(Diagnostic::error(
+            "OKF2001",
+            "plans/new-file.md",
+            None,
+            "could not parse",
+        ));
+        build_review_site_pure_rust(&bundle, &site).unwrap();
+        let pages = fs::read_to_string(site.join("pages.json")).unwrap();
+        assert!(pages.contains("plans/new-file.md"), "{pages}");
+        assert!(pages.contains("/plans/new-file/"), "{pages}");
+        assert!(pages.contains("\"collection\": \"plans\""), "{pages}");
+        assert!(
+            site.join("plans")
+                .join("new-file")
+                .join("index.html")
+                .is_file()
+        );
         let _ = fs::remove_dir_all(&site);
     }
 
@@ -2763,20 +3209,18 @@ mod tests {
         let theme = modules.iter().find(|m| m.type_name == "OkfTheme").unwrap();
         assert!(theme.src.contains("class=\"rd-article\""));
         assert!(theme.roc.contains("rd-article"));
-        assert!(theme.src.contains("class=\"okf-global-nav\""));
+        assert!(theme.src.contains("class=\"okf-chrome\""));
         assert!(theme.src.contains("class=\"okf-outline-menu\""));
-        let global = theme.src.find("okf-global-nav").expect("global nav");
+        let chrome = theme.src.find("okf-chrome").expect("chrome");
         let outline_gate = theme.src.find("@if has_outline").expect("outline gate");
         assert!(
-            global < outline_gate,
-            "Home/Review must render even when has_outline is false"
+            chrome < outline_gate,
+            "chrome must render even when has_outline is false"
         );
         let toc = theme.src.find("class=\"rd-toc\"").expect("toc");
-        let toc_home = theme.src[toc..].find("href=\"/\"");
-        let next_details = theme.src[toc..].find("okf-outline-menu");
-        if let (Some(home_rel), Some(details_rel)) = (toc_home, next_details) {
-            assert!(home_rel > details_rel, "Home must not live inside .rd-toc");
-        }
+        let main = theme.src.find("<main>").expect("main");
+        assert!(main < toc, "On this page belongs to the right column");
+        assert!(!theme.src[toc..].contains("href=\"/\""));
         let concept_meta = modules
             .iter()
             .find(|m| m.type_name == "ConceptMeta")
@@ -2889,9 +3333,9 @@ mod tests {
         assert!(html.contains("class=\"outline-label\""));
         assert!(html.contains("On this page"));
         assert!(html.contains("href=\"/\""));
-        assert!(html.contains("Home"));
+        assert!(html.contains("Dashboard"));
         assert!(html.contains("href=\"/review/\""));
-        assert!(html.contains("Governance"));
+        assert!(html.contains("Review queue"));
         assert!(html.contains("<aside class=\"rd-toc\""));
         assert!(html.contains("System Overview"));
         assert!(!html.contains("<nav class=\"rd-toc\""));
@@ -2911,7 +3355,7 @@ mod tests {
         let html = fs::read_to_string(site.join("overview").join("index.html")).unwrap();
         assert!(html.contains("System Overview"));
         assert!(html.contains("href=\"/\""));
-        assert!(html.contains("Home"));
+        assert!(html.contains("Dashboard"));
         assert!(html.contains("<nav class=\"rd-toc\""));
         let _ = fs::remove_dir_all(&site);
     }

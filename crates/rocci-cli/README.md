@@ -41,6 +41,9 @@ cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --
 # Headless serve: append `?reload=0` to the printed URL to pause auto-refresh
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --no-window
 
+# Listen on every interface (default is localhost only; inspector stays loopback)
+cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --no-window --public
+
 # Run an authored Roc application directory
 cargo run -p rocci-cli -- run examples/rocci/custom/datastar
 

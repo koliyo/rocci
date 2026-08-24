@@ -357,6 +357,7 @@ pub fn serve_islands(
     no_window: bool,
     port: PortArg,
     log_handlers: bool,
+    public: bool,
 ) -> Result<()> {
     let loaded = load_site(root)?;
     if !loaded.config.http.service.is_empty() {
@@ -367,7 +368,16 @@ pub fn serve_islands(
                 loaded.config.http.service
             );
         }
-        return rocci_cli::run::run(&service, &[], no_window, port, true, log_handlers, false);
+        return rocci_cli::run::run(
+            &service,
+            &[],
+            no_window,
+            port,
+            true,
+            log_handlers,
+            false,
+            public,
+        );
     }
 
     let plan = plan_island_service(&loaded.root)?;
@@ -387,6 +397,7 @@ pub fn serve_islands(
         profile: rocci_cli::profile::SpanRecorder::new().finish(),
         inspect_pages: Vec::new(),
         state_key: Some("rocdown-islands".to_string()),
+        public,
     };
     driver::execute_app_plan(&app, &src_dir, &options)
 }

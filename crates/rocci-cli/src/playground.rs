@@ -104,9 +104,11 @@ pub fn start_playground_server(
     mode: PlaygroundMode,
     compile_hook: Option<PlaygroundCompileHook>,
     native_languages: &[&str],
+    public: bool,
 ) -> Result<PlaygroundServerHandle> {
-    let listener = TcpListener::bind(("127.0.0.1", port))
-        .with_context(|| format!("failed to bind playground server to 127.0.0.1:{port}"))?;
+    let host = crate::serve::bind_host(public);
+    let listener = TcpListener::bind((host, port))
+        .with_context(|| format!("failed to bind playground server to {host}:{port}"))?;
     listener
         .set_nonblocking(true)
         .context("failed to set playground listener to non-blocking")?;
@@ -171,6 +173,7 @@ pub fn start_playground_server(
     });
 
     let url = format!("http://127.0.0.1:{port}");
+    crate::serve::note_public_listen(public, port);
 
     Ok(PlaygroundServerHandle {
         running,
@@ -497,6 +500,7 @@ pub fn run_playground_cli(
         mode,
         compile_hook,
         native_languages,
+        serve.public,
     )?;
 
     let compiler_note = match mode {
