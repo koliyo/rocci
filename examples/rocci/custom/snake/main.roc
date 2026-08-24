@@ -11,7 +11,6 @@ import pf.Sse
 import pf.UnixTime
 import http.Method
 import http.Response
-import Datastar
 import Game
 import Html
 import Snake
@@ -32,6 +31,8 @@ PlayerInsert : {
     respawn_in : I64,
     body : Str,
     score : I64,
+    cam_x : I64,
+    cam_y : I64,
 }
 PlayerUpdate : {
     id : Str,
@@ -41,6 +42,8 @@ PlayerUpdate : {
     respawn_in : I64,
     body : Str,
     score : I64,
+    cam_x : I64,
+    cam_y : I64,
 }
 
 program = { init!, respond!, shutdown! }
@@ -72,7 +75,7 @@ init! = || {
     Sqlite.execute!(
         {
             db,
-            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT NOT NULL, dir TEXT NOT NULL, pending_dir TEXT NOT NULL, alive INTEGER NOT NULL, respawn_in INTEGER NOT NULL, body TEXT NOT NULL, score INTEGER NOT NULL)",
+            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT NOT NULL, dir TEXT NOT NULL, pending_dir TEXT NOT NULL, alive INTEGER NOT NULL, respawn_in INTEGER NOT NULL, body TEXT NOT NULL, score INTEGER NOT NULL, cam_x INTEGER NOT NULL, cam_y INTEGER NOT NULL)",
             params: {},
         },
     )
@@ -184,18 +187,43 @@ stream_game! = |db, player_id|
     Ok(
         Server.stream(
             Sse.unfold!(
-                { revision: 0.I64, first: True, player_id },
+                {
+                    revision: 0.I64,
+                    first: True,
+                    player_id,
+                    started_ms: 0.I64,
+                    last_bytes: 0.I64,
+                    total_bytes: 0.I64,
+                    patches: 0.I64,
+                },
                 |state| {
                     view = load_view!(db, state.player_id)?
                     if !state.first and view.revision == state.revision {
                         Ok(Wait({ state, wake: After(125) }))
                     } else {
-                        event = Datastar.patch_elements(Snake.gamePatch({ cells: view.cells, info: view.hud, marks: view.marks }))
+                        now = now_ms!()
+                        started_ms = if state.started_ms == 0 { now } else { state.started_ms }
+                        elapsed_ms = now - started_ms
+                        stream = Game.stream_hud(state.last_bytes, state.total_bytes, state.patches, elapsed_ms)
+                        hud = { ..view.hud, stream }
+                        html = Html.render_without_doc_type(
+                            Snake.gamePatch({ cells: view.cells, info: hud, marks: view.marks }),
+                        )
+                        bytes = List.len(Str.to_utf8(html)).to_i64_wrap()
+                        event = Sse.Event.keyed("datastar-patch-elements", "elements", html)
                         Ok(
                             Emit(
                                 {
                                     event,
-                                    state: { revision: view.revision, first: False, player_id: state.player_id },
+                                    state: {
+                                        revision: view.revision,
+                                        first: False,
+                                        player_id: state.player_id,
+                                        started_ms,
+                                        last_bytes: bytes,
+                                        total_bytes: state.total_bytes + bytes,
+                                        patches: state.patches + 1,
+                                    },
                                     wake: After(125),
                                 },
                             ),
@@ -335,11 +363,11 @@ load_world! = |db| {
 }
 
 load_snakes_db! = |db| {
-    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64 })
+    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64, cam_x : I64, cam_y : I64 })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score FROM players",
+            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y FROM players",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -361,11 +389,11 @@ load_food_db! = |db| {
 }
 
 load_snakes_tx! = |tx| {
-    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64 })
+    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64, cam_x : I64, cam_y : I64 })
     rows = Sqlite.Transaction.query_many!(
         tx,
         {
-            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score FROM players",
+            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y FROM players",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -403,11 +431,13 @@ save_snake_help! = |tx, snakes|
                 respawn_in: snake.respawn_in,
                 body: Game.encode_body(snake.body),
                 score: snake.score,
+                cam_x: snake.cam.x,
+                cam_y: snake.cam.y,
             }
             Sqlite.Transaction.execute!(
                 tx,
                 {
-                    query: "UPDATE players SET dir = :dir, pending_dir = :pending_dir, alive = :alive, respawn_in = :respawn_in, body = :body, score = :score WHERE id = :id",
+                    query: "UPDATE players SET dir = :dir, pending_dir = :pending_dir, alive = :alive, respawn_in = :respawn_in, body = :body, score = :score, cam_x = :cam_x, cam_y = :cam_y WHERE id = :id",
                     params,
                 },
             )?
@@ -450,11 +480,13 @@ insert_player! = |db, snake| {
         respawn_in: snake.respawn_in,
         body: Game.encode_body(snake.body),
         score: snake.score,
+        cam_x: snake.cam.x,
+        cam_y: snake.cam.y,
     }
     Sqlite.execute!(
         {
             db,
-            query: "INSERT INTO players (id, name, color, dir, pending_dir, alive, respawn_in, body, score) VALUES (:id, :name, :color, :dir, :pending_dir, :alive, :respawn_in, :body, :score)",
+            query: "INSERT INTO players (id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y) VALUES (:id, :name, :color, :dir, :pending_dir, :alive, :respawn_in, :body, :score, :cam_x, :cam_y)",
             params,
         },
     )
@@ -531,6 +563,7 @@ build_hud = |world, player_id, cam| {
         respawning,
         respawn_secs,
         can_leave: player_id != "",
+        stream: Game.idle_stream,
         players: List.map(
             world.snakes,
             |snake| {

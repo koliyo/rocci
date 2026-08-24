@@ -50,11 +50,13 @@ interaction patterns with authored `main.roc`:
 
 ## Snake is the ceiling
 
-[Snake](/examples/snake/) is an explicitly advanced multiplayer stress
-example with a hand-written SSE unfold. Do not copy that unfold into ordinary
-apps; generated `@get:live` already emits the poll loop. Use Snake when you
-need a custom ceiling the generator does not cover. Do not treat
-[Rocci Blocks](/examples/blocks/) as a custom-main example.
+[Snake](/examples/snake/) is an explicitly advanced **Datastar + Rocci
+multiplayer stress demo**: a hand-written SSE unfold that morphs a full board
+at ~8 Hz so you can watch live stream bandwidth. Do not copy that unfold into
+ordinary apps; generated `@get:live` already emits the poll loop. Use Snake
+when you need a custom ceiling the generator does not cover, or when you want
+to measure morph cost. Do not treat [Rocci Blocks](/examples/blocks/) as a
+custom-main example.
 
 **Related:** [Applications](/docs/applications/),
 [Package](/docs/applications/package/).

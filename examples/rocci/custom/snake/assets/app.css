@@ -156,6 +156,8 @@ main.play > nav { grid-column: 1 / -1; }
   position: relative;
   width: 100%;
   aspect-ratio: 1;
+  padding: 8px;
+  box-sizing: border-box;
   border: 1px solid rgba(109, 236, 177, .2);
   border-radius: 18px;
   background:
@@ -167,20 +169,25 @@ main.play > nav { grid-column: 1 / -1; }
 }
 .minimap .mark {
   position: absolute;
-  width: 1%;
-  height: 1%;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   pointer-events: none;
+  z-index: 2;
 }
 .minimap .mark.food {
+  width: 6px;
+  height: 6px;
   background: #f5d76e;
   box-shadow: 0 0 6px rgba(245, 215, 110, .85);
+  z-index: 1;
 }
-.minimap .mark.body { opacity: .7; }
+.minimap .mark.body { opacity: .85; }
 .minimap .mark.head {
-  width: 1.8%;
-  height: 1.8%;
+  width: 11px;
+  height: 11px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .75);
+  z-index: 3;
 }
 .minimap .mark.c1 { background: #48eda4; }
 .minimap .mark.c2 { background: #7ec8ff; }
@@ -196,6 +203,7 @@ main.play > nav { grid-column: 1 / -1; }
   background: rgba(72, 237, 164, .08);
   pointer-events: none;
   box-sizing: border-box;
+  z-index: 0;
 }
 
 .hud {
@@ -205,7 +213,13 @@ main.play > nav { grid-column: 1 / -1; }
   background: rgba(11, 30, 24, .72);
 }
 
-.hud .cam { color: #84988f; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.hud .cam,
+.hud .stream {
+  color: #84988f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
 .hud .overlay {
   color: #f5d76e;
   font-weight: 700;

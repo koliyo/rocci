@@ -5,6 +5,7 @@ Game := [].{
     grow_every = 16.I64
     view_width = 31.I64
     view_height = 21.I64
+    cam_margin = 3.I64
     world_size = 100.I64
     food_target = 10.I64
     init_length = 3.I64
@@ -90,6 +91,7 @@ Game := [].{
             respawn_in: row.respawn_in,
             body: decode_body(row.body),
             score: row.score,
+            cam: { x: row.cam_x, y: row.cam_y },
         }
     }
 
@@ -115,6 +117,37 @@ Game := [].{
             n
         }
 
+    format_bytes = |n|
+        if n < 1024 {
+            "${n.to_str()} B"
+        } else if n < 1_048_576 {
+            "${n.div_trunc_by(1024).to_str()} KB"
+        } else {
+            "${n.div_trunc_by(1_048_576).to_str()} MB"
+        }
+
+    idle_stream = {
+        last: "0 B",
+        rate: "0 B/s",
+        total: "0 B",
+        patches: 0.I64,
+    }
+
+    stream_hud = |last_bytes, total_bytes, patches, elapsed_ms| {
+        rate =
+            if elapsed_ms <= 0 {
+                0
+            } else {
+                I64.times(total_bytes, 1000.I64).div_trunc_by(elapsed_ms)
+            }
+        {
+            last: format_bytes(last_bytes),
+            rate: "${format_bytes(rate)}/s",
+            total: format_bytes(total_bytes),
+            patches,
+        }
+    }
+
     in_bounds = |point|
         point.x >= 0
         and point.x < world_size
@@ -124,13 +157,19 @@ Game := [].{
     world_center = ||
         { x: world_size.div_trunc_by(2), y: world_size.div_trunc_by(2) }
 
-    translate = |point, dir|
-        match dir {
-            "up" => { x: point.x, y: point.y - 1 }
-            "down" => { x: point.x, y: point.y + 1 }
-            "left" => { x: point.x - 1, y: point.y }
-            _ => { x: point.x + 1, y: point.y }
-        }
+    wrap_coord = |n|
+        (n + world_size).rem_by(world_size)
+
+    translate = |point, dir| {
+        raw =
+            match dir {
+                "up" => { x: point.x, y: point.y - 1 }
+                "down" => { x: point.x, y: point.y + 1 }
+                "left" => { x: point.x - 1, y: point.y }
+                _ => { x: point.x + 1, y: point.y }
+            }
+        { x: wrap_coord(raw.x), y: wrap_coord(raw.y) }
+    }
 
     opposite = |dir|
         match dir {
@@ -282,6 +321,7 @@ Game := [].{
             respawn_in: 0,
             body: body_from_head(found.head, found.dir, init_length),
             score: init_length,
+            cam: centered_origin(found.head),
         }
         {
             ..world,
@@ -292,23 +332,38 @@ Game := [].{
 
     camera = |world, player_id| {
         if player_id == "" {
-            centroid(world.snakes)
+            centered_origin(centroid(world.snakes))
         } else {
             match player_snake(world.snakes, player_id) {
-                Some(snake) if snake.alive =>
-                    match List.get(snake.body, 0) {
-                        Ok(head) => head
-                        Err(_) => centroid(world.snakes)
-                    }
-                _ => centroid(world.snakes)
+                Some(snake) => snake.cam
+                _ => centered_origin(centroid(world.snakes))
             }
         }
     }
 
-    cam_origin = |cam| {
+    centered_origin = |focus| {
         {
-            x: clamp(cam.x - view_width.div_trunc_by(2), 0, world_size - view_width),
-            y: clamp(cam.y - view_height.div_trunc_by(2), 0, world_size - view_height),
+            x: clamp(focus.x - view_width.div_trunc_by(2), 0, world_size - view_width),
+            y: clamp(focus.y - view_height.div_trunc_by(2), 0, world_size - view_height),
+        }
+    }
+
+    follow_axis = |origin, focus, view| {
+        last = view - 1
+        max_origin = world_size - view
+        if focus < origin + cam_margin {
+            clamp(focus - cam_margin, 0, max_origin)
+        } else if focus > origin + last - cam_margin {
+            clamp(focus - (last - cam_margin), 0, max_origin)
+        } else {
+            origin
+        }
+    }
+
+    follow_origin = |origin, focus| {
+        {
+            x: follow_axis(origin.x, focus.x, view_width),
+            y: follow_axis(origin.y, focus.y, view_height),
         }
     }
 
@@ -386,7 +441,7 @@ Game := [].{
     }
 
     cells = |world, cam| {
-        origin = cam_origin(cam)
+        origin = cam
         List.fold(
             range(view_height),
             [],
@@ -402,7 +457,7 @@ Game := [].{
     }
 
     mark_style = |x, y|
-        "left:${x.to_str()}%;top:${y.to_str()}%"
+        "left:${x.to_str()}%;top:${y.to_str()}%;transform:translate(-50%,-50%)"
 
     mark_kind = |class|
         if Str.starts_with(class, "mark food") {
@@ -455,7 +510,7 @@ Game := [].{
         )
 
     minimap = |world, cam| {
-        origin = cam_origin(cam)
+        origin = cam
         food_marks = List.fold(
             world.food,
             [],
@@ -523,6 +578,7 @@ Game := [].{
                         } else {
                             snake.score
                         },
+                        cam: follow_origin(snake.cam, next_head),
                     }
                 }
             }
@@ -570,12 +626,6 @@ Game := [].{
                 )
         }
 
-    hits_wall = |snake|
-        match head_of(snake) {
-            Err(_) => True
-            Ok(head) => !in_bounds(head)
-        }
-
     kill = |snake|
         { ..snake, alive: False, respawn_in: respawn_ticks, body: [] }
 
@@ -585,7 +635,7 @@ Game := [].{
             |snake|
                 if !snake.alive {
                     snake
-                } else if hits_wall(snake) or head_conflicts(world.snakes, snake) or hits_body(world.snakes, snake) {
+                } else if head_conflicts(world.snakes, snake) or hits_body(world.snakes, snake) {
                     kill(snake)
                 } else {
                     snake
@@ -648,6 +698,7 @@ Game := [].{
                         pending_dir: found.dir,
                         body: body_from_head(found.head, found.dir, init_length),
                         score: init_length,
+                        cam: centered_origin(found.head),
                     }
                     {
                         ..acc,
