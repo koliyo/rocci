@@ -1,5 +1,7 @@
 name: rocci-hybrid-prebuilt
 
+# Live example apps on origin: merge docker/compose.origin.yml (no second Caddy).
+
 services:
   islands:
     image: rocci-islands:local

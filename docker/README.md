@@ -128,7 +128,7 @@ Override the published port with `ROCCI_HTTP_PORT`. The app container prints
 Catalog rows with `hosting = "live"` (`live-counter`, `datastar`) are separate
 processes and hostnames. They do **not** share the rocci.dev hybrid island
 process or steal `/actions/` or `/sse`. Docs-only apps (counter, styling,
-blocks, snake) are absent from this Compose file.
+blocks, snake) are absent from these Compose files.
 
 ```sh
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
@@ -141,8 +141,23 @@ Package each live app with `rocci build --release --target x64musl` (or
 `ROCCI_LIVE_COUNTER_CONTEXT` and `ROCCI_DATASTAR_CONTEXT` at directories that
 contain `server`, `assets/`, and `docker/app/Dockerfile`.
 
+**Laptop Host demos** use `compose.examples.yml` and its own `edge` Caddy.
+Do **not** run that edge on the VPS: `:8080` is already hybrid Caddy.
+
 ```sh
 docker compose -f docker/compose.examples.yml up
+```
+
+**Hybrid plus examples** (same shape as origin) merges live-app services into
+the hybrid project. Hybrid Caddy matches example `Host` headers before site
+`/actions/` and `/sse`:
+
+```sh
+docker compose -f docker/compose.hybrid.yml -f docker/compose.origin.yml up
+curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
+curl -sf -H 'Host: staging.rocci.dev' \
+  -X POST http://127.0.0.1:8080/actions/counter/increment \
+  -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
 ```
 
 Caddy matches `Host` to `<id>.examples.rocci.dev`,
@@ -151,7 +166,8 @@ DNS/Tunnel for those names is operator work. Until a staging deploy has served
 them, treat the live demo links as planned.
 
 The hybrid site Caddy (`docker/cdn/Caddyfile`) still sends `/actions/*` to the
-home-page island. Example origins never steal that path.
+home-page island for `rocci.dev` / `staging.rocci.dev`. Example origins never
+steal that path.
 
 ## Hybrid builder/dev demo (toolchain-heavy)
 
@@ -210,12 +226,13 @@ Override `8080:80` with a Compose override file if the host port is taken
 | `rocci-ops serve static` | Absolutize `ROCCI_DIST` and `compose up` |
 | [`islands/Dockerfile`](islands/Dockerfile) | Slim island process (`debian:bookworm-slim` + binary) |
 | [`compose.hybrid.yml`](compose.hybrid.yml) | Pre-built hybrid: Caddy + island binary |
+| [`compose.origin.yml`](compose.origin.yml) | Live example app services merged onto hybrid (no second Caddy) |
 | [`prod/`](prod/) | Origin docs, Access SSH proxy, env examples |
 | `rocci-ops serve hybrid` | Absolutize `ROCCI_DIST` and islands binary, `compose up` |
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
-| [`compose.examples.yml`](compose.examples.yml) | Live example origins (`live-counter`, `datastar`) |
-| [`examples/Caddyfile`](examples/Caddyfile) | Host routing for `<id>.examples.rocci.dev`; no `/actions/` |
+| [`compose.examples.yml`](compose.examples.yml) | Laptop-only live example origins + `edge` (do not share VPS `:8080`) |
+| [`examples/Caddyfile`](examples/Caddyfile) | Laptop Host routing for `<id>.examples.rocci.dev`; no `/actions/` |
 | `rocci-ops serve app` | Absolutize server dir and app `compose up` |
 | [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain (no CDN stage) |
 | [`cdn/Dockerfile`](cdn/Dockerfile) | Thin Caddy image; prints host URL on start |

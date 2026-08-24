@@ -1,11 +1,6 @@
-name: rocci-example-origins
-
-# Laptop-only Host-header demos. Do not run this `edge` on the VPS: production
-# :8080 is hybrid Caddy (docker/cdn/Caddyfile + compose.hybrid.yml). Merge
-# compose.origin.yml with hybrid instead.
-# Live catalog apps only (hosting = "live"). Docs-only ids are absent.
-# Build contexts are directories containing server, assets/, and Dockerfile
-# (same shape as compose.app.yml).
+# Origin hybrid Caddy plus live example apps. Merge with compose.hybrid.yml:
+#   docker compose -f docker/compose.hybrid.yml -f docker/compose.origin.yml up
+# Do not run compose.examples.yml `edge` on the VPS; :8080 is hybrid Caddy.
 
 services:
   live-counter:
@@ -40,15 +35,7 @@ services:
       retries: 12
       start_period: 10s
 
-  edge:
-    image: rocci-cdn:local
-    build: ./cdn
-    environment:
-      ROCCI_HTTP_PORT: "${ROCCI_HTTP_PORT:-8080}"
-    volumes:
-      - ./examples/Caddyfile:/etc/caddy/Caddyfile:ro
-    ports:
-      - "${ROCCI_HTTP_PORT:-8080}:80"
+  cdn:
     depends_on:
       live-counter:
         condition: service_healthy
