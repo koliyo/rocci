@@ -4,7 +4,7 @@ title: Documentation generator for Rocci applications
 description: "Own application documentation generation in crates/rocci-docs: stage colocated Rocdown plus a full highlighted source tree, mount it on rocci.dev, and host only selected apps as separate live origins. Skip Rocdown examples. Align published source with the semantic handler syntax."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/developer-experience, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T11:45:00Z }
+generated: { by: process:cursor, at: 2026-08-24T11:03:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -34,6 +34,11 @@ sources:
     title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
     author: process:cursor
     last_modified: 2026-08-21
+  - id: example-origins
+    resource: publish-example-origins.md
+    title: Publish live examples on id.examples.rocci.dev
+    author: process:cursor
+    last_modified: 2026-08-24
   - id: efficient
     resource: efficient-publishing.md
     title: Efficient publishing of pre-built sites and Rocci apps
@@ -352,7 +357,10 @@ block publish on new highlighters.[^highlight-lang]
 Live hostname pattern: `<id>.examples.rocci.dev` (staging:
 `<id>.examples.staging.rocci.dev`). Caddy on the VPS routes by `Host` to that
 app container. Docs pages link out; they do not reverse-proxy the app through
-`rocci.dev/examples/<id>/`.
+`rocci.dev/examples/<id>/`. Serving those names, the site Launch control, and
+catalog `site` inclusion are the follow-on
+[publish example origins](publish-example-origins.md) plan. This plan packaged
+binaries and Host Caddy; it does not flip public advertising.[^example-origins]
 
 Each live app is `rocci build --release --target x64musl` plus the existing
 slim app image, with its own SQLite volume. Cap live apps at the catalog; the
@@ -593,6 +601,7 @@ mixed `@on` / `@view` published examples section.
 [^catalog-shell]: Rust owns catalog and artifacts; Rocci owns visible chrome.
 [^site-plan]: Examples were sketched as `/docs/examples/`; this plan promotes them to `/examples/`.
 [^publish-plan]: Origin is hybrid Caddy plus packaged artifacts on a small VPS.
+[^example-origins]: Follow-on for serving `<id>.examples.rocci.dev`, Launch, and catalog `site`.
 [^efficient]: Build once; failed output must not replace a good tree.
 [^site-config]: `site/` mounts `../docs`; it does not yet mount example apps.
 [^examples-index]: Current public examples page is a run-command table.

@@ -1,5 +1,9 @@
 # Knowledge log
 
+## 2026-08-24
+
+- Added draft [publish live examples](plans/publish-example-origins.md): serve catalog `hosting = "live"` apps on `<id>.examples.rocci.dev`, inject a site Launch control, and add catalog `site = true|false` so apps can be omitted from the rocci.dev `/examples/` build. Follow-on to [app-docs](plans/rocci-app-docs.md). Reserved names still fail TLS and must not be advertised until a staging deploy serves them. Exploratory; no phase started.
+
 ## 2026-08-23
 
 - Added draft [implemented method:role handlers compared with the Datastar ecosystem](research/method-role-handlers-datastar-ecosystem.md): the landed `@method:role(path)` matrix is compile-time classification (eleven legal pairs, generated HTML/SSE/204/poll wraps), not a Datastar SDK port. Official SDKs and app frameworks share CQRS and HTML-patch architecture but keep response roles in handler bodies. Exploratory verdict: on the right track for hypermedia DX; ceiling includes no path params, no patch-signals role, no multi-event responses, poll-not-push live, and a steep authored-`main.roc` escape hatch. Does not change the language.
