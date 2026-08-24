@@ -25,6 +25,14 @@ suite('Rocci preview (offline)', () => {
     )
   })
 
+  test('prefers preview_ready over Serving lines', () => {
+    const text = [
+      'Serving Counter at http://127.0.0.1:8000/',
+      'preview_ready http://127.0.0.1:9000/guide/'
+    ].join('\n')
+    assert.strictEqual(parsePreviewUrl(text), 'http://127.0.0.1:9000/guide/')
+  })
+
   test('dispatches .rocci to rocci run --no-window --port auto', () => {
     const argv = previewArgv('/tmp/App.rocci')
     assert.deepStrictEqual(argv, {
