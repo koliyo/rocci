@@ -8,6 +8,7 @@ product CLI).
 ```sh
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs --all
 ```
 
 Each catalog row may set `site` (bool, default `true`) to include the app in
@@ -17,7 +18,10 @@ requires `site = true`. Unknown keys are rejected so a misspelling of `site`
 cannot silently default to included.
 
 `--print-live` lists `id`, catalog-relative `path`, and `entry` for
-`hosting = "live"` rows. Docs-only ids are omitted.
+`hosting = "live"` and `site = true` rows. Docs-only and `site = false` ids
+are omitted. Staging writes only `site = true` apps unless `--all` is set
+(local preview of excluded rows). `package site` and `build site` must not
+pass `--all`.
 
 For each published `.rocci` file, `rocci-docs` parses attached `## ` doc
 comments (same attachment rules as Roc: no blank line before `@`) and writes
@@ -33,8 +37,8 @@ Staging writes a complete sibling tree and replaces the previous output only
 after success. A failed catalog copy or write leaves the previous tree in
 place.
 
-The generated `/examples/` index lists cataloged Rocci apps only. Rocdown
-examples belong on the Rocdown product lane.
+The generated `/examples/` index lists `site = true` cataloged Rocci apps only.
+Rocdown examples belong on the Rocdown product lane.
 
 Reserved live hostnames use `<id>.examples.rocci.dev` (staging:
 `<id>.examples.staging.rocci.dev`). Those names are **not serving**; the

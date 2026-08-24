@@ -150,6 +150,7 @@ def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> Non
 
     assert build_site() == 0
     assert calls[0][4] == "rocci-docs"
+    assert "--all" not in calls[0]
     assert [call[-2] for call in calls[1:]] == ["check", "test", "build"]
     assert all(call[-1] == "site" for call in calls[1:])
 

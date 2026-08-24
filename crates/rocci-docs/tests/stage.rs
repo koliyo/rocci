@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rocci_docs::{generate, load_catalog, stage};
+use rocci_docs::{generate, load_catalog, stage, stage_with};
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -57,7 +57,53 @@ path = "listed"
 title = "Listed"
 summary = "Fixture app"
 entry = "App.rocci"
+        hosting = "docs"
+"#,
+    );
+}
+
+fn mixed_site_catalog(root: &Path) {
+    fixture_app(root);
+    write(
+        &root.join("hidden/index.rocdown"),
+        "@page { layout: \"docs\", meta: { title: \"Hidden\" } }\n\n# Hidden\n",
+    );
+    write(
+        &root.join("hidden/App.rocci"),
+        "@component X = || { <p/> }\n",
+    );
+    write(
+        &root.join("live/index.rocdown"),
+        "@page { layout: \"docs\", meta: { title: \"Live\" } }\n\n# Live\n",
+    );
+    write(&root.join("live/App.rocci"), "@component X = || { <p/> }\n");
+    write(
+        &root.join("apps.toml"),
+        r#"
+[[app]]
+id = "listed"
+path = "listed"
+title = "Listed"
+summary = "Fixture app"
+entry = "App.rocci"
 hosting = "docs"
+
+[[app]]
+id = "hidden"
+path = "hidden"
+title = "Hidden"
+summary = "Excluded from the public site"
+entry = "App.rocci"
+hosting = "docs"
+site = false
+
+[[app]]
+id = "live"
+path = "live"
+title = "Live"
+summary = "Live fixture"
+entry = "App.rocci"
+hosting = "live"
 "#,
     );
 }
@@ -98,6 +144,104 @@ fn repo_catalog_live_ids_exclude_docs_only() {
     assert_eq!(ids, ["live-counter", "datastar"]);
     assert!(!ids.contains(&"counter"));
     assert!(!ids.contains(&"snake"));
+}
+
+#[test]
+fn site_false_is_omitted_from_staging_index_and_print_live() {
+    let root = scratch("site-filter");
+    mixed_site_catalog(&root);
+    let catalog = load_catalog(&root.join("apps.toml")).unwrap();
+    assert_eq!(
+        rocci_docs::live_apps(&catalog)
+            .iter()
+            .map(|app| app.id.as_str())
+            .collect::<Vec<_>>(),
+        ["live"]
+    );
+    let out = root.join("out");
+    generate(&root.join("apps.toml"), &out).unwrap();
+    let files = collect_rel(&out);
+    assert!(files.contains(&"listed/index.rocdown".into()));
+    assert!(files.contains(&"live/index.rocdown".into()));
+    assert!(!files.iter().any(|f| f.starts_with("hidden/")));
+    let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("/examples/listed/"));
+    assert!(index.contains("/examples/live/"));
+    assert!(!index.contains("/examples/hidden/"));
+    assert!(!index.contains("Hidden"));
+}
+
+#[test]
+fn all_flag_stages_excluded_apps() {
+    let root = scratch("site-all");
+    mixed_site_catalog(&root);
+    let catalog = load_catalog(&root.join("apps.toml")).unwrap();
+    let out = root.join("out");
+    stage_with(&catalog, &out, true).unwrap();
+    let files = collect_rel(&out);
+    assert!(files.contains(&"hidden/index.rocdown".into()));
+    let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("/examples/hidden/"));
+}
+
+fn examples_nav_ids(text: &str) -> Vec<String> {
+    let start = text.find("label = \"Examples\"").expect("Examples nav");
+    let rest = &text[start..];
+    let items_at = rest.find("items = [").expect("Examples items");
+    let after = &rest[items_at + "items = [".len()..];
+    let end = after.find(']').expect("Examples items close");
+    after[..end]
+        .split(',')
+        .filter_map(|part| {
+            let item = part.trim().trim_matches('"');
+            if item.is_empty() {
+                None
+            } else {
+                Some(item.to_string())
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn examples_nav_matches_site_true_catalog_ids() {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let catalog = load_catalog(&manifest.join("../../examples/rocci/apps.toml")).unwrap();
+    let site_ids: Vec<&str> = catalog
+        .apps
+        .iter()
+        .filter(|app| app.site)
+        .map(|app| app.id.as_str())
+        .collect();
+    let excluded: Vec<&str> = catalog
+        .apps
+        .iter()
+        .filter(|app| !app.site)
+        .map(|app| app.id.as_str())
+        .collect();
+    let nav = fs::read_to_string(manifest.join("../../site/rocdown.toml")).unwrap();
+    let items = examples_nav_ids(&nav);
+    assert_eq!(items[0], "examples/index");
+    let nav_ids: Vec<&str> = items
+        .iter()
+        .skip(1)
+        .map(|item| {
+            item.strip_prefix("examples/")
+                .and_then(|rest| rest.strip_suffix("/index"))
+                .unwrap_or(item)
+        })
+        .collect();
+    let mut expected = site_ids.clone();
+    expected.sort();
+    let mut actual = nav_ids.clone();
+    actual.sort();
+    assert_eq!(actual, expected);
+    for id in excluded {
+        assert!(
+            !nav_ids.contains(&id),
+            "site = false id `{id}` must not remain in Examples nav"
+        );
+    }
 }
 
 #[test]

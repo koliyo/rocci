@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use anyhow::{Result, bail};
 use clap::Parser;
-use rocci_docs::{generate, live_apps, load_catalog};
+use rocci_docs::{generate_with, live_apps, load_catalog};
 
 #[derive(Parser)]
 #[command(
@@ -20,6 +20,9 @@ struct Cli {
     /// Print live-hosting catalog rows as `id\tpath\tentry` and exit.
     #[arg(long)]
     print_live: bool,
+    /// Stage apps with `site = false` as well (local preview; not for package site).
+    #[arg(long)]
+    all: bool,
 }
 
 fn main() -> ExitCode {
@@ -44,7 +47,7 @@ fn run() -> Result<()> {
     let Some(output) = cli.output else {
         bail!("--output is required unless --print-live is set");
     };
-    let report = generate(&cli.catalog, &output)?;
+    let report = generate_with(&cli.catalog, &output, cli.all)?;
     println!(
         "staged {} apps ({} files) into {}",
         report.apps,

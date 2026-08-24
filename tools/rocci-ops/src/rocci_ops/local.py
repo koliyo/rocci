@@ -519,9 +519,12 @@ def package_site(*, target: str) -> int:
         if not (dest / "server").is_file():
             raise SystemExit(f"error: live app `{app_id}` did not write {dest / 'server'}")
         print(f"[rocci-ops] phase=live-app status=done app={app_id}", flush=True)
-    for docs_only in ("counter", "styling", "blocks", "snake"):
-        if (live_root / docs_only).exists():
-            raise SystemExit(f"error: docs-only id `{docs_only}` must not be in {live_root}")
+    expected = {line.split("\t", 1)[0] for line in live_entries if line.strip()}
+    found = {path.name for path in live_root.iterdir() if path.is_dir()}
+    if found != expected:
+        raise SystemExit(
+            f"error: live root {live_root} has {sorted(found)}, expected {sorted(expected)}"
+        )
     run(
         [
             "cargo",
