@@ -2,6 +2,7 @@
 
 ## 2026-08-23
 
+- Added draft [implemented method:role handlers compared with the Datastar ecosystem](research/method-role-handlers-datastar-ecosystem.md): the landed `@method:role(path)` matrix is compile-time classification (eleven legal pairs, generated HTML/SSE/204/poll wraps), not a Datastar SDK port. Official SDKs and app frameworks share CQRS and HTML-patch architecture but keep response roles in handler bodies. Exploratory verdict: on the right track for hypermedia DX; ceiling includes no path params, no patch-signals role, no multi-event responses, poll-not-push live, and a steep authored-`main.roc` escape hatch. Does not change the language.
 - Pointed [Rocdown Markdown `@{expr}` interpolation](plans/rocdown-inline-interpolation.md) and [inline interpolation research](research/rocdown-inline-interpolation.md) at draft [Rocdown `@{expr}` follow-ons after v1](plans/rocdown-inline-interpolation-follow-ons.md). Public hydrate matrices on `sites.rocdown` / `hybrid.rocdown` now name Markdown `@{expr}` like `language.rocdown`. Parent plan stays exploratory; not logged CI-complete.
 - Moved Site package/deploy and Release Linux off `rocci-linux` onto `ubuntu-latest`. No workflow `runs-on` is self-hosted. Hosted Ubuntu jobs install GTK/WebKit via `docker/install-linux-deps.sh builder`.
 - Disabled self-hosted runners for CI and Knowledge: `ci.yml` and `knowledge.yml` are GitHub-hosted only. `/ci-local` still matches but queues hosted jobs.
