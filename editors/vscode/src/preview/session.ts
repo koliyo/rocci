@@ -1,18 +1,38 @@
 import { ChildProcess, spawn } from 'child_process'
-import { commands, ExtensionContext, ViewColumn, window } from 'vscode'
+import {
+  commands,
+  ExtensionContext,
+  StatusBarAlignment,
+  StatusBarItem,
+  ViewColumn,
+  WebviewPanel,
+  window
+} from 'vscode'
 
 import { wrappedOutput } from '../output-channels'
 import { resolvePreviewBinary } from './binaries'
+import { canPreviewDocument, chooseBrowserHost, iframePreviewHtml } from './browser'
 import { previewArgv } from './dispatch'
+import { navigateUrl, PreviewOrigin, previewOrigin, reuseDecision } from './origin'
 import { parsePreviewUrl } from './parse'
 
 const READY_TIMEOUT_MS = 120_000
+const ACTIVE_CONTEXT = 'rocci.preview.active'
 
 export class PreviewSession {
   private child: ChildProcess | undefined
+  private origin: PreviewOrigin | undefined
+  private url: string | undefined
   private stopping = false
+  private panel: WebviewPanel | undefined
+  private readonly status: StatusBarItem
 
-  constructor(private readonly context: ExtensionContext) {}
+  constructor(private readonly context: ExtensionContext) {
+    this.status = window.createStatusBarItem(StatusBarAlignment.Left, 50)
+    this.status.command = 'rocci.stopPreview'
+    this.status.tooltip = 'Stop Rocci preview'
+    this.context.subscriptions.push(this.status)
+  }
 
   get running(): boolean {
     return this.child !== undefined && this.child.exitCode === null
@@ -24,18 +44,29 @@ export class PreviewSession {
       await window.showErrorMessage('Open a .rocci or .rocdown file to preview.')
       return
     }
-    const filePath = editor.document.uri.scheme === 'file' ? editor.document.uri.fsPath : undefined
-    if (!filePath) {
-      await window.showErrorMessage('Save the file before previewing.')
+    if (!canPreviewDocument(editor.document.uri.scheme, editor.document.uri.fsPath)) {
+      const message = 'Preview requires a saved file. Untitled buffers cannot be served.'
+      wrappedOutput.appendLine(message)
+      await window.showErrorMessage(message)
       return
     }
+    const filePath = editor.document.uri.fsPath
+    const origin = previewOrigin(filePath)
     const argv = previewArgv(filePath)
-    if (!argv) {
+    if (!origin || !argv) {
       await window.showErrorMessage('Preview supports .rocci and .rocdown files.')
       return
     }
     if (editor.document.isDirty) {
       await editor.document.save()
+    }
+
+    const action = reuseDecision(this.running ? this.origin : undefined, origin)
+    if (action === 'reuse' && this.url) {
+      const url = navigateUrl(this.url, filePath, origin)
+      this.url = url
+      await this.openBrowser(url)
+      return
     }
 
     const binary = resolvePreviewBinary(this.context, argv.product)
@@ -57,6 +88,7 @@ export class PreviewSession {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     this.child = child
+    this.origin = origin
 
     let buffer = ''
     const onData = (chunk: Buffer) => {
@@ -72,6 +104,9 @@ export class PreviewSession {
     child.on('exit', (code, signal) => {
       if (this.child === child) {
         this.child = undefined
+        this.origin = undefined
+        this.url = undefined
+        void this.setActive(false)
       }
       if (!this.stopping) {
         wrappedOutput.appendLine(`preview exited (${code ?? signal ?? 'unknown'})`)
@@ -83,12 +118,17 @@ export class PreviewSession {
       await this.stop()
       return
     }
+    this.url = url
+    await this.setActive(true)
     await this.openBrowser(url)
   }
 
   async stop(): Promise<void> {
     const child = this.child
     this.child = undefined
+    this.origin = undefined
+    this.url = undefined
+    await this.setActive(false)
     if (!child || child.exitCode !== null) {
       return
     }
@@ -98,6 +138,7 @@ export class PreviewSession {
   }
 
   dispose(): void {
+    this.panel?.dispose()
     void this.stop()
   }
 
@@ -126,10 +167,46 @@ export class PreviewSession {
   }
 
   private async openBrowser(url: string): Promise<void> {
-    await commands.executeCommand('simpleBrowser.api.open', url, {
-      viewColumn: ViewColumn.Beside,
-      preserveFocus: true
-    })
+    const known = await commands.getCommands(true)
+    const host = chooseBrowserHost(known.includes('simpleBrowser.api.open'))
+    if (host === 'simpleBrowser') {
+      try {
+        await commands.executeCommand('simpleBrowser.api.open', url, {
+          viewColumn: ViewColumn.Beside,
+          preserveFocus: true
+        })
+        return
+      } catch (err) {
+        wrappedOutput.appendLine(`Simple Browser unavailable: ${err}`)
+      }
+    }
+    this.openIframe(url)
+  }
+
+  private openIframe(url: string): void {
+    if (!this.panel) {
+      this.panel = window.createWebviewPanel(
+        'rocciPreview',
+        'Rocci Preview',
+        { viewColumn: ViewColumn.Beside, preserveFocus: true },
+        { enableScripts: true, retainContextWhenHidden: true }
+      )
+      this.panel.onDidDispose(() => {
+        this.panel = undefined
+      })
+    }
+    this.panel.webview.html = iframePreviewHtml(url)
+    this.panel.reveal(ViewColumn.Beside, true)
+  }
+
+  private async setActive(active: boolean): Promise<void> {
+    await commands.executeCommand('setContext', ACTIVE_CONTEXT, active)
+    if (active) {
+      this.status.text = '$(radio-tower) Rocci Preview'
+      this.status.show()
+    } else {
+      this.status.hide()
+    }
   }
 }
 

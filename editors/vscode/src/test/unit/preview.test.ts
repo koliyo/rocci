@@ -1,8 +1,11 @@
 import * as assert from 'assert'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 
+import { canPreviewDocument, chooseBrowserHost } from '../../preview/browser'
 import { previewArgv } from '../../preview/dispatch'
+import { previewOrigin, reuseDecision } from '../../preview/origin'
 import { parsePreviewUrl } from '../../preview/parse'
 
 const PREVIEW_WHEN = 'editorLangId == rocci || editorLangId == rocdown'
@@ -63,5 +66,42 @@ suite('Rocci preview (offline)', () => {
     assert.strictEqual(titlePreview?.when, PREVIEW_WHEN)
     assert.strictEqual(runPreview?.when, PREVIEW_WHEN)
     assert.ok(!title.some(entry => entry.command === 'rocci.stopPreview'))
+    const stop = manifest.contributes.commands.find(entry => entry.command === 'rocci.stopPreview') as
+      | { enablement?: string }
+      | undefined
+    assert.strictEqual(stop?.enablement, 'rocci.preview.active')
+  })
+
+  test('refuses untitled and unsaved schemes', () => {
+    assert.strictEqual(canPreviewDocument('untitled', undefined), false)
+    assert.strictEqual(canPreviewDocument('untitled', ''), false)
+    assert.strictEqual(canPreviewDocument('file', '/tmp/App.rocci'), true)
+  })
+
+  test('reuses the same site or app origin and restarts on product change', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-preview-'))
+    fs.writeFileSync(path.join(root, 'rocdown.toml'), '')
+    const pages = path.join(root, 'pages')
+    fs.mkdirSync(pages)
+    const guide = path.join(pages, 'Guide.rocdown')
+    const note = path.join(pages, 'Note.rocdown')
+    fs.writeFileSync(guide, '')
+    fs.writeFileSync(note, '')
+    const first = previewOrigin(guide)
+    const second = previewOrigin(note)
+    assert.ok(first && second)
+    assert.strictEqual(reuseDecision(undefined, first), 'start')
+    assert.strictEqual(reuseDecision(first, second), 'reuse')
+
+    const app = path.join(root, 'App.rocci')
+    fs.writeFileSync(app, '')
+    const rocci = previewOrigin(app)
+    assert.ok(rocci)
+    assert.strictEqual(reuseDecision(first, rocci), 'restart')
+  })
+
+  test('chooses Simple Browser when present and iframe otherwise', () => {
+    assert.strictEqual(chooseBrowserHost(true), 'simpleBrowser')
+    assert.strictEqual(chooseBrowserHost(false), 'iframe')
   })
 })

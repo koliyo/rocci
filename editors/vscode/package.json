@@ -101,7 +101,8 @@
       {
         "command": "rocci.stopPreview",
         "title": "Rocci: Stop Preview",
-        "icon": "$(stop)"
+        "icon": "$(stop)",
+        "enablement": "rocci.preview.active"
       }
     ],
     "menus": {
