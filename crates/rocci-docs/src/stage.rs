@@ -25,6 +25,14 @@ pub fn app_play_url(app: &AppEntry) -> String {
 }
 
 pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
+    stage_with(catalog, output, false)
+}
+
+pub fn stage_with(
+    catalog: &Catalog,
+    output: &Path,
+    include_all: bool,
+) -> Result<StageReport, DocsError> {
     let parent = output.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|source| DocsError::Io {
         path: parent.to_path_buf(),
@@ -44,7 +52,7 @@ pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError>
             source,
         })?;
     }
-    match stage_into(catalog, &staging) {
+    match stage_into(catalog, &staging, include_all) {
         Ok(report) => {
             replace_dir(&staging, output)?;
             Ok(report)
@@ -56,22 +64,35 @@ pub fn stage(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError>
     }
 }
 
-fn stage_into(catalog: &Catalog, output: &Path) -> Result<StageReport, DocsError> {
+fn apps_to_stage(catalog: &Catalog, include_all: bool) -> Vec<&AppEntry> {
+    catalog
+        .apps
+        .iter()
+        .filter(|app| include_all || app.site)
+        .collect()
+}
+
+fn stage_into(
+    catalog: &Catalog,
+    output: &Path,
+    include_all: bool,
+) -> Result<StageReport, DocsError> {
     fs::create_dir_all(output).map_err(|source| DocsError::Io {
         path: output.to_path_buf(),
         source,
     })?;
 
+    let apps = apps_to_stage(catalog, include_all);
     let mut files = 0;
-    write_file(output.join("index.rocdown"), &catalog_index(catalog))?;
+    write_file(output.join("index.rocdown"), &catalog_index(&apps))?;
     files += 1;
 
-    for app in &catalog.apps {
+    for app in &apps {
         files += stage_app(catalog, app, output)?;
     }
 
     Ok(StageReport {
-        apps: catalog.apps.len(),
+        apps: apps.len(),
         files,
     })
 }
@@ -229,9 +250,9 @@ fn copy_rocdown(
     Ok(())
 }
 
-fn catalog_index(catalog: &Catalog) -> String {
+fn catalog_index(apps: &[&AppEntry]) -> String {
     let mut rows = String::new();
-    for app in &catalog.apps {
+    for app in apps {
         let role = if app.complexity.is_empty() {
             "—"
         } else {
