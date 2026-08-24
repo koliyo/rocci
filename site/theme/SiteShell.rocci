@@ -177,6 +177,32 @@ import PageOutline
         overflow: hidden;
     }
     .site-body.is-navigated .site-footer { display: none; }
+    :scope .rocci-col-resizer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 11px;
+        z-index: 5;
+        cursor: col-resize;
+        touch-action: none;
+        background: transparent;
+    }
+    :scope .rocci-col-resizer::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 5px;
+        width: 1px;
+        background: var(--line);
+    }
+    :scope .rocci-col-resizer:hover::after,
+    :scope .rocci-col-resizer:focus-visible::after,
+    :scope .rocci-col-resizer.is-active::after { background: var(--accent); }
+    :scope.is-col-resizing { cursor: col-resize; user-select: none; }
+    @media (max-width: 48rem) {
+        :scope .rocci-col-resizer { display: none; }
+    }
     .header-inner {
         max-width: 86rem;
         height: 100%;

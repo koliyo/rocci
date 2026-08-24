@@ -14,6 +14,8 @@ pub enum IpcMessage {
     LiveReload(bool),
     Devtools(bool),
     InspectorPrefs(String),
+    Layout(String),
+    Location(String),
     Drag,
     Zoom,
 }
@@ -47,6 +49,12 @@ impl IpcMessage {
         }
         if let Some(json) = message.strip_prefix("inspector-prefs:") {
             return Some(Self::InspectorPrefs(json.to_string()));
+        }
+        if let Some(json) = message.strip_prefix("layout:") {
+            return Some(Self::Layout(json.to_string()));
+        }
+        if let Some(url) = message.strip_prefix("location:") {
+            return Some(Self::Location(url.to_string()));
         }
         match message {
             "drag" => return Some(Self::Drag),
@@ -194,10 +202,19 @@ pub fn normalize_url(url: &str) -> String {
 
 pub fn display_path(url: &str) -> String {
     let rest = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
-    match rest.find('/') {
-        Some(index) => rest[index..].to_string(),
-        None if rest.is_empty() => "/".to_string(),
-        None => "/".to_string(),
+    let after_host = match rest.find('/') {
+        Some(index) => &rest[index..],
+        None => return "/".to_string(),
+    };
+    let (path, suffix) = match after_host.find(['?', '#']) {
+        Some(index) => (&after_host[..index], &after_host[index..]),
+        None => (after_host, ""),
+    };
+    let path = path.trim_end_matches('/');
+    if path.is_empty() {
+        format!("/{suffix}")
+    } else {
+        format!("{path}{suffix}")
     }
 }
 
@@ -247,6 +264,18 @@ mod tests {
             ))
         );
         assert_eq!(
+            IpcMessage::parse(r#"layout:{"nav":"264px","outline":"216px"}"#),
+            Some(IpcMessage::Layout(
+                r#"{"nav":"264px","outline":"216px"}"#.into()
+            ))
+        );
+        assert_eq!(
+            IpcMessage::parse("location:http://127.0.0.1:8000/guides/rocdown/"),
+            Some(IpcMessage::Location(
+                "http://127.0.0.1:8000/guides/rocdown/".into()
+            ))
+        );
+        assert_eq!(
             IpcMessage::parse("home"),
             Some(IpcMessage::Nav(NavCommand::Home))
         );
@@ -261,7 +290,7 @@ mod tests {
         assert!(!history.can_back());
         assert!(!history.can_forward());
         assert_eq!(history.current(), Some(GUIDE));
-        assert_eq!(history.display_path(), "/guides/rocdown/");
+        assert_eq!(history.display_path(), "/guides/rocdown");
     }
 
     #[test]
@@ -271,7 +300,7 @@ mod tests {
         history.commit(INTERACTIVE);
         assert!(history.can_back());
         assert!(!history.can_forward());
-        assert_eq!(history.display_path(), "/guides/rocdown-interactive/");
+        assert_eq!(history.display_path(), "/guides/rocdown-interactive");
         assert_ne!(display_path(GUIDE), display_path(INTERACTIVE));
     }
 
@@ -379,8 +408,13 @@ mod tests {
     fn display_path_strips_origin() {
         assert_eq!(
             display_path("http://127.0.0.1:9377/guides/rocdown-interactive/"),
-            "/guides/rocdown-interactive/"
+            "/guides/rocdown-interactive"
         );
         assert_eq!(display_path("https://example.test"), "/");
+        assert_eq!(display_path("http://127.0.0.1:8000/"), "/");
+        assert_eq!(
+            display_path("http://127.0.0.1:8000/guides/rocdown/?q=1"),
+            "/guides/rocdown?q=1"
+        );
     }
 }

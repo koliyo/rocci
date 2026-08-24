@@ -81,12 +81,12 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         .unwrap_or_else(|| "preview".to_string());
 
     let saved_state = crate::state::load_window_state(&state_key);
-    let (width, height) = match saved_state {
+    let (width, height) = match &saved_state {
         Some(state) if state.width >= 100.0 && state.height >= 100.0 => (state.width, state.height),
         _ => (options.width, options.height),
     };
 
-    let (initial_position, initial_maximized) = match saved_state {
+    let (initial_position, initial_maximized) = match &saved_state {
         Some(state) => {
             let visible =
                 crate::state::is_position_visible(&event_loop, state.x, state.y, width, height);
@@ -114,11 +114,16 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
     let host_ipc = options.on_ipc.clone();
     let host_sink: Arc<dyn PreviewSink> = Arc::new(ProxySink(proxy.clone()));
     let saved_inspector = crate::state::load_inspector_state(&state_key);
+    let saved_layout = saved_state
+        .as_ref()
+        .filter(|state| state.has_layout())
+        .cloned();
     let mut init_script = chrome::initialization_script(
         options.inspector_url.as_deref(),
         options.source_root.is_some(),
         options.live_reload,
         saved_inspector.as_ref(),
+        saved_layout.as_ref(),
     );
     if let Some(extra) = &options.extra_initialization_script {
         init_script.push('\n');
@@ -158,6 +163,14 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     Some(IpcMessage::InspectorPrefs(json)) => {
                         let _ = ipc_proxy
                             .send_event(ShellEvent::Preview(PreviewEvent::InspectorPrefs(json)));
+                    }
+                    Some(IpcMessage::Layout(json)) => {
+                        let _ =
+                            ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Layout(json)));
+                    }
+                    Some(IpcMessage::Location(url)) => {
+                        let _ =
+                            ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Location(url)));
                     }
                     Some(IpcMessage::Drag) => {
                         #[cfg(target_os = "macos")]
@@ -321,6 +334,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     crate::state::save_inspector_state(&state_key, state);
                 }
             }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Layout(json))) => {
+                crate::state::merge_layout_json(&state_key, &json);
+            }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Drag)) => {
                 if let Err(error) = live.window.drag_window() {
                     tracing::error!(%error, "failed to drag preview window");
@@ -340,6 +356,13 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Title(next))) => {
                 live.window.set_title(&next);
                 title = next;
+                apply_overlay(&live, &chrome::update_title_script(&title));
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::Location(url))) => {
+                history.commit(&url);
+                if let Some(on_navigate) = &on_navigate {
+                    on_navigate(&url);
+                }
                 sync_chrome(&live, &history, &title);
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Navigate {

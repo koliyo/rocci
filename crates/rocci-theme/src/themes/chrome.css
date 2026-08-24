@@ -21,10 +21,43 @@
   font-synthesis: none;
 }
 .rd-shell {
+  position: relative;
   display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: var(--rocci-nav-width, 16.5rem) minmax(0, 1fr);
+  align-items: stretch;
   min-height: 100vh;
+}
+.rd-shell:has(> .rd-toc),
+.rd-shell:has(> #okf-toc) {
+  grid-template-columns: var(--rocci-nav-width, 16.5rem) minmax(0, 1fr) var(--rocci-outline-width, 13.5rem);
+}
+.rocci-col-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 11px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+}
+.rocci-col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: transparent;
+}
+.rocci-col-resizer:hover::after,
+.rocci-col-resizer:focus-visible::after,
+.rocci-col-resizer.is-active::after {
+  background: var(--rd-color-accent);
+}
+body.is-col-resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 .rd-document main {
   box-sizing: border-box;
@@ -68,7 +101,9 @@
   text-decoration: none;
   overflow-wrap: anywhere;
 }
-.rd-toc-link:hover {
+.rd-toc-link:hover,
+.rd-toc-link.is-current,
+.rd-toc-link[aria-current="location"] {
   border-color: var(--rd-color-accent);
   color: var(--rd-color-text);
 }
@@ -88,6 +123,9 @@
     display: block;
   }
   .rd-toc {
+    display: none;
+  }
+  .rocci-col-resizer {
     display: none;
   }
   .rd-toc-menu {

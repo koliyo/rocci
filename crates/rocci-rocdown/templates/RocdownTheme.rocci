@@ -127,11 +127,12 @@ import PageOutline
     .goto-open:hover { border-color: var(--line-strong); color: var(--ink); }
 
     .site-grid {
+        position: relative;
         width: min(100%, 94rem);
         min-height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px));
         margin: 0 auto;
         display: grid;
-        grid-template-columns: 17rem minmax(0, 1fr) 13.5rem;
+        grid-template-columns: var(--rocci-nav-width, 17rem) minmax(0, 1fr) var(--rocci-outline-width, 13.5rem);
     }
     .sidebar {
         position: sticky;
@@ -141,6 +142,28 @@ import PageOutline
         overflow-y: auto;
         border-right: 1px solid var(--line);
     }
+    .rocci-col-resizer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 11px;
+        z-index: 5;
+        cursor: col-resize;
+        touch-action: none;
+        background: transparent;
+    }
+    .rocci-col-resizer::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 5px;
+        width: 1px;
+        background: transparent;
+    }
+    .rocci-col-resizer:hover::after,
+    .rocci-col-resizer:focus-visible::after,
+    .rocci-col-resizer.is-active::after { background: var(--accent); }
     .nav-section { margin: 0; }
     .nav-section + .nav-section { margin-top: .28rem; }
     .nav-section summary {
@@ -227,7 +250,9 @@ import PageOutline
         line-height: 1.35;
         text-decoration: none;
     }
-    .outline-link:hover { border-color: var(--accent); color: var(--ink); }
+    .outline-link:hover,
+    .outline-link.is-current,
+    .outline-link[aria-current="location"] { border-color: var(--accent); color: var(--ink); }
     .outline-link.level-3 { padding-left: 1.35rem; color: var(--faint); }
     .outline:not(:has(.outline-link)) .outline-label,
     .outline:not(:has(.outline-link)) .outline-items { display: none; }
@@ -288,14 +313,16 @@ import PageOutline
     .mobile-menu { display: none; }
 
     @media (max-width: 70rem) {
-        .site-grid { grid-template-columns: 16.5rem minmax(0, 1fr); }
+        .site-grid { grid-template-columns: var(--rocci-nav-width, 16.5rem) minmax(0, 1fr); }
         .outline { display: none; }
+        .rocci-col-resizer[data-rocci-resize="outline"] { display: none; }
     }
     @media (max-width: 48rem) {
         .header-inner { padding: 0 1rem; }
         .header-rule, .header-subtitle, .header-link, .lanes { display: none; }
         .site-grid { display: block; }
         .sidebar { display: none; }
+        .rocci-col-resizer { display: none; }
         .content-column { padding: 2.3rem 1.25rem 4rem; }
         .mobile-menu { position: relative; display: block; margin-left: auto; }
         .mobile-menu summary {

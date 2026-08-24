@@ -95,6 +95,13 @@ fn chrome_script_includes_copy_hooks() {
     assert!(chrome.contains("window.__rocciGoto"));
     assert!(chrome.contains("window.__rocciCopy"));
     assert!(chrome.contains("rd-code-block"));
+    assert!(chrome.contains("window.__rocciResize"));
+    assert!(chrome.contains("rocci-col-resizer"));
+    assert!(chrome.contains(".rd-shell, .layout-navigated, .site-grid"));
+    assert!(chrome.contains("layout:"));
+    assert!(chrome.contains("__ROCCI_LAYOUT__"));
+    assert!(chrome.contains("window.__rocciToc"));
+    assert!(chrome.contains("aria-current"));
 }
 
 #[test]
@@ -105,6 +112,8 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("/examples\\/[^/]+\\/source"));
     assert!(GOTO_SCRIPT.contains("/catalog.json"));
     assert!(GOTO_SCRIPT.contains("history.pushState"));
+    assert!(GOTO_SCRIPT.contains("location:"));
+    assert!(GOTO_SCRIPT.contains("reportLocation"));
     assert!(GOTO_SCRIPT.contains("rocci-goto"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-shortcut"));
@@ -124,6 +133,9 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("#okf-toc, .layout-navigated > .outline, .site-grid > .outline"));
     assert!(GOTO_SCRIPT.contains("keepNav"));
     assert!(GOTO_SCRIPT.contains(".mobile-panel"));
+    assert!(GOTO_SCRIPT.contains("__rocciResize.enhance"));
+    assert!(GOTO_SCRIPT.contains("__rocciToc.enhance"));
+    assert!(GOTO_SCRIPT.contains("resetDocumentScroll"));
     assert!(GOTO_SCRIPT.contains("rememberScrollPositions"));
     assert!(GOTO_SCRIPT.contains("restoreScrollPositions"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.restore()"));

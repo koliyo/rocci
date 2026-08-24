@@ -95,20 +95,23 @@ import PageOutline
 
 @css {
     :scope.layout-navigated {
+        position: relative;
         display: grid;
-        grid-template-columns: 16rem minmax(0, 1fr) 14rem;
+        grid-template-columns: var(--rocci-nav-width, 16rem) minmax(0, 1fr) var(--rocci-outline-width, 14rem);
         gap: 2rem;
         max-width: 86rem;
+        min-height: 100%;
         margin: 0 auto;
         padding: 1.5rem 1rem;
     }
     @media (max-width: 64rem) {
         :scope.layout-navigated {
-            grid-template-columns: 14rem minmax(0, 1fr);
+            grid-template-columns: var(--rocci-nav-width, 14rem) minmax(0, 1fr);
         }
         :scope.layout-navigated > .outline {
             display: none;
         }
+        .rocci-col-resizer[data-rocci-resize="outline"] { display: none; }
         :scope.layout-navigated .outline-fallback { display: block; }
     }
     @media (max-width: 48rem) {
@@ -118,6 +121,7 @@ import PageOutline
         .sidebar {
             display: none;
         }
+        .rocci-col-resizer { display: none; }
         :scope.layout-navigated .outline-fallback, :scope.layout-navigated > .outline {
             display: none;
         }
@@ -160,6 +164,28 @@ import PageOutline
     .sidebar:focus-within::-webkit-scrollbar-thumb {
         background: var(--line);
     }
+    .rocci-col-resizer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 11px;
+        z-index: 5;
+        cursor: col-resize;
+        touch-action: none;
+        background: transparent;
+    }
+    .rocci-col-resizer::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 5px;
+        width: 1px;
+        background: transparent;
+    }
+    .rocci-col-resizer:hover::after,
+    .rocci-col-resizer:focus-visible::after,
+    .rocci-col-resizer.is-active::after { background: var(--accent); }
     .nav-label, .outline-fallback > summary {
         font-size: 0.75rem;
         font-weight: 700;
@@ -251,7 +277,9 @@ import PageOutline
         color: var(--muted);
         text-decoration: none;
     }
-    .outline-link:hover {
+    .outline-link:hover,
+    .outline-link.is-current,
+    .outline-link[aria-current="location"] {
         color: var(--accent);
     }
     .outline-link.level-3 {

@@ -163,7 +163,7 @@ impl Shell {
         let state_key = format!("{}:{}", self.config.app.identifier, template.label);
         let saved_state = state::load_window_state(&state_key);
         let mut template = template.clone();
-        if let Some(state) = saved_state
+        if let Some(state) = &saved_state
             && state.width >= 100.0
             && state.height >= 100.0
         {
@@ -171,7 +171,7 @@ impl Shell {
             template.height = state.height;
         }
 
-        let (initial_position, initial_maximized) = match saved_state {
+        let (initial_position, initial_maximized) = match &saved_state {
             Some(state) => {
                 let visible = state::is_position_visible(
                     event_loop,

@@ -22,6 +22,8 @@ pub enum PreviewEvent {
     LiveReload(bool),
     Devtools(bool),
     InspectorPrefs(String),
+    Layout(String),
+    Location(String),
     Drag,
     Zoom,
     Loaded(String),

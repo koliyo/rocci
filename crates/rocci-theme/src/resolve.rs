@@ -282,6 +282,9 @@ mod tests {
             "standalone TOC must stay visible in the 1040px default preview window"
         );
         assert!(theme.css.contains(".rd-toc-menu"));
+        assert!(theme.css.contains("--rocci-nav-width"));
+        assert!(theme.css.contains(".rocci-col-resizer"));
+        assert!(theme.css.contains(".rd-toc-link.is-current"));
         assert!(theme.css.contains(".rd-toc-menu {\n    display: block"));
         assert!(theme.css.contains(".rd-toc,\n  .rd-toc-menu"));
         assert!(theme.css.contains(".rd-table-wrap"));

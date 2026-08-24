@@ -818,13 +818,32 @@
     return document.scrollingElement || document.documentElement;
   };
 
+  const resetDocumentScroll = () => {
+    window.scrollTo(0, 0);
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollTop = 0;
+    }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document
+      .querySelectorAll(".content-column, #okf-main, #main-content, article.rd-article, article.article")
+      .forEach((el) => {
+        el.scrollTop = 0;
+        const scroller = scrollableAncestor(el);
+        if (
+          scroller &&
+          scroller !== document.scrollingElement &&
+          scroller !== document.documentElement &&
+          scroller !== document.body
+        ) {
+          scroller.scrollTop = 0;
+        }
+      });
+  };
+
   const scrollToHash = (hash) => {
     if (!hash || hash === "#") {
-      window.scrollTo(0, 0);
-      const column = document.querySelector(".content-column");
-      if (column) {
-        column.scrollTop = 0;
-      }
+      resetDocumentScroll();
       return;
     }
     const run = () => {
@@ -856,6 +875,29 @@
 
   const fullLoad = (href) => {
     window.location.assign(href);
+  };
+
+  const displayPath = (href) => {
+    try {
+      const parsed = new URL(href, window.location.href);
+      const path = parsed.pathname.replace(/\/+$/, "") || "/";
+      return path + parsed.search;
+    } catch (err) {
+      return href;
+    }
+  };
+
+  const reportLocation = () => {
+    const href = window.location.href;
+    if (window.ipc && window.ipc.postMessage) {
+      window.ipc.postMessage("location:" + href);
+    }
+    if (window.__rocciPreviewNav && window.__rocciPreviewNav.update) {
+      window.__rocciPreviewNav.update({
+        title: document.title,
+        path: displayPath(href),
+      });
+    }
   };
 
   const navigate = (href, mode) => {
@@ -917,6 +959,7 @@
         } else if (mode === "replace" && history.replaceState) {
           history.replaceState({ rocciGoto: true }, "", target);
         }
+        reportLocation();
         scrollToHash(url.hash);
         bindOpeners();
         if (!applied.keepNav && window.__rocciNavSections) {
@@ -924,6 +967,12 @@
         }
         if (window.__rocciCopy) {
           window.__rocciCopy.enhance();
+        }
+        if (window.__rocciResize && window.__rocciResize.enhance) {
+          window.__rocciResize.enhance();
+        }
+        if (window.__rocciToc && window.__rocciToc.enhance) {
+          window.__rocciToc.enhance();
         }
         if (window.__rocciOkfSession && window.__rocciOkfSession.record) {
           window.__rocciOkfSession.record(url.pathname, document.title);

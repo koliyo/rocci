@@ -14,7 +14,7 @@ use tao::{
 };
 
 /// Saved geometry and layout state for a native window.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WindowState {
     pub x: f64,
     pub y: f64,
@@ -22,6 +22,10 @@ pub struct WindowState {
     pub height: f64,
     #[serde(default)]
     pub is_maximized: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nav: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub outline: Option<String>,
 }
 
 /// Saved Dev inspector panel preferences for a preview window.
@@ -118,7 +122,13 @@ impl WindowState {
             width,
             height,
             is_maximized,
+            nav: None,
+            outline: None,
         }
+    }
+
+    pub fn has_layout(&self) -> bool {
+        self.nav.is_some() || self.outline.is_some()
     }
 
     pub fn position(&self) -> LogicalPosition<f64> {
@@ -285,13 +295,73 @@ pub fn parse_inspector_state_json(value: &str) -> Option<InspectorState> {
         .map(InspectorState::sanitized)
 }
 
+#[derive(Clone, Debug, Default, Deserialize)]
+struct LayoutPatch {
+    nav: Option<String>,
+    outline: Option<String>,
+}
+
+fn sanitize_track(value: Option<&str>) -> Option<String> {
+    let value = value?.trim();
+    if value.is_empty() {
+        return None;
+    }
+    let bytes = value.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i == 0 {
+        return None;
+    }
+    if i < bytes.len() && bytes[i] == b'.' {
+        i += 1;
+        let frac = i;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+        if i == frac {
+            return None;
+        }
+    }
+    match &value[i..] {
+        "px" | "rem" => Some(value.to_string()),
+        _ => None,
+    }
+}
+
+/// Merge sidebar widths from an IPC payload into the saved window record.
+pub fn merge_layout_json(key: &str, value: &str) {
+    let Ok(patch) = serde_json::from_str::<LayoutPatch>(value) else {
+        return;
+    };
+    let nav = sanitize_track(patch.nav.as_deref());
+    let outline = sanitize_track(patch.outline.as_deref());
+    if nav.is_none() && outline.is_none() {
+        return;
+    }
+    let mut state =
+        load_window_state(key).unwrap_or_else(|| WindowState::new(0.0, 0.0, 0.0, 0.0, false));
+    if nav.is_some() {
+        state.nav = nav;
+    }
+    if outline.is_some() {
+        state.outline = outline;
+    }
+    save_window_state(key, state);
+}
+
 /// Capture live window geometry and persist it when the size is still usable.
 pub fn persist_window_state(key: &str, window: &Window) {
-    let Some(state) = capture_window_state(window) else {
+    let Some(mut state) = capture_window_state(window) else {
         return;
     };
     if state.width < 100.0 || state.height < 100.0 {
         return;
+    }
+    if let Some(existing) = load_window_state(key) {
+        state.nav = existing.nav;
+        state.outline = existing.outline;
     }
     save_window_state(key, state);
 }
@@ -348,6 +418,8 @@ pub fn capture_window_state(window: &Window) -> Option<WindowState> {
         width: logical_size.width,
         height: logical_size.height,
         is_maximized,
+        nav: None,
+        outline: None,
     })
 }
 
@@ -421,8 +493,8 @@ mod tests {
         let state1 = WindowState::new(120.0, 80.0, 1024.0, 768.0, false);
         let state2 = WindowState::new(200.0, 150.0, 1400.0, 900.0, true);
 
-        save_window_state_to(&temp_file, "rocdown", state1).unwrap();
-        save_window_state_to(&temp_file, "rocci:dev.rocci.snake", state2).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state1.clone()).unwrap();
+        save_window_state_to(&temp_file, "rocci:dev.rocci.snake", state2.clone()).unwrap();
 
         let loaded1 = load_window_state_from(&temp_file, "rocdown");
         let loaded2 = load_window_state_from(&temp_file, "rocci:dev.rocci.snake");
@@ -450,7 +522,7 @@ mod tests {
 
         // Saving over corrupt state should succeed and replace with valid JSON
         let state = WindowState::new(50.0, 50.0, 800.0, 600.0, false);
-        save_window_state_to(&temp_file, "rocdown", state).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state.clone()).unwrap();
         assert_eq!(load_window_state_from(&temp_file, "rocdown"), Some(state));
 
         if let Some(parent) = temp_file.parent() {
@@ -468,8 +540,8 @@ mod tests {
         let state1_updated = WindowState::new(150.0, 120.0, 900.0, 700.0, true);
 
         save_window_state_to(&temp_file, "rocdown", state1).unwrap();
-        save_window_state_to(&temp_file, "rocci:app", state2).unwrap();
-        save_window_state_to(&temp_file, "rocdown", state1_updated).unwrap();
+        save_window_state_to(&temp_file, "rocci:app", state2.clone()).unwrap();
+        save_window_state_to(&temp_file, "rocdown", state1_updated.clone()).unwrap();
 
         assert_eq!(
             load_window_state_from(&temp_file, "rocdown"),
@@ -573,5 +645,33 @@ mod tests {
                 view: "html".into(),
             })
         );
+    }
+
+    #[test]
+    fn layout_merge_keeps_geometry_and_rejects_css() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        let temp_dir = env::temp_dir().join(format!("rocci-test-{}", uuid::Uuid::new_v4()));
+        let temp_file = temp_dir.join("windows.json");
+        let original = env::var("ROCCI_STATE_DIR").ok();
+        unsafe { env::set_var("ROCCI_STATE_DIR", &temp_dir) };
+
+        let geometry = WindowState::new(40.0, 50.0, 1100.0, 720.0, false);
+        save_window_state_to(&temp_file, "okf", geometry.clone()).unwrap();
+        merge_layout_json("okf", r#"{"nav":"264px","outline":"12.5rem"}"#);
+        merge_layout_json("okf", r#"{"nav":"url(evil)"}"#);
+
+        let loaded = load_window_state("okf").unwrap();
+        assert_eq!(loaded.x, 40.0);
+        assert_eq!(loaded.y, 50.0);
+        assert_eq!(loaded.width, 1100.0);
+        assert_eq!(loaded.height, 720.0);
+        assert_eq!(loaded.nav.as_deref(), Some("264px"));
+        assert_eq!(loaded.outline.as_deref(), Some("12.5rem"));
+
+        match original {
+            Some(val) => unsafe { env::set_var("ROCCI_STATE_DIR", val) },
+            None => unsafe { env::remove_var("ROCCI_STATE_DIR") },
+        }
+        let _ = fs::remove_dir_all(temp_dir);
     }
 }

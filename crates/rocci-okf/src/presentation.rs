@@ -2158,9 +2158,10 @@ html.rd-document, body {
 }
 html.rd-document { scroll-behavior: smooth; }
 .rd-shell {
+  position: relative;
   display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr) 13.5rem;
-  align-items: start;
+  grid-template-columns: var(--rocci-nav-width, 16.5rem) minmax(0, 1fr) var(--rocci-outline-width, 13.5rem);
+  align-items: stretch;
   min-height: calc(100vh - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
 }
 .okf-chrome {
@@ -2367,7 +2368,11 @@ main {
   overflow-wrap: anywhere;
 }
 .rd-toc-link:hover,
-.outline-link:hover {
+.rd-toc-link.is-current,
+.rd-toc-link[aria-current="location"],
+.outline-link:hover,
+.outline-link.is-current,
+.outline-link[aria-current="location"] {
   border-color: var(--rd-primary);
   color: var(--rd-fg);
   text-decoration: none;
@@ -2375,6 +2380,29 @@ main {
 .rd-toc-link.rd-toc-level-3,
 .outline-link.level-3 { padding-left: 1.35rem; }
 .rd-toc:not(:has(.rd-toc-link)):not(:has(.outline-link)) { display: none; }
+.rocci-col-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 11px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+}
+.rocci-col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: transparent;
+}
+.rocci-col-resizer:hover::after,
+.rocci-col-resizer:focus-visible::after,
+.rocci-col-resizer.is-active::after { background: var(--rd-primary); }
+body.is-col-resizing { cursor: col-resize; user-select: none; }
 .okf-outline-menu { display: none; }
 .okf-outline-menu .outline-label { display: none; }
 @media (max-width: 48rem) {
@@ -2392,6 +2420,7 @@ main {
     gap: 0.08rem;
   }
   .rd-toc { display: none; }
+  .rocci-col-resizer { display: none; }
   .okf-outline-menu { display: block; margin: 0 0 1.25rem; }
   .okf-outline-menu summary {
     display: flex;
@@ -3211,6 +3240,9 @@ mod tests {
         assert!(!DEFAULT_CSS.contains("max-height: calc(100vh - var(--rocci-chrome-top, 0px));"));
         assert!(DEFAULT_CSS.contains(".okf-filter-bar { display: flex; flex-wrap: wrap"));
         assert!(DEFAULT_CSS.contains(".rd-toc { display: none; }"));
+        assert!(DEFAULT_CSS.contains("--rocci-nav-width"));
+        assert!(DEFAULT_CSS.contains(".rocci-col-resizer"));
+        assert!(DEFAULT_CSS.contains(".outline-link.is-current"));
         assert!(DEFAULT_CSS.contains(".okf-outline-menu { display: block"));
     }
 
