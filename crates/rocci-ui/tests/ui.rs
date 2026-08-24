@@ -119,10 +119,11 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("sectionOpenForKey"));
     assert!(GOTO_SCRIPT.contains("writeSectionState"));
     assert!(GOTO_SCRIPT.contains(".sidebar, .okf-chrome"));
-    assert!(GOTO_SCRIPT.contains("#okf-nav"));
-    assert!(GOTO_SCRIPT.contains("#okf-main"));
-    assert!(GOTO_SCRIPT.contains("#okf-toc"));
+    assert!(GOTO_SCRIPT.contains("#okf-nav, #site-nav"));
+    assert!(GOTO_SCRIPT.contains("#okf-main, #main-content"));
+    assert!(GOTO_SCRIPT.contains("#okf-toc, .layout-navigated > .outline, .site-grid > .outline"));
     assert!(GOTO_SCRIPT.contains("keepNav"));
+    assert!(GOTO_SCRIPT.contains(".mobile-panel"));
     assert!(GOTO_SCRIPT.contains("rememberScrollPositions"));
     assert!(GOTO_SCRIPT.contains("restoreScrollPositions"));
     assert!(GOTO_SCRIPT.contains("__rocciNavSections.restore()"));

@@ -3931,6 +3931,7 @@ Content here.
     #[test]
     fn builtin_theme_keeps_phone_menu_and_table_wrap() {
         let theme = runtime::THEME;
+        assert!(theme.contains("id=\"site-nav\""));
         assert!(theme.contains("class=\"mobile-menu\""));
         assert!(theme.contains("@media (max-width: 70rem)"));
         assert!(theme.contains("@media (max-width: 48rem)"));

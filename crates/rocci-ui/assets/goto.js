@@ -672,9 +672,11 @@
     current.setAttribute("href", next.getAttribute("href") || "");
   };
 
-  const NAV_KEEP = "#okf-nav";
-  const MAIN_SWAP = "#okf-main";
-  const TOC_SWAP = "#okf-toc";
+  const NAV_KEEP = "#okf-nav, #site-nav";
+  const MAIN_SWAP = "#okf-main, #main-content";
+  const TOC_SWAP = "#okf-toc, .layout-navigated > .outline, .site-grid > .outline";
+  const TOC_SHELL = ".rd-shell, .layout-navigated, .site-grid";
+  const NAV_SYNC = ["#okf-nav", "#site-nav", ".mobile-panel"];
 
   const attrEscape = (value) =>
     String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -692,11 +694,7 @@
     copyCanonical(fromDoc);
   };
 
-  const syncKeptNav = (fromDoc, keepNav) => {
-    const nextNav = fromDoc.querySelector(NAV_KEEP);
-    if (!nextNav) {
-      return;
-    }
+  const syncKeptNav = (nextNav, keepNav) => {
     keepNav.querySelectorAll("[data-rocci-nav-current]").forEach((el) => {
       el.removeAttribute("data-rocci-nav-current");
     });
@@ -730,6 +728,28 @@
     });
   };
 
+  const syncKeptChrome = (fromDoc) => {
+    NAV_SYNC.forEach((sel) => {
+      const keep = document.querySelector(sel);
+      const next = fromDoc.querySelector(sel);
+      if (keep && next) {
+        syncKeptNav(next, keep);
+      }
+    });
+    const currentHrefs = {};
+    fromDoc.querySelectorAll(".lane-link.is-current").forEach((el) => {
+      const href = el.getAttribute("href");
+      if (href) {
+        currentHrefs[href] = true;
+      }
+    });
+    document.querySelectorAll(".lane-link").forEach((el) => {
+      const on = !!currentHrefs[el.getAttribute("href") || ""];
+      el.classList.toggle("is-current", on);
+      el.setAttribute("aria-current", on ? "true" : "false");
+    });
+  };
+
   const applyDocument = (fromDoc) => {
     const nextBody = fromDoc.body;
     if (!nextBody || !document.body) {
@@ -749,14 +769,14 @@
       } else if (keepToc && !nextToc) {
         keepToc.remove();
       } else if (!keepToc && nextToc) {
-        const shell = document.querySelector(".rd-shell");
+        const shell = document.querySelector(TOC_SHELL);
         if (!shell) {
           document.body.replaceWith(nextBody);
           return { ok: true, keepNav: false };
         }
         shell.appendChild(nextToc);
       }
-      syncKeptNav(fromDoc, keepNav);
+      syncKeptChrome(fromDoc);
       return { ok: true, keepNav: true };
     }
     document.body.replaceWith(nextBody);

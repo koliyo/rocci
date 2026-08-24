@@ -1062,7 +1062,7 @@ import PageOutline
                     @if layout != "home" {
                         @if layout != "not-found" {
                             @if layout != "playground" {
-                                <aside class="sidebar">
+                                <aside class="sidebar" id="site-nav">
                                     <NavList.navList items={sidebar} route={route} aria_label="Site navigation" />
                                 </aside>
                             }

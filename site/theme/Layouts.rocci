@@ -23,7 +23,7 @@ import PageOutline
 
 @component NavigatedFrame = |{ view, show_journey }, content| {
     <div class="layout-navigated">
-        <aside class="sidebar">
+        <aside class="sidebar" id="site-nav">
             <p class="nav-label">In this section</p>
             <NavList.navList items={view.sidebar} route={view.route} aria_label="In this section" />
         </aside>
