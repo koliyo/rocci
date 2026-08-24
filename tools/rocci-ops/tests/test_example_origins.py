@@ -4,20 +4,62 @@ from pathlib import Path
 from rocci_ops.paths import repo_root
 
 
+def _actions_handle_block(caddy: str) -> str:
+    start = caddy.find("handle /actions/*")
+    assert start >= 0
+    rest = caddy[start:]
+    end = rest.find("\n\thandle /sse")
+    if end < 0:
+        end = rest.find("\nhandle /sse")
+    assert end > 0
+    return rest[:end]
+
+
 def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     root = repo_root()
     hybrid = (root / "docker/cdn/Caddyfile").read_text(encoding="utf-8")
     examples = (root / "docker/examples/Caddyfile").read_text(encoding="utf-8")
     compose = (root / "docker/compose.examples.yml").read_text(encoding="utf-8")
+    origin = (root / "docker/compose.origin.yml").read_text(encoding="utf-8")
+    hybrid_compose = (root / "docker/compose.hybrid.yml").read_text(encoding="utf-8")
     assert "handle /actions/*" in hybrid
     assert "handle /sse" in hybrid
     assert "handle /actions/*" not in examples
-    assert "live-counter.examples.rocci.dev" in examples
-    assert "datastar.examples.rocci.dev" in examples
-    assert "live-counter.examples.staging.rocci.dev" in examples
+    for host in (
+        "live-counter.examples.rocci.dev",
+        "live-counter.examples.staging.rocci.dev",
+        "live-counter.examples.localhost",
+        "datastar.examples.rocci.dev",
+        "datastar.examples.staging.rocci.dev",
+        "datastar.examples.localhost",
+    ):
+        assert host in hybrid
+        assert host in examples
+    live_at = hybrid.find("@live-counter host")
+    datastar_at = hybrid.find("@datastar host")
+    actions_at = hybrid.find("handle /actions/*")
+    sse_at = hybrid.find("handle /sse")
+    assert 0 <= live_at < actions_at
+    assert 0 <= datastar_at < actions_at
+    assert 0 <= actions_at < sse_at
+    assert "reverse_proxy live-counter:8000" in hybrid
+    assert "reverse_proxy datastar:8000" in hybrid
+    actions = _actions_handle_block(hybrid)
+    assert "reverse_proxy islands:8001" in actions
+    assert "live-counter:8000" not in actions
+    assert "datastar:8000" not in actions
     assert "datastar:" in compose
     assert "live-counter:" in compose
+    assert "edge:" in compose
     assert "snake" not in compose
+    assert "datastar:" in origin
+    assert "live-counter:" in origin
+    assert "edge:" not in origin
+    assert "snake" not in origin
+    assert "edge:" not in hybrid_compose
+    assert "snake" not in hybrid_compose
+    readme = (root / "docker/README.md").read_text(encoding="utf-8")
+    assert "Do **not** run that edge on the VPS" in readme
     workflow = (root / ".github/workflows/site.yml").read_text(encoding="utf-8")
     assert '"examples/**"' in workflow or "- \"examples/**\"" in workflow
     assert "- \"playground/**\"" in workflow
