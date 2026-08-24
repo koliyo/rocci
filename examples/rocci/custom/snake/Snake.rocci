@@ -19,7 +19,7 @@ LobbyPage = |{ player_count, full }|
                 <header>
                     <p class="eyebrow">Shared multiplayer on a 100×100 grid</p>
                     <h1>Snake.</h1>
-                    <p class="lede">A Datastar multiplayer stress demo: one authoritative world, long-lived SSE patches, and a tiny JS input island. Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
+                    <p class="lede">A Datastar + Rocci stress demo, not a recommended game architecture. One server-owned world, long-lived SSE HTML patches at ~8 Hz, and a tiny JS input island. The HUD reports live stream bandwidth so you can see what morphing a 31×21 board costs. Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
                 </header>
                 <p class="count">{player_count.to_str()} in the game, 8 max.</p>
                 <div class="actions">
@@ -57,6 +57,7 @@ StatusHud = |{ info }|
     <aside id="hud" class="hud">
         <p class="eyebrow">{info.role}</p>
         <p class="cam">{info.cam.x.to_str()}, {info.cam.y.to_str()}</p>
+        <p class="stream">{info.stream.rate} · {info.stream.last}/patch · {info.stream.total} · {info.stream.patches.to_str()} patches</p>
         @if info.respawning {
             <p class="overlay">Respawning in {info.respawn_secs.to_str()}s</p>
         }
@@ -145,6 +146,7 @@ sample_hud = {
     respawning: False,
     respawn_secs: 0,
     can_leave: True,
+    stream: { last: "6 KB", rate: "48 KB/s", total: "120 KB", patches: 20.I64 },
     players: [
         { row_class: "you", swatch_class: "swatch c1", label: "Jade (you)", score: 3 },
         { row_class: "", swatch_class: "swatch c2", label: "Blue", score: 1 },

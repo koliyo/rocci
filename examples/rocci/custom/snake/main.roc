@@ -11,7 +11,6 @@ import pf.Sse
 import pf.UnixTime
 import http.Method
 import http.Response
-import Datastar
 import Game
 import Html
 import Snake
@@ -188,18 +187,43 @@ stream_game! = |db, player_id|
     Ok(
         Server.stream(
             Sse.unfold!(
-                { revision: 0.I64, first: True, player_id },
+                {
+                    revision: 0.I64,
+                    first: True,
+                    player_id,
+                    started_ms: 0.I64,
+                    last_bytes: 0.I64,
+                    total_bytes: 0.I64,
+                    patches: 0.I64,
+                },
                 |state| {
                     view = load_view!(db, state.player_id)?
                     if !state.first and view.revision == state.revision {
                         Ok(Wait({ state, wake: After(125) }))
                     } else {
-                        event = Datastar.patch_elements(Snake.gamePatch({ cells: view.cells, info: view.hud, marks: view.marks }))
+                        now = now_ms!()
+                        started_ms = if state.started_ms == 0 { now } else { state.started_ms }
+                        elapsed_ms = now - started_ms
+                        stream = Game.stream_hud(state.last_bytes, state.total_bytes, state.patches, elapsed_ms)
+                        hud = { ..view.hud, stream }
+                        html = Html.render_without_doc_type(
+                            Snake.gamePatch({ cells: view.cells, info: hud, marks: view.marks }),
+                        )
+                        bytes = List.len(Str.to_utf8(html)).to_i64_wrap()
+                        event = Sse.Event.keyed("datastar-patch-elements", "elements", html)
                         Ok(
                             Emit(
                                 {
                                     event,
-                                    state: { revision: view.revision, first: False, player_id: state.player_id },
+                                    state: {
+                                        revision: view.revision,
+                                        first: False,
+                                        player_id: state.player_id,
+                                        started_ms,
+                                        last_bytes: bytes,
+                                        total_bytes: state.total_bytes + bytes,
+                                        patches: state.patches + 1,
+                                    },
                                     wake: After(125),
                                 },
                             ),
@@ -539,6 +563,7 @@ build_hud = |world, player_id, cam| {
         respawning,
         respawn_secs,
         can_leave: player_id != "",
+        stream: Game.idle_stream,
         players: List.map(
             world.snakes,
             |snake| {

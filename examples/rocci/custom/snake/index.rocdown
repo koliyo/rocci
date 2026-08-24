@@ -2,25 +2,30 @@
     layout: "docs",
     meta: {
         title: "Snake",
-        description: "Custom main.roc multiplayer stress demo",
+        description: "Custom main.roc Datastar SSE stress demo with live stream bandwidth",
     },
 }
 
 # Snake
 
-See [custom applications](/docs/applications/custom/). Advanced stress demo,
-not a second walkthrough.
+See [custom applications](/docs/applications/custom/). This is a **Datastar +
+Rocci stress demo**, not a second walkthrough and not a recommended game
+architecture.
 
-A multiplayer stress demo: lobby and board in `Snake.rocci`, ticks and
-collisions in `Game.roc`, HTTP and SSE in `main.roc`. Keyboard and touch
-steering live in `snake-input.js`. This is **docs-only** on the public origin
-(not a live hostname).
+The point is to push a long-lived HTML morph stream: one authoritative 100×100
+world, up to eight snakes, and ~8 Hz SSE patches of `#board`, `#hud`, and
+`#minimap`. The HUD reports live bandwidth for that stream (rate, last patch,
+total, patch count) so you can see what Datastar is actually moving. Keyboard
+and touch steering stay in a tiny `snake-input.js` island; the world does not.
 
-Up to eight snakes share a 100×100 grid. Each player’s camera stays put while
-the head moves inside the 31×21 view and only scrolls when the head enters a
-three-cell margin. Spectators still track the living-snake centroid. The server
-ticks at about 8 Hz and morphs `#board`, `#hud`, and `#minimap`. Source files
-are listed in the sidebar.
+Lobby and board live in `Snake.rocci`, ticks and collisions in `Game.roc`, HTTP
+and SSE in `main.roc`. This is **docs-only** on the public origin (not a live
+hostname).
+
+Each player’s camera stays put while the head moves inside the 31×21 view and
+only scrolls when the head enters a three-cell margin. Spectators still track
+the living-snake centroid. The minimap is the whole 100×100 world, so every
+living snake stays visible even when it is off-camera.
 
 ## Run locally
 

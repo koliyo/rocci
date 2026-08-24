@@ -117,6 +117,37 @@ Game := [].{
             n
         }
 
+    format_bytes = |n|
+        if n < 1024 {
+            "${n.to_str()} B"
+        } else if n < 1_048_576 {
+            "${n.div_trunc_by(1024).to_str()} KB"
+        } else {
+            "${n.div_trunc_by(1_048_576).to_str()} MB"
+        }
+
+    idle_stream = {
+        last: "0 B",
+        rate: "0 B/s",
+        total: "0 B",
+        patches: 0.I64,
+    }
+
+    stream_hud = |last_bytes, total_bytes, patches, elapsed_ms| {
+        rate =
+            if elapsed_ms <= 0 {
+                0
+            } else {
+                I64.times(total_bytes, 1000.I64).div_trunc_by(elapsed_ms)
+            }
+        {
+            last: format_bytes(last_bytes),
+            rate: "${format_bytes(rate)}/s",
+            total: format_bytes(total_bytes),
+            patches,
+        }
+    }
+
     in_bounds = |point|
         point.x >= 0
         and point.x < world_size
@@ -420,7 +451,7 @@ Game := [].{
     }
 
     mark_style = |x, y|
-        "left:${x.to_str()}%;top:${y.to_str()}%"
+        "left:${x.to_str()}%;top:${y.to_str()}%;transform:translate(-50%,-50%)"
 
     mark_kind = |class|
         if Str.starts_with(class, "mark food") {
