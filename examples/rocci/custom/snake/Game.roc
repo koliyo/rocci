@@ -157,13 +157,19 @@ Game := [].{
     world_center = ||
         { x: world_size.div_trunc_by(2), y: world_size.div_trunc_by(2) }
 
-    translate = |point, dir|
-        match dir {
-            "up" => { x: point.x, y: point.y - 1 }
-            "down" => { x: point.x, y: point.y + 1 }
-            "left" => { x: point.x - 1, y: point.y }
-            _ => { x: point.x + 1, y: point.y }
-        }
+    wrap_coord = |n|
+        (n + world_size).rem_by(world_size)
+
+    translate = |point, dir| {
+        raw =
+            match dir {
+                "up" => { x: point.x, y: point.y - 1 }
+                "down" => { x: point.x, y: point.y + 1 }
+                "left" => { x: point.x - 1, y: point.y }
+                _ => { x: point.x + 1, y: point.y }
+            }
+        { x: wrap_coord(raw.x), y: wrap_coord(raw.y) }
+    }
 
     opposite = |dir|
         match dir {
@@ -620,12 +626,6 @@ Game := [].{
                 )
         }
 
-    hits_wall = |snake|
-        match head_of(snake) {
-            Err(_) => True
-            Ok(head) => !in_bounds(head)
-        }
-
     kill = |snake|
         { ..snake, alive: False, respawn_in: respawn_ticks, body: [] }
 
@@ -635,7 +635,7 @@ Game := [].{
             |snake|
                 if !snake.alive {
                     snake
-                } else if hits_wall(snake) or head_conflicts(world.snakes, snake) or hits_body(world.snakes, snake) {
+                } else if head_conflicts(world.snakes, snake) or hits_body(world.snakes, snake) {
                     kill(snake)
                 } else {
                     snake

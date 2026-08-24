@@ -19,7 +19,7 @@ LobbyPage = |{ player_count, full }|
                 <header>
                     <p class="eyebrow">Shared multiplayer on a 100×100 grid</p>
                     <h1>Snake.</h1>
-                    <p class="lede">A Datastar + Rocci stress demo, not a recommended game architecture. One server-owned world, long-lived SSE HTML patches at ~8 Hz, and a tiny JS input island. The HUD reports live stream bandwidth so you can see what morphing a 31×21 board costs. Walls kill, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
+                    <p class="lede">A Datastar + Rocci stress demo, not a recommended game architecture. One server-owned world, long-lived SSE HTML patches at ~8 Hz, and a tiny JS input island. The HUD reports live stream bandwidth so you can see what morphing a 31×21 board costs. Edges wrap, fruit grows you, and snakes lengthen every couple of seconds. Join or spectate. WASD, arrows, or the on-screen pad to steer.</p>
                 </header>
                 <p class="count">{player_count.to_str()} in the game, 8 max.</p>
                 <div class="actions">

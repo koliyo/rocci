@@ -22,10 +22,11 @@ Lobby and board live in `Snake.rocci`, ticks and collisions in `Game.roc`, HTTP
 and SSE in `main.roc`. This is **docs-only** on the public origin (not a live
 hostname).
 
-Each player’s camera stays put while the head moves inside the 31×21 view and
-only scrolls when the head enters a three-cell margin. Spectators still track
-the living-snake centroid. The minimap is the whole 100×100 world, so every
-living snake stays visible even when it is off-camera.
+The 100×100 world wraps at the edges. Each player’s camera stays put while the
+head moves inside the 31×21 view and only scrolls when the head enters a
+three-cell margin. Spectators still track the living-snake centroid. The
+minimap is the whole map, so every living snake stays visible even when it is
+off-camera.
 
 ## Run locally
 
