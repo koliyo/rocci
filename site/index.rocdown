@@ -25,6 +25,8 @@ Composable authoring for applications and content.
 }}
 
 This website is built with [Rocci](/docs/the-stack/) and [Rocdown](/docs/rocdown/).
+The Knowledge lane is this repository's working memory (architecture, decisions,
+plans). The product manual stays in [Docs](/docs/).
 
 ## Hybrid island demo
 

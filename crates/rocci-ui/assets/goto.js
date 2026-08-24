@@ -1141,6 +1141,14 @@
       if (url.origin !== window.location.origin) {
         return;
       }
+      if (
+        gotoBase &&
+        url.pathname !== gotoBase &&
+        url.pathname !== gotoBase + "/" &&
+        !url.pathname.startsWith(gotoBase + "/")
+      ) {
+        return;
+      }
       const samePath =
         url.pathname === window.location.pathname && url.search === window.location.search;
       if (samePath && url.hash) {

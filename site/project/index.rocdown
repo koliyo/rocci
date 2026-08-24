@@ -15,4 +15,5 @@ Rocci is an open experiment to bring functional ergonomics and typed purity to w
 - [Project status](/project/status/) — Current implementation status, working subsystems, and deliberate boundaries.
 - [Roadmap](/project/roadmap/) — Planned capabilities, collections, search, and cross-platform releases.
 - [Contributing](/project/contributing/) — Development setup, testing guidelines, and repository conventions.
-- [Documentation](/docs/) — Technical guides, architecture concepts, and API reference.
+- [Documentation](/docs/) — Technical guides, architecture concepts, and API reference. The product manual stays here.
+- Knowledge — Working memory for the committed knowledge bundle (header lane), not a second product manual.

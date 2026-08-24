@@ -4,7 +4,7 @@ title: Mount the OKF knowledge viewer on rocci.dev
 description: Package the existing rocci-okf static review site under /knowledge/ and expose it as a rocci.dev lane so visitors can browse the committed knowledge bundle without turning knowledge Markdown into Rocdown.
 tags: [domain/site, domain/okf, domain/rocci-okf, concern/publication, concern/navigation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T21:50:00Z }
+generated: { by: process:cursor, at: 2026-08-24T22:35:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -392,6 +392,27 @@ dashboard links stay under `/knowledge/`; `site.tgz` lists those paths;
 walkthrough of the smoke list is recorded on this plan or in the knowledge
 log. Do not log the plan complete until CI and Knowledge workflows succeed
 on that revision.
+
+## Local packaged smoke (2026-08-24)
+
+Served `dist/rocci.dev` after `rocdown build site` plus `attach_knowledge_lane`
+(not the full musl `package site` job) at `http://127.0.0.1:8766`.
+
+- Home HTML includes the working-memory sentence; Project names Knowledge as
+  working memory; site footer still says highly experimental.
+- `/knowledge/` dashboard, `/knowledge/architecture/`,
+  `/knowledge/architecture/system-overview/`, and `/knowledge/review/` returned
+  200 with prefixed routes and no `session.js`.
+- Site `pages.json` still has `/docs/` routes; `/knowledge/pages.json` routes
+  are all under `/knowledge/` (Cmd-K catalogs stay separate).
+- Full navigation to `/docs/` loads the Rocdown docs shell. Same-origin SPA
+  intercept in `goto.js` lets prefixed trees leave via site lanes (paths
+  outside `data-rocci-goto-base`).
+- Markdown `[Knowledge](/knowledge/)` is not used on Home/Project: Rocdown
+  `RD2101` treats that href as a missing catalog page. The header lane is the
+  link.
+
+Not logged complete: CI and Knowledge run IDs are not on this revision yet.
 
 ## Follow-ons (not this plan)
 
