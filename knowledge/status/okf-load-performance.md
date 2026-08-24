@@ -10,17 +10,17 @@ authority: descriptive
 owners: [human:nils]
 sources:
   - id: plan
-    resource: ../plans/okf-load-performance.md
+    resource: ../plans/okf/okf-load-performance.md
     title: OKF load-performance improvements plan
     author: process:cursor
     last_modified: 2026-08-19
   - id: preview-audit
-    resource: ../audits/hybrid-rocdown-islands-preview-performance.md
+    resource: ../audits/rocdown/hybrid-rocdown-islands-preview-performance.md
     title: hybrid-rocdown-islands preview performance audit
     author: process:cursor
     last_modified: 2026-08-19
   - id: headless-audit
-    resource: ../audits/rocci-okf-headless-load-performance.md
+    resource: ../audits/okf/rocci-okf-headless-load-performance.md
     title: rocci-okf headless load-performance audit
     author: process:cursor
     last_modified: 2026-08-19

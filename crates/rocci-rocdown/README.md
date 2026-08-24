@@ -135,8 +135,8 @@ page to **hydrate**. Static `docs/` catalogs cannot use it. Write `\@{…}` for
 a literal `@{…}`, or a code span. Fences and inline code never interpolate.
 **Planned:** holes in headings and link/image destinations. `{@expr}` and
 `{{expr}}` are not aliases. See
-[inline interpolation research](../../knowledge/research/rocdown-inline-interpolation.md)
-and the [implementation plan](../../knowledge/plans/rocdown-inline-interpolation.md).
+[inline interpolation research](../../knowledge/research/rocdown/rocdown-inline-interpolation.md)
+and the [implementation plan](../../knowledge/plans/rocdown/rocdown-inline-interpolation.md).
 
 Splice a colocated component with `@render MyComponent({ ... })`
 or a standalone `<MyComponent />` tag. There is no `@html { ... }` wrapper.

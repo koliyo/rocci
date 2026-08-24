@@ -23,7 +23,7 @@ site_docs_prefix = "/docs/"
 
 [approvals]
 recorded = "2026-08-22"
-plan = "knowledge/plans/rocci-dev-docs-stack-ia.md"
+plan = "knowledge/plans/site/rocci-dev-docs-stack-ia.md"
 stack_ia = true
 rocdown_lane = "/docs/rocdown/"
 top_level_rocdown_lane = false

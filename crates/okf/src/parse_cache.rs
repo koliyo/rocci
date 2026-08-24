@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::ast::{Concept, Index, Log, Profile};
 use crate::diagnostic::{Diagnostic, Severity, SourceLocation, intern_diagnostic_code};
 
-pub const PARSE_CACHE_VERSION: u32 = 1;
+pub const PARSE_CACHE_VERSION: u32 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct FileFingerprint {

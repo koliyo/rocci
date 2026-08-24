@@ -17,7 +17,7 @@ sources:
     author: human:nils
     last_modified: 2026-08-17
   - id: refactor-plan
-    resource: ../plans/rocdown-boundary-refactor.md
+    resource: ../plans/rocdown/rocdown-boundary-refactor.md
     title: Rocdown product-boundary refactor plan
     author: process:codex
     last_modified: 2026-08-17
@@ -52,7 +52,7 @@ sources:
     author: process:okf-phase-6
     last_modified: 2026-08-16
   - id: lsp-plan
-    resource: ../plans/language-server.md
+    resource: ../plans/rocci/language-server.md
     title: Proposed full Rocci and Rocdown language-server plan
     author: process:codex
     last_modified: 2026-08-17
@@ -67,7 +67,7 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: verb-first
-    resource: ../plans/verb-first-handler-declarations.md
+    resource: ../plans/rocci/verb-first-handler-declarations.md
     title: Verb-first handler implementation plan
     author: process:cursor
     last_modified: 2026-08-22

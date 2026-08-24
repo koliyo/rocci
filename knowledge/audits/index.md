@@ -1,13 +1,7 @@
 # Audits
 
-* [Standalone falling-block post-mortem](standalone-falling-block-postmortem.md) - Custom arena versus shipped nested standalone Blocks: play-feel, handler-only modules, gravity-in-live, quoted keydown, origin removal, and what must stay custom.
-* [Agent-model comparison for Rocci component-generation research](agent-model-component-generation-comparison.md) - Evidence-based comparison of Gemini 3.7 Flash and Grok 4.6 results for the same architecture research and planning task.
-* [hybrid-rocdown-islands preview performance audit](hybrid-rocdown-islands-preview-performance.md) - Profiled concept-path `rocci-okf run`; after load-performance Phases 1–4, release first-open `load` is 290ms and watch rebuilds reuse unchanged parses.
-* [rocci-okf headless load-performance audit](rocci-okf-headless-load-performance.md) - Headless rebuild timings, load sub-spans, batched provenance, default preview without git, and a watch parse cache. Release `check --profile rocci` is 0.40s.
-* [Rocdown product-boundary refactor completion review](rocdown-boundary-refactor-review.md) - Exit-gate coverage, residual coupling, stale automation and documentation, and prioritized closure work.
-* [Public-repo GitHub Actions security review](public-ci-security.md) - Comment-gated self-hosted CI is private-repo shaped: `/ci` is too narrow, local runners share the deploy host, protected branches have no hosted CI, and Dependabot is absent. Plan: [public-repo CI security](../plans/public-ci-security.md).
-* [rocci.dev public-launch checklist](rocci-dev-public-launch.md) - After the 2026-08-23 Should pass: support matrix and GitHub-issues feedback URL are published; reserved example hostnames are not advertised as live. Remaining gates are a signed-out staging smoke, a tagged clean install, the known repository-visibility flip, and production DNS. Operator sequence: [public-launch operator](../plans/public-launch-operator.md).
-* [rocci.dev site UX and authoring DX review](rocci-dev-site-ux-dx.md) - Current route/layout evidence, responsive and accessibility findings, broken landing cards and page finder, the Home/FAQ-only sidebar exception, breadcrumb inconsistency, News removal inventory, and authoring workflow noise.
-* [Worktree landings and origin/main push conflicts](worktree-main-push-conflicts.md) - Detached HEAD worktrees, rebasing `main` onto features, and pull-rebase after rejected pushes; named plan branches plus merge-worktree-to-main as the landing fix.
-
-The historical syntax audit remains a retained Phase 3 review input.
+* [Rocci](rocci/) - Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
+* [Rocdown](rocdown/) - Format, blocks, interpolation, islands, and the app-docs compiler.
+* [OKF](okf/) - Portable engine, review application, knowledge load and render, and bundle layout.
+* [Site](site/) - rocci.dev IA, publish, playground, public launch, and branding.
+* [Ops](ops/) - CI, hosting, python-uv, and Tangled.

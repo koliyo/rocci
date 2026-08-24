@@ -22,25 +22,31 @@ already covers the topic.
 
 | User says | Collection | `type` | Default `authority` |
 | --- | --- | --- | --- |
-| write a plan / implementation plan | `knowledge/plans/` | Implementation Plan | exploratory |
-| write a report / research | `knowledge/research/` | Research Report | exploratory |
-| audit / findings vs current behavior | `knowledge/audits/` | Audit | descriptive |
+| write a plan / implementation plan | `knowledge/plans/<area>/` | Implementation Plan | exploratory |
+| write a report / research | `knowledge/research/<area>/` | Research Report | exploratory |
+| audit / findings vs current behavior | `knowledge/audits/<area>/` | Audit | descriptive |
 | status snapshot / results | `knowledge/status/` | Status | descriptive |
+
+`<area>` is one of `rocci`, `rocdown`, `okf`, `site`, `ops`, or `shared`. Pick
+the primary owner of the work, not the union of tags. Architecture, decisions,
+status, reference, design, and case-studies stay flat. Deepen in place later;
+do not flatten or nest by lifecycle.
 
 Architecture and decisions are existing canonical records. Revise them only
 when the claim belongs there. Do not mint a new Decision as approved.
 
-A report plus a plan is two records that cite each other, not one file.
-
-Writing a plan is not executing it. Do not start phases unless the user asks.
+A report plus a plan is two records that cite each other, not one file. Keep
+paired stems on parallel area paths. Writing a plan is not executing it. Do
+not start phases unless the user asks.
 
 ## Record shape
 
-- kebab-case filename next to siblings; YAML frontmatter; inert Markdown body
+- kebab-case filename; stem unique under `knowledge/plans/`; YAML frontmatter; inert Markdown body
+- Prefer bundle-root links (`/plans/okf/nested-collections.md`)
 - `status: draft`, `generated.by: process:cursor`, `owners: [human:nils]`
 - Unique source `id`s, paths relative to the record, keyed footnotes on claims
 - Plans: Goal, Out of bound, Constraints that do not move, phased Bound/Exit
-- New records: update the collection `index.md` and `knowledge/log.md`
+- New records: update the nearest directory `index.md` (and the parent type index when adding an area) and `knowledge/log.md`
 
 ```yaml
 type: Research Report

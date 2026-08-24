@@ -514,3 +514,114 @@ fn parse_cache_roundtrips_through_a_directory() {
     let _ = fs::remove_dir_all(root);
     let _ = fs::remove_dir_all(store);
 }
+
+fn write_bundle_root(root: &std::path::Path) {
+    fs::write(
+        root.join("index.md"),
+        "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+    )
+    .unwrap();
+}
+
+#[test]
+fn nested_concept_loads_and_preview_opens() {
+    let root = temp("nested-concept");
+    write_bundle_root(&root);
+    let area = root.join("plans").join("okf");
+    fs::create_dir_all(&area).unwrap();
+    fs::write(
+        root.join("plans").join("index.md"),
+        "# Plans\n\n* [OKF](okf/)\n",
+    )
+    .unwrap();
+    fs::write(
+        area.join("index.md"),
+        "# OKF\n\n* [Nested collections](nested-collections.md)\n",
+    )
+    .unwrap();
+    fs::write(
+        area.join("nested-collections.md"),
+        valid_rocci_concept("Nested", "", "Nested body.\n"),
+    )
+    .unwrap();
+
+    let bundle = load(&root, Profile::Base).expect("load nested");
+    assert!(
+        bundle
+            .concepts
+            .iter()
+            .any(|concept| concept.id == "plans/okf/nested-collections")
+    );
+    let preview = okf::resolve_preview_path(&area.join("nested-collections.md")).unwrap();
+    assert_eq!(preview.open_path, "/plans/okf/nested-collections/");
+
+    let json = inspect_filtered(
+        &root,
+        InspectKind::Concept,
+        Some("nested-collections"),
+        Profile::Base,
+        &KnowledgeFilter::default(),
+    )
+    .expect("inspect stem");
+    assert!(json.contains("plans/okf/nested-collections"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn concept_id_colliding_with_collection_is_an_error() {
+    let root = temp("route-collision");
+    write_bundle_root(&root);
+    let plans = root.join("plans");
+    fs::create_dir_all(plans.join("rocci")).unwrap();
+    fs::write(plans.join("index.md"), "# Plans\n").unwrap();
+    fs::write(plans.join("rocci").join("index.md"), "# Rocci\n").unwrap();
+    fs::write(
+        plans.join("rocci.md"),
+        "---\ntype: Note\ntitle: Rocci\n---\n\n# Rocci\n",
+    )
+    .unwrap();
+
+    let bundle = load(&root, Profile::Base).expect("load collision");
+    assert!(
+        bundle
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "OKF3005"),
+        "{:?}",
+        bundle.diagnostics
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn rocci_profile_warns_when_nearest_index_omits_a_concept() {
+    let root = temp("index-membership");
+    write_bundle_root(&root);
+    let area = root.join("plans").join("okf");
+    fs::create_dir_all(&area).unwrap();
+    fs::write(root.join("plans").join("index.md"), "# Plans\n").unwrap();
+    fs::write(area.join("index.md"), "# OKF\n").unwrap();
+    fs::write(
+        area.join("nested-collections.md"),
+        valid_rocci_concept("Nested", "", "Body.\n"),
+    )
+    .unwrap();
+
+    let bundle = load_timed(
+        &root,
+        LoadOptions::new(Profile::Rocci).with_provenance(false),
+    )
+    .expect("load membership")
+    .bundle;
+    assert!(
+        bundle.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "OKF2010" && diagnostic.path == "plans/okf/nested-collections.md"
+        }),
+        "{:?}",
+        bundle.diagnostics
+    );
+
+    let _ = fs::remove_dir_all(root);
+}

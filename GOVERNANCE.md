@@ -11,7 +11,7 @@ release tags, repository visibility, and the `oss@rocci.dev` mailbox.
 There is no contributor committee, RFC board, or voting process in this
 preview. Durable governance (trademark, subprojects, a larger committer set)
 is deferred until after public-preview feedback. See
-[knowledge/plans/public-preview-community.md](knowledge/plans/public-preview-community.md).
+[knowledge/plans/site/public-preview-community.md](knowledge/plans/site/public-preview-community.md).
 
 ## Decisions
 

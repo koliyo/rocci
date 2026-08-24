@@ -11,7 +11,7 @@ authority: normative
 owners: [human:nils]
 sources:
   - id: refactor-plan
-    resource: ../plans/rocdown-boundary-refactor.md
+    resource: ../plans/rocdown/rocdown-boundary-refactor.md
     title: Rocdown refactor plan
     author: process:codex
     last_modified: 2026-08-17
