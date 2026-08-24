@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rocci_docs::{generate, load_catalog, stage, stage_with};
+use rocci_docs::{StageOptions, generate, load_catalog, stage, stage_with};
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -177,11 +177,99 @@ fn all_flag_stages_excluded_apps() {
     mixed_site_catalog(&root);
     let catalog = load_catalog(&root.join("apps.toml")).unwrap();
     let out = root.join("out");
-    stage_with(&catalog, &out, true).unwrap();
+    stage_with(
+        &catalog,
+        &out,
+        StageOptions {
+            include_all: true,
+            advertise_live: false,
+        },
+    )
+    .unwrap();
     let files = collect_rel(&out);
     assert!(files.contains(&"hidden/index.rocdown".into()));
     let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
     assert!(index.contains("/examples/hidden/"));
+}
+
+#[test]
+fn advertise_live_injects_launch_for_fixture_live_apps() {
+    let root = scratch("launch");
+    mixed_site_catalog(&root);
+    let catalog = load_catalog(&root.join("apps.toml")).unwrap();
+
+    let quiet = root.join("quiet");
+    stage(&catalog, &quiet).unwrap();
+    let quiet_listed = fs::read_to_string(quiet.join("listed/index.rocdown")).unwrap();
+    let quiet_live = fs::read_to_string(quiet.join("live/index.rocdown")).unwrap();
+    let quiet_index = fs::read_to_string(quiet.join("index.rocdown")).unwrap();
+    assert!(!quiet_listed.contains(":link-card"));
+    assert!(!quiet_live.contains(":link-card"));
+    assert!(!quiet_index.contains("examples.rocci.dev"));
+    assert!(quiet_index.contains("planned live"));
+
+    let advertised = root.join("adv");
+    stage_with(
+        &catalog,
+        &advertised,
+        StageOptions {
+            include_all: false,
+            advertise_live: true,
+        },
+    )
+    .unwrap();
+    let live_page = fs::read_to_string(advertised.join("live/index.rocdown")).unwrap();
+    assert!(live_page.contains(":link-card"));
+    assert!(live_page.contains("title: \"Launch\""));
+    assert!(live_page.contains("https://live.examples.rocci.dev"));
+    let listed_page = fs::read_to_string(advertised.join("listed/index.rocdown")).unwrap();
+    assert!(!listed_page.contains(":link-card"));
+    assert!(!listed_page.contains("examples.rocci.dev"));
+    let index = fs::read_to_string(advertised.join("index.rocdown")).unwrap();
+    assert!(index.contains("| Launch |"));
+    assert!(index.contains("https://live.examples.rocci.dev"));
+    assert!(!index.contains("https://listed.examples.rocci.dev"));
+    assert!(!index.contains("https://hidden.examples.rocci.dev"));
+}
+
+#[test]
+fn advertise_live_uses_explicit_live_url() {
+    let root = scratch("launch-url");
+    write(
+        &root.join("demo/index.rocdown"),
+        "@page { layout: \"docs\", meta: { title: \"Demo\" } }\n\n# Demo\n",
+    );
+    write(&root.join("demo/App.rocci"), "@component X = || { <p/> }\n");
+    write(
+        &root.join("apps.toml"),
+        r#"
+[[app]]
+id = "demo"
+path = "demo"
+title = "Demo"
+summary = "Override"
+entry = "App.rocci"
+hosting = "live"
+live_url = "https://rocci.dev/play/demo/"
+"#,
+    );
+    let catalog = load_catalog(&root.join("apps.toml")).unwrap();
+    let out = root.join("out");
+    stage_with(
+        &catalog,
+        &out,
+        StageOptions {
+            include_all: false,
+            advertise_live: true,
+        },
+    )
+    .unwrap();
+    let page = fs::read_to_string(out.join("demo/index.rocdown")).unwrap();
+    assert!(page.contains(":link-card"));
+    assert!(page.contains("https://rocci.dev/play/demo/"));
+    assert!(!page.contains("https://demo.examples.rocci.dev"));
+    let index = fs::read_to_string(out.join("index.rocdown")).unwrap();
+    assert!(index.contains("https://rocci.dev/play/demo/"));
 }
 
 fn examples_nav_ids(text: &str) -> Vec<String> {
