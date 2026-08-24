@@ -75,6 +75,12 @@ enum Commands {
         output: PathBuf,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
+        /// URL prefix for emitted HTML, indexes, and assets. Empty keeps local viewer routes.
+        #[arg(long, default_value = "")]
+        base_path: String,
+        /// Omit live-reload and desktop session scripts from the static tree.
+        #[arg(long)]
+        public: bool,
         /// Execution host runtime for evaluating templates (native, wasm, auto [default]).
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
@@ -526,9 +532,18 @@ fn main() -> Result<()> {
             output,
             profile,
             host,
+            base_path,
+            public,
         } => {
-            let summary = okf::build(&root, &output, profile.into())?;
-            let _ = host;
+            let options = presentation::SiteOptions::from_args(&base_path, public)?;
+            let bundle = okf::load(&root, profile.into())?;
+            if bundle.has_errors() {
+                bail!("knowledge bundle has validation errors");
+            }
+            let summary = okf::build_artifacts(&bundle, &output)?;
+            let _profile =
+                presentation::build_review_site_with_host(&bundle, &output, preview_host(host))?;
+            presentation::finalize_site(&output, &options)?;
             eprintln!(
                 "rocci-okf: built {} concepts and {} indexes into {}",
                 summary.concepts, summary.indexes, summary.output

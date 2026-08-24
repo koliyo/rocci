@@ -495,6 +495,11 @@
     });
   };
 
+  const gotoBase = (
+    document.documentElement.getAttribute("data-rocci-goto-base") || ""
+  ).replace(/\/$/, "");
+  const indexUrl = (file) => (gotoBase ? gotoBase + "/" + file : "/" + file);
+
   const loadCatalog = () => {
     if (catalogPromise) {
       return catalogPromise;
@@ -503,7 +508,7 @@
       catalog = rows || [];
       return catalog;
     };
-    catalogPromise = fetchIndex("/pages.json")
+    catalogPromise = fetchIndex(indexUrl("pages.json"))
       .then(function (data) {
         if (!(Array.isArray(data) && data.length && data[0] && (data[0].route != null || data[0].url != null))) {
           throw new Error("skip");
@@ -511,7 +516,7 @@
         return remember(normalizePages(data));
       })
       .catch(function () {
-        return fetchIndex("/catalog.json").then(function (data) {
+        return fetchIndex(indexUrl("catalog.json")).then(function (data) {
           if (!Array.isArray(data) || !data.length) {
             throw new Error("skip");
           }

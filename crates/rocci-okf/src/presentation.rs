@@ -15,6 +15,42 @@ pub use rocci_ui::escape;
 use serde::Serialize;
 use serde_json::Value;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SiteOptions {
+    pub base_path: String,
+    pub public: bool,
+}
+
+impl SiteOptions {
+    pub fn from_args(base_path: &str, public: bool) -> Result<Self> {
+        Ok(Self {
+            base_path: normalize_base_path(base_path)?,
+            public,
+        })
+    }
+
+    fn is_identity(&self) -> bool {
+        self.base_path.is_empty() && !self.public
+    }
+}
+
+pub fn normalize_base_path(raw: &str) -> Result<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() || trimmed == "/" {
+        return Ok(String::new());
+    }
+    let path = trimmed.trim_end_matches('/');
+    let path = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    };
+    if path.contains("..") || path.contains("//") || path == "/." {
+        bail!("invalid --base-path {raw}");
+    }
+    Ok(path)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StatTone {
     #[default]
@@ -1541,14 +1577,159 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
     Ok(())
 }
 
-fn write_site_chrome(bundle: &Bundle, site: &Path) -> Result<()> {
+fn apply_site_options(site: &Path, options: &SiteOptions) -> Result<()> {
+    if options.is_identity() {
+        return Ok(());
+    }
+    visit_files(site, &mut |path| {
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            return Ok(());
+        };
+        if name.ends_with(".html") {
+            let mut html = fs::read_to_string(path)
+                .with_context(|| format!("failed to read {}", path.display()))?;
+            html = set_goto_base_attr(&html, &options.base_path);
+            if !options.base_path.is_empty() {
+                html = prefix_root_attr_urls(&html, &options.base_path);
+            }
+            if options.public {
+                html = strip_preview_scripts(&html);
+            }
+            fs::write(path, html).with_context(|| format!("failed to write {}", path.display()))?;
+        } else if name == "pages.json" && !options.base_path.is_empty() {
+            let mut json = fs::read_to_string(path)
+                .with_context(|| format!("failed to read {}", path.display()))?;
+            json = prefix_json_routes(&json, &options.base_path);
+            fs::write(path, json).with_context(|| format!("failed to write {}", path.display()))?;
+        } else if name == "llms.txt" && !options.base_path.is_empty() {
+            let mut text = fs::read_to_string(path)
+                .with_context(|| format!("failed to read {}", path.display()))?;
+            text = prefix_labeled_urls(&text, "URL: /", &options.base_path);
+            fs::write(path, text).with_context(|| format!("failed to write {}", path.display()))?;
+        }
+        Ok(())
+    })
+}
+
+fn visit_files(dir: &Path, visit: &mut impl FnMut(&Path) -> Result<()>) -> Result<()> {
+    for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            visit_files(&path, visit)?;
+        } else {
+            visit(&path)?;
+        }
+    }
+    Ok(())
+}
+
+fn prefix_root_attr_urls(input: &str, base: &str) -> String {
+    let mut html = input.to_string();
+    rewrite_quoted_roots(&mut html, "href=\"/", base);
+    rewrite_quoted_roots(&mut html, "src=\"/", base);
+    html
+}
+
+fn prefix_json_routes(input: &str, base: &str) -> String {
+    let mut json = input.to_string();
+    rewrite_quoted_roots(&mut json, "\"route\": \"/", base);
+    json
+}
+
+fn prefix_labeled_urls(input: &str, label: &str, base: &str) -> String {
+    let mut text = input.to_string();
+    rewrite_quoted_roots(&mut text, label, base);
+    text
+}
+
+fn rewrite_quoted_roots(haystack: &mut String, from: &str, base: &str) {
+    let already = from.replacen('/', &format!("{base}/"), 1);
+    let protocol = from.replacen('/', "//", 1);
+    let mut out = String::with_capacity(haystack.len());
+    let mut rest = haystack.as_str();
+    while let Some(i) = rest.find(from) {
+        if rest[i..].starts_with(&already) {
+            out.push_str(&rest[..i + already.len()]);
+            rest = &rest[i + already.len()..];
+            continue;
+        }
+        if from.ends_with("\"/") && rest[i..].starts_with(&protocol) && protocol != from {
+            out.push_str(&rest[..i + protocol.len()]);
+            rest = &rest[i + protocol.len()..];
+            continue;
+        }
+        out.push_str(&rest[..i]);
+        out.push_str(&already);
+        rest = &rest[i + from.len()..];
+    }
+    out.push_str(rest);
+    *haystack = out;
+}
+
+fn set_goto_base_attr(html: &str, base: &str) -> String {
+    const ATTR: &str = "data-rocci-goto-base=\"";
+    if let Some(start) = html.find(ATTR) {
+        let value_at = start + ATTR.len();
+        if let Some(end) = html[value_at..].find('"') {
+            return format!("{}{}{}", &html[..value_at], base, &html[value_at + end..]);
+        }
+    }
+    if let Some(tag) = html.find("<html") {
+        if let Some(rel) = html[tag..].find('>') {
+            let at = tag + rel;
+            return format!(
+                "{} data-rocci-goto-base=\"{}\"{}",
+                &html[..at],
+                base,
+                &html[at..]
+            );
+        }
+    }
+    html.to_string()
+}
+
+fn strip_preview_scripts(html: &str) -> String {
+    let mut out = html.to_string();
+    for file in ["session.js", "reload.js"] {
+        while let Some((start, end)) = script_tag_for_src(&out, file) {
+            out.replace_range(start..end, "");
+        }
+    }
+    out
+}
+
+fn script_tag_for_src(html: &str, file: &str) -> Option<(usize, usize)> {
+    let mut search = 0;
+    while let Some(rel) = html[search..].find("<script") {
+        let start = search + rel;
+        let rest = &html[start..];
+        let end = rest.find("</script>").map(|i| start + i + 9).or_else(|| {
+            rest.find('>').and_then(|i| {
+                let close = start + i + 1;
+                rest[..i + 1].contains("src=").then_some(close)
+            })
+        })?;
+        if html[start..end].contains(file) {
+            return Some((start, end));
+        }
+        search = start + 7;
+    }
+    None
+}
+
+fn write_site_chrome(bundle: &Bundle, site: &Path, options: &SiteOptions) -> Result<()> {
     let okf_static_dir = site.join("__rocci_okf");
     fs::create_dir_all(&okf_static_dir)
         .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
     fs::write(okf_static_dir.join("goto.js"), rocci_ui::chrome_script())
         .context("failed to write knowledge goto script")?;
-    fs::write(okf_static_dir.join("session.js"), SESSION_UI_JS)
-        .context("failed to write knowledge session script")?;
+    if !options.public {
+        fs::write(okf_static_dir.join("session.js"), SESSION_UI_JS)
+            .context("failed to write knowledge session script")?;
+    } else {
+        let _ = fs::remove_file(okf_static_dir.join("session.js"));
+    }
 
     let catalog = bundle
         .concepts
@@ -1566,7 +1747,14 @@ fn write_site_chrome(bundle: &Bundle, site: &Path) -> Result<()> {
         format!("{}\n", serde_json::to_string_pretty(&nav_pages(bundle))?),
     )
     .context("failed to write knowledge page index")?;
-    Ok(())
+    apply_site_options(site, options)
+}
+
+pub fn finalize_site(site: &Path, options: &SiteOptions) -> Result<()> {
+    if options.public {
+        let _ = fs::remove_file(site.join("__rocci_okf").join("session.js"));
+    }
+    apply_site_options(site, options)
 }
 
 #[derive(Serialize)]
@@ -1883,9 +2071,19 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
     fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
         .context("failed to write knowledge review stylesheet")?;
-    write_site_chrome(bundle, site)?;
+    write_site_chrome(bundle, site, &SiteOptions::default())?;
 
     Ok(())
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub fn build_review_site_pure_rust_with_options(
+    bundle: &Bundle,
+    site: &Path,
+    options: &SiteOptions,
+) -> Result<()> {
+    build_review_site_pure_rust(bundle, site)?;
+    write_site_chrome(bundle, site, options)
 }
 
 #[derive(Debug, Clone)]
@@ -2116,7 +2314,7 @@ pub fn build_review_site_with_session(
             .with_context(|| format!("failed to create {}", okf_static_dir.display()))?;
         fs::write(okf_static_dir.join("app.css"), DEFAULT_CSS)
             .context("failed to write knowledge review stylesheet")?;
-        write_site_chrome(bundle, site)?;
+        write_site_chrome(bundle, site, &SiteOptions::default())?;
 
         let _ = fs::remove_dir_all(&workspace);
         let _ = fs::remove_dir_all(&staging);
@@ -2899,7 +3097,7 @@ fn html_page_with_nav(title: &str, article: &str, nav: &str) -> String {
     };
     let body = format!("<div class=\"rd-shell\">{chrome}{main}{toc}</div>{script}");
     format!(
-        "<!doctype html><html lang=\"en\" class=\"rd-document\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/session.js\" defer></script><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
+        "<!doctype html><html lang=\"en\" class=\"rd-document\" data-rocci-goto-base=\"\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>{}</title><link rel=\"stylesheet\" href=\"/__rocci_okf/app.css\"><script src=\"/__rocci_okf/session.js\" defer></script><script src=\"/__rocci_okf/goto.js\" defer></script><script src=\"/__rocci_okf/reload.js\" defer></script></head><body>{body}</body></html>\n",
         escape(title)
     )
 }
@@ -3355,6 +3553,76 @@ mod tests {
         let pages = fs::read_to_string(site.join("pages.json")).unwrap();
         assert!(pages.contains("\"collection\": \"architecture\""));
         assert!(pages.contains("\"route\": \"/architecture/overview/\""));
+        let _ = fs::remove_dir_all(&site);
+    }
+
+    #[test]
+    fn prefixed_public_export_rewrites_root_urls_and_omits_preview_scripts() {
+        let site = unique_temp("prefixed-public").unwrap();
+        let mut overview = concept_with(BTreeMap::new());
+        overview.id = "architecture/overview".into();
+        overview.path = "architecture/overview.md".into();
+        overview.article_html = "<p>See <a href=\"/decisions/choice/\">choice</a>.</p>".into();
+
+        let mut bundle = bundle_with(vec![overview]);
+        bundle.indexes = vec![
+            okf::Index {
+                path: "index.md".into(),
+                version: Some("0.2".into()),
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<p><a href=\"/architecture/\">Architecture</a></p>".into(),
+            },
+            okf::Index {
+                path: "architecture/index.md".into(),
+                version: None,
+                body_span: Span::new(0, 0),
+                headings: Vec::new(),
+                links: Vec::new(),
+                article_html: "<h1>Architecture</h1>".into(),
+            },
+        ];
+
+        build_review_site_pure_rust_with_options(
+            &bundle,
+            &site,
+            &SiteOptions {
+                base_path: "/knowledge".into(),
+                public: true,
+            },
+        )
+        .unwrap();
+
+        let mut html_files = Vec::new();
+        visit_files(&site, &mut |path| {
+            if path.extension().and_then(|ext| ext.to_str()) == Some("html") {
+                html_files.push(fs::read_to_string(path)?);
+            }
+            Ok(())
+        })
+        .unwrap();
+        assert!(!html_files.is_empty());
+        for html in &html_files {
+            assert!(
+                !html.contains("href=\"/architecture/\""),
+                "unprefixed architecture href in {html}"
+            );
+            assert!(
+                !html.contains("src=\"/__rocci_okf/"),
+                "unprefixed asset src in {html}"
+            );
+            assert!(!html.contains("session.js"));
+            assert!(!html.contains("reload.js"));
+        }
+        let home = fs::read_to_string(site.join("index.html")).unwrap();
+        assert!(home.contains("href=\"/knowledge/architecture/\""));
+        assert!(home.contains("src=\"/knowledge/__rocci_okf/goto.js\""));
+        assert!(home.contains("data-rocci-goto-base=\"/knowledge\""));
+        assert!(!site.join("__rocci_okf").join("session.js").is_file());
+        let pages = fs::read_to_string(site.join("pages.json")).unwrap();
+        assert!(pages.contains("\"route\": \"/knowledge/architecture/overview/\""));
+        assert!(!pages.contains("\"route\": \"/architecture/overview/\""));
         let _ = fs::remove_dir_all(&site);
     }
 

@@ -115,3 +115,9 @@ parses the bundle fresh.
 ```sh
 cargo run -p rocci-okf -- build knowledge -o dist/knowledge --profile rocci
 ```
+
+`--base-path /knowledge` prefixes every emitted route and `/__rocci_okf/` asset URL. `--public` omits `reload.js` and `session.js` (preview-only). `view` keeps an empty prefix and includes those scripts. `okf::published_href` stays bundle-root; prefixing happens when `rocci-okf` writes HTML and indexes.
+
+```sh
+cargo run -p rocci-okf -- build knowledge -o dist/knowledge --profile rocci --base-path /knowledge --public
+```
