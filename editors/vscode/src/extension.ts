@@ -13,6 +13,7 @@ import {
 } from 'vscode-languageclient/node'
 
 import { createOutputChannels, wrappedOutput } from './output-channels'
+import { PreviewSession, registerPreviewCommands } from './preview/session'
 
 let client: LanguageClient | undefined
 const isDebug = process.env.VSCODE_DEBUG_MODE !== undefined
@@ -129,6 +130,7 @@ function registerCommands(context: ExtensionContext) {
       }
     })
   )
+  registerPreviewCommands(context, new PreviewSession(context))
 }
 
 export async function activate(context: ExtensionContext) {

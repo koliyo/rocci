@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { runTests } from '@vscode/test-electron'
 
@@ -26,11 +27,12 @@ async function main() {
       console.log(`Using local VS Code executable: ${localExecutable}`)
     }
 
+    const userDataDir = path.join(os.tmpdir(), 'rocci-vscode-test')
     await runTests({
       ...(localExecutable ? { vscodeExecutablePath: localExecutable } : {}),
       extensionDevelopmentPath,
       extensionTestsPath,
-      launchArgs: ['--disable-extensions']
+      launchArgs: ['--disable-extensions', `--user-data-dir=${userDataDir}`]
     })
   } catch (err) {
     console.error('Failed to run tests', err)
