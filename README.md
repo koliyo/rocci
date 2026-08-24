@@ -174,9 +174,10 @@ push runs hosted CI and Knowledge, then the site package/deploy job. Do not
 promote production until staging has been smoked.
 
 To test a pull request in this worktree when an agent already has the PR
-branch checked out, run `uv run rocci-ops pr-checkout 39`. Quote `#39` in the
-shell, or pass a GitHub PR URL or branch. That fetches the tip and switches
-this checkout to a local `pr/<branch>` branch.
+branch checked out, run `uv run rocci-ops pr-checkout 39`. With no argument,
+that lists open PRs via `gh`. Quote `#39` in the shell, or pass a GitHub PR
+URL or branch. That fetches the tip and switches this checkout to a local
+`pr/<branch>` branch.
 
 `rocci.toml` describes windows, HTTP, security, assets, development, and bundle
 profiles. `[http] redirect_trailing_slash` (default `true`) sends GET `/page` to

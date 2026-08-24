@@ -58,6 +58,12 @@ def _git(root: Path, *args: str, check: bool = True) -> subprocess.CompletedProc
     )
 
 
+def list_open_prs(root: Path | None = None) -> int:
+    repo = root or repo_root()
+    listed = subprocess.run(["gh", "pr", "list", "--state", "open"], cwd=repo)
+    return listed.returncode
+
+
 def _gh_head_ref(root: Path, number: int) -> str:
     listed = subprocess.run(
         ["gh", "pr", "view", str(number), "--json", "headRefName", "-q", ".headRefName"],
@@ -128,12 +134,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         prog="rocci-ops pr-checkout",
         description=(
             "Fetch a pull request or branch and check it out here as pr/<branch> "
-            "so the original branch can stay checked out in an agent worktree."
+            "so the original branch can stay checked out in an agent worktree. "
+            "With no ref, list open PRs via gh."
         ),
     )
     parser.add_argument(
         "ref",
-        help="PR number (#39), GitHub pull request URL, or branch (feat/example-source-sidebar)",
+        nargs="?",
+        help="PR number (#39), GitHub pull request URL, or branch; omit to list open PRs",
     )
     parser.add_argument("-n", "--dry-run", action="store_true")
     return parser.parse_args(argv)
@@ -141,5 +149,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str]) -> int:
     ns = parse_args(argv)
+    if ns.ref is None:
+        return list_open_prs()
     checkout_pr(parse_pr_ref(ns.ref), dry_run=ns.dry_run)
     return 0

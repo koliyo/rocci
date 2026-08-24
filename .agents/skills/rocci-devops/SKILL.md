@@ -124,12 +124,14 @@ To test a pull request in this worktree when its branch is already checked
 out elsewhere:
 
 ```sh
+uv run rocci-ops pr-checkout
 uv run rocci-ops pr-checkout 39
 uv run rocci-ops pr-checkout 'https://github.com/koliyo/rocci/pull/39'
 uv run rocci-ops pr-checkout feat/example-source-sidebar
 ```
 
-That fetches the tip and switches this checkout to `pr/<head-branch>`.
+With no argument, that lists open PRs via `gh`. With a number, URL, or
+branch, it fetches the tip and switches this checkout to `pr/<head-branch>`.
 
 To run the GitHub Actions validation jobs on this OS (no ubuntu/macos
 matrix, no release cross-platform builds):

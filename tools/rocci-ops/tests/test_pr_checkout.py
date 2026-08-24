@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from rocci_ops.pr_checkout import checkout_pr, local_pr_branch, parse_pr_ref
+from rocci_ops.pr_checkout import checkout_pr, list_open_prs, local_pr_branch, main, parse_pr_ref
 
 
 def test_parse_pr_number_and_hash() -> None:
@@ -107,6 +107,27 @@ def test_checkout_refuses_dirty_worktree(monkeypatch, tmp_path: Path) -> None:
 
     with pytest.raises(SystemExit, match="uncommitted"):
         checkout_pr(parse_pr_ref("39"), root=tmp_path)
+
+
+def test_list_open_prs_runs_gh(monkeypatch, tmp_path: Path) -> None:
+    calls: list[object] = []
+
+    def run(cmd, **kwargs):
+        calls.append((cmd, kwargs.get("cwd")))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("rocci_ops.pr_checkout.subprocess.run", run)
+    assert list_open_prs(root=tmp_path) == 0
+    assert calls == [(["gh", "pr", "list", "--state", "open"], tmp_path)]
+
+
+def test_main_without_ref_lists_prs(monkeypatch) -> None:
+    monkeypatch.setattr("rocci_ops.pr_checkout.list_open_prs", lambda: 0)
+    monkeypatch.setattr(
+        "rocci_ops.pr_checkout.checkout_pr",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("checkout")),
+    )
+    assert main([]) == 0
 
 
 def test_dry_run_skips_git_mutators(monkeypatch, tmp_path: Path, capsys) -> None:

@@ -24,7 +24,7 @@ commands:
   render-brand-icons
   serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
-  pr-checkout   checkout a PR or branch here as pr/<branch>
+  pr-checkout   list open PRs, or checkout one here as pr/<branch>
   promote-staging  rebase staging onto main and push staging
   promote-production
                 push origin/staging to origin/production
