@@ -32,6 +32,8 @@ PlayerInsert : {
     respawn_in : I64,
     body : Str,
     score : I64,
+    cam_x : I64,
+    cam_y : I64,
 }
 PlayerUpdate : {
     id : Str,
@@ -41,6 +43,8 @@ PlayerUpdate : {
     respawn_in : I64,
     body : Str,
     score : I64,
+    cam_x : I64,
+    cam_y : I64,
 }
 
 program = { init!, respond!, shutdown! }
@@ -72,7 +76,7 @@ init! = || {
     Sqlite.execute!(
         {
             db,
-            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT NOT NULL, dir TEXT NOT NULL, pending_dir TEXT NOT NULL, alive INTEGER NOT NULL, respawn_in INTEGER NOT NULL, body TEXT NOT NULL, score INTEGER NOT NULL)",
+            query: "CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, name TEXT NOT NULL, color TEXT NOT NULL, dir TEXT NOT NULL, pending_dir TEXT NOT NULL, alive INTEGER NOT NULL, respawn_in INTEGER NOT NULL, body TEXT NOT NULL, score INTEGER NOT NULL, cam_x INTEGER NOT NULL, cam_y INTEGER NOT NULL)",
             params: {},
         },
     )
@@ -335,11 +339,11 @@ load_world! = |db| {
 }
 
 load_snakes_db! = |db| {
-    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64 })
+    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64, cam_x : I64, cam_y : I64 })
     rows = Sqlite.query_many!(
         {
             db,
-            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score FROM players",
+            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y FROM players",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -361,11 +365,11 @@ load_food_db! = |db| {
 }
 
 load_snakes_tx! = |tx| {
-    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64 })
+    rows : List({ id : Str, name : Str, color : Str, dir : Str, pending_dir : Str, alive : I64, respawn_in : I64, body : Str, score : I64, cam_x : I64, cam_y : I64 })
     rows = Sqlite.Transaction.query_many!(
         tx,
         {
-            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score FROM players",
+            query: "SELECT id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y FROM players",
             params: {},
             limits: Sqlite.default_query_limits,
         },
@@ -403,11 +407,13 @@ save_snake_help! = |tx, snakes|
                 respawn_in: snake.respawn_in,
                 body: Game.encode_body(snake.body),
                 score: snake.score,
+                cam_x: snake.cam.x,
+                cam_y: snake.cam.y,
             }
             Sqlite.Transaction.execute!(
                 tx,
                 {
-                    query: "UPDATE players SET dir = :dir, pending_dir = :pending_dir, alive = :alive, respawn_in = :respawn_in, body = :body, score = :score WHERE id = :id",
+                    query: "UPDATE players SET dir = :dir, pending_dir = :pending_dir, alive = :alive, respawn_in = :respawn_in, body = :body, score = :score, cam_x = :cam_x, cam_y = :cam_y WHERE id = :id",
                     params,
                 },
             )?
@@ -450,11 +456,13 @@ insert_player! = |db, snake| {
         respawn_in: snake.respawn_in,
         body: Game.encode_body(snake.body),
         score: snake.score,
+        cam_x: snake.cam.x,
+        cam_y: snake.cam.y,
     }
     Sqlite.execute!(
         {
             db,
-            query: "INSERT INTO players (id, name, color, dir, pending_dir, alive, respawn_in, body, score) VALUES (:id, :name, :color, :dir, :pending_dir, :alive, :respawn_in, :body, :score)",
+            query: "INSERT INTO players (id, name, color, dir, pending_dir, alive, respawn_in, body, score, cam_x, cam_y) VALUES (:id, :name, :color, :dir, :pending_dir, :alive, :respawn_in, :body, :score, :cam_x, :cam_y)",
             params,
         },
     )

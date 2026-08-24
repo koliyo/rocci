@@ -5,6 +5,7 @@ Game := [].{
     grow_every = 16.I64
     view_width = 31.I64
     view_height = 21.I64
+    cam_margin = 3.I64
     world_size = 100.I64
     food_target = 10.I64
     init_length = 3.I64
@@ -90,6 +91,7 @@ Game := [].{
             respawn_in: row.respawn_in,
             body: decode_body(row.body),
             score: row.score,
+            cam: { x: row.cam_x, y: row.cam_y },
         }
     }
 
@@ -282,6 +284,7 @@ Game := [].{
             respawn_in: 0,
             body: body_from_head(found.head, found.dir, init_length),
             score: init_length,
+            cam: centered_origin(found.head),
         }
         {
             ..world,
@@ -292,23 +295,38 @@ Game := [].{
 
     camera = |world, player_id| {
         if player_id == "" {
-            centroid(world.snakes)
+            centered_origin(centroid(world.snakes))
         } else {
             match player_snake(world.snakes, player_id) {
-                Some(snake) if snake.alive =>
-                    match List.get(snake.body, 0) {
-                        Ok(head) => head
-                        Err(_) => centroid(world.snakes)
-                    }
-                _ => centroid(world.snakes)
+                Some(snake) => snake.cam
+                _ => centered_origin(centroid(world.snakes))
             }
         }
     }
 
-    cam_origin = |cam| {
+    centered_origin = |focus| {
         {
-            x: clamp(cam.x - view_width.div_trunc_by(2), 0, world_size - view_width),
-            y: clamp(cam.y - view_height.div_trunc_by(2), 0, world_size - view_height),
+            x: clamp(focus.x - view_width.div_trunc_by(2), 0, world_size - view_width),
+            y: clamp(focus.y - view_height.div_trunc_by(2), 0, world_size - view_height),
+        }
+    }
+
+    follow_axis = |origin, focus, view| {
+        last = view - 1
+        max_origin = world_size - view
+        if focus < origin + cam_margin {
+            clamp(focus - cam_margin, 0, max_origin)
+        } else if focus > origin + last - cam_margin {
+            clamp(focus - (last - cam_margin), 0, max_origin)
+        } else {
+            origin
+        }
+    }
+
+    follow_origin = |origin, focus| {
+        {
+            x: follow_axis(origin.x, focus.x, view_width),
+            y: follow_axis(origin.y, focus.y, view_height),
         }
     }
 
@@ -386,7 +404,7 @@ Game := [].{
     }
 
     cells = |world, cam| {
-        origin = cam_origin(cam)
+        origin = cam
         List.fold(
             range(view_height),
             [],
@@ -455,7 +473,7 @@ Game := [].{
         )
 
     minimap = |world, cam| {
-        origin = cam_origin(cam)
+        origin = cam
         food_marks = List.fold(
             world.food,
             [],
@@ -523,6 +541,7 @@ Game := [].{
                         } else {
                             snake.score
                         },
+                        cam: follow_origin(snake.cam, next_head),
                     }
                 }
             }
@@ -648,6 +667,7 @@ Game := [].{
                         pending_dir: found.dir,
                         body: body_from_head(found.head, found.dir, init_length),
                         score: init_length,
+                        cam: centered_origin(found.head),
                     }
                     {
                         ..acc,

@@ -16,8 +16,11 @@ collisions in `Game.roc`, HTTP and SSE in `main.roc`. Keyboard and touch
 steering live in `snake-input.js`. This is **docs-only** on the public origin
 (not a live hostname).
 
-Up to eight snakes share a 100×100 grid. The server ticks at about 8 Hz and
-morphs `#board`, `#hud`, and `#minimap`. Source files are listed in the sidebar.
+Up to eight snakes share a 100×100 grid. Each player’s camera stays put while
+the head moves inside the 31×21 view and only scrolls when the head enters a
+three-cell margin. Spectators still track the living-snake centroid. The server
+ticks at about 8 Hz and morphs `#board`, `#hud`, and `#minimap`. Source files
+are listed in the sidebar.
 
 ## Run locally
 
