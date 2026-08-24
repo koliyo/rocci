@@ -4,16 +4,16 @@ title: Mount the OKF knowledge viewer on rocci.dev
 description: Package the existing rocci-okf static review site under /knowledge/ and expose it as a rocci.dev lane so visitors can browse the committed knowledge bundle without turning knowledge Markdown into Rocdown.
 tags: [domain/site, domain/okf, domain/rocci-okf, concern/publication, concern/navigation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T21:24:00Z }
+generated: { by: process:cursor, at: 2026-08-24T21:50:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
 sources:
   - id: publication
     resource: ../../decisions/local-knowledge-publication.md
-    title: Keep generated knowledge publication local
-    author: process:okf-phase-5
-    last_modified: 2026-08-16
+    title: Publish generated knowledge HTML on rocci.dev; forbid verbatim archives
+    author: process:cursor
+    last_modified: 2026-08-24
   - id: static-okf
     resource: ../../decisions/static-okf-boundary.md
     title: Strict OKF Markdown and static rendering boundary
@@ -239,10 +239,8 @@ This plan is that reviewed change for **generated HTML of the committed
 bundle only**. It does not approve a tarball of `knowledge/` plus every
 linked repository file.
 
-Phase 0 must amend [local knowledge publication](/decisions/local-knowledge-publication.md)
-to: public HTML under `/knowledge/` on rocci.dev is allowed; a verbatim
-bundle archive is still forbidden. Until that amendment, this record stays
-exploratory and no later phase starts.
+Phase 0 recorded the public-HTML exception on [local knowledge publication](/decisions/local-knowledge-publication.md)
+and the naming answers below. Later phases may start.
 
 ## Out of bound
 
@@ -403,16 +401,18 @@ on that revision.
 - `llms.txt` at the site root that points at `/knowledge/llms.txt`.
 - Hosted review decisions from the OKF application plan.
 
-## Phase 0 answers (blank until the gate)
+## Phase 0 answers
 
 | Question | Answer |
 | --- | --- |
-| Lane label | |
-| URL prefix | `/knowledge/` recommended |
-| Review queue public | yes, recommended |
-| Sitemap | include knowledge URLs, recommended |
+| Audience | Signed-out rocci.dev visitors; same access as the rest of the site; no extra auth. |
+| Published set | Generated HTML plus `pages.json`, `catalog.json`, `llms.txt`, and `validation.json` of the committed bundle. Not a source archive. |
+| Lane label | Knowledge |
+| URL prefix | `/knowledge/` |
+| Review queue public | yes |
+| Sitemap | Emit `/knowledge/sitemap.xml` and mention it from the site `robots.txt`. |
 
-[^publication]: Local HTML and CI verification only; a public site needs an explicit later change. Verbatim archives stay out of scope.
+[^publication]: Public HTML under `/knowledge/` on rocci.dev is allowed; a verbatim bundle archive is still forbidden.
 [^static-okf]: Canonical records are OKF Markdown; `rocci-okf` presents them.
 [^product-boundary]: Rocdown must not depend on OKF; knowledge stays a separate product.
 [^system-overview]: Knowledge is inert Markdown managed by `okf` and `rocci-okf`.

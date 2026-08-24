@@ -1,10 +1,10 @@
 ---
 type: Decision
-title: Keep generated knowledge publication local and repository-visible
-description: Rocci generates a browsable knowledge site and machine indexes for local and CI use, but does not deploy them publicly or publish a verbatim bundle archive during the bootstrap.
-tags: [domain/rocs, integration/okf, concern/security, audience/maintainer]
+title: Publish generated knowledge HTML on rocci.dev; forbid verbatim archives
+description: Signed-out visitors may browse generated HTML of the committed knowledge bundle under /knowledge/ on rocci.dev. Canonical Markdown stays in git. A verbatim bundle archive remains forbidden.
+tags: [domain/rocs, domain/site, integration/okf, concern/security, concern/publication, audience/maintainer]
 status: draft
-generated: { by: process:okf-phase-5, at: 2026-08-16T19:30:24Z }
+generated: { by: process:cursor, at: 2026-08-24T21:50:00Z }
 authority: normative
 owners: [human:nils]
 sources:
@@ -23,30 +23,42 @@ sources:
     title: Knowledge artifact builder
     author: process:git
     last_modified: 2026-08-16
+  - id: site-lane
+    resource: ../plans/site/okf-viewer-site-lane.md
+    title: Mount the OKF knowledge viewer on rocci.dev
+    author: process:cursor
+    last_modified: 2026-08-24
 ---
 
-# Keep generated knowledge publication local and repository-visible
+# Publish generated knowledge HTML on rocci.dev; forbid verbatim archives
 
 ## Context
 
-Phase 5 requires an explicit publication disposition. The canonical bundle links to repository evidence, untracked local research may be present during migration, and the repository does not yet contain a completed source-and-license review for a verbatim distributable archive.[^okf-plan]
+Phase 5 required an explicit publication disposition. The canonical bundle links to repository evidence, untracked local research may be present in a working tree, and the repository does not contain a completed source-and-license review for a verbatim distributable archive.[^okf-plan]
+
+The original local-first rule allowed generated HTML, `catalog.json`, `search.json`, `llms.txt`, and `validation.json` for local preview and CI verification, and forbade public deployment and archive upload. rocci.dev packaging later needed a reviewed exception for **generated HTML of the committed bundle only**.[^site-lane]
 
 ## Decision
 
-Keep canonical records in the repository and generate the HTML site, `catalog.json`, `search.json`, `llms.txt`, and `validation.json` for local preview and CI verification. Do not configure a public deployment and do not upload a verbatim bundle archive in this phase.[^okf-plan][^builder][^workflow]
+Keep canonical records as inert OKF Markdown in the repository. Generate the review HTML site, `pages.json`, `catalog.json`, `llms.txt`, and `validation.json` from the committed bundle.[^okf-plan][^site-lane]
 
-Generated outputs remain derived artifacts rather than canonical inputs. CI may build and compare temporary copies, but it does not retain or publish them.[^workflow]
+Public HTML under `/knowledge/` on rocci.dev is allowed. Audience is signed-out visitors with the same access as the rest of the site; there is no extra authentication. The published set is that generated tree, not a source archive of `knowledge/` plus linked repository files. The review queue stays public. Knowledge URLs are listed via `/knowledge/sitemap.xml`, mentioned from the site `robots.txt`.[^site-lane]
+
+Do not publish a verbatim bundle archive, `archive/`, untracked research, or a zip of the bundle. The Knowledge GitHub workflow stays validation-only: it may build and compare temporary copies, but it does not retain or upload them.[^workflow][^okf-plan]
+
+Generated outputs remain derived artifacts rather than canonical inputs. `rocci-ops package site` is the public deploy artifact path for the HTML tree.[^site-lane]
 
 ## Consequences
 
-Contributors and agents can inspect, search, build, and preview the same validated bundle without creating a hosted knowledge service. Public URLs, access policy, source inclusion, and redistribution licensing remain unresolved rather than being inferred from a successful local render.[^okf-plan]
+Visitors can browse architecture, decisions, plans, research, and audits through the existing OKF review viewer without re-authoring records as Rocdown. Contributors still preview locally with `rocci-okf view`. Redistribution of the Markdown bundle and linked evidence as an archive stays unresolved and forbidden.[^site-lane][^okf-plan]
 
-A future public site or archive requires a separately reviewed change that identifies its audience and access level, inventories every included source and license, defines whether repository resources are copied or linked, and adds an explicit deployment or release path.[^okf-plan]
+A hosted query, MCP, or review-decision service, a `knowledge.rocci.dev` hostname, and a downloadable tarball each still need their own reviewed change.[^site-lane]
 
 ## Current disposition
 
-The Phase 0 local-first contract is implemented by the Phase 5 CLI, generated outputs, preview server, and CI workflow. This record remains `draft` until a human reviews the publication decision and its evidence.
+This amendment is the reviewed public-HTML exception named by the site-lane plan. Local `rocci-okf view` and Knowledge CI remain unprefixed validation and preview paths. This record remains `draft` until a human reviews the publication decision and its evidence.
 
 [^okf-plan]: Approved local-first publication baseline and Phase 5 archive safety condition.
 [^workflow]: CI validates and compares temporary generated artifacts without uploading them.
-[^builder]: Current deterministic local artifact set and canonical/derived boundary.
+[^builder]: Historical deterministic local artifact set and canonical/derived boundary.
+[^site-lane]: Phase 0 gate: public HTML under `/knowledge/`, no verbatim archive.
