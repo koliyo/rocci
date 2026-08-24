@@ -204,6 +204,88 @@ hosting = "docs"
 }
 
 #[test]
+fn site_false_with_docs_loads_and_live_fails() {
+    let docs = scratch("site-false-docs");
+    write(
+        &docs.join("apps.toml"),
+        r#"
+[[app]]
+id = "local-only"
+path = "local-only"
+title = "Local only"
+summary = "Docs, excluded from the public site"
+entry = "App.rocci"
+hosting = "docs"
+site = false
+"#,
+    );
+    write(&docs.join("local-only/index.rocdown"), "# Local\n");
+    write(&docs.join("local-only/App.rocci"), "");
+    let catalog = load_catalog(&docs.join("apps.toml")).unwrap();
+    assert_eq!(catalog.apps.len(), 1);
+    assert!(!catalog.apps[0].site);
+    assert_eq!(catalog.apps[0].hosting, rocci_docs::Hosting::Docs);
+
+    let live = scratch("site-false-live");
+    write(
+        &live.join("apps.toml"),
+        r#"
+[[app]]
+id = "ghost-live"
+path = "ghost-live"
+title = "Ghost live"
+summary = "Invalid live plus excluded"
+entry = "App.rocci"
+hosting = "live"
+site = false
+"#,
+    );
+    write(&live.join("ghost-live/index.rocdown"), "# Ghost\n");
+    write(&live.join("ghost-live/App.rocci"), "");
+    let err = load_catalog(&live.join("apps.toml"))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("hosting = \"live\" requires site = true"),
+        "{err}"
+    );
+}
+
+#[test]
+fn unknown_catalog_key_fails() {
+    let root = scratch("unknown-key");
+    write(
+        &root.join("apps.toml"),
+        r#"
+[[app]]
+id = "x"
+path = "x"
+title = "X"
+summary = "X"
+entry = "X.rocci"
+hosting = "docs"
+siet = false
+"#,
+    );
+    write(&root.join("x/index.rocdown"), "# X\n");
+    write(&root.join("x/X.rocci"), "");
+    let err = load_catalog(&root.join("apps.toml"))
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("siet") || err.contains("unknown"), "{err}");
+}
+
+#[test]
+fn repo_catalog_defaults_site_true() {
+    let catalog = load_catalog(
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/rocci/apps.toml"),
+    )
+    .unwrap();
+    assert!(!catalog.apps.is_empty());
+    assert!(catalog.apps.iter().all(|app| app.site));
+}
+
+#[test]
 fn unknown_hosting_fails() {
     let root = scratch("hosting");
     write(
@@ -258,6 +340,7 @@ fn failed_stage_keeps_previous_tree() {
         summary: "Missing on purpose".into(),
         entry: "Ghost.rocci".into(),
         hosting: rocci_docs::Hosting::Docs,
+        site: true,
         files: Vec::new(),
         audience: String::new(),
         purpose: String::new(),

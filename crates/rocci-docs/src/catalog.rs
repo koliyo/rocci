@@ -48,7 +48,12 @@ impl Hosting {
     }
 }
 
+fn default_site() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AppEntry {
     pub id: String,
     pub path: String,
@@ -56,6 +61,8 @@ pub struct AppEntry {
     pub summary: String,
     pub entry: String,
     pub hosting: Hosting,
+    #[serde(default = "default_site")]
+    pub site: bool,
     #[serde(default)]
     pub files: Vec<String>,
     #[serde(default)]
@@ -122,6 +129,12 @@ fn validate(apps: &[AppEntry], root: &Path) -> Result<(), DocsError> {
         }
         if !ids.insert(app.id.clone()) {
             return Err(DocsError::Message(format!("duplicate app id `{}`", app.id)));
+        }
+        if app.hosting == Hosting::Live && !app.site {
+            return Err(DocsError::Message(format!(
+                "app `{}` hosting = \"live\" requires site = true",
+                app.id
+            )));
         }
         if app.path.is_empty()
             || Path::new(&app.path).is_absolute()

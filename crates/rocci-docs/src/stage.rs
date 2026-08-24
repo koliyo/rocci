@@ -339,6 +339,7 @@ mod tests {
             summary: "demo".into(),
             entry: ".".into(),
             hosting: crate::catalog::Hosting::Live,
+            site: true,
             files: Vec::new(),
             audience: String::new(),
             purpose: String::new(),
