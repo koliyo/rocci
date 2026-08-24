@@ -10,7 +10,7 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: ecosystem
-    resource: method-role-handlers-datastar-ecosystem.md
+    resource: https://github.com/koliyo/rocci/blob/main/knowledge/research/method-role-handlers-datastar-ecosystem.md
     title: Post-landing method-role matrix compared with the Datastar ecosystem
     author: process:cursor
     last_modified: 2026-08-24
@@ -115,8 +115,8 @@ behavior and not an implementation plan. It asks: if the landed
 platform that replaced that host — how would it be shaped, and how would
 authoring DX compare with the `.rocci` DSL?[^ecosystem][^template-readme]
 
-Prefer the [ecosystem comparison](method-role-handlers-datastar-ecosystem.md)
-for what the matrix is relative to Datastar SDKs. Prefer the
+Prefer the post-landing Datastar ecosystem comparison for what the matrix
+is relative to Datastar SDKs. Prefer the
 [verb-first research](verb-first-handler-declarations.md) for why role is in
 the header. This record only answers the Roc-library fork those papers leave
 open.
