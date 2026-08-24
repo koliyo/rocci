@@ -88,7 +88,10 @@ git rebase main
    is clear, apply it, `git add` the files, and
    `GIT_EDITOR=true git rebase --continue`. Repeat until the rebase
    finishes or a conflict is not understood. Do not use `-X ours` / `-X
-   theirs` as a blanket strategy.
+   theirs` as a blanket strategy. `knowledge/log.md` uses Git `merge=union`
+   (see `/research/okf/knowledge-log-concurrency.md`): concurrent **new**
+   bullets should auto-combine; leftover conflicts or duplicated rewrites
+   still need a human look. Collection `index.md` files are ordinary merges.
 5. Pause only when the resolution is ambiguous or would guess at intent.
    Then list the remaining files, explain what is unclear, and leave the
    rebase in progress in `SOURCE_WT`. Do not `--abort` unless the user asks.

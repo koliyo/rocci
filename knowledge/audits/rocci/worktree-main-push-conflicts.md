@@ -82,7 +82,7 @@ Together: phase work stays on a plan-named branch; landing rebases that branch a
 
 Named branches remove the detached-HEAD rewrite loop. They do not remove:
 
-- Stale bases: old worktrees still need `git rebase main` (or equivalent) before merge, or content conflicts remain.
+- Stale bases: old worktrees still need `git rebase main` (or equivalent) before merge, or content conflicts remain. Concurrent **new bullets** in `knowledge/log.md` are now combined with Git `union` merge ([knowledge log concurrency](/research/okf/knowledge-log-concurrency.md)); collection `index.md` files and in-place log rewrites are not.
 - Long delays before pushing `main` after each landing.
 - Cherry-picking a branch and later merging that same branch.
 - Accidental `git rebase <feature>` while on `main` (explicitly forbidden in the runner; still a human/agent mistake mode).

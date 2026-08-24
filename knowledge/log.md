@@ -1,7 +1,14 @@
 # Knowledge log
 
+Git merges this file with the built-in `union` driver (see `.gitattributes`).
+Independent bullets under the same `## YYYY-MM-DD` heading combine instead of
+conflicting. Add a new list item; do not reword another session's bullet in
+the same change. In-place edits of the same line can still duplicate. Details:
+[knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
+
 ## 2026-08-24
 
+- Set `knowledge/log.md merge=union` in `.gitattributes` so concurrent research bullets under the same date heading combine instead of conflicting. Documented in [knowledge log concurrency](research/okf/knowledge-log-concurrency.md). Add new bullets only; rewriting the same line can duplicate. Exploratory; not a format change.
 - Added draft [mount the OKF knowledge viewer on rocci.dev](plans/site/okf-viewer-site-lane.md): copy the existing `rocci-okf` static review tree under `/knowledge/` and add a global site lane (Knowledge, or Development if the maintainer prefers that label). Not a Rocdown `[[mount]]` of `knowledge/`. Phase 0 must amend local-first publication before any packaging work. Exploratory; no phase started.
 - Added draft [editor preview research](research/shared/editor-preview.md) and [implementation plan](plans/shared/editor-preview.md): VS Code play/preview should spawn `rocci run` / `rocdown view --no-window` and open Simple Browser beside the file; Zed cannot embed a browser, so ship tasks that open the native preview window. Exploratory; no phase started.
 - Added draft [method-role handlers as a Roc library](research/rocci/method-role-handlers-as-roc-library.md): the landed `@method:role` matrix can be typed Roc constructors on basic-webserver; a custom platform is mostly who owns `respond!`. Handler DX would likely beat the DSL as apps grow (prefix routes, mixed events, no generated-name collisions) and would match Datastar SDKs; starter-app and inspectable-header DX stay with `.rocci` unless `@component` remains. Exploratory; not a plan and not a language change.

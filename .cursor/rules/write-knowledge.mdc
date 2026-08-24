@@ -46,7 +46,7 @@ not start phases unless the user asks.
 - `status: draft`, `generated.by: process:cursor`, `owners: [human:nils]`
 - Unique source `id`s, paths relative to the record, keyed footnotes on claims
 - Plans: Goal, Out of bound, Constraints that do not move, phased Bound/Exit
-- New records: update the nearest directory `index.md` (and the parent type index when adding an area) and `knowledge/log.md`
+- New records: update the nearest directory `index.md` (and the parent type index when adding an area) and `knowledge/log.md`. Log entries are new bullets only; Git `merge=union` combines concurrent appends (see `/research/okf/knowledge-log-concurrency.md`).
 
 ```yaml
 type: Research Report

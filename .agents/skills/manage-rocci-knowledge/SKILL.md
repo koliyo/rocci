@@ -68,7 +68,11 @@ targeted record and source reads over loading the entire JSON catalog.
    advance a human verification event.
 7. Update the nearest directory `index.md` when adding, moving, or removing a
    record (and the parent type index when adding an area). Update
-   `knowledge/log.md` for a meaningful bundle-level change. Do not log a
+   `knowledge/log.md` for a meaningful bundle-level change. Append a new
+   bullet under today's `## YYYY-MM-DD` heading (create it at the top if
+   needed). Do not reword another session's bullet in the same change; Git
+   `merge=union` combines unique lines and would keep both wordings.
+   Details: `/research/okf/knowledge-log-concurrency.md`. Do not log a
    phase as complete until the required GitHub workflows (CI and Knowledge)
    have succeeded on that revision; cite the run IDs in the log entry.
 8. Update public Rocdown documentation separately when the changed fact is also
