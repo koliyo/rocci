@@ -1260,17 +1260,16 @@ fn lanes_and_sidebar(
 ) -> (Vec<LaneView>, Vec<NavGroupView>) {
     let has_nested = navigation
         .iter()
-        .any(|section| !section.children.is_empty());
+        .any(|section| !section.children.is_empty() || section.href.is_some());
     let current_top = current_id.and_then(|id| current_section(navigation, id));
     let lanes = if has_nested {
         navigation
             .iter()
             .map(|section| LaneView {
                 label: section.label.clone(),
-                href: catalog::first_nav_item(section)
-                    .map(|item| item.route.clone())
-                    .unwrap_or_else(|| "/".into()),
-                current: current_top.is_some_and(|current| current.label == section.label),
+                href: catalog::section_lane_href(section),
+                current: section.href.is_none()
+                    && current_top.is_some_and(|current| current.label == section.label),
             })
             .collect()
     } else {
@@ -2371,6 +2370,7 @@ mod tests {
             label: label.into(),
             items,
             children,
+            href: None,
         }
     }
 
@@ -2554,6 +2554,29 @@ mod tests {
         assert_eq!(sidebar[1].title, "Status");
         assert_eq!(sidebar[1].items.len(), 1);
         assert_eq!(sidebar[1].items[0].title, "Status");
+    }
+
+    #[test]
+    fn foreign_href_lane_is_never_current_on_catalog_pages() {
+        let navigation = vec![
+            nav_section(
+                "Docs",
+                vec![nav_item("docs/index", "Docs", "/docs/")],
+                vec![],
+            ),
+            NavSection {
+                label: "Knowledge".into(),
+                items: Vec::new(),
+                children: Vec::new(),
+                href: Some("/knowledge/".into()),
+            },
+        ];
+        let (lanes, _) = lanes_and_sidebar(&navigation, Some("docs/index"));
+        assert_eq!(lanes.len(), 2);
+        assert_eq!(lanes[1].label, "Knowledge");
+        assert_eq!(lanes[1].href, "/knowledge/");
+        assert!(lanes[0].current);
+        assert!(!lanes[1].current);
     }
 
     #[test]

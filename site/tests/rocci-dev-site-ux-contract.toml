@@ -32,7 +32,7 @@ outline_1280 = "none"
 outline_900 = "none"
 outline_390 = "none"
 title = "Rocci"
-assert_present = ["Getting started", "Rocdown", "Examples", "Playground", "Project", "Hybrid island deployment"]
+assert_present = ["Getting started", "Rocdown", "Examples", "Playground", "Project", "Knowledge", "Hybrid island deployment"]
 assert_absent = ["News", "/news/"]
 
 [[route]]

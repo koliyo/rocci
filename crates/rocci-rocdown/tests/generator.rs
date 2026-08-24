@@ -208,6 +208,7 @@ fn test_site_catalog_resolution() {
             label: "General".to_string(),
             items: vec!["index".to_string(), "guide".to_string()],
             directory: None,
+            href: None,
             groups: Vec::new(),
         }],
         files: BTreeSet::new(),

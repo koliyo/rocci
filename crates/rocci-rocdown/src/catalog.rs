@@ -165,6 +165,8 @@ pub struct NavSection {
     pub items: Vec<NavItem>,
     #[serde(default)]
     pub children: Vec<NavSection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub href: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -834,6 +836,7 @@ fn resolve_navigation(
                 })
                 .collect(),
             children: Vec::new(),
+            href: None,
         });
     }
 
@@ -847,6 +850,23 @@ fn resolve_nav_section(
     seen: &mut BTreeMap<String, String>,
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) -> Option<NavSection> {
+    if let Some(href) = section
+        .href
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return Some(NavSection {
+            label: section.label.clone(),
+            items: Vec::new(),
+            children: Vec::new(),
+            href: Some(if href.ends_with('/') {
+                href.to_string()
+            } else {
+                format!("{href}/")
+            }),
+        });
+    }
     let ids = if section.items.is_empty() && section.groups.is_empty() {
         directory_ids(pages, section.directory.as_deref().unwrap_or_default())
     } else {
@@ -902,6 +922,7 @@ fn resolve_nav_section(
         label: section.label.clone(),
         items,
         children,
+        href: None,
     })
 }
 
@@ -942,6 +963,14 @@ pub(crate) fn first_nav_item(section: &NavSection) -> Option<&NavItem> {
         .items
         .first()
         .or_else(|| section.children.iter().find_map(first_nav_item))
+}
+
+pub(crate) fn section_lane_href(section: &NavSection) -> String {
+    section.href.clone().unwrap_or_else(|| {
+        first_nav_item(section)
+            .map(|item| item.route.clone())
+            .unwrap_or_else(|| "/".into())
+    })
 }
 
 pub(crate) fn section_contains(section: &NavSection, id: &str) -> bool {
@@ -1259,6 +1288,7 @@ mod tests {
                     label: "Start".into(),
                     items: vec!["index".into(), "guide".into()],
                     directory: None,
+                    href: None,
                     groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
@@ -1300,6 +1330,7 @@ mod tests {
                     label: "Examples".into(),
                     items: vec!["examples/index".into(), "examples/notes/index".into()],
                     directory: Some("examples".into()),
+                    href: None,
                     groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
@@ -1328,6 +1359,7 @@ mod tests {
                     label: "Start".into(),
                     items: vec!["index".into()],
                     directory: None,
+                    href: None,
                     groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
@@ -1351,6 +1383,7 @@ mod tests {
                     label: "Start".into(),
                     items: vec!["index".into()],
                     directory: None,
+                    href: None,
                     groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
@@ -1384,6 +1417,7 @@ mod tests {
                     label: "Guides".into(),
                     items: Vec::new(),
                     directory: Some("guides".into()),
+                    href: None,
                     groups: Vec::new(),
                 }],
                 files: BTreeSet::new(),
@@ -1430,6 +1464,7 @@ mod tests {
                     label: "Docs".into(),
                     items: Vec::new(),
                     directory: None,
+                    href: None,
                     groups: vec![NavConfig {
                         label: "Tutorials".into(),
                         items: vec![
@@ -1437,6 +1472,7 @@ mod tests {
                             "docs/tutorials/first-component".into(),
                         ],
                         directory: None,
+                        href: None,
                         groups: Vec::new(),
                     }],
                 }],
@@ -1543,6 +1579,40 @@ mod tests {
                 .graph
                 .iter()
                 .any(|edge| edge.kind == EdgeKind::Heading && edge.target == "guide#install")
+        );
+    }
+
+    #[test]
+    fn foreign_href_lane_skips_catalog_pages() {
+        let pages = [page("index", "index.rocdown", RouteHint::Derived, "Home")];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![
+                    NavConfig {
+                        label: "Start".into(),
+                        items: vec!["index".into()],
+                        directory: None,
+                        href: None,
+                        groups: Vec::new(),
+                    },
+                    NavConfig {
+                        label: "Knowledge".into(),
+                        items: Vec::new(),
+                        directory: None,
+                        href: Some("/knowledge/".into()),
+                        groups: Vec::new(),
+                    },
+                ],
+                files: BTreeSet::new(),
+            },
+        );
+        assert!(!result.has_errors(), "{}", result.error_summary());
+        assert_eq!(result.site.navigation[1].label, "Knowledge");
+        assert!(result.site.navigation[1].items.is_empty());
+        assert_eq!(
+            result.site.navigation[1].href.as_deref(),
+            Some("/knowledge/")
         );
     }
 

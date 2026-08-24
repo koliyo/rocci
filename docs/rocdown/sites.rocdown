@@ -278,7 +278,9 @@ detail mounts may opt into the explicit `linked-detail` policy above.
 Use `[[nav.groups]]` under a top-level `[[nav]]` when a product lane (for example
 Docs) should keep one header link while the left rail folds into Start,
 Tutorials, and the rest. Group items are the same page IDs. A section with
-only groups and no `items` is valid. Sidebar groups share the same expandable
+only groups and no `items` is valid. A top-level `[[nav]]` may set `href`
+instead of `items` / `directory` / `groups` so a header lane can point at a
+foreign URL (for example `/knowledge/`) that is not a Rocdown catalog page. Sidebar groups share the same expandable
 shape and open independently under user control. The short transition honors
 reduced-motion preferences, and explicit open/closed choices persist while the
 user navigates in the same browser tab. The Examples group lists generated

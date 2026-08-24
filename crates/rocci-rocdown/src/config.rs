@@ -107,6 +107,8 @@ pub struct NavConfig {
     pub label: String,
     pub items: Vec<String>,
     pub directory: Option<String>,
+    /// Foreign URL for a header lane that is not a catalog of Rocdown pages.
+    pub href: Option<String>,
     #[serde(default, rename = "groups")]
     pub groups: Vec<NavConfig>,
 }
@@ -319,9 +321,31 @@ fn validate_nav_section(section: &NavConfig, index: usize, path: &Path) -> Resul
         .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty());
+    let href = section
+        .href
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if let Some(href) = href {
+        if !href.starts_with('/') || href.starts_with("//") || href.contains("..") {
+            bail!(
+                "nav section `{}` has an invalid href `{href}` in {}",
+                section.label,
+                path.display()
+            );
+        }
+        if !section.items.is_empty() || directory.is_some() || !section.groups.is_empty() {
+            bail!(
+                "nav section `{}` uses href and cannot also set items, directory, or groups in {}",
+                section.label,
+                path.display()
+            );
+        }
+        return Ok(());
+    }
     if section.items.is_empty() && directory.is_none() && section.groups.is_empty() {
         bail!(
-            "nav section `{}` has no items, directory, or groups in {}",
+            "nav section `{}` has no items, directory, groups, or href in {}",
             section.label,
             path.display()
         );
@@ -472,6 +496,27 @@ directory = "guides"
         .unwrap();
         let config = load_config(&root).unwrap();
         assert_eq!(config.navigation[0].directory.as_deref(), Some("guides"));
+        assert!(config.navigation[0].items.is_empty());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_foreign_href_navigation() {
+        let root = temp("href-nav");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[nav]]
+label = "Knowledge"
+href = "/knowledge/"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.navigation[0].href.as_deref(), Some("/knowledge/"));
         assert!(config.navigation[0].items.is_empty());
         let _ = fs::remove_dir_all(root);
     }
