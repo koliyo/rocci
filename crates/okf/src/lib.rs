@@ -47,8 +47,9 @@ pub use validate::{
     PROFILE_TYPES, STANDARD_FIELDS, collect_source_ids, current_utc_date, external_url,
     filesystem_modified_at, git_last_modified, git_path_dirty, git_repository_root, is_date,
     latest_human_verification, metadata_string_array, parse_timestamp, repository_source_path,
-    string_field, validate_lifecycle_and_sources, validate_lifecycle_and_sources_with,
-    validate_metadata, validate_optional_string, validate_unique_ids,
+    string_field, validate_index_membership, validate_lifecycle_and_sources,
+    validate_lifecycle_and_sources_with, validate_metadata, validate_optional_string,
+    validate_route_collisions, validate_unique_ids,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -154,6 +155,10 @@ pub fn load_with_cache(
     indexes.sort_by(|a, b| a.path.cmp(&b.path));
     logs.sort_by(|a, b| a.path.cmp(&b.path));
     validate_unique_ids(&concepts, &mut diagnostics);
+    validate_route_collisions(&concepts, &indexes, &mut diagnostics);
+    if options.profile == Profile::Rocci {
+        validate_index_membership(&concepts, &indexes, &mut diagnostics);
+    }
     let parse = parse_started.elapsed();
 
     let graph_started = Instant::now();
@@ -235,9 +240,7 @@ pub fn inspect_filtered(
             let Some(id) = concept_id else {
                 bail!("inspect concept requires a concept id");
             };
-            let Some(concept) = bundle.concepts.iter().find(|concept| concept.id == id) else {
-                bail!("unknown concept `{id}`");
-            };
+            let concept = find_concept(&bundle.concepts, id)?;
             Ok(serde_json::to_string_pretty(&ConceptInspect::from(
                 concept,
             ))?)
@@ -581,6 +584,8 @@ fn parse_index(
         path: relative.to_string(),
         version,
         body_span: body,
+        headings: parsed.headings,
+        links: parsed.links,
         article_html: parsed.article_html,
     });
 }
@@ -636,4 +641,22 @@ fn relative_path(root: &Path, path: &Path) -> String {
         .unwrap_or(path)
         .to_string_lossy()
         .replace('\\', "/")
+}
+
+fn find_concept<'a>(concepts: &'a [Concept], id: &str) -> Result<&'a Concept> {
+    if let Some(concept) = concepts.iter().find(|concept| concept.id == id) {
+        return Ok(concept);
+    }
+    let matches: Vec<_> = concepts
+        .iter()
+        .filter(|concept| concept.id.rsplit('/').next() == Some(id))
+        .collect();
+    match matches.as_slice() {
+        [concept] => Ok(concept),
+        [] => bail!("unknown concept `{id}`"),
+        _ => bail!(
+            "ambiguous concept stem `{id}`; use a full id such as `{}`",
+            matches[0].id
+        ),
+    }
 }

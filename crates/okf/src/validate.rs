@@ -7,9 +7,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
-use crate::ast::{Concept, Profile, Span};
+use crate::ast::{Concept, Index, Profile, Span};
 use crate::diagnostic::{Diagnostic, SourceLocation};
 use crate::frontmatter::location;
+use crate::graph::{resolve_bundle_path, split_fragment};
 
 pub const STANDARD_FIELDS: &[&str] = &[
     "type",
@@ -291,6 +292,83 @@ pub fn validate_unique_ids(concepts: &[Concept], diagnostics: &mut Vec<Diagnosti
             ));
         }
     }
+}
+
+pub fn validate_route_collisions(
+    concepts: &[Concept],
+    indexes: &[Index],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let mut collections = BTreeMap::new();
+    for index in indexes {
+        let Some(collection) = index.path.strip_suffix("/index.md") else {
+            continue;
+        };
+        collections.insert(collection.to_ascii_lowercase(), index.path.clone());
+    }
+    for concept in concepts {
+        let folded = concept.id.to_ascii_lowercase();
+        if let Some(index_path) = collections.get(&folded) {
+            diagnostics.push(Diagnostic::error(
+                "OKF3005",
+                &concept.path,
+                None,
+                format!(
+                    "concept id `{id}` collides with collection `{index_path}`",
+                    id = concept.id
+                ),
+            ));
+        }
+    }
+}
+
+pub fn validate_index_membership(
+    concepts: &[Concept],
+    indexes: &[Index],
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let indexes_by_path: BTreeMap<&str, &Index> = indexes
+        .iter()
+        .map(|index| (index.path.as_str(), index))
+        .collect();
+    for concept in concepts {
+        let Some((dir, _)) = concept.path.rsplit_once('/') else {
+            continue;
+        };
+        let index_path = format!("{dir}/index.md");
+        let Some(index) = indexes_by_path.get(index_path.as_str()) else {
+            diagnostics.push(Diagnostic::warning(
+                "OKF2010",
+                &concept.path,
+                None,
+                format!("concept is not listed because `{index_path}` is missing"),
+            ));
+            continue;
+        };
+        if !index_lists_concept(index, concept) {
+            diagnostics.push(Diagnostic::warning(
+                "OKF2010",
+                &concept.path,
+                None,
+                format!("concept is not listed in `{index_path}`"),
+            ));
+        }
+    }
+}
+
+fn index_lists_concept(index: &Index, concept: &Concept) -> bool {
+    index.links.iter().any(|link| {
+        if external_url(&link.url) || link.url.starts_with('#') {
+            return false;
+        }
+        let (path, _) = split_fragment(&link.url);
+        let Some(resolved) = resolve_bundle_path(&index.path, path) else {
+            return false;
+        };
+        resolved == concept.path
+            || resolved == concept.id
+            || resolved == format!("{}.md", concept.id)
+    })
 }
 
 static GIT_INVOCATIONS: AtomicUsize = AtomicUsize::new(0);

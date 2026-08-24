@@ -114,7 +114,7 @@ evidence is the VS Code integration suite plus the Zed manifest assertion in
 
 ## Planned evolution
 
-The proposed [language-server plan](/plans/language-server.md) keeps one common
+The proposed [language-server plan](/plans/rocci/language-server.md) keeps one common
 LSP server, makes embedded regions context- and purpose-aware, composes
 embedded results into source coordinates, and treats editor-native grammars as
 optional adapter support rather than semantic authority.

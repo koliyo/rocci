@@ -1,5 +1,6 @@
 # Decisions
 
+* [Nest large OKF collections](nested-okf-collections.md) - Type-first folders plus a closed product-area vocabulary under plans, research, and audits. Exploratory draft; not approved.
 * [Use strict OKF Markdown](static-okf-boundary.md) - Canonical knowledge syntax and execution boundary.
 * [Keep render components pure](pure-render-components.md) - Component declarations lower to ordinary Roc functions.
 * [Keep durable state on the server](server-owned-state.md) - Browser behavior does not duplicate domain authority.

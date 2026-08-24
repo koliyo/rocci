@@ -10,12 +10,12 @@ authority: descriptive
 owners: [human:nils]
 sources:
   - id: plan
-    resource: ../plans/okf-compile-render-cost.md
+    resource: ../plans/okf/okf-compile-render-cost.md
     title: OKF preview compile and render cost plan
     author: process:cursor
     last_modified: 2026-08-19
   - id: research
-    resource: ../research/okf-compile-render-cost.md
+    resource: ../research/okf/okf-compile-render-cost.md
     title: OKF preview compile and render cost after load-performance work
     author: process:cursor
     last_modified: 2026-08-19
@@ -55,13 +55,13 @@ remeasure.[^plan][^research]
 Command:
 
 ```text
-cargo run -q -p rocci-okf -- run knowledge/research/okf-compile-render-cost.md \
+cargo run -q -p rocci-okf -- run knowledge/research/okf/okf-compile-render-cost.md \
   --no-window --port auto --profile-report json
 ```
 
 ## What shipped
 
-Phases 1–3 and 6 of the [compile/render plan](../plans/okf-compile-render-cost.md)
+Phases 1–3 and 6 of the [compile/render plan](/plans/okf/okf-compile-render-cost.md)
 are in this tree:[^plan][^presentation][^okf-dev][^okf-main]
 
 - Compile hash is `compute_gen_hash` / `compute_compile_hash` over templates,

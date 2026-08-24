@@ -52,8 +52,11 @@ targeted record and source reads over loading the entire JSON catalog.
 1. Read `knowledge/reference/priority-1-review.md` before changing lifecycle,
    verification, or provenance metadata. Read `archive/reports/OKF_PLAN.md` when the task
    changes the knowledge-system contract rather than an individual record.
-2. Choose a collection and record type based on the claim's purpose and
-   authority, not merely the file being discussed.
+2. Choose a type collection and area based on the claim's purpose and
+   authority, not merely the file being discussed. Areas under
+   `plans/`, `research/`, and `audits/` are `rocci`, `rocdown`, `okf`,
+   `site`, `ops`, and `shared`. Prefer bundle-root `/path.md` links.
+   Inspect accepts a unique filename stem as well as the full concept ID.
 3. Keep record bodies inert Markdown. Do not add Rocdown declarations, raw
    HTML, wikilinks, or executable content.
 4. Preserve unknown OKF metadata unless the task explicitly removes it.
@@ -63,8 +66,9 @@ targeted record and source reads over loading the entire JSON catalog.
 6. On a substantive generated revision, update `generated.at`, set the record
    to `draft`, and retain historical verification events. Never invent or
    advance a human verification event.
-7. Update the collection index when adding, moving, or removing a record.
-   Update `knowledge/log.md` for a meaningful bundle-level change. Do not log a
+7. Update the nearest directory `index.md` when adding, moving, or removing a
+   record (and the parent type index when adding an area). Update
+   `knowledge/log.md` for a meaningful bundle-level change. Do not log a
    phase as complete until the required GitHub workflows (CI and Knowledge)
    have succeeded on that revision; cite the run IDs in the log entry.
 8. Update public Rocdown documentation separately when the changed fact is also

@@ -25,7 +25,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: chrome-research
-    resource: ../research/desktop-host-chrome-and-inspector-ui.md
+    resource: ../research/rocci/desktop-host-chrome-and-inspector-ui.md
     title: Desktop host chrome versus Rocci inspector UI
     author: process:cursor
     last_modified: 2026-08-18

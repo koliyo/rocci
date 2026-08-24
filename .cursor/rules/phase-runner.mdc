@@ -6,7 +6,7 @@ alwaysApply: true
 # Phased Runner Instructions
 
 Use this protocol only when executing a referenced implementation plan
-(for example `knowledge/plans/*.md` or an @-mentioned plan).
+(for example `knowledge/plans/**/*.md` or an @-mentioned plan).
 
 ## 1. Required Phase Output Header
 
@@ -32,8 +32,8 @@ Every response for a phase MUST begin immediately with this markdown block
 Commit phase work on a named branch in this worktree. Do not commit on
 `main` or in detached HEAD.
 
-**Branch name:** the plan filename without `.md` (`knowledge/plans/live-reload-follow-ons.md`
-→ `live-reload-follow-ons`). If the user already named a branch, use that.
+**Branch name:** the plan **filename stem** without `.md` (`knowledge/plans/okf/nested-collections.md`
+→ `nested-collections`). Stems must stay unique under `knowledge/plans/`. If the user already named a branch, use that.
 If this checkout is already a non-`main` named branch for this plan, keep it.
 
 Before modifying files, run `git rev-parse --abbrev-ref HEAD`:

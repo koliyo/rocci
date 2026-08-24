@@ -30,7 +30,7 @@ the composition rules.
    `@component`, `knowledge/decisions/pure-render-components.md`.
 4. For shared-view SSE vs one-shot fragments, start at
    `docs/concepts/one-shot-versus-live.rocdown` and
-   `knowledge/research/datastar-cqrs-action-responses.md` (historical JSON
+   `knowledge/research/rocci/datastar-cqrs-action-responses.md` (historical JSON
    ordinary-client branch). Current generated commands are empty SSE for
    Datastar and 204 otherwise. Snake remains the hand-written ceiling.
 5. Prefer nearby `examples/` over inventing a new layering.

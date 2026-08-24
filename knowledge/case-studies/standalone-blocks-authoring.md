@@ -10,12 +10,12 @@ authority: descriptive
 owners: [human:nils]
 sources:
   - id: audit
-    resource: ../audits/standalone-falling-block-postmortem.md
+    resource: ../audits/rocci/standalone-falling-block-postmortem.md
     title: Standalone falling-block post-mortem
     author: process:cursor
     last_modified: 2026-08-22
   - id: plan
-    resource: ../plans/standalone-falling-block.md
+    resource: ../plans/rocci/standalone-falling-block.md
     title: Standalone falling-block authoring plan
     author: process:cursor
     last_modified: 2026-08-22

@@ -149,6 +149,10 @@ pub struct Index {
     pub path: String,
     pub version: Option<String>,
     pub body_span: Span,
+    #[serde(default)]
+    pub headings: Vec<Heading>,
+    #[serde(default)]
+    pub links: Vec<Link>,
     pub article_html: String,
 }
 
