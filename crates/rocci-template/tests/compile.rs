@@ -1650,6 +1650,32 @@ fn handler_matrix_example_compiles_with_every_final_role() {
 }
 
 #[test]
+fn work_queue_example_compiles_with_programming_model_roles() {
+    let src = include_str!("../../../examples/rocci/standalone/work-queue/WorkQueue.rocci");
+    let out = compile_ok(src);
+    assert_eq!(out.routes.len(), 7);
+    assert!(out.routes.iter().any(
+        |route| route.method == "GET" && route.respond == rocci_template::RespondKind::Document
+    ));
+    assert!(out.routes.iter().any(
+        |route| route.method == "GET" && route.respond == rocci_template::RespondKind::Fragment
+    ));
+    assert!(
+        out.routes.iter().any(|route| route.method == "POST"
+            && route.respond == rocci_template::RespondKind::Fragment)
+    );
+    assert!(out.routes.iter().any(
+        |route| route.method == "POST" && route.respond == rocci_template::RespondKind::Command
+    ));
+    assert!(
+        out.routes.iter().any(|route| route.method == "DELETE"
+            && route.respond == rocci_template::RespondKind::Command)
+    );
+    assert_eq!(out.lives.len(), 1);
+    assert_eq!(out.lives[0].path, "/sse");
+}
+
+#[test]
 fn styling_example_compiles_with_final_view() {
     let src = include_str!("../../../examples/rocci/standalone/styling/Styling.rocci");
     let out = compile_ok(src);

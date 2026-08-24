@@ -1,0 +1,56 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Work queue",
+        description: "A small standalone app that picks the right @method:role for each interaction",
+    },
+}
+
+# Work queue
+
+See [handlers](/docs/applications/handlers/) for the role table. This example
+is the programming-model sibling of the [handler matrix](/examples/handler-matrix/).
+The matrix lists every accepted verb. This queue shows which role to reach for
+in a real app.
+
+SQLite owns the jobs. Components stay pure. Datastar carries intent and morphs
+HTML. Generated dispatch uses **literal** paths: row ids travel in the JSON
+body, not `/actions/claim/${id}`.
+
+| Interaction | Route | Morph |
+| --- | --- | --- |
+| Document | `@get:view("/")` | Full page |
+| Reset composer | `@get:fragment("/fragments/composer")` | `#composer` in this tab |
+| Validate title | `@post:fragment("/actions/validate")` | `#composer` in this tab |
+| Inspect a job | `@post:fragment("/actions/inspect")` | `#inspect` in this tab |
+| Enqueue | `@post:command("/actions/enqueue")` | None |
+| Claim | `@post:command("/actions/claim")` | None |
+| Complete | `@delete:command("/actions/complete")` | None |
+| Shared board | `@get:live("/sse")` | `#queue` and `#activity` in every tab |
+
+Do not morph `#queue` from a fragment. Do not morph `#inspect` from live.
+
+This catalog row is **docs-only**. Do not expose it as a public origin; use
+local `curl` against `rocci run`. Source files are listed in the sidebar.
+
+## Run locally
+
+```sh
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/work-queue/WorkQueue.rocci
+```
+
+Open the printed URL in two windows. Inspect in one; the other inspect well
+stays waiting and both logs update. Enqueue or claim; only the shared board
+moves.
+
+## Smoke
+
+```sh
+curl -s http://127.0.0.1:8000/health
+curl -s -X POST http://127.0.0.1:8000/actions/inspect \
+  -H 'Content-Type: application/json' \
+  --data '{"job_id":"1"}'
+curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/enqueue \
+  -H 'Content-Type: application/json' \
+  --data '{"title":"From curl"}'
+```

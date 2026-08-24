@@ -119,6 +119,7 @@ items = [
     "examples/live-counter/index",
     "examples/notes/index",
     "examples/handler-matrix/index",
+    "examples/work-queue/index",
     "examples/styling/index",
     "examples/datastar/index",
     "examples/blocks/index",

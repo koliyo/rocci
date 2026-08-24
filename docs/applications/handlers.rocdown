@@ -38,6 +38,7 @@ and a live stream.
 
 Canonical one-shot: [Counter](/examples/counter/).
 Canonical stream: [Live counter](/examples/live-counter/).
+Programming model: [Work queue](/examples/work-queue/).
 Advanced standalone game: [Rocci Blocks](/examples/blocks/).
 Complete matrix: [Handler matrix](/examples/handler-matrix/).
 

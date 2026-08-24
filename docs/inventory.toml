@@ -382,6 +382,16 @@ generated = ["/examples/handler-matrix/", "/examples/handler-matrix/source/Handl
 notes = "Exhaustive handler contract. Not a beginner tutorial."
 
 [[app]]
+id = "work-queue"
+path = "examples/rocci/standalone/work-queue"
+entry = "WorkQueue.rocci"
+hosting = "docs"
+role = "pattern"
+prose = "examples/rocci/standalone/work-queue/index.rocdown"
+generated = ["/examples/work-queue/", "/examples/work-queue/source/WorkQueue-rocci/"]
+notes = "Programming-model sibling of handler-matrix. Docs-only."
+
+[[app]]
 id = "datastar"
 path = "examples/rocci/custom/datastar"
 entry = "."

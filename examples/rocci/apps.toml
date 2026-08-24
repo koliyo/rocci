@@ -38,6 +38,19 @@ persistence = "sqlite"
 support = "current"
 
 [[app]]
+id = "work-queue"
+path = "standalone/work-queue"
+title = "Work queue"
+summary = "Programming model: which @method:role to use for inspect, enqueue, claim, and live"
+entry = "WorkQueue.rocci"
+hosting = "docs"
+audience = "application author"
+purpose = "Programming model: which @method:role to use"
+complexity = "pattern"
+persistence = "sqlite"
+support = "current"
+
+[[app]]
 id = "styling"
 path = "standalone/styling"
 title = "Styling"

@@ -727,6 +727,15 @@ mod tests {
     }
 
     #[test]
+    fn work_queue_generated_app_roc_builds() {
+        if skip_without_roc() {
+            return;
+        }
+        let _workspace =
+            roc_build_staged_standalone("examples/rocci/standalone/work-queue/WorkQueue.rocci");
+    }
+
+    #[test]
     fn multi_page_streams_generated_app_roc_builds() {
         if skip_without_roc() {
             return;
@@ -869,6 +878,87 @@ mod tests {
             !datastar_cmd.contains("datastar-patch-elements"),
             "{datastar_cmd}"
         );
+
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+
+    #[test]
+    fn work_queue_http_smoke() {
+        if skip_without_roc() {
+            return;
+        }
+        let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+        let workspace = roc_build_staged_standalone_locked(
+            "examples/rocci/standalone/work-queue/WorkQueue.rocci",
+        );
+        let server = workspace.path.join("server");
+        let port = crate::serve::free_port().expect("free port");
+        let mut child = Command::new(&server)
+            .current_dir(&workspace.path)
+            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .expect("spawn work-queue server");
+        if let Err(err) =
+            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("work-queue server did not listen: {err:#}");
+        }
+
+        let document = http_exchange(
+            port,
+            &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+        );
+        assert!(document.contains("200"), "{document}");
+        assert!(document.contains("id=\"queue\""), "{document}");
+        assert!(document.contains("id=\"inspect\""), "{document}");
+
+        let inspect_body = "{\"job_id\":\"1\"}";
+        let inspect = http_exchange(
+            port,
+            &format!(
+                "POST /actions/inspect HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{inspect_body}",
+                inspect_body.len()
+            ),
+        );
+        assert!(
+            inspect.contains("datastar-patch-elements") && inspect.contains("id=\"inspect\""),
+            "{inspect}"
+        );
+
+        let enqueue_body = "{\"title\":\"From curl\"}";
+        let enqueue = http_exchange(
+            port,
+            &format!(
+                "POST /actions/enqueue HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{enqueue_body}",
+                enqueue_body.len()
+            ),
+        );
+        assert!(enqueue.contains("204"), "{enqueue}");
+        assert!(!enqueue.contains("application/json"), "{enqueue}");
+        assert!(!enqueue.contains("datastar-patch-elements"), "{enqueue}");
+
+        let datastar_cmd = http_exchange(
+            port,
+            &format!(
+                "POST /actions/enqueue HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nDatastar-Request: true\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{enqueue_body}",
+                enqueue_body.len()
+            ),
+        );
+        assert!(datastar_cmd.contains("200"), "{datastar_cmd}");
+        assert!(datastar_cmd.contains("text/event-stream"), "{datastar_cmd}");
+        assert!(
+            !datastar_cmd.contains("datastar-patch-elements"),
+            "{datastar_cmd}"
+        );
+
+        let live = http_stream_sample(port, "/sse", "");
+        assert!(live.contains("text/event-stream"), "{live}");
 
         let _ = child.kill();
         let _ = child.wait();

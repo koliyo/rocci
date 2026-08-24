@@ -1,0 +1,722 @@
+import pf.Env
+import pf.Path
+import pf.Sqlite
+import pf.Stderr
+import Html
+import WorkQueueUi
+
+## SQLite handle opened in `@init`. Shared with fragments, commands, and live.
+@context { db : Sqlite.Db }
+
+## Open or create `work-queue.db` (`DB_PATH` override). Failure exits the process.
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./work-queue.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, status TEXT NOT NULL, ts INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, kind TEXT NOT NULL, method TEXT NOT NULL, path TEXT NOT NULL, message TEXT NOT NULL)",
+            params: {},
+        },
+    )?
+    now = now_secs!(db)?
+    seed_job!(db, now, "Write the runbook", "open")?
+    seed_job!(db, now, "Review the PR", "claimed")?
+    seed_job!(db, now, "Ship the example", "open")?
+    { db: db }
+}
+
+## Document GET `/`. Composer and inspect start idle; live owns the shared board.
+@get:view("/") = |{ db }| {
+    lab = load_lab!(db)?
+    queuePage(lab)
+}
+
+## GET fragment onto `#composer`.
+@get:fragment("/fragments/composer") = |{ db }| {
+    record_event!(db, "fragment", "GET", "/fragments/composer", "Reset composer in this tab")?
+    WorkQueueUi.composer(
+        {
+            hint: "Composer reset in this tab. The board did not move.",
+            title: "",
+            ready: False,
+        },
+    )
+}
+
+## POST fragment onto `#inspect`. Job id is in the Datastar JSON body.
+@post:fragment("/actions/inspect") = |{ db }, request| {
+    body = read_body!(request)
+    job_id = read_job_id(body)
+    inspect_job!(db, job_id)?
+}
+
+## POST fragment onto `#composer` with a title hint for this tab only.
+@post:fragment("/actions/validate") = |{ db }, request| {
+    body = read_body!(request)
+    title = Str.trim(signal_str(body, "title"))
+    ready = title != ""
+    hint =
+        if ready {
+            "Looks ready to enqueue. Still this tab only."
+        } else {
+            "Title is empty — this tab only; the board did not move."
+        }
+    record_event!(db, "fragment", "POST", "/actions/validate", hint)?
+    WorkQueueUi.composer({ hint, title, ready })
+}
+
+## POST command: insert a job. No HTML. Live publishes the board.
+@post:command("/actions/enqueue") = |{ db }, request| {
+    body = read_body!(request)
+    title = Str.trim(signal_str(body, "title"))
+    if title != "" {
+        now = now_secs!(db)?
+        enqueue_params : { title : Str, ts : I64 }
+        enqueue_params = { title: title, ts: now }
+        Sqlite.execute!(
+            {
+                db,
+                query: "INSERT INTO jobs (title, status, ts) VALUES (:title, 'open', :ts)",
+                params: enqueue_params,
+            },
+        )?
+        record_event!(db, "command", "POST", "/actions/enqueue", "Enqueued ${title}")?
+    } else {
+        record_event!(db, "command", "POST", "/actions/enqueue", "Ignored empty title")?
+    }
+    {}
+}
+
+## POST command: claim an open job. Row id is in the JSON body.
+@post:command("/actions/claim") = |{ db }, request| {
+    body = read_body!(request)
+    job_id = read_job_id(body)
+    now = now_secs!(db)?
+    claim_params : { ts : I64, id : Str }
+    claim_params = { ts: now, id: job_id }
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE jobs SET status = 'claimed', ts = :ts WHERE CAST(id AS TEXT) = :id AND status = 'open'",
+            params: claim_params,
+        },
+    )?
+    record_event!(db, "command", "POST", "/actions/claim", "Claimed job ${job_id}")?
+    {}
+}
+
+## DELETE command: complete a job. No representation.
+@delete:command("/actions/complete") = |{ db }, request| {
+    body = read_body!(request)
+    job_id = read_job_id(body)
+    now = now_secs!(db)?
+    complete_params : { ts : I64, id : Str }
+    complete_params = { ts: now, id: job_id }
+    Sqlite.execute!(
+        {
+            db,
+            query: "UPDATE jobs SET status = 'done', ts = :ts WHERE CAST(id AS TEXT) = :id AND status != 'done'",
+            params: complete_params,
+        },
+    )?
+    record_event!(db, "command", "DELETE", "/actions/complete", "Completed job ${job_id}")?
+    {}
+}
+
+## Shared `#queue` and `#activity` only. Do not morph composer or inspect from this stream.
+@get:live("/sse") = |{ db }| {
+    lab = load_lab!(db)?
+    WorkQueueUi.liveSlice(lab)
+}
+
+now_secs! = |db| {
+    row : { now : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(row.now)
+}
+
+seed_job! = |db, ts, title, status| {
+    count_params : { title : Str }
+    count_params = { title: title }
+    row : { n : I64 }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT COUNT(*) AS n FROM jobs WHERE title = :title",
+            params: count_params,
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    if row.n == 0.I64 {
+        insert_params : { title : Str, status : Str, ts : I64 }
+        insert_params = { title, status, ts }
+        Sqlite.execute!(
+            {
+                db,
+                query: "INSERT INTO jobs (title, status, ts) VALUES (:title, :status, :ts)",
+                params: insert_params,
+            },
+        )?
+    }
+    Ok({})
+}
+
+counted_ago = |n, unit|
+    if n == 1.I64 {
+        "1 ${unit} ago"
+    } else {
+        "${n.to_str()} ${unit}s ago"
+    }
+
+relative_ago = |now_secs, then_secs| {
+    delta = if now_secs > then_secs {
+        now_secs - then_secs
+    } else {
+        0.I64
+    }
+    if delta < 5.I64 {
+        "just now"
+    } else if delta < 60.I64 {
+        "${delta.to_str()} seconds ago"
+    } else if delta < 3600.I64 {
+        counted_ago(delta.div_trunc_by(60.I64), "minute")
+    } else if delta < 86400.I64 {
+        counted_ago(delta.div_trunc_by(3600.I64), "hour")
+    } else {
+        counted_ago(delta.div_trunc_by(86400.I64), "day")
+    }
+}
+
+read_body! = |request| {
+    match request.body().with_limit(8 * 1024).read_all!() {
+        Ok(bytes) => Str.from_utf8_lossy(bytes)
+        Err(_) => ""
+    }
+}
+
+signal_str : Str, Str -> Str
+signal_str = |json, key| {
+    needle = "\"${key}\":\""
+    parts = Str.split_on(json, needle)
+    match List.get(parts, 1) {
+        Ok(after) =>
+            match List.get(Str.split_on(after, "\""), 0) {
+                Ok(value) => value
+                Err(_) => ""
+            }
+        Err(_) => ""
+    }
+}
+
+read_job_id = |body| {
+    quoted = signal_str(body, "job_id")
+    if quoted != "" {
+        quoted
+    } else {
+        signal_number_str(body, "job_id")
+    }
+}
+
+signal_number_str : Str, Str -> Str
+signal_number_str = |json, key| {
+    needle = "\"${key}\":"
+    parts = Str.split_on(json, needle)
+    match List.get(parts, 1) {
+        Ok(after) => take_digits(after)
+        Err(_) => ""
+    }
+}
+
+take_digits = |text| take_digit_bytes(Str.to_utf8(text), [])
+
+take_digit_bytes = |bytes, acc|
+    match List.get(bytes, 0) {
+        Ok(byte) if (byte == 32 or byte == 9) and List.is_empty(acc) =>
+            take_digit_bytes(List.drop_first(bytes, 1), acc)
+        Ok(byte) if byte >= 48 and byte <= 57 and List.len(acc) < 20 =>
+            take_digit_bytes(List.drop_first(bytes, 1), List.append(acc, byte))
+        _ => Str.from_utf8_lossy(acc)
+    }
+
+inspect_missing = |job_id, note|
+    WorkQueueUi.inspect(
+        {
+            waiting: False,
+            title: "No job",
+            status_label: "",
+            job_id,
+            note,
+        },
+    )
+
+inspect_job! = |db, job_id| {
+    if job_id == "" {
+        record_event!(db, "fragment", "POST", "/actions/inspect", "No job_id in the inspect body")?
+        Ok(inspect_missing("", "Send job_id in the JSON body. Paths stay literal."))
+    } else {
+        id_params : { id : Str }
+        id_params = { id: job_id }
+        count_row : { n : I64 }
+        count_row = Sqlite.query!(
+            {
+                db,
+                query: "SELECT COUNT(*) AS n FROM jobs WHERE CAST(id AS TEXT) = :id",
+                params: id_params,
+                limits: Sqlite.default_query_limits,
+            },
+        )?
+        if count_row.n == 0.I64 {
+            record_event!(db, "fragment", "POST", "/actions/inspect", "No job ${job_id}")?
+            Ok(inspect_missing(job_id, "Send job_id in the JSON body. Paths stay literal."))
+        } else {
+            row : { id : I64, title : Str, status : Str }
+            row = Sqlite.query!(
+                {
+                    db,
+                    query: "SELECT id, title, status FROM jobs WHERE CAST(id AS TEXT) = :id",
+                    params: id_params,
+                    limits: Sqlite.default_query_limits,
+                },
+            )?
+            job_id_str = row.id.to_str()
+            record_event!(
+                db,
+                "fragment",
+                "POST",
+                "/actions/inspect",
+                "Inspected job ${job_id_str} in this tab",
+            )?
+            Ok(
+                WorkQueueUi.inspect(
+                    {
+                        waiting: False,
+                        title: row.title,
+                        status_label: row.status,
+                        job_id: job_id_str,
+                        note: "Patched this tab. The other tab's inspect well did not move.",
+                    },
+                ),
+            )
+        }
+    }
+}
+
+record_event! = |db, kind, method, path, message| {
+    now = now_secs!(db)?
+    params : { ts : I64, kind : Str, method : Str, path : Str, message : Str }
+    params = { ts: now, kind, method, path, message }
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT INTO events (ts, kind, method, path, message) VALUES (:ts, :kind, :method, :path, :message)",
+            params: params,
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "DELETE FROM events WHERE id NOT IN (SELECT id FROM events ORDER BY id DESC LIMIT 20)",
+            params: {},
+        },
+    )?
+    match Stderr.line!("${kind} ${method} ${path} ${message}") {
+        Ok({}) => {}
+        Err(_) => {}
+    }
+    Ok({})
+}
+
+read_jobs! = |db| {
+    rows : List({ id : I64, title : Str, status : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT id, title, status FROM jobs ORDER BY id ASC",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(
+        List.map(
+            rows,
+            |row| {
+                {
+                    id: row.id.to_str(),
+                    title: row.title,
+                    status: row.status,
+                    status_label: row.status,
+                }
+            },
+        ),
+    )
+}
+
+read_events! = |db| {
+    now = now_secs!(db)?
+    rows : List({ ts : I64, kind : Str, method : Str, path : Str, message : Str })
+    rows = Sqlite.query_many!(
+        {
+            db,
+            query: "SELECT ts, kind, method, path, message FROM events ORDER BY id DESC LIMIT 20",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    Ok(
+        List.map(
+            rows,
+            |row| {
+                {
+                    kind: row.kind,
+                    method: row.method,
+                    path: row.path,
+                    message: row.message,
+                    ago: relative_ago(now, row.ts),
+                    ts: row.ts.to_str(),
+                }
+            },
+        ),
+    )
+}
+
+load_lab! = |db| {
+    jobs = read_jobs!(db)?
+    events = read_events!(db)?
+    Ok({ jobs, events })
+}
+
+@component
+QueuePage = |{ jobs, events }|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Work queue</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body>
+            <main>
+                <nav>
+                    <strong>Rocci</strong>
+                    <span>Programming model</span>
+                </nav>
+                <header>
+                    <p class="eyebrow">Which method:role to use</p>
+                    <h1>A work queue with the right handler for each job.</h1>
+                    <p class="lede">
+                        Fragments return HTML for this tab only. Commands write SQLite and
+                        return nothing. Live is a long-lived GET: every tab shares the board.
+                        Durable jobs stay on the server. Datastar carries intent, not the list.
+                    </p>
+                </header>
+                <WorkQueueUi.Lab jobs={jobs} events={events} />
+                <footer>
+                    Open a second tab. Inspect in one: that well fills, the other stays
+                    waiting, both logs update. Enqueue or claim: composer and inspect stay
+                    put; both boards move.
+                </footer>
+            </main>
+        </body>
+    </html>
+
+@fixture{target: QueuePage}
+queuePageTest = { jobs: WorkQueueUi.empty_jobs, events: WorkQueueUi.empty_events }
+
+@css {
+
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+        --accent: #48eda4;
+        --ink: #f8fffb;
+        --muted: #8da39a;
+        --line: rgba(109, 236, 177, 0.2);
+        --surface: rgba(11, 30, 24, 0.72);
+        --canvas: #06100c;
+    }
+    main {
+        width: min(56rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+        display: grid;
+        gap: 1.5rem;
+    }
+    nav {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong {
+        color: var(--accent);
+        font-size: 1.1rem;
+        letter-spacing: 0.16em;
+    }
+    header .eyebrow,
+    .card .eyebrow,
+    .result .eyebrow,
+    .empty-response .eyebrow {
+        margin: 0 0 0.35rem;
+        color: var(--accent);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    h2 {
+        margin: 0 0 0.45rem;
+        font-size: 1.25rem;
+        letter-spacing: -0.02em;
+    }
+    .lede {
+        margin: 0;
+        max-width: 36rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    .card .lede {
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+    }
+    .lab {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.85fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .roles {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .card {
+        padding: 1.35rem 1.5rem 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+    }
+    .stream-card {
+        position: sticky;
+        top: 1rem;
+        box-shadow: 0 0 0 1px rgba(72, 237, 164, 0.08);
+    }
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin: 0.25rem 0 0;
+    }
+    .composer-form {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .composer-form label {
+        display: grid;
+        gap: 0.35rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .composer-form input {
+        appearance: none;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 0.7rem 0.85rem;
+        background: var(--canvas);
+        color: var(--ink);
+        font: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.7rem 0.95rem;
+        background: var(--accent);
+        color: var(--canvas);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: left;
+    }
+    button:hover { background: #79f4bd; }
+    button:focus-visible,
+    .result:focus-visible,
+    input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+    button.secondary {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: #bfd0c8;
+    }
+    button.secondary:hover {
+        background: rgba(72, 237, 164, 0.08);
+    }
+    .result {
+        min-height: 3.4rem;
+        margin-top: 1rem;
+        padding: 0.85rem 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--canvas);
+    }
+    .result .verb {
+        display: inline-block;
+        margin-bottom: 0.25rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--accent);
+        font-family: ui-monospace, monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+    }
+    .result p,
+    .empty,
+    .muted {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    .filled p {
+        color: var(--ink);
+    }
+    .empty-response {
+        margin-top: 0.25rem;
+    }
+    .empty-response p + p {
+        margin-top: 0.35rem;
+    }
+    .jobs {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .job-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.45rem 0.75rem;
+        align-items: start;
+        padding: 0.7rem 0;
+        border-top: 1px solid var(--line);
+    }
+    .job-title {
+        color: var(--ink);
+        font-size: 0.95rem;
+    }
+    .job-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .job-actions button {
+        padding: 0.45rem 0.7rem;
+        font-size: 0.8rem;
+    }
+    .feed-scroll {
+        max-height: 22rem;
+        overflow-y: auto;
+    }
+    .feed {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .feed li {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.55rem 0.75rem;
+        align-items: baseline;
+        padding: 0.6rem 0;
+        border-top: 1px solid var(--line);
+        font-size: 0.88rem;
+    }
+    .kind {
+        display: inline-flex;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+    .kind.command {
+        color: var(--accent);
+    }
+    .detail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.5rem;
+        color: var(--ink);
+    }
+    .detail .method {
+        font-family: ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 0.78rem;
+    }
+    .detail code {
+        color: var(--muted);
+        font-size: 0.78rem;
+    }
+    .feed time {
+        color: var(--muted);
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+    footer {
+        color: #6f857c;
+        font-size: 0.85rem;
+        line-height: 1.5;
+    }
+    @media (max-width: 800px) {
+        .lab { grid-template-columns: 1fr; }
+        .stream-card { position: static; }
+        h1 { font-size: 1.9rem; }
+    }
+}
