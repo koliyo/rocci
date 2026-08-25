@@ -2,7 +2,7 @@
 
 Language support for `.rocci` template modules and `.rocdown` documents. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
 
-Zed does not bundle the language server binary into the extension WASM. Build or install `rocci-language-server` separately.
+Zed does not bundle the language server binary into the extension WASM. When settings, `PATH`, and a worktree debug build miss, the extension downloads `rocci-language-server` from [koliyo/rocci](https://github.com/koliyo/rocci) GitHub releases (`aarch64-apple-darwin` and `x86_64-unknown-linux-gnu`). Preview still uses the native window and still needs `rocci` / `rocdown` on `PATH` or in settings.
 
 ## Features
 
@@ -45,6 +45,7 @@ The extension looks up the server in this order:
 1. `lsp.rocci-language-server.binary.path` in Zed settings
 2. `rocci-language-server` on `PATH`
 3. `{worktree}/target/debug/rocci-language-server` when the worktree is this repo (after `cargo build -p rocci-rocdown-lsp`)
+4. A GitHub-release extract for the current Zed platform
 
 Override the binary if needed:
 
