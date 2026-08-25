@@ -82,10 +82,7 @@ suite('Rocci preview (offline)', () => {
     ) as {
       contributes: {
         commands: { command: string }[]
-        menus: {
-          'editor/title': { command: string; when: string }[]
-          'editor/title/run': { command: string; when: string }[]
-        }
+        menus: Record<string, { command: string; when: string }[]>
       }
     }
     const commands = manifest.contributes.commands.map(entry => entry.command)

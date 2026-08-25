@@ -9,8 +9,13 @@ export const UNKNOWN_TARGET_MESSAGE =
 export type ReleaseManifest = {
   id: number
   name: string
-  tag_name: string
-  published_at: string
+  tagName: string
+  publishedAt: string
+}
+
+export type ReleaseAsset = {
+  name: string
+  downloadUrl: string
 }
 
 export function rustTriple(platform: string, arch: string): string {
@@ -36,32 +41,62 @@ export function manifestsEqual(left: ReleaseManifest | undefined, right: Release
     left &&
       left.id === right.id &&
       left.name === right.name &&
-      new Date(left.published_at).getTime() === new Date(right.published_at).getTime()
+      new Date(left.publishedAt).getTime() === new Date(right.publishedAt).getTime()
   )
 }
 
-export function parseReleaseManifest(data: unknown): ReleaseManifest {
+function asRecord(data: unknown): Record<string, unknown> {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid GitHub release JSON')
   }
-  const value = data as { id?: unknown; name?: unknown; published_at?: unknown; tag_name?: unknown }
+  return data as Record<string, unknown>
+}
+
+function readString(data: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = data[key]
+    if (typeof value === 'string' && value) {
+      return value
+    }
+  }
+  return undefined
+}
+
+export function parseReleaseManifest(data: unknown): ReleaseManifest {
+  const value = asRecord(data)
   if (typeof value.id !== 'number') {
     throw new Error('GitHub release JSON is missing id')
   }
-  const tag_name =
-    typeof value.tag_name === 'string' && value.tag_name
-      ? value.tag_name
-      : typeof value.name === 'string'
-        ? value.name
-        : ''
-  const name = typeof value.name === 'string' && value.name ? value.name : tag_name
-  if (!name || !tag_name) {
+  const tagName = readString(value, ['tagName', 'tag_name', 'name'])
+  const name = readString(value, ['name']) ?? tagName
+  const publishedAt = readString(value, ['publishedAt', 'published_at'])
+  if (!name || !tagName) {
     throw new Error('GitHub release JSON is missing name')
   }
-  if (typeof value.published_at !== 'string') {
-    throw new Error('GitHub release JSON is missing published_at')
+  if (!publishedAt) {
+    throw new Error('GitHub release JSON is missing publishedAt')
   }
-  return { id: value.id, name, tag_name, published_at: value.published_at }
+  return { id: value.id, name, tagName, publishedAt }
+}
+
+export function parseReleaseAssets(data: unknown): ReleaseAsset[] {
+  const value = asRecord(data)
+  if (!Array.isArray(value.assets)) {
+    return []
+  }
+  const assets: ReleaseAsset[] = []
+  for (const item of value.assets) {
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+    const asset = item as Record<string, unknown>
+    const name = typeof asset.name === 'string' ? asset.name : undefined
+    const downloadUrl = readString(asset, ['downloadUrl', 'browser_download_url'])
+    if (name && downloadUrl) {
+      assets.push({ name, downloadUrl })
+    }
+  }
+  return assets
 }
 
 export function findReleaseArchive(
@@ -107,12 +142,26 @@ export function githubReleaseApiUrl(channel: 'stable' | 'dev'): string {
     : 'https://api.github.com/repos/koliyo/rocci/releases/latest'
 }
 
+export function githubRequestHeaders(
+  userAgent: string,
+  kind: 'json' | 'asset'
+): Record<string, string> {
+  const headers: Record<string, string> = {}
+  headers.accept =
+    kind === 'json' ? 'application/vnd.github+json' : 'application/octet-stream'
+  headers['user-agent'] = userAgent
+  if (kind === 'json') {
+    headers['x-github-api-version'] = '2022-11-28'
+  }
+  return headers
+}
+
 export function releaseTag(manifest: ReleaseManifest): string {
-  return manifest.tag_name === 'dev' ? 'dev' : manifest.tag_name
+  return manifest.tagName === 'dev' ? 'dev' : manifest.tagName
 }
 
 export function isDevRelease(manifest: ReleaseManifest): boolean {
-  return manifest.tag_name === 'dev'
+  return manifest.tagName === 'dev'
 }
 
 export function releaseExtractDir(storageRoot: string, tag: string): string {

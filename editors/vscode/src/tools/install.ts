@@ -7,8 +7,10 @@ import { URL } from 'url'
 import {
   findReleaseArchive,
   githubReleaseApiUrl,
+  githubRequestHeaders,
   isDevRelease,
   manifestsEqual,
+  parseReleaseAssets,
   parseReleaseManifest,
   parseSha256Line,
   releaseExtractDir,
@@ -24,14 +26,6 @@ export type GithubClient = {
 
 export type InstallLog = (message: string) => void
 
-export type ReleasePayload = {
-  id: number
-  name?: string
-  tag_name?: string
-  published_at: string
-  assets: { name: string; browser_download_url: string }[]
-}
-
 export async function installTools(options: {
   storageRoot: string
   channel: 'stable' | 'dev'
@@ -44,40 +38,41 @@ export async function installTools(options: {
 }): Promise<ReleaseManifest | undefined> {
   const api = githubReleaseApiUrl(options.channel)
   options.log(`Check for tools: ${api}`)
-  const payload = (await options.client.getJson(api)) as ReleasePayload
+  const payload = await options.client.getJson(api)
   const latest = parseReleaseManifest(payload)
+  const assets = parseReleaseAssets(payload)
   const manifestPath = path.join(options.storageRoot, 'manifest.json')
   const local = fs.existsSync(manifestPath)
     ? parseReleaseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')))
     : undefined
 
   if (options.channel !== 'dev' && !options.overwriteDev && local && isDevRelease(local)) {
-    options.log(`Dev version detected: ${local.tag_name}`)
+    options.log(`Dev version detected: ${local.tagName}`)
     return local
   }
   if (manifestsEqual(local, latest)) {
-    options.log(`Installed tools are up to date: ${latest.tag_name}`)
+    options.log(`Installed tools are up to date: ${latest.tagName}`)
     return latest
   }
 
   const triple = rustTriple(options.platform, options.arch)
-  const names = findReleaseArchive(payload.assets, triple)
+  const names = findReleaseArchive(assets, triple)
   if (!names) {
     throw new Error(
-      `Could not find a rocci-*-${triple}.tar.gz asset on ${latest.tag_name}`
+      `Could not find a rocci-*-${triple}.tar.gz asset on ${latest.tagName}`
     )
   }
-  const asset = payload.assets.find(item => item.name === names.archive)
-  const checksum = payload.assets.find(item => item.name === names.checksum)
+  const asset = assets.find(item => item.name === names.archive)
+  const checksum = assets.find(item => item.name === names.checksum)
   if (!asset || !checksum) {
     throw new Error(`Could not find release assets ${names.archive} and ${names.checksum}`)
   }
 
-  const archive = await options.client.getBuffer(asset.browser_download_url)
-  const digestText = (await options.client.getBuffer(checksum.browser_download_url)).toString('utf8')
+  const archive = await options.client.getBuffer(asset.downloadUrl)
+  const digestText = (await options.client.getBuffer(checksum.downloadUrl)).toString('utf8')
   verifySha256(archive, parseSha256Line(digestText))
 
-  const dest = releaseExtractDir(options.storageRoot, latest.tag_name)
+  const dest = releaseExtractDir(options.storageRoot, latest.tagName)
   fs.rmSync(dest, { recursive: true, force: true })
   fs.mkdirSync(dest, { recursive: true })
   await options.extract(archive, dest)
@@ -109,8 +104,8 @@ function findExtracted(dest: string, name: string): string | undefined {
 
 export function nodeGithubClient(userAgent: string): GithubClient {
   return {
-    getJson: async url => JSON.parse((await httpsGet(url, userAgent)).toString('utf8')),
-    getBuffer: url => httpsGet(url, userAgent)
+    getJson: async url => JSON.parse((await httpsGet(url, userAgent, 'json')).toString('utf8')),
+    getBuffer: url => httpsGet(url, userAgent, 'asset')
   }
 }
 
@@ -131,7 +126,12 @@ export function extractTarGz(archive: Buffer, dest: string): Promise<void> {
   })
 }
 
-function httpsGet(url: string, userAgent: string, redirects = 0): Promise<Buffer> {
+function httpsGet(
+  url: string,
+  userAgent: string,
+  kind: 'json' | 'asset',
+  redirects = 0
+): Promise<Buffer> {
   if (redirects > 5) {
     return Promise.reject(new Error('Too many redirects'))
   }
@@ -141,12 +141,12 @@ function httpsGet(url: string, userAgent: string, redirects = 0): Promise<Buffer
       {
         hostname: parsed.hostname,
         path: `${parsed.pathname}${parsed.search}`,
-        headers: { 'User-Agent': userAgent, Accept: 'application/octet-stream' }
+        headers: githubRequestHeaders(userAgent, kind)
       },
       res => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           res.resume()
-          resolve(httpsGet(res.headers.location, userAgent, redirects + 1))
+          resolve(httpsGet(res.headers.location, userAgent, kind, redirects + 1))
           return
         }
         if (res.statusCode !== 200) {

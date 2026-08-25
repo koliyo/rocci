@@ -3,7 +3,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { ExtensionContext, workspace } from 'vscode'
 
-import { releaseExtractDir, releaseTag, ReleaseManifest } from './release'
+import { parseReleaseManifest, releaseExtractDir, releaseTag, ReleaseManifest } from './release'
 
 export type ToolName = 'rocci' | 'rocdown' | 'rocci-language-server'
 
@@ -77,7 +77,7 @@ export function readCachedManifest(storageRoot: string): ReleaseManifest | undef
     return undefined
   }
   try {
-    return JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as ReleaseManifest
+    return parseReleaseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')))
   } catch {
     return undefined
   }

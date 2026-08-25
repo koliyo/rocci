@@ -8,6 +8,7 @@ import { installTools } from '../../tools/install'
 import {
   findReleaseArchive,
   githubReleaseApiUrl,
+  githubRequestHeaders,
   manifestsEqual,
   parseReleaseManifest,
   parseSha256Line,
@@ -34,19 +35,27 @@ suite('Rocci tools release contract (offline)', () => {
     const latest = parseReleaseManifest({
       id: 42,
       name: 'v0.1.0',
-      published_at: '2026-08-25T00:00:00Z'
+      publishedAt: '2026-08-25T00:00:00Z'
     })
     assert.ok(
       manifestsEqual(latest, {
         id: 42,
         name: 'v0.1.0',
-        tag_name: 'v0.1.0',
-        published_at: '2026-08-25T00:00:00.000Z'
+        tagName: 'v0.1.0',
+        publishedAt: '2026-08-25T00:00:00.000Z'
       })
     )
+    const fromGithub = parseReleaseManifest(
+      JSON.parse('{"id":42,"name":"v0.1.0","tag_name":"v0.1.0","published_at":"2026-08-25T00:00:00Z"}')
+    )
+    assert.strictEqual(fromGithub.tagName, 'v0.1.0')
     assert.ok(!manifestsEqual({ ...latest, id: 7 }, latest))
     assert.strictEqual(githubReleaseApiUrl('stable'), 'https://api.github.com/repos/koliyo/rocci/releases/latest')
     assert.strictEqual(githubReleaseApiUrl('dev'), 'https://api.github.com/repos/koliyo/rocci/releases/tags/dev')
+    const jsonHeaders = githubRequestHeaders('rocci-vscode', 'json')
+    assert.strictEqual(jsonHeaders.accept, 'application/vnd.github+json')
+    assert.notStrictEqual(jsonHeaders.accept, 'application/octet-stream')
+    assert.strictEqual(githubRequestHeaders('rocci-vscode', 'asset').accept, 'application/octet-stream')
   })
 
   test('verifies sha256 against a fixture buffer and rejects mismatch', () => {
@@ -72,16 +81,16 @@ suite('Rocci tools release contract (offline)', () => {
         getJson: async () => ({
           id: 9,
           name: 'v0.1.0',
-          tag_name: 'v0.1.0',
-          published_at: '2026-08-25T00:00:00Z',
+          tagName: 'v0.1.0',
+          publishedAt: '2026-08-25T00:00:00Z',
           assets: [
             {
               name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz',
-              browser_download_url: 'https://example.test/archive'
+              downloadUrl: 'https://example.test/archive'
             },
             {
               name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz.sha256',
-              browser_download_url: 'https://example.test/sha'
+              downloadUrl: 'https://example.test/sha'
             }
           ]
         }),
@@ -122,22 +131,9 @@ suite('Rocci tools release contract (offline)', () => {
       client: {
         getJson: async url => {
           assert.strictEqual(url, githubReleaseApiUrl('dev'))
-          return {
-            id: 11,
-            name: 'Development Build (abcdef0)',
-            tag_name: 'dev',
-            published_at: '2026-08-25T12:00:00Z',
-            assets: [
-              {
-                name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz',
-                browser_download_url: 'https://example.test/archive'
-              },
-              {
-                name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256',
-                browser_download_url: 'https://example.test/sha'
-              }
-            ]
-          }
+          return JSON.parse(
+            '{"id":11,"name":"Development Build (abcdef0)","tag_name":"dev","published_at":"2026-08-25T12:00:00Z","assets":[{"name":"rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz","browser_download_url":"https://example.test/archive"},{"name":"rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256","browser_download_url":"https://example.test/sha"}]}'
+          )
         },
         getBuffer: async url =>
           url.endsWith('/sha')
@@ -150,9 +146,9 @@ suite('Rocci tools release contract (offline)', () => {
       log: () => undefined
     })
     assert.ok(fs.existsSync(path.join(storage, 'releases', 'dev', 'rocci-language-server')))
-    const manifest = JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8')) as {
-      tag_name: string
-    }
-    assert.strictEqual(manifest.tag_name, 'dev')
+    const manifest = parseReleaseManifest(
+      JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
+    )
+    assert.strictEqual(manifest.tagName, 'dev')
   })
 })
