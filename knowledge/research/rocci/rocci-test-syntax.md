@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Rocci @test syntax lowered to Roc expect
-description: "Rocci has @fixture preview data and no @test. Recommend a root @test name = boolExpr form, optional {fixture: name}, lowering to Roc expect kept out of wrap_type_module, and rocci test staging that runs roc test."
+description: "Shipped root @test name = boolExpr with optional {fixture: name}. expect stays out of wrap_type_module; rocci test appends aliases plus expects after Type := [].{ } and runs roc test on that module."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/testing]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T12:30:00Z }
+generated: { by: process:cursor, at: 2026-08-25T18:00:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -34,6 +34,11 @@ sources:
     title: wrap_type_module puts the whole body in Type := [].{ … }
     author: process:git
     last_modified: 2026-08-16
+  - id: rocci-test
+    resource: ../../../crates/rocci-cli/src/rocci_test.rs
+    title: rocci test staging, aliases, and roc test
+    author: process:git
+    last_modified: 2026-08-25
   - id: compile-test
     resource: ../../../crates/rocci-template/tests/compile.rs
     title: Fixture compile, inspect, and validation tests
@@ -132,6 +137,11 @@ sources:
     resource: https://www.roc-lang.org/examples/AllSyntax/README
     title: Official AllSyntax top-level and block expect forms
     author: organization:roc-lang
+  - id: phase0-probe
+    resource: https://github.com/roc-lang/roc
+    title: nightly-2026-08-18-e9be50a roc test on hand-written Type-module expects
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # Rocci @test syntax lowered to Roc expect
@@ -281,13 +291,32 @@ expect Html.render(hello(helloSample)) == "<p>Hello, Roc</p>"
 
 only on the **test staging** path (and in inspect text). Staging should follow
 playground/render (temp dir, `Html.roc`, sibling `.roc` copies) but **must
-not** indent expects into `Type := [].{ … }`. Phase 0 of the plan confirms
-whether a flat module plus basic-cli `main!`, expects after a type wrapper, or
-expects in `main.roc` is what this Roc nightly accepts.[^playground-html][^wrap][^roc-tutorial]
+not** indent expects into `Type := [].{ … }`.
 
-Platform: files that import `pf.Sqlite` / webserver modules need the **same
-platform as `rocci run`**, not a silent switch to basic-cli. Pure widget files
-can use basic-cli like `rocci render`.[^counter][^playground-html]
+## Chosen staging layout (Phase 0)
+
+On pinned nightly `2026-08-18-e9be50a`, **layout (b)** is the runner:
+`wrap_type_module` writes `{Type}.roc`, then the expect trailer is appended
+**after** the closing `}` of `Type := [].{ … }`. `roc test {Type}.roc` runs
+those expects (one test in the stand-in). Do not put `expect` in
+`main.roc`.[^phase0-probe][^playground-html][^wrap][^roc-tutorial]
+
+Probed alternatives on the same nightly:
+
+| Layout | Result |
+| --- | --- |
+| (a) Flat basic-cli `app` + `main!` + top-level `expect` + `Html.render` | `roc test main.roc` reports **208** tests (platform suite plus the expect). Works, but is the wrong identity for `rocci test`. |
+| (b) Expects after `Type := [].{ … }` | `roc test Widget.roc` reports **1** test and passes. Chosen. |
+| (c) Expects in `main.roc` that call `Type.fn` | Same 208-test app/platform sweep as (a). |
+
+`Html.render` in the stand-in used the same sibling `Html.roc` as
+`rocci render`. A `pf.Sqlite` import on the type module still passed
+`roc test Widget.roc` without an app header. A basic-webserver `main.roc`
+without `Context` failed `roc test main.roc` (`missing platform required
+type`). Files that import `pf.Sqlite` therefore still use layout (b) and
+must not be tested through a dummy `main.roc`. `rocci run` keeps
+basic-webserver; test staging does not switch platforms to execute
+expects.[^counter][^playground-html]
 
 Default crate tests stay Roc-free. An end-to-end `rocci test` proof uses
 `ROCCI_REQUIRE_ROC=1` or `#[ignore]`, consistent with other native-Roc
@@ -315,6 +344,19 @@ Rocdown should **reserve** `test` so `@test` in a `.rocdown` file is a clear
 error (“tests belong in `.rocci`”), not opaque prose. Do not parse tests in
 the document compiler.[^rocdown-scan]
 
+## Disposition
+
+Phases 0–7 of the paired plan are implemented on `rocci-test-syntax`. Shipped
+syntax is root-only `@test name = boolExpr` with optional `{fixture: ident}`.
+`TestInfo` is recorded; `compiled.roc` has no `expect`. `rocci test` uses
+layout (b): wrap, then after `Type := [].{ … }` emit `name = Type.name` aliases
+for fixtures and components, then `expect` lines, then `roc test {Type}.roc`.
+Staging lowers without `@context` / `@init` / routes and drops Roc items that
+call `Sqlite.` / `Env.` / `Stderr.`, and uses the string `Html.roc` plus a
+Datastar stub so card tests do not need the webserver platform.[^rocci-test]
+Rocdown reserves `@test` and does not lower it. Do not log the plan complete
+until CI and Knowledge succeed.
+
 ## Alternatives not chosen
 
 | Idea | Why not v1 |
@@ -324,7 +366,7 @@ the document compiler.[^rocdown-scan]
 | Separate `Foo.test.rocci` | Fixtures already live beside components; split files fight `view`. |
 | HTTP handler tests | Requires a server, `!`, and a different runner. |
 
-[^plan]: Paired implementation sequence; not started.
+[^plan]: Paired implementation sequence; Phases 0–7 on `rocci-test-syntax`.
 [^ungram]: `ModuleItem` includes `FixtureDecl`, not a test production.
 [^parser]: `try_parse_fixture` and `@` recovery keywords omit `test`.
 [^lower]: Fixtures emit `name = value`; CSS scoping stamps `data-rocci-css`.
@@ -349,3 +391,5 @@ the document compiler.[^rocdown-scan]
 [^archive-jsx]: `Html.render(hello(…)) == "<p>…"`.
 [^roc-tutorial]: `expect` and `roc test` on the new compiler.
 [^roc-allsyntax]: One-line and block `expect`.
+[^phase0-probe]: Hand-written `/tmp` stand-in on nightly-2026-08-18-e9be50a; layout (b) is 1 test.
+[^rocci-test]: `stage_type_module` aliases and `roc test {Type}.roc`.

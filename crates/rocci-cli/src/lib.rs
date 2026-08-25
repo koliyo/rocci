@@ -15,6 +15,7 @@ pub(crate) mod playground_compile;
 pub(crate) mod playground_html;
 pub mod profile;
 pub mod roc_module;
+pub mod rocci_test;
 pub mod run;
 pub mod runtime_assets;
 pub mod serve;

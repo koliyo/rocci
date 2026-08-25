@@ -32,6 +32,8 @@ Roc, signatures, tags, interpolations, directives, and scaffolding.
 `rocci inspect` always prints segments.
 
 Golden pair: `test/AllSyntax.rocci` and
-`crates/rocci-template/tests/fixtures/all_syntax.roc`.
+`crates/rocci-template/tests/fixtures/all_syntax.roc`. `@test` bindings stay
+out of that body; `rocci test` appends `expect` after `wrap_type_module`.
 
-**Related:** [CLI inspect](/docs/reference/cli/#inspect).
+**Related:** [Tests](/docs/reference/language/tests/),
+[CLI inspect](/docs/reference/cli/#inspect).

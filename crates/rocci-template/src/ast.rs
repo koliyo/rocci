@@ -414,6 +414,7 @@ mod node_kind_highlight {
             | NodeKind::ModuleItem
             | NodeKind::ComponentDecl
             | NodeKind::FixtureDecl
+            | NodeKind::TestDecl
             | NodeKind::CssDecl
             | NodeKind::ContextDecl
             | NodeKind::InitDecl

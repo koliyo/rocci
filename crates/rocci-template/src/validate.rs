@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, default_field_type,
+    Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, TestDecl, default_field_type,
     handler_param_arity, parse_component_params,
 };
 use crate::diagnostic::Diagnostic;
@@ -23,6 +23,14 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             _ => None,
         })
         .collect();
+    let fixture_names: HashSet<String> = document
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ModuleItem::Fixture(fixture) => Some(fixture.name.name.clone()),
+            _ => None,
+        })
+        .collect();
 
     let mut context_span = None;
     let mut init_span = None;
@@ -40,6 +48,7 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             ModuleItem::Fixture(fixture) => {
                 validate_fixture(fixture, &component_names, diagnostics)
             }
+            ModuleItem::Test(test) => validate_test(test, &fixture_names, diagnostics),
             ModuleItem::Context(context) => {
                 if context_span.is_some() {
                     diagnostics.push(Diagnostic::error(
@@ -323,6 +332,28 @@ fn validate_fixture(
         diagnostics.push(Diagnostic::error(
             fixture.target.span,
             format!("unknown fixture target `{source}`; no `@component {source}` in this module"),
+        ));
+    }
+}
+
+fn validate_test(
+    test: &TestDecl,
+    fixture_names: &HashSet<String>,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    let Some(fixture) = &test.fixture else {
+        return;
+    };
+    if fixture.name.is_empty() {
+        return;
+    }
+    if !fixture_names.contains(&fixture.name) {
+        diagnostics.push(Diagnostic::error(
+            fixture.span,
+            format!(
+                "unknown fixture name `{}`; no `@fixture {}` in this module",
+                fixture.name, fixture.name
+            ),
         ));
     }
 }

@@ -160,6 +160,9 @@ CounterPage = |{ count }|
 @fixture{target: CounterCard}
 counterCardTest = { count: 3.I64 }
 
+@test{fixture: counterCardTest}
+counterCardCount = counterCardTest.count == 3
+
 @fixture{target: CounterPage}
 counterPageTest = { count: 3.I64 }
 

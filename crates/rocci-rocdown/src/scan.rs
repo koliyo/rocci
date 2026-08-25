@@ -10,6 +10,7 @@ pub enum Reserved {
     Render,
     Component,
     Fixture,
+    Test,
     Css,
     Context,
     Init,
@@ -37,6 +38,7 @@ impl Reserved {
             "render" => Self::Render,
             "component" => Self::Component,
             "fixture" => Self::Fixture,
+            "test" => Self::Test,
             "css" => Self::Css,
             "context" => Self::Context,
             "init" => Self::Init,
@@ -65,6 +67,7 @@ impl Reserved {
             Self::Render => "render",
             Self::Component => "component",
             Self::Fixture => "fixture",
+            Self::Test => "test",
             Self::Css => "css",
             Self::Context => "context",
             Self::Init => "init",
@@ -730,7 +733,7 @@ fn header_matches(src: &str, after_name: usize, kind: Reserved) -> bool {
             cur.skip_trivia();
             cur.peek().is_some_and(is_ident_start)
         }
-        Reserved::Fixture | Reserved::Context => {
+        Reserved::Fixture | Reserved::Test | Reserved::Context => {
             cur.skip_trivia();
             matches!(cur.peek(), Some('{')) || cur.peek().is_some_and(is_ident_start)
         }

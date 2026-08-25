@@ -4,7 +4,7 @@ description: >-
   Write idiomatic `.rocci` templates, `.rocdown` pages, and ordinary Roc used
   from those files. Use when authoring or reviewing Rocci components, Rocdown
   documents, documentation-site themes, `@page` / `:note` / `:img` markup, server
-  handlers, Datastar actions, fixtures, scoped CSS, or Roc helpers in template
+  handlers, Datastar actions, fixtures, tests, scoped CSS, or Roc helpers in template
   modules. Prefer match over chained if/else. Do not use for changing Rocci or
   Rocdown grammar, parsers, lowering, or diagnostics — that is rocci-language-dev.
   For one-shot fragments vs live SSE, representation-free commands, or which
@@ -68,7 +68,7 @@ path until island splicing lands.
 ## Rocci essentials
 
 - Ordinary Roc stays Roc. Recognized top-level forms: `@component`, `@fixture`,
-  `@css`, `@context`, `@init`, and `@method:role` routes.
+  `@test`, `@css`, `@context`, `@init`, and `@method:role` routes.
 - Component names are PascalCase (`StatusCard`). Lowering emits camelCase Roc
   (`statusCard`). Handlers and `exposing` lists use the lowered name.
 - One root tag needs no braces. Directives, `@let`, `@css`, or multiple roots
@@ -168,6 +168,8 @@ auto-inject does not see the backend live route. Author
 4. Colocate isolated CSS. Authors keep writing `class="card"`; lowering scopes
    it. Document chrome belongs on `body` or `:scope`, not `html { ... }`.
 5. Add `@fixture` data for new components that `rocci view` should preview.
+   Add `@test` (optionally `{fixture: name}`) for boolean checks run by
+   `rocci test`.
 
 ## Validate
 
@@ -182,6 +184,7 @@ Preview or publish with the matching CLI:
 
 ```sh
 cargo run -q -p rocci-cli -- view File.rocci --component Name
+cargo run -q -p rocci-cli -- test File.rocci
 cargo run -q -p rocci-cli -- run File.rocci
 cargo run -q -p rocci-rocdown-cli -- view File.rocdown
 cargo run -q -p rocci-rocdown-cli -- check docs

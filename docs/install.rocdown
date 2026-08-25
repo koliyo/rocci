@@ -21,8 +21,8 @@ Commands below run from the repository root. They use
 `cargo run -p rocci-cli`. That is the documented spelling until an installed
 `rocci` distribution exists.
 
-`@fixture` declarations are **experimental** syntax for previewing components
-(`rocci view` / `rocci browse`) and possibly for tests. They do not change
+`@fixture` declarations preview components (`rocci view` / `rocci browse`).
+`@test` declarations are boolean checks run by `rocci test`. Neither changes
 generated component functions.
 
 ## Toolchain

@@ -12,7 +12,8 @@ See [Templates](/docs/templates/) for components and colocated CSS.
 
 A standalone page that shows colocated `@css`: file-level document chrome,
 component-scoped rules, default component params, and Vue-style isolation.
-There is no database. v1 injects a `<style>` tag into `<head>` and wraps rules
+There is no database. `@test{fixture: helloTest}` checks the greeting sample
+with `rocci test`. v1 injects a `<style>` tag into `<head>` and wraps rules
 in `@scope ([data-rocci-css~="id"])`. Put document chrome on `body`, not `html`.
 
 Docs-only on the public origin. Source files are listed in the sidebar.

@@ -77,6 +77,10 @@ fn test_lsp_all_syntax_rocci() {
                 "missing Hello symbol"
             );
             assert!(
+                syms.iter().any(|s| s.name == "helloNamePresent"),
+                "missing @test symbol"
+            );
+            assert!(
                 syms.iter().any(|s| s.name == "CounterPage"),
                 "missing CounterPage symbol"
             );

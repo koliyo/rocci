@@ -57,5 +57,6 @@ This page is generated from `crates/rocci-template/Rocci.AST.ungram`. It is a tr
 | `StringLit` | — | leaf |
 | `TemplateBlock` | omit | generated |
 | `TemplateItem` | omit | generated |
+| `TestDecl` | `test` | generated |
 | `TextNode` | `text` | generated |
 | `ViewDecl` | `view` | generated |

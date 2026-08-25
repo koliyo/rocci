@@ -1,4 +1,4 @@
-use rocci_cli::{browse, bundle, datastar_asset, render_file, run, serve, style, view};
+use rocci_cli::{browse, bundle, datastar_asset, render_file, rocci_test, run, serve, style, view};
 
 use std::{
     env, fs,
@@ -77,6 +77,12 @@ enum Commands {
     },
     /// Print a .rocci parse tree as a LISPy S-expression.
     Ast { input: PathBuf },
+    /// Run `@test` declarations with `roc test`.
+    Test {
+        /// `.rocci` file or directory of `.rocci` files.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+    },
     /// Snapshot a .rocci component to HTML via Html.render.
     Render {
         input: PathBuf,
@@ -215,6 +221,7 @@ fn try_main() -> Result<()> {
         ),
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
+        Commands::Test { path } => rocci_test::run(&path),
         Commands::Render {
             input,
             fragment,
@@ -342,6 +349,13 @@ fn inspect_rocci(input: &Path, ast: bool, src: &str, source: SourceFile<'_>) -> 
     println!("# fixtures ({})", compiled.fixtures.len());
     for fixture in &compiled.fixtures {
         println!("- {} -> {}", fixture.name, fixture.target);
+    }
+    println!("# tests ({})", compiled.tests.len());
+    for test in &compiled.tests {
+        match &test.fixture {
+            Some(fixture) => println!("- {} fixture:{}", test.name, fixture),
+            None => println!("- {}", test.name),
+        }
     }
     let handlers = inspect_handlers(&compiled.document);
     println!("# handlers ({})", handlers.len());
@@ -623,6 +637,20 @@ mod tests {
             assert!(public_of(&Cli::try_parse_from(args).unwrap()));
         }
         assert!(!public_of(&Cli::try_parse_from(["rocci", "run"]).unwrap()));
+    }
+
+    #[test]
+    fn test_parses_path_and_defaults_to_cwd() {
+        let cli = Cli::try_parse_from(["rocci", "test", "Hello.rocci"]).unwrap();
+        match cli.command {
+            Commands::Test { path } => assert_eq!(path, PathBuf::from("Hello.rocci")),
+            _ => panic!("expected test"),
+        }
+        let cli = Cli::try_parse_from(["rocci", "test"]).unwrap();
+        match cli.command {
+            Commands::Test { path } => assert_eq!(path, PathBuf::from(".")),
+            _ => panic!("expected test"),
+        }
     }
 
     #[test]

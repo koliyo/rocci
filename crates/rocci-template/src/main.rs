@@ -115,6 +115,13 @@ fn print_inspect(compiled: &CompileOutput, name: &str, src: &str, ast: bool) {
     for fixture in &compiled.fixtures {
         println!("- {} -> {}", fixture.name, fixture.target);
     }
+    println!("# tests ({})", compiled.tests.len());
+    for test in &compiled.tests {
+        match &test.fixture {
+            Some(fixture) => println!("- {} fixture:{}", test.name, fixture),
+            None => println!("- {}", test.name),
+        }
+    }
     let handlers = inspect_handlers(&compiled.document);
     println!("# handlers ({})", handlers.len());
     for handler in &handlers {

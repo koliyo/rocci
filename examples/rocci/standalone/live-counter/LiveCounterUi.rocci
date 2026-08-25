@@ -233,6 +233,9 @@ CounterIsland = |{ count, clicks, show_reset ?? False }| {
 @fixture{target: CounterCount}
 counterCountTest = { count: 3.I64 }
 
+@test{fixture: counterCountTest}
+counterCountIsThree = counterCountTest.count == 3
+
 @fixture{target: CounterFeed}
 counterFeedTest = {
     clicks: [

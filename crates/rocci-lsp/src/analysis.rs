@@ -6,7 +6,7 @@ use lsp_types::{
 use rocci_template::{
     CommandDecl, CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl,
     FragmentDecl, InitDecl, LiveDecl, LowerOptions, ModuleItem, PositionEncoding, RouteDecl,
-    Severity, SourceFile, Span, TemplateItem, ViewDecl, compile, component_matches,
+    Severity, SourceFile, Span, TemplateItem, TestDecl, ViewDecl, compile, component_matches,
 };
 
 #[rustfmt::skip]
@@ -19,7 +19,7 @@ const HTML_TAGS: &[&str] = &[
 
 const DIRECTIVES: &[&str] = &[
     "if", "else", "else if", "for", "match", "let", "css", "context", "init", "get", "post", "put",
-    "patch", "delete", "view", "fragment", "command", "live",
+    "patch", "delete", "view", "fragment", "command", "live", "test",
 ];
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
@@ -76,6 +76,7 @@ pub fn document_symbols(
         .filter_map(|item| match item {
             ModuleItem::Component(component) => Some(component_symbol(source, component, encoding)),
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
+            ModuleItem::Test(test) => Some(test_symbol(source, test, encoding)),
             ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
             ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
             ModuleItem::Route(route) => Some(match route {
@@ -234,6 +235,28 @@ pub fn fixture_symbol(
         deprecated: None,
         range: lsp_range(source, fixture.span, encoding),
         selection_range: lsp_range(source, fixture.name.span, encoding),
+        children: None,
+    }
+}
+
+pub fn test_symbol(
+    source: SourceFile<'_>,
+    test: &TestDecl,
+    encoding: PositionEncoding,
+) -> DocumentSymbol {
+    let detail = match &test.fixture {
+        Some(fixture) => format!("@test {{fixture: {}}}", fixture.name),
+        None => "@test".to_string(),
+    };
+    DocumentSymbol {
+        name: test.name.name.clone(),
+        detail: Some(detail),
+        kind: SymbolKind::FUNCTION,
+        tags: None,
+        #[allow(deprecated)]
+        deprecated: None,
+        range: lsp_range(source, test.span, encoding),
+        selection_range: lsp_range(source, test.name.span, encoding),
         children: None,
     }
 }
@@ -512,6 +535,7 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
         ModuleItem::Component(component) => Some(component),
         ModuleItem::Roc { .. }
         | ModuleItem::Fixture(_)
+        | ModuleItem::Test(_)
         | ModuleItem::Css(_)
         | ModuleItem::Context(_)
         | ModuleItem::Init(_)

@@ -61,6 +61,8 @@ fn kitchen_sink_compiles_without_errors() {
     assert!(!out.roc.contains("|{ name ??"));
     assert!(!out.roc.contains("= component"));
     assert!(!out.roc.contains("@component"));
+    assert!(!out.roc.contains("expect"));
+    assert_eq!(out.tests.len(), 2);
     assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 
@@ -703,6 +705,157 @@ sample = { name: "Ada" }
         errors
             .iter()
             .any(|msg| msg.contains("unknown `@fixture` attribute `name`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn formats_test_ast() {
+    let src = r#"
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+@test{fixture: helloSample}
+helloRenders = Html.render(hello(helloSample)) == "<p>Hello, Roc</p>"
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.tests.len(), 1);
+    assert_eq!(out.tests[0].name, "helloRenders");
+    assert_eq!(out.tests[0].fixture.as_deref(), Some("helloSample"));
+    assert!(!out.roc.contains("expect"));
+    let ast = format_ast(src, &out.document);
+    assert!(
+        ast.contains(
+            "(test helloRenders fixture:helloSample\n    (roc \"Html.render(hello(helloSample)) == \\\"<p>Hello, Roc</p>\\\"\"))"
+        ),
+        "{ast}"
+    );
+}
+
+#[test]
+fn formats_expect_trailer_without_writing_compiled_expect() {
+    use rocci_template::format_expect_trailer;
+
+    let src = r#"
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+## Greeting for the sample name.
+@test{fixture: helloSample}
+helloRenders = helloSample.name == "Roc"
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("expect"));
+    assert!(out.roc.contains("helloSample = { name: \"Roc\" }"));
+    let trailer = format_expect_trailer(&out.tests);
+    assert_eq!(
+        trailer,
+        "## Greeting for the sample name.\nexpect helloSample.name == \"Roc\"\n"
+    );
+}
+
+#[test]
+fn rejects_missing_test_name() {
+    let src = r#"
+@test
+= Bool.true
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors.iter().any(|msg| msg.contains("expected test name")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_missing_test_equals() {
+    let src = r#"
+@test
+helloRenders Bool.true
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("expected `=` after test name")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_unknown_test_attribute() {
+    let src = r#"
+@test{target: Hello}
+helloRenders = Bool.true
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown `@test` attribute `target`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_duplicate_test_fixture_attribute() {
+    let src = r#"
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+@test{fixture: helloSample, fixture: helloSample}
+helloRenders = Bool.true
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("duplicate `fixture` attribute")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_unknown_test_fixture_name() {
+    let src = r#"
+@test{fixture: missing}
+helloRenders = Bool.true
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("unknown fixture name `missing`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_test_inside_component_body() {
+    let src = r#"
+@component Hello = |{ name }| {
+    @test
+    helloRenders = Bool.true
+    <p>{name}</p>
+}
+"#;
+    let errors = compile_err(src);
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("`@test` is only valid at document root")),
         "{errors:?}"
     );
 }

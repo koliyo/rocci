@@ -30,6 +30,7 @@ ModuleItem =
   RocRegion
 | ComponentDecl
 | FixtureDecl
+| TestDecl
 | CssDecl
 | ContextDecl
 | InitDecl
@@ -62,6 +63,13 @@ FixtureDecl =
   '@' 'fixture'
   name:Ident
   target:ComponentPath
+  value:RocExpr
+
+TestDecl =
+  leading:LeadingComments?
+  '@' 'test'
+  name:Ident
+  fixture:Ident?
   value:RocExpr
 
 CssDecl =

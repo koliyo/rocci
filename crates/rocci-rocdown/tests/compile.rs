@@ -1454,6 +1454,21 @@ fn inline_html_in_a_paragraph_is_still_rejected() {
 }
 
 #[test]
+fn rejects_test_in_rocdown_documents() {
+    let errs = compile_err(
+        r#"
+@test
+helloRenders = Bool.true
+"#,
+    );
+    assert!(
+        errs.iter()
+            .any(|msg| msg.contains("`@test` belongs in `.rocci` files")),
+        "{errs:?}"
+    );
+}
+
+#[test]
 fn top_level_if_cannot_declare_component() {
     let errs = compile_err(
         r#"

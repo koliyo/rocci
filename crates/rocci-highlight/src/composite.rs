@@ -1,7 +1,7 @@
 use rocci_template::{
     AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl,
     Document as RocciDocument, Element, FixtureDecl, FragmentDecl, InitDecl, LeadingComments,
-    LiveDecl, ModuleItem, RouteDecl, SourceFile, Span, TemplateItem, ViewDecl,
+    LiveDecl, ModuleItem, RouteDecl, SourceFile, Span, TemplateItem, TestDecl, ViewDecl,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -202,6 +202,7 @@ pub fn collect_rocci_document(
             ModuleItem::Roc { .. } => {}
             ModuleItem::Component(component) => collect_component(src, collector, component),
             ModuleItem::Fixture(fixture) => collect_fixture(src, collector, fixture),
+            ModuleItem::Test(test) => collect_test(src, collector, test),
             ModuleItem::Css(css) => collect_css(src, collector, css),
             ModuleItem::Context(context) => collect_context(src, collector, context),
             ModuleItem::Init(init) => collect_init(src, collector, init),
@@ -373,6 +374,30 @@ pub fn collect_fixture(src: &str, collector: &mut Vec<HighlightSpan>, fixture: &
         collector.push(HighlightSpan::new(span, HighlightKind::Property, 0, 50));
     }
     collect_path(collector, &fixture.target.parts);
+}
+
+pub fn collect_test(src: &str, collector: &mut Vec<HighlightSpan>, test: &TestDecl) {
+    collect_leading(collector, &test.leading);
+    collector.push(HighlightSpan::new(
+        test.name.span,
+        HighlightKind::Function,
+        MOD_DECLARATION,
+        55,
+    ));
+    if let Some(span) = ident_between(src, test.span.start, test.name.span.start, "@test") {
+        collector.push(HighlightSpan::new(span, HighlightKind::Keyword, 0, 55));
+    }
+    if let Some(span) = ident_between(src, test.span.start, test.name.span.start, "fixture") {
+        collector.push(HighlightSpan::new(span, HighlightKind::Property, 0, 50));
+    }
+    if let Some(fixture) = &test.fixture {
+        collector.push(HighlightSpan::new(
+            fixture.span,
+            HighlightKind::Variable,
+            0,
+            50,
+        ));
+    }
 }
 
 pub fn collect_items(src: &str, collector: &mut Vec<HighlightSpan>, items: &[TemplateItem]) {

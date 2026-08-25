@@ -109,7 +109,8 @@ gravity or DAS in a JS island when the point is standalone authoring.
 ## File and language fit
 
 - **Reusable widgets:** `components/*.rocci` — pure `@component`, scoped CSS,
-  `@fixture`. No route handlers.
+  `@fixture`, and `@test` on boolean expressions. No route handlers. Keep
+  tests off the handler and Datastar path.
 - **HTTP app:** `pages/*.rocci`, app-root `.rocci`, or nested `backend/` + `ui/`
   with app-root `rocci.toml` — `@context` / `@init` / `@method:role` routes.
   `@get:view` returns `<html>`; `@method:fragment` returns a fragment;

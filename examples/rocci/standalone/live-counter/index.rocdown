@@ -11,7 +11,8 @@
 See [handlers](/docs/applications/handlers/) for one-shot fragments versus
 commands plus `@get:live`.
 
-The shared-view sibling of the [counter](/examples/counter/). Same SQLite card,
+The shared-view sibling of the [counter](/examples/counter/). `LiveCounterUi.rocci`
+pairs `@test{fixture: counterCountTest}` with the count sample. Same SQLite card,
 but `@get:live("/sse")` owns the stream path. Increment and reset are
 `@post:command` handlers and return no representation: ordinary HTTP clients
 receive `204 No Content`; Datastar receives an empty finite SSE response with

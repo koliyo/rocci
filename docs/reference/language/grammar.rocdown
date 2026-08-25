@@ -40,6 +40,9 @@ The complete route grammar is a closed `@method:role` matrix: GET admits
 `view`, `fragment`, and `live`; POST, PUT, PATCH, and DELETE admit
 `fragment` and `command`.
 
+Root-only `@test` is reserved in Rocdown (it does not lower there) and is a
+declaration in `.rocci` files. See [Tests](/docs/reference/language/tests/).
+
 The public grammar view is this reference plus `Rocci.AST.ungram` for
 contributors. `AllSyntax.rocci` is coverage, not prose.
 

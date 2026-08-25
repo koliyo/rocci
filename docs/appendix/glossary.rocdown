@@ -21,6 +21,7 @@ behavior stays in [reference](/docs/reference/).
 | Live | A path-bearing `@get:live` fragment stream; multiple streams may be declared per module. |
 | Datastar | Browser transport for intent and morphing. Not a client application framework. |
 | Fixture | `@fixture` preview data for `rocci view` / `browse`. |
+| Test | Root-only `@test` boolean expression; `rocci test` runs it as Roc `expect`. |
 | Lowering | Translating template regions to ordinary Roc (`Html.*`, camelCase functions). |
 | Source map | Segments that map generated Roc back to `.rocci` spans. |
 | Preview | The Tao/Wry window that loads the same local HTTP origin as a browser. |

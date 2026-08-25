@@ -4,7 +4,7 @@ title: Implement @test and rocci test
 description: "Add root-only @test name = boolExpr with optional {fixture: ident}, lower to Roc expect outside wrap_type_module, add rocci test, then update skills, docs, AllSyntax, and example apps that already have @fixture."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/testing, concern/docs]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T12:30:00Z }
+generated: { by: process:cursor, at: 2026-08-25T18:00:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -136,6 +136,14 @@ sources:
 ---
 
 # Implement @test and rocci test
+
+## Current disposition
+
+Phases 0–7 are implemented on `rocci-test-syntax`. Chosen staging remains
+layout (b): `expect` after `wrap_type_module`, never inside the type body or
+in `compiled.roc`. The runner aliases wrapped fixture and component names,
+omits HTTP/SQLite Roc from the staged module, and does not mark this plan
+complete in `knowledge/log.md` until CI and Knowledge succeed.
 
 ## Goal
 
