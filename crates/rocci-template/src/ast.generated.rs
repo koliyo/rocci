@@ -13,6 +13,7 @@ pub enum ModuleItem {
     Roc { span: Span },
     Component(ComponentDecl),
     Fixture(FixtureDecl),
+    Test(TestDecl),
     Css(CssDecl),
     Context(ContextDecl),
     Init(InitDecl),
@@ -25,6 +26,7 @@ impl ModuleItem {
             Self::Roc { span } => *span,
             Self::Component(item) => item.span,
             Self::Fixture(item) => item.span,
+            Self::Test(item) => item.span,
             Self::Css(item) => item.span,
             Self::Context(item) => item.span,
             Self::Init(item) => item.span,
@@ -47,6 +49,15 @@ pub struct FixtureDecl {
     pub leading: Option<LeadingComments>,
     pub name: Ident,
     pub target: ComponentPath,
+    pub value: Span,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TestDecl {
+    pub leading: Option<LeadingComments>,
+    pub name: Ident,
+    pub fixture: Option<Ident>,
     pub value: Span,
     pub span: Span,
 }

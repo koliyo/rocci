@@ -2,7 +2,8 @@ use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
     CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident,
     IfDirective, InitDecl, Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm,
-    MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TestDecl, TextNode,
+    ViewDecl,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor, is_ident_start};
@@ -39,6 +40,8 @@ pub fn parse_declaration_from(src: &str, start: usize) -> Option<ParseDeclOutput
     };
     let item = if let Some(decl) = parser.try_parse_fixture() {
         ModuleItem::Fixture(decl)
+    } else if let Some(decl) = parser.try_parse_test() {
+        ModuleItem::Test(decl)
     } else if let Some(decl) = parser.try_parse_context() {
         ModuleItem::Context(decl)
     } else if let Some(decl) = parser.try_parse_init() {
@@ -168,6 +171,16 @@ impl<'a> Parser<'a> {
                     }
                     opaque_start = self.cur.pos;
                     items.push(ModuleItem::Fixture(fixture));
+                    continue;
+                }
+                if let Some(test) = self.try_parse_test() {
+                    if opaque_start < test.span.start as usize {
+                        items.push(ModuleItem::Roc {
+                            span: Span::new(opaque_start, test.span.start as usize),
+                        });
+                    }
+                    opaque_start = self.cur.pos;
+                    items.push(ModuleItem::Test(test));
                     continue;
                 }
                 if let Some(context) = self.try_parse_context() {
@@ -930,6 +943,133 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    fn try_parse_test(&mut self) -> Option<TestDecl> {
+        let at = self.cur.pos;
+        self.scan_at_keyword("test")?;
+        let mut decl = self.parse_test_after_keyword(at);
+        let (leading, span) = self.finish_leading(at, decl.span.end as usize);
+        decl.leading = leading;
+        decl.span = span;
+        Some(decl)
+    }
+
+    fn parse_test_after_keyword(&mut self, start: usize) -> TestDecl {
+        self.cur.skip_trivia();
+        let fixture = self.parse_test_attrs();
+        self.cur.skip_trivia();
+        let Some(name_span) = self.cur.scan_ident() else {
+            self.error(
+                Span::new(start, self.cur.pos),
+                "expected test name after `@test`",
+            );
+            self.sync_to_next_top_level();
+            return self.empty_test(start, fixture);
+        };
+        let name = Ident {
+            span: name_span,
+            name: self.cur.ident_text(name_span).to_string(),
+        };
+        self.cur.skip_trivia();
+        if !self.cur.eat('=') {
+            self.error(name_span, "expected `=` after test name");
+        }
+        let value = self.scan_roc_expr();
+        if value.is_empty() {
+            self.error(
+                Span::point(self.cur.pos),
+                "expected a Roc expression after `@test` name `=`",
+            );
+        }
+        TestDecl {
+            leading: None,
+            span: Span::new(start, self.cur.pos),
+            name,
+            fixture,
+            value,
+        }
+    }
+
+    fn parse_test_attrs(&mut self) -> Option<Ident> {
+        if self.cur.peek() != Some('{') {
+            return None;
+        }
+        let attrs_start = self.cur.pos;
+        self.cur.bump();
+        let mut fixture: Option<Ident> = None;
+        loop {
+            self.cur.skip_trivia();
+            if self.cur.eat('}') {
+                break;
+            }
+            if self.cur.is_eof() {
+                self.error(
+                    Span::new(attrs_start, self.cur.pos),
+                    "unterminated `@test` attributes; expected `}`",
+                );
+                break;
+            }
+            let Some(key_span) = self.cur.scan_ident() else {
+                self.error(
+                    Span::point(self.cur.pos),
+                    "expected attribute name in `@test { ... }`",
+                );
+                self.skip_fixture_attr_rest();
+                continue;
+            };
+            let key = self.cur.ident_text(key_span).to_string();
+            self.cur.skip_trivia();
+            if !self.cur.eat(':') {
+                self.error(key_span, "expected `:` after `@test` attribute name");
+            }
+            self.cur.skip_trivia();
+            match key.as_str() {
+                "fixture" => {
+                    let Some(name_span) = self.cur.scan_ident() else {
+                        self.error(
+                            Span::point(self.cur.pos),
+                            "expected fixture name after `fixture:`",
+                        );
+                        self.skip_fixture_attr_rest();
+                        continue;
+                    };
+                    let ident = Ident {
+                        span: name_span,
+                        name: self.cur.ident_text(name_span).to_string(),
+                    };
+                    if fixture.is_some() {
+                        self.error(key_span, "duplicate `fixture` attribute");
+                    } else {
+                        fixture = Some(ident);
+                    }
+                }
+                other => {
+                    self.error(
+                        key_span,
+                        format!("unknown `@test` attribute `{other}`; expected `fixture`"),
+                    );
+                    self.skip_fixture_attr_rest();
+                }
+            }
+            self.cur.skip_trivia();
+            self.cur.eat(',');
+        }
+        fixture
+    }
+
+    fn empty_test(&mut self, start: usize, fixture: Option<Ident>) -> TestDecl {
+        let pos = self.cur.pos;
+        TestDecl {
+            leading: None,
+            name: Ident {
+                span: Span::point(pos),
+                name: String::new(),
+            },
+            fixture,
+            value: Span::point(pos),
+            span: Span::new(start, pos),
+        }
+    }
+
     fn try_parse_fixture(&mut self) -> Option<FixtureDecl> {
         let at = self.cur.pos;
         self.scan_at_keyword("fixture")?;
@@ -1107,22 +1247,20 @@ impl<'a> Parser<'a> {
             if self.cur.is_eof() {
                 break;
             }
+            if self.cur.pos > start && at_start_depth(&self.cur) {
+                let saved = Snapshot::from(&self.cur);
+                self.cur.skip_spaces_tabs();
+                match self.cur.peek() {
+                    None | Some('\n' | '\r' | '@' | '}' | ')' | ']') => {
+                        saved.restore(&mut self.cur);
+                        break;
+                    }
+                    _ => saved.restore(&mut self.cur),
+                }
+            }
             self.cur.skip_roc_token();
             while !self.cur.is_eof() && !at_start_depth(&self.cur) {
                 self.cur.skip_roc_token();
-            }
-            let saved = Snapshot::from(&self.cur);
-            self.cur.skip_spaces_tabs();
-            match self.cur.peek() {
-                Some('.') => {
-                    self.cur.skip_roc_token();
-                    continue;
-                }
-                Some('(') | Some('[') => continue,
-                _ => {
-                    saved.restore(&mut self.cur);
-                    break;
-                }
             }
         }
         lexer::trim_span(self.src(), Span::new(start, self.cur.pos))
@@ -1899,7 +2037,7 @@ impl<'a> Parser<'a> {
             "match" => Some(TemplateItem::Match(self.parse_match(start))),
             "let" => Some(TemplateItem::Let(self.parse_let(start))),
             "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
-            "component" | "fixture" | "context" | "init" | "live" | "view" | "patch"
+            "component" | "fixture" | "test" | "context" | "init" | "live" | "view" | "patch"
             | "command" | "on" | "action" | "page" | "roc" | "render" => {
                 self.error(
                     Span::new(start, name_span.end as usize),
@@ -2355,6 +2493,7 @@ impl<'a> Parser<'a> {
                 look.ident_text(kw),
                 "component"
                     | "fixture"
+                    | "test"
                     | "css"
                     | "context"
                     | "init"
@@ -2399,6 +2538,7 @@ impl<'a> Parser<'a> {
             look.ident_text(kw),
             "component"
                 | "fixture"
+                | "test"
                 | "css"
                 | "context"
                 | "init"

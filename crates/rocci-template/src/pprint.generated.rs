@@ -13,6 +13,7 @@ fn write_module_item(w: &mut Writer<'_>, src: &str, item: &ModuleItem) {
         ModuleItem::Roc { span } => write_roc_region(w, src, span),
         ModuleItem::Component(item) => write_component(w, src, item),
         ModuleItem::Fixture(item) => write_fixture(w, src, item),
+        ModuleItem::Test(item) => write_test(w, src, item),
         ModuleItem::Css(item) => write_css(w, src, item),
         ModuleItem::Context(item) => write_context(w, src, item),
         ModuleItem::Init(item) => write_init(w, src, item),

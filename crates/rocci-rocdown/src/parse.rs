@@ -854,6 +854,10 @@ fn fill_at_decl(
                 match parsed.item {
                     ModuleItem::Component(item) => Item::Component(item),
                     ModuleItem::Fixture(item) => Item::Fixture(item),
+                    ModuleItem::Test(_) => Item::Roc(RocDecl {
+                        body: Span::new(decl.at, decl.end),
+                        span: Span::new(decl.at, decl.end),
+                    }),
                     ModuleItem::Css(item) => Item::Css(item),
                     ModuleItem::Context(item) => Item::Context(item),
                     ModuleItem::Init(item) => Item::Init(item),

@@ -202,6 +202,7 @@ pub fn collect_rocci_document(
             ModuleItem::Roc { .. } => {}
             ModuleItem::Component(component) => collect_component(src, collector, component),
             ModuleItem::Fixture(fixture) => collect_fixture(src, collector, fixture),
+            ModuleItem::Test(_) => {}
             ModuleItem::Css(css) => collect_css(src, collector, css),
             ModuleItem::Context(context) => collect_context(src, collector, context),
             ModuleItem::Init(init) => collect_init(src, collector, init),

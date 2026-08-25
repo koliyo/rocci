@@ -254,6 +254,7 @@ pub fn extract_rocci_regions(_name: &str, text: &str, doc: &RocciDocument) -> Re
                 }
                 collect_template_items(&mut builder, &c.body.items, comp_id);
             }
+            ModuleItem::Test(_) => {}
             ModuleItem::Fixture(f) => {
                 let fix_id = builder.add(
                     LanguageId::Rocci,

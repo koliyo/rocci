@@ -2,7 +2,7 @@ use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, IfDirective, InitDecl,
     Interpolation, LeadingComments, LetDirective, LiveDecl, MatchDirective, ModuleItem, RouteDecl,
-    TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    TemplateBlock, TemplateItem, TestDecl, TextNode, ViewDecl,
 };
 use crate::span::Span;
 
@@ -130,6 +130,17 @@ fn write_fixture(w: &mut Writer<'_>, src: &str, fixture: &FixtureDecl) {
     );
     write_optional_leading(w, src, &fixture.leading);
     write_roc(w, fixture.value.of(src));
+    w.close();
+}
+
+fn write_test(w: &mut Writer<'_>, src: &str, test: &TestDecl) {
+    let mut atoms = vec![atom(&test.name.name)];
+    if let Some(fixture) = &test.fixture {
+        atoms.push(format!("fixture:{}", fixture.name));
+    }
+    w.open("test", &atoms);
+    write_optional_leading(w, src, &test.leading);
+    write_roc(w, test.value.of(src));
     w.close();
 }
 

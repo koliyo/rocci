@@ -2,7 +2,8 @@ use rocci_template::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ComponentPath, ContextDecl,
     CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident,
     IfDirective, InitDecl, Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm,
-    MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TextNode, ViewDecl,
+    MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TestDecl, TextNode,
+    ViewDecl,
 };
 
 fn ungram_productions(src: &str) -> Vec<String> {
@@ -55,6 +56,7 @@ fn classify_module_item(item: &ModuleItem) -> &'static str {
         ModuleItem::Roc { .. } => "roc",
         ModuleItem::Component(_) => "component",
         ModuleItem::Fixture(_) => "fixture",
+        ModuleItem::Test(_) => "test",
         ModuleItem::Css(_) => "css",
         ModuleItem::Context(_) => "context",
         ModuleItem::Init(_) => "init",
@@ -125,6 +127,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
                 "ModuleItem",
                 "ComponentDecl",
                 "FixtureDecl",
+                "TestDecl",
                 "CssDecl",
                 "ContextDecl",
                 "InitDecl",
@@ -159,6 +162,7 @@ fn ungram_generated_productions_exist_as_rust_types() {
     let _ = std::any::type_name::<ModuleItem>();
     let _ = std::any::type_name::<ComponentDecl>();
     let _ = std::any::type_name::<FixtureDecl>();
+    let _ = std::any::type_name::<TestDecl>();
     let _ = std::any::type_name::<CssDecl>();
     let _ = std::any::type_name::<ContextDecl>();
     let _ = std::any::type_name::<InitDecl>();

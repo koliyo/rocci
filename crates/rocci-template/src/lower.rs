@@ -40,6 +40,7 @@ pub struct LoweredModule {
     pub segments: Vec<Segment>,
     pub components: Vec<ComponentInfo>,
     pub fixtures: Vec<FixtureInfo>,
+    pub tests: Vec<TestInfo>,
     pub styles: Vec<StyleArtifact>,
     pub state_type: Option<String>,
     pub init: Option<InitInfo>,
@@ -79,6 +80,14 @@ pub struct FixtureInfo {
     pub name: String,
     pub target: String,
     pub value: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub struct TestInfo {
+    pub name: String,
+    pub fixture: Option<String>,
+    pub expr: String,
     pub span: Span,
 }
 
@@ -329,6 +338,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             }
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
+            ModuleItem::Test(_) => {}
             ModuleItem::Css(css) => emitter.emit_css_leading(css),
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
@@ -348,6 +358,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         segments: emitter.segments,
         components: emitter.components,
         fixtures: emitter.fixtures,
+        tests: Vec::new(),
         styles: emitter.styles,
         state_type: emitter.state_type,
         init: emitter.init,

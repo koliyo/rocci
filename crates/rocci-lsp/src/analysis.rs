@@ -76,6 +76,7 @@ pub fn document_symbols(
         .filter_map(|item| match item {
             ModuleItem::Component(component) => Some(component_symbol(source, component, encoding)),
             ModuleItem::Fixture(fixture) => Some(fixture_symbol(source, fixture, encoding)),
+            ModuleItem::Test(_) => None,
             ModuleItem::Context(context) => Some(context_symbol(source, context, encoding)),
             ModuleItem::Init(init) => Some(init_symbol(source, init, encoding)),
             ModuleItem::Route(route) => Some(match route {
@@ -512,6 +513,7 @@ fn components(document: &Document) -> impl Iterator<Item = &ComponentDecl> {
         ModuleItem::Component(component) => Some(component),
         ModuleItem::Roc { .. }
         | ModuleItem::Fixture(_)
+        | ModuleItem::Test(_)
         | ModuleItem::Css(_)
         | ModuleItem::Context(_)
         | ModuleItem::Init(_)
