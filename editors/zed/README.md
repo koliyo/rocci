@@ -75,7 +75,7 @@ Override the binary if needed:
 }
 ```
 
-Point the optional `roc experimental-lsp` child at a specific compiler (`ROCCI_ROC_PATH`), either through binary env or `settings.rocPath`. Host hover still works if `roc` is missing. Restart the language server after changing this.
+Point the optional `roc experimental-lsp` child at a specific compiler (`ROCCI_ROC_PATH`), either through binary env or `settings.rocPath`. Host hover still works if `roc` is missing. Restart the language server after changing this. Set `settings.verbose` or `ROCCI_LSP_VERBOSE=1` for child-spawn and mapped-hover logs.
 
 ```json
 {

@@ -173,6 +173,11 @@
           "default": true,
           "description": "Check GitHub releases on activate when not debugging."
         },
+        "rocci.lsp.verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write verbose Rocci language-server logs (child spawn, projection sync, mapped hover) to the Rocci output channel. Also set when rocci.lsp.trace.server is verbose. Restart is automatic."
+        },
         "rocci.lsp.trace.server": {
           "type": "string",
           "enum": [

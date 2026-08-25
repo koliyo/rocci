@@ -23,7 +23,8 @@ The preview is the product HTTP origin, not a second renderer. Saving a Rocdown 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `rocci.lsp.serverPath` | `string` | `""` | Path to `rocci-language-server`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
-| `rocci.roc.path` | `string` | `""` | Path to the `roc` compiler for executable Roc LSP features. Empty uses `ROCCI_ROC_PATH` or `roc` on `PATH`. Restart the language server after changing this. |
+| `rocci.roc.path` | `string` | `""` | Path to the `roc` compiler for executable Roc LSP features. Empty uses `ROCCI_ROC_PATH`, then vscode-roc `roc.path`, then `roc` on `PATH`. |
+| `rocci.lsp.verbose` | `boolean` | `false` | Write child-spawn, projection, and mapped-hover logs to the **Rocci** output channel. Also enabled when `rocci.lsp.trace.server` is `verbose`. |
 | `rocci.lsp.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
 | `rocci.preview.rocciPath` | `string` | `""` | Path to `rocci`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
 | `rocci.preview.rocdownPath` | `string` | `""` | Path to `rocdown`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |

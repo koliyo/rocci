@@ -77,10 +77,13 @@ Resolution order for the compiler binary:
 1. `ROCCI_ROC_PATH`
 2. `roc` on `PATH`
 
-VS Code sets `ROCCI_ROC_PATH` from `rocci.roc.path`. Zed can set the same
-variable through `lsp.rocci-language-server.binary.env` or `settings.rocPath`.
-**Rocci: Restart LSP server** respawns the child. Default `cargo test -p rocci-lsp`
-does not require Roc; live child tests use `ROCCI_REQUIRE_ROC=1`.
+VS Code sets `ROCCI_ROC_PATH` from `rocci.roc.path`, then `roc.path` (vscode-roc).
+Zed can set the same variable through `lsp.rocci-language-server.binary.env` or
+`settings.rocPath`. Set `ROCCI_LSP_VERBOSE=1` (VS Code: `rocci.lsp.verbose`) to
+log child spawn, projection sync, and mapped hover on the server stderr / Rocci
+output channel. **Rocci: Restart LSP server** respawns the child. Default
+`cargo test -p rocci-lsp` does not require Roc; live child tests use
+`ROCCI_REQUIRE_ROC=1`.
 
 ---
 

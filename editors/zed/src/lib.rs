@@ -185,6 +185,16 @@ impl zed::Extension for RocciExtension {
                 env.push(("ROCCI_ROC_PATH".into(), roc));
             }
         }
+        if settings
+            .settings
+            .as_ref()
+            .and_then(|settings| settings.get("verbose").or_else(|| settings.get("lsp.verbose")))
+            .and_then(|value| value.as_bool())
+            == Some(true)
+            && !env.iter().any(|(key, _)| key == "ROCCI_LSP_VERBOSE")
+        {
+            env.push(("ROCCI_LSP_VERBOSE".into(), "1".into()));
+        }
 
         Ok(zed::Command {
             command,

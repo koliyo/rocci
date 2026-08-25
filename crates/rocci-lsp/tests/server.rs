@@ -1006,6 +1006,46 @@ fn interpolation_hover_forwards_mapped_roc_backend() {
 }
 
 #[test]
+fn interpolation_hover_keeps_popover_when_child_range_misses_cursor() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let param_range = projected_ident_range(src, "title", "|{ title }|");
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(roc_type_hover(Some(param_range)));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("roc hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("Str"), "{markup:?}");
+    let mapped = hover.range.expect("cursor-covering hover range");
+    let after = (line > mapped.start.line)
+        || (line == mapped.start.line && character >= mapped.start.character);
+    let before = (line < mapped.end.line)
+        || (line == mapped.end.line && character < mapped.end.character)
+        || (mapped.start == mapped.end
+            && line == mapped.start.line
+            && character == mapped.start.character);
+    assert!(
+        after && before,
+        "hover range {mapped:?} must cover interpolation {line}:{character}"
+    );
+}
+
+#[test]
 fn roc_block_ident_hover_forwards_mapped_roc_backend() {
     let src = r#"
 greet = |name| name

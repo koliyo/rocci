@@ -10,11 +10,13 @@ use lsp_server::{Message, Notification, Request, RequestId};
 use lsp_types::notification::{Notification as _, PublishDiagnostics};
 use lsp_types::{
     ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic,
-    DidChangeTextDocumentParams, DidOpenTextDocumentParams, GotoDefinitionParams,
-    GotoDefinitionResponse, Hover, HoverParams, InitializeParams, InitializedParams, Location,
-    PartialResultParams, Position, PublishDiagnosticsParams, ReferenceContext, ReferenceParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier, WorkDoneProgressParams,
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, GeneralClientCapabilities,
+    GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverClientCapabilities, HoverParams,
+    InitializeParams, InitializedParams, Location, MarkupKind, PartialResultParams, Position,
+    PositionEncodingKind, PublishDiagnosticsParams, ReferenceContext, ReferenceParams,
+    TextDocumentClientCapabilities, TextDocumentContentChangeEvent, TextDocumentIdentifier,
+    TextDocumentItem, TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier,
+    WorkDoneProgressParams,
 };
 use serde_json::Value;
 
@@ -146,6 +148,7 @@ impl RocBackend for FakeRocBackend {
 }
 
 pub struct ChildRocBackend {
+    roc_path: String,
     child: Child,
     stdin: ChildStdin,
     incoming: Receiver<Message>,
@@ -179,6 +182,10 @@ impl ChildRocBackend {
             let mut reader = BufReader::new(stderr);
             let mut line = String::new();
             while reader.read_line(&mut line).is_ok() && !line.is_empty() {
+                let trimmed = line.trim_end();
+                if !trimmed.is_empty() {
+                    crate::log::verbose(format!("roc experimental-lsp: {trimmed}"));
+                }
                 line.clear();
             }
         });
@@ -192,6 +199,7 @@ impl ChildRocBackend {
             }
         });
         let mut backend = Self {
+            roc_path: roc_path.to_string(),
             child,
             stdin,
             incoming,
@@ -208,10 +216,27 @@ impl ChildRocBackend {
         Self::spawn(&path)
     }
 
+    pub fn roc_path(&self) -> &str {
+        &self.roc_path
+    }
+
     fn initialize(&mut self) -> Result<(), String> {
         let params = InitializeParams {
             process_id: Some(std::process::id()),
-            capabilities: ClientCapabilities::default(),
+            capabilities: ClientCapabilities {
+                general: Some(GeneralClientCapabilities {
+                    position_encodings: Some(vec![PositionEncodingKind::UTF16]),
+                    ..GeneralClientCapabilities::default()
+                }),
+                text_document: Some(TextDocumentClientCapabilities {
+                    hover: Some(HoverClientCapabilities {
+                        content_format: Some(vec![MarkupKind::Markdown, MarkupKind::PlainText]),
+                        ..HoverClientCapabilities::default()
+                    }),
+                    ..TextDocumentClientCapabilities::default()
+                }),
+                ..ClientCapabilities::default()
+            },
             ..InitializeParams::default()
         };
         let value = self.request(
@@ -357,25 +382,48 @@ impl RocBackend for ChildRocBackend {
     }
 
     fn hover(&mut self, path: &Path, position: Position) -> Option<Hover> {
-        let uri = self.uri_for(path).ok()?;
-        let value = self
-            .request(
-                "textDocument/hover",
-                serde_json::to_value(HoverParams {
-                    text_document_position_params: TextDocumentPositionParams {
-                        text_document: TextDocumentIdentifier { uri },
-                        position,
-                    },
-                    work_done_progress_params: WorkDoneProgressParams::default(),
-                })
-                .ok()?,
-                REQUEST_TIMEOUT,
-            )
-            .ok()?;
+        let uri = match self.uri_for(path) {
+            Ok(uri) => uri,
+            Err(err) => {
+                crate::log::always(format!("hover uri for {}: {err}", path.display()));
+                return None;
+            }
+        };
+        crate::log::verbose(format!(
+            "child textDocument/hover {} {}:{}",
+            uri.as_str(),
+            position.line,
+            position.character
+        ));
+        let value = match self.request(
+            "textDocument/hover",
+            serde_json::to_value(HoverParams {
+                text_document_position_params: TextDocumentPositionParams {
+                    text_document: TextDocumentIdentifier { uri },
+                    position,
+                },
+                work_done_progress_params: WorkDoneProgressParams::default(),
+            })
+            .ok()?,
+            REQUEST_TIMEOUT,
+        ) {
+            Ok(value) => value,
+            Err(err) => {
+                crate::log::always(format!("child hover failed: {err}"));
+                return None;
+            }
+        };
         if value.is_null() {
+            crate::log::verbose("child hover returned null");
             return None;
         }
-        serde_json::from_value(value).ok()
+        match serde_json::from_value(value) {
+            Ok(hover) => Some(hover),
+            Err(err) => {
+                crate::log::always(format!("child hover decode failed: {err}"));
+                None
+            }
+        }
     }
 
     fn diagnostics(&mut self, path: &Path) -> Vec<Diagnostic> {

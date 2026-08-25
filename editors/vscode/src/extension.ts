@@ -24,16 +24,44 @@ function resolveServerPath(context: ExtensionContext): string | undefined {
   return resolveTool(context, 'rocci-language-server', configured, isDebug)
 }
 
+function lspVerbose(): boolean {
+  const config = workspace.getConfiguration('rocci')
+  return config.get<boolean>('lsp.verbose', false) || config.get<string>('lsp.trace.server', 'off') === 'verbose'
+}
+
 function traceFromConfig(): Trace {
+  if (lspVerbose()) {
+    return Trace.Verbose
+  }
   const value = workspace.getConfiguration('rocci').get<string>('lsp.trace.server', 'off')
   switch (value) {
-    case 'verbose':
-      return Trace.Verbose
     case 'messages':
       return Trace.Messages
     default:
       return Trace.Off
   }
+}
+
+function resolveRocPath(): string | undefined {
+  const rocci = workspace.getConfiguration('rocci').get<string>('roc.path')?.trim()
+  if (rocci) {
+    return rocci
+  }
+  const fromEnv = process.env.ROCCI_ROC_PATH?.trim()
+  if (fromEnv) {
+    return fromEnv
+  }
+  const vscodeRoc = workspace.getConfiguration('roc').get<string>('path')?.trim()
+  return vscodeRoc || undefined
+}
+
+async function stopClient() {
+  if (!client) {
+    return
+  }
+  const current = client
+  client = undefined
+  await current.stop()
 }
 
 async function startClient(context: ExtensionContext) {
@@ -47,10 +75,20 @@ async function startClient(context: ExtensionContext) {
 
   wrappedOutput.appendLine(`Language server: ${serverPath}`)
 
-  const rocPath = workspace.getConfiguration('rocci').get<string>('roc.path')?.trim()
+  const rocPath = resolveRocPath()
   const env = { ...process.env }
   if (rocPath) {
     env.ROCCI_ROC_PATH = rocPath
+  }
+  if (lspVerbose()) {
+    env.ROCCI_LSP_VERBOSE = '1'
+    wrappedOutput.appendLine('Verbose language-server logging enabled (rocci.lsp.verbose)')
+    wrappedOutput.show(true)
+  }
+  if (rocPath) {
+    wrappedOutput.appendLine(`Roc compiler: ${rocPath}`)
+  } else {
+    wrappedOutput.appendLine('Roc compiler: roc on PATH (set rocci.roc.path or roc.path if hover is empty)')
   }
 
   const executable: Executable = {
@@ -80,34 +118,43 @@ async function startClient(context: ExtensionContext) {
       ]
     },
     outputChannel: wrappedOutput,
-    revealOutputChannelOn: RevealOutputChannelOn.Info
+    revealOutputChannelOn: lspVerbose() ? RevealOutputChannelOn.Info : RevealOutputChannelOn.Error
   }
 
   client = new LanguageClient('rocci', 'Rocci', serverOptions, clientOptions)
   client.setTrace(traceFromConfig())
-  context.subscriptions.push(client)
 
   try {
     await client.start()
   } catch (reason) {
     wrappedOutput.appendLine(`Client error: ${reason}`)
+    client = undefined
   }
+}
+
+async function restartClient(context: ExtensionContext) {
+  await stopClient()
+  await startClient(context)
 }
 
 function registerCommands(context: ExtensionContext) {
   context.subscriptions.push(
-    commands.registerCommand('rocci.restartLspServer', async () => {
-      if (client) {
-        await client.restart()
+    workspace.onDidChangeConfiguration(async event => {
+      if (
+        event.affectsConfiguration('rocci.roc.path') ||
+        event.affectsConfiguration('roc.path') ||
+        event.affectsConfiguration('rocci.lsp.verbose') ||
+        event.affectsConfiguration('rocci.lsp.trace.server')
+      ) {
+        await restartClient(context)
       }
+    }),
+    commands.registerCommand('rocci.restartLspServer', async () => {
+      await restartClient(context)
     }),
     commands.registerCommand('rocci.updateTools', async () => {
       await updateTools(context, true)
-      if (client) {
-        await client.restart()
-      } else {
-        await startClient(context)
-      }
+      await restartClient(context)
     })
   )
   previewSession = new PreviewSession(context)
@@ -154,8 +201,9 @@ export function deactivate() {
     return stopPreview
   }
   wrappedOutput.appendLine('Stop client')
+  const stopClientPromise = stopClient()
   if (!stopPreview) {
-    return client.stop()
+    return stopClientPromise
   }
-  return Promise.all([stopPreview, client.stop()]).then(() => undefined)
+  return Promise.all([stopPreview, stopClientPromise]).then(() => undefined)
 }

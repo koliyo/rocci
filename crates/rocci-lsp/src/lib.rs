@@ -2,6 +2,7 @@ pub mod analysis;
 pub mod analyzer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
+pub mod log;
 pub mod regions;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod roc_backend;
@@ -222,8 +223,14 @@ impl LanguageServer {
         let uri = &params.text_document_position_params.text_document.uri;
         let (executable, offset) =
             self.cursor_at(uri, params.text_document_position_params.position)?;
-        if executable && let Some(hover) = self.mapped_roc_hover(uri, offset) {
-            return Some(hover);
+        if executable {
+            match self.mapped_roc_hover(uri, offset) {
+                Some(hover) => return Some(hover),
+                None => crate::log::verbose(format!(
+                    "no mapped roc hover at {offset} in {}",
+                    uri_key(uri)
+                )),
+            }
         }
         self.document(uri)?.hover(&params)
     }
@@ -383,7 +390,19 @@ impl LanguageServer {
             return;
         };
         let path = roc_state.dir.join(projection_file_name(name, &type_name));
-        let _ = roc_state.backend.sync_projection(&path, &projection.roc);
+        if let Err(err) = roc_state.backend.sync_projection(&path, &projection.roc) {
+            crate::log::always(format!(
+                "projection sync failed for {name} -> {}: {err}",
+                path.display()
+            ));
+        } else {
+            crate::log::verbose(format!(
+                "synced projection {} ({} bytes, {} segments)",
+                path.display(),
+                projection.roc.len(),
+                projection.segments.len()
+            ));
+        }
         roc_state.files.insert(
             name.to_string(),
             ProjectionFile {
@@ -410,24 +429,26 @@ impl LanguageServer {
         let mapped = source_to_generated(&source_text, &roc, &segments, offset)?;
         let proj = SourceFile::new("projection.roc", &roc);
         let (line, character) = proj.position(mapped.offset, CHILD_ENCODING);
+        crate::log::verbose(format!(
+            "hover {name} source@{offset} -> {} {}:{} ({:?})",
+            path.display(),
+            line,
+            character,
+            mapped.origin
+        ));
         let mut hover = roc_state
             .backend
             .hover(&path, Position::new(line, character))?;
-        hover.range = hover.range.and_then(|range| {
-            let start = analysis::offset_at(proj, range.start, CHILD_ENCODING);
-            let end = analysis::offset_at(proj, range.end, CHILD_ENCODING);
-            let span = map_generated_span(
-                &source_text,
-                &roc,
-                &segments,
-                Span::new(start as usize, end as usize),
-            )?;
-            Some(analysis::lsp_range(
-                SourceFile::new(&source_name, &source_text),
-                span,
-                self.encoding,
-            ))
-        });
+        hover.range = hover_range_for_cursor(
+            &source_name,
+            &source_text,
+            &roc,
+            &segments,
+            self.encoding,
+            offset,
+            hover.range,
+        );
+        crate::log::verbose(format!("hover {name} result range={:?}", hover.range));
         Some(hover)
     }
 
@@ -609,6 +630,64 @@ fn projection_file_name(uri_key: &str, type_name: &str) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     uri_key.hash(&mut hasher);
     format!("{type_name}_{:x}.roc", hasher.finish())
+}
+
+fn source_span_covering(segments: &[Segment], offset: u32) -> Option<Span> {
+    segments
+        .iter()
+        .filter(|segment| segment.origin.maps_roc_semantics() && segment.source.contains(offset))
+        .min_by_key(|segment| segment.source.len())
+        .map(|segment| segment.source)
+}
+
+fn range_covers_offset(
+    source: SourceFile<'_>,
+    range: Range,
+    offset: u32,
+    encoding: PositionEncoding,
+) -> bool {
+    let start = analysis::offset_at(source, range.start, encoding);
+    let end = analysis::offset_at(source, range.end, encoding);
+    if end > start {
+        offset >= start && offset < end
+    } else {
+        offset == start
+    }
+}
+
+fn hover_range_for_cursor(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    offset: u32,
+    child_range: Option<Range>,
+) -> Option<Range> {
+    let source = SourceFile::new(source_name, source_text);
+    if let Some(range) = child_range {
+        if let Some(mapped) = map_generated_range(
+            source_name,
+            source_text,
+            projection,
+            segments,
+            encoding,
+            range,
+        ) {
+            if range_covers_offset(source, mapped, offset, encoding) {
+                return Some(mapped);
+            }
+            crate::log::verbose(format!(
+                "dropping remapped hover range {mapped:?} that does not cover source@{offset}"
+            ));
+        } else {
+            crate::log::verbose(format!(
+                "child hover range {range:?} did not map back to source@{offset}"
+            ));
+        }
+    }
+    let span = source_span_covering(segments, offset)?;
+    Some(analysis::lsp_range(source, span, encoding))
 }
 
 fn remap_roc_diagnostic(
