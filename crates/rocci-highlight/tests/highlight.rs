@@ -282,3 +282,31 @@ fn highlight_rocci_leading_doc_comments() {
         "{comments:?}"
     );
 }
+
+#[test]
+fn highlight_rocci_test_keyword() {
+    let src = r#"
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+@test{fixture: helloSample}
+helloRenders = helloSample.name == "Roc"
+
+@component Hello = |{ name }|
+    <p>{name}</p>
+"#;
+    let (lang, spans) = highlight_source("rocci", src);
+    assert_eq!(lang, LanguageId::Rocci);
+    assert_invariants(src, &spans);
+    assert!(
+        spans
+            .iter()
+            .any(|s| s.kind == HighlightKind::Keyword && &src[s.start()..s.end()] == "@test"),
+        "{spans:?}"
+    );
+    assert!(
+        spans.iter().any(
+            |s| s.kind == HighlightKind::Function && &src[s.start()..s.end()] == "helloRenders"
+        )
+    );
+}

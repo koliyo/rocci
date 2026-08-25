@@ -835,6 +835,16 @@ fn fill_at_decl(
                 span: Span::new(decl.at, decl.end),
             })
         }
+        Reserved::Test => {
+            diagnostics.push(Diagnostic::error(
+                Span::new(decl.at, decl.end),
+                "`@test` belongs in `.rocci` files, not Rocdown documents",
+            ));
+            Item::Roc(RocDecl {
+                body: Span::new(decl.at, decl.end),
+                span: Span::new(decl.at, decl.end),
+            })
+        }
         Reserved::Component
         | Reserved::Fixture
         | Reserved::Css
