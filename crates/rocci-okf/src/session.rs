@@ -79,7 +79,11 @@ pub fn collection_of(route: &str) -> String {
 
 pub fn is_dashboard_or_review(route: &str) -> bool {
     let path = route.split(['?', '#']).next().unwrap_or(route);
-    path == "/" || path == "/review" || path == "/review/"
+    path == "/"
+        || path == "/review"
+        || path == "/review/"
+        || path == "/settings"
+        || path == "/settings/"
 }
 
 pub fn route_from_url(url: &str) -> String {

@@ -864,6 +864,7 @@ pub fn external_url(url: &str) -> bool {
         || url.starts_with("mailto:")
         || url.starts_with("tel:")
         || url.starts_with("data:")
+        || url.starts_with("okf:")
 }
 
 pub fn metadata_string_array(metadata: &BTreeMap<String, Value>, key: &str) -> Vec<String> {

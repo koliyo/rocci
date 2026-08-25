@@ -7,6 +7,7 @@ pub const PAGE_OUTLINE: &str = rocci_ui::chrome::PAGE_OUTLINE;
 pub const OKF_THEME: &str = include_str!("../templates/OkfTheme.rocci");
 pub const CONCEPT_META: &str = include_str!("../templates/ConceptMeta.rocci");
 pub const REVIEW_QUEUE: &str = include_str!("../templates/ReviewQueue.rocci");
+pub const SETTINGS: &str = include_str!("../templates/Settings.rocci");
 pub const OKF_BUILD_ROC: &str = include_str!("../runtime/OkfBuild.roc");
 
 pub fn stage_into(dir: &Path) -> Result<()> {

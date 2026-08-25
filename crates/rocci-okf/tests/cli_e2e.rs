@@ -154,3 +154,164 @@ fn build_knowledge_emits_artifacts() {
 
     let _ = fs::remove_dir_all(temp);
 }
+
+#[test]
+fn roots_falls_back_to_cwd_knowledge() {
+    let root = repo_root();
+    let bin = rocci_okf_bin();
+    let temp = temp_dir("roots-fallback");
+    fs::write(temp.join("okf.toml"), "poll = \"5m\"\n").unwrap();
+    fs::create_dir_all(temp.join("knowledge")).unwrap();
+
+    let output = Command::new(&bin)
+        .arg("roots")
+        .env("ROCCI_OKF_CONFIG", temp.join("okf.toml"))
+        .env("ROCCI_CACHE", temp.join("cache"))
+        .current_dir(&temp)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let printed = PathBuf::from(stdout.trim());
+    assert_eq!(printed, temp.join("knowledge").canonicalize().unwrap());
+
+    let output = Command::new(&bin)
+        .arg("roots")
+        .arg("--format")
+        .arg("json")
+        .env("ROCCI_OKF_CONFIG", temp.join("okf.toml"))
+        .env("ROCCI_CACHE", temp.join("cache"))
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let parsed: serde_json::Value =
+        serde_json::from_str(&String::from_utf8_lossy(&output.stdout)).unwrap();
+    assert!(parsed.as_array().unwrap().is_empty() || parsed[0]["id"] == "knowledge");
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn roots_json_redacts_token_and_lists_directory() {
+    let bin = rocci_okf_bin();
+    let temp = temp_dir("roots-json");
+    let bundle = temp.join("bundle");
+    fs::create_dir_all(&bundle).unwrap();
+    fs::write(
+        temp.join("okf.toml"),
+        format!(
+            r#"
+[[roots]]
+id = "rocci"
+kind = "directory"
+path = "{}"
+
+[[roots]]
+id = "notes"
+kind = "git"
+url = "https://example.com/private-notes.git"
+token = "super-secret-token"
+"#,
+            bundle.display()
+        ),
+    )
+    .unwrap();
+
+    let output = Command::new(&bin)
+        .arg("roots")
+        .arg("--format")
+        .arg("json")
+        .arg("--no-sync")
+        .env("ROCCI_OKF_CONFIG", temp.join("okf.toml"))
+        .env("ROCCI_CACHE", temp.join("cache"))
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stdout.contains("super-secret-token"), "{stdout}");
+    assert!(!stderr.contains("super-secret-token"), "{stderr}");
+    let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(parsed[0]["id"], "notes");
+    assert_eq!(parsed[1]["id"], "rocci");
+    assert_eq!(parsed[1]["kind"], "directory");
+    assert_eq!(parsed[1]["enabled"], true);
+    assert_eq!(parsed[0]["enabled"], false);
+    assert!(!output.status.success());
+    let _ = fs::remove_dir_all(temp);
+}
+
+#[test]
+fn roots_and_sync_file_git_remote() {
+    let bin = rocci_okf_bin();
+    let temp = temp_dir("roots-git");
+    let remote = temp.join("remote");
+    fs::create_dir_all(&remote).unwrap();
+    git(&remote, &["init", "-b", "main"]);
+    git(&remote, &["config", "user.email", "okf@example.com"]);
+    git(&remote, &["config", "user.name", "OKF Test"]);
+    fs::write(remote.join("index.md"), "okf_version: 1\n").unwrap();
+    git(&remote, &["add", "index.md"]);
+    git(&remote, &["commit", "-m", "init"]);
+    let url = format!("file://{}", remote.canonicalize().unwrap().display());
+    fs::write(
+        temp.join("okf.toml"),
+        format!(
+            r#"
+[[roots]]
+id = "notes"
+kind = "git"
+url = "{url}"
+"#
+        ),
+    )
+    .unwrap();
+
+    let output = Command::new(&bin)
+        .arg("sync")
+        .env("ROCCI_OKF_CONFIG", temp.join("okf.toml"))
+        .env("ROCCI_CACHE", temp.join("cache"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let output = Command::new(&bin)
+        .arg("roots")
+        .arg("--no-sync")
+        .env("ROCCI_OKF_CONFIG", temp.join("okf.toml"))
+        .env("ROCCI_CACHE", temp.join("cache"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let printed = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    assert!(
+        PathBuf::from(&printed).join("index.md").is_file(),
+        "{printed}"
+    );
+    let _ = fs::remove_dir_all(temp);
+}
+
+fn git(dir: &std::path::Path, args: &[&str]) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

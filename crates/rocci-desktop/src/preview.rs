@@ -181,6 +181,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
                     Some(IpcMessage::Zoom) => {
                         let _ = ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::Zoom));
                     }
+                    Some(IpcMessage::PickFolder) => {
+                        let _ = ipc_proxy.send_event(ShellEvent::Preview(PreviewEvent::PickFolder));
+                    }
                     None => {
                         if let Some(handler) = &host_ipc {
                             handler(request.body(), host_sink.clone());
@@ -201,6 +204,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         initial_maximized,
         cfg!(target_os = "macos"),
     )?;
+    let pick_proxy = proxy.clone();
     let menu = menu::NativeMenu::install(
         proxy,
         MenuConfig {
@@ -344,6 +348,15 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Zoom)) => {
                 live.window.set_maximized(!live.window.is_maximized());
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::PickFolder)) => {
+                crate::dialog::start_pick_folder(pick_proxy.clone());
+            }
+            Event::UserEvent(ShellEvent::Preview(PreviewEvent::PickFolderResult(path))) => {
+                apply_overlay(
+                    &live,
+                    &crate::dialog::pick_folder_result_script(path.as_deref()),
+                );
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Loaded(url))) => {
                 history.commit(&url);

@@ -66,6 +66,7 @@ toml = "1.1"
 tracing = "0.1"
 uuid = { version = "1.18", features = ["v4", "js"] }
 wry = { version = "0.56", features = ["devtools"] }
+rfd = "0.15"
 
 [profile.release]
 lto = "thin"

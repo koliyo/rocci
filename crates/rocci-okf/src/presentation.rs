@@ -830,6 +830,7 @@ pub fn compile_okf_templates() -> Result<Vec<CompiledOkfModule>> {
         ("PageOutline", crate::runtime::PAGE_OUTLINE),
         ("ConceptMeta", crate::runtime::CONCEPT_META),
         ("ReviewQueue", crate::runtime::REVIEW_QUEUE),
+        ("Settings", crate::runtime::SETTINGS),
         ("OkfTheme", crate::runtime::OKF_THEME),
     ];
 
@@ -1400,6 +1401,21 @@ fn generate_okf_page_data(bundle: &Bundle) -> Result<GeneratedOkfPages> {
         None,
     ));
 
+    let settings = article_with_validation(bundle, None, &crate::settings::render_article(None));
+    let (stamped, headings) = stamp_and_collect_headings(&settings);
+    let article_rel = "articles/settings.html".to_string();
+    articles.push((article_rel.clone(), stamped));
+    output_paths.push("settings/index.html".to_string());
+    pages.push(page_record(
+        bundle,
+        "/settings/",
+        "settings/index.html".into(),
+        article_rel,
+        "Knowledge roots".into(),
+        &headings,
+        None,
+    ));
+
     for path in diagnostic_only_concept_paths(bundle) {
         let id = concept_id_from_path(path);
         let (stamped, headings) = stamp_and_collect_headings(&stub_article(bundle, path));
@@ -1482,7 +1498,7 @@ fn invoke_apply(
         .current_dir(workspace)
         .env("OKF_STAGING", staging)
         .output()
-        .context("failed to run okf applicator")?;
+        .with_context(|| format!("failed to run okf applicator {}", apply_bin.display()))?;
     finish_roc_output(output, maps)
 }
 
@@ -1741,6 +1757,13 @@ fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
         description: String::new(),
         collection: String::new(),
     });
+    pages.push(NavPage {
+        title: "Settings".into(),
+        route: "/settings/".into(),
+        path: "settings".into(),
+        description: String::new(),
+        collection: String::new(),
+    });
     for concept in &bundle.concepts {
         let id = concept.id.trim_matches('/');
         pages.push(NavPage {
@@ -1858,6 +1881,26 @@ pub fn build_review_site_pure_rust(bundle: &Bundle, site: &Path) -> Result<()> {
         ),
     )
     .context("failed to write knowledge review page")?;
+
+    let settings_dest = site.join("settings").join("index.html");
+    if let Some(parent) = settings_dest.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+    fs::write(
+        &settings_dest,
+        html_page_for(
+            bundle,
+            "/settings/",
+            "Knowledge roots",
+            &select_root_article(&article_with_validation(
+                bundle,
+                None,
+                &crate::settings::render_article(None),
+            )),
+        ),
+    )
+    .context("failed to write knowledge settings page")?;
 
     for path in diagnostic_only_concept_paths(bundle) {
         let id = concept_id_from_path(path);
@@ -2034,10 +2077,17 @@ pub fn build_review_site_with_session(
         prev.compile_hash == roc_hash && prev.is_wasm == is_wasm && prev.apply_path == apply_path
     });
     rec.span_with_note("render", reused_apply.then(|| "reuse".into()), || {
+        // Prefer the just-built workspace binary so a parallel store_renderer
+        // cannot delete the cache copy before this apply runs.
+        let apply_exe = if !is_wasm && apply_bin.is_file() {
+            apply_bin.clone()
+        } else {
+            apply_path.clone()
+        };
         let roc_output = if is_wasm {
             invoke_wasm_apply(&apply_path, &staging)
         } else {
-            invoke_apply(&apply_path, &workspace, &staging, &maps)
+            invoke_apply(&apply_exe, &workspace, &staging, &maps)
         }?;
         if !roc_output.is_empty() {
             eprint!("{roc_output}");
@@ -2104,6 +2154,22 @@ pub fn build_review_site_with_session(
                     "/review/",
                     "Knowledge Governance & Review Queue",
                     &select_root_article(&render_review_page(bundle)),
+                ),
+            )?;
+        }
+
+        let settings_dest = staging.join("settings").join("index.html");
+        if !settings_dest.exists() {
+            if let Some(parent) = settings_dest.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(
+                &settings_dest,
+                html_page_for(
+                    bundle,
+                    "/settings/",
+                    "Knowledge roots",
+                    &select_root_article(&crate::settings::render_article(None)),
                 ),
             )?;
         }
@@ -2543,6 +2609,20 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-cta-row { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0; }
 .okf-cta-btn { background: var(--rd-primary); color: #282c34; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 500; }
 .okf-cta-btn:hover { text-decoration: none; opacity: 0.9; }
+.okf-settings form { margin: 0.75rem 0 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; }
+.okf-settings-stack { flex-direction: column; align-items: stretch; max-width: 40rem; }
+.okf-settings-stack label { display: flex; flex-direction: column; gap: 0.25rem; }
+.okf-settings input, .okf-settings select { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); }
+.okf-settings-msg { background: rgba(97, 175, 239, 0.12); border: 1px solid var(--rd-blue, #61afef); padding: 0.75rem 1rem; border-radius: 6px; }
+.okf-settings-help { color: var(--rd-muted); font-size: 0.9rem; margin: 0.15rem 0 0.75rem; }
+.okf-settings-warn { color: var(--rd-orange); font-size: 0.9rem; }
+.okf-settings-cards { display: flex; flex-direction: column; gap: 1rem; }
+.okf-settings-card { border: 1px solid var(--rd-border); border-radius: 8px; padding: 1rem 1.15rem; background: var(--rd-bg-subtle); }
+.okf-settings-card-head { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; }
+.okf-settings-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.okf-settings-advanced { margin-top: 0.75rem; }
+.okf-settings-inline { font-size: 0.85rem; }
+.okf-settings button { cursor: pointer; }
 "#;
 
 const TOC_SCRIPT: &str = rocci_ui::TOC_SCRIPT;
@@ -2695,6 +2775,7 @@ fn nav_inner(bundle: Option<&Bundle>, current: &str) -> String {
     out.push_str("<div class=\"nav-items\">");
     out.push_str(&nav_site_link("/", "Dashboard", current, false));
     out.push_str(&nav_site_link("/review/", "Review queue", current, false));
+    out.push_str(&nav_site_link("/settings/", "Settings", current, false));
     if let Some(bundle) = bundle {
         for node in nav_forest(bundle) {
             out.push_str(&render_nav_collection(&node, current));
@@ -2867,7 +2948,11 @@ fn normalize_route(route: &str) -> String {
 
 #[cfg_attr(not(test), allow(dead_code))]
 pub fn html_page(title: &str, article: &str) -> String {
-    html_page_with_nav(title, article, &render_nav_tree(None, "/"))
+    html_page_at(title, article, "/")
+}
+
+pub fn html_page_at(title: &str, article: &str, route: &str) -> String {
+    html_page_with_nav(title, article, &render_nav_tree(None, route))
 }
 
 pub fn html_page_for(bundle: &Bundle, route: &str, title: &str, article: &str) -> String {
@@ -3206,14 +3291,18 @@ mod tests {
     fn assert_global_nav_outside_toc(html: &str) {
         assert!(html.contains("href=\"/\""));
         assert!(html.contains("href=\"/review/\""));
+        assert!(html.contains("href=\"/settings/\""));
         assert!(html.contains("Dashboard"));
         assert!(html.contains("Review queue"));
+        assert!(html.contains("Settings"));
         if html.contains("class=\"rd-toc\"") {
             let toc = class_inner(html, "rd-toc", "</nav>");
             assert!(!toc.contains("href=\"/\""));
             assert!(!toc.contains("/review/"));
+            assert!(!toc.contains("/settings/"));
             assert!(!toc.contains("Dashboard"));
             assert!(!toc.contains("Review queue"));
+            assert!(!toc.contains("Settings"));
         }
     }
 
@@ -3545,10 +3634,11 @@ mod tests {
     fn okf_templates_compile_cleanly() {
         let modules =
             compile_okf_templates().expect("all OKF .rocci templates should compile cleanly");
-        assert_eq!(modules.len(), 4);
+        assert_eq!(modules.len(), 5);
         assert!(modules.iter().any(|m| m.type_name == "PageOutline"));
         assert!(modules.iter().any(|m| m.type_name == "ConceptMeta"));
         assert!(modules.iter().any(|m| m.type_name == "ReviewQueue"));
+        assert!(modules.iter().any(|m| m.type_name == "Settings"));
         assert!(modules.iter().any(|m| m.type_name == "OkfTheme"));
         let theme = modules.iter().find(|m| m.type_name == "OkfTheme").unwrap();
         assert!(theme.src.contains("class=\"rd-article\""));
@@ -3683,6 +3773,8 @@ mod tests {
         assert!(html.contains("Dashboard"));
         assert!(html.contains("href=\"/review/\""));
         assert!(html.contains("Review queue"));
+        assert!(html.contains("href=\"/settings/\""));
+        assert!(html.contains("Settings"));
         assert!(html.contains("<aside class=\"rd-toc\""));
         assert!(html.contains("System Overview"));
         assert!(!html.contains("<nav class=\"rd-toc\""));
@@ -3703,7 +3795,10 @@ mod tests {
         assert!(html.contains("System Overview"));
         assert!(html.contains("href=\"/\""));
         assert!(html.contains("Dashboard"));
+        assert!(html.contains("href=\"/settings/\""));
+        assert!(html.contains("Settings"));
         assert!(html.contains("<nav class=\"rd-toc\""));
+        assert!(site.join("settings").join("index.html").is_file());
         let _ = fs::remove_dir_all(&site);
     }
 

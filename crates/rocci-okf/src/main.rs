@@ -5,11 +5,16 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use okf::InspectKind;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 
+mod config;
 mod dev;
+mod edges;
+mod git_root;
 mod inspect;
 mod presentation;
+mod resolve;
 mod runtime;
 mod session;
+mod settings;
 
 #[derive(Parser)]
 #[command(
@@ -39,6 +44,9 @@ enum Commands {
     Check {
         #[arg(default_value = "knowledge")]
         root: PathBuf,
+        /// Check every configured root and cross-root `okf:` links.
+        #[arg(long)]
+        workspace: bool,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
         #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
@@ -81,6 +89,19 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = HostArg::Auto)]
         host: HostArg,
     },
+    /// Print resolved local bundle directories for configured knowledge roots.
+    Roots {
+        #[arg(long, value_enum, default_value_t = RootsFormatArg::Paths)]
+        format: RootsFormatArg,
+        /// Fetch git roots before printing, ignoring poll freshness.
+        #[arg(long, overrides_with = "no_sync")]
+        sync: bool,
+        /// Print cache and directory paths without fetching.
+        #[arg(long = "no-sync", overrides_with = "sync")]
+        no_sync: bool,
+    },
+    /// Fetch configured git knowledge roots.
+    Sync { id: Option<String> },
 }
 
 #[derive(Args, Debug)]
@@ -128,6 +149,12 @@ struct PreviewArgs {
 #[derive(Clone, Copy, ValueEnum)]
 enum CheckFormatArg {
     Terminal,
+    Json,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum RootsFormatArg {
+    Paths,
     Json,
 }
 
@@ -181,7 +208,7 @@ fn preview_knowledge(preview: PreviewArgs) -> Result<()> {
         stored.bundle = Some(target.root.clone());
         stored
     }));
-    let extra_http = Some(session_http_handler(session_state.clone()));
+    let extra_http = Some(preview_http_handler(session_state.clone()));
     let server = dev::run_knowledge(
         &target.root,
         output.as_deref(),
@@ -302,6 +329,20 @@ fn seed_session_file(output: &std::path::Path, session: &session::OkfSession) {
     }
 }
 
+fn preview_http_handler(
+    state: std::sync::Arc<std::sync::Mutex<session::OkfSession>>,
+) -> rocci_cli::dev_server::ExtraHttpHandler {
+    let session = session_http_handler(state);
+    std::sync::Arc::new(move |method, path, raw| {
+        if let Some(response) = session(method, path, raw) {
+            return Some(response);
+        }
+        let article = settings::http(method, path, raw)?;
+        let html = presentation::html_page_at("Knowledge roots", &article, "/settings/");
+        Some((200, "text/html; charset=utf-8", html.into_bytes()))
+    })
+}
+
 fn session_http_handler(
     state: std::sync::Arc<std::sync::Mutex<session::OkfSession>>,
 ) -> rocci_cli::dev_server::ExtraHttpHandler {
@@ -352,6 +393,164 @@ fn preview_host(host: HostArg) -> Option<rocci_roc_host::HostChoice> {
         HostArg::Native => Some(rocci_roc_host::HostChoice::Native),
         HostArg::Wasm => Some(rocci_roc_host::HostChoice::Wasm),
     }
+}
+
+fn cmd_roots(format: RootsFormatArg, sync: bool, no_sync: bool) -> Result<()> {
+    let mode = if no_sync {
+        resolve::SyncMode::Never
+    } else if sync {
+        resolve::SyncMode::Force
+    } else {
+        resolve::SyncMode::Auto
+    };
+    let config = config::load()?;
+    if config.roots.is_empty() {
+        return print_fallback(format);
+    }
+    let resolved = resolve::resolve_all_with(
+        &config,
+        &resolve::okf_cache_dir(),
+        git_root::now_unix(),
+        mode,
+    );
+    print_resolved(&resolved, format)
+}
+
+fn cmd_sync(id: Option<String>) -> Result<()> {
+    let config = config::load()?;
+    let cache = resolve::okf_cache_dir();
+    if let Some(id) = id {
+        match config.roots.iter().find(|root| root.id() == id) {
+            Some(config::RootConfig::Directory(_)) => Ok(()),
+            Some(config::RootConfig::Git(git)) => {
+                let token = git.resolved_token();
+                report_sync(&git_root::sync_git_root(git, &cache, token.as_deref()))
+            }
+            None => bail!("unknown root id `{id}`"),
+        }
+    } else {
+        let mut failed = false;
+        for root in &config.roots {
+            let config::RootConfig::Git(git) = root else {
+                continue;
+            };
+            let token = git.resolved_token();
+            if report_sync(&git_root::sync_git_root(git, &cache, token.as_deref())).is_err() {
+                failed = true;
+            }
+        }
+        if failed {
+            bail!("git sync failed");
+        }
+        Ok(())
+    }
+}
+
+fn report_sync(resolved: &git_root::ResolvedRoot) -> Result<()> {
+    if let Some(error) = &resolved.error {
+        eprintln!("rocci-okf: git root `{}` sync failed: {error}", resolved.id);
+        if !resolved.enabled() {
+            bail!("git root `{}` could not be resolved", resolved.id);
+        }
+    }
+    Ok(())
+}
+
+fn print_fallback(format: RootsFormatArg) -> Result<()> {
+    let knowledge = PathBuf::from("knowledge");
+    if !knowledge.is_dir() {
+        return Ok(());
+    }
+    let path = knowledge.canonicalize().unwrap_or(knowledge);
+    match format {
+        RootsFormatArg::Paths => {
+            println!("{}", path.display());
+            Ok(())
+        }
+        RootsFormatArg::Json => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&[root_json_fallback(&path)])?
+            );
+            Ok(())
+        }
+    }
+}
+
+fn print_resolved(roots: &[git_root::ResolvedRoot], format: RootsFormatArg) -> Result<()> {
+    match format {
+        RootsFormatArg::Paths => {
+            let mut unresolved = false;
+            for root in roots {
+                if let Some(path) = &root.path {
+                    println!("{}", path.display());
+                } else {
+                    unresolved = true;
+                    match &root.error {
+                        Some(error) => {
+                            eprintln!("rocci-okf: root `{}` unresolved: {error}", root.id)
+                        }
+                        None => eprintln!("rocci-okf: root `{}` unresolved", root.id),
+                    }
+                }
+            }
+            if unresolved {
+                bail!("one or more knowledge roots could not be resolved");
+            }
+            Ok(())
+        }
+        RootsFormatArg::Json => {
+            let payload: Vec<RootJson> = roots.iter().map(RootJson::from).collect();
+            println!("{}", serde_json::to_string_pretty(&payload)?);
+            if roots.iter().any(|root| !root.enabled()) {
+                bail!("one or more knowledge roots could not be resolved");
+            }
+            Ok(())
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct RootJson {
+    id: String,
+    kind: String,
+    path: Option<String>,
+    revision: Option<String>,
+    incoming: String,
+    enabled: bool,
+    error: Option<String>,
+}
+
+impl From<&git_root::ResolvedRoot> for RootJson {
+    fn from(root: &git_root::ResolvedRoot) -> Self {
+        Self {
+            id: root.id.clone(),
+            kind: root.kind.as_str().into(),
+            path: root.path.as_ref().map(|path| path.display().to_string()),
+            revision: root.revision.clone(),
+            incoming: root.incoming.as_str().into(),
+            enabled: root.enabled(),
+            error: root.error.clone(),
+        }
+    }
+}
+
+fn root_json_fallback(path: &std::path::Path) -> RootJson {
+    RootJson {
+        id: "knowledge".into(),
+        kind: "directory".into(),
+        path: Some(path.display().to_string()),
+        revision: None,
+        incoming: "allow".into(),
+        enabled: true,
+        error: None,
+    }
+}
+
+#[cfg(test)]
+fn roots_json_for_test(roots: &[git_root::ResolvedRoot]) -> String {
+    let payload: Vec<RootJson> = roots.iter().map(RootJson::from).collect();
+    serde_json::to_string_pretty(&payload).unwrap()
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -445,10 +644,16 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Check {
             root,
+            workspace,
             profile,
             format,
         } => {
-            let report = okf::check(&root, profile.into())?;
+            let report = if workspace {
+                let config = config::load()?;
+                edges::check_workspace(&config, &resolve::okf_cache_dir(), profile.into())
+            } else {
+                okf::check(&root, profile.into())?
+            };
             match format {
                 CheckFormatArg::Terminal => {
                     let formatted = report.terminal();
@@ -524,6 +729,12 @@ fn main() -> Result<()> {
             );
             Ok(())
         }
+        Commands::Roots {
+            format,
+            sync,
+            no_sync,
+        } => cmd_roots(format, sync, no_sync),
+        Commands::Sync { id } => cmd_sync(id),
         Commands::View { preview } => preview_knowledge(preview),
         Commands::Run { preview } => {
             eprintln!(
@@ -608,5 +819,37 @@ mod tests {
                 .unwrap_or_default()
         );
         assert!(help.contains("?reload=0"), "{help}");
+    }
+
+    #[test]
+    fn roots_parses_json_and_no_sync() {
+        let cli =
+            Cli::try_parse_from(["rocci-okf", "roots", "--format", "json", "--no-sync"]).unwrap();
+        match cli.command {
+            Commands::Roots {
+                format: RootsFormatArg::Json,
+                sync: false,
+                no_sync: true,
+            } => {}
+            _ => panic!("expected json --no-sync roots"),
+        }
+    }
+
+    #[test]
+    fn roots_json_omits_tokens_and_secrets() {
+        let json = roots_json_for_test(&[git_root::ResolvedRoot {
+            id: "notes".into(),
+            kind: git_root::ResolvedKind::Git,
+            path: Some(PathBuf::from("/tmp/notes")),
+            revision: Some("abc".into()),
+            incoming: config::Incoming::Deny,
+            error: None,
+            warning: None,
+        }]);
+        assert!(!json.contains("token"), "{json}");
+        assert!(!json.contains("secret"), "{json}");
+        assert!(json.contains("\"id\": \"notes\""));
+        assert!(json.contains("\"kind\": \"git\""));
+        assert!(json.contains("\"incoming\": \"deny\""));
     }
 }

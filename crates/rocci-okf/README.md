@@ -31,6 +31,51 @@ cargo run -p rocci-okf -- inspect graph knowledge
 cargo run -p rocci-okf -- search "system overview" knowledge --profile rocci
 ```
 
+### Multiple knowledge roots
+
+Configured roots live in `ROCCI_OKF_CONFIG` or `~/.rocci/okf.toml`. `check`,
+`inspect`, `search`, and `build` stay single-root; agents print resolved
+directories first, then pass each path through:
+
+```sh
+rocci-okf roots --format paths | while IFS= read -r root; do
+  rocci-okf inspect catalog "$root"
+done
+```
+
+```sh
+# Default: fetch stale git roots, then print one absolute path per line
+cargo run -p rocci-okf -- roots
+
+# Cache and directory paths only
+cargo run -p rocci-okf -- roots --no-sync --format json
+
+# Fetch every git root, or one id
+cargo run -p rocci-okf -- sync
+cargo run -p rocci-okf -- sync notes
+```
+
+`--format json` emits `{ id, kind, path, revision, incoming, enabled, error }`
+and never includes tokens or resolved secrets. If the config is missing or
+`roots` is empty, `./knowledge` is printed when that directory exists.
+
+`check --workspace` loads every resolved root and additionally reports
+cross-root `okf:<id>/path.md` links: `OKF3010` when the target root or path is
+missing, and `OKF3011` when the edge policy denies the citation. Those codes
+are application-side; the portable engine does not emit them. Intra-bundle
+`okf:` hrefs are not treated as bundle paths (no OKF3001/3002).
+
+Preview `/settings/` (sidebar next to Dashboard and Review queue) edits
+`okf.toml` with one-shot POST commands: add/remove roots, incoming defaults,
+the citation matrix, write-only tokens, and Sync now. Tokens are never echoed
+back into the page. In the desktop preview window, **Choose folder…** opens a
+native folder dialog (`window.ipc` `pick-folder`, `rfd` / NSOpenPanel). Without
+a desktop window (`--no-window`), paste the folder path. Each root card shows
+the resolved local path, git last fetch / error, and whether `index.md` is
+missing. POSTs to `/__rocci_okf/settings` are loopback-only.
+
+Saving the config rewrites a canonical TOML file; comments are not preserved.
+
 ### Retrieval Benchmarks
 
 ```sh
@@ -40,7 +85,8 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 ### Live Reload Review Server & Desktop Preview
 
 The review viewer uses a dark One Dark Pro palette. The left sidebar follows
-the documentation site pattern: Dashboard and Review queue as top links, then
+the documentation site pattern: Dashboard, Review queue, and Settings as top
+links, then
 nested collection sections that expand with a `+`/`−` control (the section
 title is not itself a link). Each nested level is indented. Collection landing
 pages are labeled Overview, and leaf documents sit inside the open section. Pages with H2 or H3 headings get a right “On this

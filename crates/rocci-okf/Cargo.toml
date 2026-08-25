@@ -22,3 +22,4 @@ rocci-ui = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.11"
+toml = { workspace = true }
