@@ -779,6 +779,45 @@ fn interpolation_type_error_maps_to_expr_span() {
 }
 
 #[test]
+fn interpolation_completion_uses_roc_backend() {
+    let uri: Uri = "file:///InterpComplete.rocdown"
+        .parse()
+        .expect("interp uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    let mut fake = FakeRocBackend::default();
+    fake.set_completion(CompletionResponse::Array(vec![lsp_types::CompletionItem {
+        label: "toUtf8".to_string(),
+        ..lsp_types::CompletionItem::default()
+    }]));
+    let mut server = initialize_server();
+    server.set_roc_backend(Box::new(fake));
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open interp");
+    let hole = src.find("@{published}").expect("hole") + 2;
+    let (line, character) = line_col(src, hole);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("roc completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert!(items.iter().any(|item| item.label == "toUtf8"), "{items:?}");
+}
+
+#[test]
 fn interpolation_goto_without_binding_has_no_location() {
     let mut server = initialize_server();
     let uri: Uri = "file:///UnboundInterp.rocdown"

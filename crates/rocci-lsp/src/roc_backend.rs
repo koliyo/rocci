@@ -9,10 +9,12 @@ use std::time::{Duration, Instant};
 use lsp_server::{Message, Notification, Request, RequestId};
 use lsp_types::notification::{Notification as _, PublishDiagnostics};
 use lsp_types::{
-    ClientCapabilities, Diagnostic, DidChangeTextDocumentParams, DidOpenTextDocumentParams, Hover,
-    HoverParams, InitializeParams, InitializedParams, Position, PublishDiagnosticsParams,
-    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier, WorkDoneProgressParams,
+    ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic,
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, GotoDefinitionParams,
+    GotoDefinitionResponse, Hover, HoverParams, InitializeParams, InitializedParams, Location,
+    PartialResultParams, Position, PublishDiagnosticsParams, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
+    VersionedTextDocumentIdentifier, WorkDoneProgressParams,
 };
 use serde_json::Value;
 
@@ -20,12 +22,22 @@ const INIT_TIMEOUT: Duration = Duration::from_secs(8);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 const DIAGNOSTIC_WAIT: Duration = Duration::from_millis(800);
 
+pub const PROJECTION_PLACEHOLDER_URI: &str = "file:///rocci-projection.roc";
+
 pub trait RocBackend: Send {
     fn sync_projection(&mut self, path: &Path, text: &str) -> Result<(), String>;
     fn hover(&mut self, path: &Path, position: Position) -> Option<Hover>;
     fn diagnostics(&mut self, path: &Path) -> Vec<Diagnostic> {
         let _ = path;
         Vec::new()
+    }
+    fn completion(&mut self, path: &Path, position: Position) -> Option<CompletionResponse> {
+        let _ = (path, position);
+        None
+    }
+    fn definition(&mut self, path: &Path, position: Position) -> Option<GotoDefinitionResponse> {
+        let _ = (path, position);
+        None
     }
 }
 
@@ -47,6 +59,8 @@ pub struct FakeRocBackend {
     hovers: HashMap<(u32, u32), Hover>,
     any: Option<Hover>,
     diagnostics: Vec<Diagnostic>,
+    completion: Option<CompletionResponse>,
+    definition: Option<GotoDefinitionResponse>,
 }
 
 impl FakeRocBackend {
@@ -60,6 +74,14 @@ impl FakeRocBackend {
 
     pub fn set_diagnostics(&mut self, diagnostics: Vec<Diagnostic>) {
         self.diagnostics = diagnostics;
+    }
+
+    pub fn set_completion(&mut self, completion: CompletionResponse) {
+        self.completion = Some(completion);
+    }
+
+    pub fn set_definition(&mut self, definition: GotoDefinitionResponse) {
+        self.definition = Some(definition);
     }
 }
 
@@ -80,6 +102,18 @@ impl RocBackend for FakeRocBackend {
 
     fn diagnostics(&mut self, _path: &Path) -> Vec<Diagnostic> {
         self.diagnostics.clone()
+    }
+
+    fn completion(&mut self, path: &Path, _position: Position) -> Option<CompletionResponse> {
+        self.completion
+            .clone()
+            .map(|response| rewrite_completion(response, path))
+    }
+
+    fn definition(&mut self, path: &Path, _position: Position) -> Option<GotoDefinitionResponse> {
+        self.definition
+            .clone()
+            .map(|response| rewrite_definition(response, path))
     }
 }
 
@@ -322,6 +356,53 @@ impl RocBackend for ChildRocBackend {
         };
         self.diagnostics.get(&uri).cloned().unwrap_or_default()
     }
+
+    fn completion(&mut self, path: &Path, position: Position) -> Option<CompletionResponse> {
+        let uri = self.uri_for(path).ok()?;
+        let value = self
+            .request(
+                "textDocument/completion",
+                serde_json::to_value(CompletionParams {
+                    text_document_position: TextDocumentPositionParams {
+                        text_document: TextDocumentIdentifier { uri },
+                        position,
+                    },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default(),
+                    context: None,
+                })
+                .ok()?,
+                REQUEST_TIMEOUT,
+            )
+            .ok()?;
+        if value.is_null() {
+            return None;
+        }
+        serde_json::from_value(value).ok()
+    }
+
+    fn definition(&mut self, path: &Path, position: Position) -> Option<GotoDefinitionResponse> {
+        let uri = self.uri_for(path).ok()?;
+        let value = self
+            .request(
+                "textDocument/definition",
+                serde_json::to_value(GotoDefinitionParams {
+                    text_document_position_params: TextDocumentPositionParams {
+                        text_document: TextDocumentIdentifier { uri },
+                        position,
+                    },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default(),
+                })
+                .ok()?,
+                REQUEST_TIMEOUT,
+            )
+            .ok()?;
+        if value.is_null() {
+            return None;
+        }
+        serde_json::from_value(value).ok()
+    }
 }
 
 impl Drop for ChildRocBackend {
@@ -330,6 +411,50 @@ impl Drop for ChildRocBackend {
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
+}
+
+fn rewrite_uri(uri: Uri, path: &Path) -> Uri {
+    if uri.to_string() == PROJECTION_PLACEHOLDER_URI {
+        file_uri(path).unwrap_or(uri)
+    } else {
+        uri
+    }
+}
+
+fn rewrite_location(mut location: Location, path: &Path) -> Location {
+    location.uri = rewrite_uri(location.uri, path);
+    location
+}
+
+fn rewrite_definition(response: GotoDefinitionResponse, path: &Path) -> GotoDefinitionResponse {
+    match response {
+        GotoDefinitionResponse::Scalar(location) => {
+            GotoDefinitionResponse::Scalar(rewrite_location(location, path))
+        }
+        GotoDefinitionResponse::Array(locations) => GotoDefinitionResponse::Array(
+            locations
+                .into_iter()
+                .map(|location| rewrite_location(location, path))
+                .collect(),
+        ),
+        GotoDefinitionResponse::Link(links) => GotoDefinitionResponse::Link(
+            links
+                .into_iter()
+                .map(|mut link| {
+                    link.target_uri = rewrite_uri(link.target_uri, path);
+                    link
+                })
+                .collect(),
+        ),
+    }
+}
+
+fn rewrite_completion(response: CompletionResponse, _path: &Path) -> CompletionResponse {
+    response
+}
+
+pub(crate) fn projection_uri(path: &Path) -> Result<Uri, String> {
+    file_uri(path)
 }
 
 fn file_uri(path: &Path) -> Result<Uri, String> {

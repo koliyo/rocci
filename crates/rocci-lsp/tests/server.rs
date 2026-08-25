@@ -1,16 +1,17 @@
 use lsp_server::Request;
 use lsp_types::{
-    ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic, DiagnosticSeverity,
-    DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
-    GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents, HoverParams,
-    InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
-    PositionEncodingKind, Range, SemanticTokens, SemanticTokensParams, TextDocumentIdentifier,
-    TextDocumentItem, TextDocumentPositionParams, Uri, WorkDoneProgressParams,
+    ClientCapabilities, CompletionItem, CompletionParams, CompletionResponse, Diagnostic,
+    DiagnosticSeverity, DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
+    GeneralClientCapabilities, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverContents,
+    HoverParams, InitializeParams, Location, MarkupContent, MarkupKind, PartialResultParams,
+    Position, PositionEncodingKind, Range, SemanticTokens, SemanticTokensParams,
+    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, TextEdit, Uri,
+    WorkDoneProgressParams,
 };
 use rocci_lsp::{
-    FakeRocBackend, InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose,
-    TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, TOKEN_VARIABLE,
-    extract_rocci_regions, method_inspect_regions,
+    FakeRocBackend, InspectedRegion, Language, LanguageServer, PROJECTION_PLACEHOLDER_URI,
+    RegionContext, RegionPurpose, TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY,
+    TOKEN_TYPE, TOKEN_VARIABLE, extract_rocci_regions, method_inspect_regions,
 };
 use rocci_template::{PositionEncoding, SourceFile};
 
@@ -1112,4 +1113,143 @@ fn scaffolding_roc_diagnostics_are_dropped() {
         "{:?}",
         published.diagnostics
     );
+}
+
+#[test]
+fn interpolation_completion_forwards_roc_backend() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let mut fake = FakeRocBackend::default();
+    fake.set_completion(CompletionResponse::Array(vec![CompletionItem {
+        label: "toUtf8".to_string(),
+        ..CompletionItem::default()
+    }]));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("roc completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert!(items.iter().any(|item| item.label == "toUtf8"), "{items:?}");
+}
+
+#[test]
+fn interpolation_completion_strips_unmapped_additional_edits() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title + 1}</p>
+}
+"#;
+    let mut item = CompletionItem {
+        label: "toUtf8".to_string(),
+        ..CompletionItem::default()
+    };
+    item.additional_text_edits = Some(vec![TextEdit {
+        range: projected_needle_range(src, "Html.text"),
+        new_text: "unused".to_string(),
+    }]);
+    let mut fake = FakeRocBackend::default();
+    fake.set_completion(CompletionResponse::Array(vec![item]));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+    let expr = src.find("{title + 1}").expect("interp") + 1;
+    let (line, character) = line_col(src, expr);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("roc completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert_eq!(items[0].label, "toUtf8");
+    assert!(items[0].additional_text_edits.is_none());
+}
+
+#[test]
+fn interpolation_definition_maps_projection_location() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let range = projected_ident_range(src, "title", "{title}");
+    let mut fake = FakeRocBackend::default();
+    fake.set_definition(GotoDefinitionResponse::Scalar(Location {
+        uri: PROJECTION_PLACEHOLDER_URI.parse().expect("placeholder"),
+        range,
+    }));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let GotoDefinitionResponse::Scalar(location) = server
+        .goto_definition(GotoDefinitionParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("roc definition")
+    else {
+        panic!("expected scalar location");
+    };
+    assert_eq!(location.uri, test_uri());
+    let (start_line, start_character) = line_col(src, title);
+    let (end_line, end_character) = line_col(src, title + "title".len());
+    assert_eq!(location.range.start.line, start_line);
+    assert_eq!(location.range.start.character, start_character);
+    assert_eq!(location.range.end.line, end_line);
+    assert_eq!(location.range.end.character, end_character);
+}
+
+#[test]
+fn interpolation_definition_keeps_sibling_roc_uri() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let helper: Uri = "file:///Helper.roc".parse().expect("helper");
+    let mut fake = FakeRocBackend::default();
+    fake.set_definition(GotoDefinitionResponse::Scalar(Location {
+        uri: helper.clone(),
+        range: Range {
+            start: Position::new(0, 0),
+            end: Position::new(0, 5),
+        },
+    }));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let GotoDefinitionResponse::Scalar(location) = server
+        .goto_definition(GotoDefinitionParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+        })
+        .expect("sibling definition")
+    else {
+        panic!("expected scalar location");
+    };
+    assert_eq!(location.uri, helper);
 }

@@ -22,13 +22,14 @@ use lsp_types::request::{
     SemanticTokensFullRequest, SemanticTokensRangeRequest,
 };
 use lsp_types::{
-    CompletionOptions, CompletionParams, Diagnostic, DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DocumentSymbolParams,
-    GotoDefinitionParams, Hover, HoverParams, HoverProviderCapability, InitializeParams,
-    InitializeResult, OneOf, Position, PositionEncodingKind, PublishDiagnosticsParams,
-    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
-    SemanticTokensRangeParams, SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo,
-    TextDocumentSyncCapability, TextDocumentSyncKind, Uri,
+    CompletionItem, CompletionOptions, CompletionParams, CompletionResponse, CompletionTextEdit,
+    Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+    DocumentSymbolParams, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
+    HoverProviderCapability, InitializeParams, InitializeResult, Location, LocationLink, OneOf,
+    Position, PositionEncodingKind, PublishDiagnosticsParams, Range, SemanticTokensFullOptions,
+    SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
+    SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
+    TextDocumentSyncKind, TextEdit, Uri,
 };
 use rocci_template::{
     PositionEncoding, Segment, SourceFile, Span, map_generated_span, project_type_module,
@@ -42,7 +43,9 @@ pub use regions::{
     inspect_regions,
 };
 #[cfg(not(target_arch = "wasm32"))]
-pub use roc_backend::{ChildRocBackend, FakeRocBackend, NullRocBackend, RocBackend};
+pub use roc_backend::{
+    ChildRocBackend, FakeRocBackend, NullRocBackend, PROJECTION_PLACEHOLDER_URI, RocBackend,
+};
 pub use tokens::{
     MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION, MOD_READONLY, TOKEN_COMMENT,
     TOKEN_DECORATOR, TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_MACRO,
@@ -216,24 +219,8 @@ impl LanguageServer {
 
     pub fn hover(&self, params: HoverParams) -> Option<lsp_types::Hover> {
         let uri = &params.text_document_position_params.text_document.uri;
-        let (source_name, source_text, executable) = {
-            let doc = self.document(uri)?;
-            let source_name = doc.source_name().to_string();
-            let source_text = doc.source_text().to_string();
-            let source = SourceFile::new(&source_name, &source_text);
-            let offset = analysis::offset_at(
-                source,
-                params.text_document_position_params.position,
-                self.encoding,
-            );
-            (source_name, source_text, doc.executable_roc_at(offset))
-        };
-        let source = SourceFile::new(&source_name, &source_text);
-        let offset = analysis::offset_at(
-            source,
-            params.text_document_position_params.position,
-            self.encoding,
-        );
+        let (executable, offset) =
+            self.cursor_at(uri, params.text_document_position_params.position)?;
         if executable && let Some(hover) = self.mapped_roc_hover(uri, offset) {
             return Some(hover);
         }
@@ -244,13 +231,22 @@ impl LanguageServer {
         &self,
         params: GotoDefinitionParams,
     ) -> Option<lsp_types::GotoDefinitionResponse> {
-        let doc = self.document(&params.text_document_position_params.text_document.uri)?;
-        doc.goto_definition(&params)
+        let uri = &params.text_document_position_params.text_document.uri;
+        let (executable, offset) =
+            self.cursor_at(uri, params.text_document_position_params.position)?;
+        if executable && let Some(response) = self.mapped_roc_definition(uri, offset) {
+            return Some(response);
+        }
+        self.document(uri)?.goto_definition(&params)
     }
 
     pub fn completion(&self, params: CompletionParams) -> Option<lsp_types::CompletionResponse> {
-        let doc = self.document(&params.text_document_position.text_document.uri)?;
-        doc.completion(&params)
+        let uri = &params.text_document_position.text_document.uri;
+        let (executable, offset) = self.cursor_at(uri, params.text_document_position.position)?;
+        if executable && let Some(response) = self.mapped_roc_completion(uri, offset) {
+            return Some(response);
+        }
+        self.document(uri)?.completion(&params)
     }
 
     pub fn semantic_tokens_full(
@@ -351,6 +347,13 @@ impl LanguageServer {
         self.documents.get(&uri_key(uri)).map(|b| &**b)
     }
 
+    fn cursor_at(&self, uri: &Uri, position: Position) -> Option<(bool, u32)> {
+        let doc = self.document(uri)?;
+        let source = SourceFile::new(doc.source_name(), doc.source_text());
+        let offset = analysis::offset_at(source, position, self.encoding);
+        Some((doc.executable_roc_at(offset), offset))
+    }
+
     fn sync_projection(&self, name: &str, uri: &Uri, analysis: &dyn DocumentAnalysis) {
         let Some((roc, segments)) = analysis.generated_roc() else {
             return;
@@ -445,6 +448,66 @@ impl LanguageServer {
             })
             .collect()
     }
+
+    fn mapped_roc_definition(&self, uri: &Uri, offset: u32) -> Option<GotoDefinitionResponse> {
+        let (source_name, source_text) = {
+            let doc = self.document(uri)?;
+            (doc.source_name().to_string(), doc.source_text().to_string())
+        };
+        let name = uri_key(uri);
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return None;
+        };
+        let (path, roc, segments) = {
+            let file = roc_state.files.get(&name)?;
+            (file.path.clone(), file.roc.clone(), file.segments.clone())
+        };
+        let mapped = source_to_generated(&source_text, &roc, &segments, offset)?;
+        let proj = SourceFile::new("projection.roc", &roc);
+        let (line, character) = proj.position(mapped.offset, CHILD_ENCODING);
+        let response = roc_state
+            .backend
+            .definition(&path, Position::new(line, character))?;
+        map_definition_response(
+            uri,
+            &path,
+            &source_name,
+            &source_text,
+            &roc,
+            &segments,
+            self.encoding,
+            response,
+        )
+    }
+
+    fn mapped_roc_completion(&self, uri: &Uri, offset: u32) -> Option<CompletionResponse> {
+        let (source_name, source_text) = {
+            let doc = self.document(uri)?;
+            (doc.source_name().to_string(), doc.source_text().to_string())
+        };
+        let name = uri_key(uri);
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return None;
+        };
+        let (path, roc, segments) = {
+            let file = roc_state.files.get(&name)?;
+            (file.path.clone(), file.roc.clone(), file.segments.clone())
+        };
+        let mapped = source_to_generated(&source_text, &roc, &segments, offset)?;
+        let proj = SourceFile::new("projection.roc", &roc);
+        let (line, character) = proj.position(mapped.offset, CHILD_ENCODING);
+        let response = roc_state
+            .backend
+            .completion(&path, Position::new(line, character))?;
+        Some(map_completion_response(
+            &source_name,
+            &source_text,
+            &roc,
+            &segments,
+            self.encoding,
+            response,
+        ))
+    }
 }
 
 impl Default for LanguageServer {
@@ -494,20 +557,328 @@ fn remap_roc_diagnostic(
     encoding: PositionEncoding,
     mut diagnostic: Diagnostic,
 ) -> Option<Diagnostic> {
+    diagnostic.range = map_generated_range(
+        source_name,
+        source_text,
+        projection,
+        segments,
+        encoding,
+        diagnostic.range,
+    )?;
+    diagnostic.source = Some("roc".to_string());
+    diagnostic.related_information = None;
+    Some(diagnostic)
+}
+
+fn map_generated_range(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    range: Range,
+) -> Option<Range> {
     let proj = SourceFile::new("projection.roc", projection);
-    let start = analysis::offset_at(proj, diagnostic.range.start, CHILD_ENCODING);
-    let end = analysis::offset_at(proj, diagnostic.range.end, CHILD_ENCODING);
+    let start = analysis::offset_at(proj, range.start, CHILD_ENCODING);
+    let end = analysis::offset_at(proj, range.end, CHILD_ENCODING);
     let span = map_generated_span(
         source_text,
         projection,
         segments,
         Span::new(start as usize, end as usize),
     )?;
-    diagnostic.range =
-        analysis::lsp_range(SourceFile::new(source_name, source_text), span, encoding);
-    diagnostic.source = Some("roc".to_string());
-    diagnostic.related_information = None;
-    Some(diagnostic)
+    Some(analysis::lsp_range(
+        SourceFile::new(source_name, source_text),
+        span,
+        encoding,
+    ))
+}
+
+fn is_projection_uri(uri: &Uri, path: &std::path::Path) -> bool {
+    crate::roc_backend::projection_uri(path)
+        .ok()
+        .is_some_and(|projection| projection == *uri)
+}
+
+fn map_location(
+    doc_uri: &Uri,
+    path: &std::path::Path,
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    mut location: Location,
+) -> Option<Location> {
+    if !is_projection_uri(&location.uri, path) {
+        return Some(location);
+    }
+    location.range = map_generated_range(
+        source_name,
+        source_text,
+        projection,
+        segments,
+        encoding,
+        location.range,
+    )?;
+    location.uri = doc_uri.clone();
+    Some(location)
+}
+
+fn map_location_link(
+    doc_uri: &Uri,
+    path: &std::path::Path,
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    mut link: LocationLink,
+) -> Option<LocationLink> {
+    if !is_projection_uri(&link.target_uri, path) {
+        return Some(link);
+    }
+    link.target_range = map_generated_range(
+        source_name,
+        source_text,
+        projection,
+        segments,
+        encoding,
+        link.target_range,
+    )?;
+    link.target_selection_range = map_generated_range(
+        source_name,
+        source_text,
+        projection,
+        segments,
+        encoding,
+        link.target_selection_range,
+    )?;
+    if let Some(origin) = link.origin_selection_range {
+        link.origin_selection_range = map_generated_range(
+            source_name,
+            source_text,
+            projection,
+            segments,
+            encoding,
+            origin,
+        );
+    }
+    link.target_uri = doc_uri.clone();
+    Some(link)
+}
+
+fn map_definition_response(
+    doc_uri: &Uri,
+    path: &std::path::Path,
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    response: GotoDefinitionResponse,
+) -> Option<GotoDefinitionResponse> {
+    match response {
+        GotoDefinitionResponse::Scalar(location) => {
+            let location = map_location(
+                doc_uri,
+                path,
+                source_name,
+                source_text,
+                projection,
+                segments,
+                encoding,
+                location,
+            )?;
+            Some(GotoDefinitionResponse::Scalar(location))
+        }
+        GotoDefinitionResponse::Array(locations) => {
+            let mapped: Vec<_> = locations
+                .into_iter()
+                .filter_map(|location| {
+                    map_location(
+                        doc_uri,
+                        path,
+                        source_name,
+                        source_text,
+                        projection,
+                        segments,
+                        encoding,
+                        location,
+                    )
+                })
+                .collect();
+            if mapped.is_empty() {
+                None
+            } else {
+                Some(GotoDefinitionResponse::Array(mapped))
+            }
+        }
+        GotoDefinitionResponse::Link(links) => {
+            let mapped: Vec<_> = links
+                .into_iter()
+                .filter_map(|link| {
+                    map_location_link(
+                        doc_uri,
+                        path,
+                        source_name,
+                        source_text,
+                        projection,
+                        segments,
+                        encoding,
+                        link,
+                    )
+                })
+                .collect();
+            if mapped.is_empty() {
+                None
+            } else {
+                Some(GotoDefinitionResponse::Link(mapped))
+            }
+        }
+    }
+}
+
+fn map_text_edit(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    mut edit: TextEdit,
+) -> Option<TextEdit> {
+    edit.range = map_generated_range(
+        source_name,
+        source_text,
+        projection,
+        segments,
+        encoding,
+        edit.range,
+    )?;
+    Some(edit)
+}
+
+fn map_completion_text_edit(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    edit: CompletionTextEdit,
+) -> Option<CompletionTextEdit> {
+    match edit {
+        CompletionTextEdit::Edit(edit) => map_text_edit(
+            source_name,
+            source_text,
+            projection,
+            segments,
+            encoding,
+            edit,
+        )
+        .map(CompletionTextEdit::Edit),
+        CompletionTextEdit::InsertAndReplace(mut edit) => {
+            edit.insert = map_generated_range(
+                source_name,
+                source_text,
+                projection,
+                segments,
+                encoding,
+                edit.insert,
+            )?;
+            edit.replace = map_generated_range(
+                source_name,
+                source_text,
+                projection,
+                segments,
+                encoding,
+                edit.replace,
+            )?;
+            Some(CompletionTextEdit::InsertAndReplace(edit))
+        }
+    }
+}
+
+fn map_completion_item(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    mut item: CompletionItem,
+) -> CompletionItem {
+    item.text_edit = item.text_edit.and_then(|edit| {
+        map_completion_text_edit(
+            source_name,
+            source_text,
+            projection,
+            segments,
+            encoding,
+            edit,
+        )
+    });
+    if let Some(edits) = item.additional_text_edits.take() {
+        let mapped: Vec<_> = edits
+            .into_iter()
+            .filter_map(|edit| {
+                map_text_edit(
+                    source_name,
+                    source_text,
+                    projection,
+                    segments,
+                    encoding,
+                    edit,
+                )
+            })
+            .collect();
+        if !mapped.is_empty() {
+            item.additional_text_edits = Some(mapped);
+        }
+    }
+    item
+}
+
+fn map_completion_response(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    response: CompletionResponse,
+) -> CompletionResponse {
+    match response {
+        CompletionResponse::Array(items) => CompletionResponse::Array(
+            items
+                .into_iter()
+                .map(|item| {
+                    map_completion_item(
+                        source_name,
+                        source_text,
+                        projection,
+                        segments,
+                        encoding,
+                        item,
+                    )
+                })
+                .collect(),
+        ),
+        CompletionResponse::List(mut list) => {
+            list.items = list
+                .items
+                .into_iter()
+                .map(|item| {
+                    map_completion_item(
+                        source_name,
+                        source_text,
+                        projection,
+                        segments,
+                        encoding,
+                        item,
+                    )
+                })
+                .collect();
+            CompletionResponse::List(list)
+        }
+    }
 }
 
 fn publish_diagnostics(params: PublishDiagnosticsParams) -> Notification {
