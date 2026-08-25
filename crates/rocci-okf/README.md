@@ -59,6 +59,12 @@ cargo run -p rocci-okf -- sync notes
 and never includes tokens or resolved secrets. If the config is missing or
 `roots` is empty, `./knowledge` is printed when that directory exists.
 
+`check --workspace` loads every resolved root and additionally reports
+cross-root `okf:<id>/path.md` links: `OKF3010` when the target root or path is
+missing, and `OKF3011` when the edge policy denies the citation. Those codes
+are application-side; the portable engine does not emit them. Intra-bundle
+`okf:` hrefs are not treated as bundle paths (no OKF3001/3002).
+
 Saving the config rewrites a canonical TOML file; comments are not preserved.
 
 ### Retrieval Benchmarks

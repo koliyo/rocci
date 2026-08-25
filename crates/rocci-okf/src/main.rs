@@ -7,6 +7,7 @@ use rocci_cli::serve::{PortArg, parse_port_arg};
 
 mod config;
 mod dev;
+mod edges;
 mod git_root;
 mod inspect;
 mod presentation;
@@ -42,6 +43,9 @@ enum Commands {
     Check {
         #[arg(default_value = "knowledge")]
         root: PathBuf,
+        /// Check every configured root and cross-root `okf:` links.
+        #[arg(long)]
+        workspace: bool,
         #[arg(long, value_enum, default_value_t = KnowledgeProfileArg::Rocci)]
         profile: KnowledgeProfileArg,
         #[arg(long, value_enum, default_value_t = CheckFormatArg::Terminal)]
@@ -625,10 +629,16 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Check {
             root,
+            workspace,
             profile,
             format,
         } => {
-            let report = okf::check(&root, profile.into())?;
+            let report = if workspace {
+                let config = config::load()?;
+                edges::check_workspace(&config, &resolve::okf_cache_dir(), profile.into())
+            } else {
+                okf::check(&root, profile.into())?
+            };
             match format {
                 CheckFormatArg::Terminal => {
                     let formatted = report.terminal();
