@@ -171,6 +171,26 @@ pub fn emit_preview_ready(url: &str) {
     let _ = write_preview_ready(io::stdout(), url, io::stdout().is_terminal());
 }
 
+pub fn inspector_ready_line(url: &str) -> String {
+    format!("inspector_ready {url}")
+}
+
+pub fn write_inspector_ready(
+    mut out: impl Write,
+    url: &str,
+    stdout_is_terminal: bool,
+) -> io::Result<()> {
+    if stdout_is_terminal {
+        return Ok(());
+    }
+    writeln!(out, "{}", inspector_ready_line(url))?;
+    out.flush()
+}
+
+pub fn emit_inspector_ready(url: &str) {
+    let _ = write_inspector_ready(io::stdout(), url, io::stdout().is_terminal());
+}
+
 pub fn parse_port_arg(value: &str) -> Result<PortArg, String> {
     if value.eq_ignore_ascii_case("auto") {
         return Ok(PortArg::Auto);
@@ -661,6 +681,9 @@ pub fn with_window_and_inspector(
         )?),
         None => None,
     };
+    if let Some(server) = inspector.as_ref() {
+        emit_inspector_ready(&server.url);
+    }
     if no_window {
         let status = child.wait().context("roc server exited unexpectedly")?;
         drop(inspector);
@@ -1069,6 +1092,33 @@ mod tests {
         let mut tty = Vec::new();
         write_preview_ready(&mut tty, "http://127.0.0.1:8000/", true).unwrap();
         assert!(tty.is_empty());
+    }
+
+    #[test]
+    fn inspector_ready_prints_on_piped_stdout_not_tty() {
+        let mut piped = Vec::new();
+        write_inspector_ready(&mut piped, "http://127.0.0.1:8001/__rocci/dev", false).unwrap();
+        let line = String::from_utf8(piped).unwrap();
+        assert_eq!(line, "inspector_ready http://127.0.0.1:8001/__rocci/dev\n");
+        assert!(!line.contains('\u{1b}'));
+
+        let mut tty = Vec::new();
+        write_inspector_ready(&mut tty, "http://127.0.0.1:8001/__rocci/dev", true).unwrap();
+        assert!(tty.is_empty());
+    }
+
+    #[test]
+    fn sibling_inspector_emits_inspector_ready_after_spawn() {
+        let src = include_str!("serve.rs");
+        let start = src
+            .find("pub fn with_window_and_inspector")
+            .expect("with_window_and_inspector");
+        let body = &src[start..];
+        let spawn = body.find("InspectorServer::spawn").expect("spawn");
+        let ready = body.find("emit_inspector_ready").expect("inspector_ready");
+        let no_window = body.find("if no_window").expect("no_window");
+        assert!(spawn < ready);
+        assert!(ready < no_window);
     }
 
     #[test]

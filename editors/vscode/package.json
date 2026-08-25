@@ -109,6 +109,10 @@
         "title": "Rocci: Stop Preview",
         "icon": "$(stop)",
         "enablement": "rocci.preview.active"
+      },
+      {
+        "command": "rocci.updateTools",
+        "title": "Rocci: Update tools"
       }
     ],
     "menus": {
@@ -137,17 +141,32 @@
         "rocci.lsp.serverPath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to rocci-language-server. Empty uses debug build, bundled dist/bin, or PATH."
+          "description": "Absolute path to rocci-language-server. Empty uses a debug build, a verified GitHub-release extract, or PATH."
         },
         "rocci.preview.rocciPath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the rocci binary. Empty uses bundled dist/bin, PATH, or workspace target/debug."
+          "description": "Absolute path to the rocci binary. Empty uses a debug build, a verified GitHub-release extract, or PATH."
         },
         "rocci.preview.rocdownPath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the rocdown binary. Empty uses bundled dist/bin, PATH, or workspace target/debug."
+          "description": "Absolute path to the rocdown binary. Empty uses a debug build, a verified GitHub-release extract, or PATH."
+        },
+        "rocci.tools.channel": {
+          "type": "string",
+          "enum": ["stable", "dev"],
+          "enumDescriptions": [
+            "Install from the latest GitHub release",
+            "Install from the rolling koliyo/rocci tag and release named dev"
+          ],
+          "default": "stable",
+          "description": "GitHub release channel. stable uses /releases/latest. dev uses the rolling tag/release `dev` (assets named rocci-dev-<sha>-<triple>.tar.gz)."
+        },
+        "rocci.tools.autoUpdate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check GitHub releases on activate when not debugging."
         },
         "rocci.lsp.trace.server": {
           "type": "string",

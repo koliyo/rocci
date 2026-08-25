@@ -4,9 +4,29 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { canPreviewDocument, chooseBrowserHost } from '../../preview/browser'
+import {
+  applyLiveReloadFlag,
+  canGoBack,
+  canGoForward,
+  createHistory,
+  goBack,
+  goForward,
+  goHome,
+  hostPreviewHtml,
+  navigateTo,
+  parseHostCommand
+} from '../../preview/host'
 import { previewArgv } from '../../preview/dispatch'
+import {
+  applyInspectorMessage,
+  DEFAULT_INSPECTOR_PREFS,
+  dockClassNames,
+  inspectorHref,
+  inspectorTuple,
+  shouldAssignInspectorSrc
+} from '../../preview/inspector'
 import { belongsToOrigin, previewOrigin, reuseDecision } from '../../preview/origin'
-import { parsePreviewUrl } from '../../preview/parse'
+import { parseInspectorUrl, parsePreviewUrl } from '../../preview/parse'
 import {
   countPreviewReadyLines,
   countRebuildLines,
@@ -62,16 +82,14 @@ suite('Rocci preview (offline)', () => {
     ) as {
       contributes: {
         commands: { command: string }[]
-        menus: {
-          'editor/title': { command: string; when: string }[]
-          'editor/title/run': { command: string; when: string }[]
-        }
+        menus: Record<string, { command: string; when: string }[]>
       }
     }
     const commands = manifest.contributes.commands.map(entry => entry.command)
     assert.ok(commands.includes('rocci.preview'))
     assert.ok(commands.includes('rocci.reloadPreview'))
     assert.ok(commands.includes('rocci.stopPreview'))
+    assert.ok(commands.includes('rocci.updateTools'))
 
     const title = manifest.contributes.menus['editor/title']
     const run = manifest.contributes.menus['editor/title/run']
@@ -147,5 +165,101 @@ suite('Rocci preview (offline)', () => {
   test('chooses Simple Browser when present and iframe otherwise', () => {
     assert.strictEqual(chooseBrowserHost(true), 'simpleBrowser')
     assert.strictEqual(chooseBrowserHost(false), 'iframe')
+  })
+
+  test('host html is a toolbar parent around the page iframe', () => {
+    const html = hostPreviewHtml({
+      pageUrl: 'http://127.0.0.1:8000/guide/',
+      title: 'Guide.rocdown',
+      liveReload: true,
+      canBack: false,
+      canForward: false,
+      prefs: DEFAULT_INSPECTOR_PREFS,
+      asPage: false,
+      canReveal: false
+    })
+    assert.ok(html.includes('role="toolbar"'))
+    assert.ok(html.includes('id="page"'))
+    assert.ok(html.includes('src="http://127.0.0.1:8000/guide/"'))
+    assert.ok(html.includes('Guide.rocdown'))
+    assert.ok(!html.includes('preview-nav.js'))
+    assert.ok(!html.includes('src="http://127.0.0.1:8001'))
+  })
+
+  test('parses inspector_ready and hides Dev when missing', () => {
+    assert.strictEqual(
+      parseInspectorUrl('inspector_ready http://127.0.0.1:8001/__rocci/dev\n'),
+      'http://127.0.0.1:8001/__rocci/dev'
+    )
+    assert.strictEqual(parseInspectorUrl('preview_ready http://127.0.0.1:8000/\n'), undefined)
+    const html = hostPreviewHtml({
+      pageUrl: 'http://127.0.0.1:8000/',
+      title: 'App.rocci',
+      liveReload: true,
+      canBack: false,
+      canForward: false,
+      inspectorUrl: 'http://127.0.0.1:8001/__rocci/dev',
+      inspectorSrc: 'http://127.0.0.1:8001/__rocci/dev?tab=performance&route=%2F&view=source',
+      prefs: { ...DEFAULT_INSPECTOR_PREFS, open: true },
+      asPage: false,
+      canReveal: true
+    })
+    assert.ok(html.includes('dock-right'))
+    assert.ok(html.includes('dev-open'))
+    assert.ok(html.includes('id="inspector"'))
+    assert.ok(!html.includes('data-cmd="toggle-dev" hidden') || html.includes('toggle-dev'))
+  })
+
+  test('does not assign inspector src on view-only updates', () => {
+    const previous = inspectorTuple(
+      'http://127.0.0.1:8001/__rocci/dev',
+      'http://127.0.0.1:8000/guide/',
+      'source'
+    )
+    const next = inspectorTuple(
+      'http://127.0.0.1:8001/__rocci/dev',
+      'http://127.0.0.1:8000/guide/',
+      'source'
+    )
+    assert.strictEqual(shouldAssignInspectorSrc(previous, next), false)
+    const applied = applyInspectorMessage(DEFAULT_INSPECTOR_PREFS, { view: 'roc' })
+    assert.strictEqual(applied.viewOnly, true)
+    assert.strictEqual(applied.prefs.view, 'roc')
+    const href = inspectorHref(
+      'http://127.0.0.1:8001/__rocci/dev',
+      next,
+      true,
+      'source'
+    )
+    assert.ok(href.includes('tab=source'))
+    assert.ok(href.includes('route=%2Fguide%2F') || href.includes('route=/guide/'))
+    assert.strictEqual(dockClassNames({ ...DEFAULT_INSPECTOR_PREFS, open: true, dock: 'bottom' }, false), 'dock-bottom dev-open')
+  })
+
+  test('iframe history stack supports back, forward, and home', () => {
+    let history = createHistory('http://127.0.0.1:8000/')
+    history = navigateTo(history, 'http://127.0.0.1:8000/guide/')
+    history = navigateTo(history, 'http://127.0.0.1:8000/note/')
+    assert.ok(canGoBack(history))
+    assert.ok(!canGoForward(history))
+    history = goBack(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/guide/')
+    assert.ok(canGoForward(history))
+    history = goHome(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/')
+    history = goForward(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/guide/')
+  })
+
+  test('live-reload query flag is ?reload=0 when paused', () => {
+    assert.strictEqual(
+      applyLiveReloadFlag('http://127.0.0.1:8000/guide/', false),
+      'http://127.0.0.1:8000/guide/?reload=0'
+    )
+    assert.strictEqual(
+      applyLiveReloadFlag('http://127.0.0.1:8000/guide/?reload=0', true),
+      'http://127.0.0.1:8000/guide/'
+    )
+    assert.strictEqual(parseHostCommand({ type: 'toggle-live-reload' }), 'toggle-live-reload')
   })
 })

@@ -42,7 +42,7 @@ export class PreviewReloadStream {
         hostname: parsed.hostname,
         port: parsed.port,
         path: parsed.pathname,
-        headers: { Accept: 'text/event-stream' }
+        headers: { accept: 'text/event-stream' }
       },
       res => {
         if (res.statusCode === 404) {

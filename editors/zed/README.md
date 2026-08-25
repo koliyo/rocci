@@ -2,7 +2,7 @@
 
 Language support for `.rocci` template modules and `.rocdown` documents. Analysis is implemented by `rocci-language-server`; this extension is a thin LSP client.
 
-Zed does not bundle the language server binary into the extension WASM. Build or install `rocci-language-server` separately.
+Zed does not bundle the language server binary into the extension WASM. When settings, `PATH`, and a worktree debug build miss, the extension downloads `rocci-language-server` from [koliyo/rocci](https://github.com/koliyo/rocci) GitHub releases (`aarch64-apple-darwin` and `x86_64-unknown-linux-gnu`). Preview still uses the native window and still needs `rocci` / `rocdown` on `PATH` or in settings.
 
 ## Features
 
@@ -19,7 +19,7 @@ Zed has no extension-owned embedded browser beside the buffer. Until the host pr
 | **Preview Rocci file** | `rocci run $ZED_FILE` |
 | **Preview Rocdown file** | `rocdown view $ZED_FILE` |
 
-This extension ships those templates in `tasks.json`. Run them from the task palette (**task: spawn**). Optional **Serve … (no window)** tasks start `--no-window --port auto` so you can open `http://127.0.0.1:<port>/` in a system browser; they do not create an in-editor pane.
+This extension ships those templates in `tasks.json`. Run them from the task palette (**task: spawn**). Optional **Serve … (no window)** tasks start `--no-window --port auto` so you can open `http://127.0.0.1:<port>/` in a system browser; they do not create an in-editor pane. There is no Zed webview toolbar or Dev dock; those stay in the native preview window.
 
 If a checkout does not load extension tasks, copy `editors/zed/tasks.json` into the project `.zed/tasks.json`.
 
@@ -45,6 +45,21 @@ The extension looks up the server in this order:
 1. `lsp.rocci-language-server.binary.path` in Zed settings
 2. `rocci-language-server` on `PATH`
 3. `{worktree}/target/debug/rocci-language-server` when the worktree is this repo (after `cargo build -p rocci-rocdown-lsp`)
+4. A GitHub-release extract for the current Zed platform (`/releases/latest` by default)
+
+Install the rolling `dev` tag/release instead of latest:
+
+```json
+{
+  "lsp": {
+    "rocci-language-server": {
+      "settings": {
+        "channel": "dev"
+      }
+    }
+  }
+}
+```
 
 Override the binary if needed:
 

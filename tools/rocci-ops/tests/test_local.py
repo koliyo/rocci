@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from rocci_ops.local import (
     CLI_CRATES,
     INSTALL_USAGE,
@@ -18,6 +20,16 @@ from rocci_ops.local import (
     render_brand_icons,
     require_darwin,
 )
+
+
+def test_package_vscode_does_not_copy_language_server() -> None:
+    source = Path(__file__).resolve().parents[1] / "src" / "rocci_ops" / "local.py"
+    text = source.read_text(encoding="utf-8")
+    start = text.index("def package_vscode")
+    body = text[start : text.index("\ndef ", start + 1)]
+    assert "rocci-language-server" not in body
+    assert "dist / \"bin\"" not in body
+    assert "cargo" not in body
 
 
 def test_cli_crates() -> None:

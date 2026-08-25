@@ -4,7 +4,7 @@ title: Hosted editor preview chrome and unbundled Rocci tools
 description: Turn the editor-preview VS Code webview into a host for the Rocci toolbar and Dev inspector, print inspector_ready from --no-window CLIs, and download rocci, rocdown, and rocci-language-server from GitHub releases instead of shipping them in the extension.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/ui, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T11:30:00Z }
+generated: { by: process:cursor, at: 2026-08-25T11:50:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -152,7 +152,7 @@ sources:
 
 Give VS Code the same **preview host** the desktop window already has: Rocci toolbar plus the full Dev inspector, sitting beside the source file, still driven by `rocci run --no-window` / `rocdown view --no-window`. Stop shipping Rocci binaries inside the VS Code VSIX or the Zed WASM. Download `rocci`, `rocdown`, and `rocci-language-server` from [koliyo/rocci](https://github.com/koliyo/rocci) GitHub releases the way [hylo-vscode-extension](https://github.com/koliyo/hylo-vscode-extension) downloads Hylo LSP. Zed keeps the native preview window for toolbar and inspector, and only gains the downloader.[^research][^v1-plan][^desktop-readme][^hylo-download]
 
-This is exploratory. Do not start a phase until asked. Implement on the existing `editor-preview` branch (or a follow-on named from this stem) rather than restarting v1 on `main`.
+This is exploratory. Implement on the existing `editor-preview` branch (or a follow-on named from this stem) rather than restarting v1 on `main`. Phase 0 recorded the decision gates below as normative.
 
 ## Out of bound
 
@@ -343,19 +343,21 @@ Exit: READMEs match shipped commands and settings. `cd editors/vscode && npm tes
 
 ## Decision gates
 
-Human approval before treating these as normative:
+Recorded as normative (recommended answers):
 
-1. **Host chrome implementation:** reimplement the contract in the VS Code webview (recommended) versus extract a shared host-kit from `rocci-desktop/assets`. Extraction is optional later if the two hosts diverge.
-2. **Inspector default:** Dev closed on first preview (recommended, matches desktop) versus open.
-3. **Title/path without injecting into the page:** show the iframe URL path and the CLI serving name (recommended) versus a same-origin reporter script.
-4. **More menu:** implement Reveal/Copy in Phase 3 versus ship Dev-only first and add More in Phase 7.
-5. **Tools channel default:** `stable` (recommended) versus follow rolling `dev`.
-6. **Storage:** `globalStorageUri` (recommended) versus `extensionPath/dist` like Hylo.
-7. **Zed preview binaries:** document PATH-only (recommended) versus try to teach tasks a downloaded path Zed cannot express today.
+1. **Host chrome implementation:** reimplement the contract in the VS Code webview parent. Do not extract a shared host-kit from `rocci-desktop/assets` in this plan. Extraction stays optional later if the two hosts diverge.
+2. **Inspector default:** Dev closed on first preview (matches desktop).
+3. **Title/path without injecting into the page:** show the iframe URL path and the CLI serving name. No same-origin reporter script.
+4. **More menu:** implement Reveal/Copy in Phase 3 with the Dev dock (the host chrome contract already names both).
+5. **Tools channel default:** `stable` (`/releases/latest`). `dev` is an explicit setting.
+6. **Storage:** verified extracts under `globalStorageUri/releases/<tag>/`, not `extensionPath/dist`.
+7. **Zed preview binaries:** document PATH-only (or settings). Do not teach Zed tasks a downloaded path.
+
+Confirmed: toolbar lives in the webview parent; inspector stays HTTP (`/__rocci/dev` or sibling `InspectorServer`); binaries stay out of the VSIX; Zed preview stays the native window.
 
 ## Status
 
-No phase started. Depends on [editor preview](/plans/shared/editor-preview.md) work on branch `editor-preview`. Evidence: [hosted editor preview research](/research/shared/editor-preview-host.md).
+Phases 0–7 implemented on branch `editor-preview-host`. Depends on [editor preview](/plans/shared/editor-preview.md) work already on `main`. Evidence: [hosted editor preview research](/research/shared/editor-preview-host.md). Do not log phases complete until CI and Knowledge succeed.
 
 [^research]: Webview host, inspector_ready, Hylo-style release install.
 [^v1-plan]: Play / session / preview_ready / Zed tasks already specified.
