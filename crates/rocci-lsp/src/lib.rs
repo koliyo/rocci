@@ -3,12 +3,15 @@ pub mod analyzer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
 pub mod log;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod projection_workspace;
 pub mod regions;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod roc_backend;
 pub mod tokens;
 
 use std::collections::HashMap;
+#[cfg(target_arch = "wasm32")]
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -110,6 +113,16 @@ impl LanguageServer {
         if let Ok(mut roc) = self.roc.lock() {
             roc.backend = backend;
         }
+    }
+
+    #[doc(hidden)]
+    pub fn projection_path(&self, uri: &Uri) -> Option<std::path::PathBuf> {
+        self.roc
+            .lock()
+            .ok()?
+            .files
+            .get(&uri_key(uri))
+            .map(|file| file.path.clone())
     }
 
     pub fn encoding(&self) -> PositionEncoding {
@@ -389,7 +402,25 @@ impl LanguageServer {
         let Ok(mut roc_state) = self.roc.lock() else {
             return;
         };
-        let path = roc_state.dir.join(projection_file_name(name, &type_name));
+        let path = {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let dir = crate::projection_workspace::workspace_dir(&roc_state.dir, name);
+                if let Err(err) = crate::projection_workspace::stage_package(
+                    &dir,
+                    &type_name,
+                    crate::projection_workspace::source_dir(uri, analysis.source_name()).as_deref(),
+                ) {
+                    crate::log::always(format!("projection workspace failed for {name}: {err}"));
+                }
+                crate::projection_workspace::projection_path(&roc_state.dir, name, &type_name)
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = uri;
+                roc_state.dir.join(projection_file_name(name, &type_name))
+            }
+        };
         if let Err(err) = roc_state.backend.sync_projection(&path, &projection.roc) {
             crate::log::always(format!(
                 "projection sync failed for {name} -> {}: {err}",
@@ -397,10 +428,13 @@ impl LanguageServer {
             ));
         } else {
             crate::log::verbose(format!(
-                "synced projection {} ({} bytes, {} segments)",
+                "synced projection {} ({} bytes, {} segments, workspace {})",
                 path.display(),
                 projection.roc.len(),
-                projection.segments.len()
+                projection.segments.len(),
+                path.parent()
+                    .map(|dir| dir.display().to_string())
+                    .unwrap_or_default()
             ));
         }
         roc_state.files.insert(
@@ -630,6 +664,7 @@ fn uri_key(uri: &Uri) -> String {
     uri.to_string()
 }
 
+#[cfg(target_arch = "wasm32")]
 fn projection_file_name(uri_key: &str, type_name: &str) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     uri_key.hash(&mut hasher);

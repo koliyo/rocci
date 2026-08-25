@@ -70,7 +70,11 @@ Host hover, tokens, and diagnostics stay available when `roc` is missing or the 
 
 The product binary `rocci-language-server` (`rocci-rocdown-lsp`) may spawn one
 `roc experimental-lsp --stdio` process per workspace. It types generated
-projection modules and maps results through source-map segments.
+projection modules and maps results through source-map segments. Each
+projection is written as `{TypeName}.roc` beside a stub `main.roc` that
+declares the basic-webserver platform, plus `Html.roc` and `Datastar.roc`,
+so `import pf.Sqlite` and similar names resolve the same way they do in a
+standalone Roc app.
 
 Resolution order for the compiler binary:
 

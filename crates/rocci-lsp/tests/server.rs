@@ -970,6 +970,33 @@ fn roc_error(range: Range, message: &str) -> Diagnostic {
 }
 
 #[test]
+fn projection_is_a_platform_app_named_for_the_type() {
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(roc_type_hover(None));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(
+        &mut server,
+        r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#,
+    );
+    let path = server
+        .projection_path(&test_uri())
+        .expect("projection path");
+    assert_eq!(
+        path.file_name().and_then(|name| name.to_str()),
+        Some("Test.roc")
+    );
+    let main = std::fs::read_to_string(path.with_file_name("main.roc")).expect("main.roc");
+    assert!(main.contains("import Test"), "{main}");
+    assert!(main.contains("pf: platform"), "{main}");
+    assert!(path.with_file_name("Html.roc").is_file());
+}
+
+#[test]
 fn interpolation_hover_forwards_mapped_roc_backend() {
     let src = r#"
 @component Hello = |{ title }| {
