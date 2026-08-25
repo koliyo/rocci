@@ -1,0 +1,339 @@
+import Html
+
+## Shared document chrome. `body` is the page Html.
+@component
+Page = |{ title, lede, current }, body|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>{title}</title>
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body data-init=@get("/sse", [OpenWhenHidden(True)])>
+            <main>
+                <nav>
+                    <a href="/"><strong>Rocci</strong></a>
+                    <span>method-role library</span>
+                </nav>
+                <SiteNav current={current} />
+                <header>
+                    <h1>{title}</h1>
+                    <p class="lede">{lede}</p>
+                </header>
+                {body}
+            </main>
+        </body>
+    </html>
+
+@component
+SiteNav = |{ current }|
+    <ul class="site-nav">
+        <NavLink href="/" current={current} section="home">Home</NavLink>
+        <NavLink href="/counter" current={current} section="counter">Fragment</NavLink>
+        <NavLink href="/live" current={current} section="live">Live</NavLink>
+        <NavLink href="/tabs" current={current} section="tabs">Tabs</NavLink>
+        <NavLink href="/compose" current={current} section="compose">Events</NavLink>
+        <NavLink href="/search" current={current} section="search">Search</NavLink>
+        <NavLink href="/clock" current={current} section="clock">Unfold</NavLink>
+    </ul>
+
+@component
+NavLink = |{ href, current, section }, label|
+    <li>
+        <a href={href} class={if current == section { "active" } else { "" }}>{label}</a>
+    </li>
+
+@component
+Home = |{}|
+    <Page title="Role constructors" lede="A basic-webserver app that registers the closed method-role matrix as Roc wrap functions, not @get:view headers." current="home">
+        <ul class="example-list">
+            <li>
+                <a href="/counter"><strong>One-shot fragment</strong></a>
+                <p>fragment! wraps one datastar-patch-elements event around the returned HTML.</p>
+            </li>
+            <li>
+                <a href="/live"><strong>Command + live</strong></a>
+                <p>command! returns no HTML. GET /sse polls SQLite and morphs every tab.</p>
+            </li>
+            <li>
+                <a href="/tabs"><strong>Prefix fragment</strong></a>
+                <p>GET /actions/tabs/ plus prefix_remainder is the gallery tab pattern.</p>
+            </li>
+            <li>
+                <a href="/compose"><strong>Mixed events</strong></a>
+                <p>events! sends patch_elements and patch_signals on one GET.</p>
+            </li>
+            <li>
+                <a href="/search"><strong>GET fragment</strong></a>
+                <p>get_fragment! filters a static list. Datastar only sends the query.</p>
+            </li>
+            <li>
+                <a href="/clock"><strong>Custom unfold</strong></a>
+                <p>unfold! is the snake-style escape hatch: a clock tick stream.</p>
+            </li>
+        </ul>
+    </Page>
+
+@component
+CounterPage = |{ count }|
+    <Page title="One-shot counter" lede="POST fragments morph this tab only. view! and fragment! live in main.roc; the handler only returns Html." current="counter">
+        <CounterCard count={count} />
+        <div class="actions">
+            <button data-on:click=@post("/actions/counter/increment")>Increment</button>
+            <button class="secondary" data-on:click=@post("/actions/counter/reset")>Reset</button>
+        </div>
+    </Page>
+
+@component
+CounterCard = |{ count }|
+    <section id="counter" class="card">
+        <p class="eyebrow">Fragment count</p>
+        <output>{count.to_str()}</output>
+    </section>
+
+@component
+LivePage = |{ count }|
+    <Page title="Shared live counter" lede="Commands return no representation. GET /sse morphs the card in every tab. data-init is injected because this app has one live route." current="live">
+        <LiveCard count={count} />
+        <div class="actions">
+            <button data-on:click=@post("/actions/live/increment")>Increment</button>
+            <button class="secondary" data-on:click=@post("/actions/live/reset")>Reset</button>
+        </div>
+    </Page>
+
+@component
+LiveCard = |{ count }|
+    <section id="live-card" class="card">
+        <p class="eyebrow">Live count</p>
+        <output>{count.to_str()}</output>
+    </section>
+
+@component
+TabsPage = |{ selected, panel }|
+    <Page title="Lazy tabs" lede="The selected tab is the URL suffix after /actions/tabs/. Prefix matching is a constructor, not a parser feature." current="tabs">
+        <TabsPanel selected={selected} panel={panel} />
+    </Page>
+
+@component
+TabsPanel = |{ selected, panel }|
+    <div id="tabs" class="card">
+        <div role="tablist" class="tablist">
+            <button role="tab" class={if selected == "0" { "tab selected" } else { "tab" }} data-on:click=@get("/actions/tabs/0")>Alpha</button>
+            <button role="tab" class={if selected == "1" { "tab selected" } else { "tab" }} data-on:click=@get("/actions/tabs/1")>Beta</button>
+            <button role="tab" class={if selected == "2" { "tab selected" } else { "tab" }} data-on:click=@get("/actions/tabs/2")>Gamma</button>
+        </div>
+        <p class="tabpanel">{panel}</p>
+    </div>
+
+@component
+ComposePage = |{ notice }|
+    <Page title="Mixed SSE" lede="One GET returns two Datastar events. That is out of bound for @get:fragment and ordinary here." current="compose">
+        <ComposeStatus notice={notice} />
+        <div class="actions">
+            <button data-on:click=@get("/actions/signals/compose")>Compose events</button>
+        </div>
+    </Page>
+
+@component
+ComposeStatus = |{ notice }|
+    <section class="card">
+        <p class="eyebrow">Element patch</p>
+        <output id="signal-ceiling">{notice}</output>
+        <p class="hint">A sibling patch-signals event sets $notice. Open the browser debugger to see both.</p>
+    </section>
+
+@component
+SearchPage = |{ query, hits }|
+    <Page title="GET fragment search" lede="Typing filters a static list on the server. The results well is a get_fragment." current="search">
+        <label class="search-label">
+            Filter
+            <input
+                name="q"
+                value={query}
+                data-bind:q=""
+                data-on:input__debounce.400ms=@get("/actions/search/results")
+                placeholder="view, fragment, command…"
+            />
+        </label>
+        <SearchResults hits={hits} />
+    </Page>
+
+@component
+SearchResults = |{ hits }|
+    <ul id="search-results" class="example-list">
+        @if List.is_empty(hits) {
+            <li class="hint">No constructors match.</li>
+        } @else {
+            @for hit in hits {
+                <li><code>{hit}</code></li>
+            }
+        }
+    </ul>
+
+@component
+ClockPage = |{ now }|
+    <Page title="Custom unfold" lede="Rocci.unfold hands the SSE loop to the author. This clock polls SQLite time, the same host-honest pattern as live." current="clock">
+        <ClockCard now={now} />
+    </Page>
+
+@component
+ClockCard = |{ now }|
+    <section id="clock" class="card" data-init=@get("/actions/clock/ticks")>
+        <p class="eyebrow">Unix seconds</p>
+        <output>{now.to_str()}</output>
+    </section>
+
+@fixture{target: Home}
+homeTest = {}
+
+@fixture{target: CounterCard}
+counterCardTest = { count: 3.I64 }
+
+@fixture{target: LiveCard}
+liveCardTest = { count: 1.I64 }
+
+@fixture{target: TabsPanel}
+tabsPanelTest = { selected: "0", panel: "Alpha panel" }
+
+@fixture{target: SearchResults}
+searchResultsTest = { hits: ["view", "fragment"] }
+
+@fixture{target: ClockCard}
+clockCardTest = { now: 1.I64 }
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+    }
+    main {
+        width: min(44rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+    }
+    nav {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        color: #8da39a;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong { color: #48eda4; letter-spacing: 0.16em; }
+    nav a { color: inherit; text-decoration: none; }
+    .site-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        margin: 0 0 2rem;
+        padding: 0;
+        list-style: none;
+    }
+    .site-nav a { color: #8da39a; text-decoration: none; }
+    .site-nav a.active { color: #48eda4; }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.2rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    .lede {
+        margin: 0;
+        max-width: 36rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    .example-list {
+        margin: 1.75rem 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .example-list li {
+        margin: 0 0 1rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid rgba(109, 236, 177, 0.18);
+        border-radius: 12px;
+        background: rgba(11, 30, 24, 0.55);
+    }
+    .example-list a { color: #f8fffb; }
+    .example-list p { margin: 0.35rem 0 0; color: #8da39a; }
+    .card {
+        margin-top: 1.75rem;
+        padding: 1.5rem 1.75rem;
+        border: 1px solid rgba(109, 236, 177, 0.2);
+        border-radius: 16px;
+        background: rgba(11, 30, 24, 0.72);
+    }
+    .eyebrow {
+        margin: 0 0 0.35rem;
+        color: #48eda4;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    output {
+        display: block;
+        color: #f8fffb;
+        font-family: ui-monospace, monospace;
+        font-size: 3.4rem;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.04em;
+    }
+    .actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+    button, .tab {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.75rem 1.1rem;
+        background: #48eda4;
+        color: #06100c;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    button.secondary, .tab {
+        border: 1px solid #29493b;
+        background: transparent;
+        color: #bfd0c8;
+    }
+    .tab.selected { background: #48eda4; color: #06100c; border-color: transparent; }
+    .tablist { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tabpanel { margin: 0; color: #d5e6de; }
+    .hint { color: #8da39a; font-size: 0.95rem; }
+    .search-label {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 1.5rem;
+        color: #8da39a;
+        font-size: 0.85rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    input {
+        padding: 0.7rem 0.85rem;
+        border: 1px solid #29493b;
+        border-radius: 10px;
+        background: #06100c;
+        color: #f8fffb;
+        font: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+}
