@@ -3,6 +3,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::{Command, Stdio},
+    time::Instant,
 };
 
 use anyhow::{Context, Result, bail};
@@ -13,6 +14,7 @@ use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, for
 use crate::datastar_asset;
 use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
 use crate::error_page::{FailedFile, MappedModule};
+use crate::logs::{self, Progress};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
 use crate::runtime_assets;
 use crate::serve;
@@ -44,7 +46,7 @@ pub fn run(
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
     runtime_assets::stage_into(&resolved.app_dir)?;
-    let compiled = compile_rocci_app(&resolved.app_dir)?;
+    let compiled = compile_rocci_app(&resolved.app_dir, Progress::from_verbose(verbose))?;
     if !compiled.failures.is_empty() {
         return driver::serve_template_errors(
             &compiled.failures,
@@ -283,7 +285,11 @@ fn run_standalone(
         .and_then(|name| name.to_str())
         .unwrap_or("rocci")
         .to_string();
-    let plan = match plan_standalone(&path, &LowerOptions::default())? {
+    let plan = match plan_standalone(
+        &path,
+        &LowerOptions::default(),
+        Progress::from_verbose(verbose),
+    )? {
         (StandaloneReady::Failed(files), _, _) => {
             return driver::serve_template_errors(
                 &files,
@@ -328,7 +334,11 @@ pub fn standalone_island_lower_options() -> LowerOptions {
 }
 
 pub fn standalone_island_app_plan(primary: &Path) -> Result<GenericAppPlan> {
-    match plan_standalone(primary, &standalone_island_lower_options())? {
+    match plan_standalone(
+        primary,
+        &standalone_island_lower_options(),
+        Progress::default(),
+    )? {
         (StandaloneReady::Ready(plan), _, _) => Ok(plan),
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
@@ -343,6 +353,7 @@ pub fn standalone_island_app_plan(primary: &Path) -> Result<GenericAppPlan> {
 fn plan_standalone(
     primary: &Path,
     lower: &LowerOptions,
+    progress: Progress,
 ) -> Result<(
     StandaloneReady,
     crate::profile::ProfileSnapshot,
@@ -363,6 +374,11 @@ fn plan_standalone(
             inputs.push(path);
         }
     }
+    let templates_started = Instant::now();
+    progress.step(logs::run_phase_start(
+        "templates",
+        &format!("modules={}", inputs.len()),
+    ));
     for input in inputs {
         let src = rec.span("read", || {
             fs::read_to_string(&input)
@@ -376,6 +392,11 @@ fn plan_standalone(
             None,
         );
         rec.push("generate", compiled.timings.lower_ms, None);
+        progress.detail(logs::run_module_detail(
+            &name,
+            compiled.timings.parse_ms + compiled.timings.validate_ms,
+            compiled.timings.lower_ms,
+        ));
         if compiled.failed {
             failures.push(FailedFile {
                 name,
@@ -404,6 +425,11 @@ fn plan_standalone(
         });
     }
     let profile = rec.finish();
+    progress.step(logs::run_phase_done(
+        "templates",
+        templates_started.elapsed().as_millis(),
+        "",
+    ));
     if !failures.is_empty() {
         return Ok((StandaloneReady::Failed(failures), profile, inspect_pages));
     }
@@ -427,7 +453,7 @@ fn plan_standalone(
 }
 
 pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
-    match plan_standalone(primary, &LowerOptions::default())? {
+    match plan_standalone(primary, &LowerOptions::default(), Progress::default())? {
         (StandaloneReady::Ready(plan), _, _) => Ok(plan),
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
@@ -468,7 +494,7 @@ fn generated_module_path(rocci: &Path) -> PathBuf {
 }
 
 pub fn compile_rocci_modules(app_dir: &Path) -> Result<()> {
-    let compiled = compile_rocci_app(app_dir)?;
+    let compiled = compile_rocci_app(app_dir, Progress::default())?;
     if !compiled.failures.is_empty() {
         bail!("template compilation failed");
     }
@@ -482,12 +508,18 @@ struct CompiledApp {
     inspect_pages: Vec<crate::inspect::InspectPage>,
 }
 
-fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
+fn compile_rocci_app(app_dir: &Path, progress: Progress) -> Result<CompiledApp> {
     let mut rec = crate::profile::SpanRecorder::new();
     let mut failures = Vec::new();
     let mut maps = Vec::new();
     let mut inspect_pages = Vec::new();
-    for input in discover_rocci(app_dir)? {
+    let inputs = discover_rocci(app_dir)?;
+    let templates_started = Instant::now();
+    progress.step(logs::run_phase_start(
+        "templates",
+        &format!("modules={}", inputs.len()),
+    ));
+    for input in inputs {
         let src = rec.span("read", || {
             fs::read_to_string(&input)
                 .with_context(|| format!("failed to read {}", input.display()))
@@ -500,6 +532,11 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
             None,
         );
         rec.push("generate", compiled.timings.lower_ms, None);
+        progress.detail(logs::run_module_detail(
+            &name,
+            compiled.timings.parse_ms + compiled.timings.validate_ms,
+            compiled.timings.lower_ms,
+        ));
         if compiled.failed {
             failures.push(FailedFile {
                 name,
@@ -525,6 +562,11 @@ fn compile_rocci_app(app_dir: &Path) -> Result<CompiledApp> {
             segments: compiled.segments,
         });
     }
+    progress.step(logs::run_phase_done(
+        "templates",
+        templates_started.elapsed().as_millis(),
+        "",
+    ));
     Ok(CompiledApp {
         failures,
         maps,

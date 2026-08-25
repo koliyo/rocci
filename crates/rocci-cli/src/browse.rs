@@ -2,7 +2,6 @@ use std::{
     collections::{HashMap, HashSet},
     env, fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use anyhow::{Context, Result, bail};
@@ -104,11 +103,28 @@ pub fn browse(
 
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
-    let mut cmd = Command::new("roc");
-    cmd.arg("main.roc")
-        .current_dir(&workspace.path)
-        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
-    serve::apply_roc_listen_host(&mut cmd, public);
+    let invocation = crate::driver::RocInvocation {
+        program: "roc",
+        app_dir: workspace.path.clone(),
+        roc_file: PathBuf::from("main.roc"),
+        args: Vec::new(),
+    };
+    Progress::from_verbose(verbose).step(crate::logs::run_phase_start("roc", ""));
+    let cmd = match crate::driver::prepare_roc_process(&invocation, port, public, verbose) {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            let html = error_page::render_roc_compile_error(&format!("{err:#}"), &[]);
+            return serve::serve_html(
+                port,
+                500,
+                &html,
+                "rocci browse",
+                no_window,
+                live_reload,
+                public,
+            );
+        }
+    };
     let (mut child, mut tee) = serve::spawn_roc(cmd)?;
 
     match serve::wait_for_roc(

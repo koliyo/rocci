@@ -154,6 +154,28 @@ impl Progress {
     }
 }
 
+pub fn run_phase_start(phase: &str, extras: &str) -> String {
+    if extras.is_empty() {
+        format!("[rocci run] phase={phase} status=start")
+    } else {
+        format!("[rocci run] phase={phase} status=start {extras}")
+    }
+}
+
+pub fn run_phase_done(phase: &str, elapsed_ms: u128, extras: &str) -> String {
+    if extras.is_empty() {
+        format!("[rocci run] phase={phase} status=done elapsed_ms={elapsed_ms}")
+    } else {
+        format!("[rocci run] phase={phase} status=done elapsed_ms={elapsed_ms} {extras}")
+    }
+}
+
+pub fn run_module_detail(path: &str, parse_ms: u128, generate_ms: u128) -> String {
+    format!(
+        "[rocci run] phase=templates module={path} parse_ms={parse_ms} generate_ms={generate_ms}"
+    )
+}
+
 pub fn emit(message: impl AsRef<str>) {
     eprintln!("{}", message.as_ref());
     let _ = io::stderr().flush();
@@ -229,5 +251,29 @@ mod tests {
         let terse = Progress::default();
         assert!(!terse.verbose);
         assert!(!terse.quiet);
+    }
+
+    #[test]
+    fn run_phase_messages_include_status_and_optional_extras() {
+        assert_eq!(
+            run_phase_start("templates", "modules=12"),
+            "[rocci run] phase=templates status=start modules=12"
+        );
+        assert_eq!(
+            run_phase_start("stage", ""),
+            "[rocci run] phase=stage status=start"
+        );
+        assert_eq!(
+            run_phase_done("templates", 85, ""),
+            "[rocci run] phase=templates status=done elapsed_ms=85"
+        );
+        assert_eq!(
+            run_phase_done("roc", 12, "generated_bytes=4"),
+            "[rocci run] phase=roc status=done elapsed_ms=12 generated_bytes=4"
+        );
+        assert_eq!(
+            run_module_detail("App.rocci", 3, 7),
+            "[rocci run] phase=templates module=App.rocci parse_ms=3 generate_ms=7"
+        );
     }
 }

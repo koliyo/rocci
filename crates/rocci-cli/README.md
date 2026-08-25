@@ -33,6 +33,9 @@ production-performance output when the compiler path is known to work.
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 
 # Print compile and wait phases to stderr
+# `rocci run` always prints template/stage/roc phase lines; Roc compile of a large
+# app can take minutes. `--verbose` adds per-module timings, listen heartbeats,
+# and streams `roc build --opt=dev --timings --verbose` before starting the server.
 cargo run -p rocci-cli -- run --verbose examples/rocci/standalone/live-counter/LiveCounter.rocci
 
 # Pause automatic page refresh (watch/rebuild still runs)

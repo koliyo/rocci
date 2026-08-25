@@ -135,7 +135,7 @@ Shared by `run`, `view`, `browse`, and `playground`:
 | `--no-window` | off | Serve without the preview window |
 | `--no-live-reload` | off | Pause automatic refresh; watch still rebuilds |
 | `--log-handlers` | off | Log matched handlers to stderr / Dev Console |
-| `-v` / `--verbose` | off | Compile and wait phases |
+| `-v` / `--verbose` | off | Per-module template timings, listen heartbeats, and Roc `--timings` / `--verbose` from `roc build --opt=dev`. Phase start/done lines always print. |
 | `--port PORT\|auto` | `auto` with a window; `8000` with `--no-window` | Also `ROC_BASIC_WEBSERVER_PORT` |
 
 **Related:** [Configuration](/docs/reference/configuration/), [Install](/docs/install/).

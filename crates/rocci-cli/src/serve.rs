@@ -17,7 +17,6 @@ use rocci_desktop::{PreviewOptions, preview};
 use crate::logs::{LogHub, LogLevel, LogLine, Progress};
 use crate::style;
 
-const SERVER_WAIT: Duration = Duration::from_secs(120);
 const LISTEN_HEARTBEAT: Duration = Duration::from_secs(2);
 
 pub fn wait_listen_starting(port: u16) -> String {
@@ -70,7 +69,7 @@ pub struct ServeOptions {
     #[arg(long)]
     pub log_handlers: bool,
 
-    /// Print compile, inspect, and wait phases to stderr.
+    /// Print per-module timings, Roc compiler timings, and listen heartbeats. Phase start/done always prints.
     #[arg(short, long)]
     pub verbose: bool,
 
@@ -405,6 +404,8 @@ pub fn spawn_roc_with_logs(
     ))
 }
 
+/// Wait until the child listens on `port` or exits. No wall-clock timeout while
+/// the process is still running (Roc compile of a large app can exceed minutes).
 pub fn wait_for_listen(child: &mut Child, port: u16, progress: Progress) -> Result<ListenWait> {
     let start = Instant::now();
     let mut last_beat = start;
@@ -419,13 +420,6 @@ pub fn wait_for_listen(child: &mut Child, port: u16, progress: Progress) -> Resu
             return Ok(ListenWait::Ready);
         }
         let elapsed = start.elapsed();
-        if elapsed > SERVER_WAIT {
-            let still_running = matches!(child.try_wait(), Ok(None));
-            bail!(
-                "{}",
-                wait_listen_timeout_message(port, elapsed, still_running)
-            );
-        }
         if last_beat.elapsed() >= LISTEN_HEARTBEAT {
             progress.detail(wait_listen_heartbeat(port, elapsed));
             last_beat = Instant::now();

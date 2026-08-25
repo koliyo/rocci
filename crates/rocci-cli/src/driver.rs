@@ -194,7 +194,14 @@ pub fn execute_app_plan(
     plan.validate_dispatch()?;
     let write_started = Instant::now();
     let type_name = plan.primary_name.clone();
+    let progress = logs::Progress::from_verbose(options.verbose);
+    progress.step(logs::run_phase_start("stage", ""));
     let workspace = stage_app_workspace(&plan, src_dir, "run")?;
+    progress.step(logs::run_phase_done(
+        "stage",
+        write_started.elapsed().as_millis(),
+        "",
+    ));
     let default_db_path = src_dir.join(format!("{}.db", type_name.to_ascii_lowercase()));
     let db_path = options.db_path.as_deref().unwrap_or(&default_db_path);
     let resolved = ResolvedEntry {
@@ -208,9 +215,9 @@ pub fn execute_app_plan(
         .map(|module| module.roc.len())
         .sum::<usize>()
         + plan.main_roc().len();
-    logs::Progress::from_verbose(options.verbose).detail(format!(
-        "starting roc ({} bytes of generated Roc)",
-        generated
+    progress.step(logs::run_phase_start(
+        "roc",
+        &format!("generated_bytes={generated}"),
     ));
     let mut profile = options.profile.clone();
     profile.merge(ProfileSnapshot {
@@ -395,7 +402,21 @@ pub fn execute_resolved_entry(
     let port = port.resolve()?;
     let start_path = app_start_path(&resolved.app_dir);
     let url = format!("http://127.0.0.1:{port}{start_path}");
-    let cmd = roc_command(&invocation, port, public);
+    logs::Progress::from_verbose(verbose).step(logs::run_phase_start("roc", ""));
+    let cmd = match prepare_roc_process(&invocation, port, public, verbose) {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            return serve_roc_failure(
+                &format!("{err:#}"),
+                maps,
+                port,
+                no_window,
+                live_reload,
+                title,
+                public,
+            );
+        }
+    };
     let roc_started = Instant::now();
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
@@ -532,6 +553,40 @@ pub fn roc_command(invocation: &RocInvocation, port: u16, public: bool) -> Comma
     cmd
 }
 
+pub(crate) fn app_argv(args: &[String]) -> &[String] {
+    match args {
+        [dash, rest @ ..] if dash == "--" => rest,
+        other => other,
+    }
+}
+
+/// When `verbose`, compile with `roc build --opt=dev --timings --verbose` so Roc
+/// prints compiler phases, then return a command that runs the binary.
+pub fn prepare_roc_process(
+    invocation: &RocInvocation,
+    port: u16,
+    public: bool,
+    verbose: bool,
+) -> Result<Command> {
+    if !verbose {
+        return Ok(roc_command(invocation, port, public));
+    }
+    let output = invocation.app_dir.join("server");
+    crate::native_target::build_roc_server_with_opt(
+        &invocation.app_dir,
+        &output,
+        None,
+        true,
+        Some(crate::native_target::RocOpt::Dev),
+    )?;
+    let mut cmd = Command::new(&output);
+    cmd.args(app_argv(&invocation.args))
+        .current_dir(&invocation.app_dir)
+        .env("ROC_BASIC_WEBSERVER_PORT", port.to_string());
+    serve::apply_roc_listen_host(&mut cmd, public);
+    Ok(cmd)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn invoke_standalone(
     resolved: &ResolvedEntry,
@@ -552,7 +607,20 @@ pub fn invoke_standalone(
     let invocation = roc_invocation(resolved, args);
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}{path}");
-    let mut cmd = roc_command(&invocation, port, public);
+    let mut cmd = match prepare_roc_process(&invocation, port, public, verbose) {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            return serve_roc_failure(
+                &format!("{err:#}"),
+                maps,
+                port,
+                no_window,
+                live_reload,
+                title,
+                public,
+            );
+        }
+    };
     if env::var_os("DB_PATH").is_none() {
         cmd.env("DB_PATH", db_path);
     }
@@ -695,6 +763,30 @@ impl Drop for TempDir {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn app_argv_strips_a_leading_double_dash() {
+        assert_eq!(
+            app_argv(&["--".into(), "arg1".into()]),
+            &["arg1".to_string()]
+        );
+        assert_eq!(app_argv(&["arg1".into()]), &["arg1".to_string()]);
+        assert!(app_argv(&[]).is_empty());
+    }
+
+    #[test]
+    fn prepare_roc_process_without_verbose_is_roc_main() {
+        let invocation = RocInvocation {
+            program: "roc",
+            app_dir: PathBuf::from("/tmp/app"),
+            roc_file: PathBuf::from("main.roc"),
+            args: vec!["--".into(), "arg1".into()],
+        };
+        let cmd = prepare_roc_process(&invocation, 9001, false, false).unwrap();
+        assert_eq!(cmd.get_program(), "roc");
+        let args: Vec<_> = cmd.get_args().collect();
+        assert_eq!(args, ["main.roc", "--", "arg1"]);
+    }
 
     #[test]
     fn app_start_path_reads_window_url() {
