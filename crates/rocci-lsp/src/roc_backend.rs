@@ -39,11 +39,16 @@ impl RocBackend for NullRocBackend {
 pub struct FakeRocBackend {
     pub synced: Option<(PathBuf, String)>,
     hovers: HashMap<(u32, u32), Hover>,
+    any: Option<Hover>,
 }
 
 impl FakeRocBackend {
     pub fn set_hover(&mut self, line: u32, character: u32, hover: Hover) {
         self.hovers.insert((line, character), hover);
+    }
+
+    pub fn set_any_hover(&mut self, hover: Hover) {
+        self.any = Some(hover);
     }
 }
 
@@ -54,6 +59,9 @@ impl RocBackend for FakeRocBackend {
     }
 
     fn hover(&mut self, _path: &Path, position: Position) -> Option<Hover> {
+        if let Some(hover) = &self.any {
+            return Some(hover.clone());
+        }
         self.hovers
             .get(&(position.line, position.character))
             .cloned()

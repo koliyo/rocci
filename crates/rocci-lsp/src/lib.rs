@@ -8,6 +8,9 @@ pub mod roc_backend;
 pub mod tokens;
 
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 use lsp_server::{ErrorCode, Notification, Request, Response};
 use lsp_types::notification::{
@@ -20,13 +23,17 @@ use lsp_types::request::{
 };
 use lsp_types::{
     CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DocumentSymbolParams, GotoDefinitionParams, HoverParams,
-    HoverProviderCapability, InitializeParams, InitializeResult, OneOf, PositionEncodingKind,
-    PublishDiagnosticsParams, SemanticTokensFullOptions, SemanticTokensOptions,
-    SemanticTokensParams, SemanticTokensRangeParams, SemanticTokensServerCapabilities,
-    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, Uri,
+    DidOpenTextDocumentParams, DocumentSymbolParams, GotoDefinitionParams, Hover, HoverParams,
+    HoverProviderCapability, InitializeParams, InitializeResult, OneOf, Position,
+    PositionEncodingKind, PublishDiagnosticsParams, SemanticTokensFullOptions,
+    SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
+    SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
+    TextDocumentSyncKind, Uri,
 };
-use rocci_template::PositionEncoding;
+use rocci_template::{
+    PositionEncoding, Segment, SourceFile, Span, map_generated_span, project_type_module,
+    source_to_generated, type_name_from_path,
+};
 
 pub use analyzer::{DocumentAnalysis, DocumentAnalyzer, RocciAnalysis, RocciAnalyzer};
 pub use regions::{
@@ -47,10 +54,33 @@ pub fn method_inspect_regions() -> &'static str {
     "rocci/inspectRegions"
 }
 
+const CHILD_ENCODING: PositionEncoding = PositionEncoding::Utf16;
+
+struct ProjectionFile {
+    path: PathBuf,
+    roc: String,
+    segments: Vec<Segment>,
+}
+
+struct RocState {
+    backend: Box<dyn RocBackend>,
+    dir: PathBuf,
+    files: HashMap<String, ProjectionFile>,
+}
+
 pub struct LanguageServer {
     encoding: PositionEncoding,
     analyzers: Vec<Box<dyn DocumentAnalyzer>>,
     documents: HashMap<String, Box<dyn DocumentAnalysis>>,
+    roc: Mutex<RocState>,
+}
+
+fn new_roc_state() -> RocState {
+    RocState {
+        backend: Box::new(NullRocBackend),
+        dir: std::env::temp_dir().join(format!("rocci-lsp-roc-{}", std::process::id())),
+        files: HashMap::new(),
+    }
 }
 
 impl LanguageServer {
@@ -59,6 +89,7 @@ impl LanguageServer {
             encoding: PositionEncoding::Utf16,
             analyzers: vec![Box::new(RocciAnalyzer)],
             documents: HashMap::new(),
+            roc: Mutex::new(new_roc_state()),
         }
     }
 
@@ -67,6 +98,13 @@ impl LanguageServer {
             encoding: PositionEncoding::Utf16,
             analyzers,
             documents: HashMap::new(),
+            roc: Mutex::new(new_roc_state()),
+        }
+    }
+
+    pub fn set_roc_backend(&mut self, backend: Box<dyn RocBackend>) {
+        if let Ok(mut roc) = self.roc.lock() {
+            roc.backend = backend;
         }
     }
 
@@ -124,6 +162,7 @@ impl LanguageServer {
             .find(|a| a.can_analyze(&uri, language_id))?;
         let name = uri_key(&uri);
         let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
+        self.sync_projection(&name, &uri, analysis.as_ref());
         let diagnostics = analysis.diagnostics();
         self.documents.insert(name, analysis);
         Some(PublishDiagnosticsParams {
@@ -142,6 +181,7 @@ impl LanguageServer {
         let text = params.content_changes.into_iter().next()?.text;
         let analyzer = self.analyzers.iter().find(|a| a.can_analyze(&uri, None))?;
         let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
+        self.sync_projection(&name, &uri, analysis.as_ref());
         let diagnostics = analysis.diagnostics();
         self.documents.insert(name, analysis);
         Some(PublishDiagnosticsParams {
@@ -152,7 +192,11 @@ impl LanguageServer {
     }
 
     pub fn did_close(&mut self, params: DidCloseTextDocumentParams) -> PublishDiagnosticsParams {
-        self.documents.remove(&uri_key(&params.text_document.uri));
+        let name = uri_key(&params.text_document.uri);
+        self.documents.remove(&name);
+        if let Ok(mut roc) = self.roc.lock() {
+            roc.files.remove(&name);
+        }
         PublishDiagnosticsParams {
             uri: params.text_document.uri,
             diagnostics: Vec::new(),
@@ -169,8 +213,29 @@ impl LanguageServer {
     }
 
     pub fn hover(&self, params: HoverParams) -> Option<lsp_types::Hover> {
-        let doc = self.document(&params.text_document_position_params.text_document.uri)?;
-        doc.hover(&params)
+        let uri = &params.text_document_position_params.text_document.uri;
+        let (source_name, source_text, executable) = {
+            let doc = self.document(uri)?;
+            let source_name = doc.source_name().to_string();
+            let source_text = doc.source_text().to_string();
+            let source = SourceFile::new(&source_name, &source_text);
+            let offset = analysis::offset_at(
+                source,
+                params.text_document_position_params.position,
+                self.encoding,
+            );
+            (source_name, source_text, doc.executable_roc_at(offset))
+        };
+        let source = SourceFile::new(&source_name, &source_text);
+        let offset = analysis::offset_at(
+            source,
+            params.text_document_position_params.position,
+            self.encoding,
+        );
+        if executable && let Some(hover) = self.mapped_roc_hover(uri, offset) {
+            return Some(hover);
+        }
+        self.document(uri)?.hover(&params)
     }
 
     pub fn goto_definition(
@@ -283,6 +348,69 @@ impl LanguageServer {
     fn document(&self, uri: &Uri) -> Option<&(dyn DocumentAnalysis + 'static)> {
         self.documents.get(&uri_key(uri)).map(|b| &**b)
     }
+
+    fn sync_projection(&self, name: &str, uri: &Uri, analysis: &dyn DocumentAnalysis) {
+        let Some((roc, segments)) = analysis.generated_roc() else {
+            return;
+        };
+        let path_for_type = uri.path().as_str();
+        let type_name = if path_for_type.is_empty() {
+            type_name_from_path(std::path::Path::new(analysis.source_name()))
+        } else {
+            type_name_from_path(std::path::Path::new(path_for_type))
+        };
+        let projection = project_type_module(roc, segments, &type_name);
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return;
+        };
+        let path = roc_state.dir.join(projection_file_name(name, &type_name));
+        let _ = roc_state.backend.sync_projection(&path, &projection.roc);
+        roc_state.files.insert(
+            name.to_string(),
+            ProjectionFile {
+                path,
+                roc: projection.roc,
+                segments: projection.segments,
+            },
+        );
+    }
+
+    fn mapped_roc_hover(&self, uri: &Uri, offset: u32) -> Option<Hover> {
+        let (source_name, source_text) = {
+            let doc = self.document(uri)?;
+            (doc.source_name().to_string(), doc.source_text().to_string())
+        };
+        let name = uri_key(uri);
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return None;
+        };
+        let (path, roc, segments) = {
+            let file = roc_state.files.get(&name)?;
+            (file.path.clone(), file.roc.clone(), file.segments.clone())
+        };
+        let mapped = source_to_generated(&source_text, &roc, &segments, offset)?;
+        let proj = SourceFile::new("projection.roc", &roc);
+        let (line, character) = proj.position(mapped.offset, CHILD_ENCODING);
+        let mut hover = roc_state
+            .backend
+            .hover(&path, Position::new(line, character))?;
+        hover.range = hover.range.and_then(|range| {
+            let start = analysis::offset_at(proj, range.start, CHILD_ENCODING);
+            let end = analysis::offset_at(proj, range.end, CHILD_ENCODING);
+            let span = map_generated_span(
+                &source_text,
+                &roc,
+                &segments,
+                Span::new(start as usize, end as usize),
+            )?;
+            Some(analysis::lsp_range(
+                SourceFile::new(&source_name, &source_text),
+                span,
+                self.encoding,
+            ))
+        });
+        Some(hover)
+    }
 }
 
 impl Default for LanguageServer {
@@ -316,6 +444,12 @@ fn position_encoding_kind(encoding: PositionEncoding) -> PositionEncodingKind {
 
 fn uri_key(uri: &Uri) -> String {
     uri.to_string()
+}
+
+fn projection_file_name(uri_key: &str, type_name: &str) -> String {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    uri_key.hash(&mut hasher);
+    format!("{type_name}_{:x}.roc", hasher.finish())
 }
 
 fn publish_diagnostics(params: PublishDiagnosticsParams) -> Notification {

@@ -2,14 +2,14 @@ use lsp_server::Request;
 use lsp_types::{
     ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
     DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
-    GeneralClientCapabilities, GotoDefinitionParams, HoverParams, InitializeParams,
-    PartialResultParams, Position, PositionEncodingKind, Range, SemanticTokens,
-    SemanticTokensParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams,
-    Uri, WorkDoneProgressParams,
+    GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents, HoverParams,
+    InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
+    PositionEncodingKind, Range, SemanticTokens, SemanticTokensParams, TextDocumentIdentifier,
+    TextDocumentItem, TextDocumentPositionParams, Uri, WorkDoneProgressParams,
 };
 use rocci_lsp::{
-    InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose, TOKEN_ENUM_MEMBER,
-    TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, TOKEN_VARIABLE,
+    FakeRocBackend, InspectedRegion, Language, LanguageServer, RegionContext, RegionPurpose,
+    TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_PROPERTY, TOKEN_TYPE, TOKEN_VARIABLE,
     extract_rocci_regions, method_inspect_regions,
 };
 use rocci_template::{PositionEncoding, SourceFile};
@@ -902,4 +902,134 @@ fn hover_includes_component_doc_comments() {
     };
     assert!(markup.value.contains("@component Hello ="), "{markup:?}");
     assert!(markup.value.contains("Greeting card."), "{markup:?}");
+}
+
+fn roc_type_hover(range: Option<Range>) -> Hover {
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: "```roc\nStr\n```".to_string(),
+        }),
+        range,
+    }
+}
+
+fn projected_ident_range(src: &str, ident: &str, after: &str) -> Range {
+    let compiled = rocci_template::compile(
+        SourceFile::new("test.rocci", src),
+        &rocci_template::LowerOptions::default(),
+    );
+    let type_name = rocci_template::type_name_from_path(std::path::Path::new("/test.rocci"));
+    let projection =
+        rocci_template::project_type_module(&compiled.roc, &compiled.segments, &type_name);
+    let from = src.find(after).unwrap_or_else(|| panic!("missing {after}"));
+    let rel = src[from..]
+        .find(ident)
+        .unwrap_or_else(|| panic!("missing {ident} after {after}"));
+    let offset = (from + rel) as u32;
+    let mapped =
+        rocci_template::source_to_generated(src, &projection.roc, &projection.segments, offset)
+            .expect("source map");
+    let proj = SourceFile::new("projection.roc", &projection.roc);
+    let (start_line, start_col) = proj.position(mapped.offset, PositionEncoding::Utf16);
+    let (end_line, end_col) =
+        proj.position(mapped.offset + ident.len() as u32, PositionEncoding::Utf16);
+    Range {
+        start: Position::new(start_line, start_col),
+        end: Position::new(end_line, end_col),
+    }
+}
+
+#[test]
+fn interpolation_hover_forwards_mapped_roc_backend() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let range = projected_ident_range(src, "title", "{title}");
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(roc_type_hover(Some(range)));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("roc hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("Str"), "{markup:?}");
+    assert!(!markup.value.contains("@component"), "{markup:?}");
+    let mapped = hover.range.expect("mapped hover range");
+    let (start_line, start_character) = line_col(src, title);
+    let (end_line, end_character) = line_col(src, title + "title".len());
+    assert_eq!(mapped.start.line, start_line);
+    assert_eq!(mapped.start.character, start_character);
+    assert_eq!(mapped.end.line, end_line);
+    assert_eq!(mapped.end.character, end_character);
+}
+
+#[test]
+fn roc_block_ident_hover_forwards_mapped_roc_backend() {
+    let src = r#"
+greet = |name| name
+
+@component Hello = |{ name }| {
+    <p>{greet(name)}</p>
+}
+"#;
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(roc_type_hover(None));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+
+    let greet = src.find("greet =").expect("greet");
+    let (line, character) = line_col(src, greet);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("roc hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("Str"), "{markup:?}");
+}
+
+#[test]
+fn component_hover_stays_host_when_roc_backend_answers() {
+    let src = r#"
+## Greeting card.
+@component Hello = |{ name }|
+    <p>{name}</p>
+"#;
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(roc_type_hover(None));
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+
+    let hello = src.find("Hello =").expect("hello");
+    let (line, character) = line_col(src, hello);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("host hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("@component Hello"), "{markup:?}");
+    assert!(markup.value.contains("Greeting card."), "{markup:?}");
+    assert!(!markup.value.contains("```roc\nStr"), "{markup:?}");
 }

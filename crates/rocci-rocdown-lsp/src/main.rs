@@ -2,6 +2,7 @@ use std::error::Error;
 
 use lsp_server::{Connection, Message};
 use lsp_types::InitializeParams;
+use rocci_lsp::ChildRocBackend;
 use rocci_rocdown_lsp::composed_server;
 
 fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
@@ -9,6 +10,9 @@ fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let (id, params) = connection.initialize_start()?;
     let params: InitializeParams = serde_json::from_value(params)?;
     let mut server = composed_server();
+    if let Ok(backend) = ChildRocBackend::spawn_from_env() {
+        server.set_roc_backend(Box::new(backend));
+    }
     let result = server.initialize(params);
     connection.initialize_finish(id, serde_json::to_value(result)?)?;
 
