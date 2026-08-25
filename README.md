@@ -180,6 +180,15 @@ run `uv run rocci-ops promote tag vX.Y.Z` (or `--from BRANCH`). That waits for
 hosted CI on the target SHA, then pushes the tag. The tag push runs CI,
 Knowledge, and `release.yml`. `uv run rocci-ops promote tag dev` force-moves
 the rolling `dev` prerelease tag and republishes that GitHub release.
+A later `git pull` then reports `! [rejected] dev -> dev (would clobber
+existing tag)` unless this repo force-updates that tag on fetch:
+
+```sh
+git config --local --add remote.origin.fetch '+refs/tags/dev:refs/tags/dev'
+```
+
+Do not force-fetch all tags; `v*` releases stay immutable. To replace local
+`dev` once without changing config, run `git fetch origin tag dev --force`.
 
 To test a pull request in this worktree when an agent already has the PR
 branch checked out, run `uv run rocci-ops pr-checkout 39`. With no argument,
