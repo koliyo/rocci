@@ -46,11 +46,11 @@ NavLink = |{ href, current, section }, label|
 
 @component
 Home = |{}|
-    <Page title="Role constructors" lede="A basic-webserver app that registers the closed method-role matrix as Roc wrap functions, not @get:view headers." current="home">
+    <Page title="Role constructors" lede="A basic-webserver app that uses the Rocci library for program and HTTP wraps. Markup stays in this template; routes are ordinary Roc." current="home">
         <ul class="example-list">
             <li>
                 <a href="/counter"><strong>One-shot fragment</strong></a>
-                <p>fragment! wraps one datastar-patch-elements event around the returned HTML.</p>
+                <p>Rocci.fragment! wraps one datastar-patch-elements event around the returned HTML.</p>
             </li>
             <li>
                 <a href="/live"><strong>Command + live</strong></a>
@@ -77,7 +77,7 @@ Home = |{}|
 
 @component
 CounterPage = |{ count }|
-    <Page title="One-shot counter" lede="POST fragments morph this tab only. view! and fragment! live in main.roc; the handler only returns Html." current="counter">
+    <Page title="One-shot counter" lede="POST fragments morph this tab only. Rocci.view! and Rocci.fragment! own the wire wrap; the handler only returns Html." current="counter">
         <CounterCard count={count} />
         <div class="actions">
             <button data-on:click=@post("/actions/counter/increment")>Increment</button>

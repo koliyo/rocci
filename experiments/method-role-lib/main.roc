@@ -31,11 +31,12 @@ catalog = [
     "unfold",
 ]
 
-lives = ["/sse"]
-
 listed_routes = "<li><code>GET /</code></li><li><code>GET /counter</code></li><li><code>GET /live</code></li><li><code>GET /tabs</code></li><li><code>GET /compose</code></li><li><code>GET /search</code></li><li><code>GET /clock</code></li><li><code>POST /actions/counter/increment</code></li><li><code>POST /actions/live/increment</code></li><li><code>GET /sse</code></li><li><code>GET /actions/tabs/*</code></li><li><code>GET /actions/signals/compose</code></li><li><code>GET /actions/search/results</code></li><li><code>GET /actions/clock/ticks</code></li><li><code>GET /health</code></li>"
 
-program = { init!, respond!, shutdown! }
+program = Rocci.program({
+    init!,
+    respond!,
+})
 
 respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])
 respond! = |request, context| {
@@ -48,39 +49,39 @@ respond! = |request, context| {
     match (method, path) {
         ("GET", "/") => {
             html = home!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/counter") => {
             html = counter_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/live") => {
             html = live_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/tabs") => {
             html = tabs_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/compose") => {
             html = compose_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/search") => {
             html = search_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("GET", "/clock") => {
             html = clock_page!(context, request) ? |err| ServerErr(Str.inspect(err))
-            view!(html, lives)
+            Rocci.view!(html)
         }
         ("POST", "/actions/counter/increment") => {
             html = increment_fragment!(context, request) ? |err| ServerErr(Str.inspect(err))
-            fragment!(html)
+            Rocci.fragment!(html)
         }
         ("POST", "/actions/counter/reset") => {
             html = reset_fragment!(context, request) ? |err| ServerErr(Str.inspect(err))
-            fragment!(html)
+            Rocci.fragment!(html)
         }
         ("POST", "/actions/live/increment") => {
             _ = increment_live!(context, request) ? |err| ServerErr(Str.inspect(err))
@@ -106,17 +107,17 @@ respond! = |request, context| {
                         Err(_) => Ok(Emit({ event: Sse.Event.data(""), state: prev, wake: After(100) }))
                     },
             )
-            unfold!(stream)
+            Rocci.unfold!(stream)
         }
         ("GET", "/actions/signals/compose") => {
             events = compose_events!(context, request) ? |err| ServerErr(Str.inspect(err))
-            events!(events)
+            Rocci.events!(events)
         }
         ("GET", "/actions/search/results") => {
             html = search_results!(context, request) ? |err| ServerErr(Str.inspect(err))
-            get_fragment!(html)
+            Rocci.get_fragment!(html)
         }
-        ("GET", "/actions/clock/ticks") => unfold!(clock_ticks!(context, request))
+        ("GET", "/actions/clock/ticks") => Rocci.unfold!(clock_ticks!(context, request))
         _ =>
             if method == "GET" and path == "/health" {
                 health!({})
@@ -125,7 +126,7 @@ respond! = |request, context| {
                     Ok(id) => {
                         html = tabs_patch!(id, context, request)
                             ? |err| ServerErr(Str.inspect(err))
-                        fragment!(html)
+                        Rocci.fragment!(html)
                     }
                     Err(_) =>
                         match Rocci.slash_alternate(path) {
@@ -190,9 +191,6 @@ init! = || {
         })
     Ok({ config: config, context: { db: db } })
 }
-
-shutdown! : Server.ShutdownReason, Context => Try({}, [Exit(I64), ..])
-shutdown! = |_reason, _context| Ok({})
 
 setup_db! = |db| {
     Sqlite.execute!(
@@ -425,15 +423,6 @@ listen_port! = |_| {
     }
 }
 
-view! = |html, _live_paths|
-    html_ok(Html.render(html))
-
-fragment! = |html|
-    Ok(patch_html!(html))
-
-get_fragment! = |html|
-    Ok(patch_html!(html))
-
 command! = |request|
     if datastar_request(request) {
         empty_sse!()
@@ -441,11 +430,27 @@ command! = |request|
         no_content()
     }
 
-events! = |sse_list|
-    Ok(emit_events!(sse_list))
+datastar_request = |request|
+    List.any(
+        request.headers(),
+        |header|
+            (
+                header.name == "datastar-request"
+                or header.name == "Datastar-Request"
+                or header.name == "DATASTAR-REQUEST"
+            )
+            and (
+                header.value == "true"
+                or header.value == "True"
+                or header.value == "TRUE"
+            ),
+    )
 
-unfold! = |stream|
-    Ok(Server.stream(stream))
+empty_sse! = ||
+    Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
+
+no_content = ||
+    Ok(Server.respond(Response.from_status(204)))
 
 health! = |{}| text_ok("ok")
 
@@ -462,54 +467,6 @@ redirect_slash! = |location|
             .with_headers([{ name: "Location", value: location }])
             .with_body([]),
         ),
-    )
-
-patch_html! = |node| {
-    event = Datastar.patch_elements(node)
-    Server.stream(
-        Sse.unfold!(
-            0,
-            |state|
-                match state {
-                    0 => Ok(Emit({ event, state: 1, wake: Immediately }))
-                    _ => Ok(End)
-                },
-        ),
-    )
-}
-
-emit_events! = |sse_list|
-    Server.stream(
-        Sse.unfold!(
-            sse_list,
-            |pending|
-                match pending {
-                    [event, .. as rest] => Ok(Emit({ event, state: rest, wake: Immediately }))
-                    [] => Ok(End)
-                },
-        ),
-    )
-
-empty_sse! = ||
-    Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
-
-no_content = ||
-    Ok(Server.respond(Response.from_status(204)))
-
-datastar_request = |request|
-    List.any(
-        request.headers(),
-        |header|
-            (
-                header.name == "datastar-request"
-                or header.name == "Datastar-Request"
-                or header.name == "DATASTAR-REQUEST"
-            )
-            and (
-                header.value == "true"
-                or header.value == "True"
-                or header.value == "TRUE"
-            ),
     )
 
 unique_keys = |keys|
@@ -530,15 +487,6 @@ unique_keys = |keys|
         Ok(_) => Ok({})
         Err(err) => Err(err)
     }
-
-html_ok = |body|
-    Ok(
-        Server.respond(
-            Response.from_status(200)
-            .with_headers([{ name: "Content-Type", value: "text/html; charset=utf-8" }])
-            .with_body(Str.to_utf8(body)),
-        ),
-    )
 
 text_ok = |body|
     Ok(
