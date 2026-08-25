@@ -42,8 +42,11 @@ pub use remap::{MappedModule, remap_roc_output};
 pub use resolve::{
     camel_to_pascal, component_matches, component_roc_name, is_ambiguous_pascal, pascal_to_camel,
 };
-pub use roc::{type_name_from_path, wrap_type_module};
-pub use source_map::{OriginKind, Segment};
+pub use roc::{TypeModuleProjection, project_type_module, type_name_from_path, wrap_type_module};
+pub use source_map::{
+    MappedOffset, OriginKind, Segment, generated_to_source, map_generated_span, map_source_span,
+    source_to_generated,
+};
 pub use span::{PositionEncoding, SourceFile, Span};
 pub use validate::{validate, validate_template_items};
 
