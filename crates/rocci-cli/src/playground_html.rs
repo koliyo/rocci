@@ -388,7 +388,7 @@ sample = { title: "Hi" }
         let target = select_html_target(&out.document, &out.components, &out.fixtures, "Card")
             .expect("defaultable component");
         assert_eq!(target.component_name, "hello");
-        assert!(target.call.contains("name:"));
+        assert!(target.call.contains("hello({})"));
         assert!(target.wrap_in_shell);
     }
 

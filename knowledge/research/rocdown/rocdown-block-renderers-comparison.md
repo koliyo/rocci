@@ -4,7 +4,7 @@ title: Landed Rocdown block renderers compared with related systems
 description: "Post-landing comparison: Rocdown's KindSpec plus theme block-pack painters versus Markdoc, MDX, Nuxt MDC, MyST/Sphinx, Docusaurus/VitePress, shortcodes, Pandoc/remark, Gutenberg, CMS serializers, Typst show, and Bravo. Includes DX, authorable surface, expressability ceiling, and stack-consistency fractures. Scores are exploratory synthesis."
 tags: [domain/rocdown, domain/rocci, concern/rendering, concern/theming, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:50:00Z }
+generated: { by: process:cursor, at: 2026-08-25T10:45:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -84,6 +84,11 @@ sources:
     title: Rocci component calling convention and ?? defaults
     author: process:git
     last_modified: 2026-08-19
+  - id: roc-defaults
+    resource: ../rocci/roc-nightly-record-defaults.md
+    title: Roc nightly 2026-08-23 type-position defaults versus pattern ??
+    author: process:cursor
+    last_modified: 2026-08-25
   - id: lsp-tests
     resource: ../../../crates/rocci-rocdown/tests/lsp.rs
     title: Kind, field, and accepts-aware completions
@@ -438,8 +443,9 @@ Can replace any builtin widget's HTML tree, wrap `DocsComponents.note`, add
 new PascalCase kinds, and remap with `[blocks.override]`. Cannot declare
 `accepts` / `parents` on pack kinds, keep private helpers in the pack, or
 override heading sugar as `H2`. Optional pack params use Rocci `??` in the
-header; Roc nightly still has no optional record fields, so omitted values
-are empty `Str` / `Bool.false` at the call site.[^site-ref][^docs-guide][^template-readme]
+header; Rocci still fills omitted values as empty `Str` / `Bool.false` at
+the call site even though Roc nightly-2026-08-23 can type defaulted and
+optional record fields. Details: [Roc nightly record defaults](/research/rocci/roc-nightly-record-defaults.md).[^site-ref][^docs-guide][^template-readme][^roc-defaults]
 
 ## Expressability
 
@@ -539,7 +545,8 @@ not a general external theme-package interface.[^theming-arch][^site-ref]
 [^docs-guide]: Override and custom-kind examples; tabs remain stacked sections without `tablist`.
 [^lang-ref]: `:kind` inventory, delimiter XOR, `@use` interactive-only, static-page feature gate.
 [^pages-guide]: `static` / `hydrate` / `live`; `@use` is a site-build error.
-[^template-readme]: `|{ props }, content|`; `??` stripped for Roc nightly; no optional Roc record fields.
+[^template-readme]: `|{ props }, content|`; Rocci `??` still stripped from patterns.
+[^roc-defaults]: Type-position Roc defaults work on 2026-08-23; pattern `??` still rejected.
 [^lsp-tests]: Kind, field, enum, and accepts-preferring completions inside `:tabs`.
 [^lower-rs]: Standalone conservative HTML for article blocks beside the theme path.
 [^imports-rs]: Every `@component` becomes a kind; builtin collision is an error.

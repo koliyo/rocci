@@ -11,6 +11,7 @@ Tone : [Neutral, Positive]
 helloSample = { name: "Roc" }
 
 
+badge : { tone : Tone ?? Neutral }, Html -> Html
 badge = |{ tone }, content| {
     Html.fragment(
         [
@@ -37,6 +38,7 @@ badge = |{ tone }, content| {
 
 
 ## Simple greeting used by CounterPage.
+hello : { name : Str ?? "World" } -> Html
 hello = |{ name }| {
     Html.fragment(
         [
@@ -118,7 +120,7 @@ counterPage = |{ person, count }| {
                 ],
                 [
                     hello(
-                        { name: "World" },
+                        {},
                     ),
                     hello(
                         { name: person.name },

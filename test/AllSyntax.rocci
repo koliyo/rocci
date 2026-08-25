@@ -13,7 +13,7 @@ Tone : [Neutral, Positive]
 helloSample = { name: "Roc" }
 
 @component
-Badge = |{ tone ?? Neutral }, content|
+Badge = |{ tone : Tone ?? Neutral }, content|
     <span class={badgeClass(tone)}>
         {content}
     </span>

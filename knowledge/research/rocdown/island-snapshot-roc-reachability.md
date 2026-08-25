@@ -4,7 +4,7 @@ title: Snapshot eval must not compile service-only @roc
 description: "SQLite never runs on the CDN. Live pages compile twice (basic-cli snapshot HTML vs basic-webserver handlers). Roc typechecks unused @roc helpers, so one pf.Sqlite is two APIs. The authoring-optimal fix (one platform Sqlite, or Roc skipping unused bindings) is not available; Rocci ships a lowering reachability subset instead."
 tags: [domain/rocdown, domain/rocci, integration/roc, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T13:05:00Z }
+generated: { by: process:cursor, at: 2026-08-25T10:45:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -74,6 +74,11 @@ sources:
     title: Snapshot eval reachability implementation plan
     author: process:cursor
     last_modified: 2026-08-20
+  - id: roc-defaults
+    resource: ../rocci/roc-nightly-record-defaults.md
+    title: Unused bindings still typechecked on 2026-08-23
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # Snapshot eval must not compile service-only `@roc`
@@ -132,8 +137,8 @@ wrong shape, not a missing flag.[^islands-rs][^efficient-pub]
 
 **Have Roc skip typechecking unused bindings.** If unused `read_count!` were
 not typechecked, copying all `@roc` into the snapshot module would be fine.
-Roc typechecks unused values today. Rocci cannot wait on that compiler
-change.[^compile-tests]
+Roc typechecks unused values today (reconfirmed on nightly-2026-08-23).
+Rocci cannot wait on that compiler change.[^compile-tests][^roc-defaults]
 
 **Run `@init` / query Sqlite while splicing, or make `@component` effectful.**
 That would make snapshot HTML “live.” It needs a real database at CDN build,
@@ -177,3 +182,4 @@ Implementation plan: [snapshot eval must not compile service-only `@roc`](/plans
 [^efficient-pub]: Native apply is basic-cli; island/app HTTP is basic-webserver; neither is wasm32.
 [^pure-render]: `@component` stays a pure render; handlers own IO.
 [^plan]: Plan out of bound: unify Sqlite, snapshot-as-webserver, effectful components, new syntax.
+[^roc-defaults]: Unused type-mismatched call still errors on nightly-2026-08-23.

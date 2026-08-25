@@ -307,20 +307,11 @@ pub(crate) fn build_component_call(
     let prop_names = &component.param_names[..prop_count];
     let mut call_args = Vec::new();
     if component.first_param_is_record {
-        // Workaround: apply `??` defaults at the call until Roc accepts them in patterns.
-        // See `rocci_template::strip_param_defaults`.
         let fields = prop_names
             .iter()
             .filter_map(|name| {
                 args.get(name)
                     .cloned()
-                    .or_else(|| {
-                        component
-                            .param_defaults
-                            .iter()
-                            .find(|(param, _)| param == name)
-                            .map(|(_, default)| default.clone())
-                    })
                     .map(|value| format!("{name}: {value}"))
             })
             .collect::<Vec<_>>();
@@ -582,7 +573,7 @@ mod tests {
         hello_default.param_defaults = vec![("name".into(), "\"Roc\"".into())];
         assert_eq!(
             build_component_call("Foo", &hello_default, &HashMap::new()),
-            "Foo.hello({ name: \"Roc\" })"
+            "Foo.hello({})"
         );
 
         let badge = component("badge", &["tone", "content"], &["content"], &[], true);

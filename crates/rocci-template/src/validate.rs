@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::{
-    Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, handler_param_arity,
-    parse_component_params,
+    Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, default_field_type,
+    handler_param_arity, parse_component_params,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lower::route_fn_name;
@@ -35,6 +35,7 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             ModuleItem::Component(component) => {
                 let mut saw_render = false;
                 validate_items(&component.body.items, diagnostics, &mut saw_render, true);
+                validate_defaulted_props(src, component.params, diagnostics);
             }
             ModuleItem::Fixture(fixture) => {
                 validate_fixture(fixture, &component_names, diagnostics)
@@ -105,6 +106,33 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             span,
             "route handlers that destructure a record require `@context`",
         ));
+    }
+}
+
+fn validate_defaulted_props(src: &str, params: Span, diagnostics: &mut Vec<Diagnostic>) {
+    let parsed = parse_component_params(src, params);
+    if !parsed.first_param_is_record {
+        return;
+    }
+    let prop_count = parsed.param_names.len() - parsed.body_params.len();
+    let prop_names = &parsed.param_names[..prop_count];
+    for (name, default) in &parsed.param_defaults {
+        if !prop_names.iter().any(|n| n == name) {
+            continue;
+        }
+        let authored_ty = parsed
+            .param_types
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, ty)| ty.as_str());
+        if default_field_type(authored_ty, default).is_none() {
+            diagnostics.push(Diagnostic::error(
+                params,
+                format!(
+                  "defaulted field `{name}` needs a type (`{name} : Type ?? {default}`); string, Bool, and integer defaults are inferred"
+                ),
+            ));
+        }
     }
 }
 

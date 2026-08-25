@@ -4,7 +4,7 @@ title: Optional request argument on Rocci service handlers
 description: "Shipped convenience: one-parameter `@on` handlers inject unused `_request` at lowering. Follow-on shapes (dispatch arity, request as a handler-input field) stay exploratory and are not shipped."
 tags: [domain/rocci, concern/syntax, concern/architecture, concern/runtime]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T08:00:00Z }
+generated: { by: process:cursor, at: 2026-08-25T10:45:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -49,6 +49,11 @@ sources:
     title: "@component is a pure render function"
     author: human:nils
     last_modified: 2026-08-16
+  - id: roc-defaults
+    resource: ./roc-nightly-record-defaults.md
+    title: Roc nightly 2026-08-23 closed records and no trailing defaults
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # Optional request argument on Rocci service handlers
@@ -98,15 +103,21 @@ record. Dispatch would pass one value that includes both app state and the
 current request.
 
 This is the strongest authoring story **if** Roc record patterns allow
-omitting unused fields. Open questions against the pinned nightly:
+omitting unused fields. Against nightly-2026-08-23-fb208ba they do not:
+`handle : { db : Str, request : Str } -> Str` with body `|{ db }|` is a
+missing-field mismatch. Extra fields at the call site also fail unless
+the pattern is `|{ db, .. }|`. Type-position defaulted fields do not
+change that. Details: [Roc nightly record defaults](/research/rocci/roc-nightly-record-defaults.md).[^roc-defaults]
+
+Remaining design questions if Alternative B is revisited:
 
 - Flatten at the call site (`{ db: context.db, request }`) versus nested
   `{ state: context, request }`. Nested form forces
   `|{ state: { db }, request }|` and is worse for the common case.
 - Flattening without listing every `State` field needs record spread or a
   generated `HandlerIn` alias.
-- Closed versus open records: can `|{ db }|` typecheck against a wider
-  `{ db, request }` value without naming unused fields?
+- Closed versus open records: `|{ db }|` still cannot typecheck against a
+  wider `{ db, request }` value. `|{ db, .. }|` can.
 - `HandlerIn` must stay distinct from `State`. `@init` still produces
   process-lifetime state; only the handler call site adds `request`.
 
@@ -134,3 +145,4 @@ after checking pinned Roc record openness and whether a generated
 [^route-info]: `RouteInfo` is method, path, fn_name, and span; it does not record arity.
 [^server-state]: Durable application state is server-owned and produced by `@init`, not per HTTP call.
 [^pure-render]: `@component` lowers to an ordinary function from explicit values to `Html` and does not own request lifecycle.
+[^roc-defaults]: `|{ db }|` still cannot accept extra fields or drop unused closed fields; no positional `??`.

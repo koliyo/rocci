@@ -50,7 +50,7 @@ module: `<Design.Button />` → `Design.button`. Missing PascalCase names fail
 in Roc, not in a client-side registry.
 
 `??` field defaults are **experimental**. Omit the field at the call site;
-lowering fills it.
+generated Roc uses a type-position default so Roc fills it.
 
 In the styling example, `Hello` takes `{ name ?? "Roc" }`. A self-closing
 `<Hello />` uses the default. The component is **pure**: it cannot log, open

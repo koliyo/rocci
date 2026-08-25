@@ -4,7 +4,7 @@ title: Custom Rocdown block schemas and renderers
 description: "Design research: treat :kind as a Rocci function interface with named params and constrained children, then let a site-selected renderer paint Html. Syntax and the v1 pack overlay are in the crate; leftover @block / heading Prose are not. Post-landing comparison: rocdown-block-renderers-comparison.md."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring, concern/theming]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
+generated: { by: process:cursor, at: 2026-08-25T10:45:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -69,6 +69,11 @@ sources:
     title: Component param-default and inline type extraction
     author: process:git
     last_modified: 2026-08-19
+  - id: roc-defaults
+    resource: ../rocci/roc-nightly-record-defaults.md
+    title: Roc nightly 2026-08-23 type-position defaults versus pattern ??
+    author: process:cursor
+    last_modified: 2026-08-25
   - id: template-parser
     resource: ../../../crates/rocci-template/src/parser.rs
     title: Opaque Roc spans between recognized @ declarations
@@ -403,10 +408,11 @@ into generated Roc, or require the renderer to treat empty string as
 absent (today's pattern). Prefer schema-level defaults so a custom `Note`
 does not have to reimplement "missing title".[^template-readme][^template-ast]
 
-Roc nightly still cannot express optional *record fields*. Optional block
-params are therefore "present or defaulted", not `Option Str` in generated
-Roc, unless a later Roc change lands. Empty `Str` / `Bool.false` remain the
-v1 encoding, matching `paint_fields`.[^template-readme][^registry]
+Roc nightly-2026-08-23 can express optional (`field ?: Type`) and defaulted
+(`field : Type ?? value`) *record fields in type position*. Rocci still
+strips pattern `??` and fills call sites, so generated painters keep empty
+`Str` / `Bool.false` as the v1 encoding unless lowering starts emitting those
+Roc types. Details: [Roc nightly record defaults](/research/rocci/roc-nightly-record-defaults.md).[^template-readme][^registry][^roc-defaults]
 
 **Children** are not a magic `children` prop. They are the extra parameter
 (s), same as paired Rocci tags. The schema must say which of two payload
@@ -840,9 +846,10 @@ Callout : {
 Roc type-checks `callout.tone` when the theme compiles. The catalog, at
 `rocdown check` time, only sees a first parameter named `callout` with
 type *name* `Callout`. It does not see `tone` unless something else
-resolves that alias. `??` defaults also cannot live on the type: Roc
-nightly has no optional record fields, and `??` is a Rocci pattern
-extension stripped before Roc sees it.[^template-readme][^template-ast]
+resolves that alias. Rocci `??` in the *header pattern* is still stripped
+before Roc sees it. As of nightly-2026-08-23 a Roc *type* can carry
+`tone : Str ?? "note"`, but Rocci does not emit that annotation
+today.[^template-readme][^template-ast][^roc-defaults]
 
 Destructuring that names the alias does not exist as
 `|{ tone }: Callout|` in the current component header parser's record
@@ -1096,7 +1103,8 @@ with `rocdown build docs` still green on un-overridden kinds.[^impl-plan]
 [^lower-rs]: Standalone conservative HTML for article blocks beside the theme path.
 [^docs-rocci]: Per-kind `@component` painters; `Tabs` takes opaque `content`; `rd-docs-*` classes.
 [^build-runtime]: Hand-written `match` and `render_children!` concatenating Html before parent calls.
-[^template-readme]: Props record plus extra body parameter; `??` defaults stripped for Roc nightly; no optional Roc record fields; no magic children.
+[^template-readme]: Props record plus extra body parameter; Rocci `??` still stripped from patterns; no magic children.
+[^roc-defaults]: Type-position Roc defaults and optionals work on 2026-08-23; pattern `??` still rejected.
 [^template-ast]: `param_defaults`, `param_types`, and body param names from the component header.
 [^template-parser]: Ordinary Roc between `@` declarations is an opaque span copied into generated Roc.
 [^site-ref]: `build.theme` is chrome; no renderer map.

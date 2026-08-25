@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-25
 
+- Added draft [Roc nightly 2026-08-23 record defaults versus Rocci ??](research/rocci/roc-nightly-record-defaults.md) and [implementation plan](plans/rocci/roc-nightly-defaults.md): type-position `{ name : Str ?? "Roc" }` and `field ?: Type` work on `fb208ba`; pattern `|{ name ?? "Roc" }|`, positional defaults, omitting unused closed fields, and unused-binding skip still fail. Corrected stale “no optional Roc record fields” wording in [block renderers](research/rocdown/rocdown-block-renderers.md), [comparison](research/rocdown/rocdown-block-renderers-comparison.md), and [optional request](research/rocci/optional-handler-request.md). Plan: pin that nightly and emit type annotations instead of call-site fill. Exploratory; no phase logged complete until CI and Knowledge succeed.
 - Added draft [Dependabot security updates](research/ops/dependabot-security-updates.md) and skill `rocci-dependabot`: list alerts with `gh` before guessing packages; pin in-range (`ring` 0.17.x, npm `serialize-javascript` 7.0.5 override). `glib` 0.18 stays until wry/tao GTK4. Exploratory; do not log complete until CI and Knowledge succeed.
 
 ## 2026-08-24

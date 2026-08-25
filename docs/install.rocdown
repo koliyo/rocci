@@ -30,7 +30,7 @@ generated component functions.
 | Tool | Role | As tested |
 | --- | --- | --- |
 | Rust and Cargo | Build the Rocci workspace | GitHub Actions `dtolnay/rust-toolchain@stable`, edition 2024 crates |
-| Roc nightly | Compile generated and authored Roc | `nightly-2026-08-10` (`7df8509`), pinned in `docker/install-roc.sh` |
+| Roc nightly | Compile generated and authored Roc | `nightly-2026-08-23` (`fb208ba`), pinned in `docker/install-roc.sh` |
 | Datastar JS | Browser transport copied by `run` | `1.0.2` in application `rocci.toml` |
 | Native webview | Preview window | macOS WebKit, Linux WebKitGTK 4.1, Windows system webview |
 
@@ -48,8 +48,8 @@ lives at [roc-lang.org](https://www.roc-lang.org/).
 Install a Rust toolchain that compiles this workspace (edition 2024).
 [rustup](https://rustup.rs/) is the usual path.
 
-Install Roc. This repository is tested against **Roc nightly-2026-08-10**
-(`7df8509`). See the [Roc install docs](https://www.roc-lang.org/install) and
+Install Roc. This repository is tested against **Roc nightly-2026-08-23**
+(`fb208ba`). See the [Roc install docs](https://www.roc-lang.org/install) and
 match that nightly when a listed nightly is available. Confirm:
 
 ```sh
