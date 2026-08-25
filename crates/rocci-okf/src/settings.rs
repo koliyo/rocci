@@ -9,8 +9,8 @@ use crate::config::{
     save, to_toml, validate_config,
 };
 use crate::edges::edge_allowed;
-use crate::git_root::sync_git_root;
-use crate::resolve::okf_cache_dir;
+use crate::git_root::{git_root_dir, now_unix, read_meta, sync_git_root};
+use crate::resolve::{SyncMode, okf_cache_dir, resolve_all_with};
 
 pub fn http(method: &str, path: &str, raw: &[u8]) -> Option<String> {
     if path == "/settings" || path == "/settings/" {
@@ -40,8 +40,18 @@ pub fn render_article(message: Option<&str>) -> String {
 }
 
 fn render_article_from(config: &OkfUserConfig, message: Option<&str>) -> String {
-    let mut out = String::from("<div class=\"okf-settings\">\n");
+    let resolved = resolve_all_with(config, &okf_cache_dir(), now_unix(), SyncMode::Never);
+    let mut out = String::from("<div class=\"okf-settings\" id=\"okf-settings\">\n");
     out.push_str("<h1 class=\"rd-header-1\">Knowledge roots</h1>\n");
+    out.push_str(
+        "<p class=\"rd-paragraph\">A knowledge root is a local OKF bundle <code>rocci-okf</code> can check, search, and preview. Agents list resolved folders with <code>rocci-okf roots</code>.</p>\n",
+    );
+    if let Some(path) = config_path() {
+        out.push_str(&format!(
+            "<p class=\"rd-paragraph okf-settings-help\">Saved in <code>{}</code>.</p>\n",
+            escape(&path.display().to_string())
+        ));
+    }
     if let Some(message) = message.filter(|m| !m.is_empty()) {
         out.push_str(&format!(
             "<p class=\"okf-settings-msg\">{}</p>\n",
@@ -49,66 +59,126 @@ fn render_article_from(config: &OkfUserConfig, message: Option<&str>) -> String 
         ));
     }
     out.push_str(&format!(
-        "<p class=\"rd-paragraph\">Default git poll: <code>{}</code></p>\n",
+        "<p class=\"rd-paragraph okf-settings-help\">Default git poll interval: <code>{}</code> (examples: <code>5m</code>, <code>off</code>).</p>\n",
         escape(&config.poll.as_form_value())
     ));
-    out.push_str(&render_root_list(config));
+    out.push_str(&render_root_list(config, &resolved));
     out.push_str(&render_matrix(config));
     out.push_str(&render_add_forms());
+    out.push_str(SETTINGS_PAGE_SCRIPT);
     out.push_str("</div>\n");
     out
 }
 
-fn render_root_list(config: &OkfUserConfig) -> String {
+fn render_root_list(config: &OkfUserConfig, resolved: &[crate::git_root::ResolvedRoot]) -> String {
     let mut out = String::from("<h2 class=\"rd-header-2\">Configured roots</h2>\n");
     if config.roots.is_empty() {
         out.push_str(
-            "<p class=\"rd-paragraph\">No roots yet. Add a directory or git root below.</p>\n",
+            "<div class=\"okf-settings-empty\"><p class=\"rd-paragraph\">No roots yet. Add a folder on this computer (usually named <code>knowledge</code>, with <code>index.md</code>) or a git repository below.</p><p class=\"okf-settings-help\">Example: <code>~/Projects/rocci/knowledge</code></p></div>\n",
         );
         return out;
     }
-    out.push_str(
-        "<div class=\"okf-table-container\"><table class=\"okf-review-table\"><thead><tr>",
-    );
-    out.push_str(
-        "<th>id</th><th>kind</th><th>path / url</th><th>incoming</th><th>sync</th><th></th>",
-    );
-    out.push_str("</tr></thead><tbody>\n");
+    out.push_str("<div class=\"okf-settings-cards\">\n");
     for root in &config.roots {
-        out.push_str("<tr>");
-        out.push_str(&format!("<td><code>{}</code></td>", escape(root.id())));
-        match root {
-            RootConfig::Directory(dir) => {
-                out.push_str("<td>directory</td>");
-                out.push_str(&format!("<td>{}</td>", escape(&dir.path)));
-            }
-            RootConfig::Git(git) => {
-                out.push_str("<td>git</td>");
-                out.push_str(&format!("<td>{}</td>", escape(&git.url)));
+        let status = resolved.iter().find(|item| item.id == root.id());
+        out.push_str(&render_root_card(root, status));
+    }
+    out.push_str("</div>\n");
+    out
+}
+
+fn render_root_card(root: &RootConfig, status: Option<&crate::git_root::ResolvedRoot>) -> String {
+    let mut out = String::from("<article class=\"okf-settings-card\">\n");
+    out.push_str(&format!(
+        "<header class=\"okf-settings-card-head\"><h3 class=\"rd-header-3\"><code>{}</code></h3><span class=\"okf-action-pill\">{}</span></header>\n",
+        escape(root.id()),
+        escape(match root {
+            RootConfig::Directory(_) => "folder",
+            RootConfig::Git(_) => "git",
+        })
+    ));
+    match root {
+        RootConfig::Directory(dir) => {
+            out.push_str(&format!(
+                "<p class=\"rd-paragraph\">Configured path: <code>{}</code></p>\n",
+                escape(&dir.path)
+            ));
+            if let Some(warning) = index_md_warning(dir) {
+                out.push_str(&format!(
+                    "<p class=\"okf-settings-warn\">{}</p>\n",
+                    escape(&warning)
+                ));
             }
         }
-        out.push_str("<td>");
-        out.push_str(&incoming_form(root));
-        out.push_str("</td><td>");
-        if let RootConfig::Git(_) = root {
+        RootConfig::Git(git) => {
             out.push_str(&format!(
-                "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"sync\" /><input type=\"hidden\" name=\"id\" value=\"{}\" /><button type=\"submit\" class=\"okf-filter-btn\">Sync now</button></form>",
-                escape(root.id())
+                "<p class=\"rd-paragraph\">Remote: <code>{}</code></p>\n",
+                escape(&git.url)
             ));
         }
-        out.push_str("</td><td>");
-        out.push_str(&format!(
-            "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"remove\" /><input type=\"hidden\" name=\"id\" value=\"{}\" /><button type=\"submit\" class=\"okf-filter-btn\">Remove</button></form>",
-            escape(root.id())
-        ));
-        out.push_str("</td></tr>\n");
-        if let RootConfig::Git(git) = root {
-            out.push_str("<tr><td colspan=\"6\" class=\"okf-settings-token\">");
-            out.push_str(&edit_git_form(git));
-            out.push_str("</td></tr>\n");
+    }
+    if let Some(status) = status {
+        if let Some(path) = &status.path {
+            out.push_str(&format!(
+                "<p class=\"rd-paragraph\">Resolved locally: <code>{}</code></p>\n",
+                escape(&path.display().to_string())
+            ));
+        }
+        if status.enabled() {
+            out.push_str("<p class=\"okf-settings-help\">Status: available</p>\n");
+        } else {
+            out.push_str("<p class=\"okf-settings-warn\">Status: missing or not a directory</p>\n");
+        }
+        if let Some(revision) = &status.revision {
+            out.push_str(&format!(
+                "<p class=\"okf-settings-help\">Revision: <code>{}</code></p>\n",
+                escape(revision)
+            ));
+        }
+        if let Some(error) = &status.error {
+            out.push_str(&format!(
+                "<p class=\"okf-settings-warn\">{}</p>\n",
+                escape(error)
+            ));
         }
     }
-    out.push_str("</tbody></table></div>\n");
+    if let RootConfig::Git(git) = root {
+        let meta = read_meta(&git_root_dir(&okf_cache_dir(), &git.id).join("meta.toml"));
+        out.push_str(&format!(
+            "<p class=\"okf-settings-help\">Last fetch: {}</p>\n",
+            escape(&format_last_fetch(
+                meta.as_ref().and_then(|meta| meta.last_fetch_unix)
+            ))
+        ));
+        if let Some(error) = meta.as_ref().and_then(|meta| meta.last_error.as_deref()) {
+            out.push_str(&format!(
+                "<p class=\"okf-settings-warn\">Last sync error: {}</p>\n",
+                escape(error)
+            ));
+        }
+    }
+    out.push_str("<p class=\"okf-settings-help\">Incoming citations: who may use <code>okf:");
+    out.push_str(&escape(root.id()));
+    out.push_str("/…</code> links into this root.</p>\n");
+    out.push_str(&incoming_form(root));
+    out.push_str("<div class=\"okf-settings-actions\">");
+    if let RootConfig::Git(_) = root {
+        out.push_str(&format!(
+            "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"sync\" /><input type=\"hidden\" name=\"id\" value=\"{}\" /><button type=\"submit\" class=\"okf-filter-btn\">Sync now</button></form>",
+            escape(root.id())
+        ));
+    }
+    out.push_str(&format!(
+        "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"remove\" /><input type=\"hidden\" name=\"id\" value=\"{}\" /><button type=\"submit\" class=\"okf-filter-btn\">Remove</button></form>",
+        escape(root.id())
+    ));
+    out.push_str("</div>\n");
+    if let RootConfig::Git(git) = root {
+        out.push_str("<details class=\"okf-settings-advanced\"><summary>Git options</summary>");
+        out.push_str(&edit_git_form(git));
+        out.push_str("</details>\n");
+    }
+    out.push_str("</article>\n");
     out
 }
 
@@ -116,7 +186,7 @@ fn incoming_form(root: &RootConfig) -> String {
     let id = escape(root.id());
     let incoming = root.incoming();
     format!(
-        "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"incoming\" /><input type=\"hidden\" name=\"id\" value=\"{id}\" /><select name=\"incoming\" onchange=\"this.form.submit()\"><option value=\"allow\" {}>allow</option><option value=\"deny\" {}>deny</option></select></form>",
+        "<form method=\"post\" action=\"/__rocci_okf/settings\"><input type=\"hidden\" name=\"action\" value=\"incoming\" /><input type=\"hidden\" name=\"id\" value=\"{id}\" /><label>Who may cite this root <select name=\"incoming\" onchange=\"this.form.submit()\"><option value=\"allow\" {}>Anyone may cite this</option><option value=\"deny\" {}>Only listed roots may cite this</option></select></label></form>",
         if incoming == Incoming::Allow {
             "selected"
         } else {
@@ -132,12 +202,23 @@ fn incoming_form(root: &RootConfig) -> String {
 
 fn edit_git_form(git: &GitRoot) -> String {
     let token_hint = if git.token.as_ref().is_some_and(|t| !t.is_empty()) {
-        "Token is set. Leave blank to keep it."
+        "A token is stored. Leave blank to keep it. Prefer an environment variable name instead."
     } else {
-        "Optional write-only token."
+        "Prefer an environment variable. A pasted token is write-only and never shown again."
     };
     format!(
-        "<form method=\"post\" action=\"/__rocci_okf/settings\" class=\"okf-settings-inline\"><input type=\"hidden\" name=\"action\" value=\"edit_git\" /><input type=\"hidden\" name=\"id\" value=\"{id}\" />branch <input name=\"branch\" value=\"{branch}\" /> bundle <input name=\"bundle\" value=\"{bundle}\" /> token_env <input name=\"token_env\" value=\"{token_env}\" /> token <input name=\"token\" type=\"password\" autocomplete=\"off\" /> poll <input name=\"poll\" value=\"{poll}\" /> <span>{hint}</span> <button type=\"submit\" class=\"okf-filter-btn\">Save</button></form>",
+        "<form method=\"post\" action=\"/__rocci_okf/settings\" class=\"okf-settings-stack\"><input type=\"hidden\" name=\"action\" value=\"edit_git\" /><input type=\"hidden\" name=\"id\" value=\"{id}\" />\
+<label>Branch <input name=\"branch\" value=\"{branch}\" /></label>\
+<p class=\"okf-settings-help\">Git branch to check out.</p>\
+<label>Bundle subfolder <input name=\"bundle\" value=\"{bundle}\" placeholder=\"knowledge\" /></label>\
+<p class=\"okf-settings-help\">Path inside the repo that contains <code>index.md</code>. Leave empty for the repo root.</p>\
+<label>Token environment variable <input name=\"token_env\" value=\"{token_env}\" placeholder=\"GITHUB_TOKEN\" /></label>\
+<p class=\"okf-settings-help\">Name of an env var with a PAT. Preferred over storing a token in okf.toml.</p>\
+<label>Token <input name=\"token\" type=\"password\" autocomplete=\"off\" /></label>\
+<p class=\"okf-settings-help\">{hint}</p>\
+<label>Poll <input name=\"poll\" value=\"{poll}\" placeholder=\"5m\" /></label>\
+<p class=\"okf-settings-help\">How often preview may fetch. Use <code>5m</code> or <code>off</code>.</p>\
+<button type=\"submit\" class=\"okf-filter-btn\">Save git options</button></form>",
         id = escape(&git.id),
         branch = escape(&git.branch),
         bundle = escape(&git.bundle),
@@ -154,7 +235,7 @@ fn render_matrix(config: &OkfUserConfig) -> String {
     let ids: Vec<&str> = config.roots.iter().map(RootConfig::id).collect();
     let mut out = String::from("<h2 class=\"rd-header-2\">Citation matrix</h2>\n");
     out.push_str(
-        "<p class=\"rd-paragraph\">Checked cells allow the row root to cite the column root.</p>\n",
+        "<p class=\"rd-paragraph\">Each checked cell means the <strong>row</strong> root may cite the <strong>column</strong> root (for example, row <code>rocci</code> column <code>notes</code> allows rocci to use <code>okf:notes/…</code>). Incoming defaults above still apply when a cell is empty.</p>\n",
     );
     out.push_str("<form method=\"post\" action=\"/__rocci_okf/settings\">");
     out.push_str("<input type=\"hidden\" name=\"action\" value=\"matrix\" />");
@@ -188,24 +269,32 @@ fn render_matrix(config: &OkfUserConfig) -> String {
 }
 
 fn render_add_forms() -> String {
-    r#"<h2 class="rd-header-2">Add directory</h2>
-<form method="post" action="/__rocci_okf/settings">
+    r#"<h2 class="rd-header-2">Add a folder on this computer</h2>
+<p class="okf-settings-help">Pick the directory that contains <code>index.md</code> (often named <code>knowledge</code>). Choose folder is available in the desktop preview window.</p>
+<form method="post" action="/__rocci_okf/settings" class="okf-settings-stack">
 <input type="hidden" name="action" value="add_directory" />
-<label>id <input name="id" /></label>
-<label>path <input name="path" /></label>
-<button type="submit" class="okf-cta-btn">Add directory</button>
+<label>Short id <input id="okf-dir-id" name="id" placeholder="rocci" /></label>
+<p class="okf-settings-help">Stable name used in <code>okf:id/…</code> links. Suggested from the folder name after you pick one.</p>
+<label>Folder path <input id="okf-dir-path" name="path" placeholder="~/Projects/rocci/knowledge" /></label>
+<p class="okf-settings-help">Absolute path, or <code>~</code> for your home directory. You can paste a path if Choose folder is hidden.</p>
+<button type="button" class="okf-filter-btn" id="okf-choose-folder" hidden>Choose folder…</button>
+<button type="submit" class="okf-cta-btn">Add folder</button>
 </form>
-<h2 class="rd-header-2">Add git</h2>
-<form method="post" action="/__rocci_okf/settings">
+<h2 class="rd-header-2">Add a git repository</h2>
+<p class="okf-settings-help">rocci-okf clones into the local cache. Prefer <code>token_env</code> over pasting a token.</p>
+<form method="post" action="/__rocci_okf/settings" class="okf-settings-stack">
 <input type="hidden" name="action" value="add_git" />
-<label>id <input name="id" /></label>
-<label>url <input name="url" /></label>
-<label>branch <input name="branch" value="main" /></label>
-<label>bundle <input name="bundle" /></label>
-<label>token_env <input name="token_env" /></label>
-<label>token <input name="token" type="password" autocomplete="off" /></label>
-<label>poll <input name="poll" /></label>
-<button type="submit" class="okf-cta-btn">Add git</button>
+<label>Short id <input name="id" placeholder="notes" /></label>
+<label>Repository URL <input name="url" placeholder="https://github.com/org/notes.git" /></label>
+<p class="okf-settings-help"><code>https://</code>, <code>ssh://</code>, <code>git@</code>, or <code>file://</code>.</p>
+<label>Branch <input name="branch" value="main" /></label>
+<label>Bundle subfolder <input name="bundle" placeholder="knowledge" /></label>
+<p class="okf-settings-help">Leave empty if <code>index.md</code> is at the repo root.</p>
+<label>Token environment variable <input name="token_env" placeholder="GITHUB_TOKEN" /></label>
+<label>Token <input name="token" type="password" autocomplete="off" /></label>
+<p class="okf-settings-help">Write-only. Never shown after save.</p>
+<label>Poll <input name="poll" placeholder="5m" /></label>
+<button type="submit" class="okf-cta-btn">Add git repository</button>
 </form>
 "#
     .into()
@@ -217,7 +306,15 @@ fn apply_action(fields: &BTreeMap<String, String>) -> Result<String> {
     let message = match action {
         "add_directory" => {
             add_directory(&mut config, fields)?;
-            format!("added directory root `{}`", fields["id"])
+            let id = fields["id"].as_str();
+            let mut message = format!("added directory root `{id}`");
+            if let Some(RootConfig::Directory(dir)) = config.roots.last()
+                && let Some(warning) = index_md_warning(dir)
+            {
+                message.push_str(". ");
+                message.push_str(&warning);
+            }
+            message
         }
         "add_git" => {
             add_git(&mut config, fields)?;
@@ -486,6 +583,62 @@ fn escape(text: &str) -> String {
         .replace('"', "&quot;")
 }
 
+fn index_md_warning(dir: &DirectoryRoot) -> Option<String> {
+    let path = dir.expanded_path();
+    if path.is_dir() && !path.join("index.md").is_file() {
+        Some(
+            "This folder has no index.md. rocci-okf still expects an OKF bundle; you can add it anyway."
+                .into(),
+        )
+    } else {
+        None
+    }
+}
+
+fn format_last_fetch(unix: Option<u64>) -> String {
+    let Some(fetched) = unix else {
+        return "never".into();
+    };
+    let ago = now_unix().saturating_sub(fetched);
+    if ago < 60 {
+        format!("{ago}s ago")
+    } else if ago < 3600 {
+        format!("{}m ago", ago / 60)
+    } else if ago < 86400 {
+        format!("{}h ago", ago / 3600)
+    } else {
+        format!("{}d ago", ago / 86400)
+    }
+}
+
+const SETTINGS_PAGE_SCRIPT: &str = r#"<script>
+(function(){
+  if (location.pathname === "/__rocci_okf/settings") {
+    history.replaceState(null, "", "/settings/");
+  }
+  var browse = document.getElementById("okf-choose-folder");
+  var path = document.getElementById("okf-dir-path");
+  var id = document.getElementById("okf-dir-id");
+  if (browse && window.ipc && window.ipc.postMessage) {
+    browse.hidden = false;
+    window.addEventListener("rocci-pick-folder", function(ev){
+      var picked = ev.detail && ev.detail.path;
+      if (!picked || !path) return;
+      path.value = picked;
+      if (id && !id.value.trim()) {
+        var parts = String(picked).replace(/\\/g, "/").replace(/\/$/, "").split("/");
+        id.value = parts[parts.length - 1] || "";
+      }
+    });
+    browse.addEventListener("click", function(e){
+      e.preventDefault();
+      window.ipc.postMessage("pick-folder");
+    });
+  }
+})();
+</script>
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -505,9 +658,12 @@ token = "super-secret-token"
         let html = render_article_from(&config, None);
         assert!(!html.contains("super-secret-token"), "{html}");
         assert!(html.contains("type=\"password\""));
-        assert!(html.contains("Add directory"));
-        assert!(html.contains("Add git"));
+        assert!(html.contains("Add folder"));
+        assert!(html.contains("Add git repository"));
+        assert!(html.contains("Choose folder"));
         assert!(html.contains("Knowledge roots"));
+        assert!(html.contains("pick-folder"));
+        assert!(html.contains("Anyone may cite this"));
     }
 
     #[test]
@@ -587,5 +743,45 @@ incoming = "deny"
             None => unsafe { std::env::remove_var("ROCCI_OKF_CONFIG") },
         }
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn directory_card_shows_resolved_path_and_index_warning() {
+        let bundle = std::env::temp_dir().join(format!(
+            "rocci-okf-settings-bundle-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&bundle).unwrap();
+        let with_index = bundle.join("with-index");
+        std::fs::create_dir_all(&with_index).unwrap();
+        std::fs::write(with_index.join("index.md"), "# Knowledge\n").unwrap();
+        let without_index = bundle.join("empty");
+        std::fs::create_dir_all(&without_index).unwrap();
+
+        let config = crate::config::parse(&format!(
+            r#"
+[[roots]]
+id = "docs"
+kind = "directory"
+path = "{}"
+
+[[roots]]
+id = "empty"
+kind = "directory"
+path = "{}"
+"#,
+            with_index.display(),
+            without_index.display()
+        ))
+        .unwrap();
+        let html = render_article_from(&config, None);
+        let resolved = with_index.canonicalize().unwrap();
+        assert!(html.contains(&resolved.display().to_string()), "{html}");
+        assert!(html.contains("Status: available"), "{html}");
+        assert!(html.contains("no index.md"), "{html}");
+        let _ = std::fs::remove_dir_all(&bundle);
     }
 }

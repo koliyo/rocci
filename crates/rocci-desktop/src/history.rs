@@ -18,6 +18,7 @@ pub enum IpcMessage {
     Location(String),
     Drag,
     Zoom,
+    PickFolder,
 }
 
 impl NavCommand {
@@ -59,6 +60,7 @@ impl IpcMessage {
         match message {
             "drag" => return Some(Self::Drag),
             "zoom" => return Some(Self::Zoom),
+            "pick-folder" => return Some(Self::PickFolder),
             _ => {}
         }
         NavCommand::parse(message).map(Self::Nav)
@@ -281,6 +283,10 @@ mod tests {
         );
         assert_eq!(IpcMessage::parse("drag"), Some(IpcMessage::Drag));
         assert_eq!(IpcMessage::parse("zoom"), Some(IpcMessage::Zoom));
+        assert_eq!(
+            IpcMessage::parse("pick-folder"),
+            Some(IpcMessage::PickFolder)
+        );
     }
 
     #[test]

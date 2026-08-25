@@ -68,7 +68,11 @@ are application-side; the portable engine does not emit them. Intra-bundle
 Preview `/settings/` (sidebar next to Dashboard and Review queue) edits
 `okf.toml` with one-shot POST commands: add/remove roots, incoming defaults,
 the citation matrix, write-only tokens, and Sync now. Tokens are never echoed
-back into the page.
+back into the page. In the desktop preview window, **Choose folder…** opens a
+native folder dialog (`window.ipc` `pick-folder`, `rfd` / NSOpenPanel). Without
+a desktop window (`--no-window`), paste the folder path. Each root card shows
+the resolved local path, git last fetch / error, and whether `index.md` is
+missing. POSTs to `/__rocci_okf/settings` are loopback-only.
 
 Saving the config rewrites a canonical TOML file; comments are not preserved.
 

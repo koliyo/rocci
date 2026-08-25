@@ -2610,8 +2610,17 @@ hr { border: 0; border-top: 1px solid var(--rd-border); margin: 1.5rem 0; }
 .okf-cta-btn { background: var(--rd-primary); color: #282c34; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 500; }
 .okf-cta-btn:hover { text-decoration: none; opacity: 0.9; }
 .okf-settings form { margin: 0.75rem 0 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; }
+.okf-settings-stack { flex-direction: column; align-items: stretch; max-width: 40rem; }
+.okf-settings-stack label { display: flex; flex-direction: column; gap: 0.25rem; }
 .okf-settings input, .okf-settings select { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--rd-border); background: var(--rd-bg); color: var(--rd-fg); }
 .okf-settings-msg { background: rgba(97, 175, 239, 0.12); border: 1px solid var(--rd-blue, #61afef); padding: 0.75rem 1rem; border-radius: 6px; }
+.okf-settings-help { color: var(--rd-muted); font-size: 0.9rem; margin: 0.15rem 0 0.75rem; }
+.okf-settings-warn { color: var(--rd-orange); font-size: 0.9rem; }
+.okf-settings-cards { display: flex; flex-direction: column; gap: 1rem; }
+.okf-settings-card { border: 1px solid var(--rd-border); border-radius: 8px; padding: 1rem 1.15rem; background: var(--rd-bg-subtle); }
+.okf-settings-card-head { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; }
+.okf-settings-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.okf-settings-advanced { margin-top: 0.75rem; }
 .okf-settings-inline { font-size: 0.85rem; }
 .okf-settings button { cursor: pointer; }
 "#;
