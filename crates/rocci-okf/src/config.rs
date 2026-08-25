@@ -30,7 +30,7 @@ impl Incoming {
         }
     }
 
-    fn parse(value: &str) -> Result<Self> {
+    pub(crate) fn parse(value: &str) -> Result<Self> {
         match value {
             "allow" => Ok(Self::Allow),
             "deny" => Ok(Self::Deny),
@@ -52,6 +52,10 @@ impl Default for PollSetting {
 }
 
 impl PollSetting {
+    pub fn as_form_value(self) -> String {
+        format_poll(self)
+    }
+
     fn to_toml_value(self) -> toml::Value {
         match self {
             Self::Off => toml::Value::Boolean(false),
@@ -452,6 +456,10 @@ fn default_incoming(kind: &str) -> Incoming {
     }
 }
 
+pub(crate) fn validate_config(config: &OkfUserConfig) -> Result<()> {
+    validate(config)
+}
+
 fn validate(config: &OkfUserConfig) -> Result<()> {
     let mut seen = std::collections::BTreeSet::new();
     for root in &config.roots {
@@ -734,11 +742,17 @@ fn set_file_mode(path: &Path, inline_token: bool) -> Result<()> {
 }
 
 #[cfg(test)]
+pub(crate) static CONFIG_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
 
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
+    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+        CONFIG_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     const EXAMPLE: &str = r#"
 poll = "5m"
@@ -1016,7 +1030,7 @@ token = "super-secret"
 
     #[test]
     fn token_env_wins_over_inline_token() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = env_lock();
         let config = parse(
             r#"
 [[roots]]
@@ -1039,7 +1053,7 @@ token_env = "ROCCI_OKF_TEST_TOKEN"
 
     #[test]
     fn tilde_expands_from_home() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = env_lock();
         let original = env::var("HOME").ok();
         unsafe { env::set_var("HOME", "/Users/tester") };
         assert_eq!(
@@ -1054,7 +1068,7 @@ token_env = "ROCCI_OKF_TEST_TOKEN"
 
     #[test]
     fn config_path_honors_env() {
-        let _lock = ENV_LOCK.lock().unwrap();
+        let _lock = env_lock();
         let original = env::var("ROCCI_OKF_CONFIG").ok();
         unsafe { env::set_var("ROCCI_OKF_CONFIG", "/tmp/custom-okf.toml") };
         assert_eq!(

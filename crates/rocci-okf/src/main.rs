@@ -14,6 +14,7 @@ mod presentation;
 mod resolve;
 mod runtime;
 mod session;
+mod settings;
 
 #[derive(Parser)]
 #[command(
@@ -207,7 +208,7 @@ fn preview_knowledge(preview: PreviewArgs) -> Result<()> {
         stored.bundle = Some(target.root.clone());
         stored
     }));
-    let extra_http = Some(session_http_handler(session_state.clone()));
+    let extra_http = Some(preview_http_handler(session_state.clone()));
     let server = dev::run_knowledge(
         &target.root,
         output.as_deref(),
@@ -326,6 +327,20 @@ fn seed_session_file(output: &std::path::Path, session: &session::OkfSession) {
     if let Ok(json) = serde_json::to_string_pretty(session) {
         let _ = std::fs::write(dest, json);
     }
+}
+
+fn preview_http_handler(
+    state: std::sync::Arc<std::sync::Mutex<session::OkfSession>>,
+) -> rocci_cli::dev_server::ExtraHttpHandler {
+    let session = session_http_handler(state);
+    std::sync::Arc::new(move |method, path, raw| {
+        if let Some(response) = session(method, path, raw) {
+            return Some(response);
+        }
+        let article = settings::http(method, path, raw)?;
+        let html = presentation::html_page_at("Knowledge roots", &article, "/settings/");
+        Some((200, "text/html; charset=utf-8", html.into_bytes()))
+    })
 }
 
 fn session_http_handler(

@@ -65,6 +65,11 @@ missing, and `OKF3011` when the edge policy denies the citation. Those codes
 are application-side; the portable engine does not emit them. Intra-bundle
 `okf:` hrefs are not treated as bundle paths (no OKF3001/3002).
 
+Preview `/settings/` (sidebar next to Dashboard and Review queue) edits
+`okf.toml` with one-shot POST commands: add/remove roots, incoming defaults,
+the citation matrix, write-only tokens, and Sync now. Tokens are never echoed
+back into the page.
+
 Saving the config rewrites a canonical TOML file; comments are not preserved.
 
 ### Retrieval Benchmarks
@@ -76,7 +81,8 @@ cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
 ### Live Reload Review Server & Desktop Preview
 
 The review viewer uses a dark One Dark Pro palette. The left sidebar follows
-the documentation site pattern: Dashboard and Review queue as top links, then
+the documentation site pattern: Dashboard, Review queue, and Settings as top
+links, then
 nested collection sections that expand with a `+`/`−` control (the section
 title is not itself a link). Each nested level is indented. Collection landing
 pages are labeled Overview, and leaf documents sit inside the open section. Pages with H2 or H3 headings get a right “On this
