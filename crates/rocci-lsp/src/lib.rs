@@ -18,7 +18,7 @@ use lsp_types::notification::{
     PublishDiagnostics,
 };
 use lsp_types::request::{
-    Completion, DocumentSymbolRequest, GotoDefinition, HoverRequest, Request as _,
+    Completion, DocumentSymbolRequest, GotoDefinition, HoverRequest, References, Request as _,
     SemanticTokensFullRequest, SemanticTokensRangeRequest,
 };
 use lsp_types::{
@@ -26,10 +26,10 @@ use lsp_types::{
     Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
     DocumentSymbolParams, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
     HoverProviderCapability, InitializeParams, InitializeResult, Location, LocationLink, OneOf,
-    Position, PositionEncodingKind, PublishDiagnosticsParams, Range, SemanticTokensFullOptions,
-    SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
-    SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
-    TextDocumentSyncKind, TextEdit, Uri,
+    Position, PositionEncodingKind, PublishDiagnosticsParams, Range, ReferenceParams,
+    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
+    SemanticTokensRangeParams, SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, Uri,
 };
 use rocci_template::{
     PositionEncoding, Segment, SourceFile, Span, map_generated_span, project_type_module,
@@ -126,6 +126,7 @@ impl LanguageServer {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
+                references_provider: Some(OneOf::Left(true)),
                 completion_provider: Some(CompletionOptions {
                     trigger_characters: Some(vec!["<".to_string(), "@".to_string()]),
                     ..CompletionOptions::default()
@@ -249,6 +250,15 @@ impl LanguageServer {
         self.document(uri)?.completion(&params)
     }
 
+    pub fn references(&self, params: ReferenceParams) -> Option<Vec<Location>> {
+        let uri = &params.text_document_position.text_document.uri;
+        let (executable, offset) = self.cursor_at(uri, params.text_document_position.position)?;
+        if executable {
+            return self.mapped_roc_references(uri, offset, params.context.include_declaration);
+        }
+        None
+    }
+
     pub fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
@@ -291,6 +301,10 @@ impl LanguageServer {
             }
             Completion::METHOD => match serde_json::from_value::<CompletionParams>(req.params) {
                 Ok(params) => Response::new_ok(id, self.completion(params)),
+                Err(err) => invalid_params(id, err),
+            },
+            References::METHOD => match serde_json::from_value::<ReferenceParams>(req.params) {
+                Ok(params) => Response::new_ok(id, self.references(params)),
                 Err(err) => invalid_params(id, err),
             },
             SemanticTokensFullRequest::METHOD => {
@@ -507,6 +521,54 @@ impl LanguageServer {
             self.encoding,
             response,
         ))
+    }
+
+    fn mapped_roc_references(
+        &self,
+        uri: &Uri,
+        offset: u32,
+        include_declaration: bool,
+    ) -> Option<Vec<Location>> {
+        let (source_name, source_text) = {
+            let doc = self.document(uri)?;
+            (doc.source_name().to_string(), doc.source_text().to_string())
+        };
+        let name = uri_key(uri);
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return None;
+        };
+        let (path, roc, segments) = {
+            let file = roc_state.files.get(&name)?;
+            (file.path.clone(), file.roc.clone(), file.segments.clone())
+        };
+        let mapped = source_to_generated(&source_text, &roc, &segments, offset)?;
+        let proj = SourceFile::new("projection.roc", &roc);
+        let (line, character) = proj.position(mapped.offset, CHILD_ENCODING);
+        let locations = roc_state.backend.references(
+            &path,
+            Position::new(line, character),
+            include_declaration,
+        )?;
+        let mapped: Vec<_> = locations
+            .into_iter()
+            .filter_map(|location| {
+                map_location(
+                    uri,
+                    &path,
+                    &source_name,
+                    &source_text,
+                    &roc,
+                    &segments,
+                    self.encoding,
+                    location,
+                )
+            })
+            .collect();
+        if mapped.is_empty() {
+            None
+        } else {
+            Some(mapped)
+        }
     }
 }
 

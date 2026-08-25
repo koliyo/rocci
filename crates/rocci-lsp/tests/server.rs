@@ -4,9 +4,9 @@ use lsp_types::{
     DiagnosticSeverity, DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
     GeneralClientCapabilities, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverContents,
     HoverParams, InitializeParams, Location, MarkupContent, MarkupKind, PartialResultParams,
-    Position, PositionEncodingKind, Range, SemanticTokens, SemanticTokensParams,
-    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, TextEdit, Uri,
-    WorkDoneProgressParams,
+    Position, PositionEncodingKind, Range, ReferenceContext, ReferenceParams, SemanticTokens,
+    SemanticTokensParams, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams,
+    TextEdit, Uri, WorkDoneProgressParams,
 };
 use rocci_lsp::{
     FakeRocBackend, InspectedRegion, Language, LanguageServer, PROJECTION_PLACEHOLDER_URI,
@@ -1252,4 +1252,39 @@ fn interpolation_definition_keeps_sibling_roc_uri() {
         panic!("expected scalar location");
     };
     assert_eq!(location.uri, helper);
+}
+
+#[test]
+fn interpolation_references_map_projection_locations() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title}</p>
+}
+"#;
+    let range = projected_ident_range(src, "title", "{title}");
+    let mut fake = FakeRocBackend::default();
+    fake.set_references(vec![Location {
+        uri: PROJECTION_PLACEHOLDER_URI.parse().expect("placeholder"),
+        range,
+    }]);
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    open(&mut server, src);
+    let title = src.find("{title}").expect("interp") + 1;
+    let (line, character) = line_col(src, title);
+    let locations = server
+        .references(ReferenceParams {
+            text_document_position: position_params(line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: ReferenceContext {
+                include_declaration: true,
+            },
+        })
+        .expect("roc references");
+    assert_eq!(locations.len(), 1);
+    assert_eq!(locations[0].uri, test_uri());
+    let (start_line, start_character) = line_col(src, title);
+    assert_eq!(locations[0].range.start.line, start_line);
+    assert_eq!(locations[0].range.start.character, start_character);
 }

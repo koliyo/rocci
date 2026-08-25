@@ -12,9 +12,9 @@ use lsp_types::{
     ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic,
     DidChangeTextDocumentParams, DidOpenTextDocumentParams, GotoDefinitionParams,
     GotoDefinitionResponse, Hover, HoverParams, InitializeParams, InitializedParams, Location,
-    PartialResultParams, Position, PublishDiagnosticsParams, TextDocumentContentChangeEvent,
-    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
-    VersionedTextDocumentIdentifier, WorkDoneProgressParams,
+    PartialResultParams, Position, PublishDiagnosticsParams, ReferenceContext, ReferenceParams,
+    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier, WorkDoneProgressParams,
 };
 use serde_json::Value;
 
@@ -39,6 +39,15 @@ pub trait RocBackend: Send {
         let _ = (path, position);
         None
     }
+    fn references(
+        &mut self,
+        path: &Path,
+        position: Position,
+        include_declaration: bool,
+    ) -> Option<Vec<Location>> {
+        let _ = (path, position, include_declaration);
+        None
+    }
 }
 
 pub struct NullRocBackend;
@@ -61,6 +70,7 @@ pub struct FakeRocBackend {
     diagnostics: Vec<Diagnostic>,
     completion: Option<CompletionResponse>,
     definition: Option<GotoDefinitionResponse>,
+    references: Option<Vec<Location>>,
 }
 
 impl FakeRocBackend {
@@ -82,6 +92,10 @@ impl FakeRocBackend {
 
     pub fn set_definition(&mut self, definition: GotoDefinitionResponse) {
         self.definition = Some(definition);
+    }
+
+    pub fn set_references(&mut self, references: Vec<Location>) {
+        self.references = Some(references);
     }
 }
 
@@ -114,6 +128,20 @@ impl RocBackend for FakeRocBackend {
         self.definition
             .clone()
             .map(|response| rewrite_definition(response, path))
+    }
+
+    fn references(
+        &mut self,
+        path: &Path,
+        _position: Position,
+        _include_declaration: bool,
+    ) -> Option<Vec<Location>> {
+        self.references.clone().map(|locations| {
+            locations
+                .into_iter()
+                .map(|location| rewrite_location(location, path))
+                .collect()
+        })
     }
 }
 
@@ -393,6 +421,37 @@ impl RocBackend for ChildRocBackend {
                     },
                     work_done_progress_params: WorkDoneProgressParams::default(),
                     partial_result_params: PartialResultParams::default(),
+                })
+                .ok()?,
+                REQUEST_TIMEOUT,
+            )
+            .ok()?;
+        if value.is_null() {
+            return None;
+        }
+        serde_json::from_value(value).ok()
+    }
+
+    fn references(
+        &mut self,
+        path: &Path,
+        position: Position,
+        include_declaration: bool,
+    ) -> Option<Vec<Location>> {
+        let uri = self.uri_for(path).ok()?;
+        let value = self
+            .request(
+                "textDocument/references",
+                serde_json::to_value(ReferenceParams {
+                    text_document_position: TextDocumentPositionParams {
+                        text_document: TextDocumentIdentifier { uri },
+                        position,
+                    },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                    partial_result_params: PartialResultParams::default(),
+                    context: ReferenceContext {
+                        include_declaration,
+                    },
                 })
                 .ok()?,
                 REQUEST_TIMEOUT,
