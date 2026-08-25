@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use okf::InspectKind;
 use rocci_cli::serve::{PortArg, parse_port_arg};
 
+mod config;
 mod dev;
 mod inspect;
 mod presentation;
