@@ -369,6 +369,7 @@ where
         format!("{prefix}: serving {title} at {}", server.url),
     );
     crate::serve::emit_preview_ready(&server.url);
+    crate::serve::emit_inspector_ready(&server.inspector_url);
     crate::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();

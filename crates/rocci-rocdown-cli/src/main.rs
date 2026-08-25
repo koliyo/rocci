@@ -940,6 +940,7 @@ fn run_site_dev(
         format!("rocdown: serving {} at {}", server.title, server.url),
     );
     rocci_cli::serve::emit_preview_ready(&server.url);
+    rocci_cli::serve::emit_inspector_ready(&server.inspector_url);
     rocci_cli::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();
@@ -1438,5 +1439,36 @@ mod tests {
         let serving = src.find("rocdown: serving").expect("serving");
         let ready = src.find("emit_preview_ready").expect("preview_ready");
         assert!(serving < ready);
+    }
+
+    #[test]
+    fn inspector_ready_prints_on_piped_stdout_not_tty() {
+        let mut piped = Vec::new();
+        rocci_cli::serve::write_inspector_ready(
+            &mut piped,
+            "http://127.0.0.1:8000/__rocci/dev",
+            false,
+        )
+        .unwrap();
+        let line = String::from_utf8(piped).unwrap();
+        assert_eq!(line, "inspector_ready http://127.0.0.1:8000/__rocci/dev\n");
+        assert!(!line.contains('\u{1b}'));
+
+        let mut tty = Vec::new();
+        rocci_cli::serve::write_inspector_ready(
+            &mut tty,
+            "http://127.0.0.1:8000/__rocci/dev",
+            true,
+        )
+        .unwrap();
+        assert!(tty.is_empty());
+    }
+
+    #[test]
+    fn view_emits_inspector_ready_after_preview_ready() {
+        let src = include_str!("main.rs");
+        let preview = src.find("emit_preview_ready").expect("preview_ready");
+        let inspector = src.find("emit_inspector_ready").expect("inspector_ready");
+        assert!(preview < inspector);
     }
 }
