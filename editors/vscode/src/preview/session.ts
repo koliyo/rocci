@@ -6,15 +6,18 @@ import {
   StatusBarItem,
   ViewColumn,
   WebviewPanel,
-  window
+  window,
+  workspace
 } from 'vscode'
 
 import { wrappedOutput } from '../output-channels'
 import { resolvePreviewBinary } from './binaries'
 import { canPreviewDocument, chooseBrowserHost, iframePreviewHtml } from './browser'
 import { previewArgv } from './dispatch'
-import { navigateUrl, PreviewOrigin, previewOrigin, reuseDecision } from './origin'
+import { navigateUrl, PreviewOrigin, previewOrigin, reuseDecision, sameOrigin } from './origin'
 import { parsePreviewUrl } from './parse'
+import { countPreviewReadyLines, withReloadNonce } from './reload'
+import { PreviewReloadStream } from './sse'
 
 const READY_TIMEOUT_MS = 120_000
 const ACTIVE_CONTEXT = 'rocci.preview.active'
@@ -26,12 +29,21 @@ export class PreviewSession {
   private stopping = false
   private panel: WebviewPanel | undefined
   private readonly status: StatusBarItem
+  private readonly reloadStream = new PreviewReloadStream(() => {
+    void this.reload()
+  })
+  private reloadNonce = 0
+  private readyLines = 0
+  private saveTimer: NodeJS.Timeout | undefined
 
   constructor(private readonly context: ExtensionContext) {
     this.status = window.createStatusBarItem(StatusBarAlignment.Left, 50)
     this.status.command = 'rocci.stopPreview'
     this.status.tooltip = 'Stop Rocci preview'
-    this.context.subscriptions.push(this.status)
+    this.context.subscriptions.push(
+      this.status,
+      workspace.onDidSaveTextDocument(document => this.onSaved(document.uri.fsPath))
+    )
   }
 
   get running(): boolean {
@@ -95,6 +107,7 @@ export class PreviewSession {
       const text = chunk.toString('utf8')
       buffer += text
       wrappedOutput.append(text)
+      this.noteReadyLines(buffer)
     }
     child.stdout?.on('data', onData)
     child.stderr?.on('data', onData)
@@ -106,6 +119,7 @@ export class PreviewSession {
         this.child = undefined
         this.origin = undefined
         this.url = undefined
+        this.reloadStream.stop()
         void this.setActive(false)
       }
       if (!this.stopping) {
@@ -119,15 +133,31 @@ export class PreviewSession {
       return
     }
     this.url = url
+    this.readyLines = Math.max(1, countPreviewReadyLines(buffer))
+    this.reloadStream.start(url)
     await this.setActive(true)
     await this.openBrowser(url)
   }
 
+  async reload(): Promise<void> {
+    if (!this.running || !this.url) {
+      return
+    }
+    this.reloadNonce += 1
+    await this.openBrowser(withReloadNonce(this.url, this.reloadNonce))
+  }
+
   async stop(): Promise<void> {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer)
+      this.saveTimer = undefined
+    }
+    this.reloadStream.stop()
     const child = this.child
     this.child = undefined
     this.origin = undefined
     this.url = undefined
+    this.readyLines = 0
     await this.setActive(false)
     if (!child || child.exitCode !== null) {
       return
@@ -199,6 +229,31 @@ export class PreviewSession {
     this.panel.reveal(ViewColumn.Beside, true)
   }
 
+  private noteReadyLines(buffer: string): void {
+    const count = countPreviewReadyLines(buffer)
+    if (this.url && count > this.readyLines) {
+      this.readyLines = count
+      void this.reload()
+    }
+  }
+
+  private onSaved(filePath: string): void {
+    if (!this.running || !this.origin) {
+      return
+    }
+    const origin = previewOrigin(filePath)
+    if (!origin || !sameOrigin(origin, this.origin)) {
+      return
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer)
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = undefined
+      void this.reload()
+    }, 600)
+  }
+
   private async setActive(active: boolean): Promise<void> {
     await commands.executeCommand('setContext', ACTIVE_CONTEXT, active)
     if (active) {
@@ -253,6 +308,7 @@ export function registerPreviewCommands(
   context.subscriptions.push(
     session,
     commands.registerCommand('rocci.preview', () => session.preview()),
+    commands.registerCommand('rocci.reloadPreview', () => session.reload()),
     commands.registerCommand('rocci.stopPreview', () => session.stop())
   )
 }

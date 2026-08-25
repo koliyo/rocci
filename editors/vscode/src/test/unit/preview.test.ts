@@ -7,6 +7,12 @@ import { canPreviewDocument, chooseBrowserHost } from '../../preview/browser'
 import { previewArgv } from '../../preview/dispatch'
 import { previewOrigin, reuseDecision } from '../../preview/origin'
 import { parsePreviewUrl } from '../../preview/parse'
+import {
+  countPreviewReadyLines,
+  hasSseReloadEvent,
+  liveReloadEventsUrl,
+  withReloadNonce
+} from '../../preview/reload'
 
 const PREVIEW_WHEN = 'editorLangId == rocci || editorLangId == rocdown'
 
@@ -63,6 +69,7 @@ suite('Rocci preview (offline)', () => {
     }
     const commands = manifest.contributes.commands.map(entry => entry.command)
     assert.ok(commands.includes('rocci.preview'))
+    assert.ok(commands.includes('rocci.reloadPreview'))
     assert.ok(commands.includes('rocci.stopPreview'))
 
     const title = manifest.contributes.menus['editor/title']
@@ -77,7 +84,30 @@ suite('Rocci preview (offline)', () => {
     const stop = manifest.contributes.commands.find(entry => entry.command === 'rocci.stopPreview') as
       | { enablement?: string }
       | undefined
+    const reload = manifest.contributes.commands.find(
+      entry => entry.command === 'rocci.reloadPreview'
+    ) as { enablement?: string } | undefined
     assert.strictEqual(stop?.enablement, 'rocci.preview.active')
+    assert.strictEqual(reload?.enablement, 'rocci.preview.active')
+    const titleReload = title.find(entry => entry.command === 'rocci.reloadPreview')
+    assert.ok(titleReload?.when?.includes('rocci.preview.active'))
+  })
+
+  test('builds a cache-busting reload URL and detects SSE reload events', () => {
+    assert.strictEqual(
+      liveReloadEventsUrl('http://127.0.0.1:8000/guide/'),
+      'http://127.0.0.1:8000/__rocci/events'
+    )
+    assert.strictEqual(
+      withReloadNonce('http://127.0.0.1:8000/guide/', 3),
+      'http://127.0.0.1:8000/guide/?_r=3'
+    )
+    assert.ok(hasSseReloadEvent('event: reload\ndata: 2\n\n'))
+    assert.ok(!hasSseReloadEvent('event: log\ndata: ok\n\n'))
+    assert.strictEqual(
+      countPreviewReadyLines('preview_ready http://127.0.0.1:8000/\npreview_ready http://127.0.0.1:8000/\n'),
+      2
+    )
   })
 
   test('refuses untitled and unsaved schemes', () => {

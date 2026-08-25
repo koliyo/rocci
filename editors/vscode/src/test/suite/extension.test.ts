@@ -139,6 +139,7 @@ suite('Rocci VS Code Extension Integration Tests', () => {
   test('Preview commands are registered', async () => {
     const commands = await vscode.commands.getCommands(true)
     assert.ok(commands.includes('rocci.preview'))
+    assert.ok(commands.includes('rocci.reloadPreview'))
     assert.ok(commands.includes('rocci.stopPreview'))
   })
 
