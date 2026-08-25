@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident, IfDirective, InitDecl,
-    Interpolation, LiveDecl, MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem,
-    ViewDecl, component_param_pattern, component_props_type_anno, ensure_handler_request_param,
-    parse_component_params, strip_param_defaults,
+    Interpolation, LeadingComments, LiveDecl, MatchDirective, ModuleItem, RouteDecl, TemplateBlock,
+    TemplateItem, TestDecl, ViewDecl, component_param_pattern, component_props_type_anno,
+    ensure_handler_request_param, parse_component_params, strip_param_defaults,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -88,7 +88,49 @@ pub struct TestInfo {
     pub name: String,
     pub fixture: Option<String>,
     pub expr: String,
+    pub docs: Option<String>,
     pub span: Span,
+}
+
+pub fn format_expect_trailer(tests: &[TestInfo]) -> String {
+    let mut out = String::new();
+    for test in tests {
+        if test.expr.trim().is_empty() {
+            continue;
+        }
+        if let Some(docs) = &test.docs {
+            out.push_str(docs);
+            if !docs.ends_with('\n') {
+                out.push('\n');
+            }
+        }
+        let expr = test.expr.trim();
+        if expr.contains('\n') {
+            out.push_str("expect ");
+            out.push_str(expr);
+            if !expr.ends_with('\n') {
+                out.push('\n');
+            }
+        } else {
+            out.push_str("expect ");
+            out.push_str(expr);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+fn test_docs(src: &str, leading: &Option<LeadingComments>) -> Option<String> {
+    let leading = leading.as_ref()?;
+    if leading.docs.is_empty() {
+        return None;
+    }
+    let mut out = String::new();
+    for span in &leading.docs {
+        out.push_str(span.of(src).trim_end());
+        out.push('\n');
+    }
+    Some(out)
 }
 
 #[derive(Clone, Debug)]
@@ -154,6 +196,7 @@ pub fn lower_template_items(
         at_line_start: false,
         components: Vec::new(),
         fixtures: Vec::new(),
+        tests: Vec::new(),
         styles: Vec::new(),
         state_type: None,
         init: None,
@@ -304,6 +347,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         at_line_start: true,
         components: Vec::new(),
         fixtures: Vec::new(),
+        tests: Vec::new(),
         styles,
         state_type: None,
         init: None,
@@ -338,7 +382,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
             }
             ModuleItem::Component(component) => emitter.lower_component(component),
             ModuleItem::Fixture(fixture) => emitter.lower_fixture(fixture),
-            ModuleItem::Test(_) => {}
+            ModuleItem::Test(test) => emitter.lower_test(test),
             ModuleItem::Css(css) => emitter.emit_css_leading(css),
             ModuleItem::Context(context) => emitter.lower_context(context),
             ModuleItem::Init(init) => emitter.lower_init(init),
@@ -358,7 +402,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         segments: emitter.segments,
         components: emitter.components,
         fixtures: emitter.fixtures,
-        tests: Vec::new(),
+        tests: emitter.tests,
         styles: emitter.styles,
         state_type: emitter.state_type,
         init: emitter.init,
@@ -387,6 +431,7 @@ struct Emitter<'a> {
     at_line_start: bool,
     components: Vec<ComponentInfo>,
     fixtures: Vec<FixtureInfo>,
+    tests: Vec<TestInfo>,
     styles: Vec<StyleArtifact>,
     state_type: Option<String>,
     init: Option<InitInfo>,
@@ -543,6 +588,17 @@ impl<'a> Emitter<'a> {
         if !self.roc.ends_with('\n') {
             self.emit("\n");
         }
+    }
+
+    fn lower_test(&mut self, test: &TestDecl) {
+        let expr = test.value.of(self.src).trim().to_string();
+        self.tests.push(TestInfo {
+            name: test.name.name.clone(),
+            fixture: test.fixture.as_ref().map(|ident| ident.name.clone()),
+            expr,
+            docs: test_docs(self.src, &test.leading),
+            span: test.span,
+        });
     }
 
     fn lower_context(&mut self, context: &ContextDecl) {

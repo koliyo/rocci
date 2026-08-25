@@ -31,7 +31,7 @@ pub use lexer::{Cursor, is_ident_continue, is_ident_start, leading_comments_befo
 pub use lower::{
     ComponentInfo, FixtureInfo, InitInfo, LiveInfo, LowerOptions, LoweredModule, LoweredTemplate,
     RespondKind, RouteInfo, StyleArtifact, StyleKind, TemplateValueCtx, TestInfo, file_scope_id,
-    lower_template_items, route_fn_name, template_items_have_action,
+    format_expect_trailer, lower_template_items, route_fn_name, template_items_have_action,
 };
 pub use parser::{
     InterpolationScan, ParseDeclOutput, ParseOutput, ParseTemplateOutput, parse_declaration_from,

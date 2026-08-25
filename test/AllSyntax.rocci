@@ -12,6 +12,13 @@ Tone : [Neutral, Positive]
 @fixture{target: Hello}
 helloSample = { name: "Roc" }
 
+@test
+helloNamePresent = Str.contains(helloSample.name, "Roc")
+
+## Pair the greeting fixture without snapshotting Html.render.
+@test{fixture: helloSample}
+helloFixturePaired = helloSample.name == "Roc"
+
 @component
 Badge = |{ tone : Tone ?? Neutral }, content|
     <span class={badgeClass(tone)}>

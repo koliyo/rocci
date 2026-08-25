@@ -61,6 +61,8 @@ fn kitchen_sink_compiles_without_errors() {
     assert!(!out.roc.contains("|{ name ??"));
     assert!(!out.roc.contains("= component"));
     assert!(!out.roc.contains("@component"));
+    assert!(!out.roc.contains("expect"));
+    assert_eq!(out.tests.len(), 2);
     assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 
@@ -721,7 +723,9 @@ helloRenders = Html.render(hello(helloSample)) == "<p>Hello, Roc</p>"
 }
 "#;
     let out = compile_ok(src);
-    assert!(out.tests.is_empty());
+    assert_eq!(out.tests.len(), 1);
+    assert_eq!(out.tests[0].name, "helloRenders");
+    assert_eq!(out.tests[0].fixture.as_deref(), Some("helloSample"));
     assert!(!out.roc.contains("expect"));
     let ast = format_ast(src, &out.document);
     assert!(
@@ -729,6 +733,32 @@ helloRenders = Html.render(hello(helloSample)) == "<p>Hello, Roc</p>"
             "(test helloRenders fixture:helloSample\n    (roc \"Html.render(hello(helloSample)) == \\\"<p>Hello, Roc</p>\\\"\"))"
         ),
         "{ast}"
+    );
+}
+
+#[test]
+fn formats_expect_trailer_without_writing_compiled_expect() {
+    use rocci_template::format_expect_trailer;
+
+    let src = r#"
+@fixture{target: Hello}
+helloSample = { name: "Roc" }
+
+## Greeting for the sample name.
+@test{fixture: helloSample}
+helloRenders = helloSample.name == "Roc"
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(!out.roc.contains("expect"));
+    assert!(out.roc.contains("helloSample = { name: \"Roc\" }"));
+    let trailer = format_expect_trailer(&out.tests);
+    assert_eq!(
+        trailer,
+        "## Greeting for the sample name.\nexpect helloSample.name == \"Roc\"\n"
     );
 }
 
