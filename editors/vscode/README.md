@@ -9,8 +9,9 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **Document Symbols & Outline**: Outline view and breadcrumbs for components, handlers, fixtures, styles, page metadata, and Rocdown headings.
 - **Diagnostics & Error Recovery**: Push diagnostics for parser syntax errors with parser recovery that preserves partial highlighting on incomplete documents.
 - **File icons**: Explorer icons for `.rocci` and `.rocdown` use the folded-R document mark.
-- **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
-- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@page`, `@roc`, `:note`), handlers (`@get:view`, `@post:fragment`), HTML elements, and components; hover documentation for template elements.
+- **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`). Executable Roc regions also forward compiler definition, completion, and references when `roc experimental-lsp` is available.
+- **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@page`, `@roc`, `:note`), handlers (`@get:view`, `@post:fragment`), HTML elements, and components; hover documentation for template elements. In executable Roc (including `{expr}` / `@{expr}`), hover prefers compiler types from `roc experimental-lsp` when that binary is on `PATH` or `rocci.roc.path`. Host hover remains when Roc is missing.
+- **Restart**: **Rocci: Restart LSP server** (`rocci.restartLspServer`) respawns `rocci-language-server` and its optional `roc experimental-lsp` child. Use it after changing `rocci.roc.path`.
 - **Preview**: **Rocci: Preview** (`rocci.preview`) saves the active `.rocci` or `.rocdown` file, runs `rocci run` or `rocdown view` with `--no-window --port auto --verbose`, and opens that loopback origin in a beside-editor webview host. The host owns the Rocci toolbar (back, forward, home, reload, live-reload, path, and the CLI serving name). **Rocci: Reload Preview** refreshes the page iframe. **Rocci: Stop Preview** stops the process. Watch, rebuild, and reload lines are written to the **Rocci Preview** output channel.
 - **Dev inspector**: When the CLI prints `inspector_ready <url>` (piped `--no-window` stdout), **Dev** iframes `/__rocci/dev` or the sibling inspector and docks it right or bottom. Inspector UX defects (scroll, overlay overlap, OKF snapshots, `tok-*` highlighting) stay on the [preview inspector repair](../../knowledge/plans/rocci/preview-inspector-repair.md) plan, not this extension.
 - **Tools**: **Rocci: Update tools** (`rocci.updateTools`) checks GitHub releases. Supported archives are `rocci-{version}-aarch64-apple-darwin.tar.gz` and `rocci-{version}-x86_64-unknown-linux-gnu.tar.gz`.
@@ -22,6 +23,8 @@ The preview is the product HTTP origin, not a second renderer. Saving a Rocdown 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `rocci.lsp.serverPath` | `string` | `""` | Path to `rocci-language-server`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
+| `rocci.roc.path` | `string` | `""` | Path to the `roc` compiler for executable Roc LSP features. Empty uses `ROCCI_ROC_PATH`, then vscode-roc `roc.path`, then `roc` on `PATH`. |
+| `rocci.lsp.verbose` | `boolean` | `false` | Write child-spawn, projection, and mapped-hover logs to the **Rocci** output channel. Also enabled when `rocci.lsp.trace.server` is `verbose`. |
 | `rocci.lsp.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
 | `rocci.preview.rocciPath` | `string` | `""` | Path to `rocci`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
 | `rocci.preview.rocdownPath` | `string` | `""` | Path to `rocdown`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |

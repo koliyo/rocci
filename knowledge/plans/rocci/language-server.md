@@ -4,7 +4,7 @@ title: Full Rocci and Rocdown language tooling
 description: Build region-aware Rocci and Rocdown language tooling for VS Code and Zed and reuse language-neutral token spans for static Rocdown code highlighting.
 tags: [domain/rocci, domain/rocdown, domain/rocs, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
+generated: { by: process:cursor, at: 2026-08-25T16:50:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
@@ -94,6 +94,11 @@ sources:
     title: Approved consolidated Rocdown product direction
     author: process:codex
     last_modified: 2026-08-17
+  - id: embedded-parity
+    resource: embedded-roc-lsp-parity.md
+    title: Embedded Roc LSP parity with zed-roc
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # Full Rocci and Rocdown language tooling
@@ -214,7 +219,8 @@ Prototype one optional Roc child server per workspace against generated Roc
 modules. Expand source maps for exact bidirectional mapping and add mapped type
 diagnostics, hover, completion, signatures, definitions, and references.
 Reject ambiguous edits and preserve a useful degraded mode when the Roc
-backend is absent or incompatible.[^source-map]
+backend is absent or incompatible. The focused executable sequence is
+[embedded Roc LSP parity](/plans/rocci/embedded-roc-lsp-parity.md).[^source-map][^embedded-parity]
 
 ### 5. Formatting and refactoring
 
@@ -277,3 +283,4 @@ HTML demonstrators.[^detailed-plan]
 [^syntect-html]: Alternative classed HTML renderer over TextMate-style syntax sets.
 [^shiki]: Alternative ESM/WASM TextMate highlighter with HTML, token, and HAST output.
 [^product-boundary]: Proposed removal of Rocdown from base Rocci tooling, Rocdown-owned document composition, and one-way dependency rules.
+[^embedded-parity]: Focused child-server sequence for executable Roc hover, diagnostics, completion, definition, and references.

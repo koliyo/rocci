@@ -58,10 +58,32 @@ Typed Region Graph (RegionTree)
 4. **LSP Features**:
    - `textDocument/semanticTokens/full` and `textDocument/semanticTokens/range`
    - `textDocument/documentSymbol`
-   - `textDocument/definition` (same-file component navigation)
-   - `textDocument/hover` and `textDocument/completion`
-   - `textDocument/publishDiagnostics` with error-tolerant parser recovery
+   - `textDocument/definition` (same-file component navigation; compiler definition in executable Roc)
+   - `textDocument/hover` and `textDocument/completion` (compiler-backed in executable Roc when `roc` is available)
+   - `textDocument/references` in executable Roc when the child answers
+   - `textDocument/publishDiagnostics` with host recovery plus remapped `source: "roc"` compiler diagnostics
    - Custom `rocci/inspectRegions` request for region inspection and debugging
+
+Host hover, tokens, and diagnostics stay available when `roc` is missing or the optional child crashes. Display-only fences are never forwarded.
+
+### Optional `roc experimental-lsp` child
+
+The product binary `rocci-language-server` (`rocci-rocdown-lsp`) may spawn one
+`roc experimental-lsp --stdio` process per workspace. It types generated
+projection modules and maps results through source-map segments.
+
+Resolution order for the compiler binary:
+
+1. `ROCCI_ROC_PATH`
+2. `roc` on `PATH`
+
+VS Code sets `ROCCI_ROC_PATH` from `rocci.roc.path`, then `roc.path` (vscode-roc).
+Zed can set the same variable through `lsp.rocci-language-server.binary.env` or
+`settings.rocPath`. Set `ROCCI_LSP_VERBOSE=1` (VS Code: `rocci.lsp.verbose`) to
+log child spawn, projection sync, and mapped hover on the server stderr / Rocci
+output channel. **Rocci: Restart LSP server** respawns the child. Default
+`cargo test -p rocci-lsp` does not require Roc; live child tests use
+`ROCCI_REQUIRE_ROC=1`.
 
 ---
 

@@ -143,6 +143,11 @@
           "default": "",
           "description": "Absolute path to rocci-language-server. Empty uses a debug build, a verified GitHub-release extract, or PATH."
         },
+        "rocci.roc.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the roc compiler used for executable Roc hover, diagnostics, completion, and definition. Empty uses the ROCCI_ROC_PATH environment variable or roc on PATH. Restart the language server after changing this."
+        },
         "rocci.preview.rocciPath": {
           "type": "string",
           "default": "",
@@ -167,6 +172,11 @@
           "type": "boolean",
           "default": true,
           "description": "Check GitHub releases on activate when not debugging."
+        },
+        "rocci.lsp.verbose": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write verbose Rocci language-server logs (child spawn, projection sync, mapped hover) to the Rocci output channel. Also set when rocci.lsp.trace.server is verbose. Restart is automatic."
         },
         "rocci.lsp.trace.server": {
           "type": "string",

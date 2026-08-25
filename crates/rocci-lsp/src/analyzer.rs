@@ -8,6 +8,7 @@ use rocci_template::{PositionEncoding, SourceFile};
 use crate::analysis::offset_at;
 use crate::regions::InspectedRegion;
 use crate::{analysis, regions, tokens};
+use rocci_template::Segment;
 
 pub trait DocumentAnalysis: Send + Sync {
     fn diagnostics(&self) -> Vec<Diagnostic>;
@@ -21,6 +22,10 @@ pub trait DocumentAnalysis: Send + Sync {
         params: &SemanticTokensRangeParams,
     ) -> Option<SemanticTokensRangeResult>;
     fn inspect_regions(&self) -> Option<Vec<InspectedRegion>>;
+    fn source_name(&self) -> &str;
+    fn source_text(&self) -> &str;
+    fn generated_roc(&self) -> Option<(&str, &[Segment])>;
+    fn executable_roc_at(&self, offset: u32) -> bool;
 }
 
 pub trait DocumentAnalyzer: Send + Sync {
@@ -117,6 +122,27 @@ impl DocumentAnalysis for RocciAnalysis {
         let source = SourceFile::new(&self.name, &self.text);
         let tree = regions::extract_rocci_regions(&self.name, &self.text, &self.compiled.document);
         Some(regions::inspect_regions(source, &tree, self.encoding))
+    }
+
+    fn source_name(&self) -> &str {
+        &self.name
+    }
+
+    fn source_text(&self) -> &str {
+        &self.text
+    }
+
+    fn generated_roc(&self) -> Option<(&str, &[Segment])> {
+        Some((&self.compiled.roc, &self.compiled.segments))
+    }
+
+    fn executable_roc_at(&self, offset: u32) -> bool {
+        let tree = regions::extract_rocci_regions(&self.name, &self.text, &self.compiled.document);
+        tree.regions.iter().any(|region| {
+            region.language == crate::Language::Roc
+                && region.purpose == crate::RegionPurpose::Executable
+                && region.span.contains(offset)
+        })
     }
 }
 

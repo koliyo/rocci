@@ -1,13 +1,14 @@
 use lsp_types::{
-    ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
+    ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic, DiagnosticSeverity,
     DidOpenTextDocumentParams, DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse,
-    GeneralClientCapabilities, GotoDefinitionParams, HoverParams, InitializeParams,
-    PartialResultParams, Position, PositionEncodingKind, SemanticTokensParams,
-    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
-    WorkDoneProgressParams,
+    GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents, HoverParams,
+    InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
+    PositionEncodingKind, Range, SemanticTokensParams, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentPositionParams, Uri, WorkDoneProgressParams,
 };
-use rocci_lsp::LanguageServer;
-use rocci_rocdown::RocdownAnalyzer;
+use rocci_lsp::{FakeRocBackend, LanguageServer};
+use rocci_rocdown::{CompileOptions, RocdownAnalyzer, compile};
+use rocci_template::{PositionEncoding, SourceFile, project_type_module, type_name_from_path};
 
 const ALL_SYNTAX_ROCDOWN: &str = include_str!("../../../test/AllSyntax.rocdown");
 const EMBEDDED_ROCDOWN: &str = include_str!("../../../test/EmbeddedLanguages.rocdown");
@@ -633,6 +634,187 @@ fn interpolation_hover_goto_and_diagnostics_use_hole_span() {
     let (end_line, end_character) = line_col(heading, close);
     assert_eq!(diag.range.end.line, end_line);
     assert_eq!(diag.range.end.character, end_character);
+}
+
+#[test]
+fn interpolation_hover_yields_to_roc_backend() {
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: "```roc\nStr\n```".to_string(),
+        }),
+        range: None,
+    });
+    let mut server = initialize_server();
+    server.set_roc_backend(Box::new(fake));
+    let uri: Uri = "file:///Interp.rocdown".parse().expect("interp uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open interp");
+
+    let hole = src.find("@{published}").expect("hole") + 2;
+    let (line, character) = line_col(src, hole);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("roc interp hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("Str"), "{}", markup.value);
+    assert!(
+        !markup.value.contains("Markdown interpolation"),
+        "{}",
+        markup.value
+    );
+}
+
+#[test]
+fn roc_block_ident_hover_yields_to_roc_backend() {
+    let mut fake = FakeRocBackend::default();
+    fake.set_any_hover(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: "```roc\nStr\n```".to_string(),
+        }),
+        range: None,
+    });
+    let mut server = initialize_server();
+    server.set_roc_backend(Box::new(fake));
+    let uri: Uri = "file:///RocBlock.rocdown".parse().expect("roc uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open roc block");
+
+    let ident = src.find("published =").expect("binding");
+    let (line, character) = line_col(src, ident);
+    let hover = server
+        .hover(HoverParams {
+            text_document_position_params: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+        })
+        .expect("roc block hover");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(markup.value.contains("Str"), "{}", markup.value);
+}
+
+#[test]
+fn interpolation_type_error_maps_to_expr_span() {
+    let uri: Uri = "file:///Interp.rocdown".parse().expect("interp uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    let compiled = compile(
+        SourceFile::new("Interp.rocdown", src),
+        &CompileOptions::default(),
+    );
+    let type_name = type_name_from_path(std::path::Path::new("/Interp.rocdown"));
+    let projection = project_type_module(&compiled.roc, &compiled.segments, &type_name);
+    let expr = "published";
+    let from = src.find("@{published}").expect("hole") + 2;
+    let mapped = rocci_template::source_to_generated(
+        src,
+        &projection.roc,
+        &projection.segments,
+        from as u32,
+    )
+    .expect("map published");
+    let proj = SourceFile::new("projection.roc", &projection.roc);
+    let (start_line, start_col) = proj.position(mapped.offset, PositionEncoding::Utf16);
+    let (end_line, end_col) =
+        proj.position(mapped.offset + expr.len() as u32, PositionEncoding::Utf16);
+    let mut fake = FakeRocBackend::default();
+    fake.set_diagnostics(vec![Diagnostic {
+        range: Range {
+            start: Position::new(start_line, start_col),
+            end: Position::new(end_line, end_col),
+        },
+        severity: Some(DiagnosticSeverity::ERROR),
+        message: "TYPE MISMATCH".to_string(),
+        ..Diagnostic::default()
+    }]);
+    let mut server = initialize_server();
+    server.set_roc_backend(Box::new(fake));
+    let published = server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri,
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open interp");
+    let diag = published
+        .diagnostics
+        .iter()
+        .find(|d| d.message == "TYPE MISMATCH")
+        .expect("mapped roc diagnostic");
+    assert_eq!(diag.source.as_deref(), Some("roc"));
+    let (want_line, want_character) = line_col(src, from);
+    let (end_line, end_character) = line_col(src, from + expr.len());
+    assert_eq!(diag.range.start.line, want_line);
+    assert_eq!(diag.range.start.character, want_character);
+    assert_eq!(diag.range.end.line, end_line);
+    assert_eq!(diag.range.end.character, end_character);
+}
+
+#[test]
+fn interpolation_completion_uses_roc_backend() {
+    let uri: Uri = "file:///InterpComplete.rocdown"
+        .parse()
+        .expect("interp uri");
+    let src = "@roc {\npublished = \"2026-08-23\"\n}\n\nPublished @{published}.\n";
+    let mut fake = FakeRocBackend::default();
+    fake.set_completion(CompletionResponse::Array(vec![lsp_types::CompletionItem {
+        label: "toUtf8".to_string(),
+        ..lsp_types::CompletionItem::default()
+    }]));
+    let mut server = initialize_server();
+    server.set_roc_backend(Box::new(fake));
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open interp");
+    let hole = src.find("@{published}").expect("hole") + 2;
+    let (line, character) = line_col(src, hole);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("roc completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert!(items.iter().any(|item| item.label == "toUtf8"), "{items:?}");
 }
 
 #[test]

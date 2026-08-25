@@ -13,7 +13,7 @@ use rocci_lsp::analysis::{
     init_symbol, live_symbol, lsp_range, map_diagnostics, named_symbol, offset_at, view_symbol,
 };
 use rocci_lsp::tokens::{RawToken, encode_tokens};
-use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion};
+use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion, Language, RegionPurpose};
 use rocci_template::{ComponentDecl, PositionEncoding, SourceFile, Span, TemplateItem};
 
 use crate::ast::{
@@ -172,6 +172,32 @@ impl DocumentAnalysis for RocdownAnalysis {
             &tree,
             self.encoding,
         ))
+    }
+
+    fn source_name(&self) -> &str {
+        &self.name
+    }
+
+    fn source_text(&self) -> &str {
+        &self.text
+    }
+
+    fn generated_roc(&self) -> Option<(&str, &[rocci_template::Segment])> {
+        Some((&self.compiled.roc, &self.compiled.segments))
+    }
+
+    fn executable_roc_at(&self, offset: u32) -> bool {
+        let tree = extract_rocdown_regions(
+            &self.name,
+            &self.text,
+            &self.compiled.document,
+            &self.compiled.headings,
+        );
+        tree.regions.iter().any(|region| {
+            region.language == Language::Roc
+                && region.purpose == RegionPurpose::Executable
+                && region.span.contains(offset)
+        })
     }
 }
 

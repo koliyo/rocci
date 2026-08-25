@@ -8,7 +8,7 @@ Zed does not bundle the language server binary into the extension WASM. When set
 
 - **Semantic Highlighting**: Full semantic token support for host declarations, Roc, CSS, HTML elements, and Markdown structure.
 - **Embedded Languages**: Highlighting for `@css`, `@roc`, inline Roc expressions, and display-only code fences.
-- **Diagnostics**: Compiler diagnostics and recovery on syntax errors.
+- **Diagnostics**: Compiler diagnostics and recovery on syntax errors. Executable Roc also receives remapped `roc experimental-lsp` diagnostics when `roc` is available (`ROCCI_ROC_PATH` or `settings.rocPath`).
 
 ## Preview
 
@@ -69,6 +69,25 @@ Override the binary if needed:
     "rocci-language-server": {
       "binary": {
         "path": "/absolute/path/to/rocci-language-server"
+      }
+    }
+  }
+}
+```
+
+Point the optional `roc experimental-lsp` child at a specific compiler (`ROCCI_ROC_PATH`), either through binary env or `settings.rocPath`. Host hover still works if `roc` is missing. Restart the language server after changing this. Set `settings.verbose` or `ROCCI_LSP_VERBOSE=1` for child-spawn and mapped-hover logs.
+
+```json
+{
+  "lsp": {
+    "rocci-language-server": {
+      "settings": {
+        "rocPath": "/absolute/path/to/roc"
+      },
+      "binary": {
+        "env": {
+          "ROCCI_ROC_PATH": "/absolute/path/to/roc"
+        }
       }
     }
   }

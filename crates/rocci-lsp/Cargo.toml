@@ -9,6 +9,10 @@ description = "Generic language-server core and Rocci analyzer for .rocci templa
 name = "rocci_lsp"
 path = "src/lib.rs"
 
+[[test]]
+name = "roc_backend"
+path = "tests/roc_backend.rs"
+
 [dependencies]
 lsp-server = { workspace = true }
 lsp-types = { workspace = true }

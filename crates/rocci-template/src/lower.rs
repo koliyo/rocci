@@ -733,7 +733,8 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_try_block(&mut self, body: Span, result_name: &str) {
-        let text = body.of(self.src).trim();
+        let raw = body.of(self.src);
+        let text = raw.trim();
         self.push_indent();
         if text.is_empty() {
             self.emit("Ok({})\n");
@@ -742,10 +743,25 @@ impl<'a> Emitter<'a> {
         self.emit(result_name);
         self.emit(" = {\n");
         self.indent += 1;
+        let mut pos = body.start as usize + (raw.len() - raw.trim_start().len());
         for line in text.lines() {
             self.push_indent();
-            self.emit(line.trim_end());
+            let emitted = line.trim_end();
+            if !emitted.is_empty() {
+                self.emit_mapped(
+                    emitted,
+                    Span::new(pos, pos + emitted.len()),
+                    OriginKind::OrdinaryRoc,
+                );
+            }
             self.emit("\n");
+            pos += line.len();
+            if pos < self.src.len() && self.src.as_bytes()[pos] == b'\r' {
+                pos += 1;
+            }
+            if pos < self.src.len() && self.src.as_bytes()[pos] == b'\n' {
+                pos += 1;
+            }
         }
         self.indent -= 1;
         self.push_indent();
