@@ -826,11 +826,11 @@ mod tests {
         let cli =
             Cli::try_parse_from(["rocci-okf", "roots", "--format", "json", "--no-sync"]).unwrap();
         match cli.command {
-            Some(Commands::Roots {
+            Commands::Roots {
                 format: RootsFormatArg::Json,
                 sync: false,
                 no_sync: true,
-            }) => {}
+            } => {}
             _ => panic!("expected json --no-sync roots"),
         }
     }
