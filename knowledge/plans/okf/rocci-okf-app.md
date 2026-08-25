@@ -4,7 +4,7 @@ title: Standalone Rocci OKF review and query application
 description: Extract a portable OKF engine from the current Rocs implementation and build a Rocci application for agent-authored knowledge review, authenticated retrieval, and measured optional semantic search.
 tags: [domain/okf, domain/rocci-okf, domain/rocci, concern/architecture, concern/review, concern/retrieval, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-17T23:00:00Z }
+generated: { by: process:cursor, at: 2026-08-25T12:17:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -39,6 +39,11 @@ sources:
     title: Approved consolidated Rocdown product direction
     author: process:codex
     last_modified: 2026-08-17
+  - id: multi-roots
+    resource: multi-knowledge-roots.md
+    title: Multiple knowledge roots for rocci-okf
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # Standalone Rocci OKF review and query application
@@ -190,7 +195,9 @@ calls.[^ecosystem][^report]
 
 - Add multi-bundle registry, one-home cross-bundle references, incremental
   freshness jobs, recovery, token rotation, rate limits, observability, and
-  explicit filtered public export.
+  explicit filtered public export. The registry, git cache, directed edges,
+  settings UI, and agent path listing are specified in
+  [multiple knowledge roots](multi-knowledge-roots.md).[^multi-roots]
 - Verify full rebuilds reproduce every derived graph, chunk, and lexical result.
 
 ## First acceptance gate
@@ -221,3 +228,4 @@ baseline.[^report][^rocdown-boundary]
 [^static-boundary]: Approved canonical strict-Markdown and inert static-rendering boundary.
 [^ecosystem]: Emerging workflow evidence for deterministic agent interfaces, conformance/curation separation, multiple views, guarded production, revision history, authenticated MCP, and evaluation.
 [^rocdown-boundary]: Approved one-way dependency rules, frozen `okf` engine name, temporary presentation-adapter allowance, and separate-decision requirement for any future Rocdown-backed canonical OKF storage.
+[^multi-roots]: User-level multi-root registry, git cache, edge policy, settings UI, and `rocci-okf roots`; `okf::load` stays single-bundle.
