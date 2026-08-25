@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-08-25
+
+- Added draft [Dependabot security updates](research/ops/dependabot-security-updates.md) and skill `rocci-dependabot`: list alerts with `gh` before guessing packages; pin in-range (`ring` 0.17.x, npm `serialize-javascript` 7.0.5 override). `glib` 0.18 stays until wry/tao GTK4. Exploratory; do not log complete until CI and Knowledge succeed.
+
 ## 2026-08-24
 
 - Set `knowledge/log.md merge=union` in `.gitattributes` so concurrent research bullets under the same date heading combine instead of conflicting. Documented in [knowledge log concurrency](research/okf/knowledge-log-concurrency.md). Add new bullets only; rewriting the same line can duplicate. Exploratory; not a format change.
