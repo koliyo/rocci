@@ -92,6 +92,7 @@ suite('Rocci preview (offline)', () => {
     assert.ok(commands.includes('rocci.preview'))
     assert.ok(commands.includes('rocci.reloadPreview'))
     assert.ok(commands.includes('rocci.stopPreview'))
+    assert.ok(commands.includes('rocci.updateTools'))
 
     const title = manifest.contributes.menus['editor/title']
     const run = manifest.contributes.menus['editor/title/run']

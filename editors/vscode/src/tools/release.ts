@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+import * as path from 'path'
 
 export const SUPPORTED_TRIPLES = ['aarch64-apple-darwin', 'x86_64-unknown-linux-gnu'] as const
 
@@ -83,4 +84,8 @@ export function githubReleaseApiUrl(channel: 'stable' | 'dev'): string {
 
 export function releaseTag(manifest: ReleaseManifest): string {
   return manifest.name === 'dev' ? 'dev' : manifest.name
+}
+
+export function releaseExtractDir(storageRoot: string, tag: string): string {
+  return path.join(storageRoot, 'releases', tag)
 }

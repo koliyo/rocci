@@ -47,7 +47,7 @@ npm test
 
 ## Packaging
 
-Package the extension into a standalone `.vsix` bundle containing the compiled `rocci-language-server` release binary:
+Package the extension into a standalone `.vsix`. The VSIX does not contain Rocci binaries; first non-debug launch (or **Rocci: Update tools**) downloads `rocci`, `rocdown`, and `rocci-language-server` from GitHub releases after sha256 verify.
 
 ```sh
 uv run rocci-ops package vscode
@@ -64,4 +64,4 @@ uv run rocci-ops install cursor
 `editors/vscode/rocci-*.vsix`. `install cursor` uses the same `code` CLI with
 `--extensions-dir` pointed at `~/.cursor/extensions`.
 
-Preview needs `rocci` and `rocdown` on `PATH`, in the packaged `dist/bin`, in workspace `target/debug`, or via the path settings above. The language server binary is separate from those CLIs.
+Path settings and F5 `target/debug` builds override the download. Preview and the language server resolve in that order, then a verified extract under global storage, then `PATH`.

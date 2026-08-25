@@ -1,6 +1,4 @@
 import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
 import { commands, ExtensionContext, window, workspace } from 'vscode'
 import {
   Executable,
@@ -14,50 +12,16 @@ import {
 
 import { createOutputChannels, wrappedOutput } from './output-channels'
 import { PreviewSession, registerPreviewCommands } from './preview/session'
+import { extractTarGz, installTools, nodeGithubClient } from './tools/install'
+import { resolveTool } from './tools/resolve'
 
 let client: LanguageClient | undefined
 let previewSession: PreviewSession | undefined
 const isDebug = process.env.VSCODE_DEBUG_MODE !== undefined
 
-function lspExecutableName(): string {
-  return os.type() === 'Windows_NT' ? 'rocci-language-server.exe' : 'rocci-language-server'
-}
-
-function findOnPath(name: string): string | undefined {
-  const envPath = process.env.PATH ?? ''
-  for (const dir of envPath.split(path.delimiter)) {
-    if (!dir) {
-      continue
-    }
-    const candidate = path.join(dir, name)
-    if (fs.existsSync(candidate)) {
-      return candidate
-    }
-  }
-  return undefined
-}
-
 function resolveServerPath(context: ExtensionContext): string | undefined {
-  const configured = workspace.getConfiguration('rocci').get<string>('lsp.serverPath')?.trim()
-  if (configured) {
-    return configured
-  }
-
-  const exe = lspExecutableName()
-
-  if (isDebug) {
-    const debugPath = path.join(context.extensionPath, '..', '..', 'target', 'debug', exe)
-    if (fs.existsSync(debugPath)) {
-      return debugPath
-    }
-  }
-
-  const bundled = path.join(context.extensionPath, 'dist', 'bin', exe)
-  if (fs.existsSync(bundled)) {
-    return bundled
-  }
-
-  return findOnPath(exe)
+  const configured = workspace.getConfiguration('rocci').get<string>('lsp.serverPath')
+  return resolveTool(context, 'rocci-language-server', configured, isDebug)
 }
 
 function traceFromConfig(): Trace {
@@ -129,16 +93,50 @@ function registerCommands(context: ExtensionContext) {
       if (client) {
         await client.restart()
       }
+    }),
+    commands.registerCommand('rocci.updateTools', async () => {
+      await updateTools(context, true)
+      if (client) {
+        await client.restart()
+      } else {
+        await startClient(context)
+      }
     })
   )
   previewSession = new PreviewSession(context)
   registerPreviewCommands(context, previewSession)
 }
 
+async function updateTools(context: ExtensionContext, overwriteDev: boolean): Promise<void> {
+  const config = workspace.getConfiguration('rocci')
+  const channel = config.get<string>('tools.channel') === 'dev' ? 'dev' : 'stable'
+  try {
+    fs.mkdirSync(context.globalStorageUri.fsPath, { recursive: true })
+    await installTools({
+      storageRoot: context.globalStorageUri.fsPath,
+      channel,
+      overwriteDev,
+      platform: process.platform,
+      arch: process.arch,
+      client: nodeGithubClient('rocci-vscode'),
+      extract: extractTarGz,
+      log: message => wrappedOutput.appendLine(message)
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    wrappedOutput.appendLine(message)
+    await window.showErrorMessage(message)
+  }
+}
+
 export async function activate(context: ExtensionContext) {
   createOutputChannels(isDebug)
   wrappedOutput.appendLine(`Activate LSP client in ${context.extensionPath}`)
   registerCommands(context)
+  const autoUpdate = workspace.getConfiguration('rocci').get<boolean>('tools.autoUpdate', true)
+  if (!isDebug && autoUpdate) {
+    await updateTools(context, false)
+  }
   await startClient(context)
 }
 

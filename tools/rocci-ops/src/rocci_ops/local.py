@@ -74,14 +74,9 @@ def install_cli(*, dest: Path | None = None) -> int:
 
 def package_vscode() -> int:
     root = repo_root()
-    run(["cargo", "build", "-p", "rocci-rocdown-lsp", "--release"], cwd=root)
     dist = root / "editors" / "vscode" / "dist"
     if dist.exists():
         shutil.rmtree(dist)
-    bin_dir = dist / "bin"
-    bin_dir.mkdir(parents=True)
-    name = "rocci-language-server.exe" if os.name == "nt" else "rocci-language-server"
-    shutil.copy2(root / "target" / "release" / name, bin_dir / name)
     run(["npm", "install"], cwd=root / "editors" / "vscode")
     run(["npm", "run", "vscode:package"], cwd=root / "editors" / "vscode")
     return 0

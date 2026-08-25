@@ -1,4 +1,9 @@
 import * as assert from 'assert'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
+
+import { installTools } from '../../tools/install'
 
 import {
   githubReleaseApiUrl,
@@ -48,5 +53,46 @@ suite('Rocci tools release contract (offline)', () => {
     assert.strictEqual(parseSha256Line(`${digest}  rocci-0.1.0.tar.gz\n`), digest)
     verifySha256(buffer, digest)
     assert.throws(() => verifySha256(buffer, '0'.repeat(64)), /sha256 mismatch/)
+  })
+
+  test('installs a mocked GitHub release after sha256 verify', async () => {
+    const archive = Buffer.from('fixture-archive-bytes')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-'))
+    const logs: string[] = []
+    await installTools({
+      storageRoot: storage,
+      channel: 'stable',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async () => ({
+          id: 9,
+          name: 'v0.1.0',
+          tag_name: 'v0.1.0',
+          published_at: '2026-08-25T00:00:00Z',
+          assets: [
+            {
+              name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz',
+              browser_download_url: 'https://example.test/archive'
+            },
+            {
+              name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz.sha256',
+              browser_download_url: 'https://example.test/sha'
+            }
+          ]
+        }),
+        getBuffer: async url =>
+          url.endsWith('/sha') ? Buffer.from(`${digest}  rocci-v0.1.0-aarch64-apple-darwin.tar.gz\n`) : archive
+      },
+      extract: async (buffer, dest) => {
+        fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+      },
+      log: message => logs.push(message)
+    })
+    assert.ok(fs.existsSync(path.join(storage, 'releases', 'v0.1.0', 'rocci-language-server')))
+    assert.ok(fs.existsSync(path.join(storage, 'manifest.json')))
+    assert.ok(logs.some(line => line.includes('Installed')))
   })
 })
