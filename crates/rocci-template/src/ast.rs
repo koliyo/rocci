@@ -83,10 +83,8 @@ pub fn parse_component_params(src: &str, params: Span) -> ParsedParams {
 
 /// Rewrite `| { name ?? "Roc" } |` to `|{ name }|`.
 ///
-/// Workaround: Roc nightly-2026-08-08 rejects `??` in record patterns. Strip
-/// defaults from generated params and apply them at call sites instead. Remove
-/// this (and the matching call-site fill in `lower` / `rocci view`) once
-/// `|{ name ?? "Roc" }|` typechecks.
+/// Roc still rejects `??` in record patterns. Generated functions keep a
+/// stripped pattern and a type annotation `{ name : Str ?? "Roc" }` instead.
 pub fn strip_param_defaults(raw: &str) -> String {
     let trimmed = raw.trim();
     let Some(inner) = trimmed.strip_prefix('|').and_then(|s| s.strip_suffix('|')) else {
@@ -97,6 +95,101 @@ pub fn strip_param_defaults(raw: &str) -> String {
         .map(strip_defaults_in_param)
         .collect();
     format!("|{}|", parts.join(", "))
+}
+
+pub fn infer_record_default_type(expr: &str) -> Option<String> {
+    let trimmed = expr.trim();
+    if trimmed.starts_with('"') {
+        return Some("Str".to_string());
+    }
+    match trimmed {
+        "True" | "False" | "Bool.true" | "Bool.false" => return Some("Bool".to_string()),
+        _ => {}
+    }
+    if trimmed.parse::<i64>().is_ok() {
+        return Some("I64".to_string());
+    }
+    None
+}
+
+pub fn default_field_type(authored_ty: Option<&str>, default: &str) -> Option<String> {
+    let authored = authored_ty.map(str::trim).filter(|ty| !ty.is_empty());
+    if let Some(ty) = authored {
+        return Some(ty.to_string());
+    }
+    infer_record_default_type(default)
+}
+
+fn roc_type_default_expr(expr: &str) -> String {
+    match expr.trim() {
+        "True" => "Bool.true".to_string(),
+        "False" => "Bool.false".to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// First-record Roc type when any prop is defaulted, e.g. `{ name : Str ?? "Roc" }`.
+pub fn component_props_type_anno(parsed: &ParsedParams) -> Option<String> {
+    if !parsed.first_param_is_record {
+        return None;
+    }
+    let prop_count = parsed.param_names.len() - parsed.body_params.len();
+    if prop_count == 0 {
+        return None;
+    }
+    let prop_names = &parsed.param_names[..prop_count];
+    if !parsed
+        .param_defaults
+        .iter()
+        .any(|(name, _)| prop_names.iter().any(|n| n == name))
+    {
+        return None;
+    }
+    let mut fields = Vec::new();
+    for name in prop_names {
+        let authored_ty = parsed
+            .param_types
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, ty)| ty.as_str());
+        if let Some((_, default)) = parsed.param_defaults.iter().find(|(n, _)| n == name) {
+            let ty = default_field_type(authored_ty, default)?;
+            // Type-position `Bool ?? Bool.true` typechecks then crashes Roc at runtime.
+            if ty == "Bool" {
+                return None;
+            }
+            fields.push(format!(
+                "{name} : {ty} ?? {}",
+                roc_type_default_expr(default)
+            ));
+        } else {
+            let ty = authored_ty?;
+            fields.push(format!("{name} : {ty}"));
+        }
+    }
+    Some(format!("{{ {} }}", fields.join(", ")))
+}
+
+pub fn component_param_pattern(parsed: &ParsedParams) -> String {
+    if parsed.first_param_is_record {
+        let prop_count = parsed.param_names.len() - parsed.body_params.len();
+        let record = if prop_count == 0 {
+            "{}".to_string()
+        } else {
+            format!("{{ {} }}", parsed.param_names[..prop_count].join(", "))
+        };
+        let mut out = format!("|{record}");
+        for name in &parsed.body_params {
+            out.push_str(", ");
+            out.push_str(name);
+        }
+        out.push('|');
+        out
+    } else if parsed.param_names.is_empty() {
+        "||".to_string()
+    } else {
+        format!("|{}|", parsed.param_names.join(", "))
+    }
 }
 
 /// Count top-level `|a, b|` parameters. A record `{ db }` is one argument.

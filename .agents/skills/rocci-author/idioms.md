@@ -196,7 +196,7 @@ Invalid: `{if active { <Icon /> }}`. Markup does not nest inside `{...}`.
 ## Components
 
 ```rocci
-@component Badge = |{ tone ?? Neutral }, content|
+@component Badge = |{ tone : Tone ?? Neutral }, content|
     <span class={badge_class(tone)}>{content}</span>
 
 @component Dashboard = |{}|

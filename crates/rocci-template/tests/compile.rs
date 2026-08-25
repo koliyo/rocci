@@ -53,10 +53,14 @@ fn kitchen_sink_compiles_without_errors() {
             && c.param_names == ["name"]
             && c.optional_params == ["name"])
     );
+    assert!(
+        out.roc
+            .contains("hello : { name : Str ?? \"World\" } -> Html")
+    );
     assert!(out.roc.contains("hello = |{ name }|"));
+    assert!(!out.roc.contains("|{ name ??"));
     assert!(!out.roc.contains("= component"));
     assert!(!out.roc.contains("@component"));
-    assert!(!out.roc.contains("name ??"));
     assert_eq!(out.roc, include_str!("fixtures/all_syntax.roc"));
 }
 
@@ -66,7 +70,7 @@ fn lowers_component_call_to_props_record() {
     let out = compile_ok(src);
     assert!(out.roc.contains("hello(\n"));
     assert!(out.roc.contains("{ name: person.name }"));
-    assert!(out.roc.contains("{ name: \"World\" }"));
+    assert!(out.roc.contains("hello(\n                        {},"));
 }
 
 #[test]
@@ -303,6 +307,47 @@ fn strips_param_defaults_for_generated_roc() {
         strip_param_defaults("|{ person, count }|"),
         "|{ person, count }|"
     );
+}
+
+#[test]
+fn infers_string_and_bool_default_types() {
+    use rocci_template::infer_record_default_type;
+    assert_eq!(infer_record_default_type("\"Roc\"").as_deref(), Some("Str"));
+    assert_eq!(infer_record_default_type("False").as_deref(), Some("Bool"));
+    assert_eq!(infer_record_default_type("0").as_deref(), Some("I64"));
+    assert!(infer_record_default_type("Neutral").is_none());
+}
+
+#[test]
+fn defaulted_tag_without_type_is_an_error() {
+    let errors = compile_err(
+        r#"@component Badge = |{ tone ?? Neutral }| {
+    <span></span>
+}"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("defaulted field `tone`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn bool_defaults_fill_at_call_sites() {
+    let out = compile_ok(
+        r#"
+@component Slot = |{ waiting ?? True, note ?? "" }| {
+    <p>{note}</p>
+}
+@component Page = |{}| {
+    <Slot />
+}
+"#,
+    );
+    assert!(!out.roc.contains("waiting : Bool ??"));
+    assert!(out.roc.contains("waiting: True"), "{}", out.roc);
+    assert!(out.roc.contains("note: \"\""), "{}", out.roc);
 }
 
 #[test]

@@ -27,6 +27,6 @@ behavior stays in [reference](/docs/reference/).
 | `rocci browse` | Component gallery. |
 | Rocdown | Optional experimental document layer. Markdown-first pages that reuse templates and applications. |
 | Loopback | `127.0.0.1` / `localhost` only in `rocci.toml` `[http].host`. |
-| `??` default | Experimental field default in `.rocci` params; stripped for current Roc nightly. |
+| `??` default | Experimental field default in `.rocci` params; generated as a Roc type-position default, not a pattern. |
 
 **Related:** [The stack](/docs/the-stack/) for composition terms.

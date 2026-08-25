@@ -164,11 +164,20 @@ pub fn lower(
         None
     };
 
-    let mut field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
-        .components
-        .iter()
-        .map(|component| (component.name.clone(), component.param_defaults.clone()))
-        .collect();
+    let mut field_defaults: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    for component in &lowered_rocci.components {
+        let parsed = rocci_template::ParsedParams {
+            first_param_is_record: component.first_param_is_record,
+            param_names: component.param_names.clone(),
+            optional_params: component.optional_params.clone(),
+            param_defaults: component.param_defaults.clone(),
+            param_types: component.param_types.clone(),
+            body_params: component.body_params.clone(),
+        };
+        if rocci_template::component_props_type_anno(&parsed).is_none() {
+            field_defaults.insert(component.name.clone(), component.param_defaults.clone());
+        }
+    }
     let mut imported_kinds = HashMap::new();
     for module in &used_modules {
         for (name, defaults) in &module.defaults {
@@ -478,12 +487,6 @@ pub fn lower_islands(
         None
     };
 
-    let field_defaults: HashMap<String, Vec<(String, String)>> = lowered_rocci
-        .components
-        .iter()
-        .map(|component| (component.name.clone(), component.param_defaults.clone()))
-        .collect();
-
     let mut emitter = Emitter {
         source,
         options: &lower_opts,
@@ -493,7 +496,7 @@ pub fn lower_islands(
         indent: 0,
         at_line_start: true,
         css_stamp,
-        field_defaults,
+        field_defaults: HashMap::new(),
         imported_kinds: HashMap::new(),
         theme: None,
         diagnostics,

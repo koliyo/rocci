@@ -1880,7 +1880,7 @@ mod tests {
 @component Typed = |{ count: I64 }| {
     <p>{count.to_str()}</p>
 }
-@component Badge = |{ tone ?? Neutral }, content| {
+@component Badge = |{ tone : [Neutral] ?? Neutral }, content| {
     <span>{content}</span>
 }
 @component Card = |{ count }| {

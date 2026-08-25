@@ -4,7 +4,8 @@ use crate::ast::{
     Attr, AttrValue, CommandDecl, ComponentCall, ComponentDecl, ContextDecl, CssDecl, Document,
     Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident, IfDirective, InitDecl,
     Interpolation, LiveDecl, MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem,
-    ViewDecl, ensure_handler_request_param, parse_component_params, strip_param_defaults,
+    ViewDecl, component_param_pattern, component_props_type_anno, ensure_handler_request_param,
+    parse_component_params, strip_param_defaults,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -211,12 +212,13 @@ fn route_header_span(src: &str, method: &Ident, path_span: Span) -> Span {
 }
 
 pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions) -> LoweredModule {
-    // Workaround: fill `??` defaults at call sites until Roc accepts them in patterns.
-    // See `strip_param_defaults`.
     let mut field_defaults = HashMap::new();
     for item in &document.items {
         if let ModuleItem::Component(component) = item {
             let parsed = parse_component_params(source.src, component.params);
+            if component_props_type_anno(&parsed).is_some() {
+                continue;
+            }
             let prop_count = parsed.param_names.len() - parsed.body_params.len();
             let defaults = parsed
                 .param_defaults
@@ -409,13 +411,31 @@ impl<'a> Emitter<'a> {
         self.components.push(ComponentInfo {
             name: roc_name.clone(),
             body_params: body_params.clone(),
-            param_names: parsed.param_names,
-            optional_params: parsed.optional_params,
-            param_defaults: parsed.param_defaults,
-            param_types: parsed.param_types,
+            param_names: parsed.param_names.clone(),
+            optional_params: parsed.optional_params.clone(),
+            param_defaults: parsed.param_defaults.clone(),
+            param_types: parsed.param_types.clone(),
             first_param_is_record: parsed.first_param_is_record,
             span: component.span,
         });
+
+        if let Some(props_ty) = component_props_type_anno(&parsed) {
+            let mut anno = props_ty;
+            for _ in &body_params {
+                anno.push_str(", ");
+                anno.push_str(self.html);
+            }
+            anno.push_str(" -> ");
+            anno.push_str(self.html);
+            self.emit_mapped(
+                &roc_name,
+                component.name.span,
+                OriginKind::ComponentSignature,
+            );
+            self.emit(" : ");
+            self.emit(&anno);
+            self.emit("\n");
+        }
 
         self.emit_mapped(
             &roc_name,
@@ -423,10 +443,8 @@ impl<'a> Emitter<'a> {
             OriginKind::ComponentSignature,
         );
         self.emit(" = ");
-        // Workaround: emit params without `??` until Roc accepts that pattern syntax.
-        // See `strip_param_defaults`.
         self.emit_mapped(
-            &strip_param_defaults(component.params.of(self.src).trim()),
+            &component_param_pattern(&parsed),
             component.params,
             OriginKind::ComponentSignature,
         );
@@ -1165,8 +1183,6 @@ impl<'a> Emitter<'a> {
     }
 
     fn lower_props(&mut self, attrs: &[Attr], roc_name: &str) {
-        // Workaround: insert omitted `??` defaults here until Roc accepts them in patterns.
-        // See `strip_param_defaults`.
         let missing_defaults: Vec<(String, String)> = self
             .field_defaults
             .get(roc_name)

@@ -45,12 +45,12 @@ The greeting should read **Hello, Ada**.
 
 | Authored | Generated |
 | --- | --- |
-| `@component Hello = \|{ name ?? "Roc" }\|` | `hello = \|{ name }\|` plus a default at call sites |
+| `@component Hello = \|{ name ?? "Roc" }\|` | `hello : { name : Str ?? "Roc" } -> Html` and `hello = \|{ name }\|` |
 | `<p class="greeting">` | `Html.element("p", [Html.attribute("class", "greeting")], …)` |
 | `{name}` | `Html.text(name)` — must be `Str` |
 
-`??` defaults are a Rocci convenience. The current Roc nightly rejects `??`
-in patterns, so lowering strips them. That status is **experimental**.
+`??` defaults are a Rocci convenience. Roc still rejects `??` in patterns, so
+lowering puts the default on the generated type. That status is **experimental**.
 
 ## If it failed
 
