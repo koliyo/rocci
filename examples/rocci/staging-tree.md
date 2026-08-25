@@ -7,6 +7,8 @@ Published example source uses the completed verb-first handler cutover
 
 Discovery is the catalog `apps.toml`, not every directory under `examples/rocci`.
 `handler-matrix` is included as the exhaustive method/role reference.
+`work-queue` is the programming-model sibling: which `@method:role` to use
+in a small SQLite app, not every accepted verb.
 
 ## Include
 

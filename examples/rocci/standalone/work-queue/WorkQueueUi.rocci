@@ -1,0 +1,285 @@
+import Html
+
+Job : { id : Str, title : Str, status : Str, status_label : Str }
+
+Event : { kind : Str, method : Str, path : Str, message : Str, ago : Str, ts : Str }
+
+empty_jobs : List(Job)
+empty_jobs = []
+
+empty_events : List(Event)
+empty_events = []
+
+sample_jobs : List(Job)
+sample_jobs = [
+    {
+        id: "1",
+        title: "Write the runbook",
+        status: "open",
+        status_label: "open",
+    },
+    {
+        id: "2",
+        title: "Review the PR",
+        status: "claimed",
+        status_label: "claimed",
+    },
+]
+
+sample_events : List(Event)
+sample_events = [
+    {
+        kind: "command",
+        method: "POST",
+        path: "/actions/enqueue",
+        message: "Enqueued Write the runbook",
+        ago: "just now",
+        ts: "0",
+    },
+    {
+        kind: "fragment",
+        method: "POST",
+        path: "/actions/inspect",
+        message: "Inspected job 1 in this tab",
+        ago: "8 seconds ago",
+        ts: "0",
+    },
+]
+
+js_quoted : Str -> Str
+js_quoted = |value| "'${value}'"
+
+status_class = |status|
+    match status {
+        "claimed" => "kind command"
+        "done" => "kind"
+        _ => "kind fragment"
+    }
+
+@component
+Composer = |{ hint ?? "Add a title, then enqueue. Validate stays in this tab.", title ?? "", ready ?? False }|
+    <div id="composer" class="result">
+        <p class="eyebrow">This tab</p>
+        <form class="composer-form" data-signals:title="''">
+            <label>
+                Title
+                <input
+                    type="text"
+                    name="title"
+                    placeholder="What needs doing?"
+                    autocomplete="off"
+                    data-bind:title=""
+                    value={title}
+                />
+            </label>
+            <div class="actions">
+                <button type="button" data-on:click=@post("/actions/validate")>
+                    Validate — fragment
+                </button>
+                <button type="button" data-on:click=@post("/actions/enqueue")>
+                    Enqueue — command
+                </button>
+                <button class="secondary" type="button" data-on:click=@get("/fragments/composer")>
+                    Reset — GET fragment
+                </button>
+            </div>
+        </form>
+        @if ready {
+            <p class="filled">{hint}</p>
+        } @else {
+            <p class="muted">{hint}</p>
+        }
+    </div>
+
+@fixture{target: Composer}
+composerIdleTest = {}
+
+@fixture{target: Composer}
+composerReadyTest = {
+    hint: "Looks ready to enqueue. Still this tab only.",
+    title: "Write the runbook",
+    ready: True,
+}
+
+@component
+Inspect = |{ waiting ?? True, title ?? "", status_label ?? "", job_id ?? "", note ?? "" }|
+    <div id="inspect" class="result">
+        <p class="eyebrow">This tab</p>
+        @if waiting {
+            <p class="muted">Waiting — inspect a job to land HTML here only.</p>
+        } @else {
+            <div class="filled">
+                <span class="verb">{job_id}</span>
+                <p>{title}</p>
+                <p class="muted">{status_label}</p>
+                <p>{note}</p>
+            </div>
+        }
+    </div>
+
+@fixture{target: Inspect}
+inspectWaitingTest = {}
+
+@fixture{target: Inspect}
+inspectFilledTest = {
+    waiting: False,
+    title: "Write the runbook",
+    status_label: "open",
+    job_id: "1",
+    note: "Patched this tab. The other tab's inspect well did not move.",
+}
+
+@component
+JobRow = |{ job }|
+    <li class="job-row">
+        <span class={status_class(job.status)}>{job.status_label}</span>
+        <span class="job-title">{job.title}</span>
+        <div class="job-actions">
+            <button
+                class="secondary"
+                type="button"
+                data-signals:job_id={js_quoted(job.id)}
+                data-on:click=@post("/actions/inspect")
+            >
+                Inspect
+            </button>
+            @match job.status {
+                "open" =>
+                    <button
+                        type="button"
+                        data-signals:job_id={js_quoted(job.id)}
+                        data-on:click=@post("/actions/claim")
+                    >
+                        Claim
+                    </button>
+                "claimed" =>
+                    <button
+                        class="secondary"
+                        type="button"
+                        data-signals:job_id={js_quoted(job.id)}
+                        data-on:click=@delete("/actions/complete")
+                    >
+                        Complete
+                    </button>
+                _ => <span class="muted">Done</span>
+            }
+        </div>
+    </li>
+
+@fixture{target: JobRow}
+jobRowOpenTest = {
+    job: {
+        id: "1",
+        title: "Write the runbook",
+        status: "open",
+        status_label: "open",
+    },
+}
+
+@component
+Queue = |{ jobs }| {
+    <div id="queue">
+        @if List.is_empty(jobs) {
+            <p class="empty">No jobs yet — enqueue from the composer.</p>
+        } @else {
+            <ol class="jobs" aria-label="Work queue">
+                @for job in jobs {
+                    <JobRow job={job} />
+                }
+            </ol>
+        }
+    </div>
+}
+
+@fixture{target: Queue}
+queueEmptyTest = { jobs: empty_jobs }
+
+@fixture{target: Queue}
+queueFilledTest = { jobs: sample_jobs }
+
+@component
+Activity = |{ events }| {
+    <div id="activity">
+        @if List.is_empty(events) {
+            <p class="empty">No events yet — inspect, enqueue, claim, or complete.</p>
+        } @else {
+            <div class="feed-scroll">
+                <ol class="feed" aria-label="Server event log">
+                    @for event in events {
+                        <li>
+                            @match event.kind {
+                                "command" => <span class="kind command">command</span>
+                                _ => <span class="kind fragment">fragment</span>
+                            }
+                            <div class="detail">
+                                <span class="method">{event.method}</span>
+                                <code>{event.path}</code>
+                                <span>{event.message}</span>
+                            </div>
+                            <time datetime={event.ts}>{event.ago}</time>
+                        </li>
+                    }
+                </ol>
+            </div>
+        }
+    </div>
+}
+
+@fixture{target: Activity}
+activityEmptyTest = { events: empty_events }
+
+@fixture{target: Activity}
+activityFilledTest = { events: sample_events }
+
+@component
+LiveSlice = |{ jobs, events }|
+    <>
+        <Queue jobs={jobs} />
+        <Activity events={events} />
+    </>
+
+@fixture{target: LiveSlice}
+liveSliceTest = { jobs: empty_jobs, events: empty_events }
+
+@component
+Lab = |{ jobs, events }|
+    <div class="lab">
+        <div class="roles">
+            <section class="card">
+                <p class="eyebrow">Fragment</p>
+                <h2>Fragments return HTML here</h2>
+                <p class="lede">
+                    Validate and inspect morph only this tab. Open a second tab: that
+                    inspect well stays waiting.
+                </p>
+                <Composer />
+                <Inspect />
+            </section>
+            <section class="card">
+                <p class="eyebrow">Command</p>
+                <h2>Commands return nothing</h2>
+                <p class="lede">
+                    Enqueue, claim, and complete write SQLite and return no HTML.
+                    Datastar gets empty SSE; curl gets 204. The board moves on live.
+                </p>
+                <div class="result empty-response">
+                    <p class="eyebrow">Response</p>
+                    <p>None. This card does not morph.</p>
+                    <p class="muted">Row ids travel in the Datastar JSON body, not in the path.</p>
+                </div>
+            </section>
+        </div>
+        <section class="card stream-card">
+            <p class="eyebrow">Live stream</p>
+            <h2>Live stream is shared</h2>
+            <p class="lede">
+                GET /sse morphs #queue and #activity in every tab. It never
+                touches #composer or #inspect.
+            </p>
+            <Queue jobs={jobs} />
+            <Activity events={events} />
+        </section>
+    </div>
+
+@fixture{target: Lab}
+labTest = { jobs: sample_jobs, events: sample_events }
