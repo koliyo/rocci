@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Rocci @test syntax lowered to Roc expect
-description: "Rocci has @fixture preview data and no @test. Recommend a root @test name = boolExpr form, optional {fixture: name}, lowering to Roc expect kept out of wrap_type_module, and rocci test staging that appends expects after Type := [].{ } then runs roc test on that module."
+description: "Shipped root @test name = boolExpr with optional {fixture: name}. expect stays out of wrap_type_module; rocci test appends aliases plus expects after Type := [].{ } and runs roc test on that module."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/testing]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-25T18:00:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -34,6 +34,11 @@ sources:
     title: wrap_type_module puts the whole body in Type := [].{ … }
     author: process:git
     last_modified: 2026-08-16
+  - id: rocci-test
+    resource: ../../../crates/rocci-cli/src/rocci_test.rs
+    title: rocci test staging, aliases, and roc test
+    author: process:git
+    last_modified: 2026-08-25
   - id: compile-test
     resource: ../../../crates/rocci-template/tests/compile.rs
     title: Fixture compile, inspect, and validation tests
@@ -339,6 +344,19 @@ Rocdown should **reserve** `test` so `@test` in a `.rocdown` file is a clear
 error (“tests belong in `.rocci`”), not opaque prose. Do not parse tests in
 the document compiler.[^rocdown-scan]
 
+## Disposition
+
+Phases 0–7 of the paired plan are implemented on `rocci-test-syntax`. Shipped
+syntax is root-only `@test name = boolExpr` with optional `{fixture: ident}`.
+`TestInfo` is recorded; `compiled.roc` has no `expect`. `rocci test` uses
+layout (b): wrap, then after `Type := [].{ … }` emit `name = Type.name` aliases
+for fixtures and components, then `expect` lines, then `roc test {Type}.roc`.
+Staging lowers without `@context` / `@init` / routes and drops Roc items that
+call `Sqlite.` / `Env.` / `Stderr.`, and uses the string `Html.roc` plus a
+Datastar stub so card tests do not need the webserver platform.[^rocci-test]
+Rocdown reserves `@test` and does not lower it. Do not log the plan complete
+until CI and Knowledge succeed.
+
 ## Alternatives not chosen
 
 | Idea | Why not v1 |
@@ -348,7 +366,7 @@ the document compiler.[^rocdown-scan]
 | Separate `Foo.test.rocci` | Fixtures already live beside components; split files fight `view`. |
 | HTTP handler tests | Requires a server, `!`, and a different runner. |
 
-[^plan]: Paired implementation sequence; not started.
+[^plan]: Paired implementation sequence; Phases 0–7 on `rocci-test-syntax`.
 [^ungram]: `ModuleItem` includes `FixtureDecl`, not a test production.
 [^parser]: `try_parse_fixture` and `@` recovery keywords omit `test`.
 [^lower]: Fixtures emit `name = value`; CSS scoping stamps `data-rocci-css`.
@@ -374,3 +392,4 @@ the document compiler.[^rocdown-scan]
 [^roc-tutorial]: `expect` and `roc test` on the new compiler.
 [^roc-allsyntax]: One-line and block `expect`.
 [^phase0-probe]: Hand-written `/tmp` stand-in on nightly-2026-08-18-e9be50a; layout (b) is 1 test.
+[^rocci-test]: `stage_type_module` aliases and `roc test {Type}.roc`.
