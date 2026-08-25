@@ -23,3 +23,8 @@ export function countPreviewReadyLines(text: string): number {
   const matches = text.match(/^preview_ready\s+https?:\/\/\S+/gm)
   return matches?.length ?? 0
 }
+
+export function countRebuildLines(text: string): number {
+  const matches = text.match(/: rebuilt\b/g)
+  return matches?.length ?? 0
+}

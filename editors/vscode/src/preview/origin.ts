@@ -20,7 +20,28 @@ export function previewOrigin(filePath: string): PreviewOrigin | undefined {
 }
 
 export function sameOrigin(a: PreviewOrigin, b: PreviewOrigin): boolean {
-  return a.product === b.product && path.resolve(a.root) === path.resolve(b.root)
+  return a.product === b.product && resolvePath(a.root) === resolvePath(b.root)
+}
+
+export function belongsToOrigin(filePath: string, origin: PreviewOrigin): boolean {
+  const next = previewOrigin(filePath)
+  if (next && sameOrigin(next, origin)) {
+    return true
+  }
+  const file = resolvePath(filePath)
+  const root = resolvePath(origin.root)
+  if (fs.existsSync(root) && fs.statSync(root).isFile()) {
+    return path.dirname(file) === path.dirname(root)
+  }
+  return file === root || file.startsWith(root + path.sep)
+}
+
+function resolvePath(value: string): string {
+  try {
+    return fs.realpathSync(value)
+  } catch {
+    return path.resolve(value)
+  }
 }
 
 export function reuseDecision(

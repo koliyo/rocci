@@ -5,10 +5,11 @@ import * as path from 'path'
 
 import { canPreviewDocument, chooseBrowserHost } from '../../preview/browser'
 import { previewArgv } from '../../preview/dispatch'
-import { previewOrigin, reuseDecision } from '../../preview/origin'
+import { belongsToOrigin, previewOrigin, reuseDecision } from '../../preview/origin'
 import { parsePreviewUrl } from '../../preview/parse'
 import {
   countPreviewReadyLines,
+  countRebuildLines,
   hasSseReloadEvent,
   liveReloadEventsUrl,
   withReloadNonce
@@ -43,7 +44,7 @@ suite('Rocci preview (offline)', () => {
     const argv = previewArgv('/tmp/App.rocci')
     assert.deepStrictEqual(argv, {
       product: 'rocci',
-      args: ['run', '/tmp/App.rocci', '--no-window', '--port', 'auto']
+      args: ['run', '--no-window', '--port', 'auto', '--verbose', '/tmp/App.rocci']
     })
   })
 
@@ -51,7 +52,7 @@ suite('Rocci preview (offline)', () => {
     const argv = previewArgv('/tmp/site/Guide.rocdown')
     assert.deepStrictEqual(argv, {
       product: 'rocdown',
-      args: ['view', '/tmp/site/Guide.rocdown', '--no-window', '--port', 'auto']
+      args: ['view', '--no-window', '--port', 'auto', '--verbose', '/tmp/site/Guide.rocdown']
     })
   })
 
@@ -108,6 +109,7 @@ suite('Rocci preview (offline)', () => {
       countPreviewReadyLines('preview_ready http://127.0.0.1:8000/\npreview_ready http://127.0.0.1:8000/\n'),
       2
     )
+    assert.strictEqual(countRebuildLines('rocdown: rebuilding\nrocdown: rebuilt\n'), 1)
   })
 
   test('refuses untitled and unsaved schemes', () => {
@@ -136,6 +138,10 @@ suite('Rocci preview (offline)', () => {
     const rocci = previewOrigin(app)
     assert.ok(rocci)
     assert.strictEqual(reuseDecision(first, rocci), 'restart')
+    assert.ok(belongsToOrigin(note, first))
+    assert.ok(belongsToOrigin(app, first))
+    const outside = path.join(os.tmpdir(), 'rocci-preview-outside.rocci')
+    assert.ok(!belongsToOrigin(outside, first))
   })
 
   test('chooses Simple Browser when present and iframe otherwise', () => {

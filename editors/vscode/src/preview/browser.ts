@@ -14,6 +14,7 @@ export function iframePreviewHtml(url: string): string {
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src http: https:; style-src 'unsafe-inline';" />
     <style>
       html, body, iframe { margin: 0; padding: 0; height: 100%; width: 100%; border: 0; }
     </style>

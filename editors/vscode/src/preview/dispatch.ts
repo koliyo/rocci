@@ -12,13 +12,13 @@ export function previewArgv(filePath: string): PreviewArgv | undefined {
   if (ext === '.rocdown') {
     return {
       product: 'rocdown',
-      args: ['view', filePath, '--no-window', '--port', 'auto']
+      args: ['view', '--no-window', '--port', 'auto', '--verbose', filePath]
     }
   }
   if (ext === '.rocci') {
     return {
       product: 'rocci',
-      args: ['run', filePath, '--no-window', '--port', 'auto']
+      args: ['run', '--no-window', '--port', 'auto', '--verbose', filePath]
     }
   }
   return undefined

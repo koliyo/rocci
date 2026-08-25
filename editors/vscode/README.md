@@ -11,9 +11,9 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **File icons**: Explorer icons for `.rocci` and `.rocdown` use the folded-R document mark.
 - **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
 - **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@page`, `@roc`, `:note`), handlers (`@get:view`, `@post:fragment`), HTML elements, and components; hover documentation for template elements.
-- **Preview**: **Rocci: Preview** (`rocci.preview`) saves the active `.rocci` or `.rocdown` file, runs `rocci run` or `rocdown view` with `--no-window --port auto`, and opens that loopback origin in Simple Browser **beside** the editor. **Rocci: Reload Preview** refreshes that browser. **Rocci: Stop Preview** stops the process. The play / open-preview control is on the editor title bar and in the Run menu for Rocci and Rocdown files.
+- **Preview**: **Rocci: Preview** (`rocci.preview`) saves the active `.rocci` or `.rocdown` file, runs `rocci run` or `rocdown view` with `--no-window --port auto --verbose`, and opens that loopback origin in a beside-editor webview. **Rocci: Reload Preview** refreshes the webview. **Rocci: Stop Preview** stops the process. Watch, rebuild, and reload lines are written to the **Rocci Preview** output channel.
 
-The preview is the product HTTP origin, not a second renderer. The extension follows `/__rocci/events` and rebuild `preview_ready` lines so Simple Browser picks up CLI live reload (the in-page EventSource often does not refresh that host). Saving a file in the same app or site also reloads the preview. The Dev inspector overlay stays on the desktop host. Preview requires a saved file; untitled buffers cannot be served.
+The preview is the product HTTP origin, not a second renderer. Saving a Rocdown file in the same site reloads the webview after the CLI rebuilds. Saving a Rocci file restarts `rocci run` (that command does not watch). The Dev inspector overlay stays on the desktop host. Preview requires a saved file; untitled buffers cannot be served.
 
 ## Configuration
 
