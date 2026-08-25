@@ -25,7 +25,7 @@ The preview is the product HTTP origin, not a second renderer. Saving a Rocdown 
 | `rocci.lsp.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
 | `rocci.preview.rocciPath` | `string` | `""` | Path to `rocci`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
 | `rocci.preview.rocdownPath` | `string` | `""` | Path to `rocdown`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
-| `rocci.tools.channel` | `string` | `"stable"` | `stable` uses `/releases/latest`; `dev` uses tag `dev`. |
+| `rocci.tools.channel` | `string` | `"stable"` | `stable` uses `/releases/latest`. `dev` installs from the rolling GitHub tag/release `dev` (`rocci-dev-<sha>-<triple>.tar.gz`). |
 | `rocci.tools.autoUpdate` | `boolean` | `true` | Check GitHub releases on activate when not debugging. |
 
 Semantic highlighting is enabled by default in VS Code (`editor.semanticHighlighting.enabled: true`).

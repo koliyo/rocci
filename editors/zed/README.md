@@ -45,7 +45,21 @@ The extension looks up the server in this order:
 1. `lsp.rocci-language-server.binary.path` in Zed settings
 2. `rocci-language-server` on `PATH`
 3. `{worktree}/target/debug/rocci-language-server` when the worktree is this repo (after `cargo build -p rocci-rocdown-lsp`)
-4. A GitHub-release extract for the current Zed platform
+4. A GitHub-release extract for the current Zed platform (`/releases/latest` by default)
+
+Install the rolling `dev` tag/release instead of latest:
+
+```json
+{
+  "lsp": {
+    "rocci-language-server": {
+      "settings": {
+        "channel": "dev"
+      }
+    }
+  }
+}
+```
 
 Override the binary if needed:
 

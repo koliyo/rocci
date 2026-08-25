@@ -36,6 +36,38 @@ fn github_asset_name(version: &str, triple: &str) -> String {
     format!("rocci-{version}-{triple}.tar.gz")
 }
 
+fn tools_channel(settings: &LspSettings) -> &'static str {
+    let value = settings
+        .settings
+        .as_ref()
+        .and_then(|settings| settings.get("channel"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("stable");
+    if value.eq_ignore_ascii_case("dev") {
+        "dev"
+    } else {
+        "stable"
+    }
+}
+
+fn archive_for_triple<'a>(
+    assets: &'a [zed::GithubReleaseAsset],
+    version: &str,
+    triple: &str,
+) -> Result<&'a zed::GithubReleaseAsset> {
+    let exact = github_asset_name(version, triple);
+    let suffix = format!("-{triple}.tar.gz");
+    assets
+        .iter()
+        .find(|asset| asset.name == exact)
+        .or_else(|| {
+            assets
+                .iter()
+                .find(|asset| asset.name.starts_with("rocci-") && asset.name.ends_with(&suffix))
+        })
+        .ok_or_else(|| format!("no GitHub asset matching rocci-*-{triple}.tar.gz"))
+}
+
 fn rust_triple(os: zed::Os, arch: zed::Architecture) -> Result<&'static str> {
     match (os, arch) {
         (zed::Os::Mac, zed::Architecture::Aarch64) => Ok("aarch64-apple-darwin"),
@@ -60,28 +92,30 @@ fn find_extracted_server(dir: &str) -> Option<String> {
     None
 }
 
-fn download_language_server(language_server_id: &LanguageServerId) -> Result<String> {
+fn download_language_server(
+    language_server_id: &LanguageServerId,
+    channel: &str,
+) -> Result<String> {
     zed::set_language_server_installation_status(
         language_server_id,
         &zed::LanguageServerInstallationStatus::CheckingForUpdate,
     );
-    let release = zed::latest_github_release(
-        "koliyo/rocci",
-        zed::GithubReleaseOptions {
-            require_assets: true,
-            pre_release: false,
-        },
-    )?;
+    let release = if channel == "dev" {
+        zed::github_release_by_tag_name("koliyo/rocci", "dev")?
+    } else {
+        zed::latest_github_release(
+            "koliyo/rocci",
+            zed::GithubReleaseOptions {
+                require_assets: true,
+                pre_release: false,
+            },
+        )?
+    };
     let (os, arch) = zed::current_platform();
     let triple = rust_triple(os, arch)?;
-    let asset_name = github_asset_name(&release.version, triple);
-    let asset = release
-        .assets
-        .iter()
-        .find(|asset| asset.name == asset_name)
-        .ok_or_else(|| format!("no GitHub asset named {asset_name}"))?;
+    let asset = archive_for_triple(&release.assets, &release.version, triple)?;
 
-    let version_dir = format!("releases/{}", release.version);
+    let version_dir = format!("releases/{channel}");
     if let Some(existing) = find_extracted_server(&version_dir) {
         return Ok(existing);
     }
@@ -95,7 +129,7 @@ fn download_language_server(language_server_id: &LanguageServerId) -> Result<Str
         &version_dir,
         zed::DownloadedFileType::GzipTar,
     )
-    .map_err(|error| format!("failed to download {asset_name}: {error}"))?;
+    .map_err(|error| format!("failed to download {}: {error}", asset.name))?;
     let binary = find_extracted_server(&version_dir)
         .ok_or_else(|| format!("downloaded archive did not contain {name}", name = language_server_binary_name()))?;
     zed::make_file_executable(&binary)?;
@@ -125,7 +159,7 @@ impl zed::Extension for RocciExtension {
             .or_else(|| cargo_target_binary(worktree));
         let command = match command {
             Some(command) => command,
-            None => download_language_server(language_server_id)?,
+            None => download_language_server(language_server_id, tools_channel(&settings))?,
         };
 
         let args = binary
@@ -157,8 +191,8 @@ mod tests {
             "rocci-0.1.0-aarch64-apple-darwin.tar.gz"
         );
         assert_eq!(
-            github_asset_name("dev", "x86_64-unknown-linux-gnu"),
-            "rocci-dev-x86_64-unknown-linux-gnu.tar.gz"
+            github_asset_name("dev-abcdef0", "x86_64-unknown-linux-gnu"),
+            "rocci-dev-abcdef0-x86_64-unknown-linux-gnu.tar.gz"
         );
     }
 }

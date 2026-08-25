@@ -5,17 +5,17 @@ import { spawn } from 'child_process'
 import { URL } from 'url'
 
 import {
+  findReleaseArchive,
   githubReleaseApiUrl,
+  isDevRelease,
   manifestsEqual,
   parseReleaseManifest,
   parseSha256Line,
-  releaseAssetName,
-  releaseChecksumName,
+  releaseExtractDir,
   ReleaseManifest,
   rustTriple,
   verifySha256
 } from './release'
-import { releaseExtractDir } from './release'
 
 export type GithubClient = {
   getJson(url: string): Promise<unknown>
@@ -51,30 +51,33 @@ export async function installTools(options: {
     ? parseReleaseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')))
     : undefined
 
-  if (!options.overwriteDev && local?.name === 'dev') {
-    options.log(`Dev version detected: ${local.name}`)
+  if (options.channel !== 'dev' && !options.overwriteDev && local && isDevRelease(local)) {
+    options.log(`Dev version detected: ${local.tag_name}`)
     return local
   }
   if (manifestsEqual(local, latest)) {
-    options.log(`Installed tools are up to date: ${latest.name}`)
+    options.log(`Installed tools are up to date: ${latest.tag_name}`)
     return latest
   }
 
   const triple = rustTriple(options.platform, options.arch)
-  const version = payload.tag_name ?? latest.name
-  const assetName = releaseAssetName(version, triple)
-  const checksumName = releaseChecksumName(version, triple)
-  const asset = payload.assets.find(item => item.name === assetName)
-  const checksum = payload.assets.find(item => item.name === checksumName)
+  const names = findReleaseArchive(payload.assets, triple)
+  if (!names) {
+    throw new Error(
+      `Could not find a rocci-*-${triple}.tar.gz asset on ${latest.tag_name}`
+    )
+  }
+  const asset = payload.assets.find(item => item.name === names.archive)
+  const checksum = payload.assets.find(item => item.name === names.checksum)
   if (!asset || !checksum) {
-    throw new Error(`Could not find release assets ${assetName} and ${checksumName}`)
+    throw new Error(`Could not find release assets ${names.archive} and ${names.checksum}`)
   }
 
   const archive = await options.client.getBuffer(asset.browser_download_url)
   const digestText = (await options.client.getBuffer(checksum.browser_download_url)).toString('utf8')
   verifySha256(archive, parseSha256Line(digestText))
 
-  const dest = releaseExtractDir(options.storageRoot, latest.name === 'dev' ? 'dev' : version)
+  const dest = releaseExtractDir(options.storageRoot, latest.tag_name)
   fs.rmSync(dest, { recursive: true, force: true })
   fs.mkdirSync(dest, { recursive: true })
   await options.extract(archive, dest)

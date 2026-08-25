@@ -9,6 +9,7 @@ export const UNKNOWN_TARGET_MESSAGE =
 export type ReleaseManifest = {
   id: number
   name: string
+  tag_name: string
   published_at: string
 }
 
@@ -47,14 +48,38 @@ export function parseReleaseManifest(data: unknown): ReleaseManifest {
   if (typeof value.id !== 'number') {
     throw new Error('GitHub release JSON is missing id')
   }
-  const name = typeof value.name === 'string' && value.name ? value.name : String(value.tag_name ?? '')
-  if (!name) {
+  const tag_name =
+    typeof value.tag_name === 'string' && value.tag_name
+      ? value.tag_name
+      : typeof value.name === 'string'
+        ? value.name
+        : ''
+  const name = typeof value.name === 'string' && value.name ? value.name : tag_name
+  if (!name || !tag_name) {
     throw new Error('GitHub release JSON is missing name')
   }
   if (typeof value.published_at !== 'string') {
     throw new Error('GitHub release JSON is missing published_at')
   }
-  return { id: value.id, name, published_at: value.published_at }
+  return { id: value.id, name, tag_name, published_at: value.published_at }
+}
+
+export function findReleaseArchive(
+  assets: { name: string }[],
+  triple: string
+): { archive: string; checksum: string } | undefined {
+  const suffix = `-${triple}.tar.gz`
+  const archive = assets.find(
+    item => item.name.startsWith('rocci-') && item.name.endsWith(suffix)
+  )?.name
+  if (!archive) {
+    return undefined
+  }
+  const checksum = `${archive}.sha256`
+  if (!assets.some(item => item.name === checksum)) {
+    return undefined
+  }
+  return { archive, checksum }
 }
 
 export function sha256Hex(buffer: Buffer): string {
@@ -83,7 +108,11 @@ export function githubReleaseApiUrl(channel: 'stable' | 'dev'): string {
 }
 
 export function releaseTag(manifest: ReleaseManifest): string {
-  return manifest.name === 'dev' ? 'dev' : manifest.name
+  return manifest.tag_name === 'dev' ? 'dev' : manifest.tag_name
+}
+
+export function isDevRelease(manifest: ReleaseManifest): boolean {
+  return manifest.tag_name === 'dev'
 }
 
 export function releaseExtractDir(storageRoot: string, tag: string): string {

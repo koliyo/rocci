@@ -156,8 +156,12 @@
         "rocci.tools.channel": {
           "type": "string",
           "enum": ["stable", "dev"],
+          "enumDescriptions": [
+            "Install from the latest GitHub release",
+            "Install from the rolling koliyo/rocci tag and release named dev"
+          ],
           "default": "stable",
-          "description": "GitHub release channel. stable uses /releases/latest; dev uses tag dev."
+          "description": "GitHub release channel. stable uses /releases/latest. dev uses the rolling tag/release `dev` (assets named rocci-dev-<sha>-<triple>.tar.gz)."
         },
         "rocci.tools.autoUpdate": {
           "type": "boolean",

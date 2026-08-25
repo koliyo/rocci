@@ -6,6 +6,7 @@ import * as path from 'path'
 import { installTools } from '../../tools/install'
 
 import {
+  findReleaseArchive,
   githubReleaseApiUrl,
   manifestsEqual,
   parseReleaseManifest,
@@ -39,6 +40,7 @@ suite('Rocci tools release contract (offline)', () => {
       manifestsEqual(latest, {
         id: 42,
         name: 'v0.1.0',
+        tag_name: 'v0.1.0',
         published_at: '2026-08-25T00:00:00.000Z'
       })
     )
@@ -94,5 +96,63 @@ suite('Rocci tools release contract (offline)', () => {
     assert.ok(fs.existsSync(path.join(storage, 'releases', 'v0.1.0', 'rocci-language-server')))
     assert.ok(fs.existsSync(path.join(storage, 'manifest.json')))
     assert.ok(logs.some(line => line.includes('Installed')))
+  })
+
+  test('installs the rolling GitHub tag dev archive (dev-<sha> assets)', async () => {
+    const archive = Buffer.from('dev-archive-bytes')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-dev-'))
+    const names = findReleaseArchive(
+      [
+        { name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz' },
+        { name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256' }
+      ],
+      'aarch64-apple-darwin'
+    )
+    assert.deepStrictEqual(names, {
+      archive: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz',
+      checksum: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256'
+    })
+    await installTools({
+      storageRoot: storage,
+      channel: 'dev',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async url => {
+          assert.strictEqual(url, githubReleaseApiUrl('dev'))
+          return {
+            id: 11,
+            name: 'Development Build (abcdef0)',
+            tag_name: 'dev',
+            published_at: '2026-08-25T12:00:00Z',
+            assets: [
+              {
+                name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz',
+                browser_download_url: 'https://example.test/archive'
+              },
+              {
+                name: 'rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256',
+                browser_download_url: 'https://example.test/sha'
+              }
+            ]
+          }
+        },
+        getBuffer: async url =>
+          url.endsWith('/sha')
+            ? Buffer.from(`${digest}  rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz\n`)
+            : archive
+      },
+      extract: async (buffer, dest) => {
+        fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+      },
+      log: () => undefined
+    })
+    assert.ok(fs.existsSync(path.join(storage, 'releases', 'dev', 'rocci-language-server')))
+    const manifest = JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8')) as {
+      tag_name: string
+    }
+    assert.strictEqual(manifest.tag_name, 'dev')
   })
 })
