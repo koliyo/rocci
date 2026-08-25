@@ -11,9 +11,10 @@
 See [standalone applications](/docs/applications/standalone/) and
 [handlers](/docs/applications/handlers/).
 
-The first Rocci app: one `.rocci` file, SQLite state, `@get:view("/")`, and two
+The first Rocci app: one `.rocci` file, SQLite state, `@get:view("/")`, two
 `@post:fragment` handlers that morph `#counter`. Increment and reset each return the
-`CounterCard` component. A second browser tab stays stale until you click or
+`CounterCard` component, and `@test{fixture: counterCardTest}` for the card
+sample (not the SQLite handlers). A second browser tab stays stale until you click or
 reload. For two windows that share a stream, use the
 [live counter](/examples/live-counter/).
 

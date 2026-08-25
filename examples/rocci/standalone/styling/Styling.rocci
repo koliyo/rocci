@@ -93,6 +93,9 @@ StylePage = |{ count }|
 @fixture{target: Hello}
 helloTest = { name: "Ada" }
 
+@test{fixture: helloTest}
+helloAda = helloTest.name == "Ada"
+
 @fixture{target: FeatureCard}
 featureCardTest = { count: 3.I64 }
 

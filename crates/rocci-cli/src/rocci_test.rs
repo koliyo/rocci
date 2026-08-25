@@ -7,13 +7,29 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
-    LowerOptions, SourceFile, TestInfo, compile, format_diagnostic, format_expect_trailer,
-    type_name_from_path, wrap_type_module,
+    ComponentInfo, FixtureInfo, LowerOptions, ModuleItem, SourceFile, TestInfo, compile,
+    format_diagnostic, format_expect_trailer, lower, pascal_to_camel, type_name_from_path,
+    wrap_type_module,
 };
 
 use crate::view::copy_sibling_roc;
 
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+const DATASTAR_STUB: &str = r#"
+Datastar := [].{
+    get = |uri| uri
+    post = |uri| uri
+    put = |uri| uri
+    patch = |uri| uri
+    delete = |uri| uri
+    get_with = |uri, _opts| uri
+    post_with = |uri, _opts| uri
+    put_with = |uri, _opts| uri
+    patch_with = |uri, _opts| uri
+    delete_with = |uri, _opts| uri
+}
+"#;
 
 enum FileOutcome {
     Skipped,
@@ -93,10 +109,26 @@ fn run_file(path: &Path) -> Result<FileOutcome> {
         return Ok(FileOutcome::Skipped);
     }
     let type_name = type_name_from_path(path);
-    let staged = stage_type_module(&compiled.roc, &type_name, &compiled.tests);
+    let mut document = compiled.document.clone();
+    document.items.retain(|item| match item {
+        ModuleItem::Context(_) | ModuleItem::Init(_) | ModuleItem::Route(_) => false,
+        ModuleItem::Roc { span } => roc_item_safe_for_tests(source.src, *span),
+        _ => true,
+    });
+    let lowered = lower(source, &document, &LowerOptions::default());
+    let roc = rewrite_html_annos_for_string_runtime(&lowered.roc);
+    let staged = stage_type_module(
+        &roc,
+        &type_name,
+        &compiled.tests,
+        &compiled.fixtures,
+        &compiled.components,
+    );
     let workspace = unique_temp("test")?;
     fs::write(workspace.join("Html.roc"), rocci_ui::HTML_ROC)
         .with_context(|| format!("failed to write {}/Html.roc", workspace.display()))?;
+    fs::write(workspace.join("Datastar.roc"), DATASTAR_STUB)
+        .with_context(|| format!("failed to write {}/Datastar.roc", workspace.display()))?;
     if let Some(src_dir) = path.parent() {
         copy_sibling_roc(src_dir, &workspace, &type_name)?;
     }
@@ -120,14 +152,64 @@ fn run_file(path: &Path) -> Result<FileOutcome> {
     Ok(FileOutcome::Passed)
 }
 
-pub fn stage_type_module(roc: &str, type_name: &str, tests: &[TestInfo]) -> String {
+pub fn stage_type_module(
+    roc: &str,
+    type_name: &str,
+    tests: &[TestInfo],
+    fixtures: &[FixtureInfo],
+    components: &[ComponentInfo],
+) -> String {
     let mut body = wrap_type_module(roc, type_name);
     if !body.ends_with('\n') {
         body.push('\n');
     }
     body.push('\n');
+    body.push_str(&format_test_aliases(type_name, fixtures, components));
     body.push_str(&format_expect_trailer(tests));
     body
+}
+
+fn roc_item_safe_for_tests(src: &str, span: rocci_template::Span) -> bool {
+    let text = span.of(src);
+    let trimmed = text.trim_start();
+    if trimmed.starts_with("import ") {
+        return true;
+    }
+    !text.contains("Sqlite.") && !text.contains("Env.") && !text.contains("Stderr.")
+}
+
+fn rewrite_html_annos_for_string_runtime(roc: &str) -> String {
+    roc.replace(", Html -> Html", ", Str -> Str")
+        .replace(" -> Html\n", " -> Str\n")
+}
+
+fn format_test_aliases(
+    type_name: &str,
+    fixtures: &[FixtureInfo],
+    components: &[ComponentInfo],
+) -> String {
+    let mut names = Vec::new();
+    for fixture in fixtures {
+        names.push(fixture.name.clone());
+    }
+    for component in components {
+        names.push(pascal_to_camel(&component.name));
+    }
+    names.sort();
+    names.dedup();
+    let mut out = String::new();
+    for name in names {
+        out.push_str(&name);
+        out.push_str(" = ");
+        out.push_str(type_name);
+        out.push('.');
+        out.push_str(&name);
+        out.push('\n');
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+    out
 }
 
 fn unique_temp(kind: &str) -> Result<PathBuf> {
@@ -178,7 +260,13 @@ mod tests {
             docs: Some("## Greeting for the sample name.\n".into()),
             span: Span::point(0),
         }];
-        let staged = stage_type_module("helloSample = { name: \"Roc\" }\n", "Widget", &tests);
+        let staged = stage_type_module(
+            "helloSample = { name: \"Roc\" }\n",
+            "Widget",
+            &tests,
+            &[],
+            &[],
+        );
         assert!(staged.contains("Widget := [].{"));
         let type_end = staged.find("\n}\n").expect("type closer");
         let expect_at = staged.find("expect helloSample.name").expect("expect");
@@ -187,6 +275,24 @@ mod tests {
             staged
                 .contains("## Greeting for the sample name.\nexpect helloSample.name == \"Roc\"\n")
         );
+        let aliased = stage_type_module(
+            "helloSample = { name: \"Roc\" }\n",
+            "Widget",
+            &tests,
+            &[FixtureInfo {
+                name: "helloSample".into(),
+                target: "Hello".into(),
+                value: r#"{ name: "Roc" }"#.into(),
+                span: Span::point(0),
+            }],
+            &[],
+        );
+        let type_end = aliased.find("\n}\n").expect("type closer");
+        let alias_at = aliased
+            .find("helloSample = Widget.helloSample")
+            .expect("alias");
+        assert!(alias_at > type_end);
+        assert!(alias_at < aliased.find("expect helloSample.name").unwrap());
     }
 
     #[test]
