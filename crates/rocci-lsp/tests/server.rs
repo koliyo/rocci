@@ -1,6 +1,6 @@
 use lsp_server::Request;
 use lsp_types::{
-    ClientCapabilities, CompletionParams, CompletionResponse, DiagnosticSeverity,
+    ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic, DiagnosticSeverity,
     DidOpenTextDocumentParams, DocumentSymbolParams, DocumentSymbolResponse,
     GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents, HoverParams,
     InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
@@ -940,6 +940,34 @@ fn projected_ident_range(src: &str, ident: &str, after: &str) -> Range {
     }
 }
 
+fn projected_needle_range(src: &str, needle: &str) -> Range {
+    let compiled = rocci_template::compile(
+        SourceFile::new("test.rocci", src),
+        &rocci_template::LowerOptions::default(),
+    );
+    let type_name = rocci_template::type_name_from_path(std::path::Path::new("/test.rocci"));
+    let projection =
+        rocci_template::project_type_module(&compiled.roc, &compiled.segments, &type_name);
+    let offset = projection.roc.find(needle).expect("needle") as u32;
+    let proj = SourceFile::new("projection.roc", &projection.roc);
+    let (start_line, start_col) = proj.position(offset, PositionEncoding::Utf16);
+    let (end_line, end_col) = proj.position(offset + needle.len() as u32, PositionEncoding::Utf16);
+    Range {
+        start: Position::new(start_line, start_col),
+        end: Position::new(end_line, end_col),
+    }
+}
+
+fn roc_error(range: Range, message: &str) -> Diagnostic {
+    Diagnostic {
+        range,
+        severity: Some(DiagnosticSeverity::ERROR),
+        source: Some("roc-experimental-lsp".to_string()),
+        message: message.to_string(),
+        ..Diagnostic::default()
+    }
+}
+
 #[test]
 fn interpolation_hover_forwards_mapped_roc_backend() {
     let src = r#"
@@ -1032,4 +1060,56 @@ fn component_hover_stays_host_when_roc_backend_answers() {
     assert!(markup.value.contains("@component Hello"), "{markup:?}");
     assert!(markup.value.contains("Greeting card."), "{markup:?}");
     assert!(!markup.value.contains("```roc\nStr"), "{markup:?}");
+}
+
+#[test]
+fn interpolation_type_error_maps_to_expr_span() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title + 1}</p>
+}
+"#;
+    let expr = "title + 1";
+    let range = projected_ident_range(src, expr, "{title + 1}");
+    let mut fake = FakeRocBackend::default();
+    fake.set_diagnostics(vec![roc_error(range, "TYPE MISMATCH")]);
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    let published = open(&mut server, src);
+    let diag = published
+        .diagnostics
+        .iter()
+        .find(|d| d.message == "TYPE MISMATCH")
+        .expect("mapped roc diagnostic");
+    assert_eq!(diag.source.as_deref(), Some("roc"));
+    let start = src.find(expr).expect("expr");
+    let (start_line, start_character) = line_col(src, start);
+    let (end_line, end_character) = line_col(src, start + expr.len());
+    assert_eq!(diag.range.start.line, start_line);
+    assert_eq!(diag.range.start.character, start_character);
+    assert_eq!(diag.range.end.line, end_line);
+    assert_eq!(diag.range.end.character, end_character);
+}
+
+#[test]
+fn scaffolding_roc_diagnostics_are_dropped() {
+    let src = r#"
+@component Hello = |{ title }| {
+    <p>{title + 1}</p>
+}
+"#;
+    let range = projected_needle_range(src, "Html.text");
+    let mut fake = FakeRocBackend::default();
+    fake.set_diagnostics(vec![roc_error(range, "scaffolding")]);
+    let mut server = initialize(true);
+    server.set_roc_backend(Box::new(fake));
+    let published = open(&mut server, src);
+    assert!(
+        published
+            .diagnostics
+            .iter()
+            .all(|d| d.message != "scaffolding"),
+        "{:?}",
+        published.diagnostics
+    );
 }

@@ -22,13 +22,13 @@ use lsp_types::request::{
     SemanticTokensFullRequest, SemanticTokensRangeRequest,
 };
 use lsp_types::{
-    CompletionOptions, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams, DocumentSymbolParams, GotoDefinitionParams, Hover, HoverParams,
-    HoverProviderCapability, InitializeParams, InitializeResult, OneOf, Position,
-    PositionEncodingKind, PublishDiagnosticsParams, SemanticTokensFullOptions,
-    SemanticTokensOptions, SemanticTokensParams, SemanticTokensRangeParams,
-    SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
-    TextDocumentSyncKind, Uri,
+    CompletionOptions, CompletionParams, Diagnostic, DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, DocumentSymbolParams,
+    GotoDefinitionParams, Hover, HoverParams, HoverProviderCapability, InitializeParams,
+    InitializeResult, OneOf, Position, PositionEncodingKind, PublishDiagnosticsParams,
+    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
+    SemanticTokensRangeParams, SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo,
+    TextDocumentSyncCapability, TextDocumentSyncKind, Uri,
 };
 use rocci_template::{
     PositionEncoding, Segment, SourceFile, Span, map_generated_span, project_type_module,
@@ -163,7 +163,8 @@ impl LanguageServer {
         let name = uri_key(&uri);
         let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
         self.sync_projection(&name, &uri, analysis.as_ref());
-        let diagnostics = analysis.diagnostics();
+        let mut diagnostics = analysis.diagnostics();
+        diagnostics.extend(self.mapped_roc_diagnostics(&name, analysis.as_ref()));
         self.documents.insert(name, analysis);
         Some(PublishDiagnosticsParams {
             uri,
@@ -182,7 +183,8 @@ impl LanguageServer {
         let analyzer = self.analyzers.iter().find(|a| a.can_analyze(&uri, None))?;
         let analysis = analyzer.analyze(&name, &uri, &text, self.encoding);
         self.sync_projection(&name, &uri, analysis.as_ref());
-        let diagnostics = analysis.diagnostics();
+        let mut diagnostics = analysis.diagnostics();
+        diagnostics.extend(self.mapped_roc_diagnostics(&name, analysis.as_ref()));
         self.documents.insert(name, analysis);
         Some(PublishDiagnosticsParams {
             uri,
@@ -411,6 +413,38 @@ impl LanguageServer {
         });
         Some(hover)
     }
+
+    fn mapped_roc_diagnostics(
+        &self,
+        name: &str,
+        analysis: &dyn DocumentAnalysis,
+    ) -> Vec<Diagnostic> {
+        let Ok(mut roc_state) = self.roc.lock() else {
+            return Vec::new();
+        };
+        let (path, roc, segments) = {
+            let Some(file) = roc_state.files.get(name) else {
+                return Vec::new();
+            };
+            (file.path.clone(), file.roc.clone(), file.segments.clone())
+        };
+        let raw = roc_state.backend.diagnostics(&path);
+        let source_name = analysis.source_name();
+        let source_text = analysis.source_text();
+        let encoding = self.encoding;
+        raw.into_iter()
+            .filter_map(|diagnostic| {
+                remap_roc_diagnostic(
+                    source_name,
+                    source_text,
+                    &roc,
+                    &segments,
+                    encoding,
+                    diagnostic,
+                )
+            })
+            .collect()
+    }
 }
 
 impl Default for LanguageServer {
@@ -450,6 +484,30 @@ fn projection_file_name(uri_key: &str, type_name: &str) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     uri_key.hash(&mut hasher);
     format!("{type_name}_{:x}.roc", hasher.finish())
+}
+
+fn remap_roc_diagnostic(
+    source_name: &str,
+    source_text: &str,
+    projection: &str,
+    segments: &[Segment],
+    encoding: PositionEncoding,
+    mut diagnostic: Diagnostic,
+) -> Option<Diagnostic> {
+    let proj = SourceFile::new("projection.roc", projection);
+    let start = analysis::offset_at(proj, diagnostic.range.start, CHILD_ENCODING);
+    let end = analysis::offset_at(proj, diagnostic.range.end, CHILD_ENCODING);
+    let span = map_generated_span(
+        source_text,
+        projection,
+        segments,
+        Span::new(start as usize, end as usize),
+    )?;
+    diagnostic.range =
+        analysis::lsp_range(SourceFile::new(source_name, source_text), span, encoding);
+    diagnostic.source = Some("roc".to_string());
+    diagnostic.related_information = None;
+    Some(diagnostic)
 }
 
 fn publish_diagnostics(params: PublishDiagnosticsParams) -> Notification {

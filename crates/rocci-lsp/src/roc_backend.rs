@@ -7,20 +7,26 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use lsp_server::{Message, Notification, Request, RequestId};
+use lsp_types::notification::{Notification as _, PublishDiagnostics};
 use lsp_types::{
-    ClientCapabilities, DidChangeTextDocumentParams, DidOpenTextDocumentParams, Hover, HoverParams,
-    InitializeParams, InitializedParams, Position, TextDocumentContentChangeEvent,
-    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
-    VersionedTextDocumentIdentifier, WorkDoneProgressParams,
+    ClientCapabilities, Diagnostic, DidChangeTextDocumentParams, DidOpenTextDocumentParams, Hover,
+    HoverParams, InitializeParams, InitializedParams, Position, PublishDiagnosticsParams,
+    TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
+    TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier, WorkDoneProgressParams,
 };
 use serde_json::Value;
 
 const INIT_TIMEOUT: Duration = Duration::from_secs(8);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+const DIAGNOSTIC_WAIT: Duration = Duration::from_millis(800);
 
 pub trait RocBackend: Send {
     fn sync_projection(&mut self, path: &Path, text: &str) -> Result<(), String>;
     fn hover(&mut self, path: &Path, position: Position) -> Option<Hover>;
+    fn diagnostics(&mut self, path: &Path) -> Vec<Diagnostic> {
+        let _ = path;
+        Vec::new()
+    }
 }
 
 pub struct NullRocBackend;
@@ -40,6 +46,7 @@ pub struct FakeRocBackend {
     pub synced: Option<(PathBuf, String)>,
     hovers: HashMap<(u32, u32), Hover>,
     any: Option<Hover>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl FakeRocBackend {
@@ -49,6 +56,10 @@ impl FakeRocBackend {
 
     pub fn set_any_hover(&mut self, hover: Hover) {
         self.any = Some(hover);
+    }
+
+    pub fn set_diagnostics(&mut self, diagnostics: Vec<Diagnostic>) {
+        self.diagnostics = diagnostics;
     }
 }
 
@@ -66,6 +77,10 @@ impl RocBackend for FakeRocBackend {
             .get(&(position.line, position.character))
             .cloned()
     }
+
+    fn diagnostics(&mut self, _path: &Path) -> Vec<Diagnostic> {
+        self.diagnostics.clone()
+    }
 }
 
 pub struct ChildRocBackend {
@@ -74,6 +89,7 @@ pub struct ChildRocBackend {
     incoming: Receiver<Message>,
     next_id: i32,
     opened: HashMap<PathBuf, i32>,
+    diagnostics: HashMap<Uri, Vec<Diagnostic>>,
 }
 
 impl ChildRocBackend {
@@ -119,6 +135,7 @@ impl ChildRocBackend {
             incoming,
             next_id: 1,
             opened: HashMap::new(),
+            diagnostics: HashMap::new(),
         };
         backend.initialize()?;
         Ok(backend)
@@ -172,7 +189,8 @@ impl ChildRocBackend {
                         .response_result
                         .map_err(|err| format!("{method}: {}", err.message));
                 }
-                Ok(Message::Notification(_)) | Ok(Message::Response(_)) => {}
+                Ok(Message::Notification(not)) => self.ingest_notification(not),
+                Ok(Message::Response(_)) => {}
                 Ok(Message::Request(_)) => {}
                 Err(RecvTimeoutError::Timeout) => return Err(format!("{method} timed out")),
                 Err(RecvTimeoutError::Disconnected) => {
@@ -192,6 +210,39 @@ impl ChildRocBackend {
             .map_err(|err| format!("flush {method}: {err}"))
     }
 
+    fn ingest_notification(&mut self, not: Notification) {
+        if not.method != PublishDiagnostics::METHOD {
+            return;
+        }
+        let Ok(params) = serde_json::from_value::<PublishDiagnosticsParams>(not.params) else {
+            return;
+        };
+        self.diagnostics.insert(params.uri, params.diagnostics);
+    }
+
+    fn wait_diagnostics(&mut self, uri: &Uri) {
+        if self.diagnostics.contains_key(uri) {
+            return;
+        }
+        let deadline = Instant::now() + DIAGNOSTIC_WAIT;
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return;
+            }
+            match self.incoming.recv_timeout(remaining) {
+                Ok(Message::Notification(not)) => {
+                    self.ingest_notification(not);
+                    if self.diagnostics.contains_key(uri) {
+                        return;
+                    }
+                }
+                Ok(Message::Response(_)) | Ok(Message::Request(_)) => {}
+                Err(_) => return,
+            }
+        }
+    }
+
     fn uri_for(&self, path: &Path) -> Result<Uri, String> {
         file_uri(path)
     }
@@ -205,13 +256,17 @@ impl RocBackend for ChildRocBackend {
         }
         std::fs::write(path, text).map_err(|err| format!("write projection: {err}"))?;
         let uri = self.uri_for(path)?;
+        self.diagnostics.remove(&uri);
         if let Some(version) = self.opened.get_mut(path) {
             *version += 1;
             let version = *version;
             self.notify(
                 "textDocument/didChange",
                 serde_json::to_value(DidChangeTextDocumentParams {
-                    text_document: VersionedTextDocumentIdentifier { uri, version },
+                    text_document: VersionedTextDocumentIdentifier {
+                        uri: uri.clone(),
+                        version,
+                    },
                     content_changes: vec![TextDocumentContentChangeEvent {
                         range: None,
                         range_length: None,
@@ -219,22 +274,24 @@ impl RocBackend for ChildRocBackend {
                     }],
                 })
                 .map_err(|err| err.to_string())?,
-            )
+            )?;
         } else {
             self.opened.insert(path.to_path_buf(), 1);
             self.notify(
                 "textDocument/didOpen",
                 serde_json::to_value(DidOpenTextDocumentParams {
                     text_document: TextDocumentItem {
-                        uri,
+                        uri: uri.clone(),
                         language_id: "roc".to_string(),
                         version: 1,
                         text: text.to_string(),
                     },
                 })
                 .map_err(|err| err.to_string())?,
-            )
+            )?;
         }
+        self.wait_diagnostics(&uri);
+        Ok(())
     }
 
     fn hover(&mut self, path: &Path, position: Position) -> Option<Hover> {
@@ -257,6 +314,13 @@ impl RocBackend for ChildRocBackend {
             return None;
         }
         serde_json::from_value(value).ok()
+    }
+
+    fn diagnostics(&mut self, path: &Path) -> Vec<Diagnostic> {
+        let Ok(uri) = self.uri_for(path) else {
+            return Vec::new();
+        };
+        self.diagnostics.get(&uri).cloned().unwrap_or_default()
     }
 }
 
