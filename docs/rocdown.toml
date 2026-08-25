@@ -69,6 +69,7 @@ items = [
     "reference/language/directives",
     "reference/language/css",
     "reference/language/fixtures",
+    "reference/language/tests",
     "reference/language/server",
     "reference/language/comments",
     "reference/language/generated-roc",

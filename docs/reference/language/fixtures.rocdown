@@ -20,8 +20,9 @@ PascalCase component or a module-qualified path. Unqualified targets must name
 a `@component` in the same file. Dotted targets are left to Roc.
 
 `rocci view` and `rocci browse` consume fixtures. `rocci view` ignores HTTP
-declarations.
+declarations. `@test{fixture: name}` pairs a test with a fixture binding.
 
 **Errors:** `@fixture` inside a component body; missing local target.
 
-**Related:** [CLI view](/docs/reference/cli/#view).
+**Related:** [Tests](/docs/reference/language/tests/),
+[CLI view](/docs/reference/cli/#view).

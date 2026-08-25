@@ -2,7 +2,7 @@
     layout: "docs",
     meta: {
         title: "Rocci CLI reference",
-        description: "Look up rocci commands: validate, build, run, view, browse, playground, render, inspect, bundle, and datastar.",
+        description: "Look up rocci commands: validate, build, run, view, browse, playground, render, inspect, test, bundle, and datastar.",
     },
 }
 
@@ -106,6 +106,17 @@ cargo run -q -p rocci-cli -- ast INPUT
 ```
 
 Parse tree only.
+
+## Test
+
+```sh
+cargo run -q -p rocci-cli -- test [PATH]
+```
+
+Compile each `.rocci` file (or each `.rocci` under a directory; default `.`)
+that declares `@test`, stage a type module with an `expect` trailer, and run
+`roc test` on that module. Files without tests are skipped (exit 0). Rocci
+diagnostics or a failing `roc test` exit non-zero.
 
 ## Bundle
 

@@ -291,4 +291,5 @@ failed_card = {
 ```
 
 Unqualified `target` must name a local `@component`. The binding stays
-ordinary Roc for tests and `rocci view`.
+ordinary Roc for `rocci view`. Pair a boolean check with
+`@test{fixture: failed_card}`.

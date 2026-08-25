@@ -94,7 +94,8 @@ scripts.
    `pprint.rs`; do not invent a tag that is not in `[inspect]`.
 7. Update `test/AllSyntax.rocci` or `test/AllSyntax.rocdown` and the matching
    generated fixture only when the feature belongs in the comprehensive syntax
-   example. Review generated fixture changes rather than accepting them blindly.
+   example. `@test` belongs in AllSyntax as boolean coverage, not CSS-golden
+   HTML. Review generated fixture changes rather than accepting them blindly.
 8. Update the owning crate README and the corresponding
    `docs/reference/rocci.rocdown` or `docs/reference/rocdown.rocdown` page when
    the public language contract changes.

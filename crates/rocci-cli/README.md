@@ -71,6 +71,9 @@ cargo run -p rocci-cli -- render examples/rocci/standalone/counter/Counter.rocci
 # Inspect AST, component signatures, and source-map segments
 cargo run -p rocci-cli -- inspect --ast examples/rocci/standalone/counter/Counter.rocci
 
+# Run @test declarations via roc test (skips files with no tests)
+cargo run -p rocci-cli -- test examples/rocci/standalone/styling/Styling.rocci
+
 # Preview the profiling panel fixture
 cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci --component MetricsPanel
 

@@ -26,7 +26,7 @@ Tone : [Neutral, Positive]
 ```
 
 Recognized **only** at the start of a top-level definition: `@component`,
-`@fixture`, `@css`, `@context`, `@init`, and `@method:role` routes.
+`@fixture`, `@test`, `@css`, `@context`, `@init`, and `@method:role` routes.
 
 Roc regions (directive headers, interpolations, params, `@match` patterns)
 are token ranges. The template parser does not type-check them. Parenthesize
@@ -35,4 +35,6 @@ records in directive headers so `{` is not read as the body opener.
 **Errors:** unrecognized `@` at top-level stays invalid; `@` inside Markdown
 is a Rocdown concern, not this file type.
 
-**Related:** [Components](/docs/reference/language/components/), [Generated Roc](/docs/reference/language/generated-roc/).
+**Related:** [Components](/docs/reference/language/components/),
+[Tests](/docs/reference/language/tests/),
+[Generated Roc](/docs/reference/language/generated-roc/).

@@ -15,7 +15,7 @@ cargo run -p rocci-template -- inspect --ast path/to/file.rocci
 ```
 
 `build` writes generated Roc to stdout, or to a file with `-o`. `ast` prints
-the parse tree as an S-expression. `inspect` prints components, fixtures,
+the parse tree as an S-expression. `inspect` prints components, fixtures, tests,
 generated Roc, and source-map segments; `--ast` includes the parse tree. The
 same commands exist on the workspace `rocci` CLI. Input `-` reads stdin.
 
@@ -47,7 +47,7 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, `@css`, `@context`, `@init`, and
+module unchanged. `@component`, `@fixture`, `@test`, `@css`, `@context`, `@init`, and
 `@method:role` routes are recognized only at the start of a top-level definition.
 
 ## Components
@@ -160,6 +160,22 @@ Unqualified targets must name a `@component` in the same file. Dotted targets
 are left for the Roc compiler and later project-level tools.
 
 `@fixture` is not a template directive. Inside a component body it is an error.
+
+## Tests
+
+`@test` tags a boolean Roc expression. The marker is stripped from generated
+Roc; `compile` reports each test as `TestInfo` (`name`, optional `fixture`,
+`expr`). `rocci test` appends `expect` after the type-module wrap. Optional
+`{fixture: ident}` must name a local `@fixture`.
+
+```rocci
+@test helloNamePresent = Bool.true
+
+@test{fixture: helloSample}
+helloFixturePaired = Str.contains(helloSample.name, "Ada")
+```
+
+`@test` is not a template directive. Inside a component body it is an error.
 
 ## Standalone HTTP
 

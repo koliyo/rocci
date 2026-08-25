@@ -196,6 +196,17 @@ example = "/docs/templates/components/"
 status = "current"
 
 [[feature]]
+id = "syntax.test"
+name = "@test"
+area = "syntax"
+owner = "rocci-template"
+source = "crates/rocci-template/README.md"
+contract = "test/AllSyntax.rocci"
+canonical = "/docs/reference/language/tests/"
+example = "/docs/templates/components/"
+status = "current"
+
+[[feature]]
 id = "syntax.handler.context"
 name = "@context"
 area = "syntax"
@@ -527,6 +538,17 @@ source = "crates/rocci-cli/src/main.rs"
 contract = "crates/rocci-template"
 canonical = "/docs/reference/cli/#inspect"
 example = "/docs/applications/tooling/"
+status = "current"
+
+[[feature]]
+id = "cli.test"
+name = "rocci test"
+area = "cli"
+owner = "rocci-cli"
+source = "crates/rocci-cli/src/rocci_test.rs"
+contract = "test/AllSyntax.rocci; crates/rocci-cli"
+canonical = "/docs/reference/cli/#test"
+example = "/docs/reference/language/tests/"
 status = "current"
 
 [[feature]]

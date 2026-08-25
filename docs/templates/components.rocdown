@@ -21,9 +21,9 @@ emits a function that returns `Html`. Given the same props and body, it
 produces the same markup. Effects belong in `@init` and handlers. There is no
 runtime component registry and no implicit instance state.
 
-`@fixture` bindings are **experimental** syntax used to preview components
-(`rocci view` / `rocci browse`) and to supply test data. They do not change
-the generated component function.
+`@fixture` bindings preview components (`rocci view` / `rocci browse`).
+`@test` bindings check a boolean expression with `rocci test`. Neither
+changes the generated component function.
 
 ## Declare and call
 
@@ -79,8 +79,8 @@ cargo run -q -p rocci-cli -- inspect --ast \
   examples/rocci/standalone/styling/Styling.rocci
 ```
 
-The output names `Hello`, `FeatureCard`, and `StylePage`, lists the fixtures,
-and prints source-map segments.
+The output names `Hello`, `FeatureCard`, and `StylePage`, lists fixtures and
+tests, and prints source-map segments.
 
 ```sh
 cargo run -q -p rocci-cli -- build \
@@ -99,4 +99,5 @@ Put reusable widgets in `components/`. Keep page-private helpers in the same
 
 **Related:** [Markup](/docs/templates/markup/),
 [Fixtures](/docs/reference/language/fixtures/),
+[Tests](/docs/reference/language/tests/),
 [Roc](/docs/appendix/roc-for-rocci/).

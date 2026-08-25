@@ -86,6 +86,7 @@ items = [
     "docs/reference/language/directives",
     "docs/reference/language/css",
     "docs/reference/language/fixtures",
+    "docs/reference/language/tests",
     "docs/reference/language/server",
     "docs/reference/language/comments",
     "docs/reference/language/generated-roc",
