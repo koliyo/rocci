@@ -357,7 +357,7 @@ Confirmed: toolbar lives in the webview parent; inspector stays HTTP (`/__rocci/
 
 ## Status
 
-Phase 0 complete: gates 1–7 recorded. Depends on [editor preview](/plans/shared/editor-preview.md) work already on `main`. Evidence: [hosted editor preview research](/research/shared/editor-preview-host.md).
+Phases 0–7 implemented on branch `editor-preview-host`. Depends on [editor preview](/plans/shared/editor-preview.md) work already on `main`. Evidence: [hosted editor preview research](/research/shared/editor-preview-host.md). Do not log phases complete until CI and Knowledge succeed.
 
 [^research]: Webview host, inspector_ready, Hylo-style release install.
 [^v1-plan]: Play / session / preview_ready / Zed tasks already specified.

@@ -19,7 +19,7 @@ Zed has no extension-owned embedded browser beside the buffer. Until the host pr
 | **Preview Rocci file** | `rocci run $ZED_FILE` |
 | **Preview Rocdown file** | `rocdown view $ZED_FILE` |
 
-This extension ships those templates in `tasks.json`. Run them from the task palette (**task: spawn**). Optional **Serve … (no window)** tasks start `--no-window --port auto` so you can open `http://127.0.0.1:<port>/` in a system browser; they do not create an in-editor pane.
+This extension ships those templates in `tasks.json`. Run them from the task palette (**task: spawn**). Optional **Serve … (no window)** tasks start `--no-window --port auto` so you can open `http://127.0.0.1:<port>/` in a system browser; they do not create an in-editor pane. There is no Zed webview toolbar or Dev dock; those stay in the native preview window.
 
 If a checkout does not load extension tasks, copy `editors/zed/tasks.json` into the project `.zed/tasks.json`.
 
