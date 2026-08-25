@@ -3,6 +3,8 @@ pub mod analyzer;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod embedded;
 pub mod regions;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod roc_backend;
 pub mod tokens;
 
 use std::collections::HashMap;
@@ -32,6 +34,8 @@ pub use regions::{
     RegionValidationError, css_ranges, executable_roc_ranges, extract_rocci_regions,
     inspect_regions,
 };
+#[cfg(not(target_arch = "wasm32"))]
+pub use roc_backend::{ChildRocBackend, FakeRocBackend, NullRocBackend, RocBackend};
 pub use tokens::{
     MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION, MOD_READONLY, TOKEN_COMMENT,
     TOKEN_DECORATOR, TOKEN_ENUM_MEMBER, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_MACRO,

@@ -4,7 +4,7 @@ title: Embedded Roc LSP parity with zed-roc
 description: "Give Rocci LSP compiler-backed Roc hover, diagnostics, completion, definition, and references inside .rocci and .rocdown by forwarding one optional roc experimental-lsp child against generated modules and mapping through source-map segments."
 tags: [domain/rocci, domain/rocdown, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T16:50:00Z }
+generated: { by: process:cursor, at: 2026-08-25T17:05:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -132,10 +132,15 @@ required. Fake backend for default tests.[^view-projection][^lsp-core]
 **Out of bound:** Hover composition in analyzers.
 
 **Tests:** `cargo test -p rocci-lsp`. Live child:
-`ROCCI_REQUIRE_ROC=1 cargo test -p rocci-lsp -- --ignored`.
+`ROCCI_REQUIRE_ROC=1 cargo test -p rocci-lsp --test roc_backend -- --ignored`.
 
 **Exit:** Default suite passes without Roc. Gated test hovers a generated
 fixture through the child.
+
+**Projection contract:** A `TypeName := [].{ ... }` file from
+`project_type_module` is enough for `roc experimental-lsp` hover. A stub
+`main.roc` is not required. The child advertises hover, definition, and
+completion; it does not advertise `references` or `signatureHelp`.
 
 ## Phase 3 — Hover in `.rocci` and `.rocdown`
 
