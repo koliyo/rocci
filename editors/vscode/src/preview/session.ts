@@ -7,7 +7,6 @@ import {
   StatusBarItem,
   ViewColumn,
   WebviewPanel,
-  env,
   Uri,
   window,
   workspace
@@ -338,8 +337,7 @@ export class PreviewSession {
       inspectorUrl: this.inspectorUrl,
       inspectorSrc: this.prefs.open && !this.asPage ? this.inspectorSrc : undefined,
       prefs: this.prefs,
-      asPage: this.asPage,
-      canReveal: Boolean(this.filePath)
+      asPage: this.asPage
     })
     this.panel.reveal(ViewColumn.Beside, true)
   }
@@ -397,15 +395,6 @@ export class PreviewSession {
       this.history = navigateTo(this.history, this.inspectorUrl)
       this.url = this.inspectorUrl
       await this.renderHost()
-      return
-    }
-    if (command === 'reveal' && this.filePath) {
-      await commands.executeCommand('revealFileInOS', Uri.file(this.filePath))
-      return
-    }
-    if (command === 'copy' && this.filePath) {
-      const bytes = await workspace.fs.readFile(Uri.file(this.filePath))
-      await env.clipboard.writeText(Buffer.from(bytes).toString('utf8'))
       return
     }
     if (command === 'toggle-live-reload') {
