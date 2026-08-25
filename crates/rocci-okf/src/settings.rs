@@ -99,9 +99,13 @@ fn render_root_card(root: &RootConfig, status: Option<&crate::git_root::Resolved
     ));
     match root {
         RootConfig::Directory(dir) => {
+            let path = status
+                .and_then(|item| item.path.as_ref())
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| dir.path.clone());
             out.push_str(&format!(
-                "<p class=\"rd-paragraph\">Configured path: <code>{}</code></p>\n",
-                escape(&dir.path)
+                "<p class=\"rd-paragraph\">Path: <code>{}</code></p>\n",
+                escape(&path)
             ));
             if let Some(warning) = index_md_warning(dir) {
                 out.push_str(&format!(
@@ -118,11 +122,13 @@ fn render_root_card(root: &RootConfig, status: Option<&crate::git_root::Resolved
         }
     }
     if let Some(status) = status {
-        if let Some(path) = &status.path {
-            out.push_str(&format!(
-                "<p class=\"rd-paragraph\">Resolved locally: <code>{}</code></p>\n",
-                escape(&path.display().to_string())
-            ));
+        if matches!(root, RootConfig::Git(_)) {
+            if let Some(path) = &status.path {
+                out.push_str(&format!(
+                    "<p class=\"rd-paragraph\">Resolved locally: <code>{}</code></p>\n",
+                    escape(&path.display().to_string())
+                ));
+            }
         }
         if status.enabled() {
             out.push_str("<p class=\"okf-settings-help\">Status: available</p>\n");
@@ -779,7 +785,12 @@ path = "{}"
         .unwrap();
         let html = render_article_from(&config, None);
         let resolved = with_index.canonicalize().unwrap();
-        assert!(html.contains(&resolved.display().to_string()), "{html}");
+        assert!(
+            html.contains(&format!("Path: <code>{}</code>", resolved.display())),
+            "{html}"
+        );
+        assert!(!html.contains("Configured path"), "{html}");
+        assert!(!html.contains("Resolved locally"), "{html}");
         assert!(html.contains("Status: available"), "{html}");
         assert!(html.contains("no index.md"), "{html}");
         let _ = std::fs::remove_dir_all(&bundle);
