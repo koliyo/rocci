@@ -1,0 +1,5 @@
+{
+  "python.languageServer": "None"
+  "rocci.tools.channel": "dev",
+  "rocci.tools.autoUpdate": true
+}
