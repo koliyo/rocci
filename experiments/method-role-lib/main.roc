@@ -12,7 +12,7 @@ import http.Method
 import http.Response
 import Datastar
 import Html
-import Rocci
+import pf.Rocci
 import Ui
 
 Context : { db : Sqlite.Db }
@@ -85,11 +85,11 @@ respond! = |request, context| {
         }
         ("POST", "/actions/live/increment") => {
             _ = increment_live!(context, request) ? |err| ServerErr(Str.inspect(err))
-            command!(request)
+            Rocci.command!(request.headers())
         }
         ("POST", "/actions/live/reset") => {
             _ = reset_live!(context, request) ? |err| ServerErr(Str.inspect(err))
-            command!(request)
+            Rocci.command!(request.headers())
         }
         ("GET", "/sse") => {
             stream = Sse.unfold!(
@@ -422,35 +422,6 @@ listen_port! = |_| {
         Err(_) => 8000
     }
 }
-
-command! = |request|
-    if datastar_request(request) {
-        empty_sse!()
-    } else {
-        no_content()
-    }
-
-datastar_request = |request|
-    List.any(
-        request.headers(),
-        |header|
-            (
-                header.name == "datastar-request"
-                or header.name == "Datastar-Request"
-                or header.name == "DATASTAR-REQUEST"
-            )
-            and (
-                header.value == "true"
-                or header.value == "True"
-                or header.value == "TRUE"
-            ),
-    )
-
-empty_sse! = ||
-    Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
-
-no_content = ||
-    Ok(Server.respond(Response.from_status(204)))
 
 health! = |{}| text_ok("ok")
 

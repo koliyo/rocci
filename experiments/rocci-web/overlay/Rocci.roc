@@ -1,18 +1,15 @@
-import pf.Server
-import pf.Sse
-import http.Response
-import Datastar
+import Server
+import Sse
 import Html
+import http.Response
 
-## Wire wraps for the closed method-role matrix. Constructors that take
-## handlers (`Rocci.view("/", home!)`) currently SIGSEGV this Roc compiler
-## when the capture lives in a sibling module or a `List`.
-
+## Method-role wraps owned by the platform. Apps still `match` in Phase 2.
 Rocci := [].{
     program = make_program
     view! = wrap_view
     get_fragment! = wrap_fragment!
     fragment! = wrap_fragment!
+    command! = wrap_command!
     events! = wrap_events!
     get_events! = wrap_events!
     unfold! = wrap_unfold
@@ -33,6 +30,13 @@ wrap_view = |html|
 
 wrap_fragment! = |html|
     Ok(patch_html!(html))
+
+wrap_command! = |headers|
+    if datastar_request(headers) {
+        empty_sse!()
+    } else {
+        no_content()
+    }
 
 wrap_events! = |sse_list|
     Ok(emit_events!(sse_list))
@@ -56,8 +60,15 @@ remainder_after_prefix = |path, prefix|
         Err({})
     }
 
+patch_elements = |node|
+    Sse.Event.keyed(
+        "datastar-patch-elements",
+        "elements",
+        Html.render_without_doc_type(node),
+    )
+
 patch_html! = |node| {
-    event = Datastar.patch_elements(node)
+    event = patch_elements(node)
     Server.stream(
         Sse.unfold!(
             0,
@@ -80,6 +91,28 @@ emit_events! = |sse_list|
                     [] => Ok(End)
                 },
         ),
+    )
+
+empty_sse! = ||
+    Ok(Server.stream(Sse.unfold!(0, |_state| Ok(End))))
+
+no_content = ||
+    Ok(Server.respond(Response.from_status(204)))
+
+datastar_request = |headers|
+    List.any(
+        headers,
+        |header|
+            (
+                header.name == "datastar-request"
+                or header.name == "Datastar-Request"
+                or header.name == "DATASTAR-REQUEST"
+            )
+            and (
+                header.value == "true"
+                or header.value == "True"
+                or header.value == "TRUE"
+            ),
     )
 
 html_ok = |body|
