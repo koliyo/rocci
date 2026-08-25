@@ -37,11 +37,27 @@ pub fn resolve_all(config: &OkfUserConfig, cache_parent: &Path) -> Vec<ResolvedR
     resolve_all_at(config, cache_parent, now_unix())
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SyncMode {
+    Auto,
+    Force,
+    Never,
+}
+
 pub fn resolve_all_at(config: &OkfUserConfig, cache_parent: &Path, now: u64) -> Vec<ResolvedRoot> {
+    resolve_all_with(config, cache_parent, now, SyncMode::Auto)
+}
+
+pub fn resolve_all_with(
+    config: &OkfUserConfig,
+    cache_parent: &Path,
+    now: u64,
+    mode: SyncMode,
+) -> Vec<ResolvedRoot> {
     let mut roots: Vec<ResolvedRoot> = config
         .roots
         .iter()
-        .map(|root| resolve_one(config, root, cache_parent, now))
+        .map(|root| resolve_one(config, root, cache_parent, now, mode))
         .collect();
     roots.sort_by(|left, right| left.id.cmp(&right.id));
     roots
@@ -73,12 +89,18 @@ fn resolve_one(
     root: &RootConfig,
     cache_parent: &Path,
     now: u64,
+    mode: SyncMode,
 ) -> ResolvedRoot {
     match root {
         RootConfig::Directory(dir) => resolve_directory(dir),
         RootConfig::Git(git) => {
             let poll = config.effective_poll(root);
-            if git_needs_sync(git, cache_parent, poll, now) {
+            let should_sync = match mode {
+                SyncMode::Force => true,
+                SyncMode::Never => false,
+                SyncMode::Auto => git_needs_sync(git, cache_parent, poll, now),
+            };
+            if should_sync {
                 let token = git.resolved_token();
                 sync_git_root(git, cache_parent, token.as_deref())
             } else {

@@ -564,7 +564,10 @@ fn valid_id(id: &str) -> bool {
 }
 
 fn valid_git_url(url: &str) -> bool {
-    url.starts_with("https://") || url.starts_with("ssh://") || url.starts_with("git@")
+    url.starts_with("https://")
+        || url.starts_with("ssh://")
+        || url.starts_with("git@")
+        || url.starts_with("file://")
 }
 
 fn take_string(table: &mut toml::Table, key: &str) -> Result<Option<String>> {

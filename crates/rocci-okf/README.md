@@ -31,6 +31,36 @@ cargo run -p rocci-okf -- inspect graph knowledge
 cargo run -p rocci-okf -- search "system overview" knowledge --profile rocci
 ```
 
+### Multiple knowledge roots
+
+Configured roots live in `ROCCI_OKF_CONFIG` or `~/.rocci/okf.toml`. `check`,
+`inspect`, `search`, and `build` stay single-root; agents print resolved
+directories first, then pass each path through:
+
+```sh
+rocci-okf roots --format paths | while IFS= read -r root; do
+  rocci-okf inspect catalog "$root"
+done
+```
+
+```sh
+# Default: fetch stale git roots, then print one absolute path per line
+cargo run -p rocci-okf -- roots
+
+# Cache and directory paths only
+cargo run -p rocci-okf -- roots --no-sync --format json
+
+# Fetch every git root, or one id
+cargo run -p rocci-okf -- sync
+cargo run -p rocci-okf -- sync notes
+```
+
+`--format json` emits `{ id, kind, path, revision, incoming, enabled, error }`
+and never includes tokens or resolved secrets. If the config is missing or
+`roots` is empty, `./knowledge` is printed when that directory exists.
+
+Saving the config rewrites a canonical TOML file; comments are not preserved.
+
 ### Retrieval Benchmarks
 
 ```sh
