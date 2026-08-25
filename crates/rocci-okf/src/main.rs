@@ -14,11 +14,13 @@ mod session;
 #[derive(Parser)]
 #[command(
     name = "rocci-okf",
-    about = "Rocci Open Knowledge Format (OKF) review and query application"
+    about = "Rocci Open Knowledge Format (OKF) review and query application",
+    arg_required_else_help = true,
+    subcommand_required = true
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Commands,
 }
 
 #[derive(Subcommand)]
@@ -439,21 +441,8 @@ enum KnowledgeInspectTarget {
 }
 
 fn main() -> Result<()> {
-    let cli = Cli::parse_from(session::filter_launch_args(std::env::args()));
-    match cli.command.unwrap_or(Commands::View {
-        preview: PreviewArgs {
-            path: None,
-            output: None,
-            profile: KnowledgeProfileArg::Rocci,
-            host: HostArg::Auto,
-            no_window: false,
-            no_live_reload: false,
-            public: false,
-            provenance: false,
-            profile_report: ProfileReportArg::Off,
-            port: PortArg::Auto,
-        },
-    }) {
+    let cli = Cli::parse_from(session::prepare_launch_args(std::env::args()));
+    match cli.command {
         Commands::Check {
             root,
             profile,
@@ -571,33 +560,32 @@ mod tests {
     }
 
     #[test]
-    fn no_args_defaults_to_restored_view() {
-        let cli = Cli::try_parse_from(["rocci-okf"]).unwrap();
-        assert!(cli.command.is_none());
+    fn no_args_requires_subcommand() {
+        assert!(Cli::try_parse_from(["rocci-okf"]).is_err());
         let cli = Cli::try_parse_from(["rocci-okf", "view"]).unwrap();
-        assert!(preview_args(cli.command.unwrap()).path.is_none());
+        assert!(preview_args(cli.command).path.is_none());
     }
 
     #[test]
     fn view_accepts_no_live_reload() {
         let cli =
             Cli::try_parse_from(["rocci-okf", "view", "knowledge", "--no-live-reload"]).unwrap();
-        assert!(preview_args(cli.command.unwrap()).no_live_reload);
+        assert!(preview_args(cli.command).no_live_reload);
         let cli = Cli::try_parse_from(["rocci-okf", "view", "knowledge"]).unwrap();
-        assert!(!preview_args(cli.command.unwrap()).no_live_reload);
+        assert!(!preview_args(cli.command).no_live_reload);
     }
 
     #[test]
     fn view_accepts_public() {
         let cli = Cli::try_parse_from(["rocci-okf", "view", "knowledge", "--public"]).unwrap();
-        assert!(preview_args(cli.command.unwrap()).public);
+        assert!(preview_args(cli.command).public);
     }
 
     #[test]
     fn run_remains_a_deprecated_alias_for_view() {
         let cli =
             Cli::try_parse_from(["rocci-okf", "run", "knowledge", "--no-live-reload"]).unwrap();
-        match cli.command.unwrap() {
+        match cli.command {
             Commands::Run { preview } => assert!(preview.no_live_reload),
             _ => panic!("expected run alias"),
         }

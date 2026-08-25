@@ -31,6 +31,24 @@ fn temp_dir(name: &str) -> PathBuf {
 }
 
 #[test]
+fn no_subcommand_prints_help() {
+    let output = Command::new(rocci_okf_bin()).output().unwrap();
+    assert!(
+        !output.status.success(),
+        "bare rocci-okf should not start the viewer"
+    );
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        text.contains("Usage:") && text.contains("view"),
+        "expected help mentioning view, got: {text}"
+    );
+}
+
+#[test]
 fn knowledge_check_succeeds_in_terminal_and_json() {
     let root = repo_root();
     let bin = rocci_okf_bin();

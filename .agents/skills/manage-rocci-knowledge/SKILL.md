@@ -9,6 +9,10 @@ Use the checked-in `knowledge/` bundle as the canonical database and the
 repository's `rocci-okf` CLI as its deterministic interface. Keep domain
 facts in the bundle rather than copying them into this skill.
 
+Cursor may inject `.cursor/rules/write-knowledge.mdc` for destination and
+collection routing. This skill is the retrieve, author, and validate
+procedure.
+
 ## Establish context
 
 1. Work from the repository root and inspect `git status --short` before
@@ -21,6 +25,22 @@ facts in the bundle rather than copying them into this skill.
 5. Keep normative, descriptive, exploratory, and historical claims distinct.
 
 ## Retrieve knowledge
+
+When more than one OKF tree is configured, list resolved local directories
+first, then run inspect/check/search against each path:
+
+```sh
+cargo run -q -p rocci-okf -- roots --format paths
+```
+
+```sh
+rocci-okf roots --format paths | while IFS= read -r root; do
+  cargo run -q -p rocci-okf -- inspect --profile rocci catalog "$root"
+done
+```
+
+`check`, `inspect`, and `search` stay single-root. Author only in this
+repository's `knowledge/` unless the user names another root.
 
 When the concept ID is unknown, search authored records first:
 
@@ -53,10 +73,49 @@ targeted record and source reads over loading the entire JSON catalog.
    verification, or provenance metadata. Read `archive/reports/OKF_PLAN.md` when the task
    changes the knowledge-system contract rather than an individual record.
 2. Choose a type collection and area based on the claim's purpose and
-   authority, not merely the file being discussed. Areas under
-   `plans/`, `research/`, and `audits/` are `rocci`, `rocdown`, `okf`,
-   `site`, `ops`, and `shared`. Prefer bundle-root `/path.md` links.
-   Inspect accepts a unique filename stem as well as the full concept ID.
+   authority, not merely the file being discussed. Prefer bundle-root
+   `/path.md` links. Inspect accepts a unique filename stem as well as
+   the full concept ID.
+
+   | User says | Collection | `type` | Default `authority` |
+   | --- | --- | --- | --- |
+   | write a plan / implementation plan | `knowledge/plans/<area>/` | Implementation Plan | exploratory |
+   | write a report / research | `knowledge/research/<area>/` | Research Report | exploratory |
+   | audit / findings vs current behavior | `knowledge/audits/<area>/` | Audit | descriptive |
+   | status snapshot / results | `knowledge/status/` | Status | descriptive |
+
+   `<area>` is one of `rocci`, `rocdown`, `okf`, `site`, `ops`, or
+   `shared`. Pick the primary owner of the work, not the union of tags.
+   Architecture, decisions, status, reference, design, and case-studies
+   stay flat. Deepen in place later; do not flatten or nest by lifecycle.
+
+   Architecture and decisions are existing canonical records. Revise them
+   only when the claim belongs there. Do not mint a new Decision as
+   approved.
+
+   A report plus a plan is two records that cite each other, not one
+   file. Keep paired stems on parallel area paths. Writing a plan is not
+   executing it. Do not start phases unless the user asks.
+
+   Record shape: kebab-case filename; stem unique under
+   `knowledge/plans/`; YAML frontmatter; inert Markdown body;
+   `status: draft`; `generated.by: process:cursor`;
+   `owners: [human:nils]`. Plans include Goal, Out of bound, Constraints
+   that do not move, and phased Bound/Exit.
+
+   ```yaml
+   type: Research Report
+   title: Concise title
+   description: One-sentence claim
+   tags: [domain/rocci, concern/architecture]
+   status: draft
+   generated: { by: process:cursor, at: 2026-08-20T00:00:00Z }
+   stale_after: 2026-11-20
+   authority: exploratory
+   owners: [human:nils]
+   sources: []
+   ```
+
 3. Keep record bodies inert Markdown. Do not add Rocdown declarations, raw
    HTML, wikilinks, or executable content.
 4. Preserve unknown OKF metadata unless the task explicitly removes it.

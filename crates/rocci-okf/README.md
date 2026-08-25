@@ -57,8 +57,10 @@ the palette opens); same-origin links swap `#okf-main` and `#okf-toc` and keep
 `#okf-nav`, so open collection folds stay in the sidebar DOM. Full reload
 opens the ancestors of the current page.
 
-`rocci-okf` with no subcommand, and `view` with no path, restore the last
-bundle and document from `~/.rocci/state/okf.json` (or `ROCCI_STATE_DIR`).
+`rocci-okf` with no subcommand prints help. `view` (or deprecated `run`)
+opens the review viewer. `view` with no path restores the last bundle and
+document from `~/.rocci/state/okf.json` (or `ROCCI_STATE_DIR`). Double-clicking
+the macOS `Rocci Knowledge.app` still launches `view` with that restore.
 Home in the preview window always opens the dashboard (`/`). Preview servers
 listen on localhost unless you pass `--public` (binds `0.0.0.0`; inspector and
 `/__rocci/dev` stay loopback-only).

@@ -86,6 +86,9 @@
 
 - Repository-scoped skills live under `.agents/skills`. Use a matching skill
   when the task invokes one or clearly matches its description.
+- Durable plans, reports, audits, and status belong in `knowledge/`, not chat
+  or loose Markdown. Follow `$manage-rocci-knowledge`. Cursor also injects
+  `write-knowledge` for destination only.
 - Author `.rocci`, `.rocdown`, and Roc used from those files with
   `rocci-author`. Change the languages themselves with `rocci-language-dev`.
   Fit Roc, Datastar, Rocci, Rocdown, Markdown, HTML, and CSS together with

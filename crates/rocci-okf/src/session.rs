@@ -152,6 +152,47 @@ where
         .collect()
 }
 
+const LAUNCH_COMMANDS: &[&str] = &[
+    "view",
+    "run",
+    "check",
+    "inspect",
+    "search",
+    "benchmark",
+    "build",
+    "help",
+    "-h",
+    "--help",
+    "-V",
+    "--version",
+];
+
+pub fn with_implicit_view_for_app(mut args: Vec<String>, launched_as_app: bool) -> Vec<String> {
+    if !launched_as_app {
+        return args;
+    }
+    let has_command = args
+        .iter()
+        .skip(1)
+        .any(|arg| LAUNCH_COMMANDS.contains(&arg.as_str()));
+    if has_command {
+        return args;
+    }
+    if args.is_empty() {
+        args.push("rocci-okf".into());
+    }
+    args.insert(1, "view".into());
+    args
+}
+
+pub fn prepare_launch_args<I, S>(args: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+{
+    with_implicit_view_for_app(filter_launch_args(args), launched_as_app())
+}
+
 pub fn pick_bundle_folder() -> Result<PathBuf> {
     let output = Command::new("osascript")
         .args([
@@ -269,6 +310,17 @@ mod tests {
     fn filter_drops_finder_psn() {
         let args = filter_launch_args(["rocci-okf", "-psn_0_123", "view"]);
         assert_eq!(args, ["rocci-okf", "view"]);
+    }
+
+    #[test]
+    fn app_launch_without_subcommand_inserts_view() {
+        let args =
+            with_implicit_view_for_app(filter_launch_args(["rocci-okf", "-psn_0_123"]), true);
+        assert_eq!(args, ["rocci-okf", "view"]);
+        let args = with_implicit_view_for_app(filter_launch_args(["rocci-okf", "check"]), true);
+        assert_eq!(args, ["rocci-okf", "check"]);
+        let args = with_implicit_view_for_app(filter_launch_args(["rocci-okf"]), false);
+        assert_eq!(args, ["rocci-okf"]);
     }
 
     fn uuid_like() -> u128 {

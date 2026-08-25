@@ -10,13 +10,13 @@ alwaysApply: false
 
 # Write to the knowledge database
 
-Default destination is an OKF Markdown record under `knowledge/`. Do not leave
-the document in chat, at the repo root, in `reports/`, or as `.rocdown`, unless
-the user names that location.
+Default destination is an OKF Markdown record under this repository's
+`knowledge/`. Do not leave the document in chat, at the repo root, in
+`reports/`, or as `.rocdown`, unless the user names that location.
 
-Follow `.agents/skills/manage-rocci-knowledge/SKILL.md`. Search
-`knowledge/**/*.md` first and revise or link an existing record when one
-already covers the topic.
+Follow `.agents/skills/manage-rocci-knowledge/SKILL.md` for retrieve, author,
+and validate. Search `knowledge/**/*.md` first and revise or link an existing
+record when one already covers the topic.
 
 ## Collection by intent
 
@@ -38,34 +38,3 @@ when the claim belongs there. Do not mint a new Decision as approved.
 A report plus a plan is two records that cite each other, not one file. Keep
 paired stems on parallel area paths. Writing a plan is not executing it. Do
 not start phases unless the user asks.
-
-## Record shape
-
-- kebab-case filename; stem unique under `knowledge/plans/`; YAML frontmatter; inert Markdown body
-- Prefer bundle-root links (`/plans/okf/nested-collections.md`)
-- `status: draft`, `generated.by: process:cursor`, `owners: [human:nils]`
-- Unique source `id`s, paths relative to the record, keyed footnotes on claims
-- Plans: Goal, Out of bound, Constraints that do not move, phased Bound/Exit
-- New records: update the nearest directory `index.md` (and the parent type index when adding an area) and `knowledge/log.md`. Log entries are new bullets only; Git `merge=union` combines concurrent appends (see `/research/okf/knowledge-log-concurrency.md`).
-
-```yaml
-type: Research Report
-title: Concise title
-description: One-sentence claim
-tags: [domain/rocci, concern/architecture]
-status: draft
-generated: { by: process:cursor, at: 2026-08-20T00:00:00Z }
-stale_after: 2026-11-20
-authority: exploratory
-owners: [human:nils]
-sources: []
-```
-
-## Validate
-
-```sh
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
-```
-
-Report check errors separately from lifecycle warnings. Do not invent human
-verification events.
