@@ -17,8 +17,16 @@ import {
   parseHostCommand
 } from '../../preview/host'
 import { previewArgv } from '../../preview/dispatch'
+import {
+  applyInspectorMessage,
+  DEFAULT_INSPECTOR_PREFS,
+  dockClassNames,
+  inspectorHref,
+  inspectorTuple,
+  shouldAssignInspectorSrc
+} from '../../preview/inspector'
 import { belongsToOrigin, previewOrigin, reuseDecision } from '../../preview/origin'
-import { parsePreviewUrl } from '../../preview/parse'
+import { parseInspectorUrl, parsePreviewUrl } from '../../preview/parse'
 import {
   countPreviewReadyLines,
   countRebuildLines,
@@ -167,14 +175,67 @@ suite('Rocci preview (offline)', () => {
       title: 'Guide.rocdown',
       liveReload: true,
       canBack: false,
-      canForward: false
+      canForward: false,
+      prefs: DEFAULT_INSPECTOR_PREFS,
+      asPage: false,
+      canReveal: false
     })
     assert.ok(html.includes('role="toolbar"'))
     assert.ok(html.includes('id="page"'))
     assert.ok(html.includes('src="http://127.0.0.1:8000/guide/"'))
     assert.ok(html.includes('Guide.rocdown'))
     assert.ok(!html.includes('preview-nav.js'))
-    assert.ok(!html.includes('id="inspector"'))
+    assert.ok(!html.includes('src="http://127.0.0.1:8001'))
+  })
+
+  test('parses inspector_ready and hides Dev when missing', () => {
+    assert.strictEqual(
+      parseInspectorUrl('inspector_ready http://127.0.0.1:8001/__rocci/dev\n'),
+      'http://127.0.0.1:8001/__rocci/dev'
+    )
+    assert.strictEqual(parseInspectorUrl('preview_ready http://127.0.0.1:8000/\n'), undefined)
+    const html = hostPreviewHtml({
+      pageUrl: 'http://127.0.0.1:8000/',
+      title: 'App.rocci',
+      liveReload: true,
+      canBack: false,
+      canForward: false,
+      inspectorUrl: 'http://127.0.0.1:8001/__rocci/dev',
+      inspectorSrc: 'http://127.0.0.1:8001/__rocci/dev?tab=performance&route=%2F&view=source',
+      prefs: { ...DEFAULT_INSPECTOR_PREFS, open: true },
+      asPage: false,
+      canReveal: true
+    })
+    assert.ok(html.includes('dock-right'))
+    assert.ok(html.includes('dev-open'))
+    assert.ok(html.includes('id="inspector"'))
+    assert.ok(!html.includes('data-cmd="toggle-dev" hidden') || html.includes('toggle-dev'))
+  })
+
+  test('does not assign inspector src on view-only updates', () => {
+    const previous = inspectorTuple(
+      'http://127.0.0.1:8001/__rocci/dev',
+      'http://127.0.0.1:8000/guide/',
+      'source'
+    )
+    const next = inspectorTuple(
+      'http://127.0.0.1:8001/__rocci/dev',
+      'http://127.0.0.1:8000/guide/',
+      'source'
+    )
+    assert.strictEqual(shouldAssignInspectorSrc(previous, next), false)
+    const applied = applyInspectorMessage(DEFAULT_INSPECTOR_PREFS, { view: 'roc' })
+    assert.strictEqual(applied.viewOnly, true)
+    assert.strictEqual(applied.prefs.view, 'roc')
+    const href = inspectorHref(
+      'http://127.0.0.1:8001/__rocci/dev',
+      next,
+      true,
+      'source'
+    )
+    assert.ok(href.includes('tab=source'))
+    assert.ok(href.includes('route=%2Fguide%2F') || href.includes('route=/guide/'))
+    assert.strictEqual(dockClassNames({ ...DEFAULT_INSPECTOR_PREFS, open: true, dock: 'bottom' }, false), 'dock-bottom dev-open')
   })
 
   test('iframe history stack supports back, forward, and home', () => {

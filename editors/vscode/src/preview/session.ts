@@ -7,6 +7,8 @@ import {
   StatusBarItem,
   ViewColumn,
   WebviewPanel,
+  env,
+  Uri,
   window,
   workspace
 } from 'vscode'
@@ -26,11 +28,23 @@ import {
   IframeHistory,
   navigateTo,
   parseHostCommand,
+  parseSplitSize,
   replaceCurrent,
   servingTitle
 } from './host'
+import {
+  applyInspectorMessage,
+  DEFAULT_INSPECTOR_PREFS,
+  INSPECTOR_STATE_KEY,
+  InspectorPrefs,
+  InspectorTuple,
+  inspectorHref,
+  inspectorTuple,
+  readInspectorPrefs,
+  shouldAssignInspectorSrc
+} from './inspector'
 import { belongsToOrigin, navigateUrl, PreviewOrigin, previewOrigin, reuseDecision } from './origin'
-import { parsePreviewUrl } from './parse'
+import { parseInspectorUrl, parsePreviewUrl } from './parse'
 import { countPreviewReadyLines, countRebuildLines, withReloadNonce } from './reload'
 import { PreviewReloadStream } from './sse'
 
@@ -42,6 +56,11 @@ export class PreviewSession {
   private origin: PreviewOrigin | undefined
   private filePath: string | undefined
   private url: string | undefined
+  private inspectorUrl: string | undefined
+  private inspectorAssigned: InspectorTuple | undefined
+  private inspectorSrc: string | undefined
+  private asPage = false
+  private prefs: InspectorPrefs = { ...DEFAULT_INSPECTOR_PREFS }
   private history: IframeHistory | undefined
   private liveReload = true
   private product: PreviewProduct | undefined
@@ -69,6 +88,7 @@ export class PreviewSession {
     this.status = window.createStatusBarItem(StatusBarAlignment.Left, 50)
     this.status.command = 'rocci.stopPreview'
     this.status.tooltip = 'Stop Rocci preview'
+    this.prefs = readInspectorPrefs(this.context.workspaceState.get(INSPECTOR_STATE_KEY))
     this.context.subscriptions.push(
       this.output,
       this.status,
@@ -163,6 +183,10 @@ export class PreviewSession {
     this.origin = undefined
     this.filePath = undefined
     this.url = undefined
+    this.inspectorUrl = undefined
+    this.inspectorAssigned = undefined
+    this.inspectorSrc = undefined
+    this.asPage = false
     this.history = undefined
     this.liveReload = true
     this.product = undefined
@@ -250,6 +274,7 @@ export class PreviewSession {
     }
     this.url = applyLiveReloadFlag(url, this.liveReload)
     this.history = createHistory(this.url)
+    this.noteInspector(buffer)
     this.readyLines = Math.max(1, countPreviewReadyLines(buffer))
     this.rebuildLines = countRebuildLines(buffer)
     this.syncWatch()
@@ -303,23 +328,84 @@ export class PreviewSession {
         this.panel = undefined
       })
     }
+    this.syncInspectorSrc(false)
     this.panel.webview.html = hostPreviewHtml({
       pageUrl: currentUrl(this.history),
       title: servingTitle(this.filePath ?? ''),
       liveReload: this.liveReload,
       canBack: canGoBack(this.history),
-      canForward: canGoForward(this.history)
+      canForward: canGoForward(this.history),
+      inspectorUrl: this.inspectorUrl,
+      inspectorSrc: this.prefs.open && !this.asPage ? this.inspectorSrc : undefined,
+      prefs: this.prefs,
+      asPage: this.asPage,
+      canReveal: Boolean(this.filePath)
     })
     this.panel.reveal(ViewColumn.Beside, true)
   }
 
   private async onHostMessage(message: unknown): Promise<void> {
+    if (message && typeof message === 'object' && (message as { type?: unknown }).type === 'inspector') {
+      const applied = applyInspectorMessage(this.prefs, message as { tab?: unknown; view?: unknown })
+      this.prefs = applied.prefs
+      await this.persistPrefs()
+      if (!applied.viewOnly) {
+        this.syncInspectorSrc(true)
+        await this.renderHost()
+      }
+      return
+    }
+    const split = parseSplitSize(message)
+    if (split) {
+      if (split.dock === 'right') {
+        this.prefs.right = split.size
+      } else {
+        this.prefs.bottom = split.size
+      }
+      await this.persistPrefs()
+      return
+    }
     const command = parseHostCommand(message)
     if (!command || !this.history || !this.url) {
       return
     }
     if (command === 'reload') {
       await this.reload()
+      return
+    }
+    if (command === 'toggle-dev') {
+      if (!this.inspectorUrl) {
+        return
+      }
+      this.asPage = false
+      this.prefs.open = !this.prefs.open
+      await this.persistPrefs()
+      this.syncInspectorSrc(true)
+      await this.renderHost()
+      return
+    }
+    if (command === 'dock-right' || command === 'dock-bottom') {
+      this.prefs.dock = command === 'dock-right' ? 'right' : 'bottom'
+      await this.persistPrefs()
+      await this.renderHost()
+      return
+    }
+    if (command === 'open-as-page' && this.inspectorUrl) {
+      this.asPage = true
+      this.prefs.open = false
+      await this.persistPrefs()
+      this.history = navigateTo(this.history, this.inspectorUrl)
+      this.url = this.inspectorUrl
+      await this.renderHost()
+      return
+    }
+    if (command === 'reveal' && this.filePath) {
+      await commands.executeCommand('revealFileInOS', Uri.file(this.filePath))
+      return
+    }
+    if (command === 'copy' && this.filePath) {
+      const bytes = await workspace.fs.readFile(Uri.file(this.filePath))
+      await env.clipboard.writeText(Buffer.from(bytes).toString('utf8'))
       return
     }
     if (command === 'toggle-live-reload') {
@@ -340,6 +426,9 @@ export class PreviewSession {
       this.history = goHome(this.history)
     }
     this.url = currentUrl(this.history)
+    this.asPage = Boolean(
+      this.inspectorUrl && new URL(this.url).pathname === new URL(this.inspectorUrl).pathname
+    )
     this.log(`${command} ${this.url}`)
     await this.renderHost()
   }
@@ -365,6 +454,35 @@ export class PreviewSession {
       this.log('cli preview_ready')
       void this.reload()
     }
+    this.noteInspector(buffer)
+  }
+
+  private noteInspector(buffer: string): void {
+    const url = parseInspectorUrl(buffer)
+    if (!url || url === this.inspectorUrl) {
+      return
+    }
+    this.inspectorUrl = url
+    this.log(`inspector ${url}`)
+    if (this.history) {
+      void this.renderHost()
+    }
+  }
+
+  private syncInspectorSrc(force: boolean): void {
+    if (!this.inspectorUrl || !this.url || !this.prefs.open || this.asPage) {
+      return
+    }
+    const next = inspectorTuple(this.inspectorUrl, this.url, this.prefs.tab)
+    if (!force && !shouldAssignInspectorSrc(this.inspectorAssigned, next)) {
+      return
+    }
+    this.inspectorAssigned = next
+    this.inspectorSrc = inspectorHref(this.inspectorUrl, next, true, this.prefs.view)
+  }
+
+  private async persistPrefs(): Promise<void> {
+    await this.context.workspaceState.update(INSPECTOR_STATE_KEY, this.prefs)
   }
 
   private async onSaved(filePath: string): Promise<void> {

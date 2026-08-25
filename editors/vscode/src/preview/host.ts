@@ -1,9 +1,18 @@
+import { dockClassNames, InspectorPrefs } from './inspector'
+
 export type HostCommand =
   | 'back'
   | 'forward'
   | 'home'
   | 'reload'
   | 'toggle-live-reload'
+  | 'toggle-dev'
+  | 'dock-right'
+  | 'dock-bottom'
+  | 'open-as-page'
+  | 'reveal'
+  | 'copy'
+  | 'split'
 
 export type IframeHistory = {
   entries: string[]
@@ -16,6 +25,11 @@ export type HostState = {
   liveReload: boolean
   canBack: boolean
   canForward: boolean
+  inspectorUrl?: string
+  inspectorSrc?: string
+  prefs: InspectorPrefs
+  asPage: boolean
+  canReveal: boolean
 }
 
 export function createHistory(homeUrl: string): IframeHistory {
@@ -100,11 +114,32 @@ export function parseHostCommand(message: unknown): HostCommand | undefined {
     type === 'forward' ||
     type === 'home' ||
     type === 'reload' ||
-    type === 'toggle-live-reload'
+    type === 'toggle-live-reload' ||
+    type === 'toggle-dev' ||
+    type === 'dock-right' ||
+    type === 'dock-bottom' ||
+    type === 'open-as-page' ||
+    type === 'reveal' ||
+    type === 'copy' ||
+    type === 'split'
   ) {
     return type
   }
   return undefined
+}
+
+export function parseSplitSize(message: unknown): { dock: 'right' | 'bottom'; size: string } | undefined {
+  if (!message || typeof message !== 'object') {
+    return undefined
+  }
+  const value = message as { type?: unknown; dock?: unknown; size?: unknown }
+  if (value.type !== 'split' || (value.dock !== 'right' && value.dock !== 'bottom')) {
+    return undefined
+  }
+  if (typeof value.size !== 'string' || !value.size) {
+    return undefined
+  }
+  return { dock: value.dock, size: value.size }
 }
 
 export function hostPreviewHtml(state: HostState): string {
@@ -113,6 +148,12 @@ export function hostPreviewHtml(state: HostState): string {
   const title = escapeHtml(state.title)
   const livePressed = state.liveReload ? 'true' : 'false'
   const liveClass = state.liveReload ? 'is-on' : ''
+  const hasInspector = Boolean(state.inspectorUrl)
+  const inspectorSrc = state.inspectorSrc ? escapeAttr(state.inspectorSrc) : ''
+  const dock = dockClassNames(state.prefs, state.asPage)
+  const moreHidden = state.canReveal ? '' : ' hidden'
+  const devHidden = hasInspector ? '' : ' hidden'
+  const devPressed = state.prefs.open && !state.asPage ? 'true' : 'false'
   return `<!DOCTYPE html>
 <html>
   <head>
@@ -121,6 +162,8 @@ export function hostPreviewHtml(state: HostState): string {
     <style>
       :root {
         --rocci-toolbar: 48px;
+        --rocci-dock-right: ${escapeAttr(state.prefs.right)};
+        --rocci-dock-bottom: ${escapeAttr(state.prefs.bottom)};
         color-scheme: light dark;
       }
       html, body { margin: 0; height: 100%; }
@@ -157,10 +200,43 @@ export function hostPreviewHtml(state: HostState): string {
       .path, .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .path { font-size: 12px; }
       .title { font-size: 11px; opacity: 0.7; }
-      iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+      .more { position: relative; }
+      .more-menu {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        display: none;
+        min-width: 12rem;
+        background: var(--vscode-editor-background, #1e1e1e);
+        border: 1px solid var(--vscode-panel-border, #333);
+        z-index: 2;
+      }
+      .more.open .more-menu { display: flex; flex-direction: column; }
+      .stage { flex: 1; display: flex; min-height: 0; }
+      body.dock-bottom.dev-open .stage { flex-direction: column; }
+      #page { flex: 1; width: 100%; border: 0; background: #fff; min-width: 0; min-height: 0; }
+      .splitter {
+        display: none;
+        background: var(--vscode-panel-border, #333);
+        flex: 0 0 4px;
+        cursor: col-resize;
+      }
+      body.dock-bottom.dev-open .splitter { cursor: row-resize; }
+      .inspector {
+        display: none;
+        min-width: 20rem;
+        min-height: 8rem;
+        background: var(--vscode-editor-background, #1e1e1e);
+      }
+      body.dock-right.dev-open .inspector { width: var(--rocci-dock-right); flex: 0 0 var(--rocci-dock-right); }
+      body.dock-bottom.dev-open .inspector { height: var(--rocci-dock-bottom); flex: 0 0 var(--rocci-dock-bottom); min-width: 0; }
+      body.dev-open .inspector, body.dev-open .splitter { display: block; }
+      body.as-page .inspector, body.as-page .splitter { display: none; }
+      #inspector { width: 100%; height: 100%; border: 0; }
+      .inspector-bar { display: flex; gap: 4px; padding: 4px; }
     </style>
   </head>
-  <body>
+  <body class="${dock}">
     <div class="toolbar" role="toolbar" aria-label="Rocci preview">
       <div class="group">
         <button type="button" data-cmd="back" aria-label="Back"${state.canBack ? '' : ' disabled'}>◀</button>
@@ -176,15 +252,64 @@ export function hostPreviewHtml(state: HostState): string {
         <div class="path" id="path">${path}</div>
         <div class="title" id="title">${title}</div>
       </div>
+      <div class="more" id="more"${moreHidden}>
+        <button type="button" data-cmd="more-toggle" aria-label="More actions">⋯</button>
+        <div class="more-menu" role="menu">
+          <button type="button" data-cmd="reveal" role="menuitem">Reveal in Finder</button>
+          <button type="button" data-cmd="copy" role="menuitem">Copy original document</button>
+        </div>
+      </div>
+      <button type="button" data-cmd="toggle-dev" class="${state.prefs.open ? 'is-on' : ''}" aria-label="Developer panel" aria-pressed="${devPressed}"${devHidden}>Dev</button>
     </div>
-    <iframe id="page" src="${page}"></iframe>
+    <div class="stage">
+      <iframe id="page" src="${page}"></iframe>
+      <div class="splitter" id="splitter" role="separator"></div>
+      <div class="inspector" id="inspector-dock">
+        <div class="inspector-bar">
+          <button type="button" data-cmd="dock-right" aria-label="Dock right">Right</button>
+          <button type="button" data-cmd="dock-bottom" aria-label="Dock bottom">Bottom</button>
+          <button type="button" data-cmd="open-as-page" aria-label="Open as page">Open as page</button>
+        </div>
+        <iframe id="inspector"${inspectorSrc ? ` src="${inspectorSrc}"` : ''}></iframe>
+      </div>
+    </div>
     <script>
       const vscode = acquireVsCodeApi();
+      const more = document.getElementById('more');
       for (const button of document.querySelectorAll('[data-cmd]')) {
         button.addEventListener('click', () => {
-          vscode.postMessage({ type: button.getAttribute('data-cmd') });
+          const type = button.getAttribute('data-cmd');
+          if (type === 'more-toggle') {
+            more.classList.toggle('open');
+            return;
+          }
+          vscode.postMessage({ type });
         });
       }
+      window.addEventListener('message', event => {
+        const data = event.data;
+        if (data && data.type === 'rocci-inspector') {
+          vscode.postMessage({ type: 'inspector', tab: data.tab, view: data.view });
+        }
+      });
+      const splitter = document.getElementById('splitter');
+      let drag = null;
+      splitter.addEventListener('pointerdown', event => {
+        drag = { x: event.clientX, y: event.clientY };
+        splitter.setPointerCapture(event.pointerId);
+      });
+      splitter.addEventListener('pointerup', () => { drag = null; });
+      splitter.addEventListener('pointermove', event => {
+        if (!drag) { return; }
+        const dockRight = document.body.classList.contains('dock-right');
+        if (dockRight) {
+          const px = Math.max(20 * 16, window.innerWidth - event.clientX);
+          vscode.postMessage({ type: 'split', dock: 'right', size: (px / 16) + 'rem' });
+        } else {
+          const px = Math.max(8 * 16, window.innerHeight - event.clientY);
+          vscode.postMessage({ type: 'split', dock: 'bottom', size: (px / window.innerHeight * 100) + 'vh' });
+        }
+      });
     </script>
   </body>
 </html>`
