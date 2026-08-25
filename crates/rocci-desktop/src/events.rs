@@ -28,6 +28,8 @@ pub enum PreviewEvent {
     Zoom,
     Loaded(String),
     Title(String),
+    PickFolder,
+    PickFolderResult(Option<String>),
     Navigate {
         url: String,
         title: String,

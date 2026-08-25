@@ -59,6 +59,14 @@ pub fn from_bundle(
         "# Knowledge Governance & Review Queue\n".to_string(),
         review_html,
     ));
+    let settings_html =
+        inspect_html(fs::read_to_string(output.join("settings").join("index.html")).ok());
+    pages.push(InspectPage::from_okf(
+        "/settings/",
+        "settings",
+        "# Knowledge roots\n".to_string(),
+        settings_html,
+    ));
     InspectSnapshot { pages, profile }
 }
 
@@ -218,6 +226,7 @@ mod tests {
             "/research/",
             "/status/",
             "/review/",
+            "/settings/",
         ] {
             let (status, body) = snapshot.inspect_json(Some(route));
             assert_eq!(status, 200, "{route}: {body}");

@@ -4,6 +4,7 @@ Portable engine, review application, knowledge load and render, and bundle layou
 
 * [Nested OKF collections](nested-collections.md) - Type-first collections with closed product-area subdirectories under plans, research, and audits. Exploratory; engine and viewer work is in this revision. Decision: [nested collections](/decisions/nested-okf-collections.md).
 * [Multiple knowledge roots](multi-knowledge-roots.md) - User-level TOML registry of directory and git OKF roots, cached checkouts, directed edge policy, settings UI, and agent path listing. Exploratory; no phase started.
+* [Settings UX for knowledge roots](settings-ux.md) - Native `rfd` folder picker in rocci-desktop and a more informative `/settings/` UI. Exploratory; follow-on to [multiple knowledge roots](multi-knowledge-roots.md).
 * [Standalone Rocci OKF review and query application](rocci-okf-app.md) - Portable `okf` engine extraction and a `rocci-okf` application for evidence review and authenticated retrieval.
 * [OKF load-performance improvements](okf-load-performance.md) - Phased reduction of `okf::load` latency: split load spans, batch git provenance, preview-without-provenance, watch parse cache. Phases 1–4 implemented; Phase 5 skipped after a sub-second release remeasure.
 * [Deferred OKF compile and render follow-ons](okf-compile-render-follow-ons.md) - Future work for the first three compile/render non-goals: keep embedded page Roc in the hash, skip-roc as an explicit host not the default, wasm apply-to-disk without embedding `roc`. Exploratory; no phase started.

@@ -1,6 +1,7 @@
 //! Native window and webview shell built on tao and wry.
 
 mod chrome;
+mod dialog;
 mod events;
 mod history;
 mod icon;

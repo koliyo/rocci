@@ -933,6 +933,7 @@ fn is_loopback_only_preview(path: &str) -> bool {
             | "/__rocci/profile"
             | "/__rocdown/profile"
             | "/__rocci_okf/profile"
+            | "/__rocci_okf/settings"
     )
 }
 

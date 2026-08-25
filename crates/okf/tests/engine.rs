@@ -625,3 +625,52 @@ fn rocci_profile_warns_when_nearest_index_omits_a_concept() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn okf_scheme_links_are_not_bundle_paths() {
+    let root = temp("okf-scheme");
+    fs::write(
+        root.join("index.md"),
+        "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("overview.md"),
+        valid_rocci_concept(
+            "Overview",
+            "",
+            "See [notes](okf:notes/plans/okf/nested-collections.md#goal).\n",
+        ),
+    )
+    .unwrap();
+
+    let bundle = load(&root, Profile::Rocci).expect("load");
+    let overview = bundle
+        .concepts
+        .iter()
+        .find(|concept| concept.id == "overview")
+        .expect("overview");
+    assert!(
+        overview
+            .links
+            .iter()
+            .any(|link| link.url == "okf:notes/plans/okf/nested-collections.md#goal"),
+        "{:?}",
+        overview.links
+    );
+    assert!(
+        !bundle
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "OKF3001" || diagnostic.code == "OKF3002"),
+        "{:?}",
+        bundle.diagnostics
+    );
+    assert!(
+        overview
+            .article_html
+            .contains("href=\"okf:notes/plans/okf/nested-collections.md#goal\"")
+    );
+
+    let _ = fs::remove_dir_all(root);
+}

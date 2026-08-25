@@ -24,10 +24,12 @@ Preview keyboard shortcuts (Command on macOS, Control elsewhere):
 
 When `PreviewOptions.source_root` is set (OKF and Rocdown preview), a trailing **More** (`...`) menu can reveal the original source file and copy its contents. Reveal uses the platform file manager: Finder on macOS, Explorer on Windows, and Files on Linux.
 
+Pages in the desktop window can post `pick-folder` over `window.ipc`. The host opens a native folder dialog with [`rfd`](https://crates.io/crates/rfd) (`AsyncFileDialog`, NSOpenPanel on macOS) on the Tao event loop and dispatches `CustomEvent("rocci-pick-folder")` with `{ path }` or `{ path: null }` on cancel. `--no-window` has no `window.ipc`.
+
 Do not author host chrome in `.rocci`. A template can snapshot markup, but it cannot own wry IPC, survive page loads, or update live state. Compiler-derived panels (parse timings, diagnostics, inspectors) belong in a preview-origin Rocci app that consumes host JSON, not in the initialization script overlay.
 
 ## Dependencies
 
-- Relies on `tao`, `wry`, and `muda` (native menus).
+- Relies on `tao`, `wry`, `muda` (native menus), and `rfd` (native file/folder dialogs).
 - Consumes `rocci-core` for configuration types and `rocci-ui` for the shared go-to-page script.
 - Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`; the host icon is embedded with `include_bytes!`.
