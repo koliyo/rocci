@@ -504,13 +504,15 @@ impl LanguageServer {
             .backend
             .definition(&path, Position::new(line, character))?;
         map_definition_response(
-            uri,
-            &path,
-            &source_name,
-            &source_text,
-            &roc,
-            &segments,
-            self.encoding,
+            &ProjectionMap {
+                doc_uri: uri,
+                path: &path,
+                source_name: &source_name,
+                source_text: &source_text,
+                projection: &roc,
+                segments: &segments,
+                encoding: self.encoding,
+            },
             response,
         )
     }
@@ -574,13 +576,15 @@ impl LanguageServer {
             .into_iter()
             .filter_map(|location| {
                 map_location(
-                    uri,
-                    &path,
-                    &source_name,
-                    &source_text,
-                    &roc,
-                    &segments,
-                    self.encoding,
+                    &ProjectionMap {
+                        doc_uri: uri,
+                        path: &path,
+                        source_name: &source_name,
+                        source_text: &source_text,
+                        projection: &roc,
+                        segments: &segments,
+                        encoding: self.encoding,
+                    },
                     location,
                 )
             })
@@ -741,113 +745,79 @@ fn is_projection_uri(uri: &Uri, path: &std::path::Path) -> bool {
         .is_some_and(|projection| projection == *uri)
 }
 
-fn map_location(
-    doc_uri: &Uri,
-    path: &std::path::Path,
-    source_name: &str,
-    source_text: &str,
-    projection: &str,
-    segments: &[Segment],
+struct ProjectionMap<'a> {
+    doc_uri: &'a Uri,
+    path: &'a std::path::Path,
+    source_name: &'a str,
+    source_text: &'a str,
+    projection: &'a str,
+    segments: &'a [Segment],
     encoding: PositionEncoding,
-    mut location: Location,
-) -> Option<Location> {
-    if !is_projection_uri(&location.uri, path) {
+}
+
+fn map_location(map: &ProjectionMap<'_>, mut location: Location) -> Option<Location> {
+    if !is_projection_uri(&location.uri, map.path) {
         return Some(location);
     }
     location.range = map_generated_range(
-        source_name,
-        source_text,
-        projection,
-        segments,
-        encoding,
+        map.source_name,
+        map.source_text,
+        map.projection,
+        map.segments,
+        map.encoding,
         location.range,
     )?;
-    location.uri = doc_uri.clone();
+    location.uri = map.doc_uri.clone();
     Some(location)
 }
 
-fn map_location_link(
-    doc_uri: &Uri,
-    path: &std::path::Path,
-    source_name: &str,
-    source_text: &str,
-    projection: &str,
-    segments: &[Segment],
-    encoding: PositionEncoding,
-    mut link: LocationLink,
-) -> Option<LocationLink> {
-    if !is_projection_uri(&link.target_uri, path) {
+fn map_location_link(map: &ProjectionMap<'_>, mut link: LocationLink) -> Option<LocationLink> {
+    if !is_projection_uri(&link.target_uri, map.path) {
         return Some(link);
     }
     link.target_range = map_generated_range(
-        source_name,
-        source_text,
-        projection,
-        segments,
-        encoding,
+        map.source_name,
+        map.source_text,
+        map.projection,
+        map.segments,
+        map.encoding,
         link.target_range,
     )?;
     link.target_selection_range = map_generated_range(
-        source_name,
-        source_text,
-        projection,
-        segments,
-        encoding,
+        map.source_name,
+        map.source_text,
+        map.projection,
+        map.segments,
+        map.encoding,
         link.target_selection_range,
     )?;
     if let Some(origin) = link.origin_selection_range {
         link.origin_selection_range = map_generated_range(
-            source_name,
-            source_text,
-            projection,
-            segments,
-            encoding,
+            map.source_name,
+            map.source_text,
+            map.projection,
+            map.segments,
+            map.encoding,
             origin,
         );
     }
-    link.target_uri = doc_uri.clone();
+    link.target_uri = map.doc_uri.clone();
     Some(link)
 }
 
 fn map_definition_response(
-    doc_uri: &Uri,
-    path: &std::path::Path,
-    source_name: &str,
-    source_text: &str,
-    projection: &str,
-    segments: &[Segment],
-    encoding: PositionEncoding,
+    map: &ProjectionMap<'_>,
     response: GotoDefinitionResponse,
 ) -> Option<GotoDefinitionResponse> {
     match response {
         GotoDefinitionResponse::Scalar(location) => {
-            let location = map_location(
-                doc_uri,
-                path,
-                source_name,
-                source_text,
-                projection,
-                segments,
-                encoding,
-                location,
-            )?;
+            let location = map_location(map, location)?;
             Some(GotoDefinitionResponse::Scalar(location))
         }
         GotoDefinitionResponse::Array(locations) => {
             let mapped: Vec<_> = locations
                 .into_iter()
-                .filter_map(|location| {
-                    map_location(
-                        doc_uri,
-                        path,
-                        source_name,
-                        source_text,
-                        projection,
-                        segments,
-                        encoding,
-                        location,
-                    )
-                })
+                .filter_map(|location| map_location(map, location))
                 .collect();
             if mapped.is_empty() {
                 None
@@ -858,18 +828,7 @@ fn map_definition_response(
         GotoDefinitionResponse::Link(links) => {
             let mapped: Vec<_> = links
                 .into_iter()
-                .filter_map(|link| {
-                    map_location_link(
-                        doc_uri,
-                        path,
-                        source_name,
-                        source_text,
-                        projection,
-                        segments,
-                        encoding,
-                        link,
-                    )
-                })
+                .filter_map(|link| map_location_link(map, link))
                 .collect();
             if mapped.is_empty() {
                 None

@@ -40,5 +40,6 @@ Static	omit	printed as attr
 StringLit	leaf	—
 TemplateBlock	omit	items printed without a wrapper tag
 TemplateItem	omit	enum wrapper; variants print their own heads
+TestDecl	tag	test
 TextNode	tag	text
 ViewDecl	tag	view

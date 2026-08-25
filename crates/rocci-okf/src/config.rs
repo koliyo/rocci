@@ -298,11 +298,11 @@ pub fn rocci_dir() -> Option<PathBuf> {
 }
 
 pub fn expand_tilde(path: &str) -> PathBuf {
-    if path == "~" || path.starts_with("~/") || path.starts_with("~\\") {
-        if let Some(home) = home_dir() {
-            let rest = if path.len() > 1 { &path[2..] } else { "" };
-            return home.join(rest);
-        }
+    if (path == "~" || path.starts_with("~/") || path.starts_with("~\\"))
+        && let Some(home) = home_dir()
+    {
+        let rest = if path.len() > 1 { &path[2..] } else { "" };
+        return home.join(rest);
     }
     PathBuf::from(path)
 }
@@ -542,11 +542,11 @@ fn split_duration(text: &str) -> Option<(&str, char)> {
 
 fn format_duration(duration: Duration) -> String {
     let secs = duration.as_secs();
-    if secs > 0 && secs % 86400 == 0 {
+    if secs > 0 && secs.is_multiple_of(86400) {
         format!("{}d", secs / 86400)
-    } else if secs > 0 && secs % 3600 == 0 {
+    } else if secs > 0 && secs.is_multiple_of(3600) {
         format!("{}h", secs / 3600)
-    } else if secs > 0 && secs % 60 == 0 {
+    } else if secs > 0 && secs.is_multiple_of(60) {
         format!("{}m", secs / 60)
     } else {
         format!("{secs}s")

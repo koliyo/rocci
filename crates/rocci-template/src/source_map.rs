@@ -283,10 +283,10 @@ fn remap_span(map: &[Option<u32>], span: Span) -> Option<Span> {
 
 fn map_point(map: &[Option<u32>], offset: u32) -> Option<u32> {
     let i = offset as usize;
-    if i < map.len() {
-        if let Some(mapped) = map[i] {
-            return Some(mapped);
-        }
+    if i < map.len()
+        && let Some(mapped) = map[i]
+    {
+        return Some(mapped);
     }
     if i > 0 {
         return map.get(i - 1).copied().flatten().map(|mapped| mapped + 1);

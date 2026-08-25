@@ -122,13 +122,13 @@ fn render_root_card(root: &RootConfig, status: Option<&crate::git_root::Resolved
         }
     }
     if let Some(status) = status {
-        if matches!(root, RootConfig::Git(_)) {
-            if let Some(path) = &status.path {
-                out.push_str(&format!(
-                    "<p class=\"rd-paragraph\">Resolved locally: <code>{}</code></p>\n",
-                    escape(&path.display().to_string())
-                ));
-            }
+        if matches!(root, RootConfig::Git(_))
+            && let Some(path) = &status.path
+        {
+            out.push_str(&format!(
+                "<p class=\"rd-paragraph\">Resolved locally: <code>{}</code></p>\n",
+                escape(&path.display().to_string())
+            ));
         }
         if status.enabled() {
             out.push_str("<p class=\"okf-settings-help\">Status: available</p>\n");
