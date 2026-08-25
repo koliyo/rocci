@@ -4,6 +4,18 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { canPreviewDocument, chooseBrowserHost } from '../../preview/browser'
+import {
+  applyLiveReloadFlag,
+  canGoBack,
+  canGoForward,
+  createHistory,
+  goBack,
+  goForward,
+  goHome,
+  hostPreviewHtml,
+  navigateTo,
+  parseHostCommand
+} from '../../preview/host'
 import { previewArgv } from '../../preview/dispatch'
 import { belongsToOrigin, previewOrigin, reuseDecision } from '../../preview/origin'
 import { parsePreviewUrl } from '../../preview/parse'
@@ -147,5 +159,48 @@ suite('Rocci preview (offline)', () => {
   test('chooses Simple Browser when present and iframe otherwise', () => {
     assert.strictEqual(chooseBrowserHost(true), 'simpleBrowser')
     assert.strictEqual(chooseBrowserHost(false), 'iframe')
+  })
+
+  test('host html is a toolbar parent around the page iframe', () => {
+    const html = hostPreviewHtml({
+      pageUrl: 'http://127.0.0.1:8000/guide/',
+      title: 'Guide.rocdown',
+      liveReload: true,
+      canBack: false,
+      canForward: false
+    })
+    assert.ok(html.includes('role="toolbar"'))
+    assert.ok(html.includes('id="page"'))
+    assert.ok(html.includes('src="http://127.0.0.1:8000/guide/"'))
+    assert.ok(html.includes('Guide.rocdown'))
+    assert.ok(!html.includes('preview-nav.js'))
+    assert.ok(!html.includes('id="inspector"'))
+  })
+
+  test('iframe history stack supports back, forward, and home', () => {
+    let history = createHistory('http://127.0.0.1:8000/')
+    history = navigateTo(history, 'http://127.0.0.1:8000/guide/')
+    history = navigateTo(history, 'http://127.0.0.1:8000/note/')
+    assert.ok(canGoBack(history))
+    assert.ok(!canGoForward(history))
+    history = goBack(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/guide/')
+    assert.ok(canGoForward(history))
+    history = goHome(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/')
+    history = goForward(history)
+    assert.strictEqual(history.entries[history.index], 'http://127.0.0.1:8000/guide/')
+  })
+
+  test('live-reload query flag is ?reload=0 when paused', () => {
+    assert.strictEqual(
+      applyLiveReloadFlag('http://127.0.0.1:8000/guide/', false),
+      'http://127.0.0.1:8000/guide/?reload=0'
+    )
+    assert.strictEqual(
+      applyLiveReloadFlag('http://127.0.0.1:8000/guide/?reload=0', true),
+      'http://127.0.0.1:8000/guide/'
+    )
+    assert.strictEqual(parseHostCommand({ type: 'toggle-live-reload' }), 'toggle-live-reload')
   })
 })

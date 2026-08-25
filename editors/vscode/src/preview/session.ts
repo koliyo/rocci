@@ -11,8 +11,24 @@ import {
   workspace
 } from 'vscode'
 import { resolvePreviewBinary } from './binaries'
-import { canPreviewDocument, iframePreviewHtml } from './browser'
+import { canPreviewDocument } from './browser'
 import { previewArgv, PreviewProduct } from './dispatch'
+import {
+  applyLiveReloadFlag,
+  canGoBack,
+  canGoForward,
+  createHistory,
+  currentUrl,
+  goBack,
+  goForward,
+  goHome,
+  hostPreviewHtml,
+  IframeHistory,
+  navigateTo,
+  parseHostCommand,
+  replaceCurrent,
+  servingTitle
+} from './host'
 import { belongsToOrigin, navigateUrl, PreviewOrigin, previewOrigin, reuseDecision } from './origin'
 import { parsePreviewUrl } from './parse'
 import { countPreviewReadyLines, countRebuildLines, withReloadNonce } from './reload'
@@ -26,6 +42,8 @@ export class PreviewSession {
   private origin: PreviewOrigin | undefined
   private filePath: string | undefined
   private url: string | undefined
+  private history: IframeHistory | undefined
+  private liveReload = true
   private product: PreviewProduct | undefined
   private stopping = false
   private panel: WebviewPanel | undefined
@@ -33,7 +51,9 @@ export class PreviewSession {
   private readonly status: StatusBarItem
   private readonly reloadStream = new PreviewReloadStream(
     () => {
-      void this.reload()
+      if (this.liveReload) {
+        void this.reload()
+      }
     },
     message => this.log(message)
   )
@@ -87,12 +107,13 @@ export class PreviewSession {
     }
 
     const action = reuseDecision(this.running ? this.origin : undefined, origin)
-    if (action === 'reuse' && this.url && argv.product === 'rocdown') {
-      const url = navigateUrl(this.url, filePath, origin)
+    if (action === 'reuse' && this.url && this.history && argv.product === 'rocdown') {
+      const url = applyLiveReloadFlag(navigateUrl(this.url, filePath, origin), this.liveReload)
       this.url = url
       this.filePath = filePath
+      this.history = navigateTo(this.history, url)
       this.log(`navigate ${url}`)
-      await this.openBrowser(url)
+      await this.renderHost()
       return
     }
 
@@ -118,9 +139,13 @@ export class PreviewSession {
       return
     }
     this.reloadNonce += 1
-    const url = withReloadNonce(this.url, this.reloadNonce)
+    const url = applyLiveReloadFlag(withReloadNonce(this.url, this.reloadNonce), this.liveReload)
+    this.url = url
+    if (this.history) {
+      this.history = replaceCurrent(this.history, url)
+    }
     this.log(`reload ${url}`)
-    await this.openBrowser(url)
+    await this.renderHost()
   }
 
   async stop(): Promise<void> {
@@ -138,6 +163,8 @@ export class PreviewSession {
     this.origin = undefined
     this.filePath = undefined
     this.url = undefined
+    this.history = undefined
+    this.liveReload = true
     this.product = undefined
     this.readyLines = 0
     this.rebuildLines = 0
@@ -221,16 +248,16 @@ export class PreviewSession {
       await this.stop()
       return
     }
-    this.url = url
+    this.url = applyLiveReloadFlag(url, this.liveReload)
+    this.history = createHistory(this.url)
     this.readyLines = Math.max(1, countPreviewReadyLines(buffer))
     this.rebuildLines = countRebuildLines(buffer)
-    if (product === 'rocdown') {
-      this.reloadStream.start(url)
-    } else {
+    this.syncWatch()
+    if (product === 'rocci') {
       this.log('watch skipped (rocci run does not rebuild; save restarts preview)')
     }
     await this.setActive(true)
-    await this.openBrowser(url)
+    await this.renderHost()
   }
 
   private async waitForUrl(
@@ -258,7 +285,10 @@ export class PreviewSession {
     return undefined
   }
 
-  private async openBrowser(url: string): Promise<void> {
+  private async renderHost(): Promise<void> {
+    if (!this.url || !this.history) {
+      return
+    }
     if (!this.panel) {
       this.panel = window.createWebviewPanel(
         'rocciPreview',
@@ -266,12 +296,60 @@ export class PreviewSession {
         { viewColumn: ViewColumn.Beside, preserveFocus: true },
         { enableScripts: true, retainContextWhenHidden: true }
       )
+      this.panel.webview.onDidReceiveMessage(message => {
+        void this.onHostMessage(message)
+      })
       this.panel.onDidDispose(() => {
         this.panel = undefined
       })
     }
-    this.panel.webview.html = iframePreviewHtml(url)
+    this.panel.webview.html = hostPreviewHtml({
+      pageUrl: currentUrl(this.history),
+      title: servingTitle(this.filePath ?? ''),
+      liveReload: this.liveReload,
+      canBack: canGoBack(this.history),
+      canForward: canGoForward(this.history)
+    })
     this.panel.reveal(ViewColumn.Beside, true)
+  }
+
+  private async onHostMessage(message: unknown): Promise<void> {
+    const command = parseHostCommand(message)
+    if (!command || !this.history || !this.url) {
+      return
+    }
+    if (command === 'reload') {
+      await this.reload()
+      return
+    }
+    if (command === 'toggle-live-reload') {
+      this.liveReload = !this.liveReload
+      const url = applyLiveReloadFlag(this.url, this.liveReload)
+      this.url = url
+      this.history = replaceCurrent(this.history, url)
+      this.syncWatch()
+      this.log(`live-reload ${this.liveReload ? 'on' : 'off'}`)
+      await this.renderHost()
+      return
+    }
+    if (command === 'back') {
+      this.history = goBack(this.history)
+    } else if (command === 'forward') {
+      this.history = goForward(this.history)
+    } else {
+      this.history = goHome(this.history)
+    }
+    this.url = currentUrl(this.history)
+    this.log(`${command} ${this.url}`)
+    await this.renderHost()
+  }
+
+  private syncWatch(): void {
+    if (this.product === 'rocdown' && this.liveReload && this.url) {
+      this.reloadStream.start(this.url)
+      return
+    }
+    this.reloadStream.stop()
   }
 
   private noteCliProgress(buffer: string): void {
