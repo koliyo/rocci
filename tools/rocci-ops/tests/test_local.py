@@ -2,6 +2,7 @@ from rocci_ops.local import (
     CLI_CRATES,
     INSTALL_USAGE,
     PROMOTE_USAGE,
+    PROMOTE_TAG_USAGE,
     _require_playground_dist,
     playground_wasm_artifact,
     build_site,
@@ -9,9 +10,10 @@ from rocci_ops.local import (
     latest_vsix,
     package_site,
     parse_worktrees,
-    promote_branch_command,
+    promote_command,
     promote_production,
     promote_staging,
+    promote_tag,
     render_brand_icons,
     require_darwin,
 )
@@ -31,11 +33,20 @@ def test_install_usage() -> None:
         raise AssertionError("expected SystemExit")
 
 
-def test_promote_branch_usage() -> None:
+def test_promote_usage() -> None:
     try:
-        promote_branch_command(["preview"])
+        promote_command(["preview"])
     except SystemExit as exc:
         assert str(exc) == PROMOTE_USAGE
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_promote_tag_usage() -> None:
+    try:
+        promote_command(["tag"])
+    except SystemExit as exc:
+        assert str(exc) == PROMOTE_TAG_USAGE
     else:
         raise AssertionError("expected SystemExit")
 
@@ -65,13 +76,19 @@ def test_install_vscode_and_cursor_use_vsix(monkeypatch, tmp_path) -> None:
     ]
 
 
-def test_promote_branch_command_routes(monkeypatch) -> None:
+def test_promote_command_routes(monkeypatch) -> None:
     called: list[str] = []
     monkeypatch.setattr("rocci_ops.local.promote_staging", lambda: called.append("staging") or 0)
     monkeypatch.setattr("rocci_ops.local.promote_production", lambda: called.append("production") or 0)
-    assert promote_branch_command(["staging"]) == 0
-    assert promote_branch_command(["production"]) == 0
-    assert called == ["staging", "production"]
+    monkeypatch.setattr(
+        "rocci_ops.local.promote_tag",
+        lambda tag, from_ref="main": called.append(f"{tag}:{from_ref}") or 0,
+    )
+    assert promote_command(["staging"]) == 0
+    assert promote_command(["production"]) == 0
+    assert promote_command(["tag", "v1.2.3"]) == 0
+    assert promote_command(["tag", "v1.2.3", "--from", "staging"]) == 0
+    assert called == ["staging", "production", "v1.2.3:main", "v1.2.3:staging"]
 
 
 def test_latest_vsix_picks_newest(tmp_path) -> None:
@@ -246,6 +263,51 @@ def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None
         ["git", "fetch", "origin"],
         ["git", "push", "origin", "origin/staging:refs/heads/production"],
     ]
+
+
+def test_promote_tag_annotates_and_pushes_origin_main(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+
+    assert promote_tag("v1.2.3") == 0
+    assert calls == [
+        ["git", "fetch", "origin"],
+        ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/main"],
+        ["git", "push", "origin", "v1.2.3"],
+    ]
+
+
+def test_promote_tag_from_is_configurable(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+
+    assert promote_tag("v1.2.3", from_ref="staging") == 0
+    assert ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/staging"] in calls
+
+
+def test_promote_tag_requires_v_prefix() -> None:
+    try:
+        promote_tag("1.2.3")
+    except SystemExit as exc:
+        assert "v*" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
 
 
 def test_promote_production_requires_origin_staging(monkeypatch, tmp_path) -> None:

@@ -676,7 +676,7 @@ def promote_staging() -> int:
         check=True,
     ).stdout.strip()
     if not original:
-        raise SystemExit("promote-branch staging requires a named starting branch")
+        raise SystemExit("promote staging requires a named starting branch")
 
     try:
         if original != "staging":
@@ -699,7 +699,7 @@ def promote_production() -> int:
         text=True,
     )
     if verify.returncode != 0:
-        raise SystemExit("promote-branch production requires origin/staging")
+        raise SystemExit("promote production requires origin/staging")
     run(["git", "push", "origin", "origin/staging:refs/heads/production"])
     return 0
 
@@ -762,13 +762,14 @@ def main(argv: list[str]) -> int:
         p.add_argument("-r", "--remote")
         ns = p.parse_args(rest)
         return push_worktrees(remote=ns.remote, dry_run=ns.dry_run)
-    if command == "promote-branch":
-        return promote_branch_command(rest)
+    if command == "promote":
+        return promote_command(rest)
     raise SystemExit(f"unknown local command: {command}")
 
 
 INSTALL_USAGE = "usage: rocci-ops install cli|vscode|cursor"
-PROMOTE_USAGE = "usage: rocci-ops promote-branch staging|production"
+PROMOTE_USAGE = "usage: rocci-ops promote staging|production|tag"
+PROMOTE_TAG_USAGE = "usage: rocci-ops promote tag <tag> [--from BRANCH]"
 
 
 def install_command(argv: list[str]) -> int:
@@ -786,13 +787,58 @@ def install_command(argv: list[str]) -> int:
     raise SystemExit(INSTALL_USAGE)
 
 
-def promote_branch_command(argv: list[str]) -> int:
+def promote_tag(tag: str, from_ref: str = "main") -> int:
+    """Create and push a v* tag from origin/<from_ref> (default main)."""
+    if not tag.startswith("v") or len(tag) < 2:
+        raise SystemExit("promote tag requires a v* name (release.yml publishes on v* push)")
+    run(["git", "fetch", "origin"])
+    remote_ref = f"origin/{from_ref}"
+    verify = subprocess.run(
+        ["git", "rev-parse", "--verify", remote_ref],
+        cwd=repo_root(),
+        capture_output=True,
+        text=True,
+    )
+    if verify.returncode != 0:
+        raise SystemExit(f"promote tag requires {remote_ref}")
+    run(["git", "tag", "-a", tag, "-m", tag, remote_ref])
+    run(["git", "push", "origin", tag])
+    return 0
+
+
+def promote_tag_command(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help"):
+        raise SystemExit(PROMOTE_TAG_USAGE)
+    from_ref = "main"
+    tag: str | None = None
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--from":
+            if i + 1 >= len(argv):
+                raise SystemExit(PROMOTE_TAG_USAGE)
+            from_ref = argv[i + 1]
+            i += 2
+            continue
+        if tag is not None:
+            raise SystemExit(PROMOTE_TAG_USAGE)
+        tag = argv[i]
+        i += 1
+    if tag is None:
+        raise SystemExit(PROMOTE_TAG_USAGE)
+    return promote_tag(tag, from_ref=from_ref)
+
+
+def promote_command(argv: list[str]) -> int:
     if not argv or argv[0] in ("-h", "--help"):
         raise SystemExit(PROMOTE_USAGE)
-    if len(argv) != 1:
-        raise SystemExit(PROMOTE_USAGE)
     if argv[0] == "staging":
+        if len(argv) != 1:
+            raise SystemExit(PROMOTE_USAGE)
         return promote_staging()
     if argv[0] == "production":
+        if len(argv) != 1:
+            raise SystemExit(PROMOTE_USAGE)
         return promote_production()
+    if argv[0] == "tag":
+        return promote_tag_command(argv[1:])
     raise SystemExit(PROMOTE_USAGE)

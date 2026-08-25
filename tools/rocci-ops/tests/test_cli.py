@@ -4,7 +4,7 @@ from rocci_ops.cli import CHECK_USAGE, USAGE, check_main, main
 def test_top_level_usage_lists_grouped_commands() -> None:
     assert "check         deps | docs | zed" in USAGE
     assert "install       cli | vscode | cursor" in USAGE
-    assert "promote-branch" in USAGE
+    assert "promote       staging | production | tag" in USAGE
     assert "check-deps" not in USAGE
     assert "verify-zed" not in USAGE
     assert "install-cli" not in USAGE

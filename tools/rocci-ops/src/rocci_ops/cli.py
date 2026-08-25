@@ -22,8 +22,7 @@ commands:
   serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
   pr-checkout   list open PRs, or checkout one here as pr/<branch>
-  promote-branch
-                staging | production
+  promote       staging | production | tag
 """
 
 CHECK_USAGE = """\
@@ -44,7 +43,7 @@ LOCAL_COMMANDS = {
     "render-brand-icons",
     "serve",
     "push-worktrees",
-    "promote-branch",
+    "promote",
 }
 
 
