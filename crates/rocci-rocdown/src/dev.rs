@@ -33,6 +33,7 @@ pub fn run_with_host(
     run_with_host_at(root, output, port, host, "/", false, false, false)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_with_host_at(
     root: &Path,
     output: Option<&Path>,

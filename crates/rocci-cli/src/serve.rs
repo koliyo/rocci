@@ -774,6 +774,7 @@ mod tests {
         assert_eq!(bind_host(false), "127.0.0.1");
     }
 
+    #[test]
     fn clap_accepts_no_live_reload() {
         let cli = ServeCli::try_parse_from(["rocci", "--no-live-reload"]).unwrap();
         assert!(cli.serve.no_live_reload);

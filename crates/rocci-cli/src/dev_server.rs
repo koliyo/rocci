@@ -726,6 +726,7 @@ fn serve_loop(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_client(
     mut stream: TcpStream,
     loopback_peer: bool,

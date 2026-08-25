@@ -7,6 +7,7 @@ FootnoteDefinition	inline	—
 FootnoteReference	inline	—
 Heading	tag	h
 Image	inline	—
+Interpolation	tag	interp
 Item	tag	li
 LineBreak	inline	—
 Link	tag	a
@@ -14,6 +15,7 @@ List	tag	ul
 MdNode	fallback	md
 Paragraph	tag	p
 RawHtml	inline	—
+RocExpr	omit	opaque RocExpr span
 SoftBreak	inline	—
 Strikethrough	inline	—
 Strong	tag	strong

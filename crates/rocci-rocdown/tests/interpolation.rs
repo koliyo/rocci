@@ -19,7 +19,7 @@ fn ast(src: &str) -> String {
     format_ast(src, &out.document)
 }
 
-fn paragraph_children<'a>(out: &'a rocci_rocdown::CompileOutput) -> &'a [MdNode] {
+fn paragraph_children(out: &rocci_rocdown::CompileOutput) -> &[MdNode] {
     out.document
         .items
         .iter()

@@ -12,14 +12,11 @@ use std::time::Duration;
 fn wait_for_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
     let mut last = (0, String::new(), Vec::new());
     for _ in 0..50 {
-        match TcpStream::connect(("127.0.0.1", port)) {
-            Ok(_) => {
-                last = send_raw_get(port, path);
-                if last.0 != 0 {
-                    return last;
-                }
+        if TcpStream::connect(("127.0.0.1", port)).is_ok() {
+            last = send_raw_get(port, path);
+            if last.0 != 0 {
+                return last;
             }
-            Err(_) => {}
         }
         thread::sleep(Duration::from_millis(10));
     }

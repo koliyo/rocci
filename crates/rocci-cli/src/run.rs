@@ -18,6 +18,7 @@ use crate::runtime_assets;
 use crate::serve;
 use crate::style;
 
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     file: &Path,
     args: &[String],
@@ -256,6 +257,7 @@ fn walk_standalone(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_standalone(
     file: &Path,
     args: &[String],

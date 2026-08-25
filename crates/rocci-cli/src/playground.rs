@@ -96,6 +96,7 @@ impl Drop for PlaygroundServerHandle {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn start_playground_server(
     filename: &str,
     source: &str,

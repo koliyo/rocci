@@ -440,7 +440,7 @@ enum KnowledgeInspectTarget {
 
 fn main() -> Result<()> {
     let cli = Cli::parse_from(session::filter_launch_args(std::env::args()));
-    match cli.command.unwrap_or_else(|| Commands::View {
+    match cli.command.unwrap_or(Commands::View {
         preview: PreviewArgs {
             path: None,
             output: None,
