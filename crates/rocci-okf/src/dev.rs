@@ -1,4 +1,13 @@
-use std::{fs, path::Path, sync::Arc, time::Instant};
+use std::{
+    fs,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
 use anyhow::{Context, Result, bail};
 use okf::{LoadOptions, LoadTimings, Profile, Severity};
@@ -52,7 +61,7 @@ pub fn run_knowledge(
         log_prefix: "rocci-okf".into(),
         backend_port: None,
         log_handlers: false,
-        on_stop: None,
+        on_stop: Some(start_git_poll_thread()),
         public,
         extra_http,
     };
@@ -80,6 +89,32 @@ pub fn run_knowledge(
         }
         Ok(snapshot)
     })
+}
+
+fn start_git_poll_thread() -> Arc<dyn Fn() + Send + Sync> {
+    let stop = Arc::new(AtomicBool::new(false));
+    let thread_stop = stop.clone();
+    let _ = thread::Builder::new()
+        .name("okf-git-poll".into())
+        .spawn(move || git_poll_loop(thread_stop));
+    Arc::new(move || {
+        stop.store(true, Ordering::Relaxed);
+    })
+}
+
+fn git_poll_loop(stop: Arc<AtomicBool>) {
+    while !stop.load(Ordering::Relaxed) {
+        match crate::config::load() {
+            Ok(config) => crate::resolve::tick_git_roots(&config, &crate::resolve::okf_cache_dir()),
+            Err(error) => eprintln!("rocci-okf: failed to load OKF config: {error:#}"),
+        }
+        for _ in 0..10 {
+            if stop.load(Ordering::Relaxed) {
+                return;
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
 }
 
 fn parse_cache_dir(root: &Path) -> std::path::PathBuf {

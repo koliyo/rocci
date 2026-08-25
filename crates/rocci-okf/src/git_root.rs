@@ -54,13 +54,13 @@ impl ResolvedKind {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct GitRootMeta {
-    url: String,
-    branch: String,
+    pub(crate) url: String,
+    pub(crate) branch: String,
     #[serde(default)]
-    bundle: String,
-    last_commit: Option<String>,
-    last_fetch_unix: Option<u64>,
-    last_error: Option<String>,
+    pub(crate) bundle: String,
+    pub(crate) last_commit: Option<String>,
+    pub(crate) last_fetch_unix: Option<u64>,
+    pub(crate) last_error: Option<String>,
 }
 
 pub fn git_root_dir(cache_parent: &Path, id: &str) -> PathBuf {
@@ -293,7 +293,7 @@ pub(crate) fn read_meta(path: &Path) -> Option<GitRootMeta> {
     toml::from_str(&source).ok()
 }
 
-fn now_unix() -> u64 {
+pub(crate) fn now_unix() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|elapsed| elapsed.as_secs())

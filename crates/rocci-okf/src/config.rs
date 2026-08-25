@@ -23,7 +23,7 @@ pub enum Incoming {
 }
 
 impl Incoming {
-    fn as_str(self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Allow => "allow",
             Self::Deny => "deny",

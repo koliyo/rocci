@@ -10,6 +10,7 @@ mod dev;
 mod git_root;
 mod inspect;
 mod presentation;
+mod resolve;
 mod runtime;
 mod session;
 
