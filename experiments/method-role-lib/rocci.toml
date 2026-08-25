@@ -1,0 +1,32 @@
+[app]
+name = "Method-role library"
+identifier = "dev.rocci.method-role-lib"
+version = "0.1.0"
+
+[[windows]]
+label = "main"
+title = "Method-role library"
+url = "/"
+width = 960
+height = 760
+min_width = 720
+min_height = 560
+
+[http]
+host = "127.0.0.1"
+port = 0
+
+[security]
+allowed_origins = []
+
+[assets]
+directory = "assets"
+embed = true
+datastar = "1.0.2"
+
+[development]
+reload = false
+devtools = false
+
+[bundle]
+app = "."
