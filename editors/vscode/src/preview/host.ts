@@ -10,8 +10,6 @@ export type HostCommand =
   | 'dock-right'
   | 'dock-bottom'
   | 'open-as-page'
-  | 'reveal'
-  | 'copy'
   | 'split'
 
 export type IframeHistory = {
@@ -29,7 +27,6 @@ export type HostState = {
   inspectorSrc?: string
   prefs: InspectorPrefs
   asPage: boolean
-  canReveal: boolean
 }
 
 export function createHistory(homeUrl: string): IframeHistory {
@@ -119,8 +116,6 @@ export function parseHostCommand(message: unknown): HostCommand | undefined {
     type === 'dock-right' ||
     type === 'dock-bottom' ||
     type === 'open-as-page' ||
-    type === 'reveal' ||
-    type === 'copy' ||
     type === 'split'
   ) {
     return type
@@ -151,7 +146,6 @@ export function hostPreviewHtml(state: HostState): string {
   const hasInspector = Boolean(state.inspectorUrl)
   const inspectorSrc = state.inspectorSrc ? escapeAttr(state.inspectorSrc) : ''
   const dock = dockClassNames(state.prefs, state.asPage)
-  const moreHidden = state.canReveal ? '' : ' hidden'
   const devHidden = hasInspector ? '' : ' hidden'
   const devPressed = state.prefs.open && !state.asPage ? 'true' : 'false'
   return `<!DOCTYPE html>
@@ -200,39 +194,35 @@ export function hostPreviewHtml(state: HostState): string {
       .path, .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .path { font-size: 12px; }
       .title { font-size: 11px; opacity: 0.7; }
-      .more { position: relative; }
-      .more-menu {
-        position: absolute;
-        right: 0;
-        top: 100%;
-        display: none;
-        min-width: 12rem;
-        background: var(--vscode-editor-background, #1e1e1e);
-        border: 1px solid var(--vscode-panel-border, #333);
-        z-index: 2;
-      }
-      .more.open .more-menu { display: flex; flex-direction: column; }
-      .stage { flex: 1; display: flex; min-height: 0; }
+      .stage { flex: 1; display: flex; min-height: 0; position: relative; }
       body.dock-bottom.dev-open .stage { flex-direction: column; }
       #page { flex: 1; width: 100%; border: 0; background: #fff; min-width: 0; min-height: 0; }
       .splitter {
         display: none;
         background: var(--vscode-panel-border, #333);
-        flex: 0 0 4px;
+        flex: 0 0 6px;
         cursor: col-resize;
+        touch-action: none;
+        z-index: 1;
       }
       body.dock-bottom.dev-open .splitter { cursor: row-resize; }
+      body.is-resizing, body.is-resizing * { user-select: none; }
+      body.is-resizing iframe { pointer-events: none; }
+      body.is-resizing { cursor: col-resize; }
+      body.is-resizing.dock-bottom { cursor: row-resize; }
       .inspector {
         display: none;
-        min-width: 20rem;
-        min-height: 8rem;
+        flex-direction: column;
+        min-width: 12rem;
+        min-height: 6rem;
         background: var(--vscode-editor-background, #1e1e1e);
       }
       body.dock-right.dev-open .inspector { width: var(--rocci-dock-right); flex: 0 0 var(--rocci-dock-right); }
       body.dock-bottom.dev-open .inspector { height: var(--rocci-dock-bottom); flex: 0 0 var(--rocci-dock-bottom); min-width: 0; }
-      body.dev-open .inspector, body.dev-open .splitter { display: block; }
+      body.dev-open .inspector { display: flex; }
+      body.dev-open .splitter { display: block; }
       body.as-page .inspector, body.as-page .splitter { display: none; }
-      #inspector { width: 100%; height: 100%; border: 0; }
+      #inspector { width: 100%; height: 100%; border: 0; flex: 1; min-height: 0; }
       .inspector-bar { display: flex; gap: 4px; padding: 4px; }
     </style>
   </head>
@@ -252,13 +242,6 @@ export function hostPreviewHtml(state: HostState): string {
         <div class="path" id="path">${path}</div>
         <div class="title" id="title">${title}</div>
       </div>
-      <div class="more" id="more"${moreHidden}>
-        <button type="button" data-cmd="more-toggle" aria-label="More actions">⋯</button>
-        <div class="more-menu" role="menu">
-          <button type="button" data-cmd="reveal" role="menuitem">Reveal in Finder</button>
-          <button type="button" data-cmd="copy" role="menuitem">Copy original document</button>
-        </div>
-      </div>
       <button type="button" data-cmd="toggle-dev" class="${state.prefs.open ? 'is-on' : ''}" aria-label="Developer panel" aria-pressed="${devPressed}"${devHidden}>Dev</button>
     </div>
     <div class="stage">
@@ -275,15 +258,9 @@ export function hostPreviewHtml(state: HostState): string {
     </div>
     <script>
       const vscode = acquireVsCodeApi();
-      const more = document.getElementById('more');
       for (const button of document.querySelectorAll('[data-cmd]')) {
         button.addEventListener('click', () => {
-          const type = button.getAttribute('data-cmd');
-          if (type === 'more-toggle') {
-            more.classList.toggle('open');
-            return;
-          }
-          vscode.postMessage({ type });
+          vscode.postMessage({ type: button.getAttribute('data-cmd') });
         });
       }
       window.addEventListener('message', event => {
@@ -293,23 +270,47 @@ export function hostPreviewHtml(state: HostState): string {
         }
       });
       const splitter = document.getElementById('splitter');
-      let drag = null;
+      const stage = document.querySelector('.stage');
+      let drag = false;
+      let lastSplit = null;
+      function measureSplit(event) {
+        const rect = stage.getBoundingClientRect();
+        if (document.body.classList.contains('dock-right')) {
+          const px = Math.min(rect.width - 80, Math.max(192, rect.right - event.clientX));
+          const size = (px / 16) + 'rem';
+          document.documentElement.style.setProperty('--rocci-dock-right', size);
+          return { dock: 'right', size };
+        }
+        const px = Math.min(rect.height - 80, Math.max(128, rect.bottom - event.clientY));
+        const size = (px / Math.max(1, window.innerHeight) * 100) + 'vh';
+        document.documentElement.style.setProperty('--rocci-dock-bottom', size);
+        return { dock: 'bottom', size };
+      }
+      function endDrag() {
+        if (!drag) { return; }
+        drag = false;
+        document.body.classList.remove('is-resizing');
+        if (lastSplit) {
+          vscode.postMessage({ type: 'split', dock: lastSplit.dock, size: lastSplit.size });
+          lastSplit = null;
+        }
+      }
       splitter.addEventListener('pointerdown', event => {
-        drag = { x: event.clientX, y: event.clientY };
+        if (!document.body.classList.contains('dev-open') || document.body.classList.contains('as-page')) {
+          return;
+        }
+        drag = true;
+        lastSplit = measureSplit(event);
+        document.body.classList.add('is-resizing');
         splitter.setPointerCapture(event.pointerId);
+        event.preventDefault();
       });
-      splitter.addEventListener('pointerup', () => { drag = null; });
       splitter.addEventListener('pointermove', event => {
         if (!drag) { return; }
-        const dockRight = document.body.classList.contains('dock-right');
-        if (dockRight) {
-          const px = Math.max(20 * 16, window.innerWidth - event.clientX);
-          vscode.postMessage({ type: 'split', dock: 'right', size: (px / 16) + 'rem' });
-        } else {
-          const px = Math.max(8 * 16, window.innerHeight - event.clientY);
-          vscode.postMessage({ type: 'split', dock: 'bottom', size: (px / window.innerHeight * 100) + 'vh' });
-        }
+        lastSplit = measureSplit(event);
       });
+      splitter.addEventListener('pointerup', endDrag);
+      splitter.addEventListener('pointercancel', endDrag);
     </script>
   </body>
 </html>`

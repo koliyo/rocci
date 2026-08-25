@@ -14,7 +14,8 @@ import {
   goHome,
   hostPreviewHtml,
   navigateTo,
-  parseHostCommand
+  parseHostCommand,
+  parseSplitSize
 } from '../../preview/host'
 import { previewArgv } from '../../preview/dispatch'
 import {
@@ -175,8 +176,7 @@ suite('Rocci preview (offline)', () => {
       canBack: false,
       canForward: false,
       prefs: DEFAULT_INSPECTOR_PREFS,
-      asPage: false,
-      canReveal: false
+      asPage: false
     })
     assert.ok(html.includes('role="toolbar"'))
     assert.ok(html.includes('id="page"'))
@@ -184,6 +184,9 @@ suite('Rocci preview (offline)', () => {
     assert.ok(html.includes('Guide.rocdown'))
     assert.ok(!html.includes('preview-nav.js'))
     assert.ok(!html.includes('src="http://127.0.0.1:8001'))
+    assert.ok(!html.includes('Reveal in Finder'))
+    assert.ok(!html.includes('Copy original document'))
+    assert.ok(!html.includes('data-cmd="more-toggle"'))
   })
 
   test('parses inspector_ready and hides Dev when missing', () => {
@@ -201,8 +204,7 @@ suite('Rocci preview (offline)', () => {
       inspectorUrl: 'http://127.0.0.1:8001/__rocci/dev',
       inspectorSrc: 'http://127.0.0.1:8001/__rocci/dev?tab=performance&route=%2F&view=source',
       prefs: { ...DEFAULT_INSPECTOR_PREFS, open: true },
-      asPage: false,
-      canReveal: true
+      asPage: false
     })
     assert.ok(html.includes('dock-right'))
     assert.ok(html.includes('dev-open'))
@@ -261,5 +263,11 @@ suite('Rocci preview (offline)', () => {
       'http://127.0.0.1:8000/guide/'
     )
     assert.strictEqual(parseHostCommand({ type: 'toggle-live-reload' }), 'toggle-live-reload')
+    assert.strictEqual(parseHostCommand({ type: 'reveal' }), undefined)
+    assert.strictEqual(parseHostCommand({ type: 'copy' }), undefined)
+    assert.deepStrictEqual(parseSplitSize({ type: 'split', dock: 'right', size: '22rem' }), {
+      dock: 'right',
+      size: '22rem'
+    })
   })
 })
