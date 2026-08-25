@@ -4,7 +4,7 @@ title: Editor preview for Rocci and Rocdown
 description: Add a VS Code play command that serves the active .rocci or .rocdown file with --no-window and opens Simple Browser beside the editor; give Zed tasks that open the native preview window until it grows a webview API.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/ui, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T21:30:00Z }
+generated: { by: process:cursor, at: 2026-08-25T11:30:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -194,7 +194,7 @@ Exit: `uv run rocci-ops check zed`. README names the tasks and the limitation.
 
 ## Status
 
-No phase started. Evidence: [editor preview research](/research/shared/editor-preview.md).
+Phases 1–5 are implemented on branch `editor-preview` (play/stop/reload, session lifecycle, `preview_ready`, docs, Zed tasks). That work is not on `main`. Remaining toolbar, Dev inspector, and unbundled GitHub-release binaries are the [hosted editor preview](editor-preview-host.md) follow-on. Evidence: [editor preview research](/research/shared/editor-preview.md).
 
 [^research]: VS Code Simple Browser host; Zed has no extension webview.
 [^vscode-client]: Current client is LSP-only; binary resolution pattern to reuse.

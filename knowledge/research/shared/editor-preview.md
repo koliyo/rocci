@@ -4,7 +4,7 @@ title: Editor preview for Rocci and Rocdown
 description: VS Code can host the existing CLI --no-window origin in Simple Browser beside the source file; Zed has no extension webview, so the feasible fallback is a task that opens the native preview window or a system browser.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/ui, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T21:30:00Z }
+generated: { by: process:cursor, at: 2026-08-25T11:30:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -214,6 +214,8 @@ Do not emulate Simple Browser in WASM. Revisit only if Zed ships an extension-ow
 ## Recommendation
 
 Implement VS Code preview as a thin session host over `--no-window` plus Simple Browser beside the file, with a play/stop command. Treat Zed as a task-plus-native-window fallback until the editor grows a preview surface. Keep product CLIs in charge of compile and serve.[^impl-plan]
+
+Toolbar, Dev inspector, and Hylo-style release downloads are out of bound here. They are specified in [hosted editor preview](/plans/shared/editor-preview-host.md).
 
 [^vscode-client]: Thin client; LSP start and `rocci.restartLspServer` only.
 [^vscode-manifest]: Languages, one command, no preview contribution.
