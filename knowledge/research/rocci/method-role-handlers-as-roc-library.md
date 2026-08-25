@@ -4,7 +4,7 @@ title: Method-role handlers as a pure Roc library or platform
 description: "Counterfactual: the shipped @method:role matrix can be encoded as Roc constructors on basic-webserver, with a custom platform buying little DX. That matches Datastar SDKs and eases the authored-main.roc cliff, but loses header inspectability, pre-Roc illegal-pair errors, and one-file HTML apps unless @component stays."
 tags: [domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/architecture, concern/developer-experience, concern/language-design]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T12:40:00Z }
+generated: { by: process:cursor, at: 2026-08-25T17:20:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -466,10 +466,13 @@ collision checks that do not need a Roc typechecker.
 
 The hybrid (components in `.rocci`, routes in Roc) is the interesting
 middle. It is not shipped, not approved, and not a reason to reopen the
-grammar toward `PatchElements` options. If a later plan explores it, keep
-the four default constructors as strict as today's roles, and put SDK
-completeness on named escapes — not on dissolving `command` back into
-"return whatever."
+grammar toward `PatchElements` options. An overlay probe on
+`method-role-lib` compiled `pf.Rocci` wraps with app `match`; a `List` of
+constructors linked then crashed at runtime. See
+[opinionated BWS overlay](/plans/rocci/opinionated-bws-host.md). If a later
+plan continues, keep the four default constructors as strict as today's
+roles, and put SDK completeness on named escapes — not on dissolving
+`command` back into "return whatever."
 
 [^ecosystem]: Landed matrix is compile-time classification, unique as language syntax; SDKs leave roles in handler bodies; authored `main.roc` is the steep hatch.
 [^verb-first]: Template parser cannot inspect Roc types or bodies; role must be in the header for a closed matrix at parse time.
