@@ -939,6 +939,7 @@ fn run_site_dev(
         rocci_cli::logs::LogLevel::Info,
         format!("rocdown: serving {} at {}", server.title, server.url),
     );
+    rocci_cli::serve::emit_preview_ready(&server.url);
     rocci_cli::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();
@@ -1414,5 +1415,28 @@ mod tests {
                 .unwrap_or_default()
         );
         assert!(help.contains("?reload=0"), "{help}");
+    }
+
+    #[test]
+    fn preview_ready_prints_on_piped_stdout_not_tty() {
+        let mut piped = Vec::new();
+        rocci_cli::serve::write_preview_ready(&mut piped, "http://127.0.0.1:8000/guide/", false)
+            .unwrap();
+        let line = String::from_utf8(piped).unwrap();
+        assert_eq!(line, "preview_ready http://127.0.0.1:8000/guide/\n");
+        assert!(!line.contains('\u{1b}'));
+
+        let mut tty = Vec::new();
+        rocci_cli::serve::write_preview_ready(&mut tty, "http://127.0.0.1:8000/guide/", true)
+            .unwrap();
+        assert!(tty.is_empty());
+    }
+
+    #[test]
+    fn view_emits_preview_ready_after_serving() {
+        let src = include_str!("main.rs");
+        let serving = src.find("rocdown: serving").expect("serving");
+        let ready = src.find("emit_preview_ready").expect("preview_ready");
+        assert!(serving < ready);
     }
 }

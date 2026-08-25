@@ -11,13 +11,18 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **File icons**: Explorer icons for `.rocci` and `.rocdown` use the folded-R document mark.
 - **Navigation & Definition**: Go-to-definition for same-file component declarations (`<UserCard />` -> `@component UserCard`).
 - **Completion & Hover**: Autocomplete for directives (`@if`, `@for`, `@match`, `@let`, `@component`, `@css`, `@page`, `@roc`, `:note`), handlers (`@get:view`, `@post:fragment`), HTML elements, and components; hover documentation for template elements.
+- **Preview**: **Rocci: Preview** (`rocci.preview`) saves the active `.rocci` or `.rocdown` file, runs `rocci run` or `rocdown view` with `--no-window --port auto --verbose`, and opens that loopback origin in a beside-editor webview. **Rocci: Reload Preview** refreshes the webview. **Rocci: Stop Preview** stops the process. Watch, rebuild, and reload lines are written to the **Rocci Preview** output channel.
+
+The preview is the product HTTP origin, not a second renderer. Saving a Rocdown file in the same site reloads the webview after the CLI rebuilds. Saving a Rocci file restarts `rocci run` (that command does not watch). The Dev inspector overlay stays on the desktop host. Preview requires a saved file; untitled buffers cannot be served.
 
 ## Configuration
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `rocci.lsp.serverPath` | `string` | `""` | Path to the `rocci-language-server` executable (defaults to packaged binary or `target/debug/rocci-language-server`) |
-| `rocci.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
+| `rocci.lsp.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
+| `rocci.preview.rocciPath` | `string` | `""` | Path to the `rocci` binary (empty uses bundled `dist/bin`, `PATH`, or workspace `target/debug`) |
+| `rocci.preview.rocdownPath` | `string` | `""` | Path to the `rocdown` binary (empty uses bundled `dist/bin`, `PATH`, or workspace `target/debug`) |
 
 Semantic highlighting is enabled by default in VS Code (`editor.semanticHighlighting.enabled: true`).
 
@@ -58,3 +63,5 @@ uv run rocci-ops install cursor
 `install vscode` runs `code --install-extension` on the newest
 `editors/vscode/rocci-*.vsix`. `install cursor` uses the same `code` CLI with
 `--extensions-dir` pointed at `~/.cursor/extensions`.
+
+Preview needs `rocci` and `rocdown` on `PATH`, in the packaged `dist/bin`, in workspace `target/debug`, or via the path settings above. The language server binary is separate from those CLIs.

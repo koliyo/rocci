@@ -368,6 +368,7 @@ where
         LogLevel::Info,
         format!("{prefix}: serving {title} at {}", server.url),
     );
+    crate::serve::emit_preview_ready(&server.url);
     crate::serve::note_live_reload_paused(live_reload);
     if no_window {
         server.wait();
@@ -486,6 +487,7 @@ pub fn preview_published_tree(
         LogLevel::Info,
         format!("{prefix}: serving {title} at {}", server.url),
     );
+    crate::serve::emit_preview_ready(&server.url);
     if no_window {
         server.wait();
         return Ok(());

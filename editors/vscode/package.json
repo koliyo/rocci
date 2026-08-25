@@ -10,7 +10,7 @@
   "publisher": "koliyo",
   "version": "0.1.0",
   "engines": {
-    "vscode": "^1.81.0"
+    "vscode": "^1.134.0"
   },
   "categories": [
     "Programming Languages"
@@ -25,7 +25,8 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
-    "test": "npm run compile && node ./out/test/runTest.js"
+    "test:unit": "mocha --ui tdd --timeout 5000 \"out/test/unit/**/*.js\"",
+    "test": "npm run compile && npm run esbuild && npm run test:unit && node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^9.0.0",
@@ -91,8 +92,45 @@
       {
         "command": "rocci.restartLspServer",
         "title": "Rocci: Restart LSP server"
+      },
+      {
+        "command": "rocci.preview",
+        "title": "Rocci: Preview",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "rocci.reloadPreview",
+        "title": "Rocci: Reload Preview",
+        "icon": "$(refresh)",
+        "enablement": "rocci.preview.active"
+      },
+      {
+        "command": "rocci.stopPreview",
+        "title": "Rocci: Stop Preview",
+        "icon": "$(stop)",
+        "enablement": "rocci.preview.active"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "rocci.preview",
+          "when": "editorLangId == rocci || editorLangId == rocdown",
+          "group": "navigation"
+        },
+        {
+          "command": "rocci.reloadPreview",
+          "when": "rocci.preview.active && (editorLangId == rocci || editorLangId == rocdown)",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "rocci.preview",
+          "when": "editorLangId == rocci || editorLangId == rocdown"
+        }
+      ]
+    },
     "configuration": {
       "title": "Rocci",
       "properties": {
@@ -100,6 +138,16 @@
           "type": "string",
           "default": "",
           "description": "Absolute path to rocci-language-server. Empty uses debug build, bundled dist/bin, or PATH."
+        },
+        "rocci.preview.rocciPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the rocci binary. Empty uses bundled dist/bin, PATH, or workspace target/debug."
+        },
+        "rocci.preview.rocdownPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the rocdown binary. Empty uses bundled dist/bin, PATH, or workspace target/debug."
         },
         "rocci.lsp.trace.server": {
           "type": "string",

@@ -10,7 +10,7 @@ function collectTestFiles(dir: string): string[] {
     const stat = fs.statSync(filePath)
     if (stat.isDirectory()) {
       results.push(...collectTestFiles(filePath))
-    } else if (file.endsWith('.test.js')) {
+    } else if (file.endsWith('.test.js') && !filePath.includes(`${path.sep}unit${path.sep}`)) {
       results.push(filePath)
     }
   }

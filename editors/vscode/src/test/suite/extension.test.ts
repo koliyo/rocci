@@ -136,6 +136,13 @@ suite('Rocci VS Code Extension Integration Tests', () => {
     assert.ok(ext?.isActive, 'Extension should be active')
   })
 
+  test('Preview commands are registered', async () => {
+    const commands = await vscode.commands.getCommands(true)
+    assert.ok(commands.includes('rocci.preview'))
+    assert.ok(commands.includes('rocci.reloadPreview'))
+    assert.ok(commands.includes('rocci.stopPreview'))
+  })
+
   test('EmbeddedLanguages.rocci semantic tokens and embedded highlighting', async () => {
     const fixturePath = path.join(rootWorkspace, 'EmbeddedLanguages.rocci')
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(fixturePath))

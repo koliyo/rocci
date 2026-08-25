@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Preview Rocci file",
+    "command": "rocci",
+    "args": ["run", "$ZED_FILE"]
+  },
+  {
+    "label": "Preview Rocdown file",
+    "command": "rocdown",
+    "args": ["view", "$ZED_FILE"]
+  },
+  {
+    "label": "Serve Rocci file (no window)",
+    "command": "rocci",
+    "args": ["run", "$ZED_FILE", "--no-window", "--port", "auto"]
+  },
+  {
+    "label": "Serve Rocdown file (no window)",
+    "command": "rocdown",
+    "args": ["view", "$ZED_FILE", "--no-window", "--port", "auto"]
+  }
+]

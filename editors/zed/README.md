@@ -10,6 +10,21 @@ Zed does not bundle the language server binary into the extension WASM. Build or
 - **Embedded Languages**: Highlighting for `@css`, `@roc`, inline Roc expressions, and display-only code fences.
 - **Diagnostics**: Compiler diagnostics and recovery on syntax errors.
 
+## Preview
+
+Zed has no extension-owned embedded browser beside the buffer. Until the host provides a webview or HTML pane that can load a loopback origin, preview uses **tasks** that start the product CLI and open the native Tao/Wry preview window:
+
+| Task | Command |
+| --- | --- |
+| **Preview Rocci file** | `rocci run $ZED_FILE` |
+| **Preview Rocdown file** | `rocdown view $ZED_FILE` |
+
+This extension ships those templates in `tasks.json`. Run them from the task palette (**task: spawn**). Optional **Serve … (no window)** tasks start `--no-window --port auto` so you can open `http://127.0.0.1:<port>/` in a system browser; they do not create an in-editor pane.
+
+If a checkout does not load extension tasks, copy `editors/zed/tasks.json` into the project `.zed/tasks.json`.
+
+The Zed manifest remains an LSP adapter. Do not expect Simple Browser–style beside-buffer preview here.
+
 ## File icons
 
 This extension also ships a **Rocci** icon theme. Select it in

@@ -613,6 +613,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
     }
 
     println!("{}", style::serving(&app_dir.display().to_string(), &url));
+    crate::serve::emit_preview_ready(&url);
     let state_key = format!("rocci:{}", config.app.identifier);
     let preview_result = rocci_desktop::preview(PreviewOptions {
         url,

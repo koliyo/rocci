@@ -422,6 +422,7 @@ pub fn execute_resolved_entry(
                 LogLevel::Info,
                 style::serving(&invocation.app_dir.display().to_string(), &url),
             );
+            serve::emit_preview_ready(&url);
             serve::note_public_listen(public, port);
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&url);
@@ -577,6 +578,7 @@ pub fn invoke_standalone(
             });
             tee.flush_to_hub();
             logs::tee(&logs, LogLevel::Info, style::serving(title, &url));
+            serve::emit_preview_ready(&url);
             serve::note_public_listen(public, port);
             let mut inspect = crate::inspect::InspectSnapshot::with_pages(profile, inspect_pages);
             inspect.capture_html_from_origin(&format!("http://127.0.0.1:{port}"));

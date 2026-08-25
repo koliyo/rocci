@@ -1,5 +1,5 @@
 use std::{
-    io::{self, Read, Write},
+    io::{self, IsTerminal, Read, Write},
     net::{TcpListener, TcpStream},
     process::{Child, Command, ExitStatus, Stdio},
     sync::{
@@ -149,6 +149,26 @@ pub fn note_live_reload_paused(live_reload: bool) {
             crate::style::note("in a browser, open the URL with ?reload=0")
         );
     }
+}
+
+pub fn preview_ready_line(url: &str) -> String {
+    format!("preview_ready {url}")
+}
+
+pub fn write_preview_ready(
+    mut out: impl Write,
+    url: &str,
+    stdout_is_terminal: bool,
+) -> io::Result<()> {
+    if stdout_is_terminal {
+        return Ok(());
+    }
+    writeln!(out, "{}", preview_ready_line(url))?;
+    out.flush()
+}
+
+pub fn emit_preview_ready(url: &str) {
+    let _ = write_preview_ready(io::stdout(), url, io::stdout().is_terminal());
 }
 
 pub fn parse_port_arg(value: &str) -> Result<PortArg, String> {
@@ -569,6 +589,7 @@ pub fn serve_html(
     });
 
     println!("{}", style::serving(title, &url));
+    emit_preview_ready(&url);
     note_public_listen(public, port);
     note_live_reload_paused(live_reload);
     if no_window {
@@ -1034,5 +1055,28 @@ mod tests {
         let wait = body.find("child.wait()").expect("wait");
         assert!(spawn < no_window);
         assert!(no_window < wait);
+    }
+
+    #[test]
+    fn preview_ready_prints_on_piped_stdout_not_tty() {
+        let mut piped = Vec::new();
+        write_preview_ready(&mut piped, "http://127.0.0.1:8000/", false).unwrap();
+        let line = String::from_utf8(piped).unwrap();
+        assert_eq!(line, "preview_ready http://127.0.0.1:8000/\n");
+        assert!(!line.contains('\u{1b}'));
+
+        let mut tty = Vec::new();
+        write_preview_ready(&mut tty, "http://127.0.0.1:8000/", true).unwrap();
+        assert!(tty.is_empty());
+    }
+
+    #[test]
+    fn serve_html_emits_preview_ready_after_listen() {
+        let src = include_str!("serve.rs");
+        let start = src.find("pub fn serve_html").expect("serve_html");
+        let body = &src[start..];
+        let serving = body.find("style::serving").expect("serving");
+        let ready = body.find("emit_preview_ready").expect("preview_ready");
+        assert!(serving < ready);
     }
 }

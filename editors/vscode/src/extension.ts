@@ -13,8 +13,10 @@ import {
 } from 'vscode-languageclient/node'
 
 import { createOutputChannels, wrappedOutput } from './output-channels'
+import { PreviewSession, registerPreviewCommands } from './preview/session'
 
 let client: LanguageClient | undefined
+let previewSession: PreviewSession | undefined
 const isDebug = process.env.VSCODE_DEBUG_MODE !== undefined
 
 function lspExecutableName(): string {
@@ -129,6 +131,8 @@ function registerCommands(context: ExtensionContext) {
       }
     })
   )
+  previewSession = new PreviewSession(context)
+  registerPreviewCommands(context, previewSession)
 }
 
 export async function activate(context: ExtensionContext) {
@@ -139,9 +143,14 @@ export async function activate(context: ExtensionContext) {
 }
 
 export function deactivate() {
+  const stopPreview = previewSession?.stop()
+  previewSession = undefined
   if (!client) {
-    return undefined
+    return stopPreview
   }
   wrappedOutput.appendLine('Stop client')
-  return client.stop()
+  if (!stopPreview) {
+    return client.stop()
+  }
+  return Promise.all([stopPreview, client.stop()]).then(() => undefined)
 }
