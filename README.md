@@ -176,8 +176,9 @@ started. After a signed-out staging smoke,
 `origin/production` (creates the branch on first use). That push runs hosted CI
 and Knowledge, then the site package/deploy job. Do not promote production
 until staging has been smoked. To publish a GitHub release from `origin/main`,
-run `uv run rocci-ops promote tag vX.Y.Z` (or `--from BRANCH`). Pushing the
-`v*` tag starts `release.yml`. `uv run rocci-ops promote tag dev` force-moves
+run `uv run rocci-ops promote tag vX.Y.Z` (or `--from BRANCH`). That waits for
+hosted CI on the target SHA, then pushes the tag. The tag push runs CI,
+Knowledge, and `release.yml`. `uv run rocci-ops promote tag dev` force-moves
 the rolling `dev` prerelease tag and republishes that GitHub release.
 
 To test a pull request in this worktree when an agent already has the PR

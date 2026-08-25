@@ -14,8 +14,8 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
    drawing CI provenance conclusions or editing code. Preserve unrelated
    work.
 2. Understand the repository's GitHub Actions workflows in `.github/workflows/`:
-   - `ci.yml` and `knowledge.yml`: hosted on push to `main`, `staging`, and
-     `production`. Queue a PR run with `/ci` or `/CI`. `/ci-local` and
+   - `ci.yml` and `knowledge.yml`: hosted on push to `main`, `staging`,
+     `production`, and `v*` / `dev` tags. Queue a PR run with `/ci` or `/CI`. `/ci-local` and
      `/cl-local` queue the same hosted jobs; self-hosted CI is disabled.
      Actions **Run workflow** is hosted. There is no `pull_request` trigger.
      `ci.yml` jobs:

@@ -14,6 +14,7 @@ from rocci_ops.local import (
     promote_production,
     promote_staging,
     promote_tag,
+    wait_for_promote_ci,
     render_brand_icons,
     require_darwin,
 )
@@ -267,6 +268,7 @@ def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None
 
 def test_promote_tag_annotates_and_pushes_origin_main(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
+    waited: list[str] = []
     monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
         "rocci_ops.local.subprocess.run",
@@ -276,8 +278,10 @@ def test_promote_tag_annotates_and_pushes_origin_main(monkeypatch, tmp_path) -> 
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
+    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", waited.append)
 
     assert promote_tag("v1.2.3") == 0
+    assert waited == ["abc"]
     assert calls == [
         ["git", "fetch", "origin"],
         ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/main"],
@@ -296,6 +300,7 @@ def test_promote_tag_from_is_configurable(monkeypatch, tmp_path) -> None:
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
+    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", lambda sha: None)
 
     assert promote_tag("v1.2.3", from_ref="staging") == 0
     assert ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/staging"] in calls
@@ -312,6 +317,7 @@ def test_promote_tag_force_moves_dev(monkeypatch, tmp_path) -> None:
         "rocci_ops.local.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
+    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", lambda sha: None)
 
     assert promote_tag("dev") == 0
     assert calls == [
@@ -319,6 +325,44 @@ def test_promote_tag_force_moves_dev(monkeypatch, tmp_path) -> None:
         ["git", "tag", "-a", "-f", "dev", "-m", "dev", "origin/main"],
         ["git", "push", "--force", "origin", "dev"],
     ]
+
+
+def test_promote_tag_does_not_push_when_ci_fails(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.wait_for_promote_ci",
+        lambda sha: (_ for _ in ()).throw(SystemExit(f"CI failed for {sha}")),
+    )
+    try:
+        promote_tag("v1.2.3")
+    except SystemExit as exc:
+        assert "abc" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+    assert calls == [["git", "fetch", "origin"]]
+
+
+def test_wait_for_promote_ci_waits_default_checks(monkeypatch) -> None:
+    from rocci_ops.release import DEFAULT_CHECKS
+
+    seen: list[str] = []
+    monkeypatch.setattr("rocci_ops.local.github_repo", lambda: "koliyo/rocci")
+    monkeypatch.setattr("rocci_ops.local.gh_run", lambda args: type("R", (), {"stdout": ""})())
+    monkeypatch.setattr(
+        "rocci_ops.local.wait_for_check",
+        lambda **kwargs: seen.append(kwargs["check"]),
+    )
+    wait_for_promote_ci("abc")
+    assert seen == list(DEFAULT_CHECKS)
 
 
 def test_promote_tag_requires_v_prefix_or_dev() -> None:

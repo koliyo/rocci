@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main, staging, production]
+    tags: ["v*", "dev"]
   workflow_call:
     inputs:
       lane:

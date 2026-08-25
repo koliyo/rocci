@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 from rocci_ops.paths import repo_root
+from rocci_ops.release import DEFAULT_CHECKS, gh_run, wait_for_check
 
 CLI_CRATES = (
     ("rocci-cli", "rocci"),
@@ -787,6 +788,27 @@ def install_command(argv: list[str]) -> int:
     raise SystemExit(INSTALL_USAGE)
 
 
+def github_repo() -> str:
+    result = subprocess.run(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        cwd=repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def wait_for_promote_ci(sha: str) -> None:
+    repo = github_repo()
+
+    def gh(args: list[str]) -> str:
+        return gh_run(args).stdout
+
+    for check in DEFAULT_CHECKS:
+        wait_for_check(repo=repo, sha=sha, check=check, gh=gh, sleep=time.sleep)
+
+
 def promote_tag(tag: str, from_ref: str = "main") -> int:
     """Create and push a release tag from origin/<from_ref> (default main)."""
     movable = tag == "dev"
@@ -802,6 +824,7 @@ def promote_tag(tag: str, from_ref: str = "main") -> int:
     )
     if verify.returncode != 0:
         raise SystemExit(f"promote tag requires {remote_ref}")
+    wait_for_promote_ci(verify.stdout.strip())
     tag_argv = ["git", "tag", "-a", tag, "-m", tag, remote_ref]
     push_argv = ["git", "push", "origin", tag]
     if movable:
