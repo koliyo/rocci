@@ -1,11 +1,17 @@
 import Server
 import Sse
 import Html
+import http.Method
 import http.Response
 
-## Method-role wraps owned by the platform. Apps still `match` in Phase 2.
+Mutation : [Post, Put, Patch, Delete]
+Decision : [Hit(Server.Outcome), Miss]
+
 Rocci := [].{
     program = make_program
+    view = make_view
+    fragment = make_fragment
+    dispatch! = dispatch_routes!
     view! = wrap_view
     get_fragment! = wrap_fragment!
     fragment! = wrap_fragment!
@@ -16,6 +22,74 @@ Rocci := [].{
     slash_alternate = alt_slash
     prefix_remainder = remainder_after_prefix
 }
+
+make_view = |path, handle!| View({ path: path, handle!: handle! })
+
+make_fragment = |verb, path, handle!| Fragment({ verb: verb, path: path, handle!: handle! })
+
+dispatch_routes! = |routes, request, context| {
+    method = Method.to_str(request.method())
+    path =
+        match request.target() {
+            Resource({ raw_path: raw, .. }) => raw
+            _ => ""
+        }
+    match first_hit!(routes, method, path, request, context)? {
+        Hit(outcome) => Ok(outcome)
+        Miss => html_status(404, "not found")
+    }
+}
+
+first_hit! = |routes, method, path, request, context|
+    match routes {
+        [route, .. as rest] =>
+            match apply_route!(route, method, path, request, context)? {
+                Hit(outcome) => Ok(Hit(outcome))
+                Miss => first_hit!(rest, method, path, request, context)
+            }
+        [] => Ok(Miss)
+    }
+
+apply_route! = |route, method, path, request, context|
+    match route {
+        View({ path: want, handle!, .. }) =>
+            if method == "GET" and path == want {
+                html = handle!(context, request) ? |err| ServerErr(Str.inspect(err))
+                to_hit(wrap_view(html))
+            } else {
+                Ok(Miss)
+            }
+        Fragment({ verb, path: want, handle!, .. }) =>
+            if method == mutation_str(verb) and path == want {
+                html = handle!(context, request) ? |err| ServerErr(Str.inspect(err))
+                to_hit(wrap_fragment!(html))
+            } else {
+                Ok(Miss)
+            }
+    }
+
+to_hit = |result|
+    match result {
+        Ok(outcome) => Ok(Hit(outcome))
+        Err(err) => Err(err)
+    }
+
+mutation_str = |verb|
+    match verb {
+        Post => "POST"
+        Put => "PUT"
+        Patch => "PATCH"
+        Delete => "DELETE"
+    }
+
+html_status = |status, body|
+    Ok(
+        Server.respond(
+            Response.from_status(status)
+            .with_headers([{ name: "Content-Type", value: "text/html; charset=utf-8" }])
+            .with_body(Str.to_utf8(body)),
+        ),
+    )
 
 make_program = |{ init!, respond! }| {
     init!,
