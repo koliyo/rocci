@@ -7,6 +7,7 @@ use rocci_cli::serve::{PortArg, parse_port_arg};
 
 mod config;
 mod dev;
+mod git_root;
 mod inspect;
 mod presentation;
 mod runtime;
