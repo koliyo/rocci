@@ -47,10 +47,17 @@ async function startClient(context: ExtensionContext) {
 
   wrappedOutput.appendLine(`Language server: ${serverPath}`)
 
+  const rocPath = workspace.getConfiguration('rocci').get<string>('roc.path')?.trim()
+  const env = { ...process.env }
+  if (rocPath) {
+    env.ROCCI_ROC_PATH = rocPath
+  }
+
   const executable: Executable = {
     command: serverPath,
     args: [],
-    transport: TransportKind.stdio
+    transport: TransportKind.stdio,
+    options: { env }
   }
 
   const serverOptions: ServerOptions = {

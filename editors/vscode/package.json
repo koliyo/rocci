@@ -143,6 +143,11 @@
           "default": "",
           "description": "Absolute path to rocci-language-server. Empty uses a debug build, a verified GitHub-release extract, or PATH."
         },
+        "rocci.roc.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the roc compiler used for executable Roc hover, diagnostics, completion, and definition. Empty uses the ROCCI_ROC_PATH environment variable or roc on PATH. Restart the language server after changing this."
+        },
         "rocci.preview.rocciPath": {
           "type": "string",
           "default": "",

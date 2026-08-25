@@ -36,6 +36,17 @@ fn github_asset_name(version: &str, triple: &str) -> String {
     format!("rocci-{version}-{triple}.tar.gz")
 }
 
+fn roc_compiler_path(settings: &LspSettings) -> Option<String> {
+    settings
+        .settings
+        .as_ref()
+        .and_then(|settings| settings.get("rocPath").or_else(|| settings.get("roc.path")))
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|path| !path.is_empty())
+        .map(ToOwned::to_owned)
+}
+
 fn tools_channel(settings: &LspSettings) -> &'static str {
     let value = settings
         .settings
@@ -165,10 +176,15 @@ impl zed::Extension for RocciExtension {
         let args = binary
             .and_then(|settings| settings.arguments.clone())
             .unwrap_or_default();
-        let env = binary
+        let mut env: Vec<(String, String)> = binary
             .and_then(|settings| settings.env.clone())
             .map(|env| env.into_iter().collect())
             .unwrap_or_default();
+        if let Some(roc) = roc_compiler_path(&settings) {
+            if !env.iter().any(|(key, _)| key == "ROCCI_ROC_PATH") {
+                env.push(("ROCCI_ROC_PATH".into(), roc));
+            }
+        }
 
         Ok(zed::Command {
             command,
