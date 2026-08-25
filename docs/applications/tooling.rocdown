@@ -10,8 +10,9 @@
 
 This page is how you develop a Rocci application from the source checkout.
 Command flags live in the [CLI](/docs/reference/cli/). Repository automation
-and local ops live in `rocci-ops` (`uv run rocci-ops`): CI helpers, site
-package, and container sketches under `docker/`.
+and local ops live in `rocci-ops` (`uv run rocci-ops`): `check`, `install`,
+`promote-branch`, CI helpers, site package, and container sketches under
+`docker/`.
 
 `rocci inspect FILE` prints components and source-map segments.
 
@@ -62,7 +63,9 @@ Editor support is **current** in this repository. There is no Marketplace
 install path yet. The server binary is `rocci-language-server`
 (`cargo build -p rocci-rocdown-lsp`). The VS Code and Zed extensions are thin
 LSP clients. Opening a `.rocci` file should show diagnostics and semantic
-highlighting.
+highlighting. After `uv run rocci-ops package vscode`, install the `.vsix`
+with `uv run rocci-ops install vscode` or `uv run rocci-ops install cursor`.
+Zed checks live under `uv run rocci-ops check zed`.
 
 ## Dev panel
 

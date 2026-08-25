@@ -1,10 +1,15 @@
 from rocci_ops.local import (
     CLI_CRATES,
+    INSTALL_USAGE,
+    PROMOTE_USAGE,
     _require_playground_dist,
     playground_wasm_artifact,
     build_site,
+    install_command,
+    latest_vsix,
     package_site,
     parse_worktrees,
+    promote_branch_command,
     promote_production,
     promote_staging,
     render_brand_icons,
@@ -15,6 +20,70 @@ from rocci_ops.local import (
 def test_cli_crates() -> None:
     assert CLI_CRATES[0] == ("rocci-cli", "rocci")
     assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown", "rocci-okf"}
+
+
+def test_install_usage() -> None:
+    try:
+        install_command([])
+    except SystemExit as exc:
+        assert str(exc) == INSTALL_USAGE
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_promote_branch_usage() -> None:
+    try:
+        promote_branch_command(["preview"])
+    except SystemExit as exc:
+        assert str(exc) == PROMOTE_USAGE
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_install_vscode_and_cursor_use_vsix(monkeypatch, tmp_path) -> None:
+    vscode = tmp_path / "editors" / "vscode"
+    vscode.mkdir(parents=True)
+    vsix = vscode / "rocci-0.1.0.vsix"
+    vsix.write_bytes(b"vsix")
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
+    monkeypatch.setattr("rocci_ops.local.Path.home", lambda: tmp_path / "home")
+
+    assert install_command(["vscode"]) == 0
+    assert calls == [["code", "--install-extension", str(vsix)]]
+    calls.clear()
+    assert install_command(["cursor"]) == 0
+    assert calls == [
+        [
+            "code",
+            "--extensions-dir",
+            str(tmp_path / "home" / ".cursor" / "extensions"),
+            "--install-extension",
+            str(vsix),
+        ]
+    ]
+
+
+def test_promote_branch_command_routes(monkeypatch) -> None:
+    called: list[str] = []
+    monkeypatch.setattr("rocci_ops.local.promote_staging", lambda: called.append("staging") or 0)
+    monkeypatch.setattr("rocci_ops.local.promote_production", lambda: called.append("production") or 0)
+    assert promote_branch_command(["staging"]) == 0
+    assert promote_branch_command(["production"]) == 0
+    assert called == ["staging", "production"]
+
+
+def test_latest_vsix_picks_newest(tmp_path) -> None:
+    vscode = tmp_path / "editors" / "vscode"
+    vscode.mkdir(parents=True)
+    older = vscode / "rocci-0.1.0.vsix"
+    newer = vscode / "rocci-0.2.0.vsix"
+    older.write_bytes(b"old")
+    newer.write_bytes(b"new")
+    older.touch()
+    newer.touch()
+    assert latest_vsix(tmp_path) == newer
 
 
 def test_bundle_usage() -> None:

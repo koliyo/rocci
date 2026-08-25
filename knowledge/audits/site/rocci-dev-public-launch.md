@@ -296,12 +296,12 @@ forwards and is the listed contact.[^publish-plan]
 
 Operator sequence: [public-launch operator plan](/plans/site/public-launch-operator.md).[^operator-plan]
 
-1. Promote current `main` onto `staging` (`uv run rocci-ops promote-staging`).
+1. Promote current `main` onto `staging` (`uv run rocci-ops promote-branch staging`).
    `origin/staging` was four commits behind `main` on 2026-08-23.
 2. Smoke staging signed-out, including playground honesty and News 410/404.
 3. Flip the GitHub repository to public. Enable Dependabot alerts and a
    `main` / `staging` / `production` ruleset after the flip.
-4. After that smoke, `uv run rocci-ops promote-production` creates
+4. After that smoke, `uv run rocci-ops promote-branch production` creates
    `origin/production` from smoked `staging` and runs hosted CI plus site
    deploy. Then route production DNS.
 
@@ -346,4 +346,4 @@ island. GitHub must open without authentication after the known flip.
 [^known-limits]: Finder is not full-text search; `@island` and production packaging remain absent.
 [^compatibility]: Support matrix lists documented Roc 2026-08-10, maintainer macOS 2026-08-18, Datastar 1.0.2, OS, editors, packaging.
 [^support-md]: SUPPORT.md names https://github.com/koliyo/rocci/issues as the single public feedback URL.
-[^operator-plan]: Maintainer sequence: promote-staging, smoke, flip, ruleset, promote-production, then DNS.
+[^operator-plan]: Maintainer sequence: promote-branch staging, smoke, flip, ruleset, promote-branch production, then DNS.

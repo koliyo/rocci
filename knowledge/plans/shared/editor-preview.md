@@ -188,9 +188,9 @@ Exit: README describes Preview and Stop. `cd editors/vscode && npm test`.
 
 ### Phase 5 — Zed tasks and honesty
 
-Bound: `editors/zed`. Add a static `tasks.json` the extension can ship (or document project `.zed/tasks.json` if extension-shipped tasks are not available on the current schema): **Preview Rocci file** → `rocci run $ZED_FILE`; **Preview Rocdown file** → `rocdown view $ZED_FILE`. These open the native preview window. README states there is no beside-buffer embedded browser until Zed provides one; do not add a WASM HTML view. The current Zed manifest stays an LSP adapter. `uv run rocci-ops verify-zed` still passes.[^zed-ext][^zed-manifest][^zed-readme][^zed-tasks][^research]
+Bound: `editors/zed`. Add a static `tasks.json` the extension can ship (or document project `.zed/tasks.json` if extension-shipped tasks are not available on the current schema): **Preview Rocci file** → `rocci run $ZED_FILE`; **Preview Rocdown file** → `rocdown view $ZED_FILE`. These open the native preview window. README states there is no beside-buffer embedded browser until Zed provides one; do not add a WASM HTML view. The current Zed manifest stays an LSP adapter. `uv run rocci-ops check zed` still passes.[^zed-ext][^zed-manifest][^zed-readme][^zed-tasks][^research]
 
-Exit: `uv run rocci-ops verify-zed`. README names the tasks and the limitation.
+Exit: `uv run rocci-ops check zed`. README names the tasks and the limitation.
 
 ## Status
 

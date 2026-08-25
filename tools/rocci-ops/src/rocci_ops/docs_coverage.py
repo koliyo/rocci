@@ -152,7 +152,7 @@ def check_search_queries(root: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="rocci-ops check-docs")
+    parser = argparse.ArgumentParser(prog="rocci-ops check docs")
     parser.parse_args([] if argv is None else argv)
     root = repo_root()
     errors = check_coverage(root) + check_search_queries(root) + check_first_use_sessions(root)

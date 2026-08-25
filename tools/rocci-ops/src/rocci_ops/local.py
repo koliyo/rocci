@@ -199,18 +199,28 @@ def bundle_okf() -> int:
     return 0
 
 
-def install_cursor_extension() -> int:
-    root = repo_root()
-    vsix = list((root / "editors" / "vscode").glob("rocci-*.vsix"))
+def latest_vsix(root: Path | None = None) -> Path:
+    vsix = list(((root or repo_root()) / "editors" / "vscode").glob("rocci-*.vsix"))
     if not vsix:
-        raise SystemExit("no rocci-*.vsix in editors/vscode")
+        raise SystemExit("no rocci-*.vsix in editors/vscode; run `rocci-ops package vscode` first")
+    return max(vsix, key=lambda path: path.stat().st_mtime)
+
+
+def install_vscode_extension() -> int:
+    vsix = latest_vsix()
+    run(["code", "--install-extension", str(vsix)])
+    return 0
+
+
+def install_cursor_extension() -> int:
+    vsix = latest_vsix()
     run(
         [
             "code",
             "--extensions-dir",
             str(Path.home() / ".cursor" / "extensions"),
             "--install-extension",
-            str(vsix[0]),
+            str(vsix),
         ]
     )
     return 0
@@ -666,7 +676,7 @@ def promote_staging() -> int:
         check=True,
     ).stdout.strip()
     if not original:
-        raise SystemExit("promote-staging requires a named starting branch")
+        raise SystemExit("promote-branch staging requires a named starting branch")
 
     try:
         if original != "staging":
@@ -689,7 +699,7 @@ def promote_production() -> int:
         text=True,
     )
     if verify.returncode != 0:
-        raise SystemExit("promote-production requires origin/staging")
+        raise SystemExit("promote-branch production requires origin/staging")
     run(["git", "push", "origin", "origin/staging:refs/heads/production"])
     return 0
 
@@ -701,8 +711,8 @@ def main(argv: list[str]) -> int:
         raise SystemExit("missing local command")
     command = argv[0]
     rest = argv[1:]
-    if command == "install-cli":
-        return install_cli()
+    if command == "install":
+        return install_command(rest)
     if command == "site":
         if rest:
             raise SystemExit("usage: rocci-ops site")
@@ -721,16 +731,12 @@ def main(argv: list[str]) -> int:
                 raise SystemExit("usage: rocci-ops package site [--target x64musl]")
             return package_site(target=target)
         raise SystemExit("usage: rocci-ops package vscode|zed|site")
-    if command == "verify-zed":
-        return verify_zed()
     if command == "bundle":
         if rest == ["macos"]:
             return bundle_macos()
         if rest == ["okf"]:
             return bundle_okf()
         raise SystemExit("usage: rocci-ops bundle macos|okf")
-    if command == "install-cursor-extension":
-        return install_cursor_extension()
     if command == "build-playground":
         return build_playground()
     if command == "render-brand-icons":
@@ -756,12 +762,37 @@ def main(argv: list[str]) -> int:
         p.add_argument("-r", "--remote")
         ns = p.parse_args(rest)
         return push_worktrees(remote=ns.remote, dry_run=ns.dry_run)
-    if command == "promote-staging":
-        if rest:
-            raise SystemExit("usage: rocci-ops promote-staging")
-        return promote_staging()
-    if command == "promote-production":
-        if rest:
-            raise SystemExit("usage: rocci-ops promote-production")
-        return promote_production()
+    if command == "promote-branch":
+        return promote_branch_command(rest)
     raise SystemExit(f"unknown local command: {command}")
+
+
+INSTALL_USAGE = "usage: rocci-ops install cli|vscode|cursor"
+PROMOTE_USAGE = "usage: rocci-ops promote-branch staging|production"
+
+
+def install_command(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help"):
+        raise SystemExit(INSTALL_USAGE)
+    sub, rest = argv[0], argv[1:]
+    if rest:
+        raise SystemExit(INSTALL_USAGE)
+    if sub == "cli":
+        return install_cli()
+    if sub == "vscode":
+        return install_vscode_extension()
+    if sub == "cursor":
+        return install_cursor_extension()
+    raise SystemExit(INSTALL_USAGE)
+
+
+def promote_branch_command(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help"):
+        raise SystemExit(PROMOTE_USAGE)
+    if len(argv) != 1:
+        raise SystemExit(PROMOTE_USAGE)
+    if argv[0] == "staging":
+        return promote_staging()
+    if argv[0] == "production":
+        return promote_production()
+    raise SystemExit(PROMOTE_USAGE)

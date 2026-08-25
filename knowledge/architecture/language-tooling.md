@@ -110,7 +110,7 @@ tests cover analyzer dispatch. Default `cargo test -p rocci-lsp` completes in
 under two seconds with unit, server, and invariant smoke checks, while deep
 mutation fuzzing and release latency benchmarks remain `#[ignore]`. Editor-host
 evidence is the VS Code integration suite plus the Zed manifest assertion in
-`uv run rocci-ops verify-zed`.[^lsp-tests][^composition][^vscode-client]
+`uv run rocci-ops check zed`.[^lsp-tests][^composition][^vscode-client]
 
 ## Planned evolution
 

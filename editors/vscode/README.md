@@ -48,8 +48,13 @@ Package the extension into a standalone `.vsix` bundle containing the compiled `
 uv run rocci-ops package vscode
 ```
 
-Install the resulting `.vsix`:
+Install the resulting `.vsix` into VS Code or Cursor:
 
 ```sh
-code --install-extension editors/vscode/rocci-*.vsix
+uv run rocci-ops install vscode
+uv run rocci-ops install cursor
 ```
+
+`install vscode` runs `code --install-extension` on the newest
+`editors/vscode/rocci-*.vsix`. `install cursor` uses the same `code` CLI with
+`--extensions-dir` pointed at `~/.cursor/extensions`.

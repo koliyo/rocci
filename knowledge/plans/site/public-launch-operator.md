@@ -1,7 +1,7 @@
 ---
 type: Implementation Plan
 title: rocci.dev public-launch operator sequence
-description: Maintainer sequence after the 2026-08-23 Should pass — promote current main to staging and smoke it, flip koliyo/rocci public, then promote production and route DNS. Hosted CI already lists production; the branch is created by the first promote-production push.
+description: Maintainer sequence after the 2026-08-23 Should pass — promote current main to staging and smoke it, flip koliyo/rocci public, then promote production and route DNS. Hosted CI already lists production; the branch is created by the first promote-branch production push.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ci]
 status: draft
 generated: { by: process:cursor, at: 2026-08-23T00:30:00Z }
@@ -46,7 +46,7 @@ sources:
     last_modified: 2026-08-23
   - id: root-readme
     resource: ../../../README.md
-    title: Documented promote-staging and promote-production
+    title: Documented promote-branch staging and production
     author: process:cursor
     last_modified: 2026-08-23
   - id: publish-plan
@@ -114,7 +114,7 @@ Writing this plan does not flip visibility or route apex DNS.
 
 **Exit:** Push branch lists are `main`/`staging`/`production` for CI and
 Knowledge, `staging`/`production` for Site. `uv run rocci-ops
-promote-production` fetches and pushes
+promote-branch production` fetches and pushes
 `origin/staging:refs/heads/production`. A rocci-ops test fails if those
 branch lists regress.
 
@@ -136,7 +136,7 @@ Environment allow-lists remain `staging` only and `production` only.
 
 ## Phase 3 — Promote staging and smoke signed-out
 
-**Bound:** `uv run rocci-ops promote-staging`, then a maintainer browser
+**Bound:** `uv run rocci-ops promote-branch staging`, then a maintainer browser
 session (or a temporary Access bypass) on `https://staging.rocci.dev/`.
 
 Walk `/`, `/docs/`, `/docs/install/`, `/docs/five-minutes/`,
@@ -173,7 +173,7 @@ existing Environment allow-list already binds that name.[^ci-security-plan]
 
 ## Phase 6 — Promote production and route DNS
 
-**Bound:** `uv run rocci-ops promote-production`, then Cloudflare Tunnel
+**Bound:** `uv run rocci-ops promote-branch production`, then Cloudflare Tunnel
 public hostnames for `rocci.dev` and `www.rocci.dev`.
 
 Run this only after Phase 3. The first push creates `origin/production`
@@ -195,5 +195,5 @@ A current install tag remains a Should after this sequence, not a Must.
 [^knowledge-workflow]: Same push branches as CI; hosted validate on `ubuntu-latest`.
 [^site-workflow]: Package and deploy only when `github.ref` is `staging` or `production`.
 [^prod-readme]: Promote commands and custom-branch Environment policy.
-[^root-readme]: `promote-staging` then `promote-production` after a staging smoke.
+[^root-readme]: `promote-branch staging` then `promote-branch production` after a staging smoke.
 [^publish-plan]: Staging Access-gated; apex unrouted until a launch decision. Both lanes share one origin today.

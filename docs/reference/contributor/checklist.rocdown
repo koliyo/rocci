@@ -12,7 +12,7 @@ A documentation-only pull request has one local path that matches CI
 `fixtures-and-docs`:
 
 ```sh
-uv run rocci-ops check-docs
+uv run rocci-ops check docs
 cargo test -p rocci-docs
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -q -p rocci-rocdown-cli -- check site

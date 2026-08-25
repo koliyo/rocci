@@ -31,7 +31,7 @@ def _rustup_available() -> bool:
 def steps_for(job: str, root: Path) -> list[Step]:
     if job == "lint":
         steps = [
-            Step(("uv", "run", "--no-dev", "rocci-ops", "check-deps")),
+            Step(("uv", "run", "--no-dev", "rocci-ops", "check", "deps")),
             Step(("cargo", "run", "-q", "-p", "rocci-ungram", "--", "check")),
             Step(("cargo", "fmt", "--all", "--", "--check")),
             Step(("cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings")),
@@ -89,7 +89,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "test/EmbeddedLanguages.rocdown",
                 )
             ),
-            Step(("uv", "run", "--no-dev", "rocci-ops", "check-docs")),
+            Step(("uv", "run", "--no-dev", "rocci-ops", "check", "docs")),
             Step(("cargo", "test", "-p", "rocci-docs")),
             Step(
                 (
@@ -131,7 +131,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     )
                 ),
                 Step(("cargo", "check", "--manifest-path", "editors/zed/Cargo.toml")),
-                Step(("uv", "run", "--no-dev", "rocci-ops", "verify-zed")),
+                Step(("uv", "run", "--no-dev", "rocci-ops", "check", "zed")),
             ]
         )
         return steps
