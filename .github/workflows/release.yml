@@ -4,7 +4,7 @@ on:
   # Anyone with write can dispatch. After public, a ruleset should restrict v* tags.
   workflow_dispatch:
   push:
-    tags: ["v*"]
+    tags: ["v*", "dev"]
 
 concurrency:
   group: release-${{ github.ref }}

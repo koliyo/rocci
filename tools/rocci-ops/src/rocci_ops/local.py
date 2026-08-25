@@ -788,9 +788,10 @@ def install_command(argv: list[str]) -> int:
 
 
 def promote_tag(tag: str, from_ref: str = "main") -> int:
-    """Create and push a v* tag from origin/<from_ref> (default main)."""
-    if not tag.startswith("v") or len(tag) < 2:
-        raise SystemExit("promote tag requires a v* name (release.yml publishes on v* push)")
+    """Create and push a release tag from origin/<from_ref> (default main)."""
+    movable = tag == "dev"
+    if not movable and (not tag.startswith("v") or len(tag) < 2):
+        raise SystemExit("promote tag requires a v* name or the movable dev tag")
     run(["git", "fetch", "origin"])
     remote_ref = f"origin/{from_ref}"
     verify = subprocess.run(
@@ -801,8 +802,13 @@ def promote_tag(tag: str, from_ref: str = "main") -> int:
     )
     if verify.returncode != 0:
         raise SystemExit(f"promote tag requires {remote_ref}")
-    run(["git", "tag", "-a", tag, "-m", tag, remote_ref])
-    run(["git", "push", "origin", tag])
+    tag_argv = ["git", "tag", "-a", tag, "-m", tag, remote_ref]
+    push_argv = ["git", "push", "origin", tag]
+    if movable:
+        tag_argv = ["git", "tag", "-a", "-f", tag, "-m", tag, remote_ref]
+        push_argv = ["git", "push", "--force", "origin", tag]
+    run(tag_argv)
+    run(push_argv)
     return 0
 
 

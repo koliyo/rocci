@@ -13,6 +13,16 @@ def test_tag_version() -> None:
     assert prerelease is False
 
 
+def test_dev_tag_is_prerelease() -> None:
+    version, prerelease = version_from_ref("tag", "dev", "abcdef012345")
+    assert version == "dev-abcdef0"
+    assert prerelease is True
+    tag, name, pre = release_params("tag", "dev", "abcdef012345")
+    assert tag == "dev"
+    assert name == "Development Build (abcdef0)"
+    assert pre is True
+
+
 def test_dev_version_uses_short_sha() -> None:
     version, prerelease = version_from_ref("branch", "main", "abcdef012345")
     assert version == "dev-abcdef0"

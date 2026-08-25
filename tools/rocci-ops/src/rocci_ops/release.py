@@ -26,13 +26,13 @@ RELEASE_BINARIES = (
 
 
 def version_from_ref(ref_type: str, ref_name: str, sha: str) -> tuple[str, bool]:
-    if ref_type == "tag":
+    if ref_type == "tag" and ref_name != "dev":
         return ref_name, False
     return f"dev-{sha[:7]}", True
 
 
 def release_params(ref_type: str, ref_name: str, sha: str) -> tuple[str, str, bool]:
-    if ref_type == "tag":
+    if ref_type == "tag" and ref_name != "dev":
         return ref_name, ref_name, False
     short = sha[:7]
     return "dev", f"Development Build ({short})", True

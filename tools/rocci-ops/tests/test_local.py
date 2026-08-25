@@ -301,11 +301,31 @@ def test_promote_tag_from_is_configurable(monkeypatch, tmp_path) -> None:
     assert ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/staging"] in calls
 
 
-def test_promote_tag_requires_v_prefix() -> None:
+def test_promote_tag_force_moves_dev(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.local.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
+    )
+    monkeypatch.setattr(
+        "rocci_ops.local.run",
+        lambda argv, cwd=None, env=None: calls.append(list(argv)),
+    )
+
+    assert promote_tag("dev") == 0
+    assert calls == [
+        ["git", "fetch", "origin"],
+        ["git", "tag", "-a", "-f", "dev", "-m", "dev", "origin/main"],
+        ["git", "push", "--force", "origin", "dev"],
+    ]
+
+
+def test_promote_tag_requires_v_prefix_or_dev() -> None:
     try:
         promote_tag("1.2.3")
     except SystemExit as exc:
-        assert "v*" in str(exc)
+        assert "dev" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
 
