@@ -86,6 +86,10 @@ impl UserConfig {
             RootConfig::Directory(_) => false,
         })
     }
+
+    pub fn effective_poll(&self, root: &RootConfig) -> PollSetting {
+        root.poll().unwrap_or(self.poll)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -115,6 +119,13 @@ impl RootConfig {
             Self::Git(root) => root.incoming = incoming,
         }
     }
+
+    pub fn poll(&self) -> Option<PollSetting> {
+        match self {
+            Self::Directory(_) => None,
+            Self::Git(root) => root.poll,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -136,6 +147,24 @@ pub struct GitRoot {
     pub poll: Option<PollSetting>,
 }
 
+impl DirectoryRoot {
+    pub fn expanded_path(&self) -> PathBuf {
+        expand_tilde(&self.path)
+    }
+}
+
+impl GitRoot {
+    pub fn resolved_token(&self) -> Option<String> {
+        if let Some(name) = &self.token_env
+            && let Ok(value) = env::var(name)
+            && !value.is_empty()
+        {
+            return Some(value);
+        }
+        self.token.clone().filter(|token| !token.is_empty())
+    }
+}
+
 impl std::fmt::Debug for GitRoot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GitRoot")
@@ -149,6 +178,16 @@ impl std::fmt::Debug for GitRoot {
             .field("poll", &self.poll)
             .finish()
     }
+}
+
+pub fn cache_dir() -> PathBuf {
+    if let Some(path) = env::var_os("OKMATE_CACHE") {
+        return PathBuf::from(path);
+    }
+    home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".okmate")
+        .join("cache")
 }
 
 pub fn config_path() -> PathBuf {

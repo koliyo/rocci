@@ -5,6 +5,7 @@ pub mod config;
 pub mod desktop;
 pub mod http;
 pub mod preview;
+pub mod roots;
 pub mod site;
 pub mod views;
 

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{Result, bail};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use okf::{InspectKind, KnowledgeFilter};
 
 use crate::{
@@ -75,6 +75,19 @@ enum Commands {
         #[arg(long, default_value_t = 8000)]
         port: u16,
     },
+    /// Print resolved local bundle directories for configured knowledge roots.
+    Roots {
+        #[arg(long, value_enum, default_value_t = RootsFormatArg::Paths)]
+        format: RootsFormatArg,
+        /// Fetch git roots before printing, ignoring poll freshness.
+        #[arg(long, overrides_with = "no_sync")]
+        sync: bool,
+        /// Print cache and directory paths without fetching.
+        #[arg(long = "no-sync", overrides_with = "sync")]
+        no_sync: bool,
+    },
+    /// Fetch configured git knowledge roots.
+    Sync { id: Option<String> },
     /// Emit engine artifacts and the Askama HTML review tree.
     Build {
         #[arg(default_value = "knowledge")]
@@ -84,6 +97,21 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
         profile: ProfileArg,
     },
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum RootsFormatArg {
+    Paths,
+    Json,
+}
+
+impl From<RootsFormatArg> for crate::roots::RootsFormat {
+    fn from(value: RootsFormatArg) -> Self {
+        match value {
+            RootsFormatArg::Paths => Self::Paths,
+            RootsFormatArg::Json => Self::Json,
+        }
+    }
 }
 
 #[derive(Args, Default)]
@@ -235,5 +263,20 @@ pub fn run() -> Result<()> {
             port,
             no_window,
         }),
+        Commands::Roots {
+            format,
+            sync,
+            no_sync,
+        } => {
+            let mode = if no_sync {
+                crate::roots::SyncMode::Never
+            } else if sync {
+                crate::roots::SyncMode::Force
+            } else {
+                crate::roots::SyncMode::Auto
+            };
+            crate::roots::print_roots(format.into(), mode)
+        }
+        Commands::Sync { id } => crate::roots::sync(id),
     }
 }
