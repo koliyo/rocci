@@ -1795,6 +1795,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "h35-desktop"
+version = "0.1.0"
+dependencies = [
+ "muda",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "png",
+ "rfd",
+ "serde",
+ "serde_json",
+ "tao",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "uuid",
+ "wry",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -27,6 +27,10 @@ BASE_ROCCI = {
     "rocci-datastar",
 }
 
+H35 = {
+    "h35-desktop",
+}
+
 ROCDOWN = {
     "rocci-rocdown",
     "rocci-theme",
@@ -40,6 +44,7 @@ ROCDOWN = {
 CLASSES = {
     "base-rocci": BASE_ROCCI,
     "rocdown": ROCDOWN,
+    "h35": H35,
 }
 
 ALLOWED_REVERSE: set[tuple[str, str]] = set()
@@ -98,6 +103,9 @@ def forbidden(src: str, dest: str) -> str | None:
         if (src, dest) in ALLOWED_REVERSE:
             return None
         return f"base Rocci package {src} must not depend on {dest_class} package {dest}"
+
+    if src_class == "h35" and dest_class in ("base-rocci", "rocdown"):
+        return f"h35 package {src} must not depend on {dest_class} package {dest}"
 
     return None
 
