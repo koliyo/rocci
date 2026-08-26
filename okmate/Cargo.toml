@@ -12,10 +12,16 @@ path = "src/main.rs"
 [dependencies]
 anyhow = { workspace = true }
 askama = "0.16"
+axum = "0.8"
 clap = { workspace = true }
+notify = { workspace = true }
 okf = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tokio = { workspace = true }
+tower-http = { version = "0.6", features = ["fs"] }
 
 [dev-dependencies]
+http-body-util = "0.1"
 serde_json = { workspace = true }
+tower = { version = "0.5", features = ["util"] }

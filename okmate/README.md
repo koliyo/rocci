@@ -34,6 +34,9 @@ okmate inspect graph knowledge
 okmate search "system overview" knowledge --profile rocci
 okmate benchmark knowledge/retrieval-benchmark.toml knowledge
 okmate build knowledge -o dist/knowledge
+okmate view knowledge --no-window
 ```
+
+`view` serves the live HTML tree on localhost (pass `--public` to bind every interface). The last opened bundle path is stored under `~/.okmate/state` (`OKMATE_STATE`).
 
 JSON shapes match `rocci-okf` for these engine commands so agents can switch the binary name without a new schema. There is no `--host` flag.

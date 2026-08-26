@@ -56,6 +56,25 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
         profile: ProfileArg,
     },
+    /// Preview an OKF bundle with live reload (headless in this release).
+    View {
+        /// Knowledge bundle directory or a Markdown file inside one.
+        path: Option<PathBuf>,
+        /// Write preview output here instead of a temp directory.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
+        profile: ProfileArg,
+        /// Skip the preview window; print the URL and keep serving.
+        #[arg(long)]
+        no_window: bool,
+        /// Bind every interface (`0.0.0.0`). Default is localhost only.
+        #[arg(long)]
+        public: bool,
+        /// TCP port to listen on. Defaults to 8000.
+        #[arg(long, default_value_t = 8000)]
+        port: u16,
+    },
     /// Emit engine artifacts and the Askama HTML review tree.
     Build {
         #[arg(default_value = "knowledge")]
@@ -200,6 +219,23 @@ pub fn run() -> Result<()> {
                 summary.concepts, summary.indexes, summary.output
             );
             Ok(())
+        }
+        Commands::View {
+            path,
+            output,
+            profile,
+            no_window,
+            public,
+            port,
+        } => {
+            let _ = no_window;
+            crate::preview::run(crate::preview::ViewOptions {
+                path,
+                output,
+                profile: profile.into(),
+                public,
+                port,
+            })
         }
     }
 }
