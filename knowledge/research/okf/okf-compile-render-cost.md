@@ -4,7 +4,7 @@ title: OKF preview compile and render cost after load-performance work
 description: After Phases 1–4 of load-performance work, first-open and content-edit `rocci-okf run` is dominated by Roc `compile` and `render`. Page HTML is baked into generated Roc, so edits miss the renderer cache; apply output is discarded and the served site is the Rust write fallback.
 tags: [domain/okf, domain/rocci-okf, integration/roc, concern/performance, concern/rendering, concern/caching, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T12:40:00Z }
+generated: { by: process:cursor, at: 2026-08-25T21:40:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -89,6 +89,11 @@ sources:
     title: Rust catalog and Rocci documentation shell decision
     author: process:okf-migration
     last_modified: 2026-08-17
+  - id: product-fork
+    resource: okf-viewer-rust-vs-rocci.md
+    title: OKF viewer as a Rust HTML app versus a finished Rust-plus-Rocci shell
+    author: process:cursor
+    last_modified: 2026-08-25
 ---
 
 # OKF preview compile and render cost after load-performance work
@@ -107,6 +112,9 @@ This record asks what those spans do, why they miss cache on content edits, and
 what it would take to cut them. Implementation plan:
 [OKF preview compile and render cost](/plans/okf/okf-compile-render-cost.md).
 Not shipped.[^compile-plan][^presentation][^okf-dev][^preview-audit]
+Whether skip-Roc should become the product, versus finishing one Rocci
+shell, is a separate question:
+[OKF viewer Rust versus Rocci](/research/okf/okf-viewer-rust-vs-rocci.md).[^product-fork]
 
 Timings below are machine-local on 2026-08-19. They are evidence, not a latency
 SLA.
@@ -332,3 +340,4 @@ pays for a Rocci shell and then publishes the Rust catalog chrome.[^catalog-shel
 [^rocdown-build]: Rocdown `roc_source_hash` also includes generated pages Roc.
 [^engine-readme]: `okf` stays UI-neutral; renderer work belongs in `rocci-okf` / `rocci-roc-host`.
 [^catalog-shell]: Catalog and governance data stay in Rust; visible shell is the Rocci side of the split.
+[^product-fork]: Product choice between one Rust HTML writer and one Rocci apply path; not a latency measurement.

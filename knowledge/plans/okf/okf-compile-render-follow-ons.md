@@ -4,11 +4,21 @@ title: Deferred OKF compile and render follow-ons
 description: Future work for the first three non-goals of the OKF compile/render plan. Reject hashing embedded page Roc out of the cache key; keep skip-roc off the default product path; do not embed the Roc compiler or wait on basic-cli wasm32.
 tags: [domain/okf, domain/rocci-okf, integration/roc, concern/performance, concern/rendering, concern/caching, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:30:00Z }
-stale_after: 2026-11-19
+generated: { by: process:cursor, at: 2026-08-26T08:05:00Z }
+stale_after: 2026-11-26
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: okmate
+    resource: okmate.md
+    title: Okmate — extractable Rust OKF mate
+    author: process:cursor
+    last_modified: 2026-08-26
+  - id: rust-datastar
+    resource: okf-viewer-rust-datastar.md
+    title: In-place rocci-okf Askama rewrite (superseded as vehicle)
+    author: process:cursor
+    last_modified: 2026-08-26
   - id: parent-plan
     resource: ../okf-compile-render-cost.md
     title: OKF preview compile and render cost plan
@@ -106,6 +116,9 @@ Research option A (skip `roc build` on default `run` because apply was
 unused) would now unship the Rocci shell on machines that have `roc`. Parent
 Phase 6 already skips Roc when `roc` is missing; A as the long-term *default*
 is a product inversion, not a cache fix.[^research][^okf-readme][^catalog-shell]
+That inversion is now the chosen short-term product in
+[okmate](/plans/okf/okmate.md) (a new crate, not skip-roc inside
+`rocci-okf`); this follow-on’s Phase 2 is not the destination.[^okmate][^rust-datastar]
 
 Speeding `roc`, linking compiler internals into Rust, or waiting for
 `basic-cli` `wasm32` are compiler or platform projects. Rocci already has a
@@ -263,3 +276,5 @@ body.
 [^engine-readme]: `okf` stays UI-neutral.
 [^catalog-shell]: Catalog stays in Rust; visible shell is Rocci once apply writes.
 [^deps-check]: Presentation stays out of `okf`.
+[^okmate]: New crate is the skip-Roc product; this follow-on’s Phase 2 is not the destination.
+[^rust-datastar]: Superseded in-place vehicle.

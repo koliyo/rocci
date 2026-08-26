@@ -4,7 +4,7 @@ title: Mount the OKF knowledge viewer on rocci.dev
 description: Package the existing rocci-okf static review site under /knowledge/ and expose it as a rocci.dev lane so visitors can browse the committed knowledge bundle without turning knowledge Markdown into Rocdown.
 tags: [domain/site, domain/okf, domain/rocci-okf, concern/publication, concern/navigation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T21:24:00Z }
+generated: { by: process:cursor, at: 2026-08-26T08:05:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -119,6 +119,21 @@ sources:
     title: Approved rocci.dev lane and chrome contract
     author: process:git
     last_modified: 2026-08-22
+  - id: okmate
+    resource: ../okf/okmate.md
+    title: Okmate — extractable Rust OKF mate
+    author: process:cursor
+    last_modified: 2026-08-26
+  - id: rust-datastar
+    resource: ../okf/okf-viewer-rust-datastar.md
+    title: In-place rocci-okf Askama rewrite (superseded as vehicle)
+    author: process:cursor
+    last_modified: 2026-08-26
+  - id: rust-vs-rocci
+    resource: ../../research/okf/okf-viewer-rust-vs-rocci.md
+    title: OKF viewer Rust HTML versus Rocci shell
+    author: process:cursor
+    last_modified: 2026-08-26
 ---
 
 # Mount the OKF knowledge viewer on rocci.dev
@@ -140,7 +155,7 @@ not as a Rocdown `[[mount]]`.
 | Canonical records | `knowledge/**/*.md` | GitHub / the repo, unchanged |
 | Generated HTML, `pages.json`, `catalog.json` | `rocci-okf build` | `/knowledge/` on rocci.dev |
 | Global lane | `site/rocdown.toml` + `SiteShell` | Header link to `/knowledge/` |
-| Knowledge chrome | `OkfTheme` / `presentation.rs` | Dashboard, collections, review queue |
+| Knowledge chrome | `okmate build` once [okmate](/plans/okf/okmate.md) lands; today `OkfTheme` / `presentation.rs` | Dashboard, collections, review queue |
 | Site chrome on knowledge pages | Thin lane strip in the OKF shell | Docs, Examples, Playground, FAQ, Project, Knowledge |
 
 The published tree is the same static review site `rocci-okf build` already
@@ -170,6 +185,17 @@ modules.[^product-boundary][^static-okf][^system-overview]
 A `[[mount]]` of `knowledge/` would either fail catalog checks or force a
 second Markdown pipeline through Rocdown. Copying the already-generated OKF
 HTML tree avoids both.
+
+The copy does not depend on Rocci apply. A Rust-only
+`html_page_for` tree is the same artifact: prefix `/knowledge/`, strip
+preview scripts, add a lane strip in the OKF document. Interactive
+settings or later Datastar operations do not ride this `file_server` tree;
+they stay on local `rocci-okf view` or a separately reviewed live
+origin. Reasoning:
+[viewer rust vs rocci](/research/okf/okf-viewer-rust-vs-rocci.md);
+product path [okmate](/plans/okf/okmate.md), not the in-place
+[rust+datastar](/plans/okf/okf-viewer-rust-datastar.md)
+rewrite.[^rust-vs-rocci][^okmate][^rust-datastar]
 
 ## Why a prefix, not the site root or a subdomain
 
@@ -434,3 +460,6 @@ on that revision.
 [^cdn-caddy]: Origin `file_server` plus `try_files` on `/src/site/dist`.
 [^knowledge-ci]: Knowledge job validates; it does not retain or publish HTML.
 [^ux-contract]: Phase 0 site UX evidence lists current lanes and chrome.
+[^rust-vs-rocci]: Rust-only HTML is the same static artifact class; Datastar ops are a live host, not this file_server tree.
+[^okmate]: `okmate build` is the same artifact class this lane copies; live settings stay off `file_server`.
+[^rust-datastar]: Superseded in-place vehicle.

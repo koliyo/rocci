@@ -4,7 +4,7 @@ title: Standalone Rocci OKF review and query application
 description: Extract a portable OKF engine from the current Rocs implementation and build a Rocci application for agent-authored knowledge review, authenticated retrieval, and measured optional semantic search.
 tags: [domain/okf, domain/rocci-okf, domain/rocci, concern/architecture, concern/review, concern/retrieval, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T12:17:00Z }
+generated: { by: process:cursor, at: 2026-08-26T08:05:00Z }
 stale_after: 2026-11-15
 authority: exploratory
 owners: [human:nils]
@@ -39,6 +39,16 @@ sources:
     title: Approved consolidated Rocdown product direction
     author: process:codex
     last_modified: 2026-08-17
+  - id: okmate
+    resource: okmate.md
+    title: Okmate — extractable Rust OKF mate
+    author: process:cursor
+    last_modified: 2026-08-26
+  - id: rust-datastar
+    resource: okf-viewer-rust-datastar.md
+    title: In-place rocci-okf Askama rewrite (superseded as vehicle)
+    author: process:cursor
+    last_modified: 2026-08-26
   - id: multi-roots
     resource: multi-knowledge-roots.md
     title: Multiple knowledge roots for rocci-okf
@@ -96,10 +106,12 @@ Create three layers:
    curation findings, configurable profile policy, graph/backlinks, semantic
    diff inputs, chunks, filters, scorer interfaces, revision preconditions, and
    stable serializable types.
-2. The Rocci OKF application is built with Rocci. It owns the review,
-   query, explorer, and health UI; CLI and server orchestration; authenticated
-   HTTP and MCP projections; review decision capture; and immutable snapshot
-   publication.
+2. The Rocci OKF application owns the review, query, explorer, and health
+   UI; CLI and server orchestration; authenticated HTTP and MCP
+   projections; review decision capture; and immutable snapshot
+   publication. Short-term UI is [okmate](okmate.md) (Askama + Axum +
+   official Datastar). “Built with Rocci” is a later horizon, not this
+   extract. Review decisions and query stay on this plan.[^okmate][^rust-datastar]
 3. Replaceable adapters own filesystem/git revisions, SQLite full text,
    optional vectors, identity and token storage, git-host integration, answer
    composition, and events.[^report]
@@ -229,3 +241,5 @@ baseline.[^report][^rocdown-boundary]
 [^ecosystem]: Emerging workflow evidence for deterministic agent interfaces, conformance/curation separation, multiple views, guarded production, revision history, authenticated MCP, and evaluation.
 [^rocdown-boundary]: Approved one-way dependency rules, frozen `okf` engine name, temporary presentation-adapter allowance, and separate-decision requirement for any future Rocdown-backed canonical OKF storage.
 [^multi-roots]: User-level multi-root registry, git cache, edge policy, settings UI, and `rocci-okf roots`; `okf::load` stays single-bundle.
+[^okmate]: Extractable knowledge app; engine/CLI product on this plan unchanged.
+[^rust-datastar]: Superseded in-place vehicle.

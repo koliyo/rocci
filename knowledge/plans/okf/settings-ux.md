@@ -4,11 +4,21 @@ title: Settings UX for knowledge roots
 description: Native folder picker in rocci-desktop via rfd, and a more informative rocci-okf /settings/ UI, without live SSE or echoed tokens.
 tags: [domain/okf, domain/rocci-okf, concern/tooling, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T17:04:00Z }
+generated: { by: process:cursor, at: 2026-08-26T08:05:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: okmate
+    resource: okmate.md
+    title: Okmate — extractable Rust OKF mate
+    author: process:cursor
+    last_modified: 2026-08-26
+  - id: rust-datastar
+    resource: okf-viewer-rust-datastar.md
+    title: In-place rocci-okf Askama rewrite (superseded as vehicle)
+    author: process:cursor
+    last_modified: 2026-08-26
   - id: multi-roots
     resource: multi-knowledge-roots.md
     title: Multiple knowledge roots for rocci-okf
@@ -83,8 +93,14 @@ Exit: `cargo test -p rocci-desktop -p rocci-okf` and `cargo fmt --all -- --check
 
 ## Status
 
-Exploratory; implement with the settings UX Cursor plan.
+Exploratory; implement with the settings UX Cursor plan. Folder-pick and
+cards stay this plan for `rocci-okf` if it is still patched. The
+extractable app is [okmate](okmate.md) (Askama + official Datastar,
+`#okmate-settings`); live SSE for the registry stays out. Do not start
+[rust+datastar](okf-viewer-rust-datastar.md) in place.[^okmate][^rust-datastar]
 
+[^okmate]: Settings UI is rewritten in okmate with Askama and official Datastar; this plan’s rfd/copy still apply.
+[^rust-datastar]: Superseded in-place vehicle; do not start.
 [^multi-roots]: Parent plan: registry, POST not SSE, token redaction, `/settings/` chrome.
 [^settings-rs]: Live markup is Rust HTML in `settings.rs`.
 [^preview-rs]: wry IPC hops to the Tao loop via `EventLoopProxy`; `Evaluate` runs `evaluate_script`.
