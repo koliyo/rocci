@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block main %}
+  <div id="okmate-queue">
+    <h1>Knowledge Governance &amp; Review Queue</h1>
+    <p>Deterministic overview of bundle lifecycle status and required human actions.</p>
+    <table class="okmate-review-table">
+      <thead>
+        <tr>
+          <th>Concept</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in review_rows %}
+          <tr>
+            <td>
+              <a href="{{ row.href }}"><strong>{{ row.title }}</strong></a>
+              <div><code>{{ row.id }}</code></div>
+            </td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.action }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

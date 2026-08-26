@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/__okmate/app.css">
+  </head>
+  <body>
+    <div class="okmate-shell">
+      <div class="okmate-chrome" id="okmate-nav">
+        {% include "nav.html" %}
+      </div>
+      <main id="okmate-main">
+        {% block main %}{% endblock %}
+      </main>
+      {% if !toc.is_empty() %}
+        {% include "toc.html" %}
+      {% endif %}
+    </div>
+  </body>
+</html>

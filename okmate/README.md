@@ -33,6 +33,7 @@ okmate inspect concept architecture/system-overview knowledge
 okmate inspect graph knowledge
 okmate search "system overview" knowledge --profile rocci
 okmate benchmark knowledge/retrieval-benchmark.toml knowledge
+okmate build knowledge -o dist/knowledge
 ```
 
 JSON shapes match `rocci-okf` for these engine commands so agents can switch the binary name without a new schema. There is no `--host` flag.

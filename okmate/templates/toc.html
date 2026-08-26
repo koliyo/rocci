@@ -1,0 +1,8 @@
+<nav class="okmate-toc" id="okmate-toc" aria-label="On this page">
+  <p class="okmate-toc-label">On this page</p>
+  <div class="okmate-toc-items">
+    {% for heading in toc %}
+      <a class="okmate-toc-link{% if heading.level == 3 %} level-3{% endif %}" href="#{{ heading.id }}">{{ heading.text }}</a>
+    {% endfor %}
+  </div>
+</nav>

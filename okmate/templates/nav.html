@@ -1,0 +1,37 @@
+<nav class="nav-list" aria-label="Knowledge">
+  <div class="nav-items">
+    {% for item in nav %}
+      {% if item.children.is_empty() %}
+        <a class="nav-link{% if item.current %} is-current{% endif %}" href="{{ item.href }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.title }}</a>
+      {% else %}
+        <details class="nav-section"{% if item.open %} open{% endif %}>
+          <summary>
+            <a class="nav-link nav-category{% if item.current %} is-current{% endif %}" href="{{ item.href }}"{% if item.current %} aria-current="page"{% endif %}>{{ item.title }}</a>
+          </summary>
+          <div class="nav-fold">
+            <div class="nav-items">
+              {% for child in item.children %}
+                {% if child.children.is_empty() %}
+                  <a class="nav-link nav-child{% if child.current %} is-current{% endif %}" href="{{ child.href }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title }}</a>
+                {% else %}
+                  <details class="nav-section"{% if child.open %} open{% endif %}>
+                    <summary>
+                      <a class="nav-link nav-category{% if child.current %} is-current{% endif %}" href="{{ child.href }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title }}</a>
+                    </summary>
+                    <div class="nav-fold">
+                      <div class="nav-items">
+                        {% for grandchild in child.children %}
+                          <a class="nav-link nav-child{% if grandchild.current %} is-current{% endif %}" href="{{ grandchild.href }}"{% if grandchild.current %} aria-current="page"{% endif %}>{{ grandchild.title }}</a>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </details>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </details>
+      {% endif %}
+    {% endfor %}
+  </div>
+</nav>

@@ -1,6 +1,8 @@
 //! Okmate library: CLI and later HTTP/desktop surfaces over the portable `okf` engine.
 
 pub mod cli;
+pub mod site;
+pub mod views;
 
 use std::path::Path;
 

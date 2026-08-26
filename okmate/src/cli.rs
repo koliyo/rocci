@@ -56,6 +56,15 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
         profile: ProfileArg,
     },
+    /// Emit engine artifacts and the Askama HTML review tree.
+    Build {
+        #[arg(default_value = "knowledge")]
+        root: PathBuf,
+        #[arg(short, long, default_value = "dist/knowledge")]
+        output: PathBuf,
+        #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
+        profile: ProfileArg,
+    },
 }
 
 #[derive(Args, Default)]
@@ -178,6 +187,18 @@ pub fn run() -> Result<()> {
                     report.minimum_hit_rate * 100.0
                 );
             }
+            Ok(())
+        }
+        Commands::Build {
+            root,
+            output,
+            profile,
+        } => {
+            let summary = crate::site::build(&root, &output, profile.into())?;
+            eprintln!(
+                "okmate: built {} concepts and {} indexes into {}",
+                summary.concepts, summary.indexes, summary.output
+            );
             Ok(())
         }
     }
