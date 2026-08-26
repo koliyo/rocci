@@ -117,8 +117,9 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         extra_initialization_script: Some(extra),
         on_ipc: options.on_ipc,
         on_navigate: options.on_navigate,
+        ..h35_desktop::HostOptions::default()
     })
-    .map_err(|error| rocci_core::Error::message(error))
+    .map_err(rocci_core::Error::message)
 }
 
 #[cfg(test)]
@@ -146,8 +147,6 @@ mod tests {
 
     #[test]
     fn ipc_handler_type_is_send() {
-        let _handler: Option<
-            std::sync::Arc<dyn Fn(&str, std::sync::Arc<dyn PreviewSink>) + Send + Sync>,
-        > = None;
+        let _handler: Option<IpcHandler> = None;
     }
 }
