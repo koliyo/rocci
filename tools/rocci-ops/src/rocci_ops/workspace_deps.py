@@ -39,12 +39,14 @@ ROCDOWN = {
 
 OKF_ENGINE = {"okf"}
 OKF_APP = {"rocci-okf"}
+OKMATE = {"okmate"}
 
 CLASSES = {
     "base-rocci": BASE_ROCCI,
     "rocdown": ROCDOWN,
     "okf-engine": OKF_ENGINE,
     "okf-app": OKF_APP,
+    "okmate": OKMATE,
 }
 
 ALLOWED_REVERSE: set[tuple[str, str]] = set()
@@ -112,6 +114,12 @@ def forbidden(src: str, dest: str) -> str | None:
 
     if src_class == "okf-app" and dest_class == "rocdown":
         return f"rocci-okf must not depend on Rocdown package {dest}"
+
+    if src_class == "okmate" and dest_class != "okf-engine":
+        return f"okmate must not depend on {dest_class} package {dest}"
+
+    if dest_class == "okmate" and src_class != "okmate":
+        return f"{src_class} package {src} must not depend on okmate"
 
     return None
 
