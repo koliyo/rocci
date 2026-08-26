@@ -2,10 +2,12 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 
 use axum::Router;
+use axum::middleware;
 use axum::routing::post;
 use okf::Profile;
 use tower_http::services::ServeDir;
 
+mod pages;
 mod settings;
 
 pub use settings::{render_fragment, render_page, settings_roots};
@@ -33,6 +35,10 @@ pub fn router(state: AppState) -> Router {
         .route("/__okmate/settings", post(settings::post))
         .nest_service("/__okmate", ServeDir::new(output.join("__okmate")))
         .fallback_service(ServeDir::new(output).append_index_html_on_directories(true))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            pages::datastar_get,
+        ))
         .with_state(state)
 }
 

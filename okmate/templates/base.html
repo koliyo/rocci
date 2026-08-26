@@ -7,6 +7,7 @@
     <title>{{ title }}</title>
     <link rel="stylesheet" href="/__okmate/app.css">
     <script type="module" src="/__okmate/datastar.js"></script>
+    <script src="/__okmate/goto.js" defer></script>
   </head>
   <body>
     <div class="okmate-shell">
@@ -16,9 +17,11 @@
       <main id="okmate-main">
         {% block main %}{% endblock %}
       </main>
-      {% if !toc.is_empty() %}
-        {% include "toc.html" %}
-      {% endif %}
+      {% include "toc.html" %}
     </div>
+    <dialog id="okmate-goto" class="okmate-goto" aria-label="Go to page">
+      <input id="okmate-goto-input" type="search" placeholder="Go to page" autocomplete="off">
+      <ul id="okmate-goto-list"></ul>
+    </dialog>
   </body>
 </html>

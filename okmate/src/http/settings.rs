@@ -46,10 +46,7 @@ pub async fn post(
 }
 
 fn is_datastar(headers: &HeaderMap) -> bool {
-    headers
-        .get("datastar-request")
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value.eq_ignore_ascii_case("true"))
+    super::pages::is_datastar(headers)
 }
 
 pub fn settings_roots(config: &UserConfig) -> Vec<SettingsRoot> {
@@ -112,6 +109,7 @@ fn settings_document(
     } else {
         Document {
             title: "Knowledge roots".into(),
+            page_kind: "settings".into(),
             nav: vec![NavNode {
                 href: "/settings/".into(),
                 title: "Settings".into(),

@@ -1,0 +1,10 @@
+<main id="okmate-main">
+  {% if page_kind == "review" %}
+    {% include "fragments/queue.html" %}
+  {% else if page_kind == "settings" %}
+    {% include "fragments/settings.html" %}
+  {% else %}
+    {% include "fragments/article.html" %}
+  {% endif %}
+</main>
+{% include "toc.html" %}

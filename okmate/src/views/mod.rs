@@ -43,6 +43,7 @@ macro_rules! document_template {
         #[template(path = $path)]
         pub struct $name {
             pub title: String,
+            pub page_kind: String,
             pub nav: Vec<NavNode>,
             pub toc: Vec<TocEntry>,
             pub article_html: String,
@@ -54,6 +55,25 @@ macro_rules! document_template {
             pub config_path: String,
             pub settings_roots: Vec<SettingsRoot>,
         }
+
+        impl From<Document> for $name {
+            fn from(document: Document) -> Self {
+                Self {
+                    title: document.title,
+                    page_kind: document.page_kind,
+                    nav: document.nav,
+                    toc: document.toc,
+                    article_html: document.article_html,
+                    concept_type: document.concept_type,
+                    status: document.status,
+                    authority: document.authority,
+                    review_rows: document.review_rows,
+                    message: document.message,
+                    config_path: document.config_path,
+                    settings_roots: document.settings_roots,
+                }
+            }
+        }
     };
 }
 
@@ -62,9 +82,12 @@ document_template!(HomeTemplate, "home.html");
 document_template!(ReviewTemplate, "review.html");
 document_template!(SettingsTemplate, "settings.html");
 document_template!(SettingsFragmentTemplate, "fragments/settings.html");
+document_template!(MainFragmentTemplate, "fragments/main.html");
+document_template!(QueueFragmentTemplate, "fragments/queue.html");
 
 pub struct Document {
     pub title: String,
+    pub page_kind: String,
     pub nav: Vec<NavNode>,
     pub toc: Vec<TocEntry>,
     pub article_html: String,
@@ -97,95 +120,13 @@ impl Document {
     pub fn render_settings_fragment(self) -> askama::Result<String> {
         SettingsFragmentTemplate::from(self).render()
     }
-}
 
-impl From<Document> for PageTemplate {
-    fn from(document: Document) -> Self {
-        Self {
-            title: document.title,
-            nav: document.nav,
-            toc: document.toc,
-            article_html: document.article_html,
-            concept_type: document.concept_type,
-            status: document.status,
-            authority: document.authority,
-            review_rows: document.review_rows,
-            message: document.message,
-            config_path: document.config_path,
-            settings_roots: document.settings_roots,
-        }
+    pub fn render_main_fragment(self) -> askama::Result<String> {
+        MainFragmentTemplate::from(self).render()
     }
-}
 
-impl From<Document> for HomeTemplate {
-    fn from(document: Document) -> Self {
-        Self {
-            title: document.title,
-            nav: document.nav,
-            toc: document.toc,
-            article_html: document.article_html,
-            concept_type: document.concept_type,
-            status: document.status,
-            authority: document.authority,
-            review_rows: document.review_rows,
-            message: document.message,
-            config_path: document.config_path,
-            settings_roots: document.settings_roots,
-        }
-    }
-}
-
-impl From<Document> for ReviewTemplate {
-    fn from(document: Document) -> Self {
-        Self {
-            title: document.title,
-            nav: document.nav,
-            toc: document.toc,
-            article_html: document.article_html,
-            concept_type: document.concept_type,
-            status: document.status,
-            authority: document.authority,
-            review_rows: document.review_rows,
-            message: document.message,
-            config_path: document.config_path,
-            settings_roots: document.settings_roots,
-        }
-    }
-}
-
-impl From<Document> for SettingsTemplate {
-    fn from(document: Document) -> Self {
-        Self {
-            title: document.title,
-            nav: document.nav,
-            toc: document.toc,
-            article_html: document.article_html,
-            concept_type: document.concept_type,
-            status: document.status,
-            authority: document.authority,
-            review_rows: document.review_rows,
-            message: document.message,
-            config_path: document.config_path,
-            settings_roots: document.settings_roots,
-        }
-    }
-}
-
-impl From<Document> for SettingsFragmentTemplate {
-    fn from(document: Document) -> Self {
-        Self {
-            title: document.title,
-            nav: document.nav,
-            toc: document.toc,
-            article_html: document.article_html,
-            concept_type: document.concept_type,
-            status: document.status,
-            authority: document.authority,
-            review_rows: document.review_rows,
-            message: document.message,
-            config_path: document.config_path,
-            settings_roots: document.settings_roots,
-        }
+    pub fn render_queue_fragment(self) -> askama::Result<String> {
+        QueueFragmentTemplate::from(self).render()
     }
 }
 
@@ -229,6 +170,7 @@ mod tests {
     fn sample_document(toc: Vec<TocEntry>) -> Document {
         Document {
             title: "Hello".into(),
+            page_kind: "page".into(),
             nav: vec![
                 NavNode {
                     href: "/".into(),
@@ -271,6 +213,8 @@ mod tests {
         assert!(html.contains("id=\"okmate-toc\""), "{html}");
         assert!(html.contains("<h1>Hello</h1>"));
         assert!(html.contains("/__okmate/app.css"));
+        assert!(html.contains("data-on:click__prevent"), "{html}");
+        assert!(html.contains("/__okmate/goto.js"), "{html}");
     }
 
     #[test]
@@ -284,6 +228,7 @@ mod tests {
     #[test]
     fn review_template_contains_queue_region() {
         let mut document = sample_document(Vec::new());
+        document.page_kind = "review".into();
         document.review_rows = vec![ReviewRow {
             href: "/hello/".into(),
             title: "Hello".into(),
@@ -294,5 +239,37 @@ mod tests {
         let html = document.render_review().unwrap();
         assert!(html.contains("id=\"okmate-queue\""));
         assert!(html.contains("Hello"));
+    }
+
+    #[test]
+    fn main_fragment_patches_article_and_toc() {
+        let html = sample_document(vec![TocEntry {
+            id: "section".into(),
+            text: "Section".into(),
+            level: 2,
+        }])
+        .render_main_fragment()
+        .unwrap();
+        assert!(html.contains("id=\"okmate-main\""), "{html}");
+        assert!(html.contains("id=\"okmate-toc\""), "{html}");
+        assert!(html.contains("<h1>Hello</h1>"));
+        assert!(!html.to_ascii_lowercase().contains("<html"));
+        assert!(!html.contains("id=\"okmate-nav\""));
+    }
+
+    #[test]
+    fn queue_fragment_is_the_review_region() {
+        let mut document = sample_document(Vec::new());
+        document.page_kind = "review".into();
+        document.review_rows = vec![ReviewRow {
+            href: "/hello/".into(),
+            title: "Hello".into(),
+            id: "hello".into(),
+            status: "draft".into(),
+            action: "Clean".into(),
+        }];
+        let html = document.render_queue_fragment().unwrap();
+        assert!(html.contains("id=\"okmate-queue\""));
+        assert!(!html.to_ascii_lowercase().contains("<html"));
     }
 }

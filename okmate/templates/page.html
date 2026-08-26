@@ -1,12 +1,5 @@
 {% extends "base.html" %}
 
 {% block main %}
-  {% if !concept_type.is_empty() %}
-    <section class="okmate-meta" aria-label="Concept metadata">
-      <span class="okmate-badge">{{ concept_type }}</span>
-      {% if !status.is_empty() %}<span class="okmate-badge">{{ status }}</span>{% endif %}
-      {% if !authority.is_empty() %}<span class="okmate-badge">{{ authority }}</span>{% endif %}
-    </section>
-  {% endif %}
-  {{ article_html|safe }}
+  {% include "fragments/article.html" %}
 {% endblock %}

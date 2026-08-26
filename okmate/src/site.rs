@@ -10,6 +10,7 @@ use crate::views::{Document, NavNode, ReviewRow, review_rows, toc_from_headings}
 
 const APP_CSS: &str = include_str!("../assets/app.css");
 const DATASTAR_JS: &str = include_str!("../assets/datastar.js");
+const GOTO_JS: &str = include_str!("../assets/goto.js");
 
 #[derive(Serialize)]
 struct NavPage {
@@ -32,73 +33,94 @@ pub fn build(root: &Path, output: &Path, profile: Profile) -> Result<BuildSummar
 }
 
 pub fn write_html_pages(bundle: &Bundle, output: &Path) -> Result<()> {
-    let rows = review_rows(bundle);
-    if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
-        write_route(
-            output,
-            "/",
-            document(bundle, "/", "Knowledge", toc_from_headings(&index.headings))
-                .with_article(&index.article_html)
-                .render_home()?,
-        )?;
-    } else {
-        write_route(
-            output,
-            "/",
-            document(bundle, "/", "Knowledge", Vec::new())
-                .with_article("<h1>Knowledge</h1>")
-                .render_home()?,
-        )?;
-    }
-
+    let mut routes = vec!["/".to_string(), "/review/".into(), "/settings/".into()];
     for concept in &bundle.concepts {
-        let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
-        let route = format!("/{}/", concept.id);
-        write_route(
-            output,
-            &route,
-            document(bundle, &route, title, toc_from_headings(&concept.headings))
-                .with_article(&concept.article_html)
-                .with_meta(concept)
-                .render_page()?,
-        )?;
+        routes.push(format!("/{}/", concept.id));
     }
-
     for index in &bundle.indexes {
         let Some(collection) = index.path.strip_suffix("/index.md") else {
             continue;
         };
-        let route = format!("/{collection}/");
-        let title = collection_title(index);
-        write_route(
-            output,
-            &route,
-            document(bundle, &route, &title, toc_from_headings(&index.headings))
-                .with_article(&index.article_html)
-                .render_page()?,
-        )?;
+        routes.push(format!("/{collection}/"));
     }
-
-    write_route(
-        output,
-        "/review/",
-        document(
-            bundle,
-            "/review/",
-            "Knowledge Governance & Review Queue",
-            Vec::new(),
-        )
-        .with_review(rows)
-        .render_review()?,
-    )?;
-
-    write_route(
-        output,
-        "/settings/",
-        settings_document(bundle).render_settings()?,
-    )?;
-
+    routes.sort();
+    routes.dedup();
+    for route in routes {
+        let Some(page) = page_for_route(bundle, &route) else {
+            continue;
+        };
+        write_route(output, &route, render_document(page)?)?;
+    }
     Ok(())
+}
+
+pub fn page_for_route(bundle: &Bundle, route: &str) -> Option<Document> {
+    let route = normalize_route(route);
+    match route.as_str() {
+        "/" => {
+            if let Some(index) = bundle.indexes.iter().find(|index| index.path == "index.md") {
+                Some(
+                    document(bundle, "/", "Knowledge", toc_from_headings(&index.headings))
+                        .with_kind("home")
+                        .with_article(&index.article_html),
+                )
+            } else {
+                Some(
+                    document(bundle, "/", "Knowledge", Vec::new())
+                        .with_kind("home")
+                        .with_article("<h1>Knowledge</h1>"),
+                )
+            }
+        }
+        "/review/" => Some(
+            document(
+                bundle,
+                "/review/",
+                "Knowledge Governance & Review Queue",
+                Vec::new(),
+            )
+            .with_kind("review")
+            .with_review(review_rows(bundle)),
+        ),
+        "/settings/" => Some(settings_document(bundle)),
+        other => {
+            let id = other.trim_matches('/');
+            if let Some(concept) = bundle.concepts.iter().find(|concept| concept.id == id) {
+                let title = okf::string_field(&concept.metadata, "title").unwrap_or(&concept.id);
+                Some(
+                    document(bundle, other, title, toc_from_headings(&concept.headings))
+                        .with_kind("page")
+                        .with_article(&concept.article_html)
+                        .with_meta(concept),
+                )
+            } else {
+                bundle
+                    .indexes
+                    .iter()
+                    .find(|index| index.path.strip_suffix("/index.md") == Some(id))
+                    .map(|index| {
+                        document(
+                            bundle,
+                            other,
+                            &collection_title(index),
+                            toc_from_headings(&index.headings),
+                        )
+                        .with_kind("page")
+                        .with_article(&index.article_html)
+                    })
+            }
+        }
+    }
+}
+
+fn render_document(document: Document) -> Result<String> {
+    match document.page_kind.as_str() {
+        "home" => document.render_home(),
+        "review" => document.render_review(),
+        "settings" => document.render_settings(),
+        _ => document.render_page(),
+    }
+    .map_err(|error| anyhow::anyhow!(error))
 }
 
 fn document(
@@ -109,6 +131,7 @@ fn document(
 ) -> Document {
     Document {
         title: title.to_string(),
+        page_kind: "page".into(),
         nav: nav_tree(bundle, route),
         toc,
         article_html: String::new(),
@@ -131,10 +154,15 @@ fn settings_document(bundle: &Bundle) -> Document {
     let mut document = document(bundle, "/settings/", "Knowledge roots", Vec::new());
     document.config_path = crate::config::config_path().display().to_string();
     document.settings_roots = crate::http::settings_roots(&config);
-    document
+    document.with_kind("settings")
 }
 
 impl Document {
+    fn with_kind(mut self, kind: &str) -> Self {
+        self.page_kind = kind.to_string();
+        self
+    }
+
     fn with_article(mut self, html: &str) -> Self {
         self.article_html = html.to_string();
         self
@@ -188,7 +216,8 @@ fn write_assets(output: &Path) -> Result<()> {
     let dir = output.join("__okmate");
     fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
     fs::write(dir.join("app.css"), APP_CSS).context("failed to write app.css")?;
-    fs::write(dir.join("datastar.js"), DATASTAR_JS).context("failed to write datastar.js")
+    fs::write(dir.join("datastar.js"), DATASTAR_JS).context("failed to write datastar.js")?;
+    fs::write(dir.join("goto.js"), GOTO_JS).context("failed to write goto.js")
 }
 
 fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {

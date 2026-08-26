@@ -1,5 +1,5 @@
 {% extends "base.html" %}
 
 {% block main %}
-  {{ article_html|safe }}
+  {% include "fragments/article.html" %}
 {% endblock %}

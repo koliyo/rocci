@@ -131,6 +131,45 @@ code, pre { font-family: var(--rd-font-mono); }
   text-decoration: none;
 }
 .okmate-toc-link.level-3 { padding-left: 1.35rem; }
+.okmate-toc:not(:has(.okmate-toc-link)) { visibility: hidden; }
+
+.okmate-goto {
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 0.75rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.6rem;
+  background: var(--rd-bg-subtle);
+  color: var(--rd-fg);
+}
+.okmate-goto::backdrop { background: rgb(0 0 0 / 0.45); }
+.okmate-goto input {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  color: var(--rd-fg);
+  background: var(--rd-bg);
+  border: 1px solid var(--rd-border);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.6rem;
+}
+.okmate-goto ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 16rem;
+  overflow: auto;
+}
+.okmate-goto li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+.okmate-goto li.is-active,
+.okmate-goto li:hover { background: color-mix(in srgb, var(--rd-primary) 16%, transparent); }
+.okmate-goto li span { color: var(--rd-muted); font-size: 0.8rem; }
 
 .okmate-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.25rem; }
 .okmate-badge {
