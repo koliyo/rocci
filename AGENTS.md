@@ -22,6 +22,7 @@
 | Shared runtime configuration | `crates/rocci-core` |
 | Application documentation staging | `crates/rocci-docs` |
 | CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-desktop` |
+| Shared hypermedia desktop host (window, toolbar, IPC) | [h35-desktop](https://github.com/koliyo/h35-desktop) |
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
 | Portable OKF parsing, validation, search, artifacts, and knowledge CLI | [okmate](https://github.com/koliyo/okmate) |
 | Canonical knowledge bundle | `knowledge/` |
