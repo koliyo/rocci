@@ -1,3 +1,0 @@
-id="okmate-nav"
-id="okmate-main"
-id="okmate-toc"
