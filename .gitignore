@@ -23,6 +23,7 @@ Datastar.roc
 !crates/**/runtime/Html.roc
 !crates/**/runtime/Datastar.roc
 datastar.js
+!okmate/assets/datastar.js
 
 # SQLite databases
 *.db

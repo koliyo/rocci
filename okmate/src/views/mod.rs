@@ -18,6 +18,17 @@ pub struct TocEntry {
 }
 
 #[derive(Clone, Debug)]
+pub struct SettingsRoot {
+    pub id: String,
+    pub kind: String,
+    pub detail: String,
+    pub incoming: String,
+    pub token_env: String,
+    pub has_token: bool,
+    pub warning: String,
+}
+
+#[derive(Clone, Debug)]
 pub struct ReviewRow {
     pub href: String,
     pub title: String,
@@ -39,6 +50,9 @@ macro_rules! document_template {
             pub status: String,
             pub authority: String,
             pub review_rows: Vec<ReviewRow>,
+            pub message: String,
+            pub config_path: String,
+            pub settings_roots: Vec<SettingsRoot>,
         }
     };
 }
@@ -47,6 +61,7 @@ document_template!(PageTemplate, "page.html");
 document_template!(HomeTemplate, "home.html");
 document_template!(ReviewTemplate, "review.html");
 document_template!(SettingsTemplate, "settings.html");
+document_template!(SettingsFragmentTemplate, "fragments/settings.html");
 
 pub struct Document {
     pub title: String,
@@ -57,6 +72,9 @@ pub struct Document {
     pub status: String,
     pub authority: String,
     pub review_rows: Vec<ReviewRow>,
+    pub message: String,
+    pub config_path: String,
+    pub settings_roots: Vec<SettingsRoot>,
 }
 
 impl Document {
@@ -75,6 +93,10 @@ impl Document {
     pub fn render_settings(self) -> askama::Result<String> {
         SettingsTemplate::from(self).render()
     }
+
+    pub fn render_settings_fragment(self) -> askama::Result<String> {
+        SettingsFragmentTemplate::from(self).render()
+    }
 }
 
 impl From<Document> for PageTemplate {
@@ -88,6 +110,9 @@ impl From<Document> for PageTemplate {
             status: document.status,
             authority: document.authority,
             review_rows: document.review_rows,
+            message: document.message,
+            config_path: document.config_path,
+            settings_roots: document.settings_roots,
         }
     }
 }
@@ -103,6 +128,9 @@ impl From<Document> for HomeTemplate {
             status: document.status,
             authority: document.authority,
             review_rows: document.review_rows,
+            message: document.message,
+            config_path: document.config_path,
+            settings_roots: document.settings_roots,
         }
     }
 }
@@ -118,6 +146,9 @@ impl From<Document> for ReviewTemplate {
             status: document.status,
             authority: document.authority,
             review_rows: document.review_rows,
+            message: document.message,
+            config_path: document.config_path,
+            settings_roots: document.settings_roots,
         }
     }
 }
@@ -133,6 +164,27 @@ impl From<Document> for SettingsTemplate {
             status: document.status,
             authority: document.authority,
             review_rows: document.review_rows,
+            message: document.message,
+            config_path: document.config_path,
+            settings_roots: document.settings_roots,
+        }
+    }
+}
+
+impl From<Document> for SettingsFragmentTemplate {
+    fn from(document: Document) -> Self {
+        Self {
+            title: document.title,
+            nav: document.nav,
+            toc: document.toc,
+            article_html: document.article_html,
+            concept_type: document.concept_type,
+            status: document.status,
+            authority: document.authority,
+            review_rows: document.review_rows,
+            message: document.message,
+            config_path: document.config_path,
+            settings_roots: document.settings_roots,
         }
     }
 }
@@ -199,6 +251,9 @@ mod tests {
             status: "draft".into(),
             authority: "descriptive".into(),
             review_rows: Vec::new(),
+            message: String::new(),
+            config_path: "~/.okmate/config.toml".into(),
+            settings_roots: Vec::new(),
         }
     }
 

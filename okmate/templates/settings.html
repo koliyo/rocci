@@ -1,11 +1,5 @@
 {% extends "base.html" %}
 
 {% block main %}
-  <div id="okmate-settings">
-    <h1>Knowledge roots</h1>
-    <p>A knowledge root is a local OKF bundle Okmate can check, search, and preview.</p>
-    <div class="okmate-settings-empty">
-      <p>No roots yet. Add a folder in a later settings save, or pass a bundle path to <code>okmate view</code>.</p>
-    </div>
-  </div>
+  {% include "fragments/settings.html" %}
 {% endblock %}

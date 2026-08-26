@@ -1,0 +1,79 @@
+<div id="okmate-settings">
+  <h1>Knowledge roots</h1>
+  <p>A knowledge root is a local OKF bundle Okmate can check, search, and preview. Agents list resolved folders with <code>okmate roots</code>.</p>
+  {% if !config_path.is_empty() %}
+    <p class="okmate-settings-help">Saved in <code>{{ config_path }}</code>.</p>
+  {% endif %}
+  {% if !message.is_empty() %}
+    <p class="okmate-settings-msg">{{ message }}</p>
+  {% endif %}
+  <h2>Configured roots</h2>
+  {% if settings_roots.is_empty() %}
+    <div class="okmate-settings-empty">
+      <p>No roots yet. Add a folder on this computer (usually named <code>knowledge</code>, with <code>index.md</code>) or a git repository below.</p>
+      <p class="okmate-settings-help">Example: <code>~/Projects/rocci/knowledge</code></p>
+    </div>
+  {% else %}
+    <div class="okmate-settings-cards">
+      {% for root in settings_roots %}
+        <article class="okmate-settings-card">
+          <header>
+            <h3><code>{{ root.id }}</code></h3>
+            <span class="okmate-badge">{{ root.kind }}</span>
+          </header>
+          <p>{% if root.kind == "folder" %}Path{% else %}Remote{% endif %}: <code>{{ root.detail }}</code></p>
+          {% if !root.warning.is_empty() %}
+            <p class="okmate-settings-warn">{{ root.warning }}</p>
+          {% endif %}
+          {% if !root.token_env.is_empty() %}
+            <p class="okmate-settings-help">Token env: <code>{{ root.token_env }}</code></p>
+          {% endif %}
+          {% if root.has_token %}
+            <p class="okmate-settings-help">A token is stored. It is never shown.</p>
+          {% endif %}
+          <form method="post" action="/__okmate/settings" data-on:submit="@post('/__okmate/settings')">
+            <input type="hidden" name="action" value="incoming">
+            <input type="hidden" name="id" value="{{ root.id }}">
+            <label>Incoming citations
+              <select name="incoming" data-on:change="@post('/__okmate/settings')">
+                <option value="allow"{% if root.incoming == "allow" %} selected{% endif %}>Anyone may cite this</option>
+                <option value="deny"{% if root.incoming == "deny" %} selected{% endif %}>Only listed roots may cite this</option>
+              </select>
+            </label>
+          </form>
+          <form method="post" action="/__okmate/settings" data-on:submit="@post('/__okmate/settings')">
+            <input type="hidden" name="action" value="remove">
+            <input type="hidden" name="id" value="{{ root.id }}">
+            <button type="submit">Remove</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <h2>Add a folder on this computer</h2>
+  <p class="okmate-settings-help">Pick the directory that contains <code>index.md</code> (often named <code>knowledge</code>). Paste the folder path here; Choose folder is available in the desktop window.</p>
+  <form method="post" action="/__okmate/settings" class="okmate-settings-stack" data-on:submit="@post('/__okmate/settings')">
+    <input type="hidden" name="action" value="add_directory">
+    <label>Short id <input name="id" placeholder="rocci"></label>
+    <p class="okmate-settings-help">Stable name used in <code>okf:id/…</code> links.</p>
+    <label>Folder path <input name="path" placeholder="~/Projects/rocci/knowledge"></label>
+    <p class="okmate-settings-help">Absolute path, or <code>~</code> for your home directory.</p>
+    <button type="submit">Add folder</button>
+  </form>
+
+  <h2>Add a git repository</h2>
+  <p class="okmate-settings-help">Prefer <code>token_env</code> over pasting a token.</p>
+  <form method="post" action="/__okmate/settings" class="okmate-settings-stack" data-on:submit="@post('/__okmate/settings')">
+    <input type="hidden" name="action" value="add_git">
+    <label>Short id <input name="id" placeholder="notes"></label>
+    <label>Repository URL <input name="url" placeholder="https://github.com/org/notes.git"></label>
+    <p class="okmate-settings-help"><code>https://</code>, <code>ssh://</code>, <code>git@</code>, or <code>file://</code>.</p>
+    <label>Branch <input name="branch" value="main"></label>
+    <label>Bundle subfolder <input name="bundle" placeholder="knowledge"></label>
+    <label>Token environment variable <input name="token_env" placeholder="GITHUB_TOKEN"></label>
+    <label>Token <input name="token" type="password" autocomplete="off"></label>
+    <p class="okmate-settings-help">Write-only. Never shown after save.</p>
+    <button type="submit">Add git repository</button>
+  </form>
+</div>

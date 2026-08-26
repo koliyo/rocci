@@ -21,7 +21,12 @@ async fn view_router_serves_home_and_concept() {
     let output = temp_dir("view-out");
     okmate::site::build(&root, &output, Profile::Rocci).unwrap();
 
-    let app = okmate::http::router(&output);
+    let app = okmate::http::router(okmate::http::AppState {
+        output: output.clone(),
+        root: root.clone(),
+        profile: Profile::Rocci,
+        config_path: output.join("unused-config.toml"),
+    });
     let home = app
         .clone()
         .oneshot(Request::get("/").body(Body::empty()).unwrap())
@@ -40,7 +45,8 @@ async fn view_router_serves_home_and_concept() {
     assert!(home_body.contains("id=\"okmate-nav\""), "{home_body}");
     assert!(home_body.contains("id=\"okmate-main\""), "{home_body}");
 
-    let concept = okmate::http::router(&output)
+    let concept = app
+        .clone()
         .oneshot(Request::get("/hello/").body(Body::empty()).unwrap())
         .await
         .unwrap();
@@ -61,7 +67,7 @@ async fn view_router_serves_home_and_concept() {
     );
     assert!(concept_body.contains("Details"), "{concept_body}");
 
-    let css = okmate::http::router(&output)
+    let css = app
         .oneshot(
             Request::get("/__okmate/app.css")
                 .body(Body::empty())

@@ -60,9 +60,18 @@ async fn run_async(options: ViewOptions) -> Result<()> {
         }
     });
 
-    axum::serve(listener, router(output))
-        .await
-        .context("okmate view server stopped")
+    axum::serve(
+        listener,
+        router(crate::http::AppState {
+            output,
+            root: target.root.clone(),
+            profile: options.profile,
+            config_path: crate::config::config_path(),
+        })
+        .into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .context("okmate view server stopped")
 }
 
 pub fn resolve_target(path: Option<&Path>) -> Result<okf::PreviewTarget> {

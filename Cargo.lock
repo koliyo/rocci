@@ -1048,6 +1048,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "datastar"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99474d2278201b9faf0bb49d5cdb2e0542a4f2fd6050035d13116a0796e93a96"
+dependencies = [
+ "axum",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dbus"
 version = "0.9.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2937,12 +2948,15 @@ dependencies = [
  "askama",
  "axum",
  "clap",
+ "datastar",
+ "futures-util",
  "http-body-util",
  "notify",
  "okf",
  "serde",
  "serde_json",
  "tokio",
+ "toml 1.1.4+spec-1.1.0",
  "tower",
  "tower-http",
 ]

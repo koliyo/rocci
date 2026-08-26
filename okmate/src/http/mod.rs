@@ -2,7 +2,21 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 
 use axum::Router;
+use axum::routing::post;
+use okf::Profile;
 use tower_http::services::ServeDir;
+
+mod settings;
+
+pub use settings::{render_fragment, render_page, settings_roots};
+
+#[derive(Clone)]
+pub struct AppState {
+    pub output: PathBuf,
+    pub root: PathBuf,
+    pub profile: Profile,
+    pub config_path: PathBuf,
+}
 
 pub fn bind_addr(public: bool, port: u16) -> SocketAddr {
     let ip = if public {
@@ -13,11 +27,13 @@ pub fn bind_addr(public: bool, port: u16) -> SocketAddr {
     SocketAddr::new(ip, port)
 }
 
-pub fn router(output: impl AsRef<Path>) -> Router {
-    let output = output.as_ref().to_path_buf();
+pub fn router(state: AppState) -> Router {
+    let output = state.output.clone();
     Router::new()
+        .route("/__okmate/settings", post(settings::post))
         .nest_service("/__okmate", ServeDir::new(output.join("__okmate")))
         .fallback_service(ServeDir::new(output).append_index_html_on_directories(true))
+        .with_state(state)
 }
 
 pub fn output_path(output: Option<&Path>, root: &Path) -> PathBuf {

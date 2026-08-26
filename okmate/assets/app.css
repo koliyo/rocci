@@ -159,6 +159,45 @@ code, pre { font-family: var(--rd-font-mono); }
   padding: 1rem 0;
   color: var(--rd-muted);
 }
+.okmate-settings-help, .okmate-settings-msg, .okmate-settings-warn {
+  color: var(--rd-muted);
+  font-size: 0.9rem;
+}
+.okmate-settings-msg { color: var(--rd-green); }
+.okmate-settings-warn { color: var(--rd-orange); }
+.okmate-settings-cards { display: grid; gap: 1rem; margin: 0 0 1.5rem; }
+.okmate-settings-card {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rd-border);
+  border-radius: 0.6rem;
+  background: var(--rd-bg-subtle);
+}
+.okmate-settings-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.okmate-settings-stack { display: grid; gap: 0.65rem; margin: 0 0 1.75rem; }
+.okmate-settings-stack label { display: grid; gap: 0.25rem; }
+.okmate-settings-stack input, .okmate-settings-stack select {
+  font: inherit;
+  color: var(--rd-fg);
+  background: var(--rd-bg);
+  border: 1px solid var(--rd-border);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem;
+}
+.okmate-settings-stack button, .okmate-settings-card button {
+  font: inherit;
+  width: fit-content;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--rd-border);
+  background: var(--rd-bg);
+  color: var(--rd-fg);
+  cursor: pointer;
+}
 
 @media (max-width: 960px) {
   .okmate-shell { display: block; }

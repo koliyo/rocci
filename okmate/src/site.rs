@@ -9,6 +9,7 @@ use serde::Serialize;
 use crate::views::{Document, NavNode, ReviewRow, review_rows, toc_from_headings};
 
 const APP_CSS: &str = include_str!("../assets/app.css");
+const DATASTAR_JS: &str = include_str!("../assets/datastar.js");
 
 #[derive(Serialize)]
 struct NavPage {
@@ -94,7 +95,7 @@ pub fn write_html_pages(bundle: &Bundle, output: &Path) -> Result<()> {
     write_route(
         output,
         "/settings/",
-        document(bundle, "/settings/", "Knowledge roots", Vec::new()).render_settings()?,
+        settings_document(bundle).render_settings()?,
     )?;
 
     Ok(())
@@ -115,7 +116,22 @@ fn document(
         status: String::new(),
         authority: String::new(),
         review_rows: Vec::new(),
+        message: String::new(),
+        config_path: String::new(),
+        settings_roots: Vec::new(),
     }
+}
+
+pub(crate) fn settings_shell(bundle: &Bundle) -> crate::views::Document {
+    settings_document(bundle)
+}
+
+fn settings_document(bundle: &Bundle) -> Document {
+    let config = crate::config::load().unwrap_or_default();
+    let mut document = document(bundle, "/settings/", "Knowledge roots", Vec::new());
+    document.config_path = crate::config::config_path().display().to_string();
+    document.settings_roots = crate::http::settings_roots(&config);
+    document
 }
 
 impl Document {
@@ -171,7 +187,8 @@ fn write_pages_json(bundle: &Bundle, output: &Path) -> Result<()> {
 fn write_assets(output: &Path) -> Result<()> {
     let dir = output.join("__okmate");
     fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
-    fs::write(dir.join("app.css"), APP_CSS).context("failed to write app.css")
+    fs::write(dir.join("app.css"), APP_CSS).context("failed to write app.css")?;
+    fs::write(dir.join("datastar.js"), DATASTAR_JS).context("failed to write datastar.js")
 }
 
 fn nav_pages(bundle: &Bundle) -> Vec<NavPage> {
