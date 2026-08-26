@@ -17,7 +17,6 @@ from rocci_ops.release import DEFAULT_CHECKS, gh_run, wait_for_check
 CLI_CRATES = (
     ("rocci-cli", "rocci"),
     ("rocci-rocdown-cli", "rocdown"),
-    ("rocci-okf", "rocci-okf"),
 )
 
 # Temporary site-packaging workaround for Roc's optimized backend recursion.
@@ -132,67 +131,9 @@ def bundle_macos() -> int:
 
 
 def bundle_okf() -> int:
-    require_darwin("The Rocci Knowledge app bundle")
-    root = repo_root()
-    run(["cargo", "build", "--release", "-p", "rocci-okf"], cwd=root)
-    target = Path(os.environ.get("CARGO_TARGET_DIR") or root / "target")
-    binary = target / "release" / "rocci-okf"
-    if not binary.is_file():
-        raise SystemExit(f"Missing rocci-okf release binary at {binary}")
-    app = target / "release" / "bundle" / "macos" / "Rocci Knowledge.app"
-    if app.exists():
-        shutil.rmtree(app)
-    macos = app / "Contents" / "MacOS"
-    resources = app / "Contents" / "Resources"
-    macos.mkdir(parents=True)
-    resources.mkdir(parents=True)
-    shutil.copy2(binary, macos / "rocci-okf")
-    (macos / "rocci-okf").chmod(0o755)
-    (app / "Contents" / "Info.plist").write_text(
-        """\
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleDevelopmentRegion</key>
-  <string>en</string>
-  <key>CFBundleDisplayName</key>
-  <string>Rocci Knowledge</string>
-  <key>CFBundleExecutable</key>
-  <string>rocci-okf</string>
-  <key>CFBundleIdentifier</key>
-  <string>dev.rocci.knowledge</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
-  <string>Rocci Knowledge</string>
-  <key>CFBundleIconFile</key>
-  <string>AppIcon</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
-  <key>CFBundleVersion</key>
-  <string>1</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>12.0</string>
-  <key>NSHighResolutionCapable</key>
-  <true/>
-  <key>NSSupportsAutomaticGraphicsSwitching</key>
-  <true/>
-</dict>
-</plist>
-""",
-        encoding="utf-8",
+    raise SystemExit(
+        "Rocci Knowledge.app is no longer built here; use https://github.com/koliyo/okmate"
     )
-    (app / "Contents" / "PkgInfo").write_bytes(b"APPL????")
-    icon = root / "brand" / "rocci-app.icns"
-    if not icon.is_file():
-        raise SystemExit(f"Missing app icon at {icon}")
-    shutil.copy2(icon, resources / "AppIcon.icns")
-    run(["codesign", "--force", "--deep", "--sign", "-", str(app)])
-    print(app)
-    return 0
 
 
 def latest_vsix(root: Path | None = None) -> Path:

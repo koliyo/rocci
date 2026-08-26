@@ -440,7 +440,7 @@ fn refuse_okf_input(path: &Path, command_name: &str) -> Result<()> {
     if path.is_dir() {
         if path_hint::looks_like_okf_bundle(path) {
             bail!(
-                "`rocdown {command_name}` does not preview OKF knowledge bundles; preview with `rocci-okf view {}`",
+                "`rocdown {command_name}` does not preview OKF knowledge bundles; preview with `okmate view {}`",
                 path.display()
             );
         }
@@ -451,7 +451,7 @@ fn refuse_okf_input(path: &Path, command_name: &str) -> Result<()> {
         .is_some_and(|ext| ext == "md" || ext == "markdown");
     if is_markdown && path_hint::looks_like_okf_file(path) {
         bail!(
-            "`rocdown {command_name}` does not render OKF knowledge records; preview {} with `rocci-okf view {}`",
+            "`rocdown {command_name}` does not render OKF knowledge records; preview {} with `okmate view {}`",
             path.display(),
             path.display()
         );
@@ -1381,7 +1381,7 @@ mod tests {
         )
         .unwrap();
         let err = refuse_okf_input(&concept, "view").unwrap_err().to_string();
-        assert!(err.contains("rocci-okf view"));
+        assert!(err.contains("okmate view"));
 
         fs::write(
             temp_dir.join("index.md"),
@@ -1391,7 +1391,7 @@ mod tests {
         let err = refuse_okf_input(&temp_dir, "build")
             .unwrap_err()
             .to_string();
-        assert!(err.contains("rocci-okf view"));
+        assert!(err.contains("okmate view"));
 
         let ordinary = temp_dir.join("notes.md");
         fs::write(&ordinary, "# Notes\n").unwrap();

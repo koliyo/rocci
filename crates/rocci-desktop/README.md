@@ -32,4 +32,4 @@ Do not author host chrome in `.rocci`. A template can snapshot markup, but it ca
 
 - Relies on `tao`, `wry`, `muda` (native menus), and `rfd` (native file/folder dialogs).
 - Consumes `rocci-core` for configuration types and `rocci-ui` for the shared go-to-page script.
-- Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, `rocci-okf`, or language parsers. Chrome assets are embedded with `include_str!`; the host icon is embedded with `include_bytes!`.
+- Zero dependencies on `rocci-template`, `rocci-rocdown`, `okf`, or language parsers. Chrome assets are embedded with `include_str!`; the host icon is embedded with `include_bytes!`.

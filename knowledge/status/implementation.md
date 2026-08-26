@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -37,10 +37,10 @@ sources:
     author: process:okf-phase-4
     last_modified: 2026-08-16
   - id: okf
-    resource: ../../crates/okf/README.md
-    title: OKF portable engine
+    resource: https://github.com/koliyo/okmate/blob/main/okf/README.md
+    title: OKF portable engine (okmate)
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-26
   - id: publication
     resource: ../decisions/local-knowledge-publication.md
     title: Local knowledge publication decision
@@ -77,11 +77,11 @@ sources:
 
 ## Snapshot date
 
-2026-08-22.
+2026-08-26.
 
 ## Shipped
 
-The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the portable `okf` engine, and the Rust-catalog/Rocci-shell Rocdown documentation generator.[^roadmap]
+The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the inert `knowledge/` bundle in this repository, and the Rust-catalog/Rocci-shell Rocdown documentation generator. Portable OKF parsing and the knowledge CLI live in [okmate](https://github.com/koliyo/okmate).[^roadmap]
 
 Ordinary `.rocci` routes are mandatory verb-first `@method:role(path)` headers with a closed view/fragment/command/live matrix. Commands return `{}` and have no success representation (empty SSE for Datastar, 204 otherwise). Live routes are plural path-addressed `@get:live` streams with module-local singleton injection. That cutover lives on `verb-first-handler-declarations` and is not logged complete until CI and Knowledge succeed on the revision. Historical role-first research remains labeled historical.[^verb-first]
 
@@ -89,7 +89,7 @@ Rocdown currently resolves nested routes, links, assets, navigation, drafts, has
 
 Tree-sitter highlighting library `rocci-highlight` provides token spans for LSP and documentation rendering parity.[^rocdown-compiler]
 
-The shipped OKF knowledge path validates, graphs, renders, previews, inspects, and searches the knowledge bundle using the portable `okf` engine and `rocci-okf` review application. Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
+The shipped OKF knowledge path validates, graphs, renders, previews, inspects, and searches the knowledge bundle using okmate (`okf` engine plus CLI). Builds emit deterministic HTML plus catalog, search, agent, and validation indexes; inspection and search expose lifecycle, authority, trust-tier, and stale filters.[^okf]
 
 Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark with JSON hit-rate and mean-reciprocal-rank reporting, with CI threshold enforcement.[^consolidation]
 
@@ -126,7 +126,7 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 [^okf-plan]: Approved OKF contract and amended knowledge-only DTCG boundary.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
-[^okf]: Portable OKF engine and rocci-okf review application.
+[^okf]: Portable OKF engine and okmate knowledge application.
 [^publication]: Draft record of the approved local-first publication disposition.
 [^consolidation]: Draft Phase 6 lifecycle, report, documentation, and retrieval disposition.
 [^lsp-plan]: Proposed embedded-language demonstrator and full language-server phases, explicitly separated from the current tooling contract.

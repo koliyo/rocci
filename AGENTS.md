@@ -23,8 +23,8 @@
 | Application documentation staging | `crates/rocci-docs` |
 | CLI template build, run, preview, or bundle behavior | `crates/rocci-cli` and `crates/rocci-desktop` |
 | CLI document and site build, run, check, or test behavior | `crates/rocci-rocdown-cli` |
-| Portable OKF parsing, validation, search, and artifacts | `crates/okf` |
-| Knowledge review CLI, desktop preview, and bundle tools | `crates/rocci-okf` |
+| Portable OKF parsing, validation, search, artifacts, and knowledge CLI | [okmate](https://github.com/koliyo/okmate) |
+| Canonical knowledge bundle | `knowledge/` |
 | Shared UI primitives, view records, and component templates | `crates/rocci-ui` |
 | Documentation site chrome | `crates/rocci-rocdown/templates/RocdownTheme.rocci` |
 | Editor behavior | `crates/rocci-lsp`, `crates/rocci-rocdown-lsp`, `editors/vscode`, or `editors/zed` |
@@ -77,7 +77,7 @@
 - For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run
-  `cargo run -q -p rocci-okf -- check knowledge --profile rocci` and
+  `okmate check knowledge --profile rocci` (or `cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile rocci` from a sibling checkout) and
   report lifecycle or provenance warnings separately from errors.
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.

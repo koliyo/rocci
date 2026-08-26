@@ -37,14 +37,9 @@ ROCDOWN = {
     "rocci-playground-wasm",
 }
 
-OKF_ENGINE = {"okf"}
-OKF_APP = {"rocci-okf"}
-
 CLASSES = {
     "base-rocci": BASE_ROCCI,
     "rocdown": ROCDOWN,
-    "okf-engine": OKF_ENGINE,
-    "okf-app": OKF_APP,
 }
 
 ALLOWED_REVERSE: set[tuple[str, str]] = set()
@@ -99,19 +94,10 @@ def forbidden(src: str, dest: str) -> str | None:
     if src_class is None or dest_class is None:
         return None
 
-    if src_class == "base-rocci" and dest_class in {"rocdown", "okf-engine", "okf-app"}:
+    if src_class == "base-rocci" and dest_class == "rocdown":
         if (src, dest) in ALLOWED_REVERSE:
             return None
         return f"base Rocci package {src} must not depend on {dest_class} package {dest}"
-
-    if src_class == "rocdown" and dest_class in {"okf-engine", "okf-app"}:
-        return f"Rocdown package {src} must not depend on {dest_class} package {dest}"
-
-    if src_class == "okf-engine" and dest_class != "okf-engine":
-        return f"okf engine must not depend on {dest_class} package {dest}"
-
-    if src_class == "okf-app" and dest_class == "rocdown":
-        return f"rocci-okf must not depend on Rocdown package {dest}"
 
     return None
 

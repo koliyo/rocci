@@ -314,7 +314,7 @@ It stages `dist/example-docs`, then runs `rocdown check site`, `rocdown test
 site`, and `rocdown build site`. Use those focused commands directly while
 iterating. Rust changes also require `cargo fmt --all -- --check` and the
 narrow owning-crate tests; cross-cutting changes require `cargo test
---workspace`. Knowledge changes require `cargo run -q -p rocci-okf -- check
+--workspace`. Knowledge changes require `okmate check
 knowledge --profile rocci`. Build and rebuild failure tests assert that an
 existing output tree remains intact when catalog validation, CDN-only policy,
 or a watched rebuild fails.
@@ -371,9 +371,9 @@ started with `rocdown serve-islands` or `rocci run`.
 
 ## Open Knowledge Format (OKF)
 
-Knowledge bundles are managed through the dedicated [`rocci-okf`](/docs/reference/cli/) application rather than the documentation site generator:
+Knowledge bundles are managed with [okmate](https://github.com/koliyo/okmate) rather than the documentation site generator:
 
 ```sh
-cargo run -p rocci-okf -- check knowledge --profile rocci
-cargo run -p rocci-okf -- run knowledge
+okmate check knowledge --profile rocci
+okmate view knowledge
 ```

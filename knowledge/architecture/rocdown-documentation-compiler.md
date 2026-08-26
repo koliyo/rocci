@@ -4,7 +4,7 @@ title: Rocdown documentation generator
 description: Rocdown resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T20:40:00Z }
+generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -52,10 +52,10 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: okf
-    resource: ../../crates/rocci-okf/README.md
-    title: OKF knowledge application
+    resource: https://github.com/koliyo/okmate
+    title: OKF knowledge application (okmate)
     author: process:git
-    last_modified: 2026-08-17
+    last_modified: 2026-08-26
 ---
 
 # Rocdown documentation generator
@@ -86,7 +86,7 @@ This architecture implements the [Rust-catalog/Rocci-shell decision](/decisions/
 
 Nested routes, aliases, drafts, link and asset validation, curated navigation, breadcrumbs, previous/next relations, hashed resources, CSP, responsive shell layouts, two-tier persistent renderer caching (`~/.rocci/cache`), native subprocess and Wasmtime execution hosts, inspection, watch/serve, live reload, and bounded `:kind` article blocks (asides, steps, figures, cards, no-JS tabs, includes, opt-in `rocdown test`, and site block-pack painter overlay) are implemented.[^refactor-plan][^rocdown-reference]
 
-The separated OKF path lives in `okf` and `rocci-okf`, validating and reviewing knowledge collections independently from documentation site builds while sharing the base `toc.js` asset and `PageView` domain records.[^okf][^rocdown-reference]
+The separated OKF path lives in [okmate](https://github.com/koliyo/okmate), validating and reviewing knowledge collections independently from documentation site builds while sharing the base `toc.js` asset and `PageView` domain records.[^okf][^rocdown-reference]
 
 ## Not yet implemented
 

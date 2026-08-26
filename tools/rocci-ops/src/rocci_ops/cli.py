@@ -16,7 +16,7 @@ commands:
   install       cli | vscode | cursor
   package       package vscode, zed, or the rocci.dev site (docs + live apps)
   site          stage generated examples, check, test, and build rocci.dev
-  bundle        macOS app bundles (`macos` for Rocci, `okf` for Rocci Knowledge)
+  bundle        macOS app bundles (`macos` for Rocci; `okf` is retired, use okmate)
   build-playground
   render-brand-icons
   serve         docker compose helpers (hybrid, static, site, app)

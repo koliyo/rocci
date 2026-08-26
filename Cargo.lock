@@ -2259,12 +2259,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2702,20 +2696,6 @@ dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
  "memchr",
-]
-
-[[package]]
-name = "okf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "comrak",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "thiserror 2.0.20",
- "toml 1.1.4+spec-1.1.0",
- "yaml-rust",
 ]
 
 [[package]]
@@ -3365,25 +3345,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tree-sitter",
-]
-
-[[package]]
-name = "rocci-okf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "notify",
- "okf",
- "rocci-cli",
- "rocci-desktop",
- "rocci-roc-host",
- "rocci-template",
- "rocci-ui",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "toml 1.1.4+spec-1.1.0",
 ]
 
 [[package]]
@@ -5701,15 +5662,6 @@ checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
 dependencies = [
  "libc",
  "rustix",
-]
-
-[[package]]
-name = "yaml-rust"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
-dependencies = [
- "linked-hash-map",
 ]
 
 [[package]]

@@ -47,7 +47,7 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
       - name: Build release binaries
-        run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp -p rocci-okf
+        run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp
 
       - name: Determine version
         id: version

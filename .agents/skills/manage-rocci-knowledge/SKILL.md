@@ -1,13 +1,16 @@
 ---
 name: manage-rocci-knowledge
-description: Query, inspect, validate, author, or review Rocci's `knowledge/` Open Knowledge Format bundle with `rocci-okf`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless they also require consulting or updating canonical knowledge.
+description: Query, inspect, validate, author, or review Rocci's `knowledge/` Open Knowledge Format bundle with `okmate`. Use for architecture and decision retrieval, knowledge-record edits, lifecycle or provenance review, graph inspection, and OKF diagnostics. Do not use for ordinary source-code changes unless they also require consulting or updating canonical knowledge.
 ---
 
 # Manage Rocci Knowledge
 
-Use the checked-in `knowledge/` bundle as the canonical database and the
-repository's `rocci-okf` CLI as its deterministic interface. Keep domain
-facts in the bundle rather than copying them into this skill.
+Use the checked-in `knowledge/` bundle as the canonical database and
+[okmate](https://github.com/koliyo/okmate) as its deterministic interface
+(`okmate` on `PATH`, or `cargo run -q --no-default-features --manifest-path
+../okmate/Cargo.toml -p okmate --` from a sibling checkout). Keep domain
+facts in the bundle rather than copying them into this skill. Engine tests
+live in the okmate repo (`cargo test -p okf` / `cargo test -p okmate`).
 
 Cursor may inject `.cursor/rules/write-knowledge.mdc` for destination and
 collection routing. This skill is the retrieve, author, and validate
@@ -30,12 +33,12 @@ When more than one OKF tree is configured, list resolved local directories
 first, then run inspect/check/search against each path:
 
 ```sh
-cargo run -q -p rocci-okf -- roots --format paths
+okmate roots --format paths
 ```
 
 ```sh
-rocci-okf roots --format paths | while IFS= read -r root; do
-  cargo run -q -p rocci-okf -- inspect --profile rocci catalog "$root"
+okmate roots --format paths | while IFS= read -r root; do
+  okmate inspect --profile rocci catalog "$root"
 done
 ```
 
@@ -51,16 +54,16 @@ rg -n "SEARCH_TERMS" knowledge --glob '*.md'
 When the concept ID is known, inspect its normalized representation:
 
 ```sh
-cargo run -q -p rocci-okf -- inspect \
+okmate inspect \
   --profile rocci concept CONCEPT_ID knowledge
 ```
 
 Inspect the catalog for metadata-wide questions and the graph for relationships:
 
 ```sh
-cargo run -q -p rocci-okf -- inspect \
+okmate inspect \
   --profile rocci catalog knowledge
-cargo run -q -p rocci-okf -- inspect \
+okmate inspect \
   --profile rocci graph knowledge
 ```
 
@@ -142,23 +145,23 @@ targeted record and source reads over loading the entire JSON catalog.
 Run the Rocci profile after every knowledge edit:
 
 ```sh
-cargo run -q -p rocci-okf -- check knowledge \
+okmate check knowledge \
   --profile rocci --format terminal
 ```
 
 Use the base profile only when explicitly testing portable OKF behavior:
 
 ```sh
-cargo run -q -p rocci-okf -- check knowledge \
+okmate check knowledge \
   --profile base --format terminal
 ```
 
-If parser, validation, inspection, or CLI behavior changed, also run focused
-Rust tests before broader workspace tests:
+If parser, validation, inspection, or CLI behavior changed, run focused
+tests in the [okmate](https://github.com/koliyo/okmate) repository:
 
 ```sh
 cargo test -p okf
-cargo test -p rocci-okf
+cargo test -p okmate --no-default-features
 ```
 
 Treat validation errors as failures. Report lifecycle and repository-provenance

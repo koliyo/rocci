@@ -12,7 +12,7 @@ Executable name: `rocdown`
 # Preview a single interactive .rocdown or ordinary .md document with live reload.
 # Relative links to other documents are compiled and served as extra routes.
 # Compile failures print rustc-style frames on stderr unless `--quiet`.
-# OKF knowledge records are refused with a pointer to `rocci-okf view`.
+# OKF knowledge records are refused with a pointer to `okmate view`.
 # `rocdown run` remains a deprecated alias for `view`.
 cargo run -p rocci-rocdown-cli -- view examples/rocdown/pages/Guide.rocdown
 
@@ -72,4 +72,4 @@ cargo run -p rocci-rocdown-cli -- playground examples/rocdown/pages/Guide.rocdow
 
 ## Architectural Boundary
 
-`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation. It does not parse OKF; `rocdown view` and `rocdown build` refuse knowledge records and bundles and point to `rocci-okf view`.
+`rocci-rocdown-cli` provides the public `rocdown` CLI binary for the Rocdown documentation ecosystem. It consumes `rocci-rocdown` for format parsing, catalog resolution, article rendering, and site generation. It does not parse OKF; `rocdown view` and `rocdown build` refuse knowledge records and bundles and point to `okmate view`.

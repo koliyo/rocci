@@ -21,7 +21,6 @@ RELEASE_BINARIES = (
     "rocci",
     "rocdown",
     "rocci-language-server",
-    "rocci-okf",
 )
 
 

@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-26
 
+- Cut over Knowledge tooling from in-repo `okf` / `rocci-okf` to [okmate](https://github.com/koliyo/okmate): engine and CLI live there; Rocci keeps the inert `knowledge/` bundle. Knowledge CI checks out okmate (no GTK/WebKit). Exploratory; do not log complete until CI and Knowledge succeed.
 - Added draft [okmate](plans/okf/okmate.md): extractable root crate `okmate/` (Askama 0.16, Axum, official Datastar SDK, depends only on `okf`) as the pure-Rust knowledge app; `rocci-okf` stays until cutover. Supersedes in-place [rust+datastar](plans/okf/okf-viewer-rust-datastar.md) as the vehicle. Pair: [viewer rust vs rocci](research/okf/okf-viewer-rust-vs-rocci.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 - Added draft [rust-templated OKF viewer with Datastar](plans/okf/okf-viewer-rust-datastar.md): Horizon A is Askama + `rocci-datastar` as the only default `view` / `build` shell (usability, distributable `Knowledge.app`, static snapshot for rocci.dev); that contract is the reference for Horizon B (Rocci-authored viewer, engine stays Rust). Absorbs [host surfaces](plans/okf/okf-viewer-host-surfaces.md); inverts compile/render skip-Roc-as-default. Pair: [viewer rust vs rocci](research/okf/okf-viewer-rust-vs-rocci.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 

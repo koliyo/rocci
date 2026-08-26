@@ -10,7 +10,7 @@
 
 **Status:** current.
 
-This page documents the `rocci` binary only. `rocdown` and `rocci-okf` are
+This page documents the `rocci` binary only. `rocdown` and [okmate](https://github.com/koliyo/okmate) are
 other products; see [Rocdown CLI](/docs/rocdown/cli/).
 
 Examples use a source checkout. Until a distribution exists, the spelling is

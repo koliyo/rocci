@@ -31,6 +31,9 @@ def test_knowledge_redirects_validation_json() -> None:
     assert "target/knowledge-ci/validation.json" in paths
     assert "target/knowledge-ci/graph.json" in paths
     assert "target/knowledge-ci/retrieval.json" in paths
+    argv_lists = [s.argv for s in steps]
+    assert any("okmate" in argv for argv in argv_lists)
+    assert all("rocci-okf" not in argv for argv in argv_lists)
 
 
 def test_fixtures_and_docs_stages_example_docs() -> None:
