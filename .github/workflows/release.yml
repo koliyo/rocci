@@ -34,6 +34,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Checkout h35-desktop sibling
+        run: |
+          dest="${GITHUB_WORKSPACE}/../h35-desktop"
+          if [[ ! -f "$dest/Cargo.toml" ]]; then
+            git clone --depth 1 https://github.com/koliyo/h35-desktop.git "$dest"
+          fi
+
       - name: Install Linux desktop build deps
         if: runner.os == 'Linux'
         run: sudo ./docker/install-linux-deps.sh builder

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 from rocci_ops import ci, deploy, docs_coverage, local, origin, pr_checkout, release, workspace_deps
+from rocci_ops.paths import ensure_h35_desktop
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
@@ -55,6 +56,7 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(2)
         raise SystemExit(0)
     command, rest = args[0], args[1:]
+    ensure_h35_desktop()
     if command == "check":
         raise SystemExit(check_main(rest))
     if command == "ci":
