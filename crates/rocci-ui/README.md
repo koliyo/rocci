@@ -12,7 +12,7 @@ Domain-neutral view records and presentation primitives for Rocci.
 
 ## Dependency Rules
 
-`rocci-ui` must have **zero dependencies** on `rocci-rocdown`, `okf`, or `rocci-okf`.
-Consumers such as `rocci-rocdown` and `rocci-okf` may consume `rocci-ui` for structural presentation while keeping all domain logic (routing, catalog resolution, concept graphs, backlinks, review workflows) within their own packages.
+`rocci-ui` must have **zero dependencies** on `rocci-rocdown` or the portable OKF engine (`okf` in [okmate](https://github.com/koliyo/okmate)).
+Consumers such as `rocci-rocdown` may consume `rocci-ui` for structural presentation while keeping all domain logic (routing, catalog resolution, concept graphs) within their own packages.
 
 

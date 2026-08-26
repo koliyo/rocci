@@ -29,7 +29,7 @@ cargo run -q -p rocci-rocdown-cli -- COMMAND
 | `inspect ast FILE` | Rocdown AST |
 | `inspect artifacts [ROOT]` | Planned output and page kinds |
 
-`rocdown` refuses OKF knowledge records; use `rocci-okf`.
+`rocdown` refuses OKF knowledge records; use [okmate](https://github.com/koliyo/okmate).
 
 See [Write Rocdown pages](/docs/rocdown/pages/), [Article blocks](/docs/rocdown/blocks/),
 and [Site configuration](/docs/rocdown/sites/).

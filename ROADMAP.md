@@ -13,9 +13,9 @@ Rocci and Rocdown provide clean, symmetrical application and document pipelines:
    Multi-page documentation sites compile via `rocdown build` using a Rust catalog,
    article rendering, and a once-compiled `RocdownTheme.rocci` shell. Dynamic islands and
    `@island` remain ahead.
-3. **Open Knowledge Format (`okf` & `rocci-okf`)** — The portable `okf` engine manages
-   parsing, validation, graphs, search, and benchmarks without dependencies. The
-   `rocci-okf` application provides review, live reload, and query workflows.
+3. **Open Knowledge Format (`knowledge/` + [okmate](https://github.com/koliyo/okmate))** — Rocci
+   keeps the inert `knowledge/` bundle. The portable `okf` engine and knowledge CLI
+   live in okmate (check, inspect, search, build, view).
 4. **Shell & Presentation (`rocci-desktop` & `rocci-ui`)** — `rocci-desktop` opens a Tao/Wry
    preview window against the local server and bundles macOS apps. `rocci-ui` provides
    domain-neutral view records and presentation components.
@@ -36,7 +36,7 @@ The contract between UI and backend should stay usable in a normal browser.
 - [x] Rocdown SSG: Rust catalog + article HTML, nested routes, graph/nav/validation,
       drafts, hashed assets, CSP, and `rocdown run` / `build`
 - [x] Product consolidation: decouple Rocdown from base Rocci, retire Rocs
-- [x] Portable OKF engine (`okf`) and standalone review app (`rocci-okf`)
+- [x] Portable OKF engine and knowledge app in [okmate](https://github.com/koliyo/okmate); inert `knowledge/` bundle in this repo
 - [x] Domain-neutral presentation components in `rocci-ui`
 - [x] Rename `rocci-wry` to `rocci-desktop`
 - [x] `.rocdown` and `.rocci` LSP and editor registration (VS Code, Zed)

@@ -35,8 +35,8 @@ Change the owning crate. The same table lives in
 - Application documentation staging: `crates/rocci-docs`
 - CLI template build, run, preview, or bundle: `crates/rocci-cli` and `crates/rocci-desktop`
 - CLI document and site build, run, check, or test: `crates/rocci-rocdown-cli`
-- Portable OKF parsing, validation, search, and artifacts: `crates/okf`
-- Knowledge review CLI and bundle tools: `crates/rocci-okf`
+- Portable OKF parsing, validation, search, artifacts, and knowledge CLI: [okmate](https://github.com/koliyo/okmate)
+- Canonical knowledge bundle: `knowledge/`
 - Shared UI primitives: `crates/rocci-ui`
 - Documentation site chrome: `crates/rocci-rocdown/templates/RocdownTheme.rocci`
 - rocci.dev document shell: `site/theme/`

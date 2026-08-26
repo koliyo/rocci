@@ -13,7 +13,7 @@ official Roc language project.
 The workspace is organized into focused packages with strictly enforced one-way boundaries:
 - **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
 - **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).
-- **Open Knowledge Format:** `okf` (portable, UI-neutral knowledge engine), `rocci-okf` (`rocci-okf` application binary and review server).
+- **Open Knowledge Format:** inert `knowledge/` bundle in this repo; parse, check, inspect, search, build, and preview with [okmate](https://github.com/koliyo/okmate).
 - **Tooling:** `rocci-lsp` (generic language-server core and Rocci analyzer), `rocci-rocdown-lsp` (shipped `rocci-language-server` for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
 
 ## Run an example
@@ -97,7 +97,7 @@ cargo run -p rocci-cli -- datastar pin 1.0.2 --app examples/rocci/custom/datasta
 cargo run -p rocci-cli -- datastar update --app examples/rocci/custom/datastar
 ```
 
-To install the release `rocci`, `rocdown`, and `rocci-okf` binaries into
+To install the release `rocci` and `rocdown` binaries into
 `~/.local/bin`, run `uv run rocci-ops install cli`.
 
 ### Rocdown
@@ -116,23 +116,29 @@ Rocdown discovers `.rocdown` files, resolves routes in Rust, renders article HTM
 from the Markdown AST, and wraps each page in [`RocdownTheme.rocci`](crates/rocci-rocdown/templates/RocdownTheme.rocci).
 Content edits do not recompile Markdown as Roc.
 
-### Rocci OKF
+### Knowledge (OKF)
+
+The `knowledge/` tree stays in this repository. Check, inspect, search, build,
+and preview it with [okmate](https://github.com/koliyo/okmate):
 
 ```sh
-cargo run -p rocci-okf -- check knowledge --profile rocci
-cargo run -p rocci-okf -- inspect concept architecture/system-overview knowledge
-cargo run -p rocci-okf -- inspect graph knowledge
-cargo run -p rocci-okf -- search "rendering" knowledge
-cargo run -p rocci-okf -- benchmark knowledge/retrieval-benchmark.toml knowledge
-cargo run -p rocci-okf -- run knowledge
-cargo run -p rocci-okf -- run knowledge/plans/shared/cli-entry-points.md
-cargo run -p rocci-okf -- build knowledge --output dist/knowledge
+okmate check knowledge --profile rocci
+okmate inspect concept architecture/system-overview knowledge
+okmate inspect graph knowledge
+okmate search "rendering" knowledge
+okmate benchmark knowledge/retrieval-benchmark.toml knowledge
+okmate view knowledge
+okmate view knowledge/plans/shared/cli-entry-points.md
+okmate build knowledge --output dist/knowledge
 ```
 
-The separate OKF knowledge path validates, inspects, searches, benchmarks, and renders
-`knowledge/`. Its fixed lexical retrieval questions are measured by
-`rocci-okf benchmark`; the command reports hit rate and mean reciprocal
-rank and fails when the checked-in threshold is missed.
+From a sibling checkout, `cargo run -q --no-default-features --manifest-path
+../okmate/Cargo.toml -p okmate --` is the same CLI. Knowledge CI checks out
+`koliyo/okmate` and runs those bundle commands; engine tests run in the okmate
+repo.
+
+Retrieval questions are measured by `okmate benchmark`; the command reports hit
+rate and mean reciprocal rank and fails when the checked-in threshold is missed.
 
 The public `rocci.dev` tree is [`site`](site), configured by
 [`site/rocdown.toml`](site/rocdown.toml) and written to `dist/rocci.dev`.

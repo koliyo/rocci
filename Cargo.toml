@@ -13,8 +13,6 @@ members = [
     "crates/rocci-lsp",
     "crates/rocci-rocdown-cli",
     "crates/rocci-rocdown-lsp",
-    "crates/okf",
-    "crates/rocci-okf",
     "crates/rocci-ui",
     "crates/rocci-roc-host",
     "crates/rocci-datastar",
@@ -32,8 +30,6 @@ license-file = "LICENSE"
 description = "A Datastar-first .rocci template language and desktop runtime built on tao and wry"
 
 [workspace.dependencies]
-okf = { path = "crates/okf" }
-rocci-okf = { path = "crates/rocci-okf" }
 rocci-ui = { path = "crates/rocci-ui" }
 rocci-roc-host = { path = "crates/rocci-roc-host" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
@@ -88,10 +84,4 @@ opt-level = 3
 opt-level = 3
 
 [profile.dev.package.typed-arena]
-opt-level = 3
-
-[profile.dev.package.yaml-rust]
-opt-level = 3
-
-[profile.dev.package.okf]
 opt-level = 3

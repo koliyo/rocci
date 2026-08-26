@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,30 @@ JOB_NAMES = (
 class Step:
     argv: tuple[str, ...]
     stdout_path: str | None = None
+
+
+def okmate_dir(root: Path) -> Path:
+    if env := os.environ.get("OKMATE_DIR"):
+        return Path(env).expanduser().resolve()
+    sibling = (root / ".." / "okmate").resolve()
+    if (sibling / "Cargo.toml").is_file():
+        return sibling
+    return (root / ".okmate-tool").resolve()
+
+
+def okmate_argv(root: Path, *args: str) -> tuple[str, ...]:
+    return (
+        "cargo",
+        "run",
+        "-q",
+        "--no-default-features",
+        "--manifest-path",
+        str(okmate_dir(root) / "Cargo.toml"),
+        "-p",
+        "okmate",
+        "--",
+        *args,
+    )
 
 
 def _rustup_available() -> bool:
@@ -138,17 +163,10 @@ def steps_for(job: str, root: Path) -> list[Step]:
     if job == "knowledge":
         out = Path("target/knowledge-ci")
         return [
-            Step(("cargo", "test", "-p", "okf")),
-            Step(("cargo", "test", "-p", "rocci-okf")),
             Step(("mkdir", "-p", str(out))),
             Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-okf",
-                    "--",
+                okmate_argv(
+                    root,
                     "check",
                     "knowledge",
                     "--profile",
@@ -159,13 +177,8 @@ def steps_for(job: str, root: Path) -> list[Step]:
                 stdout_path=str(out / "validation.json"),
             ),
             Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-okf",
-                    "--",
+                okmate_argv(
+                    root,
                     "inspect",
                     "--profile",
                     "rocci",
@@ -175,13 +188,8 @@ def steps_for(job: str, root: Path) -> list[Step]:
                 stdout_path=str(out / "graph.json"),
             ),
             Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-okf",
-                    "--",
+                okmate_argv(
+                    root,
                     "benchmark",
                     "knowledge/retrieval-benchmark.toml",
                     "knowledge",
@@ -191,13 +199,8 @@ def steps_for(job: str, root: Path) -> list[Step]:
                 stdout_path=str(out / "retrieval.json"),
             ),
             Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-okf",
-                    "--",
+                okmate_argv(
+                    root,
                     "build",
                     "knowledge",
                     "--output",
@@ -207,13 +210,8 @@ def steps_for(job: str, root: Path) -> list[Step]:
                 )
             ),
             Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-okf",
-                    "--",
+                okmate_argv(
+                    root,
                     "build",
                     "knowledge",
                     "--output",

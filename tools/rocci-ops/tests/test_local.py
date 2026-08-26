@@ -34,7 +34,7 @@ def test_package_vscode_does_not_copy_language_server() -> None:
 
 def test_cli_crates() -> None:
     assert CLI_CRATES[0] == ("rocci-cli", "rocci")
-    assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown", "rocci-okf"}
+    assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown"}
 
 
 def test_install_usage() -> None:
