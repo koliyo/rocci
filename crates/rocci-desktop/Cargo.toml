@@ -3,35 +3,8 @@ name = "rocci-desktop"
 version.workspace = true
 edition.workspace = true
 license-file.workspace = true
-description = "Native desktop shell for Rocci: windows, webviews, and native events"
+description = "Rocci preview facade over h35-desktop"
 
 [dependencies]
+h35-desktop = { workspace = true }
 rocci-core = { workspace = true }
-rocci-ui = { workspace = true }
-muda = { workspace = true }
-png = "0.18"
-serde = { workspace = true }
-serde_json = { workspace = true }
-tao = { workspace = true }
-tokio = { workspace = true }
-tracing = { workspace = true }
-uuid = { workspace = true }
-wry = { workspace = true }
-rfd = { workspace = true }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-objc2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = [
-    "std",
-    "NSApplication",
-    "NSButton",
-    "NSDockTile",
-    "NSEvent",
-    "NSImage",
-    "NSView",
-    "NSWindow",
-] }
-objc2-foundation = { version = "0.3", default-features = false, features = [
-    "std",
-    "NSData",
-] }

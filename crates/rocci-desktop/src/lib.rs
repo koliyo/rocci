@@ -1,390 +1,153 @@
-//! Native window and webview shell built on tao and wry.
+//! Rocci preview window: product defaults on top of `h35-desktop`.
 
-mod chrome;
-mod dialog;
-mod events;
-mod history;
-mod icon;
-mod menu;
-mod preview;
-mod source;
-pub mod state;
-mod window;
+use std::path::PathBuf;
 
-use std::{collections::HashMap, env, fs, path::PathBuf};
+use rocci_core::{Result, WindowConfig};
 
-use rocci_core::{
-    AppEvent, Config, Hooks, ManagedState, Result, RunningBackend, WindowConfig, WindowEvent,
-    WindowId,
-};
-use tao::{
-    event::{Event, StartCause},
-    event_loop::{ControlFlow, EventLoopBuilder, EventLoopWindowTarget},
-    keyboard::ModifiersState,
-};
-use wry::WebContext;
+pub use h35_desktop::{NavigateHandler, PreviewEvent, PreviewSink, display_path};
 
-use crate::window::LiveWindow;
+const ICON_PNG: &[u8] = include_bytes!("../assets/rocci-icon.png");
 
-pub use events::{PreviewEvent, PreviewSink, ShellEvent};
-pub use history::display_path;
-pub use preview::{NavigateHandler, PreviewOptions, preview};
+const COMPAT_SCRIPT: &str = r#"
+(function () {
+  if (window.__h35PreviewNav && !window.__rocciPreviewNav) {
+    window.__rocciPreviewNav = window.__h35PreviewNav;
+  }
+  if (window.__h35Goto && !window.__rocciGoto) {
+    window.__rocciGoto = window.__h35Goto;
+  }
+  if (window.__rocciGoto && window.__h35PreviewNav && !window.__h35PreviewNav.goto) {
+    window.__h35PreviewNav.goto = window.__rocciGoto;
+  }
+  if (window.__h35LiveReload && !window.__rocciLiveReload) {
+    window.__rocciLiveReload = window.__h35LiveReload;
+  }
+  if (window.__h35Picker && !window.__rocciBrowser) {
+    window.__rocciBrowser = window.__h35Picker;
+  }
+  window.addEventListener("h35-pick-folder", function (event) {
+    window.dispatchEvent(new CustomEvent("rocci-pick-folder", { detail: event.detail }));
+  });
+})();
+"#;
 
-pub struct RunOptions {
-    pub config: Config,
-    pub backend: Box<dyn RunningBackend>,
-    pub runtime: tokio::runtime::Runtime,
-    pub state: ManagedState,
-    pub hooks: Hooks,
+pub type IpcHandler = h35_desktop::IpcHandler;
+
+pub struct PreviewOptions {
+    pub url: String,
+    pub title: String,
+    pub width: f64,
+    pub height: f64,
     pub devtools: bool,
-    pub reload: bool,
+    pub state_key: Option<String>,
+    pub inspector_url: Option<String>,
+    pub source_root: Option<PathBuf>,
+    pub live_reload: bool,
+    pub extra_initialization_script: Option<String>,
+    pub on_ipc: Option<IpcHandler>,
+    pub on_navigate: Option<NavigateHandler>,
+    pub home_url: Option<String>,
+    pub picker: bool,
 }
 
-struct Shell {
-    config: Config,
-    backend: Box<dyn RunningBackend>,
-    windows: HashMap<WindowId, LiveWindow>,
-    tao_ids: HashMap<tao::window::WindowId, WindowId>,
-    focused: Option<WindowId>,
-    hooks: Hooks,
-    devtools: bool,
-    reload: bool,
-    menu: menu::NativeMenu,
-    modifiers: ModifiersState,
-}
-
-pub fn run(mut options: RunOptions) -> Result<()> {
-    if let Some(setup) = options.hooks.setup.take() {
-        setup(&options.state)?;
-    }
-
-    let event_loop = EventLoopBuilder::<ShellEvent>::with_user_event().build();
-
-    let native_menu = menu::NativeMenu::install(
-        event_loop.create_proxy(),
-        menu::MenuConfig {
-            app_name: &options.config.app.name,
-            version: options.config.app.version.as_deref(),
-            new_window: true,
-            navigation: false,
-            search: false,
-            reload: options.reload,
-            live_reload_on: true,
-            devtools: options.devtools,
+impl Default for PreviewOptions {
+    fn default() -> Self {
+        let defaults = WindowConfig::default();
+        Self {
+            url: String::new(),
+            title: defaults.title,
+            width: defaults.width,
+            height: defaults.height,
+            devtools: true,
+            state_key: None,
+            inspector_url: None,
+            source_root: None,
+            live_reload: true,
+            extra_initialization_script: None,
+            on_ipc: None,
+            on_navigate: None,
+            home_url: None,
             picker: false,
-        },
-    )?;
+        }
+    }
+}
 
-    let mut shell = Shell {
-        config: options.config,
-        backend: options.backend,
-        windows: HashMap::new(),
-        tao_ids: HashMap::new(),
-        focused: None,
-        hooks: options.hooks,
+pub fn state_dir() -> Option<PathBuf> {
+    if let Ok(dir) = std::env::var("ROCCI_STATE_DIR")
+        && !dir.is_empty()
+    {
+        return Some(PathBuf::from(dir));
+    }
+    if let Ok(home) = std::env::var("ROCCI_HOME")
+        && !home.is_empty()
+    {
+        return Some(PathBuf::from(home).join(".rocci").join("state"));
+    }
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
+    Some(PathBuf::from(home).join(".rocci").join("state"))
+}
+
+pub fn preview(options: PreviewOptions) -> Result<()> {
+    let identifier = options
+        .state_key
+        .clone()
+        .unwrap_or_else(|| "preview".to_string());
+    let state_dir = state_dir().unwrap_or_else(|| PathBuf::from("."));
+    let mut extra = COMPAT_SCRIPT.to_string();
+    if let Some(more) = &options.extra_initialization_script {
+        extra.push('\n');
+        extra.push_str(more);
+    }
+    h35_desktop::preview(h35_desktop::HostOptions {
+        title: options.title,
+        identifier,
+        state_dir,
+        url: options.url,
+        home_url: options.home_url,
+        icon_png: Some(ICON_PNG),
+        live_reload: options.live_reload,
+        source_root: options.source_root,
+        inspector_url: options.inspector_url,
+        picker: options.picker,
+        goto: true,
+        find: true,
+        width: options.width,
+        height: options.height,
         devtools: options.devtools,
-        reload: options.reload,
-        menu: native_menu,
-        modifiers: ModifiersState::empty(),
-    };
-
-    let templates: Vec<WindowConfig> = shell
-        .config
-        .windows
-        .iter()
-        .filter(|window| window.visible)
-        .cloned()
-        .collect();
-    for template in templates {
-        shell.open_window(&event_loop, &template, None)?;
-    }
-    shell.hooks.emit(&AppEvent::Ready);
-
-    let runtime = options.runtime;
-    event_loop.run(move |event, event_loop, control_flow| {
-        *control_flow = ControlFlow::Wait;
-        let _runtime = &runtime;
-
-        match event {
-            Event::NewEvents(StartCause::Init) => crate::icon::apply_host_icon(),
-            Event::WindowEvent {
-                window_id: tao_id,
-                event,
-                ..
-            } => {
-                if let Some(id) = shell.tao_ids.get(&tao_id).cloned() {
-                    shell.handle_window_event(event_loop, control_flow, id, event);
-                }
-            }
-            #[cfg(target_os = "macos")]
-            Event::Reopen {
-                has_visible_windows,
-                ..
-            } => {
-                shell.hooks.emit(&AppEvent::Reopen {
-                    has_visible_windows,
-                });
-                if !has_visible_windows
-                    && let Some(template) = shell.config.windows.first().cloned()
-                    && let Err(error) = shell.open_window(event_loop, &template, None)
-                {
-                    tracing::error!(%error, "failed to reopen window");
-                }
-            }
-            Event::UserEvent(user_event) => {
-                shell.handle_user_event(event_loop, control_flow, user_event)
-            }
-            Event::LoopDestroyed => {
-                for (id, live) in &shell.windows {
-                    let state_key = format!("{}:{}", shell.config.app.identifier, id.as_str());
-                    state::persist_window_state(&state_key, &live.window);
-                }
-                shell.hooks.emit(&AppEvent::Exited);
-                if let Some(on_exit) = shell.hooks.on_exit.take() {
-                    on_exit();
-                }
-                shell.backend.shutdown();
-            }
-            _ => {}
-        }
-    });
+        extra_initialization_script: Some(extra),
+        on_ipc: options.on_ipc,
+        on_navigate: options.on_navigate,
+    })
+    .map_err(|error| rocci_core::Error::message(error))
 }
 
-impl Shell {
-    fn open_window(
-        &mut self,
-        event_loop: &EventLoopWindowTarget<ShellEvent>,
-        template: &WindowConfig,
-        id: Option<WindowId>,
-    ) -> Result<()> {
-        let id = id.unwrap_or_else(|| self.allocate_id(&template.label));
-        let url = self.backend.attach_window(&id, &template.url)?;
-        let context = WebContext::new(Some(web_context_dir(&self.config.app.identifier, &id)));
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let state_key = format!("{}:{}", self.config.app.identifier, template.label);
-        let saved_state = state::load_window_state(&state_key);
-        let mut template = template.clone();
-        if let Some(state) = &saved_state
-            && state.width >= 100.0
-            && state.height >= 100.0
-        {
-            template.width = state.width;
-            template.height = state.height;
-        }
+    #[test]
+    fn compat_script_aliases_product_names() {
+        assert!(COMPAT_SCRIPT.contains("__rocciPreviewNav"));
+        assert!(COMPAT_SCRIPT.contains("__rocciGoto"));
+        assert!(COMPAT_SCRIPT.contains("rocci-pick-folder"));
+        assert!(COMPAT_SCRIPT.contains("h35-pick-folder"));
+    }
 
-        let (initial_position, initial_maximized) = match &saved_state {
-            Some(state) => {
-                let visible = state::is_position_visible(
-                    event_loop,
-                    state.x,
-                    state.y,
-                    template.width,
-                    template.height,
-                );
-                let pos = if visible {
-                    Some(state.position())
-                } else {
-                    None
-                };
-                (pos, state.is_maximized)
-            }
-            None => (None, false),
+    #[test]
+    fn host_options_use_state_key_as_identifier() {
+        let options = PreviewOptions {
+            state_key: Some("rocci:view".into()),
+            url: "http://127.0.0.1:9/".into(),
+            ..PreviewOptions::default()
         };
-
-        let live = LiveWindow::create(
-            event_loop,
-            &template,
-            id.clone(),
-            url,
-            context,
-            self.devtools,
-            window::WebViewHooks::default(),
-            initial_position,
-            initial_maximized,
-            false,
-        )?;
-        self.menu.attach(&live.window)?;
-        let tao_id = live.window.id();
-        self.tao_ids.insert(tao_id, id.clone());
-        self.windows.insert(id.clone(), live);
-        self.focused = Some(id.clone());
-        self.hooks.emit(&AppEvent::Window {
-            id,
-            event: WindowEvent::Created,
-        });
-        Ok(())
+        let identifier = options.state_key.unwrap();
+        assert_eq!(identifier, "rocci:view");
     }
 
-    fn allocate_id(&self, label: &str) -> WindowId {
-        let base = WindowId::new(label);
-        if !self.windows.contains_key(&base) {
-            return base;
-        }
-        for index in 2.. {
-            let candidate = WindowId::new(format!("{label}-{index}"));
-            if !self.windows.contains_key(&candidate) {
-                return candidate;
-            }
-        }
-        base
+    #[test]
+    fn ipc_handler_type_is_send() {
+        let _handler: Option<
+            std::sync::Arc<dyn Fn(&str, std::sync::Arc<dyn PreviewSink>) + Send + Sync>,
+        > = None;
     }
-
-    fn handle_window_event(
-        &mut self,
-        event_loop: &EventLoopWindowTarget<ShellEvent>,
-        control_flow: &mut ControlFlow,
-        id: WindowId,
-        event: tao::event::WindowEvent,
-    ) {
-        if let Some(mapped) = events::map_window_event(&event) {
-            self.hooks.emit(&AppEvent::Window {
-                id: id.clone(),
-                event: mapped,
-            });
-        }
-
-        match event {
-            tao::event::WindowEvent::CloseRequested => self.close_window(id, control_flow),
-            tao::event::WindowEvent::KeyboardInput { event, .. }
-                if events::is_close_key_event(&event, self.modifiers) =>
-            {
-                self.close_window(id, control_flow);
-            }
-            tao::event::WindowEvent::Moved(_) | tao::event::WindowEvent::Resized(_) => {
-                if let Some(live) = self.windows.get(&id) {
-                    live.sync_unified_chrome();
-                    let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
-                    state::persist_window_state(&state_key, &live.window);
-                }
-            }
-            tao::event::WindowEvent::ModifiersChanged(modifiers) => {
-                self.modifiers = modifiers;
-            }
-            tao::event::WindowEvent::Focused(true) => self.focused = Some(id),
-            tao::event::WindowEvent::Destroyed => {
-                let _ = event_loop;
-            }
-            _ => {}
-        }
-    }
-
-    fn close_window(&mut self, id: WindowId, control_flow: &mut ControlFlow) {
-        if let Some(live) = self.windows.remove(&id) {
-            let state_key = format!("{}:{}", self.config.app.identifier, id.as_str());
-            state::persist_window_state(&state_key, &live.window);
-            self.tao_ids.remove(&live.window.id());
-            self.backend.detach_window(&id);
-            if self.focused.as_ref() == Some(&id) {
-                self.focused = self.windows.keys().next().cloned();
-            }
-            self.hooks.emit(&AppEvent::Window {
-                id,
-                event: WindowEvent::Destroyed,
-            });
-        }
-
-        if self.windows.is_empty() {
-            #[cfg(target_os = "macos")]
-            {
-                let _ = control_flow;
-            }
-            #[cfg(not(target_os = "macos"))]
-            {
-                self.hooks.emit(&AppEvent::ExitRequested);
-                self.backend.shutdown();
-                *control_flow = ControlFlow::Exit;
-            }
-        }
-    }
-
-    fn handle_user_event(
-        &mut self,
-        event_loop: &EventLoopWindowTarget<ShellEvent>,
-        control_flow: &mut ControlFlow,
-        event: ShellEvent,
-    ) {
-        match event {
-            ShellEvent::NewWindow => {
-                if let Some(template) = self.config.windows.first().cloned()
-                    && let Err(error) = self.open_window(event_loop, &template, None)
-                {
-                    tracing::error!(%error, "failed to open window");
-                }
-            }
-            ShellEvent::Menu(menu_event) => {
-                let id = menu_event.id().as_ref().to_owned();
-                self.hooks.emit(&AppEvent::Menu { id: id.clone() });
-                if menu::is(&menu_event, menu::NEW_WINDOW_ID) {
-                    self.handle_user_event(event_loop, control_flow, ShellEvent::NewWindow);
-                } else if menu::is(&menu_event, menu::QUIT_ID) {
-                    let ids: Vec<WindowId> = self.windows.keys().cloned().collect();
-                    for id in ids {
-                        self.close_window(id, control_flow);
-                    }
-                    self.hooks.emit(&AppEvent::ExitRequested);
-                    self.backend.shutdown();
-                    *control_flow = ControlFlow::Exit;
-                } else if menu::is(&menu_event, menu::CLOSE_WINDOW_ID) {
-                    if let Some(id) = self.focused.clone() {
-                        self.close_window(id, control_flow);
-                    }
-                } else if menu::is(&menu_event, menu::SELECT_ALL_ID) {
-                    self.select_all_focused();
-                } else if self.reload && menu::is(&menu_event, menu::RELOAD_ID) {
-                    self.reload_focused();
-                } else if self.reload && menu::is(&menu_event, menu::LIVE_RELOAD_ID) {
-                    self.set_focused_live_reload();
-                } else if self.devtools && menu::is(&menu_event, menu::WEB_INSPECTOR_ID) {
-                    self.toggle_inspector();
-                }
-            }
-            ShellEvent::Preview(_) => {}
-        }
-    }
-
-    fn reload_focused(&self) {
-        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
-            && let Err(error) = window.webview.reload()
-        {
-            tracing::error!(%error, "failed to reload webview");
-        }
-    }
-
-    fn set_focused_live_reload(&self) {
-        let script = chrome::live_reload_set_script(self.menu.live_reload_checked());
-        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
-            && let Err(error) = window.webview.evaluate_script(&script)
-        {
-            tracing::error!(%error, "failed to set live reload in webview");
-        }
-    }
-
-    fn select_all_focused(&self) {
-        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id))
-            && let Err(error) = window.webview.evaluate_script(chrome::SELECT_ALL_SCRIPT)
-        {
-            tracing::error!(%error, "failed to select all in webview");
-        }
-    }
-
-    fn toggle_inspector(&self) {
-        if let Some(window) = self.focused.as_ref().and_then(|id| self.windows.get(id)) {
-            if window.webview.is_devtools_open() {
-                window.webview.close_devtools();
-            } else {
-                window.webview.open_devtools();
-            }
-        }
-    }
-}
-
-pub(crate) fn web_context_dir(identifier: &str, window: &WindowId) -> PathBuf {
-    let dir = env::temp_dir()
-        .join("rocci")
-        .join(identifier)
-        .join(window.as_str());
-    if let Err(error) = fs::create_dir_all(&dir) {
-        tracing::warn!(%error, path = %dir.display(), "failed to create webview data directory");
-    }
-    dir
 }
