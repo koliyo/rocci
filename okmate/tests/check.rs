@@ -1,45 +1,12 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+mod common;
 
+use std::fs;
+use std::process::Command;
+
+use common::{okmate_bin, temp_dir, valid_rocci_concept, write_index};
 use okf::Profile;
 
-fn okmate_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_okmate"))
-}
-
-fn temp_dir(name: &str) -> PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let path = std::env::temp_dir().join(format!(
-        "okmate-check-{}-{}-{}",
-        name,
-        std::process::id(),
-        nonce
-    ));
-    let _ = fs::remove_dir_all(&path);
-    fs::create_dir_all(&path).unwrap();
-    path
-}
-
-fn write_index(root: &Path) {
-    fs::write(
-        root.join("index.md"),
-        "---\nokf_version: \"0.2\"\n---\n\n# Knowledge\n",
-    )
-    .unwrap();
-}
-
-fn valid_rocci_concept(id: &str, body: &str) -> String {
-    format!(
-        "---\ntype: Architecture\ntitle: {id}\ndescription: Test concept {id}.\ntags: [domain/rocci, concern/architecture]\nstatus: draft\ngenerated: {{ by: process:test, at: 2026-08-17T00:00:00Z }}\nauthority: descriptive\nowners: [human:nils]\n---\n\n# {id}\n\n{body}\n"
-    )
-}
-
-fn run_check_json(root: &Path) -> (bool, String) {
+fn run_check_json(root: &std::path::Path) -> (bool, String) {
     let output = Command::new(okmate_bin())
         .arg("check")
         .arg(root)
@@ -76,7 +43,7 @@ fn check_json_matches_okf_on_valid_bundle() {
     write_index(&root);
     fs::write(
         root.join("hello.md"),
-        valid_rocci_concept("Hello", "A valid concept body."),
+        valid_rocci_concept("Hello", "", "A valid concept body."),
     )
     .unwrap();
 
