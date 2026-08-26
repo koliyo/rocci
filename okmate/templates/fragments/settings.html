@@ -55,12 +55,37 @@
   <p class="okmate-settings-help">Pick the directory that contains <code>index.md</code> (often named <code>knowledge</code>). Paste the folder path here; Choose folder is available in the desktop window.</p>
   <form method="post" action="/__okmate/settings" class="okmate-settings-stack" data-on:submit="@post('/__okmate/settings')">
     <input type="hidden" name="action" value="add_directory">
-    <label>Short id <input name="id" placeholder="rocci"></label>
+    <label>Short id <input id="okmate-dir-id" name="id" placeholder="rocci"></label>
     <p class="okmate-settings-help">Stable name used in <code>okf:id/…</code> links.</p>
-    <label>Folder path <input name="path" placeholder="~/Projects/rocci/knowledge"></label>
-    <p class="okmate-settings-help">Absolute path, or <code>~</code> for your home directory.</p>
+    <label>Folder path <input id="okmate-dir-path" name="path" placeholder="~/Projects/rocci/knowledge"></label>
+    <p class="okmate-settings-help">Absolute path, or <code>~</code> for your home directory. You can paste a path if Choose folder is hidden.</p>
+    <button type="button" id="okmate-choose-folder" hidden>Choose folder…</button>
     <button type="submit">Add folder</button>
   </form>
+  <script>
+  (function(){
+    var browse = document.getElementById("okmate-choose-folder");
+    var path = document.getElementById("okmate-dir-path");
+    var id = document.getElementById("okmate-dir-id");
+    if (!browse || browse.dataset.bound === "1") return;
+    if (!(window.ipc && window.ipc.postMessage)) return;
+    browse.dataset.bound = "1";
+    browse.hidden = false;
+    window.addEventListener("okmate-pick-folder", function(ev){
+      var picked = ev.detail && ev.detail.path;
+      if (!picked || !path) return;
+      path.value = picked;
+      if (id && !id.value.trim()) {
+        var parts = String(picked).replace(/\\/g, "/").replace(/\/$/, "").split("/");
+        id.value = parts[parts.length - 1] || "";
+      }
+    });
+    browse.addEventListener("click", function(e){
+      e.preventDefault();
+      window.ipc.postMessage("pick-folder");
+    });
+  })();
+  </script>
 
   <h2>Add a git repository</h2>
   <p class="okmate-settings-help">Prefer <code>token_env</code> over pasting a token.</p>

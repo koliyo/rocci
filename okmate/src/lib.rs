@@ -2,6 +2,7 @@
 
 pub mod cli;
 pub mod config;
+pub mod desktop;
 pub mod http;
 pub mod preview;
 pub mod site;

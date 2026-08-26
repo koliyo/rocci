@@ -56,7 +56,7 @@ enum Commands {
         #[arg(long, value_enum, default_value_t = ProfileArg::Rocci)]
         profile: ProfileArg,
     },
-    /// Preview an OKF bundle with live reload (headless in this release).
+    /// Preview an OKF bundle with live reload.
     View {
         /// Knowledge bundle directory or a Markdown file inside one.
         path: Option<PathBuf>,
@@ -227,15 +227,13 @@ pub fn run() -> Result<()> {
             no_window,
             public,
             port,
-        } => {
-            let _ = no_window;
-            crate::preview::run(crate::preview::ViewOptions {
-                path,
-                output,
-                profile: profile.into(),
-                public,
-                port,
-            })
-        }
+        } => crate::preview::run(crate::preview::ViewOptions {
+            path,
+            output,
+            profile: profile.into(),
+            public,
+            port,
+            no_window,
+        }),
     }
 }

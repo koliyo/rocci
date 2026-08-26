@@ -24,14 +24,65 @@ pub struct ViewOptions {
     pub profile: Profile,
     pub public: bool,
     pub port: u16,
+    pub no_window: bool,
+}
+
+pub struct ServerReady {
+    pub home_url: String,
+    pub initial_url: String,
 }
 
 pub fn run(options: ViewOptions) -> Result<()> {
-    let runtime = tokio::runtime::Runtime::new().context("failed to start tokio runtime")?;
-    runtime.block_on(run_async(options))
+    if options.no_window {
+        let runtime = tokio::runtime::Runtime::new().context("failed to start tokio runtime")?;
+        runtime.block_on(run_headless(options))
+    } else {
+        crate::desktop::run(options)
+    }
 }
 
-async fn run_async(options: ViewOptions) -> Result<()> {
+async fn run_headless(options: ViewOptions) -> Result<()> {
+    prepare(options).await?.serve().await
+}
+
+pub(crate) async fn serve_ready(
+    options: ViewOptions,
+    ready: std::sync::mpsc::Sender<Result<ServerReady>>,
+) -> Result<()> {
+    match prepare(options).await {
+        Ok(prepared) => {
+            let _ = ready.send(Ok(ServerReady {
+                home_url: prepared.home_url.clone(),
+                initial_url: prepared.initial_url.clone(),
+            }));
+            prepared.serve().await
+        }
+        Err(error) => {
+            let _ = ready.send(Err(anyhow::anyhow!("{error:#}")));
+            Err(error)
+        }
+    }
+}
+
+struct PreparedView {
+    listener: tokio::net::TcpListener,
+    state: crate::http::AppState,
+    home_url: String,
+    initial_url: String,
+}
+
+impl PreparedView {
+    async fn serve(self) -> Result<()> {
+        axum::serve(
+            self.listener,
+            router(self.state).into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        )
+        .await
+        .context("okmate view server stopped")
+    }
+}
+
+async fn prepare(options: ViewOptions) -> Result<PreparedView> {
     let target = resolve_target(options.path.as_deref())?;
     persist_bundle(&target.root);
     let output = output_path(options.output.as_deref(), &target.root);
@@ -60,18 +111,27 @@ async fn run_async(options: ViewOptions) -> Result<()> {
         }
     });
 
-    axum::serve(
+    let home_url = crate::desktop::home_url(bound);
+    let initial_url = format!(
+        "{}{}",
+        home_url.trim_end_matches('/'),
+        if target.open_path.starts_with('/') {
+            target.open_path.clone()
+        } else {
+            format!("/{}", target.open_path)
+        }
+    );
+    Ok(PreparedView {
         listener,
-        router(crate::http::AppState {
+        state: crate::http::AppState {
             output,
-            root: target.root.clone(),
+            root: target.root,
             profile: options.profile,
             config_path: crate::config::config_path(),
-        })
-        .into_make_service_with_connect_info::<std::net::SocketAddr>(),
-    )
-    .await
-    .context("okmate view server stopped")
+        },
+        home_url,
+        initial_url,
+    })
 }
 
 pub fn resolve_target(path: Option<&Path>) -> Result<okf::PreviewTarget> {

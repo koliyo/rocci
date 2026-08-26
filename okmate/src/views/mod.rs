@@ -223,6 +223,8 @@ mod tests {
         assert!(html.contains("id=\"okmate-settings\""));
         assert!(html.contains("id=\"okmate-nav\""));
         assert!(html.contains("No roots yet"));
+        assert!(html.contains("Choose folder"));
+        assert!(html.contains("pick-folder"));
     }
 
     #[test]
