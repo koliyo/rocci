@@ -4,7 +4,7 @@ title: Efficient publishing workflow for pre-built Rocdown sites and Rocci apps
 description: "Build once on a toolchain host, then host artifacts. Phases 1–5 implemented on this branch (static Caddy, package/serve, musl --target, slim hybrid and app images). Phase 6 is a no-go: musl remains the portable process story; Wasm remains apply. Exploratory until CI and Knowledge workflows succeed."
 tags: [domain/rocdown, domain/rocci, concern/packaging, concern/publication, concern/architecture, integration/roc, concern/ci]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T07:22:49Z }
+generated: { by: process:cursor, at: 2026-08-28T18:31:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -127,6 +127,11 @@ sources:
     title: Minimal wasm32 apply platform
     author: process:git
     last_modified: 2026-08-18
+  - id: wasi-http-gaps
+    resource: ../../research/rocci/basic-webserver-wasi.md
+    title: WASI HTTP adapter gaps; 0.3 native async vs 0.16 OS threads
+    author: process:cursor
+    last_modified: 2026-08-28
   - id: native-target-rs
     resource: ../../../crates/rocci-cli/src/native_target.rs
     title: Native process --target for musl island and app binaries
@@ -455,8 +460,10 @@ Comparison recorded here, not as a new platform plan:
   container process target. Failed musl builds do not fall back to a
   host-native binary.[^native-target-rs][^roc-cross-ci]
 - **one Wasm HTTP module** — would need WASI-HTTP (or equivalent) plus
-  SQLite/WASI capabilities. The apply wasm32 platform has no HTTP; do
-  not extend it with fake HTTP.[^wasm-platform][^generation-plan]
+  SQLite/WASI capabilities. WASI 0.3 native async can overlap typical
+  I/O waits without OS thread pools; the missing piece is still a new
+  HTTP platform, not apply wasm. The apply wasm32 platform has no HTTP;
+  do not extend it with fake HTTP.[^wasm-platform][^generation-plan][^wasi-http-gaps]
 - **Wasmtime vs Wasm edge** — Wasmtime stays the apply host. Edge Wasm
   hosting is not required while musl containers work.
 
@@ -528,6 +535,7 @@ that revision.
 [^hybrid-plan]: CDN-only vs live; `docs/` static.
 [^generation-plan]: Wasmtime apply host; later glue; no compiler embed.
 [^wasm-platform]: No HTTP on the embedded wasm32 platform.
+[^wasi-http-gaps]: Adapter host; WASI 0.3 async multiplexes I/O; 0.16 OS threads are a native process detail.
 [^native-target-rs]: `x64musl` / `arm64musl` for island and app `roc build`; no host-native fallback.
 [^islands-dockerfile]: Slim `debian:bookworm-slim` image copies the precompiled `islands` binary only.
 [^roc-host-readme]: Native vs wasm apply; cached `apply` / `components.wasm`.

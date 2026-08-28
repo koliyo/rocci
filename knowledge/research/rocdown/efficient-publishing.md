@@ -4,7 +4,7 @@ title: Efficient publishing of Rocdown sites and Rocci apps
 description: "Evidence for a build-once, host-the-artifact publishing workflow. Local Docker should serve pre-built trees, not compile Rocci. Keep native apply and native process binaries; Wasm is optional apply only. Roc --target can emit Linux musl from macOS when the platform ships that host. Exploratory; not an approved product contract."
 tags: [domain/rocdown, domain/rocci, concern/packaging, concern/publication, concern/architecture, integration/roc]
 status: draft
-generated: { by: process:cursor, at: 2026-08-28T14:20:00Z }
+generated: { by: process:cursor, at: 2026-08-28T18:31:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -148,7 +148,7 @@ sources:
     last_modified: 2026-08-18
   - id: wasi-http-gaps
     resource: ../rocci/basic-webserver-wasi.md
-    title: Gaps for running basic-webserver as a WASI HTTP module
+    title: Gaps for running basic-webserver as a WASI HTTP module, including WASI 0.3 async
     author: process:cursor
     last_modified: 2026-08-28
 ---
@@ -301,7 +301,8 @@ Wasm.[^build-rs][^roc-host-readme]
 **Runtime HTTP (not available).** The wasm platform is `main! : {} =>
 Result` with no HTTP. `basic-cli` / `basic-webserver` do not support
 `wasm32`. Island and app servers cannot be that module. Gap inventory
-(listen inversion, threads, SSE, sqlite, extra Rust adapter): [basic-webserver
+(listen inversion, WASI 0.3 async vs blocking Roc ABI, SSE streams,
+sqlite, extra Rust adapter): [basic-webserver
 WASI HTTP](/research/rocci/basic-webserver-wasi.md).[^wasm-platform][^build-rs][^generation-research][^basic-cli-platform][^basic-webserver-platform][^wasi-http-gaps]
 
 So:
@@ -425,4 +426,4 @@ flowchart LR
 [^basic-cli-platform]: Targets x64mac, arm64mac, x64win, x64musl, arm64musl; no wasm32.
 [^basic-webserver-platform]: Same native target names as basic-cli; no wasm32.
 [^roc-cross-ci]: Compiler CI matrix: macOS hosts build x64musl and arm64musl test apps.
-[^wasi-http-gaps]: WASI HTTP needs a new adapter host; listen inversion, threads, SSE, sqlite.
+[^wasi-http-gaps]: WASI HTTP needs a new adapter host; listen inversion, 0.3 async I/O, SSE streams, sqlite. OS thread pools are a 0.16 process detail, not a WASI requirement.
