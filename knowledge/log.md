@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-08-28
+
+- Added draft [gaps for running basic-webserver as a WASI HTTP module](research/rocci/basic-webserver-wasi.md): 0.16 has no wasm32 target; portable WASI HTTP inverts TCP listen into a `handle` export; extra Rust must adapt Roc ABI, SSE, and a subset of hosted effects. Pointed [efficient publishing](research/rocdown/efficient-publishing.md) at that inventory. Exploratory; not a plan. Do not log complete until CI and Knowledge succeed.
+
 ## 2026-08-26
 
 - Moved engine and okmate-app discussions to [okmate knowledge](https://github.com/koliyo/okmate/tree/main/knowledge). Rocci keeps pointer stubs at the same paths. Compile/render, site lane, nested-collections, and knowledge-log-concurrency stay here. Exploratory; do not log complete until CI and Knowledge succeed.
