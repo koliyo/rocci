@@ -134,6 +134,9 @@ import PageOutline
         display: grid;
         grid-template-columns: var(--rocci-nav-width, 17rem) minmax(0, 1fr) var(--rocci-outline-width, 13.5rem);
     }
+    .site-grid.is-plain {
+        grid-template-columns: minmax(0, 1fr);
+    }
     .sidebar {
         position: sticky;
         top: var(--header-height);
@@ -173,16 +176,6 @@ import PageOutline
         padding-right: 1.75rem;
     }
     .nav-section summary::-webkit-details-marker { display: none; }
-    .nav-section summary::after {
-        content: "+";
-        position: absolute;
-        right: .68rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--faint);
-        font-weight: 500;
-    }
-    .nav-section[open] > summary::after { content: "−"; }
     .nav-label {
         margin: 0 0 .42rem .68rem;
         color: var(--faint);
@@ -1066,12 +1059,6 @@ import PageOutline
                     </details>
                 </div>
             </header>
-            @if route == "/" {
-                <ExperimentalBanner />
-            }
-            @if route == "/docs/" {
-                <ExperimentalBanner />
-            }
             <div class={
                 if layout == "plain" {
                     "site-grid is-plain"

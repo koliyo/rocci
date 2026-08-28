@@ -89,11 +89,28 @@ import Html
         font-weight: 700;
     }
     .rd-docs-steps { padding-left: 0; margin: 1.25rem 0; counter-reset: rd-step; list-style: none; }
-    .rd-docs-step { margin: 0.75rem 0; padding-left: 1.6rem; counter-increment: rd-step; }
+    .rd-docs-step {
+        display: grid;
+        grid-template-columns: 1.6rem minmax(0, 1fr);
+        margin: 0.75rem 0;
+        counter-increment: rd-step;
+    }
     .rd-docs-step::before {
-        content: counter(rd-step) ". ";
-        margin-left: -1.6rem;
+        content: counter(rd-step) ".";
+        grid-column: 1;
+        grid-row: 1;
         font-weight: 700;
+    }
+    .rd-docs-step > .rd-docs-verify,
+    .rd-docs-step > .rd-docs-title {
+        grid-column: 2;
+        margin: 0 0 0.15rem;
+    }
+    .rd-docs-step:not(:has(.rd-docs-verify)) > .rd-docs-title {
+        grid-row: 1;
+    }
+    .rd-docs-step > .rd-docs-body {
+        grid-column: 2;
     }
     .rd-docs-verify {
         display: inline-block;
