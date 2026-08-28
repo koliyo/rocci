@@ -4,7 +4,7 @@ title: Use explicit islands for browser-owned behavior
 description: Proposed Rocci client islands would isolate keyboard, canvas, drag, media, and third-party behavior without changing server-rendered component semantics.
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/rendering, concern/security]
 status: draft
-generated: { by: process:okf-migration, at: 2026-08-16T18:00:00Z }
+generated: { by: process:cursor, at: 2026-08-28T17:45:00Z }
 stale_after: 2026-11-14
 authority: exploratory
 owners: [human:nils]
@@ -24,6 +24,16 @@ sources:
     title: Roc and Datastar component architecture report
     author: human:nils
     last_modified: 2026-08-15
+  - id: rocket-now
+    resource: ../research/rocci/datastar-rocket.md
+    title: Datastar Rocket and Rocci-native islands (current)
+    author: process:cursor
+    last_modified: 2026-08-28
+  - id: blockers
+    resource: ../research/rocci/client-behavior-islands.md
+    title: "@island design blockers"
+    author: process:cursor
+    last_modified: 2026-08-28
 ---
 
 # Use explicit islands for browser-owned behavior
@@ -54,8 +64,10 @@ The explicit boundary costs more syntax than implicit hydration but makes browse
 
 ## Current disposition
 
-Proposed and unimplemented as of 2026-08-16. The reports support the direction, but neither the syntax nor the runtime contract appears in the approved decision register. Human review may accept, revise, or reject this record without changing the shipped language.
+Proposed and unimplemented as of 2026-08-16. The reports support the direction, but neither the syntax nor the runtime contract appears in the approved decision register. Human review may accept, revise, or reject this record without changing the shipped language. Current Rocket restatement: [`datastar-rocket`](/research/rocci/datastar-rocket.md). Open questions and Stage 0 → Stage 1 sequence: [`@island` design](/research/rocci/client-behavior-islands.md).[^rocket-now][^blockers]
 
 [^rocket-report]: Proposed island architecture, lifecycle, artifact model, alternatives, and licensing constraint from the untracked 2026-08-14 investigation.
 [^snake-study]: Concrete keyboard-input case and the boundary between authoritative server state and ephemeral browser behavior.
 [^runtime-report]: Current pure-render and server-owned application architecture that an island must preserve.
+[^rocket-now]: 2026-08-28 restatement of the archive against shipped Rocci.
+[^blockers]: Plan-readiness questions; Stage 0 spike still required.

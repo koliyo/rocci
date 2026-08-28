@@ -1,7 +1,9 @@
 # Rocket-style client components inside Rocci
 
 **Investigation date:** 2026-08-14
-**Status:** Architecture and syntax report. All proposed syntax is illustrative.
+**Status:** Historical architecture report. All proposed syntax is illustrative.
+**Current research:** `knowledge/research/rocci/datastar-rocket.md` (2026-08-28 restatement). Plan blockers: `knowledge/research/rocci/client-behavior-islands.md`.
+**Do not treat as current:** `flowCanvas = island` / `component |{…}|` sketches, `crates/rocci-http`, “no in-repo client JS”, compile-has-no-CSS, or site `script-src 'none'`. Snake now ships `examples/rocci/custom/snake/assets/snake-input.js` (document-level, not a custom element).
 **Primary references:** [Datastar Rocket reference](https://data-star.dev/reference/rocket), [Rocket Flow example](https://data-star.dev/examples/rocket_flow), and [Datastar Pro licensing](https://data-star.dev/pro).
 
 ## Executive summary

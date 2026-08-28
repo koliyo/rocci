@@ -8,6 +8,9 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-28
 
+- Added draft [Datastar Rocket and Rocci-native islands (current)](research/rocci/datastar-rocket.md): restates the 2026-08-14 archive against shipped Rocci (`@component`, no `rocci-http`, `CompileOutput` styles, site `goto.js` CSP, Snake `snake-input.js`). Custom-element morph identity still unproven. Pointed the archive header and [`@island` blockers](research/rocci/client-behavior-islands.md) at it. Exploratory; do not log complete until CI and Knowledge succeed.
+- Added draft [`@island` design blockers and recommended approach](research/rocci/client-behavior-islands.md): reserved client-behavior islands are designed not approved; do not plan grammar until a no-syntax Datastar-morph spike and a human accept/reject of [client-behavior islands](decisions/client-behavior-islands.md). Pointed [hybrid hydration](research/rocdown/hybrid-island-hydration.md) at that. Exploratory; do not log complete until CI and Knowledge succeed.
+- Added draft [hybrid island hydration versus SSR island frameworks](research/rocdown/hybrid-island-hydration.md): Rocdown `hydrate` is build-time Html splice, not React/Astro client hydration; v1 hybrid is shipped and experimental; `@island` JS is not. Pointed design-era [hybrid Rocdown islands](research/rocdown/hybrid-rocdown-islands.md) at that. Exploratory; do not log complete until CI and Knowledge succeed.
 - Added draft [gaps for running basic-webserver as a WASI HTTP module](research/rocci/basic-webserver-wasi.md): 0.16 has no wasm32 target; portable WASI HTTP inverts TCP listen into a `handle` export; extra Rust must adapt Roc ABI, SSE, and a subset of hosted effects. Pointed [efficient publishing](research/rocdown/efficient-publishing.md) at that inventory. Exploratory; not a plan. Do not log complete until CI and Knowledge succeed.
 
 ## 2026-08-26

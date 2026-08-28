@@ -10,7 +10,7 @@ tree so they are not the first files a GitHub visitor sees.
 
 | Original path | Disposition | Current authority |
 | --- | --- | --- |
-| `DATASTAR_ROCKET_IN_ROCCI_REPORT.md` | Archived here | Exploratory client-island research |
+| `DATASTAR_ROCKET_IN_ROCCI_REPORT.md` | Archived here | Historical; current synthesis is `knowledge/research/rocci/datastar-rocket.md` |
 | `ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md` | Archived here | Historical architecture and feasibility evidence |
 | `ROCCI_SYNTAX_WEAK_POINTS_REPORT.md` | Archived here | Dated audit evidence |
 | `ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md` | Archived here | Documentation-generator research |

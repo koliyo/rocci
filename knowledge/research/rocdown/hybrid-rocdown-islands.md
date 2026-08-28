@@ -4,7 +4,7 @@ title: Hybrid Rocdown islands for CDN-static sites
 description: Exploratory research for static CDN HTML that embeds dynamic Rocci components backed by a rocci or rocdown HTTP service. Article documentation widgets are out of scope. Not shipped.
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
+generated: { by: process:cursor, at: 2026-08-28T17:20:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -191,13 +191,16 @@ scope**. They belong to the [block renderer
 plan](/plans/rocdown/rocdown-block-renderers.md). This record must not
 design around them.[^block-plan]
 
-This is not shipped. Crate READMEs and architecture records remain the
-current contract.[^rocdown-readme][^compiler-arch]
+v1 of this deploy shape later shipped on `main` (experimental). Current
+status versus SSR “hydration” is
+[hybrid island hydration](hybrid-island-hydration.md). Treat the pipeline
+sections below as design-era evidence, not the shipped contract.[^rocdown-readme][^compiler-arch][^impl-plan]
 
 ## For a later agent
 
-- **Authority:** exploratory. Do not present hybrid splice or a CDN-plus-
-  service deploy as implemented.
+- **Authority:** exploratory. Hybrid splice and CDN-plus-service are
+  implemented; do not present `@island` JS or this record’s old “not
+  shipped” pipeline notes as current behavior.
 - **Do not implement** a phase until the user asks. The
   [implementation plan](/plans/rocdown/hybrid-rocdown-islands.md) owns
   slices.[^impl-plan]
