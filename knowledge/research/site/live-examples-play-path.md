@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Front doors for live example apps without paid wildcard TLS
-description: "Universal SSL covers only rocci.dev and one label. Deep example hosts and examples.staging.rocci.dev need Advanced Certificate Manager; Total TLS does not issue for Tunnel. Staging.rocci.dev already has cert and Access. /examples/<id>/ is docs. The chosen free front door is /play/<id>/ on that host. Exploratory."
+description: "Universal SSL covers only rocci.dev and one label. Deep example hosts need ACM; Total TLS skips Tunnel. /play/<id>/ on the site host 404s /assets/datastar.js and sends /actions/ to islands. The TLS-free Host front door is <id>-example-staging.rocci.dev. Exploratory."
 tags: [domain/rocci, concern/publication, concern/architecture, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T18:45:00Z }
+generated: { by: process:cursor, at: 2026-08-29T20:35:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -116,7 +116,7 @@ resolution. It does **not** make three-label Tunnel names free.
 | Id | Front door | TLS | Extra DNS | Product work |
 | --- | --- | --- | --- | --- |
 | A | `<id>.examples.staging.rocci.dev` | ACM | Per app or wildcard CNAME | Host matchers already in Caddy |
-| B | `<id>-staging.rocci.dev` | Universal | Per app | Host list, Launch URLs |
+| B | `<id>-example-staging.rocci.dev` (later `<id>-example.rocci.dev`) | Universal | Per app CNAME | Host list, Launch URLs |
 | C | `staging.rocci.dev/play/<id>/` | Universal (existing) | None | `handle_path` before islands `/actions/` |
 | D deep | `examples.staging.rocci.dev/<id>` | ACM | One CNAME | Path + Host; `examples` reads as docs |
 | D flat | `examples-staging.rocci.dev/<id>` | Universal | One CNAME | Path + extra Host; cookies shared |
@@ -137,16 +137,20 @@ demos.
 
 ## Decision recorded here
 
-Maintainer chose **C**: live URLs
-`https://staging.rocci.dev/play/live-counter/` and
-`/play/datastar/` (later the same paths on `rocci.dev`). No ACM. No
-Cloudflare sync from CI for this front door. Implementation:
-[play-path plan](/plans/site/live-examples-play-path.md).[^play-plan]
+**C** (`/play/<id>/`) shipped and proved the isolation hole: the HTML
+still loads `/assets/datastar.js` and posts `/actions/…` on the site
+Host. Staging play GET can be 200 while Increment does nothing.
 
-The ACM operator sequence in
-[deploy live example origins](/plans/site/example-origin-cloudflare-tls.md)
-remains valid if someone later wants Host-per-app names. It is not the
-staging gate for this decision.[^deploy-plan]
+Maintainer then chose **B**:
+`https://live-counter-example-staging.rocci.dev` and
+`https://datastar-example-staging.rocci.dev` (later
+`https://<id>-example.rocci.dev`). First-level Universal SSL. One
+proxied CNAME and Access app per name. Caddy Host matchers own `/`,
+`/assets/`, and `/actions/`. Do not advertise Launch until those
+staging hosts serve TLS 200 through Access.
+
+**A** (deep `*.examples.staging`) stays optional ACM. `/play/` may
+remain in Caddy; it is not the public front door.[^play-plan][^deploy-plan]
 
 [^origins-plan]: Host-per-app contract; path prefix was out of bound; advertise after TLS.
 [^deploy-plan]: Wildcard DNS gap; ACM vs Total TLS; promote staging for origin compose.

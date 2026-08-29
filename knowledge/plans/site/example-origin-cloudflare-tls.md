@@ -123,7 +123,7 @@ still hits the home island. Generated `/examples/` copy stays
 | Deploy lane | `site.yml` packages and deploys only from `staging` or `production`. Pushes to `main` are no-ops.[^site-workflow][^prod-readme] |
 | Shared origin | `staging` and `production` currently publish the same `/srv/rocci`. A staging promote rebuilds hybrid **and** live apps on that box. Origin deploys are serialized.[^prod-readme] |
 | One origin port | Tunnel targets `http://127.0.0.1:8080`. Hybrid Caddy Host-routes example names to live containers. Do not add a second `:8080` edge.[^tunnel-ingress][^cdn-caddy][^origin-compose] |
-| Publish health | `origin publish` GETs site `/health`, each live id at `/play/<id>/health`, and optionally `Host: <id>.examples.localhost`. Failure restores the previous release (hybrid + examples together).[^origin-ops][^play-path] |
+| Publish health | `origin publish` GETs site `/health`, each live id at `/play/<id>/health`, and `Host` for `<id>-example-staging.rocci.dev`, `<id>-example.rocci.dev`, and `<id>.examples.localhost`. Failure restores the previous release (hybrid + examples together).[^origin-ops][^play-path] |
 | Proxy orange | Example DNS stays **Proxied**. Grey-cloud skips Cloudflare edge TLS. |
 | Universal SSL is not enough | Full-setup Universal SSL covers `rocci.dev` and `*.rocci.dev` only.[^cf-universal-ssl][^origins-plan][^launch-audit] |
 | One wildcard, one label | Staging apps need `*.examples.staging.rocci.dev`, not only `*.examples.rocci.dev`.[^cf-acm] |
@@ -318,25 +318,24 @@ production promote. No Launch advertising.
 
 **Work**
 
-The Access-gated gate that does **not** need ACM is play-path health
-on the site host.[^play-path]
+The Access-gated gate that does **not** need ACM is the first-level
+example Hosts.[^play-path]
 
 Signed-out (TLS + Access only):
 
 ```sh
-curl -sI https://staging.rocci.dev/play/live-counter/health
-curl -sI https://staging.rocci.dev/play/datastar/health
+curl -sI https://live-counter-example-staging.rocci.dev/health
+curl -sI https://datastar-example-staging.rocci.dev/health
 ```
 
-Expect **302** to Cloudflare Access.
+Expect **302** to Cloudflare Access (or NXDOMAIN until DNS exists).
 
 With Service Auth (`CF-Access-Client-Id` /
 `CF-Access-Client-Secret`) or a signed-in browser, expect **200** on
-both play `/health` URLs.
+both `/health` URLs, and `/assets/datastar.js` must not 404.
 
 Deep example hosts (`https://live-counter.examples.staging.rocci.dev/health`)
-still need Phase 1–2 DNS/ACM if you want those names. They are not
-this plan's advertise gate.
+still need ACM. They are not this plan's advertise gate.
 
 Confirm isolation:
 
@@ -348,6 +347,8 @@ Confirm isolation:
   curl -sf http://127.0.0.1:8080/health
   curl -sf http://127.0.0.1:8080/play/live-counter/health
   curl -sf http://127.0.0.1:8080/play/datastar/health
+  curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8080/health
+  curl -sf -H 'Host: datastar-example-staging.rocci.dev' http://127.0.0.1:8080/health
   curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
   curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8080/health
   ```
@@ -359,7 +360,7 @@ origins-plan Phase 5 browser work).
 
 **Exit**
 
-- Both `https://staging.rocci.dev/play/<id>/health` URLs are TLS 200
+- Both `https://<id>-example-staging.rocci.dev/health` URLs are TLS 200
   through Access. That is the gate that does not need ACM.[^play-path]
 - Home-island `/actions/` still works on `staging.rocci.dev`.
 - Production example names may still fail; ignore them.
@@ -384,7 +385,7 @@ Failed `origin publish` restores the previous `current` symlink
 hostname contract.[^origin-ops][^prod-readme]
 
 [^origins-plan]: Code Phases 0–4 on main; advertise is Phase 5; `*.rocci.dev` is not enough.
-[^play-path]: Site-host `/play/<id>/` uses Universal SSL; staging play `/health` is the ACM-free smoke.
+[^play-path]: `/play/<id>/` leftover; ACM-free smoke is `<id>-example-staging.rocci.dev`.
 [^publish-plan]: Cloudflare is DNS and edge TLS; Tunnel to loopback Caddy; Access on staging.
 [^prod-readme]: Promote `main` → `staging`; shared `/srv/rocci`; example wildcards need their own certs.
 [^tunnel-ingress]: Sample ingress lists both example wildcards to `:8080`.
