@@ -4,7 +4,7 @@ title: WASI 0.3 HTTP component for wasmtime serve
 description: "Compile the existing rocci-wasi-http adapter as a portable WASI 0.3 wasi:http/service component so wasmtime serve accepts the artifact. Rust is the component; Roc stays a linked C-ABI object. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T14:50:00Z }
+generated: { by: process:cursor, at: 2026-08-29T15:25:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -31,7 +31,7 @@ sources:
     last_modified: 2026-08-28
   - id: crate-readme
     resource: ../../../crates/rocci-wasi-http/README.md
-    title: --http-module writes core wasm; wasmtime serve refuses it
+    title: --http-module writes the 0.3 component; wasmtime serve -Sp3 -Scli
     author: process:git
     last_modified: 2026-08-29
   - id: hello-wat
@@ -71,12 +71,12 @@ sources:
     last_modified: 2026-08-29
   - id: cli-main
     resource: ../../../crates/rocci-cli/src/main.rs
-    title: --http-module writes hello-web WAT bytes via wat
+    title: --http-module copies rocci-wasi-http-component bytes
     author: process:git
     last_modified: 2026-08-29
   - id: cli-ref
     resource: ../../../docs/reference/cli.rocdown
-    title: Public --http-module copy; core wasm not a component
+    title: Public --http-module; wasmtime serve -Sp3 -Scli
     author: process:git
     last_modified: 2026-08-29
   - id: workspace-deps
@@ -154,9 +154,9 @@ already calls (`roc_init_for_host` / `roc_respond_for_host` /
 `roc_sse_advance_for_host` / `roc_shutdown_for_host`).[^research][^wasmtime-serve][^wasi-http-03][^hello-wat]
 
 This is research **option 1**. The [embedder plan](basic-webserver-wasi.md)
-shipped option 2: a native `Adapter` plus `rocci build --http-module`
-core wasm. That file is not a component; `wasmtime serve` refuses
-it.[^adapter-plan][^crate-readme][^cli-main]
+shipped option 2 (native `Adapter`). This plan shipped the portable
+`rocci build --http-module` **component**. Remaining: sqlite-in-component
+and a real `roc build` object link.[^adapter-plan][^crate-readme][^cli-main]
 
 `rocci run` stays native 0.16. `--host wasm` stays apply. Musl publish
 stays the default.[^efficient-plan][^serve-rs][^host-rs][^wasm-platform]
@@ -220,9 +220,9 @@ Phase 0–5 of the parent plan stay green.
 
 | Artifact | What it is | `wasmtime serve` |
 | --- | --- | --- |
-| `rocci build --http-module` today | Core wasm from `hello_web.wat` (`roc_*_for_host`) | Refuses: not a component[^crate-readme][^hello-wat][^cli-main] |
+| `rocci build --http-module` | WASI 0.3 component (`rocci-wasi-http-component`) | Accepts (`-Sp3 -Scli`); `GET /` → 200 hello-web[^crate-readme][^cli-main] |
 | Native `Adapter` tests | Host Tokio + optional inner Wasmtime module | N/A (not `serve`)[^handle-rs] |
-| This plan's output | WIT component exporting `wasi:http` `handle` | Required proof |
+| Linked Roc guest | `roc_*_for_host` names from `hello_web.wat`, not `roc build` | Same artifact[^hello-wat] |
 
 ## Phase 0: Toolchain and empty 0.3 service
 
@@ -411,6 +411,14 @@ equivalent) — not only `\0asm`. `cargo test -p rocci-wasi-http`.
 **Exit:** `wasmtime serve` on the CLI output succeeds for `GET /`.
 Help no longer describes the file as core-only.
 
+**Phase 7 recorded (2026-08-29):** `rocci build --http-module` copies
+`rocci_wasi_http_component.wasm` (or builds the crate). Help, crate
+README, and `docs/reference/cli.rocdown` name a WASI HTTP component and
+`wasmtime serve -Sp3 -Scli`. CLI-written bytes: `\0asm` + version
+`0x0d`; `GET /` → 200 hello-web HTML. `--host wasm` stays apply;
+`rocci run` stays native 0.16. The `.rocci` path is still required for
+CLI shape.
+
 ## Phase 8: Knowledge and public docs
 
 **Bound:** Research disposition: option 1 shipped vs remaining
@@ -425,6 +433,24 @@ workflows succeed.
 **Exit:** `okmate check knowledge --format terminal` (use `--profile
 strict` until a `rocci` profile exists on the installed okmate). Crate
 READMEs and the CLI page agree with the research.
+
+**Phase 8 recorded (2026-08-29):** Option 1 shipped for the experimental
+`--http-module` artifact (hello-web, mapping, SSE Wait overlap, one
+preopen). Remaining: sqlite-in-component (host `clang` / no
+`WASI_SYSROOT`) and a real `roc build --target=wasm32 --no-link` object.
+Upstream offer unchanged: wasm32 host artifact + WIT adapter; no fork PR
+unless asked. Not logged complete until CI and Knowledge succeed.
+
+## Disposition
+
+| Item | State |
+| --- | --- |
+| Option 1 (Rust component + Roc C-ABI object) | Shipped experimental |
+| `--http-module` | Component bytes; `wasmtime serve -Sp3 -Scli` |
+| sqlite-in-component | Omitted; compile blocker recorded |
+| `roc build` object link | Not shipped; `.rocci` path is CLI shape only |
+| `--host wasm` / `rocci run` / musl | Unchanged |
+| Upstream fork PR | Not opened |
 
 ## Suggested command surface (Phase 0 fills versions)
 
@@ -452,10 +478,10 @@ nested C serialization remain in `rocci-wasi-http` with `embedder`.
 This plan does not delete them.
 
 [^research]: Option 1 vs 2; yield-around-Roc; capability ladder; no component yet.
-[^adapter-plan]: Embedder phases; `--http-module` writes WAT; serve was an unmet original goal.
+[^adapter-plan]: Embedder phases; portable `serve` is this follow-on.
 [^sse-research]: Do not copy Hyper 30s idle onto Wait.
 [^efficient-plan]: Musl default; apply wasm is not HTTP.
-[^crate-readme]: Serve refused; file is core wasm.
+[^crate-readme]: `--http-module` writes the 0.3 component; serve with `-Sp3 -Scli`.
 [^hello-wat]: `roc_*_for_host` exports only.
 [^handle-rs]: Native SSE Wait is `tokio::sleep`.
 [^abi-rs]: 0.16 field names; Stream/File outcomes.
@@ -463,8 +489,8 @@ This plan does not delete them.
 [^files-rs]: `resolve_preopen` rejects `..`.
 [^sqlite-rs]: Sync rusqlite serializes.
 [^crate-cargo]: Wasmtime + rusqlite on the native crate.
-[^cli-main]: `--http-module` + `wat::parse_str`.
-[^cli-ref]: Public copy that serve will refuse.
+[^cli-main]: `--http-module` copies the component artifact.
+[^cli-ref]: Public copy names `wasmtime serve -Sp3 -Scli`.
 [^workspace-deps]: Unclassified members fail CI.
 [^cargo-toml]: Members list.
 [^dispatch-rs]: Generated 0.16 contract.
