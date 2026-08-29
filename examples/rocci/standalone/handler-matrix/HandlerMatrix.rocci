@@ -148,10 +148,8 @@ relative_ago = |now_secs, then_secs| {
     } else {
         0.I64
     }
-    if delta < 5.I64 {
+    if delta < 60.I64 {
         "just now"
-    } else if delta < 60.I64 {
-        "${delta.to_str()} seconds ago"
     } else if delta < 3600.I64 {
         counted_ago(delta.div_trunc_by(60.I64), "minute")
     } else if delta < 86400.I64 {

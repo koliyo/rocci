@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-30
 
+- Live-counter / handler-matrix `relative_ago` now stays "just now" for a full minute. Second-resolution labels made `Html.render` change every second after Increment, so both tabs got a real `datastar-patch-elements` at 1 Hz. Recorded on [generated live SSE is a timer poll](research/rocci/live-sse-is-timer-poll.md).
 - Revised [generated live SSE is a timer poll](research/rocci/live-sse-is-timer-poll.md) and [basic-webserver SSE and HTTP](research/rocci/basic-webserver-sse-http.md): 30s `response_idle_ms` is a hung-response detector (silence on SSE is legal); keepalive every ~15s, not at poll rate. Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [generated live SSE is a timer poll, not write-triggered push](research/rocci/live-sse-is-timer-poll.md): 100ms is render poll, keepalive is a separate less-than-30s clock; empty browser `message` events are unnamed SSE frames on the open GET. Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [untagged style siblings on Datastar patch-elements](research/rocci/sse-patch-style-targets.md) for the 2026-08-30 live-counter / home-page `PatchElementsNoTargetsFound` spam, and paired [SSE patch-target tests](plans/rocci/sse-patch-target-tests.md): wire-format id-or-selector checks in the default suite, optional ignored `GET /sse` smoke, no browser e2e. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
