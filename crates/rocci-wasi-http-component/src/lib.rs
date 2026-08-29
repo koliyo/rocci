@@ -6,13 +6,49 @@ pub const HELLO_WEB_HTML: &str = rocci_wasi_http::StubGuest::HTML;
 mod service {
     use std::sync::{Mutex, OnceLock};
 
-    use rocci_wasi_http::{Adapter, EchoGuest, IncomingRequest, OutgoingResponse};
+    use rocci_wasi_http::{
+        Adapter, EchoGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse, RocGuest,
+        ServerRequest,
+    };
     use wasip3::http::types::{ErrorCode, Fields, Method, Request, Response};
     use wasip3::{spawn_local, wit_future, wit_stream};
 
-    fn adapter() -> &'static Mutex<Adapter<EchoGuest>> {
-        static ADAPTER: OnceLock<Mutex<Adapter<EchoGuest>>> = OnceLock::new();
-        ADAPTER.get_or_init(|| Mutex::new(Adapter::new(EchoGuest::new())))
+    struct RoutedGuest {
+        linked: LinkedHelloWebGuest,
+        echo: EchoGuest,
+    }
+
+    impl Default for RoutedGuest {
+        fn default() -> Self {
+            Self {
+                linked: LinkedHelloWebGuest::new(),
+                echo: EchoGuest::new(),
+            }
+        }
+    }
+
+    impl RocGuest for RoutedGuest {
+        fn init(&mut self) {
+            self.linked.init();
+            self.echo.init();
+        }
+
+        fn respond(&mut self, request: &ServerRequest) -> rocci_wasi_http::OutcomeToHost {
+            if request.method == ServerRequest::METHOD_GET && request.target_path == "/" {
+                return self.linked.respond(request);
+            }
+            self.echo.respond(request)
+        }
+
+        fn shutdown(&mut self) {
+            self.linked.shutdown();
+            self.echo.shutdown();
+        }
+    }
+
+    fn adapter() -> &'static Mutex<Adapter<RoutedGuest>> {
+        static ADAPTER: OnceLock<Mutex<Adapter<RoutedGuest>>> = OnceLock::new();
+        ADAPTER.get_or_init(|| Mutex::new(Adapter::new(RoutedGuest::default())))
     }
 
     fn method_name(method: Method) -> String {
