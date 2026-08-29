@@ -3,6 +3,7 @@ use rocci_cli::{browse, bundle, datastar_asset, render_file, rocci_test, run, se
 use std::{
     env, fs,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use anyhow::{Context, Result, bail};
@@ -56,8 +57,9 @@ enum Commands {
         /// Roc backend optimization mode (defaults to Roc's speed backend).
         #[arg(long, value_enum)]
         opt: Option<rocci_cli::native_target::RocOpt>,
-        /// Experimental WASI HTTP module (not `--host wasm` apply). Writes a
-        /// `wasi:http`-shaped guest artifact; `rocci run` stays native 0.16.
+        /// Experimental WASI HTTP component (not `--host wasm` apply). Writes a
+        /// `wasi:http/service` artifact for `wasmtime serve`; `rocci run` stays
+        /// native 0.16.
         #[arg(long)]
         http_module: bool,
     },
@@ -206,6 +208,13 @@ fn try_main() -> Result<()> {
                 let dest = output.unwrap_or_else(|| PathBuf::from("http-module.wasm"));
                 write_http_module(&dest)?;
                 println!("{}", style::success_text(&dest.display().to_string()));
+                eprintln!(
+                    "{}",
+                    style::note(&format!(
+                        "WASI 0.3 component; wasmtime serve -Sp3 -Scli {}",
+                        dest.display()
+                    ))
+                );
                 Ok(())
             } else if release {
                 let report = bundle::package_server_with_opt(
@@ -292,12 +301,60 @@ fn try_main() -> Result<()> {
 }
 
 fn write_http_module(dest: &Path) -> Result<()> {
-    let bytes = wat::parse_str(include_str!("../../rocci-wasi-http/src/hello_web.wat"))
-        .context("parse hello-web WAT for `--http-module`")?;
+    let bytes = http_module_component_bytes()?;
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::write(dest, bytes).with_context(|| format!("write {}", dest.display()))
+}
+
+fn http_module_artifact_candidates() -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    if let Ok(explicit) = env::var("ROCCI_HTTP_MODULE_WASM") {
+        out.push(PathBuf::from(explicit));
+    }
+    if let Ok(target) = env::var("CARGO_TARGET_DIR") {
+        out.push(PathBuf::from(target).join("wasm32-wasip2/debug/rocci_wasi_http_component.wasm"));
+    }
+    let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    out.push(workspace.join("target/wasm32-wasip2/debug/rocci_wasi_http_component.wasm"));
+    out
+}
+
+fn http_module_component_bytes() -> Result<Vec<u8>> {
+    for path in http_module_artifact_candidates() {
+        if path.is_file() {
+            return fs::read(&path)
+                .with_context(|| format!("read component artifact {}", path.display()));
+        }
+    }
+    let workspace = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let status = Command::new(env::var("CARGO").unwrap_or_else(|_| "cargo".into()))
+        .args([
+            "build",
+            "-p",
+            "rocci-wasi-http-component",
+            "--target",
+            "wasm32-wasip2",
+        ])
+        .current_dir(&workspace)
+        .status()
+        .context("build rocci-wasi-http-component for --http-module")?;
+    if !status.success() {
+        bail!("cargo build -p rocci-wasi-http-component --target wasm32-wasip2 failed");
+    }
+    for path in http_module_artifact_candidates() {
+        if path.is_file() {
+            return fs::read(&path)
+                .with_context(|| format!("read component artifact {}", path.display()));
+        }
+    }
+    bail!("component wasm not found after build; set ROCCI_HTTP_MODULE_WASM")
+}
+
+#[cfg(test)]
+fn is_wasi_http_component(bytes: &[u8]) -> bool {
+    bytes.len() >= 8 && bytes.starts_with(b"\0asm") && bytes[4] == 0x0d
 }
 
 fn ensure_rocci_file(input: &Path, command: &str) -> Result<()> {
@@ -814,13 +871,21 @@ mod tests {
             .render_long_help()
             .to_string();
         assert!(help.contains("--http-module"), "{help}");
+        assert!(help.contains("not `--host wasm`"), "{help}");
         assert!(
-            help.contains("not `--host wasm`") || help.contains("WASI HTTP"),
+            help.contains("wasmtime serve") || help.contains("wasi:http/service"),
             "{help}"
         );
-        let bytes =
-            wat::parse_str(include_str!("../../rocci-wasi-http/src/hello_web.wat")).unwrap();
-        assert_eq!(&bytes[..4], b"\0asm");
+        assert!(!help.contains("not a WASI component"), "{help}");
+        let dest = std::env::temp_dir().join(format!(
+            "rocci-http-module-component-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        write_http_module(&dest).unwrap();
+        let bytes = fs::read(&dest).unwrap();
+        assert!(is_wasi_http_component(&bytes), "component preamble");
+        let _ = fs::remove_file(&dest);
     }
 
     #[test]
@@ -840,7 +905,7 @@ mod tests {
         let dest = dir.join("http-module.wasm");
         write_http_module(&dest).unwrap();
         let bytes = fs::read(&dest).unwrap();
-        assert_eq!(&bytes[..4], b"\0asm");
+        assert!(is_wasi_http_component(&bytes), "component preamble");
         let _ = fs::remove_dir_all(&dir);
     }
 }

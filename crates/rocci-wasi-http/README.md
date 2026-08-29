@@ -18,7 +18,6 @@ Default features are `map` (abi, guest stubs, `Adapter`, files) plus
 `embedder` (Wasmtime, rusqlite, probe tests). The portable component
 crate depends on `map` only.
 
-`rocci run` stays native 0.16. `rocci build --http-module` writes **core wasm**
-with 0.16 `roc_*_for_host` exports (hello-web WAT), not a compiled `.rocci` app
-and not a WASI 0.3 component. `wasmtime serve` requires a component and will
-refuse that file. Exercise `handle` with the crate embedder tests.
+`rocci run` stays native 0.16. `rocci build --http-module` writes the
+`rocci-wasi-http-component` **WASI 0.3** artifact. Serve with
+`wasmtime serve -Sp3 -Scli http-module.wasm`. `--host wasm` stays apply.
