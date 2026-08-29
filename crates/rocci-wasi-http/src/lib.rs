@@ -1,11 +1,16 @@
 //! WASI 0.3 `wasi:http/service` adapter for basic-webserver 0.16 Roc apps.
 //!
-//! Phase 0 ships a probe that measures whether concurrent `handle` waits overlap
-//! for adapter-await, CPU-only C, and hosted-sleep C. Later phases map real
-//! WASI requests onto the 0.16 Roc ABI.
+//! Yield around Roc: buffer the request, call `respond`, map an ordinary body.
+//! SSE Wait (later) is adapter clocks, not async Roc.
 
+pub mod abi;
+pub mod guest;
+pub mod handle;
 pub mod probe;
 
+pub use abi::{IncomingRequest, OrdinaryResponse, OutcomeToHost, OutgoingResponse, ServerRequest};
+pub use guest::{RocGuest, StubGuest};
+pub use handle::Adapter;
 pub use probe::{
     OverlapReport, ProbeMode, ProbeRequest, ProbeResponse, handle_probe, overlap_native,
     overlap_wasmtime,
