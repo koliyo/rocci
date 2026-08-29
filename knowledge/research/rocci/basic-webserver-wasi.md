@@ -403,7 +403,7 @@ yielding.[^adapter-sqlite]
 | SSE `stream` + Wait as adapter clocks | Yes | Experimental |
 | One `file_root` preopen | Yes (reject `..`; native OS paths not granted) | Experimental |
 | sqlite in `respond!` | Yes, **sync**, serializes | Experimental |
-| Portable 0.3 `wasmtime serve` component | Phase 0 empty `handle` in `rocci-wasi-http-component`; `--http-module` still writes hello-web WAT bytes | Follow-on: [0.3 component plan](/plans/rocci/wasi-http-03-component.md)[^http-module-flag][^component-plan][^component-crate] |
+| Portable 0.3 `wasmtime serve` component | Phase 0–5 empty/`Stub`/`roc_*`/`SSE`/`file_root` in `rocci-wasi-http-component`; sqlite omitted from the component | Follow-on: [0.3 component plan](/plans/rocci/wasi-http-03-component.md)[^http-module-flag][^component-plan][^component-crate] |
 | `rocci run` / musl publish / `--host wasm` | Unchanged | Native 0.16 / apply |
 
 This nightly's Roc wasm32 platform header did not reliably emit
@@ -429,6 +429,12 @@ Rust `std` on `wasm32-wasip2` still imports `wasi:cli@0.2.9`. That is
 why serve needs `-Scli`. `wasm-tools component wit` still shows the 0.3
 handler export. `wstd` / `#[wstd::http_server]` exports 0.2
 `incoming-handler` and was not used.
+
+SQLite is omitted from the component crate. Bundled `libsqlite3-sys`
+does not compile for `wasm32-wasip2` with host `clang` (no
+`wasm32-unknown-wasip2` target / no `WASI_SYSROOT`). Sync rusqlite in
+the native embedder still serializes other `handle`s; that measurement
+is unchanged.[^adapter-sqlite][^component-crate]
 
 ## What exists
 
