@@ -226,9 +226,9 @@ this crate) maps handlers onto basic-webserver: authors never write
 - `@get:live("literal-path")` lowers to a named live handler. Modules may
   declare several live routes; each becomes one SSE endpoint. The CLI
   dispatcher polls (`After(100)`), emits `datastar-patch-elements` when
-  `Html.render` bytes change, and emits a non-Datastar keepalive
-  (`Sse.Event.data("")`) when unchanged so the host response-idle timeout
-  cannot kill the stream. A document receives automatic
+  `Html.render` bytes change, `Wait`s on other unchanged polls, and emits
+  a non-Datastar keepalive (`Sse.Event.data("")`) every 15s of quiet so
+  the host 30s response-idle timeout cannot kill the stream. A document receives automatic
   `data-init=@get(path, [OpenWhenHidden(True)])` only when its module has
   exactly one live route and the body has no authored `data-init`. Multiple
   local streams require explicit subscriptions. App-wide method/path
