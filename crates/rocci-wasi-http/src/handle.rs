@@ -1,8 +1,9 @@
 //! WASI 0.3-shaped `handle`: buffer the body, call Roc, map ordinary or SSE.
 
+use std::path::PathBuf;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 
 use crate::abi::{
     IncomingRequest, OutcomeToHost, OutgoingResponse, SseStepToHost, map_ordinary, map_request,
@@ -12,6 +13,7 @@ use crate::guest::RocGuest;
 pub struct Adapter<G> {
     guest: G,
     initialized: bool,
+    file_root: Option<PathBuf>,
 }
 
 impl<G: RocGuest> Adapter<G> {
@@ -19,7 +21,13 @@ impl<G: RocGuest> Adapter<G> {
         Self {
             guest,
             initialized: false,
+            file_root: None,
         }
+    }
+
+    pub fn with_file_root(mut self, root: PathBuf) -> Self {
+        self.file_root = Some(root);
+        self
     }
 
     pub fn guest(&self) -> &G {
@@ -45,6 +53,7 @@ impl<G: RocGuest> Adapter<G> {
         match outcome {
             OutcomeToHost::Ordinary(ordinary) => Ok(map_ordinary(ordinary)),
             OutcomeToHost::Stream { source } => self.stream_sse(source).await,
+            OutcomeToHost::File { rel_path } => self.read_preopen(&rel_path),
         }
     }
 
@@ -79,6 +88,20 @@ impl<G: RocGuest> Adapter<G> {
             headers: vec![("content-type".into(), "text/event-stream".into())],
             body,
             streamed: true,
+        })
+    }
+
+    fn read_preopen(&self, rel_path: &str) -> Result<OutgoingResponse> {
+        let Some(root) = &self.file_root else {
+            bail!("no file_root preopen granted");
+        };
+        let joined = crate::files::resolve_preopen(root, rel_path)?;
+        let body = std::fs::read(&joined).with_context(|| format!("read {}", joined.display()))?;
+        Ok(OutgoingResponse {
+            status: 200,
+            headers: vec![("content-type".into(), "application/octet-stream".into())],
+            body,
+            streamed: false,
         })
     }
 

@@ -4,6 +4,7 @@
 //! or SSE `stream<u8>`. Wait is adapter clocks.
 
 pub mod abi;
+pub mod files;
 pub mod guest;
 pub mod handle;
 pub mod probe;
