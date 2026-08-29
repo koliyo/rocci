@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Cursor My Machines worker on a personal Mac mini
-description: "How to run Cursor Cloud Agent tool calls on a personal Mac mini via My Machines so tasks started from the iPhone app (or Agents Window) execute on that machine."
+description: "How to run Cursor Cloud Agent tool calls on a personal Mac mini via My Machines so tasks started from the iPhone app (or Agents Window) execute on that machine, reusing local checkout and build caches."
 tags: [domain/rocci, concern/tooling, concern/ci, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T18:01:48Z }
+generated: { by: process:cursor, at: 2026-08-29T18:05:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -50,6 +50,33 @@ workers use browser login or a personal user API key.[^my-machines-docs][^pool-d
 
 Outbound HTTPS needed: `api2.cursor.sh`, `api2direct.cursor.sh`, and
 `cloud-agent-artifacts.s3.us-east-1.amazonaws.com` for artifacts.[^my-machines-docs]
+
+## Local disk and caches
+
+My Machines executes on the Mac mini's real filesystem, not a fresh
+Cursor-managed VM snapshot. Machine-local state is reused across Cloud Agent
+sessions that target that worker.[^my-machines-docs]
+
+What typically persists between sessions:
+
+| State | Location (examples) |
+| --- | --- |
+| Repo checkout and git history | The `--worker-dir` / cwd used with `agent worker start` |
+| Rust incremental builds | `target/` in that checkout |
+| Cargo registry and git deps | `~/.cargo` |
+| Rust toolchains | rustup home (e.g. `~/.rustup`) |
+| Other language caches | `node_modules`, uv/pip caches, Homebrew cellar, etc. |
+| Credentials and remotes | Existing git credentials, SSH keys, local env |
+
+Caches survive unless the agent or a human deletes them (for example
+`cargo clean` or removing `target/`). The agent can still fetch, switch
+branches, and edit files in that checkout like a local session.
+
+This is shared with whatever else uses the Mac — not an isolated per-session
+environment. Prefer one worker per repo checkout; concurrent agents on the
+same tree can collide. Cursor-managed cloud environments
+(`.cursor/environment.json` / dashboard builds) remain a separate path that
+starts from install/snapshot baselines instead of this durable local disk.[^my-machines-docs]
 
 ## Setup on the Mac mini
 
