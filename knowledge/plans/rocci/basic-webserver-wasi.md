@@ -4,7 +4,7 @@ title: WASI HTTP adapter host for basic-webserver apps
 description: "Ship a Rocci-owned WASI 0.3 wasi:http/service adapter that links the 0.16 Roc ABI (init/respond/shutdown/sse_advance) and yields around Roc, not by making Roc async. Hello HTML, then SSE Wait as adapter clocks, then preopens, then sqlite. Do not change --host wasm or replace musl publish."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T11:50:00Z }
+generated: { by: process:cursor, at: 2026-08-29T13:10:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -116,6 +116,11 @@ I/O-bound requests, without changing lowering or `--host wasm`.[^research][^disp
 
 Native `rocci run` stays a basic-webserver process. Musl island publish
 stays the default (publishing Phase 6 no-go is unchanged).[^efficient-plan][^serve-rs]
+
+**Implementation (this revision):** Phases 0–6 are on branch
+`basic-webserver-wasi`. Experimental crate embedder plus
+`rocci build --http-module`. Not logged complete until CI and Knowledge
+workflow run IDs succeed.
 
 ## Out of bound
 
