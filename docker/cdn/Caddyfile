@@ -19,6 +19,19 @@
 		respond 410
 	}
 
+	redir /play/live-counter /play/live-counter/
+	redir /play/datastar /play/datastar/
+	handle_path /play/live-counter/* {
+		reverse_proxy live-counter:8000 {
+			flush_interval -1
+		}
+	}
+	handle_path /play/datastar/* {
+		reverse_proxy datastar:8000 {
+			flush_interval -1
+		}
+	}
+
 	handle /actions/* {
 		reverse_proxy islands:8001 {
 			flush_interval -1

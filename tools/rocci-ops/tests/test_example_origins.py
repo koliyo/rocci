@@ -37,13 +37,21 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
         assert host in examples
     live_at = hybrid.find("@live-counter host")
     datastar_at = hybrid.find("@datastar host")
+    play_live_at = hybrid.find("handle_path /play/live-counter")
+    play_datastar_at = hybrid.find("handle_path /play/datastar")
     actions_at = hybrid.find("handle /actions/*")
     sse_at = hybrid.find("handle /sse")
     assert 0 <= live_at < actions_at
     assert 0 <= datastar_at < actions_at
+    assert 0 <= play_live_at < actions_at
+    assert 0 <= play_datastar_at < actions_at
     assert 0 <= actions_at < sse_at
     assert "reverse_proxy live-counter:8000" in hybrid
     assert "reverse_proxy datastar:8000" in hybrid
+    live_handle = hybrid[play_live_at : hybrid.find("}", play_live_at) + 1]
+    assert "reverse_proxy live-counter:8000" in live_handle
+    assert "redir /play/live-counter /play/live-counter/" in hybrid
+    assert "redir /play/datastar /play/datastar/" in hybrid
     actions = _actions_handle_block(hybrid)
     assert "reverse_proxy islands:8001" in actions
     assert "live-counter:8000" not in actions
@@ -74,7 +82,7 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
 
 def test_retired_news_urls_have_exact_origin_dispositions() -> None:
     hybrid = (repo_root() / "docker/cdn/Caddyfile").read_text(encoding="utf-8")
-    assert "redir " not in hybrid
+    assert "redir /news" not in hybrid
     assert "@retired_news path /news /news/ /news/feed.xml" in hybrid
     assert "handle @retired_news" in hybrid
     assert "respond 410" in hybrid
