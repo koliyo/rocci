@@ -50,6 +50,12 @@ updates:
     ignore:
       - dependency-name: "typescript"
         versions: [">=6.1.0"]
+      - dependency-name: "eslint"
+        versions: [">=9.0.0"]
+      - dependency-name: "vscode-languageclient"
+        versions: [">=9.0.0"]
+      - dependency-name: "@types/node"
+        versions: [">=21.0.0"]
 
   - package-ecosystem: github-actions
     directory: /
