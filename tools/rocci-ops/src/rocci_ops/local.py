@@ -611,6 +611,17 @@ def push_worktrees(*, remote: str | None, dry_run: bool) -> int:
     return 0
 
 
+def _git_merge_in_progress() -> bool:
+    return (
+        subprocess.run(
+            ["git", "rev-parse", "-q", "--verify", "MERGE_HEAD"],
+            cwd=repo_root(),
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
 def promote_staging() -> int:
     """Merge origin/main into staging, push, and restore the starting branch."""
     original = subprocess.run(
@@ -630,6 +641,10 @@ def promote_staging() -> int:
         run(["git", "merge", "--ff-only", "origin/staging"])
         run(["git", "merge", "origin/main", "-m", "Promote main into staging"])
         run(["git", "push", "origin", "staging"])
+    except BaseException:
+        if _git_merge_in_progress():
+            run(["git", "merge", "--abort"])
+        raise
     finally:
         if original != "staging":
             run(["git", "switch", original])
