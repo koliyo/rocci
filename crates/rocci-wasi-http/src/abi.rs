@@ -67,6 +67,7 @@ pub enum SseStepToHost {
 pub enum OutcomeToHost {
     Ordinary(OrdinaryResponse),
     Stream { source: u64 },
+    File { rel_path: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
