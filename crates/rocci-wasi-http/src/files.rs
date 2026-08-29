@@ -28,12 +28,18 @@ pub fn resolve_preopen(root: &Path, rel: &str) -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "embedder")]
     use crate::abi::{IncomingRequest, OutcomeToHost, ServerRequest};
+    #[cfg(feature = "embedder")]
     use crate::guest::RocGuest;
+    #[cfg(feature = "embedder")]
     use crate::handle::Adapter;
 
+    #[cfg(feature = "embedder")]
     struct FileGuest;
 
+    #[cfg(feature = "embedder")]
     impl RocGuest for FileGuest {
         fn init(&mut self) {}
         fn respond(&mut self, request: &ServerRequest) -> OutcomeToHost {
@@ -44,6 +50,7 @@ mod tests {
         fn shutdown(&mut self) {}
     }
 
+    #[cfg(feature = "embedder")]
     #[tokio::test(flavor = "current_thread")]
     async fn get_static_file_from_preopen() {
         let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/static");

@@ -1,13 +1,12 @@
 //! WASI 0.3-shaped `handle`: buffer the body, call Roc, map ordinary or SSE.
 
 use std::path::PathBuf;
-use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 
-use crate::abi::{
-    IncomingRequest, OutcomeToHost, OutgoingResponse, SseStepToHost, map_ordinary, map_request,
-};
+#[cfg(feature = "embedder")]
+use crate::abi::SseStepToHost;
+use crate::abi::{IncomingRequest, OutcomeToHost, OutgoingResponse, map_ordinary, map_request};
 use crate::guest::RocGuest;
 
 pub struct Adapter<G> {
@@ -57,7 +56,15 @@ impl<G: RocGuest> Adapter<G> {
         }
     }
 
+    #[cfg(not(feature = "embedder"))]
+    async fn stream_sse(&mut self, _source: u64) -> Result<OutgoingResponse> {
+        bail!("SSE stream requires embedder clocks")
+    }
+
+    #[cfg(feature = "embedder")]
     async fn stream_sse(&mut self, source: u64) -> Result<OutgoingResponse> {
+        use std::time::Duration;
+
         let mut body = Vec::new();
         let mut wake = 0u64;
         loop {
@@ -113,12 +120,12 @@ impl<G: RocGuest> Adapter<G> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "embedder"))]
 mod tests {
     use super::*;
     use crate::abi::IncomingRequest;
     use crate::guest::{EmptySseGuest, StubGuest, WaitEmitGuest};
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
 
     fn get_root() -> IncomingRequest {
         IncomingRequest {

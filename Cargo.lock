@@ -3558,6 +3558,7 @@ dependencies = [
 name = "rocci-wasi-http-component"
 version = "0.1.0"
 dependencies = [
+ "rocci-wasi-http",
  "wasip3",
 ]
 
