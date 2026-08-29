@@ -56,7 +56,8 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(2)
         raise SystemExit(0)
     command, rest = args[0], args[1:]
-    ensure_h35_desktop()
+    if command != "origin":
+        ensure_h35_desktop()
     if command == "check":
         raise SystemExit(check_main(rest))
     if command == "ci":

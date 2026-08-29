@@ -24,6 +24,20 @@ def test_check_help_is_ok() -> None:
     assert "deps" in CHECK_USAGE
 
 
+def test_origin_does_not_require_h35_desktop(monkeypatch) -> None:
+    def boom() -> None:
+        raise AssertionError("must not clone h35-desktop")
+
+    monkeypatch.setattr("rocci_ops.cli.ensure_h35_desktop", boom)
+    monkeypatch.setattr("rocci_ops.origin.main", lambda _argv: 0)
+    try:
+        main(["origin", "publish", "abc"])
+    except SystemExit as exc:
+        assert exc.code == 0
+    else:
+        raise AssertionError("expected SystemExit")
+
+
 def test_unknown_top_level_command() -> None:
     try:
         main(["verify-zed"])
