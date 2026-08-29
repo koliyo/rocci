@@ -1,6 +1,28 @@
 use rocci_datastar::sse::*;
 
 #[test]
+fn strip_style_elements_drops_embedded_css_and_keeps_id_roots() {
+    let html = concat!(
+        "<style>.card{color:navy}</style>",
+        "<section id=\"counter\">3</section>",
+        "<style>.feed{margin:0}</style>",
+        "<div id=\"counter-feed\"></div>",
+    );
+    assert_eq!(
+        strip_style_elements(html),
+        "<section id=\"counter\">3</section><div id=\"counter-feed\"></div>"
+    );
+}
+
+#[test]
+fn strip_style_elements_leaves_unclosed_style_in_place() {
+    assert_eq!(
+        strip_style_elements("<style>.x{color:red}<div id=\"n\">1</div>"),
+        "<style>.x{color:red}<div id=\"n\">1</div>"
+    );
+}
+
+#[test]
 fn test_patch_elements_sse() {
     let patch = PatchElements::new("<div id=\"counter\">42</div>")
         .mode(PatchMode::Inner)

@@ -14,6 +14,11 @@ fn generated_and_authored_runtime_helpers_are_in_sync() {
 #[test]
 fn roc_patch_signals_surface_uses_typed_options_and_canonical_sse_fields() {
     assert!(DATASTAR_ROC_TEMPLATE.contains("PatchSignalsOpt : [OnlyIfMissing(Bool)]"));
+    assert!(
+        DATASTAR_ROC_TEMPLATE
+            .contains("drop_style_elements(PlatformHtml.render_without_doc_type(node))")
+    );
+    assert!(DATASTAR_ROC_TEMPLATE.contains("drop_style_elements = |html|"));
     assert!(DATASTAR_ROC_TEMPLATE.contains("patch_signals = patch_signals_event"));
     assert!(DATASTAR_ROC_TEMPLATE.contains("patch_signals_with = patch_signals_event_with"));
     assert!(DATASTAR_ROC_TEMPLATE.contains("Sse.Event.named("));
