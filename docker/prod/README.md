@@ -127,8 +127,9 @@ branch, never `pull_request` and never `main`) probes SSH
 (`uv run rocci-ops deploy probe`), bootstraps the origin kit, scps
 `site.tgz` / `islands` / `examples-live/`, and runs `uv run rocci-ops origin publish SHA` on
 the box: unpack to `releases/<sha>/`, `compose up -d --build` for hybrid **and**
-live apps, GET `http://127.0.0.1:8080/health` plus each live app via `Host`,
-then flip `current`. A failed health check leaves the previous symlink and
+live apps, GET `http://127.0.0.1:8080/health`, each live app at
+`/play/<id>/health`, plus the same apps via `Host` while Caddy still
+matches `*.examples.localhost`, then flip `current`. A failed health check leaves the previous symlink and
 restores that release (hybrid + examples together). Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
 serialized so they cannot interleave. **Run workflow** on `staging` or
@@ -233,6 +234,8 @@ stopping the islands service, copying the file back onto
 
 ```sh
 curl -sf http://127.0.0.1:8080/health
+curl -sf http://127.0.0.1:8080/play/live-counter/health
+curl -sf http://127.0.0.1:8080/play/datastar/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: staging.rocci.dev' \

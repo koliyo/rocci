@@ -114,6 +114,8 @@ def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str
     site = f"http://127.0.0.1:{port}/health"
     checks = [(site, {})]
     for app_id in live_ids or []:
+        checks.append((f"http://127.0.0.1:{port}/play/{app_id}/health", {}))
+    for app_id in live_ids or []:
         checks.append((site, {"Host": f"{app_id}.examples.localhost"}))
     return checks
 
