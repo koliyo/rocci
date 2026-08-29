@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-29
 
+- Added draft [Cursor My Machines worker on a personal Mac mini](research/ops/cursor-my-machines-mac-mini.md): install `agent` CLI, same-account login, `agent worker start --name mac-mini` in the repo checkout, pick My Machines from the iPhone Run on picker; outbound HTTPS only; distinct from Enterprise Self-Hosted Pool. Exploratory; do not log complete until CI and Knowledge succeed.
 - Added draft [WASI HTTP adapter host for basic-webserver apps](plans/rocci/basic-webserver-wasi.md): new `rocci-wasi-http` WASI 0.3 `wasi:http/service` crate linking the 0.16 Roc C-ABI. Yield around Roc (SSE `Wait` is adapter clocks); Phase 0 measures whether nested `hosted_*` inside `respond!` serializes other `handle`s. Do not change `--host wasm` or musl publish. Pair: [WASI HTTP gaps](research/rocci/basic-webserver-wasi.md), revised with the blocking-handler split. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 
 ## 2026-08-28
