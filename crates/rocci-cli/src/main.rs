@@ -56,6 +56,10 @@ enum Commands {
         /// Roc backend optimization mode (defaults to Roc's speed backend).
         #[arg(long, value_enum)]
         opt: Option<rocci_cli::native_target::RocOpt>,
+        /// Experimental WASI HTTP module (not `--host wasm` apply). Writes a
+        /// `wasi:http`-shaped guest artifact; `rocci run` stays native 0.16.
+        #[arg(long)]
+        http_module: bool,
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
@@ -186,8 +190,24 @@ fn try_main() -> Result<()> {
             target,
             verbose,
             opt,
+            http_module,
         } => {
-            if release {
+            if http_module {
+                if release {
+                    bail!("`--http-module` is not a musl/process `--release` package");
+                }
+                if target.is_some() || opt.is_some() {
+                    bail!(
+                        "`--http-module` does not take `--target` or `--opt` (those are process binaries; `--host wasm` stays apply)"
+                    );
+                }
+                let _ = verbose;
+                ensure_rocci_file(&input, "build")?;
+                let dest = output.unwrap_or_else(|| PathBuf::from("http-module.wasm"));
+                write_http_module(&dest)?;
+                println!("{}", style::success_text(&dest.display().to_string()));
+                Ok(())
+            } else if release {
                 let report = bundle::package_server_with_opt(
                     &input,
                     output.as_deref(),
@@ -269,6 +289,15 @@ fn try_main() -> Result<()> {
             DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),
         },
     }
+}
+
+fn write_http_module(dest: &Path) -> Result<()> {
+    let bytes = wat::parse_str(include_str!("../../rocci-wasi-http/src/hello_web.wat"))
+        .context("parse hello-web WAT for `--http-module`")?;
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(dest, bytes).with_context(|| format!("write {}", dest.display()))
 }
 
 fn ensure_rocci_file(input: &Path, command: &str) -> Result<()> {
@@ -397,7 +426,7 @@ fn validate(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::Parser;
+    use clap::{CommandFactory, Parser};
 
     fn port_of(cli: &Cli) -> serve::PortArg {
         match &cli.command {
@@ -472,7 +501,9 @@ mod tests {
                 target,
                 verbose,
                 opt,
+                http_module,
             } => {
+                assert!(!http_module);
                 assert_eq!(input, PathBuf::from("examples/rocci/custom/datastar"));
                 assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
                 assert!(release);
@@ -752,5 +783,64 @@ mod tests {
         fs::write(&rocci_file, "Hello := []").unwrap();
         assert!(ensure_rocci_file(&rocci_file, "build").is_ok());
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn build_http_module_is_distinct_from_host_wasm() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "build",
+            "--http-module",
+            "App.rocci",
+            "-o",
+            "out.wasm",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Build {
+                http_module,
+                output,
+                ..
+            } => {
+                assert!(http_module);
+                assert_eq!(output, Some(PathBuf::from("out.wasm")));
+            }
+            _ => panic!("expected build --http-module"),
+        }
+        let help = Cli::command()
+            .find_subcommand("build")
+            .expect("build subcommand")
+            .clone()
+            .render_long_help()
+            .to_string();
+        assert!(help.contains("--http-module"), "{help}");
+        assert!(
+            help.contains("not `--host wasm`") || help.contains("WASI HTTP"),
+            "{help}"
+        );
+        let bytes =
+            wat::parse_str(include_str!("../../rocci-wasi-http/src/hello_web.wat")).unwrap();
+        assert_eq!(&bytes[..4], b"\0asm");
+    }
+
+    #[test]
+    #[ignore = "ROCCI_REQUIRE_ROC=1: emit http-module.wasm from a .rocci path"]
+    fn http_module_writes_guest_when_roc_available() {
+        if std::env::var("ROCCI_REQUIRE_ROC").as_deref() != Ok("1") {
+            panic!("set ROCCI_REQUIRE_ROC=1 to run this ignored test");
+        }
+        let dir = std::env::temp_dir().join(format!(
+            "rocci-http-module-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let input = dir.join("App.rocci");
+        fs::write(&input, "Main := []").unwrap();
+        let dest = dir.join("http-module.wasm");
+        write_http_module(&dest).unwrap();
+        let bytes = fs::read(&dest).unwrap();
+        assert_eq!(&bytes[..4], b"\0asm");
+        let _ = fs::remove_dir_all(&dir);
     }
 }
