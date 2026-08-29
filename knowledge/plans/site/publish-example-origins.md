@@ -4,11 +4,16 @@ title: Publish live examples on id.examples.rocci.dev
 description: "Serve catalog live apps on dedicated <id>.examples.rocci.dev hostnames, add a site Launch control, and let catalog metadata include or exclude apps from the rocci.dev site build. Do not advertise a hostname until it serves TLS."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/developer-experience, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T11:03:00Z }
+generated: { by: process:cursor, at: 2026-08-29T18:50:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: play-path
+    resource: live-examples-play-path.md
+    title: Serve live examples at /play/id on the site host
+    author: process:cursor
+    last_modified: 2026-08-29
   - id: app-docs-plan
     resource: ../rocdown/rocci-app-docs.md
     title: Documentation generator for Rocci applications
@@ -140,10 +145,12 @@ does not attach DNS, issue certificates, or advertise a hostname.
 ## Goal
 
 A catalog row can opt into the rocci.dev `/examples/` tree, opt out of it, or
-opt into a live origin. Live apps that are on the site get a Launch control
-pointing at `https://<id>.examples.rocci.dev` (staging:
-`https://<id>.examples.staging.rocci.dev`). Those hostnames terminate TLS and
-reverse-proxy to that app's process. Docs-only apps have no Launch control.
+opt into a live origin. The public live URL is `/play/<id>/` on the site
+host (`https://staging.rocci.dev/play/<id>/`, later
+`https://rocci.dev/play/<id>/`) until or unless Host-per-app
+returns.[^play-path] Live apps that are on the site get a Launch control
+after advertise; default hostname helpers may still say
+`https://<id>.examples.rocci.dev`. Docs-only apps have no Launch control.
 The hybrid site keeps `/actions/` and `/sse` on `rocci.dev`.[^stage-rs][^examples-caddy][^cdn-caddy]
 
 ## Out of bound
@@ -249,13 +256,12 @@ those reverse-proxy to that app. Default host (`rocci.dev`,
 `staging.rocci.dev`) keeps today's island `/actions/` and `/sse`.[^cdn-caddy][^examples-caddy]
 
 Operator work (same class as [rocci.dev publish](rocci-dev-publish.md), not a
-product CLI):
-
-1. DNS for `*.examples.rocci.dev` and `*.examples.staging.rocci.dev` to the
-   Tunnel.
-2. Certificate coverage for both wildcards (not `*.rocci.dev`).
-3. Tunnel ingress hostnames → `http://127.0.0.1:8080`.
-4. Staging example hosts stay Access-gated like `staging.rocci.dev`.[^publish-plan][^tunnel-ingress]
+product CLI) is sequenced in
+[serve live examples at `/play/<id>/`](live-examples-play-path.md) (site-host
+path; Universal SSL) and, if Host-per-app returns, in
+[deploy live example origins to staging](example-origin-cloudflare-tls.md)
+(DNS and ACM). Tunnel ingress and Access for `staging.rocci.dev` are
+assumed already configured.[^play-path][^publish-plan][^tunnel-ingress]
 
 ## Phase 0 — Catalog `site` field
 
@@ -417,8 +423,9 @@ uv run --no-dev rocci-ops test example-origins
 **Work**
 
 1. Generated `/examples/` index: live rows show Launch via
-   `:link-card` / column using `app_play_url`. Label `live`, not
-   `planned live`.
+   `:link-card` / column using `app_play_url`. Public href is
+   `/play/<id>/` until Host-per-app returns. Label `live`, not
+   `planned live`.[^play-path]
 2. Staged live app indexes get the Launch card. Remove "reserved and is
    not serving" from authored live-counter and datastar pages (replace
    with Launch plus local-run).
@@ -463,6 +470,7 @@ If local or CI site builds need a smaller tree, `handler-matrix`,
 heavy, or not a public demo). Choosing them is a maintainer edit in
 Phase 1, not a requirement of this plan.
 
+[^play-path]: Public live URL is `/play/<id>/` on the site host until Host-per-app returns.
 [^app-docs-plan]: Phases 0–6 staged `/examples/`; live hostnames stayed planned until a staging deploy served them.
 [^launch-audit]: 2026-08-23 Should pass: reserved example hosts fail TLS and must not be linked as live demos.
 [^publish-plan]: Cloudflare Tunnel, Access-gated staging, VPS origin on loopback Caddy.
