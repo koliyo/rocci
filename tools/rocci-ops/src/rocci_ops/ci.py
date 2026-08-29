@@ -259,6 +259,10 @@ def run_job(job: str, cwd: Path) -> int:
         print("+ " + " ".join(step.argv), flush=True)
         code = run_step(step, cwd)
         if code != 0:
+            if step.stdout_path:
+                captured = cwd / step.stdout_path
+                if captured.is_file():
+                    print(captured.read_text(encoding="utf-8"), flush=True)
             return code
     return 0
 

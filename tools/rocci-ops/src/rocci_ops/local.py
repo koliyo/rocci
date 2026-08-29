@@ -612,7 +612,7 @@ def push_worktrees(*, remote: str | None, dry_run: bool) -> int:
 
 
 def promote_staging() -> int:
-    """Rebase staging onto main, push it, and restore the starting branch."""
+    """Merge origin/main into staging, push, and restore the starting branch."""
     original = subprocess.run(
         ["git", "branch", "--show-current"],
         cwd=repo_root(),
@@ -624,9 +624,11 @@ def promote_staging() -> int:
         raise SystemExit("promote staging requires a named starting branch")
 
     try:
+        run(["git", "fetch", "origin"])
         if original != "staging":
             run(["git", "switch", "staging"])
-        run(["git", "rebase", "main"])
+        run(["git", "merge", "--ff-only", "origin/staging"])
+        run(["git", "merge", "origin/main", "-m", "Promote main into staging"])
         run(["git", "push", "origin", "staging"])
     finally:
         if original != "staging":
