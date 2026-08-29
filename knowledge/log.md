@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-29
 
+- Recorded Phase 0 overlap timings in [WASI HTTP gaps](research/rocci/basic-webserver-wasi.md): 200ms wait, current-thread runtime. Adapter-await overlaps (~202ms native / ~203ms Wasmtime); CPU-C and hosted-sleep-C serialize (~400ms). Wasmtime fibers do not park a sync `thread::sleep` import. Crate `rocci-wasi-http` classified `BASE_ROCCI`. Not logged complete until CI and Knowledge succeed.
 - Added draft [WASI HTTP adapter host for basic-webserver apps](plans/rocci/basic-webserver-wasi.md): new `rocci-wasi-http` WASI 0.3 `wasi:http/service` crate linking the 0.16 Roc C-ABI. Yield around Roc (SSE `Wait` is adapter clocks); Phase 0 measures whether nested `hosted_*` inside `respond!` serializes other `handle`s. Do not change `--host wasm` or musl publish. Pair: [WASI HTTP gaps](research/rocci/basic-webserver-wasi.md), revised with the blocking-handler split. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 
 ## 2026-08-28

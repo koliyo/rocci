@@ -4,7 +4,7 @@ title: Gaps for running basic-webserver as a WASI HTTP module
 description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T11:50:00Z }
+generated: { by: process:cursor, at: 2026-08-29T12:01:11Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -135,6 +135,11 @@ sources:
     resource: ../../plans/rocci/basic-webserver-wasi.md
     title: WASI HTTP adapter implementation plan; yield around Roc
     author: process:cursor
+    last_modified: 2026-08-29
+  - id: probe-crate
+    resource: ../../../crates/rocci-wasi-http/src/probe.rs
+    title: Phase 0 overlap probe (native current-thread plus Wasmtime guest imports)
+    author: process:git
     last_modified: 2026-08-29
 ---
 
@@ -308,21 +313,34 @@ that worker.[^bws-time][^bws-http-send][^bws-exec]
 Wasmtime **can** park a guest fiber when a sync-lifted export calls an
 async-lowered host import (`async→sync` fusion). That yields the
 *instance* without blocking the *host thread*. It does not make Roc
-`async`. Roc hosted names today are linker symbols, not WIT; whether
-an `extern "C"` sleep that internally hits a WASI `async func` actually
-overlaps other `handle`s is a **measurement**, not a guarantee. Do not
-`block_on` WASI async from C if that measurement fails: it freezes the
-instance the same way `thread::sleep` does.[^cm-async-rfc][^wasmtime-async][^wasi-plan]
+`async`. Roc hosted names today are linker symbols, not WIT. Phase 0
+measured that a **sync** `thread::sleep` import (hosted-sleep C) does
+**not** park: other `handle`s serialize. An async host import (adapter
+await) does park. Do not `block_on` WASI async from C: it freezes the
+instance the same way `thread::sleep` does.[^cm-async-rfc][^wasmtime-async][^wasi-plan][^probe-crate]
 
-Adapter policy (the plan implements this):
+Adapter policy (the plan implements this; Phase 0 confirmed it):
 
 1. **Yield around Roc** (preferred). Buffer the WASI body, then call
    `roc_respond_for_host`. For SSE, `advance` then `await` clocks then
    write `stream<u8>`. Generated `@get:live` is this shape.
 2. Treat nested sqlite/file inside `respond!` as short critical
-   sections unless Phase 0 proves fibers yield them.
+   sections. Fibers do **not** apply to sync C hosted sleep.
 3. Extra instances are for isolation and CPU, not because "Wasm has
    one thread."
+
+### Phase 0 measured overlap (200ms wait)
+
+Two concurrent probe `handle`s on a current-thread Tokio runtime (one OS
+thread). Native analog plus a core-wasm guest whose exports call host
+imports (`func_wrap_async` vs sync busy / `thread::sleep`). Command:
+`cargo test -p rocci-wasi-http measure_200ms_table -- --ignored --nocapture`.[^probe-crate]
+
+| Mode | Native wall | Native | Wasmtime wall | Wasmtime | Fibers on (3)? |
+| --- | --- | --- | --- | --- | --- |
+| Adapter await (clocks) | 202ms | overlaps | 203ms | overlaps | Yes (async host import parks) |
+| CPU-only C (`roc_respond` stub) | 400ms | serializes | 400ms | serializes | N/A (no await point) |
+| Hosted-sleep C (`hosted_sleep_millis`) | 409ms | serializes | 410ms | serializes | **No** |
 
 Making Roc itself async is out of scope. The 0.16 SSE ABI already
 pulled the long wait out of `respond!`.[^wasi-plan]
@@ -592,3 +610,4 @@ WASI-HTTP platform would have to build.[^efficient-plan]
 [^cm-async-rfc]: Fibers for async→sync; guest C ABI remains sync.
 [^wasmtime-async]: Host async parks guest fiber.
 [^wasi-plan]: Yield-around-Roc; Phase 0 measures nested hosted I/O.
+[^probe-crate]: `rocci-wasi-http` probe: adapter-await overlaps; CPU-C and hosted-sleep-C serialize; Wasmtime fibers do not apply to sync sleep.
