@@ -15,8 +15,9 @@ cargo run -p rocci-cli -- validate [rocci.toml]
 # Compile a single .rocci template to Roc
 cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 
-# Experimental WASI HTTP module (not `--host wasm` apply; `rocci run` stays native)
+# Experimental WASI HTTP component (not `--host wasm`; `rocci run` stays native)
 cargo run -p rocci-cli -- build --http-module path/to/App.rocci -o http-module.wasm
+wasmtime serve -Sp3 -Scli http-module.wasm
 
 # Package a Linux server binary plus assets (not a macOS .app)
 cargo run -p rocci-cli -- build --release examples/rocci/custom/datastar [-o target/release/rocci-server] [--target x64musl|arm64musl|…]
