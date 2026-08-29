@@ -58,6 +58,7 @@ def test_knowledge_redirects_validation_json() -> None:
         for argv in argv_lists
         if "--profile" in argv
     )
+    assert any(argv[:4] == ("diff", "-qr", "-x", "*.html") for argv in argv_lists)
 
 
 def test_fixtures_and_docs_stages_example_docs() -> None:
