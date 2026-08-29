@@ -48,6 +48,12 @@ curl -s -D - http://127.0.0.1:8080/sse-wait    # 200ms Wait then one Emit
 
 Two overlapping `/sse-wait` connections stay near one wait (~220ms), not two.
 
+Preopen (`wasmtime serve --dir=crates/rocci-wasi-http/fixtures/static::/`):
+
+```sh
+curl -s http://127.0.0.1:8080/hello.txt   # preopen-bytes
+```
+
 `-Sp3` selects WASI 0.3. `-Scli` satisfies the `wasi:cli@0.2.9` imports
 that Rust `std` on `wasm32-wasip2` still pulls in. That is not a 0.2
 `proxy` export: `wasm-tools component wit` shows
