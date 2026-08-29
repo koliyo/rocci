@@ -34,7 +34,7 @@ description = "A Datastar-first .rocci template language and desktop runtime bui
 [workspace.dependencies]
 rocci-ui = { path = "crates/rocci-ui" }
 rocci-roc-host = { path = "crates/rocci-roc-host" }
-rocci-wasi-http = { path = "crates/rocci-wasi-http" }
+rocci-wasi-http = { path = "crates/rocci-wasi-http", default-features = false }
 rocci-wasi-http-component = { path = "crates/rocci-wasi-http-component" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }

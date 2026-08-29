@@ -10,9 +10,15 @@ yield; SSE `Wait` does.
 
 ```sh
 cargo test -p rocci-wasi-http
+cargo test -p rocci-wasi-http --no-default-features --features map
 cargo run -q -p rocci-cli -- build --http-module App.rocci -o http-module.wasm
-wasmtime serve http-module.wasm   # when the artifact is a 0.3 component
 ```
 
-`rocci run` stays native 0.16. `rocci build --http-module` currently writes the
-hello-web guest WAT (0.16 export names), not a compiled `.rocci` app.
+Default features are `map` (abi, guest stubs, `Adapter`, files) plus
+`embedder` (Wasmtime, rusqlite, probe tests). The portable component
+crate depends on `map` only.
+
+`rocci run` stays native 0.16. `rocci build --http-module` writes **core wasm**
+with 0.16 `roc_*_for_host` exports (hello-web WAT), not a compiled `.rocci` app
+and not a WASI 0.3 component. `wasmtime serve` requires a component and will
+refuse that file. Exercise `handle` with the crate embedder tests.

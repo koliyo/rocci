@@ -1,7 +1,8 @@
 # rocci-wasi-http-component
 
-Portable WASI 0.3 `wasi:http/service` component. Phase 0 is an empty
-`handle` (no Roc) that returns the hello-web HTML body.
+Portable WASI 0.3 `wasi:http/service` component. Phase 1 maps WASI
+requests onto `rocci-wasi-http` `Adapter` + `StubGuest` (`map` feature,
+no Wasmtime). No Roc.
 
 ## Pins (Phase 0)
 

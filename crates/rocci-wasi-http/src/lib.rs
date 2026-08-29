@@ -8,8 +8,11 @@ pub mod abi;
 pub mod files;
 pub mod guest;
 pub mod handle;
+#[cfg(feature = "embedder")]
 pub mod probe;
+#[cfg(feature = "embedder")]
 pub mod roc_wasm;
+#[cfg(feature = "embedder")]
 pub mod sqlite;
 
 pub use abi::{
@@ -18,9 +21,12 @@ pub use abi::{
 };
 pub use guest::{EmptySseGuest, RocGuest, StubGuest, WaitEmitGuest};
 pub use handle::Adapter;
+#[cfg(feature = "embedder")]
 pub use probe::{
     OverlapReport, ProbeMode, ProbeRequest, ProbeResponse, handle_probe, overlap_native,
     overlap_wasmtime,
 };
+#[cfg(feature = "embedder")]
 pub use roc_wasm::{WasmRocGuest, hello_web_component_bytes};
+#[cfg(feature = "embedder")]
 pub use sqlite::{SqliteGuest, SqliteStore};
