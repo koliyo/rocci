@@ -8,6 +8,7 @@ pub mod abi;
 pub mod files;
 pub mod guest;
 pub mod handle;
+pub mod linked;
 #[cfg(feature = "embedder")]
 pub mod probe;
 #[cfg(feature = "embedder")]
@@ -21,6 +22,7 @@ pub use abi::{
 };
 pub use guest::{EchoGuest, EmptySseGuest, RocGuest, StubGuest, WaitEmitGuest};
 pub use handle::Adapter;
+pub use linked::LinkedHelloWebGuest;
 #[cfg(feature = "embedder")]
 pub use probe::{
     OverlapReport, ProbeMode, ProbeRequest, ProbeResponse, handle_probe, overlap_native,

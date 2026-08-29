@@ -1,8 +1,8 @@
 # rocci-wasi-http-component
 
-Portable WASI 0.3 `wasi:http/service` component. Phase 1 maps WASI
-requests onto `rocci-wasi-http` `Adapter` + `StubGuest` (`map` feature,
-no Wasmtime). No Roc.
+Portable WASI 0.3 `wasi:http/service` component. `GET /` calls linked
+`roc_*_for_host` symbols (same names as `hello_web.wat`). Other routes
+echo mapped request fields. No Wasmtime in this crate.
 
 ## Pins (Phase 0)
 
