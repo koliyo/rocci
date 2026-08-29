@@ -64,7 +64,7 @@ jobs:
         with:
           name: rocci-dev-linux-amd64
           if-no-files-found: error
-            path: |
+          path: |
             dist/site.tgz
             dist/islands
             dist/rocci.dev/publish.json
