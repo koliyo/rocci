@@ -19,7 +19,7 @@ pub use abi::{
     IncomingRequest, OrdinaryResponse, OutcomeToHost, OutgoingResponse, ServerRequest,
     SseStepToHost,
 };
-pub use guest::{EmptySseGuest, RocGuest, StubGuest, WaitEmitGuest};
+pub use guest::{EchoGuest, EmptySseGuest, RocGuest, StubGuest, WaitEmitGuest};
 pub use handle::Adapter;
 #[cfg(feature = "embedder")]
 pub use probe::{

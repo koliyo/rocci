@@ -6,13 +6,13 @@ pub const HELLO_WEB_HTML: &str = rocci_wasi_http::StubGuest::HTML;
 mod service {
     use std::sync::{Mutex, OnceLock};
 
-    use rocci_wasi_http::{Adapter, IncomingRequest, OutgoingResponse, StubGuest};
+    use rocci_wasi_http::{Adapter, EchoGuest, IncomingRequest, OutgoingResponse};
     use wasip3::http::types::{ErrorCode, Fields, Method, Request, Response};
     use wasip3::{spawn_local, wit_future, wit_stream};
 
-    fn adapter() -> &'static Mutex<Adapter<StubGuest>> {
-        static ADAPTER: OnceLock<Mutex<Adapter<StubGuest>>> = OnceLock::new();
-        ADAPTER.get_or_init(|| Mutex::new(Adapter::new(StubGuest::new())))
+    fn adapter() -> &'static Mutex<Adapter<EchoGuest>> {
+        static ADAPTER: OnceLock<Mutex<Adapter<EchoGuest>>> = OnceLock::new();
+        ADAPTER.get_or_init(|| Mutex::new(Adapter::new(EchoGuest::new())))
     }
 
     fn method_name(method: Method) -> String {
@@ -33,12 +33,19 @@ mod service {
     async fn buffer_wasi_request(request: Request) -> Result<IncomingRequest, ErrorCode> {
         let method = method_name(request.get_method());
         let path = request.get_path_with_query().unwrap_or_else(|| "/".into());
-        let headers = request
+        let mut headers: Vec<(String, String)> = request
             .get_headers()
             .copy_all()
             .into_iter()
             .map(|(name, value)| (name, String::from_utf8_lossy(&value).into_owned()))
             .collect();
+        if !headers
+            .iter()
+            .any(|(name, _)| name.eq_ignore_ascii_case("host"))
+            && let Some(authority) = request.get_authority()
+        {
+            headers.push(("host".into(), authority));
+        }
         let (body_done_tx, body_done_rx) = wit_future::new(|| Ok(()));
         let (mut body_rx, _trailers) = Request::consume_body(request, body_done_rx);
         drop(body_done_tx);
