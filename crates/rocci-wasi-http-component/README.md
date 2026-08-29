@@ -39,6 +39,15 @@ curl -s -X POST http://127.0.0.1:8080/ --data-binary abc
 # method=7 body=abc content_length=3
 ```
 
+SSE (`stream<u8>`, Wait via `wasi:clocks` `wait-for`; idle timeout is the serve host's):
+
+```sh
+curl -s -D - http://127.0.0.1:8080/sse-empty   # immediate End
+curl -s -D - http://127.0.0.1:8080/sse-wait    # 200ms Wait then one Emit
+```
+
+Two overlapping `/sse-wait` connections stay near one wait (~220ms), not two.
+
 `-Sp3` selects WASI 0.3. `-Scli` satisfies the `wasi:cli@0.2.9` imports
 that Rust `std` on `wasm32-wasip2` still pulls in. That is not a 0.2
 `proxy` export: `wasm-tools component wit` shows

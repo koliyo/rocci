@@ -6,9 +6,11 @@ pub const HELLO_WEB_HTML: &str = rocci_wasi_http::StubGuest::HTML;
 mod service {
     use std::sync::{Mutex, OnceLock};
 
+    use std::time::Duration;
+
     use rocci_wasi_http::{
-        Adapter, EchoGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse, RocGuest,
-        ServerRequest,
+        Adapter, EchoGuest, EmptySseGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse,
+        RocGuest, ServerRequest, SseStepToHost, WaitEmitGuest, abi::map_request,
     };
     use wasip3::http::types::{ErrorCode, Fields, Method, Request, Response};
     use wasip3::{spawn_local, wit_future, wit_stream};
@@ -97,6 +99,59 @@ mod service {
         })
     }
 
+    async fn clocks_wait(wait_millis: u64) {
+        if wait_millis == 0 {
+            return;
+        }
+        wasip3::clocks::monotonic_clock::wait_for(wait_millis.saturating_mul(1_000_000)).await;
+    }
+
+    async fn stream_sse_wasi<G: RocGuest + 'static>(
+        mut guest: G,
+        incoming: IncomingRequest,
+    ) -> Result<Response, ErrorCode> {
+        guest.init();
+        let rocci_wasi_http::OutcomeToHost::Stream { source } =
+            guest.respond(&map_request(incoming))
+        else {
+            return Err(ErrorCode::InternalError(Some(
+                "expected SSE stream outcome".into(),
+            )));
+        };
+        let headers = Fields::from_list(&[("content-type".into(), b"text/event-stream".to_vec())])
+            .map_err(|_| ErrorCode::InternalError(None))?;
+        let (mut body_tx, body_rx) = wit_stream::new();
+        let (trailers_tx, trailers_rx) = wit_future::new(|| Ok(None));
+        spawn_local(async move {
+            let mut wake = 0u64;
+            loop {
+                let step = guest.sse_advance(source, wake);
+                match step {
+                    SseStepToHost::EmitToHost { item, wait_millis } => {
+                        let _ = body_tx.write_all(item).await;
+                        clocks_wait(wait_millis).await;
+                        if wait_millis > 0 {
+                            wake = wake.wrapping_add(1);
+                        }
+                    }
+                    SseStepToHost::WaitToHost { wait_millis } => {
+                        clocks_wait(wait_millis).await;
+                        wake = wake.wrapping_add(1);
+                    }
+                    SseStepToHost::EndToHost => {
+                        guest.sse_drop_source(source);
+                        break;
+                    }
+                }
+            }
+            drop(body_tx);
+            let _ = trailers_tx.write(Ok(None)).await;
+        });
+        let (response, _sent) = Response::new(headers, Some(body_rx), trailers_rx);
+        let _ = response.set_status_code(200);
+        Ok(response)
+    }
+
     fn outgoing_to_wasi(outgoing: OutgoingResponse) -> Result<Response, ErrorCode> {
         let entries: Vec<(String, Vec<u8>)> = outgoing
             .headers
@@ -122,6 +177,14 @@ mod service {
     impl wasip3::exports::http::handler::Guest for MapService {
         async fn handle(request: Request) -> Result<Response, ErrorCode> {
             let incoming = buffer_wasi_request(request).await?;
+            let path = incoming.path.split('?').next().unwrap_or("/");
+            if path == "/sse-empty" {
+                return stream_sse_wasi(EmptySseGuest, incoming).await;
+            }
+            if path == "/sse-wait" {
+                return stream_sse_wasi(WaitEmitGuest::new(Duration::from_millis(200)), incoming)
+                    .await;
+            }
             let outgoing = adapter()
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
