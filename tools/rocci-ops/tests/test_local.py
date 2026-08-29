@@ -242,7 +242,7 @@ detached
     assert entries[2][1] is None
 
 
-def test_promote_staging_rebases_main_pushes_and_restores_branch(monkeypatch, tmp_path) -> None:
+def test_promote_staging_merges_main_pushes_and_restores_branch(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
     monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
@@ -253,8 +253,10 @@ def test_promote_staging_rebases_main_pushes_and_restores_branch(monkeypatch, tm
 
     assert promote_staging() == 0
     assert calls == [
+        ["git", "fetch", "origin"],
         ["git", "switch", "staging"],
-        ["git", "rebase", "main"],
+        ["git", "merge", "--ff-only", "origin/staging"],
+        ["git", "merge", "origin/main", "-m", "Promote main into staging"],
         ["git", "push", "origin", "staging"],
         ["git", "switch", "feature"],
     ]

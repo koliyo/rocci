@@ -113,11 +113,14 @@ uv run rocci-ops promote production
 `promote production` is `git push origin origin/staging:refs/heads/production`.
 It creates `production` on first use. That push runs hosted CI and Knowledge
 and then this workflow's package/deploy jobs. Do not run it until staging has
-been smoked signed-out. Equivalent raw git:
+been smoked signed-out. `promote staging` merges `origin/main` into `staging` and pushes (fast-forward only vs `origin/staging`). Do not rebase or force-push `staging`. Equivalent raw git:
 
 ```sh
 git fetch origin
-git push origin origin/main:staging
+git switch staging
+git merge --ff-only origin/staging
+git merge origin/main -m "Promote main into staging"
+git push origin staging
 git push origin origin/staging:production
 ```
 
