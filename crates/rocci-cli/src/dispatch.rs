@@ -593,22 +593,26 @@ fn live_sse_arm(type_name: &str, live: &LiveInfo, log_handlers: bool) -> String 
             {ok_log}Ok(
                 Server.stream(
                     Sse.unfold!(
-                        "",
+                        {{ html: "", quiet: 0 }},
                         |prev| {{
                             match {handler}(context, request) {{
                                 Ok(html) => {{
                                 rendered = Html.render(html)
-                                    if rendered == prev {{
-                                        event = Sse.Event.data("")
-                                        Ok(Emit({{ event, state: prev, wake: After(100) }}))
+                                    if rendered == prev.html {{
+                                        if prev.quiet >= 149 {{
+                                            event = Sse.Event.data("")
+                                            Ok(Emit({{ event, state: {{ html: prev.html, quiet: 0 }}, wake: After(100) }}))
+                                        }} else {{
+                                            Ok(Wait({{ state: {{ html: prev.html, quiet: prev.quiet + 1 }}, wake: After(100) }}))
+                                        }}
                                     }} else {{
                                         event = Datastar.patch_elements(html)
-                                        Ok(Emit({{ event, state: rendered, wake: After(100) }}))
+                                        Ok(Emit({{ event, state: {{ html: rendered, quiet: 0 }}, wake: After(100) }}))
                                     }}
                                 }}
                                 Err(err) => {{
                                     event = Datastar.patch_elements(error_overlay_html("{method}", "{path}", "{handler}", Str.inspect(err)))
-                                    Ok(Emit({{ event, state: prev, wake: After(100) }}))
+                                    Ok(Emit({{ event, state: {{ html: prev.html, quiet: 0 }}, wake: After(100) }}))
                                 }}
                             }}
                         }},
@@ -1100,8 +1104,11 @@ mod tests {
         );
         assert!(main.contains("Datastar.patch_elements"), "{main}");
         assert!(main.contains("Sse.Event.data(\"\")"), "{main}");
+        assert!(main.contains("if prev.quiet >= 149"), "{main}");
         assert!(
-            !main.contains("Ok(Wait({ state: prev, wake: After(100) }))"),
+            main.contains(
+                "Ok(Wait({ state: { html: prev.html, quiet: prev.quiet + 1 }, wake: After(100) }))"
+            ),
             "{main}"
         );
     }

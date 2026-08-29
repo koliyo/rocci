@@ -46,11 +46,16 @@ route data from `request` when the handler lists that parameter.
 6. Shutdown with the process
 
 Every `@get:live(path)` becomes an SSE route, including live routes from
-sibling modules. Generated streams retain 100 ms polling and keepalive events.
+sibling modules. That GET is a long-lived EventSource. Generated live is
+a **timer poll**, not write-triggered push: each connection re-renders
+every 100 ms and emits `datastar-patch-elements` only when HTML bytes
+change. A keepalive is a **separate** unnamed SSE frame so the host 30s
+idle timeout does not close a quiet stream. It must not run at poll
+rate. Each subscription owns its own connection and poll loop.
 A document receives an automatic `data-init=@get(path,
 [OpenWhenHidden(True)])` only when its module has exactly one live route and
 the body has no authored `data-init`. With multiple streams, subscribe
-explicitly; every subscription owns its own connection and polling work.
+explicitly.
 
 ## Datastar asset
 

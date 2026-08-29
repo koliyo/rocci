@@ -6,6 +6,12 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-08-30
+
+- Revised [generated live SSE is a timer poll](research/rocci/live-sse-is-timer-poll.md) and [basic-webserver SSE and HTTP](research/rocci/basic-webserver-sse-http.md): 30s `response_idle_ms` is a hung-response detector (silence on SSE is legal); keepalive every ~15s, not at poll rate. Exploratory; do not log complete until CI and Knowledge succeed.
+- Filed draft [generated live SSE is a timer poll, not write-triggered push](research/rocci/live-sse-is-timer-poll.md): 100ms is render poll, keepalive is a separate less-than-30s clock; empty browser `message` events are unnamed SSE frames on the open GET. Exploratory; do not log complete until CI and Knowledge succeed.
+- Filed draft [untagged style siblings on Datastar patch-elements](research/rocci/sse-patch-style-targets.md) for the 2026-08-30 live-counter / home-page `PatchElementsNoTargetsFound` spam, and paired [SSE patch-target tests](plans/rocci/sse-patch-target-tests.md): wire-format id-or-selector checks in the default suite, optional ignored `GET /sse` smoke, no browser e2e. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 ## 2026-08-29
 
 - Moved the live-example front door from `/play/<id>/` to first-level Hosts (`<id>-example-staging.rocci.dev`, later `<id>-example.rocci.dev`) so `/assets/` and `/actions/` stay on the app. Caddy matchers, Tunnel snippet, and origin health Hosts updated. Do not advertise Launch until those staging names serve TLS. Exploratory.

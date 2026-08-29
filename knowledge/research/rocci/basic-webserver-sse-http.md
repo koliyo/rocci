@@ -4,16 +4,21 @@ title: basic-webserver 0.16 SSE and HTTP limits for Rocci live streams
 description: "Pinned basic-webserver 0.16 fails silent SSE Wait after a 30s response idle timeout, logs hyper Body errors without the inner detail, and serves browsers on HTTP/1.1 for plaintext rocci run. Rocci workarounds keepalives and empty SSE commands; it does not fork the platform."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T13:08:32Z }
+generated: { by: process:cursor, at: 2026-08-30T00:34:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
 sources:
   - id: dispatch-rs
     resource: ../../../crates/rocci-cli/src/dispatch.rs
-    title: Generated empty_sse and live keepalive Emit
+    title: Generated empty_sse; live Wait on quiet polls; keepalive every 15s
     author: process:git
-    last_modified: 2026-08-21
+    last_modified: 2026-08-30
+  - id: live-poll
+    resource: live-sse-is-timer-poll.md
+    title: 30s is a hung-response detector; keepalive is not the poll clock
+    author: process:cursor
+    last_modified: 2026-08-30
   - id: bws-http-server
     resource: https://raw.githubusercontent.com/roc-lang/basic-webserver/0.16.0/src/http_server.rs
     title: basic-webserver 0.16 response idle timeout and HTTP/1.1 Body diagnostics
@@ -71,10 +76,16 @@ dies after ~30s of idle (or sooner if a poll stalls). Datastar reconnects;
 Safari shows red `sse` rows. The acting `@command` can still succeed against
 SQLite, so the UI looks fine while the CLI and inspector look broken.[^live-counter]
 
-**Rocci workaround:** on the unchanged poll path, emit a non-Datastar
-keepalive (`Sse.Event.data("")`, frames as `data: \n\n`). Datastar ignores
-events whose names do not start with `datastar`. Bytes on the wire reset the
-idle timer.[^dispatch-rs]
+**Rocci workaround:** `Wait` on quiet polls (no bytes). Emit a non-Datastar
+keepalive (`Sse.Event.data("")`, frames as `data: \n\n`) about every **15s**
+of quiet, not every 100ms poll. Datastar ignores events whose names do not
+start with `datastar`. Bytes on the wire reset the idle timer.[^dispatch-rs][^live-poll]
+
+The 30s default is a hung-response detector for all bodies, not an SSE
+liveness interval. Silence is legal on a live GET. Raising the global
+default would loosen stuck HTML/file detection. Do not fork the platform
+to special-case event streams. First-principles argument:
+[generated live is a timer poll](live-sse-is-timer-poll.md).[^live-poll]
 
 ## Empty command bodies and inspector noise
 
@@ -129,7 +140,7 @@ Upstream improvements worth tracking: treat long-lived SSE `Wait` as progress
 for idle deadlines, or surface the inner Body error in the HTTP/1.1
 diagnostic.
 
-[^dispatch-rs]: Generated `empty_sse!` and live keepalive `Emit`.
+[^dispatch-rs]: Generated `empty_sse!`; live `Wait` versus 15s keepalive `Emit`.
 [^bws-http-server]: Response idle Body error; HTTP/1.1 connection diagnostic.
 [^bws-transport]: Prior-knowledge HTTP/2 preface detection.
 [^bws-server-roc]: `default_response_idle_timeout_ms = 30_000`.
@@ -137,3 +148,4 @@ diagnostic.
 [^ds-sdk-adr]: Datastar SSE headers; keep-alive is HTTP/1.1 only.
 [^cqrs-research]: Empty SSE commands and live keepalives as shipped CQRS policy.
 [^live-counter]: Live-counter `@live` plus `@command` against one SQLite handle.
+[^live-poll]: Two clocks; 30s idle is not a poll-rate keepalive.
