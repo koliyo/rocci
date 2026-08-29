@@ -1,5 +1,6 @@
 :80 {
 	# Example origins must match Host before site /actions/ and /sse.
+	# Site-host play paths also match before islands /actions/.
 	@live-counter host live-counter.examples.rocci.dev live-counter.examples.staging.rocci.dev live-counter.examples.localhost
 	handle @live-counter {
 		reverse_proxy live-counter:8000 {
