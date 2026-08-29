@@ -57,8 +57,16 @@ pub struct OrdinaryResponse {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SseStepToHost {
+    EmitToHost { item: Vec<u8>, wait_millis: u64 },
+    WaitToHost { wait_millis: u64 },
+    EndToHost,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum OutcomeToHost {
     Ordinary(OrdinaryResponse),
+    Stream { source: u64 },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,6 +82,7 @@ pub struct OutgoingResponse {
     pub status: u16,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    pub streamed: bool,
 }
 
 pub fn method_to_tag(method: &str) -> (u8, String) {
@@ -159,17 +168,16 @@ fn authority_from_headers(headers: &[(String, String)]) -> (String, u16, bool, b
     (value.clone(), 0, false, true)
 }
 
-pub fn map_ordinary(outcome: OutcomeToHost) -> OutgoingResponse {
-    match outcome {
-        OutcomeToHost::Ordinary(ordinary) => OutgoingResponse {
-            status: ordinary.status,
-            headers: ordinary
-                .headers
-                .into_iter()
-                .map(|h| (h.name, h.value))
-                .collect(),
-            body: ordinary.body,
-        },
+pub fn map_ordinary(ordinary: OrdinaryResponse) -> OutgoingResponse {
+    OutgoingResponse {
+        status: ordinary.status,
+        headers: ordinary
+            .headers
+            .into_iter()
+            .map(|h| (h.name, h.value))
+            .collect(),
+        body: ordinary.body,
+        streamed: false,
     }
 }
 
