@@ -170,7 +170,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "check",
                     "knowledge",
                     "--profile",
-                    "rocci",
+                    "base",
                     "--format",
                     "json",
                 ),
@@ -181,7 +181,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     root,
                     "inspect",
                     "--profile",
-                    "rocci",
+                    "base",
                     "graph",
                     "knowledge",
                 ),
@@ -194,7 +194,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "knowledge/retrieval-benchmark.toml",
                     "knowledge",
                     "--profile",
-                    "rocci",
+                    "base",
                 ),
                 stdout_path=str(out / "retrieval.json"),
             ),
@@ -206,7 +206,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "--output",
                     str(out / "build-a"),
                     "--profile",
-                    "rocci",
+                    "base",
                 )
             ),
             Step(
@@ -217,7 +217,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "--output",
                     str(out / "build-b"),
                     "--profile",
-                    "rocci",
+                    "base",
                 )
             ),
             Step(

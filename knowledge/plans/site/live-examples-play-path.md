@@ -112,9 +112,9 @@ and avoids paid multi-level certs.[^background]
 
 ## Phase 0 — Caddy play routes
 
-**Bound:** [docker/cdn/Caddyfile](../../../docker/cdn/Caddyfile) and
-[tools/rocci-ops/tests/test_example_origins.py](../../../tools/rocci-ops/tests/test_example_origins.py).
-No origin.py, no Launch hrefs, no promote.
+**Bound:** `docker/cdn/Caddyfile` and
+`tools/rocci-ops/tests/test_example_origins.py`.
+No origin.py, no Launch hrefs, no promote.[^cdn-caddy][^example-tests]
 
 **Work**
 
@@ -139,8 +139,8 @@ uv run --no-dev rocci-ops test example-origins
 
 ## Phase 1 — Origin health on play paths
 
-**Bound:** [tools/rocci-ops/src/rocci_ops/origin.py](../../../tools/rocci-ops/src/rocci_ops/origin.py)
-and its tests. No Launch. No promote.
+**Bound:** `tools/rocci-ops/src/rocci_ops/origin.py`
+and its tests. No Launch. No promote.[^origin-ops]
 
 **Work**
 
@@ -149,7 +149,7 @@ and its tests. No Launch. No promote.
    required).
 2. Keep site `GET /health` (islands). Optionally keep
    `Host: <id>.examples.localhost` checks while Host matchers remain.
-3. [docker/prod/README.md](../../../docker/prod/README.md) origin smoke
+3. `docker/prod/README.md` origin smoke
    lists the play `/health` curls.[^origin-ops][^prod-readme]
 
 **Exit**
@@ -177,7 +177,7 @@ change. No Phase 5 advertise.
 **Exit**
 
 ```sh
-cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile strict --format terminal
+cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile base --format terminal
 ```
 
 - Those two records cite this plan. No generated Launch `/play/` on
