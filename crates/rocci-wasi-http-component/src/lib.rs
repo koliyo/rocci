@@ -39,6 +39,11 @@ mod service {
             if request.method == ServerRequest::METHOD_GET && request.target_path == "/" {
                 return self.linked.respond(request);
             }
+            if request.method == ServerRequest::METHOD_GET && request.target_path == "/hello.txt" {
+                return rocci_wasi_http::OutcomeToHost::File {
+                    rel_path: "hello.txt".into(),
+                };
+            }
             self.echo.respond(request)
         }
 
@@ -50,7 +55,11 @@ mod service {
 
     fn adapter() -> &'static Mutex<Adapter<RoutedGuest>> {
         static ADAPTER: OnceLock<Mutex<Adapter<RoutedGuest>>> = OnceLock::new();
-        ADAPTER.get_or_init(|| Mutex::new(Adapter::new(RoutedGuest::default())))
+        ADAPTER.get_or_init(|| {
+            Mutex::new(
+                Adapter::new(RoutedGuest::default()).with_file_root(std::path::PathBuf::from("/")),
+            )
+        })
     }
 
     fn method_name(method: Method) -> String {
