@@ -13,8 +13,8 @@ import PageOutline
     </footer>
 }
 
-@component Home = |{ view: _view }, content| {
-    <div class="layout-home">
+@component Home = |{ view }, content| {
+    <div class="layout-home" data-route={view.route}>
         <main class="home-main" id="main-content">
             <article class="article">{content}</article>
         </main>
