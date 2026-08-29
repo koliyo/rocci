@@ -4,7 +4,7 @@ title: Generated live SSE is a timer poll, not write-triggered push
 description: "HTTP SSE is a long-lived GET. Generated @get:live does not wake that GET when a command writes. Each connection re-runs the live handler on a 100ms host timer and diffs Html.render. A keepalive is a second clock (<30s idle timeout), not 100ms. Emitting an empty SSE event on every poll was a conflation, not a platform requirement."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T00:34:00Z }
+generated: { by: process:cursor, at: 2026-08-30T00:44:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -182,10 +182,21 @@ slower poll (250ms, 1s) would be a product tradeoff: fewer renders, more
 visible lag. A faster poll would be more CPU for the same reason.
 Neither changes the model.[^dispatch-rs][^live-counter]
 
-`Html.render` equality is the change detector. Relative "ago" strings
-that include wall-clock time make the bytes change even when the count
-does not, so a poll can emit a real patch without a click. That is a
-render-identity issue, not push.[^live-counter]
+`Html.render` equality is the change detector. The live arm compares the
+**whole** `LiveSlice` (count + feed). A second-resolution "N seconds
+ago" string changes those bytes every second after a click, so both
+windows get a real `datastar-patch-elements` (first node is `#counter`)
+with no further Increment. That is render identity, not a broken
+keepalive. The 2026-08-30 EventStream after a quiet-until-click session
+was this: one patch on Increment, then 1 Hz patches while any feed row
+was in the seconds bucket, then a later unnamed `message` keepalive
+once the HTML stopped changing.[^live-counter]
+
+The demo now buckets `< 60s` as "just now", then minutes. The stream
+stays quiet for a minute after a click. A live fragment that prints
+wall-clock or per-second relative time will always be this chatty; do
+not put a ticking clock in the morph HTML if the channel should stay
+quiet.[^live-counter]
 
 ## What true push would take
 

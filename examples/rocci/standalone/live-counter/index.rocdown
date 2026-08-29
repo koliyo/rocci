@@ -18,6 +18,9 @@ but `@get:live("/sse")` owns the stream path. Increment and reset are
 receive `204 No Content`; Datastar receives an empty finite SSE response with
 zero events so its action lifecycle completes normally.
 The stream morphs `#counter` and `#counter-feed` in every connected tab.
+Feed labels stay **just now** for a minute, then flip to minutes, so the
+live HTML does not change every second (the poll diffs `Html.render`
+bytes; a ticking "N seconds ago" would emit a patch each second).
 Reset is optional on the island (`show_reset`); the home page omits it.
 Place may come from the browser timezone or a chosen picker value (marked
 **chosen** in the feed). Clients can set either freely — this is not verified.
