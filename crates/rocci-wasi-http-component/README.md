@@ -29,6 +29,16 @@ curl -i http://127.0.0.1:8080/
 `GET /` is 200 `text/html` with
 `<!doctype html><html><body>hello-web</body></html>`.
 
+Mapped fields (same names as `maps_get_path_query_and_headers` /
+`buffers_post_body`) echo as `text/plain` on other routes:
+
+```sh
+curl -s http://127.0.0.1:8080/hello?x=1 -H 'accept: text/html'
+# path=/hello query=x=1 header.accept=text/html
+curl -s -X POST http://127.0.0.1:8080/ --data-binary abc
+# method=7 body=abc content_length=3
+```
+
 `-Sp3` selects WASI 0.3. `-Scli` satisfies the `wasi:cli@0.2.9` imports
 that Rust `std` on `wasm32-wasip2` still pulls in. That is not a 0.2
 `proxy` export: `wasm-tools component wit` shows
