@@ -93,20 +93,41 @@ def compose_up(root: Path, *, runner=subprocess.run) -> None:
         raise SystemExit("error: docker compose failed")
 
 
-def health_ok(
+def _direct_open(target: str | urllib.request.Request, timeout: float = 5):
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    return opener.open(target, timeout=timeout)
+
+
+def health_probe(
     url: str,
     *,
     headers: dict[str, str] | None = None,
-    fetch=urllib.request.urlopen,
-) -> bool:
+    fetch=_direct_open,
+) -> tuple[bool, str]:
     try:
         target: str | urllib.request.Request = url
         if headers:
             target = urllib.request.Request(url, headers=headers)
         with fetch(target, timeout=5) as response:
-            return getattr(response, "status", 200) == 200
-    except (urllib.error.URLError, TimeoutError, OSError):
-        return False
+            status = getattr(response, "status", 200)
+            if status == 200:
+                return True, "200"
+            return False, str(status)
+    except urllib.error.HTTPError as exc:
+        return False, str(exc.code)
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        reason = getattr(exc, "reason", exc)
+        return False, f"{type(exc).__name__}:{reason}"
+
+
+def health_ok(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    fetch=_direct_open,
+) -> bool:
+    ok, _detail = health_probe(url, headers=headers, fetch=fetch)
+    return ok
 
 
 def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str, str]]]:
@@ -129,15 +150,22 @@ def wait_health(
     live_ids: list[str] | None = None,
     attempts: int = 36,
     delay: float = 5.0,
-    fetch=urllib.request.urlopen,
+    fetch=_direct_open,
     sleeper=time.sleep,
 ) -> bool:
     checks = health_checks(live_ids)
     for index in range(1, attempts + 1):
-        ok = all(health_ok(url, headers=headers or None, fetch=fetch) for url, headers in checks)
-        print(f"health {index}/{attempts} {'200' if ok else 'fail'}", flush=True)
-        if ok:
+        failures: list[str] = []
+        for url, headers in checks:
+            ok, detail = health_probe(url, headers=headers or None, fetch=fetch)
+            if not ok:
+                host = headers.get("Host", "")
+                extra = f" Host={host}" if host else ""
+                failures.append(f"{url}{extra} {detail}")
+        if not failures:
+            print(f"health {index}/{attempts} 200", flush=True)
             return True
+        print(f"health {index}/{attempts} fail: {'; '.join(failures)}", flush=True)
         sleeper(delay)
     return False
 
