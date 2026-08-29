@@ -139,7 +139,7 @@ const PROBE_WAT: &str = r#"
 /// `AdapterAwait` uses `func_wrap_async` (fiber park). `CpuC` and `HostedSleepC`
 /// use sync imports. Two Stores share one current-thread host runtime, matching
 /// one OS thread multiplexing two instances / tasks.
-fn wasmtime_err(err: wasmtime::Error) -> anyhow::Error {
+pub(crate) fn wasmtime_err(err: wasmtime::Error) -> anyhow::Error {
     anyhow::anyhow!("{err:#}")
 }
 

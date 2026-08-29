@@ -7,6 +7,7 @@ pub mod abi;
 pub mod guest;
 pub mod handle;
 pub mod probe;
+pub mod roc_wasm;
 
 pub use abi::{IncomingRequest, OrdinaryResponse, OutcomeToHost, OutgoingResponse, ServerRequest};
 pub use guest::{RocGuest, StubGuest};
@@ -15,3 +16,4 @@ pub use probe::{
     OverlapReport, ProbeMode, ProbeRequest, ProbeResponse, handle_probe, overlap_native,
     overlap_wasmtime,
 };
+pub use roc_wasm::WasmRocGuest;
