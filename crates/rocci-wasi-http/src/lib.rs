@@ -22,5 +22,5 @@ pub use probe::{
     OverlapReport, ProbeMode, ProbeRequest, ProbeResponse, handle_probe, overlap_native,
     overlap_wasmtime,
 };
-pub use roc_wasm::WasmRocGuest;
+pub use roc_wasm::{WasmRocGuest, hello_web_component_bytes};
 pub use sqlite::{SqliteGuest, SqliteStore};

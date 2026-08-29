@@ -18,6 +18,10 @@ pub struct WasmRocGuest {
     initialized: bool,
 }
 
+pub fn hello_web_component_bytes() -> Result<Vec<u8>> {
+    wat::parse_str(HELLO_WEB_WAT).context("parse hello-web WAT")
+}
+
 impl WasmRocGuest {
     pub fn hello_web() -> Result<Self> {
         Self::from_wat(HELLO_WEB_WAT)

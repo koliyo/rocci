@@ -34,6 +34,17 @@ cargo run -q -p rocci-cli -- build INPUT [-o OUTPUT]
 
 Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
 
+## Build WASI HTTP module (experimental)
+
+```sh
+cargo run -q -p rocci-cli -- build --http-module INPUT.rocci [-o http-module.wasm]
+```
+
+Writes a hello-web WASI guest (`wasi:http`-shaped exports), **not** apply
+`--host wasm` and **not** a musl `--release` process. `rocci run` stays native
+0.16. The `.rocci` path is required for the CLI shape; the bytes today are the
+linked hello-web fixture, not a compiled app.
+
 ## Build release
 
 ```sh

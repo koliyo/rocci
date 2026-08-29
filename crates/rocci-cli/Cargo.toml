@@ -29,3 +29,4 @@ serde_json = { workspace = true }
 sha2 = "0.11"
 toml = { workspace = true }
 ureq = "3.4"
+wat = "1"
