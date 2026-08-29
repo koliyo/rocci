@@ -31,6 +31,7 @@ mod tests {
         assert!(html.contains("import pf.Html as PlatformHtml"));
         assert!(datastar.contains("Datastar := [].{"));
         assert!(datastar.contains("patch_elements"));
+        assert!(datastar.contains("drop_style_elements"));
         let _ = fs::remove_dir_all(&dir);
     }
 }

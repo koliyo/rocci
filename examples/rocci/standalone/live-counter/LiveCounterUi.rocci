@@ -201,7 +201,12 @@ CounterIsland = |{ count, clicks, show_reset ?? False }| {
         <div class="controls">
             <label class="place-field">
                 <span>Place</span>
-                <select data-bind:origin aria-label="Optional place override">
+                <select
+                    id="origin"
+                    name="origin"
+                    data-bind:origin
+                    aria-label="Optional place override"
+                >
                     <option value="">Automatic location (browser timezone)</option>
                     @for item in Origin.choices {
                         <option value={item.tz}>{item.label}</option>

@@ -1,4 +1,7 @@
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from rocci_ops.local import (
     CLI_CRATES,
@@ -240,6 +243,37 @@ detached
     assert entries[1] == ("/repo-feature", "refs/heads/feature")
     assert entries[2][0] == "/repo-detach"
     assert entries[2][1] is None
+
+
+def test_promote_staging_aborts_conflict_and_restores_branch(monkeypatch, tmp_path) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(argv, cwd=None, env=None):
+        calls.append(list(argv))
+        if argv[:3] == ["git", "merge", "origin/main"]:
+            raise subprocess.CalledProcessError(1, argv)
+
+    def fake_subprocess_run(argv, **kwargs):
+        if list(argv)[:2] == ["git", "branch"]:
+            return type("Result", (), {"stdout": "feature\n", "returncode": 0})()
+        if list(argv)[:2] == ["git", "rev-parse"]:
+            return type("Result", (), {"returncode": 0})()
+        return type("Result", (), {"stdout": "", "returncode": 0})()
+
+    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.local.subprocess.run", fake_subprocess_run)
+    monkeypatch.setattr("rocci_ops.local.run", fake_run)
+
+    with pytest.raises(subprocess.CalledProcessError):
+        promote_staging()
+    assert calls == [
+        ["git", "fetch", "origin"],
+        ["git", "switch", "staging"],
+        ["git", "merge", "--ff-only", "origin/staging"],
+        ["git", "merge", "origin/main", "-m", "Promote main into staging"],
+        ["git", "merge", "--abort"],
+        ["git", "switch", "feature"],
+    ]
 
 
 def test_promote_staging_merges_main_pushes_and_restores_branch(monkeypatch, tmp_path) -> None:

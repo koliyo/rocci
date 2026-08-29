@@ -14,4 +14,6 @@ pub use spec::{
     ParsedModifier, is_datastar_attribute, lookup_action, lookup_attribute, lookup_modifier,
     parse_attribute,
 };
-pub use sse::{ExecuteScript, PatchElements, PatchMode, PatchSignals, RemoveFragments};
+pub use sse::{
+    ExecuteScript, PatchElements, PatchMode, PatchSignals, RemoveFragments, strip_style_elements,
+};

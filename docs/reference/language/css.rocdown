@@ -17,6 +17,8 @@ item like `@let`.
 Lowering stamps `data-rocci-css` and wraps rules in CSS `@scope`. Authors keep
 writing `class="card"`. Document chrome belongs on `body` or `:scope`, not
 `html { … }`. Patch fragments should not carry a sibling `<style>`.
+`Datastar.patch_elements` drops those tags so colocated `@css` on a live
+or one-shot fragment is not a morph target.
 
 **Example:** [Styling](/examples/styling/).
 

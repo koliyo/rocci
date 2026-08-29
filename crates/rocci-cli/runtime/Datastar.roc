@@ -16,7 +16,7 @@ Datastar := [].{
         Sse.Event.keyed(
             "datastar-patch-elements",
             "elements",
-            PlatformHtml.render_without_doc_type(node),
+            drop_style_elements(PlatformHtml.render_without_doc_type(node)),
         )
 
     patch_signals = patch_signals_event
@@ -33,6 +33,27 @@ Datastar := [].{
     put_with = |uri, opts| backend("put", uri, opts)
     patch_with = |uri, opts| backend("patch", uri, opts)
     delete_with = |uri, opts| backend("delete", uri, opts)
+}
+
+drop_style_elements = |html| {
+    parts = Str.split_on(html, "<style")
+    match List.get(parts, 0) {
+        Err(_) => html
+        Ok(first) =>
+            List.fold(
+                List.drop_first(parts, 1),
+                first,
+                |acc, part| {
+                    chunks = Str.split_on(part, "</style>")
+                    tail = List.drop_first(chunks, 1)
+                    if List.is_empty(tail) {
+                        "${acc}<style${part}"
+                    } else {
+                        "${acc}${Str.join_with(tail, "</style>")}"
+                    }
+                },
+            )
+    }
 }
 
 patch_signals_event = |signals| patch_signals_event_with(signals, [])

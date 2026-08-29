@@ -1,6 +1,27 @@
 use super::modes::PatchMode;
 use std::fmt::Write;
 
+/// Drop `<style>…</style>` from a Datastar patch. Colocated `@css` embeds a
+/// sibling style with no `id`; Datastar then logs PatchElementsNoTargetsFound.
+pub fn strip_style_elements(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some(start) = rest.find("<style") {
+        out.push_str(&rest[..start]);
+        let after_open = &rest[start + "<style".len()..];
+        match after_open.find("</style>") {
+            Some(end) => rest = &after_open[end + "</style>".len()..],
+            None => {
+                out.push_str("<style");
+                out.push_str(after_open);
+                return out;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PatchElements<'a> {
     pub elements: &'a str,
@@ -65,7 +86,7 @@ impl<'a> PatchElements<'a> {
         if let Some(settle) = self.settle_duration_ms {
             let _ = writeln!(out, "data: settleDuration {settle}");
         }
-        for line in self.elements.lines() {
+        for line in strip_style_elements(self.elements).lines() {
             let _ = writeln!(out, "data: elements {line}");
         }
         out.push('\n');
