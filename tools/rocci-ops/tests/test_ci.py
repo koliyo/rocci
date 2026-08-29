@@ -54,7 +54,7 @@ def test_knowledge_redirects_validation_json() -> None:
     assert any("okmate" in argv for argv in argv_lists)
     assert all("rocci-okf" not in argv for argv in argv_lists)
     assert all(
-        argv[argv.index("--profile") + 1] == "rocci"
+        argv[argv.index("--profile") + 1] == "base"
         for argv in argv_lists
         if "--profile" in argv
     )
