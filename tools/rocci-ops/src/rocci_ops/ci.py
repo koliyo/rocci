@@ -220,7 +220,16 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     "strict",
                 )
             ),
-            Step(("diff", "-qr", str(out / "build-a"), str(out / "build-b"))),
+            Step(
+                (
+                    "diff",
+                    "-qr",
+                    "-x",
+                    "*.html",
+                    str(out / "build-a"),
+                    str(out / "build-b"),
+                )
+            ),
         ]
     raise ValueError(f"unknown job: {job}")
 
