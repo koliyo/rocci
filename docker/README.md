@@ -154,16 +154,20 @@ the hybrid project. Hybrid Caddy matches example `Host` headers before site
 
 ```sh
 docker compose -f docker/compose.hybrid.yml -f docker/compose.origin.yml up
+curl -sf http://127.0.0.1:8080/play/live-counter/health
+curl -sf http://127.0.0.1:8080/play/datastar/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: staging.rocci.dev' \
   -X POST http://127.0.0.1:8080/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
 ```
 
-Caddy matches `Host` to `<id>.examples.rocci.dev`,
-`<id>.examples.staging.rocci.dev`, and `<id>.examples.localhost`. Cloudflare
-DNS/Tunnel for those names is operator work. Until a staging deploy has served
-them, treat the live demo links as planned.
+The site-host front door is `/play/<id>/` (`handle_path` before islands
+`/actions/`). Caddy still matches `Host` to `<id>.examples.rocci.dev`,
+`<id>.examples.staging.rocci.dev`, and `<id>.examples.localhost` for laptop
+compose. Cloudflare DNS/Tunnel for those names is optional operator work.
+Until staging has served `/play/<id>/` over TLS, treat Launch links as
+planned.
 
 The hybrid site Caddy (`docker/cdn/Caddyfile`) still sends `/actions/*` to the
 home-page island for `rocci.dev` / `staging.rocci.dev`. Example origins never

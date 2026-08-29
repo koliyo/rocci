@@ -28,9 +28,18 @@ def test_live_app_env_and_health_hosts() -> None:
     assert live_app_env_key("live-counter") == "ROCCI_LIVE_COUNTER_CONTEXT"
     assert live_app_env_key("datastar") == "ROCCI_DATASTAR_CONTEXT"
     checks = health_checks(["live-counter", "datastar"])
+    urls = [url for url, _headers in checks]
+    assert urls[0] == "http://127.0.0.1:8080/health"
+    assert "http://127.0.0.1:8080/play/live-counter/health" in urls
+    assert "http://127.0.0.1:8080/play/datastar/health" in urls
     assert checks[0][1] == {}
-    assert checks[1][1]["Host"] == "live-counter.examples.localhost"
-    assert checks[2][1]["Host"] == "datastar.examples.localhost"
+    play = [headers for url, headers in checks if "/play/" in url]
+    assert play == [{}, {}]
+    hosts = [headers["Host"] for _url, headers in checks if headers]
+    assert hosts == [
+        "live-counter.examples.localhost",
+        "datastar.examples.localhost",
+    ]
 
 
 def test_wait_health_retries_then_ok() -> None:
