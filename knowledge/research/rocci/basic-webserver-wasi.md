@@ -1,11 +1,11 @@
 ---
 type: Research Report
 title: Gaps for running basic-webserver as a WASI HTTP module
-description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. WASI 0.3 native async multiplexes I/O-bound work without OS threads; the missing work is a new adapter host, not a Rocci flag or a thread pool."
+description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-28T18:31:00Z }
-stale_after: 2026-11-28
+generated: { by: process:cursor, at: 2026-08-29T11:50:00Z }
+stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
 sources:
@@ -111,6 +111,31 @@ sources:
     resource: https://github.com/ostcar/roc-wasi-platform
     title: Third-party Roc WASI command platform, not HTTP
     author: organization:ostcar
+  - id: bws-time
+    resource: https://raw.githubusercontent.com/roc-lang/basic-webserver/0.16.0/src/time.rs
+    title: hosted_sleep_millis is std::thread::sleep on the Roc worker
+    author: organization:roc-lang
+  - id: bws-sse-roc
+    resource: https://raw.githubusercontent.com/roc-lang/basic-webserver/0.16.0/platform/Sse.roc
+    title: unfold Wait returns WaitToHost; the host owns the timer
+    author: organization:roc-lang
+  - id: bws-http-send
+    resource: https://raw.githubusercontent.com/roc-lang/basic-webserver/0.16.0/src/http.rs
+    title: hosted_http_send_request block_on of a nested Tokio runtime
+    author: organization:roc-lang
+  - id: cm-async-rfc
+    resource: https://github.com/dicej/rfcs/blob/component-async/accepted/component-model-async.md
+    title: Wasmtime fibers for async-to-sync fusion; guest C ABI stays sync
+    author: organization:bytecode-alliance
+  - id: wasmtime-async
+    resource: https://docs.wasmtime.dev/api/wasmtime/
+    title: Async host imports park the guest fiber without blocking the host thread
+    author: organization:bytecode-alliance
+  - id: wasi-plan
+    resource: ../../plans/rocci/basic-webserver-wasi.md
+    title: WASI HTTP adapter implementation plan; yield around Roc
+    author: process:cursor
+    last_modified: 2026-08-29
 ---
 
 # Gaps for running basic-webserver as a WASI HTTP module
@@ -129,10 +154,13 @@ WASI 0.3 already supplies **native async** (`async func`, `stream<T>`,
 `future<T>`) so an I/O-bound HTTP guest does not need OS-style
 multi-threading. The 0.16 thread pools exist because Roc `respond!` is a
 **blocking** C-ABI call on a native process, not because WASI HTTP cannot
-overlap waits.[^wasi-http-03][^wasi-async-cm][^bws-exec]
+overlap waits. The handler call itself occupies the instance (CPU).
+Generated SSE `Wait` already returns from Roc first; nested `hosted_*`
+inside `respond!` is the stall that fibers may or may not park.[^wasi-http-03][^wasi-async-cm][^bws-exec][^bws-http][^wasi-plan]
 
-This record is gap analysis. It does not approve a platform fork, a Rocci
-`--host wasm` meaning change, or an implementation plan.
+This record is gap analysis. Implementation sequence:
+[WASI HTTP adapter plan](/plans/rocci/basic-webserver-wasi.md). It does
+not approve a platform fork or a `--host wasm` meaning change.
 
 ## What WASI HTTP would bring
 
@@ -250,22 +278,54 @@ CPU-parallel compression or compute, not for request multiplexing.
 
 ### What still stalls (adapter constraint, not a WASI 0.3 gap)
 
-If the guest calls today's **blocking** Roc ABI (`roc_respond_for_host`
-and hosted sqlite/file functions that never await) on the Wasm stack,
-that instance cannot run another `handle` until the call returns. WASI
-0.3 does not magically preempt a synchronous C-ABI function.
+**Yes: the call to the Roc handler is blocking.**
+`roc_respond_for_host` and `roc_sse_advance_for_host` are core-wasm
+`extern "C"` functions. WASI 0.3 `async func` can suspend only at
+Canonical ABI await points. A C-ABI call has none; that stack is
+occupied until return. WASI does not preempt it.[^bws-http][^wasi-async-cm]
 
-The adapter must yield at I/O. Options:
+That is **CPU occupancy**, not the long wait in a typical Rocci app.
+Do not read "blocking handler" as "one live SSE at a time."
 
-- Hosted effects implemented as WASI imports that are themselves `async
-  func` / `future`, with Roc glue that awaits them (preferred for 0.3).
-- Keep Roc evaluation short and issue WASI I/O from the Rust component
-  around it.
-- Run **CPU-bound** Roc on a host worker or extra instance if a handler
-  ever does heavy compute (rare on the generated path).
+Native 0.16 already split the stacks. `call_roc` is a sync
+`roc_respond_for_host`. When `respond!` returns `Server.stream`, the
+host loops `roc_sse_advance_for_host` and **parks on Tokio
+`Sleep`** for `WaitToHost.wait_millis`. `Sse.unfold!` `Wait` is not
+`hosted_sleep_millis` inside `respond!`.[^bws-http][^bws-sse-roc]
 
-Host multiplexing across instances is still valid for isolation and
-scale-out. It is not required merely because "Wasm has one thread."
+| Wait | Where 0.16 puts it | Inside `roc_respond_for_host`? | WASI overlap |
+| --- | --- | --- | --- |
+| Route + `Html.render` | Roc in `respond!` | Yes (usually ms) | No, on this instance, for that duration |
+| SSE `Wait` / idle between frames | Host timer after `advance` returns | No | Adapter `await` clocks; other `handle`s run |
+| `Sleep.millis!`, sqlite, file, `Http.send!`, body read during `respond!` | Nested `hosted_*` on the Roc worker | Yes | No, unless that symbol is an async-lowered WIT import Wasmtime can **fiber-park** |
+
+Nested hosted I/O is the real stall. Native implementations are
+explicitly blocking: `hosted_sleep_millis` is `thread::sleep`;
+outbound HTTP `block_on`s a nested Tokio runtime; sqlite is C on that
+same worker. The `FixedExecutor` exists so Hyper's accept loop is not
+that worker.[^bws-time][^bws-http-send][^bws-exec]
+
+Wasmtime **can** park a guest fiber when a sync-lifted export calls an
+async-lowered host import (`async→sync` fusion). That yields the
+*instance* without blocking the *host thread*. It does not make Roc
+`async`. Roc hosted names today are linker symbols, not WIT; whether
+an `extern "C"` sleep that internally hits a WASI `async func` actually
+overlaps other `handle`s is a **measurement**, not a guarantee. Do not
+`block_on` WASI async from C if that measurement fails: it freezes the
+instance the same way `thread::sleep` does.[^cm-async-rfc][^wasmtime-async][^wasi-plan]
+
+Adapter policy (the plan implements this):
+
+1. **Yield around Roc** (preferred). Buffer the WASI body, then call
+   `roc_respond_for_host`. For SSE, `advance` then `await` clocks then
+   write `stream<u8>`. Generated `@get:live` is this shape.
+2. Treat nested sqlite/file inside `respond!` as short critical
+   sections unless Phase 0 proves fibers yield them.
+3. Extra instances are for isolation and CPU, not because "Wasm has
+   one thread."
+
+Making Roc itself async is out of scope. The 0.16 SSE ABI already
+pulled the long wait out of `respond!`.[^wasi-plan]
 
 ## What exists
 
@@ -471,9 +531,10 @@ that **calls** the same Roc ABI is enough to learn.
 Already decided for publishing: do not teach `rocci-roc-host`'s `main!`
 platform HTTP. A new platform crate/target is required.[^efficient-research][^efficient-plan][^wasm-platform]
 
-## Minimal first slice (if a plan is written later)
+## Minimal first slice
 
-Bound for a probe, not this record:
+The [adapter plan](/plans/rocci/basic-webserver-wasi.md) owns Bound/Exit.
+The ladder this record still recommends:
 
 1. Hello `respond!` → 200 HTML through `wasmtime serve` (or a native
    Wasmtime HTTP embedder) via 0.3 `handle: async func`.
@@ -494,7 +555,7 @@ Treat **A** as the only path that matches "WASI interface." Target WASI
 a retarget of `http_server.rs` thread pools. Keep native 0.16 for
 `rocci run`. Do not overload apply `--host wasm`. Upstream a `wasm32`
 target only after the adapter ABI is proven against hello-web and one SSE
-route.
+route. Sequence: [WASI HTTP adapter plan](/plans/rocci/basic-webserver-wasi.md).
 
 Publishing Phase 6 already recorded a product no-go for replacing musl
 islands with Wasm. That no-go is ops (musl containers suffice), not a
@@ -525,3 +586,9 @@ WASI-HTTP platform would have to build.[^efficient-plan]
 [^wasmcloud-wasi]: Tokio wasip2 is sockets; HTTP components use `wstd` / incoming-handler.
 [^wit-bindgen]: Core wasm + preview1 adapter → component.
 [^roc-wasi]: Example WASI command platform, not a webserver.
+[^bws-time]: `hosted_sleep_millis` is OS-thread sleep on the Roc worker.
+[^bws-sse-roc]: `WaitToHost` after unfold; host owns `wait_millis`.
+[^bws-http-send]: Nested `block_on` for outbound Hyper client.
+[^cm-async-rfc]: Fibers for async→sync; guest C ABI remains sync.
+[^wasmtime-async]: Host async parks guest fiber.
+[^wasi-plan]: Yield-around-Roc; Phase 0 measures nested hosted I/O.

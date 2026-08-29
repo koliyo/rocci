@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-08-29
+
+- Added draft [WASI HTTP adapter host for basic-webserver apps](plans/rocci/basic-webserver-wasi.md): new `rocci-wasi-http` WASI 0.3 `wasi:http/service` crate linking the 0.16 Roc C-ABI. Yield around Roc (SSE `Wait` is adapter clocks); Phase 0 measures whether nested `hosted_*` inside `respond!` serializes other `handle`s. Do not change `--host wasm` or musl publish. Pair: [WASI HTTP gaps](research/rocci/basic-webserver-wasi.md), revised with the blocking-handler split. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 ## 2026-08-28
 
 - Revised draft [gaps for running basic-webserver as a WASI HTTP module](research/rocci/basic-webserver-wasi.md): product value of a WASI HTTP service (portable module, runtime-owned listen, sandbox, preview/edge); WASI 0.3 native async (`async func`, `stream`, `future`) multiplexes typical I/O waits without OS threads; 0.16 thread pools are a blocking Roc ABI workaround. Pointed [efficient publishing](research/rocdown/efficient-publishing.md) and [publishing plan](plans/rocdown/efficient-publishing.md) Phase 6 comparison at that. Exploratory; not a plan. Do not log complete until CI and Knowledge succeed.
