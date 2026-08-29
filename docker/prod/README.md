@@ -131,8 +131,9 @@ branch, never `pull_request` and never `main`) probes SSH
 `site.tgz` / `islands` / `examples-live/`, and runs `uv run rocci-ops origin publish SHA` on
 the box: unpack to `releases/<sha>/`, `compose up -d --build` for hybrid **and**
 live apps, GET `http://127.0.0.1:8080/health`, each live app at
-`/play/<id>/health`, plus the same apps via `Host` while Caddy still
-matches `*.examples.localhost`, then flip `current`. A failed health check leaves the previous symlink and
+`/play/<id>/health`, plus `Host: <id>-example-staging.rocci.dev`,
+`<id>-example.rocci.dev`, and `<id>.examples.localhost`, then flip
+`current`. A failed health check leaves the previous symlink and
 restores that release (hybrid + examples together). Both branches
 currently publish the same `/srv/rocci` origin; origin deploys are
 serialized so they cannot interleave. **Run workflow** on `staging` or
@@ -206,8 +207,11 @@ follows:
    SSH login or making the site anonymous.
 4. Add the Tunnel published application `staging.rocci.dev` ->
    `http://127.0.0.1:8080`, and attach the Access application.
-5. Repeat Access for `*.examples.staging.rocci.dev` (same Allow + Service
-   Auth). Staging example hosts stay gated like `staging.rocci.dev`.
+5. Repeat Access for `live-counter-example-staging.rocci.dev` and
+   `datastar-example-staging.rocci.dev` (same Allow + Service Auth).
+   Those first-level names use Universal SSL. Optional later: the same
+   for `*.examples.staging.rocci.dev` if ACM is on. Staging example
+   hosts stay gated like `staging.rocci.dev`.
 
 Keep the Access application in place whenever this hostname is enabled. Test
 in a private browser window: Cloudflare Access should require the maintainer
@@ -239,6 +243,8 @@ stopping the islands service, copying the file back onto
 curl -sf http://127.0.0.1:8080/health
 curl -sf http://127.0.0.1:8080/play/live-counter/health
 curl -sf http://127.0.0.1:8080/play/datastar/health
+curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8080/health
+curl -sf -H 'Host: datastar-example-staging.rocci.dev' http://127.0.0.1:8080/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: staging.rocci.dev' \

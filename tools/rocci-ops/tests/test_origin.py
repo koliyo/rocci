@@ -39,7 +39,11 @@ def test_live_app_env_and_health_hosts() -> None:
     assert play == [{}, {}]
     hosts = [headers["Host"] for _url, headers in checks if headers]
     assert hosts == [
+        "live-counter-example-staging.rocci.dev",
+        "live-counter-example.rocci.dev",
         "live-counter.examples.localhost",
+        "datastar-example-staging.rocci.dev",
+        "datastar-example.rocci.dev",
         "datastar.examples.localhost",
     ]
 

@@ -40,7 +40,7 @@ place.
 The generated `/examples/` index lists `site = true` cataloged Rocci apps only.
 Rocdown examples belong on the Rocdown product lane.
 
-Reserved live hostnames use `<id>.examples.rocci.dev` (staging:
-`<id>.examples.staging.rocci.dev`). Those names are **not serving**; the
-generated examples table labels them `planned live` and does not emit the
-URLs.
+Reserved live hostnames use `<id>-example-staging.rocci.dev` (Universal
+SSL) and `<id>.examples.rocci.dev` (needs ACM). Those names are **not
+advertised**; the generated examples table labels them `planned live` and
+does not emit the URLs.

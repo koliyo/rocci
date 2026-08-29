@@ -130,6 +130,14 @@ def health_ok(
     return ok
 
 
+def example_public_hosts(app_id: str) -> tuple[str, ...]:
+    return (
+        f"{app_id}-example-staging.rocci.dev",
+        f"{app_id}-example.rocci.dev",
+        f"{app_id}.examples.localhost",
+    )
+
+
 def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str, str]]]:
     port = http_port()
     site = f"http://127.0.0.1:{port}/health"
@@ -137,7 +145,8 @@ def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str
     for app_id in live_ids or []:
         checks.append((f"http://127.0.0.1:{port}/play/{app_id}/health", {}))
     for app_id in live_ids or []:
-        checks.append((site, {"Host": f"{app_id}.examples.localhost"}))
+        for host in example_public_hosts(app_id):
+            checks.append((site, {"Host": host}))
     return checks
 
 

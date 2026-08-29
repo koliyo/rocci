@@ -26,9 +26,13 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "handle /sse" in hybrid
     assert "handle /actions/*" not in examples
     for host in (
+        "live-counter-example.rocci.dev",
+        "live-counter-example-staging.rocci.dev",
         "live-counter.examples.rocci.dev",
         "live-counter.examples.staging.rocci.dev",
         "live-counter.examples.localhost",
+        "datastar-example.rocci.dev",
+        "datastar-example-staging.rocci.dev",
         "datastar.examples.rocci.dev",
         "datastar.examples.staging.rocci.dev",
         "datastar.examples.localhost",
@@ -77,6 +81,8 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     ingress = (root / "docker/prod/cloudflared-ingress.yml.example").read_text(encoding="utf-8")
     assert '"*.examples.rocci.dev"' in ingress or "*.examples.rocci.dev" in ingress
     assert "*.examples.staging.rocci.dev" in ingress
+    assert "live-counter-example-staging.rocci.dev" in ingress
+    assert "datastar-example-staging.rocci.dev" in ingress
     assert Path(root / "examples/rocci/apps.toml").is_file()
 
 

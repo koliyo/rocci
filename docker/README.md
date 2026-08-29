@@ -156,18 +156,20 @@ the hybrid project. Hybrid Caddy matches example `Host` headers before site
 docker compose -f docker/compose.hybrid.yml -f docker/compose.origin.yml up
 curl -sf http://127.0.0.1:8080/play/live-counter/health
 curl -sf http://127.0.0.1:8080/play/datastar/health
+curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8080/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: staging.rocci.dev' \
   -X POST http://127.0.0.1:8080/actions/counter/increment \
   -H 'datastar-request: true' -H 'content-type: application/json' -d '{}'
 ```
 
-The site-host front door is `/play/<id>/` (`handle_path` before islands
-`/actions/`). Caddy still matches `Host` to `<id>.examples.rocci.dev`,
-`<id>.examples.staging.rocci.dev`, and `<id>.examples.localhost` for laptop
-compose. Cloudflare DNS/Tunnel for those names is optional operator work.
-Until staging has served `/play/<id>/` over TLS, treat Launch links as
-planned.
+The TLS-free Host front door is `<id>-example-staging.rocci.dev` (later
+`<id>-example.rocci.dev`). Those first-level names own `/`, `/assets/`,
+and `/actions/`. `/play/<id>/` on the site host still strips a prefix but
+leaves absolute `/assets/` and `/actions/` on the docs/islands site; do
+not advertise it. Deep `<id>.examples.*` Hosts stay for laptop compose and
+optional ACM. Until a first-level staging host has served TLS, treat
+Launch links as planned.
 
 The hybrid site Caddy (`docker/cdn/Caddyfile`) still sends `/actions/*` to the
 home-page island for `rocci.dev` / `staging.rocci.dev`. Example origins never
@@ -236,7 +238,7 @@ Override `8080:80` with a Compose override file if the host port is taken
 | [`app/Dockerfile`](app/Dockerfile) | Slim Rocci app process (`debian:bookworm-slim` + `server`) |
 | [`compose.app.yml`](compose.app.yml) | Pre-built Rocci app (opt-in Linux OCI) |
 | [`compose.examples.yml`](compose.examples.yml) | Laptop-only live example origins + `edge` (do not share VPS `:8080`) |
-| [`examples/Caddyfile`](examples/Caddyfile) | Laptop Host routing for `<id>.examples.rocci.dev`; no `/actions/` |
+| [`examples/Caddyfile`](examples/Caddyfile) | Laptop Host routing for first-level and `<id>.examples.*`; no site `/actions/` |
 | `rocci-ops serve app` | Absolutize server dir and app `compose up` |
 | [`runtime/Dockerfile`](runtime/Dockerfile) | **Builder/dev** toolchain (no CDN stage) |
 | [`cdn/Dockerfile`](cdn/Dockerfile) | Thin Caddy image; prints host URL on start |

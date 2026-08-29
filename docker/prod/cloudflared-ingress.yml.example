@@ -1,9 +1,17 @@
 # Merge into the Tunnel's config (or Zero Trust Public Hostname UI).
 # Do not commit credentials.json or the tunnel token.
-# *.rocci.dev does not cover *.examples.rocci.dev; those names need their
-# own certificate coverage. Staging example hosts stay Access-gated.
+# First-level *-example*.rocci.dev names use Universal SSL. Deep
+# *.examples.* names still need ACM. Staging example hosts stay Access-gated.
 ingress:
   - hostname: staging.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: live-counter-example-staging.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: datastar-example-staging.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: live-counter-example.rocci.dev
+    service: http://127.0.0.1:8080
+  - hostname: datastar-example.rocci.dev
     service: http://127.0.0.1:8080
   - hostname: "*.examples.staging.rocci.dev"
     service: http://127.0.0.1:8080

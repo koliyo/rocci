@@ -145,10 +145,11 @@ does not attach DNS, issue certificates, or advertise a hostname.
 ## Goal
 
 A catalog row can opt into the rocci.dev `/examples/` tree, opt out of it, or
-opt into a live origin. The public live URL is `/play/<id>/` on the site
-host (`https://staging.rocci.dev/play/<id>/`, later
-`https://rocci.dev/play/<id>/`) until or unless Host-per-app
-returns.[^play-path] Live apps that are on the site get a Launch control
+opt into a live origin. The TLS-free public live URL is
+`https://<id>-example-staging.rocci.dev` (later
+`https://<id>-example.rocci.dev`). Deep `<id>.examples.*` names still
+need ACM. `/play/<id>/` on the site host is leftover and does not own
+`/assets/` or `/actions/`.[^play-path] Live apps that are on the site get a Launch control
 after advertise; default hostname helpers may still say
 `https://<id>.examples.rocci.dev`. Docs-only apps have no Launch control.
 The hybrid site keeps `/actions/` and `/sse` on `rocci.dev`.[^stage-rs][^examples-caddy][^cdn-caddy]
@@ -249,19 +250,19 @@ demos. Do not run that edge on the VPS (`8080` is already hybrid Caddy).[^exampl
 VPS: add live-app services (no second Caddy) to the origin compose project.
 Add Host matchers to `docker/cdn/Caddyfile` **before** the site handles:
 
-- `<id>.examples.rocci.dev`
-- `<id>.examples.staging.rocci.dev`
+- `<id>-example.rocci.dev` and `<id>-example-staging.rocci.dev` (Universal SSL)
+- `<id>.examples.rocci.dev` and `<id>.examples.staging.rocci.dev` (ACM)
 
 those reverse-proxy to that app. Default host (`rocci.dev`,
 `staging.rocci.dev`) keeps today's island `/actions/` and `/sse`.[^cdn-caddy][^examples-caddy]
 
 Operator work (same class as [rocci.dev publish](rocci-dev-publish.md), not a
 product CLI) is sequenced in
-[serve live examples at `/play/<id>/`](live-examples-play-path.md) (site-host
-path; Universal SSL) and, if Host-per-app returns, in
 [deploy live example origins to staging](example-origin-cloudflare-tls.md)
-(DNS and ACM). Tunnel ingress and Access for `staging.rocci.dev` are
-assumed already configured.[^play-path][^publish-plan][^tunnel-ingress]
+(first-level DNS and Access; optional ACM for deep names).
+[Play path](live-examples-play-path.md) is leftover on the site host.
+Tunnel ingress and Access for `staging.rocci.dev` are assumed already
+configured.[^play-path][^publish-plan][^tunnel-ingress]
 
 ## Phase 0 — Catalog `site` field
 
@@ -424,7 +425,7 @@ uv run --no-dev rocci-ops test example-origins
 
 1. Generated `/examples/` index: live rows show Launch via
    `:link-card` / column using `app_play_url`. Public href is
-   `/play/<id>/` until Host-per-app returns. Label `live`, not
+   `https://<id>-example.rocci.dev` (or staging twin). Label `live`, not
    `planned live`.[^play-path]
 2. Staged live app indexes get the Launch card. Remove "reserved and is
    not serving" from authored live-counter and datastar pages (replace
@@ -470,7 +471,7 @@ If local or CI site builds need a smaller tree, `handler-matrix`,
 heavy, or not a public demo). Choosing them is a maintainer edit in
 Phase 1, not a requirement of this plan.
 
-[^play-path]: Public live URL is `/play/<id>/` on the site host until Host-per-app returns.
+[^play-path]: TLS-free live URL is `<id>-example-staging.rocci.dev`; `/play/<id>/` leftover.
 [^app-docs-plan]: Phases 0–6 staged `/examples/`; live hostnames stayed planned until a staging deploy served them.
 [^launch-audit]: 2026-08-23 Should pass: reserved example hosts fail TLS and must not be linked as live demos.
 [^publish-plan]: Cloudflare Tunnel, Access-gated staging, VPS origin on loopback Caddy.
