@@ -15,3 +15,4 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 wasmtime = { version = "47", features = ["async"] }
 wat = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
