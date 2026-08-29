@@ -1,9 +1,11 @@
+from email.message import Message
 from pathlib import Path
 from types import SimpleNamespace
 import io
 import tarfile
+import urllib.error
 
-from rocci_ops.origin import live_app_env_key, health_checks, publish, wait_health
+from rocci_ops.origin import health_probe, live_app_env_key, health_checks, publish, wait_health
 
 
 class FakeResponse:
@@ -40,6 +42,43 @@ def test_live_app_env_and_health_hosts() -> None:
         "live-counter.examples.localhost",
         "datastar.examples.localhost",
     ]
+
+
+def test_health_probe_reports_http_error() -> None:
+    def fetch(_url, timeout=5):
+        raise urllib.error.HTTPError(_url, 502, "bad gateway", Message(), None)
+
+    ok, detail = health_probe("http://127.0.0.1:8080/play/live-counter/health", fetch=fetch)
+    assert ok is False
+    assert detail == "502"
+
+
+def test_health_ok_bypasses_env_proxy(monkeypatch) -> None:
+    import http.server
+    import socketserver
+    import threading
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *_args):
+            return None
+
+    httpd = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+    port = httpd.server_address[1]
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:1")
+    monkeypatch.setenv("http_proxy", "http://127.0.0.1:1")
+    try:
+        ok, detail = health_probe(f"http://127.0.0.1:{port}/health")
+        assert ok is True
+        assert detail == "200"
+    finally:
+        httpd.shutdown()
 
 
 def test_wait_health_retries_then_ok() -> None:
