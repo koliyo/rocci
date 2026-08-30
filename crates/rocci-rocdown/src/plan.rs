@@ -540,6 +540,7 @@ fn compile_single_module(
         source_file,
         &LowerOptions {
             embed_css: false,
+            html_type: "Str".to_string(),
             scope_file_css: type_name != "RocdownBase",
             ..LowerOptions::default()
         },

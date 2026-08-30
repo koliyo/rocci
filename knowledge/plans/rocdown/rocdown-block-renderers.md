@@ -462,7 +462,7 @@ cargo run -q -p rocci-rocdown-cli -- build docs
 After knowledge edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Do not set `ROCCI_REQUIRE_ROC=1` unless a phase must prove apply. Do not

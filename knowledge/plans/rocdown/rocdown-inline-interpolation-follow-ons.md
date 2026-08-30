@@ -186,7 +186,7 @@ Optional crate README one-liner if the site matrix is the only drift.
 
 **Exit.** `cargo test -p rocci-rocdown`.
 `cargo run -q -p rocci-rocdown-cli -- build docs` when those pages change.
-`cargo run -q -p rocci-okf -- check knowledge --profile rocci --format
+`cargo run -q -p rocci-okf -- check knowledge --profile base --format
 terminal` if knowledge indexes moved.
 
 ## Phase 3: Splitter and placement tests

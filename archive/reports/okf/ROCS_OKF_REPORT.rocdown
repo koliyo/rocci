@@ -80,7 +80,7 @@ The current implementation is already more than an OKF parser.
 
 - OKF Markdown discovery, YAML normalization, reserved `index.md` and `log.md`
   handling, graph resolution, and static Markdown rendering;
-- a portable base profile plus a stricter Rocci profile;
+- a portable base profile plus a stricter strict profile;
 - keyed source/footnote checks, lifecycle and staleness checks, and git-aware
   source-drift diagnostics;
 - derived trust tiers, filters, normalized catalog inspection, graph output,
@@ -467,8 +467,8 @@ formatting.
 
 ```text
 rocs-okf validate --profile base knowledge
-rocs-okf lint --profile rocci knowledge
-rocs-okf policy --profile rocci knowledge
+rocs-okf lint --profile base knowledge
+rocs-okf policy --profile base knowledge
 rocs-okf diff --base HEAD --worktree knowledge
 rocs-okf benchmark --affected knowledge
 ```
@@ -898,7 +898,7 @@ and lexical benchmark result before serving the snapshot.
 
 A third-party binary loads the portable engine and a bundle with unknown types
 and extension metadata. Base validation accepts them and round-tripping
-preserves the fields. The Rocci profile can still warn that those types have no
+preserves the fields. The strict profile can still warn that those types have no
 owner without changing OKF conformance.
 
 ## Metrics that matter

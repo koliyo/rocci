@@ -2,8 +2,9 @@
 
 Local run notes. Published tutorial: https://rocci.dev/examples/snake/
 
-Datastar + Rocci stress demo (docs-only; not a public live origin). The play
-HUD reports live SSE morph bandwidth.
+Datastar + Rocci stress demo. Catalog hosting is live; the public hostname is
+planned until a staging origin serves it. The play HUD reports live SSE morph
+bandwidth.
 
 ```sh
 cargo run -q -p rocci-cli -- run examples/rocci/custom/snake

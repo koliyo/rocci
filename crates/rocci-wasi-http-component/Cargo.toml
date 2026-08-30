@@ -1,0 +1,17 @@
+[package]
+name = "rocci-wasi-http-component"
+version.workspace = true
+edition.workspace = true
+license-file.workspace = true
+description = "WASI 0.3 wasi:http/service component for wasmtime serve"
+
+[lib]
+name = "rocci_wasi_http_component"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rocci-wasi-http = { workspace = true, default-features = false, features = ["map"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+wasip3 = { version = "0.8.0", features = ["async-spawn"] }

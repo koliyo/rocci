@@ -48,7 +48,7 @@ Substantive corrections update `generated.at` and leave the record `draft`. An a
 
 ## Mechanical checks
 
-Run `rocci-okf check knowledge --profile rocci`. `OKF4004` reports stale records, `OKF4005` reports verification older than generation, `OKF4006` reports a tracked source committed after human verification, `OKF4007` reports an untracked local source with no git provenance, and `OKF4008` reports tracked evidence with uncommitted changes that cannot be matched to its verification.
+Run `rocci-okf check knowledge --profile base`. `OKF4004` reports stale records, `OKF4005` reports verification older than generation, `OKF4006` reports a tracked source committed after human verification, `OKF4007` reports an untracked local source with no git provenance, and `OKF4008` reports tracked evidence with uncommitted changes that cannot be matched to its verification.
 
 ## Current review state
 

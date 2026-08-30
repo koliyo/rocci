@@ -52,6 +52,7 @@ impl IslandServicePlan {
                     routes: module.routes,
                     mapped: module.mapped,
                     local_assets: module.local_assets,
+                    styles: Vec::new(),
                 })
                 .collect(),
             redirect_trailing_slash: self.redirect_trailing_slash,
@@ -235,6 +236,7 @@ fn compile_service_module(
         &CompileOptions {
             lower: rocci_template::LowerOptions {
                 embed_css: false,
+                html_type: "Html.Node".to_string(),
                 ..rocci_template::LowerOptions::default()
             },
             check_assets: false,
@@ -425,6 +427,7 @@ fn compile_live_modules(root: &Path, site: &ResolvedSite) -> Result<Vec<Standalo
             &CompileOptions {
                 lower: rocci_template::LowerOptions {
                     embed_css: false,
+                    html_type: "Html.Node".to_string(),
                     ..rocci_template::LowerOptions::default()
                 },
                 check_assets: false,

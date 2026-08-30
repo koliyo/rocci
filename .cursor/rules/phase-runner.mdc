@@ -24,7 +24,8 @@ Every response for a phase MUST begin immediately with this markdown block
 ## 2. Single-Phase Scope
 
 - Read the entire referenced plan first (constraints, non-goals, dependencies, later phases).
-- Work strictly on **one phase**. Do not implement later phases or extras outside the Bound.
+- Work strictly on **one phase** per commit. Do not implement later phases or extras outside the Bound in the same change.
+- After a green hand-off, follow Step E for whether to start the next phase.
 - Treat `Constraints that do not move`, **Non-goals**, the phase **Bound**, and **Out of bound** as hard invariants.
 
 ## 3. Named worktree branch
@@ -59,7 +60,7 @@ Before creating or modifying files, state:
 ### Step B: Implementation
 
 - Apply the minimal diffs matching the micro-plan.
-- Stay inside this phase's Bound. Do not start the next phase.
+- Stay inside this phase's Bound. Do not mix the next phase into this commit.
 
 ### Step C: Verification
 
@@ -83,7 +84,13 @@ and to commit that phase. Do not push.
 ### Step E: Hand-off
 
 Report the branch name, what changed, the validation commands and results,
-and that Exit is met.
+and that Exit is met. One phase per commit still holds.
 
-Then **stop**. Wait for the user before starting the next phase, unless they
-explicitly said to continue remaining phases autonomously.
+Continue to the next phase in this session when the user asked to execute
+the plan, continue, finish remaining phases, or keep going until blocked.
+
+Stop and wait when:
+- the user named a single phase
+- Exit failed
+- the next phase is marked as a review gate or needs a human decision
+- this phase produced a finding that changes a later Bound

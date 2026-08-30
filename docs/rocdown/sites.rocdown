@@ -315,7 +315,7 @@ site`, and `rocdown build site`. Use those focused commands directly while
 iterating. Rust changes also require `cargo fmt --all -- --check` and the
 narrow owning-crate tests; cross-cutting changes require `cargo test
 --workspace`. Knowledge changes require `okmate check
-knowledge --profile rocci`. Build and rebuild failure tests assert that an
+knowledge --profile base`. Build and rebuild failure tests assert that an
 existing output tree remains intact when catalog validation, CDN-only policy,
 or a watched rebuild fails.
 
@@ -374,6 +374,6 @@ started with `rocdown serve-islands` or `rocci run`.
 Knowledge bundles are managed with [okmate](https://github.com/koliyo/okmate) rather than the documentation site generator:
 
 ```sh
-okmate check knowledge --profile rocci
+okmate check knowledge --profile base
 okmate view knowledge
 ```

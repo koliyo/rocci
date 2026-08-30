@@ -90,7 +90,7 @@ sources:
     author: process:git
     last_modified: 2026-08-23
   - id: local-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/local.py
+    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
     title: package site stages docs and builds live apps
     author: process:git
     last_modified: 2026-08-23
@@ -302,7 +302,7 @@ cargo fmt --all -- --check
 1. `stage` writes only `site = true` apps. Generated index omits the rest.
 2. `--print-live` omits `site = false` (already invalid if live).
 3. `package site` uses `--print-live`; drop the hardcoded docs-only id
-   list in `local.py`.
+   list in `site.py`.
 4. Optional `rocci-docs --all` stages excluded apps; `package site` and
    `build site` must not pass it.
 5. Contract test: `site/rocdown.toml` Examples `items` (except
@@ -444,7 +444,7 @@ uv run --no-dev rocci-ops test example-origins
 ```sh
 cargo test -p rocci-docs
 uv run --no-dev rocci-ops test example-origins
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 - Local `rocci-docs` then `rocdown check site` shows Launch on

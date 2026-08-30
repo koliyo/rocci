@@ -30,6 +30,7 @@ def test_wait_health_succeeds(monkeypatch) -> None:
 def test_live_app_env_and_health_hosts() -> None:
     assert live_app_env_key("live-counter") == "ROCCI_LIVE_COUNTER_CONTEXT"
     assert live_app_env_key("datastar") == "ROCCI_DATASTAR_CONTEXT"
+    assert live_app_env_key("snake") == "ROCCI_SNAKE_CONTEXT"
     checks = health_checks(["live-counter", "datastar"])
     urls = [url for url, _headers in checks]
     assert urls[0] == "http://127.0.0.1:8080/health"

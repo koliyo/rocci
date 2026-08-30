@@ -2,9 +2,17 @@ from rocci_ops.cli import CHECK_USAGE, USAGE, check_main, main
 
 
 def test_top_level_usage_lists_grouped_commands() -> None:
+    assert "build         cargo release build of rocci, rocdown, and language-server; playground" in USAGE
     assert "check         deps | docs | zed" in USAGE
     assert "install       cli | vscode | cursor" in USAGE
-    assert "promote       staging | production | tag" in USAGE
+    assert "package       macos, vscode, zed, site, icons" in USAGE
+    assert "promote       staging | production" in USAGE
+    assert "release       patch, minor, major, v*, or dev" in USAGE
+    assert "archive       version, package, params, wait-ci, publish" in USAGE
+    assert "promote       staging | production | tag" not in USAGE
+    assert "build-playground" not in USAGE
+    assert "render-brand-icons" not in USAGE
+    assert "bundle" not in USAGE
     assert "check-deps" not in USAGE
     assert "verify-zed" not in USAGE
     assert "install-cli" not in USAGE
@@ -24,11 +32,7 @@ def test_check_help_is_ok() -> None:
     assert "deps" in CHECK_USAGE
 
 
-def test_origin_does_not_require_h35_desktop(monkeypatch) -> None:
-    def boom() -> None:
-        raise AssertionError("must not clone h35-desktop")
-
-    monkeypatch.setattr("rocci_ops.cli.ensure_h35_desktop", boom)
+def test_origin_dispatches(monkeypatch) -> None:
     monkeypatch.setattr("rocci_ops.origin.main", lambda _argv: 0)
     try:
         main(["origin", "publish", "abc"])

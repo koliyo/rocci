@@ -1,4 +1,6 @@
 /target
+# Local roc build input for the WASI HTTP fixture platform (source is host.c)
+crates/rocci-wasi-http/platform/targets/wasm32/host.o
 .okmate-tool
 .DS_Store
 .venv

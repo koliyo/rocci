@@ -27,9 +27,11 @@ cargo run -q -p rocci-cli -- run examples/rocci/custom/notes --no-window
 curl -s http://127.0.0.1:8000/ | grep -E 'notes|Add'
 ```
 
-`rocci run` on a directory compiles sibling `.rocci` modules and starts the
-authored Roc program. `@get:view` / `@method:fragment` on those modules are
-not the generated standalone dispatcher; `main.roc` owns HTTP.
+`rocci run` on a directory that contains `main.roc` is a custom app: it
+compiles sibling `.rocci` modules and starts the authored Roc program.
+`@get:view` / `@method:fragment` on those modules are not the generated
+standalone dispatcher; `main.roc` owns HTTP. A directory without `main.roc`
+is a [standalone app](/docs/applications/standalone/).
 
 Open [Notes](/examples/notes/) and use the sidebar source list.
 

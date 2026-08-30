@@ -531,7 +531,7 @@ cargo run -q -p rocci-rocdown-cli -- check site
 cargo run -q -p rocci-rocdown-cli -- build site
 cargo fmt --all -- --check
 cargo test --workspace
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 For theme changes, inspect the built representative routes rather than only

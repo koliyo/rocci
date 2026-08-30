@@ -299,7 +299,7 @@ available. `rocci view` still previews the same fixtures.
 status. Indexes. `knowledge/log.md` only after CI and Knowledge workflows
 succeed if a phase-complete claim is made.
 
-**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`.
 
 [^research]: Syntax, wrap hazard, fixture pairing, CSS stamps.
 [^wrap]: Type-module wrap used by run/view/browse/render.

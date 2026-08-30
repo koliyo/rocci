@@ -158,7 +158,7 @@ descriptive until implementation changes.
 4. Introduce language-tooling extension points for a document analyzer to
    supply diagnostics, regions, symbols, hovers, completion, definitions, and
    semantic tokens without the Rocci server importing Rocdown AST types.
-5. Make the current OKF characterization fixtures cover base/Rocci profiles,
+5. Make the current OKF characterization fixtures cover base/strict profiles,
    graph and chunks, filters, retrieval benchmark, rendered review pages, and
    deterministic artifacts.
 
@@ -319,7 +319,7 @@ Every phase should retain these independent gates:
 - Rocdown: syntax fixture AST, static and interactive documents, links/assets,
   catalog/navigation, docs components, themes, atomic build, run/live reload,
   LSP, highlighting, and deterministic artifacts.
-- OKF: base and Rocci profiles, unknown fields, inert bodies, citations,
+- OKF: base and strict profiles, unknown fields, inert bodies, citations,
   provenance/lifecycle, graph/chunks/search, benchmark thresholds, review
   rendering, last-good preview, and deterministic outputs.
 - Architecture: `cargo metadata` dependency assertions and an active-name

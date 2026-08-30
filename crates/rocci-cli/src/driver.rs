@@ -25,6 +25,9 @@ use crate::runtime_assets;
 use crate::serve;
 use crate::style;
 
+pub const EXTRACTED_STYLESHEET_FILE: &str = "rocci.css";
+pub const EXTRACTED_STYLESHEET_HREF: &str = "/assets/rocci.css";
+
 #[derive(Debug, Clone)]
 pub struct GenericModule {
     pub type_name: String,
@@ -35,6 +38,7 @@ pub struct GenericModule {
     pub routes: Vec<RouteInfo>,
     pub mapped: MappedModule,
     pub local_assets: Vec<String>,
+    pub styles: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +58,14 @@ impl GenericAppPlan {
     }
 
     pub fn main_roc(&self) -> String {
+        self.main_roc_with_options(None)
+    }
+
+    pub fn main_roc_with_platform(&self, platform: &str) -> String {
+        self.main_roc_with_options(Some(platform))
+    }
+
+    fn main_roc_with_options(&self, platform: Option<&str>) -> String {
         let primary = &self.modules[0];
         let siblings: Vec<DispatchSource<'_>> = self.modules[1..]
             .iter()
@@ -96,8 +108,19 @@ impl GenericAppPlan {
                 ),
                 log_handlers: self.log_handlers,
                 log_handlers_color: self.log_handlers && style::stderr_color(),
+                platform: platform.map(str::to_string),
             },
         )
+    }
+
+    pub fn extracted_css(&self) -> String {
+        self.modules
+            .iter()
+            .flat_map(|module| module.styles.iter())
+            .filter(|css| !css.is_empty())
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     pub fn validate_dispatch(&self) -> Result<()> {
@@ -337,6 +360,12 @@ pub(crate) fn stage_app_workspace(
         datastar_asset::print_hint(version);
     } else {
         fs::create_dir_all(&workspace_assets)?;
+    }
+    let extracted = plan.extracted_css();
+    if !extracted.is_empty() {
+        fs::create_dir_all(&workspace_assets)?;
+        fs::write(workspace_assets.join(EXTRACTED_STYLESHEET_FILE), extracted)
+            .with_context(|| format!("write {}/rocci.css", workspace_assets.display()))?;
     }
 
     for module in &plan.modules {

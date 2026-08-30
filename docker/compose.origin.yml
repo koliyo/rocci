@@ -35,6 +35,22 @@ services:
       retries: 12
       start_period: 10s
 
+  snake:
+    image: rocci-app:snake-${ROCCI_IMAGE_TAG:-local}
+    build: ${ROCCI_SNAKE_CONTEXT:?ROCCI_SNAKE_CONTEXT must contain server, assets/, and Dockerfile}
+    environment:
+      ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
+      ROC_BASIC_WEBSERVER_PORT: "8000"
+      DB_PATH: /var/lib/rocci/app.db
+    volumes:
+      - snake-db:/var/lib/rocci
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
   cdn:
     volumes:
       - ./cdn/examples.caddy:/etc/caddy/examples.caddy:ro
@@ -43,7 +59,10 @@ services:
         condition: service_healthy
       datastar:
         condition: service_healthy
+      snake:
+        condition: service_healthy
 
 volumes:
   live-counter-db:
   datastar-db:
+  snake-db:

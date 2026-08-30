@@ -94,6 +94,7 @@ pub struct DispatchOptions {
     pub media_dirs: Vec<String>,
     pub log_handlers: bool,
     pub log_handlers_color: bool,
+    pub platform: Option<String>,
 }
 
 impl Default for DispatchOptions {
@@ -103,6 +104,7 @@ impl Default for DispatchOptions {
             media_dirs: Vec::new(),
             log_handlers: false,
             log_handlers_color: false,
+            platform: None,
         }
     }
 }
@@ -257,10 +259,11 @@ pub fn generate_bound_main_roc(
     } else {
         ""
     };
+    let platform = options.platform.as_deref().unwrap_or(PLATFORM);
 
     let mut out = format!(
         r#"app [Context, program] {{
-    pf: platform "{PLATFORM}",
+    pf: platform "{platform}",
     http: "{HTTP_PKG}",
 }}
 
@@ -823,6 +826,27 @@ mod tests {
         assert!(!main.contains("on_get_root!!"));
         assert!(!main.contains("import pf.Stderr"));
         assert!(!main.contains("handler_log!"));
+        assert!(main.contains(PLATFORM), "{main}");
+    }
+
+    #[test]
+    fn http_module_platform_override_replaces_release_url() {
+        let main = generate_bound_main_roc(
+            "App",
+            None,
+            None,
+            &[],
+            &[],
+            DispatchOptions {
+                platform: Some("/tmp/fork/platform/main.roc".into()),
+                ..DispatchOptions::default()
+            },
+        );
+        assert!(
+            main.contains("pf: platform \"/tmp/fork/platform/main.roc\""),
+            "{main}"
+        );
+        assert!(!main.contains(PLATFORM), "{main}");
     }
 
     #[test]
@@ -1312,17 +1336,17 @@ mod tests {
     }
 
     fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
         let help_ok = Command::new("roc")
             .arg("help")
             .output()
             .map(|output| output.status.success())
             .unwrap_or(false);
         if !help_ok {
-            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-                panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
-            }
-            eprintln!("skipping: roc not on PATH");
-            return true;
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
         }
         false
     }

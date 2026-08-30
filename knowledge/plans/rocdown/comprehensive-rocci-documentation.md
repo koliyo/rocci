@@ -110,7 +110,7 @@ sources:
     author: process:git
     last_modified: 2026-08-21
   - id: ops-site-package
-    resource: ../../../tools/rocci-ops/src/rocci_ops/local.py
+    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
     title: Local site packaging driven by the catalog live-app projection
     author: process:git
     last_modified: 2026-08-21

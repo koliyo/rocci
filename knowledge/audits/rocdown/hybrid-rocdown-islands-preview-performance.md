@@ -77,7 +77,7 @@ For profile comparison without Roc compilation noise, isolated load timing used
 the prebuilt release binary:
 
 ```text
-time target/release/rocci-okf check knowledge --profile rocci --format terminal
+time target/release/rocci-okf check knowledge --profile strict --format terminal
 time target/release/rocci-okf check knowledge --profile base --format terminal
 ```
 
@@ -93,7 +93,7 @@ That means a single-record preview pays the same bundle load cost as
 
 ## Measured rebuild timings
 
-### Cached renderer, `--profile rocci`, concept path
+### Cached renderer, `--profile strict`, concept path
 
 Observed JSON report:
 
@@ -109,7 +109,7 @@ Observed JSON report:
 {"total_ms":5992,"spans":[{"name":"load","duration_ms":5786},{"name":"compile templates","duration_ms":4},{"name":"generate","duration_ms":44},{"name":"compile","duration_ms":0,"note":"cached"},{"name":"render","duration_ms":68},{"name":"write","duration_ms":90}]}
 ```
 
-### Cached renderer, `--profile rocci`, whole bundle
+### Cached renderer, `--profile strict`, whole bundle
 
 Observed JSON report:
 
@@ -136,10 +136,10 @@ render work on this machine.
 
 | Profile | Wall time |
 | --- | --- |
-| `--profile rocci` | 4.77s |
+| `--profile strict` | 4.77s |
 | `--profile base` | 0.24s |
 
-Nearly all of the Rocci-profile overhead sits inside `okf::load`, not in later
+Nearly all of the strict-profile overhead sits inside `okf::load`, not in later
 preview stages.[^okf-load]
 
 ## Phase 1 load sub-spans (2026-08-19 follow-up)
@@ -155,7 +155,7 @@ cargo run -q -p rocci-okf -- run knowledge/plans/okf/okf-load-performance.md \
   --no-window --port auto --profile-report json
 ```
 
-### Debug `--profile rocci` (cold renderer)
+### Debug `--profile strict` (cold renderer)
 
 ```json
 {"total_ms":11529,"spans":[{"name":"load","duration_ms":9963},{"name":"discover","duration_ms":0},{"name":"parse","duration_ms":5897},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":4065},{"name":"compile templates","duration_ms":4},{"name":"generate","duration_ms":53},{"name":"compile","duration_ms":1003},{"name":"render","duration_ms":397},{"name":"write","duration_ms":109}]}
@@ -194,7 +194,7 @@ The same headless command on this revision, after load-performance work:[^okf-de
 {"total_ms":177,"spans":[{"name":"load","duration_ms":5},{"name":"discover","duration_ms":1},{"name":"parse","duration_ms":4,"note":"cache_hit=52 miss=1"},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":0},{"name":"compile templates","duration_ms":6},{"name":"generate","duration_ms":53},{"name":"compile","duration_ms":0,"note":"cached"},{"name":"render","duration_ms":29},{"name":"write","duration_ms":84}]}
 ```
 
-Release `check knowledge --profile rocci` is 0.40s versus 0.27s for `--profile
+Release `check knowledge --profile strict` is 0.40s versus 0.27s for `--profile
 base`. Default `run` keeps Rocci schema and skips git provenance; pass
 `--provenance` to turn it back on. Bounded concept-path loading was not
 started because release first-open `load` is 290ms.
@@ -208,10 +208,10 @@ started because release first-open `load` is 290ms.
 
 2. **Single-concept `run` does not bound work to one record.** The CLI opens
    the right page, but still parses all concepts, resolves the graph, and runs
-   Rocci-profile validation across the bundle.[^okf-preview][^okf-load]
+   strict-profile validation across the bundle.[^okf-preview][^okf-load]
 
-3. **Rocci-profile provenance validation is the main incremental cost.** Switching
-   from `--profile rocci` to `--profile base` reduced cached concept-path
+3. **strict-profile provenance validation is the main incremental cost.** Switching
+   from `--profile strict` to `--profile base` reduced cached concept-path
    `load` from 9593ms to 5786ms (about 1.7x faster). Isolated `check knowledge`
    still showed a larger provenance-specific delta (4.77s to 0.24s), consistent
    with `validate_lifecycle_and_sources`, which shells out to git per relative
@@ -220,7 +220,7 @@ started because release first-open `load` is 290ms.
 4. **The bundle amplifies git subprocess overhead.** The current knowledge tree
    has on the order of 37 concepts and 368 relative `sources[].resource`
    entries. Validation can invoke up to two git commands per source
-   (`git log -1 --format=%cI` and `git status --porcelain`), so a Rocci-profile
+   (`git log -1 --format=%cI` and `git status --porcelain`), so a strict-profile
    load can reach hundreds of subprocess calls even when previewing one plan.
 
 5. **The target plan is not special, but it is source-heavy.** The
@@ -231,7 +231,7 @@ started because release first-open `load` is 290ms.
 
 6. **Newly staged hybrid records add provenance warnings, not extra parse work.**
    During this audit the plan and its research sibling were staged but not yet
-   committed. Rocci-profile validation emits `OKF4007` for untracked sources on
+   committed. strict-profile validation emits `OKF4007` for untracked sources on
    those records. That still participates in the same per-source git loop rather
    than introducing a separate code path.[^okf-validate]
 
@@ -239,7 +239,7 @@ started because release first-open `load` is 290ms.
 
 `rocci-okf run knowledge/plans/rocdown/hybrid-rocdown-islands.md` is slow because OKF
 preview is implemented as whole-bundle load plus site generation, and the
-default Rocci profile adds repository provenance checks on every rebuild.
+default strict profile adds repository provenance checks on every rebuild.
 Rendering is not the bottleneck once the Roc host cache is warm.[^okf-dev]
 [^headless-audit]
 
@@ -266,7 +266,7 @@ items remain the audit's evidence-backed order of attack:
    `load`.[^okf-preview][^okf-load]
 
 4. **Fast local workflow.** Default `rocci-okf run` uses Rocci schema without
-   git provenance. `check --profile rocci` stays strict. `--profile base` is
+   git provenance. `check --profile strict` stays strict. `--profile base` is
    portable OKF, not the supported fast-preview path.[^okf-main]
 
 [^okf-main]: `Run` accepts `--profile-report` and forwards it to the headless rebuild path.

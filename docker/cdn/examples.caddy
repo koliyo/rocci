@@ -13,8 +13,16 @@ handle @datastar {
 	}
 }
 
+@snake host snake-example.rocci.dev snake-example-staging.rocci.dev snake.examples.rocci.dev snake.examples.staging.rocci.dev snake.examples.localhost
+handle @snake {
+	reverse_proxy snake:8000 {
+		flush_interval -1
+	}
+}
+
 redir /play/live-counter /play/live-counter/
 redir /play/datastar /play/datastar/
+redir /play/snake /play/snake/
 handle_path /play/live-counter/* {
 	reverse_proxy live-counter:8000 {
 		flush_interval -1
@@ -22,6 +30,11 @@ handle_path /play/live-counter/* {
 }
 handle_path /play/datastar/* {
 	reverse_proxy datastar:8000 {
+		flush_interval -1
+	}
+}
+handle_path /play/snake/* {
+	reverse_proxy snake:8000 {
 		flush_interval -1
 	}
 }

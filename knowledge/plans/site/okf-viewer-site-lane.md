@@ -100,7 +100,7 @@ sources:
     author: process:git
     last_modified: 2026-08-24
   - id: ops-package
-    resource: ../../../tools/rocci-ops/src/rocci_ops/local.py
+    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
     title: rocci-ops package site pipeline
     author: process:git
     last_modified: 2026-08-24
@@ -244,7 +244,7 @@ Strip preview-only behavior from the packaged tree:
 
 - Omit `reload.js` (live preview).
 - Omit `session.js` POSTs to `/__rocci_okf/session` (desktop last-route).
-- Build with the Rocci profile and git provenance on, matching CI `check`.
+- Build with `--profile base`, matching Knowledge CI `check`.
   Untracked local research never appears; the GitHub checkout is the snapshot.
 
 Keep `catalog.json` (Cmd-K). Ship `llms.txt` at `/knowledge/llms.txt`. Do not
@@ -327,7 +327,7 @@ publication decision. No viewer or site packaging code.
 
 **Exit:** the decision record states the public-HTML exception; this plan
 records the four naming/visibility answers; `cargo run -q -p rocci-okf --
-check knowledge --profile rocci --format terminal` is clean for those
+check knowledge --profile base --format terminal` is clean for those
 knowledge edits.
 
 ### Phase 1 — Prefix-aware static export
@@ -382,7 +382,7 @@ origin tarball contents. No Cloudflare or DNS work.
 **Does:**
 
 - After the Rocdown site package writes `dist/rocci.dev`, run
-  `rocci-okf build knowledge -o dist/knowledge --profile rocci --base-path
+  `rocci-okf build knowledge -o dist/knowledge --profile base --base-path
   /knowledge` with public/static mode, then copy into
   `dist/rocci.dev/knowledge/`.
 - Fail the package if that build fails.

@@ -1,249 +1,217 @@
-from __future__ import annotations
-
-import argparse
-import hashlib
 import os
-import shutil
 import subprocess
-import sys
-import tarfile
+import tempfile
 import time
 from pathlib import Path
 
+from rocci_ops.ghutil import DEFAULT_CHECKS, gh_run, wait_for_check
 from rocci_ops.paths import repo_root
-
-DEFAULT_CHECKS = (
-    "Test Workspace (macos-latest)",
-    "Test Workspace (ubuntu-latest)",
+from rocci_ops.version import (
+    BUMP_LEVELS,
+    CARGO_LOCK,
+    CARGO_TOML,
+    apply_release_version,
+    crate_versions,
+    first_package_version,
+    next_release_version,
+    parse_release_version,
+    release_files_match,
+    workspace_crate_names,
 )
 
-RELEASE_BINARIES = (
-    "rocci",
-    "rocdown",
-    "rocci-language-server",
+RELEASE_USAGE = (
+    "usage: rocci-ops release <patch|minor|major|vX.Y.Z|dev> "
+    "[--from BRANCH] [--force] [--dry-run]"
 )
 
 
-def version_from_ref(ref_type: str, ref_name: str, sha: str) -> tuple[str, bool]:
-    if ref_type == "tag" and ref_name != "dev":
-        return ref_name, False
-    return f"dev-{sha[:7]}", True
+def run(argv: list[str], *, cwd: Path | None = None) -> None:
+    subprocess.run(argv, cwd=cwd or repo_root(), check=True)
 
 
-def release_params(ref_type: str, ref_name: str, sha: str) -> tuple[str, str, bool]:
-    if ref_type == "tag" and ref_name != "dev":
-        return ref_name, ref_name, False
-    short = sha[:7]
-    return "dev", f"Development Build ({short})", True
+def git_capture(argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        argv,
+        cwd=cwd or repo_root(),
+        capture_output=True,
+        text=True,
+    )
 
 
-def archive_stem(version: str, target: str) -> str:
-    return f"rocci-{version}-{target}"
+def github_repo() -> str:
+    result = subprocess.run(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        cwd=repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
 
 
-def write_github_output(pairs: dict[str, str], output_path: str | None) -> None:
-    lines = "".join(f"{key}={value}\n" for key, value in pairs.items())
-    if output_path:
-        with open(output_path, "a", encoding="utf-8") as handle:
-            handle.write(lines)
-        return
-    sys.stdout.write(lines)
+def dispatch_hosted_ci(from_ref: str) -> None:
+    gh_run(["workflow", "run", "ci.yml", "--ref", from_ref])
 
 
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+def dispatch_hosted_release(tag: str) -> None:
+    gh_run(["workflow", "run", "release.yml", "--ref", tag])
 
 
-def package_archive(root: Path, version: str, target: str) -> Path:
-    stem = archive_stem(version, target)
-    staging = root / "staging" / stem
-    staging.mkdir(parents=True, exist_ok=True)
-    release_dir = root / "target" / "release"
-    for binary in RELEASE_BINARIES:
-        src = release_dir / binary
-        if not src.is_file():
-            raise SystemExit(f"missing release binary: {src}")
-        shutil.copy2(src, staging / binary)
-    shutil.copy2(root / "README.md", staging / "README.md")
-    archive = root / f"{stem}.tar.gz"
-    with tarfile.open(archive, "w:gz") as tar:
-        tar.add(staging, arcname=stem)
-    checksum = archive.with_name(archive.name + ".sha256")
-    checksum.write_text(f"{sha256_file(archive)}  {archive.name}\n", encoding="utf-8")
-    return archive
-
-
-def parse_check_line(result: str) -> tuple[str, str] | None:
-    line = result.strip().splitlines()[0] if result.strip() else ""
-    if not line:
-        return None
-    status, _, conclusion = line.partition(" ")
-    return status, conclusion or "pending"
-
-
-def wait_for_check(
-    *,
-    repo: str,
-    sha: str,
-    check: str,
-    gh: callable,
-    sleep: callable,
-    deadline_s: float | None = None,
-) -> None:
-    started = time.monotonic()
-    print(f"Waiting for: {check}", flush=True)
-    while True:
-        if deadline_s is not None and time.monotonic() - started > deadline_s:
-            raise SystemExit(f"timed out waiting for {check}")
-        raw = gh(
-            [
-                "api",
-                f"repos/{repo}/commits/{sha}/check-runs",
-                "--jq",
-                f'.check_runs[] | select(.name == "{check}") | .status + " " + (.conclusion // "pending")',
-            ]
+def wait_for_release_ci(sha: str, from_ref: str = "main") -> None:
+    if os.environ.get("GITHUB_ACTIONS"):
+        print(
+            "GITHUB_TOKEN pushes do not start CI; dispatching ci.yml on "
+            f"{from_ref}",
+            flush=True,
         )
-        parsed = parse_check_line(raw)
-        if parsed is None:
-            print("  Check not found yet, waiting...", flush=True)
-        else:
-            status, conclusion = parsed
-            print(f"  Status: {status}, Conclusion: {conclusion}", flush=True)
-            if status == "completed":
-                if conclusion == "success":
-                    print(f"  {check} passed", flush=True)
-                    return
-                raise SystemExit(f"{check} failed ({conclusion})")
-        sleep(30)
-
-
-def gh_run(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(["gh", *args], check=check, capture_output=True, text=True)
-
-
-def cmd_version(ns: argparse.Namespace) -> int:
-    version, prerelease = version_from_ref(
-        os.environ.get("GITHUB_REF_TYPE", ""),
-        os.environ.get("GITHUB_REF_NAME", ""),
-        os.environ.get("GITHUB_SHA", ""),
-    )
-    write_github_output(
-        {"version": version, "prerelease": "true" if prerelease else "false"},
-        os.environ.get("GITHUB_OUTPUT"),
-    )
-    return 0
-
-
-def cmd_package(ns: argparse.Namespace) -> int:
-    archive = package_archive(repo_root(), ns.version, ns.target)
-    write_github_output(
-        {"archive": archive.name, "version": ns.version},
-        os.environ.get("GITHUB_OUTPUT"),
-    )
-    return 0
-
-
-def cmd_params(ns: argparse.Namespace) -> int:
-    tag, name, prerelease = release_params(
-        os.environ.get("GITHUB_REF_TYPE", ""),
-        os.environ.get("GITHUB_REF_NAME", ""),
-        os.environ.get("GITHUB_SHA", ""),
-    )
-    write_github_output(
-        {
-            "tag": tag,
-            "name": name,
-            "prerelease": "true" if prerelease else "false",
-        },
-        os.environ.get("GITHUB_OUTPUT"),
-    )
-    return 0
-
-
-def cmd_wait_ci(ns: argparse.Namespace) -> int:
-    repo = ns.repo or os.environ["GITHUB_REPOSITORY"]
-    sha = ns.sha or os.environ["GITHUB_SHA"]
+        dispatch_hosted_ci(from_ref)
+    repo = github_repo()
 
     def gh(args: list[str]) -> str:
-        result = gh_run(args)
-        return result.stdout
+        return gh_run(args).stdout
 
     for check in DEFAULT_CHECKS:
         wait_for_check(repo=repo, sha=sha, check=check, gh=gh, sleep=time.sleep)
-    return 0
 
 
-def cmd_publish(ns: argparse.Namespace) -> int:
-    artifacts = sorted(Path(ns.artifact_dir).glob("*.tar.gz")) + sorted(
-        Path(ns.artifact_dir).glob("*.sha256")
+def push_version_update(version: str, from_ref: str, remote_sha: str) -> str:
+    root = repo_root()
+    with tempfile.TemporaryDirectory() as tmp:
+        worktree = Path(tmp) / "wt"
+        run(["git", "worktree", "add", "--detach", str(worktree), remote_sha], cwd=root)
+        try:
+            if release_files_match(worktree, version):
+                return remote_sha
+            paths = apply_release_version(worktree, version)
+            run(["git", "add", *[str(path) for path in paths]], cwd=worktree)
+            status = git_capture(["git", "status", "--porcelain"], cwd=worktree)
+            if status.returncode != 0:
+                raise SystemExit("release could not read worktree status")
+            if not status.stdout.strip():
+                return remote_sha
+            run(["git", "commit", "-m", f"chore(release): set version {version}"], cwd=worktree)
+            run(["git", "push", "origin", f"HEAD:{from_ref}"], cwd=worktree)
+            pushed = git_capture(["git", "rev-parse", "HEAD"], cwd=worktree)
+            if pushed.returncode != 0:
+                raise SystemExit("release could not read version commit")
+            return pushed.stdout.strip()
+        finally:
+            run(["git", "worktree", "remove", "--force", str(worktree)], cwd=root)
+
+
+def git_show(sha: str, path: Path) -> str:
+    shown = git_capture(["git", "show", f"{sha}:{path.as_posix()}"])
+    if shown.returncode != 0:
+        raise SystemExit(f"release could not read {path} at {sha}")
+    return shown.stdout
+
+
+def crate_versions_at_sha(sha: str) -> str:
+    return crate_versions(git_show(sha, CARGO_TOML), git_show(sha, CARGO_LOCK))
+
+
+def resolve_release_tag(spec: str, sha: str) -> str:
+    if spec == "dev":
+        return spec
+    if spec in BUMP_LEVELS:
+        return f"v{next_release_version(crate_versions_at_sha(sha), spec)}"
+    parse_release_version(spec)
+    return spec
+
+
+def release_files_match_at_sha(sha: str, version: str) -> bool:
+    cargo = git_show(sha, CARGO_TOML)
+    lock = git_show(sha, CARGO_LOCK)
+    names = workspace_crate_names(cargo)
+    if first_package_version(cargo) != version:
+        return False
+    return all(f'name = "{name}"\nversion = "{version}"' in lock for name in names)
+
+
+def run_release(
+    spec: str,
+    from_ref: str = "main",
+    *,
+    force: bool = False,
+    dry_run: bool = False,
+) -> int:
+    if spec not in ("dev", *BUMP_LEVELS):
+        parse_release_version(spec)
+    run(
+        [
+            "git",
+            "fetch",
+            "origin",
+            f"refs/heads/{from_ref}:refs/remotes/origin/{from_ref}",
+        ]
     )
-    if not artifacts:
-        raise SystemExit(f"no release artifacts in {ns.artifact_dir}")
-    if ns.prerelease:
-        subprocess.run(
-            ["gh", "release", "delete", ns.tag, "--yes", "--cleanup-tag"],
-            check=False,
+    remote_ref = f"origin/{from_ref}"
+    verify = git_capture(["git", "rev-parse", "--verify", remote_ref])
+    if verify.returncode != 0:
+        raise SystemExit(f"release requires {remote_ref}")
+    sha = verify.stdout.strip()
+    tag = resolve_release_tag(spec, sha)
+    print(f"rocci-ops release {tag}", flush=True)
+    movable = tag == "dev"
+    if dry_run:
+        if movable:
+            print("dry-run: would move dev", flush=True)
+        else:
+            matched = release_files_match_at_sha(sha, parse_release_version(tag))
+            print(f"dry-run: release files match={str(matched).lower()}", flush=True)
+        return 0
+    if not movable:
+        sha = push_version_update(parse_release_version(tag), from_ref, sha)
+    wait_for_release_ci(sha, from_ref=from_ref)
+    tag_argv = ["git", "tag", "-a", tag, "-m", tag, sha]
+    push_argv = ["git", "push", "origin", tag]
+    if movable or force:
+        tag_argv = ["git", "tag", "-a", "-f", tag, "-m", tag, sha]
+        push_argv = ["git", "push", "--force", "origin", tag]
+    run(tag_argv)
+    run(push_argv)
+    if os.environ.get("GITHUB_ACTIONS"):
+        print(
+            "GITHUB_TOKEN tag pushes do not start Release; dispatching "
+            f"release.yml on {tag}",
+            flush=True,
         )
-        argv = [
-            "gh",
-            "release",
-            "create",
-            ns.tag,
-            "--title",
-            ns.title,
-            "--prerelease",
-            "--generate-notes",
-            "--target",
-            ns.target_sha,
-            *[str(path) for path in artifacts],
-        ]
-    else:
-        argv = [
-            "gh",
-            "release",
-            "create",
-            ns.tag,
-            "--title",
-            ns.title,
-            "--generate-notes",
-            *[str(path) for path in artifacts],
-        ]
-    subprocess.run(argv, check=True)
+        dispatch_hosted_release(tag)
     return 0
 
 
-def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(prog="rocci-ops release")
-    sub = parser.add_subparsers(dest="command", required=True)
+def parse_release_argv(argv: list[str], usage: str) -> tuple[str, str, bool, bool]:
+    from_ref = "main"
+    tag: str | None = None
+    force = False
+    dry_run = False
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--from":
+            if i + 1 >= len(argv):
+                raise SystemExit(usage)
+            from_ref = argv[i + 1]
+            i += 2
+            continue
+        if argv[i] == "--force":
+            force = True
+            i += 1
+            continue
+        if argv[i] == "--dry-run":
+            dry_run = True
+            i += 1
+            continue
+        if tag is not None:
+            raise SystemExit(usage)
+        tag = argv[i]
+        i += 1
+    if tag is None:
+        raise SystemExit(usage)
+    return tag, from_ref, force, dry_run
 
-    sub.add_parser("version")
-    pkg = sub.add_parser("package")
-    pkg.add_argument("--version", required=True)
-    pkg.add_argument("--target", required=True)
-    sub.add_parser("params")
-    wait = sub.add_parser("wait-ci")
-    wait.add_argument("--repo")
-    wait.add_argument("--sha")
-    pub = sub.add_parser("publish")
-    pub.add_argument("--tag", required=True)
-    pub.add_argument("--title", required=True)
-    pub.add_argument("--target-sha", required=True)
-    pub.add_argument("--artifact-dir", default="artifacts")
-    pub.add_argument("--prerelease", action="store_true")
 
-    ns = parser.parse_args(argv)
-    if ns.command == "version":
-        return cmd_version(ns)
-    if ns.command == "package":
-        return cmd_package(ns)
-    if ns.command == "params":
-        return cmd_params(ns)
-    if ns.command == "wait-ci":
-        return cmd_wait_ci(ns)
-    if ns.command == "publish":
-        return cmd_publish(ns)
-    raise SystemExit(2)
+def release_command(argv: list[str]) -> int:
+    if not argv or argv[0] in ("-h", "--help"):
+        raise SystemExit(RELEASE_USAGE)
+    tag, from_ref, force, dry_run = parse_release_argv(argv, RELEASE_USAGE)
+    return run_release(tag, from_ref=from_ref, force=force, dry_run=dry_run)

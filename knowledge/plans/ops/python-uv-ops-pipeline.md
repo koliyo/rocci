@@ -71,7 +71,7 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 
 ## Phase 3 — Release packaging and ci-gate
 
-**Bound:** `rocci-ops release version|package|wait-ci|params|publish`
+**Bound:** `rocci-ops archive version|package|wait-ci|params|publish` (was `release` before the DX split)
 **Exit:** pytest archive naming; `release.yml` calls the CLI
 
 ## Phase 4 — Deploy client and origin
@@ -87,7 +87,7 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 ## Phase 6 — Docs and knowledge findings
 
 **Bound:** AGENTS, devops skill, this plan, research report, log.
-**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`
+**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`
 
 Roc follow-on is a **new branch** after this plan is green on CI.[^research]
 

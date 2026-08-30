@@ -22,8 +22,8 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 `PATH`. Then from the repository root:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling/Styling.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling
 cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
 cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
 cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
@@ -38,10 +38,13 @@ language with file-level and component `@css`.
 for the format. [`examples/rocdown/errors`](examples/rocdown/errors) is the 404 and parse-error
 preview: a working `/error-demo/` page plus a broken file that still opens in the window.
 
-`rocci run path/to/App.rocci` is a standalone app: compile that file, generate
-an HTTP dispatcher from `@context` / `@init` / `@method:role` routes, and start it. `rocci run`
-on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
-authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
+`rocci run path/to/app` is a standalone app directory: resolve a unique
+entry, generate an HTTP dispatcher from `@context` / `@init` /
+`@method:role` routes, and start it. `rocci run path/to/App.rocci` names
+the entry file and still loads sibling modules. At most one process
+`@init` is allowed. `rocci run` on a directory that contains `main.roc`
+compiles sibling `.rocci` modules and starts the authored Roc app. Both
+paths stage `Html.roc` / `Datastar.roc` from the CLI
 runtime and a pinned Datastar JS file in `assets/` (downloaded into
 `~/.rocci/cache` on first use). The preview window listens on a free local
 TCP port and prints the URL so you (or an agent) can inspect the same HTTP
@@ -60,7 +63,7 @@ ad-hoc signed macOS `.app`. The bundled app does not need `roc` on `PATH` at
 runtime. From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-uv run rocci-ops bundle macos
+uv run rocci-ops package macos
 open "target/release/bundle/macos/Datastar.app"
 ```
 
@@ -122,7 +125,7 @@ The `knowledge/` tree stays in this repository. Check, inspect, search, build,
 and preview it with [okmate](https://github.com/koliyo/okmate):
 
 ```sh
-okmate check knowledge --profile rocci
+okmate check knowledge --profile base
 okmate inspect concept architecture/system-overview knowledge
 okmate inspect graph knowledge
 okmate search "rendering" knowledge
@@ -181,11 +184,21 @@ started. After a signed-out staging smoke,
 `uv run rocci-ops promote production` pushes `origin/staging` to
 `origin/production` (creates the branch on first use). That push runs hosted CI
 and Knowledge, then the site package/deploy job. Do not promote production
-until staging has been smoked. To publish a GitHub release from `origin/main`,
-run `uv run rocci-ops promote tag vX.Y.Z` (or `--from BRANCH`). That waits for
-hosted CI on the target SHA, then pushes the tag. The tag push runs CI,
-Knowledge, and `release.yml`. `uv run rocci-ops promote tag dev` force-moves
-the rolling `dev` prerelease tag and republishes that GitHub release.
+until staging has been smoked.
+
+To publish a GitHub release from `origin/main`, run
+`uv run --no-dev rocci-ops release patch` (or `minor`, `major`, or `vX.Y.Z`,
+optionally `--from BRANCH`). That is the only operator path that creates an
+immutable `v*` tag. It writes the workspace version to `Cargo.toml` and
+`Cargo.lock`, pushes that commit to the target branch, waits for hosted lint
+and Test Workspace checks, then pushes the tag so `release.yml` can package
+archives. `--dry-run` prints the resolved tag and whether those files already
+match. Pass `--force` only to move an existing `v*`.
+`uv run --no-dev rocci-ops release dev` force-moves the rolling `dev`
+prerelease tag (no version rewrite). The same cut can run from
+**Actions → Cut release** (`workflow_dispatch` on `cut-release.yml`; not
+attached to the `release`, `staging`, or `production` environments).
+`promote tag` is gone; `promote` is only `staging` and `production`.
 A later `git pull` then reports `! [rejected] dev -> dev (would clobber
 existing tag)` unless this repo force-updates that tag on fetch:
 
@@ -217,7 +230,7 @@ cargo test --workspace
 uv run rocci-ops ci
 ```
 
-`cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, AST fixtures, editors, and knowledge checks). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`.
+`cargo test --workspace` is the offline crate suite. Roc on `PATH` does not enable generated-app builds; set `ROCCI_REQUIRE_ROC=1` for that lane. `uv run rocci-ops ci` runs the GitHub Actions validation jobs on this OS (lint, tests, fixtures-and-docs, editors, knowledge, and Linux `roc`). It does not run the ubuntu/macos matrix or release cross-platform builds. Pass job names to run a subset, for example `uv run rocci-ops ci lint test`.
 
 GitHub Actions CI, Knowledge, Site, and Release run on GitHub-hosted runners (`ubuntu-latest` / `macos-latest`). CI and Knowledge run automatically on push to `main`, `staging`, and `production`. They do not run on every pull request. A reviewer comments `/ci` or `/CI` (conversation, review body, or inline review comment) to queue hosted CI for that PR head. Owners, members, and collaborators may do this, including on forks. Dependabot PRs need `/ci` the same way. `/ci-local` and `/cl-local` are accepted but queue the same hosted jobs. Site package and deploy use `ubuntu-latest`; deploy secrets stay on the `staging` and `production` GitHub Environments; CI and Knowledge jobs cannot read them.
 

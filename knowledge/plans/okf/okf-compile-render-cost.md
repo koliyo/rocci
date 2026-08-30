@@ -180,7 +180,7 @@ freshly built binary is 300–600ms.[^research]
 | Rust catalog / Rocci shell | Governance data stays in `okf`; visible shell is Rocci once apply writes |
 | Three-CLI split | Work stays in `rocci-okf` / `rocci-roc-host`, not `rocci` or `rocdown` |
 | Whole-program Roc | No per-`.rocci` object cache; identity is the whole renderer program |
-| `check --profile rocci` | Unchanged; this plan is preview generate/apply, not validation |
+| `check --profile base` | Unchanged; this plan is preview generate/apply, not validation |
 
 Those boundaries are the portable engine split, inert knowledge Markdown, and
 the catalog/shell decision already recorded for OKF review.[^engine-readme]

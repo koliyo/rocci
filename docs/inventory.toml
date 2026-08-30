@@ -62,7 +62,7 @@ five_minutes_route = "/docs/five-minutes/"
 
 [vocabulary]
 component = "A PascalCase @component that lowers to a pure Roc Html function."
-standalone_app = "A .rocci module with @context / @init / @get:view that rocci run compiles into a generated server."
+standalone_app = "A directory of .rocci modules with at most one process @init / @context, run by rocci run <dir> or rocci run File.rocci."
 custom_app = "A directory with authored main.roc that reuses .rocci modules."
 applications = "Standalone and custom are two depths of the same layer, not two products."
 patch = "A one-shot HTML fragment from @get:fragment or a mutation @method:fragment; Datastar morphs the acting tab."
@@ -405,8 +405,8 @@ notes = "Nested standalone falling-block app. Docs-only until a generic live hos
 id = "snake"
 path = "examples/rocci/custom/snake"
 entry = "."
-hosting = "docs"
+hosting = "live"
 role = "advanced-stress"
 prose = "examples/rocci/custom/snake/index.rocdown"
 generated = ["/examples/snake/", "/examples/snake/source/Snake-rocci/"]
-notes = "Advanced custom runtime. Docs-only; not a live site package."
+notes = "Advanced custom runtime. Live hostname planned."

@@ -2,14 +2,18 @@
     layout: "docs",
     meta: {
         title: "Standalone applications",
-        description: "Author @context, @init, and @get:view. rocci run generates the server. Counter is the first app.",
+        description: "A standalone app is a directory of modules. rocci run generates the server. Counter is the first app.",
     },
 }
 
 # Standalone applications
 
-A standalone module declares `@context`, `@init`, `@get:view`, and optional
-mutations. `rocci run` generates dispatch. You do not write `main`.
+A standalone **app** is a directory of `.rocci` **modules**. Process
+`@context` / `@init` occur at most once in that tree (or not at all).
+`rocci run <dir>` picks the unique entry; `rocci run File.rocci` still
+names the primary and loads siblings. `rocci.toml` may set `[app].entry`.
+You do not write `main`. `apps.toml` is the site catalog, not a run
+manifest.
 
 Canonical source: [Counter](/examples/counter/) ·
 [Counter.rocci](/examples/counter/source/Counter-rocci/).
@@ -61,13 +65,20 @@ logging from `@component`.
 
 ```sh
 cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/counter --no-window --log-handlers
+cargo run -q -p rocci-cli -- run \
   examples/rocci/standalone/counter/Counter.rocci --no-window --log-handlers
 ```
 
 ## Composition stays standalone
 
 Split components, render lists with `@for`, variants with `@match`, and forms
-without leaving generated dispatch. Nested apps such as
+without leaving generated dispatch. Point `rocci run` and
+`rocci build --http-module` at the **entry** `.rocci` (the file with `@init`
+and routes). Sibling `.rocci` files and authored `.roc` helpers in the
+standalone tree are compiled in; do not pass a directory or a file list.
+[Live counter](/examples/live-counter/) is `LiveCounter.rocci` plus
+`LiveCounterUi.rocci` and `Origin.roc`. Nested apps such as
 [Rocci Blocks](/examples/blocks/) put handlers in `backend/` and markup in
 `ui/` behind an app-root `rocci.toml`. Custom `main.roc` is a later ownership
 step, not a requirement for composition.

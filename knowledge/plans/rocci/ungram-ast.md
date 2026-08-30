@@ -375,7 +375,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 After knowledge edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Cross-cutting (workspace member + CI): `cargo test --workspace`. Do not

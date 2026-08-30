@@ -196,7 +196,7 @@ via initializationOptions or env. Restart child with **Rocci: Restart LSP
 server**.
 
 **Exit:** READMEs updated. `uv run rocci-ops check zed` if the Zed manifest
-changes. `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+changes. `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`.
 
 [^language-server]: Phase 4 child server, generated projection, mapped semantics, degraded mode.
 [^tooling-architecture]: Composed `rocci-language-server`; base Rocci free of Rocdown types.

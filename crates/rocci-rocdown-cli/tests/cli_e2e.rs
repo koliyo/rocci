@@ -39,37 +39,6 @@ fn temp_dir(name: &str) -> PathBuf {
 }
 
 #[test]
-fn check_docs_succeeds_in_terminal_and_json() {
-    let root = repo_root();
-    let bin = rocdown_bin();
-
-    let output = Command::new(&bin)
-        .arg("check")
-        .arg(root.join("docs"))
-        .current_dir(&root)
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "check failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    let output = Command::new(&bin)
-        .arg("check")
-        .arg(root.join("docs"))
-        .arg("--format")
-        .arg("json")
-        .current_dir(&root)
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let parsed: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    assert!(parsed.is_array());
-}
-
-#[test]
 fn inspect_config_reads_rocdown_toml() {
     let root = repo_root();
     let bin = rocdown_bin();
@@ -386,22 +355,4 @@ fn serve_built_tree_returns_html_without_roc() {
     );
     let _ = fs::remove_dir_all(&dist);
     let _ = fs::remove_dir_all(&spy);
-}
-
-#[test]
-fn test_docs_examples() {
-    let root = repo_root();
-    let bin = rocdown_bin();
-
-    let output = Command::new(&bin)
-        .arg("test")
-        .arg(root.join("docs"))
-        .current_dir(&root)
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "test examples failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }

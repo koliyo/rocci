@@ -4,7 +4,7 @@ title: Findings after migrating operator scripts to Python and uv
 description: "After implementing tools/rocci-ops, POSIX remains only where the process cannot be uv (container PID 1, image Roc install, OpenSSH ProxyCommand). A later Roc port should reuse the same CLI surface; basic-cli is not yet a substitute for uv on CI, laptops, and the origin."
 tags: [domain/rocci, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T10:00:00Z }
+generated: { by: process:cursor, at: 2026-08-30T09:30:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -73,7 +73,7 @@ These processes cannot be `uv run` without changing a foreign contract:
 
 The VPS is assumed to have Python and uv. It still must not gain `rocci`,
 `rocdown`, `roc`, rustc, or WebKit. Bootstrap copies Compose/Caddy plus the
-ops package to `/srv/rocci`; remote publish is `uv run rocci-ops origin publish`.[^origin][^site-yml]
+ops package to the lane root (`/srv/rocci/prod` or `/srv/rocci/staging`); remote publish is `uv run rocci-ops origin publish`.[^origin][^site-yml]
 
 ## Roc port (separate branch)
 

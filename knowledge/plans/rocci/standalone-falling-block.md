@@ -200,7 +200,7 @@ blocks / Snake line. Fix stale `@view` / `@patch` idiom rows.
 indexes, and `knowledge/log.md`. Optional case study if the audit earns it.
 [^audit]
 
-**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`.
 Do not invent verification events or log the plan complete without CI and
 Knowledge run IDs.
 

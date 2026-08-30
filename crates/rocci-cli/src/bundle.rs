@@ -302,6 +302,7 @@ pub fn package_server_with_opt(
     Ok(ServerPackage { output, server })
 }
 
+#[derive(Debug)]
 enum ServerInput {
     AppDir(PathBuf),
     Standalone(PathBuf),
@@ -327,32 +328,9 @@ fn resolve_server_input(input: &Path) -> Result<ServerInput> {
     if input.join("main.roc").is_file() {
         return Ok(ServerInput::AppDir(input.to_path_buf()));
     }
-    let config_path = input.join("rocci.toml");
-    if config_path.is_file() {
-        let config = Config::from_file(&config_path)?;
-        return Ok(ServerInput::AppDir(resolve_app_dir(&config_path, &config)?));
-    }
-    let mut rocci = Vec::new();
-    for entry in
-        fs::read_dir(input).with_context(|| format!("failed to read {}", input.display()))?
-    {
-        let path = entry?.path();
-        if path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("rocci") {
-            rocci.push(path);
-        }
-    }
-    rocci.sort();
-    match rocci.len() {
-        1 => Ok(ServerInput::Standalone(rocci.remove(0))),
-        0 => bail!(
-            "no main.roc or .rocci file in {}; run `rocci build --release FILE.rocci` or add main.roc",
-            input.display()
-        ),
-        _ => bail!(
-            "no main.roc in {}; pass one .rocci file to `rocci build --release`",
-            input.display()
-        ),
-    }
+    Ok(ServerInput::Standalone(run::resolve_standalone_entry(
+        input,
+    )?))
 }
 
 fn config_file_dir(config_path: &Path) -> Result<PathBuf> {
@@ -470,6 +448,22 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
+        let help_ok = Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if !help_ok {
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+        }
+        false
     }
 
     #[test]
@@ -616,6 +610,80 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
+    fn repo_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf()
+    }
+
+    #[test]
+    fn resolve_server_input_live_counter_uses_unique_init() {
+        let dir = repo_root().join("examples/rocci/standalone/live-counter");
+        if !dir.is_dir() {
+            return;
+        }
+        match resolve_server_input(&dir).expect("live-counter") {
+            ServerInput::Standalone(path) => {
+                assert_eq!(path, dir.join("LiveCounter.rocci"));
+            }
+            ServerInput::AppDir(_) => panic!("expected standalone LiveCounter.rocci"),
+        }
+    }
+
+    #[test]
+    fn resolve_server_input_nested_unique_init() {
+        let dir = repo_root().join("examples/rocci/standalone/blocks");
+        if !dir.is_dir() {
+            return;
+        }
+        match resolve_server_input(&dir).expect("blocks") {
+            ServerInput::Standalone(path) => {
+                assert_eq!(path, dir.join("backend/Blocks.rocci"));
+            }
+            ServerInput::AppDir(_) => panic!("expected standalone Blocks.rocci"),
+        }
+    }
+
+    #[test]
+    fn resolve_server_input_ambiguous_directory_lists_candidates() {
+        let dir = temp_dir("ambiguous-release");
+        fs::write(
+            dir.join("Alpha.rocci"),
+            r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>a</p></body></html>
+"#,
+        )
+        .unwrap();
+        fs::write(
+            dir.join("Beta.rocci"),
+            r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>b</p></body></html>
+"#,
+        )
+        .unwrap();
+        let err = resolve_server_input(&dir).unwrap_err().to_string();
+        assert!(err.contains("ambiguous standalone app"), "{err}");
+        assert!(!err.contains("pass one .rocci file"), "{err}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn package_server_refuses_output_inside_input_tree() {
         let dir = temp_dir("server-unsafe");
@@ -628,12 +696,7 @@ mod tests {
 
     #[test]
     fn package_datastar_answers_get_without_roc_on_path() {
-        if !Command::new("roc")
-            .arg("help")
-            .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false)
-        {
+        if skip_without_roc() {
             return;
         }
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

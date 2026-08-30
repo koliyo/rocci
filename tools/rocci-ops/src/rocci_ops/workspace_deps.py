@@ -5,8 +5,6 @@ knowledge/decisions/consolidate-rocdown-product-boundary.md. Unclassified
 workspace members fail.
 """
 
-from __future__ import annotations
-
 import json
 import subprocess
 import sys
@@ -24,6 +22,8 @@ BASE_ROCCI = {
     "rocci-highlight",
     "rocci-ui",
     "rocci-roc-host",
+    "rocci-wasi-http",
+    "rocci-wasi-http-component",
     "rocci-datastar",
 }
 

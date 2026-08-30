@@ -95,7 +95,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: vscode-package-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/local.py
+    resource: ../../../tools/rocci-ops/src/rocci_ops/package.py
     title: package vscode copies release language-server into the VSIX
     author: process:git
     last_modified: 2026-08-25

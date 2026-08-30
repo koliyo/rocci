@@ -535,7 +535,7 @@ knowledge README one-liner (not a new record).
 
 **Exit.** `cargo test -p rocci-rocdown`. `cargo run -q -p
 rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown` reviewed.
-`cargo run -q -p rocci-okf -- check knowledge --profile rocci --format
+`cargo run -q -p rocci-okf -- check knowledge --profile base --format
 terminal` after knowledge/README cross-links. Public pages state
 **current** for `@{expr}` and **planned** for heading/URL holes.
 

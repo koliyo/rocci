@@ -463,7 +463,7 @@ work in this plan.
   artifact checksum mismatch, and atomic manifest publication without
   invoking Roc.
 - `tools/rocci-ops/src/rocci_ops/workspace_deps.py` still forbids OKF → Rocdown.
-- `rocci-okf check knowledge --profile rocci` after knowledge edits.
+- `rocci-okf check knowledge --profile base` after knowledge edits.
 - Roc-gated tests for host A and host B apply the same fixture view and
   compare structure; they do not require byte-identical HTML with the
   current Rust concatenators.

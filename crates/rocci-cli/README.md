@@ -15,6 +15,17 @@ cargo run -p rocci-cli -- validate [rocci.toml]
 # Compile a single .rocci template to Roc
 cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 
+# Experimental WASI HTTP component (not `--host wasm`; `rocci run` stays native).
+# Pass the entry `.rocci`; sibling `.rocci` / `.roc` in that tree are included.
+cargo run -p rocci-cli -- build --http-module \
+  examples/rocci/standalone/counter/Counter.rocci -o http-module.wasm
+# Multi-file: same flag, entry only
+#   examples/rocci/standalone/live-counter/LiveCounter.rocci
+mkdir -p .counter-data
+wasmtime serve -Sp3 -Scli --env DB_PATH=./counter.db \
+  --dir=.counter-data::. --dir=./http-module.assets::/assets \
+  --addr 127.0.0.1:8080 http-module.wasm
+
 # Package a Linux server binary plus assets (not a macOS .app)
 cargo run -p rocci-cli -- build --release examples/rocci/custom/datastar [-o target/release/rocci-server] [--target x64musl|arm64musl|…]
 cargo run -p rocci-cli -- build --release examples/rocci/standalone/counter/Counter.rocci
@@ -29,7 +40,8 @@ a temporary workaround for an optimized-backend compiler recursion. Dev
 artifacts are functional but may be larger and slower; pass `--opt speed` for
 production-performance output when the compiler path is known to work.
 
-# Run a standalone template application with live reload and embedded preview
+# Run a standalone app directory (unique @init) or a named .rocci entry
+cargo run -p rocci-cli -- run examples/rocci/standalone/counter
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 
 # Print compile and wait phases to stderr

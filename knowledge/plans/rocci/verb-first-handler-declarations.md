@@ -727,7 +727,7 @@ proceed under the maintainer's explicit approval.
    separately from errors:
 
    ```sh
-   cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+   cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
    ```
 
 9. Run the final old-syntax and JSON-command inventory. Every occurrence must

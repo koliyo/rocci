@@ -19,8 +19,10 @@ total, patch count) so you can see what Datastar is actually moving. Keyboard
 and touch steering stay in a tiny `snake-input.js` island; the world does not.
 
 Lobby and board live in `Snake.rocci`, ticks and collisions in `Game.roc`, HTTP
-and SSE in `main.roc`. This is **docs-only** on the public origin (not a live
-hostname).
+and SSE in `main.roc`.
+
+A dedicated `snake.examples.rocci.dev` hostname is reserved and is not
+serving yet. Run the app locally. Source files are listed in the sidebar.
 
 The 100×100 world wraps at the edges. Each player’s camera stays put while the
 head moves inside the 31×21 view and only scrolls when the head enters a

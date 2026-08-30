@@ -21,8 +21,10 @@ cargo test --workspace
 cargo fmt --all -- --check
 ```
 
-`cargo test --workspace` is the fast crate suite. `uv run rocci-ops ci` runs
-the local GitHub Actions job bodies for this OS.
+`cargo test --workspace` is the offline crate suite: Roc on `PATH` does not
+enable generated-app builds or HTTP smokes. Set `ROCCI_REQUIRE_ROC=1` for
+that lane (hosted Linux `roc` job, or local on-demand). `uv run rocci-ops ci`
+runs the local GitHub Actions job bodies for this OS.
 
 ## Ownership
 

@@ -34,13 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Checkout h35-desktop sibling
-        run: |
-          dest="${GITHUB_WORKSPACE}/../h35-desktop"
-          if [[ ! -f "$dest/Cargo.toml" ]]; then
-            git clone --depth 1 https://github.com/koliyo/h35-desktop.git "$dest"
-          fi
-
       - name: Install Linux desktop build deps
         if: runner.os == 'Linux'
         run: sudo ./docker/install-linux-deps.sh builder
@@ -58,12 +51,12 @@ jobs:
 
       - name: Determine version
         id: version
-        run: uv run --no-dev rocci-ops release version
+        run: uv run --no-dev rocci-ops archive version
 
       - name: Package archive
         id: archive
         run: >
-          uv run --no-dev rocci-ops release package
+          uv run --no-dev rocci-ops archive package
           --version "${{ steps.version.outputs.version }}"
           --target "${{ matrix.target }}"
 
@@ -85,7 +78,7 @@ jobs:
       - name: Wait for CI checks
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: uv run --no-dev rocci-ops release wait-ci
+        run: uv run --no-dev rocci-ops archive wait-ci
 
   release:
     name: Publish Release
@@ -106,13 +99,13 @@ jobs:
 
       - name: Determine release parameters
         id: params
-        run: uv run --no-dev rocci-ops release params
+        run: uv run --no-dev rocci-ops archive params
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          uv run --no-dev rocci-ops release publish
+          uv run --no-dev rocci-ops archive publish
           --tag "${{ steps.params.outputs.tag }}"
           --title "${{ steps.params.outputs.name }}"
           --target-sha "${{ github.sha }}"

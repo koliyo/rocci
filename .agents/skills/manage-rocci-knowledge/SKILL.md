@@ -38,7 +38,7 @@ okmate roots --format paths
 
 ```sh
 okmate roots --format paths | while IFS= read -r root; do
-  okmate inspect --profile rocci catalog "$root"
+  okmate inspect --profile base catalog "$root"
 done
 ```
 
@@ -55,16 +55,16 @@ When the concept ID is known, inspect its normalized representation:
 
 ```sh
 okmate inspect \
-  --profile rocci concept CONCEPT_ID knowledge
+  --profile base concept CONCEPT_ID knowledge
 ```
 
 Inspect the catalog for metadata-wide questions and the graph for relationships:
 
 ```sh
 okmate inspect \
-  --profile rocci catalog knowledge
+  --profile base catalog knowledge
 okmate inspect \
-  --profile rocci graph knowledge
+  --profile base graph knowledge
 ```
 
 Place `--profile` before the `catalog`, `concept`, or `graph` target. Prefer
@@ -142,19 +142,15 @@ targeted record and source reads over loading the entire JSON catalog.
 
 ## Validate
 
-Run the Rocci profile after every knowledge edit:
-
-```sh
-okmate check knowledge \
-  --profile rocci --format terminal
-```
-
-Use the base profile only when explicitly testing portable OKF behavior:
+Run the base profile after every knowledge edit (same as Knowledge CI):
 
 ```sh
 okmate check knowledge \
   --profile base --format terminal
 ```
+
+Use `--profile strict` only when checking owners-and-evidence rules that
+Rocci CI does not require.
 
 If parser, validation, inspection, or CLI behavior changed, run focused
 tests in the [okmate](https://github.com/koliyo/okmate) repository:

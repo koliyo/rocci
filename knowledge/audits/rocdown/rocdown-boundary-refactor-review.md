@@ -461,7 +461,7 @@ server.
 - `cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown`:
   passed.
 - `cargo run -q -p rocci-rocdown-cli -- check docs`: passed.
-- `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format
+- `cargo run -q -p rocci-okf -- check knowledge --profile base --format
   terminal`: no errors; seven `OKF4005` warnings for records revised after
   human verification.
 - `cargo clippy -p okf -- -D warnings` in a fresh target directory: failed on

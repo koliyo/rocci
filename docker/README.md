@@ -125,21 +125,23 @@ Override the published port with `ROCCI_HTTP_PORT`. The app container prints
 
 ## Live example origins (planned hostnames)
 
-Catalog rows with `hosting = "live"` (`live-counter`, `datastar`) are separate
-processes and hostnames. They do **not** share the rocci.dev hybrid island
-process or steal `/actions/` or `/sse`. Docs-only apps (counter, styling,
-blocks, snake) are absent from these Compose files.
+Catalog rows with `hosting = "live"` (`live-counter`, `datastar`, `snake`)
+are separate processes and hostnames. They do **not** share the rocci.dev
+hybrid island process or steal `/actions/` or `/sse`. Docs-only apps
+(counter, styling, blocks) are absent from these Compose files.
 
 ```sh
 cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --print-live
 # live-counter	standalone/live-counter	LiveCounter.rocci
 # datastar	custom/datastar	.
+# snake	custom/snake	.
 ```
 
 Package each live app with `rocci build --release --target x64musl` (or
 `arm64musl` for Apple Silicon Docker), then point
-`ROCCI_LIVE_COUNTER_CONTEXT` and `ROCCI_DATASTAR_CONTEXT` at directories that
-contain `server`, `assets/`, and `docker/app/Dockerfile`.
+`ROCCI_LIVE_COUNTER_CONTEXT`, `ROCCI_DATASTAR_CONTEXT`, and
+`ROCCI_SNAKE_CONTEXT` at directories that contain `server`, `assets/`, and
+`docker/app/Dockerfile`.
 
 **Laptop Host demos** use `compose.examples.yml` and its own `edge` Caddy.
 Do **not** run that edge on the VPS: `:8080` is already hybrid Caddy.
@@ -156,7 +158,9 @@ the hybrid project. Hybrid Caddy matches example `Host` headers before site
 docker compose -f docker/compose.hybrid.yml -f docker/compose.origin.yml up
 curl -sf http://127.0.0.1:8080/play/live-counter/health
 curl -sf http://127.0.0.1:8080/play/datastar/health
+curl -sf http://127.0.0.1:8080/play/snake/health
 curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8080/health
+curl -sf -H 'Host: snake-example-staging.rocci.dev' http://127.0.0.1:8080/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
 curl -sf -H 'Host: staging.rocci.dev' \
   -X POST http://127.0.0.1:8080/actions/counter/increment \
@@ -255,7 +259,7 @@ and the [hybrid sites guide](../docs/rocdown/hybrid.rocdown).
 `DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`).
 `ROCCI_LANE` is the branch name: production is `/srv/rocci/prod` on `:8080`
 (hybrid only); staging is `/srv/rocci/staging` on `:8081` (hybrid plus live
-examples). `main` is the PR landing branch and does not package or publish
-the site. SSH goes through Cloudflare Access (`ssh.rocci.dev`), not port 22.
+examples). `/srv/rocci` itself is not an origin. `main` is the PR landing
+branch and does not package or publish the site. SSH goes through Cloudflare Access (`ssh.rocci.dev`), not port 22.
 Fork pull requests cannot read those secrets and do not run the deploy job.
 See [`prod/README.md`](prod/README.md).

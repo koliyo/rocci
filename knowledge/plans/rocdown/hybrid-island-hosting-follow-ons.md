@@ -282,7 +282,7 @@ ROCCI_SITE=/abs/path/to/site docker compose -f docker/compose.yml build
 After knowledge edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Do not log a phase complete until CI and Knowledge workflows succeed on

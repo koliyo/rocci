@@ -123,6 +123,10 @@ pub fn plan_standalone_with_progress(
             check_assets: true,
             pages: pages.clone(),
             default_route,
+            lower: rocci_template::LowerOptions {
+                html_type: "Html.Node".to_string(),
+                ..rocci_template::LowerOptions::default()
+            },
             ..CompileOptions::default()
         };
         progress.step(format!("rocdown: compiling {}", input.display()));

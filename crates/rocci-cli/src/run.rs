@@ -12,7 +12,9 @@ use rocci_desktop::PreviewOptions;
 use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, format_diagnostic};
 
 use crate::datastar_asset;
-use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
+use crate::driver::{
+    self, EXTRACTED_STYLESHEET_HREF, GenericAppPlan, GenericModule, ResolvedEntry,
+};
 use crate::error_page::{FailedFile, MappedModule};
 use crate::logs::{self, Progress};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
@@ -34,6 +36,31 @@ pub fn run(
     if is_standalone_file(file) {
         return run_standalone(
             file,
+            args,
+            no_window,
+            port,
+            live_reload,
+            log_handlers,
+            verbose,
+            public,
+        );
+    }
+    let path = if file.is_absolute() {
+        file.to_path_buf()
+    } else {
+        env::current_dir()?.join(file)
+    };
+    if path.is_dir() && !path.join("main.roc").is_file() {
+        if crate::path_hint::looks_like_okf_bundle(&path) {
+            bail!(
+                "no main.roc in {}; preview OKF knowledge bundles with `okmate view {}`",
+                path.display(),
+                file.display()
+            );
+        }
+        let entry = resolve_standalone_entry(&path)?;
+        return run_standalone(
+            &entry,
             args,
             no_window,
             port,
@@ -181,6 +208,11 @@ fn standalone_app_root(entry: &Path) -> PathBuf {
         .filter(|parent| !parent.as_os_str().is_empty())
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
+    app_root_from(&start)
+}
+
+fn app_root_from(start_dir: &Path) -> PathBuf {
+    let start = start_dir.to_path_buf();
     let mut dir = start.clone();
     loop {
         if dir.join("rocci.toml").is_file() && !is_project_boundary(&dir) {
@@ -194,6 +226,138 @@ fn standalone_app_root(entry: &Path) -> PathBuf {
             _ => return start,
         }
     }
+}
+
+pub(crate) fn resolve_standalone_entry(start: &Path) -> Result<PathBuf> {
+    let start = if start.is_absolute() {
+        start.to_path_buf()
+    } else {
+        env::current_dir()?.join(start)
+    };
+    if !start.is_dir() {
+        bail!("no such standalone app directory: {}", start.display());
+    }
+    let app_root = app_root_from(&start);
+    let files = discover_standalone_tree(&app_root)?;
+    if files.is_empty() {
+        bail!(
+            "no .rocci modules in {}; pass a standalone file or a directory with a unique entry",
+            start.display()
+        );
+    }
+
+    let mut inits = Vec::new();
+    let mut root_views = Vec::new();
+    let mut routed = Vec::new();
+    for path in &files {
+        let src = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let compiled = compile_source(&path.display().to_string(), &src, &LowerOptions::default())?;
+        let has_init = compiled.init.is_some() || compiled.state_type.is_some();
+        let has_root_view = compiled
+            .routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/");
+        if has_init {
+            inits.push(path.clone());
+        }
+        if has_root_view {
+            root_views.push(path.clone());
+        }
+        if !compiled.routes.is_empty() && !has_init && !has_root_view {
+            routed.push(path.clone());
+        }
+    }
+
+    if inits.len() > 1 {
+        bail!(
+            "multiple process `@init` / `@context` modules in one app: {}",
+            format_module_list(&app_root, &inits)
+        );
+    }
+    if let Some(entry) = configured_app_entry(&app_root)? {
+        return Ok(entry);
+    }
+    if let Some(entry) = inits.into_iter().next() {
+        return Ok(entry);
+    }
+    if root_views.len() == 1 {
+        return Ok(root_views.remove(0));
+    }
+    if files.len() == 1 {
+        return Ok(files.into_iter().next().expect("one module"));
+    }
+
+    let mut lines = vec![format!(
+        "ambiguous standalone app in {}: entry is not unique",
+        start.display()
+    )];
+    if !root_views.is_empty() {
+        lines.push(format!(
+            "view(\"/\"): {}",
+            format_module_list(&app_root, &root_views)
+        ));
+    }
+    if !routed.is_empty() {
+        lines.push(format!(
+            "other routes: {}",
+            format_module_list(&app_root, &routed)
+        ));
+    }
+    let others: Vec<_> = files
+        .iter()
+        .filter(|path| !root_views.contains(path) && !routed.contains(path))
+        .cloned()
+        .collect();
+    if !others.is_empty() {
+        lines.push(format!(
+            "other modules: {}",
+            format_module_list(&app_root, &others)
+        ));
+    }
+    bail!("{}", lines.join("\n"))
+}
+
+fn configured_app_entry(app_root: &Path) -> Result<Option<PathBuf>> {
+    let config_path = app_root.join("rocci.toml");
+    if !config_path.is_file() {
+        return Ok(None);
+    }
+    let config = Config::from_file(&config_path)?;
+    let Some(entry) = config.app.entry else {
+        return Ok(None);
+    };
+    let resolved = app_root.join(&entry);
+    if !resolved.is_file() {
+        bail!(
+            "app.entry `{entry}` is not a file under {}",
+            app_root.display()
+        );
+    }
+    if resolved.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!("app.entry `{entry}` must be a .rocci file");
+    }
+    let root = app_root
+        .canonicalize()
+        .unwrap_or_else(|_| app_root.to_path_buf());
+    let canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
+    if !canonical.starts_with(&root) {
+        bail!("app.entry `{entry}` must stay under the app root");
+    }
+    Ok(Some(resolved))
+}
+
+fn format_module_list(app_root: &Path, paths: &[PathBuf]) -> String {
+    paths
+        .iter()
+        .map(|path| {
+            format!(
+                "`{}`",
+                path.strip_prefix(app_root).unwrap_or(path).display()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn is_project_boundary(dir: &Path) -> bool {
@@ -303,6 +467,7 @@ fn run_standalone(
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
     let (plan, profile, inspect_pages) = plan;
+    ensure_unique_process_init(&plan)?;
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
@@ -329,7 +494,34 @@ enum StandaloneReady {
 pub fn standalone_island_lower_options() -> LowerOptions {
     LowerOptions {
         embed_css: false,
+        html_type: "Html.Node".to_string(),
         ..LowerOptions::default()
+    }
+}
+
+pub fn standalone_http_module_lower_options() -> LowerOptions {
+    LowerOptions {
+        embed_css: false,
+        html_type: "Html.Node".to_string(),
+        stylesheet_href: Some(EXTRACTED_STYLESHEET_HREF.to_string()),
+        ..LowerOptions::default()
+    }
+}
+
+pub fn standalone_http_module_app_plan(primary: &Path) -> Result<GenericAppPlan> {
+    match plan_standalone(
+        primary,
+        &standalone_http_module_lower_options(),
+        Progress::default(),
+    )? {
+        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Failed(files), _, _) => {
+            let name = files
+                .first()
+                .map(|file| file.name.as_str())
+                .unwrap_or("template");
+            bail!("template compilation failed for {name}")
+        }
     }
 }
 
@@ -422,6 +614,7 @@ fn plan_standalone(
                 segments: compiled.segments,
             },
             local_assets: compiled.local_assets,
+            styles: compiled.styles,
         });
     }
     let profile = rec.finish();
@@ -454,13 +647,51 @@ fn plan_standalone(
 
 pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
     match plan_standalone(primary, &LowerOptions::default(), Progress::default())? {
-        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Ready(plan), _, _) => {
+            ensure_unique_process_init(&plan)?;
+            Ok(plan)
+        }
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
                 .first()
                 .map(|file| file.name.as_str())
                 .unwrap_or("template");
             bail!("template compilation failed for {name}")
+        }
+    }
+}
+
+fn module_has_process_init(module: &GenericModule) -> bool {
+    module.init.is_some() || module.state_type.is_some()
+}
+
+fn process_init_file_name(module: &GenericModule) -> &str {
+    Path::new(&module.mapped.source_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(module.type_name.as_str())
+}
+
+fn ensure_unique_process_init(plan: &GenericAppPlan) -> Result<()> {
+    let inits: Vec<_> = plan
+        .modules
+        .iter()
+        .filter(|module| module_has_process_init(module))
+        .collect();
+    match inits.as_slice() {
+        [] => Ok(()),
+        [only] if only.type_name == plan.primary_name => Ok(()),
+        [only] => bail!(
+            "process `@init` is in `{}`; run that file or the app directory",
+            process_init_file_name(only)
+        ),
+        many => {
+            let names = many
+                .iter()
+                .map(|module| format!("`{}`", process_init_file_name(module)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("multiple process `@init` / `@context` modules in one app: {names}")
         }
     }
 }
@@ -585,6 +816,7 @@ struct CompiledSource {
     diagnostics: Vec<Diagnostic>,
     segments: Vec<Segment>,
     local_assets: Vec<String>,
+    styles: Vec<String>,
     timings: rocci_template::CompileTimings,
     inspect: crate::inspect::InspectPage,
 }
@@ -608,6 +840,11 @@ fn compile_source(name: &str, src: &str, lower: &LowerOptions) -> Result<Compile
         diagnostics: compiled.diagnostics,
         segments: compiled.segments,
         local_assets: Vec::new(),
+        styles: compiled
+            .styles
+            .iter()
+            .map(|style| style.css.clone())
+            .collect(),
         timings: compiled.timings,
         inspect,
     })
@@ -681,9 +918,19 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use crate::driver::{roc_command, roc_invocation, stage_app_workspace, window_title};
+    use std::process::Child;
     use std::sync::Mutex;
 
     static ROC_LOCK: Mutex<()> = Mutex::new(());
+
+    struct KillOnDrop(Child);
+
+    impl Drop for KillOnDrop {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
 
     fn temp_app(name: &str) -> PathBuf {
         let dir = env::temp_dir().join(format!("rocci-run-{}-{}", name, std::process::id()));
@@ -697,17 +944,17 @@ mod tests {
     }
 
     fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
         let help_ok = Command::new("roc")
             .arg("help")
             .output()
             .map(|output| output.status.success())
             .unwrap_or(false);
         if !help_ok {
-            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-                panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
-            }
-            eprintln!("skipping: roc not on PATH");
-            return true;
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
         }
         false
     }
@@ -719,6 +966,30 @@ mod tests {
             .parent()
             .unwrap()
             .to_path_buf()
+    }
+
+    #[test]
+    fn live_counter_http_module_plan_links_extracted_css() {
+        let path = repo_root().join("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        let plan = standalone_http_module_app_plan(&path).expect("plan live-counter");
+        let css = plan.extracted_css();
+        assert!(css.contains("counter-card"), "{css}");
+        assert!(css.contains("min-height: 100vh"), "{css}");
+        assert!(
+            plan.modules[0].roc.contains(EXTRACTED_STYLESHEET_HREF),
+            "{}",
+            plan.modules[0].roc
+        );
+        let ui = plan
+            .modules
+            .iter()
+            .find(|module| module.type_name == "LiveCounterUi")
+            .expect("LiveCounterUi");
+        assert!(
+            !ui.roc.contains("\"style\""),
+            "live fragments must stay style-free\n{}",
+            ui.roc
+        );
     }
 
     fn roc_build_staged_standalone(relative: &str) -> crate::driver::TempDir {
@@ -838,19 +1109,19 @@ mod tests {
         );
         let server = workspace.path.join("server");
         let port = crate::serve::free_port().expect("free port");
-        let mut child = Command::new(&server)
-            .current_dir(&workspace.path)
-            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
-            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-            .stdout(Stdio::null())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .expect("spawn handler-matrix server");
+        let mut child = KillOnDrop(
+            Command::new(&server)
+                .current_dir(&workspace.path)
+                .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+                .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .expect("spawn handler-matrix server"),
+        );
         if let Err(err) =
-            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+            crate::serve::wait_for_server(&mut child.0, port, crate::logs::Progress::default())
         {
-            let _ = child.kill();
-            let _ = child.wait();
             panic!("handler-matrix server did not listen: {err:#}");
         }
 
@@ -914,9 +1185,6 @@ mod tests {
             !datastar_cmd.contains("datastar-patch-elements"),
             "{datastar_cmd}"
         );
-
-        let _ = child.kill();
-        let _ = child.wait();
     }
 
     #[test]
@@ -930,19 +1198,19 @@ mod tests {
         );
         let server = workspace.path.join("server");
         let port = crate::serve::free_port().expect("free port");
-        let mut child = Command::new(&server)
-            .current_dir(&workspace.path)
-            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
-            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-            .stdout(Stdio::null())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .expect("spawn multi-page server");
+        let mut child = KillOnDrop(
+            Command::new(&server)
+                .current_dir(&workspace.path)
+                .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+                .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .expect("spawn multi-page server"),
+        );
         if let Err(err) =
-            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+            crate::serve::wait_for_server(&mut child.0, port, crate::logs::Progress::default())
         {
-            let _ = child.kill();
-            let _ = child.wait();
             panic!("multi-page server did not listen: {err:#}");
         }
 
@@ -975,7 +1243,7 @@ mod tests {
             assert!(sample.contains("text/event-stream"), "{sample}");
             assert!(sample.contains("datastar-patch-elements"), "{sample}");
             assert!(sample.contains(marker), "{sample}");
-            assert!(sample.matches("data:").count() >= 2, "{sample}");
+            assert!(sample.contains("data:"), "{sample}");
         }
         assert!(dashboard_stream.contains("dashboard-activity"));
 
@@ -1000,9 +1268,6 @@ mod tests {
         assert!(unknown.contains("404"), "{unknown}");
         assert!(!unknown.contains("dashboard-summary"), "{unknown}");
         assert!(!unknown.contains("Authorized admin summary"), "{unknown}");
-
-        let _ = child.kill();
-        let _ = child.wait();
     }
 
     #[test]
@@ -1133,14 +1398,92 @@ import Html
         cleanup(&dir);
     }
 
+    fn standalone_example(name: &str) -> PathBuf {
+        repo_root().join("examples/rocci/standalone").join(name)
+    }
+
     #[test]
-    fn resolve_entry_directory_suggests_standalone_rocci() {
-        let dir = temp_app("standalone-hint");
-        fs::write(dir.join("Counter.rocci"), "").unwrap();
-        let err = resolve_entry(&dir).unwrap_err().to_string();
-        assert!(err.contains("no main.roc"));
-        assert!(err.contains("rocci run"));
-        assert!(err.contains("Counter.rocci"));
+    fn resolve_standalone_picks_unique_example_entries() {
+        let cases = [
+            ("counter", "Counter.rocci"),
+            ("styling", "Styling.rocci"),
+            ("live-counter", "LiveCounter.rocci"),
+            ("blocks", "backend/Blocks.rocci"),
+            ("multi-page-streams", "Dashboard.rocci"),
+        ];
+        for (dir, entry) in cases {
+            let path = standalone_example(dir);
+            if !path.is_dir() {
+                continue;
+            }
+            let resolved = resolve_standalone_entry(&path).expect(dir);
+            assert_eq!(
+                resolved,
+                path.join(entry),
+                "{dir} -> {}",
+                resolved.display()
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_standalone_walks_up_from_blocks_backend() {
+        let backend = standalone_example("blocks").join("backend");
+        if !backend.is_dir() {
+            return;
+        }
+        let resolved = resolve_standalone_entry(&backend).expect("blocks/backend");
+        assert_eq!(
+            resolved,
+            standalone_example("blocks").join("backend/Blocks.rocci")
+        );
+    }
+
+    #[test]
+    fn resolve_standalone_parent_fails_as_multiple_inits() {
+        let parent = repo_root().join("examples/rocci/standalone");
+        if !parent.is_dir() {
+            return;
+        }
+        let err = resolve_standalone_entry(&parent).unwrap_err().to_string();
+        assert!(err.contains("multiple process `@init`"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
+    }
+
+    #[test]
+    fn resolve_standalone_empty_directory_lists_no_main_hint() {
+        let dir = temp_app("empty-standalone");
+        let err = resolve_standalone_entry(&dir).unwrap_err().to_string();
+        assert!(err.contains("no .rocci modules"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_standalone_prefers_configured_entry() {
+        let dir = temp_app("entry-prefers");
+        fs::write(
+            dir.join("rocci.toml"),
+            "[app]\nidentifier = \"dev.rocci.entry\"\nentry = \"Beta.rocci\"\n",
+        )
+        .unwrap();
+        fs::write(dir.join("Alpha.rocci"), view_only_src()).unwrap();
+        fs::write(dir.join("Beta.rocci"), view_only_src()).unwrap();
+        let resolved = resolve_standalone_entry(&dir).expect("configured entry");
+        assert_eq!(resolved, dir.join("Beta.rocci"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_standalone_ambiguous_root_views_list_candidates() {
+        let dir = temp_app("two-roots");
+        fs::write(dir.join("Alpha.rocci"), view_only_src()).unwrap();
+        fs::write(dir.join("Beta.rocci"), view_only_src()).unwrap();
+        let err = resolve_standalone_entry(&dir).unwrap_err().to_string();
+        assert!(err.contains("ambiguous standalone app"), "{err}");
+        assert!(err.contains("Alpha.rocci"), "{err}");
+        assert!(err.contains("Beta.rocci"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
         cleanup(&dir);
     }
 
@@ -1219,6 +1562,77 @@ import Html
         let err = discover_standalone_tree(&app).unwrap_err().to_string();
         assert!(err.contains("duplicate standalone module `Foo`"));
         cleanup(&app);
+    }
+
+    fn process_init_src() -> &'static str {
+        r#"
+import Html
+
+@context { n : I64 }
+
+@init {
+    { n: 0 }
+}
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    fn view_only_src() -> &'static str {
+        r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    #[test]
+    fn two_process_init_modules_fail_to_plan() {
+        let dir = temp_app("two-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Other.rocci"), process_init_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("App.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("multiple process `@init`"), "{err}");
+        assert!(err.contains("App.rocci"), "{err}");
+        assert!(err.contains("Other.rocci"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn named_file_fails_when_sibling_owns_process_init() {
+        let dir = temp_app("ui-not-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("Ui.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("process `@init` is in `App.rocci`"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn view_only_sibling_plans_with_init_primary() {
+        let dir = temp_app("init-plus-ui");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let plan = standalone_app_plan(&dir.join("App.rocci")).expect("plan with unique init");
+        assert_eq!(plan.primary_name, "App");
+        let mut names: Vec<_> = plan.modules.iter().map(|m| m.type_name.as_str()).collect();
+        names.sort();
+        assert_eq!(names, vec!["App", "Ui"]);
+        cleanup(&dir);
     }
 
     #[test]

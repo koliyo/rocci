@@ -51,7 +51,7 @@ Run the narrowest owning tests:
 
 - Cargo: crates that link the crate (`rocci-cli` for `ring`/`rustls`; `rocci-desktop` / Linux for gtk).
 - VS Code: `uv run --no-dev rocci-ops ci editors` or the `editors` job commands.
-- Knowledge-only edits: `okmate check knowledge --profile rocci --format terminal`.
+- Knowledge-only edits: `okmate check knowledge --profile base --format terminal`.
 
 GitHub marks alerts fixed only after the **default branch** contains the patched lockfile. Local `gh` still shows `open` until that lands.
 

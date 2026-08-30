@@ -63,13 +63,16 @@
   `Action: 'kill'`) before launching subsequent runs.
 - Run `cargo fmt --all -- --check` for Rust changes.
 - Run `cargo test --workspace` for cross-cutting changes or before handing off a
-  change that affects multiple crates. Some end-to-end tests use Roc only when
-  it is available; use `ROCCI_REQUIRE_ROC=1` only where Roc is required.
-- Default test suites (`cargo test`, `cargo test -p <pkg>`, `cargo test --workspace`)
-  are structured for sub-second execution (<2s).
+  change that affects multiple crates. That command is the **offline** suite:
+  it does not compile generated Roc or spawn generated servers. Set
+  `ROCCI_REQUIRE_ROC=1` only for the hosted/on-demand Roc lane
+  (`cargo test -p rocci-cli -p rocci-rocdown -p rocci-rocdown-cli`).
+- Default crate binaries (`cargo test -p rocci-template`, parser and lowering)
+  stay in the documented per-binary budget. Workspace wall time is
+  Cargo-dominated and is not itself the `<2s` claim.
 - Intensive stress tests, exhaustive property fuzzing, and latency benchmarks
   are gated behind `#[ignore]`. Run them on demand:
-  - Deep invariant fuzzing: `cargo test -p rocci-lsp --test fuzz_invariants -- --nocapture --ignored`
+  - Default-off LSP stress plus exhaustive fuzz: `cargo test -p rocci-lsp --test fuzz_invariants -- --ignored`
   - Release latency benchmarks: `cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored`
 - For syntax changes, inspect the corresponding `test/AllSyntax.rocci`
   fixture with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci`
@@ -78,10 +81,26 @@
 - For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run
-  `okmate check knowledge --profile rocci` (or `cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile rocci` from a sibling checkout) and
+  `okmate check knowledge --profile base` (or `cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile base` from a sibling checkout) and
   report lifecycle or provenance warnings separately from errors.
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.
+
+## Rolling `dev` tag
+
+`uv run --no-dev rocci-ops release dev` force-moves the rolling prerelease
+tag after hosted CI on the target SHA. A later `git pull` may report
+`! [rejected] dev -> dev (would clobber existing tag)`. That is expected.
+Configure this clone to force-update **only** `dev`:
+
+```sh
+git config --local --add remote.origin.fetch '+refs/tags/dev:refs/tags/dev'
+```
+
+Do not force-fetch all tags; `v*` releases stay immutable. One-shot:
+`git fetch origin tag dev --force`. Until `dev` exists, a bare
+`git fetch origin` fails on that refspec; `rocci-ops release` fetches the
+target branch only.
 
 ## Use specialized workflows when available
 

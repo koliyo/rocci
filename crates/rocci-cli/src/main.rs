@@ -56,6 +56,12 @@ enum Commands {
         /// Roc backend optimization mode (defaults to Roc's speed backend).
         #[arg(long, value_enum)]
         opt: Option<rocci_cli::native_target::RocOpt>,
+        /// Experimental WASI HTTP component compiled from the input `.rocci`
+        /// entry (sibling `.rocci` / `.roc` in the standalone tree included;
+        /// not `--host wasm` apply). Writes a `wasi:http/service` artifact
+        /// for `wasmtime serve`; `rocci run` stays native 0.16.
+        #[arg(long)]
+        http_module: bool,
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
@@ -186,8 +192,32 @@ fn try_main() -> Result<()> {
             target,
             verbose,
             opt,
+            http_module,
         } => {
-            if release {
+            if http_module {
+                if release {
+                    bail!("`--http-module` is not a musl/process `--release` package");
+                }
+                if target.is_some() || opt.is_some() {
+                    bail!(
+                        "`--http-module` does not take `--target` or `--opt` (those are process binaries; `--host wasm` stays apply)"
+                    );
+                }
+                let _ = verbose;
+                ensure_rocci_file(&input, "build")?;
+                let dest = output.unwrap_or_else(|| PathBuf::from("http-module.wasm"));
+                write_http_module(&input, &dest)?;
+                println!("{}", style::success_text(&dest.display().to_string()));
+                eprintln!(
+                    "{}",
+                    style::note(&format!(
+                        "WASI 0.3 component; wasmtime serve -Sp3 -Scli --dir={}::/assets {}",
+                        rocci_cli::http_module::assets_dir(&dest).display(),
+                        dest.display()
+                    ))
+                );
+                Ok(())
+            } else if release {
                 let report = bundle::package_server_with_opt(
                     &input,
                     output.as_deref(),
@@ -269,6 +299,15 @@ fn try_main() -> Result<()> {
             DatastarCmd::Pin { version, app } => datastar_asset::pin_app(&app, &version),
         },
     }
+}
+
+fn write_http_module(input: &Path, dest: &Path) -> Result<()> {
+    rocci_cli::http_module::build_http_module(input, dest)
+}
+
+#[cfg(test)]
+fn is_wasi_http_component(bytes: &[u8]) -> bool {
+    bytes.len() >= 8 && bytes.starts_with(b"\0asm") && bytes[4] == 0x0d
 }
 
 fn ensure_rocci_file(input: &Path, command: &str) -> Result<()> {
@@ -397,7 +436,7 @@ fn validate(path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use clap::Parser;
+    use clap::{CommandFactory, Parser};
 
     fn port_of(cli: &Cli) -> serve::PortArg {
         match &cli.command {
@@ -472,7 +511,9 @@ mod tests {
                 target,
                 verbose,
                 opt,
+                http_module,
             } => {
+                assert!(!http_module);
                 assert_eq!(input, PathBuf::from("examples/rocci/custom/datastar"));
                 assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
                 assert!(release);
@@ -752,5 +793,79 @@ mod tests {
         fs::write(&rocci_file, "Hello := []").unwrap();
         assert!(ensure_rocci_file(&rocci_file, "build").is_ok());
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn build_http_module_is_distinct_from_host_wasm() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "build",
+            "--http-module",
+            "App.rocci",
+            "-o",
+            "out.wasm",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Build {
+                http_module,
+                output,
+                ..
+            } => {
+                assert!(http_module);
+                assert_eq!(output, Some(PathBuf::from("out.wasm")));
+            }
+            _ => panic!("expected build --http-module"),
+        }
+        let help = Cli::command()
+            .find_subcommand("build")
+            .expect("build subcommand")
+            .clone()
+            .render_long_help()
+            .to_string();
+        assert!(help.contains("--http-module"), "{help}");
+        assert!(help.contains("not `--host wasm`"), "{help}");
+        assert!(help.contains("compiled from the input"), "{help}");
+        assert!(
+            help.contains("wasmtime serve") || help.contains("wasi:http/service"),
+            "{help}"
+        );
+        assert!(!help.contains("not a WASI component"), "{help}");
+    }
+
+    #[test]
+    #[ignore = "ROCCI_REQUIRE_ROC=1: compile two .rocci inputs to different GET / bodies"]
+    fn http_module_two_rocci_inputs_differ() {
+        if std::env::var("ROCCI_REQUIRE_ROC").as_deref() != Ok("1") {
+            panic!("set ROCCI_REQUIRE_ROC=1 to run this ignored test");
+        }
+        let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        let dir = std::env::temp_dir().join(format!(
+            "rocci-http-module-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let alpha = dir.join("alpha.wasm");
+        let beta = dir.join("beta.wasm");
+        write_http_module(&fixtures.join("http-alpha/HttpAlpha.rocci"), &alpha).unwrap();
+        write_http_module(&fixtures.join("http-beta/HttpBeta.rocci"), &beta).unwrap();
+        let alpha_bytes = fs::read(&alpha).unwrap();
+        let beta_bytes = fs::read(&beta).unwrap();
+        assert!(is_wasi_http_component(&alpha_bytes), "alpha component");
+        assert!(is_wasi_http_component(&beta_bytes), "beta component");
+        assert_ne!(alpha_bytes, beta_bytes);
+        assert!(
+            contains_bytes(&alpha_bytes, b"http-alpha"),
+            "alpha GET / body"
+        );
+        assert!(contains_bytes(&beta_bytes, b"http-beta"), "beta GET / body");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+        haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
     }
 }

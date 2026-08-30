@@ -11,6 +11,8 @@ ingress:
     service: http://127.0.0.1:8081
   - hostname: datastar-example-staging.rocci.dev
     service: http://127.0.0.1:8081
+  - hostname: snake-example-staging.rocci.dev
+    service: http://127.0.0.1:8081
   - hostname: "*.examples.staging.rocci.dev"
     service: http://127.0.0.1:8081
   - hostname: rocci.dev

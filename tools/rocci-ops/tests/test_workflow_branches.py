@@ -24,6 +24,29 @@ def test_ci_and_knowledge_push_include_production() -> None:
 def test_release_push_includes_version_and_dev_tags() -> None:
     text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
     assert 'tags: ["v*", "dev"]' in text
+    assert "rocci-ops archive version" in text
+    assert "rocci-ops archive package" in text
+    assert "rocci-ops archive wait-ci" in text
+    assert "rocci-ops archive params" in text
+    assert "rocci-ops archive publish" in text
+
+
+def test_workflows_do_not_call_hosted_release_helpers_as_release() -> None:
+    for path in sorted(WORKFLOWS.glob("*.yml")):
+        text = path.read_text(encoding="utf-8")
+        assert "rocci-ops release version" not in text
+        assert "rocci-ops release package" not in text
+        assert "rocci-ops release wait-ci" not in text
+        assert "rocci-ops release params" not in text
+        assert "rocci-ops release publish" not in text
+
+
+def test_cut_release_is_workflow_dispatch_only() -> None:
+    text = (WORKFLOWS / "cut-release.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in text
+    assert "environment:" not in text
+    assert "rocci-ops release" in text
+    assert "HOMEBREW" not in text
 
 
 def test_site_push_is_staging_and_production_only() -> None:
