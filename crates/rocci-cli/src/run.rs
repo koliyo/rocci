@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
     time::Instant,
 };
 
@@ -922,6 +922,15 @@ mod tests {
 
     static ROC_LOCK: Mutex<()> = Mutex::new(());
 
+    struct KillOnDrop(Child);
+
+    impl Drop for KillOnDrop {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+
     fn temp_app(name: &str) -> PathBuf {
         let dir = env::temp_dir().join(format!("rocci-run-{}-{}", name, std::process::id()));
         let _ = fs::remove_dir_all(&dir);
@@ -1099,19 +1108,19 @@ mod tests {
         );
         let server = workspace.path.join("server");
         let port = crate::serve::free_port().expect("free port");
-        let mut child = Command::new(&server)
-            .current_dir(&workspace.path)
-            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
-            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-            .stdout(Stdio::null())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .expect("spawn handler-matrix server");
+        let mut child = KillOnDrop(
+            Command::new(&server)
+                .current_dir(&workspace.path)
+                .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+                .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .expect("spawn handler-matrix server"),
+        );
         if let Err(err) =
-            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+            crate::serve::wait_for_server(&mut child.0, port, crate::logs::Progress::default())
         {
-            let _ = child.kill();
-            let _ = child.wait();
             panic!("handler-matrix server did not listen: {err:#}");
         }
 
@@ -1175,9 +1184,6 @@ mod tests {
             !datastar_cmd.contains("datastar-patch-elements"),
             "{datastar_cmd}"
         );
-
-        let _ = child.kill();
-        let _ = child.wait();
     }
 
     #[test]
@@ -1191,19 +1197,19 @@ mod tests {
         );
         let server = workspace.path.join("server");
         let port = crate::serve::free_port().expect("free port");
-        let mut child = Command::new(&server)
-            .current_dir(&workspace.path)
-            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
-            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
-            .stdout(Stdio::null())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .expect("spawn multi-page server");
+        let mut child = KillOnDrop(
+            Command::new(&server)
+                .current_dir(&workspace.path)
+                .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+                .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .expect("spawn multi-page server"),
+        );
         if let Err(err) =
-            crate::serve::wait_for_server(&mut child, port, crate::logs::Progress::default())
+            crate::serve::wait_for_server(&mut child.0, port, crate::logs::Progress::default())
         {
-            let _ = child.kill();
-            let _ = child.wait();
             panic!("multi-page server did not listen: {err:#}");
         }
 
@@ -1261,9 +1267,6 @@ mod tests {
         assert!(unknown.contains("404"), "{unknown}");
         assert!(!unknown.contains("dashboard-summary"), "{unknown}");
         assert!(!unknown.contains("Authorized admin summary"), "{unknown}");
-
-        let _ = child.kill();
-        let _ = child.wait();
     }
 
     #[test]

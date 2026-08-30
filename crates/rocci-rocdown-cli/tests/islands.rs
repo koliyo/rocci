@@ -73,6 +73,10 @@ impl Drop for KillOnDrop {
     }
 }
 
+fn spawn_kill_on_drop(mut command: Command) -> KillOnDrop {
+    KillOnDrop(command.spawn().unwrap())
+}
+
 fn http_exchange(port: u16, request: &str) -> String {
     let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect");
     stream
@@ -181,21 +185,22 @@ fn hybrid_cdn_html_and_island_post_morph() {
     let _ = fs::remove_dir_all(&output);
 
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = Command::new(&bin)
-        .args([
-            "serve-islands",
-            root.to_str().unwrap(),
-            "--no-window",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(repo_root())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    wait_for_health(port, &mut child);
-    let child = KillOnDrop(child);
+    let mut child = spawn_kill_on_drop({
+        let mut command = Command::new(&bin);
+        command
+            .args([
+                "serve-islands",
+                root.to_str().unwrap(),
+                "--no-window",
+                "--port",
+                &port.to_string(),
+            ])
+            .current_dir(repo_root())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        command
+    });
+    wait_for_health(port, &mut child.0);
 
     let response = http_exchange(
         port,
@@ -251,21 +256,22 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
     let root = repo_root().join("examples/rocdown/hybrid");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = Command::new(&bin)
-        .args([
-            "run",
-            root.to_str().unwrap(),
-            "--no-window",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(repo_root())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    wait_for_preview(port, &mut child, "Show tip");
-    let child = KillOnDrop(child);
+    let mut child = spawn_kill_on_drop({
+        let mut command = Command::new(&bin);
+        command
+            .args([
+                "run",
+                root.to_str().unwrap(),
+                "--no-window",
+                "--port",
+                &port.to_string(),
+            ])
+            .current_dir(repo_root())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        command
+    });
+    wait_for_preview(port, &mut child.0, "Show tip");
 
     let home = http_exchange(
         port,
@@ -329,21 +335,22 @@ fn docs_run_previews_the_site() {
     let root = repo_root().join("docs");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = Command::new(&bin)
-        .args([
-            "run",
-            root.to_str().unwrap(),
-            "--no-window",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(repo_root())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    wait_for_preview(port, &mut child, "Maturity");
-    let child = KillOnDrop(child);
+    let mut child = spawn_kill_on_drop({
+        let mut command = Command::new(&bin);
+        command
+            .args([
+                "run",
+                root.to_str().unwrap(),
+                "--no-window",
+                "--port",
+                &port.to_string(),
+            ])
+            .current_dir(repo_root())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        command
+    });
+    wait_for_preview(port, &mut child.0, "Maturity");
 
     let home = http_exchange(
         port,
@@ -374,21 +381,22 @@ fn counter_run_proxies_actions_on_one_origin() {
     let root = repo_root().join("examples/rocdown/counter");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = Command::new(&bin)
-        .args([
-            "run",
-            root.to_str().unwrap(),
-            "--no-window",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(repo_root())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    wait_for_preview(port, &mut child, "Shared count");
-    let child = KillOnDrop(child);
+    let mut child = spawn_kill_on_drop({
+        let mut command = Command::new(&bin);
+        command
+            .args([
+                "run",
+                root.to_str().unwrap(),
+                "--no-window",
+                "--port",
+                &port.to_string(),
+            ])
+            .current_dir(repo_root())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        command
+    });
+    wait_for_preview(port, &mut child.0, "Shared count");
 
     let home = http_exchange(
         port,
@@ -446,21 +454,22 @@ fn all_syntax_run_serves_the_kitchen_sink() {
     let fixture = repo_root().join("test/AllSyntax.rocdown");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = Command::new(&bin)
-        .args([
-            "run",
-            fixture.to_str().unwrap(),
-            "--no-window",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(repo_root())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap();
-    wait_for_preview_or_roc_error(port, &mut child, "Don't do this.");
-    let child = KillOnDrop(child);
+    let mut child = spawn_kill_on_drop({
+        let mut command = Command::new(&bin);
+        command
+            .args([
+                "run",
+                fixture.to_str().unwrap(),
+                "--no-window",
+                "--port",
+                &port.to_string(),
+            ])
+            .current_dir(repo_root())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+        command
+    });
+    wait_for_preview_or_roc_error(port, &mut child.0, "Don't do this.");
 
     let home = http_exchange(
         port,

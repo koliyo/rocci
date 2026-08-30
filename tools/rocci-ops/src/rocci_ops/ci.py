@@ -14,6 +14,7 @@ JOB_NAMES = (
     "fixtures-and-docs",
     "editors",
     "knowledge",
+    "roc",
 )
 
 
@@ -22,6 +23,7 @@ class Step:
     argv: tuple[str, ...]
     stdout_path: str | None = None
     cwd: str | None = None
+    extra_env: tuple[tuple[str, str], ...] = ()
 
 
 def okmate_dir(root: Path) -> Path:
@@ -190,15 +192,35 @@ def steps_for(job: str, root: Path) -> list[Step]:
                 )
             ),
         ]
+    if job == "roc":
+        return [
+            Step(("sudo", "./docker/install-roc.sh")),
+            Step(
+                (
+                    "cargo",
+                    "test",
+                    "-p",
+                    "rocci-cli",
+                    "-p",
+                    "rocci-rocdown",
+                    "-p",
+                    "rocci-rocdown-cli",
+                ),
+                extra_env=(("ROCCI_REQUIRE_ROC", "1"),),
+            ),
+        ]
     raise ValueError(f"unknown job: {job}")
 
 
 def run_step(step: Step, cwd: Path) -> int:
     stdout_file = None
     try:
+        env = os.environ.copy()
+        env.update(step.extra_env)
         kwargs: dict = {
             "cwd": cwd / step.cwd if step.cwd else cwd,
             "check": False,
+            "env": env,
         }
         if step.stdout_path:
             path = cwd / step.stdout_path

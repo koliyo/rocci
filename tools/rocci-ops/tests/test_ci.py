@@ -9,6 +9,7 @@ def test_list_jobs_are_stable() -> None:
         "fixtures-and-docs",
         "editors",
         "knowledge",
+        "roc",
     )
 
 
@@ -61,3 +62,15 @@ def test_editors_job_uses_check_zed() -> None:
     assert pytest_steps
     assert pytest_steps[0].argv[:3] == ("uv", "run", "--group")
     assert pytest_steps[0].cwd == "tools/rocci-ops"
+
+
+def test_roc_job_installs_nightly_and_requires_roc() -> None:
+    steps = steps_for("roc", repo_root())
+    argv_lists = [s.argv for s in steps]
+    assert any("install-roc.sh" in argv[-1] for argv in argv_lists)
+    assert any(s.extra_env == (("ROCCI_REQUIRE_ROC", "1"),) for s in steps)
+    assert any(
+        argv[:3] == ("cargo", "test", "-p") and "rocci-cli" in argv and "rocci-rocdown" in argv
+        for argv in argv_lists
+    )
+    assert all("--workspace" not in argv for argv in argv_lists)
