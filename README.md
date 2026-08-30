@@ -184,11 +184,21 @@ started. After a signed-out staging smoke,
 `uv run rocci-ops promote production` pushes `origin/staging` to
 `origin/production` (creates the branch on first use). That push runs hosted CI
 and Knowledge, then the site package/deploy job. Do not promote production
-until staging has been smoked. To publish a GitHub release from `origin/main`,
-run `uv run rocci-ops promote tag vX.Y.Z` (or `--from BRANCH`). That waits for
-hosted CI on the target SHA, then pushes the tag. The tag push runs CI,
-Knowledge, and `release.yml`. `uv run rocci-ops promote tag dev` force-moves
-the rolling `dev` prerelease tag and republishes that GitHub release.
+until staging has been smoked.
+
+To publish a GitHub release from `origin/main`, run
+`uv run --no-dev rocci-ops release patch` (or `minor`, `major`, or `vX.Y.Z`,
+optionally `--from BRANCH`). That is the only operator path that creates an
+immutable `v*` tag. It writes the workspace version to `Cargo.toml` and
+`Cargo.lock`, pushes that commit to the target branch, waits for hosted lint
+and Test Workspace checks, then pushes the tag so `release.yml` can package
+archives. `--dry-run` prints the resolved tag and whether those files already
+match. Pass `--force` only to move an existing `v*`.
+`uv run --no-dev rocci-ops release dev` force-moves the rolling `dev`
+prerelease tag (no version rewrite). The same cut can run from
+**Actions → Cut release** (`workflow_dispatch` on `cut-release.yml`; not
+attached to the `release`, `staging`, or `production` environments).
+`promote tag` is gone; `promote` is only `staging` and `production`.
 A later `git pull` then reports `! [rejected] dev -> dev (would clobber
 existing tag)` unless this repo force-updates that tag on fetch:
 

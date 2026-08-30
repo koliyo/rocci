@@ -1,0 +1,74 @@
+name: Cut release
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: patch, minor, major, vX.Y.Z, or dev
+        required: true
+        type: string
+        default: patch
+      from:
+        description: Branch to release from
+        required: true
+        type: string
+        default: main
+      force:
+        description: Move an existing v* tag
+        type: boolean
+        default: false
+      dry_run:
+        description: Resolve the tag only; do not commit, wait, or push
+        type: boolean
+        default: false
+
+concurrency:
+  group: cut-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  checks: read
+  actions: write
+
+jobs:
+  cut:
+    name: rocci-ops release
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_SPEC: ${{ inputs.spec }}
+      RELEASE_FROM: ${{ inputs.from }}
+      RELEASE_FORCE: ${{ inputs.force }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Cut
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          spec=$RELEASE_SPEC
+          from=$RELEASE_FROM
+          if [[ ! "$from" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "invalid --from branch: $from" >&2
+            exit 1
+          fi
+          if [[ ! "$spec" =~ ^(patch|minor|major|dev|v[0-9A-Za-z.-]+)$ ]]; then
+            echo "invalid spec: $spec" >&2
+            exit 1
+          fi
+          extra=()
+          if [[ "$RELEASE_FORCE" == "true" ]]; then
+            extra+=(--force)
+          fi
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            extra+=(--dry-run)
+          fi
+          uv run --no-dev rocci-ops release "$spec" --from "$from" "${extra[@]}"

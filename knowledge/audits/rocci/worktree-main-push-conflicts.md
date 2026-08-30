@@ -20,7 +20,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-20
   - id: push-worktrees
-    resource: ../../../tools/rocci-ops/src/rocci_ops/local.py
+    resource: ../../../tools/rocci-ops/src/rocci_ops/worktrees.py
     title: Batch push command for branch-backed worktrees
     author: process:cursor
     last_modified: 2026-08-19

@@ -83,6 +83,22 @@
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.
 
+## Rolling `dev` tag
+
+`uv run --no-dev rocci-ops release dev` force-moves the rolling prerelease
+tag after hosted CI on the target SHA. A later `git pull` may report
+`! [rejected] dev -> dev (would clobber existing tag)`. That is expected.
+Configure this clone to force-update **only** `dev`:
+
+```sh
+git config --local --add remote.origin.fetch '+refs/tags/dev:refs/tags/dev'
+```
+
+Do not force-fetch all tags; `v*` releases stay immutable. One-shot:
+`git fetch origin tag dev --force`. Until `dev` exists, a bare
+`git fetch origin` fails on that refspec; `rocci-ops release` fetches the
+target branch only.
+
 ## Use specialized workflows when available
 
 - Repository-scoped skills live under `.agents/skills`. Use a matching skill

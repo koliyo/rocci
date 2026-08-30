@@ -25,7 +25,13 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check on `macos-latest` when hosted.
    - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs. Hosted on `ubuntu-latest` after `docker/install-linux-deps.sh builder` (GTK/WebKit for `rocci-okf` → `rocci-desktop`).
    - `site.yml`: Packages and deploys `site/` from `staging` or `production` only (matching GitHub Environment) on `ubuntu-latest`. `main` lands PRs and does not publish. **Run workflow** on any other ref is a no-op. Deploy secrets stay Environment-only.
-   - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`), artifact packaging, and GitHub release creation. `workflow_dispatch` is owner-only.
+   - `cut-release.yml`: `workflow_dispatch` only. Runs `rocci-ops release`
+     (version commit → hosted lint/Test Workspace → tag). Not attached to
+     the `release`, `staging`, or `production` environments.
+   - `release.yml`: Multi-platform binary builds, CI check gating (`ci-gate`),
+     artifact packaging, and GitHub release creation from an existing `v*` or
+     `dev` tag. `workflow_dispatch` is owner-only and should be used *from
+     that tag*.
    - `ci-command.yml`: Listens for `/ci`/`/CI` (owner, member, or collaborator) and `/ci-local`/`/cl-local` (same hosted queue; self-hosted CI is disabled) on PR conversation comments, review bodies, and inline review comments, then dispatches `ci.yml` plus `knowledge.yml` at the snapshot SHA. First-token exact match only; `/circle` is a no-op.
 3. Note that `gh` commands communicate with `https://api.github.com`. When running
    in sandboxed environments, run `gh` with unsandboxed execution permissions
@@ -83,6 +89,7 @@ gh run rerun RUN_ID
 # Trigger a workflow dispatch
 gh workflow run ci.yml --ref BRANCH
 gh workflow run knowledge.yml --ref BRANCH
+gh workflow run cut-release.yml -f spec=patch -f from=main
 
 # On a pull request, comment `/ci` after `ci-command.yml` is on the default
 # branch. `/ci-local` currently queues the same hosted jobs.
