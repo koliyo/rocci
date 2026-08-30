@@ -110,7 +110,7 @@ example-origins, and workflow-branches tests. `okmate check knowledge --profile 
 
 [^lanes]: `ROCCI_LANE` table: production `/srv/rocci/prod` `:8080` no live apps; staging `/srv/rocci/staging` `:8081` with live apps.
 [^origin-ops]: `compose up` merges origin compose only when live publish is on; `--remove-orphans`; health Hosts are lane-aware.
-[^deploy-ops]: Remote `origin publish` exports lane env; bootstrap copies both Caddy snippets.
+[^deploy-ops]: Remote `origin publish` exports lane env. Bootstrap and push stream one origin tar over a single SSH connection.
 [^site-workflow]: `site.yml` deploy `ROCCI_LANE` is `github.ref_name`.
 [^prod-readme]: Two origin roots, cutover order, smoke curls on `:8080` and `:8081`.
 [^ingress]: Staging hostnames to `:8081`; `rocci.dev` / `www` to `:8080`; no production example hosts.

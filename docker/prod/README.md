@@ -144,9 +144,11 @@ git push origin origin/staging:production
 A push to either branch runs `.github/workflows/site.yml`: it packages on
 linux/amd64, then the `deploy` job (GitHub Environment named after the
 branch, never `pull_request` and never `main`) sets `ROCCI_LANE` to the
-branch name, probes SSH (`uv run rocci-ops deploy probe`), bootstraps that
-lane's origin kit, scps `site.tgz` / `islands` / `examples-live/`, and runs
+branch name, probes SSH (`uv run rocci-ops deploy probe`), then one
+`ssh` that unpacks a gzip tar of the origin kit plus `incoming/<sha>/`
+(`site.tgz`, `islands`, `examples-live/`) and runs
 `uv run rocci-ops origin publish SHA` on the box with lane env exported.
+Do not open a new cloudflared hop per file.
 Unpack to `releases/<sha>/`, `compose up -d --build --remove-orphans`.
 Production is hybrid only (`ROCCI_PUBLISH_LIVE=0`) and probes
 `http://127.0.0.1:8080/health`. Staging merges
