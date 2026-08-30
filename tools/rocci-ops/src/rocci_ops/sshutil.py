@@ -69,6 +69,25 @@ def rocci_ssh(args: list[str], *, runner=subprocess.run) -> subprocess.Completed
     return runner(["ssh", *ssh_opts(), *args], check=True)
 
 
+def rocci_ssh_stdin(
+    remote_cmd: str,
+    stdin_path: Path,
+    *,
+    runner=subprocess.run,
+) -> subprocess.CompletedProcess:
+    target = ssh_target()
+    print(
+        f"ssh: {target} {remote_cmd} <{stdin_path.name} (one connection)",
+        flush=True,
+    )
+    with stdin_path.open("rb") as stdin:
+        return runner(
+            ["ssh", *ssh_opts(), target, remote_cmd],
+            stdin=stdin,
+            check=True,
+        )
+
+
 def rocci_scp(args: list[str], *, runner=subprocess.run) -> subprocess.CompletedProcess:
     print(f"scp: {' '.join(args)}", flush=True)
     return runner(["scp", *scp_opts(), *args], check=True)

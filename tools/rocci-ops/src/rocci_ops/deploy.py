@@ -4,6 +4,8 @@ import argparse
 import os
 import shutil
 import subprocess
+import tarfile
+import tempfile
 from pathlib import Path
 
 from rocci_ops.lanes import resolved_lane
@@ -12,8 +14,8 @@ from rocci_ops.sshutil import (
     deploy_user,
     identity_path,
     require_host,
-    rocci_scp,
     rocci_ssh,
+    rocci_ssh_stdin,
     ssh_target,
     validate_sha,
 )
@@ -33,6 +35,87 @@ def origin_publish_cmd(sha: str, origin_root: str | None = None) -> str:
     if cfg.name:
         exports.insert(0, f"ROCCI_LANE='{cfg.name}'")
     return f"cd '{root}' && {' '.join(exports)} uv run --no-dev rocci-ops origin publish '{sha}'"
+
+
+def stage_origin_kit(dest: Path) -> None:
+    root = repo_root()
+    docker = root / "docker"
+    dest_docker = dest / "docker"
+    for sub in ("cdn", "islands", "app", "prod"):
+        (dest_docker / sub).mkdir(parents=True, exist_ok=True)
+    shutil.copy2(docker / "compose.hybrid.yml", dest_docker / "compose.hybrid.yml")
+    shutil.copy2(docker / "compose.origin.yml", dest_docker / "compose.origin.yml")
+    for name in (
+        "Caddyfile",
+        "examples.caddy",
+        "examples.stub.caddy",
+        "Dockerfile",
+        "entrypoint.sh",
+    ):
+        shutil.copy2(docker / "cdn" / name, dest_docker / "cdn" / name)
+    shutil.copy2(docker / "islands" / "Dockerfile", dest_docker / "islands" / "Dockerfile")
+    shutil.copy2(docker / "app" / "Dockerfile", dest_docker / "app" / "Dockerfile")
+    shutil.copy2(docker / "app" / "entrypoint.sh", dest_docker / "app" / "entrypoint.sh")
+    for name in (
+        "README.md",
+        "access-ssh-proxy.sh",
+        "cloudflared-ingress.yml.example",
+        "env.example",
+    ):
+        shutil.copy2(docker / "prod" / name, dest_docker / "prod" / name)
+    shutil.copy2(root / "pyproject.toml", dest / "pyproject.toml")
+    shutil.copy2(root / "uv.lock", dest / "uv.lock")
+    shutil.copy2(root / ".python-version", dest / ".python-version")
+    ops = root / "tools" / "rocci-ops"
+    ops_dest = dest / "tools" / "rocci-ops"
+    (ops_dest / "src").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ops / "pyproject.toml", ops_dest / "pyproject.toml")
+    shutil.copy2(ops / ".python-version", ops_dest / ".python-version")
+    dest_pkg = ops_dest / "src" / "rocci_ops"
+    if dest_pkg.exists():
+        shutil.rmtree(dest_pkg)
+    shutil.copytree(
+        ops / "src" / "rocci_ops",
+        dest_pkg,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+
+
+def stage_incoming(dest: Path, artifact_dir: Path, sha: str) -> None:
+    incoming = dest / "incoming" / sha
+    incoming.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(artifact_dir / "site.tgz", incoming / "site.tgz")
+    shutil.copy2(artifact_dir / "islands", incoming / "islands")
+    live = artifact_dir / "examples-live"
+    if live.is_dir():
+        shutil.copytree(live, incoming / "examples-live")
+
+
+def write_origin_tar(tree: Path, tar_path: Path) -> None:
+    with tarfile.open(tar_path, mode="w:gz") as archive:
+        for path in sorted(tree.rglob("*")):
+            if path.is_file():
+                archive.add(path, arcname=path.relative_to(tree).as_posix())
+
+
+def provision_remote(
+    tree: Path,
+    *,
+    publish_sha: str | None = None,
+    runner=subprocess.run,
+) -> None:
+    cfg = resolved_lane()
+    origin_root = cfg.origin_root
+    proxy = f"{origin_root}/docker/prod/access-ssh-proxy.sh"
+    remote = (
+        f"mkdir -p '{origin_root}' && tar -xzf - -C '{origin_root}' && chmod +x '{proxy}'"
+    )
+    if publish_sha is not None:
+        remote = f"{remote} && {origin_publish_cmd(publish_sha, origin_root)}"
+    with tempfile.TemporaryDirectory() as tmp:
+        tar_path = Path(tmp) / "origin.tar.gz"
+        write_origin_tar(tree, tar_path)
+        rocci_ssh_stdin(remote, tar_path, runner=runner)
 
 
 def probe(*, runner=subprocess.run) -> int:
@@ -75,81 +158,12 @@ def probe(*, runner=subprocess.run) -> int:
 
 def bootstrap(*, runner=subprocess.run) -> int:
     cfg = resolved_lane()
-    dest = cfg.bootstrap_dest
-    origin_root = cfg.origin_root
-    root = repo_root()
-    docker = root / "docker"
-    prod = docker / "prod"
-    target = ssh_target()
-    ops_dest = f"{origin_root}/tools/rocci-ops"
-    rocci_ssh(
-        [
-            target,
-            f"mkdir -p '{dest}/cdn' '{dest}/islands' '{dest}/app' '{dest}/prod' '{ops_dest}/src'",
-        ],
-        runner=runner,
-    )
-    rocci_scp([str(docker / "compose.hybrid.yml"), str(docker / "compose.origin.yml"), f"{target}:{dest}/"], runner=runner)
-    rocci_scp(
-        [
-            str(docker / "cdn" / "Caddyfile"),
-            str(docker / "cdn" / "examples.caddy"),
-            str(docker / "cdn" / "examples.stub.caddy"),
-            str(docker / "cdn" / "Dockerfile"),
-            str(docker / "cdn" / "entrypoint.sh"),
-            f"{target}:{dest}/cdn/",
-        ],
-        runner=runner,
-    )
-    rocci_scp(
-        [
-            str(docker / "islands" / "Dockerfile"),
-            f"{target}:{dest}/islands/",
-        ],
-        runner=runner,
-    )
-    rocci_scp(
-        [
-            str(docker / "app" / "Dockerfile"),
-            str(docker / "app" / "entrypoint.sh"),
-            f"{target}:{dest}/app/",
-        ],
-        runner=runner,
-    )
-    rocci_scp(
-        [
-            str(prod / "README.md"),
-            str(prod / "access-ssh-proxy.sh"),
-            str(prod / "cloudflared-ingress.yml.example"),
-            str(prod / "env.example"),
-            f"{target}:{dest}/prod/",
-        ],
-        runner=runner,
-    )
-    rocci_scp(
-        [
-            str(root / "pyproject.toml"),
-            str(root / "uv.lock"),
-            str(root / ".python-version"),
-            f"{target}:{origin_root}/",
-        ],
-        runner=runner,
-    )
-    ops = root / "tools" / "rocci-ops"
-    rocci_scp(
-        [
-            str(ops / "pyproject.toml"),
-            str(ops / ".python-version"),
-            f"{target}:{ops_dest}/",
-        ],
-        runner=runner,
-    )
-    rocci_scp(
-        ["-r", str(ops / "src" / "rocci_ops"), f"{target}:{ops_dest}/src/"],
-        runner=runner,
-    )
-    rocci_ssh([target, f"chmod +x '{dest}/prod/access-ssh-proxy.sh'"], runner=runner)
-    print(f"bootstrapped {target}:{dest}", flush=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tree = Path(tmp) / "tree"
+        tree.mkdir()
+        stage_origin_kit(tree)
+        provision_remote(tree, runner=runner)
+    print(f"bootstrapped {ssh_target()}:{cfg.bootstrap_dest}", flush=True)
     return 0
 
 
@@ -161,20 +175,12 @@ def push(artifact_dir: Path, sha: str, *, runner=subprocess.run) -> int:
     islands = artifact_dir / "islands"
     if not tgz.is_file() or not islands.is_file():
         raise SystemExit(f"error: {artifact_dir} must contain site.tgz and islands")
-    cfg = resolved_lane()
-    origin_root = cfg.origin_root
-    target = ssh_target()
-    incoming = f"{origin_root}/incoming/{sha}"
-    bootstrap(runner=runner)
-    rocci_ssh([target, f"mkdir -p '{incoming}'"], runner=runner)
-    rocci_scp(
-        [str(tgz), str(islands), f"{target}:{incoming}/"],
-        runner=runner,
-    )
-    live = artifact_dir / "examples-live"
-    if live.is_dir():
-        rocci_scp(["-r", str(live), f"{target}:{incoming}/"], runner=runner)
-    rocci_ssh([target, origin_publish_cmd(sha, origin_root)], runner=runner)
+    with tempfile.TemporaryDirectory() as tmp:
+        tree = Path(tmp) / "tree"
+        tree.mkdir()
+        stage_origin_kit(tree)
+        stage_incoming(tree, artifact_dir, sha)
+        provision_remote(tree, publish_sha=sha, runner=runner)
     return 0
 
 
