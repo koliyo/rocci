@@ -517,7 +517,7 @@ author `"{\"count\":...}"` interpolation in command bodies.[^roc-json]
    cargo fmt --all -- --check
    cargo test --workspace
    cargo run -q -p rocci-rocdown-cli -- build docs
-   cargo run -q -p rocci-okf -- check knowledge --profile rocci
+   cargo run -q -p rocci-okf -- check knowledge --profile base
    ```
 
 5. Run matrix HTTP smoke tests against the same origin used by the webview.

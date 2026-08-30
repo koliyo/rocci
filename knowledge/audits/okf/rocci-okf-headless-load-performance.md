@@ -79,7 +79,7 @@ cargo run -q -p rocci-okf -- run knowledge --no-window --port auto --profile bas
 The most useful comparison is the cached renderer case, because it removes Roc
 compilation noise from the result.
 
-### Cached `--profile rocci`
+### Cached `--profile strict`
 
 Observed JSON report:
 
@@ -98,7 +98,7 @@ Observed JSON report:
 ## Phase 1 load sub-spans (2026-08-19 follow-up)
 
 `rebuild_site` now maps `okf::load_timed` durations onto named snapshot spans.
-`--profile rocci` emits `discover`, `parse`, `graph`, and `provenance`;
+`--profile strict` emits `discover`, `parse`, `graph`, and `provenance`;
 `--profile base` omits `provenance`. Sub-spans are listed beside wall-clock
 `load` and are not added into `total_ms`.[^okf-dev][^okf-load]
 
@@ -109,7 +109,7 @@ cargo run -q -p rocci-okf -- run knowledge/plans/okf/okf-load-performance.md \
   --no-window --port auto --profile-report json
 ```
 
-### Debug `--profile rocci`
+### Debug `--profile strict`
 
 ```json
 {"total_ms":11529,"spans":[{"name":"load","duration_ms":9963},{"name":"discover","duration_ms":0},{"name":"parse","duration_ms":5897},{"name":"graph","duration_ms":0},{"name":"provenance","duration_ms":4065},{"name":"compile templates","duration_ms":4},{"name":"generate","duration_ms":53},{"name":"compile","duration_ms":1003},{"name":"render","duration_ms":397},{"name":"write","duration_ms":109}]}
@@ -150,28 +150,28 @@ without git provenance, and adding a watch parse cache:[^okf-dev][^okf-load]
 
 | Profile | Wall time |
 | --- | --- |
-| `--profile rocci` | 0.40s |
+| `--profile strict` | 0.40s |
 | `--profile base` | 0.27s |
 
 `run` defaults skip git provenance (`provenance` 0ms) while keeping Rocci
-schema. `check --profile rocci` still runs batched provenance. Bounded
+schema. `check --profile strict` still runs batched provenance. Bounded
 concept-path loading was not started: release first-open `load` is 290ms, not
 multiple seconds.
 
 ## Findings
 
 1. The dominant cost on cached rebuilds is `load`, not template compilation,
-   Roc rendering, or writing output. In the Rocci-profile run, `load`
+   Roc rendering, or writing output. In the strict-profile run, `load`
    accounted for 8560ms of 8718ms total. In the base-profile run, `load`
    accounted for 5142ms of 5276ms total.
 
-2. Switching from `--profile rocci` to `--profile base` reduced cached rebuild
+2. Switching from `--profile strict` to `--profile base` reduced cached rebuild
    time by about 3442ms, and nearly all of that reduction appears inside
    `load`, not later generator stages.
 
 3. That result matches the code structure: `rebuild_site` records wall-clock
    `load` plus `okf::load_timed` sub-spans, and provenance runs only for the
-   Rocci profile. Phase 1 reports confirm the gap is the `provenance`
+   strict profile. Phase 1 reports confirm the gap is the `provenance`
    span.[^okf-dev][^okf-load]
 
 4. Provenance git work is now a constant number of subprocesses per load
@@ -182,7 +182,7 @@ multiple seconds.
 
 The current rebuild cost is not primarily a Roc host problem once the renderer
 is cached. The larger issue is that concept preview and bundle preview still
-pay for whole-bundle OKF loading, and the Rocci profile adds repository
+pay for whole-bundle OKF loading, and the strict profile adds repository
 provenance work on top of that.[^okf-load][^okf-validate]
 
 The new headless profile-report path changes the debugging workflow more than

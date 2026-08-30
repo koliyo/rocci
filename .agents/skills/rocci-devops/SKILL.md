@@ -101,7 +101,7 @@ Categorize the root cause by examining the failing job and log output:
 | `test` (macOS / Ubuntu) | Logic regressions, platform differences, socket permissions, timing/budget assertions | Run `cargo test -p CRATE` for the failing test. Ensure timing assertions account for unoptimized debug mode on shared CI VMs (`cfg!(debug_assertions)`). Ensure stress/fuzz iterations scale appropriately in debug mode. |
 | `fixtures-and-docs` | AST snapshot drift, broken markdown links, missing frontmatter | Inspect syntax with `cargo run -q -p rocci-cli -- inspect --ast test/AllSyntax.rocci` and `cargo run -q -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown` (and `test/EmbeddedLanguages.rocdown`). Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs`. |
 | `editors` | TypeScript/ESLint errors, VS Code packaging issues, Zed Wasm build errors | Run `npm --prefix editors/vscode ci && npm --prefix editors/vscode run lint && npm --prefix editors/vscode run compile` and `cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1`. |
-| `knowledge` | OKF schema errors, broken cross-references, graph cycles, benchmark regressions | Run `okmate check knowledge --profile rocci` (or `uv run --no-dev rocci-ops ci knowledge` with `../okmate` or `.okmate-tool`). Engine tests run in the okmate repo. |
+| `knowledge` | OKF schema errors, broken cross-references, graph cycles, benchmark regressions | Run `okmate check knowledge --profile base` (or `uv run --no-dev rocci-ops ci knowledge` with `../okmate` or `.okmate-tool`). Engine tests run in the okmate repo. |
 
 ### Timing and benchmark budgets in CI
 

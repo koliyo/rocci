@@ -386,7 +386,7 @@ Cost-Optimized VPS is not a fleet.[^compose-app][^publish-plan][^cli-readme]
 
 - The catalog file is valid TOML with unique `id`s, repo-relative `path`s, and
   only `docs` | `live` hosting values.
-- `cargo run -q -p rocci-okf -- check knowledge --profile rocci` still passes
+- `cargo run -q -p rocci-okf -- check knowledge --profile base` still passes
   after this plan lands.
 
 ## Phase 1 — `rocci-docs` crate and staging command
@@ -566,7 +566,7 @@ cargo run -q -p rocci-rocdown-cli -- check site
    ```sh
    cargo test -p rocci-docs -p rocci-rocdown -p rocci-rocdown-cli
    cargo fmt --all -- --check
-   cargo run -q -p rocci-okf -- check knowledge --profile rocci
+   cargo run -q -p rocci-okf -- check knowledge --profile base
    ```
 
 3. Update the `rocci-docs` crate README, Rocdown site reference (mount of

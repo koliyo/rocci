@@ -742,7 +742,7 @@ authored check inside each path-specific live body.
    warnings:
 
    ```sh
-   cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+   cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
    ```
 
 10. Run final repository inventories for pathless `@live`, fixed dispatch

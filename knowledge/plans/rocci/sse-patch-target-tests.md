@@ -177,9 +177,8 @@ Bound:
   CI checks patch top-level ids (or selector), not a live DOM.
 - Do not duplicate the incident narrative.
 
-**Exit:** `okmate check knowledge --profile rocci` (or `--profile base`
-when that is the CI profile). Public doc change is in the same commit
-as the sentence.
+**Exit:** `okmate check knowledge --profile base`. Public doc change is
+in the same commit as the sentence.
 
 ## Tests
 

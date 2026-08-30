@@ -391,7 +391,7 @@ what would be offered upstream (wasm32 host artifact + WIT adapter),
 without opening a fork PR unless the maintainer asks. `knowledge/log.md`
 phase-complete only after CI and Knowledge workflow run IDs succeed.
 
-**Exit:** `okmate check knowledge --profile rocci --format terminal`.
+**Exit:** `okmate check knowledge --profile base --format terminal`.
 Crate READMEs and a docs page (if Phase 6 shipped a flag) agree with
 the research.
 

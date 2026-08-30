@@ -85,16 +85,16 @@ The body should define four workflows:
 
    ```sh
    cargo run -q -p rocci-okf -- check knowledge \
-     --profile rocci --format terminal
+     --profile base --format terminal
 
    cargo run -q -p rocci-okf -- inspect \
-     --profile rocci concept CONCEPT_ID knowledge
+     --profile base concept CONCEPT_ID knowledge
 
    cargo run -q -p rocci-okf -- inspect \
-     --profile rocci catalog knowledge
+     --profile base catalog knowledge
 
    cargo run -q -p rocci-okf -- inspect \
-     --profile rocci graph knowledge
+     --profile base graph knowledge
    ```
 
    For `inspect`, `--profile` must precede `catalog`, `concept`, or `graph`.

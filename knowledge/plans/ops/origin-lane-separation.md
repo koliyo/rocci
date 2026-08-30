@@ -108,7 +108,7 @@ and the VPS/Tunnel steps are done.
 ## Exit
 
 From `tools/rocci-ops`, `uv run --group dev pytest` on the origin, deploy,
-example-origins, and workflow-branches tests. `okmate check knowledge --profile rocci`.
+example-origins, and workflow-branches tests. `okmate check knowledge --profile base`.
 
 [^lanes]: `ROCCI_LANE` table: production `/srv/rocci/prod` `:8080` no live apps; staging `/srv/rocci/staging` `:8081` with live apps.
 [^origin-ops]: `compose up` merges origin compose only when live publish is on; `--remove-orphans`; health Hosts are lane-aware.

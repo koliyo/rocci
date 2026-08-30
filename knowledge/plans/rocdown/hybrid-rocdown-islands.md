@@ -475,7 +475,7 @@ updated in a follow-up after this phase.
 **Does not:** start `@island` or block-model syntax.
 
 **Exit:** `cargo test -p rocci-rocdown` and `cargo test -p
-rocci-rocdown-cli`. `rocci-okf check knowledge --profile rocci`.
+rocci-rocdown-cli`. `rocci-okf check knowledge --profile base`.
 
 ### Phase 7 — Rebase onto `BlockCall` / `:name[params]`
 
@@ -583,7 +583,7 @@ cargo run -q -p rocci-rocdown-cli -- build docs
 After knowledge edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Do not log a phase complete until CI and Knowledge workflows succeed on

@@ -432,7 +432,7 @@ says experimental.
 - Coverage has no dangling tutorial/how-to/concept URLs.
 - Example app prose links into Templates or Applications, not the retired
   tutorial index.
-- `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`
+- `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`
   is not required for docs-only files; run it if this phase also edits
   knowledge records.
 

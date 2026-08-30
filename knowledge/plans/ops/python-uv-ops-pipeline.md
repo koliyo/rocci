@@ -87,7 +87,7 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 ## Phase 6 — Docs and knowledge findings
 
 **Bound:** AGENTS, devops skill, this plan, research report, log.
-**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`
+**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`
 
 Roc follow-on is a **new branch** after this plan is green on CI.[^research]
 

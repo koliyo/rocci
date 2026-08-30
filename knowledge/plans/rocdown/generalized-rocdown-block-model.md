@@ -677,7 +677,7 @@ cargo run -q -p rocci-rocdown-cli -- build docs
 After knowledge edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Cross-cutting (cutover, planner, theme): `cargo test --workspace`. Do not

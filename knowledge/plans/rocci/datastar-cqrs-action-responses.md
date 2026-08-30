@@ -300,7 +300,7 @@ Bound:
 Out of this phase: new grammar, dispatcher changes, examples, public Rocdown
 rewrites already done in Phase 5.
 
-**Exit:** Those files agree that generated `@live` is on this branch. `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+**Exit:** Those files agree that generated `@live` is on this branch. `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`.
 
 ## Residual (not this plan)
 

@@ -95,7 +95,7 @@ Exit: rules describe type then area; branch name is `file_stem`.
 
 Bound: `git mv` plans, research, and audits; per-area indexes; rewrite links and `sources[].resource` depth; retrieval benchmark and repo citations; `knowledge/log.md`.
 
-Exit: `cargo test -p okf`, `cargo test -p rocci-okf`, `cargo run -q -p rocci-okf -- check knowledge --profile rocci`, `cargo fmt --all -- --check`.
+Exit: `cargo test -p okf`, `cargo test -p rocci-okf`, `cargo run -q -p rocci-okf -- check knowledge --profile base`, `cargo fmt --all -- --check`.
 
 ## Status
 

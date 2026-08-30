@@ -122,7 +122,7 @@ The `knowledge/` tree stays in this repository. Check, inspect, search, build,
 and preview it with [okmate](https://github.com/koliyo/okmate):
 
 ```sh
-okmate check knowledge --profile rocci
+okmate check knowledge --profile base
 okmate inspect concept architecture/system-overview knowledge
 okmate inspect graph knowledge
 okmate search "rendering" knowledge

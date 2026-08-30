@@ -101,7 +101,7 @@ as sugar over Roc type-position defaults.
 **Bound:** Research disposition (call-site fill gone; pin is 08-23); this
 plan status; indexes; `knowledge/log.md`.
 
-**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal`.
+**Exit:** `cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal`.
 
 [^research]: Type-position `{ name : Str ?? "Roc" }` typechecks; pattern `??` does not.
 [^ast-strip]: Pattern rewrite remains required.

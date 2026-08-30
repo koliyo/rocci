@@ -551,7 +551,7 @@ Human approval is required before treating these as normative:
 Per phase as listed. Knowledge after record edits:
 
 ```text
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 Do not log a phase complete until CI and Knowledge workflows succeed on that

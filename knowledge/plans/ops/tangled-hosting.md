@@ -166,7 +166,7 @@ land on the canonical Tangled surface.[^preview-plan][^research]
 | AST fixtures and `rocdown check docs` | Required | Drop |
 | Zed `wasm32-wasip1` check | Optional extra | Keep inside the editors job |
 | VS Code lint/compile/extension-host tests | No | Required |
-| OKF tests, `check --profile rocci`, deterministic build | Required (Linux, full clone) | Drop; today's `macos-latest` pin is not a Darwin need |
+| OKF tests, `check --profile base`, deterministic build | Required (Linux, full clone) | Drop; today's `macos-latest` pin is not a Darwin need |
 | Linux release tarball | Preferred | Keep on GitHub only if artifact ferrying is worse |
 | Darwin release tarball | No | Required |
 | GitHub Release publication | No | Keep as the public binary channel until Tangled has an equivalent |

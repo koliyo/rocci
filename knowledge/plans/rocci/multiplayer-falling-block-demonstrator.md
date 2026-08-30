@@ -608,7 +608,7 @@ spectator admission; do not silently degrade authoritative validation.
 After implementation edits, run the narrow app/package checks while iterating,
 `cargo fmt --all -- --check` for Rust changes, relevant crate tests for any
 packaging/catalog work, `rocdown check site`, the game HTTP/stream harness, and
-the Rocci-profile knowledge check. A public capacity claim requires the staging
+the `okmate check knowledge --profile base` knowledge check. A public capacity claim requires the staging
 soak results; a successful local preview is not enough.
 
 ## Decision gates

@@ -444,7 +444,7 @@ uv run --no-dev rocci-ops test example-origins
 ```sh
 cargo test -p rocci-docs
 uv run --no-dev rocci-ops test example-origins
-cargo run -q -p rocci-okf -- check knowledge --profile rocci --format terminal
+cargo run -q -p rocci-okf -- check knowledge --profile base --format terminal
 ```
 
 - Local `rocci-docs` then `rocdown check site` shows Launch on

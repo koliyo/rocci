@@ -78,7 +78,7 @@
 - For documentation-site changes, run `cargo run -q -p rocci-rocdown-cli -- build docs`
   and inspect the generated result when layout or navigation changed.
 - For knowledge changes, run
-  `okmate check knowledge --profile rocci` (or `cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile rocci` from a sibling checkout) and
+  `okmate check knowledge --profile base` (or `cargo run -q --no-default-features --manifest-path ../okmate/Cargo.toml -p okmate -- check knowledge --profile base` from a sibling checkout) and
   report lifecycle or provenance warnings separately from errors.
 - Test runtime changes through the same HTTP origin used by the webview. Failed
   static builds must preserve the previous output tree.
