@@ -394,7 +394,7 @@ def test_promote_tag_does_not_push_when_ci_fails(monkeypatch, tmp_path) -> None:
 
 
 def test_wait_for_promote_ci_waits_default_checks(monkeypatch) -> None:
-    from rocci_ops.release import DEFAULT_CHECKS
+    from rocci_ops.ghutil import DEFAULT_CHECKS
 
     seen: list[str] = []
     monkeypatch.setattr("rocci_ops.promote.github_repo", lambda: "koliyo/rocci")

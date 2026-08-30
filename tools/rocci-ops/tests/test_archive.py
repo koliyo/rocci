@@ -1,10 +1,5 @@
-from rocci_ops.release import (
-    archive_stem,
-    parse_check_line,
-    release_params,
-    version_from_ref,
-    wait_for_check,
-)
+from rocci_ops.archive import archive_stem, release_params, version_from_ref
+from rocci_ops.ghutil import DEFAULT_CHECKS, parse_check_line, wait_for_check
 
 
 def test_tag_version() -> None:
@@ -45,6 +40,14 @@ def test_release_params_dev() -> None:
 def test_parse_check_line() -> None:
     assert parse_check_line("completed success") == ("completed", "success")
     assert parse_check_line("") is None
+
+
+def test_default_checks_include_lint_and_workspace_tests() -> None:
+    assert DEFAULT_CHECKS == (
+        "Code Formatting & Lints",
+        "Test Workspace (macos-latest)",
+        "Test Workspace (ubuntu-latest)",
+    )
 
 
 def test_wait_for_check_success() -> None:

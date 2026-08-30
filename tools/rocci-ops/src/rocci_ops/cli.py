@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 from rocci_ops import (
+    archive,
     build,
     ci,
     deploy,
@@ -12,7 +13,6 @@ from rocci_ops import (
     package,
     pr_checkout,
     promote,
-    release,
     serve,
     site,
     worktrees,
@@ -36,7 +36,7 @@ commands:
   push-worktrees
   pr-checkout   list open PRs, or checkout one here as pr/<branch>
   promote       staging | production | tag
-  release       package binaries, wait for CI, or publish a GitHub release
+  archive       version, package, params, wait-ci, publish
 """
 
 
@@ -76,8 +76,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(check_main(rest))
     if command == "ci":
         raise SystemExit(ci.main(rest))
-    if command == "release":
-        raise SystemExit(release.main(rest))
+    if command == "archive":
+        raise SystemExit(archive.main(rest))
     if command == "deploy":
         raise SystemExit(deploy.main(rest))
     if command == "origin":

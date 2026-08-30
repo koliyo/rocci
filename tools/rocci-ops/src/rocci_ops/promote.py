@@ -4,7 +4,7 @@ import subprocess
 import time
 
 from rocci_ops.paths import repo_root
-from rocci_ops.release import DEFAULT_CHECKS, gh_run, wait_for_check
+from rocci_ops.ghutil import DEFAULT_CHECKS, gh_run, wait_for_check
 from rocci_ops.util import run
 
 PROMOTE_USAGE = "usage: rocci-ops promote staging|production|tag"

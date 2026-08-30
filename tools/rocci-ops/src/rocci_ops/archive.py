@@ -10,12 +10,8 @@ import tarfile
 import time
 from pathlib import Path
 
+from rocci_ops.ghutil import DEFAULT_CHECKS, gh_run, wait_for_check
 from rocci_ops.paths import repo_root
-
-DEFAULT_CHECKS = (
-    "Test Workspace (macos-latest)",
-    "Test Workspace (ubuntu-latest)",
-)
 
 RELEASE_BINARIES = (
     "rocci",
@@ -75,54 +71,6 @@ def package_archive(root: Path, version: str, target: str) -> Path:
     checksum = archive.with_name(archive.name + ".sha256")
     checksum.write_text(f"{sha256_file(archive)}  {archive.name}\n", encoding="utf-8")
     return archive
-
-
-def parse_check_line(result: str) -> tuple[str, str] | None:
-    line = result.strip().splitlines()[0] if result.strip() else ""
-    if not line:
-        return None
-    status, _, conclusion = line.partition(" ")
-    return status, conclusion or "pending"
-
-
-def wait_for_check(
-    *,
-    repo: str,
-    sha: str,
-    check: str,
-    gh: callable,
-    sleep: callable,
-    deadline_s: float | None = None,
-) -> None:
-    started = time.monotonic()
-    print(f"Waiting for: {check}", flush=True)
-    while True:
-        if deadline_s is not None and time.monotonic() - started > deadline_s:
-            raise SystemExit(f"timed out waiting for {check}")
-        raw = gh(
-            [
-                "api",
-                f"repos/{repo}/commits/{sha}/check-runs",
-                "--jq",
-                f'.check_runs[] | select(.name == "{check}") | .status + " " + (.conclusion // "pending")',
-            ]
-        )
-        parsed = parse_check_line(raw)
-        if parsed is None:
-            print("  Check not found yet, waiting...", flush=True)
-        else:
-            status, conclusion = parsed
-            print(f"  Status: {status}, Conclusion: {conclusion}", flush=True)
-            if status == "completed":
-                if conclusion == "success":
-                    print(f"  {check} passed", flush=True)
-                    return
-                raise SystemExit(f"{check} failed ({conclusion})")
-        sleep(30)
-
-
-def gh_run(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(["gh", *args], check=check, capture_output=True, text=True)
 
 
 def cmd_version(ns: argparse.Namespace) -> int:
@@ -217,7 +165,7 @@ def cmd_publish(ns: argparse.Namespace) -> int:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(prog="rocci-ops release")
+    parser = argparse.ArgumentParser(prog="rocci-ops archive")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("version")
