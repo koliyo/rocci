@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:10:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:16:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -192,6 +192,37 @@ research record.
 the chosen emit path for Phase 1. If emit is impossible on both
 nightlies, stop and do not start Phase 1.
 
+**Phase 0 recorded (2026-08-30):** Emit is possible on both nightlies.
+`--no-link` is absent. The 0.16 release tarball has no `wasm32` row.
+A stub `targets.wasm32: { inputs: ["host.o", app] }` plus allocator-only
+`host.o` (`zig cc -target wasm32-freestanding -c`) unblocks
+`roc build --target=wasm32`. `http-module` can keep Rocci's PATH pin;
+the fork pin is not required for these names.[^roc-pin][^fork]
+
+| Command | Nightly | Result |
+| --- | --- | --- |
+| `roc build --target=wasm32 --no-link …` | `fb208ba` (PATH / Rocci pin) and `b29bef3` (fork pin) | Flag absent (`unexpected argument`) |
+| `roc build --target=wasm32` vs 0.16.0 URL | both | `unsupported target` (native rows only) |
+| same vs local fork, no `host.o` | both | `missing target file` `targets/wasm32/host.o` |
+| same vs local fork + stub `host.o` | both | Linked `.wasm` is empty (`memory` only). Intermediate `roc_app_llvm_wasm32_speed.o` **has** the three names |
+| stub `host.o` that refs the three names (probe) | both | `wasm-ld` signature mismatch proves definitions in the app object |
+
+Object format: relocatable WebAssembly MVP with linking symbols (not a
+WIT component). App-object signatures: `roc_init_for_host` `(i32)->void`;
+`roc_respond_for_host` and `roc_shutdown_for_host` `(i32,i32,i32)->void`.
+Wasm `roc_realloc` in the app object is `(i32,i32,i32)->i32` (not the
+native 4-arg C ABI). The earlier "header does not emit
+`roc_respond_for_host`" finding is **stale**: the names are in the
+object; Roc's final `wasm-ld` does not `--export` them, so they are
+GC'd from the linked `.wasm`.[^research][^hello-wat]
+
+Chosen emit path for Phase 1: keep the `wasm32` row. Treat
+`roc_app_llvm_wasm32_speed.o` as the `--no-link` equivalent. Relink
+that object with `--no-entry --export=roc_init_for_host
+--export=roc_respond_for_host --export=roc_shutdown_for_host` (and
+`--export-dynamic` / `--import-undefined` as needed). Do not use Roc's
+linked `.wasm` as the product object.
+
 ## Phase 1: wasm32 target and thin host.o in the fork
 
 **Bound:** In `../roc-basic-webserver`, add a `wasm32` (or the name
@@ -203,9 +234,10 @@ names).[^fork][^bws-main][^wasm-platform]
 
 **Out of bound:** Rocci CLI; serving Counter; compiling Hyper to wasm.
 
-**Tests:** fork-local: `roc build --target=wasm32 --no-link
-examples/hello-web.roc` writes an object whose exports include the
-three `roc_*_for_host` names Phase 0 requires.
+**Tests:** fork-local: `roc build --target=wasm32` against a local-platform
+hello-web (Phase 0: `--no-link` is absent) yields
+`roc_app_llvm_wasm32_speed.o` whose linker symbols include the three
+`roc_*_for_host` names. Relink with `--export=` of those names.
 
 **Exit:** That object exists and `wasm-tools` / `llvm-nm` (or
 equivalent) shows those exports.
@@ -334,7 +366,7 @@ Crate READMEs and the CLI page agree.
 | Item | State |
 | --- | --- |
 | Portable 0.3 component | Shipped experimental (hello-web stub) |
-| Real `roc build` object | Not shipped; this plan |
+| Real `roc build` object | Phase 0: names present in `roc_app_llvm_wasm32_speed.o`; not linked yet |
 | `--http-module` uses `.rocci` body | Not shipped; Phase 5 |
 | sqlite-in-component | Not shipped; Phase 4 (required for Counter) |
 | Counter under `wasmtime serve` | Not shipped; Phase 6 |

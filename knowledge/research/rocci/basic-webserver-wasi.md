@@ -4,7 +4,7 @@ title: Gaps for running basic-webserver as a WASI HTTP module
 description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:10:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:16:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -411,9 +411,17 @@ yielding.[^adapter-sqlite]
 | Portable 0.3 `wasmtime serve` component | Yes: hello-web `roc_*`, mapped fields, SSE Wait overlap, one preopen; sqlite omitted | Experimental (`rocci build --http-module`)[^http-module-flag][^component-plan][^component-crate] |
 | `rocci run` / musl publish / `--host wasm` | Unchanged | Native 0.16 / apply |
 
-This nightly's Roc wasm32 platform header did not reliably emit
-`roc_respond_for_host` from a 0.16-shaped `platform/main.roc`; tests link
-`src/hello_web.wat` instead.[^probe-crate]
+A 2026-08-30 re-measure against sibling `../roc-basic-webserver` overturns
+the earlier "header does not emit `roc_respond_for_host`" finding. Both
+`nightly-2026-08-23-fb208ba` (Rocci PATH pin) and
+`nightly-2026-08-26-b29bef3` (fork pin) put
+`roc_init_for_host` / `roc_respond_for_host` / `roc_shutdown_for_host`
+in the intermediate `roc_app_llvm_wasm32_speed.o`. `--no-link` is
+absent. Roc's linked `.wasm` still exports only `memory` because
+`wasm-ld` is not passed `--export=` for those names. Product tests still
+link `src/hello_web.wat` until the [app link](/plans/rocci/wasi-http-03-app.md)
+uses that object. `http-module` does not need a different `roc` than the
+Rocci pin.[^probe-crate][^app-plan]
 
 ### Phase 0 toolchain (`wasmtime serve` empty service)
 
@@ -573,8 +581,9 @@ WIT or Canonical ABI async lifts. That layer is new code.
 `rocci-wasi-http-component` WASI 0.3 bytes (hello-web `handle`). It is
 **not** `--host wasm` (apply) and does not change `rocci run`. The
 `.rocci` path is still required for CLI shape; the bytes are not a
-compiled app. Remaining: a real `roc build --target=wasm32 --no-link`
-object and sqlite-in-component so Counter is the served app. The
+compiled app. Remaining: link the measured `roc_app_llvm_wasm32_speed.o`
+(`roc build --target=wasm32` against the fork; `--no-link` is absent)
+and sqlite-in-component so Counter is the served app. The
 sibling checkout `../roc-basic-webserver` (`koliyo/roc-basic-webserver`)
 is the configured wasm32 platform source. A desktop URL over
 `wasmtime-wasi-http` is still missing. Disposition: [0.3 component
