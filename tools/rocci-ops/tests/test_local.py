@@ -8,13 +8,10 @@ from rocci_ops.icons import ICONSET_SIZES, render_brand_icons
 from rocci_ops.package import PACKAGE_USAGE, package_command
 from rocci_ops.playground import _require_playground_dist, playground_wasm_artifact
 from rocci_ops.promote import (
-    PROMOTE_TAG_USAGE,
     PROMOTE_USAGE,
     promote_command,
     promote_production,
     promote_staging,
-    promote_tag,
-    wait_for_promote_ci,
 )
 from rocci_ops.site import build_site, package_site
 from rocci_ops.util import require_darwin
@@ -54,11 +51,11 @@ def test_promote_usage() -> None:
         raise AssertionError("expected SystemExit")
 
 
-def test_promote_tag_usage() -> None:
+def test_promote_rejects_tag() -> None:
     try:
-        promote_command(["tag"])
+        promote_command(["tag", "v1.2.3"])
     except SystemExit as exc:
-        assert str(exc) == PROMOTE_TAG_USAGE
+        assert str(exc) == PROMOTE_USAGE
     else:
         raise AssertionError("expected SystemExit")
 
@@ -92,15 +89,9 @@ def test_promote_command_routes(monkeypatch) -> None:
     called: list[str] = []
     monkeypatch.setattr("rocci_ops.promote.promote_staging", lambda: called.append("staging") or 0)
     monkeypatch.setattr("rocci_ops.promote.promote_production", lambda: called.append("production") or 0)
-    monkeypatch.setattr(
-        "rocci_ops.promote.promote_tag",
-        lambda tag, from_ref="main": called.append(f"{tag}:{from_ref}") or 0,
-    )
     assert promote_command(["staging"]) == 0
     assert promote_command(["production"]) == 0
-    assert promote_command(["tag", "v1.2.3"]) == 0
-    assert promote_command(["tag", "v1.2.3", "--from", "staging"]) == 0
-    assert called == ["staging", "production", "v1.2.3:main", "v1.2.3:staging"]
+    assert called == ["staging", "production"]
 
 
 def test_latest_vsix_picks_newest(tmp_path) -> None:
@@ -306,114 +297,6 @@ def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None
         ["git", "fetch", "origin"],
         ["git", "push", "origin", "origin/staging:refs/heads/production"],
     ]
-
-
-def test_promote_tag_annotates_and_pushes_origin_main(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    waited: list[str] = []
-    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.promote.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.promote.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.promote.wait_for_promote_ci", waited.append)
-
-    assert promote_tag("v1.2.3") == 0
-    assert waited == ["abc"]
-    assert calls == [
-        ["git", "fetch", "origin"],
-        ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/main"],
-        ["git", "push", "origin", "v1.2.3"],
-    ]
-
-
-def test_promote_tag_from_is_configurable(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.promote.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.promote.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.promote.wait_for_promote_ci", lambda sha: None)
-
-    assert promote_tag("v1.2.3", from_ref="staging") == 0
-    assert ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/staging"] in calls
-
-
-def test_promote_tag_force_moves_dev(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.promote.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.promote.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.promote.wait_for_promote_ci", lambda sha: None)
-
-    assert promote_tag("dev") == 0
-    assert calls == [
-        ["git", "fetch", "origin"],
-        ["git", "tag", "-a", "-f", "dev", "-m", "dev", "origin/main"],
-        ["git", "push", "--force", "origin", "dev"],
-    ]
-
-
-def test_promote_tag_does_not_push_when_ci_fails(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.promote.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.promote.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.promote.wait_for_promote_ci",
-        lambda sha: (_ for _ in ()).throw(SystemExit(f"CI failed for {sha}")),
-    )
-    try:
-        promote_tag("v1.2.3")
-    except SystemExit as exc:
-        assert "abc" in str(exc)
-    else:
-        raise AssertionError("expected SystemExit")
-    assert calls == [["git", "fetch", "origin"]]
-
-
-def test_wait_for_promote_ci_waits_default_checks(monkeypatch) -> None:
-    from rocci_ops.ghutil import DEFAULT_CHECKS
-
-    seen: list[str] = []
-    monkeypatch.setattr("rocci_ops.promote.github_repo", lambda: "koliyo/rocci")
-    monkeypatch.setattr("rocci_ops.promote.gh_run", lambda args: type("R", (), {"stdout": ""})())
-    monkeypatch.setattr(
-        "rocci_ops.promote.wait_for_check",
-        lambda **kwargs: seen.append(kwargs["check"]),
-    )
-    wait_for_promote_ci("abc")
-    assert seen == list(DEFAULT_CHECKS)
-
-
-def test_promote_tag_requires_v_prefix_or_dev() -> None:
-    try:
-        promote_tag("1.2.3")
-    except SystemExit as exc:
-        assert "dev" in str(exc)
-    else:
-        raise AssertionError("expected SystemExit")
 
 
 def test_promote_production_requires_origin_staging(monkeypatch, tmp_path) -> None:

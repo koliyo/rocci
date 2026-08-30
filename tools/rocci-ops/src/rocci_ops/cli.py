@@ -13,6 +13,7 @@ from rocci_ops import (
     package,
     pr_checkout,
     promote,
+    release,
     serve,
     site,
     worktrees,
@@ -35,7 +36,8 @@ commands:
   origin        publish, up, or backup on the origin host
   push-worktrees
   pr-checkout   list open PRs, or checkout one here as pr/<branch>
-  promote       staging | production | tag
+  promote       staging | production
+  release       patch, minor, major, v*, or dev
   archive       version, package, params, wait-ci, publish
 """
 
@@ -78,6 +80,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(ci.main(rest))
     if command == "archive":
         raise SystemExit(archive.main(rest))
+    if command == "release":
+        raise SystemExit(release.release_command(rest))
     if command == "deploy":
         raise SystemExit(deploy.main(rest))
     if command == "origin":
