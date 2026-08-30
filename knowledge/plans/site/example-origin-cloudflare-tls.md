@@ -121,7 +121,7 @@ still hits the home island. Generated `/examples/` copy stays
 | --- | --- |
 | Advertise last | No generated `examples.rocci.dev` Launch href until staging example hosts have served TLS.[^origins-plan][^launch-audit] |
 | Deploy lane | `site.yml` packages and deploys only from `staging` or `production`. Pushes to `main` are no-ops.[^site-workflow][^prod-readme] |
-| Separate lanes | `staging` publishes `/srv/rocci-staging` on `:8081` (hybrid plus live apps). `production` publishes `/srv/rocci` on `:8080` (hybrid only). Origin deploys are serialized.[^prod-readme] |
+| Separate lanes | `staging` publishes `/srv/rocci/staging` on `:8081` (hybrid plus live apps). `production` publishes `/srv/rocci/prod` on `:8080` (hybrid only). Origin deploys are serialized.[^prod-readme] |
 | Two origin ports | Production Tunnel targets `http://127.0.0.1:8080`. Staging and live-example hosts target `:8081`. Do not run `compose.examples.yml` `edge` on the VPS.[^tunnel-ingress][^cdn-caddy][^origin-compose] |
 | Publish health | `origin publish` GETs site `/health`, each live id at `/play/<id>/health`, and `Host` for `<id>-example-staging.rocci.dev`, `<id>-example.rocci.dev`, and `<id>.examples.localhost`. Failure restores the previous release (hybrid + examples together).[^origin-ops][^play-path] |
 | Proxy orange | Example DNS stays **Proxied**. Grey-cloud skips Cloudflare edge TLS. |
@@ -194,8 +194,8 @@ after a good handshake as a certificate bug.
    `staging.rocci.dev`.[^prod-readme]
 4. Copy the Tunnel CNAME target from the `staging.rocci.dev` DNS row
    (typically `<uuid>.cfargotunnel.com`).
-5. Remember: promoting `staging` publishes `/srv/rocci-staging` on
-   `:8081`. Production stays on `/srv/rocci` `:8080`. Do not start Phase
+5. Remember: promoting `staging` publishes `/srv/rocci/staging` on
+   `:8081`. Production stays on `/srv/rocci/prod` `:8080`. Do not start Phase
    3 during an unrelated production publish.[^prod-readme]
 
 **Exit**
@@ -388,7 +388,7 @@ hostname contract.[^origin-ops][^prod-readme]
 [^origins-plan]: Code Phases 0–4 on main; advertise is Phase 5; `*.rocci.dev` is not enough.
 [^play-path]: `/play/<id>/` leftover; ACM-free smoke is `<id>-example-staging.rocci.dev`.
 [^publish-plan]: Cloudflare is DNS and edge TLS; Tunnel to loopback Caddy; Access on staging.
-[^prod-readme]: Promote `main` → `staging`; separate `/srv/rocci` and `/srv/rocci-staging`; example wildcards need their own certs.
+[^prod-readme]: Promote `main` → `staging`; separate `/srv/rocci/prod` and `/srv/rocci/staging`; example wildcards need their own certs.
 [^tunnel-ingress]: Sample ingress lists staging hosts to `:8081` and `rocci.dev` to `:8080`.
 [^site-workflow]: Package and deploy only when `ref` is `staging` or `production`; uploads `examples-live/**`.
 [^origin-ops]: Unpack examples-live; compose hybrid plus origin examples; Host health; rollback previous release.

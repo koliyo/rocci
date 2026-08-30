@@ -60,7 +60,7 @@ def test_staging_lane_health_omits_production_example_hosts(monkeypatch) -> None
     assert "live-counter-example.rocci.dev" not in hosts
     assert any("/play/live-counter/health" in url for url, _headers in checks)
     assert resolved_lane().http_port == "8081"
-    assert resolved_lane().origin_root == "/srv/rocci-staging"
+    assert resolved_lane().origin_root == "/srv/rocci/staging"
 
 
 def test_unknown_lane_exits(monkeypatch) -> None:
@@ -80,7 +80,7 @@ def test_production_lane_skips_live_health_and_compose(monkeypatch) -> None:
     hosts = [headers.get("Host") for _url, headers in health_checks(["live-counter"]) if headers]
     assert hosts == []
     assert resolved_lane().http_port == "8080"
-    assert resolved_lane().origin_root == "/srv/rocci"
+    assert resolved_lane().origin_root == "/srv/rocci/prod"
     assert resolved_lane().image_tag == "prod"
 
 

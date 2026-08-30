@@ -81,8 +81,8 @@ was empty on 2026-08-29. Concrete Tunnel DNS rows (apex, `www`,
 
 `origin/staging` last packaged 2026-08-23 and does not include origin
 live-app compose. Promoting `staging` still required for the VPS to run
-those containers. `staging` is `/srv/rocci-staging` on `:8081`;
-`production` is `/srv/rocci` on `:8080` without live-example origins.[^prod-readme]
+those containers. `staging` is `/srv/rocci/staging` on `:8081`;
+`production` is `/srv/rocci/prod` on `:8080` without live-example origins.[^prod-readme]
 
 ## Why dedicated example hosts cost money
 

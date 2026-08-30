@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-30
 
+- Origin lanes live under `/srv/rocci/prod` and `/srv/rocci/staging` so `deploy` can mkdir `tools/` without a second root-owned tree. Pair: [origin lane separation](plans/ops/origin-lane-separation.md). Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [separate staging and production origins on one VPS](plans/ops/origin-lane-separation.md): `ROCCI_LANE` selects `/srv/rocci` `:8080` (no live examples) vs `/srv/rocci-staging` `:8081`. Revised shared-origin claims on the rocci.dev publish, play-path, example-TLS, and public-launch plans. Exploratory; cutover not started. Do not log complete until CI and Knowledge succeed.
 - Live-counter / handler-matrix `relative_ago` now stays "just now" for a full minute. Second-resolution labels made `Html.render` change every second after Increment, so both tabs got a real `datastar-patch-elements` at 1 Hz. Recorded on [generated live SSE is a timer poll](research/rocci/live-sse-is-timer-poll.md).
 - Revised [generated live SSE is a timer poll](research/rocci/live-sse-is-timer-poll.md) and [basic-webserver SSE and HTTP](research/rocci/basic-webserver-sse-http.md): 30s `response_idle_ms` is a hung-response detector (silence on SSE is legal); keepalive every ~15s, not at poll rate. Exploratory; do not log complete until CI and Knowledge succeed.

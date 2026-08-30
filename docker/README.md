@@ -253,8 +253,8 @@ and the [hybrid sites guide](../docs/rocdown/hybrid.rocdown).
 `rocci.dev` origin deploys from GitHub Actions `site.yml` on `staging` or
 `production` via the matching Environment (`DEPLOY_HOST`, `DEPLOY_USER`,
 `DEPLOY_SSH_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`).
-`ROCCI_LANE` is the branch name: production is `/srv/rocci` on `:8080`
-(hybrid only); staging is `/srv/rocci-staging` on `:8081` (hybrid plus live
+`ROCCI_LANE` is the branch name: production is `/srv/rocci/prod` on `:8080`
+(hybrid only); staging is `/srv/rocci/staging` on `:8081` (hybrid plus live
 examples). `main` is the PR landing branch and does not package or publish
 the site. SSH goes through Cloudflare Access (`ssh.rocci.dev`), not port 22.
 Fork pull requests cannot read those secrets and do not run the deploy job.

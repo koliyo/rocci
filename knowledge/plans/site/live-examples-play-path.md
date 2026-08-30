@@ -100,7 +100,7 @@ DNS.[^background][^cdn-caddy]
 | Docs vs play | `/examples/<id>/` is Rocdown. `/play/<id>/` is the live process.[^background] |
 | Islands isolation | Bare `/actions/*` and `/sse` on the site Host stay islands. Play-prefixed paths must not use that handle.[^cdn-caddy] |
 | Strip prefix | After `handle_path /play/<id>/*`, the app sees `/`, `/actions/`, `/sse`, `/health` as on a dedicated Host.[^cdn-caddy] |
-| Deploy lane | `site.yml` only from `staging` / `production`. Staging is `/srv/rocci-staging` on `:8081`; production is `/srv/rocci` on `:8080` without live-example containers.[^site-workflow][^prod-readme] |
+| Deploy lane | `site.yml` only from `staging` / `production`. Staging is `/srv/rocci/staging` on `:8081`; production is `/srv/rocci/prod` on `:8080` without live-example containers.[^site-workflow][^prod-readme] |
 | Publish health | Failed live health must not flip `current`; rollback hybrid + examples together.[^origin-ops] |
 | Tests | Caddy and origin-health contracts stay in rocci-ops tests; no Roc required.[^example-tests] |
 
@@ -225,6 +225,6 @@ Cloudflare.[^origin-ops]
 [^origin-ops]: Health and rollback of hybrid plus examples.
 [^origin-compose]: live-counter and datastar services; no examples edge.
 [^example-tests]: Isolation assertions on the hybrid Caddyfile.
-[^prod-readme]: Promote staging to `/srv/rocci-staging` `:8081`; Access on staging.rocci.dev.
+[^prod-readme]: Promote staging to `/srv/rocci/staging` `:8081`; Access on staging.rocci.dev.
 [^site-workflow]: Package and deploy only on staging or production.
 [^stage-rs]: Launch hrefs unused on repo catalog until advertise.
