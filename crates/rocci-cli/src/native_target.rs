@@ -251,10 +251,18 @@ mod tests {
     }
 
     fn skip_without_roc() -> bool {
-        !Command::new("roc")
+        if std::env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
+        let help_ok = Command::new("roc")
             .arg("help")
             .output()
             .map(|output| output.status.success())
-            .unwrap_or(false)
+            .unwrap_or(false);
+        if !help_ok {
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+        }
+        false
     }
 }

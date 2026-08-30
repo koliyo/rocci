@@ -450,6 +450,22 @@ mod tests {
         dir
     }
 
+    fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
+        let help_ok = Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if !help_ok {
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+        }
+        false
+    }
+
     #[test]
     fn host_binary_name_uses_app_name() {
         assert_eq!(host_binary_name("Counter").unwrap(), "Counter");
@@ -680,12 +696,7 @@ import Html
 
     #[test]
     fn package_datastar_answers_get_without_roc_on_path() {
-        if !Command::new("roc")
-            .arg("help")
-            .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false)
-        {
+        if skip_without_roc() {
             return;
         }
         let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
