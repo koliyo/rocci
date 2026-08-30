@@ -433,7 +433,7 @@ hostname requirement. No second origin stack.
   unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
   `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
   release. Failed health restores the previous release. `ROCCI_LANE`
-  selects `/srv/rocci` (`:8080`, no live examples) or `/srv/rocci-staging`
+  selects `/srv/rocci/prod` (`:8080`, no live examples) or `/srv/rocci/staging`
   (`:8081`, live examples). Deploys serialize.
 - Document the Environments, that `main` is the landing branch, and that
   fork PRs cannot deploy. Promote with `git push origin

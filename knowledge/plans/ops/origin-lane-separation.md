@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Separate staging and production origins on one VPS
-description: "Two Compose projects on the rocci.dev VPS: production keeps /srv/rocci on :8080 without live-example origins; staging is /srv/rocci-staging on :8081 with its own SQLite volumes. Cloudflare routes by hostname. Exploratory; code in this revision; cutover is operator work."
+description: "Two Compose projects on the rocci.dev VPS: production is /srv/rocci/prod on :8080 without live-example origins; staging is /srv/rocci/staging on :8081 with its own SQLite volumes. Cloudflare routes by hostname. Exploratory; code in this revision; cutover is operator work."
 tags: [domain/rocci, concern/publication, concern/ci, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
+generated: { by: process:cursor, at: 2026-08-30T09:05:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -46,8 +46,8 @@ sources:
 ## Goal
 
 `staging` and `production` no longer publish the same `/srv/rocci` stack.
-Production is the current tree on `:8080` without live-example containers.
-Staging is a second tree on `:8081` with its own SQLite volumes and live
+Production is `/srv/rocci/prod` on `:8080` without live-example containers.
+Staging is `/srv/rocci/staging` on `:8081` with its own SQLite volumes and live
 apps.[^lanes][^prod-readme]
 
 ## Out of bound
@@ -96,9 +96,9 @@ cdn, and live-app images.[^origin-ops][^prod-readme]
 
 ## Phase 4 — Operator cutover
 
-**Bound:** VPS directories for the staging root, promote staging, retarget
-Tunnel staging hosts to `:8081`, promote production without live
-origins.[^prod-readme]
+**Bound:** VPS directories under `/srv/rocci` (`prod` and `staging`;
+`deploy` owns `/srv/rocci`), promote staging, retarget Tunnel staging
+hosts to `:8081`, promote production without live origins.[^prod-readme]
 
 **Status:** not started. Do not log complete until CI and Knowledge succeed
 and the VPS/Tunnel steps are done.
@@ -108,7 +108,7 @@ and the VPS/Tunnel steps are done.
 From `tools/rocci-ops`, `uv run --group dev pytest` on the origin, deploy,
 example-origins, and workflow-branches tests. `okmate check knowledge --profile rocci`.
 
-[^lanes]: `ROCCI_LANE` table: production `/srv/rocci` `:8080` no live apps; staging `/srv/rocci-staging` `:8081` with live apps.
+[^lanes]: `ROCCI_LANE` table: production `/srv/rocci/prod` `:8080` no live apps; staging `/srv/rocci/staging` `:8081` with live apps.
 [^origin-ops]: `compose up` merges origin compose only when live publish is on; `--remove-orphans`; health Hosts are lane-aware.
 [^deploy-ops]: Remote `origin publish` exports lane env; bootstrap copies both Caddy snippets.
 [^site-workflow]: `site.yml` deploy `ROCCI_LANE` is `github.ref_name`.

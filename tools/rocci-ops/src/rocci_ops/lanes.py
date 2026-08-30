@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 
 
-ORIGIN_ROOT_DEFAULT = "/srv/rocci"
+ORIGIN_ROOT_DEFAULT = "/srv/rocci/prod"
 HTTP_PORT_DEFAULT = "8080"
 COMPOSE_PROJECT_DEFAULT = "rocci-prod"
 IMAGE_TAG_DEFAULT = "local"
@@ -21,14 +21,14 @@ class LanePreset:
 
 LANES: dict[str, LanePreset] = {
     "production": LanePreset(
-        origin_root="/srv/rocci",
+        origin_root="/srv/rocci/prod",
         http_port="8080",
         compose_project="rocci-prod",
         publish_live=False,
         image_tag="prod",
     ),
     "staging": LanePreset(
-        origin_root="/srv/rocci-staging",
+        origin_root="/srv/rocci/staging",
         http_port="8081",
         compose_project="rocci-staging",
         publish_live=True,

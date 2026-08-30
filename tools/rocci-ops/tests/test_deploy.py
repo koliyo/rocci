@@ -39,7 +39,7 @@ def test_origin_publish_cmd() -> None:
 def test_origin_publish_cmd_staging_lane(monkeypatch) -> None:
     monkeypatch.setenv("ROCCI_LANE", "staging")
     cmd = origin_publish_cmd("deadbeef")
-    assert "cd '/srv/rocci-staging'" in cmd
+    assert "cd '/srv/rocci/staging'" in cmd
     assert "ROCCI_LANE='staging'" in cmd
     assert "ROCCI_HTTP_PORT='8081'" in cmd
     assert "COMPOSE_PROJECT_NAME='rocci-staging'" in cmd
@@ -50,7 +50,7 @@ def test_origin_publish_cmd_staging_lane(monkeypatch) -> None:
 def test_origin_publish_cmd_production_lane(monkeypatch) -> None:
     monkeypatch.setenv("ROCCI_LANE", "production")
     cmd = origin_publish_cmd("deadbeef")
-    assert "cd '/srv/rocci'" in cmd
+    assert "cd '/srv/rocci/prod'" in cmd
     assert "ROCCI_PUBLISH_LIVE='0'" in cmd
     assert "ROCCI_IMAGE_TAG='prod'" in cmd
 
@@ -74,7 +74,7 @@ def test_push_invokes_bootstrap_scp_and_publish(monkeypatch, tmp_path: Path) -> 
 
     push(artifact, "abc123", runner=runner)
     flat = [" ".join(call) for call in calls]
-    assert any("mkdir -p" in item and "/srv/rocci/tools/rocci-ops" in item for item in flat)
+    assert any("mkdir -p" in item and "/srv/rocci/prod/tools/rocci-ops" in item for item in flat)
     assert any(str(artifact / "site.tgz") in item for item in flat)
     assert any("compose.origin.yml" in item for item in flat)
     assert any("origin publish 'abc123'" in item for item in flat)
@@ -103,8 +103,8 @@ def test_push_staging_lane_uses_staging_root(monkeypatch, tmp_path: Path) -> Non
 
     push(artifact, "abc123", runner=runner)
     flat = [" ".join(call) for call in calls]
-    assert any("mkdir -p" in item and "/srv/rocci-staging/tools/rocci-ops" in item for item in flat)
-    assert any("/srv/rocci-staging/incoming/abc123" in item for item in flat)
+    assert any("mkdir -p" in item and "/srv/rocci/staging/tools/rocci-ops" in item for item in flat)
+    assert any("/srv/rocci/staging/incoming/abc123" in item for item in flat)
     assert any("ROCCI_LANE='staging'" in item and "origin publish 'abc123'" in item for item in flat)
 
 

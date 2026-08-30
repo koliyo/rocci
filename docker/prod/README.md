@@ -12,8 +12,8 @@ start. Explicit env vars override any field.
 
 | Lane | Root | Port | Compose project | Live examples |
 | --- | --- | --- | --- | --- |
-| `production` | `/srv/rocci` | `8080` | `rocci-prod` | no |
-| `staging` | `/srv/rocci-staging` | `8081` | `rocci-staging` | yes |
+| `production` | `/srv/rocci/prod` | `8080` | `rocci-prod` | no |
+| `staging` | `/srv/rocci/staging` | `8081` | `rocci-staging` | yes |
 
 Each root:
 
@@ -30,7 +30,7 @@ Each root:
 Image tags are `rocci-islands:prod` / `:staging` (not a shared `:local`) so a
 staging rebuild cannot retag production. `ROCCI_DIST` and
 `ROCCI_ISLANDS_CONTEXT` must be absolute. Copy [`env.example`](env.example) to
-`/srv/rocci/.env` or `/srv/rocci-staging/.env` if you invoke Compose by hand.
+`/srv/rocci/prod/.env` or `/srv/rocci/staging/.env` if you invoke Compose by hand.
 
 ## Bootstrap (once)
 
@@ -48,13 +48,16 @@ sudo vi /home/deploy/.ssh/authorized_keys
 sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
 sudo chmod 600 /home/deploy/.ssh/authorized_keys
 
-sudo install -d -o deploy -g deploy -m 0750 \
-  /srv/rocci/docker \
-  /srv/rocci/incoming \
-  /srv/rocci/releases \
-  /srv/rocci-staging/docker \
-  /srv/rocci-staging/incoming \
-  /srv/rocci-staging/releases
+sudo install -d -o deploy -g deploy -m 0750 /srv/rocci
+sudo -iu deploy install -d -m 0750 \
+  /srv/rocci/prod/docker \
+  /srv/rocci/prod/incoming \
+  /srv/rocci/prod/releases \
+  /srv/rocci/prod/tools \
+  /srv/rocci/staging/docker \
+  /srv/rocci/staging/incoming \
+  /srv/rocci/staging/releases \
+  /srv/rocci/staging/tools
 sudo usermod -aG docker deploy
 ```
 
@@ -103,10 +106,11 @@ DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy \
 ```
 
 The origin needs Python 3.12 and `uv` on `PATH`. Bootstrap copies the root
-`pyproject.toml` / `uv.lock` plus `tools/rocci-ops` to `/srv/rocci`. Default
-remote docker dir is `/srv/rocci/docker`. The `deploy`
-user must write `/srv/rocci/{incoming,releases,current}` and call `docker compose`
-without sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
+`pyproject.toml` / `uv.lock` plus `tools/rocci-ops` into the lane root
+(`/srv/rocci/prod` or `/srv/rocci/staging`). Default remote docker dir is
+`$ROCCI_ORIGIN_ROOT/docker`. The `deploy` user must own `/srv/rocci` so it
+can create both lane trees, write `{incoming,releases,current}`, and call
+`docker compose` without sudo. Provider firewall should keep 22 and 80/443 closed; CI SSHs through
 Cloudflare Access (`ssh.rocci.dev`). From a laptop with Access, export
 `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, and `CF_SSH_HOSTNAME=ssh.rocci.dev`
 so `scp`/`ssh` use
@@ -250,8 +254,8 @@ or equals `/health`. Hashed `/assets/` already send
 ## SQLite backup
 
 ```sh
-cd /srv/rocci && sudo uv run --no-dev rocci-ops origin backup /var/backups/rocci
-cd /srv/rocci-staging && sudo ROCCI_LANE=staging uv run --no-dev rocci-ops origin backup /var/backups/rocci-staging
+cd /srv/rocci/prod && sudo uv run --no-dev rocci-ops origin backup /var/backups/rocci
+cd /srv/rocci/staging && sudo ROCCI_LANE=staging uv run --no-dev rocci-ops origin backup /var/backups/rocci-staging
 ```
 
 That copies `site.db` out of `<project>_islands-db`. Restore by
@@ -260,10 +264,14 @@ stopping the islands service, copying the file back onto
 
 ## First cutover (existing shared origin)
 
-1. Create `/srv/rocci-staging/{docker,incoming,releases}` as `deploy` (see
-   Bootstrap).
-2. Promote `staging` so `site.yml` publishes to `:8081`. Leave Cloudflare on
-   `:8080` until that stack is healthy.
+1. `deploy` must own `/srv/rocci`. Create `/srv/rocci/prod` and
+   `/srv/rocci/staging`. If the current origin still lives as siblings of
+   those dirs (`current`, `releases`, `incoming`, `docker`, `tools` under
+   `/srv/rocci`), move them into `prod/` before the next production
+   publish. Remove an unused `/srv/rocci-staging` leftover if you created
+   one. See Bootstrap.
+2. Promote `staging` so `site.yml` publishes to `/srv/rocci/staging` on
+   `:8081`. Leave Cloudflare on `:8080` until that stack is healthy.
 3. Retarget staging Tunnel hostnames to `http://127.0.0.1:8081`.
 4. Promote `production` so `:8080` republishes without live-example
    containers. Keep `rocci-prod_islands-db`. Leave
