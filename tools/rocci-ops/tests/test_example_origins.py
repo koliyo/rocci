@@ -43,42 +43,53 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
         "datastar.examples.rocci.dev",
         "datastar.examples.staging.rocci.dev",
         "datastar.examples.localhost",
+        "snake-example.rocci.dev",
+        "snake-example-staging.rocci.dev",
+        "snake.examples.rocci.dev",
+        "snake.examples.staging.rocci.dev",
+        "snake.examples.localhost",
     ):
         assert host in snippet
         assert host in examples
         assert host not in hybrid
     live_at = snippet.find("@live-counter host")
     datastar_at = snippet.find("@datastar host")
+    snake_at = snippet.find("@snake host")
     play_live_at = snippet.find("handle_path /play/live-counter")
     play_datastar_at = snippet.find("handle_path /play/datastar")
+    play_snake_at = snippet.find("handle_path /play/snake")
     import_at = hybrid.find("import examples.caddy")
     actions_at = hybrid.find("handle /actions/*")
     sse_at = hybrid.find("handle /sse")
     assert 0 <= live_at < play_live_at
     assert 0 <= datastar_at < play_datastar_at
+    assert 0 <= snake_at < play_snake_at
     assert 0 <= import_at < actions_at < sse_at
     assert "reverse_proxy live-counter:8000" in snippet
     assert "reverse_proxy datastar:8000" in snippet
+    assert "reverse_proxy snake:8000" in snippet
     live_handle = snippet[play_live_at : snippet.find("}", play_live_at) + 1]
     assert "reverse_proxy live-counter:8000" in live_handle
     assert "redir /play/live-counter /play/live-counter/" in snippet
     assert "redir /play/datastar /play/datastar/" in snippet
+    assert "redir /play/snake /play/snake/" in snippet
     actions = _actions_handle_block(hybrid)
     assert "reverse_proxy islands:8001" in actions
     assert "live-counter:8000" not in actions
     assert "datastar:8000" not in actions
+    assert "snake:8000" not in actions
     assert "examples.stub.caddy:/etc/caddy/examples.caddy" in hybrid_compose
     assert "examples.caddy:/etc/caddy/examples.caddy" in origin
     assert "datastar:" in compose
     assert "live-counter:" in compose
+    assert "snake:" in compose
     assert "edge:" in compose
-    assert "snake" not in compose
     assert "datastar:" in origin
     assert "live-counter:" in origin
+    assert "snake:" in origin
     assert "edge:" not in origin
-    assert "snake" not in origin
     assert "edge:" not in hybrid_compose
-    assert "snake" not in hybrid_compose
+    assert "snake:" not in hybrid_compose
     readme = (root / "docker/README.md").read_text(encoding="utf-8")
     assert "Do **not** run that edge on the VPS" in readme
     workflow = (root / ".github/workflows/site.yml").read_text(encoding="utf-8")
@@ -91,6 +102,7 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "*.examples.staging.rocci.dev" in ingress
     assert "live-counter-example-staging.rocci.dev" in ingress
     assert "datastar-example-staging.rocci.dev" in ingress
+    assert "snake-example-staging.rocci.dev" in ingress
     assert "127.0.0.1:8081" in ingress
     assert "hostname: rocci.dev" in ingress
     assert "127.0.0.1:8080" in ingress

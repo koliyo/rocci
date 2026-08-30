@@ -224,6 +224,7 @@ Do not open provider firewall 80/443.
 | `staging.rocci.dev` | `http://127.0.0.1:8081` |
 | `live-counter-example-staging.rocci.dev` | `http://127.0.0.1:8081` |
 | `datastar-example-staging.rocci.dev` | `http://127.0.0.1:8081` |
+| `snake-example-staging.rocci.dev` | `http://127.0.0.1:8081` |
 | `*.examples.staging.rocci.dev` | `http://127.0.0.1:8081` |
 
 Do not publish `<id>-example.rocci.dev` or `*.examples.rocci.dev` until
@@ -244,8 +245,9 @@ request that does not match a policy.
 3. **Service Auth** for the GitHub deployment token (CI smoke without SSH).
 4. Tunnel published application `staging.rocci.dev` →
    `http://127.0.0.1:8081`, attach Access.
-5. Repeat Access for `live-counter-example-staging.rocci.dev` and
-   `datastar-example-staging.rocci.dev`. Optional later:
+5. Repeat Access for `live-counter-example-staging.rocci.dev`,
+   `datastar-example-staging.rocci.dev`, and
+   `snake-example-staging.rocci.dev`. Optional later:
    `*.examples.staging.rocci.dev` if ACM is on.
 
 Keep Access on whenever the hostname is enabled. Signed-out browser:
@@ -302,8 +304,9 @@ Then:
 2. Retarget Tunnel staging hostnames to `:8081`. Smoke through Access.
 3. `uv run rocci-ops promote production` — republishes `/srv/rocci/prod`
    on `:8080` without live-example containers. Keep
-   `rocci-prod_islands-db`. Leave `rocci-prod_live-counter-db` /
-   `rocci-prod_datastar-db` until staging smoke is done; then prune if
+   `rocci-prod_islands-db`. Leave    `rocci-prod_live-counter-db` /
+   `rocci-prod_datastar-db` / `rocci-prod_snake-db` until staging smoke is
+   done; then prune if
    unused.
 
 ## Origin smoke (on the VPS)
@@ -320,8 +323,10 @@ Staging (`:8081`):
 curl -sf http://127.0.0.1:8081/health
 curl -sf http://127.0.0.1:8081/play/live-counter/health
 curl -sf http://127.0.0.1:8081/play/datastar/health
+curl -sf http://127.0.0.1:8081/play/snake/health
 curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8081/health
 curl -sf -H 'Host: datastar-example-staging.rocci.dev' http://127.0.0.1:8081/health
+curl -sf -H 'Host: snake-example-staging.rocci.dev' http://127.0.0.1:8081/health
 curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8081/health
 curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8081/health
 curl -sf -H 'Host: staging.rocci.dev' \

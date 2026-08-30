@@ -141,9 +141,9 @@ fn repo_catalog_live_ids_exclude_docs_only() {
         .iter()
         .map(|app| app.id.as_str())
         .collect();
-    assert_eq!(ids, ["live-counter", "datastar"]);
+    assert_eq!(ids, ["live-counter", "datastar", "snake"]);
     assert!(!ids.contains(&"counter"));
-    assert!(!ids.contains(&"snake"));
+    assert!(!ids.contains(&"blocks"));
 }
 
 #[test]

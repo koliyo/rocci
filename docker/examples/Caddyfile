@@ -16,4 +16,11 @@ http:// {
 			flush_interval -1
 		}
 	}
+
+	@snake host snake-example.rocci.dev snake-example-staging.rocci.dev snake.examples.rocci.dev snake.examples.staging.rocci.dev snake.examples.localhost
+	handle @snake {
+		reverse_proxy snake:8000 {
+			flush_interval -1
+		}
+	}
 }
